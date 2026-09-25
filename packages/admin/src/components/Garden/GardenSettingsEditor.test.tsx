@@ -320,6 +320,30 @@ describe("GardenSettingsEditor explicit save", () => {
     expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
   });
 
+  it("starts over when the editor is handed another garden", async () => {
+    const user = userEvent.setup();
+    const view = renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Renamed Garden");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(await screen.findByText("All changes saved")).toBeInTheDocument();
+
+    // The same editor now shows another garden: nothing from the first carries over.
+    view.rerender(
+      <EditorHarness
+        overrides={{
+          gardenAddress: "0x0000000000000000000000000000000000000b0b",
+          garden: { ...GARDEN, name: "Second Garden" },
+        }}
+      />
+    );
+
+    expect(screen.getByLabelText(/Name/, { selector: "input" })).toHaveValue("Second Garden");
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
+  });
+
   it("shows a change a Safe must still execute as sent, not confirmed, and does not send it again", async () => {
     const user = userEvent.setup();
     // Safe-style wallets return a proposal identifier, not a transaction hash.

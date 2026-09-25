@@ -159,6 +159,7 @@ export const GardenSettingsEditor = forwardRef<
   // whenever the steward has no pending edits — never clobber a dirty draft,
   // and never a landed value the refresh has yet to report.
   const gardenSnapshot = JSON.stringify([
+    gardenAddress,
     garden.name,
     garden.description,
     garden.location,
@@ -168,6 +169,7 @@ export const GardenSettingsEditor = forwardRef<
     garden.maxGardeners ?? 0,
   ]);
   const lastSnapshotRef = useRef(gardenSnapshot);
+  const lastGardenAddressRef = useRef(gardenAddress);
 
   // Plain per-render computation — compares against what the chain holds.
   const dirtyFields = dirtyFieldsOf(draft, garden, landed);
@@ -176,6 +178,15 @@ export const GardenSettingsEditor = forwardRef<
   useEffect(() => {
     if (lastSnapshotRef.current === gardenSnapshot) return;
     lastSnapshotRef.current = gardenSnapshot;
+    // Another garden starts over: its draft, landed values, and save run are
+    // not this one's.
+    if (lastGardenAddressRef.current !== gardenAddress) {
+      lastGardenAddressRef.current = gardenAddress;
+      setDraft(draftFromGarden(garden));
+      setLanded({});
+      setRun(null);
+      return;
+    }
     setLanded((current) => withoutReportedValues(current, garden));
     if (!isDirty && !isSaving) {
       setDraft((current) => adoptRefreshedGarden(current, garden, landed));
@@ -183,7 +194,7 @@ export const GardenSettingsEditor = forwardRef<
     // The snapshot-equality guard above is the real trigger; isDirty/isSaving/
     // garden/landed are listed so the guard always reads current values (no
     // stale closure) and the effect needs no exhaustive-deps suppression.
-  }, [gardenSnapshot, isDirty, isSaving, garden, landed]);
+  }, [gardenSnapshot, gardenAddress, isDirty, isSaving, garden, landed]);
 
   const canEditProfile = canManage;
   const canEditName = isOwner;
