@@ -206,7 +206,7 @@ export function resolveGardenWorkRows({
     return {
       ...work,
       status: resolveWorkStatus(indexedStatus, reference, now),
-      ...reviewTimeOf(remoteRow, reference),
+      ...reviewOf(remoteRow, reference),
       ...carryOverlayMarkers(reference, indexedStatus, now),
     };
   });
@@ -214,16 +214,20 @@ export function resolveGardenWorkRows({
 }
 
 /**
- * When the decision a row shows was indexed: the indexed approval's time, else
- * the time the row already carried. A decision made on this device has none
- * until the indexer reports it.
+ * The indexed decision a row shows: when it was indexed and the feedback the
+ * gardener reads, else what the row already carried. A decision made on this
+ * device has neither until the indexer reports it.
  */
-function reviewTimeOf(
+function reviewOf(
   row: EASWorkListRow | undefined,
   reference: OverlayWork
-): Pick<OverlayWork, "reviewedAt"> {
+): Pick<OverlayWork, "reviewedAt" | "reviewFeedback"> {
   const reviewedAt = row?.approval ? row.approval.createdAt : reference.reviewedAt;
-  return typeof reviewedAt === "number" && reviewedAt > 0 ? { reviewedAt } : {};
+  const reviewFeedback = row?.approval ? row.approval.feedback?.trim() : reference.reviewFeedback;
+  return {
+    ...(typeof reviewedAt === "number" && reviewedAt > 0 ? { reviewedAt } : {}),
+    ...(reviewFeedback ? { reviewFeedback } : {}),
+  };
 }
 
 /**

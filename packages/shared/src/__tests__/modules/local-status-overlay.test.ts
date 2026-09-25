@@ -171,7 +171,7 @@ describe("local-status-overlay", () => {
   describe("resolveGardenWorkRows", () => {
     function row(
       id: string,
-      approval?: { approved: boolean; createdAt?: number } | null
+      approval?: { approved: boolean; createdAt?: number; feedback?: string } | null
     ): EASWorkListRow {
       const base = {
         id,
@@ -269,6 +269,20 @@ describe("local-status-overlay", () => {
         "decided-here": undefined,
         "left-out": 1_699_999_000,
       });
+    });
+
+    it("carries the indexed decision's feedback, so a rejection keeps its reason", () => {
+      const { rows } = resolveGardenWorkRows({
+        remote: [
+          row("rejected", { approved: false, createdAt: 1_700_000_500, feedback: "Wrong site " }),
+          row("approved-quietly", { approved: true, createdAt: 1_700_000_600, feedback: "" }),
+        ],
+        saved: undefined,
+        overlay: undefined,
+        now: NOW,
+      });
+      const feedback = Object.fromEntries(rows.map((work) => [work.id, work.reviewFeedback]));
+      expect(feedback).toEqual({ rejected: "Wrong site", "approved-quietly": undefined });
     });
 
     it("shows only saved rows before the first read, and skips work that exists only on this device", () => {

@@ -3301,6 +3301,7 @@
   "app.work.detail.reviewTitle": "Review Work",
   "app.work.detail.selectAllThatApply": "select all that apply",
   "app.work.detail.statusLabel": "Status",
+  "app.work.detail.reviewFeedback": "Feedback to the gardener",
   "app.work.detail.submissionDetails": "Submission Details",
   "app.work.detail.submitted": "Submitted",
   "app.work.detail.title": "Work Detail",

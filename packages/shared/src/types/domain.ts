@@ -419,6 +419,8 @@ export interface Work extends WorkCard {
    * decision only this device knows about yet.
    */
   reviewedAt?: number;
+  /** The feedback the indexed review gave the gardener, such as a rejection's reason. */
+  reviewFeedback?: string;
 }
 
 /**
