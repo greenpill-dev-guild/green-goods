@@ -221,15 +221,16 @@ export function useCreateAssessmentController() {
     };
   }, [loadDraft, setField]);
 
-  const buildWorkflowPayload = useCallback(
+  // The form as the workflow reads it. A draft saves before a domain is chosen;
+  // a submission never goes without one (buildWorkflowPayload).
+  const toAssessmentPayload = useCallback(
     (formData: CreateAssessmentFormData): WorkflowAssessmentForm | null => {
-      // Validation requires a domain; a missing one is never sent as "domain-null".
-      if (!gardenId || !isAddress(gardenId) || formData.domain === null) return null;
+      if (!gardenId || !isAddress(gardenId)) return null;
 
       return {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        assessmentType: `domain-${formData.domain}`,
+        assessmentType: formData.domain === null ? "" : `domain-${formData.domain}`,
         capitals: [],
         metrics: {
           diagnosis: formData.diagnosis,
@@ -252,12 +253,19 @@ export function useCreateAssessmentController() {
     [gardenId]
   );
 
+  const buildWorkflowPayload = useCallback(
+    (formData: CreateAssessmentFormData): WorkflowAssessmentForm | null =>
+      // Validation requires a domain; a missing one is never sent as "domain-null".
+      formData.domain === null ? null : toAssessmentPayload(formData),
+    [toAssessmentPayload]
+  );
+
   const prevFormRef = useRef(form);
   useEffect(() => {
     if (prevFormRef.current === form) return;
     prevFormRef.current = form;
 
-    const payload = buildWorkflowPayload(form);
+    const payload = toAssessmentPayload(form);
     if (!payload) return;
 
     const timeoutId = setTimeout(() => {
@@ -287,7 +295,7 @@ export function useCreateAssessmentController() {
     }, 600);
 
     return () => clearTimeout(timeoutId);
-  }, [form, buildWorkflowPayload, saveDraft, draftKey, formatMessage]);
+  }, [form, toAssessmentPayload, saveDraft, draftKey, formatMessage]);
 
   const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");

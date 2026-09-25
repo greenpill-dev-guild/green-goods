@@ -3,16 +3,20 @@
  */
 
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
-import type { Domain } from "@green-goods/shared/types/domain";
+import { Domain } from "@green-goods/shared/types/domain";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it } from "vitest";
 import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps/DomainContextStep";
 
-function renderDomainStep(showValidation: boolean) {
+function renderDomainStep(showValidation: boolean, gardenDomainMask?: number) {
   render(
     <IntlProvider locale="en" messages={{}} onError={() => {}}>
-      <DomainContextStep showValidation={showValidation} isSubmitting={false} />
+      <DomainContextStep
+        showValidation={showValidation}
+        isSubmitting={false}
+        gardenDomainMask={gardenDomainMask}
+      />
     </IntlProvider>
   );
 }
@@ -43,6 +47,24 @@ describe("DomainContextStep", () => {
     expect(
       screen.getAllByRole("radio").every((radio) => !(radio as HTMLInputElement).checked)
     ).toBe(true);
+    expect(screen.getAllByRole("alert").map((alert) => alert.textContent)).toContain(
+      "Choose a domain"
+    );
+  });
+
+  it("leaves a single-domain garden's domain for the steward to choose", () => {
+    renderDomainStep(false, 1 << Domain.AGRO);
+
+    expect(screen.getAllByRole("radio")).toHaveLength(1);
+    expect(screen.getByRole("radio")).not.toBeChecked();
+    expect(useCreateAssessmentStore.getState().form.domain).toBeNull();
+  });
+
+  it("clears a restored domain the garden does not document", () => {
+    useCreateAssessmentStore.getState().setField("domain", Domain.SOLAR);
+    renderDomainStep(true, 1 << Domain.AGRO);
+
+    expect(useCreateAssessmentStore.getState().form.domain).toBeNull();
     expect(screen.getAllByRole("alert").map((alert) => alert.textContent)).toContain(
       "Choose a domain"
     );

@@ -25,7 +25,8 @@ interface DomainContextStepProps {
 /**
  * Step 1: Domain & Context
  * Domain selector (from garden domain bitmask) + title, description, location.
- * Auto-selects domain when garden mask has exactly 1 domain.
+ * Nothing is preselected, even for a garden with one domain: the steward
+ * chooses it, as DL-047 asks.
  */
 export function DomainContextStep({
   showValidation,
@@ -47,16 +48,20 @@ export function DomainContextStep({
   );
 
   // Null until the steward chooses (DL-047), and for a restored draft's domain
-  // that no longer exists. Placeholders and examples follow a known domain;
-  // before one is chosen the fields show neutral text.
-  const selectedDomain = knownDomain(form.domain);
+  // that no longer exists or that this garden does not document. Placeholders
+  // and examples follow a known domain; before one is chosen the fields show
+  // neutral text.
+  const restoredDomain = knownDomain(form.domain);
+  const selectedDomain =
+    restoredDomain !== null && availableDomains.includes(restoredDomain) ? restoredDomain : null;
 
-  // Auto-select domain when garden mask has exactly 1 domain
+  // A restored domain this garden does not document is cleared, so the step
+  // asks for a domain instead of carrying one the steward cannot see.
   useEffect(() => {
-    if (availableDomains.length === 1 && selectedDomain !== availableDomains[0]) {
-      setField("domain", availableDomains[0]);
+    if (form.domain !== null && !availableDomains.includes(form.domain)) {
+      setField("domain", null);
     }
-  }, [availableDomains, selectedDomain, setField]);
+  }, [availableDomains, form.domain, setField]);
 
   const handleDomainChange = (domain: Domain) => {
     if (isSubmitting) return;
