@@ -267,6 +267,35 @@ describe("GardenSettingsEditor explicit save", () => {
     });
   });
 
+  it("sends a landed field again when the steward reverts it before the garden refreshes", async () => {
+    const user = userEvent.setup();
+    mockUpdateDescription.mockRejectedValueOnce(new Error("User rejected the request"));
+    renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Renamed Garden");
+    const descriptionInput = screen.getByLabelText("Description");
+    await user.clear(descriptionInput);
+    await user.type(descriptionInput, "Restoring the river bank.");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(
+      await screen.findByText(
+        "Stopped at Description. 1 of 2 saved. Your other edits are still here."
+      )
+    ).toBeInTheDocument();
+
+    // The rename landed, but the garden still reads the old name. Putting the
+    // old name back is a change the chain has not seen, so Try Again sends it.
+    await user.clear(nameInput);
+    await user.type(nameInput, GARDEN.name);
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+
+    expect(await screen.findByText("All changes saved")).toBeInTheDocument();
+    expect(mockUpdateName).toHaveBeenCalledTimes(2);
+    expect(mockUpdateName).toHaveBeenLastCalledWith({ gardenAddress, value: GARDEN.name });
+  });
+
   it("shows a change a Safe must still execute as sent, not confirmed, and does not send it again", async () => {
     const user = userEvent.setup();
     // Safe-style wallets return a proposal identifier, not a transaction hash.

@@ -97,34 +97,43 @@ export function effectiveMaxGardeners(draft: SettingsDraft): number {
   return draft.limitGardeners ? Number(draft.maxGardeners) : 0;
 }
 
-function sameDomains(a: Domain[], b: Domain[]): boolean {
-  return a.length === b.length && a.every((domain) => b.includes(domain));
-}
-
-/** The fields whose draft differs from the saved garden, in save order. */
-export function dirtyFieldsOf(
-  draft: SettingsDraft,
-  garden: GardenSettingsValues
-): GardenSettingsField[] {
-  const saved = draftFromGarden(garden);
-  const differs: Record<GardenSettingsField, boolean> = {
-    name: draft.name.trim() !== saved.name,
-    description: draft.description.trim() !== saved.description,
-    location: draft.location.trim() !== saved.location,
-    openJoining: draft.openJoining !== saved.openJoining,
-    maxGardeners: effectiveMaxGardeners(draft) !== Number(garden.maxGardeners ?? 0),
-    domains: !sameDomains(draft.domains, saved.domains),
-    banner: Boolean(draft.bannerFile || draft.bannerRemoved),
-  };
-  return GARDEN_SETTINGS_FIELDS.filter((field) => differs[field]);
-}
+/**
+ * What each field landed with this session and the refreshed garden has yet to
+ * report, as `fieldValueKey` text. The banner needs no memory: its draft
+ * clears once it saves.
+ */
+export type LandedValues = Partial<Record<Exclude<GardenSettingsField, "banner">, string>>;
 
 /**
- * What a field writes, as text. A save remembers the value each field landed
- * with, so Try Again skips a field whose draft still holds it, even before the
- * refreshed garden reports it. The banner needs no memory: its draft clears
- * once it saves.
+ * The fields whose draft differs from what the chain holds, in save order. A
+ * value that landed this session stands in for the garden until the garden
+ * reports it, so a landed field is not sent twice, and putting back the value
+ * it replaced is still a change to send.
  */
+export function dirtyFieldsOf(
+  draft: SettingsDraft,
+  garden: GardenSettingsValues,
+  landed: LandedValues = {}
+): GardenSettingsField[] {
+  const saved = draftFromGarden(garden);
+  return GARDEN_SETTINGS_FIELDS.filter((field) => {
+    if (field === "banner") return Boolean(draft.bannerFile || draft.bannerRemoved);
+    return fieldValueKey(draft, field) !== (landed[field] ?? fieldValueKey(saved, field));
+  });
+}
+
+/** Forgets each landed value the refreshed garden now reports. */
+export function withoutReportedValues(
+  landed: LandedValues,
+  garden: GardenSettingsValues
+): LandedValues {
+  const saved = draftFromGarden(garden);
+  const entries = Object.entries(landed) as Array<[keyof LandedValues, string]>;
+  const pending = entries.filter(([field, value]) => fieldValueKey(saved, field) !== value);
+  return pending.length === entries.length ? landed : Object.fromEntries(pending);
+}
+
+/** What a field writes, as text: the form `LandedValues` remembers it in. */
 export function fieldValueKey(
   draft: SettingsDraft,
   field: Exclude<GardenSettingsField, "banner">

@@ -35,7 +35,9 @@ import {
   fieldValueKey,
   type GardenSettingsField,
   type GardenSettingsValues,
+  type LandedValues,
   type SettingsDraft,
+  withoutReportedValues,
 } from "./gardenSettingsDraft";
 import type {
   GardenSettingsFieldProgress,
@@ -135,9 +137,9 @@ export const GardenSettingsEditor = forwardRef<
   const [draft, setDraft] = useState<SettingsDraft>(() => draftFromGarden(garden));
   const [isSaving, setIsSaving] = useState(false);
   const [run, setRun] = useState<GardenSettingsSaveRun | null>(null);
-  // What each field landed with this session, so Try Again never sends it twice
-  // while the refreshed garden has yet to report it.
-  const [landed, setLanded] = useState<Partial<Record<GardenSettingsField, string>>>({});
+  // What each field landed with this session: its baseline until the
+  // refreshed garden reports it (see dirtyFieldsOf).
+  const [landed, setLanded] = useState<LandedValues>({});
 
   // Local preview for a freshly selected banner file. Revoked on change and
   // unmount so draft previews never leak object URLs.
@@ -165,18 +167,14 @@ export const GardenSettingsEditor = forwardRef<
   ]);
   const lastSnapshotRef = useRef(gardenSnapshot);
 
-  // Plain per-render computation — compares against the saved values.
-  const dirtyFields = dirtyFieldsOf(draft, garden);
+  // Plain per-render computation — compares against what the chain holds.
+  const dirtyFields = dirtyFieldsOf(draft, garden, landed);
   const isDirty = dirtyFields.length > 0;
-  // What Save still sends: a field that landed this session and still holds
-  // that value waits for the refreshed garden instead of being written again.
-  const pendingFields = dirtyFields.filter(
-    (field) => field === "banner" || landed[field] !== fieldValueKey(draft, field)
-  );
 
   useEffect(() => {
     if (lastSnapshotRef.current === gardenSnapshot) return;
     lastSnapshotRef.current = gardenSnapshot;
+    setLanded((current) => withoutReportedValues(current, garden));
     if (!isDirty && !isSaving) {
       setDraft(draftFromGarden(garden));
     }
@@ -219,7 +217,7 @@ export const GardenSettingsEditor = forwardRef<
     });
   }, [bannerIsDraft, bannerStagedRemoval, canRemoveBanner, onBannerPreviewChange, previewSrc]);
 
-  const dirtyCount = pendingFields.length;
+  const dirtyCount = dirtyFields.length;
 
   useEffect(() => {
     onDirtyStateChange?.({
@@ -273,11 +271,11 @@ export const GardenSettingsEditor = forwardRef<
   };
 
   const handleSave = async () => {
-    if (pendingFields.length === 0 || hasValidationError || isSaving) return;
+    if (dirtyFields.length === 0 || hasValidationError || isSaving) return;
 
     // The run writes the draft as it stands now; fields are locked until it ends.
     const values = draft;
-    const fields = pendingFields;
+    const fields = dirtyFields;
     const progress: Partial<Record<GardenSettingsField, GardenSettingsFieldProgress>> = {};
     const report = (status: GardenSettingsSaveRun["status"]) =>
       setRun({ status, fields, progress: { ...progress } });
