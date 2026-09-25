@@ -58,20 +58,32 @@ Mock-auth localhost (`?mockAuth=deployer`, admin dev server with
 `VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/e6edffd/v1/graphql`): `/actions` shows the
 registry with capital names, and an action's detail opens. Label the engine and session in the PR.
 
+Recorded 2026-09-25 (engine: Claude Browser pane, Chromium; session: mock-auth localhost,
+`?mockAuth=deployer`, admin dev server on port 3013 reading the hosted indexer `e6edffd`, with
+`VITE_DEV_CHAIN_MODE=arbitrum_fork` and `VITE_LOCAL_FORK_RPC_URL=https://arb1.arbitrum.io/rpc` so
+the deployer check can read Arbitrum without an Alchemy key): the indexer answered
+`capitals: ["MATERIAL", "SOCIAL", "EXPERIENTIAL"]` for Repair Event; `/actions` listed 23 actions
+with named capitals ("Material · Social · Experiential") and no route error; the Repair Event
+detail dialog opened with Material, Social, and Experiential chips.
+
 ## TDD Proof
 
-- RED: pending
-- GREEN: pending
-- Proof limit: none recorded
+- RED: `bun run --filter @green-goods/shared test -- src/__tests__/modules/greengoods.module.test.ts`
+  on 768bb0b0c plus the new tests → 7 failed | 14 passed: the six table rows failed because
+  `parseIndexerCapital` did not exist, and `getActions` returned
+  `["MATERIAL", "UNKNOWN", "SOCIAL"]` unparsed where `[1, 0]` was expected.
+- GREEN: the same command on d0040ec53 → 22 passed (the table gained a `"toString"` row, which
+  guards the enum lookup against prototype keys).
+- Proof limit: none
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
+- Tested implementation commit SHA: `d0040ec53cfa161562588dc566a28448ab5fcb6c`
+- Run at (UTC): `2026-09-25T06:40:38Z`
+- Exact command(s): `bun run --filter @green-goods/shared test -- src/__tests__/modules/greengoods.module.test.ts`; `bun run --filter @green-goods/shared typecheck`; `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:src/__tests__/modules/greengoods.module.test.ts`
+- Result: 22 passed (1 file); shared typecheck exit 0; push gate "Selected validation plan passed" (format, lint, shared-test, source-structure, ontology, agent-guidance)
+- Validated paths: `packages/shared/src/modules/data/greengoods.ts`, `packages/shared/src/__tests__/modules/greengoods.module.test.ts`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src/modules/data/greengoods.ts packages/shared/src/__tests__/modules/greengoods.module.test.ts` → empty
 - Evidence-only diff command and result (if applicable): not applicable
 - Evidence-only worktree-status command and result (if applicable): not applicable
 

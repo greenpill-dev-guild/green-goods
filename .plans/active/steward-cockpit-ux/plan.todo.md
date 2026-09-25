@@ -50,8 +50,8 @@ carries this hub as its first commit.
 
 ### PR1 — Actions crash
 
-- [ ] RED table test for capital parsing, then the fix
-- [ ] Rendered `/actions` proof
+- [x] RED table test for capital parsing, then the fix
+- [x] Rendered `/actions` proof
 - [ ] PR opened, CI green, bot reviews resolved, merged
 - [ ] Sub-lane and Linear child updated
 
