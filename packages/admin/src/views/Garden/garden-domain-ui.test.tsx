@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { IntlProvider } from "react-intl";
@@ -7,6 +7,7 @@ import { MemoryRouter, Route, RouterProvider, Routes, createMemoryRouter } from 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGardenWorkspaceController } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
 import enMessages from "@green-goods/shared/i18n/en";
+import type { GardenSettingsFormState } from "@/components/Garden/GardenSettingsEditor";
 import { GardenWorkspaceContent } from "./components/GardenWorkspaceContent";
 import { SubmitWorkPanel } from "./SubmitWork";
 
@@ -19,7 +20,9 @@ const { mockCanManageGarden, settingsEditorProbe } = vi.hoisted(() => ({
   settingsEditorProbe: {
     reportDirtyState: undefined as
       | undefined
-      | ((state: { isDirty: boolean; isSaving: boolean }) => void),
+      | ((
+          state: Partial<GardenSettingsFormState> & { isDirty: boolean; isSaving: boolean }
+        ) => void),
   },
 }));
 
@@ -205,7 +208,8 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenDetailData", () => ({
     assessmentsError: null,
     community: null,
     gardenVaults: [],
-    vaultNetDeposited: 0n,
+    endowmentByAsset: [],
+    hasEndowment: false,
     allocations: [],
     works: [],
     hypercerts: [],
@@ -273,7 +277,7 @@ vi.mock("@green-goods/shared/stores/useGardenStateStore", () => ({
 
 vi.mock("@/components/Garden/GardenSettingsEditor", () => ({
   GardenSettingsEditor: (props: {
-    onDirtyStateChange?: (state: { isDirty: boolean; isSaving: boolean }) => void;
+    onDirtyStateChange?: typeof settingsEditorProbe.reportDirtyState;
   }) => {
     settingsEditorProbe.reportDirtyState = props.onDirtyStateChange;
     return <div data-testid="garden-settings-editor" />;
@@ -332,7 +336,7 @@ describe("garden domain recovery UI", () => {
 
     renderWorkspaceAtSettings();
 
-    expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Edit Garden" })).toBeVisible();
 
     await user.keyboard("{Escape}");
 
@@ -352,7 +356,7 @@ describe("garden domain recovery UI", () => {
 
     await user.click(screen.getByRole("button", { name: "Keep Editing" }));
 
-    expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Edit Garden" })).toBeVisible();
     expect(screen.queryByText("Health route")).not.toBeInTheDocument();
   });
 
@@ -376,8 +380,83 @@ describe("garden domain recovery UI", () => {
 
     await user.keyboard("{Escape}");
 
-    expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Edit Garden" })).toBeVisible();
     expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
+  });
+
+  it("says how many wallet confirmations a save takes, then shows each write and where it stopped", () => {
+    renderWorkspaceAtSettings();
+    // Named for the action that opens it, with no description under the title (D8).
+    expect(
+      screen.queryByText("Update settings, metadata, and on-chain identifiers")
+    ).not.toBeInTheDocument();
+
+    const editing = { isSaving: false, hasValidationError: false, canEdit: true };
+    act(() =>
+      settingsEditorProbe.reportDirtyState?.({
+        ...editing,
+        isDirty: true,
+        dirtyCount: 3,
+        run: null,
+      })
+    );
+    expect(screen.getByText("3 changes · 3 wallet confirmations")).toBeVisible();
+
+    act(() =>
+      settingsEditorProbe.reportDirtyState?.({
+        ...editing,
+        isDirty: true,
+        dirtyCount: 2,
+        run: {
+          status: "stopped",
+          fields: ["name", "description", "location"],
+          progress: {
+            name: { state: "saved", hash: "0xabc" },
+            description: { state: "failed", hash: null },
+            location: { state: "queued", hash: null },
+          },
+        },
+      })
+    );
+
+    expect(
+      screen.getByText("Stopped at Description. 1 of 3 saved. Your other edits are still here.")
+    ).toBeVisible();
+    const rows = within(screen.getByTestId("garden-settings-save")).getAllByRole("listitem");
+    expect(rows.map((row) => row.getAttribute("data-status"))).toEqual([
+      "saved",
+      "failed",
+      "queued",
+    ]);
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Keep Editing" })).toBeEnabled();
+    // The form waits under the progress, holding the edits Try Again sends.
+    expect(screen.getByTestId("garden-settings-editor").parentElement).toHaveClass("hidden");
+  });
+
+  it("ends a finished save on All changes saved, and Done closes the dialog", async () => {
+    const user = userEvent.setup();
+
+    renderWorkspaceAtSettings();
+    act(() =>
+      settingsEditorProbe.reportDirtyState?.({
+        isDirty: false,
+        isSaving: false,
+        hasValidationError: false,
+        canEdit: true,
+        dirtyCount: 0,
+        run: {
+          status: "complete",
+          fields: ["name"],
+          progress: { name: { state: "saved", hash: "0xabc" } },
+        },
+      })
+    );
+
+    expect(screen.getByText("All changes saved")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Done" }));
+
+    expect(await screen.findByText("Health route")).toBeVisible();
   });
 
   it("routes Submit Work's empty domain state back to garden settings", async () => {

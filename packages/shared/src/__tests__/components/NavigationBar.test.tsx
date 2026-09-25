@@ -24,6 +24,7 @@ vi.mock("react-intl", () => ({
         "cockpit.fab.openActions": "Open Actions",
         "actions.submit": "Submit Work",
         "actions.disabled": "Disabled action",
+        "actions.disabledReason": "Nothing to fund yet.",
       };
       return messages[id] ?? id;
     },
@@ -388,7 +389,7 @@ describe("NavigationBar", () => {
     expect(screen.queryByRole("navigation")).toBeNull();
   });
 
-  it("opens multi-action mobile FABs as a launcher and ignores disabled actions", async () => {
+  it("opens multi-action mobile FABs as a launcher and says why an action is disabled", async () => {
     setDesktopViewport(false);
     const onAction = vi.fn();
     const fab: FabConfig = {
@@ -400,6 +401,62 @@ describe("NavigationBar", () => {
           icon: StubIcon,
           label: "Submit Work",
           labelId: "actions.submit",
+        },
+        {
+          id: "disabled-action",
+          icon: StubIcon,
+          label: "Disabled action",
+          labelId: "actions.disabled",
+          disabled: true,
+          disabledReasonId: "actions.disabledReason",
+          disabledReason: "Nothing to fund yet.",
+        },
+      ],
+      onAction,
+    };
+
+    render(
+      <NavigationBar
+        slots={createSlots()}
+        activePath="/dashboard"
+        onNavigate={() => {}}
+        fab={fab}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /open actions/i }));
+
+    expect(screen.getByRole("menu", { name: /actions/i })).toBeInTheDocument();
+    const enabledAction = screen.getByRole("menuitem", { name: /submit work/i });
+    const disabledAction = screen.getByRole("menuitem", { name: /disabled action/i });
+    // Inert but focusable, and it says why, in place and to screen readers.
+    expect(disabledAction).toHaveAttribute("aria-disabled", "true");
+    expect(disabledAction).toHaveAccessibleDescription("Nothing to fund yet.");
+    expect(within(disabledAction).getByText("Nothing to fund yet.")).toBeInTheDocument();
+    expect(enabledAction).toHaveStyle({ maxWidth: "calc(100vw - 2rem)" });
+
+    await user.click(disabledAction);
+    expect(onAction).not.toHaveBeenCalled();
+
+    await user.click(enabledAction);
+    expect(onAction).toHaveBeenCalledWith("submit-work");
+  });
+
+  it("focuses the first action when every action is disabled, and fires none", async () => {
+    setDesktopViewport(false);
+    const onAction = vi.fn();
+    const fab: FabConfig = {
+      icon: StubIcon,
+      label: "Actions",
+      actions: [
+        {
+          id: "submit-work",
+          icon: StubIcon,
+          label: "Submit Work",
+          labelId: "actions.submit",
+          disabled: true,
+          disabledReasonId: "actions.disabledReason",
+          disabledReason: "Nothing to fund yet.",
         },
         {
           id: "disabled-action",
@@ -420,20 +477,50 @@ describe("NavigationBar", () => {
         fab={fab}
       />
     );
-
     await user.click(screen.getByRole("button", { name: /open actions/i }));
 
-    expect(screen.getByRole("menu", { name: /actions/i })).toBeInTheDocument();
-    const enabledAction = screen.getByRole("menuitem", { name: /submit work/i });
-    const disabledAction = screen.getByRole("menuitem", { name: /disabled action/i });
-    expect(disabledAction).toBeDisabled();
-    expect(enabledAction).toHaveStyle({ maxWidth: "calc(100vw - 2rem)" });
-
-    await user.click(disabledAction);
+    const first = screen.getByRole("menuitem", { name: /submit work/i });
+    expect(first).toHaveFocus();
+    // The inert look rides inline style, which no consumer's CSS scan can drop.
+    expect(first).toHaveStyle({ opacity: "0.55" });
+    await user.click(first);
     expect(onAction).not.toHaveBeenCalled();
+  });
 
-    await user.click(enabledAction);
-    expect(onAction).toHaveBeenCalledWith("submit-work");
+  it("keeps a disabled sole action inert and says why", async () => {
+    setDesktopViewport(false);
+    const onAction = vi.fn();
+    const fab: FabConfig = {
+      icon: StubIcon,
+      label: "Actions",
+      actions: [
+        {
+          id: "submit-work",
+          icon: StubIcon,
+          label: "Submit Work",
+          labelId: "actions.submit",
+          disabled: true,
+          disabledReasonId: "actions.disabledReason",
+          disabledReason: "Nothing to fund yet.",
+        },
+      ],
+      onAction,
+    };
+
+    render(
+      <NavigationBar
+        slots={createSlots()}
+        activePath="/dashboard"
+        onNavigate={() => {}}
+        fab={fab}
+      />
+    );
+
+    const sole = screen.getByRole("button", { name: /submit work/i });
+    expect(sole).toHaveAttribute("aria-disabled", "true");
+    expect(sole).toHaveAccessibleDescription("Nothing to fund yet.");
+    await user.click(sole);
+    expect(onAction).not.toHaveBeenCalled();
   });
 
   it("moves focus into the opened FAB launcher and restores it on Escape", async () => {
@@ -475,8 +562,9 @@ describe("NavigationBar", () => {
     const enabledAction = screen.getByRole("menuitem", { name: /submit work/i });
     expect(enabledAction).toHaveFocus();
 
+    // A disabled action stays reachable, so its reason can be read.
     await user.keyboard("{ArrowDown}");
-    expect(enabledAction).toHaveFocus();
+    expect(screen.getByRole("menuitem", { name: /disabled action/i })).toHaveFocus();
 
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("menu", { name: /actions/i })).not.toBeInTheDocument();

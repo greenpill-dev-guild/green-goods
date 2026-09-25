@@ -217,6 +217,28 @@ describe("buildCommunityViewActions — fixed Community header", () => {
     expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
   });
 
+  it("keeps Fund Cookie Jar in place but disabled, with its reason, for a garden with no jar", () => {
+    const navigate = vi.fn();
+    const actions = buildCommunityViewActions(
+      "payouts",
+      true,
+      true,
+      true,
+      navigate,
+      { gardenAddress: GARDEN },
+      false
+    );
+    const fund = actions.find((action) => action.id === "fund-payout-jar");
+
+    // Same position on every tab (D10): visible, disabled, and saying why.
+    expect(visibleIds(actions)).toEqual(["add-member", "deposit-withdraw", "fund-payout-jar"]);
+    expect(fund).toMatchObject({
+      disabled: true,
+      disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+      disabledReason: "This garden has no payout jar yet.",
+    });
+  });
+
   it("gates owner and management actions without duplicating the public link", () => {
     expect(visibleIds(buildFor("endowment", { canManage: false, isOwner: true }))).toEqual([
       "deposit-withdraw",

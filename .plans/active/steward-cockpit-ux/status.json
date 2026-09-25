@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-09-25T05:02:27.261Z",
-    "updated_at": "2026-09-25T08:04:39.702Z"
+    "updated_at": "2026-09-25T13:26:39.143Z"
   },
   "links": {
     "brief": "brief.md",
@@ -58,12 +58,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/admin test -- src/__tests__/components/ReviewForm.test.tsx; bun run --filter @green-goods/shared test -- src/__tests__/components/ConfidenceSelector.test.tsx",
-          "evidence": "PR2: ReviewForm.test.tsx 1 failed (Reject sent at once, no Reject Work dialog); ConfidenceSelector.test.tsx 1 failed (None still offered to a required choice)"
+          "command": "bun run --filter @green-goods/admin test -- src/__tests__/views/GardenVaultView.test.tsx src/__tests__/components/PositionCard.test.tsx src/components/Garden/GardenSettingsEditor.test.tsx src/views/Community/components/CommunityMembersTab.test.tsx src/__tests__/components/Garden/ManageMembersDialog.test.tsx src/__tests__/components/AdminViewActions.test.tsx",
+          "evidence": "PR3: GardenVaultView and PositionCard failed (summed base units; repeated yield explanation); GardenSettingsEditor 2 failed (a declined write left no stop, Try Again re-sent the saved name, no helper on the locked Name); CommunityMembersTab and ManageMembersDialog failed (role seats counted as people); AdminViewActions failed (Fund Cookie Jar had no disabled state or reason)"
         },
         "green": {
-          "command": "bun run --filter @green-goods/admin test -- src/__tests__/components/ReviewForm.test.tsx src/views/Garden/components/OverviewTab.test.tsx src/views/Garden/garden-domain-ui.test.tsx src/__tests__/components/AssessmentStrategyKernelStep.test.tsx src/__tests__/components/AssessmentDomainContextStep.test.tsx",
-          "evidence": "PR2: 23 passed (5 files) at ecfccdda7; the admin suite passed 981 in the critical push gate"
+          "command": "bun run --filter @green-goods/admin test -- src/__tests__/views/GardenVaultView.test.tsx src/__tests__/components/PositionCard.test.tsx src/components/Garden/GardenSettingsEditor.test.tsx src/views/Community/components/CommunityMembersTab.test.tsx src/__tests__/components/Garden/ManageMembersDialog.test.tsx src/__tests__/components/AdminViewActions.test.tsx",
+          "evidence": "PR3: the same files pass; the admin suite passed 1015 in the critical push gate reused on 59ca04ac0"
         },
         "note": ""
       },
@@ -79,12 +79,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/utils/workTitles.test.ts src/__tests__/utils/garden-detail.test.ts src/__tests__/modules/local-status-overlay.test.ts src/__tests__/hooks/assessment/useCreateAssessmentForm.test.ts",
-          "evidence": "PR2: workTitles 7 failed (toWorkDisplayTitle missing); garden-detail 8 failed (summarizeReviewQueue missing); local-status-overlay 1 failed (the indexed decision time came back undefined); useCreateAssessmentForm 1 failed (the default domain was Solar)"
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/admin-ui/view-actions.test.ts",
+          "evidence": "PR3: view-actions.test.ts failed (Fund Cookie Jar had no disabled state or reason); the per-asset and save-row table tests were written with their code (proof limit in the handoff)"
         },
         "green": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/utils/workTitles.test.ts src/__tests__/utils/garden-detail.test.ts src/__tests__/hooks/admin-ui/header-stats.test.ts src/__tests__/hooks/garden/useGardenDerivedState.test.ts src/__tests__/modules/local-status-overlay.test.ts src/__tests__/hooks/assessment/useCreateAssessmentForm.test.ts src/__tests__/components/ConfidenceSelector.test.tsx i18n/locale-coverage",
-          "evidence": "PR2: 98 passed (8 files) at ecfccdda7; the shared suite passed 5770 in the critical push gate"
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/admin-ui/view-actions.test.ts src/__tests__/utils/vaults.test.ts src/__tests__/hooks/garden/useGardenDerivedState.test.ts",
+          "evidence": "PR3: the same files pass; the shared suite passed 5801 in the critical push gate reused on 59ca04ac0"
         },
         "note": ""
       },
@@ -204,6 +204,46 @@
       "status": "tdd_recorded",
       "branch": null,
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T09:07:01.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/garden-community-clarity",
+      "note": "PR3 (pr3_garden_community) implemented on PR2's branch; opens once PR2 merges"
+    },
+    {
+      "timestamp": "2026-09-25T13:23:46.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "fix/hub-review-and-queue-health",
+      "note": "PR2 (pr2_hub_review_queue) merged into develop as #905; PRD-983 Done"
+    },
+    {
+      "timestamp": "2026-09-25T13:26:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/garden-community-clarity",
+      "note": "PR3 (pr3_garden_community) rebased onto develop after PR2 merged"
+    },
+    {
+      "timestamp": "2026-09-25T13:26:38.748Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T13:26:39.143Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "execution_sub_lanes": {
@@ -224,7 +264,7 @@
     "pr2_hub_review_queue": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "fix/hub-review-and-queue-health",
       "depends_on": ["pr1_actions_crash"],
       "handoff": "handoffs/pr2-hub-review-queue.md",
@@ -238,7 +278,7 @@
     "pr3_garden_community": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "in_progress",
       "branch": "fix/garden-community-clarity",
       "depends_on": ["pr2_hub_review_queue"],
       "handoff": "handoffs/pr3-garden-community.md",
@@ -247,7 +287,6 @@
         "issue": "PRD-984",
         "parentIssue": "PRD-981"
       },
-      "blocked_reason": "Starts after PR2 merges; both change useGardenDerivedState.",
       "linear_issues": ["PRD-984", "PRD-981"]
     },
     "pr4_shell_cookies_tone": {

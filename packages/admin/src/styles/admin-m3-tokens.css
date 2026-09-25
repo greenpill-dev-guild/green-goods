@@ -268,6 +268,11 @@
     opacity: var(--m3-state-pressed);
   }
 
+  .m3-state-layer[aria-disabled="true"]:hover::after,
+  .m3-state-layer[aria-disabled="true"]:active::after {
+    opacity: 0;
+  }
+
   /* M3 expanded touch target: a ≥44px effective hit area around the 32px-visual
    * compact controls (AdminButton sm, AdminFilterChip). The block margin
    * reserves the pseudo-element's 6px reach above and below, so wrapped rows

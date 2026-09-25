@@ -6,17 +6,25 @@ import { useIntl } from "react-intl";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
 
-export type CommunityPayoutsTabProps = Pick<CommunityWorkspace, "allocations" | "selectedItem"> & {
+export type CommunityPayoutsTabProps = Pick<
+  CommunityWorkspace,
+  "allocations" | "allocationsAtLimit" | "selectedItem"
+> & {
   garden: NonNullable<CommunityWorkspace["garden"]>;
 };
 
 export function CommunityPayoutsTab({
   garden,
   allocations,
+  allocationsAtLimit,
   selectedItem,
 }: CommunityPayoutsTabProps) {
   const { formatMessage } = useIntl();
   const allocationSplits = selectAllocationSplits(allocations);
+  // The history list stops at its limit; a full list is a lower bound.
+  const payoutCount = allocationsAtLimit
+    ? formatMessage({ id: "cockpit.community.payouts.countAtLeast" }, { count: allocations.length })
+    : allocations.length;
 
   return (
     <div className="garden-tab-shell">
@@ -32,6 +40,7 @@ export function CommunityPayoutsTab({
                 : null
             }
             allocationCount={allocations.length}
+            allocationCountAtLeast={allocationsAtLimit}
           />
         </div>
         <aside className="garden-tab-rail">
@@ -43,17 +52,16 @@ export function CommunityPayoutsTab({
                   defaultMessage: "Payout readiness",
                 })}
               </AdminCardTitle>
-              <AdminCard variant="outlined" density="compact">
-                <p className="text-label-sm text-text-sub">
+              {/* A plain row inside the card, not a card of its own (D33). */}
+              <div className="garden-stat-row">
+                <span className="garden-stat-row-label">
                   {formatMessage({
                     id: "cockpit.community.payouts.historyCount",
-                    defaultMessage: "Allocation events",
+                    defaultMessage: "Payouts so far",
                   })}
-                </p>
-                <p className="mt-1 text-title-sm font-semibold text-text-strong">
-                  {allocations.length}
-                </p>
-              </AdminCard>
+                </span>
+                <span className="garden-stat-row-value">{payoutCount}</span>
+              </div>
               {allocationSplits ? (
                 <div className="space-y-1.5 border-t border-stroke-soft pt-3">
                   <p className="mb-1.5 text-label-sm font-medium text-text-sub">

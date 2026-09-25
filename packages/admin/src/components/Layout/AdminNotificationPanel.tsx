@@ -60,7 +60,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
     hypercerts: workspace.hypercerts,
     allocations: workspace.allocations,
     gardenVaults: workspace.gardenVaults,
-    vaultNetDeposited: workspace.vaultNetDeposited,
+    hasEndowment: workspace.hasEndowment,
     cookieJars: workspace.cookieJars,
     roleMembers: workspace.roleMembers,
     selectedRange: "30d",

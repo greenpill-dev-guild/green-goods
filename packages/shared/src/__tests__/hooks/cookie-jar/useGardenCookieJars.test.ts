@@ -150,6 +150,8 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
 
     expect(result.current.jars).toEqual([]);
     expect(result.current.moduleConfigured).toBe(false);
+    // A chain without the jar module has no jars to find.
+    expect(result.current.hasNoJar).toBe(true);
   });
 
   it("returns empty when gardenAddress is undefined", () => {
@@ -170,6 +172,7 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
 
     expect(result.current.jars).toEqual([]);
     expect(result.current.jarCount).toBe(0);
+    expect(result.current.hasNoJar).toBe(true);
   });
 
   it("filters out zero-address jars", () => {
@@ -360,6 +363,7 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     });
 
     expect(result.current.isLoading).toBe(true);
+    expect(result.current.hasNoJar).toBe(false);
   });
 
   it("propagates address fetch error", () => {
@@ -371,6 +375,8 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     });
 
     expect(result.current.error).toBe(testError);
+    // A failed read proves nothing about the garden's jars.
+    expect(result.current.hasNoJar).toBe(false);
   });
 
   it("propagates details fetch error", () => {

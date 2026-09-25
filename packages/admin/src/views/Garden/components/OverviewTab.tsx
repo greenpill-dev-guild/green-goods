@@ -170,31 +170,32 @@ export function OverviewTab({
                 </div>
               </AdminCardHeader>
               <AdminCardBody>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3" aria-live="polite">
-                  <AdminCard variant="outlined" density="compact">
-                    <p className="label-xs text-text-soft">
+                {/* Grouped by proximity inside the one card, not boxed again (D33). */}
+                <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-live="polite">
+                  <div>
+                    <dt className="label-xs text-text-soft">
                       {formatMessage({
                         id: "app.garden.detail.metric.lastActivity",
                         defaultMessage: "Last Activity",
                       })}
-                    </p>
-                    <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
+                    </dt>
+                    <dd className="mt-1 font-heading text-lg font-semibold text-text-strong">
                       {filteredActivityEvents.length > 0
                         ? formatActivityTime(filteredActivityEvents[0].timestamp)
                         : formatMessage({
                             id: "app.garden.detail.metric.noActivity",
                             defaultMessage: "No activity yet",
                           })}
-                    </p>
-                  </AdminCard>
-                  <AdminCard variant="outlined" density="compact">
-                    <p className="label-xs text-text-soft">
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.impactVelocity" })}
-                    </p>
-                    <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
+                    </dt>
+                    <dd className="mt-1 font-heading text-lg font-semibold text-text-strong">
                       {approvedInRangeCount}
-                    </p>
-                    <p className="mt-0.5 body-xs text-text-soft">
+                    </dd>
+                    <dd className="mt-0.5 body-xs text-text-soft">
                       {impactVelocityDelta === 0
                         ? formatMessage({ id: "app.garden.detail.metric.noDelta" })
                         : formatMessage(
@@ -206,43 +207,43 @@ export function OverviewTab({
                             },
                             { count: Math.abs(impactVelocityDelta) }
                           )}
-                    </p>
-                  </AdminCard>
-                  <AdminCard variant="outlined" density="compact">
-                    <p className="label-xs text-text-soft">
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.executionThroughput" })}
-                    </p>
-                    <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
+                    </dt>
+                    <dd className="mt-1 font-heading text-lg font-semibold text-text-strong">
                       {formatReviewTime(medianReviewLatencyMs, formatMessage)}
-                    </p>
-                  </AdminCard>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
+                    </dd>
+                  </div>
+                </dl>
+                <dl className="mt-4 grid grid-cols-1 gap-x-6 border-t border-stroke-soft pt-2 sm:grid-cols-2">
                   <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
+                    <dt className="garden-stat-row-label">
                       {formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
-                    </span>
-                    <span className="garden-stat-row-value">{pendingWorkCount}</span>
+                    </dt>
+                    <dd className="garden-stat-row-value">{pendingWorkCount}</dd>
                   </div>
                   <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
+                    <dt className="garden-stat-row-label">
                       {formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
-                    </span>
-                    <span className="garden-stat-row-value">{assessmentCount30d}</span>
+                    </dt>
+                    <dd className="garden-stat-row-value">{assessmentCount30d}</dd>
                   </div>
                   <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
+                    <dt className="garden-stat-row-label">
                       {formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
-                    </span>
-                    <span className="garden-stat-row-value">{gardenerCount}</span>
+                    </dt>
+                    <dd className="garden-stat-row-value">{gardenerCount}</dd>
                   </div>
                   <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
+                    <dt className="garden-stat-row-label">
                       {formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
-                    </span>
-                    <span className="garden-stat-row-value">{treasuryBalance}</span>
+                    </dt>
+                    <dd className="garden-stat-row-value">{treasuryBalance}</dd>
                   </div>
-                </div>
+                </dl>
               </AdminCardBody>
             </AdminCard>
           )}

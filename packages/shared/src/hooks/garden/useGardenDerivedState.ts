@@ -69,7 +69,8 @@ interface DerivedStateInput {
     juiceboxAmount: bigint;
   }>;
   gardenVaults: Array<unknown>;
-  vaultNetDeposited: bigint;
+  /** Whether any vault holds a net deposit, in any asset. */
+  hasEndowment: boolean;
   /** The garden's cookie jars. Omit where the surface shows no alerts. */
   cookieJars?: CookieJar[];
   roleMembers: Record<GardenRole, Address[]>;
@@ -90,7 +91,7 @@ export function useGardenDerivedState({
   hypercerts,
   allocations,
   gardenVaults,
-  vaultNetDeposited,
+  hasEndowment,
   cookieJars = [],
   roleMembers,
   selectedRange,
@@ -129,7 +130,7 @@ export function useGardenDerivedState({
   const hasVaults = gardenVaults.length > 0;
   const treasurySeverity: TabBadgeSeverity = !hasVaults
     ? "warn"
-    : vaultNetDeposited === 0n
+    : !hasEndowment
       ? "critical"
       : "none";
   // The treasury's alert opens Community, so a viewer without Community access
@@ -339,18 +340,20 @@ export function useGardenDerivedState({
     firstMember: roleMembers[role][0],
   }));
 
+  // One entry per person, whatever the casing each role list uses (DL-049).
   const directoryEntries: RoleDirectoryEntry[] = useMemo(() => {
-    const map = new Map<Address, RoleDirectoryEntry>();
+    const map = new Map<string, RoleDirectoryEntry>();
 
     for (const role of GARDEN_ROLE_ORDER) {
       for (const memberAddress of roleMembers[role]) {
-        const existing = map.get(memberAddress);
+        const key = memberAddress.toLowerCase();
+        const existing = map.get(key);
         if (existing) {
           existing.roles.push(role);
           continue;
         }
 
-        map.set(memberAddress, { address: memberAddress, roles: [role] });
+        map.set(key, { address: memberAddress, roles: [role] });
       }
     }
 
@@ -400,6 +403,8 @@ export function useGardenDerivedState({
     filteredActivityEvents,
     roleSummary,
     directoryEntries,
+    /** Distinct people across every role; a role seat is not a member (DL-049). */
+    memberCount: directoryEntries.length,
     filteredDirectory,
     visibleDirectory,
   };

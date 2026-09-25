@@ -230,6 +230,17 @@ Garden):
 - Evidence-only diff command and result (if applicable): `git diff --exit-code d026cacbd1c91234ae546a6f713326733ac82121..HEAD -- packages/shared/src packages/admin/src packages/client/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/client/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
 
+## Merge
+
+- PR: https://github.com/greenpill-dev-guild/green-goods/pull/905, merged into `develop` with
+  `gh pr merge 905 --repo greenpill-dev-guild/green-goods --merge` at `2026-09-25T13:23:46Z`
+  (merge commit `049a2a70b`), after thirteen review rounds.
+- At merge: CI Gate and Storybook green on head `a3f3d2198`; CodeRabbit approved `eff226944`
+  after answering its change requests, and its later note was fixed in `d03bd38ce`; Codex reacted
+  👍 to `a3f3d2198`; no unresolved review threads.
+- Linear: PRD-983 moved to Done with a comment on what shipped. Follow-ups: the PWA's own work
+  titles and a garden-wide read of waiting work for the queue count.
+
 ## Risks / Blockers
 
 - Critical gates flake under load (10-second timeouts in unrelated files); rerun the file alone

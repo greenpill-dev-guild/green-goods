@@ -1,16 +1,18 @@
 import enMessages from "@green-goods/shared/i18n/en";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { IntlProvider, useIntl } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { Domain } from "@green-goods/shared/types/domain";
+import { TxProgressList } from "@/components/TxProgressList";
 import {
   GardenSettingsEditor,
   type GardenSettingsEditorHandle,
   type GardenSettingsFormState,
 } from "./GardenSettingsEditor";
+import { buildGardenSettingsSaveRows, gardenSettingsSaveLine } from "./gardenSettingsSave";
 
 const gardenAddress = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12" as `0x${string}`;
 
@@ -23,16 +25,20 @@ const {
   mockSetMaxGardeners,
   mockSetGardenDomains,
   mockUploadFileToIPFS,
-} = vi.hoisted(() => ({
-  mockUpdateName: vi.fn().mockResolvedValue("0x1"),
-  mockUpdateDescription: vi.fn().mockResolvedValue("0x1"),
-  mockUpdateLocation: vi.fn().mockResolvedValue("0x1"),
-  mockUpdateBannerImage: vi.fn().mockResolvedValue("0x1"),
-  mockSetOpenJoining: vi.fn().mockResolvedValue("0x1"),
-  mockSetMaxGardeners: vi.fn().mockResolvedValue("0x1"),
-  mockSetGardenDomains: vi.fn().mockResolvedValue("0x1"),
-  mockUploadFileToIPFS: vi.fn().mockResolvedValue({ cid: "bafysettingsbanner" }),
-}));
+} = vi.hoisted(() => {
+  // A canonical transaction hash: what a wallet returns once a write is on chain.
+  const TX_HASH = `0x${"ab".repeat(32)}` as const;
+  return {
+    mockUpdateName: vi.fn().mockResolvedValue(TX_HASH),
+    mockUpdateDescription: vi.fn().mockResolvedValue(TX_HASH),
+    mockUpdateLocation: vi.fn().mockResolvedValue(TX_HASH),
+    mockUpdateBannerImage: vi.fn().mockResolvedValue(TX_HASH),
+    mockSetOpenJoining: vi.fn().mockResolvedValue(TX_HASH),
+    mockSetMaxGardeners: vi.fn().mockResolvedValue(TX_HASH),
+    mockSetGardenDomains: vi.fn().mockResolvedValue(TX_HASH),
+    mockUploadFileToIPFS: vi.fn().mockResolvedValue({ cid: "bafysettingsbanner" }),
+  };
+});
 
 vi.mock("@green-goods/shared/hooks/garden/useSetGardenDomains", async () => {
   const asMutation = (mutateAsync: (params: unknown) => Promise<unknown>) => () => ({
@@ -108,6 +114,7 @@ function EditorHarness({
     hasValidationError: false,
     dirtyCount: 0,
     canEdit: false,
+    run: null,
   });
 
   // Keep the callback identity STABLE. GardenSettingsEditor lists
@@ -137,21 +144,24 @@ function EditorHarness({
       {form.canEdit ? (
         <div>
           <p data-slot="dirty-state">
-            {form.isSaving
-              ? formatMessage({ id: "app.garden.settings.saving" })
-              : form.isDirty
-                ? formatMessage(
-                    { id: "app.garden.settings.unsavedChanges" },
-                    { count: form.dirtyCount }
-                  )
-                : formatMessage({ id: "app.garden.settings.allSaved" })}
+            {gardenSettingsSaveLine(form.run, form.dirtyCount, formatMessage)}
           </p>
+          {form.run ? (
+            <TxProgressList
+              testId="garden-settings-save"
+              chainId={42161}
+              label="What your wallet confirms"
+              rows={buildGardenSettingsSaveRows(form.run, formatMessage)}
+            />
+          ) : null}
           <button
             type="button"
             onClick={() => void editorRef.current?.save()}
             disabled={!form.isDirty || form.hasValidationError || form.isSaving}
           >
-            {formatMessage({ id: "app.garden.settings.saveChanges" })}
+            {form.run?.status === "stopped"
+              ? formatMessage({ id: "app.common.tryAgain" })
+              : formatMessage({ id: "app.garden.settings.saveChanges" })}
           </button>
           {/* Banner Remove/Undo live on the hosting card in production; the
               harness drives the same imperative handle. */}
@@ -207,8 +217,162 @@ describe("GardenSettingsEditor explicit save", () => {
     for (const mutation of allMutations()) {
       expect(mutation).not.toHaveBeenCalled();
     }
-    expect(screen.getByText("1 unsaved change")).toBeInTheDocument();
+    // One wallet confirmation per changed field, said before Save (D4).
+    expect(screen.getByText("1 change · 1 wallet confirmation")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save Changes" })).toBeEnabled();
+  });
+
+  it("stops at a declined write, keeps the draft, and Try Again sends only what is left", async () => {
+    const user = userEvent.setup();
+    mockUpdateDescription.mockRejectedValueOnce(new Error("User rejected the request"));
+    renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Renamed Garden");
+    const descriptionInput = screen.getByLabelText("Description");
+    await user.clear(descriptionInput);
+    await user.type(descriptionInput, "Restoring the river bank.");
+    const locationInput = screen.getByLabelText("Location");
+    await user.clear(locationInput);
+    await user.type(locationInput, "Lisbon, Portugal");
+    expect(screen.getByText("3 changes · 3 wallet confirmations")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    expect(
+      await screen.findByText(
+        "Stopped at Description. 1 of 3 saved. Your other edits are still here."
+      )
+    ).toBeInTheDocument();
+    const rows = within(screen.getByTestId("garden-settings-save")).getAllByRole("listitem");
+    expect(rows.map((row) => row.getAttribute("data-status"))).toEqual([
+      "saved",
+      "failed",
+      "queued",
+    ]);
+    expect(mockUpdateLocation).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Description")).toHaveValue("Restoring the river bank.");
+
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+
+    expect(await screen.findByText("All changes saved")).toBeInTheDocument();
+    // The name landed on the first run and is not sent again, although the
+    // garden has not refreshed yet.
+    expect(mockUpdateName).toHaveBeenCalledTimes(1);
+    expect(mockUpdateDescription).toHaveBeenCalledTimes(2);
+    expect(mockUpdateLocation).toHaveBeenCalledWith({
+      gardenAddress,
+      value: "Lisbon, Portugal",
+    });
+  });
+
+  it("sends a landed field again when the steward reverts it before the garden refreshes", async () => {
+    const user = userEvent.setup();
+    mockUpdateDescription.mockRejectedValueOnce(new Error("User rejected the request"));
+    renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Renamed Garden");
+    const descriptionInput = screen.getByLabelText("Description");
+    await user.clear(descriptionInput);
+    await user.type(descriptionInput, "Restoring the river bank.");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(
+      await screen.findByText(
+        "Stopped at Description. 1 of 2 saved. Your other edits are still here."
+      )
+    ).toBeInTheDocument();
+
+    // The rename landed, but the garden still reads the old name. Putting the
+    // old name back is a change the chain has not seen, so Try Again sends it.
+    await user.clear(nameInput);
+    await user.type(nameInput, GARDEN.name);
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+
+    expect(await screen.findByText("All changes saved")).toBeInTheDocument();
+    expect(mockUpdateName).toHaveBeenCalledTimes(2);
+    expect(mockUpdateName).toHaveBeenLastCalledWith({ gardenAddress, value: GARDEN.name });
+  });
+
+  it("keeps a landed value through a refresh that has yet to report it", async () => {
+    const user = userEvent.setup();
+    const view = renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Renamed Garden");
+    const locationInput = screen.getByLabelText("Location");
+    await user.clear(locationInput);
+    await user.type(locationInput, "Lisbon, Portugal");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(await screen.findByText("All changes saved")).toBeInTheDocument();
+
+    // The refreshed garden reports the new location but not the rename yet.
+    view.rerender(
+      <EditorHarness overrides={{ garden: { ...GARDEN, location: "Lisbon, Portugal" } }} />
+    );
+
+    expect(screen.getByLabelText(/Name/, { selector: "input" })).toHaveValue("Renamed Garden");
+    expect(screen.getByLabelText("Location")).toHaveValue("Lisbon, Portugal");
+    // Nothing reads as unsaved, so nothing would be sent again or reverted.
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
+  });
+
+  it("starts over when the editor is handed another garden", async () => {
+    const user = userEvent.setup();
+    const view = renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Renamed Garden");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(await screen.findByText("All changes saved")).toBeInTheDocument();
+
+    // The same editor now shows another garden: nothing from the first carries over.
+    view.rerender(
+      <EditorHarness
+        overrides={{
+          gardenAddress: "0x0000000000000000000000000000000000000b0b",
+          garden: { ...GARDEN, name: "Second Garden" },
+        }}
+      />
+    );
+
+    expect(screen.getByLabelText(/Name/, { selector: "input" })).toHaveValue("Second Garden");
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
+  });
+
+  it("shows a change a Safe must still execute as sent, not confirmed, and does not send it again", async () => {
+    const user = userEvent.setup();
+    // Safe-style wallets return a proposal identifier, not a transaction hash.
+    mockUpdateDescription.mockResolvedValueOnce(`0x${"cd".repeat(40)}`);
+    renderEditor();
+
+    const descriptionInput = screen.getByLabelText("Description");
+    await user.clear(descriptionInput);
+    await user.type(descriptionInput, "Restoring the river bank.");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    expect(
+      await screen.findByText("Sent to your Safe. The changes apply once the Safe executes them.")
+    ).toBeInTheDocument();
+    const [row] = within(screen.getByTestId("garden-settings-save")).getAllByRole("listitem");
+    expect(row).toHaveAttribute("data-status", "proposed");
+    expect(within(row).getByText("Sent to your Safe")).toBeInTheDocument();
+    // No transaction exists yet, so there is nothing to open in an explorer.
+    expect(within(row).queryByRole("link")).not.toBeInTheDocument();
+    expect(mockUpdateDescription).toHaveBeenCalledTimes(1);
+  });
+
+  it("tells a steward who is not the owner why the name is locked", () => {
+    renderEditor({ canManage: true, isOwner: false });
+
+    expect(screen.getByLabelText(/Name/)).toBeDisabled();
+    expect(screen.getByText("Only the garden owner can rename the garden.")).toBeInTheDocument();
+    // The byte count is for typing; a locked field has none to show.
+    expect(screen.queryByText(/\/ 72/)).not.toBeInTheDocument();
   });
 
   it("saves only the dirty fields with trimmed values", async () => {

@@ -19,8 +19,9 @@ describe("useGardenDerivedState", () => {
     cookieJars = [],
     canAccessCommunity = true,
     allocations = [],
-    vaultNetDeposited = 1n,
+    hasEndowment = true,
     works,
+    members = roleMembers,
   }: {
     domainMask?: number;
     openSection?: Parameters<typeof useGardenDerivedState>[0]["openSection"];
@@ -33,8 +34,9 @@ describe("useGardenDerivedState", () => {
       fractionsAmount: bigint;
       juiceboxAmount: bigint;
     }>;
-    vaultNetDeposited?: bigint;
+    hasEndowment?: boolean;
     works?: Parameters<typeof useGardenDerivedState>[0]["works"];
+    members?: Parameters<typeof useGardenDerivedState>[0]["roleMembers"];
   } = {}) {
     const now = Date.now();
 
@@ -58,8 +60,8 @@ describe("useGardenDerivedState", () => {
         hypercerts: [],
         allocations,
         gardenVaults: [{}],
-        vaultNetDeposited,
-        roleMembers,
+        hasEndowment,
+        roleMembers: members,
         selectedRange: "30d",
         activityFilter: "all",
         memberSearch: "",
@@ -152,7 +154,7 @@ describe("useGardenDerivedState", () => {
     const communitySignals = {
       cookieJars: [daiJar({})],
       allocations: [allocation],
-      vaultNetDeposited: 0n,
+      hasEndowment: false,
     };
     const { result } = renderDerivedState({ ...communitySignals, canAccessCommunity: false });
 
@@ -220,5 +222,21 @@ describe("useGardenDerivedState", () => {
     expect(result.current.overviewBadge).toEqual({ severity: "none" });
     expect(result.current.gardenHealthSeverity).toBe("none");
     expect(result.current.overviewAlerts).toEqual([]);
+  });
+
+  it("counts each person once across roles, whatever the address casing", () => {
+    const steward = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12";
+    const { result } = renderDerivedState({
+      members: {
+        ...roleMembers,
+        owner: [steward],
+        steward: [steward.toLowerCase()],
+        gardener: ["0x1111111111111111111111111111111111111111"],
+      },
+    });
+
+    // Three role seats, two people (DL-049).
+    expect(result.current.memberCount).toBe(2);
+    expect(result.current.directoryEntries[0]?.roles).toEqual(["owner", "steward"]);
   });
 });

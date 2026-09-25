@@ -144,22 +144,76 @@ Mock-auth localhost at 1280 and 375: Edit Garden with three changes (before, dur
 mocked wallet, stopped), Community → Members (counts agree, one row per person), Endowment and
 Garden Health (per-asset amounts), Payouts without a jar, Impact empty.
 
+Recorded 2026-09-25 (engine: Claude Browser pane, Chromium; session: mock-auth localhost,
+`?mockAuth=deployer`, admin dev server reading the hosted indexer `e6edffd`, Green Goods Community
+Garden; nothing was saved or sent):
+
+- Garden Health at 1280: the three metrics sit unboxed above a divider, the key metrics are plain
+  rows, and Endowments reads "0.0007 WETH". The header carries no description; Karma Integration
+  is in Title Case and its migration warning ends "Ask the Green Goods team to migrate this
+  garden."
+- Edit Garden at 1280, with the location, description, and open joining changed: titled Edit
+  Garden with no description; the footer reads "3 changes · 3 wallet confirmations"; the deployer
+  is not the owner, so Name is locked with "Only the garden owner can rename the garden." and no
+  byte counter. The edits were discarded through Discard Changes?.
+- Community → Members at 1280 and 375: Total members 46, the directory's 46 rows, the Members tab
+  badge, and Manage Members ("46 members") agree; the rail shows no role list and no buttons. At
+  375 the role filter is a select ("Filter members by role", counts in its options) and the first
+  member sits above the fold. Manage Members opened for the owner shows one row with Owner,
+  Steward, and Gardener chips, each with its own remove; at 375 that row first squeezed the
+  address under the Owner chip, fixed by stacking the chips under the address (0359ceb08).
+- Endowment at 1280: Total value locked "0.0007 WETH", the yield explanation once above the DAI
+  and WETH cards, plain rows in each card, Harvest & Distribute tonal, and "Where the Funds Are
+  Held" with DAI Vault, WETH Vault, Green Goods Vault Manager, and Aave Lending Pool.
+- Payouts at 1280 and 375: this garden has no payout jar (the panel's own read agrees). Fund
+  Cookie Jar is disabled with the title and description "This garden has no payout jar yet.";
+  the panel reads "No cookie jars found for this garden" with the new explanation, and payout
+  readiness counts "Payouts so far 0". At 375 the speed dial lists the reason under the disabled
+  action; its labels wrapped one word per line until the dial was sized to its content
+  (0359ceb08).
+- Impact at 1280: no View All on either empty list; "No hypercerts yet" says hypercerts are made
+  in the Hub and links Create Hypercert, and Recent Assessments links Create Assessment; the
+  hypercert card no longer stretches to the screen.
+- Save progress (Storybook static build, Chromium): Saving shows Name Confirmed with View,
+  Description "Waiting for your wallet" as the current step, and Location queued under "Saving
+  changes…"; Stopped reads "Stopped at Description. 1 of 3 saved. Your other edits are still
+  here."; StewardNotOwner renders the real dialog with the locked name and its helper. A live
+  save with a wallet was not run, since it writes to the chain.
+- The third review round's FAB changes (a disabled sole action stays inert and says why; a dial
+  with every action disabled still focuses its first action) were not rechecked in the browser;
+  the FAB tests in both packages and the storybook-ci FAB stories cover them, including a check
+  that the shared dial keeps a label on one line.
+
 ## TDD Proof
 
-- RED: pending
-- GREEN: pending
-- Proof limit: none recorded
+- RED, each before its change (`bun run --filter @green-goods/admin test -- <file>` unless
+  noted):
+  - Endowment (07:53Z): `GardenVaultView.test.tsx` failed (no per-asset total; the old page summed
+    base units) and `PositionCard.test.tsx` failed (the card still repeated the yield
+    explanation).
+  - Edit Garden (08:11Z): `GardenSettingsEditor.test.tsx` 2 failed (a declined write left no
+    stop and Try Again re-sent the saved name; the locked Name had no helper).
+  - Members (08:41Z): `CommunityMembersTab.test.tsx` failed (the rail summed role seats) and
+    `ManageMembersDialog.test.tsx` failed (one row per role seat).
+  - Fund Cookie Jar (08:44Z): `view-actions.test.ts` (shared) failed (no disabled state or
+    reason) and `AdminViewActions.test.tsx` failed (no title or description).
+- GREEN: the same files pass after each change; see the receipt for the final run.
+- After review (RED on the code before each fix): first round, `gardenSettingsSave` 2 and `GardenSettingsEditor` 1 failed (a Safe proposal read as Confirmed with an explorer link), `useGardenCookieJars` 4 failed (no signal that the jar list was read), and `vaults` 2 failed (an empty endowment read a bare "0"). Second round: `AdminViewActions` 1, `FabButton` 1, and shared `NavigationBar` 2 failed (a disabled action's reason was unreachable by keyboard and hover, and the shared dial did not show it), `speedDialNavigation` failed (no shared rule yet), and `vaults` 1 failed (USDC read as 18 decimals). Third round: `FabButton` 2 and shared `NavigationBar` 2 failed (a disabled sole action still fired and gave no reason, and a dial with every action disabled left focus on the FAB). Codex, after the third round: the `NavigationBarFab` SpeedDial story failed in storybook-ci once it mounted the FAB as `NavigationBar` does ("Add Member" wrapped onto two lines because the dial took the FAB's width). Codex, on the next head: `GardenSettingsEditor` 1 failed (a landed rename put back before the garden refreshed was not sent) and `ImpactTab` 1 failed (a failed assessments read showed no alert and read as an empty list). CodeRabbit, on the next head: `GardenSettingsEditor` 1 failed (a refresh that reported another landed field replaced the whole draft, so a landed rename snapped back). Codex, alongside: `useYieldHooks` 1, `CommunityPayoutsTab` 1, and `ImpactTab` 1 failed (a full payout list read as an exact count; a failed hypercert read read as empty), and the payout card story failed in storybook-ci. CodeRabbit, on bc01146eb: `GardenSettingsEditor` 1 failed (an editor handed another garden showed the first garden's landed rename).
+- Proof limit: the table tests for `summarizeNetDepositsByAsset`, `formatAssetAmounts`, and
+  `buildGardenSettingsSaveRows`, and the Impact and Karma tests, were written with their code;
+  the Karma test moved with its copy.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `2691746af6e2f28f384e1bcecaba76abbc75f8bf` (after CodeRabbit's review of bc01146eb, on `develop` with PR2 merged; the receipts on `59ca04ac0`, `2d1db069b`, `d9fb2906a`, `2b344c8eb`, `d5692a23b`, `c29c3b868`, and `a33913c99` are superseded)
+- Run at (UTC): push gate `2026-09-25T18:06:48Z` to `2026-09-25T18:09:59Z`
+- Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path admin:src/components/Garden/GardenSettingsEditor.test.tsx`
+- Result: push gate exit 0 on the critical plan, 26 automated checks passed (shared 5815 and admin 1028 tests run on this commit, while the client (1399) and agent (316) suites reused their passing receipts on unchanged inputs; with docs-authority, source-structure, design-guardrails, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test; the storybook-ci story suite passed locally on the same commit, 94 files and 331 tests);
+  browser-proof stays the manual proof recorded under Rendered Proof
+- Validated paths: `packages/shared/src`, `packages/admin/src`, `packages/qa/locales`, `scripts/data`, `scripts/quality`, `docs/docs`, `.claude/skills`, `DESIGN.md`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 2691746af6e2f28f384e1bcecaba76abbc75f8bf..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
 
 ## Risks / Blockers
 

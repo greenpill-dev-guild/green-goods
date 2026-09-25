@@ -5,7 +5,7 @@ import type { Address } from "../../types/domain";
 import { WeightScheme } from "../../types/gardens-community";
 import { compareAddresses } from "../../utils/blockchain/address";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
-import { getNetDeposited } from "../../utils/blockchain/vaults";
+import { summarizeNetDepositsByAsset } from "../../utils/blockchain/vaults";
 import { useGardenAssessments } from "../assessment/useGardenAssessments";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useConvictionStrategies } from "../conviction/useConvictionStrategies";
@@ -78,7 +78,9 @@ export function useGardenDetailData(id: string | undefined) {
     enabled: Boolean(id),
   });
   // Steward alerts read the jars' claim limits; stewards are the only ones shown alerts.
-  const { jars: cookieJars } = useGardenCookieJars(id, { enabled: Boolean(id) && canManage });
+  const { jars: cookieJars, hasNoJar: hasNoPayoutJar } = useGardenCookieJars(id, {
+    enabled: Boolean(id) && canManage,
+  });
 
   const { strategies: convictionStrategies } = useConvictionStrategies(
     (id as `0x${string}`) ?? undefined,
@@ -92,28 +94,30 @@ export function useGardenDetailData(id: string | undefined) {
   const { mutate: createPools, isPending: isCreatingPools } = useCreateGardenPools(
     id as Address | undefined
   );
-  const { allocations, isLoading: allocationsLoading } = useYieldAllocations(
-    id as Address | undefined,
-    { enabled: Boolean(id) }
-  );
+  const {
+    allocations,
+    atLimit: allocationsAtLimit,
+    isLoading: allocationsLoading,
+  } = useYieldAllocations(id as Address | undefined, { enabled: Boolean(id) });
 
   const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
 
-  const { vaultNetDeposited, vaultHarvestCount, vaultDepositorCount } = useMemo(() => {
-    let netDeposited = 0n;
+  // Endowment amounts stay per asset: WETH and DAI base units never add up.
+  const { endowmentByAsset, hasEndowment, vaultHarvestCount, vaultDepositorCount } = useMemo(() => {
     let harvestCount = 0;
     let depositorCount = 0;
     for (const vault of gardenVaults) {
-      netDeposited += getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
       harvestCount += vault.totalHarvestCount;
       depositorCount += vault.depositorCount;
     }
+    const byAsset = summarizeNetDepositsByAsset(gardenVaults, garden?.chainId ?? DEFAULT_CHAIN_ID);
     return {
-      vaultNetDeposited: netDeposited,
+      endowmentByAsset: byAsset,
+      hasEndowment: byAsset.some((entry) => entry.amount > 0n),
       vaultHarvestCount: harvestCount,
       vaultDepositorCount: depositorCount,
     };
-  }, [gardenVaults]);
+  }, [gardenVaults, garden?.chainId]);
 
   const {
     works,
@@ -127,7 +131,11 @@ export function useGardenDetailData(id: string | undefined) {
     hasUnknownStatuses,
     readThisSession: worksReadThisSession,
   } = useWorks(gardenId);
-  const { hypercerts, isLoading: hypercertsLoading } = useHypercerts({ gardenId: id });
+  const {
+    hypercerts,
+    isLoading: hypercertsLoading,
+    error: hypercertsError,
+  } = useHypercerts({ gardenId: id });
 
   const roleMembers: Record<GardenRole, Address[]> = {
     owner: garden?.owners ?? [],
@@ -182,10 +190,13 @@ export function useGardenDetailData(id: string | undefined) {
     gardenVaults,
     vaultsLoading,
     cookieJars,
-    vaultNetDeposited,
+    hasNoPayoutJar,
+    endowmentByAsset,
+    hasEndowment,
     vaultHarvestCount,
     vaultDepositorCount,
     allocations,
+    allocationsAtLimit,
     allocationsLoading,
     works,
     // The list holds only the newest page, a row whose approval could not be
@@ -206,6 +217,7 @@ export function useGardenDetailData(id: string | undefined) {
     refreshWorks,
     hypercerts,
     hypercertsLoading,
+    hypercertsError,
     convictionStrategyCount: convictionStrategies.length,
     scheduleBackgroundRefetch,
   };

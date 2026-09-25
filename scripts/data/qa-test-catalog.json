@@ -5451,18 +5451,18 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Settings",
-      "scenario": "Save garden name, description, and location as sequential transactions",
+      "scenario": "Save garden name, description, and location, one wallet confirmation each, and resume a stopped save",
       "preconditions": [
         "Steward with manage rights on a garden",
         "A wallet that can reject one prompt mid-run"
       ],
       "steps": [
         "Press Edit Garden from the garden workspace and change the name, description, and location",
-        "Read the unsaved-changes count and press Save Changes",
-        "Reject the second wallet prompt",
-        "Read the editor, then press Save Changes again"
+        "Read the footer and press Save Changes",
+        "Confirm the first wallet prompt and reject the second",
+        "Read the rows and the footer, then press Try Again and confirm what the wallet asks"
       ],
-      "expected": "Each changed field is its own transaction in sequence with 'Saving changes…' progress; a rejected prompt stops the run with 'Your edits are still here. Review the error and save again.' and the unsaved fields stay dirty; saving again writes only what is left and ends on 'All changes saved'",
+      "expected": "The dialog is titled Edit Garden; before saving the footer reads '3 changes · 3 wallet confirmations'; each change is its own row, numbered by its prompt, moving from waiting to 'Confirmed' with a link to its transaction; the rejection stops the run with 'Stopped at Description. 1 of 3 saved. Your other edits are still here.' and the unsaved edits stay; Try Again sends only the description and location, never the name again, and the dialog ends on 'All changes saved' with Done",
       "evidence": "Screenshots of the mid-run error and the saved state",
       "role": "steward",
       "tags": ["garden-settings", "tx"],
@@ -5485,7 +5485,7 @@
         "Reopen the editor, press Remove on the banner, then Undo",
         "Press Remove again and save"
       ],
-      "expected": "The preview reads 'Preview · uploads on save' and the image pins only on save; after saving the banner shows on the garden; Remove marks it 'Will be removed on save' and Undo restores it without a transaction; saving the removal clears the banner and the public garden page falls back to its named placeholder",
+      "expected": "The preview reads 'Preview · uploads on save' and the image pins only on save, its row reading 'Uploading the image…' before the wallet asks; after saving the banner shows on the garden; Remove marks it 'Will be removed on save' and Undo restores it without a transaction; saving the removal clears the banner and the public garden page falls back to its named placeholder",
       "evidence": "Screenshots of the preview, the staged removal, and the cleared banner",
       "role": "steward",
       "tags": ["garden-settings", "media", "tx"],
@@ -5508,7 +5508,7 @@
         "Switch Limit gardeners on with a cap at the current member count and save",
         "Read the garden in the app again"
       ],
-      "expected": "Open joining saves as one transaction and the app offers Join Garden instead of a request; the cap saves as its own transaction; with the cap reached the app no longer offers open joining; switching Limit gardeners off restores unlimited",
+      "expected": "Open joining saves as one confirmed row and the app offers Join Garden instead of a request; the cap saves as its own row; with the cap reached the app no longer offers open joining; switching Limit gardeners off restores unlimited",
       "evidence": "Screenshots of the settings and the app's join control",
       "role": "steward",
       "tags": ["garden-settings", "garden-join", "tx"],
@@ -5527,10 +5527,10 @@
       "preconditions": ["Steward with manage rights on a garden with one domain"],
       "steps": [
         "In Edit Garden deselect the only domain and try to save",
-        "Select a second domain and read the unsaved-changes count",
+        "Select a second domain and read the footer's count of changes",
         "Close the editor with X, the scrim, Escape, and browser back while changes are unsaved"
       ],
-      "expected": "Deselecting the last domain shows 'Select at least one domain' and blocks Save; the unsaved count follows every change; each close path asks 'Discard Changes?' once, Stay keeps the draft, and Discard drops it with nothing written",
+      "expected": "Deselecting the last domain shows 'Select at least one domain' and blocks Save; the footer's '# changes · # wallet confirmations' follows every change; each close path asks 'Discard Changes?' once, Stay keeps the draft, and Discard drops it with nothing written",
       "evidence": "Screenshots of the domain error and the discard prompt",
       "role": "steward",
       "tags": ["garden-settings"],
@@ -5946,6 +5946,99 @@
       "evidence": "Screenshots of the Hub queue and Garden Health",
       "role": "steward",
       "tags": ["review"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-179",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Settings",
+      "scenario": "Edit Garden says how many wallet confirmations a save takes and shows each one landing",
+      "preconditions": ["Steward session on a garden it can edit"],
+      "steps": [
+        "Press Edit Garden and change the description and open joining",
+        "Read the footer before saving",
+        "Press Save Changes and confirm each wallet prompt, reading the rows as they move",
+        "Press Done"
+      ],
+      "expected": "Before saving the footer reads '2 changes · 2 wallet confirmations'; once saving starts the form gives way to two rows numbered 1 and 2 that read 'Waiting for your wallet' in turn and then 'Confirmed' with a link to each transaction; the footer ends on 'All changes saved' and Done closes the dialog",
+      "evidence": "Screenshots of the footer before saving and of the rows after the save",
+      "role": "steward",
+      "tags": ["tx", "garden"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-180",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Community · Endowment",
+      "scenario": "Endowment amounts name their asset and never add different assets together",
+      "preconditions": [
+        "Steward session on a garden with net deposits in two vault assets, such as WETH and DAI"
+      ],
+      "steps": [
+        "Open the garden's Overview and read Endowments under Garden Health",
+        "Open Community and read the header's endowment",
+        "Open the Endowment tab and read Total value locked there and on the vault page"
+      ],
+      "expected": "Every endowment amount lists each held asset with its symbol, such as '0.0005 WETH · 12 DAI'; the Endowment tab lists one line per asset; no amount appears without its asset or as one number made of both",
+      "evidence": "Screenshots of each amount",
+      "role": "steward",
+      "tags": ["endowment"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-181",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Community · Payouts",
+      "scenario": "A garden without a payout jar keeps Fund Cookie Jar in place, disabled, and says why",
+      "preconditions": ["Steward session on a garden that has no payout cookie jar"],
+      "steps": [
+        "Open Community and hover Fund Cookie Jar in the header",
+        "At phone width, open the actions menu",
+        "Open the Payouts tab"
+      ],
+      "expected": "Fund Cookie Jar stays in its place but disabled, and hovering it reads 'This garden has no payout jar yet.'; the phone menu shows the same reason under the disabled action; the Payouts tab says payout jars are set up when a garden is created and whom to ask",
+      "evidence": "Screenshots of the header action, the phone menu, and the Payouts tab",
+      "role": "steward",
+      "tags": ["funding"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-182",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "data-integrity",
+      "area": "Community · Members",
+      "scenario": "Member counts count people, not role seats",
+      "preconditions": [
+        "Steward session on a garden where at least one member holds several roles"
+      ],
+      "steps": [
+        "Open Community, then Members, and read Total members in the rail",
+        "Count the people in the directory, then open Manage Members and read its count and rows",
+        "At phone width, read the role filter"
+      ],
+      "expected": "Total members, the directory, and Manage Members agree on the number of people; a member with several roles is one row with a chip per role; role counts appear only in the role filter, which is a select at phone width",
+      "evidence": "Screenshots of the rail, the dialog, and the phone filter",
+      "role": "steward",
+      "tags": ["garden"],
       "requiresProduction": false,
       "status": "active",
       "source": "steward-cockpit-ux-2026-09-25"
@@ -7878,14 +7971,14 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Community · Members",
-      "scenario": "Remove a member with confirmation",
+      "scenario": "Remove one role from a member, with confirmation",
       "preconditions": ["Steward with manage rights", "A member who is not a steward"],
       "steps": [
-        "Open Manage Members",
-        "Press Remove Member on the member and cancel",
-        "Press Remove Member again and confirm"
+        "Open Manage Members and find a member who holds two roles",
+        "Press the remove on one of their role chips and cancel",
+        "Press it again and confirm"
       ],
-      "expected": "Removal asks for confirmation naming the member; Cancel changes nothing; Confirm sends one transaction, the member leaves the directory, and the gardener's app no longer lists the garden under My gardens",
+      "expected": "The member has one row with a chip per role, each with its own remove named for the role ('Remove Gardener'); removal asks for confirmation naming the member and the role; Cancel changes nothing; Confirm sends one transaction and only that role leaves the row, which stays listed with the member's other role",
       "evidence": "Screenshots of the confirmation and the directory afterwards",
       "role": "steward",
       "tags": ["members", "tx"],
@@ -8220,7 +8313,7 @@
         "Approve and deposit at the wallet",
         "Read the vault position and events"
       ],
-      "expected": "The dialog states the deposit limit and refuses an amount above it with the reason; a vault that is not auto-allocated says the module owner must enable it and takes no deposit; a valid amount approves then deposits with 'Depositing...' progress and 'Deposit completed successfully'; the position, net deposited, and events update",
+      "expected": "The dialog states the deposit limit and refuses an amount above it with the reason; a vault that is not auto-allocated says the module owner must enable it and takes no deposit; a valid amount approves then deposits with 'Depositing...' progress and 'Deposit completed successfully'; the vault's net deposited row and the page's total, named by asset, update with the events",
       "evidence": "Screenshots of the refused amount and the completed deposit",
       "role": "steward",
       "tags": ["endowment", "tx"],
@@ -8260,7 +8353,7 @@
       "scenario": "Harvest vault yield and read the split report",
       "preconditions": ["Steward with manage rights on a garden whose vault has accrued yield"],
       "steps": [
-        "Open the vault view and press Harvest",
+        "Open the vault view and press Harvest & Distribute",
         "Confirm at the wallet",
         "Read the harvest outcome alert and the harvest count"
       ],
@@ -8306,9 +8399,9 @@
       "steps": [
         "Open /community/payouts and press Fund Cookie Jar",
         "Enter an amount and confirm approve then deposit",
-        "Read the jar balance and the allocation events"
+        "Read the jar balance and Payouts so far"
       ],
-      "expected": "The deposit dialog approves then deposits with progress; the jar balance and payout readiness update; the allocation events list the deposit",
+      "expected": "The deposit dialog approves then deposits with progress; the jar balance and payout readiness update; Payouts so far counts yield payouts, so a deposit leaves it unchanged",
       "evidence": "Screenshots of the deposit and the updated balance",
       "role": "steward",
       "tags": ["payouts", "tx"],

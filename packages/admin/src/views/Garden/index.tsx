@@ -53,11 +53,6 @@ export default function GardenView() {
 
       <CanvasRouteHeader
         title={formatMessage({ id: "cockpit.garden.title", defaultMessage: "Garden" })}
-        description={formatMessage({
-          id: "cockpit.garden.description",
-          defaultMessage:
-            "Internal tracking for garden health, outcome proof, and recent activity.",
-        })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }

@@ -8,7 +8,7 @@ import {
   GARDEN_ROLE_ORDER,
   type GardenRole,
 } from "@green-goods/shared/utils/blockchain/garden-roles";
-import { RiDeleteBinLine, RiUserAddLine, RiUserLine } from "@remixicon/react";
+import { RiCloseLine, RiUserAddLine, RiUserLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
@@ -37,16 +37,24 @@ export interface ManageMembersDialogProps {
   tone?: AdminDialogProps["tone"];
 }
 
-interface MemberRow {
+/** One role one person holds: what a remove takes away. */
+interface MemberRole {
   address: Address;
   role: GardenRole;
 }
 
+/** A person in the garden, with every role they hold in role order. */
+interface MemberPerson {
+  address: Address;
+  roles: GardenRole[];
+}
+
 /**
- * Manage Members — the single membership surface: one flat roster across all
- * roles with role filter chips and per-member remove, plus the "Add members"
- * action. Replaces the retired Manage Roles / per-role Members / per-role Add
- * modal stack ("keep it simple": add members and manage members, nothing else).
+ * Manage Members — the single membership surface: one row per person across
+ * all roles, a chip for each role they hold with its own remove, role filter
+ * chips, plus the "Add members" action. Counts mean people, never role seats
+ * (DL-049). Replaces the retired Manage Roles / per-role Members / per-role
+ * Add modal stack ("keep it simple": add members and manage members).
  */
 export function ManageMembersDialog({
   open,
@@ -62,7 +70,7 @@ export function ManageMembersDialog({
   const { formatMessage } = useIntl();
   const [roleFilter, setRoleFilter] = useState<GardenRole | "all">("all");
   const [memberSearch, setMemberSearch] = useState(initialSearch);
-  const [pendingRemoval, setPendingRemoval] = useState<MemberRow | null>(null);
+  const [pendingRemoval, setPendingRemoval] = useState<MemberRole | null>(null);
   const [removing, setRemoving] = useState(false);
   const [removeErrorRole, setRemoveErrorRole] = useState<GardenRole | null>(null);
   const [shownFor, setShownFor] = useState({ open, initialSearch });
@@ -81,35 +89,41 @@ export function ManageMembersDialog({
     }
   }
 
-  const rows = useMemo<MemberRow[]>(
-    () =>
-      GARDEN_ROLE_ORDER.flatMap((role) =>
-        (roleMembers[role] ?? []).map((address) => ({ address, role }))
-      ),
-    [roleMembers]
-  );
+  const people = useMemo<MemberPerson[]>(() => {
+    const byAddress = new Map<string, MemberPerson>();
+    for (const role of GARDEN_ROLE_ORDER) {
+      for (const address of roleMembers[role] ?? []) {
+        const key = address.toLowerCase();
+        const person = byAddress.get(key);
+        if (person) person.roles.push(role);
+        else byAddress.set(key, { address, roles: [role] });
+      }
+    }
+    return [...byAddress.values()];
+  }, [roleMembers]);
   const ensNames = useEnsNames(
-    rows.map((row) => row.address),
+    people.map((person) => person.address),
     { enabled: open }
   );
   const normalizedSearch = memberSearch.trim().toLowerCase();
-  const visibleRows = useMemo(() => {
-    const roleScopedRows =
-      roleFilter === "all" ? rows : rows.filter((row) => row.role === roleFilter);
+  const visiblePeople = useMemo(() => {
+    const roleScoped =
+      roleFilter === "all" ? people : people.filter((person) => person.roles.includes(roleFilter));
 
-    if (!normalizedSearch) return roleScopedRows;
+    if (!normalizedSearch) return roleScoped;
 
-    return roleScopedRows.filter((row) => {
-      const roleLabel = getRoleLabel(row.role, formatMessage);
-      return [
-        row.address,
-        formatAddress(row.address),
-        ensNames.get(row.address.toLowerCase()) ?? "",
-        roleLabel.singular,
-        roleLabel.plural,
-      ].some((value) => value.toLowerCase().includes(normalizedSearch));
-    });
-  }, [ensNames, formatMessage, normalizedSearch, roleFilter, rows]);
+    return roleScoped.filter((person) =>
+      [
+        person.address,
+        formatAddress(person.address),
+        ensNames.get(person.address.toLowerCase()) ?? "",
+        ...person.roles.flatMap((role) => {
+          const label = getRoleLabel(role, formatMessage);
+          return [label.singular, label.plural];
+        }),
+      ].some((value) => value.toLowerCase().includes(normalizedSearch))
+    );
+  }, [ensNames, formatMessage, normalizedSearch, roleFilter, people]);
   const busy = isLoading || removing;
   const searchedAddress = memberSearch.trim();
   const addMembersPrefill = isAddress(searchedAddress) ? searchedAddress : undefined;
@@ -153,9 +167,9 @@ export function ManageMembersDialog({
         description={formatMessage(
           {
             id: "app.garden.roles.modal.description",
-            defaultMessage: "{count} members across all roles",
+            defaultMessage: "{count, plural, one {# member} other {# members}}",
           },
-          { count: rows.length }
+          { count: people.length }
         )}
         actions={
           <>
@@ -225,7 +239,7 @@ export function ManageMembersDialog({
           {/* Reserved-geometry roster: min/max height so filter changes and
               loading never resize the dialog; the list scrolls inside. */}
           <div className="min-h-[16rem] max-h-[24rem] overflow-y-auto pr-1">
-            {visibleRows.length === 0 ? (
+            {visiblePeople.length === 0 ? (
               <div className="flex min-h-[16rem] items-center justify-center">
                 <EmptyState
                   icon={<RiUserLine className="h-6 w-6" />}
@@ -238,43 +252,48 @@ export function ManageMembersDialog({
               </div>
             ) : (
               <ul className="space-y-2">
-                {visibleRows.map(({ address, role }) => {
-                  const label = getRoleLabel(role, formatMessage);
-                  const isRemovingRow =
-                    removing &&
-                    pendingRemoval?.role === role &&
-                    pendingRemoval.address.toLowerCase() === address.toLowerCase();
-                  return (
-                    <li
-                      key={`${role}-${address}`}
-                      className="flex items-center justify-between gap-3 rounded-[var(--m3-shape-md)] bg-bg-weak px-3 py-2.5"
-                    >
-                      <div className="flex min-w-0 flex-1 items-center gap-3">
-                        <AddressDisplay address={address} className="min-w-0 flex-1" />
-                        <RoleChip role={role} />
-                      </div>
-                      {canManage ? (
-                        <AdminIconButton
-                          size="lg"
-                          variant="danger"
-                          className="shrink-0"
-                          onClick={() => {
-                            setRemoveErrorRole(null);
-                            setPendingRemoval({ address, role });
-                          }}
-                          disabled={busy}
-                          loading={isRemovingRow}
-                          label={formatMessage(
-                            { id: "app.admin.roles.remove" },
-                            { role: label.singular }
-                          )}
-                        >
-                          <RiDeleteBinLine />
-                        </AdminIconButton>
-                      ) : null}
-                    </li>
-                  );
-                })}
+                {visiblePeople.map(({ address, roles }) => (
+                  <li
+                    key={address}
+                    className="space-y-2 rounded-[var(--m3-shape-md)] bg-bg-weak px-3 py-2.5"
+                  >
+                    {/* The person, then their roles beneath, as the directory rows read,
+                        so a long address and three roles never crowd one line. */}
+                    <AddressDisplay address={address} className="min-w-0" />
+                    {/* Each role keeps its own remove, named for the role it takes away. */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {roles.map((role) => {
+                        const isRemovingRole =
+                          removing &&
+                          pendingRemoval?.role === role &&
+                          pendingRemoval.address.toLowerCase() === address.toLowerCase();
+                        return (
+                          <span key={role} className="inline-flex items-center gap-0.5">
+                            <RoleChip role={role} />
+                            {canManage ? (
+                              <AdminIconButton
+                                size="sm"
+                                variant="danger"
+                                onClick={() => {
+                                  setRemoveErrorRole(null);
+                                  setPendingRemoval({ address, role });
+                                }}
+                                disabled={busy}
+                                loading={isRemovingRole}
+                                label={formatMessage(
+                                  { id: "app.admin.roles.remove" },
+                                  { role: getRoleLabel(role, formatMessage).singular }
+                                )}
+                              >
+                                <RiCloseLine />
+                              </AdminIconButton>
+                            ) : null}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </li>
+                ))}
               </ul>
             )}
           </div>

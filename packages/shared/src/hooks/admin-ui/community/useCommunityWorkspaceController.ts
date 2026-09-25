@@ -106,9 +106,12 @@ export function useCommunityWorkspaceController() {
     isCreatingPools,
     gardenVaults,
     vaultsLoading,
-    vaultNetDeposited,
+    endowmentByAsset,
+    hasEndowment,
     allocations,
+    allocationsAtLimit,
     allocationsLoading,
+    hasNoPayoutJar,
     roleMembers,
     works,
     worksComplete,
@@ -116,14 +119,23 @@ export function useCommunityWorkspaceController() {
     hypercerts,
     scheduleBackgroundRefetch,
   } = useGardenDetailData(selectedGarden?.id);
+  // Only a finished read can say the garden has no jar; until then, and after
+  // a failed read, the action stays live.
+  const hasPayoutJar = !hasNoPayoutJar;
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const viewActions = useMemo(
     () =>
-      buildCommunityViewActions(mode, canManage, isOwner, Boolean(selectedGarden), navigate, {
-        gardenAddress: selectedGardenAddress,
-      }),
-    [canManage, isOwner, mode, navigate, selectedGarden, selectedGardenAddress]
+      buildCommunityViewActions(
+        mode,
+        canManage,
+        isOwner,
+        Boolean(selectedGarden),
+        navigate,
+        { gardenAddress: selectedGardenAddress },
+        hasPayoutJar
+      ),
+    [canManage, hasPayoutJar, isOwner, mode, navigate, selectedGarden, selectedGardenAddress]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,
@@ -155,7 +167,7 @@ export function useCommunityWorkspaceController() {
     hypercerts,
     allocations,
     gardenVaults,
-    vaultNetDeposited,
+    hasEndowment,
     roleMembers,
     selectedRange: "30d",
     activityFilter: "all",
@@ -218,6 +230,7 @@ export function useCommunityWorkspaceController() {
 
   return {
     allocations,
+    allocationsAtLimit,
     allocationsLoading,
     canManage,
     clearSection,
@@ -242,6 +255,7 @@ export function useCommunityWorkspaceController() {
     isSignalPoolRoute,
     isStrategiesRoute,
     vaultAction,
+    memberCount: derived.memberCount,
     memberSearch,
     mode,
     openMembersModal,
@@ -257,7 +271,7 @@ export function useCommunityWorkspaceController() {
     selectedGardenAddress,
     setMemberSearch,
     treasurySeverity: derived.treasurySeverity,
-    vaultNetDeposited,
+    endowmentByAsset,
     vaultsLoading,
     visibleDirectory: derived.visibleDirectory,
   };
