@@ -61,6 +61,16 @@ describe("ImpactTab", () => {
     expect(screen.queryByRole("link", { name: "Create Assessment" })).not.toBeInTheDocument();
   });
 
+  it("says a failed assessments read failed, rather than reading as an empty list", () => {
+    renderImpact({ assessmentsError: new Error("indexer unavailable") });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Failed to load assessments");
+    expect(screen.queryByText("No assessments found")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Create Assessment" })).not.toBeInTheDocument();
+    // The summary does not count a list it could not read.
+    expect(screen.getByText("Total Assessments").nextElementSibling).toHaveTextContent("—");
+  });
+
   it("shows View All once a list has items", () => {
     renderImpact({
       assessments: [{ id: "a-1", title: "Canopy baseline", createdAt: 1_700_000_000 }],

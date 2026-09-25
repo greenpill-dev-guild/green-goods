@@ -58,6 +58,8 @@ export function ImpactTab({
   // An empty list offers no View All and points to where its items are made (D19).
   const hasHypercerts = hypercerts.length > 0;
   const hasAssessments = assessments.length > 0;
+  // A failed read is not an empty list: it says so and counts nothing.
+  const assessmentsUnread = assessmentsError !== null && !hasAssessments;
 
   return (
     <div className="garden-tab-shell">
@@ -229,6 +231,10 @@ export function ImpactTab({
                       />
                     ))}
                   </div>
+                ) : assessmentsUnread ? (
+                  <p className="body-sm text-error-dark" role="alert">
+                    {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}
+                  </p>
                 ) : recentAssessments.length === 0 ? (
                   <div className="space-y-2">
                     <p className="body-sm text-text-soft">
@@ -292,7 +298,9 @@ export function ImpactTab({
                     <span className="garden-stat-row-label">
                       {formatMessage({ id: "app.garden.detail.impactSummary.totalAssessments" })}
                     </span>
-                    <span className="garden-stat-row-value">{assessments.length}</span>
+                    <span className="garden-stat-row-value">
+                      {assessmentsUnread ? "—" : assessments.length}
+                    </span>
                   </div>
                   <div className="garden-stat-row">
                     <span className="garden-stat-row-label">
