@@ -96,6 +96,11 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   (~300–340px) carries container status, quick actions, and activity/updates. Decided for the
   pool tab 2026-08-16 (DL-008). Collapse to one column below ~900px — rail content stacks after the left
   column, nothing disappears. (web.dev responsive; brief: no hidden critical data.)
+- **On phones, a tab's alert card leads.** Below 768px the rail stacks after the main column,
+  except the Attention Needed card, which leads above it, so the steward's next task is the first
+  thing on screen (DL-051, amending DL-008's collapse order for that one card). Proof:
+  [OverviewTab.tsx](../../../packages/admin/src/views/Garden/components/OverviewTab.tsx) —
+  `alertsLead` places `GardenAlertsCard` by `useMediaQuery`, so the rail keeps its landmark.
 - **Group by proximity, not by boxes.** Cards contain one coherent subject each; don't wrap
   every list in nested containers. Information density is a feature on operational screens —
   organize it, don't dilute it. (Laws of UX proximity/common region; brief: no card-itis.)
