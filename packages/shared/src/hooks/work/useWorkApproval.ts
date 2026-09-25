@@ -106,6 +106,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
       isOfflineHash = false
     ) => {
       const status = completion.approved ? ("approved" as const) : ("rejected" as const);
+      const reviewFeedback = completion.feedback?.trim();
       // A confirmed transaction holds until the indexer reports it. Only a
       // decision still waiting on its receipt gets a deadline, so a dropped
       // transaction cannot leave the work looking resolved forever.
@@ -125,6 +126,8 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
                   _isPending: awaitingConfirmation,
                   _txHash: isOfflineHash ? undefined : txHash,
                   _pendingUntilMs: holdsUntilIndexed ? undefined : overlayDeadline(),
+                  // A rejection's reason shows before the indexer reports it.
+                  ...(reviewFeedback ? { reviewFeedback } : {}),
                 }
               : work
           );
@@ -318,6 +321,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
           chainId,
           gardenId: work.gardenAddress,
           workUID: draft.workUID,
+          feedback: draft.feedback,
         });
       }
 
@@ -372,6 +376,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         approved: variables.draft.approved,
         gardenId: variables.work.gardenAddress,
         workUID: variables.draft.workUID,
+        feedback: variables.draft.feedback,
       };
       const isOfflineHash = result.hash.startsWith("0xoffline_");
 

@@ -346,6 +346,27 @@ describe("useBatchWorkApproval", () => {
 
       await mutationPromise;
     });
+
+    it("keeps each decision's feedback on its work once the batch lands", async () => {
+      const [item] = createBatchItems(1, false);
+      item.draft.feedback = "  Photos show a different site  ";
+      const mergedKey = queryKeys.works.merged(TEST_GARDEN, TEST_CHAIN_ID);
+      queryClient.setQueryData(mergedKey, [
+        createMockWork({ id: item.draft.workUID, gardenAddress: TEST_GARDEN, status: "pending" }),
+      ]);
+
+      const { result } = renderHook(() => useBatchWorkApproval(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync([item]);
+      });
+
+      const cached = queryClient.getQueryData<Work[]>(mergedKey)?.[0];
+      expect(cached?.status).toBe("rejected");
+      expect(cached?.reviewFeedback).toBe("Photos show a different site");
+    });
   });
 
   // ------------------------------------------

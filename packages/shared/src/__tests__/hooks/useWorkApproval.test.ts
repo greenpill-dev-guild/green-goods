@@ -643,6 +643,7 @@ describe("hooks/work/useWorkApproval", () => {
         actionUID: work.actionUID,
         workUID: work.id,
         approved: true,
+        feedback: "Great canopy photos",
       });
       const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
       queryClient.setQueryData(mergedKey, [work]);
@@ -655,6 +656,7 @@ describe("hooks/work/useWorkApproval", () => {
 
       const cached = queryClient.getQueryData<OverlayWork[]>(mergedKey)?.[0];
       expect(cached?.status).toBe("approved");
+      expect(cached?.reviewFeedback).toBe("Great canopy photos");
       expect(cached?._isPending).toBe(true);
       expect(cached?._txHash).toBeUndefined();
       expect(cached?._pendingUntilMs).toBeUndefined();
@@ -751,6 +753,31 @@ describe("hooks/work/useWorkApproval", () => {
         11155111,
         expect.objectContaining({ onLifecycle: expect.any(Function) })
       );
+    });
+
+    it("shows a rejection's feedback on the work before the indexer reports it", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+        feedback: "  Photos show a different site  ",
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      await waitFor(() => {
+        const cached = queryClient.getQueryData<OverlayWork[]>(mergedKey)?.[0];
+        expect(cached?.status).toBe("rejected");
+        expect(cached?.reviewFeedback).toBe("Photos show a different site");
+      });
     });
   });
 
