@@ -24,6 +24,7 @@ vi.mock("react-intl", () => ({
         "cockpit.fab.openActions": "Open Actions",
         "actions.submit": "Submit Work",
         "actions.disabled": "Disabled action",
+        "actions.disabledReason": "Nothing to fund yet.",
       };
       return messages[id] ?? id;
     },
@@ -388,7 +389,7 @@ describe("NavigationBar", () => {
     expect(screen.queryByRole("navigation")).toBeNull();
   });
 
-  it("opens multi-action mobile FABs as a launcher and ignores disabled actions", async () => {
+  it("opens multi-action mobile FABs as a launcher and says why an action is disabled", async () => {
     setDesktopViewport(false);
     const onAction = vi.fn();
     const fab: FabConfig = {
@@ -407,6 +408,8 @@ describe("NavigationBar", () => {
           label: "Disabled action",
           labelId: "actions.disabled",
           disabled: true,
+          disabledReasonId: "actions.disabledReason",
+          disabledReason: "Nothing to fund yet.",
         },
       ],
       onAction,
@@ -426,7 +429,10 @@ describe("NavigationBar", () => {
     expect(screen.getByRole("menu", { name: /actions/i })).toBeInTheDocument();
     const enabledAction = screen.getByRole("menuitem", { name: /submit work/i });
     const disabledAction = screen.getByRole("menuitem", { name: /disabled action/i });
-    expect(disabledAction).toBeDisabled();
+    // Inert but focusable, and it says why, in place and to screen readers.
+    expect(disabledAction).toHaveAttribute("aria-disabled", "true");
+    expect(disabledAction).toHaveAccessibleDescription("Nothing to fund yet.");
+    expect(within(disabledAction).getByText("Nothing to fund yet.")).toBeInTheDocument();
     expect(enabledAction).toHaveStyle({ maxWidth: "calc(100vw - 2rem)" });
 
     await user.click(disabledAction);
@@ -475,8 +481,9 @@ describe("NavigationBar", () => {
     const enabledAction = screen.getByRole("menuitem", { name: /submit work/i });
     expect(enabledAction).toHaveFocus();
 
+    // A disabled action stays reachable, so its reason can be read.
     await user.keyboard("{ArrowDown}");
-    expect(enabledAction).toHaveFocus();
+    expect(screen.getByRole("menuitem", { name: /disabled action/i })).toHaveFocus();
 
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("menu", { name: /actions/i })).not.toBeInTheDocument();

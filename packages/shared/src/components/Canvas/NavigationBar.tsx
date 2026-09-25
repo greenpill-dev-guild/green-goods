@@ -1,8 +1,17 @@
 import { RiAddLine } from "@remixicon/react";
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
 import { selectNavigationBarModel } from "./NavigationBar.model";
+import { nextSpeedDialActionId } from "./speedDialNavigation";
 import type { ViewAction } from "./viewActions.types";
 import { useCanvasMobileChromeHidden } from "./useCanvasMobileChromeHidden";
 
@@ -122,12 +131,9 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const [focusedSpeedDialActionId, setFocusedSpeedDialActionId] = useState<string | null>(null);
   const fabButtonRef = useRef<HTMLButtonElement>(null);
   const speedDialActionRefs = useRef(new Map<string, HTMLButtonElement>());
+  const reasonIdBase = useId();
   const speedDialShadow = "var(--admin-speed-dial-shadow, var(--m3-elevation-2))";
   const isSingleAction = config.actions.length <= 1;
-  const enabledSpeedDialActions = useMemo(
-    () => config.actions.filter((action) => !action.disabled),
-    [config.actions]
-  );
   // Multi-action FABs present a neutral "+" opener (rotates to "×" on open), not
   // any one action's glyph — so the collapsed button reads as "open the menu",
   // never as a duplicate of the primary action inside the dial. Single-action
@@ -178,45 +184,29 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         return;
       }
 
-      const enabledActionIds = enabledSpeedDialActions.map((action) => action.id);
-      if (enabledActionIds.length === 0) return;
-
       const currentActionId =
         (event.target as HTMLElement)
           .closest<HTMLElement>("[data-slot='speed-dial-item']")
           ?.getAttribute("data-item-id") ?? focusedSpeedDialActionId;
-      const currentIndex = currentActionId ? enabledActionIds.indexOf(currentActionId) : -1;
-      let nextIndex: number | null = null;
-
-      if (event.key === "ArrowDown" || event.key === "ArrowRight") {
-        nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % enabledActionIds.length;
-      } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
-        nextIndex =
-          currentIndex === -1
-            ? enabledActionIds.length - 1
-            : (currentIndex - 1 + enabledActionIds.length) % enabledActionIds.length;
-      } else if (event.key === "Home") {
-        nextIndex = 0;
-      } else if (event.key === "End") {
-        nextIndex = enabledActionIds.length - 1;
-      }
-
-      if (nextIndex === null) return;
+      const nextId = nextSpeedDialActionId(
+        config.actions.map((action) => action.id),
+        currentActionId,
+        event.key
+      );
+      if (nextId === null) return;
 
       event.preventDefault();
-      focusSpeedDialAction(enabledActionIds[nextIndex]!);
+      focusSpeedDialAction(nextId);
     },
-    [closeSpeedDial, enabledSpeedDialActions, focusSpeedDialAction, focusedSpeedDialActionId]
+    [closeSpeedDial, config.actions, focusSpeedDialAction, focusedSpeedDialActionId]
   );
 
   useEffect(() => {
     if (!speedDialOpen || isSingleAction) return;
 
-    const firstEnabledAction = enabledSpeedDialActions[0];
-    if (!firstEnabledAction) return;
-
-    focusSpeedDialAction(firstEnabledAction.id);
-  }, [enabledSpeedDialActions, focusSpeedDialAction, isSingleAction, speedDialOpen]);
+    const firstEnabledAction = config.actions.find((action) => !action.disabled);
+    if (firstEnabledAction) focusSpeedDialAction(firstEnabledAction.id);
+  }, [config.actions, focusSpeedDialAction, isSingleAction, speedDialOpen]);
 
   return (
     <div
@@ -269,6 +259,8 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         >
           {config.actions.map((action) => {
             const ActionIcon = action.icon;
+            const reasonId =
+              action.disabled && action.disabledReasonId ? `${reasonIdBase}-${action.id}` : null;
             return (
               <button
                 key={action.id}
@@ -282,14 +274,16 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                   }
                 }}
                 onClick={() => handleAction(action)}
-                disabled={action.disabled}
+                // Focusable though disabled, so a keyboard reaches its reason.
+                aria-disabled={action.disabled || undefined}
+                aria-describedby={reasonId ?? undefined}
                 className={cn(
                   "flex min-h-11 cursor-pointer items-center gap-2 rounded-full px-3 py-2",
                   "border",
                   "text-sm font-medium text-text-strong",
                   "transition-all",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--tone-tint,59_130_246)))]",
-                  "disabled:cursor-not-allowed disabled:opacity-55",
+                  "aria-disabled:cursor-not-allowed aria-disabled:opacity-55",
                   "speed-dial-item",
                   "motion-reduce:animate-none"
                 )}
@@ -316,6 +310,11 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                 <ActionIcon className="h-4 w-4" />
                 <span className="min-w-0 whitespace-normal text-left leading-snug">
                   {formatMessage({ id: action.labelId })}
+                  {reasonId && action.disabledReasonId ? (
+                    <span id={reasonId} className="block text-xs font-normal text-text-sub">
+                      {formatMessage({ id: action.disabledReasonId })}
+                    </span>
+                  ) : null}
                 </span>
               </button>
             );

@@ -107,8 +107,10 @@ export const DisabledActionSaysWhy: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: /open/i }));
     const fund = await canvas.findByRole("menuitem", { name: "Fund Cookie Jar" });
-    await expect(fund).toBeDisabled();
+    // Inert but focusable, so a keyboard reaches the reason too.
+    await expect(fund).toHaveAttribute("aria-disabled", "true");
     await expect(fund).toHaveTextContent("This garden has no payout jar yet.");
+    await expect(fund).toHaveAccessibleDescription("This garden has no payout jar yet.");
     await expect(args.config.onAction).not.toHaveBeenCalled();
   },
 };

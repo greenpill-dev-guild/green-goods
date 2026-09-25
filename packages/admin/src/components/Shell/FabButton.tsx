@@ -1,7 +1,7 @@
 import type { FabAction, FabConfig } from "@green-goods/shared/components/Canvas/NavigationBar";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiAddLine } from "@remixicon/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 // ----------------------------------------------------------------------------
@@ -27,6 +27,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const [focusedSpeedDialActionId, setFocusedSpeedDialActionId] = useState<string | null>(null);
   const fabButtonRef = useRef<HTMLButtonElement>(null);
   const speedDialActionRefs = useRef(new Map<string, HTMLButtonElement>());
+  const reasonIdBase = useId();
   const speedDialShadow = "var(--admin-speed-dial-shadow, var(--m3-elevation-2))";
   const isSingleAction = config.actions.length <= 1;
   const enabledSpeedDialActions = useMemo(
@@ -86,35 +87,37 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         return;
       }
 
-      const enabledActionIds = enabledSpeedDialActions.map((action) => action.id);
-      if (enabledActionIds.length === 0) return;
+      // Every action is reachable, disabled ones included, so a keyboard
+      // reaches the reason a disabled action gives.
+      const actionIds = config.actions.map((action) => action.id);
+      if (actionIds.length === 0) return;
 
       const currentActionId =
         (event.target as HTMLElement)
           .closest<HTMLElement>("[data-slot='speed-dial-item']")
           ?.getAttribute("data-item-id") ?? focusedSpeedDialActionId;
-      const currentIndex = currentActionId ? enabledActionIds.indexOf(currentActionId) : -1;
+      const currentIndex = currentActionId ? actionIds.indexOf(currentActionId) : -1;
       let nextIndex: number | null = null;
 
       if (event.key === "ArrowDown" || event.key === "ArrowRight") {
-        nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % enabledActionIds.length;
+        nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % actionIds.length;
       } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
         nextIndex =
           currentIndex === -1
-            ? enabledActionIds.length - 1
-            : (currentIndex - 1 + enabledActionIds.length) % enabledActionIds.length;
+            ? actionIds.length - 1
+            : (currentIndex - 1 + actionIds.length) % actionIds.length;
       } else if (event.key === "Home") {
         nextIndex = 0;
       } else if (event.key === "End") {
-        nextIndex = enabledActionIds.length - 1;
+        nextIndex = actionIds.length - 1;
       }
 
       if (nextIndex === null) return;
 
       event.preventDefault();
-      focusSpeedDialAction(enabledActionIds[nextIndex]!);
+      focusSpeedDialAction(actionIds[nextIndex]!);
     },
-    [closeSpeedDial, enabledSpeedDialActions, focusSpeedDialAction, focusedSpeedDialActionId]
+    [closeSpeedDial, config.actions, focusSpeedDialAction, focusedSpeedDialActionId]
   );
 
   useEffect(() => {
@@ -180,14 +183,20 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                   }
                 }}
                 onClick={() => handleAction(action)}
-                disabled={action.disabled}
+                // Focusable though disabled, so a keyboard reaches its reason.
+                aria-disabled={action.disabled || undefined}
+                aria-describedby={
+                  action.disabled && action.disabledReasonId
+                    ? `${reasonIdBase}-${action.id}`
+                    : undefined
+                }
                 className={cn(
                   "flex min-h-11 cursor-pointer items-center gap-2 rounded-full px-3 py-2",
                   "border border-[color:var(--admin-speed-dial-border,rgb(var(--stroke-soft-200)))]",
                   "bg-[rgb(var(--admin-surface-0))]",
                   "text-body-md font-medium text-text-strong",
                   "focus-visible:outline-none",
-                  "disabled:cursor-not-allowed disabled:opacity-55",
+                  "aria-disabled:cursor-not-allowed aria-disabled:opacity-55",
                   "speed-dial-item",
                   "motion-reduce:animate-none"
                 )}
@@ -214,7 +223,10 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                   {formatMessage({ id: action.labelId })}
                   {/* Touch has no hover, so a disabled action says why in place. */}
                   {action.disabled && action.disabledReasonId ? (
-                    <span className="block text-body-sm font-normal text-text-sub">
+                    <span
+                      id={`${reasonIdBase}-${action.id}`}
+                      className="block text-body-sm font-normal text-text-sub"
+                    >
                       {formatMessage({
                         id: action.disabledReasonId,
                         defaultMessage: action.disabledReason,

@@ -30,6 +30,10 @@ const adminButtonVariants = tv({
     // Disabled
     "disabled:pointer-events-none",
     "disabled:bg-[rgb(var(--m3-on-surface)/0.12)] disabled:text-[rgb(var(--m3-on-surface)/0.38)] disabled:shadow-none",
+    // aria-disabled looks the same but keeps focus and hover, so a reason
+    // shown on hover or focus still reaches the steward.
+    "aria-disabled:cursor-not-allowed",
+    "aria-disabled:bg-[rgb(var(--m3-on-surface)/0.12)] aria-disabled:text-[rgb(var(--m3-on-surface)/0.38)] aria-disabled:shadow-none",
   ],
   variants: {
     variant: {
