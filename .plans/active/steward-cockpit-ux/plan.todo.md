@@ -74,7 +74,7 @@ PR1's branch already carries this hub as its first commit.
 - [x] Per-asset endowment amounts (D14, D9, D27, D31, D33)
 - [x] Payouts, Impact, Karma copy (D10, D19, D30, D31, D33, D34)
 - [x] Stories, en/es/pt, QA catalog, rendered proof, critical gate
-- [ ] PR opened, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
+- [x] PR opened, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
 
 ### PR4 — Shell, cookies, tone
 

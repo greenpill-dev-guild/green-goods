@@ -244,6 +244,22 @@
       "status": "tdd_recorded",
       "branch": null,
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T19:21:59.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "fix/garden-community-clarity",
+      "note": "PR3 (pr3_garden_community) merged into develop as #906; PRD-984 Done"
+    },
+    {
+      "timestamp": "2026-09-25T19:40:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/shell-cookies-and-actions-tone",
+      "note": "PR4 (pr4_shell_cookies_tone) rebased onto develop after PR3 merged"
     }
   ],
   "execution_sub_lanes": {
