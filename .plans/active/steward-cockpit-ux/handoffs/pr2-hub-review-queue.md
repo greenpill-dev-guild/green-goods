@@ -212,22 +212,22 @@ Garden):
   a stall), `AssessmentDomainContextStep` 1 failed (a restored retired domain raised no message),
   `CreateHypercertDialog` 1 failed (stale restored picks blocked Next silently), and the old stamp
   pattern took 1,258 ms on 50,000 spaces against the new test's 250 ms bound. Second round: `useWorks`
-  2 failed (no signal that an approval read failed). Third round: the cached-status `useWorks` test failed (a failed read of a cached row left the flag false), `AssessmentDomainContextStep` 2 failed (a single-domain garden came preselected; an undocumented restored domain stayed), and `CreateHypercertDialog` 1 failed (Next stayed pressable while attestations loaded).
+  2 failed (no signal that an approval read failed). Third round: the cached-status `useWorks` test failed (a failed read of a cached row left the flag false), `AssessmentDomainContextStep` 2 failed (a single-domain garden came preselected; an undocumented restored domain stayed), and `CreateHypercertDialog` 1 failed (Next stayed pressable while attestations loaded). Fourth round: `useWorkApproval` 2 and `useBatchWorkApproval` 1 failed (a decision's feedback never reached the local overlay), `store-transitions` 1 failed (a new domain kept the old one's actions and metrics), `wizard-transitions` 1 failed (choosing only a domain read as pristine), and `AssessmentDomainContextStep` 1 failed (clearing an undocumented domain kept its actions).
 - Proof limit: none. Tests that only moved with the new behaviour (header stats, derived state,
   Overview, Hub card, Hub detail, attestation selector, assessment steps and dialog, hypercert
   wizard) are updated or added beside them.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `6298d269ac54d87361e66e2d66b0f1bda0ccdddc` (after every review round so far; the receipts on
-  `ecfccdda7`, `ff2bb49a5`, and `97f880177` are superseded)
-- Run at (UTC): push gate `2026-09-25T09:20:39Z` to `2026-09-25T09:24:38Z`
+- Tested implementation commit SHA: `ae95cd08aa41f122676b2cb123aafd2e97cf120c` (after every review round so far; the receipts on
+  `ecfccdda7`, `ff2bb49a5`, `97f880177`, and `6298d269a` are superseded)
+- Run at (UTC): push gate `2026-09-25T09:49:11Z` to `2026-09-25T09:52:29Z`
 - Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:src/__tests__/hooks/work/useWorks.test.ts`
-- Result: push gate exit 0 on the critical plan, 27 automated checks passed (shared 5773, client 1397, admin 988, and agent 316 tests passing, with source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test);
+- Result: push gate exit 0 on the critical plan, 27 automated checks passed (shared 5777, client 1397, admin 988, and agent 316 tests passing, with source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test);
   browser-proof stays the manual proof recorded under Rendered Proof
 - Validated paths: `packages/shared/src`, `packages/admin/src`, `packages/qa/locales`, `scripts/data`, `scripts/quality`, `docs/docs`, `.claude/skills`, `DESIGN.md`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 6298d269ac54d87361e66e2d66b0f1bda0ccdddc..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only diff command and result (if applicable): `git diff --exit-code ae95cd08aa41f122676b2cb123aafd2e97cf120c..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
 
 ## Risks / Blockers
