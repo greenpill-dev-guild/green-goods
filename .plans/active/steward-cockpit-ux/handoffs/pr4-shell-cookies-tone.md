@@ -199,14 +199,14 @@ Vitest project):
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `e2a85abd50dc91209644af2769a16702f90b37a7` (on `develop` with PR3, #906, merged; its code tree is `f48fc96fb`'s, the pre-rebase head the full suites and rendered proof ran on, plus the Funding and Governance source-of-truth fix)
+- Run at (UTC): push gate `2026-09-25T19:35:19Z` to `2026-09-25T19:36:08Z`
+- Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path admin:src/views/Community/components/CommunityPayoutsTab.test.tsx`; `bash scripts/design/check-tokens.sh`
+- Result: push gate exit 0 on the sensitive plan, 12 automated checks passed: format, lint, shared-test (4 changed test files, 43 tests), admin-test (6 files, 60 tests), admin-build, docs-authority, source-structure, agent-guidance, qa-id-ledger, story-quality, storybook-build, and agent-tools-test (11 files, 260 tests). The first run, on `31703f66f`, failed docs-authority: the Funding and Governance page cited the deleted Cookies page as a source of truth, fixed in `e2a85abd5`. check-tokens exit 0. On `f48fc96fb`, the same code before the rebase, the full admin (1037), shared (5820), and client (1399) suites and the storybook-ci story suite (96 files, 340 tests) passed locally; browser-proof stays the manual proof under Rendered Proof
+- Validated paths: `packages/admin/src` `packages/shared/src` `packages/shared/.storybook` `packages/admin/DESIGN.md` `scripts/data` `docs/docs` `.claude/skills` `.claude/rules`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/data docs/docs .claude/skills .claude/rules` → empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code e2a85abd50dc91209644af2769a16702f90b37a7..HEAD -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/data docs/docs .claude/skills .claude/rules` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/data docs/docs .claude/skills .claude/rules` → empty
 
 ## Risks / Blockers
 
