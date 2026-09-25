@@ -33,6 +33,12 @@ vi.mock("../../../stores/useAdminStore", () => ({
     address && chainId ? `${chainId}:${address.toLowerCase()}` : null,
 }));
 
+const mockGetNetworkConfig = vi.fn();
+vi.mock("../../../config/blockchain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../config/blockchain")>()),
+  getNetworkConfig: (chainId: number) => mockGetNetworkConfig(chainId),
+}));
+
 import { useEligibleAdminGardens } from "../../../hooks/garden/useEligibleAdminGardens";
 
 const ADDR_USER = "0x1111111111111111111111111111111111111111";
@@ -72,6 +78,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     mockUseCurrentChain.mockReturnValue(11155111);
     mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
     mockUseRole.mockReturnValue(defaultRole());
+    mockGetNetworkConfig.mockReturnValue({});
     mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
       selector({ lastGardenIdsByScope: {} })
     );
@@ -169,6 +176,42 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.resolvedDefaultGarden?.id).toBe("garden-a");
     expect(result.current.canCreateGarden).toBe(true);
     expect(result.current.scopeKey).toBe("11155111:0x1111111111111111111111111111111111111111");
+  });
+
+  it("adds the protocol garden for a deployer without a role there, so its campaign jars stay reachable (DL-046)", () => {
+    const root = "0xf401f34378384713222d1d21f63359cc4e8a858a";
+    mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer" });
+    mockGetNetworkConfig.mockReturnValue({
+      rootGarden: { address: "0xF401F34378384713222D1D21F63359CC4E8A858A", tokenId: 0 },
+    });
+    mockUseGardens.mockReturnValue({
+      data: [
+        makeGarden(root, "Green Goods Community Garden"),
+        makeGarden("garden-z", "Zeta Garden", { stewards: [ADDR_USER] }),
+        makeGarden("garden-other", "Other Garden"),
+      ],
+      isFetched: true,
+      isError: false,
+    });
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    expect(result.current.eligibleGardens.map((garden) => garden.id)).toEqual([root, "garden-z"]);
+  });
+
+  it("does not add the protocol garden for anyone but a deployer", () => {
+    const root = "0xf401f34378384713222d1d21f63359cc4e8a858a";
+    mockUseRole.mockReturnValue({ ...defaultRole(), role: "steward" });
+    mockGetNetworkConfig.mockReturnValue({ rootGarden: { address: root, tokenId: 0 } });
+    mockUseGardens.mockReturnValue({
+      data: [makeGarden(root, "Green Goods Community Garden")],
+      isFetched: true,
+      isError: false,
+    });
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    expect(result.current.eligibleGardens).toEqual([]);
   });
 
   it("does not grant canCreateGarden for steward role (route gate is deployer-only)", () => {

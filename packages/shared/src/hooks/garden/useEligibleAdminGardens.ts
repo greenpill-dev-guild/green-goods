@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { getNetworkConfig } from "../../config/blockchain";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
@@ -84,6 +85,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
   const lastGardenIdsByScope = useAdminStore((state) => state.lastGardenIdsByScope);
 
   const scopeKey = useMemo(() => getAdminGardenScopeKey(address, chainId), [address, chainId]);
+  const rootGardenAddress = getNetworkConfig(chainId).rootGarden?.address ?? null;
 
   const { eligibleGardens, hasStaleBaseList } = useMemo(() => {
     if (!address) {
@@ -95,7 +97,13 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
         return (
           isAddressInList(address, garden.stewards) ||
           isAddressInList(address, garden.owners) ||
-          isAddressInList(address, garden.evaluators)
+          isAddressInList(address, garden.evaluators) ||
+          // Deployers run the protocol garden's campaign cookie jars (DL-046)
+          // whether or not they hold a role in it; its writes stay gated by
+          // garden permissions.
+          (role === "deployer" &&
+            rootGardenAddress !== null &&
+            compareAddresses(garden.id, rootGardenAddress))
         );
       })
       .slice()
@@ -118,7 +126,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     const stubs = missing.map((og) => stubGardenFromStewardHint(og, chainId, address as Address));
     const merged = [...fromBaseList, ...stubs].sort(compareGardenNames);
     return { eligibleGardens: merged, hasStaleBaseList: true };
-  }, [address, gardens, stewardGardens, chainId]);
+  }, [address, gardens, stewardGardens, chainId, role, rootGardenAddress]);
 
   const persistedGardenId = scopeKey ? lastGardenIdsByScope[scopeKey] : null;
 
