@@ -54,7 +54,9 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
         "flex cursor-pointer flex-col items-center justify-center rounded-full bg-transparent",
         // On a phone each tab takes its label's width, then all grow equally, so
         // a long localized label (Comunidade) shows whole in its own tab (D16).
-        mobile ? "flex-auto gap-1 px-0 py-1" : "min-w-0 gap-0.5 px-2.5 pb-1 pt-0.5",
+        // At large text sizes the tabs shrink instead and their labels wrap, so
+        // the last tabs never leave the screen.
+        mobile ? "min-w-0 flex-auto gap-1 px-0 py-1" : "min-w-0 gap-0.5 px-2.5 pb-1 pt-0.5",
         !isActive && "hover:opacity-75",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
       )}
@@ -78,7 +80,7 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
       <span
         className={cn(
           "text-label-md leading-4",
-          mobile ? "whitespace-nowrap" : "tracking-[0.03125rem]",
+          mobile ? "max-w-full text-center break-words" : "tracking-[0.03125rem]",
           isActive
             ? "font-semibold text-[rgb(var(--m3-on-surface))]"
             : "font-medium text-[rgb(var(--m3-on-surface-variant))]"
