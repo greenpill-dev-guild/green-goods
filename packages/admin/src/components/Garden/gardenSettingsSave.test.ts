@@ -25,6 +25,7 @@ describe("buildGardenSettingsSaveRows", () => {
     ["uploading", "active", "Uploading the image…", true],
     ["waiting", "active", "Waiting for your wallet", true],
     ["saved", "complete", "Confirmed", false],
+    ["proposed", "warning", "Sent to your Safe", false],
     ["failed", "failed", "Didn’t go through", false],
   ] as const)("a %s field reads %s with %s", (state, marker, label, current) => {
     const [row] = buildGardenSettingsSaveRows(
@@ -59,6 +60,16 @@ describe("gardenSettingsSaveLine", () => {
       "Stopped at Description. 1 of 3 saved. Your other edits are still here.",
     ],
     ["a finished save", { ...stopped, status: "complete" as const }, 0, "All changes saved"],
+    [
+      "a save a Safe still has to execute",
+      {
+        status: "complete" as const,
+        fields: ["name"] as const,
+        progress: { name: { state: "proposed" as const, hash: null } },
+      },
+      0,
+      "Sent to your Safe. The changes apply once the Safe executes them.",
+    ],
   ])("reads %s", (_case, run, pendingCount, line) => {
     expect(gardenSettingsSaveLine(run, pendingCount, formatMessage)).toBe(line);
   });

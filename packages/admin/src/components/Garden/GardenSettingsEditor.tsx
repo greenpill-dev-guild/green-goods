@@ -18,6 +18,7 @@ import { logger } from "@green-goods/shared/modules/app/logger";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
 import { type Address, DOMAIN_COLORS, type Domain } from "@green-goods/shared/types/domain";
+import { isTransactionHash } from "@green-goods/shared/utils/eas/explorers";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
@@ -302,7 +303,10 @@ export const GardenSettingsEditor = forwardRef<
           stage = "waiting";
           mark(field, stage);
         });
-        mark(field, "saved", hash);
+        // A Safe hands back a proposal, not a transaction: the field is sent,
+        // not confirmed, and is not sent again, which would propose it twice.
+        if (isTransactionHash(hash)) mark(field, "saved", hash);
+        else mark(field, "proposed");
         if (field === "banner") {
           setDraft((current) => ({ ...current, bannerFile: null, bannerRemoved: false }));
         } else {

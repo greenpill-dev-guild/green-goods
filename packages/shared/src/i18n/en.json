@@ -2047,6 +2047,8 @@
   "app.garden.settings.save.uploading": "Uploading the image…",
   "app.garden.settings.save.waiting": "Waiting for your wallet",
   "app.garden.settings.save.saved": "Confirmed",
+  "app.garden.settings.save.proposed": "Sent to your Safe",
+  "app.garden.settings.save.proposedAll": "Sent to your Safe. The changes apply once the Safe executes them.",
   "app.garden.settings.save.failed": "Didn’t go through",
   "app.garden.settings.save.listLabel": "What your wallet confirms",
   "app.garden.settings.save.keepEditing": "Keep Editing",

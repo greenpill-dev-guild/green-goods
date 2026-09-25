@@ -2047,6 +2047,8 @@
   "app.garden.settings.save.uploading": "Enviando a imagem…",
   "app.garden.settings.save.waiting": "Aguardando sua carteira",
   "app.garden.settings.save.saved": "Confirmado",
+  "app.garden.settings.save.proposed": "Enviado ao seu Safe",
+  "app.garden.settings.save.proposedAll": "Enviado ao seu Safe. As alterações entram em vigor quando o Safe as executar.",
   "app.garden.settings.save.failed": "Não foi concluído",
   "app.garden.settings.save.listLabel": "O que sua carteira confirma",
   "app.garden.settings.save.keepEditing": "Continuar editando",

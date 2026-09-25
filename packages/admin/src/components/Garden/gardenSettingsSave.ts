@@ -7,8 +7,17 @@ type FormatMessage = (
   values?: Record<string, string | number>
 ) => string;
 
-/** Where one field's write stands during a save. */
-export type GardenSettingsFieldState = "queued" | "uploading" | "waiting" | "saved" | "failed";
+/**
+ * Where one field's write stands during a save. `proposed` is a write a Safe
+ * accepted as a proposal: it lands only once the Safe executes it.
+ */
+export type GardenSettingsFieldState =
+  | "queued"
+  | "uploading"
+  | "waiting"
+  | "saved"
+  | "proposed"
+  | "failed";
 
 export interface GardenSettingsFieldProgress {
   state: GardenSettingsFieldState;
@@ -40,6 +49,7 @@ const MARKER: Record<GardenSettingsFieldState, TxStepMarkerState> = {
   uploading: "active",
   waiting: "active",
   saved: "complete",
+  proposed: "warning",
   failed: "failed",
 };
 
@@ -48,6 +58,7 @@ const TONE: Record<GardenSettingsFieldState, TxProgressTone> = {
   uploading: "active",
   waiting: "active",
   saved: "success",
+  proposed: "warning",
   failed: "error",
 };
 
@@ -67,6 +78,11 @@ function stateLabel(state: GardenSettingsFieldState, formatMessage: FormatMessag
       });
     case "saved":
       return formatMessage({ id: "app.garden.settings.save.saved", defaultMessage: "Confirmed" });
+    case "proposed":
+      return formatMessage({
+        id: "app.garden.settings.save.proposed",
+        defaultMessage: "Sent to your Safe",
+      });
     case "failed":
       return formatMessage({
         id: "app.garden.settings.save.failed",
@@ -133,6 +149,12 @@ export function gardenSettingsSaveLine(
       },
       { count: pendingCount }
     );
+  }
+  if (run?.status === "complete" && run.fields.some((f) => run.progress[f]?.state === "proposed")) {
+    return formatMessage({
+      id: "app.garden.settings.save.proposedAll",
+      defaultMessage: "Sent to your Safe. The changes apply once the Safe executes them.",
+    });
   }
   return formatMessage({ id: "app.garden.settings.allSaved", defaultMessage: "All changes saved" });
 }

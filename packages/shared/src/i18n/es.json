@@ -2047,6 +2047,8 @@
   "app.garden.settings.save.uploading": "Subiendo la imagen…",
   "app.garden.settings.save.waiting": "Esperando tu billetera",
   "app.garden.settings.save.saved": "Confirmado",
+  "app.garden.settings.save.proposed": "Enviado a tu Safe",
+  "app.garden.settings.save.proposedAll": "Enviado a tu Safe. Los cambios se aplican cuando el Safe los ejecute.",
   "app.garden.settings.save.failed": "No se completó",
   "app.garden.settings.save.listLabel": "Lo que confirma tu billetera",
   "app.garden.settings.save.keepEditing": "Seguir editando",

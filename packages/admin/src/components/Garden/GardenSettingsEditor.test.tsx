@@ -25,16 +25,20 @@ const {
   mockSetMaxGardeners,
   mockSetGardenDomains,
   mockUploadFileToIPFS,
-} = vi.hoisted(() => ({
-  mockUpdateName: vi.fn().mockResolvedValue("0x1"),
-  mockUpdateDescription: vi.fn().mockResolvedValue("0x1"),
-  mockUpdateLocation: vi.fn().mockResolvedValue("0x1"),
-  mockUpdateBannerImage: vi.fn().mockResolvedValue("0x1"),
-  mockSetOpenJoining: vi.fn().mockResolvedValue("0x1"),
-  mockSetMaxGardeners: vi.fn().mockResolvedValue("0x1"),
-  mockSetGardenDomains: vi.fn().mockResolvedValue("0x1"),
-  mockUploadFileToIPFS: vi.fn().mockResolvedValue({ cid: "bafysettingsbanner" }),
-}));
+} = vi.hoisted(() => {
+  // A canonical transaction hash: what a wallet returns once a write is on chain.
+  const TX_HASH = `0x${"ab".repeat(32)}` as const;
+  return {
+    mockUpdateName: vi.fn().mockResolvedValue(TX_HASH),
+    mockUpdateDescription: vi.fn().mockResolvedValue(TX_HASH),
+    mockUpdateLocation: vi.fn().mockResolvedValue(TX_HASH),
+    mockUpdateBannerImage: vi.fn().mockResolvedValue(TX_HASH),
+    mockSetOpenJoining: vi.fn().mockResolvedValue(TX_HASH),
+    mockSetMaxGardeners: vi.fn().mockResolvedValue(TX_HASH),
+    mockSetGardenDomains: vi.fn().mockResolvedValue(TX_HASH),
+    mockUploadFileToIPFS: vi.fn().mockResolvedValue({ cid: "bafysettingsbanner" }),
+  };
+});
 
 vi.mock("@green-goods/shared/hooks/garden/useSetGardenDomains", async () => {
   const asMutation = (mutateAsync: (params: unknown) => Promise<unknown>) => () => ({
@@ -261,6 +265,28 @@ describe("GardenSettingsEditor explicit save", () => {
       gardenAddress,
       value: "Lisbon, Portugal",
     });
+  });
+
+  it("shows a change a Safe must still execute as sent, not confirmed, and does not send it again", async () => {
+    const user = userEvent.setup();
+    // Safe-style wallets return a proposal identifier, not a transaction hash.
+    mockUpdateDescription.mockResolvedValueOnce(`0x${"cd".repeat(40)}`);
+    renderEditor();
+
+    const descriptionInput = screen.getByLabelText("Description");
+    await user.clear(descriptionInput);
+    await user.type(descriptionInput, "Restoring the river bank.");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    expect(
+      await screen.findByText("Sent to your Safe. The changes apply once the Safe executes them.")
+    ).toBeInTheDocument();
+    const [row] = within(screen.getByTestId("garden-settings-save")).getAllByRole("listitem");
+    expect(row).toHaveAttribute("data-status", "proposed");
+    expect(within(row).getByText("Sent to your Safe")).toBeInTheDocument();
+    // No transaction exists yet, so there is nothing to open in an explorer.
+    expect(within(row).queryByRole("link")).not.toBeInTheDocument();
+    expect(mockUpdateDescription).toHaveBeenCalledTimes(1);
   });
 
   it("tells a steward who is not the owner why the name is locked", () => {
