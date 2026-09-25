@@ -306,8 +306,11 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     onlineCount: remoteData?.length ?? 0,
     /** Whether the garden may have work older than the loaded window. */
     hasOlderWork,
-    /** Some rows' approvals could not be read, so their status is a fallback. */
-    hasUnknownStatuses: unknownIds.size > 0,
+    /**
+     * Some rows' approvals could not be read, so their status is cached or a
+     * fallback: queue health must not treat it as current.
+     */
+    hasUnknownStatuses: remoteData?.some((row) => row.approval === undefined) ?? false,
     /** Widen the window by one page and read it; a no-op offline. */
     loadOlderWork,
     isLoadingOlder: online.isFetching && take > WORK_LIST_PAGE_SIZE,

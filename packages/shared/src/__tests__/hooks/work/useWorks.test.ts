@@ -578,6 +578,8 @@ describe("hooks/work/useWorks", () => {
       await waitFor(() => expect(result.current.isFetching).toBe(false));
       // The works still arrive; their approval is unknown rather than missing.
       expect(result.current.works[0]?.status).toBe("approved");
+      // The cached status shows, but queue health must not read it as current.
+      expect(result.current.hasUnknownStatuses).toBe(true);
     });
 
     it("shows a work whose approvals could not be read but never saves it as a known status", async () => {
