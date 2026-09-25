@@ -1,6 +1,6 @@
 import { RiAddLine, RiHandCoinLine, RiLeafLine, RiUserAddLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import type { FabConfig } from "./NavigationBar";
 import { FabButton } from "./NavigationBarFab";
 
@@ -30,7 +30,7 @@ const communityActions: FabConfig = {
 const meta = {
   title: "Shared/Canvas/NavigationBarFab",
   component: FabButton,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     layout: "centered",
     docs: {
@@ -40,14 +40,38 @@ const meta = {
       },
     },
   },
+  decorators: [
+    (Story) => (
+      // Mounted as NavigationBar mounts it: a shrink-wrapped slot at the end
+      // of a flex row, with room above for the dial.
+      <div style={{ display: "flex", justifyContent: "flex-end", width: 360, paddingTop: 240 }}>
+        <div>
+          <Story />
+        </div>
+      </div>
+    ),
+  ],
   args: { config: communityActions, mobileFloating: true },
 } satisfies Meta<typeof FabButton>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Several actions open a speed dial; a disabled one says why. */
-export const SpeedDial: Story = {};
+/** Several actions open a speed dial sized to its labels; a disabled one says why. */
+export const SpeedDial: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: /open/i }));
+    const label = within(await canvas.findByRole("menuitem", { name: "Add Member" })).getByText(
+      "Add Member"
+    );
+    // The dial takes its labels' width, not the narrow FAB's, so a label
+    // stays on one line instead of wrapping a word per line.
+    const range = document.createRange();
+    range.selectNodeContents(label);
+    await expect(range.getClientRects()).toHaveLength(1);
+  },
+};
 
 /** One action fires directly, labelled on the floating pill. */
 export const SingleAction: Story = {

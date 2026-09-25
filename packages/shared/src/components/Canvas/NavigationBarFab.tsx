@@ -143,6 +143,9 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
             gap: "0.5rem",
             maxHeight:
               "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 9.5rem)",
+            // Sized to its labels, not to the narrow FAB it anchors to, so no
+            // label wraps a word per line (admin's fork uses `w-max`).
+            width: "max-content",
             maxWidth: "calc(100vw - 2rem)",
             overflowX: "hidden",
             overflowY: "auto",
