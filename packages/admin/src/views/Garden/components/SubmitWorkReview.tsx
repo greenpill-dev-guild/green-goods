@@ -22,8 +22,8 @@ export interface SubmitWorkReviewProps {
 function ReviewRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-      <span className="text-xs font-medium text-text-sub">{label}</span>
-      <span className="min-w-0 break-words text-sm text-text-strong sm:max-w-[60%] sm:text-right">
+      <span className="label-xs text-text-sub">{label}</span>
+      <span className="min-w-0 break-words body-sm text-text-strong sm:max-w-[60%] sm:text-right">
         {value}
       </span>
     </div>
@@ -104,8 +104,8 @@ export function SubmitWorkReview({
         onEdit={onEditStep ? () => onEditStep(1) : undefined}
         editText={edit}
       >
-        <p className="text-sm font-semibold text-text-strong">{action.title}</p>
-        <p className="mt-0.5 text-xs text-text-sub">{photoRequirementText}</p>
+        <p className="body-sm font-semibold text-text-strong">{action.title}</p>
+        <p className="mt-0.5 body-xs text-text-sub">{photoRequirementText}</p>
       </ReviewCard>
 
       {action.inputs.length > 0 ? (
@@ -174,7 +174,7 @@ export function SubmitWorkReview({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-text-sub">
+          <p className="body-sm text-text-sub">
             {formatMessage({
               id: "app.admin.work.submit.review.noPhotos",
               defaultMessage: "No photos added.",

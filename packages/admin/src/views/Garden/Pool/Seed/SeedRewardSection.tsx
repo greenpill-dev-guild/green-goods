@@ -155,7 +155,7 @@ export function SeedRewardSection({
             disabled={busy}
           />
         ) : null}
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.seed.rewardNote",
             defaultMessage:

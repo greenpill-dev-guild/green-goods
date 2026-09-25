@@ -42,7 +42,7 @@ function SaveProgress({ run, pendingCount }: { run: GardenSettingsSaveRun; pendi
         label={formatMessage({ id: "app.garden.settings.save.listLabel" })}
         rows={buildGardenSettingsSaveRows(run, formatMessage)}
       />
-      <p className="text-xs text-text-sub" data-slot="dirty-state">
+      <p className="body-xs text-text-sub" data-slot="dirty-state">
         {gardenSettingsSaveLine(run, pendingCount, formatMessage)}
       </p>
     </div>

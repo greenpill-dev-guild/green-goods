@@ -73,13 +73,13 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
           className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
         >
           <SeedlingIllustration className="h-28 w-28" />
-          <h1 className="mt-5 text-xl font-semibold text-text-strong">
+          <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
             {intl.formatMessage({
               id: "app.admin.auth.connectRequired",
               defaultMessage: "Connect to continue",
             })}
           </h1>
-          <p className="mt-2 max-w-md text-sm text-text-sub">
+          <p className="mt-2 max-w-md body-sm text-text-sub">
             {intl.formatMessage({
               id: "app.admin.auth.connectPrompt",
               defaultMessage: "Connect your wallet to access this feature.",
@@ -133,7 +133,7 @@ function AdminAccessHomeShell({ children }: { children: ReactNode }) {
       <div className="canvas-area-top">
         <AppBar
           gardenChip={
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-strong">
+            <span className="inline-flex items-center gap-1.5 body-sm font-semibold text-text-strong">
               <SeedlingIllustration className="h-5 w-5" />
               {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods" })}
             </span>

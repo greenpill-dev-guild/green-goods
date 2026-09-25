@@ -332,10 +332,10 @@ export const FlowVariant: Story = {
               className="space-y-3 rounded-[var(--m3-shape-lg)] border border-stroke-soft p-4"
             >
               <div className="flex items-center gap-3">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-weak text-xs font-semibold text-text-sub">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-weak body-xs font-semibold text-text-sub">
                   {`0${index + 1}`}
                 </span>
-                <h2 className="text-base font-semibold text-text-strong">{sectionTitle}</h2>
+                <h2 className="body-md font-semibold text-text-strong">{sectionTitle}</h2>
               </div>
               <div className="h-10 w-full rounded-lg border border-stroke-soft bg-bg-white" />
               <div className="h-20 w-full rounded-lg border border-stroke-soft bg-bg-white" />

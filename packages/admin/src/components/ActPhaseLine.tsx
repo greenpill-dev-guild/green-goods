@@ -47,7 +47,7 @@ export function ActPhaseLine({ phase, chainId, confirmed }: ActPhaseLineProps) {
       role="status"
       data-component="ActPhaseLine"
       data-phase={phase.status}
-      className={cn("text-xs", phase.status === "failed" ? "text-error-dark" : "text-text-soft")}
+      className={cn("body-xs", phase.status === "failed" ? "text-error-dark" : "text-text-soft")}
     >
       {line}
     </p>

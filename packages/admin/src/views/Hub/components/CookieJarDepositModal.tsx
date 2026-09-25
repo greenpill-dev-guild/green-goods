@@ -212,12 +212,12 @@ export function CookieJarDepositModal({
         {/* Amount in the jar — the prominent number for the selected jar */}
         {selectedDepositJar && (
           <div className="rounded-lg bg-bg-weak px-4 py-3">
-            <p className="text-xs font-medium text-text-soft">
+            <p className="label-xs text-text-soft">
               {formatMessage({ id: "app.cookieJar.balance", defaultMessage: "Jar Balance" })}
             </p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-text-strong">
+            <p className="mt-1 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] tabular-nums text-text-strong">
               {formatTokenAmount(selectedDepositJar.balance, selectedDepositJar.decimals)}{" "}
-              <span className="text-base font-medium text-text-sub">
+              <span className="body-md font-medium text-text-sub">
                 {getVaultAssetSymbol(selectedDepositJar.assetAddress, undefined)}
               </span>
             </p>
@@ -238,7 +238,7 @@ export function CookieJarDepositModal({
 
         {/* Wallet balance */}
         <div className="space-y-1">
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {formatMessage({
               id: "app.treasury.walletBalance",
               defaultMessage: "Wallet balance",

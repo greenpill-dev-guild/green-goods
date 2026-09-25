@@ -58,7 +58,7 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
     return (
       <div className="flex items-center justify-center gap-2 py-8">
         <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
-        <span className="text-sm text-text-soft">
+        <span className="body-sm text-text-soft">
           {intl.formatMessage({
             id: "app.admin.listings.loading",
             defaultMessage: "Loading listings...",
@@ -83,13 +83,13 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
     return (
       <div className="rounded-lg border border-dashed border-stroke-soft p-8 text-center">
         <RiExchangeDollarLine className="mx-auto h-8 w-8 text-text-disabled" />
-        <p className="mt-2 text-sm text-text-soft">
+        <p className="mt-2 body-sm text-text-soft">
           {intl.formatMessage({
             id: "app.admin.listings.empty",
             defaultMessage: "No active listings",
           })}
         </p>
-        <p className="mt-1 text-xs text-text-disabled">
+        <p className="mt-1 body-xs text-text-disabled">
           {intl.formatMessage({
             id: "app.admin.listings.emptyHint",
             defaultMessage:
@@ -102,34 +102,34 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
 
   return (
     <div className="overflow-hidden rounded-lg border border-stroke-soft">
-      <table className="w-full text-left text-sm">
+      <table className="w-full text-left body-sm">
         <thead>
           <tr className="border-b border-stroke-soft bg-bg-soft">
-            <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft">
+            <th className="px-4 py-3 label-xs uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.listings.columnHypercert",
                 defaultMessage: "Hypercert",
               })}
             </th>
-            <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft">
+            <th className="px-4 py-3 label-xs uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.listings.columnPricePerUnit",
                 defaultMessage: "Price/Unit",
               })}
             </th>
-            <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft">
+            <th className="px-4 py-3 label-xs uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.listings.columnStatus",
                 defaultMessage: "Status",
               })}
             </th>
-            <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft">
+            <th className="px-4 py-3 label-xs uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.listings.columnExpires",
                 defaultMessage: "Expires",
               })}
             </th>
-            <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft text-right">
+            <th className="px-4 py-3 label-xs uppercase text-text-soft text-right">
               {intl.formatMessage({
                 id: "app.admin.listings.columnActions",
                 defaultMessage: "Actions",
@@ -144,14 +144,14 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
               <tr key={listing.orderId} className="hover:bg-bg-soft/50 transition">
                 <td className="px-4 py-3 font-medium text-text-strong">
                   #{listing.orderId}
-                  <span className="ml-1 text-xs text-text-soft">
+                  <span className="ml-1 label-xs text-text-soft">
                     (HC #{listing.hypercertId.toString().slice(0, 8)}...)
                   </span>
                 </td>
                 <td className="px-4 py-3 text-text-sub">{formatEther(listing.pricePerUnit)} ETH</td>
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 label-xs ${
                       status === "active"
                         ? "bg-success-lighter text-success-dark"
                         : "bg-warning-lighter text-warning-dark"

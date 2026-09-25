@@ -45,18 +45,18 @@ export function HubCertificationInspector({
                     defaultMessage: "View only",
                   })}
             </span>
-            <span className="text-xs text-text-soft">{formatEventAge(assessment.createdAt)}</span>
+            <span className="body-xs text-text-soft">{formatEventAge(assessment.createdAt)}</span>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-text-strong">
+            <h3 className="text-title-md font-semibold text-text-strong">
               {assessment.title ||
                 formatMessage({
                   id: "app.garden.admin.assessmentFallback",
                   defaultMessage: "Assessment",
                 })}
             </h3>
-            <p className="mt-1 text-sm text-text-sub">
+            <p className="mt-1 body-sm text-text-sub">
               {assessment.description ||
                 formatMessage({
                   id: "cockpit.hub.certify.fallbackDescription",
@@ -76,7 +76,7 @@ export function HubCertificationInspector({
         </AdminCard>
 
         {canMint ? (
-          <p className="text-sm text-text-sub">
+          <p className="body-sm text-text-sub">
             {formatMessage({
               id: "cockpit.hub.certify.stewardDescription",
               defaultMessage:

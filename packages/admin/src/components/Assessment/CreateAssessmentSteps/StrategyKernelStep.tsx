@@ -371,7 +371,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
         })}
       >
         {smartOutcomeExample ? (
-          <p className="text-xs text-text-soft">{smartOutcomeExample}</p>
+          <p className="body-xs text-text-soft">{smartOutcomeExample}</p>
         ) : null}
         <div className="space-y-3">
           {form.smartOutcomes.map((outcome, index) => (
@@ -460,7 +460,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
 
           {/* Array-level error */}
           {showValidation && fieldErrors.smartOutcomes && (
-            <p className="text-xs text-error-dark">{fieldErrors.smartOutcomes}</p>
+            <p className="body-xs text-error-dark">{fieldErrors.smartOutcomes}</p>
           )}
 
           <AdminButton

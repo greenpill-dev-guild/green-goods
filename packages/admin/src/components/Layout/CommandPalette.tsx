@@ -148,7 +148,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           })}
         >
           {results.length === 0 ? (
-            <p className="flex h-full items-center justify-center text-sm text-text-soft">
+            <p className="flex h-full items-center justify-center body-sm text-text-soft">
               {formatMessage({
                 id: "app.admin.nav.searchNoResults",
                 defaultMessage: "No results found",
@@ -190,7 +190,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                       <div className="min-w-0 flex-1">
                         <span className="truncate">{result.label}</span>
                         {result.subtitle && (
-                          <span className="block truncate text-xs text-text-soft">
+                          <span className="block truncate body-xs text-text-soft">
                             {result.subtitle}
                           </span>
                         )}
@@ -204,7 +204,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
         </div>
 
         {/* Footer hints */}
-        <div className="flex items-center gap-4 border-t border-stroke-soft px-4 py-2 text-xs text-text-soft">
+        <div className="flex items-center gap-4 border-t border-stroke-soft px-4 py-2 body-xs text-text-soft">
           <span className="flex items-center gap-1">
             <RiArrowUpLine className="h-3 w-3" aria-hidden="true" />
             <RiArrowDownLine className="h-3 w-3" aria-hidden="true" />

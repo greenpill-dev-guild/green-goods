@@ -71,7 +71,7 @@ function CookieJarDepositModalHarness({
       <div className="space-y-4">
         {jars.length > 1 && (
           <div>
-            <p className="mb-1.5 block text-sm font-medium text-text-strong">Cookie Jar</p>
+            <p className="mb-1.5 block body-sm font-medium text-text-strong">Cookie Jar</p>
             <AdminChoiceGroup
               ariaLabel="Cookie Jar"
               columns={2}
@@ -88,10 +88,10 @@ function CookieJarDepositModalHarness({
 
         {selected && (
           <div className="rounded-lg bg-bg-weak px-4 py-3">
-            <p className="text-xs font-medium text-text-soft">Jar Balance</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-text-strong">
+            <p className="label-xs text-text-soft">Jar Balance</p>
+            <p className="mt-1 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] tabular-nums text-text-strong">
               {formatTokenAmount(selected.balance, selected.decimals)}{" "}
-              <span className="text-base font-medium text-text-sub">{selected.symbol}</span>
+              <span className="body-md font-medium text-text-sub">{selected.symbol}</span>
             </p>
           </div>
         )}
@@ -99,7 +99,7 @@ function CookieJarDepositModalHarness({
         <div>
           <label
             htmlFor="mock-deposit-amount"
-            className="block text-sm font-medium text-text-strong"
+            className="block body-sm font-medium text-text-strong"
           >
             Amount
           </label>
@@ -111,12 +111,12 @@ function CookieJarDepositModalHarness({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
-            className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong"
+            className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 body-sm text-text-strong"
           />
         </div>
 
         <div className="space-y-1">
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             Wallet balance:{" "}
             {walletBalance
               ? `${formatTokenAmount(walletBalance.value, walletBalance.decimals)} ${walletBalance.symbol}`

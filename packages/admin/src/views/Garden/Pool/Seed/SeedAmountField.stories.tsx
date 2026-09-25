@@ -18,7 +18,7 @@ function SeedAmountFieldWithForm(args: StoryArgs) {
   return (
     <div className="space-y-2">
       <SeedAmountField {...args} form={form} value={stored} />
-      <p className="text-xs text-text-soft" data-testid="stored-base-units">
+      <p className="body-xs text-text-soft" data-testid="stored-base-units">
         Stored: {stored || "nothing"}
       </p>
     </div>

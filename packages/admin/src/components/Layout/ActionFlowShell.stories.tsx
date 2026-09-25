@@ -25,7 +25,7 @@ function ProgressFooter({ busy, label }: { busy?: boolean; label?: string }) {
         {busy ? (
           <div className="space-y-1.5">
             <AdminLinearProgress ariaLabel={label} />
-            <p className="truncate text-sm text-text-sub">{label}</p>
+            <p className="truncate body-sm text-text-sub">{label}</p>
           </div>
         ) : null}
       </div>

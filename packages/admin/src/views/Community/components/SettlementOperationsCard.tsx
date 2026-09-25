@@ -77,7 +77,7 @@ export function SettlementOperationsCard({
             defaultMessage: "Settlement Operations",
           })}
         </AdminCardTitle>
-        <p className="mt-1 text-xs text-text-soft">
+        <p className="mt-1 body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.community.settlementOps.description",
             defaultMessage:
@@ -158,7 +158,7 @@ export function SettlementOperationsCard({
       </AdminSettingRow>
 
       {!operations.canConfigureDelivery ? (
-        <p className="text-xs text-text-soft" data-testid="gardener-delivery-owner-only">
+        <p className="body-xs text-text-soft" data-testid="gardener-delivery-owner-only">
           {formatMessage(
             {
               id: "cockpit.community.settlementOps.delivery.ownerOnly",
@@ -173,8 +173,8 @@ export function SettlementOperationsCard({
         <p
           className={
             operations.lastAct.phase === "failed"
-              ? "text-xs text-error-dark"
-              : "text-xs text-text-soft"
+              ? "body-xs text-error-dark"
+              : "body-xs text-text-soft"
           }
           role="status"
           data-testid="gardener-delivery-status"

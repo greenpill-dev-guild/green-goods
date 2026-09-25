@@ -42,7 +42,7 @@ export function StagedMemberList({
       })}
     >
       {members.length === 0 ? (
-        <p className="flex h-full items-center justify-center px-4 text-center text-xs text-text-soft">
+        <p className="flex h-full items-center justify-center px-4 text-center body-xs text-text-soft">
           {formatMessage({
             id: "admin.addMember.stagedEmpty",
             defaultMessage: "Resolved addresses appear here before they are added.",

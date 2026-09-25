@@ -41,7 +41,7 @@ export function CanvasWorkspaceSelectionState({
                 defaultMessage: "No gardens yet",
               })}
             </h2>
-            <p className="mt-2 max-w-md text-sm text-text-sub">
+            <p className="mt-2 max-w-md body-sm text-text-sub">
               {formatMessage({
                 id: "cockpit.workspace.noGardensDescription",
                 defaultMessage: "Create your first garden to start using the canvas workspaces.",
@@ -72,7 +72,7 @@ export function CanvasWorkspaceSelectionState({
                 defaultMessage: "Choose a Garden",
               })}
             </AdminCardTitle>
-            <p className="mt-1 text-sm text-text-sub">
+            <p className="mt-1 body-sm text-text-sub">
               {formatMessage(
                 {
                   id: "cockpit.workspace.chooseGardenDescription",
@@ -109,7 +109,7 @@ export function CanvasWorkspaceSelectionState({
                 <div className="min-w-0">
                   <p className="truncate label-md font-medium text-text-strong">{garden.name}</p>
                   {garden.location ? (
-                    <p className="mt-0.5 truncate text-xs text-text-soft">{garden.location}</p>
+                    <p className="mt-0.5 truncate body-xs text-text-soft">{garden.location}</p>
                   ) : null}
                 </div>
                 <RiArrowRightSLine className="h-4 w-4 flex-shrink-0 text-text-soft" />

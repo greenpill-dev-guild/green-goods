@@ -87,7 +87,7 @@ const ToneCell = ({
           <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
             {tone}
           </div>
-          <div className="text-base font-semibold text-text-strong">{name}</div>
+          <div className="body-md font-semibold text-text-strong">{name}</div>
         </div>
       </div>
     </header>
@@ -98,8 +98,8 @@ const ToneCell = ({
       <AdminCard variant="elevated">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <div className="text-sm font-semibold text-text-strong">Pending review</div>
-            <div className="text-xs text-text-sub">
+            <div className="body-sm font-semibold text-text-strong">Pending review</div>
+            <div className="body-xs text-text-sub">
               14 submissions waiting, oldest 3 days. Card material stays neutral.
             </div>
           </div>

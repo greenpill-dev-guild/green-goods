@@ -25,8 +25,8 @@ function MockAccountSettingsPanel({ initialTheme, network }: MockAccountSettings
     <div className="flex max-w-xl flex-col gap-4">
       <section className="space-y-4 rounded-xl bg-bg-white p-4 shadow-[var(--edge-rest),var(--m3-elevation-1)]">
         <div>
-          <h2 className="text-sm font-semibold text-text-strong">Theme</h2>
-          <p className="mt-1 text-sm text-text-sub">
+          <h2 className="body-sm font-semibold text-text-strong">Theme</h2>
+          <p className="mt-1 body-sm text-text-sub">
             Choose the canvas atmosphere for long review sessions.
           </p>
         </div>
@@ -40,8 +40,8 @@ function MockAccountSettingsPanel({ initialTheme, network }: MockAccountSettings
                 onClick={() => setTheme(value)}
                 className={
                   active
-                    ? "flex items-center justify-between rounded-lg bg-primary-alpha-10 px-4 py-3 text-sm font-medium text-primary-dark shadow-[var(--edge-rest)]"
-                    : "flex items-center justify-between rounded-lg bg-bg-soft px-4 py-3 text-sm font-medium text-text-sub shadow-[var(--edge-rest)] transition-colors hover:bg-bg-weak"
+                    ? "flex items-center justify-between rounded-lg bg-primary-alpha-10 px-4 py-3 body-sm font-medium text-primary-dark shadow-[var(--edge-rest)]"
+                    : "flex items-center justify-between rounded-lg bg-bg-soft px-4 py-3 body-sm font-medium text-text-sub shadow-[var(--edge-rest)] transition-colors hover:bg-bg-weak"
                 }
               >
                 {label}
@@ -53,8 +53,8 @@ function MockAccountSettingsPanel({ initialTheme, network }: MockAccountSettings
       </section>
 
       <section className="space-y-3 rounded-xl bg-bg-white p-4 shadow-[var(--edge-rest),var(--m3-elevation-1)]">
-        <h2 className="text-sm font-semibold text-text-strong">Network</h2>
-        <div className="rounded-xl bg-bg-soft px-4 py-3 text-sm font-medium text-text-strong">
+        <h2 className="body-sm font-semibold text-text-strong">Network</h2>
+        <div className="rounded-xl bg-bg-soft px-4 py-3 body-sm font-medium text-text-strong">
           {network}
         </div>
       </section>

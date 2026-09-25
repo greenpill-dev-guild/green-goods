@@ -122,10 +122,10 @@ export function AttestationSelector({
   return (
     <div className="space-y-4">
       <header className="space-y-1">
-        <h2 className="text-lg font-semibold text-text-strong">
+        <h2 className="text-title-md font-semibold text-text-strong">
           {formatMessage({ id: "app.hypercerts.attestations.title" })}
         </h2>
-        <p className="text-sm text-text-sub">
+        <p className="body-sm text-text-sub">
           {formatMessage(
             { id: "app.hypercerts.attestations.count" },
             { count: attestations.length }
@@ -244,7 +244,7 @@ export function AttestationSelector({
       )}
 
       {!isLoading && !hasError && filtered.length === 0 && (
-        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6 text-sm text-text-sub">
+        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6 body-sm text-text-sub">
           {formatMessage({
             id:
               attestations.length === 0

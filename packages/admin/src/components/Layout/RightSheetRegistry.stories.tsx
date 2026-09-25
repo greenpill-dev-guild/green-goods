@@ -108,7 +108,7 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
                 key={option.id}
                 type="button"
                 onClick={() => openRegisteredContent(option.id)}
-                className="rounded-lg bg-[rgb(var(--m3-primary))] px-4 py-2 text-sm font-medium text-[rgb(var(--m3-on-primary))] transition-opacity hover:opacity-90"
+                className="rounded-lg bg-[rgb(var(--m3-primary))] px-4 py-2 body-sm font-medium text-[rgb(var(--m3-on-primary))] transition-opacity hover:opacity-90"
               >
                 Open {option.label}
               </button>
@@ -116,13 +116,13 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
             <button
               type="button"
               onClick={() => setContentId(null)}
-              className="rounded-lg border border-stroke-soft px-4 py-2 text-sm font-medium text-text-sub transition-colors hover:bg-bg-soft"
+              className="rounded-lg border border-stroke-soft px-4 py-2 body-sm font-medium text-text-sub transition-colors hover:bg-bg-soft"
             >
               Close sheet
             </button>
           </div>
 
-          <dl className="grid gap-3 text-sm text-text-sub sm:grid-cols-3">
+          <dl className="grid gap-3 body-sm text-text-sub sm:grid-cols-3">
             <div className="surface-inset p-3">
               <dt className="font-medium text-text-strong">Current content</dt>
               <dd data-testid="right-sheet-current">{contentId ?? "none"}</dd>

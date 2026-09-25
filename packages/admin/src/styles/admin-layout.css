@@ -17,47 +17,6 @@
 /* ============================================================================
  * GARDEN DETAIL LAYOUT
  * ============================================================================ */
-.garden-hero-banner {
-  position: relative;
-  height: 12rem;
-  overflow: hidden;
-}
-
-.garden-hero-banner-image {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.garden-hero-banner-gradient {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to top,
-    rgb(var(--static-black) / 0.7),
-    rgb(var(--static-black) / 0.4) 50%,
-    transparent
-  );
-}
-
-.garden-hero-banner-fallback {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.garden-hero-banner-content {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 1rem 1rem 0.75rem;
-}
-
 .garden-tab-shell {
   display: flex;
   flex-direction: column;
@@ -118,14 +77,6 @@ button.garden-stat-row:hover {
 }
 
 @media (min-width: 640px) {
-  .garden-hero-banner {
-    height: 14rem;
-  }
-
-  .garden-hero-banner-content {
-    padding: 1.5rem 1.5rem 1rem;
-  }
-
   .garden-tab-shell,
   .garden-tab-layout,
   .garden-tab-main,
