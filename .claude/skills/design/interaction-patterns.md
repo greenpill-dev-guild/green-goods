@@ -25,6 +25,11 @@ violated half of these. Validators check structure; this contract is what "desig
 - **The primary is rightmost; secondaries sit left of it in declaration order.** Destructive acts
   never share a cluster with routine acts — they get their own row, region, or the confirm
   dialog's danger slot. (Brief: destructive separation; Fitts's Law.)
+- **A review surface renders its action set outlined.** The Hub exists to review work, so its
+  trio (Submit Work, Create Assessment, Create Hypercert) fills no button above the queue. The
+  declared primary still sorts rightmost and fills the FAB (DL-043). Proof:
+  [hub.utils.ts](../../../packages/shared/src/hooks/admin-ui/hub/hub.utils.ts) —
+  `buildHubViewActions` declares every action `secondary` and keeps Submit Work `primary`.
 - **Tab-specific actions live in the tab's content**, end-aligned in the section they act on —
   a section-header trailing act, a right-rail quick-actions card, or a row's one trailing act.
   Never in the view header.

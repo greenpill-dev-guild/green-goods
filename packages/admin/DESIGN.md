@@ -102,7 +102,7 @@ The canvas is a **constant** warm linen `#FAF8F5` (`--m3-surface-container-low` 
 
 1. **Active tab** — the `AdminTabRail` underline and active label (the count chip flips to the tone container pair).
 2. **Active nav pill** — the NavigationBar active item, via `--tone-primary-container` / `--tone-on-primary-container`.
-3. **One filled header action** — the single `--tone-action` filled button per route.
+3. **At most one filled header action** — the single `--tone-action` filled button per route. A review surface such as the Hub fills none: its whole action set renders outlined, and the declared primary still sorts rightmost and fills the FAB (DL-043).
 
 One atmospheric allowance on top: a faint top-of-canvas wash from `--tone-surface-tint-color` (5% light / 10% dark) fading to transparent by 320px. Everything else on the canvas stays neutral ink and stone.
 
@@ -168,7 +168,7 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 
 - **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome; nothing else casts shadow.
 - **Radius set** — 4/8/12/16/9999px only; no 20/24/28px shapes anywhere in admin.
-- **Four-use tone budget** — workspace tone appears only in the active tab, the active nav pill, one filled header action, and the nav-shell FAB fill (plus the faint canvas wash).
+- **Four-use tone budget** — workspace tone appears only in the active tab, the active nav pill, at most one filled header action (none on a review surface, DL-043), and the nav-shell FAB fill (plus the faint canvas wash).
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
 - **AdminButton only** — pill-shaped, Title Case action labels in en (DL-012; es/pt keep native casing); admin views never render the shared `Button` (`gg-button`).
 - **Shared pieces ride the shared family (DL-031)** — the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy; `index.css` sets the family's `--gg-*` tokens (pills, one 14px / 500 label, lg and md on 40, sm on 32, compact on 28, a 44px finger box) and `surface="admin"` puts a shared field on the responsive field tier and the switch on the M3 52 × 32 track. Never restyle a shared piece from admin; move the token.
