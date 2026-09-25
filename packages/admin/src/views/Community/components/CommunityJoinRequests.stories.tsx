@@ -4,7 +4,6 @@ import {
   useGardenJoinRequests,
 } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import type { GardenJoinRequestQueueItem } from "@green-goods/shared/public-contracts/join-requests";
-import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, userEvent, within } from "storybook/test";
 import {
@@ -47,7 +46,7 @@ const IDLE = { isLoading: false, error: null };
 /** The steward's queue after Check Requests, with every write a no-op. */
 function joinRequests(overrides: Partial<JoinRequests> = {}): JoinRequests {
   return {
-    accountAddress: "0x2222222222222222222222222222222222222222" as Address,
+    accountAddress: "0x2222222222222222222222222222222222222222",
     request: null,
     hasCheckedStatus: false,
     queue: [],
@@ -75,7 +74,7 @@ function queueItem(overrides: Partial<GardenJoinRequestQueueItem>): GardenJoinRe
     requestedAt: "2026-09-20T09:30:00.000Z",
     expiresAt: "2026-10-04T09:30:00.000Z",
     canAskAgain: false,
-    accountAddress: "0x3333333333333333333333333333333333333333" as Address,
+    accountAddress: "0x3333333333333333333333333333333333333333",
     displayName: "Ada Okafor",
     ...overrides,
   };
@@ -114,7 +113,7 @@ export const PendingRequests: Story = {
       queueItem({
         id: "join-request-2",
         displayName: "Tomás Ribeiro",
-        accountAddress: "0x4444444444444444444444444444444444444444" as Address,
+        accountAddress: "0x4444444444444444444444444444444444444444",
         requestedAt: "2026-09-22T16:05:00.000Z",
       }),
     ],
