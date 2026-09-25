@@ -222,9 +222,10 @@ export function resolveOpenSectionRoute(
 //
 // Stable trio: the same creation actions render on every stage, in the same
 // order, so button positions never shift as the steward moves between tabs.
-// Submit work is the fixed primary across Confirm, Work, Assess, and Certify;
-// the assessment and hypercert actions stay secondary so emphasis no longer
-// follows the active stage.
+// The Hub is a review surface, so all three render outlined and none
+// out-shouts the queue (DL-043). Submit Work stays the declared primary on
+// every stage (Create Assessment for evaluator-only viewers): it still sorts
+// rightmost and fills the FAB.
 
 export function buildHubViewActions(
   _stage: HubPipelineStage,
@@ -240,7 +241,7 @@ export function buildHubViewActions(
       labelId: "cockpit.hub.action.submitWork",
       icon: RiAddLine,
       onClick: () => navigate(adminRoutes.hubWorkSubmit(hubContext)),
-      variant: "primary",
+      variant: "secondary",
       visible: canManage,
       primary: true,
     },
@@ -250,7 +251,7 @@ export function buildHubViewActions(
       labelId: "cockpit.hub.action.createAssessment",
       icon: RiCheckLine,
       onClick: () => navigate(adminRoutes.hubAssessCreate(hubContext)),
-      variant: canManage ? "secondary" : "primary",
+      variant: "secondary",
       visible: canReview,
       primary: !canManage,
     },
