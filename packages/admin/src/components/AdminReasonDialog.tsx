@@ -81,7 +81,9 @@ export function AdminReasonDialog({
   const [submitting, setSubmitting] = useState(false);
   const busy = isLoading || submitting;
   const trimmed = reason.replace(/\s+/g, " ").trim();
-  const canConfirm = trimmed.length > 0 && !busy && !blockedReason;
+  // The field's maxLength stops typing past the limit, not a prefilled reason.
+  const tooLong = trimmed.length > maxReasonLength;
+  const canConfirm = trimmed.length > 0 && !tooLong && !busy && !blockedReason;
   const isDanger = variant === "danger";
 
   // Each opening starts from `initialReason` (empty by default); the text
@@ -165,6 +167,17 @@ export function AdminReasonDialog({
               id: "cockpit.reasonDialog.reasonPlaceholder",
               defaultMessage: "In your own words. Members read this.",
             })
+          }
+          error={
+            tooLong
+              ? formatMessage(
+                  {
+                    id: "cockpit.reasonDialog.tooLong",
+                    defaultMessage: "Shorten the reason to {max} characters or fewer.",
+                  },
+                  { max: maxReasonLength }
+                )
+              : undefined
           }
           textareaProps={{
             maxLength: maxReasonLength,

@@ -4656,6 +4656,7 @@
   "cockpit.reasonDialog.reasonLabel": "Motivo",
   "cockpit.reasonDialog.reasonPlaceholder": "Nas tuas palavras. Os membros leem isto.",
   "cockpit.reasonDialog.suggestions": "Motivos sugeridos",
+  "cockpit.reasonDialog.tooLong": "Encurte o motivo para {max} caracteres ou menos.",
   "cockpit.role.deployer": "implantador",
   "cockpit.role.steward": "responsável",
   "cockpit.role.user": "usuário",

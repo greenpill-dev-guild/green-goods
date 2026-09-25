@@ -4656,6 +4656,7 @@
   "cockpit.reasonDialog.reasonLabel": "Reason",
   "cockpit.reasonDialog.reasonPlaceholder": "In your own words. Members read this.",
   "cockpit.reasonDialog.suggestions": "Suggested reasons",
+  "cockpit.reasonDialog.tooLong": "Shorten the reason to {max} characters or fewer.",
   "cockpit.role.deployer": "deployer",
   "cockpit.role.steward": "steward",
   "cockpit.role.user": "user",
