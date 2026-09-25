@@ -64,6 +64,13 @@ describe("buildHubViewActions — fixed primary", () => {
     expect(primaryIds(confirm)).toEqual(["submit-work"]);
   });
 
+  it("renders the trio outlined on every stage, so no action out-shouts the queue (DL-043)", () => {
+    for (const stage of HUB_STAGES) {
+      const variants = buildFor(stage).map((action) => action.variant);
+      expect(variants).toEqual(["secondary", "secondary", "secondary"]);
+    }
+  });
+
   it("blanks role-gated actions for read-only stewards", () => {
     const actions = buildHubViewActions("work", false, false, vi.fn(), {
       gardenAddress: GARDEN,
@@ -71,14 +78,14 @@ describe("buildHubViewActions — fixed primary", () => {
     expect(visibleIds(actions)).toEqual([]);
   });
 
-  it("promotes create-assessment when it is the evaluator-only Hub action", () => {
+  it("makes create-assessment the declared primary for evaluator-only viewers, still outlined", () => {
     const actions = buildHubViewActions("assess", false, true, vi.fn(), {
       gardenAddress: GARDEN,
     });
 
     expect(visibleIds(actions)).toEqual(["create-assessment"]);
     expect(primaryIds(actions)).toEqual(["create-assessment"]);
-    expect(actions.find((action) => action.id === "create-assessment")?.variant).toBe("primary");
+    expect(actions.find((action) => action.id === "create-assessment")?.variant).toBe("secondary");
   });
 
   it("drops list sort state when opening Hub creation flows", () => {

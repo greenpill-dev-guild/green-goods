@@ -17,11 +17,13 @@ import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 
 import { getWagmiConfig } from "../../config/appkit";
+import { getNetworkConfig } from "../../config/blockchain";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import { useCommitmentPools } from "./useCommitmentPooling";
 import { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
 
 export interface ProtocolPool {
@@ -70,5 +72,50 @@ export function useProtocolPool(input: { chainId: number }) {
     rootGarden: query.data?.rootGarden ?? null,
     isRegistered: query.data?.poolId !== null && query.data?.poolId !== undefined,
     availability,
+  };
+}
+
+/**
+ * Whether a garden is the Green Goods Community Garden, whose pool is the
+ * protocol pool. The deployment configures the root garden, the chain names it
+ * through the protocol pool, and the index names the pool's type; any one is
+ * enough, so a network without pooling or a failed chain read does not hide
+ * the protocol's surfaces from the one garden that owns them.
+ */
+export function isProtocolGarden(input: {
+  gardenId: string | null | undefined;
+  rootGarden: Address | null;
+  ownPoolType: string | null | undefined;
+  configuredRootGarden?: string | null;
+}): boolean {
+  if (!input.gardenId) return false;
+  const gardenId = input.gardenId.toLowerCase();
+  return (
+    (input.rootGarden !== null && input.rootGarden.toLowerCase() === gardenId) ||
+    (Boolean(input.configuredRootGarden) &&
+      input.configuredRootGarden?.toLowerCase() === gardenId) ||
+    input.ownPoolType === "PROTOCOL"
+  );
+}
+
+/**
+ * The protocol pool, the garden's own pool, and whether the garden is the
+ * protocol's: the one test every protocol-level Community surface shares
+ * (Pools' protocol operations, Payouts' campaign cookie jars).
+ */
+export function useIsProtocolGarden(input: { chainId: number; gardenId: Address }) {
+  const protocolPool = useProtocolPool({ chainId: input.chainId });
+  const ownPools = useCommitmentPools({ chainId: input.chainId, garden: input.gardenId });
+  const ownPool = ownPools.pools[0] ?? null;
+  return {
+    isProtocolGarden: isProtocolGarden({
+      gardenId: input.gardenId,
+      rootGarden: protocolPool.rootGarden,
+      ownPoolType: ownPool?.poolType,
+      configuredRootGarden: getNetworkConfig(input.chainId).rootGarden?.address ?? null,
+    }),
+    protocolPool,
+    ownPool,
+    ownPoolsLoading: ownPools.isLoading,
   };
 }

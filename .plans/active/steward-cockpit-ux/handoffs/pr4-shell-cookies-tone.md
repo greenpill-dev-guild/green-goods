@@ -149,25 +149,107 @@ closed and open, tab rail, alert order); the Actions workspace; Community → Pa
 Green Goods Community Garden with the campaign card; the create flow's first step and Review.
 Label engine and session.
 
+Recorded 2026-09-25 (engine: headless Chromium through Playwright; session: mock-auth localhost,
+`?mockAuth=deployer`, the admin dev server on the branch reading the hosted indexer, Green Goods
+Community Garden; nothing was saved or sent). Before is PR3's head (`06cacf819`, develop once PR3
+merged), after is this branch; 1280 and 375 in light and dark, plus 360 in es and pt; the contact
+sheets went to Afo in the session on 2026-09-25.
+
+- Hub at 1280: the trio is outlined with Submit Work rightmost. At 375 the chip reads "Green Goods
+  Comm…" and ends before the refresh and bell, and the nav reads Community whole.
+- Garden Health at 375: Attention Needed leads above Garden Health; the FAB shows a gear and, open,
+  a close icon; the tab rail fades its clipped edge.
+- Nav at 360 in es and pt: Comunidad and Comunidade show whole; the chip ends before the bell.
+- Actions at 1280 and 375, light and dark: the fill, tab, and nav pill are purple.
+- Profile at 375: the page and its first tab read Profile.
+- `/cookies` lands on the Green Goods Community Garden's Payouts with Campaign Cookie Jars in view at
+  1280 and 375, after PageTransition learned to land on a `data-route-item` target (the first capture
+  showed the reset to the top). `/cookies/deploy` opens Create Cookie Jar on Campaign; three Nexts
+  reach Review, where Create stays disabled until the jar is complete.
+
 ## TDD Proof
 
-- RED: pending
-- GREEN: pending
-- Proof limit: none recorded
+RED on the code before each change, then GREEN on the same command (2026-09-25; admin and shared
+suites through `bun run --filter @green-goods/<pkg> test -- <file>`, stories through the storybook-ci
+Vitest project):
+
+- Outlined Hub trio (16:31Z): shared `view-actions.test.ts` 2 failed (Submit Work and an
+  evaluator's Create Assessment rendered filled); GREEN 20 passed.
+- Profile name (16:34Z): the `Profile` route stories, now in storybook-ci, 2 failed (heading and
+  tab read Account); GREEN 2 passed.
+- Phone app bar and nav (16:47Z): the `AppBar` phone story failed (chip right edge 328 past the
+  actions at 255) and the `NavigationBar` phone stories failed at 360 in en, es, and pt (Community
+  71, Comunidad 72, Comunidade 80 px against 68 px tabs); GREEN 14 passed.
+- FAB icon (16:51Z): `FabButton.test.tsx` 1 failed (the closed dial drew a plus, not the primary's
+  icon); GREEN 4 passed.
+- Tab rail cue (16:53Z): the `OverflowOnAPhone` rail story failed (no overflow state); GREEN 3
+  passed.
+- Alerts on phones (17:13Z): `OverviewTab.test.tsx` 1 failed (the Attention Needed card followed the
+  health card at phone width); GREEN 60 passed across the Garden tests.
+- Purple Actions (17:15Z): the `ActionsTone` rail story failed (active tab rgb(208, 37, 51), the
+  error red); GREEN rgb(91, 44, 201).
+- Campaign cookie jars (17:19Z–17:31Z): shared `useProtocolPool.test.ts` 3 failed (no
+  `isProtocolGarden`); `admin-routes.test.ts` 1 and `runtime-navigation.test.tsx` 2 failed (no
+  redirect to Payouts); `CommunityPayoutsTab.test.tsx` 2 failed (no card, no flow); GREEN 3, 8, 16,
+  and 6 passed.
+- Arrival scroll (17:43Z): `PageTransition.test.tsx` 1 failed (a workspace switch reset to the top
+  instead of the `data-route-item` target); GREEN 19 passed.
+- Codex's first review (20:03Z–20:08Z): `campaignCookieJarDraft.test.ts` 3 failed (a changed payout
+  asset, withdrawal interval, or jar owner did not count as an edit to discard); GREEN 13 passed.
+  `AdminTabRail.test.tsx` 1 failed (a tab that widened inside an unchanged rail left no fade); GREEN 4
+  passed. Shared `NavigationBarFab.test.tsx` 1 failed (the dial still drew the rotating plus); GREEN
+  passed. `useProtocolPool.test.ts` 1 failed (the deployment's root garden was not the protocol garden
+  where pooling is not deployed); GREEN 4 passed. `useEligibleAdminGardens.test.ts` 1 failed (a
+  deployer without a role there could not select the protocol garden); GREEN 14 passed.
+- Codex's second review (20:31Z): `FabButton.test.tsx` and shared `NavigationBarFab.test.tsx` both
+  failed (an open dial was still named Open Actions); GREEN both passed.
+- CodeRabbit's review (20:44Z): `AdminTabRail.test.tsx` 1 failed (a selected tab landed flush with
+  the rail's edge, under its fade: scrollLeft 14 where the first tab start that clears it is 56);
+  GREEN 5 passed, with the two older cases moved from the flush-edge offset (100) to the tab's own
+  snap position (120). In Chromium the rail snaps even a programmatic scroll, so the flush offset
+  never held: on the 283px phone story Work landed at 0–122 under the start fade and Assess at
+  126–258 under the end fade; after the fix they land at 40–162 and 45–178, clear of both.
+- Codex's third review (21:16Z), reverted: `useEligibleAdminGardens.test.ts` 1 failed (with a base
+  list that lacked the protocol garden, as a chain's newest 50 gardens do once it has more, a
+  deployer could not select it); GREEN 15 passed with a stub for the protocol garden in
+  `90e315710`. CI's admin Playwright auth specs then hung on "Checking authentication..." (4 of 5
+  failed locally in CI mode with the stub, 5 of 5 passed without it): a stub only the chain config
+  vouches for made the access state ready while the indexer was down, and the failing role query
+  kept the canvas flipping back to its spinner. `be203f118` reverts it; the finding stays open
+  under Risks / Blockers.
+- CodeRabbit's second review (22:02Z–22:03Z): `NavigationBar.test.tsx` 1 failed (with the phone
+  bar grown to 116px, the FAB layer kept its fixed `calc(env(safe-area-inset-bottom) + 5.5rem)`);
+  GREEN 7 passed with the FAB tests. In Chromium at 360px the bar covered the FAB by 28px with 20px
+  labels; after the fix the FAB keeps a 6px gap at 18, 20, and 24px labels and is unchanged at the
+  default size (596–652). Its suggestion to realign the rail's selected tab on every resize was
+  tried and dropped before push: a new `AdminTabRail.test.tsx` case failed and then passed, but the
+  `OverflowOnAPhone` story's play then failed, because a resize notification after a scroll snapped
+  the rail back to its selected tab. A count or a font load resizes a tab, so users would lose
+  their scroll position; declined in the review reply.
+- Proof limit: the flow dialog's step-navigation story was written with the flow; its storybook-ci
+  play passes. The QA catalog cases are the manual proof. The phone tabs' large-text wrap
+  (Codex's second review) needs layout jsdom lacks; Chromium at 360px with 20px labels measured
+  Profile ending at 374 before (the nav overflowed) and the five tabs ending at 355 after.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `173a412e51a5099914ca3e2acee0a315c9bcf891` (after CodeRabbit's second review of #908; the receipts on `b07aed27e`, `90e315710`, `1d2f9584e`, `e2a85abd5`, and `a6f43eb1b` are superseded)
+- Run at (UTC): full suites `2026-09-25T22:16:17Z` to `2026-09-25T22:21:31Z`; push gate `2026-09-25T22:21:31Z` to `2026-09-25T22:27:17Z`; admin Playwright `2026-09-25T22:27:17Z` to `2026-09-25T22:27:56Z`
+- Exact command(s): `for pkg in admin shared client; do bun run --filter @green-goods/$pkg test; done` (each exit code recorded); `bun run --filter @green-goods/shared test:stories:ci`; `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --check ontology --check docs-generated --check design-guardrails --test-path admin:src/components/Shell/NavigationBar.test.tsx`; `CI=true PLAYWRIGHT_APP=admin PATH="$PWD/node_modules/.bin:$PATH" playwright test --project=admin-ci --reporter=line --retries=0`
+- Result: admin 1054, shared 5824 (17 skipped), and client 1399 tests passed, each package exiting 0; the storybook-ci story suite passed (96 files, 340 tests); the push gate exited 0 on the critical plan with 29 automated checks passed: format, lint, the shared, client, admin, and agent typechecks, test typechecks, suites, and builds, docs-authority, docs-test, docs-build, source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, storybook-build, agent-tools-test, and docs-generated; the admin-ci Playwright project passed 11 of 11 in CI mode. Earlier failures on this branch, all fixed: docs-authority on `31703f66f`, Build Docs on `f891e3d70`, the admin Playwright smoke test on `f70febbca`, and the admin Playwright auth specs on `d1934c9f7` (the stub `be203f118` reverts). Browser-proof stays the manual proof under Rendered Proof
+- Validated paths: `packages/admin/src` `packages/shared/src` `packages/shared/.storybook` `packages/admin/DESIGN.md` `packages/admin/AGENTS.md` `scripts/data` `docs/docs` `tests/specs` `.claude/skills` `.claude/rules`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md packages/admin/AGENTS.md scripts/data docs/docs tests/specs .claude/skills .claude/rules` → empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 173a412e51a5099914ca3e2acee0a315c9bcf891..HEAD -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md packages/admin/AGENTS.md scripts/data docs/docs tests/specs .claude/skills .claude/rules` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md packages/admin/AGENTS.md scripts/data docs/docs tests/specs .claude/skills .claude/rules` → empty
 
 ## Risks / Blockers
 
+- Open (Codex's third review, P2): once a chain passes 50 gardens, a deployer's garden list loses
+  the protocol garden, because the base list holds the newest 50 and the protocol garden is a
+  chain's first; `/cookies` then lands on the garden picker instead of Campaign Cookie Jars. No
+  chain is near 50 today. A stub was tried and reverted (see TDD Proof); the fix should fetch the
+  protocol garden's own record for deployers, so it carries its real name and fails like any
+  other indexer read. Destination: pending Afo's call (a Linear issue or the next hub).
 - The flow-dialog conversion is the largest UI change in this plan; keep the campaign state
   logic as it is and only re-host it.
 - The redirect needs the protocol garden's address before the first render; fall back to the

@@ -1,11 +1,13 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { useCommitmentPools } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import {
   type CommitmentsToConfirm,
   useCommitmentsToConfirm,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
-import { useProtocolPool } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
+import {
+  useIsProtocolGarden,
+  type useProtocolPool,
+} from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightLine, RiRefreshLine } from "@remixicon/react";
@@ -36,15 +38,10 @@ export interface CommunityPoolsProps {
  * isn't it.
  */
 export function CommunityPools({ chainId, garden, canManage }: CommunityPoolsProps) {
-  const protocolPool = useProtocolPool({ chainId });
-  const ownPools = useCommitmentPools({ chainId, garden: garden.id });
-  const ownPool = ownPools.pools[0] ?? null;
-  // The chain names the root garden; the index names the pool's type. Either
-  // is enough to know this garden is the protocol's, so a failed chain read
-  // does not hide the protocol's panels from the one garden that owns them.
-  const isProtocolGarden =
-    (protocolPool.rootGarden !== null && protocolPool.rootGarden === garden.id.toLowerCase()) ||
-    ownPool?.poolType === "PROTOCOL";
+  const { isProtocolGarden, protocolPool, ownPool, ownPoolsLoading } = useIsProtocolGarden({
+    chainId,
+    gardenId: garden.id,
+  });
 
   return (
     <div
@@ -56,7 +53,7 @@ export function CommunityPools({ chainId, garden, canManage }: CommunityPoolsPro
       <GardenPoolCard
         garden={garden}
         canManage={canManage}
-        isLoading={ownPools.isLoading}
+        isLoading={ownPoolsLoading}
         pool={ownPool}
       />
       {isProtocolGarden ? (

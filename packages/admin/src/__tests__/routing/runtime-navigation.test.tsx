@@ -16,6 +16,8 @@ import { NavigationBar } from "@green-goods/shared/components/Canvas/NavigationB
 import { useViewActions } from "@green-goods/shared/components/Canvas/useViewActions";
 import { buildHubViewActions } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
 import { getAdminWorkspaceForPath } from "@green-goods/shared/utils/navigation/admin-routes";
+import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
+import { getCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { adminCanvasRoutes } from "@/routes/views";
 import { act, cleanup, renderWithProviders, screen, userEvent, waitFor } from "../test-utils";
 
@@ -166,6 +168,21 @@ describe("admin canvas runtime navigation", () => {
       expect(router.state.location.pathname).toBe("/hub/work");
     });
     expect(screen.getByTestId("route-target")).toHaveTextContent("index");
+  });
+
+  it.each([
+    ["/cookies", "campaigns"],
+    ["/cookies/deploy", "create-campaign-jar"],
+  ])("sends %s to the protocol garden's campaign cookie jars on Payouts", async (entry, item) => {
+    const rootGarden = getNetworkConfig(getCurrentChain()).rootGarden?.address;
+    const router = renderAdminCanvasRoute(entry);
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/community/payouts");
+    });
+    const search = new URLSearchParams(router.state.location.search);
+    expect(search.get("gardenId")?.toLowerCase()).toBe(rootGarden?.toLowerCase());
+    expect(search.get("item")).toBe(item);
   });
 
   it("redirects /hub to canonical work mode while preserving shareable context", async () => {

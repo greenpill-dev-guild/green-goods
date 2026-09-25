@@ -22,6 +22,7 @@ vi.mock("react-intl", () => ({
         "nav.gardens": "Gardens",
         "cockpit.nav.profile": "Profile",
         "cockpit.fab.openActions": "Open Actions",
+        "cockpit.fab.closeActions": "Close Actions",
         "actions.submit": "Submit Work",
         "actions.disabled": "Disabled action",
         "actions.disabledReason": "Nothing to fund yet.",

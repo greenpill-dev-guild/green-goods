@@ -64,6 +64,14 @@ function PageB() {
   return <div data-testid="page-b">Page B</div>;
 }
 
+function PageWithItem() {
+  return (
+    <div data-testid="page-c">
+      <section data-route-item="campaigns">Campaign Cookie Jars</section>
+    </div>
+  );
+}
+
 function LazyPage() {
   return <div data-testid="lazy-page">Lazy Page</div>;
 }
@@ -87,6 +95,7 @@ function renderPageTransition(initialPath = "/page-a", navTargets = ["/page-a", 
         <Route element={<PageTransition />}>
           <Route path="/page-a" element={<PageA />} />
           <Route path="/page-b" element={<PageB />} />
+          <Route path="/page-c" element={<PageWithItem />} />
           <Route path="/hub/work/:workId" element={<PageB />} />
           <Route path="/hub/history" element={<PageB />} />
           <Route path="/hub/history/:historyEventId" element={<PageB />} />
@@ -423,6 +432,32 @@ describe("PageTransition", () => {
         expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
       });
     } finally {
+      document.body.removeChild(main);
+    }
+  });
+
+  it("lands a view change on the element its URL item names instead of the top", async () => {
+    const main = document.createElement("main");
+    main.id = "main-content";
+    const scrollTo = vi.fn();
+    main.scrollTo = scrollTo as unknown as typeof main.scrollTo;
+    document.body.appendChild(main);
+    const scrollIntoView = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    try {
+      renderPageTransition("/page-a", ["/page-c?item=campaigns"]);
+      const user = userEvent.setup();
+
+      await user.click(screen.getByTestId("nav-/page-c?item=campaigns"));
+      await waitFor(() => {
+        expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+      });
+      expect(scrollIntoView.mock.contexts[0]).toHaveAttribute("data-route-item", "campaigns");
+      expect(scrollTo).not.toHaveBeenCalled();
+    } finally {
+      Element.prototype.scrollIntoView = original;
       document.body.removeChild(main);
     }
   });

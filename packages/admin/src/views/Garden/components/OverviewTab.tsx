@@ -10,16 +10,17 @@ import type {
   GardenActivityEvent,
   GardenDetailTab,
   GardenRange,
-  TabBadgeSeverity,
 } from "@green-goods/shared/types/garden-detail";
 import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
-import { AlertRow, formatReviewTime, SectionStateCard } from "./GardenDetailHelpers";
+import { type GardenAlert, GardenAlertsCard } from "./GardenAlertsCard";
+import { formatReviewTime, SectionStateCard } from "./GardenDetailHelpers";
 import {
   ACTIVITY_CARD_CLASS,
   RANGE_OPTIONS,
@@ -43,12 +44,7 @@ export interface OverviewTabProps {
     },
     replace?: boolean
   ) => void;
-  overviewAlerts: Array<{
-    key: string;
-    severity: Exclude<TabBadgeSeverity, "none">;
-    label: string;
-    onAction: () => void;
-  }>;
+  overviewAlerts: GardenAlert[];
   gardenHealthLabel: string;
   approvedInRangeCount: number;
   impactVelocityDelta: number;
@@ -91,6 +87,10 @@ export function OverviewTab({
   const { formatMessage } = useIntl();
   const formatActivityTime = useLocalizedRelativeTime();
   const formatEventTime = useLocalizedEventTime();
+  // Below 768px the rail stacks after the main column, so on phones the alerts
+  // card leads above it instead; the rest of the rail still follows (DL-051).
+  const alertsLead = useMediaQuery("(max-width: 767px)");
+  const alertsCard = <GardenAlertsCard alerts={overviewAlerts} />;
   const isHealthMode = mode === "health";
   const isActivityMode = mode === "activity";
   const activityEventLimit = isActivityMode ? Number.POSITIVE_INFINITY : 8;
@@ -134,6 +134,8 @@ export function OverviewTab({
     <div className="garden-tab-shell">
       <div className="garden-tab-layout">
         <div className="garden-tab-main">
+          {alertsLead ? alertsCard : null}
+
           {section ? (
             <SectionStateCard
               title={formatMessage({ id: `app.garden.detail.section.${section}.title` })}
@@ -393,32 +395,7 @@ export function OverviewTab({
           <div className="garden-tab-rail-sticky">
             {isHealthMode ? <KarmaIntegrationPanel integration={karmaIntegration} /> : null}
 
-            <AdminCard density="none">
-              <AdminCardHeader>
-                <AdminCardTitle>
-                  {formatMessage({ id: "app.garden.detail.alerts.title" })}
-                </AdminCardTitle>
-              </AdminCardHeader>
-              <AdminCardBody>
-                {overviewAlerts.length === 0 ? (
-                  <p className="body-sm text-text-soft">
-                    {formatMessage({ id: "app.garden.detail.alerts.none" })}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {overviewAlerts.map((alert) => (
-                      <AlertRow
-                        key={alert.key}
-                        severity={alert.severity}
-                        label={alert.label}
-                        actionLabel={formatMessage({ id: "app.actions.view" })}
-                        onAction={alert.onAction}
-                      />
-                    ))}
-                  </div>
-                )}
-              </AdminCardBody>
-            </AdminCard>
+            {alertsLead ? null : alertsCard}
 
             <AdminCard density="none">
               <AdminCardHeader>
