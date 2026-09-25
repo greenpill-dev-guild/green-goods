@@ -204,6 +204,14 @@
       "status": "tdd_recorded",
       "branch": null,
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T09:07:01.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/garden-community-clarity",
+      "note": "PR3 (pr3_garden_community) implemented on PR2's branch; opens once PR2 merges"
     }
   ],
   "execution_sub_lanes": {
@@ -238,7 +246,7 @@
     "pr3_garden_community": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "in_progress",
       "branch": "fix/garden-community-clarity",
       "depends_on": ["pr2_hub_review_queue"],
       "handoff": "handoffs/pr3-garden-community.md",
@@ -247,7 +255,6 @@
         "issue": "PRD-984",
         "parentIssue": "PRD-981"
       },
-      "blocked_reason": "Starts after PR2 merges; both change useGardenDerivedState.",
       "linear_issues": ["PRD-984", "PRD-981"]
     },
     "pr4_shell_cookies_tone": {

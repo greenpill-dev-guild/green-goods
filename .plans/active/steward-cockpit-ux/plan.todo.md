@@ -69,10 +69,10 @@ PR1's branch already carries this hub as its first commit.
 
 ### PR3 — Garden and Community
 
-- [ ] Garden Profile save progress (D4, D8, D11)
-- [ ] People counts and member actions (D6, DEC-H, D9, D15), codify DL-049
-- [ ] Per-asset endowment amounts (D14, D9, D27, D31, D33)
-- [ ] Payouts, Impact, Karma copy (D10, D19, D30, D31, D33, D34)
+- [x] Garden Profile save progress (D4, D8, D11)
+- [x] People counts and member actions (D6, DEC-H, D9, D15), codify DL-049
+- [x] Per-asset endowment amounts (D14, D9, D27, D31, D33)
+- [x] Payouts, Impact, Karma copy (D10, D19, D30, D31, D33, D34)
 - [ ] Stories, en/es/pt, QA catalog, rendered proof, critical gate
 - [ ] PR opened, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
 
