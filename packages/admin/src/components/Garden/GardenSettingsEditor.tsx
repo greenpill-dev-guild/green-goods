@@ -17,8 +17,7 @@ import {
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
-import { type Address, DOMAIN_COLORS, Domain } from "@green-goods/shared/types/domain";
-import { expandDomainMask } from "@green-goods/shared/utils/domain";
+import { type Address, DOMAIN_COLORS, type Domain } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
@@ -27,6 +26,21 @@ import { AdminFieldGroup } from "@/components/AdminFieldGroup";
 import { AdminSelectableCard } from "@/components/AdminSelectableCard";
 import { AdminSettingRow } from "@/components/AdminSettingRow";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
+import {
+  DOMAIN_OPTIONS,
+  dirtyFieldsOf,
+  draftFromGarden,
+  effectiveMaxGardeners,
+  fieldValueKey,
+  type GardenSettingsField,
+  type GardenSettingsValues,
+  type SettingsDraft,
+} from "./gardenSettingsDraft";
+import type {
+  GardenSettingsFieldProgress,
+  GardenSettingsFieldState,
+  GardenSettingsSaveRun,
+} from "./gardenSettingsSave";
 
 /** What the hosting surface should show as the banner right now. */
 export interface GardenBannerPreview {
@@ -49,10 +63,12 @@ export interface GardenSettingsFormState {
   isSaving: boolean;
   /** True while a field fails validation — Save must stay disabled. */
   hasValidationError: boolean;
-  /** Count of edited fields — feeds the footer's unsaved-changes line. */
+  /** Changed fields still to save, one wallet confirmation each — feeds the footer line. */
   dirtyCount: number;
   /** Whether the steward can edit anything — hides the footer when false. */
   canEdit: boolean;
+  /** The latest Save or Try Again and where each of its writes stands; null before one. */
+  run: GardenSettingsSaveRun | null;
 }
 
 /** Imperative surface for the hosting dialog's footer + banner preview card. */
@@ -63,19 +79,13 @@ export interface GardenSettingsEditorHandle {
   stageBannerRemoval: () => void;
   /** Undo a staged banner removal (host preview card's Undo control). */
   undoBannerRemoval: () => void;
+  /** Leave a stopped or finished save's progress and show the form again. */
+  dismissRun: () => void;
 }
 
 interface GardenSettingsEditorProps {
   gardenAddress: Address;
-  garden: {
-    name: string;
-    description: string;
-    location: string;
-    bannerImage: string;
-    domainMask?: number;
-    openJoining?: boolean;
-    maxGardeners?: number;
-  };
+  garden: GardenSettingsValues;
   canManage: boolean;
   isOwner: boolean;
   /**
@@ -91,74 +101,6 @@ interface GardenSettingsEditorProps {
    * dialog owns the close and the footer.
    */
   onDirtyStateChange?: (state: GardenSettingsFormState) => void;
-}
-
-/** The four action domains a garden can document. Selected inline in the
- * settings draft and written on Save via `useSetGardenDomains`. */
-const DOMAIN_OPTIONS = [
-  {
-    value: Domain.SOLAR,
-    labelId: "app.garden.create.domain.solar",
-    defaultLabel: "Solar",
-    descriptionId: "app.garden.create.domain.solar.description",
-    defaultDescription: "Track solar panel installations, kWh generated, and maintenance",
-  },
-  {
-    value: Domain.AGRO,
-    labelId: "app.garden.create.domain.agro",
-    defaultLabel: "Agroforestry",
-    descriptionId: "app.garden.create.domain.agro.description",
-    defaultDescription: "Document tree planting, harvests, and land stewardship",
-  },
-  {
-    value: Domain.EDU,
-    labelId: "app.garden.create.domain.edu",
-    defaultLabel: "Education",
-    descriptionId: "app.garden.create.domain.edu.description",
-    defaultDescription: "Record workshops, trainings, and knowledge sharing",
-  },
-  {
-    value: Domain.WASTE,
-    labelId: "app.garden.create.domain.waste",
-    defaultLabel: "Waste",
-    descriptionId: "app.garden.create.domain.waste.description",
-    defaultDescription: "Log waste collection, recycling, and composting activities",
-  },
-] as const;
-
-interface SettingsDraft {
-  name: string;
-  description: string;
-  location: string;
-  openJoining: boolean;
-  /** Whether a gardener cap applies — off means unlimited (saves 0). */
-  limitGardeners: boolean;
-  /** The cap as a string while editing (only meaningful when limited). */
-  maxGardeners: string;
-  domains: Domain[];
-  /** Locally selected banner file — uploads to IPFS only on Save. */
-  bannerFile: File | null;
-  /** Marks the saved banner for removal on Save. */
-  bannerRemoved: boolean;
-}
-
-function draftFromGarden(garden: GardenSettingsEditorProps["garden"]): SettingsDraft {
-  const max = garden.maxGardeners ?? 0;
-  return {
-    name: garden.name,
-    description: garden.description,
-    location: garden.location,
-    openJoining: !!garden.openJoining,
-    limitGardeners: max > 0,
-    maxGardeners: max > 0 ? String(max) : "",
-    domains: expandDomainMask(garden.domainMask ?? 0),
-    bannerFile: null,
-    bannerRemoved: false,
-  };
-}
-
-function sameDomains(a: Domain[], b: Domain[]): boolean {
-  return a.length === b.length && a.every((domain) => b.includes(domain));
 }
 
 /**
@@ -191,6 +133,10 @@ export const GardenSettingsEditor = forwardRef<
 
   const [draft, setDraft] = useState<SettingsDraft>(() => draftFromGarden(garden));
   const [isSaving, setIsSaving] = useState(false);
+  const [run, setRun] = useState<GardenSettingsSaveRun | null>(null);
+  // What each field landed with this session, so Try Again never sends it twice
+  // while the refreshed garden has yet to report it.
+  const [landed, setLanded] = useState<Partial<Record<GardenSettingsField, string>>>({});
 
   // Local preview for a freshly selected banner file. Revoked on change and
   // unmount so draft previews never leak object URLs.
@@ -219,19 +165,13 @@ export const GardenSettingsEditor = forwardRef<
   const lastSnapshotRef = useRef(gardenSnapshot);
 
   // Plain per-render computation — compares against the saved values.
-  const baseline = draftFromGarden(garden);
-  const baselineMax = Number(garden.maxGardeners ?? 0);
-  const effectiveMax = draft.limitGardeners ? Number(draft.maxGardeners) : 0;
-
-  const dirtyFields: string[] = [];
-  if (draft.name.trim() !== baseline.name) dirtyFields.push("name");
-  if (draft.description.trim() !== baseline.description) dirtyFields.push("description");
-  if (draft.location.trim() !== baseline.location) dirtyFields.push("location");
-  if (draft.openJoining !== baseline.openJoining) dirtyFields.push("openJoining");
-  if (effectiveMax !== baselineMax) dirtyFields.push("maxGardeners");
-  if (!sameDomains(draft.domains, baseline.domains)) dirtyFields.push("domains");
-  if (draft.bannerFile || draft.bannerRemoved) dirtyFields.push("banner");
+  const dirtyFields = dirtyFieldsOf(draft, garden);
   const isDirty = dirtyFields.length > 0;
+  // What Save still sends: a field that landed this session and still holds
+  // that value waits for the refreshed garden instead of being written again.
+  const pendingFields = dirtyFields.filter(
+    (field) => field === "banner" || landed[field] !== fieldValueKey(draft, field)
+  );
 
   useEffect(() => {
     if (lastSnapshotRef.current === gardenSnapshot) return;
@@ -278,86 +218,125 @@ export const GardenSettingsEditor = forwardRef<
     });
   }, [bannerIsDraft, bannerStagedRemoval, canRemoveBanner, onBannerPreviewChange, previewSrc]);
 
-  const dirtyCount = dirtyFields.length;
+  const dirtyCount = pendingFields.length;
 
   useEffect(() => {
     onDirtyStateChange?.({
-      isDirty,
+      isDirty: dirtyCount > 0,
       isSaving,
       hasValidationError,
       dirtyCount,
       canEdit: canEditAnything,
+      run,
     });
-  }, [isDirty, isSaving, hasValidationError, dirtyCount, canEditAnything, onDirtyStateChange]);
+  }, [dirtyCount, isSaving, hasValidationError, canEditAnything, run, onDirtyStateChange]);
+
+  // Each field reuses its existing mutation (own toast + cache invalidation)
+  // and resolves with the transaction that carried it.
+  const writeField = async (
+    field: GardenSettingsField,
+    values: SettingsDraft,
+    onUploaded: () => void
+  ): Promise<`0x${string}`> => {
+    switch (field) {
+      case "name":
+        return updateName.mutateAsync({ gardenAddress, value: values.name.trim() });
+      case "description":
+        return updateDescription.mutateAsync({ gardenAddress, value: values.description.trim() });
+      case "location":
+        return updateLocation.mutateAsync({ gardenAddress, value: values.location.trim() });
+      case "openJoining":
+        return setOpenJoining.mutateAsync({ gardenAddress, value: values.openJoining });
+      case "maxGardeners":
+        return setMaxGardeners.mutateAsync({ gardenAddress, value: effectiveMaxGardeners(values) });
+      case "domains":
+        return setGardenDomains.mutateAsync({ gardenAddress, domains: values.domains });
+      case "banner": {
+        if (!values.bannerFile) return updateBannerImage.mutateAsync({ gardenAddress, value: "" });
+        let file = values.bannerFile;
+        if (imageCompressor.shouldCompress(file, 1024)) {
+          const result = await imageCompressor.compressImage(file, {
+            maxSizeMB: 0.8,
+            maxWidthOrHeight: 2048,
+          });
+          file = result.file;
+        }
+        const uploadResult = await uploadFileToIPFS(file);
+        onUploaded();
+        return updateBannerImage.mutateAsync({
+          gardenAddress,
+          value: resolveIPFSUrl(uploadResult.cid),
+        });
+      }
+    }
+  };
 
   const handleSave = async () => {
-    if (!isDirty || hasValidationError || isSaving) return;
+    if (pendingFields.length === 0 || hasValidationError || isSaving) return;
+
+    // The run writes the draft as it stands now; fields are locked until it ends.
+    const values = draft;
+    const fields = pendingFields;
+    const progress: Partial<Record<GardenSettingsField, GardenSettingsFieldProgress>> = {};
+    const report = (status: GardenSettingsSaveRun["status"]) =>
+      setRun({ status, fields, progress: { ...progress } });
+    const mark = (
+      field: GardenSettingsField,
+      state: GardenSettingsFieldState,
+      hash: `0x${string}` | null = null
+    ) => {
+      progress[field] = { state, hash };
+      report(state === "failed" ? "stopped" : "running");
+    };
 
     setIsSaving(true);
-    try {
-      // Each dirty field reuses its existing mutation (own toast + cache
-      // invalidation). Sequential on purpose: one wallet confirmation at a
-      // time, and a failure stops the run with the draft intact.
-      if (dirtyFields.includes("name")) {
-        await updateName.mutateAsync({ gardenAddress, value: draft.name.trim() });
-      }
-      if (dirtyFields.includes("description")) {
-        await updateDescription.mutateAsync({ gardenAddress, value: draft.description.trim() });
-      }
-      if (dirtyFields.includes("location")) {
-        await updateLocation.mutateAsync({ gardenAddress, value: draft.location.trim() });
-      }
-      if (dirtyFields.includes("openJoining")) {
-        await setOpenJoining.mutateAsync({ gardenAddress, value: draft.openJoining });
-      }
-      if (dirtyFields.includes("maxGardeners")) {
-        await setMaxGardeners.mutateAsync({ gardenAddress, value: effectiveMax });
-      }
-      if (dirtyFields.includes("domains")) {
-        await setGardenDomains.mutateAsync({ gardenAddress, domains: draft.domains });
-      }
-      if (dirtyFields.includes("banner")) {
-        if (draft.bannerFile) {
-          let file = draft.bannerFile;
-          if (imageCompressor.shouldCompress(file, 1024)) {
-            const result = await imageCompressor.compressImage(file, {
-              maxSizeMB: 0.8,
-              maxWidthOrHeight: 2048,
-            });
-            file = result.file;
-          }
-          const uploadResult = await uploadFileToIPFS(file);
-          await updateBannerImage.mutateAsync({
-            gardenAddress,
-            value: resolveIPFSUrl(uploadResult.cid),
-          });
-        } else if (draft.bannerRemoved) {
-          await updateBannerImage.mutateAsync({ gardenAddress, value: "" });
+    for (const field of fields) progress[field] = { state: "queued", hash: null };
+    // Sequential on purpose: one wallet confirmation at a time, and a failure
+    // stops the run with the rest of the draft intact.
+    for (const field of fields) {
+      let stage: GardenSettingsFieldState =
+        field === "banner" && values.bannerFile ? "uploading" : "waiting";
+      mark(field, stage);
+      try {
+        const hash = await writeField(field, values, () => {
+          stage = "waiting";
+          mark(field, stage);
+        });
+        mark(field, "saved", hash);
+        if (field === "banner") {
+          setDraft((current) => ({ ...current, bannerFile: null, bannerRemoved: false }));
+        } else {
+          setLanded((current) => ({ ...current, [field]: fieldValueKey(values, field) }));
         }
+      } catch (error) {
+        mark(field, "failed");
+        logger.error("Garden settings save failed", {
+          error,
+          field,
+          source: "GardenSettingsEditor",
+        });
+        // Contract writes toast their own parsed errors; the image upload is
+        // the one step with no toast of its own.
+        if (stage === "uploading") {
+          toastService.error({
+            title: formatMessage({
+              id: "app.garden.create.uploadFailed",
+              defaultMessage: "Upload failed",
+            }),
+            message: formatMessage({
+              id: "app.garden.settings.saveFailedMessage",
+              defaultMessage: "Your edits are still here. Review the error and save again.",
+            }),
+            context: "garden settings save",
+            error,
+          });
+        }
+        setIsSaving(false);
+        return;
       }
-
-      // Clear banner draft state; field values stay and become the new
-      // baseline when the invalidated garden query refreshes the props.
-      setDraft((current) => ({ ...current, bannerFile: null, bannerRemoved: false }));
-    } catch (error) {
-      // Contract mutations already toast their own parsed errors; the IPFS
-      // upload path is the one failure with no mutation toast of its own.
-      logger.error("Garden settings save failed", { error, source: "GardenSettingsEditor" });
-      toastService.error({
-        title: formatMessage({
-          id: "app.garden.create.uploadFailed",
-          defaultMessage: "Upload failed",
-        }),
-        message: formatMessage({
-          id: "app.garden.settings.saveFailedMessage",
-          defaultMessage: "Your edits are still here. Review the error and save again.",
-        }),
-        context: "garden settings save",
-        error,
-      });
-    } finally {
-      setIsSaving(false);
     }
+    report("complete");
+    setIsSaving(false);
   };
 
   // The hosting dialog's pinned footer drives Save through this handle, and its
@@ -372,6 +351,7 @@ export const GardenSettingsEditor = forwardRef<
         bannerRemoved: Boolean(garden.bannerImage),
       })),
     undoBannerRemoval: () => setDraft((current) => ({ ...current, bannerRemoved: false })),
+    dismissRun: () => setRun(null),
   }));
 
   const disabledProfileField = !canEditProfile || isSaving;
@@ -410,7 +390,15 @@ export const GardenSettingsEditor = forwardRef<
           value={draft.name}
           onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
           disabled={!canEditName || isSaving}
-          showCount
+          helperText={
+            canEditName
+              ? undefined
+              : formatMessage({
+                  id: "app.garden.settings.nameOwnerOnly",
+                  defaultMessage: "Only the garden owner can rename the garden.",
+                })
+          }
+          showCount={canEditName}
           countBytes
           inputProps={{ maxLength: GARDEN_NAME_MAX_LENGTH }}
         />

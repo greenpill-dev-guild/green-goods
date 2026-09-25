@@ -1,16 +1,18 @@
 import enMessages from "@green-goods/shared/i18n/en";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { IntlProvider, useIntl } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { Domain } from "@green-goods/shared/types/domain";
+import { TxProgressList } from "@/components/TxProgressList";
 import {
   GardenSettingsEditor,
   type GardenSettingsEditorHandle,
   type GardenSettingsFormState,
 } from "./GardenSettingsEditor";
+import { buildGardenSettingsSaveRows, gardenSettingsSaveLine } from "./gardenSettingsSave";
 
 const gardenAddress = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12" as `0x${string}`;
 
@@ -108,6 +110,7 @@ function EditorHarness({
     hasValidationError: false,
     dirtyCount: 0,
     canEdit: false,
+    run: null,
   });
 
   // Keep the callback identity STABLE. GardenSettingsEditor lists
@@ -137,21 +140,24 @@ function EditorHarness({
       {form.canEdit ? (
         <div>
           <p data-slot="dirty-state">
-            {form.isSaving
-              ? formatMessage({ id: "app.garden.settings.saving" })
-              : form.isDirty
-                ? formatMessage(
-                    { id: "app.garden.settings.unsavedChanges" },
-                    { count: form.dirtyCount }
-                  )
-                : formatMessage({ id: "app.garden.settings.allSaved" })}
+            {gardenSettingsSaveLine(form.run, form.dirtyCount, formatMessage)}
           </p>
+          {form.run ? (
+            <TxProgressList
+              testId="garden-settings-save"
+              chainId={42161}
+              label="What your wallet confirms"
+              rows={buildGardenSettingsSaveRows(form.run, formatMessage)}
+            />
+          ) : null}
           <button
             type="button"
             onClick={() => void editorRef.current?.save()}
             disabled={!form.isDirty || form.hasValidationError || form.isSaving}
           >
-            {formatMessage({ id: "app.garden.settings.saveChanges" })}
+            {form.run?.status === "stopped"
+              ? formatMessage({ id: "app.common.tryAgain" })
+              : formatMessage({ id: "app.garden.settings.saveChanges" })}
           </button>
           {/* Banner Remove/Undo live on the hosting card in production; the
               harness drives the same imperative handle. */}
@@ -207,8 +213,63 @@ describe("GardenSettingsEditor explicit save", () => {
     for (const mutation of allMutations()) {
       expect(mutation).not.toHaveBeenCalled();
     }
-    expect(screen.getByText("1 unsaved change")).toBeInTheDocument();
+    // One wallet confirmation per changed field, said before Save (D4).
+    expect(screen.getByText("1 change · 1 wallet confirmation")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save Changes" })).toBeEnabled();
+  });
+
+  it("stops at a declined write, keeps the draft, and Try Again sends only what is left", async () => {
+    const user = userEvent.setup();
+    mockUpdateDescription.mockRejectedValueOnce(new Error("User rejected the request"));
+    renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Renamed Garden");
+    const descriptionInput = screen.getByLabelText("Description");
+    await user.clear(descriptionInput);
+    await user.type(descriptionInput, "Restoring the river bank.");
+    const locationInput = screen.getByLabelText("Location");
+    await user.clear(locationInput);
+    await user.type(locationInput, "Lisbon, Portugal");
+    expect(screen.getByText("3 changes · 3 wallet confirmations")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    expect(
+      await screen.findByText(
+        "Stopped at Description. 1 of 3 saved. Your other edits are still here."
+      )
+    ).toBeInTheDocument();
+    const rows = within(screen.getByTestId("garden-settings-save")).getAllByRole("listitem");
+    expect(rows.map((row) => row.getAttribute("data-status"))).toEqual([
+      "saved",
+      "failed",
+      "queued",
+    ]);
+    expect(mockUpdateLocation).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Description")).toHaveValue("Restoring the river bank.");
+
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+
+    expect(await screen.findByText("All changes saved")).toBeInTheDocument();
+    // The name landed on the first run and is not sent again, although the
+    // garden has not refreshed yet.
+    expect(mockUpdateName).toHaveBeenCalledTimes(1);
+    expect(mockUpdateDescription).toHaveBeenCalledTimes(2);
+    expect(mockUpdateLocation).toHaveBeenCalledWith({
+      gardenAddress,
+      value: "Lisbon, Portugal",
+    });
+  });
+
+  it("tells a steward who is not the owner why the name is locked", () => {
+    renderEditor({ canManage: true, isOwner: false });
+
+    expect(screen.getByLabelText(/Name/)).toBeDisabled();
+    expect(screen.getByText("Only the garden owner can rename the garden.")).toBeInTheDocument();
+    // The byte count is for typing; a locked field has none to show.
+    expect(screen.queryByText(/\/ 72/)).not.toBeInTheDocument();
   });
 
   it("saves only the dirty fields with trimmed values", async () => {
