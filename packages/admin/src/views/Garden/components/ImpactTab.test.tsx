@@ -30,6 +30,7 @@ function renderImpact(overrides: Partial<ImpactTabProps> = {}) {
           assessmentsError={null}
           hypercerts={[]}
           hypercertsLoading={false}
+          hypercertsError={null}
           domainLabels={[]}
           approvedInLastThirtyDays={0}
           {...overrides}
@@ -69,6 +70,14 @@ describe("ImpactTab", () => {
     expect(screen.queryByRole("link", { name: "Create Assessment" })).not.toBeInTheDocument();
     // The summary does not count a list it could not read.
     expect(screen.getByText("Total Assessments").nextElementSibling).toHaveTextContent("—");
+  });
+
+  it("says a failed hypercerts read failed, rather than reading as an empty list", () => {
+    renderImpact({ hypercertsError: new Error("indexer unavailable") });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Failed to load hypercerts");
+    expect(screen.queryByRole("link", { name: "Create Hypercert" })).not.toBeInTheDocument();
+    expect(screen.getByText("Total Hypercerts").nextElementSibling).toHaveTextContent("—");
   });
 
   it("shows View All once a list has items", () => {

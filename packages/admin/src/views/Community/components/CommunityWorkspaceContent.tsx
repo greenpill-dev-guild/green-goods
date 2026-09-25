@@ -119,6 +119,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
       <CommunityPayoutsTab
         garden={workspace.garden}
         allocations={workspace.allocations}
+        allocationsAtLimit={workspace.allocationsAtLimit}
         selectedItem={workspace.selectedItem}
       />
     );

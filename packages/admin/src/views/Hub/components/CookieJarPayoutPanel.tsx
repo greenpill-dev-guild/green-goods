@@ -23,6 +23,8 @@ interface CookieJarPayoutPanelProps {
   /** Open this jar's per-claim limit editor on arrival (the low-limit alert links here). */
   routeEditLimitJar?: string | null;
   allocationCount?: number;
+  /** The payout history filled its list, so the count is a lower bound. */
+  allocationCountAtLeast?: boolean;
 }
 
 export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
@@ -31,6 +33,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   routeAction,
   routeEditLimitJar,
   allocationCount = 0,
+  allocationCountAtLeast = false,
 }) => {
   const { formatMessage } = useIntl();
 
@@ -165,6 +168,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                 gardenAddress={gardenAddress}
                 gardenName={gardenName}
                 allocationCount={allocationCount}
+                allocationCountAtLeast={allocationCountAtLeast}
                 signer={signer}
                 editingField={editing?.jarAddress === jar.jarAddress ? editing.field : null}
                 onEdit={(field) => setEditing(field ? { jarAddress: jar.jarAddress, field } : null)}

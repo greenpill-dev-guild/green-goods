@@ -94,10 +94,11 @@ export function useGardenDetailData(id: string | undefined) {
   const { mutate: createPools, isPending: isCreatingPools } = useCreateGardenPools(
     id as Address | undefined
   );
-  const { allocations, isLoading: allocationsLoading } = useYieldAllocations(
-    id as Address | undefined,
-    { enabled: Boolean(id) }
-  );
+  const {
+    allocations,
+    atLimit: allocationsAtLimit,
+    isLoading: allocationsLoading,
+  } = useYieldAllocations(id as Address | undefined, { enabled: Boolean(id) });
 
   const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
 
@@ -130,7 +131,11 @@ export function useGardenDetailData(id: string | undefined) {
     hasUnknownStatuses,
     readThisSession: worksReadThisSession,
   } = useWorks(gardenId);
-  const { hypercerts, isLoading: hypercertsLoading } = useHypercerts({ gardenId: id });
+  const {
+    hypercerts,
+    isLoading: hypercertsLoading,
+    error: hypercertsError,
+  } = useHypercerts({ gardenId: id });
 
   const roleMembers: Record<GardenRole, Address[]> = {
     owner: garden?.owners ?? [],
@@ -191,6 +196,7 @@ export function useGardenDetailData(id: string | undefined) {
     vaultHarvestCount,
     vaultDepositorCount,
     allocations,
+    allocationsAtLimit,
     allocationsLoading,
     works,
     // The list holds only the newest page, a row whose approval could not be
@@ -211,6 +217,7 @@ export function useGardenDetailData(id: string | undefined) {
     refreshWorks,
     hypercerts,
     hypercertsLoading,
+    hypercertsError,
     convictionStrategyCount: convictionStrategies.length,
     scheduleBackgroundRefetch,
   };

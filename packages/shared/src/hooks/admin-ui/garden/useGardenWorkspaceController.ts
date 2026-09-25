@@ -105,6 +105,7 @@ export function useGardenWorkspaceController() {
     worksComplete,
     hypercerts,
     hypercertsLoading,
+    hypercertsError,
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
   const karmaIntegration = useKarmaIntegration(garden);
@@ -295,6 +296,7 @@ export function useGardenWorkspaceController() {
     hypercertId,
     hypercerts,
     hypercertsLoading,
+    hypercertsError,
     isOwner,
     karmaIntegration,
     openSection,

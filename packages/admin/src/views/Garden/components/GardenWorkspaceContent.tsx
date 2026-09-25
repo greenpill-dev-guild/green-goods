@@ -97,6 +97,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           assessmentsError={workspace.assessmentsError}
           hypercerts={workspace.hypercerts}
           hypercertsLoading={workspace.hypercertsLoading}
+          hypercertsError={workspace.hypercertsError}
           domainLabels={workspace.derived.domainLabels}
           approvedInLastThirtyDays={workspace.derived.approvedInLastThirtyDays}
         />

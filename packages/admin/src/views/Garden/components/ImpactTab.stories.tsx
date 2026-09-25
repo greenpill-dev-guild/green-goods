@@ -71,6 +71,7 @@ const meta: Meta<typeof ImpactTab> = {
     assessments: ASSESSMENTS,
     fetchingAssessments: false,
     assessmentsError: null,
+    hypercertsError: null,
     hypercerts: HYPERCERTS,
     hypercertsLoading: false,
     domainLabels: ["Agroforestry", "Education"],

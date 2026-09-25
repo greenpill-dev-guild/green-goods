@@ -28,6 +28,7 @@ export interface ImpactTabProps {
   assessmentsError: Error | null;
   hypercerts: HypercertRecord[];
   hypercertsLoading: boolean;
+  hypercertsError: Error | null;
   domainLabels: string[];
   approvedInLastThirtyDays: number;
 }
@@ -47,6 +48,7 @@ export function ImpactTab({
   assessmentsError,
   hypercerts,
   hypercertsLoading,
+  hypercertsError,
   domainLabels,
   approvedInLastThirtyDays,
 }: ImpactTabProps) {
@@ -59,7 +61,8 @@ export function ImpactTab({
   const hasHypercerts = hypercerts.length > 0;
   const hasAssessments = assessments.length > 0;
   // A failed read is not an empty list: it says so and counts nothing.
-  const assessmentsUnread = assessmentsError !== null && !hasAssessments;
+  const assessmentsUnread = Boolean(assessmentsError) && !hasAssessments;
+  const hypercertsUnread = Boolean(hypercertsError) && !hasHypercerts;
 
   return (
     <div className="garden-tab-shell">
@@ -120,6 +123,10 @@ export function ImpactTab({
                       />
                     ))}
                   </div>
+                ) : hypercertsUnread ? (
+                  <p className="body-sm text-error-dark" role="alert">
+                    {formatMessage({ id: "app.garden.admin.hypercertsFailed" })}
+                  </p>
                 ) : recentHypercerts.length === 0 ? (
                   <EmptyState
                     icon={<RiFileList3Line className="h-6 w-6" />}
@@ -306,7 +313,9 @@ export function ImpactTab({
                     <span className="garden-stat-row-label">
                       {formatMessage({ id: "app.garden.detail.impactSummary.totalHypercerts" })}
                     </span>
-                    <span className="garden-stat-row-value">{hypercerts.length}</span>
+                    <span className="garden-stat-row-value">
+                      {hypercertsUnread ? "—" : hypercerts.length}
+                    </span>
                   </div>
                   <div className="garden-stat-row">
                     <span className="garden-stat-row-label">

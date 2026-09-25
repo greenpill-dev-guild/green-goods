@@ -109,6 +109,7 @@ export function useCommunityWorkspaceController() {
     endowmentByAsset,
     hasEndowment,
     allocations,
+    allocationsAtLimit,
     allocationsLoading,
     hasNoPayoutJar,
     roleMembers,
@@ -229,6 +230,7 @@ export function useCommunityWorkspaceController() {
 
   return {
     allocations,
+    allocationsAtLimit,
     allocationsLoading,
     canManage,
     clearSection,
