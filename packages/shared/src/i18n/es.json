@@ -392,6 +392,7 @@
   "app.admin.assessment.domainAction.domainDescription": "Selecciona el dominio principal de acción para esta evaluación.",
   "app.admin.assessment.domainAction.domainTitle": "Dominio",
   "app.admin.assessment.domainAction.noActions": "No hay acciones registradas para {domain}.",
+  "app.admin.assessment.domainAction.chooseDomainFirst": "Elige un dominio en el primer paso para ver sus acciones.",
   "app.admin.assessment.domainAction.selectAll": "Seleccionar todo",
   "app.admin.assessment.domainAction.selectedCount": "{count} de {total} acciones seleccionadas",
   "app.admin.assessment.domainContext.contextDescription": "Proporcione los detalles básicos de esta evaluación.",

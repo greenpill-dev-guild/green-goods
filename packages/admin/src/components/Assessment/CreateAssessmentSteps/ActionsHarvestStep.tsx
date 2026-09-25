@@ -102,15 +102,18 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
         {domainActions.length === 0 ? (
           <div className="rounded-md border border-dashed border-stroke-soft p-6 text-center">
             <p className="text-sm text-text-soft">
-              {formatMessage(
-                {
-                  id: "app.admin.assessment.domainAction.noActions",
-                  defaultMessage: "No actions registered for {domain}.",
-                },
-                {
-                  domain: selectedDomain === null ? "" : resolveDomainLabel(intl, selectedDomain),
-                }
-              )}
+              {selectedDomain === null
+                ? formatMessage({
+                    id: "app.admin.assessment.domainAction.chooseDomainFirst",
+                    defaultMessage: "Choose a domain on the first step to see its actions.",
+                  })
+                : formatMessage(
+                    {
+                      id: "app.admin.assessment.domainAction.noActions",
+                      defaultMessage: "No actions registered for {domain}.",
+                    },
+                    { domain: resolveDomainLabel(intl, selectedDomain) }
+                  )}
             </p>
           </div>
         ) : (

@@ -35,5 +35,8 @@ describe("ActionsHarvestStep", () => {
     expect(
       screen.getByText("Select the actions that will be tracked under this assessment.")
     ).toBeVisible();
+    // With no known domain there is nothing to list yet, so the step says why.
+    expect(screen.getByText("Choose a domain on the first step to see its actions.")).toBeVisible();
+    expect(screen.queryByText(/No actions registered for/)).not.toBeInTheDocument();
   });
 });

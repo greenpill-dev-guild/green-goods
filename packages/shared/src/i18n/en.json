@@ -392,6 +392,7 @@
   "app.admin.assessment.domainAction.domainDescription": "Select the primary action domain for this assessment.",
   "app.admin.assessment.domainAction.domainTitle": "Domain",
   "app.admin.assessment.domainAction.noActions": "No actions registered for {domain}.",
+  "app.admin.assessment.domainAction.chooseDomainFirst": "Choose a domain on the first step to see its actions.",
   "app.admin.assessment.domainAction.selectAll": "Select All",
   "app.admin.assessment.domainAction.selectedCount": "{count} of {total} actions selected",
   "app.admin.assessment.domainContext.contextDescription": "Provide basic details about this assessment.",
