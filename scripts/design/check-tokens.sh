@@ -166,7 +166,7 @@ fi
 # Allowlist: token projection/definition files plus tests, where issue references
 # such as "#312" are not design values. Story and app style files are scanned;
 # existing intentional literals must be captured line-by-line in the baseline.
-USAGE_ALLOWLIST_REGEX='(packages/shared/src/styles/theme\.css|packages/shared/src/styles/design-md\.generated\.css|packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-tokens\.css|packages/admin/src/styles/admin-m3-components\.css|\.test\.tsx?|packages/client/vite\.config\.ts)'
+USAGE_ALLOWLIST_REGEX='(packages/shared/src/styles/theme\.css|packages/shared/src/styles/design-md\.generated\.css|packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-tokens\.css|packages/admin/src/styles/admin-m3-components\.css|packages/admin/src/styles/admin-layout\.css|\.test\.tsx?|packages/client/vite\.config\.ts)'
 
 TW_PALETTE_FAMILIES='(gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|black|white)'
 TW_COLOR_UTILITY='(accent|bg|border(-[trblxy])?|caret|decoration|divide|fill|from|outline|placeholder|ring|shadow|stroke|text|to|via)'
@@ -372,7 +372,7 @@ if [[ -n "$STALE_BASELINE" ]]; then
   exit 1
 fi
 
-ADMIN_CHROME_ALLOWLIST_REGEX='(packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-components\.css|packages/admin/src/styles/admin-m3-tokens\.css)'
+ADMIN_CHROME_ALLOWLIST_REGEX='(packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-components\.css|packages/admin/src/styles/admin-m3-tokens\.css|packages/admin/src/styles/admin-layout\.css)'
 ADMIN_CHROME_PATTERN='glass-(ground|raised|floating|overlay|surface)|backdrop-blur|backdrop-filter|linear-gradient\('
 
 collect_admin_chrome_violations() {
@@ -393,7 +393,7 @@ if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
   echo "❌ Admin Controlled Chrome violation found:"
   echo "$ADMIN_CHROME_VIOLATIONS" | sed 's/^/  /'
   echo
-  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB chrome only via packages/admin/src/index.css, admin-m3-tokens.css, or admin-m3-components.css; the AppBar root stays transparent and dialogs/side sheets stay solid."
+  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB chrome only via packages/admin/src/index.css, admin-m3-tokens.css, admin-m3-components.css, or admin-layout.css; the AppBar root stays transparent and dialogs/side sheets stay solid."
   echo "Route cards, forms, tables, records, and dense content must use solid semantic surfaces."
   exit 1
 fi
@@ -559,7 +559,8 @@ fi
 # deleted 2026-08-29 (admin audit, PRD-644 round 2). Fail if any shadow-*
 # class definition reappears in admin-owned CSS.
 SHADOW_CLASS_REDEFINITION="$(grep -RnE '^[[:space:]]*(\[[^]]+\][[:space:]]*)*\.shadow-(xs|sm|md|lg|xl|2xl|elevation)' \
-  "$ADMIN_INDEX_CSS" "$ADMIN_M3_TOKENS" packages/admin/src/styles/admin-m3-components.css 2>/dev/null || true)"
+  "$ADMIN_INDEX_CSS" "$ADMIN_M3_TOKENS" packages/admin/src/styles/admin-m3-components.css \
+  packages/admin/src/styles/admin-layout.css 2>/dev/null || true)"
 if [[ -n "$SHADOW_CLASS_REDEFINITION" ]]; then
   echo "❌ Parallel shadow ladder reintroduced — .shadow-* class definitions found in admin CSS:"
   echo "$SHADOW_CLASS_REDEFINITION" | sed 's/^/  /'
