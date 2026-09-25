@@ -159,14 +159,14 @@ Build Storybook (`bun run --cwd packages/shared build-storybook`) when the selec
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `70421844e773209e7f8b193b5511b82be56b5528` (PR5 on PR4's final head `63cdbc99b`; the branch was then rebased onto `develop` after PR4 merged as `7a7d5b4bc`, which leaves every validated path unchanged)
+- Run at (UTC): full suites `2026-09-25T22:32:05Z` to `2026-09-25T22:37:28Z`; push gate `2026-09-25T22:37:28Z` to `2026-09-25T22:43:25Z`; admin Playwright `2026-09-25T22:43:25Z` to `2026-09-25T22:44:02Z`
+- Exact command(s): `for pkg in admin shared client; do bun run --filter @green-goods/$pkg test; done` (each exit code recorded); `bun run --filter @green-goods/shared test:stories:ci`; `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --check ontology --check docs-generated --check design-guardrails --test-path shared:src/__tests__/utils/styles/cn.test.ts`; `CI=true PLAYWRIGHT_APP=admin PATH="$PWD/node_modules/.bin:$PATH" playwright test --project=admin-ci --reporter=line --retries=0`
+- Result: admin 1054, shared 5826 (17 skipped), and client 1399 tests passed, each package exiting 0; the storybook-ci story suite passed (99 files, 347 tests); the push gate exited 0 on the critical plan with 29 automated checks passed: format, lint, the shared, client, admin, and agent typechecks, test typechecks, suites, and builds, docs-authority, docs-test, docs-build, source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, storybook-build, agent-tools-test, and docs-generated; the admin-ci Playwright project passed 11 of 11 in CI mode. An earlier full story run on `1c986f6fe`, the same code, failed one story (the Actions sheet's Route Backed Create Mobile, which waits 5s for its dialog, under load); that file passed twice alone, and the full suite passed on `4409e3374` and on `70421844e`. The type and colour census are the rendered evidence (see Rendered Proof)
+- Validated paths: `packages/admin/src` `packages/shared/src` `packages/shared/.storybook` `packages/admin/DESIGN.md` `scripts/design` `scripts/data` `scripts/quality` `.claude/rules` `.claude/context`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/design scripts/data scripts/quality .claude/rules .claude/context` → empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 70421844e773209e7f8b193b5511b82be56b5528..HEAD -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/design scripts/data scripts/quality .claude/rules .claude/context` → empty (exit 0) after the rebase onto `develop`; the receipt commit changes only `.plans/`
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/design scripts/data scripts/quality .claude/rules .claude/context` → empty
 
 ## Risks / Blockers
 

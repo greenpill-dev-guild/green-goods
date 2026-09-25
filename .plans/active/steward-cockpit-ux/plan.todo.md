@@ -85,7 +85,7 @@ PR1's branch already carries this hub as its first commit.
 - [x] Campaign cookie jars home and flow dialog (D19, D20, D22, D31, D34, DEC-D), codify DL-046
 - [x] Profile name (D8)
 - [x] Stories, en/es/pt, QA catalog, before/after pairs sent to Afo
-- [ ] Afo's yes, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
+- [x] Afo's yes, CI green, bot reviews resolved, merged; sub-lane and Linear child updated (#908, 2026-09-25)
 
 ### PR5 — Copy, Storybook, polish
 
