@@ -3752,6 +3752,7 @@
   "cockpit.community.treasuryPlaceholder": "La vista general de dotación se mostrará aquí",
   "cockpit.community.viewSwitcher": "Vistas de comunidad",
   "cockpit.fab.openActions": "Abrir acciones",
+  "cockpit.fab.closeActions": "Cerrar acciones",
   "cockpit.garden.action.editDomains": "Editar dominios",
   "cockpit.garden.action.editGarden": "Editar jardín",
   "cockpit.garden.action.viewPublic": "Ver público",

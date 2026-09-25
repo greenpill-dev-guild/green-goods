@@ -58,5 +58,7 @@ describe("NavigationBarFab", () => {
     await user.click(fab);
     expect(fab.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiCloseLine));
     expect(fab.querySelector("svg")?.getAttribute("class") ?? "").not.toContain("rotate");
+    // The close glyph is named for what it does now.
+    expect(fab).toHaveAccessibleName("Close Actions");
   });
 });

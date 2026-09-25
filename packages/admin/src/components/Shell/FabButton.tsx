@@ -254,7 +254,11 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         // label and tooltip, so the accessible name has to be that same string
         // — speech input activates a control by what it says (WCAG 2.5.3).
         aria-label={
-          isSingleAction ? floatingActionLabel : formatMessage({ id: "cockpit.fab.openActions" })
+          isSingleAction
+            ? floatingActionLabel
+            : formatMessage({
+                id: speedDialOpen ? "cockpit.fab.closeActions" : "cockpit.fab.openActions",
+              })
         }
         aria-haspopup={isSingleAction ? undefined : "menu"}
         // Explicit false while collapsed: a menu control that drops the

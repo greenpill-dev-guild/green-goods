@@ -3752,6 +3752,7 @@
   "cockpit.community.treasuryPlaceholder": "Endowment overview will be displayed here",
   "cockpit.community.viewSwitcher": "Community views",
   "cockpit.fab.openActions": "Open Actions",
+  "cockpit.fab.closeActions": "Close Actions",
   "cockpit.garden.action.editDomains": "Edit Domains",
   "cockpit.garden.action.editGarden": "Edit Garden",
   "cockpit.garden.action.viewPublic": "View Public",

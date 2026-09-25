@@ -244,7 +244,11 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         onClick={handleClick}
         // Name = visible label (WCAG 2.5.3); aria-expanded stays explicit when collapsed.
         aria-label={
-          isSingleAction ? floatingActionLabel : formatMessage({ id: "cockpit.fab.openActions" })
+          isSingleAction
+            ? floatingActionLabel
+            : formatMessage({
+                id: speedDialOpen ? "cockpit.fab.closeActions" : "cockpit.fab.openActions",
+              })
         }
         aria-haspopup={isSingleAction ? undefined : "menu"}
         aria-expanded={isSingleAction ? undefined : speedDialOpen}

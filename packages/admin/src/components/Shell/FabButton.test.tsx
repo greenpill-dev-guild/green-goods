@@ -65,6 +65,8 @@ describe("FabButton", () => {
 
     await user.click(fab);
     expect(fab.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiCloseLine));
+    // The close glyph is named for what it does now.
+    expect(fab).toHaveAccessibleName("Close Actions");
   });
 
   it("keeps a disabled action reachable, inert, and saying why", async () => {
