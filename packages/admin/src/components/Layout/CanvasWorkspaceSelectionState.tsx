@@ -1,4 +1,3 @@
-import { Alert } from "@green-goods/shared/components/Alert";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightSLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -84,13 +83,6 @@ export function CanvasWorkspaceSelectionState({
           </div>
         </AdminCardHeader>
         <AdminCardBody className="space-y-4">
-          <Alert variant="info">
-            {formatMessage({
-              id: "cockpit.workspace.chooseGardenHint",
-              defaultMessage: "Use the Garden Chip in the top context bar or pick a garden below.",
-            })}
-          </Alert>
-
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {gardens.map((garden) => (
               <button

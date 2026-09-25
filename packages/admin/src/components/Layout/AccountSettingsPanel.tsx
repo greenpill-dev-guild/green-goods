@@ -88,11 +88,6 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
       <section className="space-y-3">
         <SettingsSectionHeader
           title={formatMessage({ id: "cockpit.settings.theme", defaultMessage: "Theme" })}
-          description={formatMessage({
-            id: "cockpit.profile.theme.description",
-            defaultMessage:
-              "Choose the canvas atmosphere that feels best for long review sessions.",
-          })}
         />
         <AdminChoiceGroup
           ariaLabel={formatMessage({ id: "cockpit.settings.theme", defaultMessage: "Theme" })}

@@ -26,9 +26,6 @@ function MockAccountSettingsPanel({ initialTheme, network }: MockAccountSettings
       <section className="space-y-4 rounded-xl bg-bg-white p-4 shadow-[var(--edge-rest),var(--m3-elevation-1)]">
         <div>
           <h2 className="body-sm font-semibold text-text-strong">Theme</h2>
-          <p className="mt-1 body-sm text-text-sub">
-            Choose the canvas atmosphere for long review sessions.
-          </p>
         </div>
         <div className="grid gap-2 sm:grid-cols-3">
           {themeOptions.map(({ value, label, icon: Icon }) => {
