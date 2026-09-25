@@ -139,7 +139,6 @@ export const FROZEN_ALLOWLIST = {
   "packages/contracts/src/modules/Octant.sol": 769,
   "packages/contracts/src/resolvers/Yield.sol": 899,
   "packages/contracts/src/tokens/Garden.sol": 502,
-  "packages/shared/src/components/Canvas/NavigationBar.tsx": 576,
   "packages/shared/src/components/Toast/toast.service.tsx": 799,
   "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 568,
   "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts": 727,
