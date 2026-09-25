@@ -1,7 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import type { Address } from "@green-goods/shared/types/domain";
-import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { formatTokenAmount, shownAssetAmounts } from "@green-goods/shared/utils/blockchain/vaults";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { VaultContractDetails } from "@/components/Vault";
@@ -21,7 +21,7 @@ export function CommunityEndowmentTab({
   endowmentByAsset,
 }: CommunityEndowmentTabProps) {
   const { formatMessage, locale } = useIntl();
-  const heldAssets = endowmentByAsset.filter((entry) => entry.amount > 0n);
+  const shownAssets = shownAssetAmounts(endowmentByAsset);
 
   return (
     <div className="garden-tab-shell">
@@ -45,11 +45,11 @@ export function CommunityEndowmentTab({
                   <p className="mt-1 text-title-sm font-semibold text-text-strong">
                     {formatMessage({ id: "app.garden.detail.community.noVault" })}
                   </p>
-                ) : heldAssets.length === 0 ? (
+                ) : shownAssets.length === 0 ? (
                   <p className="mt-1 text-title-sm font-semibold text-text-strong">0</p>
                 ) : (
                   <ul className="mt-1 space-y-0.5">
-                    {heldAssets.map((entry) => (
+                    {shownAssets.map((entry) => (
                       <li
                         key={entry.asset}
                         className="text-title-sm font-semibold tabular-nums text-text-strong"

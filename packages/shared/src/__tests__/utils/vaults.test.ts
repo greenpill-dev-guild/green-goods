@@ -63,7 +63,9 @@ describe("formatAssetAmounts", () => {
     ],
     ["one asset", [amount("DAI", 12n * ETHER)], "12 DAI"],
     ["an empty vault beside a held asset", [amount("WETH", 0n), amount("DAI", ETHER)], "1 DAI"],
-    ["nothing held", [amount("WETH", 0n)], "0"],
+    // Before any deposit, each vault still names its asset.
+    ["nothing held", [amount("WETH", 0n)], "0 WETH"],
+    ["two empty vaults", [amount("WETH", 0n), amount("DAI", 0n)], "0 WETH · 0 DAI"],
     ["no vaults", [], "0"],
   ])("formats %s", (_case, amounts, expected) => {
     expect(formatAssetAmounts(amounts, "en")).toBe(expected);

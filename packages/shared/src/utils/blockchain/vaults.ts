@@ -218,11 +218,20 @@ export function summarizeNetDepositsByAsset(
   return [...byAsset.values()];
 }
 
-/** "0.0005 WETH · 12 DAI": each held asset with its symbol, or "0" when nothing is held. */
-export function formatAssetAmounts(amounts: readonly AssetAmount[], locale?: string): string {
+/**
+ * The amounts worth showing: each held asset, or before any deposit each
+ * vault's asset at zero, so "0" still says what it counts.
+ */
+export function shownAssetAmounts(amounts: readonly AssetAmount[]): readonly AssetAmount[] {
   const held = amounts.filter((entry) => entry.amount > 0n);
-  if (held.length === 0) return "0";
-  return held
+  return held.length > 0 ? held : amounts;
+}
+
+/** "0.0005 WETH · 12 DAI" or "0 WETH · 0 DAI" before any deposit; "0" only without a vault. */
+export function formatAssetAmounts(amounts: readonly AssetAmount[], locale?: string): string {
+  const shown = shownAssetAmounts(amounts);
+  if (shown.length === 0) return "0";
+  return shown
     .map((entry) => `${formatTokenAmount(entry.amount, entry.decimals, 4, locale)} ${entry.symbol}`)
     .join(" · ");
 }
