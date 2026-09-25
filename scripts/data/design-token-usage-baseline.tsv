@@ -150,3 +150,4 @@ packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx <button	legacy-runtime
 packages/admin/src/views/Garden/components/OverviewTab.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Hub/components/HubConfirmQueue.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Hub/components/HubWorkCard.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
+packages/admin/src/components/Layout/AdminToneGallery.stories.tsx className="admin-m3 space-y-3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"	storybook-theme	admin	2027-03-31	Tone gallery samples set their own data-theme; the M3 surface re-resolves under a nested theme and the Warm Earth bg-bg-white alias does not
