@@ -16,7 +16,7 @@ import { extractClientWorkId } from "../../utils/work/deduplication";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useLiveQuery } from "../utils/useLiveQuery";
-import { gardenWorkListQuery } from "./gardenWorkListQuery";
+import { gardenWorkListQuery, SESSION_STARTED_AT } from "./gardenWorkListQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { useSendingWorkIds } from "./useSendingWorkIds";
 
@@ -99,9 +99,6 @@ export function jobToWork(job: Job<WorkJobPayload>): Work {
 /** Availability describes local data, independently from a remote refresh. */
 export type WorkAvailability = "available" | "partial" | "unavailable" | "empty";
 const NO_QUEUED_JOBS: Job<WorkJobPayload>[] = [];
-
-/** When this app session began: rows read before it were restored from storage. */
-const SESSION_STARTED_AT = Date.now();
 
 export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const { offline = false } = options;

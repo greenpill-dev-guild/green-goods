@@ -1,0 +1,21 @@
+import { QueryClient } from "@tanstack/react-query";
+import { describe, expect, it } from "vitest";
+import { STALE_TIMES } from "../../../config/react-query";
+import { gardenWorkListQuery, SESSION_STARTED_AT } from "../../../hooks/work/gardenWorkListQuery";
+
+const GARDEN = "0x1111111111111111111111111111111111111111";
+
+function staleTimeFor(dataUpdatedAt: number) {
+  const { staleTime } = gardenWorkListQuery(new QueryClient(), GARDEN, 11155111);
+  const query = { state: { dataUpdatedAt } } as Parameters<typeof staleTime>[0];
+  return staleTime(query);
+}
+
+describe("gardenWorkListQuery", () => {
+  it("reads a garden again when its rows were restored from an earlier session", () => {
+    // Restored a moment before this session began, the rows are still within
+    // the usual stale window, yet only a read in this session can prove a stall.
+    expect(staleTimeFor(SESSION_STARTED_AT - 1)).toBe(0);
+    expect(staleTimeFor(SESSION_STARTED_AT + 1)).toBe(STALE_TIMES.works);
+  });
+});

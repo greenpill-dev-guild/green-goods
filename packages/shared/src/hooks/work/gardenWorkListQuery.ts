@@ -1,9 +1,12 @@
-import type { QueryClient } from "@tanstack/react-query";
+import type { Query, QueryClient } from "@tanstack/react-query";
 import { worksKeys } from "../../config/query-keys/work";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { readWorkList, WORK_LIST_PAGE_SIZE } from "../../modules/work/work-list";
 import type { EASWorkListRow } from "../../types/eas-responses";
 import { reportConnectivityFailure } from "../app/useOnlineStatus";
+
+/** When this app session began: rows read before it were restored from storage. */
+export const SESSION_STARTED_AT = Date.now();
 
 /**
  * The query every screen uses to read a garden's work list. The garden Work
@@ -35,7 +38,11 @@ export function gardenWorkListQuery(queryClient: QueryClient, gardenId: string, 
     },
     enabled: Boolean(gardenId),
     networkMode: "online" as const,
-    staleTime: STALE_TIMES.works,
+    // Rows restored from an earlier session are stale however recent they are,
+    // so a screen that opens on them reads the garden again: queue health can
+    // prove a stall only from a read in this session.
+    staleTime: (query: Query<EASWorkListRow[]>) =>
+      query.state.dataUpdatedAt < SESSION_STARTED_AT ? 0 : STALE_TIMES.works,
     gcTime: GC_TIMES.works,
   };
 }
