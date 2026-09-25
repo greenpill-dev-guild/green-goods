@@ -89,11 +89,11 @@ PR1's branch already carries this hub as its first commit.
 
 ### PR5 — Copy, Storybook, polish
 
-- [ ] Shared admin layout stylesheet for Storybook (D24, DEC-F)
-- [ ] Type scale migration with a rendered census (D32)
-- [ ] View colours onto Warm Earth aliases (D32)
-- [ ] Ratchet in the design-token check; frontend-design Rules 9 and 13 clarified (D32)
-- [ ] Remaining copy and nesting (D30, D33); remaining write-surface stories (D25)
+- [x] Shared admin layout stylesheet for Storybook (D24, DEC-F)
+- [x] Type scale migration with a rendered census (D32)
+- [x] View colours onto Warm Earth aliases (D32)
+- [x] Ratchet in the design-token check; frontend-design Rules 9 and 13 clarified (D32)
+- [x] Remaining copy and nesting (D30, D33); remaining write-surface stories (D25)
 - [ ] PR opened, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
 
 ### QA Pass 1 and 2
