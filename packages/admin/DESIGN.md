@@ -59,7 +59,7 @@ The admin uses Material Design 3 v0.192 as its **strict structural backbone** �
 
 **Why strict:** M3+unbounded glass produced inconsistent UI. Strict M3 provides discipline; Controlled Chrome gives spatial depth to persistent shell surfaces without making operational content translucent.
 
-**Enforcement:** `bun run check --only design-tokens` fails if admin source adds glass, backdrop blur, or decorative gradients outside the approved chrome CSS boundary — `src/index.css` plus `src/styles/admin-m3-tokens.css` (tokens + Controlled Chrome material rules) and `src/styles/admin-m3-components.css` (admin-owned component skins and motion). The old `admin-m3-overrides.css` is deleted.
+**Enforcement:** `bun run check --only design-tokens` fails if admin source adds glass, backdrop blur, or decorative gradients outside the approved chrome CSS boundary — `src/index.css` plus `src/styles/admin-m3-tokens.css` (tokens + Controlled Chrome material rules), `src/styles/admin-m3-components.css` (admin-owned component skins and motion), and `src/styles/admin-layout.css` (the layout and surface classes admin components render, including the media scrims; Storybook imports it too, so stories lay out as the product does). The old `admin-m3-overrides.css` is deleted.
 
 ---
 
