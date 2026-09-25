@@ -6,6 +6,7 @@ import type {
   CreateAssessmentForm as WorkflowAssessmentForm,
 } from "../../../types/domain";
 import { compareAddresses } from "../../../utils/blockchain/address";
+import { expandDomainMask } from "../../../utils/domain";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import {
   assessmentStepFields,
@@ -343,21 +344,39 @@ export function useCreateAssessmentController() {
     void clearDraft();
   };
 
+  const showIncompleteForm = () =>
+    toastService.error({
+      title: formatMessage({
+        id: "app.assessment.incompleteForm",
+        defaultMessage: "Incomplete form",
+      }),
+      message: formatMessage({
+        id: "app.assessment.incompleteFormMessage",
+        defaultMessage: "Check the highlighted fields and try again.",
+      }),
+      context: "assessment submission",
+      suppressLogging: true,
+    });
+
   const handleSubmit = async () => {
     const isFormValid = await stepValidation.validateAll();
     if (!isFormValid) {
-      toastService.error({
-        title: formatMessage({
-          id: "app.assessment.incompleteForm",
-          defaultMessage: "Incomplete form",
-        }),
-        message: formatMessage({
-          id: "app.assessment.incompleteFormMessage",
-          defaultMessage: "Check the highlighted fields and try again.",
-        }),
-        context: "assessment submission",
-        suppressLogging: true,
-      });
+      showIncompleteForm();
+      return;
+    }
+
+    // The domain step clears a domain this garden does not document, but a
+    // restored draft can reopen on a later step and never show it. Such a
+    // domain is cleared here, with its actions and metrics, and the steward
+    // chooses again.
+    if (
+      form.domain !== null &&
+      normalizedGardenDomainMask !== undefined &&
+      !expandDomainMask(normalizedGardenDomainMask).includes(form.domain)
+    ) {
+      setField("domain", null);
+      goToStep(0);
+      showIncompleteForm();
       return;
     }
 
