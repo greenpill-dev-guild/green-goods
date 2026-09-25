@@ -48,6 +48,8 @@ export function CommunityPayoutsTab({
   const campaignJarsRef = useRef<HTMLElement>(null);
   const campaignJarsRoute = (item: string) =>
     adminRoutes.communityPayouts({ gardenId: garden.id, item });
+  // A workspace switch lands on this card (PageTransition reads its
+  // data-route-item); this covers the card appearing once its reads resolve.
   useEffect(() => {
     if (showCampaignJars && selectedItem === CAMPAIGN_JARS_ROUTE_ITEM) {
       campaignJarsRef.current?.scrollIntoView({ block: "start" });
@@ -82,6 +84,7 @@ export function CommunityPayoutsTab({
                 defaultMessage: "Campaign Cookie Jars",
               })}
               data-region="campaign-cookie-jars"
+              data-route-item={CAMPAIGN_JARS_ROUTE_ITEM}
               className="mt-4 scroll-mt-4"
             >
               <CampaignCookieJarPanel
