@@ -212,22 +212,22 @@ Garden):
   a stall), `AssessmentDomainContextStep` 1 failed (a restored retired domain raised no message),
   `CreateHypercertDialog` 1 failed (stale restored picks blocked Next silently), and the old stamp
   pattern took 1,258 ms on 50,000 spaces against the new test's 250 ms bound. Second round: `useWorks`
-  2 failed (no signal that an approval read failed). Third round: the cached-status `useWorks` test failed (a failed read of a cached row left the flag false), `AssessmentDomainContextStep` 2 failed (a single-domain garden came preselected; an undocumented restored domain stayed), and `CreateHypercertDialog` 1 failed (Next stayed pressable while attestations loaded). Fourth round: `useWorkApproval` 2 and `useBatchWorkApproval` 1 failed (a decision's feedback never reached the local overlay), `store-transitions` 1 failed (a new domain kept the old one's actions and metrics), `wizard-transitions` 1 failed (choosing only a domain read as pristine), and `AssessmentDomainContextStep` 1 failed (clearing an undocumented domain kept its actions). Fifth round: `useCreateAssessmentController` 1 failed (a restored undocumented domain was submitted from the last step), and `useWorkApproval` 1 and `useBatchWorkApproval` 1 failed (an empty new feedback left an older reason on the work).
+  2 failed (no signal that an approval read failed). Third round: the cached-status `useWorks` test failed (a failed read of a cached row left the flag false), `AssessmentDomainContextStep` 2 failed (a single-domain garden came preselected; an undocumented restored domain stayed), and `CreateHypercertDialog` 1 failed (Next stayed pressable while attestations loaded). Fourth round: `useWorkApproval` 2 and `useBatchWorkApproval` 1 failed (a decision's feedback never reached the local overlay), `store-transitions` 1 failed (a new domain kept the old one's actions and metrics), `wizard-transitions` 1 failed (choosing only a domain read as pristine), and `AssessmentDomainContextStep` 1 failed (clearing an undocumented domain kept its actions). Fifth round: `useCreateAssessmentController` 1 failed (a restored undocumented domain was submitted from the last step), and `useWorkApproval` 1 and `useBatchWorkApproval` 1 failed (an empty new feedback left an older reason on the work). Sixth round: `useGardenDetailData.fallback` 2 failed (a failed or paused refresh still counted as complete queue evidence).
 - Proof limit: none. Tests that only moved with the new behaviour (header stats, derived state,
   Overview, Hub card, Hub detail, attestation selector, assessment steps and dialog, hypercert
   wizard) are updated or added beside them.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `3be7b872aee2aab1077666ca4ae96d64689b67cb` (after every review round so far; the receipts on
-  `ecfccdda7`, `ff2bb49a5`, `97f880177`, `6298d269a`, and `ae95cd08a` are superseded)
-- Run at (UTC): push gate `2026-09-25T10:39:32Z` to `2026-09-25T10:42:44Z`
+- Tested implementation commit SHA: `325cc3af3a6137d07213e09bd975fe3db2b899b9` (after every review round so far; the receipts on
+  `ecfccdda7`, `ff2bb49a5`, `97f880177`, `6298d269a`, `ae95cd08a`, and `3be7b872a` are superseded)
+- Run at (UTC): push gate `2026-09-25T10:52:22Z` to `2026-09-25T10:55:37Z`
 - Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:src/__tests__/hooks/work/useWorks.test.ts`
-- Result: push gate exit 0 on the critical plan, 27 automated checks passed (shared 5779, client 1397, admin 988, and agent 316 tests passing, with source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test);
+- Result: push gate exit 0 on the critical plan, 27 automated checks passed (shared 5784, client 1397, admin 988, and agent 316 tests passing, with source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test);
   browser-proof stays the manual proof recorded under Rendered Proof
 - Validated paths: `packages/shared/src`, `packages/admin/src`, `packages/qa/locales`, `scripts/data`, `scripts/quality`, `docs/docs`, `.claude/skills`, `DESIGN.md`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 3be7b872aee2aab1077666ca4ae96d64689b67cb..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 325cc3af3a6137d07213e09bd975fe3db2b899b9..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
 
 ## Risks / Blockers
