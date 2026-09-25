@@ -1,9 +1,10 @@
 import type { Step } from "../../../components/Form/StepIndicator";
 import { toastService } from "../../../components/Toast/toast.service";
 import { useCreateAssessmentStore } from "../../../stores/useCreateAssessmentStore";
-import type {
-  Address,
-  CreateAssessmentForm as WorkflowAssessmentForm,
+import {
+  type Address,
+  Domain,
+  type CreateAssessmentForm as WorkflowAssessmentForm,
 } from "../../../types/domain";
 import { compareAddresses } from "../../../utils/blockchain/address";
 import { expandDomainMask } from "../../../utils/domain";
@@ -83,6 +84,11 @@ function toInputDate(value: string | number | null | undefined): string {
   if (!Number.isFinite(timestampMs) || timestampMs <= 0) return "";
   return new Date(timestampMs).toISOString().slice(0, 10);
 }
+
+/** Every domain that exists: what a garden may document before its own domains load. */
+const KNOWN_DOMAINS = Object.values(Domain).filter(
+  (value): value is Domain => typeof value === "number"
+);
 
 function toUnixSeconds(value: string): number {
   const timestamp = new Date(value).getTime();
@@ -359,6 +365,24 @@ export function useCreateAssessmentController() {
     });
 
   const handleSubmit = async () => {
+    // The domain step clears a domain this garden does not document, or one
+    // that no longer exists, but a restored draft can reopen on a later step
+    // and never show it. Such a domain is cleared first, with its actions and
+    // metrics, and the steward returns to the domain step to choose again;
+    // validation alone would only say the form is incomplete.
+    const allowedDomains =
+      normalizedGardenDomainMask === undefined
+        ? KNOWN_DOMAINS
+        : expandDomainMask(normalizedGardenDomainMask);
+    if (form.domain !== null && !allowedDomains.includes(form.domain)) {
+      setField("domain", null);
+      goToStep(0);
+      // Shows "Choose a domain" on the step the steward lands on.
+      await stepValidation.validateAll();
+      showIncompleteForm();
+      return;
+    }
+
     const isFormValid = await stepValidation.validateAll();
     if (!isFormValid) {
       showIncompleteForm();
@@ -380,20 +404,6 @@ export function useCreateAssessmentController() {
         context: "assessment submission",
         suppressLogging: true,
       });
-      return;
-    }
-
-    // The domain step clears a domain this garden does not document, but a
-    // restored draft can reopen on a later step and never show it. Such a
-    // domain is cleared here, with its actions and metrics, and the steward
-    // chooses again.
-    if (
-      form.domain !== null &&
-      !expandDomainMask(normalizedGardenDomainMask).includes(form.domain)
-    ) {
-      setField("domain", null);
-      goToStep(0);
-      showIncompleteForm();
       return;
     }
 

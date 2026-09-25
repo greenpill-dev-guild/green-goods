@@ -116,6 +116,28 @@ describe("useCreateAssessmentController submit", () => {
     );
   });
 
+  it("sends a domain that no longer exists back to the domain step, even before the garden's domains load", async () => {
+    // A draft saved before a domain was retired reopens on its last step,
+    // where schema validation alone would only say the form is incomplete.
+    domainsState.data = undefined;
+    const { goToStep, setField } = useCreateAssessmentStore.getState();
+    setField("domain", 99 as Domain);
+    goToStep(2);
+    const { result } = renderController();
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(mockStartCreation).not.toHaveBeenCalled();
+    const { currentStep, form } = useCreateAssessmentStore.getState();
+    expect(form.domain).toBeNull();
+    expect(currentStep).toBe(0);
+    expect(mockToastError).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Incomplete form" })
+    );
+  });
+
   it("waits for the garden's domains before submitting", async () => {
     // The domains are still loading, or their read failed.
     domainsState.data = undefined;
