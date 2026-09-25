@@ -1,6 +1,7 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Work } from "@green-goods/shared/types/domain";
+import type { EASWorkListRow } from "@green-goods/shared/types/eas-responses";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, within } from "storybook/test";
 import {
@@ -35,6 +36,13 @@ const WAITING_WORK: Work = {
   status: "pending",
 };
 
+/**
+ * The garden's own read reports the work with no approval, so the stall is
+ * proven by this read and not only by a saved row the read left out.
+ */
+const { status: _waitingStatus, ...waitingAttestation } = WAITING_WORK;
+const WAITING_WORK_READ: EASWorkListRow[] = [{ ...waitingAttestation, approval: null }];
+
 const meta = {
   title: "Admin/Shell/AdminNotificationPanel",
   component: AdminNotificationPanel,
@@ -52,6 +60,10 @@ const meta = {
     withSeededQueryClient([
       ...STORYBOOK_ADMIN_SHELL_SEEDS,
       [queryKeys.works.merged(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID), [WAITING_WORK]],
+      [
+        queryKeys.works.online(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID),
+        WAITING_WORK_READ,
+      ],
     ]),
     withRouter([`/hub?gardenId=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}`]),
     withAdminPrimitiveFrame,
