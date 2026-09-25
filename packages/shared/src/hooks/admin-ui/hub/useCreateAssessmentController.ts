@@ -376,9 +376,9 @@ export function useCreateAssessmentController() {
         : expandDomainMask(normalizedGardenDomainMask);
     if (form.domain !== null && !allowedDomains.includes(form.domain)) {
       setField("domain", null);
+      // "Choose a domain" shows on the step the steward lands on.
+      stepValidation.showValidationOnStep(0);
       goToStep(0);
-      // Shows "Choose a domain" on the step the steward lands on.
-      await stepValidation.validateAll();
       showIncompleteForm();
       return;
     }

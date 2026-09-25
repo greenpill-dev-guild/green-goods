@@ -16,6 +16,7 @@ const domainsState = vi.hoisted(() => ({ data: 2 as number | undefined }));
 const mockStartCreation = vi.fn((_payload: unknown) => true);
 const mockSubmitCreation = vi.fn();
 const mockToastError = vi.fn();
+const mockShowValidationOnStep = vi.fn();
 
 vi.mock("react-router-dom", async () => ({
   ...(await vi.importActual<typeof import("react-router-dom")>("react-router-dom")),
@@ -54,6 +55,7 @@ vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
 vi.mock("../../../hooks/ui/useFormWizardStepValidation", () => ({
   useFormWizardStepValidation: () => ({
     validateAll: async () => true,
+    showValidationOnStep: (stepIndex: number) => mockShowValidationOnStep(stepIndex),
     handleBack: vi.fn(),
     handleNext: vi.fn(),
     showValidation: true,
@@ -111,6 +113,8 @@ describe("useCreateAssessmentController submit", () => {
     expect(form.domain).toBeNull();
     expect(form.selectedActionUIDs).toEqual([]);
     expect(currentStep).toBe(0);
+    // The domain step shows "Choose a domain" once the steward lands on it.
+    expect(mockShowValidationOnStep).toHaveBeenCalledWith(0);
     expect(mockToastError).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Incomplete form" })
     );
@@ -133,6 +137,7 @@ describe("useCreateAssessmentController submit", () => {
     const { currentStep, form } = useCreateAssessmentStore.getState();
     expect(form.domain).toBeNull();
     expect(currentStep).toBe(0);
+    expect(mockShowValidationOnStep).toHaveBeenCalledWith(0);
     expect(mockToastError).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Incomplete form" })
     );
