@@ -48,6 +48,17 @@ describe("summarizeReviewQueue", () => {
     expect(summarizeReviewQueue(works, NOW)).toMatchObject(expected);
   });
 
+  it("cannot prove a stall from only the newest page of work", () => {
+    // A review of an older submission may sit beyond the page.
+    const works = [pending(10), decided(12, 9)];
+    expect(summarizeReviewQueue(works, NOW).stalled).toBe(true);
+    expect(summarizeReviewQueue(works, NOW, { complete: false })).toMatchObject({
+      waitingOverWeekCount: 1,
+      hasUnknownReviewTimes: true,
+      stalled: false,
+    });
+  });
+
   it("measures review time from submission to decision", () => {
     const summary = summarizeReviewQueue(
       [decided(10, 8), decided(6, 5), decided(20, 5), decided(3), pending(1)],

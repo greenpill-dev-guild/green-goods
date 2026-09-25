@@ -52,7 +52,10 @@ export interface ReviewQueueSummary {
   oldestPendingAt: number | null;
   /** When the latest known review landed (ms); null when none is known. */
   lastReviewedAt: number | null;
-  /** A decision whose time is unknown: made on this device, or restored from an older cache. */
+  /**
+   * A decision whose time is unknown: made on this device, restored from an
+   * older cache, or beyond a work list that holds only the newest submissions.
+   */
   hasUnknownReviewTimes: boolean;
   /**
    * Work has waited a week and no review landed in the last week. A garden that
@@ -63,10 +66,15 @@ export interface ReviewQueueSummary {
   medianReviewLatencyMs: number | null;
 }
 
-/** How long review takes in a garden, and whether its queue has stalled. */
+/**
+ * How long review takes in a garden, and whether its queue has stalled. Pass
+ * `complete: false` when `works` is only the newest page: a review of an older
+ * submission may be missing, so the page cannot prove a stall.
+ */
 export function summarizeReviewQueue(
   works: ReviewQueueWork[],
-  now: number = Date.now()
+  now: number = Date.now(),
+  { complete = true }: { complete?: boolean } = {}
 ): ReviewQueueSummary {
   const pendingAt = works
     .filter((work) => work.status === "pending")
@@ -80,7 +88,7 @@ export function summarizeReviewQueue(
 
   const oldestPendingAt = pendingAt.length > 0 ? Math.min(...pendingAt) : null;
   const lastReviewedAt = timed.length > 0 ? Math.max(...timed.map((w) => w.reviewedAt)) : null;
-  const hasUnknownReviewTimes = timed.length < decided.length;
+  const hasUnknownReviewTimes = timed.length < decided.length || !complete;
   const waitedAWeek = oldestPendingAt !== null && now - oldestPendingAt >= REVIEW_STALL_WINDOW_MS;
   const reviewedThisWeek = lastReviewedAt !== null && now - lastReviewedAt < REVIEW_STALL_WINDOW_MS;
 

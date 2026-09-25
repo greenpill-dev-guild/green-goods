@@ -122,6 +122,7 @@ export function useGardenDetailData(id: string | undefined) {
     isError: isWorksError,
     error: worksError,
     refetch: refreshWorks,
+    hasOlderWork,
   } = useWorks(gardenId);
   const { hypercerts, isLoading: hypercertsLoading } = useHypercerts({ gardenId: id });
 
@@ -184,6 +185,8 @@ export function useGardenDetailData(id: string | undefined) {
     allocations,
     allocationsLoading,
     works,
+    // The list holds the newest page; older submissions are not in `works`.
+    worksComplete: !hasOlderWork,
     worksLoading,
     worksFetching,
     isWorksError,

@@ -111,6 +111,7 @@ export function useCommunityWorkspaceController() {
     allocationsLoading,
     roleMembers,
     works,
+    worksComplete,
     assessments,
     hypercerts,
     scheduleBackgroundRefetch,
@@ -149,6 +150,7 @@ export function useCommunityWorkspaceController() {
   const derived = useGardenDerivedState({
     garden: garden ?? { id: selectedGarden?.id ?? "", domainMask: 0, name: "", chainId: 0 },
     works,
+    worksComplete,
     assessments,
     hypercerts,
     allocations,

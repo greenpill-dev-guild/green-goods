@@ -55,6 +55,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
       chainId: selectedGarden?.chainId ?? 0,
     },
     works: workspace.works,
+    worksComplete: workspace.worksComplete,
     assessments: workspace.assessments,
     hypercerts: workspace.hypercerts,
     allocations: workspace.allocations,

@@ -103,6 +103,7 @@ export function useHubWorkbenchController() {
     canManage,
     canReview,
     works,
+    worksComplete,
     worksLoading,
     worksFetching,
     worksError,
@@ -174,6 +175,7 @@ export function useHubWorkbenchController() {
   const derived = useGardenDerivedState({
     garden: garden ?? { id: selectedGarden?.id ?? "", domainMask: 0, name: "", chainId: 0 },
     works,
+    worksComplete,
     assessments,
     hypercerts,
     allocations,

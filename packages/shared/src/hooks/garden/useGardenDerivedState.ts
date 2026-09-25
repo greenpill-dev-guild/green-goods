@@ -48,6 +48,8 @@ interface DerivedStateInput {
     createdAt: number;
     reviewedAt?: number;
   }>;
+  /** False when `works` is only the newest page of the garden's submissions. */
+  worksComplete?: boolean;
   assessments: Array<{
     id: string;
     title?: string | null;
@@ -83,6 +85,7 @@ interface DerivedStateInput {
 export function useGardenDerivedState({
   garden,
   works,
+  worksComplete = true,
   assessments,
   hypercerts,
   allocations,
@@ -106,7 +109,7 @@ export function useGardenDerivedState({
   const approvedWorks = works.filter((work) => work.status === "approved");
   // Work age is metadata, not an alarm: the queue warns once work has waited a
   // week, and turns critical only when review has stalled (DL-044).
-  const reviewQueue = summarizeReviewQueue(works, now);
+  const reviewQueue = summarizeReviewQueue(works, now, { complete: worksComplete });
 
   const approvedInRangeCount = approvedWorks.filter(
     (work) => toMs(work.createdAt) >= rangeStart
