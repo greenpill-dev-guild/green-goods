@@ -110,8 +110,7 @@ export function useCommunityWorkspaceController() {
     hasEndowment,
     allocations,
     allocationsLoading,
-    payoutJarCount,
-    payoutJarsLoading,
+    hasNoPayoutJar,
     roleMembers,
     works,
     worksComplete,
@@ -119,8 +118,9 @@ export function useCommunityWorkspaceController() {
     hypercerts,
     scheduleBackgroundRefetch,
   } = useGardenDetailData(selectedGarden?.id);
-  // Only a finished read can say the garden has no jar; until then the action stays live.
-  const hasPayoutJar = payoutJarsLoading || payoutJarCount > 0;
+  // Only a finished read can say the garden has no jar; until then, and after
+  // a failed read, the action stays live.
+  const hasPayoutJar = !hasNoPayoutJar;
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const viewActions = useMemo(

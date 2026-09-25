@@ -176,6 +176,11 @@ export function useGardenCookieJars(
     isLoading: isLoadingAddresses || isLoadingDetails || isLoadingDecimals,
     error: addressError || detailsError,
     jarCount: validJarAddresses.length,
+    /**
+     * True only once the garden's jar list was read empty, or the chain has no
+     * jar module: a pending, failed, or skipped read proves nothing.
+     */
+    hasNoJar: (!moduleConfigured || jarAddresses !== undefined) && validJarAddresses.length === 0,
     moduleConfigured,
     detailErrorCount,
     hasDetailReadFailure: detailErrorCount > 0,
