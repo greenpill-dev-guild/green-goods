@@ -4749,9 +4749,9 @@
       "steps": [
         "Open the floating action button and read its actions",
         "Switch workspaces with the bottom navigation",
-        "Open the Profile tab from the bottom navigation and read the Account page"
+        "Open the Profile tab from the bottom navigation and read the Profile page"
       ],
-      "expected": "The action button offers Submit work, Create assessment, and Create hypercert with the same gating as the desktop header; the bottom navigation switches workspaces; the Profile tab opens the mobile Account page with identity, theme, language, and Disconnect",
+      "expected": "The action button offers Submit work, Create assessment, and Create hypercert with the same gating as the desktop header; the bottom navigation switches workspaces; the Profile tab opens the mobile Profile page, titled Profile with a Profile tab with identity, theme, language, and Disconnect",
       "evidence": "Screenshots at phone width",
       "role": "steward",
       "tags": ["shell", "responsive"],
@@ -5739,7 +5739,7 @@
         "A passage longer than 480 characters, copied to paste"
       ],
       "steps": [
-        "Open /cookies, press Create Cookie Jar, read the count under Campaign description, then paste the passage and read the field and its count",
+        "On the Green Goods Community Garden's Payouts, press Create Cookie Jar in Campaign Cookie Jars, read the count under Campaign description, then paste the passage and read the field and its count",
         "Leave without creating, open the deployed jar's panel, paste the passage into Campaign description, and read the field and its count"
       ],
       "expected": "Each count sits at the end of the row under the field and starts from the description's length out of 480; the pasted passage stops at 480 characters and reads 480 / 480; nothing is sent",
@@ -6039,6 +6039,133 @@
       "evidence": "Screenshots of the rail, the dialog, and the phone filter",
       "role": "steward",
       "tags": ["garden"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-183",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Shell",
+      "scenario": "At 360 and 375 pixels the phone chrome fits in English, Spanish, and Portuguese",
+      "preconditions": [
+        "Admin open on the Hub of a garden with a long name, such as the Green Goods Community Garden"
+      ],
+      "steps": [
+        "At 375 pixels read the garden chip beside the refresh and bell buttons",
+        "At 360 and 375 pixels read every bottom navigation label in English, Spanish, and Portuguese",
+        "Read the Hub's stage tabs, then scroll them"
+      ],
+      "expected": "The chip ends before the refresh and bell and truncates a long name; every navigation label shows whole in its own tab (Community, Comunidad, Comunidade); a tab row wider than the screen fades the edge it clips and snaps tabs as it scrolls",
+      "evidence": "Screenshots at 360 and 375 pixels in each language",
+      "role": "steward",
+      "tags": ["shell", "responsive", "i18n"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-184",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Garden · Health",
+      "scenario": "On a phone, Garden Health leads with Attention Needed",
+      "preconditions": ["Steward session on a garden with at least one alert"],
+      "steps": ["At phone width open Garden → Health", "Widen the window past 768 pixels"],
+      "expected": "On a phone Attention Needed is the first card, above the health card, and the rest of the rail follows the main column; wider, Attention Needed returns to the rail",
+      "evidence": "Screenshots at 375 and 1280 pixels",
+      "role": "steward",
+      "tags": ["responsive"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-185",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Shell",
+      "scenario": "The floating action button shows its primary action's icon",
+      "preconditions": ["Steward session at phone width"],
+      "steps": [
+        "On Garden, Community, and the Hub read the floating action button",
+        "Open its menu, then close it"
+      ],
+      "expected": "Garden's button shows Edit Garden's gear, Community's shows Add Member's icon, and the Hub's shows a plus; while the menu is open the button shows a close icon",
+      "evidence": "Screenshots of each button closed and open",
+      "role": "steward",
+      "tags": ["shell", "responsive"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-186",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Hub",
+      "scenario": "The Hub's three actions are outlined, with Submit Work rightmost",
+      "preconditions": ["Steward session that can submit and review work, at desktop width"],
+      "steps": [
+        "Open each Hub stage and read the header actions",
+        "At phone width open the floating action button"
+      ],
+      "expected": "Create Assessment, Create Hypercert, and Submit Work render outlined on every stage, so no action outshouts the queue; Submit Work stays rightmost and is the action nearest the phone button",
+      "evidence": "Screenshot of the Hub header",
+      "role": "steward",
+      "tags": ["hub"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-187",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Actions",
+      "scenario": "The Actions workspace is purple in light and dark",
+      "preconditions": ["Deployer session"],
+      "steps": [
+        "Open /actions in light, then in dark",
+        "Read the active tab, the active navigation item, Create Action, and the canvas wash"
+      ],
+      "expected": "The workspace tone is purple, never the error red, in both themes; Create Action's label reads clearly on its fill",
+      "evidence": "Screenshots in light and dark",
+      "role": "deployer",
+      "tags": ["design"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-188",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Community · Payouts",
+      "scenario": "Campaign Cookie Jars live on the Green Goods Community Garden's Payouts, for deployers only",
+      "preconditions": ["Deployer session"],
+      "steps": [
+        "Select the Green Goods Community Garden and open Community → Payouts",
+        "Press Create Cookie Jar, move through the steps, and close the dialog with edits in it",
+        "Select another garden and open Payouts"
+      ],
+      "expected": "Campaign Cookie Jars sits on the protocol garden's Payouts with its campaign list and Create Cookie Jar in its header; Create Cookie Jar opens a flow dialog, and closing it with edits asks to discard them; another garden's Payouts shows no Campaign Cookie Jars",
+      "evidence": "Screenshots of the card, the flow's first step, and Review",
+      "role": "deployer",
+      "tags": ["funding"],
       "requiresProduction": false,
       "status": "active",
       "source": "steward-cockpit-ux-2026-09-25"
@@ -8580,12 +8707,12 @@
       "scenario": "Deploy a campaign cookie jar",
       "preconditions": ["Deployer identity", "A campaign image", "A configured jar factory"],
       "steps": [
-        "Open /cookies and press Create Cookie Jar",
-        "Fill the campaign, payout, and eligible gardens sections and review",
-        "Press Create jar and confirm at the wallet",
+        "As the deployer, select the Green Goods Community Garden, open Community → Payouts, and press Create Cookie Jar in Campaign Cookie Jars",
+        "Go through Campaign, Payout, and Eligible gardens, then read Review",
+        "Press Create Cookie Jar and confirm at the wallet",
         "Read the on-chain readback"
       ],
-      "expected": "The review lists campaign, payout, and eligible gardens; the deploy pins the image and sends one transaction; the readback shows balance and per-steward claim; if the transaction returns no address, Use jar address accepts a pasted address to recover",
+      "expected": "Create Cookie Jar opens as a flow dialog that steps through Campaign, Payout, Eligible gardens, and Review, with Advanced as a detour on Review; Review lists the payout, selected gardens, stewards who can claim, gardens without a steward, and the campaign page; the create pins the image and sends one transaction; the readback shows balance and per-steward claim; if the transaction returns no address, Use jar address accepts a pasted address to recover",
       "evidence": "Screenshots of the review and the readback",
       "role": "steward",
       "tags": ["cookies", "tx"],
@@ -8603,7 +8730,7 @@
       "scenario": "Sync the allowlist and grant or revoke extra addresses on a campaign jar",
       "preconditions": ["Jar owner or ops Safe connected", "A deployed campaign jar"],
       "steps": [
-        "Open the jar panel and press Sync Allowlist",
+        "Open a jar from Campaign Cookie Jars on the Green Goods Community Garden's Payouts and press Sync Allowlist",
         "Grant an extra address, then Revoke it",
         "Enter an invalid address"
       ],
@@ -8622,14 +8749,14 @@
       "priority": "P1",
       "kind": "journey",
       "area": "Cookies",
-      "scenario": "Cookie jar routes are deployer-gated and the unconfigured factory is honest",
+      "scenario": "Campaign cookie jars are deployer-only, live in the protocol garden, and the unconfigured factory is honest",
       "preconditions": ["A steward identity that is not a deployer", "A deployer identity"],
       "steps": [
         "As the steward open /cookies and /cookies/deploy",
-        "As the deployer open both",
-        "Where the factory is not configured, read the empty state"
+        "As the deployer open both, then open Payouts in a garden other than the Green Goods Community Garden",
+        "Where the factory is not configured, read Campaign Cookie Jars"
       ],
-      "expected": "The steward gets an honest gate, never a blank shell; the deployer sees the jar list and the deploy form; a missing factory is explained instead of a broken form",
+      "expected": "The steward gets an honest gate, never a blank shell; for the deployer /cookies lands on the Green Goods Community Garden's Payouts with Campaign Cookie Jars in view and /cookies/deploy opens Create Cookie Jar; another garden's Payouts shows no Campaign Cookie Jars; a missing factory is explained instead of a broken form",
       "evidence": "Screenshots of the gate and the deployer view",
       "role": "steward",
       "tags": ["cookies", "roles"],

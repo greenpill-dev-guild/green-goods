@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:80bcef07a45b65eca7f5e644382681deb35c91e80b3e5753c37df6a006ff0e9e"
+source_digest: "sha256:8edbec2de910f82534a8c31a8a353d8aa65e2ea22d26efe009456e41b3536b6f"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -445,7 +445,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-102` | Journey | Actions | Action create and edit forms block incomplete saves | Screenshots of the blocked steps |
 | `ADM-103` | Transaction | Cookies | Deploy a campaign cookie jar | Screenshots of the review and the readback |
 | `ADM-104` | Transaction | Cookies | Sync the allowlist and grant or revoke extra addresses on a campaign jar | Screenshots of the allowlist before and after |
-| `ADM-105` | Journey | Cookies | Cookie jar routes are deployer-gated and the unconfigured factory is honest | Screenshots of the gate and the deployer view |
+| `ADM-105` | Journey | Cookies | Campaign cookie jars are deployer-only, live in the protocol garden, and the unconfigured factory is honest | Screenshots of the gate and the deployer view |
 | `ADM-107` | Journey | Hub · Work | The work inspector blocks self-review and expired-action decisions | Screenshots of both blocked inspectors |
 | `ADM-112` | Journey | Garden · Commitment | Fallback confirmation is not offered while ordinary confirmation is still reachable | Screenshot of the inspector with no fallback act |
 | `ADM-117` | Journey | Garden · Commitment | Kept is withheld from a steward who is on the commitment's roster | Screenshot of the dialog without Kept |
@@ -484,7 +484,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-179` | Transaction | Garden · Settings | Edit Garden says how many wallet confirmations a save takes and shows each one landing | Screenshots of the footer before saving and of the rows after the save |
 | `ADM-180` | Data integrity | Community · Endowment | Endowment amounts name their asset and never add different assets together | Screenshots of each amount |
 
-### P2 (29) {#admin-dashboard-p2}
+### P2 (35) {#admin-dashboard-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -516,6 +516,12 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-176` | Content & vocabulary | Garden · Pool | A running season leaves campaign creation available without offering a second season | Screenshot of the running season card and its cycle actions |
 | `ADM-181` | Journey | Community · Payouts | A garden without a payout jar keeps Fund Cookie Jar in place, disabled, and says why | Screenshots of the header action, the phone menu, and the Payouts tab |
 | `ADM-182` | Data integrity | Community · Members | Member counts count people, not role seats | Screenshots of the rail, the dialog, and the phone filter |
+| `ADM-183` | Journey | Shell | At 360 and 375 pixels the phone chrome fits in English, Spanish, and Portuguese | Screenshots at 360 and 375 pixels in each language |
+| `ADM-184` | Journey | Garden · Health | On a phone, Garden Health leads with Attention Needed | Screenshots at 375 and 1280 pixels |
+| `ADM-185` | Journey | Shell | The floating action button shows its primary action's icon | Screenshots of each button closed and open |
+| `ADM-186` | Journey | Hub | The Hub's three actions are outlined, with Submit Work rightmost | Screenshot of the Hub header |
+| `ADM-187` | Journey | Actions | The Actions workspace is purple in light and dark | Screenshots in light and dark |
+| `ADM-188` | Journey | Community · Payouts | Campaign Cookie Jars live on the Green Goods Community Garden's Payouts, for deployers only | Screenshots of the card, the flow's first step, and Review |
 | `XPLAT-007` | Transaction | Hub · Work | Two stewards acting on the same submission converge on one state | Screenshots from both sessions |
 
 ## Docs
