@@ -217,6 +217,15 @@ Vitest project):
   vouches for made the access state ready while the indexer was down, and the failing role query
   kept the canvas flipping back to its spinner. `be203f118` reverts it; the finding stays open
   under Risks / Blockers.
+- CodeRabbit's second review (22:02Z–22:03Z): `NavigationBar.test.tsx` 1 failed (with the phone
+  bar grown to 116px, the FAB layer kept its fixed `calc(env(safe-area-inset-bottom) + 5.5rem)`);
+  GREEN 7 passed with the FAB tests. In Chromium at 360px the bar covered the FAB by 28px with 20px
+  labels; after the fix the FAB keeps a 6px gap at 18, 20, and 24px labels and is unchanged at the
+  default size (596–652). Its suggestion to realign the rail's selected tab on every resize was
+  tried and dropped before push: a new `AdminTabRail.test.tsx` case failed and then passed, but the
+  `OverflowOnAPhone` story's play then failed, because a resize notification after a scroll snapped
+  the rail back to its selected tab. A count or a font load resizes a tab, so users would lose
+  their scroll position; declined in the review reply.
 - Proof limit: the flow dialog's step-navigation story was written with the flow; its storybook-ci
   play passes. The QA catalog cases are the manual proof. The phone tabs' large-text wrap
   (Codex's second review) needs layout jsdom lacks; Chromium at 360px with 20px labels measured
@@ -224,13 +233,13 @@ Vitest project):
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `b07aed27e56d8bb8367c004314705dfac8a3ebd4` (after Codex's second review and CodeRabbit's review of #908). The receipt on `90e315710` is superseded: that commit's stub was reverted in `be203f118`, which returns every validated path to `b07aed27e`'s content
-- Run at (UTC): full suites `2026-09-25T20:48:06Z` to `2026-09-25T20:50:57Z`; push gate `2026-09-25T20:50:57Z` to `2026-09-25T20:54:48Z`
-- Exact command(s): `bun run --filter @green-goods/{admin,shared,client} test`; `bun run --filter @green-goods/shared test:stories:ci`; `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --check ontology --check docs-generated --check design-guardrails --test-path admin:src/__tests__/components/AdminTabRail.test.tsx`
-- Result: admin 1053, shared 5824 (17 skipped), and client 1399 tests passed, and the storybook-ci story suite passed (96 files, 340 tests); the push gate exited 0 on the critical plan with 29 automated checks passed: format, lint, the shared, client, admin, and agent typechecks, test typechecks, suites, and builds, docs-authority, docs-test, docs-build, source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, storybook-build, agent-tools-test, and docs-generated. On `be203f118`, `CI=true PLAYWRIGHT_APP=admin playwright test --project=admin-ci tests/specs/admin.auth.spec.ts --retries=0` passed 5 of 5 (`2026-09-25T21:44:36Z` to `21:45:01Z`). Earlier failures on this branch, all fixed: docs-authority on `31703f66f`, Build Docs on `f891e3d70`, the admin Playwright smoke test on `f70febbca`, and the admin Playwright auth specs on `d1934c9f7` (the reverted stub). Browser-proof stays the manual proof under Rendered Proof
+- Tested implementation commit SHA: `173a412e51a5099914ca3e2acee0a315c9bcf891` (after CodeRabbit's second review of #908; the receipts on `b07aed27e`, `90e315710`, `1d2f9584e`, `e2a85abd5`, and `a6f43eb1b` are superseded)
+- Run at (UTC): full suites `2026-09-25T22:16:17Z` to `2026-09-25T22:21:31Z`; push gate `2026-09-25T22:21:31Z` to `2026-09-25T22:27:17Z`; admin Playwright `2026-09-25T22:27:17Z` to `2026-09-25T22:27:56Z`
+- Exact command(s): `for pkg in admin shared client; do bun run --filter @green-goods/$pkg test; done` (each exit code recorded); `bun run --filter @green-goods/shared test:stories:ci`; `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --check ontology --check docs-generated --check design-guardrails --test-path admin:src/components/Shell/NavigationBar.test.tsx`; `CI=true PLAYWRIGHT_APP=admin PATH="$PWD/node_modules/.bin:$PATH" playwright test --project=admin-ci --reporter=line --retries=0`
+- Result: admin 1054, shared 5824 (17 skipped), and client 1399 tests passed, each package exiting 0; the storybook-ci story suite passed (96 files, 340 tests); the push gate exited 0 on the critical plan with 29 automated checks passed: format, lint, the shared, client, admin, and agent typechecks, test typechecks, suites, and builds, docs-authority, docs-test, docs-build, source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, storybook-build, agent-tools-test, and docs-generated; the admin-ci Playwright project passed 11 of 11 in CI mode. Earlier failures on this branch, all fixed: docs-authority on `31703f66f`, Build Docs on `f891e3d70`, the admin Playwright smoke test on `f70febbca`, and the admin Playwright auth specs on `d1934c9f7` (the stub `be203f118` reverts). Browser-proof stays the manual proof under Rendered Proof
 - Validated paths: `packages/admin/src` `packages/shared/src` `packages/shared/.storybook` `packages/admin/DESIGN.md` `packages/admin/AGENTS.md` `scripts/data` `docs/docs` `tests/specs` `.claude/skills` `.claude/rules`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md packages/admin/AGENTS.md scripts/data docs/docs tests/specs .claude/skills .claude/rules` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code b07aed27e56d8bb8367c004314705dfac8a3ebd4..HEAD -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md packages/admin/AGENTS.md scripts/data docs/docs tests/specs .claude/skills .claude/rules` → empty (exit 0) after `be203f118`; the commits since change only `.plans/` and the reverted stub
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 173a412e51a5099914ca3e2acee0a315c9bcf891..HEAD -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md packages/admin/AGENTS.md scripts/data docs/docs tests/specs .claude/skills .claude/rules` → empty (exit 0); the receipt commit changes only `.plans/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md packages/admin/AGENTS.md scripts/data docs/docs tests/specs .claude/skills .claude/rules` → empty
 
 ## Risks / Blockers
