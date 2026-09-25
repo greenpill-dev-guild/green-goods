@@ -214,14 +214,25 @@ Garden):
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `ecfccdda70463b828145fe953ceeacd476e8f6e7` (PR2 rebased onto
+  `develop` at `3613eaf77`, after PR1 merged)
+- Run at (UTC): targeted suites `2026-09-25T07:59:17Z`; push gate `2026-09-25T07:59:41Z` to
+  `2026-09-25T08:03:40Z`
+- Exact command(s): `bun run --filter @green-goods/shared test -- src/__tests__/utils/workTitles.test.ts src/__tests__/utils/garden-detail.test.ts src/__tests__/hooks/admin-ui/header-stats.test.ts src/__tests__/hooks/garden/useGardenDerivedState.test.ts src/__tests__/modules/local-status-overlay.test.ts src/__tests__/hooks/assessment/useCreateAssessmentForm.test.ts src/__tests__/components/ConfidenceSelector.test.tsx i18n/locale-coverage`;
+  `bun run --filter @green-goods/admin test -- src/__tests__/components/ReviewForm.test.tsx src/views/Garden/components/OverviewTab.test.tsx src/views/Garden/garden-domain-ui.test.tsx src/__tests__/components/AssessmentStrategyKernelStep.test.tsx src/__tests__/components/AssessmentDomainContextStep.test.tsx`;
+  `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:src/__tests__/utils/workTitles.test.ts`;
+  `node packages/qa/build.mjs`; `node scripts/docs/generate.mjs`
+- Result: targeted shared 98 passed (8 files) and admin 23 passed (5 files); push gate exit 0 on the
+  critical plan (76 changed paths), 27 automated checks passed (format, lint, shared, client, admin,
+  and agent typechecks, suites, and builds, with shared 5770, client 1397, admin 981, and agent 316
+  tests passing; docs, source-structure, design-guardrails, ontology, agent-guidance,
+  qa-id-ledger against `3613eaf77`, supply-chain, story-quality, agent-tools-test), and
+  browser-proof left as the manual proof recorded under Rendered Proof; QA build 340 active cases
+  and docs generation left the tree unchanged
+- Validated paths: `packages/shared/src`, `packages/admin/src`, `packages/qa/locales`, `scripts/data`, `docs/docs`, `.claude/skills`, `DESIGN.md`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data docs/docs .claude/skills DESIGN.md` → empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code ecfccdda70463b828145fe953ceeacd476e8f6e7..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data docs/docs .claude/skills DESIGN.md` → empty
 
 ## Risks / Blockers
 

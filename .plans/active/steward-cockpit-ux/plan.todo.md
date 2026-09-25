@@ -64,7 +64,7 @@ PR1's branch already carries this hub as its first commit.
 - [x] Queue health and review time (D5, DEC-B), codify DL-044
 - [x] Assessment language (D23, DEC-E, D8), codify DL-047
 - [x] Certify polish (D31, D35)
-- [ ] Stories, en/es/pt, QA catalog, rendered proof, critical gate
+- [x] Stories, en/es/pt, QA catalog, rendered proof, critical gate
 - [ ] PR opened, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
 
 ### PR3 — Garden and Community
