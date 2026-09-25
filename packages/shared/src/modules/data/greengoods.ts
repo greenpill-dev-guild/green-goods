@@ -6,7 +6,6 @@ import {
   type ActionInstructionConfig,
   type ActionTranslationMap,
   type Address,
-  Capital,
   Domain,
   type Garden,
   type GardenerCard,
@@ -20,6 +19,7 @@ import { defaultTemplate, instructionTemplates } from "../../utils/action/templa
 import { logger } from "../app/logger";
 import { greenGoodsGraphQL } from "./graphql";
 import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
+import { parseIndexerCapital } from "./indexer-capitals";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs/resolve";
 
 const ACTION_INSTRUCTIONS_TIMEOUT_MS = 5_000;
@@ -285,7 +285,9 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
             domain: parsedDomain,
             startTime: startTime ? Number(startTime) * 1000 : Date.now(),
             endTime: endTime ? Number(endTime) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now
-            capitals: Array.isArray(capitals) ? capitals.map((c: unknown) => c as Capital) : [],
+            capitals: Array.isArray(capitals)
+              ? capitals.map(parseIndexerCapital).filter((capital) => capital !== null)
+              : [],
             media: resolvedMedia,
             description: actionConfig.description,
             inputs: actionConfig.uiConfig.details.inputs as WorkInput[],
