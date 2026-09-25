@@ -10,6 +10,7 @@ import {
   ALL_DOMAINS,
   DOMAIN_ICON_CONFIG,
   formatDomainGuidance,
+  knownDomain,
   resolveDomainLabel,
   Section,
 } from "./shared";
@@ -45,9 +46,10 @@ export function DomainContextStep({
     [gardenDomainMask]
   );
 
-  // Null until the steward chooses (DL-047). Placeholders and examples follow a
-  // known domain; before one is chosen the fields show neutral text.
-  const selectedDomain = form.domain;
+  // Null until the steward chooses (DL-047), and for a restored draft's domain
+  // that no longer exists. Placeholders and examples follow a known domain;
+  // before one is chosen the fields show neutral text.
+  const selectedDomain = knownDomain(form.domain);
 
   // Auto-select domain when garden mask has exactly 1 domain
   useEffect(() => {
@@ -65,7 +67,7 @@ export function DomainContextStep({
   const fieldErrors = useMemo(
     () => ({
       domain:
-        form.domain !== null
+        selectedDomain !== null
           ? null
           : formatMessage({
               id: "app.admin.assessment.domainContext.domainRequired",
@@ -93,7 +95,7 @@ export function DomainContextStep({
               defaultMessage: "Location is required",
             }),
     }),
-    [form.domain, form.title, form.description, form.location, formatMessage]
+    [selectedDomain, form.title, form.description, form.location, formatMessage]
   );
 
   return (
