@@ -8,7 +8,7 @@ import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
-import { resolveDomainLabel, Section } from "./shared";
+import { knownDomain, resolveDomainLabel, Section } from "./shared";
 
 interface ActionsHarvestStepProps {
   showValidation: boolean;
@@ -18,7 +18,7 @@ interface ActionsHarvestStepProps {
 /**
  * Step 3: Actions & Harvest
  * Actions multi-select (filtered by domain from Step 1) + reporting period date range.
- * Clears selected actions when domain changes.
+ * The store clears the selected actions when the domain changes.
  */
 export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarvestStepProps) {
   const intl = useIntl();
@@ -27,7 +27,9 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
   const form = useCreateAssessmentStore((s) => s.form);
   const setField = useCreateAssessmentStore((s) => s.setField);
 
-  const selectedDomain = form.domain;
+  // Null for a restored draft's domain that no longer exists: it lists no
+  // actions, and Submit sends the steward back to choose a domain.
+  const selectedDomain = knownDomain(form.domain);
   const selectedUIDs = form.selectedActionUIDs;
 
   // Fetch all actions from the current chain and filter by selected domain
