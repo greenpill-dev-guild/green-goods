@@ -30,11 +30,9 @@ export interface EligibleAdminGardensResult {
    */
   isError: boolean;
   /**
-   * True when an eligible garden is missing from the base list and was
-   * recovered as a stub: a steward garden `useRole` proved (cache lag, indexer
-   * drift, or an outage), or a deployer's protocol garden past the list's
-   * newest 50. Consumers can use this to keep the user on the canvas instead
-   * of redirecting to no-access.
+   * True when `useRole` reports steward gardens that the base list does not
+   * yet expose (cache lag, indexer drift, or an outage). Consumers can use
+   * this to keep the user on the canvas instead of redirecting to no-access.
    */
   hasStaleBaseList: boolean;
 }
@@ -44,15 +42,16 @@ function compareGardenNames(a: Garden, b: Garden) {
 }
 
 /**
- * Project a garden the base list is missing into a minimal Garden record so
- * the canvas can navigate to it. Downstream detail queries fetch full state
- * directly. The record lists the user as a steward only when the role query
- * proved it.
+ * Project a partial steward-garden hint (from the role indexer query) into a
+ * minimal Garden record so the canvas can navigate to the garden even when the
+ * full base-list entry is missing. Downstream detail queries fetch full state
+ * directly; consumers that read from this object see the user as a steward
+ * on the garden, which is the truth that the role query proved.
  */
-function stubGarden(
+function stubGardenFromStewardHint(
   hint: { id: string; name: string },
   chainId: number,
-  stewards: Address[]
+  address: Address
 ): Garden {
   const id = hint.id as Address;
   return {
@@ -65,7 +64,7 @@ function stubGarden(
     location: "",
     bannerImage: "",
     gardeners: [],
-    stewards,
+    stewards: [address],
     evaluators: [],
     owners: [],
     funders: [],
@@ -110,26 +109,21 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
       .slice()
       .sort(compareGardenNames);
 
-    // Surface eligible gardens the base list is missing as minimal stubs so the
-    // user can still reach the canvas: steward gardens useRole proved through
-    // the indexer's address-filtered query (cache lag or an outage), and a
-    // deployer's protocol garden, which is a chain's first garden and so falls
-    // outside the base list's newest 50 once a chain has more.
-    const listedIds = new Set(fromBaseList.map((g) => g.id.toLowerCase()));
-    const stubs: Garden[] = [];
-    const addStub = (hint: { id: string; name: string }, stewards: Address[]) => {
-      if (listedIds.has(hint.id.toLowerCase())) return;
-      listedIds.add(hint.id.toLowerCase());
-      stubs.push(stubGarden(hint, chainId, stewards));
-    };
-    for (const hint of stewardGardens) addStub(hint, [address as Address]);
-    if (role === "deployer" && rootGardenAddress !== null) {
-      addStub({ id: rootGardenAddress, name: "" }, []);
-    }
-    if (stubs.length === 0) {
+    if (stewardGardens.length === 0) {
       return { eligibleGardens: fromBaseList, hasStaleBaseList: false };
     }
 
+    // Cross-check: useRole proved the user has these steward gardens via the
+    // indexer's address-filtered query. If any of them are missing from the
+    // base list, that's cache lag or an outage — surface them anyway via
+    // minimal stubs so the steward can still reach the canvas.
+    const baseListIds = new Set(fromBaseList.map((g) => g.id.toLowerCase()));
+    const missing = stewardGardens.filter((og) => !baseListIds.has(og.id.toLowerCase()));
+    if (missing.length === 0) {
+      return { eligibleGardens: fromBaseList, hasStaleBaseList: false };
+    }
+
+    const stubs = missing.map((og) => stubGardenFromStewardHint(og, chainId, address as Address));
     const merged = [...fromBaseList, ...stubs].sort(compareGardenNames);
     return { eligibleGardens: merged, hasStaleBaseList: true };
   }, [address, gardens, stewardGardens, chainId, role, rootGardenAddress]);

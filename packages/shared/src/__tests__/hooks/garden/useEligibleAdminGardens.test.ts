@@ -5,7 +5,6 @@
 
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { compareAddresses } from "../../../utils/blockchain/address";
 
 const mockUsePrimaryAddress = vi.fn();
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
@@ -198,30 +197,6 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     const { result } = renderHook(() => useEligibleAdminGardens());
 
     expect(result.current.eligibleGardens.map((garden) => garden.id)).toEqual([root, "garden-z"]);
-  });
-
-  it("recovers the protocol garden for a deployer when the base list's newest 50 gardens leave it out", () => {
-    // The protocol garden is a chain's first, so past 50 gardens the base list
-    // (newest first, limit 50) no longer holds it.
-    const root = "0xf401f34378384713222d1d21f63359cc4e8a858a";
-    mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer" });
-    mockGetNetworkConfig.mockReturnValue({ rootGarden: { address: root, tokenId: 0 } });
-    mockUseGardens.mockReturnValue({
-      data: [makeGarden("garden-z", "Zeta Garden", { stewards: [ADDR_USER] })],
-      isFetched: true,
-      isError: false,
-    });
-
-    const { result } = renderHook(() => useEligibleAdminGardens());
-
-    const protocolGarden = result.current.eligibleGardens.find((garden) =>
-      compareAddresses(garden.id, root)
-    );
-    expect(protocolGarden).toBeDefined();
-    // The deployer holds no role there, so the recovered record claims none.
-    expect(protocolGarden?.stewards).toEqual([]);
-    expect(result.current.eligibleGardens).toHaveLength(2);
-    expect(result.current.hasStaleBaseList).toBe(true);
   });
 
   it("does not add the protocol garden for anyone but a deployer", () => {
