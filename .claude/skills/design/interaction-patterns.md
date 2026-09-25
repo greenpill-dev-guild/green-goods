@@ -36,6 +36,11 @@ violated half of these. Validators check structure; this contract is what "desig
 - **Below 1024px the same view action set rides the FabButton speed dial**, primary nearest the
   trigger ([useViewActions.ts:71](../../../packages/shared/src/hooks/admin-ui/useViewActions.ts) —
   "mirroring the desktop row's primary-rightmost emphasis"). One action set, two presentations.
+- **The FAB shows its primary action's icon.** A multi-action FAB wears the primary's glyph, so it
+  never promises a create its dial does not hold, and swaps to a close icon while the dial is open
+  (DL-050). The Hub's FAB still shows "+", Submit Work's own icon. Proof:
+  [FabButton.tsx](../../../packages/admin/src/components/Shell/FabButton.tsx) — `FabIcon` is
+  `config.icon` unless the dial is open.
 
 ## 2. Dialog taxonomy and continuity
 
