@@ -24,8 +24,8 @@ const BASE_WORK: Work = {
 const APPROVED_WORK: Work = { ...BASE_WORK, status: "approved" };
 
 // Far-future `actionEndTime` keeps the action considered "active". It is in
-// milliseconds, like the indexer's action end time and the `Date.now()` the
-// form compares it with. Stories that need the expired state override this.
+// milliseconds, like the indexer's action end time and the clock the form
+// compares it with. Stories that need the expired state override this.
 const ACTIVE_ACTION_END = 4_102_444_800_000; // 2100-01-01
 
 const meta: Meta<typeof ReviewForm> = {
