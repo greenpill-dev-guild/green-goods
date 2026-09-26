@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:dd8aec617567cf7afaaf9b39308b671f1b913a832b05c6c737846e9773a519f1"
+source_digest: "sha256:ffb2872c3fd08cb9c34772078d2bdf6fa4f742bfa55fd61e9164c43398edb4d1"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -362,9 +362,9 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-043` | Transaction | Garden · Settlement | Settle earned G$ compensation from the protocol to the Garden | Screenshot of the Garden beneficiary and completed settlement or visible gate |
 | `ADM-044` | Transaction | Garden · Settlement | Settle the Garden's contributor payout to the member | Screenshot of the member recipient and completed payout or visible gate |
 | `ADM-046` | Transaction | Hub · Assess | Submit an assessment end to end from the admin | Screen recording of the submission and a screenshot of the recorded assessment |
-| `ADM-048` | Transaction | Garden · Settings | Save garden name, description, and location as sequential transactions | Screenshots of the mid-run error and the saved state |
+| `ADM-048` | Transaction | Garden · Settings | Save garden name, description, and location, one wallet confirmation each, and resume a stopped save | Screenshots of the mid-run error and the saved state |
 | `ADM-052` | Transaction | Community · Members | Batch-add members by address, ENS name, and clipboard paste | Screenshots of the staged list and the updated directory |
-| `ADM-053` | Transaction | Community · Members | Remove a member with confirmation | Screenshots of the confirmation and the directory afterwards |
+| `ADM-053` | Transaction | Community · Members | Remove one role from a member, with confirmation | Screenshots of the confirmation and the directory afterwards |
 | `ADM-054` | Transaction | Community · Members | Welcome a join request from the admin | Screenshots of the request and the welcomed state |
 | `ADM-055` | Transaction | Community · Members | Decline a join request with a reason from the admin | Screenshots of the decline dialog and the gardener's view |
 | `ADM-056` | Transaction | Garden · Pool | Set up commitments for a registered NotReady pool | Screenshots of the checklist and the configured pool |
@@ -393,7 +393,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-145` | Transaction | Hub · Confirm | Confirm Kept… reviews the commitment before confirming it | Screenshots of the review and of the commitment afterwards |
 | `ADM-157` | Journey | Garden · Pool | A declared G$ reward is typed and reviewed in G$ | Screenshots of the field and of the review |
 
-### P1 (82) {#admin-dashboard-p1}
+### P1 (86) {#admin-dashboard-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -445,7 +445,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-102` | Journey | Actions | Action create and edit forms block incomplete saves | Screenshots of the blocked steps |
 | `ADM-103` | Transaction | Cookies | Deploy a campaign cookie jar | Screenshots of the review and the readback |
 | `ADM-104` | Transaction | Cookies | Sync the allowlist and grant or revoke extra addresses on a campaign jar | Screenshots of the allowlist before and after |
-| `ADM-105` | Journey | Cookies | Cookie jar routes are deployer-gated and the unconfigured factory is honest | Screenshots of the gate and the deployer view |
+| `ADM-105` | Journey | Cookies | Campaign cookie jars are deployer-only, live in the protocol garden, and the unconfigured factory is honest | Screenshots of the gate and the deployer view |
 | `ADM-107` | Journey | Hub · Work | The work inspector blocks self-review and expired-action decisions | Screenshots of both blocked inspectors |
 | `ADM-112` | Journey | Garden · Commitment | Fallback confirmation is not offered while ordinary confirmation is still reachable | Screenshot of the inspector with no fallback act |
 | `ADM-117` | Journey | Garden · Commitment | Kept is withheld from a steward who is on the commitment's roster | Screenshot of the dialog without Kept |
@@ -479,8 +479,12 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-164` | Transaction | Garden · Pool | Resume Pool says where it stands and stays closed until the pool reads open | Screenshots of the card while confirming and once resumed |
 | `ADM-165` | Transaction | Garden · Commitment | Send for Confirmation says where it stands and stays closed once sent | Screenshots of the inspector while confirming and once sent |
 | `ADM-166` | Transaction | Garden · Pool | Send Now on a queued row says where the send stands | Screenshots of the row after the rejection and while it sends |
+| `ADM-177` | Transaction | Hub · Work | Rejecting work asks for a reason and sends it as the gardener's feedback | Screenshots of the Reject Work dialog, the review summary, and the gardener's work detail |
+| `ADM-178` | Data integrity | Hub · Work | Waiting work reads as its age, and a garden reads Critical only when review has stalled | Screenshots of the Hub queue and Garden Health |
+| `ADM-179` | Transaction | Garden · Settings | Edit Garden says how many wallet confirmations a save takes and shows each one landing | Screenshots of the footer before saving and of the rows after the save |
+| `ADM-180` | Data integrity | Community · Endowment | Endowment amounts name their asset and never add different assets together | Screenshots of each amount |
 
-### P2 (27) {#admin-dashboard-p2}
+### P2 (35) {#admin-dashboard-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -510,6 +514,14 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-173` | Content & vocabulary | Garden · Pool | Each split share explains its purpose | Screenshot of the share hints |
 | `ADM-174` | Content & vocabulary | Garden · Pool | Setup names the final write before it begins | Screenshot of the final review |
 | `ADM-176` | Content & vocabulary | Garden · Pool | A running season leaves campaign creation available without offering a second season | Screenshot of the running season card and its cycle actions |
+| `ADM-181` | Journey | Community · Payouts | A garden without a payout jar keeps Fund Cookie Jar in place, disabled, and says why | Screenshots of the header action, the phone menu, and the Payouts tab |
+| `ADM-182` | Data integrity | Community · Members | Member counts count people, not role seats | Screenshots of the rail, the dialog, and the phone filter |
+| `ADM-183` | Journey | Shell | At 360 and 375 pixels the phone chrome fits in English, Spanish, and Portuguese | Screenshots at 360 and 375 pixels in each language |
+| `ADM-184` | Journey | Garden · Health | On a phone, Garden Health leads with Attention Needed | Screenshots at 375 and 1280 pixels |
+| `ADM-185` | Journey | Shell | The floating action button shows its primary action's icon | Screenshots of each button closed and open |
+| `ADM-186` | Journey | Hub | The Hub's three actions are outlined, with Submit Work rightmost | Screenshot of the Hub header |
+| `ADM-187` | Journey | Actions | The Actions workspace is purple in light and dark | Screenshots in light and dark |
+| `ADM-188` | Journey | Community · Payouts | Campaign Cookie Jars live on the Green Goods Community Garden's Payouts, for deployers only | Screenshots of the card, the flow's first step, and Review |
 | `XPLAT-007` | Transaction | Hub · Work | Two stewards acting on the same submission converge on one state | Screenshots from both sessions |
 
 ## Docs

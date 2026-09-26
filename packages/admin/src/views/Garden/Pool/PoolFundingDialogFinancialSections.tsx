@@ -11,8 +11,8 @@ export interface PoolFundingDialogFactProps {
 export function PoolFundingDialogFact({ label, value }: PoolFundingDialogFactProps) {
   return (
     <div>
-      <dt className="text-xs text-text-soft">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-medium text-text-strong">{value}</dd>
+      <dt className="body-xs text-text-soft">{label}</dt>
+      <dd className="mt-1 break-words body-sm font-medium text-text-strong">{value}</dd>
     </div>
   );
 }
@@ -81,7 +81,7 @@ export function PoolFundingDialogFinancialSections({
             value={amount(snapshot?.suggestedTopUp ?? null)}
           />
         </dl>
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.funding.topUp.note",
             defaultMessage:
@@ -100,7 +100,7 @@ export function PoolFundingDialogFinancialSections({
               {snapshot.obligations.map((row) => (
                 <li
                   key={row.id}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                  className="flex flex-wrap items-center justify-between gap-2 py-2 body-sm"
                 >
                   <span className="text-text-sub">
                     {formatMessage({
@@ -164,7 +164,7 @@ export function PoolFundingDialogFinancialSections({
             value={amount(snapshot?.transit.incoming ?? null)}
           />
         </dl>
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.funding.transit.note",
             defaultMessage:
@@ -204,7 +204,7 @@ export function PoolFundingDialogFinancialSections({
             {snapshot.feeQuotes.map((quote) => (
               <li
                 key={quote.id}
-                className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                className="flex flex-wrap items-center justify-between gap-2 py-2 body-sm"
               >
                 <span className="text-text-sub">
                   {quote.recipient ? shortAddress(quote.recipient) : "—"} · {amount(quote.amount)}
@@ -287,7 +287,7 @@ export function PoolFundingDialogFinancialSections({
             value={snapshot?.limits.batchSizeLimit?.toLocaleString(locale) ?? "—"}
           />
         </dl>
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.funding.limits.note",
             defaultMessage:

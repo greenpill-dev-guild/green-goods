@@ -34,9 +34,9 @@
         "Abre /hub/work",
         "Abre una entrega pendiente",
         "Revisa las pruebas multimedia",
-        "Elige un nivel de confianza y escribe tus comentarios",
+        "Elige un nivel de confianza (al principio no hay ninguno elegido) y escribe tus comentarios",
         "Comprueba que Aprobar y Rechazar estén visibles en la zona fija de acciones del diálogo sin desplazarte",
-        "Rechaza o aprueba",
+        "Aprueba, o pulsa Rechazar y escribe un motivo en el diálogo Rechazar trabajo",
         "Confirma que la cola se actualice"
       ],
       "expected": "La ruta completa de decisión funciona y las acciones de confirmar o cancelar nunca quedan ocultas dentro de una zona de desplazamiento recortada",

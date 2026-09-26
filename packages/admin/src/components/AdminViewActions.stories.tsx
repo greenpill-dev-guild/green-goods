@@ -13,7 +13,7 @@ const meta: Meta<typeof AdminViewActions> = {
     docs: {
       description: {
         component:
-          "Desktop view-action row for admin workspaces — the stable-trio grammar. Action labels resolve from each item’s message ID in the active locale, with the declared label as the fallback. The workspace's actions render in declaration order on every tab; only the active tab's action carries the filled variant, so button positions never shift while the emphasis moves with the tab.",
+          "Desktop view-action row for admin workspaces — the stable-trio grammar. Action labels resolve from each item’s message ID in the active locale, with the declared label as the fallback. The workspace's actions render in declaration order on every tab, and its one declared primary sorts rightmost, so button positions never shift. The primary renders filled, except on a review surface such as the Hub, where the whole set renders outlined (DL-043).",
       },
     },
   },
@@ -66,6 +66,16 @@ export const WorkTabActive: Story = {
 
 export const CertifyTabActive: Story = {
   args: { items: hubTrio("create-hypercert") },
+};
+
+/** The Hub is a review surface: its trio renders outlined, and Submit Work,
+ *  the declared primary, still sorts rightmost and fills the FAB (DL-043). */
+export const HubTrioOutlined: Story = {
+  args: {
+    items: hubTrio("none").map((action) =>
+      action.id === "submit-work" ? { ...action, primary: true } : action
+    ),
+  },
 };
 
 /** Read surfaces (Hub History, Garden Activity…) keep the trio outlined —

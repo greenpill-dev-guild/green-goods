@@ -1,5 +1,4 @@
-import { AdminCardTitle } from "@/components/AdminCard";
-import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
+import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
 import { GardenSelector } from "./GardenSelector";
 
 export function CampaignGardenSection(props: CampaignCookieJarCreateFormProps) {
@@ -15,16 +14,7 @@ export function CampaignGardenSection(props: CampaignCookieJarCreateFormProps) {
     aggregation,
   } = props;
   return (
-    <section className="surface-section overflow-visible">
-      <div className="mb-4">
-        <p className="text-label-sm text-text-sub">03</p>
-        <AdminCardTitle as="h2">
-          {formatMessage({
-            id: "cockpit.community.cookies.createGardensSection",
-            defaultMessage: "Eligible gardens",
-          })}
-        </AdminCardTitle>
-      </div>
+    <section>
       <GardenSelector
         gardens={gardens}
         selectedGardenIds={selectedGardenIds}

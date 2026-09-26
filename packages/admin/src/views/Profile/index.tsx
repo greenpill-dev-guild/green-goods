@@ -63,7 +63,7 @@ export default function ProfileView() {
   return (
     <CanvasRouteFrame>
       <CanvasRouteHeader
-        title={formatMessage({ id: "cockpit.nav.account", defaultMessage: "Account" })}
+        title={formatMessage({ id: "cockpit.nav.profile", defaultMessage: "Profile" })}
         description={description}
         variant="canvas"
         sticky

@@ -25,7 +25,7 @@ function ProgressFooter({ busy, label }: { busy?: boolean; label?: string }) {
         {busy ? (
           <div className="space-y-1.5">
             <AdminLinearProgress ariaLabel={label} />
-            <p className="truncate text-sm text-text-sub">{label}</p>
+            <p className="truncate body-sm text-text-sub">{label}</p>
           </div>
         ) : null}
       </div>
@@ -58,7 +58,7 @@ const meta: Meta<typeof ActionFlowShell> = {
     // AdminDialog (flow variant). Switch the viewport toolbar to Mobile to see the
     // full-width bottom-sheet width (rail collapses to the header stepper).
     (Story) => (
-      <div className="h-[640px] w-full max-w-3xl overflow-hidden rounded-xl border border-stroke-soft bg-[rgb(var(--m3-surface))] lg:max-w-5xl">
+      <div className="h-[640px] w-full max-w-3xl overflow-hidden rounded-xl border border-stroke-soft bg-bg-white lg:max-w-5xl">
         <Story />
       </div>
     ),

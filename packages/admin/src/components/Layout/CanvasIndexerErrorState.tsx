@@ -23,13 +23,13 @@ export function CanvasIndexerErrorState({ onRetry }: CanvasIndexerErrorStateProp
       data-testid="canvas-indexer-error"
     >
       <SeedlingIllustration className="h-28 w-28" />
-      <h1 className="mt-5 text-xl font-semibold text-text-strong">
+      <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
         {formatMessage({
           id: "cockpit.access.indexerErrorTitle",
           defaultMessage: "Can't load garden access",
         })}
       </h1>
-      <p className="mt-2 max-w-md text-sm text-text-sub">
+      <p className="mt-2 max-w-md body-sm text-text-sub">
         {formatMessage({
           id: "cockpit.access.indexerErrorDescription",
           defaultMessage:

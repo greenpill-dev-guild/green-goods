@@ -79,7 +79,7 @@ export function ProtocolFundingRows({
         })}
       </AdminCardTitle>
       {operations.rows.length === 0 ? (
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.community.protocolFunding.rows.empty",
             defaultMessage: "No indexed protocol funding transfers yet.",
@@ -93,7 +93,7 @@ export function ProtocolFundingRows({
               <li key={row.id} className="space-y-2 py-3" data-funding-id={row.disbursementId}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-text-strong" title={to}>
+                    <p className="truncate body-sm font-medium text-text-strong" title={to}>
                       {formatMessage(
                         {
                           id: "cockpit.community.protocolFunding.row.transfer",
@@ -102,7 +102,7 @@ export function ProtocolFundingRows({
                         { amount: formatGdollar(row.amount, locale), garden: to }
                       )}
                     </p>
-                    <p className="text-xs text-text-soft" title={row.recipient}>
+                    <p className="body-xs text-text-soft" title={row.recipient}>
                       {formatMessage(
                         {
                           id: "cockpit.community.protocolFunding.row.identity",

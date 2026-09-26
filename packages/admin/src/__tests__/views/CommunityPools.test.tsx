@@ -69,9 +69,25 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", async (i
     await importOriginal<
       typeof import("@green-goods/shared/hooks/commitment-pooling/useProtocolPool")
     >();
+  // The shared hook composes the two reads in the module, so it is rebuilt
+  // here from the mocked reads and the real rule.
+  const useIsProtocolGarden = ({ gardenId }: { gardenId: string }) => {
+    const ownPool = mocks.ownPools!.pools[0] ?? null;
+    return {
+      isProtocolGarden: actual.isProtocolGarden({
+        gardenId,
+        rootGarden: mocks.protocolPool!.rootGarden,
+        ownPoolType: ownPool?.poolType,
+      }),
+      protocolPool: mocks.protocolPool!,
+      ownPool,
+      ownPoolsLoading: mocks.ownPools!.isLoading,
+    };
+  };
   return {
     ...actual,
     useProtocolPool: (() => mocks.protocolPool!) as unknown as PoolingModule["useProtocolPool"],
+    useIsProtocolGarden: useIsProtocolGarden as unknown as typeof actual.useIsProtocolGarden,
   };
 });
 

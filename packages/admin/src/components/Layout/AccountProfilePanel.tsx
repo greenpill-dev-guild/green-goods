@@ -29,7 +29,7 @@ export interface AccountProfilePanelProps {
 /** Quiet capsule label — identity metadata (role, auth method), not a control. */
 function IdentityChip({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-stroke-soft bg-bg-soft px-2.5 py-0.5 text-xs font-medium capitalize text-text-sub">
+    <span className="inline-flex items-center rounded-full border border-stroke-soft bg-bg-soft px-2.5 py-0.5 label-xs capitalize text-text-sub">
       {children}
     </span>
   );
@@ -69,7 +69,7 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
         <div className="flex items-center gap-4">
           <AccountProfileAvatarEditor fallbackInitials={avatarFallback} />
           <div className="min-w-0">
-            <p className="truncate text-base font-semibold text-text-strong" title={headline}>
+            <p className="truncate text-title-md font-semibold text-text-strong" title={headline}>
               {headline}
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -87,7 +87,7 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
             <section className="space-y-2">
               <div className="flex items-center gap-2">
                 <RiWallet3Line className="h-4 w-4 text-text-soft" aria-hidden="true" />
-                <h2 className="text-sm font-semibold text-text-strong">
+                <h2 className="body-sm font-semibold text-text-strong">
                   {formatMessage({ id: "app.account.wallet", defaultMessage: "Wallet" })}
                 </h2>
               </div>
@@ -97,7 +97,7 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
                   href={getBlockExplorerAddressUrl(DEFAULT_CHAIN_ID, eoaAddress)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-text-sub transition-colors hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
+                  className="inline-flex shrink-0 items-center gap-1 label-xs text-text-sub transition-colors hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
                 >
                   {formatMessage({
                     id: "cockpit.account.viewOnExplorer",
@@ -115,10 +115,10 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
         {/* Your gardens — workspace scope switcher. */}
         <section className="space-y-2">
           <div>
-            <h2 className="text-sm font-semibold text-text-strong">
+            <h2 className="body-sm font-semibold text-text-strong">
               {formatMessage({ id: "cockpit.account.gardens", defaultMessage: "Your gardens" })}
             </h2>
-            <p className="mt-0.5 text-sm text-text-sub">
+            <p className="mt-0.5 body-sm text-text-sub">
               {formatMessage({
                 id: "cockpit.account.gardensDescription",
                 defaultMessage: "Switch the garden this canvas is scoped to.",
@@ -140,7 +140,7 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
               }))}
             />
           ) : (
-            <p className="text-sm text-text-sub">
+            <p className="body-sm text-text-sub">
               {formatMessage({
                 id: "cockpit.account.gardensEmpty",
                 defaultMessage: "No gardens yet.",
@@ -157,7 +157,7 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
           onClick={() => signOut()}
           className={cn(
             "flex min-h-11 w-full items-center justify-between rounded-full px-4 py-3",
-            "label-lg font-medium text-error-dark transition-colors hover:bg-[rgb(var(--m3-on-surface)/0.08)]"
+            "body-sm font-medium text-error-dark transition-colors hover:bg-[rgb(var(--text-strong-950)/0.08)]"
           )}
         >
           <span>

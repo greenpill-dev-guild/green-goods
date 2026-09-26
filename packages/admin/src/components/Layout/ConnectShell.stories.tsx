@@ -13,7 +13,7 @@ const meta: Meta<typeof ConnectShell> = {
     action: (
       <button
         type="button"
-        className="rounded-lg bg-primary-base px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--edge-rest)] transition-colors hover:bg-primary-darker"
+        className="rounded-lg bg-primary-base px-5 py-3 body-sm font-semibold text-primary-foreground shadow-[var(--edge-rest)] transition-colors hover:bg-primary-darker"
       >
         Connect Wallet
       </button>

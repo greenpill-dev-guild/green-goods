@@ -24,7 +24,7 @@ Read `.claude/skills/design/implementation.md` before frontend work.
 - Prefer the primitives below before composing raw `rounded border bg shadow` layouts.
 - Treat `packages/admin/src/components/Admin*.tsx` as the admin wrapper inventory; use those wrappers before local control styling.
 - Use `.surface-section`, `.surface-inset`, `.surface-card`, and `.workspace-canvas` before inventing one-off shell or page surface wrappers.
-- The account/profile/settings/notifications flows route through the right-sheet registry into the `AdminSideSheet` inspector (right-docked within the canvas chrome bounds on desktop; bottom sheet on mobile, where only the bell opens it). `AccountSurface` is the mobile account route with **Account | Settings** tabs ("Account" is the mobile name for the desktop Profile sheet content; there is no notifications tab). Every other overlay uses `AdminDialog` or `AdminConfirmDialog` — side-sheet scope is enforced by `AdminSideSheetStandard.guard.test.ts`.
+- The account/profile/settings/notifications flows route through the right-sheet registry into the `AdminSideSheet` inspector (right-docked within the canvas chrome bounds on desktop; bottom sheet on mobile, where only the bell opens it). `AccountSurface` is the mobile account route with **Profile | Settings** tabs (the page and its first tab read Profile, like the navigation item and the desktop Profile sheet; there is no notifications tab). Every other overlay uses `AdminDialog` or `AdminConfirmDialog` — side-sheet scope is enforced by `AdminSideSheetStandard.guard.test.ts`.
 
 ## Cockpit UI Mode
 

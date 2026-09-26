@@ -185,6 +185,44 @@ describe("hooks/work/useWorks", () => {
     });
   });
 
+  it("tells rows restored from an earlier session from rows read in this one", async () => {
+    const restored = [
+      {
+        id: "work-1",
+        title: "Restored Work",
+        actionUID: 1,
+        gardenerAddress: "0xgardener",
+        gardenAddress: TEST_GARDEN,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: 1000,
+        approval: null,
+      },
+    ];
+    let finishRead!: (rows: unknown[]) => void;
+    mockGetWorkListPage.mockReturnValue(
+      new Promise((resolve) => {
+        finishRead = resolve;
+      })
+    );
+    // A restored snapshot keeps the time it was read in an earlier session.
+    queryClient.setQueryData(["works", "online", TEST_GARDEN, TEST_CHAIN_ID], restored, {
+      updatedAt: 1,
+    });
+
+    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    expect(result.current.works).toHaveLength(1);
+    expect(result.current.readThisSession).toBe(false);
+    await act(async () => {
+      finishRead(restored);
+    });
+    await waitFor(() => expect(result.current.readThisSession).toBe(true));
+  });
+
   it("reads one lookahead row, offers older work, and widens the shared window", async () => {
     const page = (count: number, offset = 0) =>
       Array.from({ length: count }, (_, index) => ({
@@ -347,6 +385,7 @@ describe("hooks/work/useWorks", () => {
     expect(statusMap.get("w1")).toBe("approved");
     expect(statusMap.get("w2")).toBe("rejected");
     expect(statusMap.get("w3")).toBe("pending");
+    expect(result.current.hasUnknownStatuses).toBe(false);
   });
 
   it("handles approval fetch failure gracefully", async () => {
@@ -376,6 +415,8 @@ describe("hooks/work/useWorks", () => {
     });
     // Should still return works even if approvals fail
     expect(result.current.works[0].status).toBe("pending");
+    // That pending is a fallback, and the hook says so: queue health must not read it as settled.
+    expect(result.current.hasUnknownStatuses).toBe(true);
   });
 
   it("marks work as rejected when approval.approved is false", async () => {
@@ -450,6 +491,9 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkApprovalsForWorks).not.toHaveBeenCalled();
 
     expect(result.current.works).toEqual([reviewed, unrelated]);
+    // Rows the read left out keep an earlier read's status, so queue health
+    // must not treat them as current.
+    expect(result.current.hasUnknownStatuses).toBe(true);
   });
 
   it("retains the last authoritative work collection after the decision overlay expires", async () => {
@@ -575,6 +619,8 @@ describe("hooks/work/useWorks", () => {
       await waitFor(() => expect(result.current.isFetching).toBe(false));
       // The works still arrive; their approval is unknown rather than missing.
       expect(result.current.works[0]?.status).toBe("approved");
+      // The cached status shows, but queue health must not read it as current.
+      expect(result.current.hasUnknownStatuses).toBe(true);
     });
 
     it("shows a work whose approvals could not be read but never saves it as a known status", async () => {

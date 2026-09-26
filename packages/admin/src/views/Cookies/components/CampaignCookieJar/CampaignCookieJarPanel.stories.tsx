@@ -1,6 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
-import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import {
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
@@ -12,16 +11,17 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../../../shared/.storybook/decorators";
-import { CampaignCookieJarCreateWorkspace, CampaignCookieJarPanel } from "./index";
+import { fn } from "storybook/test";
+import { AdminButton } from "@/components/AdminButton";
+import { CampaignCookieJarPanel } from "./index";
 
 const EMPTY_CAMPAIGN_PANEL_SEEDS = [
   ...STORYBOOK_ADMIN_DEPLOYER_SEEDS,
   [queryKeys.cookieJar.campaigns(DEFAULT_CHAIN_ID), []] as const,
 ] as const;
-const STORYBOOK_CREATED_JAR = "0x7777777777777777777777777777777777777777" as Address;
 
 const meta: Meta<typeof CampaignCookieJarPanel> = {
-  title: "Admin/Workspaces/Cookies/CampaignCookieJarPanel",
+  title: "Admin/Workflows/Community/Payouts/CampaignCookieJars",
   component: CampaignCookieJarPanel,
   tags: ["autodocs"],
   parameters: {
@@ -29,7 +29,7 @@ const meta: Meta<typeof CampaignCookieJarPanel> = {
     docs: {
       description: {
         component:
-          "Internal campaign Cookie Jar creation and allowlist refresh surface. The story renders inside the team Cookies workspace frame with seeded admin identity.",
+          "Campaign Cookie Jars on the protocol garden's Payouts (DL-046): the campaign list with Create Cookie Jar in its header, and the manage dialog that refreshes a jar's allowlist and page. Deployers only.",
       },
     },
   },
@@ -40,7 +40,7 @@ const meta: Meta<typeof CampaignCookieJarPanel> = {
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
-      workspace: "hub",
+      workspace: "community",
     }),
   ],
 };
@@ -50,20 +50,13 @@ type Story = StoryObj<typeof CampaignCookieJarPanel>;
 
 export const Default: Story = {};
 
-export const CreatedAfterSubmit: Story = {
-  render: () => (
-    <CampaignCookieJarCreateWorkspace
-      onCancel={() => undefined}
-      initialCreatedJarAddress={STORYBOOK_CREATED_JAR}
-    />
-  ),
-};
-
-export const SubmittedNeedsJarAddress: Story = {
-  render: () => (
-    <CampaignCookieJarCreateWorkspace
-      onCancel={() => undefined}
-      initialSubmittedHash="safe-tx-queued-1"
-    />
-  ),
+/** As Payouts mounts it, with Create Cookie Jar in the list's header. */
+export const OnPayouts: Story = {
+  args: {
+    headerAction: (
+      <AdminButton type="button" variant="tonal" size="sm" onClick={fn()}>
+        Create Cookie Jar
+      </AdminButton>
+    ),
+  },
 };

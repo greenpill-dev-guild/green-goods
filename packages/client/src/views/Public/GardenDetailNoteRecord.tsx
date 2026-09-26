@@ -2,6 +2,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
 import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImagePreviewDialog";
 import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
@@ -137,9 +138,11 @@ export function FieldNoteDialog({
 
   if (!note) return null;
 
-  const title =
-    note.title ||
-    formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" });
+  // A stored title can end in timestamps older submissions appended; readers see the title alone.
+  const title = toWorkDisplayTitle(
+    note.title,
+    formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" })
+  );
 
   return (
     <PublicRecordDrawer

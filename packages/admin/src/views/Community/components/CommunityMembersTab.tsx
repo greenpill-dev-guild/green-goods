@@ -3,7 +3,7 @@ import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiArrowRightSLine, RiGroupLine, RiUserSettingsLine } from "@remixicon/react";
+import { RiGroupLine, RiUserSettingsLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -12,6 +12,7 @@ import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
+import { AdminSelect } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { CommunityJoinRequests } from "./CommunityJoinRequests";
@@ -22,6 +23,7 @@ export type CommunityMembersTabProps = Pick<
   CommunityWorkspace,
   | "canManage"
   | "closeMembersModal"
+  | "memberCount"
   | "memberSearch"
   | "roleMembers"
   | "roleSummary"
@@ -37,6 +39,7 @@ export function CommunityMembersTab({
   garden,
   canManage,
   closeMembersModal,
+  memberCount,
   memberSearch,
   roleMembers,
   roleSummary,
@@ -49,7 +52,6 @@ export function CommunityMembersTab({
   const [roleFilter, setRoleFilter] = useState<GardenRole | "all">("all");
   const hasValidGardenAddress = isAddress(garden.id);
   const gardenRouteContext = { gardenId: garden.id };
-  const totalMembers = roleSummary.reduce((sum, entry) => sum + entry.count, 0);
   const filteredDirectory = useMemo(
     () =>
       roleFilter === "all"
@@ -74,28 +76,14 @@ export function CommunityMembersTab({
           {canManage && hasValidGardenAddress ? (
             <CommunityJoinRequests gardenAddress={garden.id} />
           ) : null}
-          <AdminCard variant="elevated" className="space-y-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <AdminCardTitle>
-                  {formatMessage({ id: "cockpit.community.members.directory" })}
-                </AdminCardTitle>
-                <p className="mt-1 text-body-sm text-text-sub">
-                  {formatMessage({ id: "cockpit.community.members.directoryDescription" })}
-                </p>
-              </div>
-              {canManage ? (
-                <AdminButton asChild variant="tonal" size="sm">
-                  <Link
-                    to={adminRoutes.communityMembers({
-                      ...gardenRouteContext,
-                      item: "manage-members",
-                    })}
-                  >
-                    {formatMessage({ id: "cockpit.community.action.manageMembers" })}
-                  </Link>
-                </AdminButton>
-              ) : null}
+          <AdminCard variant="elevated" className="@container space-y-4">
+            <div>
+              <AdminCardTitle>
+                {formatMessage({ id: "cockpit.community.members.directory" })}
+              </AdminCardTitle>
+              <p className="mt-1 text-body-sm text-text-sub">
+                {formatMessage({ id: "cockpit.community.members.directoryDescription" })}
+              </p>
             </div>
 
             <AdminSearchToolbar
@@ -104,8 +92,25 @@ export function CommunityMembersTab({
               placeholder={formatMessage({ id: "app.garden.detail.community.memberSearch" })}
             />
 
+            {/* The chips are the one place role counts show (D15); on a narrow card
+                they fold into a select so the members stay above the fold. */}
+            <AdminSelect
+              className="@[480px]:hidden"
+              label={formatMessage({ id: "cockpit.community.members.filterAria" })}
+              value={roleFilter}
+              onChange={(event) => setRoleFilter(event.target.value as GardenRole | "all")}
+            >
+              <option value="all">
+                {formatMessage({ id: "cockpit.community.members.filterAll" })}
+              </option>
+              {roleSummary.map((entry) => (
+                <option key={entry.role} value={entry.role}>
+                  {`${getRoleLabel(entry.role, formatMessage).plural} (${entry.count})`}
+                </option>
+              ))}
+            </AdminSelect>
             <div
-              className="flex flex-wrap gap-2"
+              className="hidden flex-wrap gap-2 @[480px]:flex"
               role="group"
               aria-label={formatMessage({ id: "cockpit.community.members.filterAria" })}
             >
@@ -199,7 +204,7 @@ export function CommunityMembersTab({
                 <span className="garden-stat-row-label">
                   {formatMessage({ id: "cockpit.community.members.total" })}
                 </span>
-                <span className="garden-stat-row-value">{totalMembers}</span>
+                <span className="garden-stat-row-value">{memberCount}</span>
               </div>
               {missingCriticalRoles.length > 0 ? (
                 <Alert variant="warning" className="p-3">
@@ -212,60 +217,6 @@ export function CommunityMembersTab({
                     }
                   )}
                 </Alert>
-              ) : null}
-              {roleSummary.map((entry) => {
-                const roleLabel = getRoleLabel(entry.role, formatMessage);
-                const Icon = communityRoleIcons[entry.role];
-                const isCriticalEmpty =
-                  entry.count === 0 &&
-                  (entry.role === "owner" ||
-                    entry.role === "steward" ||
-                    entry.role === "evaluator");
-                return (
-                  <Link
-                    key={entry.role}
-                    to={adminRoutes.communityMembers({
-                      ...gardenRouteContext,
-                      item: "manage-members",
-                    })}
-                    className={`garden-stat-row h-auto w-full min-w-0 rounded px-2 py-1 text-left ${
-                      isCriticalEmpty ? "bg-warning-lighter text-warning-dark" : ""
-                    }`}
-                  >
-                    <span className="garden-stat-row-label inline-flex items-center gap-1.5">
-                      <Icon className="h-3.5 w-3.5" />
-                      {roleLabel.plural}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <span className="garden-stat-row-value">{entry.count}</span>
-                      <RiArrowRightSLine className="h-4 w-4 text-text-sub" />
-                    </span>
-                  </Link>
-                );
-              })}
-              {canManage ? (
-                <div className="grid grid-cols-1 gap-2 border-t border-stroke-soft pt-3">
-                  <AdminButton asChild variant="filled" size="sm">
-                    <Link
-                      to={adminRoutes.communityMembers({
-                        ...gardenRouteContext,
-                        item: "add-member",
-                      })}
-                    >
-                      {formatMessage({ id: "cockpit.community.action.addMember" })}
-                    </Link>
-                  </AdminButton>
-                  <AdminButton asChild variant="tonal" size="sm">
-                    <Link
-                      to={adminRoutes.communityMembers({
-                        ...gardenRouteContext,
-                        item: "manage-members",
-                      })}
-                    >
-                      {formatMessage({ id: "cockpit.community.action.manageMembers" })}
-                    </Link>
-                  </AdminButton>
-                </div>
               ) : null}
             </AdminCard>
           </div>

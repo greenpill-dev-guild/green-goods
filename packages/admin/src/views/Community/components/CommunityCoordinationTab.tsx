@@ -124,7 +124,7 @@ export function CommunityCoordinationTab({
                           </p>
                           <div className="mt-1 text-body-sm text-text-strong">
                             {pool ? (
-                              <AddressDisplay address={pool.poolAddress} className="text-sm" />
+                              <AddressDisplay address={pool.poolAddress} className="body-sm" />
                             ) : (
                               formatMessage({ id: "cockpit.community.coordination.poolMissing" })
                             )}

@@ -33,7 +33,7 @@ packages/admin/src/
 │   ├── Layout/     # Canvas layout (CanvasRouteFrame, LeftInspectorDialog, ...)
 │   ├── Shell/      # Admin-owned shell forks: AppBar, MainSheet, NavigationBar (+ FAB)
 │   └── Admin*.tsx  # Top-level admin M3 wrappers (AdminButton, AdminDialog, AdminCard, ...)
-├── styles/          # admin-m3-tokens.css (tokens + Controlled Chrome), admin-m3-components.css (admin skins/motion)
+├── styles/          # admin-m3-tokens.css (tokens + Controlled Chrome), admin-m3-components.css (admin skins/motion), admin-type.css (named type classes), admin-layout.css (layout + surface classes; Storybook imports it)
 ├── views/           # Main views (lazy-loaded)
 ├── routes/          # CanvasShell.tsx + RequireRole.tsx
 ├── config.ts        # Admin configuration

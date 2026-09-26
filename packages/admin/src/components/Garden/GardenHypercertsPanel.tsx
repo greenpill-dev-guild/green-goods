@@ -38,7 +38,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
         </AdminCardTitle>
         <Link
           to={adminRoutes.gardenImpact({ ...gardenRouteContext, section: "hypercerts" })}
-          className="inline-flex items-center rounded-md border border-stroke-sub px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
+          className="inline-flex items-center rounded-md border border-stroke-sub px-3 py-1.5 label-xs text-text-sub transition hover:bg-bg-weak"
         >
           {formatMessage({ id: "app.garden.admin.viewAll" })}
         </Link>
@@ -87,13 +87,13 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p
-                          className="truncate text-sm font-medium text-text-strong"
+                          className="truncate body-sm font-medium text-text-strong"
                           title={record.title?.trim() || undefined}
                         >
                           {record.title?.trim() ||
                             formatMessage({ id: "app.hypercerts.list.fallbackTitle" })}
                         </p>
-                        <p className="text-xs text-text-soft">
+                        <p className="body-xs text-text-soft">
                           {formatMessage(
                             { id: "app.hypercerts.list.mintedOn" },
                             { date: mintedDate }
@@ -104,7 +104,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
                     <div className="flex items-center gap-2">
                       <Link
                         to={adminRoutes.gardenHypercertDetail(record.id, gardenRouteContext)}
-                        className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
+                        className="inline-flex items-center rounded body-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
                       >
                         {formatMessage({ id: "app.hypercerts.list.viewDetails" })}
                       </Link>
@@ -112,7 +112,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
                         href={`${HYPERCERTS_APP_BASE_URL}/${record.id}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
+                        className="inline-flex items-center rounded body-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
                       >
                         <RiExternalLinkLine className="h-4 w-4" />
                       </a>

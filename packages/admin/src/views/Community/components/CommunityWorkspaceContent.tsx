@@ -75,6 +75,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         garden={workspace.garden}
         canManage={workspace.canManage}
         closeMembersModal={workspace.closeMembersModal}
+        memberCount={workspace.memberCount}
         memberSearch={workspace.memberSearch}
         roleMembers={workspace.roleMembers}
         roleSummary={workspace.roleSummary}
@@ -112,12 +113,13 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         garden={workspace.garden}
         hasVaults={workspace.hasVaults}
         treasurySeverity={workspace.treasurySeverity}
-        vaultNetDeposited={workspace.vaultNetDeposited}
+        endowmentByAsset={workspace.endowmentByAsset}
       />
     ) : (
       <CommunityPayoutsTab
         garden={workspace.garden}
         allocations={workspace.allocations}
+        allocationsAtLimit={workspace.allocationsAtLimit}
         selectedItem={workspace.selectedItem}
       />
     );

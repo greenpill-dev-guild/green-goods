@@ -130,10 +130,10 @@ export function DistributionChart({
               const data = payload[0].payload as ChartDataItem;
               return (
                 <div className="rounded-lg border border-stroke-soft bg-bg-white p-2 shadow-[var(--m3-elevation-2)]">
-                  <p className="text-sm font-medium text-text-strong">
+                  <p className="body-sm font-medium text-text-strong">
                     <DistributionTooltipTitle data={data} />
                   </p>
-                  <p className="text-xs text-text-sub">
+                  <p className="body-xs text-text-sub">
                     {data.value.toLocaleString()}{" "}
                     {formatMessage({ id: "app.hypercerts.distribution.table.units" })} (
                     {data.percentage.toFixed(2)}%)
@@ -144,7 +144,7 @@ export function DistributionChart({
           />
         </PieChart>
       </ResponsiveContainer>
-      <p className="mt-2 text-center text-xs text-text-sub">
+      <p className="mt-2 text-center body-xs text-text-sub">
         {formatMessage(
           { id: "app.hypercerts.distribution.chart.recipients" },
           { count: allowlist.length }

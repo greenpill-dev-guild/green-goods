@@ -19,7 +19,11 @@ describe("useGardenDerivedState", () => {
     cookieJars = [],
     canAccessCommunity = true,
     allocations = [],
-    vaultNetDeposited = 1n,
+    hasEndowment = true,
+    works,
+    worksComplete,
+    gardenReviewQueue,
+    members = roleMembers,
   }: {
     domainMask?: number;
     openSection?: Parameters<typeof useGardenDerivedState>[0]["openSection"];
@@ -32,7 +36,11 @@ describe("useGardenDerivedState", () => {
       fractionsAmount: bigint;
       juiceboxAmount: bigint;
     }>;
-    vaultNetDeposited?: bigint;
+    hasEndowment?: boolean;
+    works?: Parameters<typeof useGardenDerivedState>[0]["works"];
+    worksComplete?: boolean;
+    gardenReviewQueue?: Parameters<typeof useGardenDerivedState>[0]["gardenReviewQueue"];
+    members?: Parameters<typeof useGardenDerivedState>[0]["roleMembers"];
   } = {}) {
     const now = Date.now();
 
@@ -44,7 +52,7 @@ describe("useGardenDerivedState", () => {
           name: "No Domain Garden",
           chainId: 11155111,
         },
-        works: [
+        works: works ?? [
           {
             id: "approved-work",
             title: "Recent approved work",
@@ -52,12 +60,14 @@ describe("useGardenDerivedState", () => {
             createdAt: now,
           },
         ],
+        worksComplete,
+        gardenReviewQueue,
         assessments: [],
         hypercerts: [],
         allocations,
         gardenVaults: [{}],
-        vaultNetDeposited,
-        roleMembers,
+        hasEndowment,
+        roleMembers: members,
         selectedRange: "30d",
         activityFilter: "all",
         memberSearch: "",
@@ -150,7 +160,7 @@ describe("useGardenDerivedState", () => {
     const communitySignals = {
       cookieJars: [daiJar({})],
       allocations: [allocation],
-      vaultNetDeposited: 0n,
+      hasEndowment: false,
     };
     const { result } = renderDerivedState({ ...communitySignals, canAccessCommunity: false });
 
@@ -180,11 +190,84 @@ describe("useGardenDerivedState", () => {
     ).toContain("/community/payouts");
   });
 
+  it("reads Critical only when review has stalled, and Needs Attention for work waiting a week", () => {
+    const daysAgo = (days: number) => Math.floor((Date.now() - days * 86_400_000) / 1000);
+    const waiting = [
+      { id: "old", status: "pending", createdAt: daysAgo(10) },
+      { id: "new", status: "pending", createdAt: daysAgo(1) },
+    ];
+    const stalled = renderDerivedState({
+      works: [
+        ...waiting,
+        { id: "done", status: "approved", createdAt: daysAgo(20), reviewedAt: daysAgo(9) },
+      ],
+    });
+    expect(stalled.result.current.gardenHealthSeverity).toBe("critical");
+    expect(stalled.result.current.tabBadges.work).toEqual({ severity: "critical", count: 2 });
+    expect(stalled.result.current.overviewAlerts[0]).toMatchObject({
+      key: "work-critical",
+      label: 'app.garden.detail.alert.workCritical {"count":2}',
+    });
+
+    const reviewing = renderDerivedState({
+      works: [
+        ...waiting,
+        { id: "done", status: "approved", createdAt: daysAgo(3), reviewedAt: daysAgo(2) },
+      ],
+    });
+    expect(reviewing.result.current.gardenHealthSeverity).toBe("warn");
+    expect(reviewing.result.current.overviewAlerts[0]).toMatchObject({
+      key: "work-warning",
+      label: 'app.garden.detail.alert.workWarning {"count":1}',
+    });
+  });
+
+  it("reads a garden beyond its newest page from the garden's whole queue", () => {
+    const daysAgo = (days: number) => Math.floor((Date.now() - days * 86_400_000) / 1000);
+    const page = [{ id: "new", status: "pending", createdAt: daysAgo(1) }];
+
+    const pageOnly = renderDerivedState({ works: page, worksComplete: false });
+    expect(pageOnly.result.current.tabBadges.work).toEqual({ severity: "none" });
+
+    const gardenWide = renderDerivedState({
+      works: page,
+      worksComplete: false,
+      gardenReviewQueue: {
+        lastReviewedAt: daysAgo(9),
+        waiting: [
+          { id: "old", submittedAt: daysAgo(40) },
+          { id: "new", submittedAt: daysAgo(1) },
+        ],
+      },
+    });
+    expect(gardenWide.result.current.tabBadges.work).toEqual({ severity: "critical", count: 2 });
+    expect(gardenWide.result.current.overviewAlerts[0]).toMatchObject({
+      key: "work-critical",
+      label: 'app.garden.detail.alert.workCritical {"count":2}',
+    });
+  });
+
   it("does not surface the domain recovery alert while domain state is unknown", () => {
     const { result } = renderDerivedState();
 
     expect(result.current.overviewBadge).toEqual({ severity: "none" });
     expect(result.current.gardenHealthSeverity).toBe("none");
     expect(result.current.overviewAlerts).toEqual([]);
+  });
+
+  it("counts each person once across roles, whatever the address casing", () => {
+    const steward = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12";
+    const { result } = renderDerivedState({
+      members: {
+        ...roleMembers,
+        owner: [steward],
+        steward: [steward.toLowerCase()],
+        gardener: ["0x1111111111111111111111111111111111111111"],
+      },
+    });
+
+    // Three role seats, two people (DL-049).
+    expect(result.current.memberCount).toBe(2);
+    expect(result.current.directoryEntries[0]?.roles).toEqual(["owner", "steward"]);
   });
 });
