@@ -24,20 +24,23 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const mockReadContractReturn: {
   data: unknown;
   isLoading: boolean;
+  isPaused: boolean;
   error: Error | null;
-} = { data: undefined, isLoading: false, error: null };
+} = { data: undefined, isLoading: false, isPaused: false, error: null };
 
 const mockReadContractsReturn: {
   data: unknown;
   isLoading: boolean;
+  isPaused: boolean;
   error: Error | null;
-} = { data: undefined, isLoading: false, error: null };
+} = { data: undefined, isLoading: false, isPaused: false, error: null };
 
 const mockDecimalsReturn: {
   data: unknown;
   isLoading: boolean;
+  isPaused: boolean;
   error: Error | null;
-} = { data: undefined, isLoading: false, error: null };
+} = { data: undefined, isLoading: false, isPaused: false, error: null };
 
 let readContractCallCount = 0;
 let readContractsCallCount = 0;
@@ -54,6 +57,7 @@ vi.mock("wagmi", () => ({
           ? undefined
           : mockReadContractReturn.data,
       isLoading: mockReadContractReturn.isLoading,
+      isPaused: mockReadContractReturn.isPaused,
       error: mockReadContractReturn.error,
     };
   },
@@ -66,6 +70,7 @@ vi.mock("wagmi", () => ({
       return {
         data: enabled === false ? undefined : mockDecimalsReturn.data,
         isLoading: mockDecimalsReturn.isLoading,
+        isPaused: mockDecimalsReturn.isPaused,
         error: mockDecimalsReturn.error,
       };
     }
@@ -73,6 +78,7 @@ vi.mock("wagmi", () => ({
     return {
       data: enabled === false ? undefined : mockReadContractsReturn.data,
       isLoading: mockReadContractsReturn.isLoading,
+      isPaused: mockReadContractsReturn.isPaused,
       error: mockReadContractsReturn.error,
     };
   },
@@ -113,12 +119,15 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     mockModuleAddress = TEST_MODULE;
     mockReadContractReturn.data = undefined;
     mockReadContractReturn.isLoading = false;
+    mockReadContractReturn.isPaused = false;
     mockReadContractReturn.error = null;
     mockReadContractsReturn.data = undefined;
     mockReadContractsReturn.isLoading = false;
+    mockReadContractsReturn.isPaused = false;
     mockReadContractsReturn.error = null;
     mockDecimalsReturn.data = undefined;
     mockDecimalsReturn.isLoading = false;
+    mockDecimalsReturn.isPaused = false;
     mockDecimalsReturn.error = null;
   });
 
@@ -363,6 +372,19 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     });
 
     expect(result.current.isLoading).toBe(true);
+    expect(result.current.hasNoJar).toBe(false);
+  });
+
+  it("reports a read that waits for the network, which says nothing about the jars", () => {
+    // Offline, TanStack Query pauses the read: pending, not loading, no data.
+    mockReadContractReturn.isPaused = true;
+
+    const { result } = renderHook(() => useGardenCookieJars(TEST_GARDEN), {
+      wrapper: createTestWrapper(),
+    });
+
+    expect(result.current.isPaused).toBe(true);
+    expect(result.current.isLoading).toBe(false);
     expect(result.current.hasNoJar).toBe(false);
   });
 

@@ -4,7 +4,7 @@ import { useGardenAccountSigner } from "@green-goods/shared/hooks/garden/useGard
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import type { Address } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
-import { RiCupLine } from "@remixicon/react";
+import { RiCupLine, RiErrorWarningLine, RiWifiOffLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
@@ -39,7 +39,10 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
 
   const {
     jars,
-    isLoading: jarsLoading,
+    hasNoJar,
+    isPaused: jarsPaused,
+    error: jarsError,
+    hasDetailReadFailure,
     moduleConfigured: jarsModuleConfigured,
   } = useGardenCookieJars(gardenAddress, {
     enabled: Boolean(gardenAddress),
@@ -109,7 +112,44 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
     );
   }
 
-  if (jarsLoading) {
+  if (jars.length === 0) {
+    // Only a finished read that came back empty shows the garden has no jar. A read that is
+    // paused offline, failed, or still on its way proves nothing, and TanStack Query reports a
+    // paused or not-yet-fetching read as not loading.
+    if (hasNoJar) {
+      return (
+        <AdminCard density="none">
+          <AdminCardBody>
+            <EmptyState
+              icon={<RiCupLine className="h-6 w-6" />}
+              title={formatMessage({ id: "app.cookieJar.noJars" })}
+              // Says how a jar appears, since funding one is impossible without it (D10).
+              description={formatMessage({ id: "cockpit.community.payouts.noJarHow" })}
+            />
+          </AdminCardBody>
+        </AdminCard>
+      );
+    }
+    if (jarsPaused || jarsError || hasDetailReadFailure) {
+      const state = jarsPaused ? "jarsOffline" : "jarsReadFailed";
+      return (
+        <AdminCard density="none">
+          <AdminCardBody>
+            <EmptyState
+              icon={
+                jarsPaused ? (
+                  <RiWifiOffLine className="h-6 w-6" />
+                ) : (
+                  <RiErrorWarningLine className="h-6 w-6" />
+                )
+              }
+              title={formatMessage({ id: `cockpit.community.payouts.${state}.title` })}
+              description={formatMessage({ id: `cockpit.community.payouts.${state}.body` })}
+            />
+          </AdminCardBody>
+        </AdminCard>
+      );
+    }
     return (
       <div className="space-y-3" role="status" aria-live="polite">
         <span className="sr-only">{formatMessage({ id: "app.cookieJar.loading" })}</span>
@@ -121,21 +161,6 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
           />
         ))}
       </div>
-    );
-  }
-
-  if (jars.length === 0) {
-    return (
-      <AdminCard density="none">
-        <AdminCardBody>
-          <EmptyState
-            icon={<RiCupLine className="h-6 w-6" />}
-            title={formatMessage({ id: "app.cookieJar.noJars" })}
-            // Says how a jar appears, since funding one is impossible without it (D10).
-            description={formatMessage({ id: "cockpit.community.payouts.noJarHow" })}
-          />
-        </AdminCardBody>
-      </AdminCard>
     );
   }
 
