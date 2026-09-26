@@ -249,7 +249,7 @@ Vitest project):
   chain's first; `/cookies` then lands on the garden picker instead of Campaign Cookie Jars. No
   chain is near 50 today. A stub was tried and reverted (see TDD Proof); the fix should fetch the
   protocol garden's own record for deployers, so it carries its real name and fails like any
-  other indexer read. Destination: pending Afo's call (a Linear issue or the next hub).
+  other indexer read. Destination: PRD-988, filed 2026-09-25 with Afo's go-ahead.
 - The flow-dialog conversion is the largest UI change in this plan; keep the campaign state
   logic as it is and only re-host it.
 - The redirect needs the protocol garden's address before the first render; fall back to the

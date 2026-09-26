@@ -94,11 +94,11 @@ PR1's branch already carries this hub as its first commit.
 - [x] View colours onto Warm Earth aliases (D32)
 - [x] Ratchet in the design-token check; frontend-design Rules 9 and 13 clarified (D32)
 - [x] Remaining copy and nesting (D30, D33); remaining write-surface stories (D25)
-- [ ] PR opened, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
+- [x] PR opened, CI green, merged; sub-lane and Linear child updated (#910, 2026-09-26; the hosted bots could not review it, so a local review stood in, with Afo's agreement)
 
 ### QA Pass 1 and 2
 
-- [ ] After PR5: walk the acceptance checks in `eval.md` at 1280 and 375, light and dark
+- [x] After PR5: walk the acceptance checks in `eval.md` at 1280 and 375, light and dark (QA pass 1, 2026-09-26)
 - [ ] Record findings in `handoffs/claude-qa-pass-1.md` and `handoffs/codex-qa-pass-2.md`
 
 ## TDD / Proof Order
