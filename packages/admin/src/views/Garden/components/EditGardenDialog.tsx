@@ -224,6 +224,7 @@ export function EditGardenDialog({
               bannerImage: garden.bannerImage,
               domainMask: garden.domainMask,
               openJoining: garden.openJoining,
+              maxGardeners: garden.maxGardeners,
             }}
             canManage={canManage}
             isOwner={isOwner}

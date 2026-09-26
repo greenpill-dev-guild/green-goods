@@ -542,6 +542,30 @@ describe("GardenSettingsEditor explicit save", () => {
     });
   });
 
+  it("holds Limit gardeners until the garden's cap loads, then takes it without sending it", async () => {
+    const user = userEvent.setup();
+    const unread = { ...GARDEN, maxGardeners: undefined };
+    const view = renderEditor({ garden: unread });
+
+    // An unread cap is not unlimited: the switch waits and says why.
+    expect(screen.getByRole("switch", { name: "Limit gardeners" })).toBeDisabled();
+    expect(
+      screen.getByText("The current limit hasn't loaded yet, so it can't be changed.")
+    ).toBeInTheDocument();
+
+    // The steward edits another field, and then the cap loads.
+    const locationInput = screen.getByLabelText("Location");
+    await user.clear(locationInput);
+    await user.type(locationInput, "Lisbon, Portugal");
+    view.rerender(<EditorHarness overrides={{ garden: { ...unread, maxGardeners: 25 } }} />);
+
+    expect(screen.getByRole("switch", { name: "Limit gardeners" })).toBeChecked();
+    expect(screen.getByLabelText("Maximum gardeners")).toHaveValue(25);
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() => expect(mockUpdateLocation).toHaveBeenCalled());
+    expect(mockSetMaxGardeners).not.toHaveBeenCalled();
+  });
+
   it("selects a domain inline and saves it with the rest on Save", async () => {
     const user = userEvent.setup();
     renderEditor();

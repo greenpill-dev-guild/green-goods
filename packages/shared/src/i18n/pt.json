@@ -2033,6 +2033,7 @@
   "app.garden.settings.location": "Local",
   "app.garden.settings.maxGardeners": "Máximo de jardineiros",
   "app.garden.settings.maxGardenersDescription": "Limite quantos jardineiros podem entrar. Desligado significa ilimitado.",
+  "app.garden.settings.maxGardenersUnread": "O limite atual ainda não carregou, então não pode ser alterado.",
   "app.garden.settings.name": "Nome",
   "app.garden.settings.nameOwnerOnly": "Só a pessoa dona do jardim pode mudar o nome dele.",
   "app.garden.settings.nameRequired": "O nome do jardim é obrigatório",
