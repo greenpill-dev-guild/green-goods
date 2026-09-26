@@ -3000,7 +3000,6 @@
   "app.submission.status.error": "erro",
   "app.submission.status.inProgress": "em andamento",
   "app.submission.status.pending": "pendente",
-  "app.syncBar.pendingOffline": "Offline: {count, plural, one {# item salvo} other {# itens salvos}} neste dispositivo",
   "app.syncBar.pendingOnline": "{count, plural, one {# item aguardando} other {# itens aguardando}} envio",
   "app.title": "Bem-vindo ao App",
   "app.toast.actionFailed": "Ação falhou",
@@ -5950,6 +5949,5 @@
   "app.uploads.discardFailedMessage": "O trabalho continua neste dispositivo. Tente novamente em instantes.",
   "app.uploads.discardRefusedMessage": "Ele pode já estar a caminho do registro do jardim. Confira Seu trabalho.",
   "app.uploads.tryAgainFailedTitle": "Não foi possível tentar de novo",
-  "app.uploads.tryAgainFailedMessage": "Seu trabalho continua salvo neste dispositivo. Tente novamente em instantes.",
-  "app.syncBar.reviewUploads": "Revisar envios"
+  "app.uploads.tryAgainFailedMessage": "Seu trabalho continua salvo neste dispositivo. Tente novamente em instantes."
 }

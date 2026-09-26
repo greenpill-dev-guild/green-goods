@@ -29,10 +29,6 @@ export interface WorkDashboardReturnState {
 }
 
 export type UIState = {
-  // Global offline/queue indicators
-  isOfflineBannerVisible: boolean;
-  setOfflineBannerVisible: (visible: boolean) => void;
-
   // Work dashboard/modal controls
   isWorkDashboardOpen: boolean;
   /** Tab the dashboard should open to (consumed once on mount); undefined = default tab. */
@@ -99,9 +95,6 @@ export type UIState = {
 export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
-      isOfflineBannerVisible: false,
-      setOfflineBannerVisible: (visible) => set({ isOfflineBannerVisible: visible }),
-
       isWorkDashboardOpen: false,
       workDashboardInitialTab: undefined,
       workDashboardInitialPendingFilter: undefined,

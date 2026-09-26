@@ -256,7 +256,6 @@ export {
   StatCard,
   type StatCardProps,
 } from "./StatCard";
-export { SyncStatusBar } from "./SyncStatusBar";
 // Toast Preset i18n Factory Functions
 export type { FormatMessageFn } from "./Toast/presets";
 // Toast Presets (default English)

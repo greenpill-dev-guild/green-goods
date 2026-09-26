@@ -148,7 +148,7 @@ On-chain contracts, indexers, and resolvers are Autonomic Users — non-human ac
 |-----------------|-------------|-----------------|
 | **EAS Resolver** | Validates attestation schema | Status indicator: "Verifying schema..." → "Confirmed" or "Schema mismatch — contact steward" |
 | **Envio Indexer** | Materializes on-chain events | Sync indicator: "Last indexed: 2 min ago" (staleness, not loading spinner) |
-| **Job Queue** | Queues offline submissions | SyncStatusBar: "3 queued · will sync when online" |
+| **Job Queue** | Queues offline submissions | Home tab count + Your Work › Pending: "To upload" · Upload all |
 | **Smart Contracts** | Enforce role-based access | Permission indicator: "Your role: Gardener · Can submit work, cannot approve" |
 
 **Material guidance**: Autonomic user surfaces are **Ambient Display** paradigm ([SKILL.md](./SKILL.md)) — Thin material, peripheral, glanceable. They should never demand attention unless something breaks. When an autonomic actor fails (resolver rejects, indexer falls behind), promote to **Command Surface** paradigm with Thick material.

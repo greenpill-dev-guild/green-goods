@@ -3000,7 +3000,6 @@
   "app.submission.status.error": "error",
   "app.submission.status.inProgress": "en progreso",
   "app.submission.status.pending": "pendiente",
-  "app.syncBar.pendingOffline": "Sin conexión: {count, plural, one {# elemento guardado} other {# elementos guardados}} en este dispositivo",
   "app.syncBar.pendingOnline": "{count, plural, one {# elemento esperando} other {# elementos esperando}} para subir",
   "app.title": "Bienvenido a la App",
   "app.toast.actionFailed": "Acción fallida",
@@ -5950,6 +5949,5 @@
   "app.uploads.discardFailedMessage": "El trabajo sigue en este dispositivo. Inténtalo de nuevo en un momento.",
   "app.uploads.discardRefusedMessage": "Puede que ya vaya camino al registro del jardín. Revisa Tu trabajo.",
   "app.uploads.tryAgainFailedTitle": "No se pudo reintentar",
-  "app.uploads.tryAgainFailedMessage": "Tu trabajo sigue guardado en este dispositivo. Inténtalo de nuevo en un momento.",
-  "app.syncBar.reviewUploads": "Revisar subidas"
+  "app.uploads.tryAgainFailedMessage": "Tu trabajo sigue guardado en este dispositivo. Inténtalo de nuevo en un momento."
 }
