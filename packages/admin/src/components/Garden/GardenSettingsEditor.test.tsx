@@ -320,6 +320,57 @@ describe("GardenSettingsEditor explicit save", () => {
     expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
   });
 
+  it("shows a rename another steward made while the form was open, and never sends it back", () => {
+    const view = renderEditor();
+
+    view.rerender(
+      <EditorHarness overrides={{ garden: { ...GARDEN, name: "Renamed Elsewhere" } }} />
+    );
+
+    expect(screen.getByLabelText(/Name/, { selector: "input" })).toHaveValue("Renamed Elsewhere");
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
+    for (const mutation of allMutations()) expect(mutation).not.toHaveBeenCalled();
+  });
+
+  it("takes another steward's rename beside a pending edit, and Save sends only the edit", async () => {
+    const user = userEvent.setup();
+    const view = renderEditor();
+    const descriptionInput = screen.getByLabelText("Description");
+    await user.clear(descriptionInput);
+    await user.type(descriptionInput, "Restoring the river bank.");
+
+    view.rerender(
+      <EditorHarness overrides={{ garden: { ...GARDEN, name: "Renamed Elsewhere" } }} />
+    );
+
+    // A refresh takes every field the steward has not edited; the fields they have edited keep
+    // their edits, so the rename shows and Save sends the description alone.
+    expect(screen.getByLabelText(/Name/, { selector: "input" })).toHaveValue("Renamed Elsewhere");
+    expect(screen.getByLabelText("Description")).toHaveValue("Restoring the river bank.");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(await screen.findByText("All changes saved")).toBeInTheDocument();
+    expect(mockUpdateDescription).toHaveBeenCalledWith({
+      gardenAddress,
+      value: "Restoring the river bank.",
+    });
+    expect(mockUpdateName).not.toHaveBeenCalled();
+  });
+
+  it("keeps a staged banner through another steward's change", async () => {
+    const view = renderEditor();
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["banner"], "banner.png", { type: "image/png" });
+    fireEvent.change(input, { target: { files: [file] } });
+    expect(await screen.findByText(/banner\.png/)).toBeInTheDocument();
+
+    view.rerender(
+      <EditorHarness overrides={{ garden: { ...GARDEN, name: "Renamed Elsewhere" } }} />
+    );
+
+    expect(screen.getByLabelText(/Name/, { selector: "input" })).toHaveValue("Renamed Elsewhere");
+    expect(screen.getByText(/banner\.png/)).toBeInTheDocument();
+  });
+
   it("starts over when the editor is handed another garden", async () => {
     const user = userEvent.setup();
     const view = renderEditor();

@@ -96,16 +96,6 @@ export function draftFromGarden(garden: GardenSettingsValues): SettingsDraft {
   };
 }
 
-/**
- * The draft with the garden's cap once it is read, whatever else is edited: the cap could not be
- * edited before, so there is nothing of the steward's to keep.
- */
-export function withReadCap(draft: SettingsDraft, garden: GardenSettingsValues): SettingsDraft {
-  if (draft.capRead || garden.maxGardeners === undefined) return draft;
-  const { limitGardeners, maxGardeners, capRead } = draftFromGarden(garden);
-  return { ...draft, limitGardeners, maxGardeners, capRead };
-}
-
 /** The cap the draft saves: with the limit off, 0 (unlimited). */
 export function effectiveMaxGardeners(draft: SettingsDraft): number {
   return draft.limitGardeners ? Number(draft.maxGardeners) : 0;
@@ -150,18 +140,26 @@ export function withoutReportedValues(
 }
 
 /**
- * The refreshed garden as a clean draft, except where a value landed this
- * session and the garden has yet to report it: there the current draft,
- * which holds that value, stays.
+ * The draft after a refresh, field by field. A field the steward has not edited
+ * since the draft last synced to `shown` takes the refreshed garden's value, so
+ * a change another steward made while the form was open shows and is never
+ * written back. A field the steward has edited keeps the edit, and a value that
+ * landed this session stays until the garden reports it. A cap read only now
+ * joins the draft: until it loaded it could not be edited.
  */
 export function adoptRefreshedGarden(
   current: SettingsDraft,
+  shown: GardenSettingsValues,
   garden: GardenSettingsValues,
   landed: LandedValues
 ): SettingsDraft {
   const next = draftFromGarden(garden);
-  for (const field of Object.keys(withoutReportedValues(landed, garden))) {
-    switch (field as keyof LandedValues) {
+  const kept = new Set<GardenSettingsField>([
+    ...(Object.keys(withoutReportedValues(landed, garden)) as GardenSettingsField[]),
+    ...dirtyFieldsOf(current, shown, landed),
+  ]);
+  for (const field of kept) {
+    switch (field) {
       case "name":
         next.name = current.name;
         break;
@@ -177,9 +175,14 @@ export function adoptRefreshedGarden(
       case "maxGardeners":
         next.limitGardeners = current.limitGardeners;
         next.maxGardeners = current.maxGardeners;
+        next.capRead = current.capRead;
         break;
       case "domains":
         next.domains = current.domains;
+        break;
+      case "banner":
+        next.bannerFile = current.bannerFile;
+        next.bannerRemoved = current.bannerRemoved;
         break;
     }
   }
