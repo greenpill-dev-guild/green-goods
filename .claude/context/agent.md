@@ -1,6 +1,6 @@
 # Agent Package Context
 
-Loaded when working in `packages/agent/`. Extends CLAUDE.md.
+Loaded when working in `packages/agent/`. Extends `packages/agent/AGENTS.md`.
 
 ## Quick Reference
 

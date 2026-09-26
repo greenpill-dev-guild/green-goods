@@ -29,7 +29,7 @@
 |-------------|--------------|--------|
 | User can X  | Step 3       | ⏳     |
 
-## CLAUDE.md Compliance
+## Repository guidance compliance
 - [ ] Hooks in shared package
 - [ ] i18n for UI strings
 - [ ] Deployment artifacts for addresses

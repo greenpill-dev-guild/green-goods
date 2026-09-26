@@ -13,7 +13,7 @@ Systematic repo-health analysis: dead code detection, dependency health, invaria
 
 Prefer `/review` first. This skill is for broader repo-health drift, not for every change or every question.
 
-**References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants. Read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md)
+**References**: See `AGENTS.md` and the nearest package guide for codebase patterns and `.claude/context/*.md` for per-package invariants. Read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md)
 when measurable drift exposes architecture friction; use it to classify the signal, not to design a
 replacement.
 
@@ -64,7 +64,7 @@ These are mandatory:
 
 `/audit drift [scope]` is the fast, read-only classifier (formerly the standalone `drift` skill). It does not run the numbered full-audit parts.
 
-1. Run `bun run check --only drift -- --scope <scope>` (scopes: `all`, `guidance`, `plans`, `design`, `docs`, `ontology`, `cleanup`, `quality`; add `--json` for machine output). The `ontology` scope reports a distinct infra-fault status when the checker itself cannot run — treat that as a tooling failure to fix, not ontology drift.
+1. Render the root validation plan, then run `node scripts/quality/drift-check.mjs --scope <scope>` (scopes: `all`, `guidance`, `plans`, `design`, `docs`, `ontology`, `cleanup`, `quality`; add `--json` for machine output). The `ontology` scope reports a distinct infra-fault status when the checker itself cannot run — treat that as a tooling failure to fix, not ontology drift.
 2. Report numbered findings with category, severity, evidence, and recommended route. Treat `WARN` output as a finding; include working-tree context if the checker reports a dirty tree.
 3. Stop for human scope lock before fixing anything.
 
@@ -173,7 +173,7 @@ For each file in CHANGED packages, check:
 
 1. **Deprecations** -- outdated patterns, old APIs
 2. **Unfinished work** -- TODO comments with staleness
-3. **Architectural violations** (per CLAUDE.md): hooks in client/admin, package .env files, hardcoded addresses, undeclared `shared/src/**` internal imports
+3. **Architectural violations** (per the nearest AGENTS.md): hooks in client/admin, package .env files, hardcoded addresses, undeclared `shared/src/**` internal imports
 4. **Type problems** -- `any`, `unknown`, type assertions
 5. **Code smells** -- long functions, deep nesting
 6. **Bare catch blocks** -- classify each:
@@ -332,9 +332,9 @@ core: [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-r
 
 Audit-specific deltas:
 
-- Issue bodies include the relevant Greenpill template sections: Outcome or Research question,
-  Protocol context, Scope boundary or Evidence to gather, Acceptance criteria or Expected output,
-  Validation or Routing recommendation, Privacy note when applicable, and Links.
+- Use the shared three-block issue structure: problem or outcome, checkable completion
+  criteria, and evidence. Include audit-specific severity and confidence only where they
+  change the reader's next action; do not add a parallel template.
 - Findings originate in the current audit response; accepted tracking lives in Linear.
 
 ---

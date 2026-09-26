@@ -41,7 +41,7 @@ Explore context → Research factual gaps → Ask dependency-aware frontier roun
 - Read relevant files in the affected packages
 - Check recent commits touching the area
 - Check for existing plans in `.plans/active/` that overlap
-- Read `CLAUDE.md` + package context files (`.claude/context/*.md`)
+- Read `AGENTS.md` + package context files (`.claude/context/*.md`)
 
 Don't ask the user about things the code or docs already answer.
 
@@ -114,7 +114,7 @@ Cover:
 - **Components / entities** — what gets created, what gets modified
 - **Data flow** — mutations, queries, onchain calls, indexer entities
 - **Error handling** — what fails, how we surface it
-- **Offline behavior** — what works without network (per CLAUDE.md intent priority 1)
+- **Offline behavior** — what works without network (per `.claude/context/values.md`)
 - **Test strategy** — what to unit/integration/e2e test
 - **Breaking changes / migrations** — if any
 
@@ -156,7 +156,7 @@ On approval, move the brief to `.plans/active/<slug>/brief.md`, then move to pla
 
 - **Dependency-aware rounds** — ask the current independent frontier together, then advance
 - **YAGNI ruthlessly** — remove everything the user didn't ask for
-- **Resolve intent priorities** — when approaches conflict, default to: offline > security > UX > DX > elegance (per CLAUDE.md)
+- **Resolve intent priorities** — when approaches conflict, default to: offline > security > UX > DX > elegance (per `.claude/context/values.md`)
 - **Scale to complexity** — a bug fix doesn't need a 10-section design; a new module does
 - **Evidence before claims** — don't claim alignment until the user explicitly approves each section
 

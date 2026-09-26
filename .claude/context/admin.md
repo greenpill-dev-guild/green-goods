@@ -1,6 +1,6 @@
 # Admin Package Context
 
-Loaded when working in `packages/admin/`. Extends CLAUDE.md.
+Loaded when working in `packages/admin/`. Extends `packages/admin/AGENTS.md`.
 
 **Primary persona**: David (Steward). For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
 

@@ -144,7 +144,7 @@ test("contract guard fails when raw Forge is allowed", () => {
   const sources = replaceRequiredMarker(
     liveSources,
     "AGENTS.md",
-    /Never use raw `forge`; use the repo's bun scripts/i,
+    /Use the Bun contract wrappers, never raw Forge/i,
     "Use raw `forge` directly for contract work",
   );
 
@@ -156,8 +156,8 @@ test("contract guard fails when raw Forge is allowed", () => {
 test("contract guard fails when missing addresses imply a P0", () => {
   const sources = replaceRequiredMarker(
     liveSources,
-    "AGENTS.md",
-    /pending broadcast[\s\S]{0,80}not an automatic P0/i,
+    "packages/contracts/AGENTS.md",
+    /Pending broadcast[\s\S]{0,140}Do not turn this into a P0 by itself/i,
     "an automatic P0",
   );
 

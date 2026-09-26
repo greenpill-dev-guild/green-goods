@@ -1,6 +1,6 @@
 # Green Goods Research Agenda
 
-**Edition:** v1 · 2026-09-02 · **Owner:** Afo (Research panel: afo, coi, matt)
+**Edition:** v2 · 2026-09-24 · **Owner:** Afo (Research panel: afo, coi, matt)
 **Read by:** the [`research-synthesis`](research-synthesis.md) routine every Saturday 00:00 UTC, and by anyone asking "what are we researching and why".
 **Review cadence:** humans edit this file at each Research (RESR) cycle boundary, roughly monthly. The routine never edits it; it reports **agenda drift** in its weekly memo with ready-to-paste wording, and the panel decides what changes.
 
@@ -31,15 +31,15 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 | # | Track | Horizon | Stage | Anchor | The frontier, in one line |
 |---|---|---|---|---|---|
-| 1 | Commitment pooling | now | evidencing | Linear project *Commitment Pooling* · RESR-73 / RESR-74 | Read the live Cosmo-Local Credit deployment and decide network membership; prove whether vouchers move through a third party |
-| 2 | Impact methodology and verifiable reporting | quarter | evidencing | Linear project *Impact Framework v0.1 Refresh* · RESR-46 / RESR-65 | Ground the base attestation schema in the live schemas and define the public metric set before the 2026-09-30 House of Alignment report |
+| 1 | Commitment pooling | now | evidencing | Linear project *Commitment Pooling* · RESR-73 / RESR-74 | Use the completed deployment read to decide network terms; prove whether credits move through a third party |
+| 2 | Impact methodology and verifiable reporting | quarter | evidencing | Linear project *Impact Framework v0.1 Refresh* · RESR-46 / RESR-49 / RESR-14 / RESR-77 | Settle the base evidence and evaluator meaning, then define what a report and certificate claim |
 | 3 | Yield strategies for garden endowments | quarter | evidencing | RESR-9 / RESR-15 / RESR-8 | A strategy and preset recommendation with live APY evidence, plus the funding-rail map it sits in |
 | 4 | Capital access: off-ramps and on-ramps by geography | quarter | blocked (external) | Linear project *Capital Off-Ramp Corridors* · RESR-70 | Five provider facts that only direct contact can settle; the on-ramp side is unframed |
-| 5 | Accessible impact reporting via WhatsApp and SMS | quarter | framing | RESR-75 · Linear project *Agent Messaging Channels (WhatsApp + SMS)* | Write the entry criteria the strategy already requires (RESR-75, unowned) |
-| 6 | Revenue token models (Revnets) for a goods and services layer | next | framing | RESR-76 (RESR-15 rail row; AgroforestDAO case) | Frame what a Revnet adds beyond pooling, vaults, and cash-out, using AgroforestDAO's live setup as the case (RESR-76, unowned) |
-| 7 | Community infrastructure with AI for data sovereignty | 12mo | horizon (Phase 0) | Linear initiative *Community Evidence Mesh* | Phase 0 outputs: burden baseline, metric registry v0, Evidence Envelope v0, the ADR |
+| 5 | Accessible impact reporting via WhatsApp and SMS | quarter | evidencing | RESR-75 / RESR-79 · Linear project *Agent Messaging Channels (WhatsApp + SMS)* | Measure the deterministic chat path; decide whether and how a model may read gardener reports |
+| 6 | Revenue token models (Revnets) for a goods and services layer | next | framing | RESR-76 (RESR-15 rail row; AgroforestDAO case) | Frame what a Revnet adds beyond pooling, vaults, and cash-out, using AgroforestDAO's live setup as the case (RESR-76, unassigned; December cycle) |
+| 7 | Community infrastructure with AI for data sovereignty | 12mo | horizon | Linear initiative *Community Evidence Mesh* | Phase 0 outputs: burden baseline, metric registry v0, Evidence Envelope v0, the ADR |
 
-**Why this order.** Commitment pooling is the core loop and the current cycle theme, so it leads. Impact methodology is second because it has the hardest deadline (the House of Alignment quarterly report on 2026-09-30 needs RESR-65), it is the Q3 strategy's third focus, and it feeds tracks 3, 5, and 7. Yield is third because the Sustainability & Monetization initiative is at risk and the research already has an owner and a cycle slot. Capital access is fourth: the desk research is finished and the next step is external, so weekly synthesis can only track and watch for regulatory movement. Accessible reporting is fifth because the strategy gates the build on entry criteria nobody had written until RESR-75, which is exactly research work. Revnets is sixth because it is the newest and least framed. The evidence mesh is the long horizon by the steward's own framing; it is reviewed monthly and connected to the near-term tracks rather than synthesized weekly.
+**Why this order.** Commitment pooling is the core loop and the current cycle theme, so it leads. Impact methodology is second because its evidence and evaluator definitions feed tracks 3, 5, and 7. The first House of Alignment report (GROW-15) is Done and its metric-inventory issue (RESR-65) was Canceled; neither remains an open September gate. Yield is third because the Sustainability & Monetization initiative is at risk and the strategy research is in progress. Capital access is fourth: the desk research is finished and the next step requires provider contact. Accessible reporting is fifth because the entry criteria are Done and the remaining research decides whether gardener text may reach an inference provider. Revnets is sixth because its framing sits in the December cycle. The evidence mesh is the long horizon and is reviewed monthly.
 
 ## 1. Commitment pooling
 
@@ -52,7 +52,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 **Anchors.**
 - Linear project [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354) (In Progress, target 2026-09-30; milestones through *Follow On / Hardening*).
-- RESR-73 (design record for Cosmo-Local Credit voucher interoperability, In Progress) and RESR-74 (read the live deployment before committing, In Progress, due 2026-09-15). RESR-57 and RESR-58 (external brief and v1 scenarios, Done) are the canonical scenario pack.
+- RESR-73 (design record for Cosmo-Local Credit voucher interoperability, In Progress) and RESR-74 (live-deployment read, Done). RESR-57 and RESR-58 (external brief and v1 scenarios, Done) are the canonical scenario pack.
 - PRD-650 (August proof), PRD-649 (architecture record), PRD-651 (exchange, redemption, federation; evidence-gated), PRD-796 (compatibility boundary), PRD-857 (hackathon build).
 - Linear documents: *Commitment Pooling — Lifecycle And Aggregator Semantics*, *Pool Identity + Capability Architecture*, *Settlement Capability — Vouchers On Shared Pool Identity*, *Proof Capability*, *Feedback & Notes*.
 - External canonical doc: the Green Goods Commitment Pooling Google Doc (tabs 01 External Brief and 04 Rollout Plan, owned by RESR-57).
@@ -67,13 +67,13 @@ Each track carries the same fields. The routine reads them literally, so keep th
 - Token expiry is not used; the Grassroots Economics repository is AGPL-3.0 and its security review is internal, so it does not satisfy the external-audit gate (RESR-73). Clean-room boundary: paper and public docs only.
 
 **Open.**
-1. The live Cosmo-Local Credit configuration: owner and proxy admin per contract, protocol and pool fees, seal state, whether a pool proxy exists, and whether burn works after expiry on a fork. Next step: the on-chain read and fork check in RESR-74. Answerable by the team.
+1. Which network-membership path, if any, the completed RESR-74 findings support. Next step: carry its live-deployment findings into the go or no-go decision and name any remaining partner terms. Answerable by the team and Grassroots Economics.
 2. The Grassroots Economics questions (supported versions for third-party use, licence for deployed interaction, quoter and limiter behaviour in production, wrap restriction to fulfilled commitments, who owns the pool a Green Goods voucher lists into). Next step: confirm whether the 19 August conversation happened and what it produced; if not, send the five prepared questions. Answerable by Grassroots Economics.
 3. The pilot's falsifiable question: do vouchers move through a third party, or does everything settle bilaterally? Next step: collect the pilot-evidence-spec metrics from one garden cycle. Answerable only by pilot data.
 4. The second confirmer on a redemption has no answer yet (RESR-73 tensions). Next step: a design note in the exchange brief.
 5. Pilot-garden adoption: the Tech & Sun weekly sync of 2026-09-01 recorded a next step to present the protocol and team incentives to the garden team. Next step: the presentation and its feedback into *Feedback & Notes*.
 
-**Implementable when.** RESR-74's findings record exists with a documented go or no-go on network membership; the Grassroots questions are answered; and one garden cycle has produced pilot-evidence metrics. Exchange work then moves through the PRD-651 gates (external audit, 3-of-5 Safe, 48-hour timelock, two weeks of testnet, tested rollback, explicit authorization).
+**Implementable when.** The RESR-74 findings are carried into a documented go or no-go on network membership; the Grassroots questions are answered; and one garden cycle has produced pilot-evidence metrics. Exchange work then moves through the PRD-651 gates (external audit, 3-of-5 Safe, 48-hour timelock, two weeks of testnet, tested rollback, explicit authorization).
 
 **Watch keywords.** commitment, pool, pooling, voucher, Cosmo-Local, CLC, Grassroots Economics, Sarafu, settlement, G$, GoodDollar, clearing, mutual credit, CCIP, redemption, federation, cycle policy.
 
@@ -84,44 +84,44 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 **Question.** How does the data generated on Green Goods (work, approvals, assessments, hypercerts) become an impact report that fits a named standard, is verifiable by outsiders, and is a credible asset a funder can invest in or support?
 
-**Why it matters.** The Q3 strategy's third focus is "impact claims become outsider-verifiable: GIF v0.1 published, one real evaluation run end to end, one funder report in its language". The House of Alignment quarterly report (GROW-15, due 2026-09-30) depends on the public metric set (RESR-65). This track also supplies the language for yield-to-impact (track 3), the evidence contract for messaging channels (track 5), and the metric registry for the evidence mesh (track 7).
+**Why it matters.** The Q3 strategy's third focus is "impact claims become outsider-verifiable: GIF v0.1 published, one real evaluation run end to end, one funder report in its language". The first House of Alignment report (GROW-15) is Done; its metric-inventory issue (RESR-65) was Canceled. The remaining research must make reporting definitions reusable beyond that first report. This track also supplies the language for yield-to-impact (track 3), the evidence contract for messaging channels (track 5), and the metric registry for the evidence mesh (track 7).
 
 **Anchors.**
 - Linear project [Impact Framework v0.1 Refresh](https://linear.app/greenpill-dev-guild/project/impact-framework-v01-refresh-79f8601bb953) (Backlog, target 2026-11-30) under the *Impact Methodologies & Evaluator Flywheel* initiative.
-- The chain, in the order the June comments fixed it: RESR-46 (base attestation schema) → RESR-49 (data standards, baselines, governance) → RESR-14 (evaluator workflow and rubric v0.1); RESR-47 (IFRS S1/S2 mapping object) downstream and optional; RESR-8 (yield-to-impact codification) consumes track 3.
-- RESR-65 (metric inventory for the House of Alignment report; Todo, unowned, Low). RESR-6 (taxonomy and glossary v1) and RESR-52 (reviewer and methodology collaborators) are Done.
+- The existing Linear blockers set the foundation order: RESR-46 (base attestation schema) → RESR-49 (data standards, baselines, governance) → RESR-14 (evaluator workflow and rubric v0.1). RESR-77 defines report and certificate meaning against that foundation; RESR-8 (yield-to-impact language) consumes track 3; RESR-47 (IFRS S1/S2 mapping) is downstream and optional.
+- RESR-65 (metric inventory) was Canceled and GROW-15 (first House of Alignment report) is Done. RESR-6 (taxonomy and glossary v1) and RESR-52 (reviewer and methodology collaborators) are Done.
 - Linear documents: *Consolidation Memo — Impact Framework v0.1 Architecture*, *Literature Review Addendum — Biodiversity Infrastructure, Standards, MRV, and Certification Layers*, *Research Memo — IFRS S1/S2 Constraint Ladder*, *Research Memo — Outcome-Based Verification: Savory EOV and Backstory's Prove (2026-08-23)*, *Impact-Claim Domain Taxonomy & Glossary v1*, *A measurement framework for Green Goods regen impact*.
-- The public garden impact API (the machine-readable surface shipped in PR 782, `packages/agent/src/api/routes/public-garden-impact.ts`) and `.plans/ideas/environmental-data-inputs/` with RESR-10 and RESR-72 (Open Forest Protocol and Silvi as verified-outcome inputs). Environmental data inputs are folded into this track as the MRV sub-question; they are not a separate agenda item.
+- The public garden impact API (the machine-readable surface shipped in PR 782, `packages/agent/src/api/routes/public-garden-impact.ts`) and `.plans/ideas/environmental-data-inputs/` with RESR-10 and RESR-72 (Open Forest Protocol and Silvi as verified-outcome inputs). Those issues are unprojected after their former project was Canceled. Environmental data inputs remain an MRV sub-question here until a specific provider and pilot make a bounded research project useful.
 
 **Status surface.** Project status update on *Impact Framework v0.1 Refresh*.
 
 **Settled.**
 - Taxonomy and glossary v1 are accepted (RESR-6). Reviewer and collaborator network exists (RESR-52).
-- Sequencing is fixed in comments, not in Linear relations, which is why the board does not enforce it (research-synthesis memo 2026-08-08).
+- The RESR-46 → RESR-49 → RESR-14 sequence is already recorded in Linear blocker relations; the project description now explains the later report, funder-language, and optional mapping work.
 - Work submissions capture no per-measurement coordinates; only gardens have a location. Per-measurement coordinates are a hard requirement for forest MRV of any kind (RESR-72 exploration). Open Forest Protocol has no public API, SDK, or developer docs, so anything past link-only needs a partnership; Silvi is the cheaper EVM-native alternative with an unverified integration surface.
 - RESR-46 is stalled on one bounded revision request from 2026-06-18: ground the schema in the current work-submission and approval schemas, where sensor, human, and AI provenance fields already exist.
 
 **Open.**
 1. The RESR-46 revision. Next step: a crosswalk from the current submission and approval schemas to the proposed base fields, starting with the location row that RESR-72 already evidenced. Answerable by anyone with repo access.
-2. The public metric set and its sources for the 2026-09-30 report (RESR-65: TVL, yield, participation, submissions, assessments, and what each is read from). Next step: name an owner and draft the set from the public garden impact API's response types. Answerable by the team.
+2. Which metric definitions and sources from the completed GROW-15 report should become the reusable registry, and which still need a source. Next step: compare that report's evidence packet with the public garden impact API's response types. Answerable by the team.
 3. Which standard the first report targets and what "verifiable" means to a funder: evaluator attestation with provenance, or third-party MRV. IRIS+, IMP, and CIDS as reporting vocabularies versus IFRS S1/S2 as a disclosure-supporting overlay (RESR-49, RESR-47). Next step: a one-page decision note for the panel.
 4. What outcome-based verification (Savory EOV, Backstory's Prove) implies for the evaluator rubric (RESR-14). Next step: fold the 2026-08-23 memo's findings into the RESR-14 acceptance criteria.
 
-**Implementable when.** RESR-65 is accepted, RESR-46 is accepted, and one real evaluation run plus one funder report exist in the framework's language.
+**Implementable when.** RESR-46 and the dependent standards and evaluator decisions are accepted, the report and certificate meanings are settled, and a real evaluation run plus a funder report can be expressed in the framework's language. RESR-47 remains an optional overlay.
 
 **Watch keywords.** impact, methodology, evaluator, rubric, attestation, EAS, schema, hypercert, MRV, IRIS, IMP, CIDS, IFRS, baseline, metric registry, verification, verifiable, impact report, funder report, Open Forest Protocol, OFP, Silvi, Savory, EOV, Prove.
 
 ## 3. Yield strategies for garden endowments
 
 **Horizon:** quarter · **Stage:** evidencing
-**Note:** owned, not yet started.
+**Note:** RESR-9 is assigned and In Progress in the current Research cycle.
 
 **Question.** Which vault strategies and presets give garden endowments materially better yield than today's Aave-only position while staying conservative, who controls principal and yield, and how does yield turn into funded impact?
 
 **Why it matters.** The *Sustainability & Monetization* initiative is marked at risk and "first protocol revenue" is the quarter's bar. The cycle theme names yield impact. The `/vaults` Octant vault and Cookie Jar flows exist, and the harvest-to-distribution operator flow is in progress (PRD-763).
 
 **Anchors.**
-- RESR-9 (RWA Yield Expansion research; Todo, assigned to Matt, in the current cycle), RESR-15 (map Season Two campaigns, vaults, and funding rails; Todo, unowned), RESR-8 (yield-to-impact codification; Backlog).
+- RESR-9 (RWA Yield Expansion research; In Progress, assigned to Matt, in the current cycle), RESR-15 (map Season Two campaigns, vaults, and funding rails; Todo, assigned to Afo in Q4 October), RESR-8 (yield-to-impact codification; Backlog).
 - Linear project [Operator Yield Split Visibility & Presets](https://linear.app/greenpill-dev-guild/project/operator-yield-split-visibility-and-presets-375773578105) (Product, Backlog; PRD-351) and the Linear document *Green Goods x Octant Vault Scope Lock*.
 - `.plans/ideas/rwa-yield-expansion/` (Conservative and Balanced presets mixing Aave V3, Morpho Metamorpho, and Ondo USDY with an instant-withdrawal buffer and a FIFO redemption queue; a sustained ≥5% target) and the admin harvest-and-distribute workflow shipped in PR 776.
 - The weekly growth-pulse status update on *Sustainability & Monetization* for TVL and yield numbers. Do not re-query PostHog or the indexer here.
@@ -136,7 +136,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Open.**
 1. The current candidate strategy set on Arbitrum with live, verifiable APY and risk. The rwa-yield-expansion brief's dates (a May contract freeze and a June deploy) have lapsed, so its strategy list needs re-verification against what is live now. Next step: RESR-9's first artifact, a strategy table with sources fetched this quarter. Answerable by the owner.
 2. Who holds preset authority (Hats roles) and what timelock applies, and whether a 48-hour operator-initiated switch is still the intended shape. Next step: confirm against the scope-lock document.
-3. The funding-rail map (RESR-15): Octant vault crowdfunding, Juicebox and Revnet, direct Safe payout, partner rounds, GoodDollar allocation paths, with initiator, principal control, yield control, evidence trigger, and funder view per rail. Next step: assign RESR-15; it also feeds track 6.
+3. The funding-rail map (RESR-15): Octant vault crowdfunding, Juicebox and Revnet, direct Safe payout, partner rounds, GoodDollar allocation paths, with initiator, principal control, yield control, evidence trigger, and funder view per rail. Next step: deliver its October comparison; it also feeds track 6.
 4. Yield-to-impact language (RESR-8) once RESR-15 lands.
 5. Whether a sustained ≥5% is achievable at conservative risk, or the bar should be restated. Next step: the panel reads RESR-9's table.
 
@@ -154,7 +154,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Why it matters.** Payout that cannot be spent is not a payout. The corridor work decides whether Green Goods is usable in the pilot geographies at all, and the on-ramp side decides how accessible the product is to supporters in the same places.
 
 **Anchors.**
-- Linear project [Capital Off-Ramp Corridors](https://linear.app/greenpill-dev-guild/project/capital-off-ramp-corridors-3f9573efe397) (Backlog). RESR-70 (confirm provider terms; Backlog, unowned, High). RESR-71 (independent review pass; Done: of 20 high-impact claims, 3 confirmed and 17 corrected).
+- Linear project [Capital Off-Ramp Corridors](https://linear.app/greenpill-dev-guild/project/capital-off-ramp-corridors-3f9573efe397) (Backlog). RESR-70 (confirm provider terms; Todo, unassigned, High, in Q4 November). RESR-71 (independent review pass; Done: of 20 high-impact claims, 3 confirmed and 17 corrected).
 - `.plans/ideas/capital-offramp-corridors/brief.md` (the corrected research brief; sections 12.2 to 12.8 carry the option tables) and `reports/codex-review-2026-08-04.md`.
 - Adjacent: the House of Alignment project (G$ distribution rail decision) and the Celo GardenAccount evidence in `packages/contracts/config/celo-garden-accounts/` for the Celo settlement path.
 
@@ -179,17 +179,16 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 ## 5. Accessible impact reporting via WhatsApp and SMS
 
-**Horizon:** quarter · **Stage:** framing
-**Note:** the horizon covers the research gate; the build follows it.
+**Horizon:** quarter · **Stage:** evidencing
+**Note:** the entry criteria are Done and the deterministic WhatsApp prototype is in Product. Model-assisted interpretation is a separate research gate.
 
-**Question.** What must be true before gardeners can report impact from WhatsApp or SMS with no app install and no sign-up, and what is the smallest pilot that proves lower total reporting burden rather than burden moved onto operators?
+**Question.** What must be true for gardeners to report impact from WhatsApp or SMS without installing the app, with a short account step only when signing is required, and what pilot proves lower total reporting burden rather than burden moved onto operators?
 
-**Why it matters.** The *Accessible Participation* initiative (Planned, target 2026-10-31) sets "real pilot submissions" as the bar. The Q3 strategy says "no agent-channel implementation until entry criteria pass", and the Community Evidence Mesh roadmap's Phase 1 (September to November 2026) is exactly familiar-channel capture. The entry criteria became an accepted research question on 2026-09-02 (RESR-75); nobody has written them yet.
+**Why it matters.** The *Accessible Participation* initiative sets real pilot submissions as the bar. RESR-75 completed the entry-criteria gate, and the messaging project is In Progress. The remaining research asks whether interpreting a gardener's report with a model reduces total reporting burden under acceptable consent, retention, regional, and accuracy terms.
 
 **Anchors.**
-- RESR-75 (define the entry criteria for reporting impact over WhatsApp and SMS; Backlog, unowned, filed 2026-09-02). The project below is Product-only, so the research issue stays unprojected and relates to PRD-834.
-- Linear project [Agent Messaging Channels (WhatsApp + SMS)](https://linear.app/greenpill-dev-guild/project/agent-messaging-channels-whatsapp-sms-71cda634fcf7) (Product, Backlog, target 2026-12-31): "research to entry criteria, then build behind the gate, then a pilot channel". PRD-290 (the epic) is Done as a spec. PRD-834 (third-party bot integration path for partner-run gardens; Backlog).
-- `.plans/ideas/agent-messaging-channels/` (session keys scoped by ERC-4337, tiered rate limits, a dual revoke path).
+- RESR-75 (entry criteria, Done) and RESR-79 (model-processing decision, Todo). Both belong to the [Agent Messaging Channels (WhatsApp + SMS)](https://linear.app/greenpill-dev-guild/project/agent-messaging-channels-whatsapp-sms-71cda634fcf7) project (In Progress).
+- PRD-955 records the current Meta Cloud API prototype scope in `.plans/ideas/agent-messaging-channels/` as the hub is promoted; PRD-970 owns the deterministic chat walk. Read those issues before using the older hub's Twilio or session-key assumptions.
 - The evidence mesh roadmap's Phase 1 evidence list (minutes per accepted submission, completion and abandonment, correction rate, operator minutes, data cost, language and device coverage, consent comprehension).
 - PostHog Agent project (`262124`) for what the Telegram agent already sees; read through growth-pulse or bug-intake, never re-queried here.
 
@@ -197,16 +196,15 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 **Settled.**
 - The Telegram agent exists and is the foundation; WhatsApp and SMS are adapters on the same handler set (agent-messaging-channels brief).
-- Transactional actions run under session keys, not an agent-held key; read is unlimited, write is rate-limited, and revocation works from web or by keyword.
-- Capture creates a private candidate, never an immediate public record, and every channel must produce the same candidate-evidence contract (evidence mesh thesis, locked).
+- RESR-75 accepted a short account step in the app for signing. The current prototype uses Meta Cloud API directly, a test cohort, and no custodial wallet or delegation (PRD-955).
+- PRD-970's report walk is deterministic: it asks from the activity's declared fields and uses no model. RESR-79 explicitly bars sending gardener messages to an inference provider, including a shadow trial, until its decision lands.
 
 **Open.**
-1. The entry criteria themselves: identity and verification without sign-up, expected support load, cost per accepted submission by country, consent comprehension, and the manual fallback. RESR-75 holds this question. Next step: an owner drafts the criteria from the roadmap's Phase 1 gate and the panel accepts or returns them.
-2. Provider and policy constraints for the WhatsApp Business platform and SMS in the pilot geographies: template approval, opt-in rules, per-country pricing, and number provisioning. Next step: a dated source table.
-3. The minimal "report impact" payload (photo, text, location) and how it maps to the base attestation schema in track 2. Next step: one worked example per pilot domain.
-4. Which pilot garden and which metric set. Next step: the evidence mesh 90-day go or no-go.
+1. Whether a model may receive a gardener's report, and under which consent, retention, training, and regional terms. Next step: RESR-79's provider recommendation and labelled-set comparison against the deterministic walk. No live or shadow use of gardener text before that decision.
+2. Whether the deterministic walk lowers total reporting burden in the test cohort, including corrections, operator time, cost per accepted report, and language coverage. Next step: collect the measures RESR-75 set.
+3. How the report's activity fields and evidence map to the base attestation recommendation in track 2. Next step: one worked example per pilot domain.
 
-**Implementable when.** The entry criteria are accepted by the panel and one pilot garden with its metric set is chosen.
+**Implementable when.** The deterministic path can proceed under RESR-75's accepted criteria and the Product prototype scope. Any model-assisted extraction or judgment waits for RESR-79's accepted provider and consent decision plus its measured comparison; the pilot still needs a named garden and metric set.
 
 **Watch keywords.** WhatsApp, SMS, Twilio, Meta Business, messaging, agent, session key, Telegram, low-bandwidth, USSD, voice note, opt-in, template message, entry criteria, feature phone.
 
@@ -222,7 +220,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Anchors.**
 - RESR-15 lists Juicebox and Revnet as a Season Two funding rail to compare (initiator, principal control, yield control, evidence trigger, funder view).
 - `.plans/active/commitment-pooling/reports/linear/linear-apply-pack.md` section B3 (AgroforestDAO's Revnet stays outside pooling v1 scope; the module never custodies funds).
-- RESR-76 (frame what a Revnet would add to a garden's goods and services beyond pooling and vaults; Backlog, unowned, filed 2026-09-02; related to RESR-15 and RESR-73). No project or plan hub exists, by design, until the framing lands.
+- RESR-76 (frame what a Revnet would add to a garden's goods and services beyond pooling and vaults; Todo, unassigned, in Q4 December; related to RESR-15 and RESR-73). No project or plan hub exists, by design, until the framing lands.
 
 **Status surface.** Comment on RESR-76.
 
@@ -249,7 +247,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Why it matters.** This is the direction the near-term tracks converge on: messaging capture (5), the metric registry and evidence contract (2), community-authored context (Community Needs & Signals), and eventually evidence-to-capital (1). It is also the sovereignty argument that distinguishes Green Goods from extractive MRV.
 
 **Anchors.**
-- Linear initiative [Community Evidence Mesh](https://linear.app/greenpill-dev-guild/initiative/community-evidence-mesh-f7bdee530343) (Proposed, target 2027-07-31).
+- Linear initiative [Community Evidence Mesh](https://linear.app/greenpill-dev-guild/initiative/community-evidence-mesh-f7bdee530343) (Active, target 2027-07-31).
 - Linear documents: *Community Evidence Mesh: Thesis, Architecture & Narrative*; *Evidence Model, Privacy & Trust*; *12-Month Roadmap, Dependencies & Measures*; *Green Goods and Gitcoin's Local-First Pivot*.
 - RESR-69 (AT Protocol as an identity layer; Todo, Low) as a possible sovereignty prerequisite. The Public Goods Staking Protocol is a watched dependency for community edge compute, not an AI-node commitment.
 
@@ -258,7 +256,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Settled (locked decisions).** The name; AI proposes and never originates evidence; a shared metric registry is required; an ADR precedes any expansion; raw media stays local by default; familiar channels before sensors; bounded energy sensing before ecological sensing; a separate edge box before validator colocation; connect existing projects rather than create a new project tree.
 
 **Open.**
-1. Phase 0 outputs: the current reporting-burden baseline, metric registry v0 (shared with RESR-65 and RESR-49 in track 2), Evidence Envelope v0, the ADR, two or three community co-design sessions, and a pilot selection rubric. Next step: draft metric registry v0 from the existing impact-reporting research, because it is also track 2's blocker.
+1. Phase 0 outputs: the current reporting-burden baseline, metric registry v0 (informed by the completed GROW-15 report and RESR-49 in track 2), Evidence Envelope v0, the ADR, two or three community co-design sessions, and a pilot selection rubric. Next step: reconcile the report's actual metrics with the framework research; RESR-65 is Canceled and no longer a gate.
 2. The 90-day go or no-go on the familiar-channel pilot, which is track 5's decision.
 3. Whether an identity layer (RESR-69) is a sovereignty prerequisite or a later concern.
 4. How the local-first funding narrative (the Gitcoin pivot document) shapes what funders are asked to pay for.
@@ -272,9 +270,11 @@ Each track carries the same fields. The routine reads them literally, so keep th
 These live on the Research team but are not agenda tracks this quarter. The routine mentions them in its memo only when a human touched them, and never in the digest unless they connect to a track above.
 
 - PGSP research trio: RESR-66, RESR-67, RESR-68 (deferred to Q4 or later).
-- GreenWill recognition mapping: RESR-4 (gated by the strategy's "no badge spend until recognition mapping is decided").
-- Account recovery and identity: RESR-21; RESR-69 is read through track 7 only.
+- Cross-chain Safe owner validation: RESR-78 is in the October Research cycle and blocks external architecture sharing (GROW-56) and the early-November Safe proposal (GROW-44). The October credit pilot (PRD-857) uses the separate settlement-lane path and does not wait on this memo.
+- GreenWill recognition mapping: RESR-4 is Backlog, with no badge build until the mapping decision.
+- Account recovery and identity: RESR-21 remains Todo with a 2026-09-30 due date; its description now flags the missing former plan directory, and the owner still needs to confirm the current plan and scope. RESR-69 is Backlog with no implementation scheduled and is read through track 7 only.
 
 ## Change log
 
+- **v2 · 2026-09-24.** Reconciled completed and canceled research gates with Linear; recorded the Impact Framework sequence, current messaging research gate, and the environmental-data and identity backlog cleanup. The next Research cycle review still decides priorities and dates.
 - **v1 · 2026-09-02.** First edition. Seven tracks ordered from the steward's brief of 2026-09-02, grounded in the live Linear board, the `.plans/` hubs, and the routine's own August memos. The two gaps the edition named were filed the same day as RESR-75 (track 5) and RESR-76 (track 6).

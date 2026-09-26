@@ -1,6 +1,6 @@
 # Indexer Package Context
 
-Loaded when working in `packages/indexer/`. Extends `CLAUDE.md` and
+Loaded when working in `packages/indexer/`. Extends `packages/indexer/AGENTS.md` and
 `packages/indexer/AGENTS.md`.
 
 ## Quick Reference

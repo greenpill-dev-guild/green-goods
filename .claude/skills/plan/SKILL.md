@@ -9,9 +9,9 @@ argument-hint: "[feature-name]"
 
 Planning lifecycle for Green Goods: create plans, check progress, execute in batches, coordinate agent teams.
 
-**References**: See `CLAUDE.md` for entry points, agent routing, and Green Goods conventions.
+**References**: See `AGENTS.md` for entry points, agent routing, and Green Goods conventions.
 
-This is a primary judgment surface. When placement, boundaries, or deletion questions dominate, weigh them directly inside the planning work (layering rules live in CLAUDE.md and `.claude/context/*.md`) rather than bouncing the user to a separate command.
+This is a primary judgment surface. When placement, boundaries, or deletion questions dominate, weigh them directly inside the planning work (layering rules live in AGENTS.md and `.claude/context/*.md`) rather than bouncing the user to a separate command.
 
 For architecture work, read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md)
 and use its vocabulary and candidate lifecycle. This skill owns repository-wide opportunity
@@ -106,7 +106,7 @@ test.
    decision-relevant questions that require reconciling repository or external evidence through
    the passive `research` skill before asking the user
 4. **Read the Implementation Quality Contract** in `.claude/context/values.md`
-5. **Review CLAUDE.md** for compliance rules
+5. **Review AGENTS.md** for compliance rules
 
 ### Phase 2: Plan Structure
 
@@ -202,7 +202,7 @@ Implementation steps must be granular enough for agents to execute reliably. Fol
 2. **Gather git context**: `git status`, `git diff --stat`
 3. **File-by-file status**: DONE / PARTIAL / NOT DONE
 4. **Requirements coverage table**
-5. **Run validation according to intent**: use the Validation Intent Ladder in `CLAUDE.md`; QA Speed Mode for narrow progress proof, Repo Quick Gate for cross-package checkpoints, the Ready-for-CI Push Gate for ordinary publication, and the full Ship Gate only for explicit offline/full-local readiness, critical work, or releases.
+5. **Run validation according to intent**: use the intent ladder in `.claude/context/validation-pipeline.md`; QA Speed Mode for narrow progress proof, Repo Quick Gate for cross-package checkpoints, the Ready-for-CI Push Gate for ordinary publication, and the full Ship Gate only for explicit offline/full-local readiness, critical work, or releases.
 
 ---
 
@@ -443,7 +443,7 @@ The numbered decision table with rationale is the most effective planning patter
 
 ## Validation Commands
 
-Use `CLAUDE.md § Validation Intent Ladder` to choose the rung. The command definitions
+Use `.claude/context/validation-pipeline.md` to choose the rung. The command definitions
 for QA Speed Mode examples, Repo Quick Gate, and the full Ship Gate live in
 [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md).
 

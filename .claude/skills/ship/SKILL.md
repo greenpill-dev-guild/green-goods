@@ -137,3 +137,10 @@ Use one of these outcomes:
 - Do not approve a PR from local evidence while required CI is pending or stale.
 - Do not bypass `needs-focus`, the hard deadline, critical overrides, hooks, or receipt freshness.
 - Do not assume `origin/main`; resolve the live PR base or use `origin/develop`.
+
+## Unattended maintenance
+
+Keep unattended maintenance PRs to 20 changed files or fewer, as drafts with the required labels.
+Do not modify deployment/upgrade scripts or environment files, add packages or top-level
+directories, or edit agent operating guidance unless the assigned task explicitly requests it.
+These limits do not authorize publication or merging.
