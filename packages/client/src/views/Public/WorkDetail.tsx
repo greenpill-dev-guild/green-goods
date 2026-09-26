@@ -1,6 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
@@ -22,9 +23,11 @@ export default function WorkDetail() {
       ? data.fieldNotes.find((entry) => entry.id.toLowerCase() === workId?.toLowerCase())
       : undefined;
   const destination = `/home/${id}/work/${workId}`;
-  const title =
-    note?.title ||
-    formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" });
+  // A stored title can end in timestamps older submissions appended; readers see the title alone.
+  const title = toWorkDisplayTitle(
+    note?.title,
+    formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" })
+  );
 
   return (
     <>
