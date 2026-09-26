@@ -11,7 +11,7 @@
  * @vitest-environment jsdom
  */
 
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -189,6 +189,33 @@ describe("ImpactPage", () => {
     // Each card is an accessible button labelled by record.title.
     expect(screen.getByRole("button", { name: "Q3 Soil Renewal" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Composting Pilot" })).toBeInTheDocument();
+  });
+
+  it("titles a work record without the timestamps its stored title carries, and no other kind", () => {
+    const stamps = " - 2026-04-23T18:44:24.803Z - 2026-04-23T18:44:25.160Z";
+    const base = { gardenId: "0x1", gardenName: "Solar Garden", sourceAvailable: true };
+    const work = { ...base, id: "work:0x9", kind: "work" as const, createdAt: 1720000000 };
+    const certificate = { ...base, id: "certificate:0x7", kind: "certificate" as const };
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: {
+        ...mockSliceReady,
+        records: [
+          { ...work, title: `Cleanup Event${stamps}`, easUid: "0x9" },
+          { ...certificate, title: `Harvest Record${stamps}`, createdAt: 1715000000 },
+          ...mockSliceReady.records,
+        ],
+      },
+      isLoading: false,
+    });
+    renderView();
+
+    const card = screen.getByRole("button", { name: "Cleanup Event" });
+    expect(within(card).getByRole("heading", { level: 3 })).toHaveTextContent(/^Cleanup Event$/);
+    // A certificate keeps the title it was minted with, whatever it ends in.
+    expect(screen.getByRole("button", { name: `Harvest Record${stamps}` })).toBeInTheDocument();
+
+    fireEvent.click(card);
+    expect(screen.getByRole("dialog", { name: "Cleanup Event" })).toBeInTheDocument();
   });
 
   it("shows loading skeletons while evidence is loading", () => {
