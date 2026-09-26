@@ -158,7 +158,7 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
                     {/* Step label */}
                     <span
                       className={cn(
-                        "text-xs font-medium sm:hidden lg:inline",
+                        "label-xs sm:hidden lg:inline",
                         isStepComplete && "text-success-dark",
                         isStepActive && !isStepFailed && "text-primary-dark",
                         isStepFailed &&
@@ -177,9 +177,9 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
 
         {/* Status message below progress */}
         <div className="mt-4 border-t border-stroke-soft pt-4">
-          <p className="text-sm font-medium text-text-strong">{statusMessage}</p>
+          <p className="body-sm font-medium text-text-strong">{statusMessage}</p>
           {!isComplete && !isFailed && (
-            <p className="mt-1 text-xs text-text-sub">
+            <p className="mt-1 body-xs text-text-sub">
               {formatMessage({ id: "app.hypercerts.mint.status.helper" })}
             </p>
           )}
@@ -187,7 +187,7 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
       </div>
 
       {state.status === "confirmed" && state.hypercertId && (
-        <div className="rounded-lg border border-success-light bg-success-lighter p-4 text-sm text-success-dark">
+        <div className="rounded-lg border border-success-light bg-success-lighter p-4 body-sm text-success-dark">
           {formatMessage({ id: "app.hypercerts.mint.success" }, { hypercertId: state.hypercertId })}
         </div>
       )}
@@ -197,7 +197,7 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
           href={`${explorer}/tx/${state.txHash}`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex text-xs font-medium text-primary-base underline"
+          className="inline-flex label-xs text-primary-base underline"
         >
           {formatMessage({ id: "app.hypercerts.mint.viewTransaction" })}
         </a>
@@ -206,14 +206,14 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
       {state.status === "failed" && (
         <div
           className={cn(
-            "rounded-lg border p-4 text-sm",
+            "rounded-lg border p-4 body-sm",
             txError.view.severity === "warning"
               ? "border-warning-light bg-warning-lighter text-warning-dark"
               : "border-error-light bg-error-lighter text-error-dark"
           )}
         >
           <p>{txError.title}</p>
-          <p className="mt-1 text-xs">{txError.message}</p>
+          <p className="mt-1 body-xs">{txError.message}</p>
         </div>
       )}
     </div>

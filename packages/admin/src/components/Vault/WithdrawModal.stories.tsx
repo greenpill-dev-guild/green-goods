@@ -133,13 +133,13 @@ export const Closed: Story = {
 export const StateCatalog: Story = {
   render: () => (
     <div className="space-y-6">
-      <p className="text-sm text-text-sub">
+      <p className="body-sm text-text-sub">
         Withdraw modals render as Radix portals. Share balances and estimated assets require a
         connected wallet; they show 0.0 / &ldquo;--&rdquo; in Storybook.
       </p>
 
       <div>
-        <h3 className="text-sm font-medium text-text-sub mb-2">Multi-vault (USDC + DAI)</h3>
+        <h3 className="body-sm font-medium text-text-sub mb-2">Multi-vault (USDC + DAI)</h3>
         <div className="rounded-lg border border-stroke-soft p-1 relative min-h-[450px]">
           <WithdrawModal
             isOpen={true}
@@ -151,7 +151,7 @@ export const StateCatalog: Story = {
       </div>
 
       <div>
-        <h3 className="text-sm font-medium text-text-sub mb-2">Single vault (USDC only)</h3>
+        <h3 className="body-sm font-medium text-text-sub mb-2">Single vault (USDC only)</h3>
         <div className="rounded-lg border border-stroke-soft p-1 relative min-h-[450px]">
           <WithdrawModal
             isOpen={true}

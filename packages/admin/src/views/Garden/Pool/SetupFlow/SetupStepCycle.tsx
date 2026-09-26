@@ -103,7 +103,7 @@ export function SetupStepCycle({
           required
         />
       </div>
-      <p className="text-xs text-text-soft">
+      <p className="body-xs text-text-soft">
         {isCampaign
           ? formatMessage({
               id: "cockpit.garden.pool.setup.campaignNote",

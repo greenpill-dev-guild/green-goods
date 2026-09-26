@@ -207,7 +207,7 @@ export function WithdrawModal({
           </Alert>
         )}
 
-        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
+        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 body-sm text-text-sub">
           <p>
             {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
             <span className="font-medium text-text-strong">
@@ -245,7 +245,7 @@ export function WithdrawModal({
           </AdminButton>
         </div>
 
-        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
+        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 body-sm text-text-sub">
           <p>
             {formatMessage({ id: "app.treasury.sharesToBurn" })}:{" "}
             <span className="font-medium text-text-strong">

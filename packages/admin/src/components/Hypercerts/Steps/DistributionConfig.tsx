@@ -110,10 +110,10 @@ export function DistributionConfig({
   return (
     <div className="space-y-4">
       <header className="space-y-1">
-        <h2 className="text-lg font-semibold text-text-strong">
+        <h2 className="text-title-md font-semibold text-text-strong">
           {formatMessage({ id: "app.hypercerts.distribution.title" })}
         </h2>
-        <p className="text-sm text-text-sub">
+        <p className="body-sm text-text-sub">
           {formatMessage({ id: "app.hypercerts.distribution.subtitle" })}
         </p>
       </header>
@@ -152,7 +152,7 @@ export function DistributionConfig({
       <div className="overflow-x-auto rounded-lg border border-stroke-soft bg-bg-white">
         <div
           className={cn(
-            "grid min-w-[400px] gap-2 border-b border-stroke-soft bg-bg-weak px-4 py-2 text-xs font-medium text-text-sub",
+            "grid min-w-[400px] gap-2 border-b border-stroke-soft bg-bg-weak px-4 py-2 label-xs text-text-sub",
             mode === "custom"
               ? "grid-cols-[minmax(120px,2fr)_minmax(80px,1fr)_minmax(60px,1fr)_auto]"
               : "grid-cols-[minmax(120px,2fr)_minmax(80px,1fr)_minmax(60px,1fr)]"
@@ -171,7 +171,7 @@ export function DistributionConfig({
               <div
                 key={`${entry.address}-${index}`}
                 className={cn(
-                  "grid min-w-[400px] items-center gap-2 px-4 py-3 text-sm",
+                  "grid min-w-[400px] items-center gap-2 px-4 py-3 body-sm",
                   mode === "custom"
                     ? "grid-cols-[minmax(120px,2fr)_minmax(80px,1fr)_minmax(60px,1fr)_auto]"
                     : "grid-cols-[minmax(120px,2fr)_minmax(80px,1fr)_minmax(60px,1fr)]"
@@ -195,9 +195,9 @@ export function DistributionConfig({
                       }
                     />
                   ) : (
-                    <EnsAddressWithCopy address={entry.address} labelClassName="text-xs" />
+                    <EnsAddressWithCopy address={entry.address} labelClassName="body-xs" />
                   )}
-                  {entry.label && <p className="text-xs text-text-sub">{entry.label}</p>}
+                  {entry.label && <p className="body-xs text-text-sub">{entry.label}</p>}
                 </div>
                 <AdminTextField
                   className="w-full"
@@ -206,7 +206,7 @@ export function DistributionConfig({
                   onChange={(event) => handleUnitsChange(index, event.target.value)}
                   disabled={mode !== "custom"}
                 />
-                <span className="text-xs text-text-sub">{percent.toFixed(2)}%</span>
+                <span className="body-xs text-text-sub">{percent.toFixed(2)}%</span>
                 {mode === "custom" && (
                   <RemoveRecipientButton
                     entry={entry}
@@ -225,7 +225,7 @@ export function DistributionConfig({
         </AdminButton>
       )}
 
-      <div className="text-xs text-text-sub">
+      <div className="body-xs text-text-sub">
         {formatMessage(
           { id: "app.hypercerts.distribution.total" },
           { total: unitsTotal.toLocaleString() }

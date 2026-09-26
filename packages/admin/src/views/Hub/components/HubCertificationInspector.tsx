@@ -42,26 +42,25 @@ export function HubCertificationInspector({
                   })
                 : formatMessage({
                     id: "cockpit.hub.certify.readOnlyLabel",
-                    defaultMessage: "Read-only handoff",
+                    defaultMessage: "View only",
                   })}
             </span>
-            <span className="text-xs text-text-soft">{formatEventAge(assessment.createdAt)}</span>
+            <span className="body-xs text-text-soft">{formatEventAge(assessment.createdAt)}</span>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-text-strong">
+            <h3 className="text-title-md font-semibold text-text-strong">
               {assessment.title ||
                 formatMessage({
                   id: "app.garden.admin.assessmentFallback",
                   defaultMessage: "Assessment",
                 })}
             </h3>
-            <p className="mt-1 text-sm text-text-sub">
+            <p className="mt-1 body-sm text-text-sub">
               {assessment.description ||
                 formatMessage({
                   id: "cockpit.hub.certify.fallbackDescription",
-                  defaultMessage:
-                    "Review the assessment package and hand it off for hypercert minting.",
+                  defaultMessage: "Check this assessment before it becomes a hypercert.",
                 })}
             </p>
           </div>
@@ -77,19 +76,18 @@ export function HubCertificationInspector({
         </AdminCard>
 
         {canMint ? (
-          <p className="text-sm text-text-sub">
+          <p className="body-sm text-text-sub">
             {formatMessage({
               id: "cockpit.hub.certify.stewardDescription",
               defaultMessage:
-                "This bundle is ready for the minting flow. Open the hypercert form when you are ready to finalize it.",
+                "This assessment is ready. Create a hypercert to record the work it covers.",
             })}
           </p>
         ) : (
           <Alert variant="info">
             {formatMessage({
               id: "cockpit.hub.certify.readOnlyDescription",
-              defaultMessage:
-                "You can review the certification handoff here, but only garden owners or stewards can mint the hypercert.",
+              defaultMessage: "Only garden owners and stewards can create the hypercert.",
             })}
           </Alert>
         )}
@@ -104,8 +102,8 @@ export function HubCertificationInspector({
             className="w-full justify-center"
           >
             {formatMessage({
-              id: "cockpit.hub.certify.openMintFlow",
-              defaultMessage: "Open Mint Flow",
+              id: "cockpit.hub.action.createHypercert",
+              defaultMessage: "Create Hypercert",
             })}
           </AdminButton>
         </SheetFooter>

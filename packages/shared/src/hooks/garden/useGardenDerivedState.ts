@@ -8,18 +8,18 @@ import {
   getRoleLabel,
 } from "../../utils/blockchain/garden-roles";
 import { expandDomainMask } from "../../utils/domain";
-import { formatDate } from "../../utils/time";
 import { formatTokenAmount, getVaultAssetSymbol } from "../../utils/blockchain/vaults";
 import {
   isJarClaimLimitLow,
   JAR_LIMIT_ROUTE_ITEM_PREFIX,
 } from "../../utils/cookie-jar-claim-limit";
-import { stripGeneratedWorkTitleTimestamp } from "../../utils/work/workTitles";
+import { toWorkDisplayTitle } from "../../utils/work/workTitles";
 import type {
   ActivityFilter,
   GardenActivityEvent,
   GardenDetailTab,
   GardenRange,
+  GardenReviewQueue,
   RoleDirectoryEntry,
   TabBadgeSeverity,
   TabBadgeState,
@@ -27,9 +27,8 @@ import type {
 import {
   aggregateBadges,
   DOMAIN_LABEL_IDS,
-  getMedian,
-  hoursSince,
   RANGE_TO_MS,
+  summarizeReviewQueue,
   toMs,
 } from "../../utils/garden-detail";
 
@@ -48,7 +47,12 @@ interface DerivedStateInput {
     title?: string;
     status: string;
     createdAt: number;
+    reviewedAt?: number;
   }>;
+  /** False when `works` may miss a true status: only the newest page, or unread approvals. */
+  worksComplete?: boolean;
+  /** The garden's whole review queue, when `works` is only the newest page of current rows. */
+  gardenReviewQueue?: GardenReviewQueue;
   assessments: Array<{
     id: string;
     title?: string | null;
@@ -68,7 +72,8 @@ interface DerivedStateInput {
     juiceboxAmount: bigint;
   }>;
   gardenVaults: Array<unknown>;
-  vaultNetDeposited: bigint;
+  /** Whether any vault holds a net deposit, in any asset. */
+  hasEndowment: boolean;
   /** The garden's cookie jars. Omit where the surface shows no alerts. */
   cookieJars?: CookieJar[];
   roleMembers: Record<GardenRole, Address[]>;
@@ -84,11 +89,13 @@ interface DerivedStateInput {
 export function useGardenDerivedState({
   garden,
   works,
+  worksComplete = true,
+  gardenReviewQueue,
   assessments,
   hypercerts,
   allocations,
   gardenVaults,
-  vaultNetDeposited,
+  hasEndowment,
   cookieJars = [],
   roleMembers,
   selectedRange,
@@ -104,17 +111,13 @@ export function useGardenDerivedState({
   const previousRangeStart = rangeStart - RANGE_TO_MS[selectedRange];
 
   const pendingWorks = works.filter((work) => work.status === "pending");
-  const reviewedWorks = works
-    .filter((work) => work.status !== "pending")
-    .sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
   const approvedWorks = works.filter((work) => work.status === "approved");
-
-  const pendingWarningCount = pendingWorks.filter(
-    (work) => hoursSince(work.createdAt) >= 24
-  ).length;
-  const pendingCriticalCount = pendingWorks.filter(
-    (work) => hoursSince(work.createdAt) >= 72
-  ).length;
+  // Work age is metadata, not an alarm: the queue warns once work has waited a
+  // week, and turns critical only when review has stalled (DL-044).
+  const reviewQueue = summarizeReviewQueue(works, now, {
+    complete: worksComplete,
+    garden: gardenReviewQueue,
+  });
 
   const approvedInRangeCount = approvedWorks.filter(
     (work) => toMs(work.createdAt) >= rangeStart
@@ -126,9 +129,6 @@ export function useGardenDerivedState({
 
   const impactVelocityDelta = approvedInRangeCount - approvedInPreviousRangeCount;
 
-  const reviewAges = reviewedWorks.map((work) => hoursSince(work.createdAt));
-  const medianReviewAgeHours = getMedian(reviewAges);
-
   const approvedInLastThirtyDays = approvedWorks.filter(
     (work) => toMs(work.createdAt) >= now - RANGE_TO_MS["30d"]
   ).length;
@@ -137,7 +137,7 @@ export function useGardenDerivedState({
   const hasVaults = gardenVaults.length > 0;
   const treasurySeverity: TabBadgeSeverity = !hasVaults
     ? "warn"
-    : vaultNetDeposited === 0n
+    : !hasEndowment
       ? "critical"
       : "none";
   // The treasury's alert opens Community, so a viewer without Community access
@@ -145,12 +145,11 @@ export function useGardenDerivedState({
   // status must always have the alert that explains it.
   const treasuryAttention: TabBadgeSeverity = canAccessCommunity ? treasurySeverity : "none";
 
-  const workBadge: TabBadgeState =
-    pendingCriticalCount > 0
-      ? { severity: "critical", count: pendingCriticalCount }
-      : pendingWarningCount > 0
-        ? { severity: "warn", count: pendingWarningCount }
-        : { severity: "none" };
+  const workBadge: TabBadgeState = reviewQueue.stalled
+    ? { severity: "critical", count: reviewQueue.pendingCount }
+    : reviewQueue.waitingOverWeekCount > 0
+      ? { severity: "warn", count: reviewQueue.waitingOverWeekCount }
+      : { severity: "none" };
 
   const impactBadge: TabBadgeState = isImpactStale
     ? { severity: "warn", count: 1 }
@@ -198,23 +197,23 @@ export function useGardenDerivedState({
         : formatMessage({ id: "app.garden.detail.health.status.healthy" });
 
   const alertCandidates: Array<OverviewAlert | null> = [
-    pendingCriticalCount > 0
+    reviewQueue.stalled
       ? {
           key: "work-critical",
           severity: "critical" as const,
           label: formatMessage(
             { id: "app.garden.detail.alert.workCritical" },
-            { count: pendingCriticalCount }
+            { count: reviewQueue.pendingCount }
           ),
           onAction: () => openSection("work", "queue"),
         }
-      : pendingWarningCount > 0
+      : reviewQueue.waitingOverWeekCount > 0
         ? {
             key: "work-warning",
             severity: "warn" as const,
             label: formatMessage(
               { id: "app.garden.detail.alert.workWarning" },
-              { count: pendingWarningCount }
+              { count: reviewQueue.waitingOverWeekCount }
             ),
             onAction: () => openSection("work", "queue"),
           }
@@ -282,15 +281,11 @@ export function useGardenDerivedState({
     ...works.map((work) => ({
       id: `work-${work.id}`,
       category: "work" as const,
-      title:
-        stripGeneratedWorkTitleTimestamp(work.title ?? "") ||
-        formatMessage({ id: "app.admin.work.untitledWork" }),
+      title: toWorkDisplayTitle(work.title, formatMessage({ id: "app.admin.work.untitledWork" })),
+      // Descriptions carry no date: each row shows its time once, beside the title.
       description: formatMessage(
         { id: "app.garden.detail.activity.workStatus" },
-        {
-          status: formatMessage({ id: `app.admin.work.filter.${work.status}` }),
-          date: formatDate(work.createdAt, { dateStyle: "medium" }),
-        }
+        { status: formatMessage({ id: `app.admin.work.filter.${work.status}` }) }
       ),
       timestamp: toMs(work.createdAt),
       href: adminRoutes.hubWorkDetail(work.id, { gardenId: gardenAddress }),
@@ -303,10 +298,7 @@ export function useGardenDerivedState({
         assessment.title ||
         assessment.assessmentType ||
         formatMessage({ id: "app.garden.admin.assessmentFallback" }),
-      description: formatMessage(
-        { id: "app.garden.detail.activity.assessmentCreated" },
-        { date: formatDate(assessment.createdAt, { dateStyle: "medium" }) }
-      ),
+      description: formatMessage({ id: "app.garden.detail.activity.assessmentCreated" }),
       timestamp: toMs(assessment.createdAt),
       href: adminRoutes.gardenImpact({
         gardenAddress,
@@ -319,14 +311,7 @@ export function useGardenDerivedState({
       id: `hypercert-${hypercert.id}`,
       category: "impact" as const,
       title: hypercert.title?.trim() || formatMessage({ id: "app.hypercerts.list.fallbackTitle" }),
-      description: formatMessage(
-        { id: "app.garden.detail.activity.hypercertMinted" },
-        {
-          date: hypercert.mintedAt
-            ? formatDate(hypercert.mintedAt * 1000, { dateStyle: "medium" })
-            : formatMessage({ id: "app.hypercerts.list.dateUnknown" }),
-        }
-      ),
+      description: formatMessage({ id: "app.garden.detail.activity.hypercertMinted" }),
       timestamp: hypercert.mintedAt ? toMs(hypercert.mintedAt) : 0,
       href: adminRoutes.gardenHypercertDetail(hypercert.id, { gardenId: gardenAddress }),
       itemId: hypercert.id,
@@ -362,18 +347,20 @@ export function useGardenDerivedState({
     firstMember: roleMembers[role][0],
   }));
 
+  // One entry per person, whatever the casing each role list uses (DL-049).
   const directoryEntries: RoleDirectoryEntry[] = useMemo(() => {
-    const map = new Map<Address, RoleDirectoryEntry>();
+    const map = new Map<string, RoleDirectoryEntry>();
 
     for (const role of GARDEN_ROLE_ORDER) {
       for (const memberAddress of roleMembers[role]) {
-        const existing = map.get(memberAddress);
+        const key = memberAddress.toLowerCase();
+        const existing = map.get(key);
         if (existing) {
           existing.roles.push(role);
           continue;
         }
 
-        map.set(memberAddress, { address: memberAddress, roles: [role] });
+        map.set(key, { address: memberAddress, roles: [role] });
       }
     }
 
@@ -402,13 +389,10 @@ export function useGardenDerivedState({
 
   return {
     pendingWorks,
-    reviewedWorks,
     approvedWorks,
-    pendingWarningCount,
-    pendingCriticalCount,
+    reviewQueue,
     approvedInRangeCount,
     impactVelocityDelta,
-    medianReviewAgeHours,
     approvedInLastThirtyDays,
     isImpactStale,
     hasVaults,
@@ -426,6 +410,8 @@ export function useGardenDerivedState({
     filteredActivityEvents,
     roleSummary,
     directoryEntries,
+    /** Distinct people across every role; a role seat is not a member (DL-049). */
+    memberCount: directoryEntries.length,
     filteredDirectory,
     visibleDirectory,
   };

@@ -22,6 +22,21 @@ describe("cn", () => {
     expect(cn("text-label-sm", "text-sm")).toBe("text-sm");
   });
 
+  it("resolves a raw size and a named admin type class to the last one", () => {
+    // A shared default size overridden from admin (`className="body-xs"`): both
+    // classes used to survive and the default won in the cascade.
+    expect(cn("font-mono text-sm", "body-xs")).toBe("font-mono body-xs");
+    expect(cn("body-sm", "text-xs")).toBe("text-xs");
+    expect(cn("label-xs", "body-sm")).toBe("body-sm");
+    expect(cn("text-body-md", "subheading-xs")).toBe("subheading-xs");
+  });
+
+  it("keeps a named admin type class beside a weight, leading, or colour", () => {
+    expect(cn("body-sm", "font-medium", "leading-6", "text-text-sub")).toBe(
+      "body-sm font-medium leading-6 text-text-sub"
+    );
+  });
+
   it("still resolves two colours to the last one", () => {
     expect(cn("text-text-sub", "text-[rgb(var(--m3-error))]")).toBe("text-[rgb(var(--m3-error))]");
   });

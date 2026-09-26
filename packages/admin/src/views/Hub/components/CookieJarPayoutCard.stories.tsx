@@ -102,3 +102,12 @@ export const StewardCannotSign: Story = {
 };
 
 export const Paused: Story = { args: { jar: { ...wethJar, isPaused: true } } };
+
+/** The payout history list stops at 20, so a full list counts as at least 20. */
+export const PayoutHistoryAtItsLimit: Story = {
+  tags: ["storybook-ci"],
+  args: { allocationCount: 20, allocationCountAtLeast: true },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("20+ yield payouts so far.")).toBeVisible();
+  },
+};

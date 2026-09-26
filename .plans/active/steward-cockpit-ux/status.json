@@ -1,0 +1,401 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "steward-cockpit-ux",
+    "title": "Steward Cockpit UX Fixes",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-09-25T05:02:27.261Z",
+    "updated_at": "2026-09-26T00:21:02.481Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-981",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "lane_issues"
+  },
+  "taxonomy": {
+    "initiative": "design-system",
+    "tracks": ["admin", "shared"],
+    "work_types": ["implementation"],
+    "surfaces": [
+      "packages/admin/src",
+      "packages/shared/src",
+      "packages/shared/.storybook",
+      ".claude/skills/design"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Work runs as five PRs, one execution sub-lane each, in order PR1 to PR5; each starts from a fresh origin/develop after the previous one merges.",
+    "PR1's branch fix/actions-capitals-crash already carries this hub as its first commit.",
+    "The implementing agent merges PR1, PR2, PR3, and PR5 with --merge once CI Gate is green and bot reviews are resolved; PR4 waits for Afo's yes on before/after screenshots, and PR5 merges only after PR4 has merged.",
+    "Mark unused lanes as n/a before promoting QA.",
+    "Use targeted package tests as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "ready",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "(printf '%s\\n' 'export const TypeProbe = () => <p className=\"text-sm text-[13px] text-[rgb(var(--m3-on-surface-variant))]\">probe</p>;' > packages/admin/src/views/TypeProbe.tsx && bash scripts/design/check-tokens.sh; rc=$?; rm -f packages/admin/src/views/TypeProbe.tsx; exit $rc) && bun run --filter @green-goods/shared test -- src/__tests__/utils/styles/cn.test.ts",
+          "evidence": "PR5: with a probe file seeding className=\"text-sm\", an arbitrary text-[13px], and a view-level text-[rgb(var(--m3-on-surface-variant))] in packages/admin/src/views, the design-token gate exits 1 naming the lines (before the local review's fix the arbitrary size passed); before the migration the collectors reported 465 raw type-size and 38 view-level M3 colour lines; cn failed its new case, cn(\"font-mono text-sm\", \"body-xs\") keeping both classes"
+        },
+        "green": {
+          "command": "bash scripts/design/check-tokens.sh && bun run --filter @green-goods/shared test -- src/__tests__/utils/styles/cn.test.ts",
+          "evidence": "PR5: the gate passes with both collectors at zero and cn passes 7 of 7; the type census of 34 route targets and 376 stories changed no size, weight, or line height outside the intended title roles, the local review's two drifts (the capital tiles' labels and the review hints) measured back to develop's values, and the colour census of 72 stories and 3 routes left text, stroke, and ink colours unchanged; on ac4dca30e the admin (1054), shared (5826), and client (1399) suites, storybook-ci (347), the admin-ci Playwright project (11), the admin and shared typechecks, and the push gate passed"
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "claude",
+      "status": "ready",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/admin-ui/view-actions.test.ts",
+          "evidence": "PR3: view-actions.test.ts failed (Fund Cookie Jar had no disabled state or reason); the per-asset and save-row table tests were written with their code (proof limit in the handoff)"
+        },
+        "green": {
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/admin-ui/view-actions.test.ts src/__tests__/utils/vaults.test.ts src/__tests__/hooks/garden/useGardenDerivedState.test.ts",
+          "evidence": "PR3: the same files pass; the shared suite passed 5801 in the critical push gate reused on 59ca04ac0"
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract changes: the audit fixes are admin UI, shared hooks and utilities, and design docs."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-25T05:02:27.269Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-09-25T05:11:39.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planned",
+      "branch": "fix/actions-capitals-crash",
+      "note": "Filled the hub from the 2026-09-24 admin UX audit and the 2026-09-25 decisions: five PR sub-lanes, findings D1-D36, decisions DEC-A to DEC-H, design-log rows DL-043 to DL-051."
+    },
+    {
+      "timestamp": "2026-09-25T05:14:48.129Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-09-25T06:41:03.294Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T07:06:21.637Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T07:58:53.000Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "fix/actions-capitals-crash",
+      "note": "PR1 (pr1_actions_crash) merged into develop as #904; PRD-982 Done"
+    },
+    {
+      "timestamp": "2026-09-25T07:58:53.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/hub-review-and-queue-health",
+      "note": "PR2 (pr2_hub_review_queue) rebased onto develop after PR1 merged"
+    },
+    {
+      "timestamp": "2026-09-25T08:04:39.272Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T08:04:39.702Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T09:07:01.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/garden-community-clarity",
+      "note": "PR3 (pr3_garden_community) implemented on PR2's branch; opens once PR2 merges"
+    },
+    {
+      "timestamp": "2026-09-25T13:23:46.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "fix/hub-review-and-queue-health",
+      "note": "PR2 (pr2_hub_review_queue) merged into develop as #905; PRD-983 Done"
+    },
+    {
+      "timestamp": "2026-09-25T13:26:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/garden-community-clarity",
+      "note": "PR3 (pr3_garden_community) rebased onto develop after PR2 merged"
+    },
+    {
+      "timestamp": "2026-09-25T13:26:38.748Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T13:26:39.143Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T19:21:59.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "fix/garden-community-clarity",
+      "note": "PR3 (pr3_garden_community) merged into develop as #906; PRD-984 Done"
+    },
+    {
+      "timestamp": "2026-09-25T19:40:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/shell-cookies-and-actions-tone",
+      "note": "PR4 (pr4_shell_cookies_tone) rebased onto develop after PR3 merged"
+    },
+    {
+      "timestamp": "2026-09-25T19:58:26.419Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T20:05:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "refactor/admin-type-scale-and-stories",
+      "note": "PR5 (pr5_copy_storybook_polish) implemented on PR4's branch; opens after PR4 merges"
+    },
+    {
+      "timestamp": "2026-09-25T20:55:42.493Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T22:28:11.923Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T22:48:02.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "feature/shell-cookies-and-actions-tone",
+      "note": "PR4 (pr4_shell_cookies_tone) merged into develop as #908 after Afo approved the screenshots; PRD-985 Done"
+    },
+    {
+      "timestamp": "2026-09-25T22:50:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "refactor/admin-type-scale-and-stories",
+      "note": "PR5 (pr5_copy_storybook_polish) rebased onto develop after PR4 merged; opens now"
+    },
+    {
+      "timestamp": "2026-09-25T22:48:46.064Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-26T00:21:02.485Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    }
+  ],
+  "execution_sub_lanes": {
+    "pr1_actions_crash": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "completed",
+      "branch": "fix/actions-capitals-crash",
+      "depends_on": [],
+      "handoff": "handoffs/pr1-actions-crash.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-982",
+        "parentIssue": "PRD-981"
+      },
+      "linear_issues": ["PRD-982", "PRD-981"]
+    },
+    "pr2_hub_review_queue": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "completed",
+      "branch": "fix/hub-review-and-queue-health",
+      "depends_on": ["pr1_actions_crash"],
+      "handoff": "handoffs/pr2-hub-review-queue.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-983",
+        "parentIssue": "PRD-981"
+      },
+      "linear_issues": ["PRD-983", "PRD-981"]
+    },
+    "pr3_garden_community": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "completed",
+      "branch": "fix/garden-community-clarity",
+      "depends_on": ["pr2_hub_review_queue"],
+      "handoff": "handoffs/pr3-garden-community.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-984",
+        "parentIssue": "PRD-981"
+      },
+      "linear_issues": ["PRD-984", "PRD-981"]
+    },
+    "pr4_shell_cookies_tone": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "completed",
+      "branch": "feature/shell-cookies-and-actions-tone",
+      "depends_on": ["pr3_garden_community"],
+      "handoff": "handoffs/pr4-shell-cookies-tone.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-985",
+        "parentIssue": "PRD-981"
+      },
+      "linear_issues": ["PRD-985", "PRD-981"]
+    },
+    "pr5_copy_storybook_polish": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "refactor/admin-type-scale-and-stories",
+      "depends_on": ["pr4_shell_cookies_tone"],
+      "handoff": "handoffs/pr5-copy-storybook-polish.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-986",
+        "parentIssue": "PRD-981"
+      },
+      "linear_issues": ["PRD-986", "PRD-981"]
+    }
+  }
+}

@@ -89,6 +89,17 @@ vi.mock("../../../hooks/work/useWorks", () => ({
   useWorks: () => mockUseWorks(),
 }));
 
+/** The garden's whole queue as a list, and past the read's limit as a floor. */
+const LISTED = { lastReviewedAt: 100, waiting: [] };
+const FLOOR = { lastReviewedAt: 100, waiting: null, waitingAtLeast: 3, waitingOverWeekAtLeast: 2 };
+const mockUseGardenReviewQueue = vi.fn(
+  (_gardenId: string, _options: { enabled: boolean }): object | undefined => LISTED
+);
+vi.mock("../../../hooks/work/useGardenReviewQueue", () => ({
+  useGardenReviewQueue: (gardenId: string, options: { enabled: boolean }) =>
+    mockUseGardenReviewQueue(gardenId, options),
+}));
+
 function defaultWorksResult() {
   return {
     works: [],
@@ -190,5 +201,77 @@ describe("useGardenDetailData eligible garden fallback", () => {
     expect(result.current.garden).toBe(recoveredGarden);
     expect(result.current.isWorksError).toBe(true);
     expect(result.current.worksError).toBe(worksError);
+  });
+
+  // Rows left from the last good read cannot show that no review landed since.
+  // Past the newest page the garden's whole queue speaks: beside its list the
+  // rows add only decisions, but beside a floor their waiting work must be current.
+  it.each([
+    { name: "a current read", works: {}, complete: true, gardenWide: false },
+    { name: "a failed refresh", works: { isError: true }, complete: false, gardenWide: false },
+    { name: "a paused refresh", works: { isPaused: true }, complete: false, gardenWide: false },
+    {
+      name: "unread approvals",
+      works: { hasUnknownStatuses: true },
+      complete: false,
+      gardenWide: false,
+    },
+    {
+      name: "a restored read",
+      works: { readThisSession: false },
+      complete: false,
+      gardenWide: false,
+    },
+    { name: "older work", works: { hasOlderWork: true }, complete: false, gardenWide: true },
+    {
+      name: "older work and rows a later read left out",
+      works: { hasOlderWork: true, hasUnknownStatuses: true },
+      complete: false,
+      gardenWide: true,
+    },
+    {
+      name: "older work past the read's limit",
+      works: { hasOlderWork: true },
+      queue: FLOOR,
+      complete: false,
+      gardenWide: true,
+    },
+    {
+      name: "older work past the read's limit and rows a later read left out",
+      works: { hasOlderWork: true, hasUnknownStatuses: true },
+      queue: FLOOR,
+      complete: false,
+      gardenWide: false,
+    },
+  ])("weighs work after $name: whole $complete, garden-wide $gardenWide", ({
+    works,
+    queue = LISTED,
+    complete,
+    gardenWide,
+  }) => {
+    mockUseGardenReviewQueue.mockReturnValue(queue);
+    mockUseGardens.mockReturnValue({
+      data: [recoveredGarden],
+      isLoading: false,
+      error: null,
+      isError: false,
+    });
+    mockUseWorks.mockReturnValue({
+      ...defaultWorksResult(),
+      isPaused: false,
+      hasOlderWork: false,
+      hasUnknownStatuses: false,
+      readThisSession: true,
+      ...works,
+    });
+
+    const { result } = renderHook(() => useGardenDetailData(recoveredGarden.id));
+
+    expect(result.current.worksComplete).toBe(complete);
+    expect(result.current.gardenReviewQueue).toBe(gardenWide ? queue : undefined);
+    // The garden's whole queue is read only when the page cannot hold it.
+    expect(mockUseGardenReviewQueue).toHaveBeenLastCalledWith(recoveredGarden.id, {
+      enabled: "hasOlderWork" in works,
+    });
   });
 });

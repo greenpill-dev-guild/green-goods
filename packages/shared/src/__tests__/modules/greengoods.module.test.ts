@@ -53,8 +53,10 @@ import {
   getGardens,
   parseIndexerDomain,
 } from "../../modules/data/greengoods";
+import { getGarden } from "../../modules/data/indexer-garden";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
-import { Domain } from "../../types/domain";
+import { parseIndexerCapital } from "../../modules/data/indexer-capitals";
+import { Capital, Domain } from "../../types/domain";
 import { instructionTemplates } from "../../utils/action/templates";
 
 const reader = { query: mockQuery } as GraphQLReader;
@@ -235,11 +237,107 @@ describe("modules/data/greengoods", () => {
     });
   });
 
+  describe("getGarden", () => {
+    const ROOT = "0xF401F34378384713222D1D21F63359CC4E8A858A";
+
+    it("reads one garden by id on the current chain and maps it as the list does", async () => {
+      mockQuery.mockResolvedValue({
+        data: {
+          Garden: [
+            {
+              id: ROOT,
+              chainId: 11155111,
+              tokenAddress: "0xGardenToken",
+              tokenID: "0",
+              name: "Green Goods Community Garden",
+              description: "The protocol garden",
+              location: "",
+              bannerImage: "",
+              gardeners: [],
+              operators: ["0xSteward1"],
+              evaluators: [],
+              owners: [],
+              funders: [],
+              communities: [],
+              openJoining: true,
+              createdAt: 1700000000,
+            },
+          ],
+          GardenDomains: [{ garden: ROOT.toLowerCase(), domainMask: 3 }],
+        },
+      });
+
+      const garden = await getGarden(ROOT, reader);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.anything(),
+        { chainId: 11155111, id: ROOT },
+        "getGarden"
+      );
+      expect(garden).toMatchObject({
+        id: ROOT,
+        name: "Green Goods Community Garden",
+        stewards: ["0xSteward1"],
+        domainMask: 3,
+      });
+    });
+
+    it("returns null when the indexer holds no such garden", async () => {
+      mockQuery.mockResolvedValue({ data: { Garden: [], GardenDomains: [] } });
+
+      await expect(getGarden(ROOT, reader)).resolves.toBeNull();
+    });
+
+    it("rejects an indexer error rather than reporting no garden", async () => {
+      mockQuery.mockResolvedValue({ error: { message: "Indexer unavailable" } });
+
+      await expect(getGarden(ROOT, reader)).rejects.toThrow("Indexer unavailable");
+    });
+  });
+
   describe("getActions", () => {
     it("surfaces missing or unknown indexer domains instead of coercing them to solar", () => {
       expect(parseIndexerDomain("SOLAR")).toBe(Domain.SOLAR);
       expect(parseIndexerDomain("UNKNOWN")).toBeNull();
       expect(parseIndexerDomain(undefined)).toBeNull();
+    });
+
+    it.each([
+      ["MATERIAL", Capital.MATERIAL],
+      ["SOCIAL", Capital.SOCIAL],
+      [3, Capital.LIVING],
+      ["3", Capital.LIVING],
+      ["UNKNOWN", null],
+      ["toString", null],
+      [9, null],
+    ])("parses the indexer capital %j as %j", (value, expected) => {
+      expect(parseIndexerCapital(value)).toBe(expected);
+    });
+
+    it("keeps the known capitals the hosted indexer names and drops the rest", async () => {
+      mockQuery.mockResolvedValue({
+        data: {
+          Action: [
+            {
+              id: "42161-3",
+              chainId: 42161,
+              startTime: "1700000000",
+              endTime: "1800000000",
+              title: "Compost Drive",
+              slug: "waste.compost_drive",
+              instructions: null,
+              capitals: ["MATERIAL", "UNKNOWN", "SOCIAL"],
+              media: [],
+              domain: "WASTE",
+              createdAt: "1700000000",
+            },
+          ],
+        },
+      });
+
+      const [action] = await getActions(reader);
+
+      expect(action.capitals).toEqual([Capital.MATERIAL, Capital.SOCIAL]);
     });
 
     it("returns parsed action list on success", async () => {

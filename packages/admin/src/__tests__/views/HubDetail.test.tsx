@@ -649,7 +649,7 @@ describe("WorkDetail view", () => {
     expect(screen.queryByText("Work not found")).not.toBeInTheDocument();
   });
 
-  it("localizes infrastructure milestone titles in the Portuguese Hub detail", () => {
+  it("leaves the work's name to the dialog title and shows only its status in the sheet", () => {
     mockUseWorks.mockReturnValue({
       works: [
         {
@@ -681,9 +681,9 @@ describe("WorkDetail view", () => {
       React.createElement(WorkDetailPanel, { workId: "0xWork", layout: "sheet" })
     );
 
+    expect(screen.getByText("Pendente")).toBeInTheDocument();
     expect(
-      screen.getByText("Marco de infraestrutura - 2026-07-07T16:36:37.231Z")
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/Infrastructure Milestone/)).not.toBeInTheDocument();
+      screen.queryByText(/Marco de infraestrutura|Infrastructure Milestone/)
+    ).not.toBeInTheDocument();
   });
 });

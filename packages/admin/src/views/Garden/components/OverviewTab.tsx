@@ -1,22 +1,26 @@
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { AdminWorkspaceSectionTab } from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
+import {
+  useLocalizedEventTime,
+  useLocalizedRelativeTime,
+} from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import type { KarmaIntegrationController } from "@green-goods/shared/hooks/garden/useKarmaIntegration";
 import type {
   ActivityFilter,
   GardenActivityEvent,
   GardenDetailTab,
   GardenRange,
-  TabBadgeSeverity,
 } from "@green-goods/shared/types/garden-detail";
 import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
-import { AlertRow, SectionStateCard } from "./GardenDetailHelpers";
+import { type GardenAlert, GardenAlertsCard } from "./GardenAlertsCard";
+import { formatReviewTime, SectionStateCard } from "./GardenDetailHelpers";
 import {
   ACTIVITY_CARD_CLASS,
   RANGE_OPTIONS,
@@ -40,16 +44,12 @@ export interface OverviewTabProps {
     },
     replace?: boolean
   ) => void;
-  overviewAlerts: Array<{
-    key: string;
-    severity: Exclude<TabBadgeSeverity, "none">;
-    label: string;
-    onAction: () => void;
-  }>;
+  overviewAlerts: GardenAlert[];
   gardenHealthLabel: string;
   approvedInRangeCount: number;
   impactVelocityDelta: number;
-  medianReviewAgeHours: number;
+  /** Median time from submission to decision; null before any decision has a known time. */
+  medianReviewLatencyMs: number | null;
   activityFilter: ActivityFilter;
   setActivityFilter: (filter: ActivityFilter) => void;
   filteredActivityEvents: GardenActivityEvent[];
@@ -73,7 +73,7 @@ export function OverviewTab({
   gardenHealthLabel,
   approvedInRangeCount,
   impactVelocityDelta,
-  medianReviewAgeHours,
+  medianReviewLatencyMs,
   activityFilter,
   setActivityFilter,
   filteredActivityEvents,
@@ -86,6 +86,11 @@ export function OverviewTab({
 }: OverviewTabProps) {
   const { formatMessage } = useIntl();
   const formatActivityTime = useLocalizedRelativeTime();
+  const formatEventTime = useLocalizedEventTime();
+  // Below 768px the rail stacks after the main column, so on phones the alerts
+  // card leads above it instead; the rest of the rail still follows (DL-051).
+  const alertsLead = useMediaQuery("(max-width: 767px)");
+  const alertsCard = <GardenAlertsCard alerts={overviewAlerts} />;
   const isHealthMode = mode === "health";
   const isActivityMode = mode === "activity";
   const activityEventLimit = isActivityMode ? Number.POSITIVE_INFINITY : 8;
@@ -129,6 +134,8 @@ export function OverviewTab({
     <div className="garden-tab-shell">
       <div className="garden-tab-layout">
         <div className="garden-tab-main">
+          {alertsLead ? alertsCard : null}
+
           {section ? (
             <SectionStateCard
               title={formatMessage({ id: `app.garden.detail.section.${section}.title` })}
@@ -165,31 +172,32 @@ export function OverviewTab({
                 </div>
               </AdminCardHeader>
               <AdminCardBody>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3" aria-live="polite">
-                  <AdminCard variant="outlined" density="compact">
-                    <p className="label-xs text-text-soft">
+                {/* Grouped by proximity inside the one card, not boxed again (D33). */}
+                <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-live="polite">
+                  <div>
+                    <dt className="label-xs text-text-soft">
                       {formatMessage({
                         id: "app.garden.detail.metric.lastActivity",
                         defaultMessage: "Last Activity",
                       })}
-                    </p>
-                    <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
+                    </dt>
+                    <dd className="mt-1 font-heading text-title-md font-semibold text-text-strong">
                       {filteredActivityEvents.length > 0
                         ? formatActivityTime(filteredActivityEvents[0].timestamp)
                         : formatMessage({
                             id: "app.garden.detail.metric.noActivity",
                             defaultMessage: "No activity yet",
                           })}
-                    </p>
-                  </AdminCard>
-                  <AdminCard variant="outlined" density="compact">
-                    <p className="label-xs text-text-soft">
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.impactVelocity" })}
-                    </p>
-                    <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
+                    </dt>
+                    <dd className="mt-1 font-heading text-title-md font-semibold text-text-strong">
                       {approvedInRangeCount}
-                    </p>
-                    <p className="mt-0.5 body-xs text-text-soft">
+                    </dd>
+                    <dd className="mt-0.5 body-xs text-text-soft">
                       {impactVelocityDelta === 0
                         ? formatMessage({ id: "app.garden.detail.metric.noDelta" })
                         : formatMessage(
@@ -201,48 +209,43 @@ export function OverviewTab({
                             },
                             { count: Math.abs(impactVelocityDelta) }
                           )}
-                    </p>
-                  </AdminCard>
-                  <AdminCard variant="outlined" density="compact">
-                    <p className="label-xs text-text-soft">
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.executionThroughput" })}
-                    </p>
-                    <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
-                      {medianReviewAgeHours > 0
-                        ? formatMessage(
-                            { id: "app.garden.detail.metric.hoursValue" },
-                            { hours: Math.round(medianReviewAgeHours) }
-                          )
-                        : formatMessage({ id: "app.garden.detail.metric.notAvailable" })}
-                    </p>
-                  </AdminCard>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
+                    </dt>
+                    <dd className="mt-1 font-heading text-title-md font-semibold text-text-strong">
+                      {formatReviewTime(medianReviewLatencyMs, formatMessage)}
+                    </dd>
+                  </div>
+                </dl>
+                <dl className="mt-4 grid grid-cols-1 gap-x-6 border-t border-stroke-soft pt-2 sm:grid-cols-2">
                   <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
+                    <dt className="garden-stat-row-label">
                       {formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
-                    </span>
-                    <span className="garden-stat-row-value">{pendingWorkCount}</span>
+                    </dt>
+                    <dd className="garden-stat-row-value">{pendingWorkCount}</dd>
                   </div>
                   <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
+                    <dt className="garden-stat-row-label">
                       {formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
-                    </span>
-                    <span className="garden-stat-row-value">{assessmentCount30d}</span>
+                    </dt>
+                    <dd className="garden-stat-row-value">{assessmentCount30d}</dd>
                   </div>
                   <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
+                    <dt className="garden-stat-row-label">
                       {formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
-                    </span>
-                    <span className="garden-stat-row-value">{gardenerCount}</span>
+                    </dt>
+                    <dd className="garden-stat-row-value">{gardenerCount}</dd>
                   </div>
                   <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
+                    <dt className="garden-stat-row-label">
                       {formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
-                    </span>
-                    <span className="garden-stat-row-value">{treasuryBalance}</span>
+                    </dt>
+                    <dd className="garden-stat-row-value">{treasuryBalance}</dd>
                   </div>
-                </div>
+                </dl>
               </AdminCardBody>
             </AdminCard>
           )}
@@ -328,7 +331,7 @@ export function OverviewTab({
                                   })}
                                 </p>
                                 <p
-                                  className="truncate text-sm font-medium text-text-strong"
+                                  className="truncate body-sm font-medium text-text-strong"
                                   title={activityTitle}
                                 >
                                   {activityTitle}
@@ -338,7 +341,7 @@ export function OverviewTab({
                                 </p>
                               </div>
                               <span className="body-xs text-text-soft">
-                                {formatActivityTime(event.timestamp)}
+                                {formatEventTime(event.timestamp)}
                               </span>
                             </div>
                             {event.href ? (
@@ -353,7 +356,7 @@ export function OverviewTab({
                                       openSection("work", "work", event.itemId);
                                     }
                                   }}
-                                  className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
+                                  className="inline-flex items-center gap-1 label-xs text-primary-base hover:text-primary-darker"
                                 >
                                   {formatMessage({ id: "app.garden.detail.activity.view" })}
                                   <RiArrowRightSLine className="h-4 w-4" />
@@ -392,32 +395,7 @@ export function OverviewTab({
           <div className="garden-tab-rail-sticky">
             {isHealthMode ? <KarmaIntegrationPanel integration={karmaIntegration} /> : null}
 
-            <AdminCard density="none">
-              <AdminCardHeader>
-                <AdminCardTitle>
-                  {formatMessage({ id: "app.garden.detail.alerts.title" })}
-                </AdminCardTitle>
-              </AdminCardHeader>
-              <AdminCardBody>
-                {overviewAlerts.length === 0 ? (
-                  <p className="body-sm text-text-soft">
-                    {formatMessage({ id: "app.garden.detail.alerts.none" })}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {overviewAlerts.map((alert) => (
-                      <AlertRow
-                        key={alert.key}
-                        severity={alert.severity}
-                        label={alert.label}
-                        actionLabel={formatMessage({ id: "app.actions.view" })}
-                        onAction={alert.onAction}
-                      />
-                    ))}
-                  </div>
-                )}
-              </AdminCardBody>
-            </AdminCard>
+            {alertsLead ? null : alertsCard}
 
             <AdminCard density="none">
               <AdminCardHeader>
@@ -470,7 +448,7 @@ export function OverviewTab({
                             {activityTitle}
                           </span>
                           <span className="shrink-0 garden-stat-row-value">
-                            {formatActivityTime(event.timestamp)}
+                            {formatEventTime(event.timestamp)}
                           </span>
                         </button>
                       );

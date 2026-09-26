@@ -3,7 +3,7 @@ import { campaignCookieJarStoryDecorators } from "./CampaignCookieJar.stories.fi
 import { ReviewLine } from "./ReviewLine";
 
 const meta: Meta<typeof ReviewLine> = {
-  title: "Admin/Workspaces/Cookies/CampaignCookieJar/ReviewLine",
+  title: "Admin/Workflows/Community/Payouts/CampaignCookieJar/ReviewLine",
   component: ReviewLine,
   tags: ["autodocs"],
   decorators: campaignCookieJarStoryDecorators,

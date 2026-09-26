@@ -34,6 +34,12 @@ export interface ViewAction {
   visible?: boolean;
   disabled?: boolean;
   /**
+   * Why a disabled action cannot run, so it stays in place and explains itself
+   * instead of vanishing: i18n id, with the English text as its fallback.
+   */
+  disabledReasonId?: string;
+  disabledReason?: string;
+  /**
    * Marks this action as the active tab's filled action and the primary FAB
    * button. At most one action per tab sets this; when none is marked the
    * tab is a read surface — all actions render outlined and no FAB shows.

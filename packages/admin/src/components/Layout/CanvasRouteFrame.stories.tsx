@@ -53,7 +53,7 @@ export const StateCatalog: Story = {
       <CanvasRouteContent className="mt-4 space-y-4">
         <div className="rounded-lg border border-stroke-soft bg-bg-white p-4">
           <p className="label-md text-text-strong">Workspace content lane</p>
-          <p className="mt-1 text-sm text-text-sub">
+          <p className="mt-1 body-sm text-text-sub">
             Route bodies should sit inside this constrained content container.
           </p>
         </div>
@@ -78,7 +78,7 @@ export const NarrowContent: Story = {
         maxWidthClassName="max-w-3xl"
       />
       <CanvasRouteContent maxWidthClassName="max-w-3xl" className="mt-4">
-        <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 text-sm text-text-sub">
+        <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 body-sm text-text-sub">
           Narrow routes use the same shell with a smaller content width.
         </div>
       </CanvasRouteContent>

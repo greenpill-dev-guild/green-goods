@@ -78,7 +78,7 @@ export function SeedTrayList({ rows, busy, onEdit, onRemove }: SeedTrayListProps
                     </StatusBadge>
                   ) : null}
                 </p>
-                <p className="truncate text-xs text-text-soft" title={facts}>
+                <p className="truncate body-xs text-text-soft" title={facts}>
                   {facts}
                 </p>
               </div>

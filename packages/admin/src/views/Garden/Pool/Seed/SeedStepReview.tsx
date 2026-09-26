@@ -360,7 +360,7 @@ export function SeedStepReview({
         </Alert>
       ) : null}
       {/* How many times the wallet will ask sits beside the button that asks. */}
-      <p className="text-xs text-text-soft">
+      <p className="body-xs text-text-soft">
         {formatMessage({
           id: "cockpit.garden.pool.seed.queueNote",
           defaultMessage:

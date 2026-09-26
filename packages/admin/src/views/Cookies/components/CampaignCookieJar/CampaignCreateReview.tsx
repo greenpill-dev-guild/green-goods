@@ -1,118 +1,55 @@
-import { AdminButton } from "@/components/AdminButton";
-import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
-import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
+import { AdminCard } from "@/components/AdminCard";
+import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
 import { ReviewLine } from "./ReviewLine";
 
+/**
+ * The Review step: what the jar pays, who can claim, and where its page lives.
+ * The flow's footer carries Create Cookie Jar.
+ */
 export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
-  const {
-    formatMessage,
-    payoutLabel,
-    aggregation,
-    publicCampaignUrl,
-    canCreate,
-    createPending,
-    gardensLoading,
-    factoryLoading,
-    onCreate,
-    onCancel,
-    createError,
-  } = props;
+  const { formatMessage, payoutLabel, aggregation, publicCampaignUrl, createError } = props;
   return (
-    <>
-      <aside className="sticky top-20 hidden space-y-4 lg:block">
-        <AdminCard variant="outlined" className="space-y-2">
-          <AdminCardTitle as="h2">
-            {formatMessage({
-              id: "cockpit.community.cookies.review",
-              defaultMessage: "Review",
-            })}
-          </AdminCardTitle>
-          <ReviewLine
-            label={formatMessage({
-              id: "cockpit.community.cookies.reviewPayout",
-              defaultMessage: "Payout",
-            })}
-            value={payoutLabel}
-          />
-          <ReviewLine
-            label={formatMessage({
-              id: "cockpit.community.cookies.selectedGardens",
-              defaultMessage: "Selected gardens",
-            })}
-            value={aggregation.sources.length}
-          />
-          <ReviewLine
-            label={formatMessage({
-              id: "cockpit.community.cookies.generatedStewards",
-              defaultMessage: "Generated stewards",
-            })}
-            value={aggregation.allowlist.length}
-          />
-          <ReviewLine
-            label={formatMessage({
-              id: "cockpit.community.cookies.missingStewards",
-              defaultMessage: "Missing stewards",
-            })}
-            value={aggregation.missingStewardGardens.length}
-          />
-          <ReviewLine
-            label={formatMessage({
-              id: "cockpit.community.cookies.generatedCampaignLink",
-              defaultMessage: "Campaign page",
-            })}
-            value={publicCampaignUrl}
-          />
-          <div className="pt-3">
-            <AdminButton
-              type="button"
-              className="w-full"
-              onClick={onCreate}
-              disabled={!canCreate || createPending || gardensLoading || factoryLoading}
-              loading={createPending}
-            >
-              {formatMessage({
-                id: "cockpit.community.cookies.create",
-                defaultMessage: "Create Cookie Jar",
-              })}
-            </AdminButton>
-            <AdminButton type="button" variant="text" className="mt-2 w-full" onClick={onCancel}>
-              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </AdminButton>
-          </div>
-          {createError ? (
-            <p className="text-body-sm text-error-dark">{createError.message}</p>
-          ) : null}
-        </AdminCard>
-      </aside>
-
-      <div className="fixed inset-x-0 bottom-[calc(80px+env(safe-area-inset-bottom))] z-sticky border-t border-stroke-soft bg-bg-sub p-3 shadow-[var(--m3-elevation-2)] lg:hidden">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-label-md font-semibold text-text-strong">{payoutLabel}</p>
-            <p className="text-label-sm text-text-sub">
-              {formatMessage(
-                {
-                  id: "cockpit.community.cookies.mobileReviewSummary",
-                  defaultMessage:
-                    "{gardens, plural, one {# garden} other {# gardens}} - {stewards, plural, one {# steward} other {# stewards}}",
-                },
-                { gardens: aggregation.sources.length, stewards: aggregation.allowlist.length }
-              )}
-            </p>
-          </div>
-          <AdminButton
-            type="button"
-            onClick={onCreate}
-            disabled={!canCreate || createPending || gardensLoading || factoryLoading}
-            loading={createPending}
-          >
-            {formatMessage({
-              id: "cockpit.community.cookies.create",
-              defaultMessage: "Create Cookie Jar",
-            })}
-          </AdminButton>
-        </div>
-      </div>
-    </>
+    <AdminCard variant="outlined" className="space-y-2">
+      <ReviewLine
+        label={formatMessage({
+          id: "cockpit.community.cookies.reviewPayout",
+          defaultMessage: "Payout",
+        })}
+        value={payoutLabel}
+      />
+      <ReviewLine
+        label={formatMessage({
+          id: "cockpit.community.cookies.selectedGardens",
+          defaultMessage: "Selected gardens",
+        })}
+        value={aggregation.sources.length}
+      />
+      <ReviewLine
+        label={formatMessage({
+          id: "cockpit.community.cookies.generatedStewards",
+          defaultMessage: "Stewards who can claim",
+        })}
+        value={aggregation.allowlist.length}
+      />
+      <ReviewLine
+        label={formatMessage({
+          id: "cockpit.community.cookies.missingStewards",
+          defaultMessage: "Gardens without a steward",
+        })}
+        value={aggregation.missingStewardGardens.length}
+      />
+      <ReviewLine
+        label={formatMessage({
+          id: "cockpit.community.cookies.generatedCampaignLink",
+          defaultMessage: "Campaign page",
+        })}
+        value={publicCampaignUrl}
+      />
+      {createError ? (
+        <p className="text-body-sm text-error-dark" role="alert">
+          {createError.message}
+        </p>
+      ) : null}
+    </AdminCard>
   );
 }

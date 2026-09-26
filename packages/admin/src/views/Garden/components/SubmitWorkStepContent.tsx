@@ -134,7 +134,7 @@ export function SubmitWorkStepContent({
           description={selectedAction?.title}
         />
         {selectedAction?.inputs.some((input) => input.required) ? (
-          <p className="text-xs text-text-sub">
+          <p className="body-xs text-text-sub">
             {formatMessage({
               id: "app.admin.work.submit.requiredLegend",
               defaultMessage: "* Required field",

@@ -7,7 +7,7 @@ import {
 import { CampaignJarListRow } from "./CampaignJarListRow";
 
 const meta: Meta<typeof CampaignJarListRow> = {
-  title: "Admin/Workspaces/Cookies/CampaignCookieJar/ListRow",
+  title: "Admin/Workflows/Community/Payouts/CampaignCookieJar/ListRow",
   component: CampaignJarListRow,
   tags: ["autodocs"],
   decorators: campaignCookieJarStoryDecorators,

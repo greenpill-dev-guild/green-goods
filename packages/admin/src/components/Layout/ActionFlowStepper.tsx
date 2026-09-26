@@ -127,7 +127,7 @@ export function ActionFlowStepper({
               <div className={cn("min-w-0 pt-0.5", !isLast && "pb-5")}>
                 <p
                   className={cn(
-                    "truncate text-sm font-medium",
+                    "truncate body-sm font-medium",
                     isCurrent
                       ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
                       : completed
@@ -139,7 +139,7 @@ export function ActionFlowStepper({
                   {step.title}
                 </p>
                 {step.description ? (
-                  <p className="mt-0.5 line-clamp-2 text-xs text-text-soft">{step.description}</p>
+                  <p className="mt-0.5 line-clamp-2 body-xs text-text-soft">{step.description}</p>
                 ) : null}
               </div>
             </li>
@@ -182,7 +182,7 @@ export function ActionFlowStepper({
           );
         })}
       </ol>
-      <p data-region="action-flow-step-label" className="mt-1.5 text-xs font-medium text-text-sub">
+      <p data-region="action-flow-step-label" className="mt-1.5 label-xs text-text-sub">
         {formatMessage(
           { id: "app.common.stepProgress", defaultMessage: "Step {current} of {total} · {label}" },
           { current: currentStep, total, label: currentTitle }

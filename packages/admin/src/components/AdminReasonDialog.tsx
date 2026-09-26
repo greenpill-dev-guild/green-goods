@@ -1,7 +1,7 @@
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { MAX_REASON } from "@green-goods/shared/modules/commitment-pooling/reasons";
 import { RiAlertLine } from "@remixicon/react";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "./AdminButton";
 import { AdminDialog, type AdminDialogProps } from "./AdminDialog";
@@ -20,6 +20,8 @@ export interface AdminReasonDialogProps {
   cancelLabel?: string;
   reasonLabel?: string;
   reasonPlaceholder?: string;
+  /** Text the field starts from each time the dialog opens, such as words already typed elsewhere. */
+  initialReason?: string;
   /**
    * Maximum accepted reason length when the downstream contract is narrower.
    * Defaults to the commitment-pooling limit the reason builder refuses past.
@@ -63,6 +65,7 @@ export function AdminReasonDialog({
   cancelLabel,
   reasonLabel,
   reasonPlaceholder,
+  initialReason = "",
   maxReasonLength = MAX_REASON,
   suggestions = [],
   variant = "default",
@@ -73,17 +76,22 @@ export function AdminReasonDialog({
   children,
 }: AdminReasonDialogProps) {
   const { formatMessage } = useIntl();
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState(isOpen ? initialReason : "");
+  const [openState, setOpenState] = useState(isOpen);
   const [submitting, setSubmitting] = useState(false);
   const busy = isLoading || submitting;
   const trimmed = reason.replace(/\s+/g, " ").trim();
-  const canConfirm = trimmed.length > 0 && !busy && !blockedReason;
+  // The field's maxLength stops typing past the limit, not a prefilled reason.
+  const tooLong = trimmed.length > maxReasonLength;
+  const canConfirm = trimmed.length > 0 && !tooLong && !busy && !blockedReason;
   const isDanger = variant === "danger";
 
-  // A fresh dialog starts empty; the text survives a failed submission.
-  useEffect(() => {
-    if (!isOpen) setReason("");
-  }, [isOpen]);
+  // Each opening starts from `initialReason` (empty by default); the text
+  // survives a failed submission because the dialog stays open.
+  if (isOpen !== openState) {
+    setOpenState(isOpen);
+    setReason(isOpen ? initialReason : "");
+  }
 
   const handleConfirm = async () => {
     if (!canConfirm) return;
@@ -160,6 +168,17 @@ export function AdminReasonDialog({
               defaultMessage: "In your own words. Members read this.",
             })
           }
+          error={
+            tooLong
+              ? formatMessage(
+                  {
+                    id: "cockpit.reasonDialog.tooLong",
+                    defaultMessage: "Shorten the reason to {max} characters or fewer.",
+                  },
+                  { max: maxReasonLength }
+                )
+              : undefined
+          }
           textareaProps={{
             maxLength: maxReasonLength,
             "data-component": "AdminReasonDialogField",
@@ -188,7 +207,7 @@ export function AdminReasonDialog({
           </div>
         ) : null}
         {blockedReason ? (
-          <p className="text-xs text-warning-dark" role="status">
+          <p className="body-xs text-warning-dark" role="status">
             {blockedReason}
           </p>
         ) : null}

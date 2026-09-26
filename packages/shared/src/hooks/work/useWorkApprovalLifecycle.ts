@@ -26,6 +26,8 @@ export interface WorkApprovalCompletion {
   approved: boolean;
   gardenId: string;
   workUID: string;
+  /** The review's feedback, shown on the work until the indexer reports the decision. */
+  feedback?: string;
 }
 
 export interface PendingWorkApproval extends WorkApprovalCompletion {
@@ -76,7 +78,8 @@ function isPendingWorkApproval(value: unknown): value is PendingWorkApproval {
     typeof record.updatedAt === "number" &&
     isPersistedStage(record.stage) &&
     (record.txHash === undefined ||
-      (typeof record.txHash === "string" && record.txHash.startsWith("0x")))
+      (typeof record.txHash === "string" && record.txHash.startsWith("0x"))) &&
+    (record.feedback === undefined || typeof record.feedback === "string")
   );
 }
 

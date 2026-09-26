@@ -3,7 +3,7 @@ import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import type { Domain, Work } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatDateTime, normalizeTimestamp } from "@green-goods/shared/utils/time";
-import { stripGeneratedWorkTitleTimestamp } from "@green-goods/shared/utils/work/workTitles";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
 import { useState, type CSSProperties } from "react";
 import { useIntl } from "react-intl";
@@ -42,7 +42,7 @@ export interface HubWorkCardProps {
 // Status chip — 1a spec: pill, 3px 10px, 11px/600, semantic lighter bg + dark
 // fg pair; the neutral state is the warm stone chip.
 const STATUS_CHIP_TONE_CLASSES: Record<HubWorkCardStatusTone, string> = {
-  neutral: "bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface-variant))]",
+  neutral: "bg-bg-sub text-text-sub",
   success: "bg-success-lighter text-success-dark",
   warning: "bg-warning-lighter text-warning-dark",
   error: "bg-error-lighter text-error-dark",
@@ -132,9 +132,13 @@ export function HubWorkCard({
   // `numeric: "always"` keeps "1 day ago" rather than "yesterday" — the queue
   // reads as a uniform age column, not prose.
   const submittedAgeParts = getRelativeTimeParts(work.createdAt);
-  const submittedAgoText = submittedAgeParts
+  const submittedAge = submittedAgeParts
     ? formatRelativeTime(submittedAgeParts.value, submittedAgeParts.unit, { numeric: "always" })
     : formatMessage({ id: "cockpit.hub.workCard.justNow", defaultMessage: "just now" });
+  const submittedAgoText = formatMessage(
+    { id: "cockpit.hub.workCard.submittedAgo", defaultMessage: "submitted {age}" },
+    { age: submittedAge }
+  );
   const submittedAtMs = normalizeTimestamp(work.createdAt);
   const submittedAtIso = Number.isNaN(submittedAtMs)
     ? undefined
@@ -151,16 +155,20 @@ export function HubWorkCard({
   const resolvedStatusTone: HubWorkCardStatusTone =
     statusTone ?? (work.status === "approved" ? "success" : "neutral");
   const domainConfig = actionDomain !== undefined ? DOMAIN_CONFIG[actionDomain] : undefined;
-  const localizedActionTitle = actionTitle
-    ? localizeCanonicalActionTitle(actionTitle, formatMessage)
+  // Action titles can carry generated stamps too, so both go through the display title.
+  const actionDisplayTitle = toWorkDisplayTitle(actionTitle, "");
+  const localizedActionTitle = actionDisplayTitle
+    ? localizeCanonicalActionTitle(actionDisplayTitle, formatMessage)
     : undefined;
-
-  const rawTitle = localizeCanonicalActionTitle(
-    work.title ||
-      formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" }),
+  // A work whose own title is generated or missing reads as its action.
+  const title = localizeCanonicalActionTitle(
+    toWorkDisplayTitle(
+      work.title,
+      actionDisplayTitle ||
+        formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" })
+    ),
     formatMessage
   );
-  const title = stripGeneratedWorkTitleTimestamp(rawTitle, localizedActionTitle) || rawTitle;
   const visibleActionTitle =
     localizedActionTitle && localizedActionTitle.trim().toLowerCase() !== title.trim().toLowerCase()
       ? localizedActionTitle
@@ -239,7 +247,7 @@ export function HubWorkCard({
         {/* Domain chip — 1a spec: white/90 pill bottom-left, 11px/600 neutral ink
             (never domain- or tone-colored on the card surface). */}
         {domainConfig && (
-          <span className="absolute bottom-2 left-2 inline-flex items-center rounded-full bg-[rgb(var(--admin-surface-0)/0.9)] px-2.5 py-[3px] text-label-sm font-semibold text-[rgb(var(--m3-on-surface-variant))]">
+          <span className="absolute bottom-2 left-2 inline-flex items-center rounded-full bg-[rgb(var(--admin-surface-0)/0.9)] px-2.5 py-[3px] text-label-sm font-semibold text-text-sub">
             {formatMessage({ id: domainConfig.labelId })}
           </span>
         )}
@@ -259,6 +267,7 @@ export function HubWorkCard({
         <div className="flex items-start justify-between gap-2.5">
           <h3
             className="min-w-0 flex-1 text-title-sm font-semibold leading-5 text-text-strong line-clamp-2"
+            // The hover reveals a clamped title, so it reads the same clean title.
             title={title}
           >
             {title}

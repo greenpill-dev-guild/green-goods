@@ -1,7 +1,6 @@
 import { CAMPAIGN_DESCRIPTION_MAX_LENGTH } from "@green-goods/shared/utils/cookie-jar-campaign";
-import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
-import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
+import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
 import { CampaignImageInput } from "./CampaignImageInput";
 
 export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) {
@@ -19,16 +18,7 @@ export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) 
     publicCampaignUrl,
   } = props;
   return (
-    <section className="surface-section overflow-visible">
-      <div className="mb-4">
-        <p className="text-label-sm text-text-sub">01</p>
-        <AdminCardTitle as="h2">
-          {formatMessage({
-            id: "cockpit.community.cookies.createCampaignSection",
-            defaultMessage: "Campaign",
-          })}
-        </AdminCardTitle>
-      </div>
+    <section>
       <div className="grid gap-4">
         <AdminTextField
           id="campaign-cookie-jar-title"

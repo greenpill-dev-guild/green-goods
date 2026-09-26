@@ -53,7 +53,7 @@ export function CommitmentDialogNotFound({
           defaultMessage: "This commitment couldn’t be loaded",
         })}
       </AdminCardTitle>
-      <p className="max-w-sm text-sm text-text-soft">
+      <p className="max-w-sm body-sm text-text-soft">
         {formatMessage({
           id: "cockpit.garden.pool.commitment.notFound.body",
           defaultMessage:
@@ -109,7 +109,7 @@ export function CommitmentDialogUnavailable({ garden }: { garden: Address }) {
           defaultMessage: "Commitment pooling isn't switched on in this app yet",
         })}
       </AdminCardTitle>
-      <p className="max-w-sm text-sm text-text-soft">
+      <p className="max-w-sm body-sm text-text-soft">
         {formatMessage({
           id: "cockpit.garden.pool.unavailable.body",
           defaultMessage: "The pool console switches on with the release that serves pooling here.",

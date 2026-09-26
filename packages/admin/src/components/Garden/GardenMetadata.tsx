@@ -93,7 +93,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
-          <code className="flex-1 truncate text-xs text-text-strong sm:text-sm">
+          <code className="flex-1 truncate body-xs text-text-strong sm:body-sm">
             <EnsAddressText address={gardenId} />
           </code>
           <AdminIconButton
@@ -141,7 +141,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
-          <code className="flex-1 truncate text-xs text-text-strong sm:text-sm">
+          <code className="flex-1 truncate body-xs text-text-strong sm:body-sm">
             <EnsAddressText address={tokenAddress} /> #{tokenId.toString()}
           </code>
           <AdminIconButton

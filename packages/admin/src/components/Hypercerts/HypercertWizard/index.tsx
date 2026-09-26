@@ -9,6 +9,7 @@ import { useWizardData } from "@green-goods/shared/hooks/admin-ui/hypercerts/use
 import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
 import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
 import { logger } from "@green-goods/shared/modules/app/logger";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
@@ -36,8 +37,29 @@ export function HypercertWizard({
   const wizard = useWizardData({ gardenId, gardenName, onComplete });
   const stepRef = useStepFocus<HTMLDivElement>(wizard.currentStep);
   const mintDisabled = wizard.isSubmitting || wizard.selectedAttestations.length === 0;
+  // Step 1 explains itself only after Next is pressed with no work selected,
+  // so the steward is not warned before doing anything.
+  const [nextTriedEmpty, setNextTriedEmpty] = useState(false);
+  // The gate and its message read the same resolved selection, so saved picks
+  // that match no loaded attestation still explain why Next did not advance.
+  const needsAttestation = wizard.currentStep === 1 && wizard.selectedAttestations.length === 0;
+  // Nothing to pick while attestations load or failed to load, so Next waits.
+  // A failed refresh that keeps the loaded attestations leaves them usable.
+  const attestationsUnavailable =
+    wizard.currentStep === 1 &&
+    wizard.attestations.length === 0 &&
+    (wizard.isLoading || wizard.hasError);
   const validationMessage =
-    wizard.selectedAttestations.length === 0 ? wizard.validationMessage : undefined;
+    nextTriedEmpty && needsAttestation
+      ? formatMessage({ id: "app.hypercerts.wizard.validation.selectAttestation" })
+      : undefined;
+  const handleNext = () => {
+    if (needsAttestation) {
+      setNextTriedEmpty(true);
+      return;
+    }
+    wizard.nextStep();
+  };
   const isFirstStep = wizard.currentStep === 1;
   const isLastStep = wizard.currentStep === wizard.steps.length;
   const activeStep = wizard.steps[wizard.currentStep - 1];
@@ -190,8 +212,12 @@ export function HypercertWizard({
                 <AdminButton
                   type="button"
                   variant="filled"
-                  onClick={wizard.nextStep}
-                  disabled={wizard.nextDisabled || wizard.isSubmitting}
+                  onClick={handleNext}
+                  disabled={
+                    (wizard.nextDisabled && !needsAttestation) ||
+                    attestationsUnavailable ||
+                    wizard.isSubmitting
+                  }
                   className="w-full sm:w-auto"
                 >
                   {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
