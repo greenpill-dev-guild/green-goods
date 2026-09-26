@@ -93,10 +93,12 @@ describe("agent storage with real bun:sqlite", () => {
 
     await closeDB();
     initDB(databasePath);
-    await expect(store.getMine(garden, account)).resolves.toMatchObject({
-      displayName: "Private gardener",
-      note: "Private joining note",
-    });
+    await expect(store.getMine(garden, account, "2026-08-27T12:00:00.000Z")).resolves.toMatchObject(
+      {
+        displayName: "Private gardener",
+        note: "Private joining note",
+      }
+    );
   });
 
   it("persists replay nonces only as keyed digests", async () => {

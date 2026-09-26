@@ -118,14 +118,16 @@ export function FieldNotesSection({
         </>
       )}
 
-      <FieldNoteDialog
-        chainId={chainId}
-        note={openNote}
-        onClose={() => {
-          setOpenNote(null);
-          triggerRef.current?.focus();
-        }}
-      />
+      {openNote ? (
+        <FieldNoteDialog
+          chainId={chainId}
+          note={openNote}
+          onClose={() => {
+            setOpenNote(null);
+            triggerRef.current?.focus();
+          }}
+        />
+      ) : null}
     </Section>
   );
 }

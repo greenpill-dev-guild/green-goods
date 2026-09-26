@@ -106,6 +106,7 @@ describe("usePublicFieldNotes", () => {
           id: "w-b",
           gardenAddress: otherGarden.id as `0x${string}`,
           createdAt: 1_700_000_500,
+          metadata: '{"details":{"participants":4}}',
         }),
       ];
     });
@@ -120,6 +121,7 @@ describe("usePublicFieldNotes", () => {
 
     expect(mockGetWorks).toHaveBeenCalled();
     expect(result.current.data?.fieldNotes).toHaveLength(2);
+    expect(result.current.data?.fieldNotes[0]?.metadata).toBe('{"details":{"participants":4}}');
   });
 
   it("filters by garden address when provided", async () => {

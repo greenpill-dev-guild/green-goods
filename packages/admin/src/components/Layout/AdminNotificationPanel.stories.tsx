@@ -3,7 +3,9 @@ import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import type { Work } from "@green-goods/shared/types/domain";
 import type { EASWorkListRow } from "@green-goods/shared/types/eas-responses";
+import pt from "@green-goods/shared/i18n/pt.json";
 import type { Meta, StoryObj } from "@storybook/react";
+import { IntlProvider } from "react-intl";
 import { expect, mocked, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -27,7 +29,7 @@ import { AdminNotificationPanel } from "./AdminNotificationPanel";
  */
 const WAITING_WORK: Work = {
   id: "work-rio-soil-1",
-  title: "Soil moisture readings",
+  title: "Harvest & Yield Record - 2026-07-08T12:34:00.000Z",
   actionUID: 1,
   gardenerAddress: STORYBOOK_STEWARD_ADDRESS,
   gardenAddress: STORYBOOK_PRIMARY_ADMIN_GARDEN.id,
@@ -87,6 +89,20 @@ export const SelectedGardenUpdates: Story = {
       await canvas.findByText("No reviews in 7 days, and 1 work is waiting.")
     ).toBeVisible();
     await expect(await canvas.findByText("Recent activity")).toBeVisible();
+  },
+};
+
+export const SelectedGardenUpdatesPortuguese: Story = {
+  render: (args) => (
+    <IntlProvider locale="pt" messages={pt}>
+      <AdminNotificationPanel {...args} />
+    </IntlProvider>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Atividade recente")).toBeVisible();
+    await expect(await canvas.findByText("Registro de colheita")).toBeVisible();
+    await expect(canvas.queryByText("Harvest & Yield Record")).not.toBeInTheDocument();
   },
 };
 

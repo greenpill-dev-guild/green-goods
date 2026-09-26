@@ -54,6 +54,8 @@ export interface PublicEditorialHeroProps {
   titleId: string;
   /** Restrained body paragraph. Often a short two-sentence lede. */
   lede?: ReactNode;
+  /** Optional paragraph styling for a consuming page's lede length. */
+  ledeClassName?: string;
   /**
    * Optional small-print disclaimer rendered under a hairline rule with a
    * monospaced "note —" prefix. Used by Fund's hero.
@@ -86,6 +88,7 @@ export function PublicEditorialHero({
   title,
   titleId,
   lede,
+  ledeClassName,
   disclaimer,
   photoCredit,
   actions,
@@ -172,7 +175,7 @@ export function PublicEditorialHero({
               </EditorialHeading>
               {lede ? (
                 <div className={cn(animateEntrance && "editorial-fade-up-2", "mt-4 max-w-prose")}>
-                  <EditorialLede>{lede}</EditorialLede>
+                  <EditorialLede className={ledeClassName}>{lede}</EditorialLede>
                 </div>
               ) : null}
               {actions ? (

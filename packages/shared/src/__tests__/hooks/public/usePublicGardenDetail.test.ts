@@ -171,6 +171,7 @@ describe("usePublicGardenDetail", () => {
       gardenAddress: garden.id as `0x${string}`,
       gardenerAddress: MOCK_ADDRESSES.user as `0x${string}`,
       createdAt: 1_700_001_000,
+      metadata: '{"details":{"seedlingsPlanted":12}}',
     });
     const offGardenWork = createMockWork({
       id: "work-other",
@@ -214,6 +215,7 @@ describe("usePublicGardenDetail", () => {
     expect(data?.fieldNotes).toHaveLength(2);
     // Most recent first
     expect(data?.fieldNotes[0]?.id).toBe("work-2");
+    expect(data?.fieldNotes[0]?.metadata).toBe(work2.metadata);
     expect(data?.contributors).toHaveLength(2);
     expect(data?.assessmentCount).toBe(1);
   });

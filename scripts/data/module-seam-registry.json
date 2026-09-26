@@ -17,8 +17,8 @@
         "conformance": ["packages/shared/src/__tests__/modules/job-queue.db.test.ts"],
         "integration": ["packages/shared/src/__tests__/modules/job-queue.imports.test.ts"]
       },
-      "reviewedAt": "2026-09-24",
-      "evidenceFingerprint": "sha256:f5d46f98cd3d2f5889252737ad224fdc6acbc74425a578c7d9e5cbaf21109d85"
+      "reviewedAt": "2026-09-25",
+      "evidenceFingerprint": "sha256:2ca95d648c6ab52af162d38bd75947c32e4288a877a4965589fffe3c20e2b4c7"
     },
     {
       "id": "shared-auth-session",
@@ -36,8 +36,8 @@
         "conformance": ["packages/shared/src/__tests__/workflows/authServices.test.ts"],
         "integration": ["packages/shared/src/__tests__/providers/Auth.wallet-login.test.tsx"]
       },
-      "reviewedAt": "2026-09-24",
-      "evidenceFingerprint": "sha256:0cc8a5dbee033ed98340f8a5c7a6f23930b5296a294d0a79f30a0bb9139e5830"
+      "reviewedAt": "2026-09-25",
+      "evidenceFingerprint": "sha256:1e13cbbc4fbe9b112c302f0115fe69169056607f64560595727ccf6fa79da02b"
     },
     {
       "id": "shared-work-provider-command",
@@ -57,8 +57,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-09-24",
-      "evidenceFingerprint": "sha256:80ce6048ba1d6f777c037808952bc1178729dba4f557e9d3716fea1411bfaa0f"
+      "reviewedAt": "2026-09-25",
+      "evidenceFingerprint": "sha256:35365d8e33f39628fd6a6a26a7bc68e6700a46af39bcafed4ca9d326811951da"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -76,8 +76,8 @@
         "conformance": ["packages/shared/src/__tests__/commitment-pooling-read-repository.test.ts"],
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
-      "reviewedAt": "2026-09-24",
-      "evidenceFingerprint": "sha256:79149ae5842594504db4e659b1f2f3a2fd96d483e669a20eb8ce7d8c8f40c533"
+      "reviewedAt": "2026-09-25",
+      "evidenceFingerprint": "sha256:401b0c485f8f8f763f081adaca2970832e1ee9570f57a3aad3eb093bda782c11"
     }
   ]
 }

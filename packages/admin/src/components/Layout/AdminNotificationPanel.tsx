@@ -16,6 +16,8 @@ import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
+import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
+
 export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) {
   const { formatMessage } = useIntl();
   const formatEventTime = useLocalizedEventTime();
@@ -90,7 +92,10 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
         const href = event.href;
         return {
           id: event.id,
-          title: event.title,
+          title:
+            event.category === "work"
+              ? localizeCanonicalActionTitle(event.title, formatMessage)
+              : event.title,
           description: event.description,
           meta: formatEventTime(event.timestamp),
           tone: "info" as const,

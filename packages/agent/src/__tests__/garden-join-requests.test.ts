@@ -42,7 +42,7 @@ describe("garden join request store", () => {
       throw new Error("Expected an existing garden join request");
     }
     expect(duplicate.request.id).toBe(first.request.id);
-    expect(await store.getMine(garden, account)).toMatchObject({
+    expect(await store.getMine(garden, account, requestedAt)).toMatchObject({
       displayName: "Maya",
       note: "Weekly compost pickup",
       state: "pending",
@@ -212,7 +212,7 @@ describe("garden join request store", () => {
     if (replacement.created !== true) throw new Error("Expected replacement request to be created");
 
     expect(await store.withdraw(firstIdentity)).toBe(false);
-    expect(await store.getMine(garden, account)).toMatchObject({
+    expect(await store.getMine(garden, account, "2026-08-27T12:02:00.000Z")).toMatchObject({
       id: replacement.request.id,
       state: "pending",
     });

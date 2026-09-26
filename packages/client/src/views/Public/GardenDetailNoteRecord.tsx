@@ -1,7 +1,14 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
+import { Button } from "@green-goods/shared/components/Button";
 import { getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
 import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImagePreviewDialog";
 import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
+import { useWorkMetadata } from "@green-goods/shared/hooks/work/useWorkMetadata";
+import type { WorkInput, WorkMetadataV1 } from "@green-goods/shared/types/domain";
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { buildActionId } from "@green-goods/shared/utils/action/parsers";
+import { localizeAction } from "@green-goods/shared/utils/action/translations";
+import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -97,19 +104,69 @@ function NoteMediaMosaic({
   );
 }
 
+type FormatMessage = ReturnType<typeof useIntl>["formatMessage"];
+
+function formatDetailValue(
+  value: unknown,
+  input: WorkInput | undefined,
+  formatMessage: FormatMessage
+): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (Array.isArray(value)) {
+    const items = value
+      .map((item) => formatDetailValue(item, input, formatMessage))
+      .filter((item): item is string => Boolean(item));
+    return items.length ? items.join(input?.type === "repeater" ? "; " : ", ") : null;
+  }
+  if (typeof value === "object") {
+    if (input?.type === "repeater" && input.repeaterFields?.length) {
+      const fields = Object.entries(value)
+        .map(([key, childValue]) => {
+          const child = input.repeaterFields?.find((field) => field.key === key);
+          const display = formatDetailValue(childValue, child, formatMessage);
+          return display
+            ? `${child?.title ?? fallbackDetailLabel(key, formatMessage)}: ${display}`
+            : null;
+        })
+        .filter((field): field is string => Boolean(field));
+      return fields.length ? fields.join(", ") : null;
+    }
+    return JSON.stringify(value);
+  }
+  const text = String(value);
+  return input?.optionLabels?.[text] ?? input?.bandLabels?.[text] ?? text;
+}
+
+function fallbackDetailLabel(key: string, formatMessage: FormatMessage) {
+  if (key === "seedlingsPlanted") {
+    return formatMessage({ id: "public.gardenDetail.notes.detail.seedlingsPlanted" });
+  }
+  if (key === "soilType") {
+    return formatMessage({ id: "public.gardenDetail.notes.detail.soilType" });
+  }
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/[_-]/g, " ")
+    .replace(/^./, (letter) => letter.toUpperCase());
+}
+
 export function FieldNoteDialog({
   chainId,
   note,
   onClose,
 }: {
   chainId: number;
-  note: PublicFieldNote | null;
+  note: PublicFieldNote;
   onClose: () => void;
 }) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const titleId = "public-garden-detail-note-title";
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const { metadata, status: metadataStatus, retryFetch } = useWorkMetadata(note.metadata);
+  const { data: actions = [] } = useActions(chainId);
+  const action = actions.find((item) => item.id === buildActionId(chainId, note.actionUID));
+  const inputs = action ? localizeAction(action, intl.locale).inputs : [];
   // The viewer ships English defaults for every string it renders or announces.
   // The public site is translated, so it gets the whole set, not just the two
   // that happen to be visible.
@@ -136,13 +193,53 @@ export function FieldNoteDialog({
     [formatMessage]
   );
 
-  if (!note) return null;
-
   // A stored title can end in timestamps older submissions appended; readers see the title alone.
   const title = toWorkDisplayTitle(
     note.title,
     formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" })
   );
+
+  const legacy = metadata as WorkMetadataV1 | null;
+  const details =
+    metadata?.details && typeof metadata.details === "object" && !Array.isArray(metadata.details)
+      ? metadata.details
+      : {};
+  const timeSpent = formatTimeSpent(metadata?.timeSpentMinutes);
+  const metadataRows: Array<{ label: string; value: string }> = [];
+  if (timeSpent) {
+    metadataRows.push({
+      label: formatMessage({ id: "public.gardenDetail.notes.timeSpent" }),
+      value: timeSpent,
+    });
+  }
+  for (const [key, value] of Object.entries(details)) {
+    const input = inputs.find((item) => item.key === key);
+    const display = formatDetailValue(value, input, formatMessage);
+    if (display) {
+      metadataRows.push({
+        label: input?.title ?? fallbackDetailLabel(key, formatMessage),
+        value: display,
+      });
+    }
+  }
+  if (Array.isArray(metadata?.tags) && metadata.tags.length) {
+    metadataRows.push({
+      label: formatMessage({ id: "public.gardenDetail.notes.tags" }),
+      value: metadata.tags.join(", "),
+    });
+  }
+  if (Array.isArray(legacy?.plantSelection) && legacy.plantSelection.length) {
+    metadataRows.push({
+      label: formatMessage({ id: "public.gardenDetail.notes.plantTypes" }),
+      value: legacy.plantSelection.join(", "),
+    });
+  }
+  if (typeof legacy?.plantCount === "number") {
+    metadataRows.push({
+      label: formatMessage({ id: "public.gardenDetail.notes.plantCount" }),
+      value: String(legacy.plantCount),
+    });
+  }
 
   return (
     <PublicRecordDrawer
@@ -189,6 +286,49 @@ export function FieldNoteDialog({
             defaultMessage: "No description was logged with this entry.",
           })}
       </p>
+
+      {note.metadata &&
+      (metadataRows.length > 0 ||
+        metadataStatus === "loading" ||
+        metadataStatus === "error" ||
+        metadataStatus === "unavailable") ? (
+        <section
+          className="mt-8 border-t border-stroke-soft-200 pt-6"
+          aria-labelledby="public-garden-detail-note-details"
+        >
+          <h3
+            id="public-garden-detail-note-details"
+            className="font-serif text-lg font-semibold text-text-strong-950"
+          >
+            {formatMessage({ id: "public.gardenDetail.notes.details" })}
+          </h3>
+          {metadataRows.length > 0 ? (
+            <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+              {metadataRows.map(({ label, value }, index) => (
+                <div key={`${label}:${index}`} className="min-w-0">
+                  <dt className="font-mono text-[11px] uppercase tracking-[0.12em] text-text-soft-400">
+                    {label}
+                  </dt>
+                  <dd className="mt-1 break-words text-sm text-text-sub-600">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : metadataStatus === "loading" ? (
+            <p role="status" className="mt-4 text-sm text-text-sub-600">
+              {formatMessage({ id: "public.gardenDetail.notes.detailsLoading" })}
+            </p>
+          ) : (
+            <div className="mt-4 text-sm text-text-sub-600">
+              <p>{formatMessage({ id: "public.gardenDetail.notes.detailsUnavailable" })}</p>
+              {metadataStatus === "error" ? (
+                <Button type="button" emphasis="tertiary" onClick={retryFetch}>
+                  {formatMessage({ id: "public.gardenDetail.retry" })}
+                </Button>
+              ) : null}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       <p className="mt-8 border-t border-stroke-soft-200 pt-6 text-xs">
         <a
