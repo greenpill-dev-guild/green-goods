@@ -174,5 +174,15 @@ resolved. Then the sub-lane moves to `completed` and the Linear child to Done.
 
 ## Validation Receipt
 
-Pending. The implementing session fills it in the cockpit's shape: tested commit SHA, UTC time,
-exact commands, results, validated paths, and the worktree identity check.
+- Tested implementation commit SHA: `d5bc36434` (on `fix/commitment-take-up-membership`, not yet pushed)
+- Run at (UTC): `2026-09-26T22:57:56Z`
+- Exact command(s): `bun run --cwd packages/shared typecheck -- --scope full`; `bun run --cwd packages/client typecheck -- --scope full`; `bun run --filter @green-goods/shared test -- src/__tests__/commitment-acts.test.ts src/__tests__/commitment-queue-state.test.tsx src/__tests__/hooks/client-ui/useGardenCommitmentController.test.tsx src/__tests__/hooks/commitment-pooling/useCommitmentViewerRoles.test.tsx src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx`; `bun run --filter @green-goods/client test -- src/__tests__/views/GardenCommitment.test.tsx src/__tests__/views/commitmentActions.test.ts`; `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings`; `bun run check --only vocabulary`; `bun run --cwd packages/qa build`; `node scripts/quality/check-qa-id-ledger.mjs --base origin/develop`; `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:… --test-path client:…` (the seven test paths above)
+- Result: shared and client typecheck exit 0; shared 37 passed (5 files); client 52 passed (2 files); oxlint exit 0; vocabulary clean; qa build 353 active cases; ledger 419 ids, none removed; push gate (sensitive plan, 34 paths) "Automated checks passed": format, lint, shared-typecheck, shared-test, shared-build, client-test, staged-modules, source-structure, ontology, qa-id-ledger, story-quality, agent-tools-test; `browser-proof` pending (advisory)
+- Validated paths: `packages/shared/src/modules/commitment-pooling/acts.ts`, `packages/shared/src/hooks/commitment-pooling/useCommitmentViewerRoles.ts`, `packages/shared/src/hooks/commitment-pooling/useCommitmentQueueState.ts`, `packages/shared/src/hooks/commitment-pooling/index.ts`, `packages/shared/src/hooks/client-ui/commitment/controller.types.ts`, `packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts`, `packages/client/src/views/Home/Garden/Commitment/{GardenCommitment,JoinToAct,QueuedActRow,commitmentActions}.tsx|ts`, the two new story files, the six test files, `packages/shared/src/i18n/{en,es,pt}.json`, `scripts/data/qa-test-catalog.json`, `scripts/data/qa-test-id-ledger.json`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the paths above>` → empty after the commit
+- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, light: `client-commitments-jointoact--open-to-join`, `--steward-lets-you-in`, `--protocol-pool`; `client-commitments-queuedactrow--waiting-for-membership`, `--proof-already-broadcast`. Labelled Storybook; no mock-auth localhost run (this worktree serves no client) and no authenticated wallet proof, which stays pending for the recorded call.
+
+## Merge
+
+Waits for the push and the PR (Afo's say), CI Gate, and resolved bot reviews; then `--merge`,
+sub-lane `completed`, PRD-990 Done.
