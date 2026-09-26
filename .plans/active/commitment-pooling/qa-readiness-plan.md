@@ -3,7 +3,7 @@
 **Feature Slug**: `commitment-pooling`
 **Status**: ACTIVE
 **Created**: 2026-09-20
-**Last Updated**: 2026-09-22
+**Last Updated**: 2026-09-26
 **Owning lanes**: `state_api`, `ui` (`ui_client`, `ui_admin`), `qa_pass_1`
 **Companions**: `handoffs/claude-qa-pass-1.md` (Wave 2), `acceptance-matrix.md`,
 `standing-commitments-spec.md`, `.claude/context/qa.md`
@@ -1129,6 +1129,120 @@ No thread reply or resolution was posted on Afo's behalf. The review snapshot is
 - **Rendered proof:** Storybook, headless Chromium, 2026-09-24: the final `bun run --cwd packages/shared test:stories:ci` passed 322 interactions (92 files, 275 skipped); final screenshots in ignored `output/playwright/` include `transfer-review-retry.png`, `transfer-review-requeue.png`, `transfer-review-commitment-payout.png`, `cycles-ready-to-end.png`, `cycles-reconciled-season.png`, and the earlier seed, pool, community, Hub and D3 examples. This is isolated Storybook proof only. Afo still owns every authenticated rehearsal line above.
 - **Full test gate:** root `bun run test` passed on this local tree: contracts 2,091 tests and 3 release-gas checks; QA 260; docs 59; shared 5,668 (17 skipped); agent 316 plus 9; client 1,385; admin 945. An earlier attempt was blocked by an externally owned Vite process on port 3013; the successful rerun did not stop that process.
 - **Remaining gates:** the workspace denies `.git/index.lock`, so no commit or push can attest this local tree. A fresh `git add -- packages/admin/DESIGN.md` returned `Operation not permitted` after the full gate; `git config user.name` read `Afolabi`. No deploy, Linear write, thread reply, or wallet transaction occurred. Authenticated rehearsal and § 7 gaps remain open.
+
+## 4c. Rehearsal review follow-ups (2026-09-24)
+
+A read-only review on 2026-09-24 read the first Stage A rehearsal's notes against *Don't Make Me
+Think* and *Refactoring UI*, the books behind root `DESIGN.md` § Interface Principles, and against
+the code. A second pass the same day rendered 21 Storybook states of the surfaces the rehearsal had
+not reached: the member's rows and sheets, the commitment inspector, the claims and seasons cards,
+the Hub confirm queue, and the public garden page. The full report is the private artifact
+<https://claude.ai/artifact/4asacW95Ep7j6gGywpg3tg>; it quotes the rehearsal notes, so it stays
+outside the repo. This section holds the finding index, the two structural questions, the
+decisions the fixes wait on, and a proposed queue. Nothing here is accepted until those decisions
+are taken.
+
+- **Evidence boundary:** code reads at `f91c76fb6` plus the local corrections later committed as
+  `51682c605`. Rendered proof is isolated Storybook only: the desktop app's Browser pane on a local
+  Storybook dev server, with fixtures and no authentication. Nothing here is staging proof or a
+  wallet send.
+- **Re-check (2026-09-26):** every finding was re-read against `e06b92ed0`. The only later changes in
+  these files are the type-scale class swap from #910, so all of them still stand.
+- **Numbering:** N continues beside § 4b's A-series. N27 was folded into N17.
+
+### Finding index
+
+- **P0**
+  - N1: A setup dialog opened on staging but took no input. Not reproduced; reproduce it on the recorded call before any forensics.
+  - N2: A garden on the editorial hidden list is unreachable by its own public link, not only unlisted: `usePublicGardenDetail` filters by `isGardenPubliclyVisible` before the lookup. It blocks the public-page steps for both rehearsal gardens and contradicts § 6.3's note that the protocol pool is on the public site.
+- **P1**
+  - N3: The seed wizard opens on an on-chain type ("Season / campaign commitment", "Support / service", "Garden work (impact)"), and the first option's hint restates the Direction question under it.
+  - N4: Garden work still asks for a unit and a target; the member composer counts garden work in hours by itself.
+  - N5: Offered and requested read alike on both surfaces. The 3px direction edge from `uiux-spec.md`'s 2026-08-14 pool-tab polish round was never built.
+  - N6: The step rail never marks the last step done. `ActionFlowStepper` completes only steps below the current one, and neither the setup flow nor the seed wizard moves past the end.
+  - N7: Choosing an action is a native select over every registered action; the app's action rail already filters to open actions and shows domain badges.
+  - N8: "Advanced: declared reward" hides an ordinary yes-or-no question.
+  - N9: A member reading a not-ready pool sees a readiness checklist that looks tappable and that only a steward can act on.
+  - N10: One season renders as a carousel slide, and the fixed sentence under it (`app.pool.charter`, the same for every pool) pushes the list down.
+- **P2**
+  - N11: The filled `AdminTextField` grows from 101px to 102px on focus and moves everything below it (measured). Its active indicator is a sibling of the container, not inside it.
+  - N12: The admin wizard offers no unit, count, or day chips; the app composer does.
+  - N13: Reviewing what was just created is split across the tray, the done screen, and the pool tab.
+  - N14: Commitment rows omit how a commitment is kept, where it runs, and whether take-up is steward-reviewed.
+  - N15: First-run setup is six prompts on a wallet without EIP-5792 batching. The contract's write order sets that count.
+  - N17: People still appear as truncated addresses in the inspector's summary line, its timeline, and the Hub confirm row. Extends A9.
+  - N26: The inspector's `Detail` story renders its not-found state, because its seeds no longer match the controller, so the screen cannot be reviewed rendered. No story renders the member's commitment screen or the app pool tab end to end.
+- **P3**
+  - N16: Wizard labels ask for system knowledge: "Claim mode", "Contributor policy", "Ordinary rule", "Reward rail", "No cycle (runs on its own)".
+  - N18: A progress bar is drawn for one-of-one confirmations, in the confirm sheet and on every ordinary Hub row.
+  - N19: Act labels the copy pass missed: "Ask to take this up" in the app and "Not yet…" in the Hub.
+  - N20: The confirmation exclusion rule is said twice on one sheet and three times across the To confirm tab.
+  - N21: The composer's primary stays disabled until the review has scrolled into view, with no reason line.
+  - N22: The member's commitment screen states the state twice, in the status band and in a chip.
+  - N23: The "Needs you" and "Didn't send" row markers are 10px uppercase.
+  - N24: Every garden-work commitment carries a standing instruction under its progress rows.
+  - N25: The inspector's Kind row repeats N3's taxonomy words.
+  - N28: The app composer's steps are bare numbers; the admin wizard names its steps.
+  - N29: The claim context sheet's title carries the dialog-opening ellipsis ("Take This Up…").
+  - N30: Admin setup flows disable Next without saying why; the app composer's bar says why.
+  - N31: The pool tab has no single primary act: two filled Accepts compete with outlined Seed and Start acts.
+  - N32: Public unit rows ("hours 25 of 52") have no visible header saying kept of promised.
+  - N33: Claim-row actions land mid-row at 375px.
+  - N34: A season that can end still reads Open and does not say it can end.
+
+Three findings sit beside `steward-cockpit-ux` work on the same patterns: N19 beside D34 (Title
+Case), N30 beside D11 (a control disabled with no reason), and N26 beside D24 and D25 (Storybook
+coverage). At `e06b92ed0` the pooling instances are still open.
+
+### Structural questions
+
+- **S1, many of the same thing.** Folding rows with the same creator and the same words into one
+  card is a read-side change that covers requests as well as offers. A picker that starts from an
+  earlier commitment can reuse Build 2's prefill mapper. Offers over time stays the § 7 row; until
+  it ships, the drawer's "Offered over time" tab names something nobody can create.
+  `standing-commitments-spec.md` covers offers only, so a request over time would need a spec
+  decision first.
+- **S2, the split.** The `CycleOpened` snapshot is the deal members see before they commit, so the
+  split stays fixed at season open. The design pass is about explaining it: a preview at open, the
+  split on the season card, and the snapshot shown at certificate mint. Shared code does not say who
+  receives the community and funder shares, and "split" also names the G$ yield split.
+
+### Decisions the fixes wait on
+
+Each becomes a numbered row in § 1 once taken.
+
+1. **Hidden gardens:** unlisted but reachable by link (recommended), or fully hidden with a
+   steward-only preview.
+2. **The What step:** derive the on-chain type from how a commitment is kept and where it runs
+   (recommended), or keep three types with plainer words.
+3. **Grouping:** fold same-creator, same-words rows into one card now (recommended), or wait for
+   series.
+4. **The split:** keep it at season open and add the preview (recommended), or reopen the contract
+   decision.
+5. **Community and funder shares:** who receives them at certificate mint. No recommendation; the
+   first real season's certificate needs the answer.
+
+### Proposed queue
+
+| PR | Covers | Status |
+|---|---|---|
+| W3-1 Reproduce the dialog that takes no input | N1 | Proposed; a step on the recorded call, not a PR |
+| W3-2 Listed and reachable gardens | N2 | Proposed before the Oct 2 cut; waits on decision 1 |
+| W3-3 The step rail ends done | N6 | Proposed before the cut |
+| W3-4 Seed wizard: a reward question, garden work in hours, unit, count and day chips | N8, N4, N12 | Proposed before the cut |
+| W3-5 Member pool tab: no member checklist, one season at full width, the pool's own agreement behind an info button | N9, N10 | Proposed before the cut |
+| W3-6 Direction edge on both rows and the tray | N5 | Proposed before the cut |
+| W3-7 The text field keeps its height on focus | N11 | Proposed before the cut |
+| W3-8 The inspector renders in Storybook; names in place of truncated addresses | N26, N17 | Proposed before the cut |
+| W4-1 The What step asks how it is kept and where it runs | N3, N25 | After 2.0.0; waits on decision 2 |
+| W4-2 The action rail in the admin | N7 | After 2.0.0 |
+| W4-3 Copy and polish across both surfaces | N13, N14, N16, N18–N24, N28–N34 | After 2.0.0 |
+| W4-4 Grouping, and starting from an earlier commitment | S1 | After 2.0.0; waits on decision 3 |
+| W4-5 The split's explanation and preview | S2 | After 2.0.0; waits on decisions 4 and 5 |
+| W4-6 Fewer first-run writes | N15 | Contract work; its own plan after QA |
+
+Before W4 starts, one morning of think-aloud testing with three people, using the rehearsal script
+as the tasks (principle 8), sets W4-3's order.
 
 ## 5. Catalog PR
 
