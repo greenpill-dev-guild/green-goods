@@ -3,7 +3,9 @@
  * @vitest-environment jsdom
  */
 
-import { renderHook } from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { render, renderHook, waitFor } from "@testing-library/react";
+import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUsePrimaryAddress = vi.fn();
@@ -39,7 +41,18 @@ vi.mock("../../../config/blockchain", async (importOriginal) => ({
   getNetworkConfig: (chainId: number) => mockGetNetworkConfig(chainId),
 }));
 
+const mockUseGardenRecord = vi.fn();
+vi.mock("../../../hooks/garden/useGardenRecord", () => ({
+  useGardenRecord: (...args: unknown[]) => mockUseGardenRecord(...args),
+}));
+
+const mockGetGarden = vi.fn();
+vi.mock("../../../modules/data/indexer-garden", () => ({
+  getGarden: (...args: unknown[]) => mockGetGarden(...args),
+}));
+
 import { useEligibleAdminGardens } from "../../../hooks/garden/useEligibleAdminGardens";
+import { createTestQueryClient } from "../../test-utils/query-client";
 
 const ADDR_USER = "0x1111111111111111111111111111111111111111";
 
@@ -79,6 +92,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
     mockUseRole.mockReturnValue(defaultRole());
     mockGetNetworkConfig.mockReturnValue({});
+    mockUseGardenRecord.mockReturnValue({ data: undefined, isFetched: false });
     mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
       selector({ lastGardenIdsByScope: {} })
     );
@@ -212,6 +226,96 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     const { result } = renderHook(() => useEligibleAdminGardens());
 
     expect(result.current.eligibleGardens).toEqual([]);
+  });
+
+  describe("a chain past the base list's newest 50 gardens (PRD-988)", () => {
+    const ROOT = "0xF401F34378384713222D1D21F63359CC4E8A858A";
+    const ZETA = makeGarden("garden-z", "Zeta Garden", { stewards: [ADDR_USER] });
+    // The newest 50 hold the deployer's own garden but not the chain's first, the protocol garden.
+    const listWithoutRoot = { data: [ZETA], isFetched: true, isError: false };
+
+    beforeEach(() => {
+      mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer" });
+      mockGetNetworkConfig.mockReturnValue({ rootGarden: { address: ROOT, tokenId: 0 } });
+      mockUseGardens.mockReturnValue(listWithoutRoot);
+    });
+
+    it("adds the protocol garden from its own indexer record", () => {
+      mockUseGardenRecord.mockReturnValue({
+        data: makeGarden(ROOT, "Green Goods Community Garden"),
+        isFetched: true,
+      });
+
+      const { result } = renderHook(() => useEligibleAdminGardens());
+
+      expect(mockUseGardenRecord).toHaveBeenCalledWith(ROOT, { enabled: true });
+      expect(result.current.eligibleGardens.map((garden) => garden.name)).toEqual([
+        "Green Goods Community Garden",
+        "Zeta Garden",
+      ]);
+      expect(result.current.hasStaleBaseList).toBe(false);
+      expect(result.current.isLoaded).toBe(true);
+    });
+
+    it("gives today's answer when that record cannot be read", () => {
+      mockUseGardenRecord.mockReturnValue({ data: undefined, isError: true, isFetched: true });
+
+      const { result } = renderHook(() => useEligibleAdminGardens());
+
+      expect(result.current.eligibleGardens.map((garden) => garden.id)).toEqual(["garden-z"]);
+      expect(result.current.isError).toBe(false);
+      expect(result.current.isLoaded).toBe(true);
+    });
+
+    it("keeps checking while that record is on its way", () => {
+      mockUseGardenRecord.mockReturnValue({ data: undefined, isFetched: false });
+
+      const { result } = renderHook(() => useEligibleAdminGardens());
+
+      expect(result.current.isLoaded).toBe(false);
+    });
+
+    it("stays settled after a failed read when the content it lets mount reads the record again", async () => {
+      const actual = await vi.importActual<typeof import("../../../hooks/garden/useGardenRecord")>(
+        "../../../hooks/garden/useGardenRecord"
+      );
+      mockUseGardenRecord.mockImplementation(actual.useGardenRecord);
+      mockGetGarden.mockRejectedValue(new Error("indexer unavailable"));
+      const loaded: boolean[] = [];
+      // The admin layout shows its spinner until the answer loads, then mounts
+      // content that reads the same answer, and the same record, again.
+      const Content = () => {
+        useEligibleAdminGardens();
+        return null;
+      };
+      const Layout = () => {
+        const { isLoaded } = useEligibleAdminGardens();
+        loaded.push(isLoaded);
+        return isLoaded ? createElement(Content) : null;
+      };
+      const queryClient = createTestQueryClient();
+
+      render(createElement(QueryClientProvider, { client: queryClient }, createElement(Layout)));
+
+      await waitFor(() => expect(loaded.at(-1)).toBe(true));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      // The first read, and one more when the content mounts; never a spinner again.
+      expect(mockGetGarden.mock.calls.length).toBeLessThanOrEqual(2);
+      expect(loaded.slice(loaded.indexOf(true))).not.toContain(false);
+    });
+
+    it.each([
+      ["the base list failed", { data: [], isFetched: true, isError: true }, ROOT],
+      ["the base list is empty", { data: [], isFetched: true, isError: false }, ROOT],
+      ["the root garden is the zero address", listWithoutRoot, `0x${"0".repeat(40)}`],
+    ])("does not read it when %s", (_case, baseList, root) => {
+      mockGetNetworkConfig.mockReturnValue({ rootGarden: { address: root, tokenId: 0 } });
+      mockUseGardens.mockReturnValue(baseList);
+
+      renderHook(() => useEligibleAdminGardens());
+
+      expect(mockUseGardenRecord).not.toHaveBeenCalledWith(expect.anything(), { enabled: true });
+    });
   });
 
   it("does not grant canCreateGarden for steward role (route gate is deployer-only)", () => {

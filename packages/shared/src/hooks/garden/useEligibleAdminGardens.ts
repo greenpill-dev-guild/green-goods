@@ -6,7 +6,8 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useRole } from "../gardener/useRole";
 import { getAdminGardenScopeKey, useAdminStore } from "../../stores/useAdminStore";
 import type { Address, Garden } from "../../types/domain";
-import { compareAddresses, isAddressInList } from "../../utils/blockchain/address";
+import { compareAddresses, isAddressInList, isZeroAddress } from "../../utils/blockchain/address";
+import { useGardenRecord } from "./useGardenRecord";
 
 export interface EligibleAdminGardensResult {
   eligibleGardens: Garden[];
@@ -16,9 +17,10 @@ export interface EligibleAdminGardensResult {
   canCreateGarden: boolean;
   /**
    * True once the answer is stable: base-list query has fetched AND the
-   * role query has resolved (so any stale-base-list cross-check has run).
-   * IndexRoute uses this to keep the spinner up rather than racing into the
-   * no-access shell.
+   * role query has resolved (so any stale-base-list cross-check has run) AND,
+   * for a deployer whose list lacks the protocol garden, its own record's first
+   * read has settled. IndexRoute uses this to keep the spinner up rather than
+   * racing into the no-access shell.
    */
   isLoaded: boolean;
   /**
@@ -85,14 +87,35 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
   const lastGardenIdsByScope = useAdminStore((state) => state.lastGardenIdsByScope);
 
   const scopeKey = useMemo(() => getAdminGardenScopeKey(address, chainId), [address, chainId]);
-  const rootGardenAddress = getNetworkConfig(chainId).rootGarden?.address ?? null;
+  const configuredRoot = getNetworkConfig(chainId).rootGarden?.address;
+  // The local chain configures a zero-address root garden: there is none to find.
+  const rootGardenAddress =
+    configuredRoot && !isZeroAddress(configuredRoot) ? configuredRoot : null;
+
+  // The base list holds a chain's newest 50 gardens and the protocol garden is
+  // a chain's first, so past 50 a deployer's protocol garden is read by id
+  // (PRD-988). Only a fetched, non-empty list can be missing it: an empty or
+  // failed list is an outage, and must stay one, never a garden that cannot load.
+  const needsProtocolGarden =
+    role === "deployer" &&
+    rootGardenAddress !== null &&
+    isFetched &&
+    !baseListError &&
+    gardens.length > 0 &&
+    !gardens.some((garden) => compareAddresses(garden.id, rootGardenAddress));
+  const protocolGardenRecord = useGardenRecord(rootGardenAddress, {
+    enabled: needsProtocolGarden,
+  });
+  const protocolGarden = needsProtocolGarden ? (protocolGardenRecord.data ?? null) : null;
 
   const { eligibleGardens, hasStaleBaseList } = useMemo(() => {
     if (!address) {
       return { eligibleGardens: [] as Garden[], hasStaleBaseList: false };
     }
 
-    const fromBaseList = gardens
+    // The protocol garden's own record joins the list only once it has loaded.
+    const listed = protocolGarden ? [...gardens, protocolGarden] : gardens;
+    const fromBaseList = listed
       .filter((garden) => {
         return (
           isAddressInList(address, garden.stewards) ||
@@ -126,7 +149,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     const stubs = missing.map((og) => stubGardenFromStewardHint(og, chainId, address as Address));
     const merged = [...fromBaseList, ...stubs].sort(compareGardenNames);
     return { eligibleGardens: merged, hasStaleBaseList: true };
-  }, [address, gardens, stewardGardens, chainId, role, rootGardenAddress]);
+  }, [address, gardens, protocolGarden, stewardGardens, chainId, role, rootGardenAddress]);
 
   const persistedGardenId = scopeKey ? lastGardenIdsByScope[scopeKey] : null;
 
@@ -148,7 +171,11 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     // The /garden/create route is RequireRole(["deployer"]); stewards clicking
     // a Create CTA would land on the unauthorized page. Match the gate exactly.
     canCreateGarden: role === "deployer",
-    isLoaded: isFetched && !roleLoading,
+    // Only the record's first read holds the answer back. A failed read's retry
+    // must not: the content a settled answer mounts reads the record again, and
+    // unsettling the answer would unmount it and start the loop over.
+    isLoaded:
+      isFetched && !roleLoading && !(needsProtocolGarden && !protocolGardenRecord.isFetched),
     // A base-list outage is always retryable. A role-gardens outage is
     // retryable for normal stewards, but should not block the deployer-only
     // create-garden path when no garden exists yet.
