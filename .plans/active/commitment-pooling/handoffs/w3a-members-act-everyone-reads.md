@@ -106,6 +106,23 @@ only after the solo reproduction confirms it.
 - Copy: fourteen keys in en, es and pt (`app.commitment.join.*`, `app.commitment.queue.act.*`,
   `app.commitment.queue.sendNow`); vocabulary check clean.
 
+## Review round 1 (PR #921, 2026-09-26)
+
+- Membership stays unknown until both the gardener read and the garden list have answered, and a
+  failed list read is unknown, not "a member of none": knownness comes from the query's success,
+  and the roles hook exposes `gardensUnavailable` and `retryGardens` (CodeRabbit, Codex).
+- An unread pool record leaves eligibility unknown, so a host member is never offered a personal
+  claim a protocol pool would refuse (Codex).
+- When a read the answer depends on fails, the screen shows `MembershipCheckFailed` with Try Again
+  instead of an empty bar or a join card.
+- The queued-act row is locked while the screen's own send runs (`inFlight`), because `discardJob`
+  checks broadcast state but not an active execution claim; a refused or failed Discard is said
+  in the row and logged (Codex, CodeRabbit). A claim-aware `discardJob` would be the boundary fix
+  and stays a candidate for the queue's own work.
+- CI: the agent join-request suite had fixtures expiring at noon UTC on 2026-09-26 and read the
+  real clock, so it failed on develop too; its clock is pinned to 2026-08-28. The QA test-cases
+  docs page is regenerated from the catalog.
+
 ## Tests (RED first)
 
 - `packages/shared/src/__tests__/commitment-acts.test.ts`: an `it.each` table over
