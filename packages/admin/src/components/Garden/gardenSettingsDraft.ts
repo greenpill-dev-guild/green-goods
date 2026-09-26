@@ -25,6 +25,7 @@ export interface GardenSettingsValues {
   bannerImage: string;
   domainMask?: number;
   openJoining?: boolean;
+  /** The account's gardener cap, 0 for none; undefined until it is read from the chain. */
   maxGardeners?: number;
 }
 
@@ -70,6 +71,8 @@ export interface SettingsDraft {
   limitGardeners: boolean;
   /** The cap as a string while editing (only meaningful when limited). */
   maxGardeners: string;
+  /** Whether the cap above was read from the chain. Until it is, the cap cannot be edited. */
+  capRead: boolean;
   domains: Domain[];
   /** Locally selected banner file — uploads to IPFS only on Save. */
   bannerFile: File | null;
@@ -86,10 +89,21 @@ export function draftFromGarden(garden: GardenSettingsValues): SettingsDraft {
     openJoining: !!garden.openJoining,
     limitGardeners: max > 0,
     maxGardeners: max > 0 ? String(max) : "",
+    capRead: garden.maxGardeners !== undefined,
     domains: expandDomainMask(garden.domainMask ?? 0),
     bannerFile: null,
     bannerRemoved: false,
   };
+}
+
+/**
+ * The draft with the garden's cap once it is read, whatever else is edited: the cap could not be
+ * edited before, so there is nothing of the steward's to keep.
+ */
+export function withReadCap(draft: SettingsDraft, garden: GardenSettingsValues): SettingsDraft {
+  if (draft.capRead || garden.maxGardeners === undefined) return draft;
+  const { limitGardeners, maxGardeners, capRead } = draftFromGarden(garden);
+  return { ...draft, limitGardeners, maxGardeners, capRead };
 }
 
 /** The cap the draft saves: with the limit off, 0 (unlimited). */
@@ -118,6 +132,8 @@ export function dirtyFieldsOf(
   const saved = draftFromGarden(garden);
   return GARDEN_SETTINGS_FIELDS.filter((field) => {
     if (field === "banner") return Boolean(draft.bannerFile || draft.bannerRemoved);
+    // A cap the draft has not read yet was never shown, so it cannot have changed.
+    if (field === "maxGardeners" && !draft.capRead) return false;
     return fieldValueKey(draft, field) !== (landed[field] ?? fieldValueKey(saved, field));
   });
 }

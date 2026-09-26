@@ -2033,6 +2033,7 @@
   "app.garden.settings.location": "Ubicación",
   "app.garden.settings.maxGardeners": "Máximo de jardineros",
   "app.garden.settings.maxGardenersDescription": "Limita cuántos jardineros pueden unirse. Desactivado significa ilimitado.",
+  "app.garden.settings.maxGardenersUnread": "El límite actual aún no se ha cargado, así que no se puede cambiar.",
   "app.garden.settings.name": "Nombre",
   "app.garden.settings.nameOwnerOnly": "Solo la persona dueña del jardín puede cambiarle el nombre.",
   "app.garden.settings.nameRequired": "El nombre del jardín es obligatorio",

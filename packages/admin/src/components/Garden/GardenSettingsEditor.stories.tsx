@@ -63,6 +63,13 @@ export const InviteOnly: Story = {
   },
 };
 
+/** Until the account's cap is read, Limit gardeners waits instead of reading as unlimited. */
+export const CapNotLoaded: Story = {
+  args: {
+    garden: { ...POPULATED_GARDEN, maxGardeners: undefined },
+  },
+};
+
 export const EmptyFields: Story = {
   args: {
     garden: {

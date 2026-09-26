@@ -2033,6 +2033,7 @@
   "app.garden.settings.location": "Location",
   "app.garden.settings.maxGardeners": "Maximum gardeners",
   "app.garden.settings.maxGardenersDescription": "Cap how many gardeners can join. Off means unlimited.",
+  "app.garden.settings.maxGardenersUnread": "The current limit hasn't loaded yet, so it can't be changed.",
   "app.garden.settings.name": "Name",
   "app.garden.settings.nameOwnerOnly": "Only the garden owner can rename the garden.",
   "app.garden.settings.nameRequired": "Garden name is required",

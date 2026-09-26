@@ -39,6 +39,7 @@ import {
   type LandedValues,
   type SettingsDraft,
   withoutReportedValues,
+  withReadCap,
 } from "./gardenSettingsDraft";
 import type {
   GardenSettingsFieldProgress,
@@ -166,7 +167,7 @@ export const GardenSettingsEditor = forwardRef<
     garden.bannerImage,
     garden.domainMask ?? 0,
     !!garden.openJoining,
-    garden.maxGardeners ?? 0,
+    garden.maxGardeners ?? null,
   ]);
   const lastSnapshotRef = useRef(gardenSnapshot);
   const lastGardenAddressRef = useRef(gardenAddress);
@@ -188,6 +189,7 @@ export const GardenSettingsEditor = forwardRef<
       return;
     }
     setLanded((current) => withoutReportedValues(current, garden));
+    setDraft((current) => withReadCap(current, garden));
     if (!isDirty && !isSaving) {
       setDraft((current) => adoptRefreshedGarden(current, garden, landed));
     }
@@ -370,6 +372,7 @@ export const GardenSettingsEditor = forwardRef<
   }));
 
   const disabledProfileField = !canEditProfile || isSaving;
+  const capLocked = disabledProfileField || !draft.capRead;
 
   const toggleDomain = (domain: Domain) => {
     setDraft((current) => {
@@ -517,20 +520,27 @@ export const GardenSettingsEditor = forwardRef<
               id: "app.garden.settings.limitGardeners",
               defaultMessage: "Limit gardeners",
             })}
-            description={formatMessage({
-              id: "app.garden.settings.maxGardenersDescription",
-              defaultMessage: "Cap how many gardeners can join. Off means unlimited.",
-            })}
+            description={
+              draft.capRead
+                ? formatMessage({
+                    id: "app.garden.settings.maxGardenersDescription",
+                    defaultMessage: "Cap how many gardeners can join. Off means unlimited.",
+                  })
+                : formatMessage({
+                    id: "app.garden.settings.maxGardenersUnread",
+                    defaultMessage: "The current limit hasn't loaded yet, so it can't be changed.",
+                  })
+            }
           >
             <Switch
-              disabled={disabledProfileField}
+              disabled={capLocked}
               checked={draft.limitGardeners}
               onCheckedChange={(checked) =>
                 setDraft((current) => ({ ...current, limitGardeners: checked === true }))
               }
               surface="admin"
               aria-labelledby="garden-settings-limit-gardeners-label"
-              className={cn(disabledProfileField && "cursor-not-allowed opacity-50")}
+              className={cn(capLocked && "cursor-not-allowed opacity-50")}
             />
           </AdminSettingRow>
 
