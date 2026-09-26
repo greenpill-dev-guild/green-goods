@@ -1,5 +1,4 @@
 import { Button } from "@green-goods/shared/components/Button";
-import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { RiTimeLine } from "@remixicon/react";
@@ -11,6 +10,7 @@ import {
   readQueuedWorkState,
 } from "@/components/Cards/Work/queuedWorkCopy";
 import type { WorkCardPresentation } from "@/components/Cards/Work/WorkCard";
+import type { UploadAction } from "./uploadActions";
 import { WorkListTab } from "./WorkListTab";
 import { isStewardForGarden } from "./workDashboardUtils";
 
@@ -32,7 +32,7 @@ interface PendingTabProps {
   waitingUploadIds?: ReadonlySet<string>;
   checkingUploadIds?: ReadonlySet<string>;
   isUserAddress: (address: Address | undefined) => boolean;
-  uploadActions?: SheetActionsProps;
+  uploadAction?: UploadAction;
 }
 
 const PENDING_MESSAGES = {
@@ -66,7 +66,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   waitingUploadIds,
   checkingUploadIds,
   isUserAddress,
-  uploadActions,
+  uploadAction,
 }) => {
   const intl = useIntl();
 
@@ -194,35 +194,20 @@ export const PendingTab: React.FC<PendingTabProps> = ({
       messages={PENDING_MESSAGES}
       emptyIcon={<RiTimeLine />}
       headerActions={
-        !isOffline &&
-        pendingFilter === "all" &&
-        (uploadActions?.primary || uploadActions?.secondary) ? (
-          <>
-            {uploadActions?.primary && (
-              <Button
-                type="button"
-                size="compact"
-                loading={uploadActions.primary.loading}
-                disabled={uploadActions.primary.disabled}
-                onClick={uploadActions.primary.onClick}
-                data-testid={uploadActions.primary.testId}
-                leadingIcon={uploadActions.primary.icon}
-              >
-                {uploadActions.primary.label}
-              </Button>
-            )}
-            {uploadActions?.secondary && (
-              <Button
-                type="button"
-                emphasis="tertiary"
-                size="compact"
-                onClick={uploadActions.secondary.onClick}
-                data-testid={uploadActions.secondary.testId}
-              >
-                {uploadActions.secondary.label}
-              </Button>
-            )}
-          </>
+        !isOffline && pendingFilter === "all" && uploadAction ? (
+          // The label gives way only after the filter reaches its minimum.
+          <Button
+            type="button"
+            size="compact"
+            className="min-w-0"
+            loading={uploadAction.loading}
+            onClick={uploadAction.onClick}
+            data-testid={uploadAction.testId}
+            leadingIcon={uploadAction.icon}
+            title={uploadAction.label}
+          >
+            <span className="min-w-0 truncate">{uploadAction.label}</span>
+          </Button>
         ) : null
       }
       headerContent={

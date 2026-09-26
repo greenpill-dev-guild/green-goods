@@ -5933,7 +5933,7 @@
   "app.uploads.blocked.workMissing": "Can't upload: this work isn't on the garden record",
   "app.uploads.blocked.selfReview": "Can't upload: you can't review your own work",
   "app.uploads.blocked.refused": "Can't upload: the garden record won't accept it",
-  "app.uploads.uploadAll": "Upload all ({count})",
+  "app.uploads.uploadAll": "Upload all",
   "app.uploads.uploadReady": "Upload {count} ready",
   "app.uploads.prepareNow": "Prepare now",
   "app.uploads.uploading": "Uploading…",

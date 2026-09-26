@@ -59,7 +59,12 @@ interface WorkListHeaderProps {
  * The one header row every Work Dashboard tab shares: status line and compact
  * Refresh on the left, filters on the right (DL-032). The row keeps the height
  * of a tab that has a filter, so a tab without one (Drafts) starts its list at
- * the same place.
+ * the same place, and it never shrinks when the list below it scrolls.
+ *
+ * An action (Upload all) sits beside Refresh and never takes a second row.
+ * When the row is short of room the filters give way first, down to their 4rem
+ * minimum; only then does the action's label truncate. The status line never
+ * truncates.
  */
 export const WorkListHeader: React.FC<WorkListHeaderProps> = ({
   statusText,
@@ -72,13 +77,14 @@ export const WorkListHeader: React.FC<WorkListHeaderProps> = ({
   const intl = useIntl();
   return (
     <div
-      className={`mb-4 flex min-h-14 gap-2 px-4 pt-4 ${actions ? "items-start" : "items-center"}`}
+      className="mb-4 flex min-h-14 shrink-0 items-center gap-2 px-4 pt-4"
       data-testid="work-list-header"
     >
       <div
         className={
           actions
-            ? "flex min-w-0 flex-1 flex-wrap items-center gap-0.5"
+            ? // Leaves the filter its 4rem minimum and the 0.5rem gap.
+              "flex min-w-0 max-w-[calc(100%-4.5rem)] shrink-0 items-center gap-0.5"
             : "flex shrink-0 items-center gap-0.5"
         }
         data-testid="work-list-actions"
@@ -86,7 +92,7 @@ export const WorkListHeader: React.FC<WorkListHeaderProps> = ({
         {statusText ? (
           <p
             role="status"
-            className="whitespace-nowrap text-sm text-text-sub-600"
+            className="shrink-0 whitespace-nowrap text-sm text-text-sub-600"
             title={statusText}
           >
             {statusText}
@@ -112,9 +118,7 @@ export const WorkListHeader: React.FC<WorkListHeaderProps> = ({
         ) : null}
         {actions}
       </div>
-      <div className={actions ? "flex shrink-0 justify-end" : "flex min-w-0 flex-1 justify-end"}>
-        {children}
-      </div>
+      <div className="flex min-w-0 flex-1 justify-end">{children}</div>
     </div>
   );
 };
