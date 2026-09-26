@@ -485,6 +485,73 @@ describe("GardenDetail", () => {
     expect(within(dialog).queryByText("clay")).not.toBeInTheDocument();
   });
 
+  it("renders repeater rows with translated child labels and options", () => {
+    mockUseActions.mockReturnValue({
+      data: [
+        {
+          id: "42161-1",
+          title: "Waste Sorting",
+          inputs: [
+            {
+              key: "categoryBreakdown",
+              title: "Category Breakdown",
+              type: "repeater",
+              repeaterFields: [
+                { key: "category", title: "Category", options: ["Plastic", "Glass"] },
+                { key: "weightKg", title: "Weight (kg)", options: [] },
+              ],
+            },
+          ],
+          translations: {
+            pt: {
+              status: "reviewed",
+              data: {
+                title: "Triagem de resíduos",
+                uiConfig: {
+                  details: {
+                    inputs: [
+                      {
+                        key: "categoryBreakdown",
+                        title: "Separação por categoria",
+                        repeaterFields: [
+                          {
+                            key: "category",
+                            title: "Categoria",
+                            options: { Plastic: "Plástico", Glass: "Vidro" },
+                          },
+                          { key: "weightKg", title: "Peso (kg)" },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    });
+    const note = makeNote(0);
+    note.metadata = JSON.stringify({
+      details: {
+        categoryBreakdown: [
+          { category: "Plastic", weightKg: 15 },
+          { category: "Glass", weightKg: 8 },
+        ],
+      },
+    });
+    mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [note] }));
+    renderView("/gardens/solar-community-garden", "pt");
+
+    fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Separação por categoria")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Categoria: Plástico, Peso (kg): 15; Categoria: Vidro, Peso (kg): 8")
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText(/\{\"category\"/)).not.toBeInTheDocument();
+  });
+
   it("localizes known detail keys when the action catalog is unavailable", () => {
     const note = makeNote(0);
     note.metadata = JSON.stringify({ details: { seedlingsPlanted: 12, soilType: "clay" } });

@@ -104,23 +104,40 @@ function NoteMediaMosaic({
   );
 }
 
-function formatDetailValue(value: unknown, input?: WorkInput): string | null {
+type FormatMessage = ReturnType<typeof useIntl>["formatMessage"];
+
+function formatDetailValue(
+  value: unknown,
+  input: WorkInput | undefined,
+  formatMessage: FormatMessage
+): string | null {
   if (value === null || value === undefined || value === "") return null;
   if (Array.isArray(value)) {
     const items = value
-      .map((item) => formatDetailValue(item, input))
+      .map((item) => formatDetailValue(item, input, formatMessage))
       .filter((item): item is string => Boolean(item));
-    return items.length ? items.join(", ") : null;
+    return items.length ? items.join(input?.type === "repeater" ? "; " : ", ") : null;
   }
-  if (typeof value === "object") return JSON.stringify(value);
+  if (typeof value === "object") {
+    if (input?.type === "repeater" && input.repeaterFields?.length) {
+      const fields = Object.entries(value)
+        .map(([key, childValue]) => {
+          const child = input.repeaterFields?.find((field) => field.key === key);
+          const display = formatDetailValue(childValue, child, formatMessage);
+          return display
+            ? `${child?.title ?? fallbackDetailLabel(key, formatMessage)}: ${display}`
+            : null;
+        })
+        .filter((field): field is string => Boolean(field));
+      return fields.length ? fields.join(", ") : null;
+    }
+    return JSON.stringify(value);
+  }
   const text = String(value);
   return input?.optionLabels?.[text] ?? input?.bandLabels?.[text] ?? text;
 }
 
-function fallbackDetailLabel(
-  key: string,
-  formatMessage: ReturnType<typeof useIntl>["formatMessage"]
-) {
+function fallbackDetailLabel(key: string, formatMessage: FormatMessage) {
   if (key === "seedlingsPlanted") {
     return formatMessage({ id: "public.gardenDetail.notes.detail.seedlingsPlanted" });
   }
@@ -197,7 +214,7 @@ export function FieldNoteDialog({
   }
   for (const [key, value] of Object.entries(details)) {
     const input = inputs.find((item) => item.key === key);
-    const display = formatDetailValue(value, input);
+    const display = formatDetailValue(value, input, formatMessage);
     if (display) {
       metadataRows.push({
         label: input?.title ?? fallbackDetailLabel(key, formatMessage),
