@@ -355,7 +355,8 @@ collect_admin_wrapper_bypass_hits() {
 #      (components/Shell), and ActionFlowShell. Stories are scanned too.
 # Tests are excluded from both.
 # ----------------------------------------------------------------------------
-ADMIN_RAW_TYPE_SIZE_PATTERN="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}text-(xs|sm|base|lg|xl|[2-9]xl)${TW_CLASS_BOUNDARY}"
+# Named Tailwind sizes, and arbitrary px/rem/em or `length:` sizes (text-[13px]).
+ADMIN_RAW_TYPE_SIZE_PATTERN="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}text-((xs|sm|base|lg|xl|[2-9]xl)|\[([0-9.]+(px|rem|em)|length:[^]]+)\])${TW_CLASS_BOUNDARY}"
 ADMIN_VIEW_M3_COLOUR_PATTERN='rgb\(var\(--m3-'
 ADMIN_M3_COLOUR_OWNERS_REGEX='^packages/admin/src/(components/Admin[^/]*|components/CharacterCounter|components/Shell/.*|components/Layout/ActionFlowShell)\.tsx:'
 

@@ -84,7 +84,7 @@ const ToneCell = ({
       <div className="flex items-center gap-3">
         <GardenChip gardens={sampleGarden} selectedGarden={sampleGarden[0]} onSelectGarden={fn()} />
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
+          <div className="label-xs font-semibold uppercase tracking-[0.06em] text-text-soft">
             {tone}
           </div>
           <div className="body-md font-semibold text-text-strong">{name}</div>

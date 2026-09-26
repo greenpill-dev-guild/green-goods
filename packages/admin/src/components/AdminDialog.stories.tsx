@@ -754,7 +754,7 @@ export const ToneMatrix: Story = {
     <div className="grid gap-4 md:grid-cols-2">
       {(["hub", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone}>
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
+          <div className="mb-2 label-xs font-semibold uppercase tracking-[0.06em] text-text-soft">
             {`[data-tone="${tone}"]`}
           </div>
           <DialogPreview
