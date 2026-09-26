@@ -5117,6 +5117,8 @@
   "public.gardenDetail.notFound": "Jardín no encontrado",
   "public.gardenDetail.notFoundHelp": "El enlace puede estar desactualizado. Explora todos los Jardines para encontrar lo que buscas.",
   "public.gardenDetail.notes.closePhoto": "Cerrar foto",
+  "public.gardenDetail.notes.detail.seedlingsPlanted": "Plántulas plantadas",
+  "public.gardenDetail.notes.detail.soilType": "Tipo de suelo",
   "public.gardenDetail.notes.details": "Detalles registrados",
   "public.gardenDetail.notes.detailsLoading": "Cargando detalles del trabajo…",
   "public.gardenDetail.notes.detailsUnavailable": "Los detalles del trabajo no están disponibles en este momento.",

@@ -5117,6 +5117,8 @@
   "public.gardenDetail.notFound": "Garden not found",
   "public.gardenDetail.notFoundHelp": "The link may be stale. Browse all Gardens to find what you're looking for.",
   "public.gardenDetail.notes.closePhoto": "Close photo",
+  "public.gardenDetail.notes.detail.seedlingsPlanted": "Seedlings planted",
+  "public.gardenDetail.notes.detail.soilType": "Soil type",
   "public.gardenDetail.notes.details": "Recorded details",
   "public.gardenDetail.notes.detailsLoading": "Loading work details…",
   "public.gardenDetail.notes.detailsUnavailable": "Work details are not available right now.",

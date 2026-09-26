@@ -4,7 +4,10 @@ import { getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
 import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImagePreviewDialog";
 import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useWorkMetadata } from "@green-goods/shared/hooks/work/useWorkMetadata";
-import type { WorkMetadataV1 } from "@green-goods/shared/types/domain";
+import type { WorkInput, WorkMetadataV1 } from "@green-goods/shared/types/domain";
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { buildActionId } from "@green-goods/shared/utils/action/parsers";
+import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -100,14 +103,33 @@ function NoteMediaMosaic({
   );
 }
 
-function formatDetailValue(value: unknown): string | null {
+function formatDetailValue(value: unknown, input?: WorkInput): string | null {
   if (value === null || value === undefined || value === "") return null;
   if (Array.isArray(value)) {
-    const items = value.map(formatDetailValue).filter((item): item is string => Boolean(item));
+    const items = value
+      .map((item) => formatDetailValue(item, input))
+      .filter((item): item is string => Boolean(item));
     return items.length ? items.join(", ") : null;
   }
   if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
+  const text = String(value);
+  return input?.optionLabels?.[text] ?? input?.bandLabels?.[text] ?? text;
+}
+
+function fallbackDetailLabel(
+  key: string,
+  formatMessage: ReturnType<typeof useIntl>["formatMessage"]
+) {
+  if (key === "seedlingsPlanted") {
+    return formatMessage({ id: "public.gardenDetail.notes.detail.seedlingsPlanted" });
+  }
+  if (key === "soilType") {
+    return formatMessage({ id: "public.gardenDetail.notes.detail.soilType" });
+  }
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/[_-]/g, " ")
+    .replace(/^./, (letter) => letter.toUpperCase());
 }
 
 export function FieldNoteDialog({
@@ -116,14 +138,17 @@ export function FieldNoteDialog({
   onClose,
 }: {
   chainId: number;
-  note: PublicFieldNote | null;
+  note: PublicFieldNote;
   onClose: () => void;
 }) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const titleId = "public-garden-detail-note-title";
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-  const { metadata, status: metadataStatus, retryFetch } = useWorkMetadata(note?.metadata);
+  const { metadata, status: metadataStatus, retryFetch } = useWorkMetadata(note.metadata);
+  const { data: actions = [] } = useActions(chainId);
+  const action = actions.find((item) => item.id === buildActionId(chainId, note.actionUID));
+  const inputs = action ? localizeAction(action, intl.locale).inputs : [];
   // The viewer ships English defaults for every string it renders or announces.
   // The public site is translated, so it gets the whole set, not just the two
   // that happen to be visible.
@@ -150,8 +175,6 @@ export function FieldNoteDialog({
     [formatMessage]
   );
 
-  if (!note) return null;
-
   const title =
     note.title ||
     formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" });
@@ -170,13 +193,11 @@ export function FieldNoteDialog({
     });
   }
   for (const [key, value] of Object.entries(details)) {
-    const display = formatDetailValue(value);
+    const input = inputs.find((item) => item.key === key);
+    const display = formatDetailValue(value, input);
     if (display) {
       metadataRows.push({
-        label: key
-          .replace(/([A-Z])/g, " $1")
-          .replace(/[_-]/g, " ")
-          .replace(/^./, (letter) => letter.toUpperCase()),
+        label: input?.title ?? fallbackDetailLabel(key, formatMessage),
         value: display,
       });
     }
