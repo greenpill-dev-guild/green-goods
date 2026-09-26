@@ -4,7 +4,7 @@ These files are the lane-level dispatch surfaces for .plans/active/commitment-po
 
 ## File index
 
-All 27 files in this directory. The plan hub's document map points here for the enumeration, so
+All 33 files in this directory. The plan hub's document map points here for the enumeration, so
 **a new handoff must get a row below in the same change** — this file previously described source
 order only, and a reader following the map could miss an active dispatch surface entirely.
 
@@ -37,6 +37,12 @@ order only, and a reader following the map could miss an active dispatch surface
 | `claude-components-tab-brief.md` | Three-phase alignment brief for a reviewable Components tab in the existing prototypes artifact | Claude | Phase 1 is read-only; generation waits for explicit approval |
 | `human-release-ops.md` | Broadcast, Garden-ID cutover, and live settlement exit evidence (PRD-731) | Afolabi Aiyeloja | **Human authorization boundary, not a machine lane** |
 | `human-settlement-evidence.md` | September measurement-definition and operational-assignment gate (COM-11) | Afolabi Aiyeloja | **Human authorization boundary, not a machine lane** |
+| `w3a-members-act-everyone-reads.md` | Rehearsal follow-up W3-A: membership in the act table, one membership answer, the queued act row (N37, N38, N35) | Claude | In progress on `fix/commitment-take-up-membership`; critical |
+| `w3b-commitment-screen-chrome.md` | Rehearsal follow-up W3-B: fixed chrome, the member's readiness notice, one season full width, the direction edge on the app row (N39, N40, N9, N10, N5, N23) | Claude | Queued after W3-A; pairs before merge |
+| `w3c-seed-wizard-questions.md` | Rehearsal follow-up W3-C: the reward question, garden work in hours, chips, the rail ends done, the field's height, the admin edge, a reason under Next (N8, N4, N12, N6, N11, N5, N30) | Claude | Queued after W3-B; pairs before merge |
+| `w3d-unlisted-gardens-reachable.md` | Rehearsal follow-up W3-D: an editorial-hidden garden renders by its own link, unlisted (N2) | Claude | Queued after W3-C |
+| `w3e-account-sessions.md` | Rehearsal follow-up W3-E: the identity-change reset and the store rule; the wallet sign-out only if reproduced (N36, N35) | Claude | Queued after W3-D; critical |
+| `w3f-inspector-story-and-names.md` | Rehearsal follow-up W3-F: the inspector's Detail story renders again; names in place of addresses (N26, N17) | Claude | Queued after W3-E |
 
 ## Source order
 
