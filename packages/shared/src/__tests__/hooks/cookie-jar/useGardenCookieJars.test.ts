@@ -364,6 +364,34 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     expect(result.current.jars[0].decimals).toBe(18);
   });
 
+  it("says the amounts use the fallback until each jar currency's decimals are read", () => {
+    mockReadContractReturn.data = [TEST_JAR_1];
+    mockReadContractsReturn.data = [
+      { result: TEST_CURRENCY, status: "success" },
+      { result: 5000000n, status: "success" },
+      { result: 1000000n, status: "success" },
+      { result: 3600n, status: "success" },
+      { result: false, status: "success" },
+      { result: false, status: "success" },
+      { result: 0n, status: "success" },
+    ];
+    // The decimals read has not come back yet.
+    mockDecimalsReturn.data = undefined;
+
+    const { result, rerender } = renderHook(() => useGardenCookieJars(TEST_GARDEN), {
+      wrapper: createTestWrapper(),
+    });
+
+    expect(result.current.jars[0].decimals).toBe(18);
+    expect(result.current.hasUnreadDecimals).toBe(true);
+
+    mockDecimalsReturn.data = [{ result: 6, status: "success" }];
+    rerender();
+
+    expect(result.current.jars[0].decimals).toBe(6);
+    expect(result.current.hasUnreadDecimals).toBe(false);
+  });
+
   it("sets loading true while any step is loading", () => {
     mockReadContractReturn.isLoading = true;
 

@@ -43,6 +43,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
     isPaused: jarsPaused,
     error: jarsError,
     hasDetailReadFailure,
+    hasUnreadDecimals,
     moduleConfigured: jarsModuleConfigured,
   } = useGardenCookieJars(gardenAddress, {
     enabled: Boolean(gardenAddress),
@@ -112,25 +113,15 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
     );
   }
 
-  if (jars.length === 0) {
-    // Only a finished read that came back empty shows the garden has no jar. A read that is
-    // paused offline, failed, or still on its way proves nothing, and TanStack Query reports a
-    // paused or not-yet-fetching read as not loading.
-    if (hasNoJar) {
-      return (
-        <AdminCard density="none">
-          <AdminCardBody>
-            <EmptyState
-              icon={<RiCupLine className="h-6 w-6" />}
-              title={formatMessage({ id: "app.cookieJar.noJars" })}
-              // Says how a jar appears, since funding one is impossible without it (D10).
-              description={formatMessage({ id: "cockpit.community.payouts.noJarHow" })}
-            />
-          </AdminCardBody>
-        </AdminCard>
-      );
-    }
-    if (jarsPaused || jarsError || hasDetailReadFailure) {
+  // A card shows amounts, and a jar's amounts need its currency's decimals: until those are
+  // read they use a fallback, so the cards wait like any other unfinished read.
+  const awaitingAmounts = jars.length > 0 && hasUnreadDecimals;
+  if (jars.length === 0 || awaitingAmounts) {
+    // A read paused offline or failed proves nothing, even beside an empty list the cache still
+    // holds, so it speaks first; only a finished read that came back empty shows the garden has
+    // no jar. TanStack Query reports a paused or not-yet-fetching read as not loading.
+    const failed = !awaitingAmounts && (jarsError || hasDetailReadFailure);
+    if (jarsPaused || failed) {
       const state = jarsPaused ? "jarsOffline" : "jarsReadFailed";
       return (
         <AdminCard density="none">
@@ -145,6 +136,20 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
               }
               title={formatMessage({ id: `cockpit.community.payouts.${state}.title` })}
               description={formatMessage({ id: `cockpit.community.payouts.${state}.body` })}
+            />
+          </AdminCardBody>
+        </AdminCard>
+      );
+    }
+    if (hasNoJar) {
+      return (
+        <AdminCard density="none">
+          <AdminCardBody>
+            <EmptyState
+              icon={<RiCupLine className="h-6 w-6" />}
+              title={formatMessage({ id: "app.cookieJar.noJars" })}
+              // Says how a jar appears, since funding one is impossible without it (D10).
+              description={formatMessage({ id: "cockpit.community.payouts.noJarHow" })}
             />
           </AdminCardBody>
         </AdminCard>

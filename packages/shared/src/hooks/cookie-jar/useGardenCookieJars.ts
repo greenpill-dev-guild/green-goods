@@ -197,5 +197,10 @@ export function useGardenCookieJars(
     hasDetailReadFailure: detailErrorCount > 0,
     decimalsErrorCount,
     hasDecimalsReadFailure: decimalsErrorCount > 0,
+    /**
+     * True until every jar currency's decimals have been read once. Until then each jar's
+     * amounts use an 18-decimal fallback, which misreads a six-decimal token.
+     */
+    hasUnreadDecimals: decimalsContracts.length > 0 && decimalsResults === undefined,
   };
 }
