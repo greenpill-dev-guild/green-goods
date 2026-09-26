@@ -18,7 +18,6 @@ import type { JobQueueHandle } from "../modules/job-queue/ports";
 import { logger } from "../modules/app/logger";
 import { scheduleUploadPreparation } from "../modules/work/upload-preparation";
 import { connectivityStore } from "../stores/connectivity";
-import { useUIStore } from "../stores/useUIStore";
 import type {
   ApprovalJobPayload,
   QueueEvent,
@@ -98,17 +97,6 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
   // flush. Module-internal locking still applies, but this layer enforces
   // serialization at the provider boundary too.
   const isFlushInProgressRef = useRef(false);
-  const setOfflineBannerVisible = useUIStore((state) => state.setOfflineBannerVisible);
-
-  const setOfflineBannerVisibleIfChanged = useCallback(
-    (visible: boolean) => {
-      if (useUIStore.getState().isOfflineBannerVisible === visible) {
-        return;
-      }
-      setOfflineBannerVisible(visible);
-    },
-    [setOfflineBannerVisible]
-  );
 
   // useCallback needed here as refreshStats is used in multiple effects
   const refreshStats = useCallback(
@@ -118,7 +106,6 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         setStats((previousStats) =>
           areQueueStatsEqual(previousStats, EMPTY_QUEUE_STATS) ? previousStats : EMPTY_QUEUE_STATS
         );
-        setOfflineBannerVisibleIfChanged(false);
         return;
       }
 
@@ -128,13 +115,12 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         setStats((previousStats) =>
           areQueueStatsEqual(previousStats, newStats) ? previousStats : newStats
         );
-        setOfflineBannerVisibleIfChanged(newStats.pending > 0 || newStats.failed > 0);
       } catch (error) {
         if (signal?.aborted) return;
         logger.warn("[JobQueueProvider] refreshStats failed", { error });
       }
     },
-    [currentUserAddress, queue, setOfflineBannerVisibleIfChanged]
+    [currentUserAddress, queue]
   );
 
   // Helper to invalidate multiple query keys
@@ -168,7 +154,6 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
     // Event handlers using DRY query invalidation helpers
     const handleJobProcessing = () => {
       setIsProcessing(true);
-      setOfflineBannerVisibleIfChanged(true);
       // Suppress toasts for background processing/retries to reduce noise
     };
 
@@ -296,7 +281,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       unsubscribe();
       unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, queue, queueToasts, refreshStats, setOfflineBannerVisibleIfChanged]);
+  }, [currentUserAddress, queue, queueToasts, refreshStats]);
 
   useEffect(() => {
     if (!sender || !currentUserAddress) {

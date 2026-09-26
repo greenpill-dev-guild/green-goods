@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PreparationResult } from "../../../modules/work/prepare-queued-work";
 import {
   createUploadPreparation,
+  setActiveUploadPreparation,
+  suspendUploadPreparation,
   uploadPreparationStore,
   type UploadPreparation,
   type UploadPreparationPorts,
@@ -73,6 +75,7 @@ async function settled(preparation: UploadPreparation) {
 let preparation: UploadPreparation | undefined;
 afterEach(() => {
   preparation?.stop();
+  setActiveUploadPreparation(undefined);
 });
 
 describe("preparing queued items in the background", () => {
@@ -126,6 +129,19 @@ describe("preparing queued items in the background", () => {
     await settled(preparation);
     expect(order).toEqual([]);
     expect(uploadPreparationStore.getSnapshot().paused).toBe("uploading");
+
+    release();
+    await vi.waitFor(() => expect(order).toEqual(["a"]));
+  });
+
+  it("starts held when a hold taken before it existed is still open", async () => {
+    const { ports, order } = harness([queued("a")]);
+    const release = suspendUploadPreparation();
+    preparation = createUploadPreparation(ports);
+    setActiveUploadPreparation(preparation);
+
+    await settled(preparation);
+    expect(order).toEqual([]);
 
     release();
     await vi.waitFor(() => expect(order).toEqual(["a"]));

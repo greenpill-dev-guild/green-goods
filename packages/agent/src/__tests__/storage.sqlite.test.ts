@@ -93,10 +93,13 @@ describe("agent storage with real bun:sqlite", () => {
 
     await closeDB();
     initDB(databasePath);
-    await expect(store.getMine(garden, account)).resolves.toMatchObject({
-      displayName: "Private gardener",
-      note: "Private joining note",
-    });
+    // Read inside the request's lifetime; getMine defaults to the wall clock.
+    await expect(store.getMine(garden, account, "2026-08-28T12:00:00.000Z")).resolves.toMatchObject(
+      {
+        displayName: "Private gardener",
+        note: "Private joining note",
+      }
+    );
   });
 
   it("persists replay nonces only as keyed digests", async () => {

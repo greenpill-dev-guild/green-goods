@@ -1,11 +1,8 @@
-import type {
-  SheetAction,
-  SheetActionsProps,
-} from "@green-goods/shared/components/Dialog/SheetActions";
 import { RiUploadCloud2Line } from "@remixicon/react";
+import type { ReactNode } from "react";
 import type { IntlShape } from "react-intl";
 
-/** What the Upload all bar reads about the person's queued work and decisions. */
+/** What the Upload all action reads about the person's queued work and decisions. */
 export interface UploadBarState {
   /** Prepared items Upload all sends. */
   readyCount: number;
@@ -23,30 +20,34 @@ export interface UploadBarHandlers {
   onPrepareNow: () => void;
 }
 
+/** The one upload action in the Pending header. */
+export interface UploadAction {
+  label: string;
+  icon?: ReactNode;
+  /** In flight: shows the spinner and ignores taps. */
+  loading?: boolean;
+  onClick?: () => void;
+  testId: "upload-all" | "prepare-uploads";
+}
+
 /**
- * The Pending tab's compact upload actions for queued work and decisions.
- * Upload all appears once something can go, and names only the prepared
- * items while the rest are still preparing. Under Data Saver it offers to
- * prepare anyway. Upload all is never offered until there is something ready
- * to sign; the remaining items keep their preparation action.
+ * The Pending header's upload action for queued work and decisions. It is one
+ * compact button beside the item count, so it never takes a second row. Upload
+ * all appears once something can go, and names only the prepared items while
+ * the rest are still preparing. Before anything is ready it shows Upload all
+ * with a spinner, and that label carries no count, so the button keeps one
+ * width while the work turns ready, at any count. Under Data Saver it offers
+ * Prepare now once nothing is ready to go; each work's own page offers it for
+ * that work.
  */
-export function buildUploadActions(
+export function buildUploadAction(
   state: UploadBarState,
   { onUpload, onPrepareNow }: UploadBarHandlers,
   formatMessage: IntlShape["formatMessage"]
-): SheetActionsProps | undefined {
-  const upload = (count: number, everything: boolean): SheetAction => ({
-    label: formatMessage(
-      everything
-        ? { id: "app.uploads.uploadAll", defaultMessage: "Upload all ({count})" }
-        : { id: "app.uploads.uploadReady", defaultMessage: "Upload {count} ready" },
-      { count }
-    ),
-    icon: <RiUploadCloud2Line aria-hidden="true" />,
-    onClick: onUpload,
-    testId: "upload-all",
-  });
-  const prepareNow: SheetAction = {
+): UploadAction | undefined {
+  const icon = <RiUploadCloud2Line className="h-4 w-4" aria-hidden="true" />;
+  const uploadAll = formatMessage({ id: "app.uploads.uploadAll", defaultMessage: "Upload all" });
+  const prepareNow: UploadAction = {
     label: formatMessage({ id: "app.uploads.prepareNow", defaultMessage: "Prepare now" }),
     onClick: onPrepareNow,
     testId: "prepare-uploads",
@@ -54,32 +55,29 @@ export function buildUploadActions(
 
   if (state.isUploading) {
     return {
-      primary: {
-        label: formatMessage({ id: "app.uploads.uploading", defaultMessage: "Uploading…" }),
-        loading: true,
-        testId: "upload-all",
-      },
+      label: formatMessage({ id: "app.uploads.uploading", defaultMessage: "Uploading…" }),
+      loading: true,
+      testId: "upload-all",
     };
   }
   if (state.readyCount > 0) {
     return {
-      primary: upload(state.readyCount, state.preparingCount === 0),
-      secondary: state.pausedForDataSaver && state.preparingCount > 0 ? prepareNow : undefined,
+      label:
+        state.preparingCount === 0
+          ? uploadAll
+          : formatMessage(
+              { id: "app.uploads.uploadReady", defaultMessage: "Upload {count} ready" },
+              { count: state.readyCount }
+            ),
+      icon,
+      onClick: onUpload,
+      testId: "upload-all",
     };
   }
   if (state.preparingCount === 0) return undefined;
-  if (state.pausedForDataSaver) return { primary: prepareNow };
+  if (state.pausedForDataSaver) return prepareNow;
   if (state.isPreparing) {
-    return {
-      primary: {
-        label: formatMessage({
-          id: "app.uploads.preparing",
-          defaultMessage: "Preparing uploads…",
-        }),
-        loading: true,
-        testId: "upload-all",
-      },
-    };
+    return { label: uploadAll, icon, loading: true, testId: "upload-all" };
   }
-  return { primary: prepareNow };
+  return prepareNow;
 }

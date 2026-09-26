@@ -1,6 +1,7 @@
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import type { WorkUploadCheckpoint } from "../../types/domain";
 import type { TransactionSender } from "../transactions/types";
+import { logger } from "../app/logger";
 import { jobQueueDB } from "../job-queue/db";
 import { MAX_RETRIES } from "../job-queue/queue-policy";
 import { jobQueueEventBus } from "../job-queue/event-bus";
@@ -53,7 +54,33 @@ function rejectTerminalWork(job: Job | undefined) {
     throw new Error(job.lastError ?? "submission-requires-retry");
 }
 
+/** Another holder has the work, another window's Upload all for one; it stays queued for them. */
+function heldElsewhere(queued: QueuedWorkSubmission, ports: SubmitWorkPorts): SubmitWorkOutcome {
+  logger.warn("[submitWork] Another holder has this work; it stays queued", {
+    jobId: queued.jobId,
+  });
+  return queuedOutcome(queued, ports.sender);
+}
+
+/**
+ * Admits the work durably, then sends it while the connection holds. Admission
+ * wakes background preparation, which would otherwise claim the work first and
+ * leave it for Upload all, so preparation is held back until this Submit has
+ * sent the work or left it queued; it then prepares whatever is left.
+ */
 export async function submitAdmittedWork(
+  input: ResolvedSubmitWorkCommand,
+  ports: SubmitWorkPorts
+): Promise<SubmitWorkOutcome> {
+  const resumePreparation = ports.suspendPreparation();
+  try {
+    return await admitAndSend(input, ports);
+  } finally {
+    resumePreparation();
+  }
+}
+
+async function admitAndSend(
   input: ResolvedSubmitWorkCommand,
   ports: SubmitWorkPorts
 ): Promise<SubmitWorkOutcome> {
@@ -106,6 +133,7 @@ export async function submitAdmittedWork(
         result.error === "submission-ownership-changed"
       )
         throw new Error(result.error);
+      if (result.error === "already-processing") return heldElsewhere(queued, ports);
     }
     return result.success && result.txHash
       ? ({
@@ -119,7 +147,7 @@ export async function submitAdmittedWork(
         } as SubmitWorkOutcome);
   }
   const claim = await acquireWorkJobs([queued.jobId]);
-  if (!claim) return queuedOutcome(queued, ports.sender);
+  if (!claim) return heldElsewhere(queued, ports);
   try {
     const job = await jobQueueDB.getJob(queued.jobId);
     if (!job || job.synced) {

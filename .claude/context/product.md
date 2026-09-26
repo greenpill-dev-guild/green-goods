@@ -79,11 +79,11 @@ Green Goods is the verified impact operations layer for community-led regenerati
 
 | Category | Example | UI Behavior |
 |----------|---------|-------------|
-| network | API timeout, no connectivity, DNS failure | Retry button + offline indicator (SyncStatusBar) |
+| network | API timeout, no connectivity, DNS failure | Retry button + offline banner |
 | validation | Invalid input, missing required field, format error | Inline field error via react-hook-form |
 | auth | Session expired, passkey rejected, wrong account | Redirect to login, clear session state |
 | contract | Revert, gas estimation failure, nonce conflict | Toast with `parseContractError()` message + retry option |
-| sync | Job queue failure, IndexedDB write error, quota exceeded | SyncStatusBar warning + auto-retry with exponential backoff |
+| sync | Job queue failure, IndexedDB write error, quota exceeded | Failure toast + the item's status in Your Work › Pending, where it can be sent again |
 
 ## Graceful Degradation
 
@@ -91,7 +91,7 @@ When connectivity is lost or degraded, features degrade predictably:
 
 | Feature | Degradation Mode | User Sees |
 |---------|-----------------|-----------|
-| Work submission | Queued offline (IndexedDB job queue) | Toast: "Saved -- will upload when online" + SyncStatusBar |
+| Work submission | Queued offline (IndexedDB job queue) | Toast: "Saved -- will upload when online" + the item in Your Work › Pending, sent with Upload all |
 | Garden list | Cached data served (TanStack Query cache) | Stale data with staleness indicator |
 | Action list | Cached data served | Stale data with staleness indicator |
 | Work approvals | Blocked (requires on-chain transaction) | Disabled button + tooltip: "Requires internet connection" |

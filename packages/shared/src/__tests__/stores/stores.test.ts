@@ -216,7 +216,6 @@ describe("stores/useUIStore", () => {
   beforeEach(() => {
     // Reset store to initial state
     useUIStore.setState({
-      isOfflineBannerVisible: false,
       isWorkDashboardOpen: false,
       isGardenFilterOpen: false,
       isWalletSheetOpen: false,
@@ -240,26 +239,6 @@ describe("stores/useUIStore", () => {
       releaseSecond();
       expect(useUIStore.getState().openSheetCount).toBe(0);
       expect(useUIStore.getState().isAnySheetOpen()).toBe(false);
-    });
-  });
-
-  describe("offline banner", () => {
-    it("toggles offline banner visibility", () => {
-      const { result } = renderHook(() => useUIStore());
-
-      expect(result.current.isOfflineBannerVisible).toBe(false);
-
-      act(() => {
-        result.current.setOfflineBannerVisible(true);
-      });
-
-      expect(result.current.isOfflineBannerVisible).toBe(true);
-
-      act(() => {
-        result.current.setOfflineBannerVisible(false);
-      });
-
-      expect(result.current.isOfflineBannerVisible).toBe(false);
     });
   });
 

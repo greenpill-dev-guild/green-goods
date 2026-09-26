@@ -7,6 +7,9 @@ const account = "0x2222222222222222222222222222222222222222" as const;
 const secret = "ab".repeat(32);
 const requestedAt = "2026-08-27T12:00:00.000Z";
 const expiresAt = "2026-09-26T12:00:00.000Z";
+// A read inside the requests' lifetime. getMine defaults to the wall clock, which
+// passed these fixed expiry dates on 2026-09-26.
+const readAt = "2026-08-28T12:00:00.000Z";
 
 function createStore() {
   let requestId = 0;
@@ -42,7 +45,7 @@ describe("garden join request store", () => {
       throw new Error("Expected an existing garden join request");
     }
     expect(duplicate.request.id).toBe(first.request.id);
-    expect(await store.getMine(garden, account)).toMatchObject({
+    expect(await store.getMine(garden, account, readAt)).toMatchObject({
       displayName: "Maya",
       note: "Weekly compost pickup",
       state: "pending",
@@ -212,7 +215,7 @@ describe("garden join request store", () => {
     if (replacement.created !== true) throw new Error("Expected replacement request to be created");
 
     expect(await store.withdraw(firstIdentity)).toBe(false);
-    expect(await store.getMine(garden, account)).toMatchObject({
+    expect(await store.getMine(garden, account, readAt)).toMatchObject({
       id: replacement.request.id,
       state: "pending",
     });
