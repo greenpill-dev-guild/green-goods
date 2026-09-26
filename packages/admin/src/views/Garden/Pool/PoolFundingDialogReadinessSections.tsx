@@ -62,21 +62,21 @@ export function PoolFundingDialogReadinessSections({
           />
         </dl>
         {settlementReady ? (
-          <p className="text-sm text-text-sub">
+          <p className="body-sm text-text-sub">
             {formatMessage({
               id: "cockpit.garden.pool.funding.ready",
               defaultMessage: "Account, route, token, fees, and limits are ready.",
             })}
           </p>
         ) : readIssue || settlementUnavailableReasons.length ? (
-          <ul className="list-disc space-y-1 pl-5 text-sm text-text-sub">
+          <ul className="list-disc space-y-1 pl-5 body-sm text-text-sub">
             {readIssue ? <li>{readIssue}</li> : null}
             {settlementUnavailableReasons.map((reason) => (
               <li key={reason}>{readinessReasonMessage(reason, intl)}</li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-text-sub">
+          <p className="body-sm text-text-sub">
             {formatMessage({
               id: "cockpit.garden.pool.funding.settlementUnavailable",
               defaultMessage: "Settlement unavailable",
@@ -106,7 +106,7 @@ export function PoolFundingDialogReadinessSections({
               : `${formatTokenAmount(snapshot.nativeFeeBalance, 18, 18, locale, true)} CELO`
           }
         />
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.funding.nativeReserve.note",
             defaultMessage:

@@ -212,14 +212,14 @@ export function DepositModal({
     >
       {!primaryAddress ? (
         <div className="space-y-4 py-6 text-center">
-          <p className="text-sm text-text-sub">
+          <p className="body-sm text-text-sub">
             {formatMessage({ id: "app.treasury.connectToDeposit" })}
           </p>
           <ConnectButton />
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="rounded-lg border border-information-light bg-information-lighter/50 p-3 text-xs text-text-sub">
+          <div className="rounded-lg border border-information-light bg-information-lighter/50 p-3 body-xs text-text-sub">
             <p>
               {formatMessage({
                 id: "app.treasury.deposit.guidance",
@@ -293,14 +293,14 @@ export function DepositModal({
             )}
           </div>
 
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {formatMessage({
               id: "app.treasury.deposit.minimumHint",
               defaultMessage: "Minimum deposit: any amount. Deposits can be withdrawn at any time.",
             })}
           </p>
 
-          <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
+          <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 body-sm text-text-sub">
             <p>
               {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
               <span className="font-medium text-text-strong">
@@ -324,7 +324,7 @@ export function DepositModal({
           </div>
 
           {healthCheck && selectedVault && (
-            <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
+            <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 body-sm text-text-sub">
               <p>
                 {formatMessage({ id: "app.treasury.totalVaultAssets" })}:{" "}
                 <span className="font-medium text-text-strong">
@@ -341,7 +341,7 @@ export function DepositModal({
           )}
 
           {!vaultAcceptingDeposits && (
-            <p className="text-xs text-error-dark" role="alert">
+            <p className="body-xs text-error-dark" role="alert">
               {formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })}
             </p>
           )}

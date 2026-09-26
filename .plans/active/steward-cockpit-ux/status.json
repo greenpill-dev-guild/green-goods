@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-09-25T05:02:27.261Z",
-    "updated_at": "2026-09-25T22:28:11.919Z"
+    "updated_at": "2026-09-26T00:21:02.481Z"
   },
   "links": {
     "brief": "brief.md",
@@ -58,12 +58,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/admin-ui/view-actions.test.ts src/__tests__/hooks/commitment-pooling/useProtocolPool.test.ts src/__tests__/hooks/garden/useEligibleAdminGardens.test.ts src/__tests__/components/NavigationBarFab.test.tsx src/__tests__/utils/admin-routes.test.ts && bun run --filter @green-goods/admin test -- src/components/Shell/FabButton.test.tsx src/components/Shell/NavigationBar.test.tsx src/views/Garden/components/OverviewTab.test.tsx src/__tests__/components/AdminTabRail.test.tsx src/__tests__/components/PageTransition.test.tsx src/__tests__/routing/runtime-navigation.test.tsx src/views/Community/components/CommunityPayoutsTab.test.tsx src/views/Cookies/components/CampaignCookieJar/campaignCookieJarDraft.test.ts && (cd packages/shared && node ../../scripts/dev/node-cli.js vitest run --config vitest.storybook.config.ts --project=storybook ../admin/src/views/Profile/Profile.stories.tsx ../admin/src/components/Shell/AppBar.stories.tsx ../admin/src/components/Shell/NavigationBar.stories.tsx ../admin/src/components/AdminTabRail.stories.tsx)",
-          "evidence": "PR4, each on the code before its change: the Hub trio rendered filled; the FAB drew a plus, not its primary's icon; Attention Needed followed the health card on phones; there was no isProtocolGarden and no Payouts redirect; the Payouts tab had no Campaign Cookie Jars card or flow; a workspace switch reset to the top; the phone Profile page read Account; the phone chip and nav labels overflowed; the rail had no overflow state; the Actions tab was the error red. Review fixes: a changed payout asset, withdrawal interval, or jar owner was not an edit to discard; a widened tab left no fade; the shared FAB rotated a plus; the deployment's root garden was not the protocol garden without pooling; a deployer could not select it; an open dial was named Open Actions; a selected tab landed under the rail's edge fade; a taller phone bar covered the FAB"
+          "command": "(printf '%s\\n' 'export const TypeProbe = () => <p className=\"text-sm text-[13px] text-[rgb(var(--m3-on-surface-variant))]\">probe</p>;' > packages/admin/src/views/TypeProbe.tsx && bash scripts/design/check-tokens.sh; rc=$?; rm -f packages/admin/src/views/TypeProbe.tsx; exit $rc) && bun run --filter @green-goods/shared test -- src/__tests__/utils/styles/cn.test.ts",
+          "evidence": "PR5: with a probe file seeding className=\"text-sm\", an arbitrary text-[13px], and a view-level text-[rgb(var(--m3-on-surface-variant))] in packages/admin/src/views, the design-token gate exits 1 naming the lines (before the local review's fix the arbitrary size passed); before the migration the collectors reported 465 raw type-size and 38 view-level M3 colour lines; cn failed its new case, cn(\"font-mono text-sm\", \"body-xs\") keeping both classes"
         },
         "green": {
-          "command": "bun run --filter @green-goods/admin test && bun run --filter @green-goods/shared test && bun run --filter @green-goods/client test && bun run --filter @green-goods/shared test:stories:ci",
-          "evidence": "PR4: the same files and stories pass; on 173a412e5 the admin (1054), shared (5824), and client (1399) suites, storybook-ci (340), the admin-ci Playwright project (11), and the critical push gate passed"
+          "command": "bash scripts/design/check-tokens.sh && bun run --filter @green-goods/shared test -- src/__tests__/utils/styles/cn.test.ts",
+          "evidence": "PR5: the gate passes with both collectors at zero and cn passes 7 of 7; the type census of 34 route targets and 376 stories changed no size, weight, or line height outside the intended title roles, the local review's two drifts (the capital tiles' labels and the review hints) measured back to develop's values, and the colour census of 72 stories and 3 routes left text, stroke, and ink colours unchanged; on ac4dca30e the admin (1054), shared (5826), and client (1399) suites, storybook-ci (347), the admin-ci Playwright project (11), the admin and shared typechecks, and the push gate passed"
         },
         "note": ""
       },
@@ -262,6 +262,22 @@
       "note": "PR4 (pr4_shell_cookies_tone) rebased onto develop after PR3 merged"
     },
     {
+      "timestamp": "2026-09-25T19:58:26.419Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T20:05:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "refactor/admin-type-scale-and-stories",
+      "note": "PR5 (pr5_copy_storybook_polish) implemented on PR4's branch; opens after PR4 merges"
+    },
+    {
       "timestamp": "2026-09-25T20:55:42.493Z",
       "actor": "claude",
       "lane": "ui",
@@ -271,6 +287,38 @@
     },
     {
       "timestamp": "2026-09-25T22:28:11.923Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T22:48:02.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "feature/shell-cookies-and-actions-tone",
+      "note": "PR4 (pr4_shell_cookies_tone) merged into develop as #908 after Afo approved the screenshots; PRD-985 Done"
+    },
+    {
+      "timestamp": "2026-09-25T22:50:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "refactor/admin-type-scale-and-stories",
+      "note": "PR5 (pr5_copy_storybook_polish) rebased onto develop after PR4 merged; opens now"
+    },
+    {
+      "timestamp": "2026-09-25T22:48:46.064Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-26T00:21:02.485Z",
       "actor": "claude",
       "lane": "ui",
       "status": "tdd_recorded",
@@ -324,7 +372,7 @@
     "pr4_shell_cookies_tone": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "completed",
       "branch": "feature/shell-cookies-and-actions-tone",
       "depends_on": ["pr3_garden_community"],
       "handoff": "handoffs/pr4-shell-cookies-tone.md",
@@ -333,13 +381,12 @@
         "issue": "PRD-985",
         "parentIssue": "PRD-981"
       },
-      "blocked_reason": "Merge waits for Afo's yes on the before/after screenshots.",
       "linear_issues": ["PRD-985", "PRD-981"]
     },
     "pr5_copy_storybook_polish": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "in_progress",
       "branch": "refactor/admin-type-scale-and-stories",
       "depends_on": ["pr4_shell_cookies_tone"],
       "handoff": "handoffs/pr5-copy-storybook-polish.md",
@@ -348,7 +395,6 @@
         "issue": "PRD-986",
         "parentIssue": "PRD-981"
       },
-      "blocked_reason": "Starts after PR4 merges so the type and colour migration covers the final campaign jar code.",
       "linear_issues": ["PRD-986", "PRD-981"]
     }
   }

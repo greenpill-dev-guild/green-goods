@@ -371,7 +371,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
         })}
       >
         {smartOutcomeExample ? (
-          <p className="text-xs text-text-soft">{smartOutcomeExample}</p>
+          <p className="body-xs text-text-soft">{smartOutcomeExample}</p>
         ) : null}
         <div className="space-y-3">
           {form.smartOutcomes.map((outcome, index) => (
@@ -460,7 +460,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
 
           {/* Array-level error */}
           {showValidation && fieldErrors.smartOutcomes && (
-            <p className="text-xs text-error-dark">{fieldErrors.smartOutcomes}</p>
+            <p className="body-xs text-error-dark">{fieldErrors.smartOutcomes}</p>
           )}
 
           <AdminButton
@@ -513,7 +513,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   "flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition",
                   isSelected
                     ? "border-primary-base bg-primary-alpha-10 text-primary-dark"
-                    : "border-stroke-soft bg-bg-white text-text-sub hover:bg-[rgb(var(--m3-on-surface)/0.08)]",
+                    : "border-stroke-soft bg-bg-white text-text-sub hover:bg-[rgb(var(--text-strong-950)/0.08)]",
                   isSubmitting && "cursor-not-allowed opacity-60"
                 )}
               >

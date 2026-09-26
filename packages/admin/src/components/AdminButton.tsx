@@ -78,6 +78,14 @@ const adminButtonVariants = tv({
         "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
         "[--state-layer-color:var(--m3-on-error)]",
       ],
+      // Outlined danger — a destructive action at outlined emphasis, beside a
+      // filled primary (Reject next to Approve). The focus ring stays the tone ring.
+      outlinedDanger: [
+        "bg-transparent [color:rgb(var(--m3-error))]",
+        "border-[rgb(var(--m3-error))]",
+        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
+        "[--state-layer-color:var(--m3-error)]",
+      ],
     },
     size: {
       // Compact cockpit metric (DL-011): 28 / 32 / 40. Every tier carries a

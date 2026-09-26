@@ -146,7 +146,7 @@ export function SeedStepHowMuch({
               defaultMessage: "Actions this needs",
             })}
           </AdminCardTitle>
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.seed.requirementsHint",
               defaultMessage:
@@ -231,13 +231,13 @@ export function SeedStepHowMuch({
             })}
           </AdminButton>
           {form.formState.errors.requirements?.message ? (
-            <p className="text-xs text-error-dark">
+            <p className="body-xs text-error-dark">
               {String(form.formState.errors.requirements.message)}
             </p>
           ) : null}
         </div>
       ) : (
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.seed.proofOnly",
             defaultMessage:

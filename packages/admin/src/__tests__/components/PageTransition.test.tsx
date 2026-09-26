@@ -351,7 +351,10 @@ describe("PageTransition", () => {
   });
 
   it("keeps Hub stage tab pane changes motionless", () => {
-    const css = readFileSync(resolve(__dirname, "../../index.css"), "utf-8");
+    // The pane's layout rules live in admin-layout.css; index.css holds the motion.
+    const css = ["../../index.css", "../../styles/admin-layout.css"]
+      .map((path) => readFileSync(resolve(__dirname, path), "utf-8"))
+      .join("\n");
 
     // The pane no longer carries `key={hub.stage}`, so a stage switch doesn't
     // remount the subtree — there is nothing to animate. The CSS must not

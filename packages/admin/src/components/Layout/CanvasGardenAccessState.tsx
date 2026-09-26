@@ -19,13 +19,13 @@ export function CanvasGardenAccessState({
       data-testid="canvas-no-garden-access"
     >
       <SeedlingIllustration className="h-28 w-28" />
-      <h1 className="mt-5 text-xl font-semibold text-text-strong">
+      <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
         {formatMessage({
           id: "cockpit.access.noGardenTitle",
           defaultMessage: "No garden access yet",
         })}
       </h1>
-      <p className="mt-2 max-w-md text-sm text-text-sub">
+      <p className="mt-2 max-w-md body-sm text-text-sub">
         {canCreateGarden
           ? formatMessage({
               id: "cockpit.access.noGardenDescriptionCanCreate",

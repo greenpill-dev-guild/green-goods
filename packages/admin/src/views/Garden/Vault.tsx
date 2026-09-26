@@ -166,7 +166,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
           <p className="body-xs text-text-soft">
             {formatMessage({ id: "app.treasury.totalValueLocked" })}
           </p>
-          <p className="mt-1 text-xl font-semibold text-text-strong">
+          <p className="mt-1 text-title-md font-semibold text-text-strong">
             {formatAssetAmounts(endowmentByAsset, locale)}
           </p>
         </div>
@@ -174,13 +174,13 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
           <p className="body-xs text-text-soft">
             {formatMessage({ id: "app.treasury.totalHarvests" })}
           </p>
-          <p className="mt-1 text-xl font-semibold text-text-strong">{totalHarvestCount}</p>
+          <p className="mt-1 text-title-md font-semibold text-text-strong">{totalHarvestCount}</p>
         </div>
         <div className="surface-inset">
           <p className="body-xs text-text-soft">
             {formatMessage({ id: "app.treasury.depositorCount" })}
           </p>
-          <p className="mt-1 text-xl font-semibold text-text-strong">{totalDepositorCount}</p>
+          <p className="mt-1 text-title-md font-semibold text-text-strong">{totalDepositorCount}</p>
         </div>
       </section>
 

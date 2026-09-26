@@ -261,7 +261,7 @@ export function PoolSettingsDialog({
               disabled={busy}
               required
             />
-            <p className="text-xs text-text-soft">
+            <p className="body-xs text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.settings.note",
                 defaultMessage:

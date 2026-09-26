@@ -74,7 +74,7 @@ export function PoolFundingSection({
               defaultMessage: "Pool Funding",
             })}
           </AdminCardTitle>
-          <p className="mt-1 text-xs text-text-soft">
+          <p className="mt-1 body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.funding.description",
               defaultMessage: "Live G$ in the registered Celo Safe.",
@@ -108,9 +108,9 @@ export function PoolFundingSection({
         </div>
       ) : (
         <>
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-2 body-sm">
             <div className="col-span-2">
-              <dt className="text-xs text-text-soft">
+              <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.garden.pool.funding.safe",
                   defaultMessage: "Celo Safe",
@@ -144,7 +144,7 @@ export function PoolFundingSection({
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-text-soft">
+              <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.garden.pool.funding.balance",
                   defaultMessage: "Onchain balance",
@@ -155,7 +155,7 @@ export function PoolFundingSection({
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-text-soft">
+              <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.garden.pool.funding.committed",
                   defaultMessage: "Committed",
@@ -166,13 +166,13 @@ export function PoolFundingSection({
               </dd>
             </div>
             <div className="col-span-2 rounded-[var(--m3-shape-sm)] bg-bg-soft p-3">
-              <dt className="text-xs text-text-soft">
+              <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.garden.pool.funding.available",
                   defaultMessage: "Available for new commitments",
                 })}
               </dt>
-              <dd className="mt-1 text-title-md font-semibold text-text-strong">
+              <dd className="mt-1 text-title-md font-semibold leading-[var(--type-title-md-lh)] text-text-strong">
                 {formatGdollar(derivedUnavailable ? null : (snapshot?.available ?? null), locale)}
               </dd>
             </div>
@@ -217,12 +217,12 @@ export function PoolFundingSection({
           </div>
 
           {readIssue || blockedBy ? (
-            <p className="text-xs text-text-sub" data-slot="funding-blocked-by">
+            <p className="body-xs text-text-sub" data-slot="funding-blocked-by">
               {readIssue ?? (blockedBy ? readinessReasonMessage(blockedBy, intl) : null)}
             </p>
           ) : null}
 
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {funding.isRefetching
               ? formatMessage({
                   id: "cockpit.garden.pool.funding.refreshing",
@@ -237,7 +237,7 @@ export function PoolFundingSection({
           </p>
 
           {protocolContext ? (
-            <p className="text-xs text-text-soft">
+            <p className="body-xs text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.funding.protocolNote",
                 defaultMessage:

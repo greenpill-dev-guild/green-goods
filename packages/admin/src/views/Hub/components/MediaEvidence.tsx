@@ -29,7 +29,7 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-text-strong">
+      <h3 className="body-sm font-semibold text-text-strong">
         {formatMessage({ id: "admin.work.mediaEvidence", defaultMessage: "Media Evidence" })}
       </h3>
 
@@ -72,7 +72,7 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
       {/* Audio notes from gardener */}
       {audioNoteCids && audioNoteCids.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-medium text-text-sub">
+          <h4 className="label-xs text-text-sub">
             {formatMessage({ id: "admin.work.audioNotes", defaultMessage: "Audio notes" })}
           </h4>
           {audioNoteCids.map((cid) => (

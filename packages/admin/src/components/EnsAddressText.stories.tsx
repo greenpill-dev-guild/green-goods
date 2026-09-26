@@ -7,17 +7,13 @@ const MEADOW_ADDRESS = "0x2345678901234567890123456789012345678901" as Address;
 
 function EnsAddressTextHarness() {
   return (
-    <div className="space-y-4 rounded-lg border border-stroke-soft bg-bg-white p-4 text-sm text-text-strong">
+    <div className="space-y-4 rounded-lg border border-stroke-soft bg-bg-white p-4 body-sm text-text-strong">
       <div className="space-y-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-text-soft">
-          Resolved display
-        </p>
+        <p className="label-xs uppercase tracking-wide text-text-soft">Resolved display</p>
         <EnsAddressText address={RIVER_ADDRESS} fallbackName="river" />
       </div>
       <div className="space-y-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-text-soft">
-          Copyable display
-        </p>
+        <p className="label-xs uppercase tracking-wide text-text-soft">Copyable display</p>
         <EnsAddressWithCopy address={MEADOW_ADDRESS} fallbackName="meadow" />
       </div>
     </div>

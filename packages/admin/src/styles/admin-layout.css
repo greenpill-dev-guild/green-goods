@@ -1,0 +1,402 @@
+/* ============================================================================
+ * ADMIN LAYOUT — the layout and surface classes admin components render
+ *
+ * The canvas route frame, the Garden and Community tab layouts and stat rows,
+ * the Hub shells, workbench grid, and workbench row and card states, the Hub
+ * card's media tiles, the account avatar tile, the surface primitives, and the
+ * spacing rhythm. index.css imports this file, and so does the shared
+ * Storybook (packages/shared/.storybook/storybook.css), so stories lay out
+ * exactly as the product does (DEC-F).
+ *
+ * Only class-scoped rules belong here. Tokens, base resets, keyframes and the
+ * motion classes that use them, view transitions, the canvas and scroll shell,
+ * the palette remaps, and overrides of shared classes stay in index.css, which
+ * Storybook never imports whole.
+ * ============================================================================ */
+
+/* ============================================================================
+ * GARDEN DETAIL LAYOUT
+ * ============================================================================ */
+.garden-tab-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.garden-tab-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.garden-tab-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  order: 1;
+}
+
+.garden-tab-rail {
+  order: 2;
+}
+
+.garden-tab-rail-sticky {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* A plain label and value row: the card around it is the one container (D33). */
+.garden-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  font-size: var(--type-body-md, 0.875rem);
+}
+
+/* A row that opens something keeps a hit area and a hover layer. */
+button.garden-stat-row {
+  padding-inline: 0.5rem;
+  border-radius: var(--m3-shape-sm);
+  transition: background-color var(--spring-effects-fast);
+}
+
+button.garden-stat-row:hover {
+  background: var(--color-bg-soft);
+}
+
+.garden-stat-row-label {
+  color: var(--color-text-sub);
+}
+
+.garden-stat-row-value {
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+
+@media (min-width: 640px) {
+  .garden-tab-shell,
+  .garden-tab-layout,
+  .garden-tab-main,
+  .garden-tab-rail-sticky {
+    gap: 1.25rem;
+  }
+}
+
+/* Tablet (768px-1023px): Rail becomes horizontal summary strip ABOVE main content */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .garden-tab-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .garden-tab-rail {
+    order: -1;
+  }
+
+  .garden-tab-rail-sticky {
+    flex-direction: row;
+    gap: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.25rem;
+  }
+
+  .garden-tab-rail-sticky::-webkit-scrollbar {
+    display: none;
+  }
+
+  .garden-tab-rail-sticky > * {
+    min-width: 240px;
+    flex: 1 0 auto;
+  }
+}
+
+/* Desktop (1024px+): Two-column grid — main (9fr) + rail sidebar (3fr) */
+@media (min-width: 1024px) {
+  .garden-tab-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 9fr) minmax(260px, 3fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .garden-tab-main {
+    order: 0;
+    gap: 1.5rem;
+  }
+
+  .garden-tab-rail {
+    order: 0;
+  }
+}
+
+@layer utilities {
+  /* ── Surface Primitives ── */
+
+  /**
+   * Canvas route frame — the region that wraps a workspace view (Hub, Garden,
+   * Community, Actions, Cookies, etc.). Cockpit M3 1a: the linen canvas IS the
+   * page ground, so this frame is transparent — route header, tab rail, and
+   * card grids sit directly on the canvas and its tone wash. Cards (white,
+   * elevation level 1) provide the raised surfaces. Padding follows the 1a
+   * Hub spec: 12px top, 32px sides at desktop (16px mobile / 24px tablet).
+   */
+  .canvas-route-card {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: var(--admin-radius-lg);
+    min-block-size: var(--admin-main-content-min-height, 100%);
+    padding: 0.75rem 1rem 1.5rem;
+    box-shadow: none;
+  }
+
+  .canvas-route-card > [role="tabpanel"],
+  .canvas-route-card > [data-component="CanvasRouteContent"]:last-child {
+    flex: 1 1 auto;
+    min-block-size: 0;
+  }
+
+  .canvas-route-card > [role="tabpanel"] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .canvas-route-card > [role="tabpanel"] > [data-component="CanvasRouteContent"]:last-child {
+    flex: 1 1 auto;
+  }
+
+  /* Media fallback tiles ride the domain palette; the no-domain fallback is
+     warm stone, not the workspace tone (tone never touches card surfaces). */
+  .domain-gradient-fallback {
+    background: linear-gradient(
+      135deg,
+      rgb(
+          var(--domain-fallback-soft-rgb, var(--admin-surface-50)) /
+            var(--admin-domain-fallback-soft-alpha)
+        )
+        0%,
+      rgb(
+          var(--domain-fallback-ink-rgb, var(--neutral-500)) /
+            var(--admin-domain-fallback-ink-alpha)
+        )
+        100%
+    );
+    color: rgb(var(--domain-fallback-ink-rgb, var(--neutral-500)));
+  }
+
+  .admin-media-readability-overlay {
+    background: linear-gradient(
+      to top,
+      rgb(var(--static-black) / 0.18) 0%,
+      rgb(var(--static-black) / 0.04) 54%,
+      transparent 100%
+    );
+  }
+
+  /* Neutral stone identity tile — tone stays off card surfaces. */
+  .account-avatar-tile {
+    border-radius: var(--r-lg);
+    background: rgb(var(--m3-surface-container-high));
+    color: rgb(var(--m3-on-surface));
+    box-shadow: var(--m3-elevation-1);
+  }
+
+  [data-theme="dark"] .workbench-row-clickable:hover {
+    background: rgb(var(--bg-sub-300) / 0.6);
+  }
+
+  [data-theme="dark"] .workbench-row-clickable:active {
+    background: rgb(var(--bg-sub-300));
+  }
+
+  /* ── Workbench surfaces (Hub WorkbenchRow + Actions WorkbenchCard) ──────────
+     These shared Canvas components are admin-only consumers. A handful of their
+     edge/elevation/hover/selected utilities are authored in packages/shared/src
+     JSX as arbitrary-value or compound variants that admin's Tailwind v4 content
+     scan does not reach, so they silently no-op in admin's build. Own those here
+     (base layout/colour utilities that DO ship stay in the components).
+     Verified against admin dist (packages/admin/dist/assets/*.css). */
+  .hub-workbench-grid {
+    display: grid;
+    width: 100%;
+    /* auto-FILL (not auto-fit): empty tracks are kept, so a single result —
+       e.g. a narrowed search — stays at one column's width instead of the
+       lone card stretching across the whole grid. */
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+    justify-content: stretch;
+    align-items: stretch;
+    gap: 0.875rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .hub-workbench-grid > li {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Hover feedback is a pure elevation step (1 → 2) with box-shadow 150ms —
+     no translate lift, no hue shift (Cockpit M3 1a interaction contract). */
+  .workbench-row,
+  .workbench-card,
+  .hub-work-card {
+    transition-property: background-color, box-shadow;
+    transition-duration: var(--spring-effects-fast-duration);
+    transition-timing-function: var(--spring-effects-fast-easing);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .workbench-row,
+    .workbench-card,
+    .hub-work-card {
+      transition: none;
+    }
+  }
+
+  /* Selected row gains a neutral ink state layer; the focus ring ships via
+     Tailwind. Selection is a state, not a workspace-tone surface. */
+  .workbench-row[data-selected="true"] {
+    background-color: rgb(var(--m3-on-surface) / 0.08);
+  }
+
+  .workbench-card[data-selected="true"],
+  .hub-work-card[data-selected="true"] {
+    box-shadow: var(--edge-focus), var(--m3-elevation-2);
+  }
+
+  .workbench-row-clickable:hover {
+    box-shadow: var(--m3-elevation-1);
+  }
+
+  .workbench-card-clickable:hover,
+  .hub-work-card:hover {
+    box-shadow: var(--m3-elevation-2);
+  }
+
+  .workbench-row-clickable:active,
+  .workbench-card-clickable:active,
+  .hub-work-card:active {
+    box-shadow: var(--m3-elevation-1);
+  }
+
+  /* Raised inner tiles (thumbnail / icon) — edge ring + elevation. */
+  .workbench-raised {
+    box-shadow: var(--edge-rest), var(--m3-elevation-1);
+  }
+
+  /* Row trailing affordance hides on the <600px two-column layout. */
+  .workbench-row-trailing {
+    display: inline-flex;
+  }
+
+  @media (max-width: 599px) {
+    .workbench-row-trailing {
+      display: none;
+    }
+  }
+
+  @media (min-width: 600px) {
+    .canvas-route-card {
+      padding: 0.75rem 1.5rem 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .canvas-route-card {
+      padding: 0.75rem 2rem 1.5rem;
+    }
+  }
+
+  /** Full-width section: page-level grouping */
+  .surface-section {
+    @apply rounded-xl;
+    background: rgb(var(--admin-surface-0));
+    @apply p-4 sm:p-5;
+    box-shadow: var(--edge-rest), var(--m3-elevation-1);
+  }
+
+  /** Inset panel: nested inside a section or grid cell */
+  .surface-inset {
+    @apply rounded-lg bg-bg-white;
+    @apply p-4;
+    box-shadow: var(--edge-rest), var(--m3-elevation-1);
+  }
+
+  /** Compact card: metric tile, stat block — hover is elevation only */
+  .surface-card {
+    @apply rounded-lg bg-bg-white p-4;
+    transition: box-shadow var(--spring-effects-fast-duration) var(--spring-effects-fast-easing);
+    box-shadow: var(--edge-rest), var(--m3-elevation-1);
+  }
+  .surface-card:hover {
+    box-shadow: var(--m3-elevation-2);
+  }
+
+  /* ── Spacing Rhythm ── Responsive section/content gap scale
+   * section: between top-level sections (cards, panels)
+   * content: between items within a section (rows, fields)
+   */
+  .gap-section {
+    gap: 1rem;
+  }
+  .gap-content {
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 640px) {
+    .gap-section { gap: 1.25rem; }
+    .gap-content { gap: 1rem; }
+  }
+
+  @media (min-width: 1024px) {
+    .gap-section { gap: 1.5rem; }
+    .gap-content { gap: 1.25rem; }
+  }
+
+  .hub-route-shell {
+    /* Padding is owned by `.canvas-route-card` (applied by CanvasRouteFrame). */
+  }
+
+  .hub-route-stack {
+    width: 100%;
+  }
+
+  .hub-route-content {
+    width: 100%;
+  }
+
+  /* Layout-only shell. The visual treatment (radius, gradient, padding,
+   * elevation) is provided by `surface-section` on the same element so the
+   * Sheet → Section → Card chain only carries one padding tier. Adding
+   * padding/background here on top of `surface-section` produced visible
+   * compounding (~2rem effective horizontal inset) at desktop and clipped
+   * Hub queue rows on mobile. The mobile gutter (margin-inline) stays here
+   * so the results section keeps its inset without forcing the same shift
+   * onto PageHeader. */
+  .hub-results-shell {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 0;
+  }
+
+  .hub-results-pane {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 0;
+  }
+
+  .hub-results-pane > [data-component="EmptyStateShell"] {
+    --canvas-empty-state-min-height: 100%;
+  }
+}

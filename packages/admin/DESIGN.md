@@ -59,7 +59,7 @@ The admin uses Material Design 3 v0.192 as its **strict structural backbone** �
 
 **Why strict:** M3+unbounded glass produced inconsistent UI. Strict M3 provides discipline; Controlled Chrome gives spatial depth to persistent shell surfaces without making operational content translucent.
 
-**Enforcement:** `bun run check --only design-tokens` fails if admin source adds glass, backdrop blur, or decorative gradients outside the approved chrome CSS boundary — `src/index.css` plus `src/styles/admin-m3-tokens.css` (tokens + Controlled Chrome material rules) and `src/styles/admin-m3-components.css` (admin-owned component skins and motion). The old `admin-m3-overrides.css` is deleted.
+**Enforcement:** `bun run check --only design-tokens` fails if admin source adds glass, backdrop blur, or decorative gradients outside the approved chrome CSS boundary — `src/index.css` plus `src/styles/admin-m3-tokens.css` (tokens + Controlled Chrome material rules), `src/styles/admin-m3-components.css` (admin-owned component skins and motion), and `src/styles/admin-layout.css` (the layout and surface classes admin components render, including the media scrims; Storybook imports it too, so stories lay out as the product does). The old `admin-m3-overrides.css` is deleted.
 
 ---
 
@@ -91,6 +91,7 @@ CSS Grid with named areas:
 
 - **Plus Jakarta Sans** across everything — titles (600), body (400), labels (500)
 - Compressed cockpit scale: 22px/28px title-large for dialog and flow titles and the app bar · 16px/24px title-medium (weight 600) for the route header, every card title, and section titles via `AdminCardTitle` · 14px body and labels (every AdminButton size, DL-030) · 12px meta and floating field labels · 11px inside chips only · 16px field text on touch widths. The chrome already declares the workspace, so the route header is a waypoint, not a headline. No display or headline ramp — nothing in the cockpit takes a display size.
+- Every size comes from this scale: the named classes (`body-sm` 14px body, `body-xs` 12px meta, `label-xs` 12px label, `label-sm` 11px chips) and the `text-title-*` aliases. `check:design-tokens` fails on a raw Tailwind size anywhere in `src/`, stories included (frontend-design Rule 9).
 - Utility copy, status language, task framing — not marketing copy
 - Labels and timestamps are the most important typographic element (stewards scan metadata)
 

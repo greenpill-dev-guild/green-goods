@@ -84,10 +84,10 @@ const ToneCell = ({
       <div className="flex items-center gap-3">
         <GardenChip gardens={sampleGarden} selectedGarden={sampleGarden[0]} onSelectGarden={fn()} />
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
+          <div className="label-xs font-semibold uppercase tracking-[0.06em] text-text-soft">
             {tone}
           </div>
-          <div className="text-base font-semibold text-text-strong">{name}</div>
+          <div className="body-md font-semibold text-text-strong">{name}</div>
         </div>
       </div>
     </header>
@@ -98,8 +98,8 @@ const ToneCell = ({
       <AdminCard variant="elevated">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <div className="text-sm font-semibold text-text-strong">Pending review</div>
-            <div className="text-xs text-text-sub">
+            <div className="body-sm font-semibold text-text-strong">Pending review</div>
+            <div className="body-xs text-text-sub">
               14 submissions waiting, oldest 3 days. Card material stays neutral.
             </div>
           </div>
@@ -115,9 +115,7 @@ const ToneGrid = ({ theme }: { theme: "light" | "dark" }) => (
     data-theme={theme}
     className="admin-m3 space-y-3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
   >
-    <div className="text-label-md font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
-      {theme}
-    </div>
+    <div className="text-label-md font-semibold uppercase text-text-sub">{theme}</div>
     <div className="grid gap-4 md:grid-cols-2">
       <ToneCell tone="hub" name="Hub" />
       <ToneCell tone="garden" name="Garden" />

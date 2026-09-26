@@ -101,7 +101,7 @@ export const StateCatalog: Story = {
   render: () => (
     <div className="space-y-8">
       <div>
-        <h3 className="text-sm font-medium text-text-sub mb-2">Empty team</h3>
+        <h3 className="body-sm font-medium text-text-sub mb-2">Empty team</h3>
         <div className="rounded-lg border border-stroke-soft p-4">
           <WithStoreState>
             <TeamStep />
@@ -110,7 +110,7 @@ export const StateCatalog: Story = {
       </div>
 
       <div>
-        <h3 className="text-sm font-medium text-text-sub mb-2">With gardeners and stewards</h3>
+        <h3 className="body-sm font-medium text-text-sub mb-2">With gardeners and stewards</h3>
         <div className="rounded-lg border border-stroke-soft p-4">
           <WithStoreState
             gardeners={[MOCK_ADDRESSES[0], MOCK_ADDRESSES[1]]}
@@ -122,7 +122,7 @@ export const StateCatalog: Story = {
       </div>
 
       <div>
-        <h3 className="text-sm font-medium text-text-sub mb-2">Many members (scroll test)</h3>
+        <h3 className="body-sm font-medium text-text-sub mb-2">Many members (scroll test)</h3>
         <div className="rounded-lg border border-stroke-soft p-4">
           <WithStoreState gardeners={MOCK_ADDRESSES} stewards={MOCK_ADDRESSES}>
             <TeamStep />

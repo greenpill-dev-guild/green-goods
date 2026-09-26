@@ -88,7 +88,7 @@ function GardenPoolCard({
           <AdminCardTitle className="truncate" title={garden.name}>
             {garden.name}
           </AdminCardTitle>
-          <p className="mt-1 text-xs text-text-soft">
+          <p className="mt-1 body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.community.pools.currentGardenHint",
               defaultMessage:
@@ -120,7 +120,7 @@ function GardenPoolCard({
         })}
       </AdminButton>
       {!canManage ? (
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.community.pools.stewardOnly",
             defaultMessage: "The pool console is for this garden's stewards.",
@@ -188,7 +188,7 @@ function ProtocolOperations({
             defaultMessage: "Couldn’t read the protocol pool",
           })}
         </AdminCardTitle>
-        <p className="max-w-md text-sm text-text-soft">
+        <p className="max-w-md body-sm text-text-soft">
           {formatMessage({
             id: "cockpit.community.pools.readError.body",
             defaultMessage:
@@ -218,7 +218,7 @@ function ProtocolOperations({
             defaultMessage: "No protocol pool is registered yet",
           })}
         </AdminCardTitle>
-        <p className="text-sm text-text-soft">
+        <p className="body-sm text-text-soft">
           {formatMessage({
             id: "cockpit.community.pools.unregistered.body",
             defaultMessage:
@@ -246,7 +246,7 @@ function ProtocolOperations({
               defaultMessage: "Protocol Confirmations",
             })}
           </AdminCardTitle>
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.community.pools.confirmationsHint",
               defaultMessage:

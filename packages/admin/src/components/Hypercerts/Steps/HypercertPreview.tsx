@@ -70,7 +70,7 @@ export function HypercertPreview({
 
   if (!metadata) {
     return (
-      <div className="surface-inset flex min-h-40 items-center justify-center p-6 text-sm text-text-sub">
+      <div className="surface-inset flex min-h-40 items-center justify-center p-6 body-sm text-text-sub">
         {formatMessage({ id: "app.hypercerts.preview.empty" })}
       </div>
     );
@@ -110,9 +110,9 @@ export function HypercertPreview({
             />
           </div>
           <div className="space-y-2 p-4">
-            <h3 className="text-base font-semibold text-text-strong">{metadata.name}</h3>
-            <p className="text-sm text-text-sub">{metadata.description}</p>
-            <div className="text-xs text-text-sub">
+            <h3 className="text-title-md font-semibold text-text-strong">{metadata.name}</h3>
+            <p className="body-sm text-text-sub">{metadata.description}</p>
+            <div className="body-xs text-text-sub">
               {formatMessage(
                 { id: "app.hypercerts.preview.attestationCount" },
                 { count: attestationCount }
@@ -126,17 +126,17 @@ export function HypercertPreview({
             <p className="label-xs text-text-soft">
               {formatMessage({ id: "app.hypercerts.preview.garden" })}
             </p>
-            <p className="text-sm font-medium text-text-strong">{gardenName}</p>
+            <p className="body-sm font-medium text-text-strong">{gardenName}</p>
           </div>
           <div>
             <SectionHeader labelId="app.hypercerts.preview.workScope" onEdit={onEditMetadata} />
-            <p className="text-sm text-text-strong">
+            <p className="body-sm text-text-strong">
               {metadata.hypercert.work_scope.value.join(", ")}
             </p>
           </div>
           <div>
             <SectionHeader labelId="app.hypercerts.preview.impactScope" onEdit={onEditMetadata} />
-            <p className="text-sm text-text-strong">
+            <p className="body-sm text-text-strong">
               {metadata.hypercert.impact_scope.value.join(", ")}
             </p>
           </div>
@@ -145,13 +145,13 @@ export function HypercertPreview({
               <p className="label-xs text-text-soft">
                 {formatMessage({ id: "app.hypercerts.preview.workTimeframe" })}
               </p>
-              <p className="text-sm text-text-strong">{workTimeframe}</p>
+              <p className="body-sm text-text-strong">{workTimeframe}</p>
             </div>
             <div>
               <p className="label-xs text-text-soft">
                 {formatMessage({ id: "app.hypercerts.preview.impactTimeframe" })}
               </p>
-              <p className={cn("text-sm text-text-strong", !impactTimeframe && "text-text-sub")}>
+              <p className={cn("body-sm text-text-strong", !impactTimeframe && "text-text-sub")}>
                 {impactTimeframe || formatMessage({ id: "app.hypercerts.preview.indefinite" })}
               </p>
             </div>
@@ -160,7 +160,7 @@ export function HypercertPreview({
             <p className="label-xs text-text-soft">
               {formatMessage({ id: "app.hypercerts.preview.totalUnits" })}
             </p>
-            <p className="text-sm text-text-strong">{totalUnits.toLocaleString()}</p>
+            <p className="body-sm text-text-strong">{totalUnits.toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -180,7 +180,7 @@ export function HypercertPreview({
 
             {/* Allowlist Table */}
             <div className="overflow-x-auto">
-              <div className="grid min-w-[300px] gap-2 border-b border-stroke-soft bg-bg-weak px-3 py-2 text-xs font-medium text-text-sub grid-cols-[minmax(100px,2fr)_minmax(70px,1fr)_minmax(50px,1fr)]">
+              <div className="grid min-w-[300px] gap-2 border-b border-stroke-soft bg-bg-weak px-3 py-2 label-xs text-text-sub grid-cols-[minmax(100px,2fr)_minmax(70px,1fr)_minmax(50px,1fr)]">
                 <span>{formatMessage({ id: "app.hypercerts.distribution.table.recipient" })}</span>
                 <span>{formatMessage({ id: "app.hypercerts.distribution.table.units" })}</span>
                 <span>{formatMessage({ id: "app.hypercerts.distribution.table.percent" })}</span>
@@ -192,14 +192,14 @@ export function HypercertPreview({
                   return (
                     <div
                       key={`${entry.address}-${index}`}
-                      className="grid min-w-[300px] items-center gap-2 px-3 py-2 text-sm grid-cols-[minmax(100px,2fr)_minmax(70px,1fr)_minmax(50px,1fr)]"
+                      className="grid min-w-[300px] items-center gap-2 px-3 py-2 body-sm grid-cols-[minmax(100px,2fr)_minmax(70px,1fr)_minmax(50px,1fr)]"
                     >
                       <div>
-                        <EnsAddressWithCopy address={entry.address} labelClassName="text-xs" />
-                        {entry.label && <p className="text-xs text-text-sub">{entry.label}</p>}
+                        <EnsAddressWithCopy address={entry.address} labelClassName="body-xs" />
+                        {entry.label && <p className="body-xs text-text-sub">{entry.label}</p>}
                       </div>
-                      <span className="text-xs">{entry.units.toLocaleString()}</span>
-                      <span className="text-xs text-text-sub">{percent.toFixed(2)}%</span>
+                      <span className="body-xs">{entry.units.toLocaleString()}</span>
+                      <span className="body-xs text-text-sub">{percent.toFixed(2)}%</span>
                     </div>
                   );
                 })}
@@ -218,11 +218,11 @@ export function HypercertPreview({
               <p className="label-xs text-text-soft">
                 {formatMessage({ id: "app.hypercerts.preview.assessment" })}
               </p>
-              <p className="mt-1 text-sm font-medium text-text-strong">
+              <p className="mt-1 body-sm font-medium text-text-strong">
                 {selectedAssessment.title}
               </p>
               {assessmentDescription && (
-                <p className="mt-0.5 text-xs text-text-sub line-clamp-2">{assessmentDescription}</p>
+                <p className="mt-0.5 body-xs text-text-sub line-clamp-2">{assessmentDescription}</p>
               )}
               {gardenId && (
                 <Link
@@ -230,7 +230,7 @@ export function HypercertPreview({
                     gardenAddress: gardenId,
                     section: "assessments",
                   })}
-                  className="mt-1 inline-block text-xs text-primary-base hover:underline"
+                  className="mt-1 inline-block body-xs text-primary-base hover:underline"
                 >
                   {formatMessage({ id: "app.hypercerts.preview.assessment.viewAll" })}
                 </Link>
@@ -250,7 +250,7 @@ export function HypercertPreview({
                   return (
                     <span
                       key={sdgId}
-                      className="inline-flex items-center gap-1 rounded-full border border-primary-light bg-primary-lighter/40 px-2 py-0.5 text-xs font-medium text-primary-dark"
+                      className="inline-flex items-center gap-1 rounded-full border border-primary-light bg-primary-lighter/40 px-2 py-0.5 label-xs text-primary-dark"
                     >
                       <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-primary-base text-label-sm font-bold text-primary-foreground">
                         {sdgId}
@@ -273,7 +273,7 @@ export function HypercertPreview({
                 {assessmentSmartOutcomes.map((outcome, index) => (
                   <div
                     key={`${outcome.metric}-${index}`}
-                    className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-1.5 text-xs"
+                    className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-1.5 body-xs"
                   >
                     <span className="text-text-sub">{outcome.description}</span>
                     <span className="font-medium text-text-strong">

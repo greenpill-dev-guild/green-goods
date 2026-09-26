@@ -206,7 +206,7 @@ export function SetupStepOpen({
           {statusLine()}
         </p>
         {batched && phase === "ready" ? (
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.setup.promptBatched",
               defaultMessage:
@@ -251,7 +251,7 @@ export function SetupStepOpen({
         </Alert>
       ) : null}
       {phase === "running" ? (
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.setup.keepOpen",
             defaultMessage:

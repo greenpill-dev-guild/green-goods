@@ -138,7 +138,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
               defaultMessage: "Karma Integration",
             })}
           </AdminCardTitle>
-          <p className="mt-1 text-xs text-text-soft">
+          <p className="mt-1 body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.karma.description",
               defaultMessage:
@@ -158,7 +158,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
         </StatusBadge>
       </div>
 
-      <p className="text-sm text-text-sub">
+      <p className="body-sm text-text-sub">
         {formatMessage({
           id: presentation.bodyId,
           defaultMessage: presentation.bodyDefault,

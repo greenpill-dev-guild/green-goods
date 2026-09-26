@@ -181,7 +181,7 @@ export function OverviewTab({
                         defaultMessage: "Last Activity",
                       })}
                     </dt>
-                    <dd className="mt-1 font-heading text-lg font-semibold text-text-strong">
+                    <dd className="mt-1 font-heading text-title-md font-semibold text-text-strong">
                       {filteredActivityEvents.length > 0
                         ? formatActivityTime(filteredActivityEvents[0].timestamp)
                         : formatMessage({
@@ -194,7 +194,7 @@ export function OverviewTab({
                     <dt className="label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.impactVelocity" })}
                     </dt>
-                    <dd className="mt-1 font-heading text-lg font-semibold text-text-strong">
+                    <dd className="mt-1 font-heading text-title-md font-semibold text-text-strong">
                       {approvedInRangeCount}
                     </dd>
                     <dd className="mt-0.5 body-xs text-text-soft">
@@ -215,7 +215,7 @@ export function OverviewTab({
                     <dt className="label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.executionThroughput" })}
                     </dt>
-                    <dd className="mt-1 font-heading text-lg font-semibold text-text-strong">
+                    <dd className="mt-1 font-heading text-title-md font-semibold text-text-strong">
                       {formatReviewTime(medianReviewLatencyMs, formatMessage)}
                     </dd>
                   </div>
@@ -331,7 +331,7 @@ export function OverviewTab({
                                   })}
                                 </p>
                                 <p
-                                  className="truncate text-sm font-medium text-text-strong"
+                                  className="truncate body-sm font-medium text-text-strong"
                                   title={activityTitle}
                                 >
                                   {activityTitle}
@@ -356,7 +356,7 @@ export function OverviewTab({
                                       openSection("work", "work", event.itemId);
                                     }
                                   }}
-                                  className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
+                                  className="inline-flex items-center gap-1 label-xs text-primary-base hover:text-primary-darker"
                                 >
                                   {formatMessage({ id: "app.garden.detail.activity.view" })}
                                   <RiArrowRightSLine className="h-4 w-4" />

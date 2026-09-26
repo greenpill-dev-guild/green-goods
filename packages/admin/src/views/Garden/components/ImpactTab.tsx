@@ -159,7 +159,7 @@ export function ImpactTab({
                       >
                         <div className="min-w-0">
                           <p
-                            className="truncate text-sm font-medium text-text-strong"
+                            className="truncate body-sm font-medium text-text-strong"
                             title={record.title?.trim() || undefined}
                           >
                             {record.title?.trim() ||
@@ -173,7 +173,7 @@ export function ImpactTab({
                         </div>
                         <Link
                           to={adminRoutes.gardenHypercertDetail(record.id, gardenRouteContext)}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
+                          className="inline-flex items-center gap-1 label-xs text-primary-base hover:text-primary-darker"
                         >
                           {formatMessage({ id: "app.actions.view" })}
                           <RiArrowRightSLine className="h-4 w-4" />
@@ -273,7 +273,7 @@ export function ImpactTab({
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <p
-                              className="truncate text-sm font-medium text-text-strong"
+                              className="truncate body-sm font-medium text-text-strong"
                               title={assessment.title || assessment.assessmentType || undefined}
                             >
                               {assessment.title ||
@@ -326,14 +326,14 @@ export function ImpactTab({
                 </div>
                 {domainLabels.length > 0 ? (
                   <div className="border-t border-stroke-soft pt-3">
-                    <p className="mb-2 text-xs font-medium text-text-soft">
+                    <p className="mb-2 label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.domains" })}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {domainLabels.map((domainLabel) => (
                         <span
                           key={domainLabel}
-                          className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-0.5 text-xs font-medium text-primary-dark"
+                          className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-0.5 label-xs text-primary-dark"
                         >
                           {domainLabel}
                         </span>
