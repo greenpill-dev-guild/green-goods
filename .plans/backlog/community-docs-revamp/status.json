@@ -1,0 +1,137 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "community-docs-revamp",
+    "title": "Community Docs Revamp",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-09-23T22:55:58.404Z",
+    "updated_at": "2026-09-23T23:01:39.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "public-experience",
+    "tracks": ["docs"],
+    "work_types": ["implementation"],
+    "surfaces": [
+      "docs/docs/community",
+      "docs/docs/reference",
+      "docs/sidebars.ts",
+      "docs/docusaurus.config.ts",
+      "docs/scripts",
+      "scripts/docs",
+      "packages/shared/src/ontology",
+      ".claude/context",
+      "docs/routines"
+    ],
+    "depends_on_features": ["commitment-pooling"]
+  },
+  "notes": [
+    "Starts after the 2.0.0 release. Structure work (Phase 1) also waits for the Builders docs PR #795 to merge, because both change docs/sidebars.ts, docs/docusaurus.config.ts, and the Reference pages. That hub lives on its branch, so it is not listed in depends_on_features.",
+    "Lane mapping: ui = community pages, sidebar, redirects, and consumer pointers; state_api = docs-audit rules and the glossary and claims generators. Phase progress is tracked in plan.todo.md, not as custom lanes.",
+    "Open decisions Q1 to Q10 live in plan.todo.md; Q1 (who owns user-facing pooling docs, PRD-727) and Q10 (Linear footprint) matter before the release.",
+    "Handoffs are written at promotion. .plans/ is the durable repo truth; status.json is authoritative for lane state."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Docs pages, sidebar, redirects, and consumer pointers have no unit-testable behavior. Proof is the eval.md gate chain plus the qa_pass_1 replay against the released product."
+      },
+      "skill_tags": ["docs", "ui", "humanize-writing"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Docs-audit guide rules (docs/scripts/docs-audit.test.mjs) and the glossary and claims renderers (scripts/docs/generate.test.mjs)."
+      },
+      "skill_tags": ["docs", "scripts"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "No contract work in a docs revamp."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-23T22:55:58.410Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-09-23T23:01:39.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planned",
+      "branch": null,
+      "note": "Wrote brief, spec, plan, and eval from the 2026-09-01 audit, reconciled against develop, PR #795, and Linear. Open decisions Q1 to Q10 await Afo."
+    }
+  ]
+}
