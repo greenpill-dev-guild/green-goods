@@ -29,12 +29,18 @@ export function useGardenReviewQueue(
     gcTime: GC_TIMES.works,
   });
 
-  // A decision refreshes the garden's work list, and again as the indexer
-  // catches up; the garden's whole queue follows it.
+  // The garden's whole queue follows its work list. A decision marks the list
+  // stale, now and again as the indexer catches up, and every fetched read of
+  // the list may find the queue moved. React Query folds a repeat invalidation
+  // of a list still stale, so the reads count too; a cache write does not.
   useEffect(
     () =>
       queryClient.getQueryCache().subscribe((event) => {
-        if (event.type !== "updated" || event.action.type !== "invalidate") return;
+        if (event.type !== "updated") return;
+        const { action } = event;
+        const followed =
+          action.type === "invalidate" || (action.type === "success" && !action.manual);
+        if (!followed) return;
         if (
           JSON.stringify(event.query.queryKey) !==
           JSON.stringify(worksKeys.online(gardenId, chainId))

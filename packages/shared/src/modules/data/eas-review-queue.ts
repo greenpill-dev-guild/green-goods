@@ -6,7 +6,8 @@
  * answers both for the whole garden. EAS cannot join a work to its decision,
  * which names its work only inside its decoded data, so the waiting list comes
  * from reading every work and every decision, up to REVIEW_HISTORY_LIMIT of
- * each. Past that, counts bound the waiting work instead.
+ * each. Past that, or when a row cannot be read whole, counts bound the waiting
+ * work instead.
  *
  * Decisions are found by garden: the approval resolver refuses a decision
  * whose recipient is not its work's garden (`NotInWorkRegistry`), so a
@@ -74,7 +75,7 @@ const QUERY = easGraphQL(/* GraphQL */ `
 `);
 
 /** A work row carries only its id and time, so it is checked here, not as a full attestation. */
-function waitingWork(row: unknown): GardenWaitingWork | null {
+function listedWork(row: unknown): GardenWaitingWork | null {
   const { id, timeCreated } = (row ?? {}) as { id?: unknown; timeCreated?: unknown };
   try {
     if (typeof id !== "string" || id === "") throw new TypeError("EAS attestation has no id");
@@ -136,11 +137,51 @@ export async function readGardenReviewQueue(
     );
   }
 
-  const decisions = validatedAttestations(data.decisions, OPERATION);
-  // Newest first, so the first row is the latest review even past the limit.
-  const lastReviewedAt = decisions.length > 0 ? Number(decisions[0].timeCreated) : null;
+  // Newest first, so the first row's time is the latest review even past the
+  // limit, whatever its decoded data holds.
+  let lastReviewedAt: number | null = null;
+  if (data.decisions.length > 0) {
+    try {
+      lastReviewedAt = parseEasCreationTime(data.decisions[0].timeCreated);
+    } catch (cause) {
+      throw new EASFetchError(
+        "Failed to fetch garden review queue: the latest decision has no time",
+        OPERATION,
+        cause
+      );
+    }
+  }
 
-  if (data.works.length > REVIEW_HISTORY_LIMIT || data.decisions.length > REVIEW_HISTORY_LIMIT) {
+  const listed = data.works.flatMap((row) => {
+    const work = listedWork(row);
+    return work ? [work] : [];
+  });
+  const settled = new Set<string>();
+  let named = 0;
+  for (const decision of validatedAttestations(data.decisions, OPERATION)) {
+    const { workUID } = parseDataToWorkApproval(
+      decision.id,
+      {
+        attester: decision.attester,
+        recipient: decision.recipient,
+        time: Number(decision.timeCreated),
+      },
+      decision.decodedDataJson
+    );
+    if (typeof workUID !== "string" || workUID === "") continue;
+    settled.add(workUID.toLowerCase());
+    named++;
+  }
+
+  // The list is exact only when every row was read whole: a decision whose
+  // work cannot be named still settled one, and the list would count that work
+  // as waiting. Counts bound it instead.
+  if (
+    data.works.length > REVIEW_HISTORY_LIMIT ||
+    data.decisions.length > REVIEW_HISTORY_LIMIT ||
+    listed.length < data.works.length ||
+    named < data.decisions.length
+  ) {
     const decided = data.decisionCount?._count?._all;
     return {
       lastReviewedAt,
@@ -149,21 +190,8 @@ export async function readGardenReviewQueue(
       waitingOverWeekAtLeast: floorOf(data.workOverWeekCount?._count?._all, decided),
     };
   }
-
-  const settled = new Set(
-    decisions.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToWorkApproval(
-        id,
-        { attester, recipient, time: Number(timeCreated) },
-        decodedDataJson
-      ).workUID.toLowerCase()
-    )
-  );
   return {
     lastReviewedAt,
-    waiting: data.works.flatMap((row) => {
-      const work = waitingWork(row);
-      return work && !settled.has(work.id.toLowerCase()) ? [work] : [];
-    }),
+    waiting: listed.filter((work) => !settled.has(work.id.toLowerCase())),
   };
 }

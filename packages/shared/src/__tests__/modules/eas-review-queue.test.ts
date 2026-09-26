@@ -95,6 +95,33 @@ describe("readGardenReviewQueue", () => {
     });
   });
 
+  it.each([
+    [
+      "names its work as something other than text",
+      {
+        ...decision(0, 450),
+        decodedDataJson: JSON.stringify([{ name: "workUID", value: { value: 5 } }]),
+      },
+    ],
+    ["comes back malformed", { ...decision(2, 450), recipient: "not-an-address" }],
+  ])("bounds the waiting work from counts when a decision %s", async (_case, unreadable) => {
+    query.mockResolvedValue({
+      data: {
+        works: [work(1, 100), work(2, 200)],
+        // Either decision could have settled the second work, so no list is exact.
+        decisions: [unreadable, decision(1, 400)],
+        ...counts(2, 2, 2),
+      },
+    });
+
+    await expect(readGardenReviewQueue(GARDEN, { now: NOW }, reader)).resolves.toEqual({
+      lastReviewedAt: 450,
+      waiting: null,
+      waitingAtLeast: 0,
+      waitingOverWeekAtLeast: 0,
+    });
+  });
+
   it("has no review time for a garden nothing was decided in", async () => {
     query.mockResolvedValue({
       data: { works: [work(1, 100)], decisions: [], ...counts(1, 1, 0) },
