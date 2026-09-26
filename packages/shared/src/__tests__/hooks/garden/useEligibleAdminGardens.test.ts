@@ -3,7 +3,9 @@
  * @vitest-environment jsdom
  */
 
-import { renderHook } from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { render, renderHook, waitFor } from "@testing-library/react";
+import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUsePrimaryAddress = vi.fn();
@@ -44,7 +46,13 @@ vi.mock("../../../hooks/garden/useGardenRecord", () => ({
   useGardenRecord: (...args: unknown[]) => mockUseGardenRecord(...args),
 }));
 
+const mockGetGarden = vi.fn();
+vi.mock("../../../modules/data/indexer-garden", () => ({
+  getGarden: (...args: unknown[]) => mockGetGarden(...args),
+}));
+
 import { useEligibleAdminGardens } from "../../../hooks/garden/useEligibleAdminGardens";
+import { createTestQueryClient } from "../../test-utils/query-client";
 
 const ADDR_USER = "0x1111111111111111111111111111111111111111";
 
@@ -84,7 +92,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
     mockUseRole.mockReturnValue(defaultRole());
     mockGetNetworkConfig.mockReturnValue({});
-    mockUseGardenRecord.mockReturnValue({ data: undefined, isLoading: false });
+    mockUseGardenRecord.mockReturnValue({ data: undefined, isFetched: false });
     mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
       selector({ lastGardenIdsByScope: {} })
     );
@@ -235,7 +243,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     it("adds the protocol garden from its own indexer record", () => {
       mockUseGardenRecord.mockReturnValue({
         data: makeGarden(ROOT, "Green Goods Community Garden"),
-        isLoading: false,
+        isFetched: true,
       });
 
       const { result } = renderHook(() => useEligibleAdminGardens());
@@ -250,7 +258,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     });
 
     it("gives today's answer when that record cannot be read", () => {
-      mockUseGardenRecord.mockReturnValue({ data: undefined, isError: true, isLoading: false });
+      mockUseGardenRecord.mockReturnValue({ data: undefined, isError: true, isFetched: true });
 
       const { result } = renderHook(() => useEligibleAdminGardens());
 
@@ -260,11 +268,40 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     });
 
     it("keeps checking while that record is on its way", () => {
-      mockUseGardenRecord.mockReturnValue({ data: undefined, isLoading: true });
+      mockUseGardenRecord.mockReturnValue({ data: undefined, isFetched: false });
 
       const { result } = renderHook(() => useEligibleAdminGardens());
 
       expect(result.current.isLoaded).toBe(false);
+    });
+
+    it("stays settled after a failed read when the content it lets mount reads the record again", async () => {
+      const actual = await vi.importActual<typeof import("../../../hooks/garden/useGardenRecord")>(
+        "../../../hooks/garden/useGardenRecord"
+      );
+      mockUseGardenRecord.mockImplementation(actual.useGardenRecord);
+      mockGetGarden.mockRejectedValue(new Error("indexer unavailable"));
+      const loaded: boolean[] = [];
+      // The admin layout shows its spinner until the answer loads, then mounts
+      // content that reads the same answer, and the same record, again.
+      const Content = () => {
+        useEligibleAdminGardens();
+        return null;
+      };
+      const Layout = () => {
+        const { isLoaded } = useEligibleAdminGardens();
+        loaded.push(isLoaded);
+        return isLoaded ? createElement(Content) : null;
+      };
+      const queryClient = createTestQueryClient();
+
+      render(createElement(QueryClientProvider, { client: queryClient }, createElement(Layout)));
+
+      await waitFor(() => expect(loaded.at(-1)).toBe(true));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      // The first read, and one more when the content mounts; never a spinner again.
+      expect(mockGetGarden.mock.calls.length).toBeLessThanOrEqual(2);
+      expect(loaded.slice(loaded.indexOf(true))).not.toContain(false);
     });
 
     it.each([

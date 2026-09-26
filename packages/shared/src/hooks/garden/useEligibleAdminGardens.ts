@@ -18,9 +18,9 @@ export interface EligibleAdminGardensResult {
   /**
    * True once the answer is stable: base-list query has fetched AND the
    * role query has resolved (so any stale-base-list cross-check has run) AND,
-   * for a deployer whose list lacks the protocol garden, its own record's read
-   * is no longer in flight. IndexRoute uses this to keep the spinner up rather
-   * than racing into the no-access shell.
+   * for a deployer whose list lacks the protocol garden, its own record's first
+   * read has settled. IndexRoute uses this to keep the spinner up rather than
+   * racing into the no-access shell.
    */
   isLoaded: boolean;
   /**
@@ -171,7 +171,11 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     // The /garden/create route is RequireRole(["deployer"]); stewards clicking
     // a Create CTA would land on the unauthorized page. Match the gate exactly.
     canCreateGarden: role === "deployer",
-    isLoaded: isFetched && !roleLoading && !(needsProtocolGarden && protocolGardenRecord.isLoading),
+    // Only the record's first read holds the answer back. A failed read's retry
+    // must not: the content a settled answer mounts reads the record again, and
+    // unsettling the answer would unmount it and start the loop over.
+    isLoaded:
+      isFetched && !roleLoading && !(needsProtocolGarden && !protocolGardenRecord.isFetched),
     // A base-list outage is always retryable. A role-gardens outage is
     // retryable for normal stewards, but should not block the deployer-only
     // create-garden path when no garden exists yet.
