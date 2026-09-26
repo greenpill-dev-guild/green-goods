@@ -17,6 +17,7 @@ import { useHypercerts } from "../hypercerts/useHypercerts";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 import { useGardenVaults } from "../vault/useGardenVaults";
+import { useGardenReviewQueue } from "../work/useGardenReviewQueue";
 import { useWorks } from "../work/useWorks";
 import { useYieldAllocations } from "../yield/useYieldAllocations";
 import type { GardenOperationResult } from "./createGardenOperation";
@@ -131,6 +132,14 @@ export function useGardenDetailData(id: string | undefined) {
     hasUnknownStatuses,
     readThisSession: worksReadThisSession,
   } = useWorks(gardenId);
+  // Rows whose statuses are current. A row whose approval could not be read
+  // shows a cached or fallback status, a failed or paused refresh leaves the
+  // last rows read, and rows restored from an earlier session may be days old.
+  // A refresh in flight is fine: the rows are as current as they were a moment
+  // before it started.
+  const worksCurrent =
+    !hasUnknownStatuses && !isWorksError && !isWorksPaused && worksReadThisSession;
+  const gardenReviewQueue = useGardenReviewQueue(gardenId, { enabled: hasOlderWork });
   const {
     hypercerts,
     isLoading: hypercertsLoading,
@@ -199,17 +208,16 @@ export function useGardenDetailData(id: string | undefined) {
     allocationsAtLimit,
     allocationsLoading,
     works,
-    // The list holds only the newest page, a row whose approval could not be
-    // read shows a cached or fallback status, a failed or paused refresh leaves
-    // the last rows read, and rows restored from an earlier session may be days
-    // old: none of these can prove a stall. A refresh in flight can: the rows
-    // are as current as they were a moment before it started.
-    worksComplete:
-      !hasOlderWork &&
-      !hasUnknownStatuses &&
-      !isWorksError &&
-      !isWorksPaused &&
-      worksReadThisSession,
+    // Current rows prove a stall alone only when they hold the whole history.
+    worksComplete: worksCurrent && !hasOlderWork,
+    // Past the newest page, the garden's whole queue speaks for older work.
+    // Beside its list, the rows add only decisions, which stay true however old
+    // the rows are. Beside a floor, their own waiting work counts too, so it
+    // must be current.
+    gardenReviewQueue:
+      hasOlderWork && (gardenReviewQueue?.waiting !== null || worksCurrent)
+        ? gardenReviewQueue
+        : undefined,
     worksLoading,
     worksFetching,
     isWorksError,
