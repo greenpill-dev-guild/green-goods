@@ -92,6 +92,8 @@ export function gardenCommitmentControllerFixture(
       isMemberHere: false,
       claimGardens: { member: [], stewarded: [] },
       claimGardensKnown: true,
+      gardensUnavailable: false,
+      retryGardens: () => undefined,
     },
     seat,
     actGarden: detail?.commitment.providerGarden ?? DEMO_GARDEN,
@@ -111,7 +113,7 @@ export function gardenCommitmentControllerFixture(
     pendingClaimRequests: [],
     canAskAgain: false,
     claimNeedsContext: false,
-    membership: { isMember: null, garden: null },
+    membership: { isMember: null, garden: null, unavailable: false, retry: () => undefined },
     queue: {
       hasPendingJob: false,
       sendFailed: false,

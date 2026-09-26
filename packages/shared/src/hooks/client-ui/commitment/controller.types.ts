@@ -81,6 +81,9 @@ export interface GardenCommitmentController {
   membership: {
     isMember: boolean | null;
     garden: { address: Address; name: string; openJoining: boolean } | null;
+    /** A read the answer depends on failed, so the screen offers a retry instead. */
+    unavailable: boolean;
+    retry: () => void;
   };
   queue: {
     hasPendingJob: boolean;

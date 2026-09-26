@@ -18,7 +18,7 @@ import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
 import { FailedActAlert } from "./FailedActAlert";
-import { JoinToAct } from "./JoinToAct";
+import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 import { QueuedActNotice } from "./QueuedActRow";
 import { selectStatusBand } from "./statusBand";
@@ -83,11 +83,13 @@ export function GardenCommitment() {
   // A signed-in reader who does not belong to the garden gets no act; the card
   // under the status band says how to join instead. Nothing shows while
   // membership is still being read, or while an act is already on its way.
+  const untaken = commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED";
   const showJoinToAct =
-    !act &&
-    !controller.queue.hasPendingJob &&
-    controller.membership.isMember === false &&
-    (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED");
+    !act && !controller.queue.hasPendingJob && controller.membership.isMember === false && untaken;
+  // A read the answer depends on failed: say so and offer it again, rather than
+  // an empty bar or a join card for someone who may already belong.
+  const showMembershipRetry =
+    !act && !controller.queue.hasPendingJob && controller.membership.unavailable && untaken;
   const band = selectStatusBand({
     commitment,
     seat: controller.seat,
@@ -196,7 +198,12 @@ export function GardenCommitment() {
             onChanged={controller.queue.refresh}
           />
         ) : controller.queue.pendingAct ? (
-          <QueuedActNotice act={controller.queue.pendingAct} onChanged={controller.queue.refresh} />
+          <QueuedActNotice
+            key={controller.queue.pendingAct.jobId}
+            act={controller.queue.pendingAct}
+            inFlight={isPending}
+            onChanged={controller.queue.refresh}
+          />
         ) : null}
         <CommitmentIdentity
           commitment={commitment}
@@ -209,6 +216,9 @@ export function GardenCommitment() {
         />
         {showJoinToAct ? (
           <JoinToAct garden={controller.membership.garden} isOnline={controller.isOnline} />
+        ) : null}
+        {showMembershipRetry ? (
+          <MembershipCheckFailed onRetry={controller.membership.retry} />
         ) : null}
         <CommitmentTeam
           commitment={commitment}

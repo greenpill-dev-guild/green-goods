@@ -113,7 +113,7 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
 
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
   useActions: () => ({ data: mocks.actions }),
-  useGardens: () => ({ data: mocks.gardens }),
+  useGardens: () => ({ data: mocks.gardens, isSuccess: true, isError: false, refetch: vi.fn() }),
 }));
 
 vi.mock("../../../hooks/roles/useHasRole", () => ({
@@ -138,7 +138,7 @@ vi.mock("../../../hooks/work/useWorks", () => ({
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
   useCommitment: () => mocks.commitmentQuery,
-  useCommitmentPool: () => ({ pool: mocks.pool }),
+  useCommitmentPool: () => ({ pool: mocks.pool, isError: false, refetch: vi.fn() }),
   useCommitmentClaimRequests: () => ({ claimRequests: mocks.claimRequests }),
   useLinkedWorkUIDs: () => ({ linked: mocks.linked }),
 }));
@@ -497,9 +497,10 @@ describe("useGardenCommitmentController", () => {
     );
     // A visitor reads the record and is offered nothing; the screen says how to join.
     expect(result.current.actKind).toBeNull();
-    expect(result.current.membership).toEqual({
+    expect(result.current.membership).toMatchObject({
       isMember: false,
       garden: { address: DEMO_GARDEN, name: "Host Garden", openJoining: false },
+      unavailable: false,
     });
 
     // The join overlay counts as soon as the join lands, before the roster catches up.
@@ -544,7 +545,11 @@ describe("useGardenCommitmentController", () => {
       })
     );
     expect(result.current.actKind).toBeNull();
-    expect(result.current.membership).toEqual({ isMember: false, garden: null });
+    expect(result.current.membership).toMatchObject({
+      isMember: false,
+      garden: null,
+      unavailable: false,
+    });
 
     mocks.gardens = [
       { id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] },
@@ -553,5 +558,32 @@ describe("useGardenCommitmentController", () => {
     rerender();
     expect(result.current.actKind).toBe("takeUp");
     expect(result.current.membership.isMember).toBe(true);
+  });
+
+  it("withholds Take This Up while the pool type is unknown, even from a member", () => {
+    // Guessing "garden" before the pool reads would offer a host member a
+    // personal claim that a protocol pool refuses (GardenClaimMustBeExternal).
+    mocks.commitmentQuery.detail = commitmentDetailFixture({
+      commitment: commitmentFixture({
+        derivedState: "OFFERED",
+        onchainState: "OFFERED",
+        creator: MARIA,
+        leadProvider: MARIA,
+        claimMode: "OPEN",
+      }),
+      contributors: [],
+    });
+    mocks.pool = null;
+    mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:gardener`, true]]);
+    mocks.gardens = [{ id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] }];
+    const { result } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    expect(result.current.actKind).toBeNull();
+    expect(result.current.membership).toMatchObject({ isMember: null, garden: null });
   });
 });

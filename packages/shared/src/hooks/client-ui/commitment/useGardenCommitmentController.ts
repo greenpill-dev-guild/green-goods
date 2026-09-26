@@ -129,26 +129,36 @@ export function useGardenCommitmentController(input: {
   // Who may take this up. On a garden pool the chain gates a personal claim on
   // a role in the route garden; on the protocol pool the claim goes through a
   // garden of the reader's own, never the host, so any such garden counts.
+  // Until the pool record is read its type is unknown, and guessing "garden"
+  // would offer the host's members a personal claim the contract refuses
+  // (GardenClaimMustBeExternal), so eligibility stays unknown too.
   const isProtocolPool = poolQuery.pool?.poolType === "PROTOCOL";
   const hasClaimGarden =
     roles.claimGardens.member.length > 0 || roles.claimGardens.stewarded.length > 0;
-  const canClaimHere: boolean | null = isProtocolPool
-    ? hasClaimGarden
-      ? true
-      : roles.claimGardensKnown
-        ? false
-        : null
-    : roles.isMemberHere;
+  const canClaimHere: boolean | null = !poolQuery.pool
+    ? null
+    : isProtocolPool
+      ? hasClaimGarden
+        ? true
+        : roles.claimGardensKnown
+          ? false
+          : null
+      : roles.isMemberHere;
   const membership = {
     isMember: canClaimHere,
     garden:
-      !isProtocolPool && roles.garden
+      poolQuery.pool && !isProtocolPool && roles.garden
         ? {
             address: roles.garden.id as Address,
             name: roles.garden.name,
             openJoining: Boolean(roles.garden.openJoining),
           }
         : null,
+    unavailable: canClaimHere === null && (roles.gardensUnavailable || poolQuery.isError),
+    retry: () => {
+      roles.retryGardens();
+      if (poolQuery.isError) void poolQuery.refetch();
+    },
   };
   const actKind = commitment
     ? selectCommitmentActKind({

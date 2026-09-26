@@ -1,8 +1,9 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useJoinGarden } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import type { Address } from "@green-goods/shared/types/domain";
-import { RiSearchLine, RiUserAddLine } from "@remixicon/react";
+import { RiRefreshLine, RiSearchLine, RiUserAddLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
@@ -71,6 +72,33 @@ export function JoinToActCard({
         {formatMessage({ id: LABEL_IDS[mode] })}
       </Button>
     </section>
+  );
+}
+
+/**
+ * The read that decides whether the reader may take this up failed. Saying
+ * nothing would leave a member with no act and no reason; saying "join" would
+ * tell a member to join a garden they belong to. So the card says the check
+ * failed and offers it again.
+ */
+export function MembershipCheckFailed({ onRetry }: { onRetry: () => void }) {
+  const { formatMessage } = useIntl();
+  return (
+    <Alert variant="warning" className="p-3">
+      <p data-component="MembershipCheckFailed">
+        {formatMessage({ id: "app.commitment.join.unavailable" })}
+      </p>
+      <Button
+        type="button"
+        size="sm"
+        emphasis="secondary"
+        className="mt-3"
+        onClick={onRetry}
+        leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+      >
+        {formatMessage({ id: "app.commitments.retry" })}
+      </Button>
+    </Alert>
   );
 }
 
