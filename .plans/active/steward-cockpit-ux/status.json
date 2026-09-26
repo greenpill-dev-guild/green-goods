@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-09-25T05:02:27.261Z",
-    "updated_at": "2026-09-25T22:48:46.063Z"
+    "updated_at": "2026-09-26T00:21:02.481Z"
   },
   "links": {
     "brief": "brief.md",
@@ -58,12 +58,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "(printf '%s\\n' 'export const TypeProbe = () => <p className=\"text-sm text-[rgb(var(--m3-on-surface-variant))]\">probe</p>;' > packages/admin/src/views/TypeProbe.tsx && bash scripts/design/check-tokens.sh; rc=$?; rm -f packages/admin/src/views/TypeProbe.tsx; exit $rc) && bun run --filter @green-goods/shared test -- src/__tests__/utils/styles/cn.test.ts",
-          "evidence": "PR5: with a probe file seeding className=\"text-sm\" and a view-level text-[rgb(var(--m3-on-surface-variant))] in packages/admin/src/views, the design-token gate exited 1 naming both lines (the raw type-size and view-level M3 colour collectors); before the migration the collectors reported 465 raw type-size and 38 view-level M3 colour lines; cn failed its new case, cn(\"font-mono text-sm\", \"body-xs\") keeping both classes"
+          "command": "(printf '%s\\n' 'export const TypeProbe = () => <p className=\"text-sm text-[13px] text-[rgb(var(--m3-on-surface-variant))]\">probe</p>;' > packages/admin/src/views/TypeProbe.tsx && bash scripts/design/check-tokens.sh; rc=$?; rm -f packages/admin/src/views/TypeProbe.tsx; exit $rc) && bun run --filter @green-goods/shared test -- src/__tests__/utils/styles/cn.test.ts",
+          "evidence": "PR5: with a probe file seeding className=\"text-sm\", an arbitrary text-[13px], and a view-level text-[rgb(var(--m3-on-surface-variant))] in packages/admin/src/views, the design-token gate exits 1 naming the lines (before the local review's fix the arbitrary size passed); before the migration the collectors reported 465 raw type-size and 38 view-level M3 colour lines; cn failed its new case, cn(\"font-mono text-sm\", \"body-xs\") keeping both classes"
         },
         "green": {
           "command": "bash scripts/design/check-tokens.sh && bun run --filter @green-goods/shared test -- src/__tests__/utils/styles/cn.test.ts",
-          "evidence": "PR5: the gate passes with both collectors at zero and cn passes 7 of 7; the type census of 34 route targets and 376 stories changed no size, weight, or line height outside the intended title roles, and the colour census of 72 stories and 3 routes left text, stroke, and ink colours unchanged (scratchpad census tools, recorded in the handoff); on 70421844e the admin (1054), shared (5826), and client (1399) suites, storybook-ci (347), the admin-ci Playwright project (11), and the critical push gate passed"
+          "evidence": "PR5: the gate passes with both collectors at zero and cn passes 7 of 7; the type census of 34 route targets and 376 stories changed no size, weight, or line height outside the intended title roles, the local review's two drifts (the capital tiles' labels and the review hints) measured back to develop's values, and the colour census of 72 stories and 3 routes left text, stroke, and ink colours unchanged; on ac4dca30e the admin (1054), shared (5826), and client (1399) suites, storybook-ci (347), the admin-ci Playwright project (11), the admin and shared typechecks, and the push gate passed"
         },
         "note": ""
       },
@@ -311,6 +311,14 @@
     },
     {
       "timestamp": "2026-09-25T22:48:46.064Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-26T00:21:02.485Z",
       "actor": "claude",
       "lane": "ui",
       "status": "tdd_recorded",

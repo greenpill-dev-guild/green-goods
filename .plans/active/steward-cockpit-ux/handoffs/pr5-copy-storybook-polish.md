@@ -155,20 +155,38 @@ Build Storybook (`bun run --cwd packages/shared build-storybook`) when the selec
   The census drifts fixed on the way: a shared `text-sm` default beat a `body-xs` override
   (fixed in `cn`), a metric under a `body-sm` parent inherited its 20px line (now the 24px
   title-medium line), and a listing id lost the 500 it inherited (now `label-xs`).
+- Local review (2026-09-26 00:04Z–00:08Z; the hosted CodeRabbit skips PRs over 150 files and
+  Codex had no credits, so CodeRabbit's reviewer ran locally, and Afo chose to merge on CI and that
+  review): a `text-[13px]` probe passed the design-token gate (RED, exit 0). With the raw-size
+  collector extended to arbitrary px, rem, and em sizes and `length:` values, the probe fails it
+  (GREEN, exit 1), and the gate passes once the five story eyebrows take `label-xs`. In Chromium
+  the capital tiles' labels measured 12/24 with the revived `label-md` variant and 16/24 without
+  it, as on develop. The review form's hints measured 12/16 at weight 400 and 12/16 at 500 with
+  `label-xs`, as on develop. Its Actionable story had rendered "Action expired", because its
+  fixture passed seconds where the form compares milliseconds; it now renders the form.
 - Proof limit: the migration itself is styling; the type and colour census is its evidence.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `70421844e773209e7f8b193b5511b82be56b5528` (PR5 on PR4's final head `63cdbc99b`; the branch was then rebased onto `develop` after PR4 merged as `7a7d5b4bc`, which leaves every validated path unchanged)
-- Run at (UTC): full suites `2026-09-25T22:32:05Z` to `2026-09-25T22:37:28Z`; push gate `2026-09-25T22:37:28Z` to `2026-09-25T22:43:25Z`; admin Playwright `2026-09-25T22:43:25Z` to `2026-09-25T22:44:02Z`
-- Exact command(s): `for pkg in admin shared client; do bun run --filter @green-goods/$pkg test; done` (each exit code recorded); `bun run --filter @green-goods/shared test:stories:ci`; `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --check ontology --check docs-generated --check design-guardrails --test-path shared:src/__tests__/utils/styles/cn.test.ts`; `CI=true PLAYWRIGHT_APP=admin PATH="$PWD/node_modules/.bin:$PATH" playwright test --project=admin-ci --reporter=line --retries=0`
-- Result: admin 1054, shared 5826 (17 skipped), and client 1399 tests passed, each package exiting 0; the storybook-ci story suite passed (99 files, 347 tests); the push gate exited 0 on the critical plan with 29 automated checks passed: format, lint, the shared, client, admin, and agent typechecks, test typechecks, suites, and builds, docs-authority, docs-test, docs-build, source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, storybook-build, agent-tools-test, and docs-generated; the admin-ci Playwright project passed 11 of 11 in CI mode. An earlier full story run on `1c986f6fe`, the same code, failed one story (the Actions sheet's Route Backed Create Mobile, which waits 5s for its dialog, under load); that file passed twice alone, and the full suite passed on `4409e3374` and on `70421844e`. The type and colour census are the rendered evidence (see Rendered Proof)
+- Tested implementation commit SHA: `ac4dca30e0f093d7cc003fb8a9eafd6eecd4a58d` (on `develop` after PR4 merged, with the local review's fixes; the receipt on `70421844e` is superseded)
+- Run at (UTC): full suites `2026-09-26T00:13:18Z` to `2026-09-26T00:18:05Z`; push gate `2026-09-26T00:18:05Z` to `2026-09-26T00:19:08Z`; admin Playwright `2026-09-26T00:19:08Z` to `2026-09-26T00:19:45Z`
+- Exact command(s): `for pkg in admin shared client; do bun run --filter @green-goods/$pkg test; done` (each exit code recorded); `bun run --filter @green-goods/shared test:stories:ci`; `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --check ontology --check docs-generated --check design-guardrails --test-path shared:src/__tests__/utils/styles/cn.test.ts`; `CI=true PLAYWRIGHT_APP=admin PATH="$PWD/node_modules/.bin:$PATH" playwright test --project=admin-ci --reporter=line --retries=0`; `(cd packages/admin && bun run typecheck --scope tests && bun run typecheck --scope full)`; `(cd packages/shared && bun run typecheck --scope tests && bun run typecheck --scope full)`
+- Result: admin 1054, shared 5826 (17 skipped), and client 1399 tests passed, each package exiting 0; the storybook-ci story suite passed (99 files, 347 tests); the push gate exited 0 on the sensitive plan it chose for PR5's own diff, with 11 automated checks passed: format, lint, shared-test, admin-test, admin-build, source-structure, design-guardrails, ontology, story-quality, storybook-build, and docs-generated; that plan runs no typecheck, so `bun run typecheck --scope tests` and `--scope full` ran for admin and shared (`2026-09-26T00:20:08Z` to `00:20:33Z`), all with no errors; the admin-ci Playwright project passed 11 of 11 in CI mode. The gate failed once on `37db93521`: story-quality's frozen-clock guard read a clock call named in a story comment, which `ac4dca30e` rewords. An earlier full story run on `1c986f6fe` failed one story (the Actions sheet's Route Backed Create Mobile, which waits 5s for its dialog, under load); that file passed twice alone and in every full run since. The type and colour census are the rendered evidence (see Rendered Proof)
 - Validated paths: `packages/admin/src` `packages/shared/src` `packages/shared/.storybook` `packages/admin/DESIGN.md` `scripts/design` `scripts/data` `scripts/quality` `.claude/rules` `.claude/context`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/design scripts/data scripts/quality .claude/rules .claude/context` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 70421844e773209e7f8b193b5511b82be56b5528..HEAD -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/design scripts/data scripts/quality .claude/rules .claude/context` → empty (exit 0) after the rebase onto `develop`; the receipt commit changes only `.plans/`
+- Evidence-only diff command and result (if applicable): `git diff --exit-code ac4dca30e0f093d7cc003fb8a9eafd6eecd4a58d..HEAD -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/design scripts/data scripts/quality .claude/rules .claude/context` → empty (exit 0); the receipt commit changes only `.plans/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/design scripts/data scripts/quality .claude/rules .claude/context` → empty
 
 ## Risks / Blockers
 
+- The named type classes are Tailwind utilities now, so they exist only where Tailwind scans. Admin
+  has no `@source` for `packages/shared/src`, so a shared component that adopts a named class
+  renders unstyled in admin. Today that is only StatCard's `subheading-xs`, which admin does not
+  render.
+- `cn()` treats the named classes as font sizes, so tailwind-merge drops a `leading-*` that comes
+  before one (`cn("leading-5", "body-sm")` gives `body-sm`). Put line-height adjusters after the
+  named class.
+- The avatar editor's initials moved from `text-lg` (18px, off the scale) to title-large's 22px,
+  kept deliberately as the nearer display size for an 80px tile.
 - A mechanical size mapping can shift weight or line height; trust the census over the mapping.
 - Moving CSS into an import changes its cascade position; check for later overrides first.
