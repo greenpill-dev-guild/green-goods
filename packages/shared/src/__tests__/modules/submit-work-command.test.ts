@@ -98,6 +98,7 @@ function createPorts(overrides: PortOverrides = {}) {
       overrides.sender === undefined
         ? createMockTransactionSender({ result: { hash: PROCESSED_HASH, sponsored: true } })
         : overrides.sender,
+    suspendPreparation: () => () => undefined,
     onWalletStage,
     onQueueFallback,
   };

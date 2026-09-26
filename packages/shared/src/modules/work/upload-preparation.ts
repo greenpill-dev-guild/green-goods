@@ -4,7 +4,8 @@
  * Once the connection is confirmed, queued work and decisions are prepared one
  * at a time under a claim, so Upload all only has to sign. Preparation pauses
  * while the connection is unconfirmed, while the page is hidden, under Data
- * Saver unless the person asks to prepare anyway, and while an upload runs.
+ * Saver unless the person asks to prepare anyway, and while Upload all or a
+ * Submit is sending.
  * Recovery of work earlier builds gave up on runs once, before the first item.
  *
  * @module modules/work/upload-preparation
@@ -234,10 +235,17 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
 }
 
 let active: UploadPreparation | undefined;
+/**
+ * The releases of each hold still open. A preparation set while one is open
+ * starts held too: it loads only once the connection is first confirmed, and a
+ * Submit tapped at that moment must still send its own work.
+ */
+const openHolds = new Set<Array<() => void>>();
 
 /** The preparation the signed-in session runs, so the dashboard and uploads can reach it. */
 export function setActiveUploadPreparation(preparation: UploadPreparation | undefined) {
   active = preparation;
+  if (preparation) for (const releases of openHolds) releases.push(preparation.suspend());
 }
 
 export function scheduleUploadPreparation(): void {
@@ -248,6 +256,12 @@ export function prepareUploadsNow(): void {
   active?.prepareNow();
 }
 
+/** Hold preparation back, the current one and any set before the release, until released. */
 export function suspendUploadPreparation(): () => void {
-  return active?.suspend() ?? (() => undefined);
+  const releases = active ? [active.suspend()] : [];
+  openHolds.add(releases);
+  return () => {
+    if (!openHolds.delete(releases)) return;
+    for (const release of releases) release();
+  };
 }

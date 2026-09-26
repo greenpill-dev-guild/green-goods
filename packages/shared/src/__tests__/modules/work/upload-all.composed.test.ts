@@ -42,10 +42,19 @@ vi.mock("../../../config/blockchain", async (importOriginal) => ({
   })),
 }));
 
-import { jobQueue, jobQueueDB } from "../../../modules/job-queue";
-import { acquireAvailableWorkJobs } from "../../../modules/job-queue/work-claims";
+import { jobQueue, jobQueueDB, jobQueueEventBus } from "../../../modules/job-queue";
+import { acquireAvailableWorkJobs, holdWorkClaims } from "../../../modules/job-queue/work-claims";
 import type { TransactionSendOptions } from "../../../modules/transactions/types";
 import { prepareQueuedJob } from "../../../modules/work/prepare-queued-work";
+import {
+  createDefaultSubmitWorkPorts,
+  type SubmitWorkCommand,
+  submitWork,
+} from "../../../modules/work/submit-work-command";
+import {
+  createUploadPreparation,
+  setActiveUploadPreparation,
+} from "../../../modules/work/upload-preparation";
 import { uploadQueuedWork } from "../../../modules/work/upload-queued-work";
 import { createDefaultUploadQueuedWorkPorts } from "../../../modules/work/upload-queued-work-defaults";
 import { queuedUploadStatus } from "../../../modules/work/upload-state";
@@ -135,6 +144,58 @@ const stillQueued = async () =>
     (job) => `${job.kind}:${queuedUploadStatus(job).state}`
   );
 
+let unmountPreparation = () => undefined as void;
+
+/** Background preparation as useWorkUploadPreparation mounts it: every admission wakes it. */
+function mountPreparation() {
+  const prepared: string[] = [];
+  const preparation = createUploadPreparation({
+    userAddress: USER,
+    chainId: CHAIN,
+    confirmOnline: async () => true,
+    isVisible: () => true,
+    isDataSaverOn: () => false,
+    listJobs: () => jobQueueDB.getJobs({ userAddress: USER, synced: false }),
+    getJob: (id) => jobQueueDB.getJob(id),
+    acquire: (ids) => acquireAvailableWorkJobs(ids, { background: true }),
+    hold: holdWorkClaims,
+    prepare: (job, chainId, claim) => {
+      prepared.push(job.id);
+      return prepareQueuedJob(job, chainId, claim);
+    },
+    recover: async () => undefined,
+    now: () => Date.now(),
+  });
+  setActiveUploadPreparation(preparation);
+  const stopWaking = jobQueueEventBus.on("job:added", () => preparation.schedule());
+  unmountPreparation = () => {
+    stopWaking();
+    preparation.stop();
+    setActiveUploadPreparation(undefined);
+  };
+  return prepared;
+}
+
+const submission = (authMode: "passkey" | "wallet"): SubmitWorkCommand => ({
+  clientWorkId: crypto.randomUUID(),
+  authMode,
+  gardenAddress: GARDEN,
+  actionUID: 1,
+  actions: [],
+  userAddress: USER,
+  chainId: CHAIN,
+  draft: {
+    actionUID: 1,
+    title: "Weeding",
+    feedback: "north beds",
+    details: {},
+    media: [],
+    timeSpentMinutes: 30,
+  },
+  images: [],
+  allowOfflineQueue: true,
+});
+
 beforeEach(() => {
   Object.defineProperty(globalThis.navigator, "onLine", {
     configurable: true,
@@ -144,6 +205,8 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  unmountPreparation();
+  unmountPreparation = () => undefined;
   for (const job of await jobQueue.getJobs(USER)) await jobQueueDB.deleteJob(job.id);
 });
 
@@ -207,5 +270,59 @@ describe("Upload all, composed with the real queue", () => {
     });
     await expect(upload(sender)).resolves.toEqual({ status: "uploaded", sent: 2, flagged: 0 });
     expect(await stillQueued()).toEqual([]);
+  });
+});
+
+// Admitting a Submit wakes background preparation, which used to claim the work
+// first and leave an online Submit waiting for Upload all.
+describe("an online Submit while background preparation runs", () => {
+  it("sends passkey work at once", async () => {
+    const prepared = mountPreparation();
+    const sender = passkeySender(async (options) => {
+      await broadcast(options);
+      await options?.onBroadcast?.(TX);
+    });
+
+    const outcome = await submitWork(
+      submission("passkey"),
+      createDefaultSubmitWorkPorts({ sender })
+    );
+
+    expect(outcome.kind).toBe("processed");
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    expect(prepared).toEqual([]);
+    expect(await stillQueued()).toEqual([]);
+  });
+
+  it("sends wallet work at once", async () => {
+    const prepared = mountPreparation();
+    const ports = createDefaultSubmitWorkPorts({
+      sender: createMockTransactionSender({ authMode: "wallet" }),
+    });
+    const send = vi.fn<typeof ports.direct.submitWork>(async (input) => {
+      await input.onBroadcast?.(TX);
+      return TX;
+    });
+    ports.direct.submitWork = send;
+
+    await expect(submitWork(submission("wallet"), ports)).resolves.toMatchObject({
+      kind: "direct",
+      txHash: TX,
+    });
+    expect(send).toHaveBeenCalledOnce();
+    expect(prepared).toEqual([]);
+    expect(await stillQueued()).toEqual([]);
+  });
+
+  it("hands work it leaves queued to preparation", async () => {
+    mountPreparation();
+    const declining = passkeySender(async () => {
+      throw new DOMException("Not allowed by the user.", "NotAllowedError");
+    });
+
+    await expect(
+      submitWork(submission("passkey"), createDefaultSubmitWorkPorts({ sender: declining }))
+    ).rejects.toThrow();
+    await vi.waitFor(async () => expect(await stillQueued()).toEqual(["work:ready"]));
   });
 });

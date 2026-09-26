@@ -15,6 +15,7 @@ import type { Action, Address, Work, WorkDraft, WorkUploadCheckpoint } from "../
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
 import type { TransactionSender } from "../transactions/types";
 import type { SimulateWorkSubmissionParams, SimulationDeps } from "./simulate";
+import { suspendUploadPreparation } from "./upload-preparation";
 import { type WalletSubmissionStage } from "./wallet-submission/types";
 
 export interface SubmitWorkCommand {
@@ -72,6 +73,8 @@ export interface SubmitWorkPorts {
     ) => Promise<`0x${string}`>;
   };
   sender: TransactionSender | null;
+  /** Holds background preparation back until the returned release, so it cannot claim this Submit's work. */
+  suspendPreparation(): () => void;
   onWalletStage?: (stage: WalletSubmissionStage, message: string) => void;
   onQueueFallback?: (optimistic: Work) => void | Promise<void>;
 }
@@ -370,6 +373,7 @@ export function createDefaultSubmitWorkPorts(
       },
     },
     sender: options.sender,
+    suspendPreparation: suspendUploadPreparation,
     onWalletStage: options.onWalletStage,
     onQueueFallback: options.onQueueFallback,
   };
