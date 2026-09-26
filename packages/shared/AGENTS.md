@@ -9,6 +9,8 @@ types, i18n, and Storybook-backed shared UI building blocks.
 
 ## UI Foundations
 
+Read `.claude/skills/design/implementation.md` before frontend work.
+
 - `packages/admin/AGENTS.md`, `packages/admin/DESIGN.md`, exported admin primitives, and executable guards own the admin consumer boundary. Public docs only explain it.
 - Reusable admin UI foundations belong here before they become package-local copies.
 - Prefer extending shared `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `Alert`, `Card`, `DialogShell`, `FormField`, `ListToolbar`, `SortSelect`, and `StatusBadge`. (The Canvas `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted — admin overlays are centered `AdminDialog`s owned by the admin package.)
@@ -44,7 +46,7 @@ types, i18n, and Storybook-backed shared UI building blocks.
 - Visible consumer changes follow root [`AGENTS.md` § Browser Evidence](../../AGENTS.md#browser-evidence):
   label the engine and session behind the proof, and if the authenticated Brave path is
   unavailable, record that proof as pending and continue with labeled evidence.
-- **Tailwind v4 gotcha**: utility classes authored in shared JSX (`mx-4`, `w-max`, `self-center`, etc.) are not in admin/client content scans and silently fail to generate in consuming apps. They will look correct in Storybook and broken in the running app. Use inline styles or CSS custom properties for layout in shared components, or apply the utility class in the consumer's JSX. Full detail and commit references in root `AGENTS.md` → "Known Gotchas".
+- **Tailwind v4 gotcha**: utility classes authored in shared JSX (`mx-4`, `w-max`, `self-center`, etc.) are not in admin/client content scans and silently fail to generate in consuming apps. They will look correct in Storybook and broken in the running app. Use inline styles or CSS custom properties for layout in shared components, or apply the utility class in the consumer's JSX. Verify layout in the consuming app as well as Storybook.
 
 ## Validation
 

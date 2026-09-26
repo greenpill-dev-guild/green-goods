@@ -126,7 +126,7 @@ When agent values conflict, resolve in this order (highest priority first):
    - Never guess on ambiguous tradeoffs
    - Document the conflict and escalate to human
    - **This means**: "I'm not sure" is a valid and valuable response — it's better than a wrong guess
-   - **This means**: if two CLAUDE.md rules conflict for your specific case, ask rather than pick one
+   - **This means**: if two repository rules conflict for your specific case, ask rather than pick one
    - **This means**: if test failures are confusing after 3 attempts, stop and report what you've tried
 
 ## Criticality Matrix
@@ -166,7 +166,7 @@ Choose review depth from the surface, not from how small the diff feels.
 ## Tradeoff Escalation Triggers
 
 Escalate to human when:
-- Two Key Principles from CLAUDE.md conflict (e.g., offline-first vs. single chain consistency)
+- Two principles in this decision hierarchy conflict (e.g., offline-first vs. single chain consistency)
 - A fix requires modifying more than 3 packages
 - Security implications are unclear
 - The correct behavior is ambiguous after reading tests and documentation

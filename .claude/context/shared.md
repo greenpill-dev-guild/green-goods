@@ -1,6 +1,6 @@
 # Shared Package Context
 
-Loaded when working in `packages/shared/`. Extends CLAUDE.md.
+Loaded when working in `packages/shared/`. Extends `packages/shared/AGENTS.md`.
 
 ## Quick Reference
 
@@ -266,7 +266,7 @@ declared version ×10, so these open the `idb`-era databases in place. `jobQueue
 
 ### Error Utilities
 
-Beyond `parseContractError` / `USER_FRIENDLY_ERRORS` / `createMutationErrorHandler` (CLAUDE.md § Key Patterns), `utils/errors/` (barrel) provides:
+Beyond `parseContractError` / `USER_FRIENDLY_ERRORS` / `createMutationErrorHandler` (the mutation error helpers in this package), `utils/errors/` (barrel) provides:
 
 - `categorizeError(error) → ErrorCategory` = `network | validation | auth | permission | blockchain | storage | unknown` (`categorize-error.ts`, message pattern-matched)
 - `extractErrorMessage(error)` / `extractErrorMessageOr(error, fallback)` (`extract-message.ts`)

@@ -140,6 +140,20 @@ export function findBrokenRootCodePaths(text, relativePath, exists) {
   return failures;
 }
 
+export function findMissingInstructionSections(text, relativePath, instructions) {
+  const failures = [];
+  for (const match of text.matchAll(/(?:^|[^\w./-])((?:AGENTS|CLAUDE)\.md)[`* ]*§\s+([^`\n)\]]+)/g)) {
+    const headings = [...(instructions[match[1]] ?? "").matchAll(/^#{1,6}\s+(.+)$/gm)]
+      .map((heading) => heading[1].trim());
+    const reference = match[2].trim();
+    if (!headings.some((heading) => reference === heading ||
+      (reference.startsWith(heading) && /^[\s*;:.,]/.test(reference.slice(heading.length))))) {
+      failures.push(`${relativePath}: missing instruction section -> ${match[1]} § ${reference}`);
+    }
+  }
+  return failures;
+}
+
 export function deriveDeletedSurfaceRules(deletedPaths, knownPaths = []) {
   const rules = [];
   for (const deletedPath of deletedPaths) {
@@ -459,15 +473,23 @@ function main() {
 
   const guidanceFiles = [
     ...walkMarkdown(path.join(repoRoot, ".claude")),
+    ...walkMarkdown(path.join(repoRoot, ".github", "instructions")),
+    ...fs.readdirSync(path.join(repoRoot, "packages"))
+      .map((directory) => path.join(repoRoot, "packages", directory, "AGENTS.md")),
+    path.join(repoRoot, "docs", "AGENTS.md"),
     path.join(repoRoot, "CLAUDE.md"),
     path.join(repoRoot, "AGENTS.md"),
     path.join(repoRoot, "ONBOARDING.md"),
   ].filter((file) => fs.existsSync(file));
   const knownScripts = collectKnownScripts();
+  const instructions = Object.fromEntries(["AGENTS.md", "CLAUDE.md"].map((name) => [
+    name, fs.existsSync(path.join(repoRoot, name)) ? fs.readFileSync(path.join(repoRoot, name), "utf8") : "",
+  ]));
 
   for (const file of guidanceFiles) {
     const text = fs.readFileSync(file, "utf8");
     const relativePath = path.relative(repoRoot, file);
+    failures.push(...findMissingInstructionSections(text, relativePath, instructions));
     for (const match of text.matchAll(LINK_RE)) {
       const target = match[1];
       if (target.startsWith("http")) continue;

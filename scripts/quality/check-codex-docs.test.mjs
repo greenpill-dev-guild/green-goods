@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { findNearDuplicatePolicyBlocks } from "./check-codex-docs.js";
+import { claudeCompatibilityFailures, extractDocumentedCommands, findNearDuplicatePolicyBlocks } from "./check-codex-docs.js";
 
 test("detects a near-verbatim policy copied between agent guides", () => {
   const rootGuide = `
@@ -56,4 +56,26 @@ work after the first deterministic failure unless the rendered plan marks checks
   const duplicates = findNearDuplicatePolicyBlocks(sharedPolicy, sharedPolicy);
 
   assert.equal(duplicates.length, 1);
+});
+
+test("supports native AGENTS-only discovery and explicit Claude compatibility imports", () => {
+  assert.deepEqual(claudeCompatibilityFailures("# Shared rules", undefined), []);
+  assert.deepEqual(claudeCompatibilityFailures("# Shared rules", "@AGENTS.md\n"), []);
+  assert.equal(claudeCompatibilityFailures("# Shared rules", "Read [AGENTS.md](AGENTS.md).").length, 1);
+});
+
+test("extracts task-table commands including the final section without treating prose as commands", () => {
+  const guide = `## Common Commands
+| When | Command |
+|---|---|
+| Check | \`bun run check --plan -- --intent diagnose\` |
+| Build | \`VITE_CHAIN_ID=11155111 bun run build\` |
+| Context | \`a surface\` |
+`;
+  assert.deepEqual(extractDocumentedCommands(guide, "Common Commands"), [
+    "bun run check --plan -- --intent diagnose",
+    "VITE_CHAIN_ID=11155111 bun run build",
+  ]);
+  assert.deepEqual(extractDocumentedCommands(guide + "\n## Next\n`bun run other`", "Common Commands"),
+    extractDocumentedCommands(guide, "Common Commands"));
 });

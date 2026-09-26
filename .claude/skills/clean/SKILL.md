@@ -11,7 +11,7 @@ effort: very-high
 
 Codebase cleanup in two explicit phases: 8 focused lanes assess the code read-only, then the human locks a numbered fix scope before any implementation begins. Unlike `/audit`, `/clean` may transform code, but only inside that approved scope.
 
-**References**: `CLAUDE.md` and `.claude/context/*.md` for invariants. `/audit` for prior findings.
+**References**: `AGENTS.md` and `.claude/context/*.md` for invariants. `/audit` for prior findings.
 
 ---
 
@@ -63,7 +63,7 @@ mode, lanes stop after Phase 2 and do not write files.
 
 Every implementation report records its execution mode plus checkpoint/implementation SHAs — the full provenance block spec lives in [worktree-protocol.md](./worktree-protocol.md).
 
-Agent missions are short by design — the agents are strong models; give them the lane and the repo-specific rules, not a tutorial. Every agent: respect CLAUDE.md + `.claude/context/*.md` invariants, run `bun run test` in affected packages after implementing.
+Agent missions are short by design — the agents are strong models; give them the lane and the repo-specific rules, not a tutorial. Every agent: respect AGENTS.md + `.claude/context/*.md` invariants, run `bun run test` in affected packages after implementing.
 
 ### Agent 1: Deduplication & DRY
 
@@ -232,7 +232,7 @@ For symbol-removal agents (dead code, legacy, type consolidation), add targeted 
 - **Test after implement** — each agent runs `bun run test` in affected packages
 - **No cross-agent dependencies** — agents don't depend on each other's output
 - **HIGH-confidence only** — agents only implement findings they're confident about
-- **Preserve invariants** — all CLAUDE.md rules apply (hook boundary, declared public imports, Address types, single .env)
+- **Preserve invariants** — all AGENTS.md rules apply (hook boundary, declared public imports, Address types, single .env)
 - **Conflict audit** — every conflict resolution records agent intent, chosen side, and whether any cleanup insight was dropped
 - **Never remove offline-first code** — the job queue, IndexedDB persistence, and service worker are intentional complexity
 - **Codex reviews the integrated result** — dispatch only after implementation + validation, so Codex sees the same code the user will ship

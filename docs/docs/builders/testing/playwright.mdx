@@ -4,9 +4,10 @@ sidebar_label: Playwright
 slug: /builders/testing/playwright
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-26
 feature_status: Live
 source_of_truth:
+  - AGENTS.md
   - playwright.config.ts
   - .github/workflows/client.yml
   - .github/workflows/admin.yml
@@ -31,7 +32,10 @@ useful for deterministic public flows and CI integration; it is not authenticate
 - CI must verify a public or fixture-backed path;
 - a deterministic wallet, passkey, or fork fixture is explicitly configured.
 
-Use the root scripts and project names declared in `playwright.config.ts`. For live admin, installed
-PWA, wallet, passkey, or profile-dependent checks, use the authenticated Brave path required by
-`AGENTS.md`. If that path is unavailable, report the live QA proof as blocked rather than
-substituting an isolated profile.
+Use the root scripts and project names declared in `playwright.config.ts`. Root
+`AGENTS.md` → Browser Evidence owns the engine and session requirements. Label clean-room,
+Storybook, mock-auth localhost, and authenticated evidence accurately. Admin layout and copy
+can use labeled mock-auth proof; wallet, passkey, session, installed-PWA, job-queue, and
+profile-dependent behavior need authenticated proof. If that capability is unavailable, record
+it as pending and continue independent verification. The manual browser-proof check is advisory
+for local gates; release requires the attestation defined in the validation pipeline.

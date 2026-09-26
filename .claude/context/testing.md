@@ -1,6 +1,6 @@
 # Testing Context
 
-Loaded when writing, wiring, or diagnosing tests (Vitest unit/integration; Playwright E2E). Extends CLAUDE.md § Validation Intent Ladder and `.claude/context/validation-pipeline.md`. (`bun run test` vs `bun test`, `test:fast`: see CLAUDE.md § Commands.)
+Loaded when writing, wiring, or diagnosing tests (Vitest unit/integration; Playwright E2E). Use [the validation pipeline](validation-pipeline.md) to select commands and the nearest package `AGENTS.md` for its test entrypoints.
 
 ## Test-utils barrel — `@green-goods/shared/testing`
 
@@ -50,7 +50,7 @@ When maintenance cost grows, review duplicate layers, repeated setup, class-only
 
 ## Critical paths (deepest coverage in `packages/shared/src/`)
 
-Auth / work / job-queue / vault / blockchain surfaces are the `critical` tier in **CLAUDE.md § Criticality Matrix** — follow it, don't restate. Coverage-specific additions:
+Auth / work / job-queue / vault / blockchain surfaces are the `critical` tier in **AGENTS.md § Change Criticality** — follow it, don't restate. Coverage-specific additions:
 
 - Contract errors — `utils/errors/{contract-errors,mutation-error-handler}.ts`
 - Garden ops — `hooks/garden/**`; Role mgmt — `hooks/roles/**`
@@ -107,7 +107,7 @@ Do not use `injectWalletAuth` for CI authentication — it is a legacy wallet-st
 
 ## QA-speed proof substitutes
 
-Under QA Speed Mode (CLAUDE.md § Validation Intent Ladder), a fix may record instead of a new test:
+Under QA Speed Mode (.claude/context/validation-pipeline.md), a fix may record instead of a new test:
 
 - `not_applicable` — behavior unchanged (copy, docs, static config, visual token/class with no logic path).
 - `proof_limit` — a targeted test would be brittler/slower than direct proof (one-off visual layout, staging-only, authenticated-browser-only state).
