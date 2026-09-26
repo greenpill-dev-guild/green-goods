@@ -77,6 +77,7 @@ const mocks = vi.hoisted(() => ({
     failedCount: 0,
     failedCommitmentIds: new Set<string>(),
     failedJobs: new Map(),
+    pendingActs: new Map(),
     hasPendingCreate: false,
     pendingCreates: [],
     isUnavailable: false,
@@ -191,6 +192,7 @@ beforeEach(() => {
   mocks.queue.pendingCommitmentIds = new Set();
   mocks.queue.failedCommitmentIds = new Set();
   mocks.queue.failedJobs = new Map();
+  mocks.queue.pendingActs = new Map();
   mocks.queue.isUnavailable = false;
   mocks.worksGarden = null;
   mocks.mutationPending = false;
@@ -350,6 +352,7 @@ describe("useGardenCommitmentController", () => {
         reason: "membershipLost",
         retryable: false,
       },
+      pendingAct: null,
       isUnavailable: true,
       refresh: mocks.queue.refresh,
     });
@@ -467,5 +470,88 @@ describe("useGardenCommitmentController", () => {
     );
 
     expect(() => result.current.acts.join()).toThrow("The commitment is not ready");
+  });
+
+  it("offers Take This Up only to a member of the garden pool, and reads a fresh join at once", () => {
+    const offered = commitmentDetailFixture({
+      commitment: commitmentFixture({
+        derivedState: "OFFERED",
+        onchainState: "OFFERED",
+        creator: MARIA,
+        leadProvider: MARIA,
+        claimMode: "OPEN",
+      }),
+      contributors: [],
+    });
+    mocks.commitmentQuery.detail = offered;
+    mocks.pool = poolFixture({ poolType: "GARDEN", garden: DEMO_GARDEN });
+    mocks.roleAnswers = new Map();
+    mocks.gardens = [{ id: DEMO_GARDEN, name: "Host Garden", gardeners: [], stewards: [] }];
+
+    const { result, rerender } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    // A visitor reads the record and is offered nothing; the screen says how to join.
+    expect(result.current.actKind).toBeNull();
+    expect(result.current.membership).toEqual({
+      isMember: false,
+      garden: { address: DEMO_GARDEN, name: "Host Garden", openJoining: false },
+    });
+
+    // The join overlay counts as soon as the join lands, before the roster catches up.
+    window.localStorage.setItem(
+      "greengoods:pending-joins",
+      JSON.stringify({ [DEMO_GARDEN]: { address: TUNDE, timestamp: Date.now() } })
+    );
+    rerender();
+    expect(result.current.actKind).toBe("takeUp");
+    expect(result.current.membership.isMember).toBe(true);
+    window.localStorage.removeItem("greengoods:pending-joins");
+
+    // So does the chain's gardener role when the indexer roster is stale.
+    mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:gardener`, true]]);
+    rerender();
+    expect(result.current.actKind).toBe("takeUp");
+  });
+
+  it("on the protocol pool, offers Take This Up to a member of any other garden and to nobody else", () => {
+    mocks.commitmentQuery.detail = commitmentDetailFixture({
+      commitment: commitmentFixture({
+        derivedState: "OFFERED",
+        onchainState: "OFFERED",
+        creator: MARIA,
+        leadProvider: MARIA,
+        claimMode: "OPEN",
+      }),
+      contributors: [],
+    });
+    mocks.pool = poolFixture({ poolType: "PROTOCOL", garden: DEMO_GARDEN });
+    mocks.roleAnswers = new Map();
+    // Membership in the host garden never counts: the host is not a claim context.
+    mocks.gardens = [
+      { id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] },
+      { id: MARIA, name: "Provider Garden", gardeners: [], stewards: [] },
+    ];
+    const { result, rerender } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    expect(result.current.actKind).toBeNull();
+    expect(result.current.membership).toEqual({ isMember: false, garden: null });
+
+    mocks.gardens = [
+      { id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] },
+      { id: MARIA, name: "Provider Garden", gardeners: [TUNDE], stewards: [] },
+    ];
+    rerender();
+    expect(result.current.actKind).toBe("takeUp");
+    expect(result.current.membership.isMember).toBe(true);
   });
 });

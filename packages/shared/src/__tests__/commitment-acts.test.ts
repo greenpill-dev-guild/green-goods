@@ -83,6 +83,35 @@ describe("one act table for every surface", () => {
       expect(selectCommitmentActKind({ commitment: base, seat, hasPendingJob: true })).toBeNull();
     }
   });
+
+  it("offers taking up only to a member of the garden, once membership is known", () => {
+    // The chain gates a personal claim on a garden role, so a visitor's tap
+    // could only park in the queue. Not read yet offers nothing, like no.
+    const offered = { ...base, derivedState: "OFFERED" as CommitmentDerivedState };
+    const gated = {
+      ...base,
+      derivedState: "REQUESTED" as CommitmentDerivedState,
+      claimMode: "APPROVAL_GATED" as const,
+    };
+    expect(
+      selectCommitmentActKind({ commitment: offered, seat: "bystander", isMember: true })
+    ).toBe("takeUp");
+    expect(selectCommitmentActKind({ commitment: gated, seat: "bystander", isMember: true })).toBe(
+      "askToTakeUp"
+    );
+    for (const isMember of [false, undefined]) {
+      expect(
+        selectCommitmentActKind({ commitment: offered, seat: "bystander", isMember })
+      ).toBeNull();
+      expect(
+        selectCommitmentActKind({ commitment: gated, seat: "bystander", isMember })
+      ).toBeNull();
+    }
+    // Whoever made it takes it back whether or not the roster has caught up.
+    expect(
+      selectCommitmentActKind({ commitment: offered, seat: "provider", isMember: false })
+    ).toBe("withdraw");
+  });
 });
 describe("composing a settled commitment again", () => {
   const SETTLED: CommitmentDerivedState[] = ["EXPIRED", "FULFILLED", "RECONCILED", "CANCELLED"];

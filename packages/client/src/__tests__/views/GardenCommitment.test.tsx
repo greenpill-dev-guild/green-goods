@@ -43,6 +43,7 @@ const mockReason = vi.fn();
 const mockFlush = vi.fn();
 const mockRetryAndSend = vi.fn();
 const mockDiscardJob = vi.fn();
+const mockJoinGarden = vi.fn();
 const mockActs = {
   claim: vi.fn(),
   claimPersonal: vi.fn(),
@@ -84,6 +85,19 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) 
   return {
     ...(await importOriginal()),
     useOnlineStatus: () => true,
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/garden/useJoinGarden", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useJoinGarden: () => ({
+      joinGarden: mockJoinGarden,
+      isJoining: false,
+      joiningGardenId: null,
+      error: null,
+      checkOpenJoining: vi.fn(),
+    }),
   };
 });
 
@@ -238,6 +252,7 @@ function controller(
         member: [{ address: GARDEN, name: "Rocinha Community Garden" }],
         stewarded: [],
       },
+      claimGardensKnown: true,
     },
     seat: "provider",
     actGarden: GARDEN,
@@ -249,6 +264,7 @@ function controller(
       hasPendingJob: false,
       sendFailed: false,
       failedJob: null,
+      pendingAct: null,
       isUnavailable: false,
       refresh: vi.fn(),
     },
@@ -764,5 +780,96 @@ describe("GardenCommitment", () => {
       "aria-describedby",
       status?.id
     );
+  });
+
+  it("shows a non-member how to join instead of an act, and joins from the card", async () => {
+    mockJoinGarden.mockResolvedValue("0xjoin");
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({
+          commitment: {
+            derivedState: "OFFERED",
+            onchainState: "OFFERED",
+            creator: OTHER,
+            leadProvider: OTHER,
+          },
+        }),
+        seat: "bystander",
+        actKind: null,
+        roles: { ...controller().roles, isMemberHere: false },
+        membership: {
+          isMember: false,
+          garden: { address: GARDEN, name: "Rocinha Community Garden", openJoining: true },
+        },
+      })
+    );
+    render();
+    expect(screen.queryByRole("button", { name: "Take This Up" })).not.toBeInTheDocument();
+    expect(screen.getByText("Join Rocinha Community Garden to take this up.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Join Garden" }));
+    expect(mockJoinGarden).toHaveBeenCalledWith(GARDEN);
+  });
+
+  it("points a non-member at the garden when a steward lets people in, and says nothing while membership is unknown", () => {
+    const visitor = controller({
+      detail: detail({
+        commitment: {
+          derivedState: "REQUESTED",
+          onchainState: "REQUESTED",
+          creator: OTHER,
+          leadProvider: OTHER,
+        },
+      }),
+      seat: "bystander",
+      actKind: null,
+      membership: {
+        isMember: false,
+        garden: { address: GARDEN, name: "Rocinha Community Garden", openJoining: false },
+      },
+    });
+    mockUseController.mockReturnValue(visitor);
+    const view = render();
+    expect(screen.getByRole("button", { name: "Request to Join" })).toBeInTheDocument();
+
+    mockUseController.mockReturnValue(
+      controller({ ...visitor, membership: { isMember: null, garden: null } })
+    );
+    view.rerender(
+      <MemoryRouter initialEntries={[`/home/${GARDEN}/commitments/9`]}>
+        <Routes>
+          <Route path="/home/:id/commitments/:commitmentId" element={<GardenCommitment />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(screen.queryByText(/to take this up\./i)).not.toBeInTheDocument();
+  });
+
+  it("draws a parked act with why it waits, and sends or drops it from the row", async () => {
+    mockRetryAndSend.mockResolvedValue(undefined);
+    mockDiscardJob.mockResolvedValue(true);
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: "membership-unavailable",
+            discardable: true,
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+    expect(screen.queryByText(/your last act here is waiting/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/your take-up waits for your garden membership/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Send Now" }));
+    expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
+    await userEvent.click(screen.getByRole("button", { name: "Discard" }));
+    expect(mockDiscardJob).toHaveBeenCalledWith("claim-9");
+    expect(mockFlush).not.toHaveBeenCalled();
   });
 });

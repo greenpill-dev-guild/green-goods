@@ -21,7 +21,7 @@ import type {
 } from "../../modules/commitment-pooling/types";
 import type { Address, Garden } from "../../types/domain";
 import { useGardens } from "../blockchain/useBaseLists";
-import { isGardenMember } from "../garden/useJoinGarden";
+import { isGardenMember, usePendingJoinsVersion } from "../garden/useJoinGarden";
 import { useGardenPermissions } from "../garden/useGardenPermissions";
 import { useHasRole } from "../roles/useHasRole";
 
@@ -41,10 +41,19 @@ export interface CommitmentViewerRoles {
   stewardsCounterparty: boolean;
   /** The route garden's record, when the list has it. */
   garden: Garden | undefined;
-  /** Holds any role in the route garden: what the contract rosters. */
-  isMemberHere: boolean;
+  /**
+   * Holds a role in the route garden: what the contract rosters. True from the
+   * chain's gardener role, a steward or owner hat, or the indexer's roster with
+   * the pending-join overlay, so a join counts the moment it lands rather than
+   * when the indexer catches up. Null while the chain read is still on its way
+   * and nothing else can answer, so a screen offers nothing rather than the
+   * wrong thing.
+   */
+  isMemberHere: boolean | null;
   /** Gardens the reader may claim through or for, with the pool's host left out. */
   claimGardens: { member: ClaimGardenOption[]; stewarded: ClaimGardenOption[] };
+  /** False while the garden list is still loading, so an empty list is not yet "none". */
+  claimGardensKnown: boolean;
 }
 
 export function useCommitmentViewerRoles(input: {
@@ -62,6 +71,12 @@ export function useCommitmentViewerRoles(input: {
 
   const { hasRole: wearsStewardHat } = useHasRole(route, who, "steward", chainId);
   const { hasRole: isOwner } = useHasRole(route, who, "owner", chainId);
+  const { hasRole: isGardenerOnChain, isLoading: gardenerLoading } = useHasRole(
+    route,
+    who,
+    "gardener",
+    chainId
+  );
   const { hasRole: stewardsPoolGarden } = useHasRole(
     pool?.garden as Address | undefined,
     who,
@@ -76,8 +91,11 @@ export function useCommitmentViewerRoles(input: {
   const { hasRole: stewardsCp } = useHasRole(counterpartyGarden, who, "steward", chainId);
   const { hasRole: ownsCp } = useHasRole(counterpartyGarden, who, "owner", chainId);
 
-  const { data: gardens = [] } = useGardens();
+  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const { canManageGarden } = useGardenPermissions();
+  // A join written in this tab lands in the overlay before the roster; the
+  // version ticks when it does, so the memo below sees it without a reload.
+  const pendingJoinsVersion = usePendingJoinsVersion();
   const garden = gardens.find((entry) => entry.id.toLowerCase() === routeGarden?.toLowerCase());
 
   // The contract refuses the host as a garden-claim context
@@ -85,6 +103,7 @@ export function useCommitmentViewerRoles(input: {
   // the chosen context, so the host is left out of both lists.
   const poolHost = pool?.garden?.toLowerCase();
   const claimGardens = useMemo(() => {
+    void pendingJoinsVersion;
     const others = gardens.filter((entry) => entry.id.toLowerCase() !== poolHost);
     const asOption = (entry: Garden): ClaimGardenOption => ({
       address: entry.id as Address,
@@ -92,20 +111,29 @@ export function useCommitmentViewerRoles(input: {
     });
     return {
       member: others
-        .filter((entry) => isGardenMember(viewer, entry.gardeners, entry.stewards))
+        .filter((entry) => isGardenMember(viewer, entry.gardeners, entry.stewards, entry.id))
         .map(asOption),
       stewarded: others.filter((entry) => canManageGarden(entry)).map(asOption),
     };
-  }, [gardens, poolHost, viewer, canManageGarden]);
+  }, [gardens, poolHost, viewer, canManageGarden, pendingJoinsVersion]);
 
   const isSteward = wearsStewardHat || isOwner;
+  // Read on every render on purpose: the overlay lives in localStorage, and a
+  // render is the cheapest way to see a join whichever surface wrote it.
+  const rosterOrOverlay = garden
+    ? isGardenMember(viewer, garden.gardeners, garden.stewards, garden.id)
+    : false;
+  const isMemberHere: boolean | null =
+    isSteward || isGardenerOnChain || rosterOrOverlay ? true : gardenerLoading ? null : false;
+
   return {
     isSteward,
-    isMemberHere: isSteward || isGardenMember(viewer, garden?.gardeners, garden?.stewards),
+    isMemberHere,
     stewardsPoolGarden,
     counterpartyGarden,
     stewardsCounterparty: stewardsCp || ownsCp,
     garden,
     claimGardens,
+    claimGardensKnown: !gardensLoading,
   };
 }

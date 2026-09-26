@@ -10,7 +10,10 @@ import type { CommitmentPoolingAvailability } from "../../../modules/commitment-
 import type { Action, Address, Work } from "../../../types/domain";
 import type { CommitmentViewerRoles } from "../../commitment-pooling/useCommitmentViewerRoles";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
-import type { FailedCommitmentJob } from "../../commitment-pooling/useCommitmentQueueState";
+import type {
+  FailedCommitmentJob,
+  PendingCommitmentAct,
+} from "../../commitment-pooling/useCommitmentQueueState";
 
 export type GardenCommitmentStatus = "unavailable" | "notFound" | "loading" | "error" | "ready";
 
@@ -69,10 +72,22 @@ export interface GardenCommitmentController {
   pendingClaimRequests: CommitmentClaimRequestRecord[];
   canAskAgain: boolean;
   claimNeedsContext: boolean;
+  /**
+   * Whether the reader may take this commitment up, and the garden they would
+   * join to be allowed. On a garden pool that is the route garden; on the
+   * protocol pool a claim goes through a garden of the reader's own, so no one
+   * garden is named. Null membership means it is still being read.
+   */
+  membership: {
+    isMember: boolean | null;
+    garden: { address: Address; name: string; openJoining: boolean } | null;
+  };
   queue: {
     hasPendingJob: boolean;
     sendFailed: boolean;
     failedJob: FailedCommitmentJob | null;
+    /** The act still on this phone for this commitment, when the queue can name it. */
+    pendingAct: PendingCommitmentAct | null;
     isUnavailable: boolean;
     refresh: () => void;
   };

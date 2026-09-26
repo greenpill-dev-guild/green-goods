@@ -18,7 +18,9 @@ import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
 import { FailedActAlert } from "./FailedActAlert";
+import { JoinToAct } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
+import { QueuedActNotice } from "./QueuedActRow";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
 
@@ -78,6 +80,14 @@ export function GardenCommitment() {
 
   const { commitment, contributors, requirements } = controller.detail;
   const act = commitmentActForKind(controller.actKind);
+  // A signed-in reader who does not belong to the garden gets no act; the card
+  // under the status band says how to join instead. Nothing shows while
+  // membership is still being read, or while an act is already on its way.
+  const showJoinToAct =
+    !act &&
+    !controller.queue.hasPendingJob &&
+    controller.membership.isMember === false &&
+    (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED");
   const band = selectStatusBand({
     commitment,
     seat: controller.seat,
@@ -170,7 +180,7 @@ export function GardenCommitment() {
               }
               onRun={runAct}
             />
-          ) : controller.queue.hasPendingJob ? (
+          ) : controller.queue.hasPendingJob && !controller.queue.pendingAct ? (
             <p
               className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-sm text-text-sub-600"
               role="status"
@@ -185,6 +195,8 @@ export function GardenCommitment() {
             failed={controller.queue.failedJob}
             onChanged={controller.queue.refresh}
           />
+        ) : controller.queue.pendingAct ? (
+          <QueuedActNotice act={controller.queue.pendingAct} onChanged={controller.queue.refresh} />
         ) : null}
         <CommitmentIdentity
           commitment={commitment}
@@ -195,6 +207,9 @@ export function GardenCommitment() {
           units={units}
           joinable={controller.joinable}
         />
+        {showJoinToAct ? (
+          <JoinToAct garden={controller.membership.garden} isOnline={controller.isOnline} />
+        ) : null}
         <CommitmentTeam
           commitment={commitment}
           contributors={contributors}

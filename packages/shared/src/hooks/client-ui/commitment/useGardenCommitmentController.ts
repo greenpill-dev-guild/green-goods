@@ -126,17 +126,42 @@ export function useGardenCommitmentController(input: {
     (request) => request.state === "PENDING"
   );
   const hasPendingClaimRequest = ownRequest?.state === "PENDING";
+  // Who may take this up. On a garden pool the chain gates a personal claim on
+  // a role in the route garden; on the protocol pool the claim goes through a
+  // garden of the reader's own, never the host, so any such garden counts.
+  const isProtocolPool = poolQuery.pool?.poolType === "PROTOCOL";
+  const hasClaimGarden =
+    roles.claimGardens.member.length > 0 || roles.claimGardens.stewarded.length > 0;
+  const canClaimHere: boolean | null = isProtocolPool
+    ? hasClaimGarden
+      ? true
+      : roles.claimGardensKnown
+        ? false
+        : null
+    : roles.isMemberHere;
+  const membership = {
+    isMember: canClaimHere,
+    garden:
+      !isProtocolPool && roles.garden
+        ? {
+            address: roles.garden.id as Address,
+            name: roles.garden.name,
+            openJoining: Boolean(roles.garden.openJoining),
+          }
+        : null,
+  };
   const actKind = commitment
     ? selectCommitmentActKind({
         commitment,
         seat,
         hasPendingJob: pending || hasPendingClaimRequest || queueState.isUnavailable,
         isCreator: isCommitmentCreator({ commitment, viewer: viewer ?? undefined }),
+        isMember: canClaimHere === null ? undefined : canClaimHere,
       })
     : null;
   const actGarden = commitment ? (commitment.providerGarden as Address | null) : null;
   const joinable = commitment
-    ? canJoinTeam({ commitment, seat, isGardenMember: roles.isMemberHere })
+    ? canJoinTeam({ commitment, seat, isGardenMember: roles.isMemberHere === true })
     : false;
   const linkable = commitment
     ? canLinkWork({
@@ -297,11 +322,13 @@ export function useGardenCommitmentController(input: {
         !pending &&
         !queueState.isUnavailable
     ),
-    claimNeedsContext: poolQuery.pool?.poolType === "PROTOCOL",
+    claimNeedsContext: isProtocolPool,
+    membership,
     queue: {
       hasPendingJob: pending,
       sendFailed,
       failedJob: queueState.failedJobs.get(queueKey) ?? null,
+      pendingAct: queueState.pendingActs.get(queueKey) ?? null,
       isUnavailable: queueState.isUnavailable,
       refresh: queueState.refresh,
     },

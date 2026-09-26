@@ -3116,6 +3116,83 @@
       "source": "qa-runs-pwa-split-2026-09-07"
     },
     {
+      "id": "PWA-123",
+      "priority": "P1",
+      "kind": "journey",
+      "scenario": "A signed-in visitor reads a commitment and is shown how to join, not an act",
+      "preconditions": [
+        "Signed in as a gardener who is not a member of the garden",
+        "An offered or requested commitment with open claiming in that garden's pool"
+      ],
+      "steps": [
+        "Open the commitment by its link",
+        "Read the status band and the People section",
+        "Read the card under the status band and the bottom of the screen"
+      ],
+      "expected": "The commitment reads in full; no act bar is drawn; the card reads 'Join {garden} to take this up' with Join Garden when the garden is open to join and Request to Join otherwise; pressing Join Garden joins and Take This Up appears without a reload",
+      "evidence": "Screenshot of the card",
+      "role": "gardener",
+      "tags": ["commitments", "claim"],
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "area": "Commitments",
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-990"
+    },
+    {
+      "id": "PWA-124",
+      "priority": "P0",
+      "kind": "transaction",
+      "scenario": "Take up a commitment minutes after joining the garden",
+      "preconditions": [
+        "A garden open to join, with an offered commitment with open claiming in its pool",
+        "The gardener joined that garden within the last fifteen minutes"
+      ],
+      "steps": [
+        "Join the garden from its screen and wait for the join to land",
+        "Open the offered commitment within a minute of the join landing",
+        "Press Take This Up",
+        "Reload"
+      ],
+      "expected": "Take This Up is offered as soon as the join lands, before the indexer catches up; the act queues and lands; the band moves to the accepted state and People lists the gardener as the provider; nothing says the gardener is not a member",
+      "evidence": "Screenshots before and after the take-up",
+      "role": "gardener",
+      "tags": ["commitments", "claim", "tx"],
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "area": "Commitments",
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-990"
+    },
+    {
+      "id": "PWA-125",
+      "priority": "P1",
+      "kind": "transaction",
+      "scenario": "A parked act says why it waits and can be sent or dropped from the commitment",
+      "preconditions": [
+        "Signed in with a wallet",
+        "An act on a commitment that the queue left waiting, for example a take-up made while the garden role read had not landed, or a send that failed once"
+      ],
+      "steps": [
+        "Open the commitment",
+        "Read the row above the status band",
+        "Press Send Now and answer the wallet",
+        "On another parked act whose transaction was never sent, press Discard"
+      ],
+      "expected": "The row names the act and why it waits; Send Now asks the wallet and the row clears when the act lands; Discard is offered only when the transaction was never sent and removes the act; the act bar returns after either",
+      "evidence": "Screenshot of the row and of the screen after Send Now",
+      "role": "gardener",
+      "tags": ["commitments", "queue", "tx"],
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "area": "Commitments",
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-990"
+    },
+    {
       "id": "PWA-103",
       "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",

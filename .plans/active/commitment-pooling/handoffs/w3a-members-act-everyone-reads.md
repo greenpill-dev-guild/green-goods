@@ -62,9 +62,10 @@ only after the solo reproduction confirms it.
 4. **The join line (row 41).** New `Commitment/JoinToAct.tsx`, rendered under `CommitmentIdentity`
    when the record is OFFERED or REQUESTED and `membership.isMember === false`. One sentence,
    `app.commitment.join.line` ("Join {garden} to take this up"), and one act: Join Garden through
-   `useJoinGarden().joinGarden(garden)` when the garden is open to join, otherwise Ask to Join,
-   which navigates to the garden screen (`../..`) where the request flow already lives. Nothing
-   renders while membership is unknown.
+   `useJoinGarden().joinGarden(garden)` when the garden is open to join, otherwise Request to
+   Join (the garden screen's own words), which navigates to the garden screen (`../..`) where
+   the request flow already lives. On the protocol pool no one garden is named, so the card says
+   "Join a garden to take this up" and opens Home. Nothing renders while membership is unknown.
 5. **The queued act row (N35, row 43).** `useCommitmentQueueState` adds
    `pendingActs: ReadonlyMap<string, PendingCommitmentAct>` keyed by decimal commitment id with
    `jobId`, `kind`, `waitingReason` (`job.meta?.waitingReason`) and `discardable`. New
@@ -79,6 +80,31 @@ only after the solo reproduction confirms it.
    sees the commitment, no act and the join line; a member who joined within the last minutes can
    take up; a parked act shows Send Now and Discard. Ids continue the catalog's sequence, and a
    journey case means all three locale files.
+
+## Implementation notes (2026-09-26)
+
+- On the protocol pool the route garden is the host, which the contract refuses as a claim
+  context, so membership there never counts. The controller reads `canClaimHere` from
+  `claimGardens` (member or stewarded, minus the host) on a protocol pool and from
+  `isMemberHere` on a garden pool, and hands the act table `isMember` from that. The roles hook
+  gained `claimGardensKnown` so an empty list while the garden list loads reads as unknown, not
+  none.
+- `isMemberHere` became `boolean | null`; `canJoinTeam` takes `=== true`. The only other reader
+  of the flag was the controller.
+- The act table gate is `isMember !== true`, so undefined (not read yet) offers nothing, like
+  false; provider and confirmer still get Withdraw whatever the roster says.
+- `useCommitmentQueueState` now exposes `pendingActs` (job id, kind, waiting reason,
+  discardability) beside `pendingCommitmentIds`; the pool console test's queue helper gained the
+  field. The screen keeps the old "waiting to send" sentence only when the queue cannot name the
+  job (an unreadable queue).
+- `QueuedActRow` is presentational; `QueuedActNotice` wires `useJobQueue().retryAndSend` and
+  `jobQueue.discardJob`. `JoinToActCard` is presentational; `JoinToAct` wires `useJoinGarden` and
+  the two navigations. Stories render the presentational halves.
+- Catalog: PWA-084's expected result already said members only, so no case retires. PWA-123
+  (visitor sees the card), PWA-124 (take up minutes after joining) and PWA-125 (a parked act
+  with Send Now and Discard) were added, source `prd-990`, and the id ledger extended.
+- Copy: fourteen keys in en, es and pt (`app.commitment.join.*`, `app.commitment.queue.act.*`,
+  `app.commitment.queue.sendNow`); vocabulary check clean.
 
 ## Tests (RED first)
 
@@ -100,6 +126,17 @@ only after the solo reproduction confirms it.
 Use `createTestQueryClient` and `createTestWrapper`; a new test may not build a bare
 `new QueryClient()` (test-quality Check 6). Mocks that stub `useCommitmentPooling` must list every
 hook the controller reads.
+
+RED and GREEN as run on 2026-09-26:
+
+- RED: with the membership guard removed from `acts.ts`,
+  `bun run --filter @green-goods/shared test -- src/__tests__/commitment-acts.test.ts` fails
+  "offers taking up only to a member of the garden, once membership is known" with
+  `expected 'takeUp' to be null` (1 failed, 10 passed). The pre-change screen behaviour is also
+  pinned by the client suite's earlier expectation that a bystander got `takeUp` without any
+  membership input, which the change had to update.
+- GREEN: the same command passes 11 of 11; the five shared files pass 37 of 37 and the two client
+  files 52 of 52 (`/tmp` logs of the run, recorded in the Validation Receipt).
 
 ## Rendered proof
 
