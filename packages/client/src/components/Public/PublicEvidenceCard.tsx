@@ -5,6 +5,7 @@ import { RiImageLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { EVIDENCE_KIND_LABELS } from "./evidenceKinds";
+import { evidenceRecordTitle } from "./evidenceTitle";
 
 const DOMAIN_INK: Record<"solar" | "agro" | "education" | "waste", string> = {
   solar: "text-domain-solar",
@@ -234,6 +235,7 @@ export function PublicEvidenceCard({
   const mosaicImages =
     record.media && record.media.length > 0 ? record.media : gardenImage ? [gardenImage] : [];
   const kindLabel = intl.formatMessage(EVIDENCE_KIND_LABELS[record.kind]);
+  const title = evidenceRecordTitle(record, intl.formatMessage);
   const formattedDate = formatRecordDate(record, intl.locale);
 
   return (
@@ -242,7 +244,7 @@ export function PublicEvidenceCard({
       data-pressable="card"
       onClick={() => onOpen(record)}
       className="group flex h-full cursor-pointer flex-col gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
-      aria-label={record.title}
+      aria-label={title}
     >
       <div className="relative aspect-[3/2] w-full overflow-hidden bg-editorial-warm">
         {mosaicImages.length > 0 ? (
@@ -271,9 +273,9 @@ export function PublicEvidenceCard({
 
       <h3
         className="font-serif text-xl font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 transition-[color,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] group-hover:text-primary-action motion-safe:group-hover:-translate-y-px"
-        title={record.title}
+        title={title}
       >
-        <span className="line-clamp-2">{record.title}</span>
+        <span className="line-clamp-2">{title}</span>
       </h3>
 
       <p
