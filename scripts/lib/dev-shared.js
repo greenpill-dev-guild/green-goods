@@ -10,8 +10,38 @@ import http from "node:http";
 import https from "node:https";
 import path from "node:path";
 import { homedir } from "node:os";
-import { accessSync, constants, existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
+import { accessSync, constants, existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+
+// Availability only: a readable skill file does not prove a session loaded it.
+export function inspectPersonalSkills({
+  home = homedir(),
+  claudeConfigDir = process.env.CLAUDE_CONFIG_DIR || path.join(home, ".claude"),
+  access = accessSync,
+} = {}) {
+  const results = [];
+  for (const [harness, directory] of [
+    ["Codex", path.join(home, ".agents/skills")],
+    ["Claude", path.join(claudeConfigDir, "skills")],
+  ]) {
+    for (const skill of ["pragmatic-programming", "domain-driven-design"]) {
+      const file = path.join(directory, skill, "SKILL.md");
+      const row = { check: `personal-skill:${harness.toLowerCase()}:${skill}`, path: file };
+      try {
+        access(file, constants.R_OK);
+        const resolvedPath = realpathSync(file);
+        if (!statSync(resolvedPath).isFile()) throw Object.assign(new Error("not a file"), { code: "NOT_FILE" });
+        results.push({ ...row, level: "pass", title: `${harness}: ${skill} skill file available`,
+          detail: `${file} → ${resolvedPath}. Availability does not prove session loading or use.`, fix: "", resolvedPath });
+      } catch (error) {
+        results.push({ ...row, level: "warn", title: `${harness}: ${skill} skill file unavailable`,
+          detail: `${file} (${error.code ?? "unreadable"}).`,
+          fix: "Use repository guidance as the fallback; inspect the personal skill path or symlink separately. No automatic repair." });
+      }
+    }
+  }
+  return results;
+}
 
 // Use the same Docker environment in the launcher and doctor. Only replace a
 // missing local socket; custom contexts and remote/live endpoints are intentional.

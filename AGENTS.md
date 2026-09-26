@@ -64,6 +64,8 @@ does not imply permission to deploy, broadcast, merge, publish, or change branch
 Concurrent sessions share this checkout. Inspect `git status` before editing and leave changes
 you did not author untouched. Do not stash, revert, stage, or overwrite another session's work.
 Stay on the current branch unless the user explicitly requests a branch action in this turn.
+When independent work needs isolation, request a separate worktree rather than changing branches
+under another active session; this does not authorize automatic branch changes.
 Investigate conflicts through focused diffs and history; coordinate when they prevent your work.
 Bulk destructive operations, broad staging (`git add -A` / `git add .`), and force-pushes require
 fresh explicit authorization. Stage only your task's paths.
