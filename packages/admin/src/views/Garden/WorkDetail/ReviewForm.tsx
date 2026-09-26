@@ -277,7 +277,7 @@ export function ReviewForm({
                     id="confidence-label"
                   >
                     {formatMessage({ id: "app.work.detail.confidenceLevel" })}
-                    <span className="ml-1 body-xs text-text-soft">
+                    <span className="ml-1 label-xs text-text-soft">
                       ({formatMessage({ id: "app.work.detail.requiredForApproval" })})
                     </span>
                   </span>
@@ -307,7 +307,7 @@ export function ReviewForm({
                     className="mb-1.5 block body-sm font-medium text-text-strong"
                   >
                     {formatMessage({ id: "app.work.detail.feedback" })}
-                    <span className="ml-1 body-xs text-text-soft">
+                    <span className="ml-1 label-xs text-text-soft">
                       ({formatMessage({ id: "app.common.optional" })})
                     </span>
                   </label>
@@ -332,7 +332,7 @@ export function ReviewForm({
                 <div>
                   <span className="mb-1.5 block body-sm font-medium text-text-strong">
                     {formatMessage({ id: "app.work.detail.audioReviewNote" })}
-                    <span className="ml-1 body-xs text-text-soft">
+                    <span className="ml-1 label-xs text-text-soft">
                       ({formatMessage({ id: "app.common.optional" })})
                     </span>
                   </span>
