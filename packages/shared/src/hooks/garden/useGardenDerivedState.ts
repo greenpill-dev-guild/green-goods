@@ -19,6 +19,7 @@ import type {
   GardenActivityEvent,
   GardenDetailTab,
   GardenRange,
+  GardenReviewQueue,
   RoleDirectoryEntry,
   TabBadgeSeverity,
   TabBadgeState,
@@ -50,6 +51,8 @@ interface DerivedStateInput {
   }>;
   /** False when `works` may miss a true status: only the newest page, or unread approvals. */
   worksComplete?: boolean;
+  /** The garden's whole review queue, when `works` is only the newest page of current rows. */
+  gardenReviewQueue?: GardenReviewQueue;
   assessments: Array<{
     id: string;
     title?: string | null;
@@ -87,6 +90,7 @@ export function useGardenDerivedState({
   garden,
   works,
   worksComplete = true,
+  gardenReviewQueue,
   assessments,
   hypercerts,
   allocations,
@@ -110,7 +114,10 @@ export function useGardenDerivedState({
   const approvedWorks = works.filter((work) => work.status === "approved");
   // Work age is metadata, not an alarm: the queue warns once work has waited a
   // week, and turns critical only when review has stalled (DL-044).
-  const reviewQueue = summarizeReviewQueue(works, now, { complete: worksComplete });
+  const reviewQueue = summarizeReviewQueue(works, now, {
+    complete: worksComplete,
+    garden: gardenReviewQueue,
+  });
 
   const approvedInRangeCount = approvedWorks.filter(
     (work) => toMs(work.createdAt) >= rangeStart

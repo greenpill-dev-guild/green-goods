@@ -65,7 +65,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           setActivityFilter={workspace.setActivityFilter}
           filteredActivityEvents={workspace.canvasActivityEvents}
           isLoading={workspace.fetching}
-          pendingWorkCount={workspace.derived.pendingWorks.length}
+          pendingWorkCount={workspace.derived.reviewQueue.pendingCount}
           assessmentCount30d={workspace.assessments.length}
           gardenerCount={workspace.garden.gardeners.length}
           treasuryBalance={workspace.treasuryBalance}

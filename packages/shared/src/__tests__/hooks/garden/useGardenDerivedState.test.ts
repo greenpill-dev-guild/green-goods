@@ -21,6 +21,8 @@ describe("useGardenDerivedState", () => {
     allocations = [],
     hasEndowment = true,
     works,
+    worksComplete,
+    gardenReviewQueue,
     members = roleMembers,
   }: {
     domainMask?: number;
@@ -36,6 +38,8 @@ describe("useGardenDerivedState", () => {
     }>;
     hasEndowment?: boolean;
     works?: Parameters<typeof useGardenDerivedState>[0]["works"];
+    worksComplete?: boolean;
+    gardenReviewQueue?: Parameters<typeof useGardenDerivedState>[0]["gardenReviewQueue"];
     members?: Parameters<typeof useGardenDerivedState>[0]["roleMembers"];
   } = {}) {
     const now = Date.now();
@@ -56,6 +60,8 @@ describe("useGardenDerivedState", () => {
             createdAt: now,
           },
         ],
+        worksComplete,
+        gardenReviewQueue,
         assessments: [],
         hypercerts: [],
         allocations,
@@ -213,6 +219,31 @@ describe("useGardenDerivedState", () => {
     expect(reviewing.result.current.overviewAlerts[0]).toMatchObject({
       key: "work-warning",
       label: 'app.garden.detail.alert.workWarning {"count":1}',
+    });
+  });
+
+  it("reads a garden beyond its newest page from the garden's whole queue", () => {
+    const daysAgo = (days: number) => Math.floor((Date.now() - days * 86_400_000) / 1000);
+    const page = [{ id: "new", status: "pending", createdAt: daysAgo(1) }];
+
+    const pageOnly = renderDerivedState({ works: page, worksComplete: false });
+    expect(pageOnly.result.current.tabBadges.work).toEqual({ severity: "none" });
+
+    const gardenWide = renderDerivedState({
+      works: page,
+      worksComplete: false,
+      gardenReviewQueue: {
+        lastReviewedAt: daysAgo(9),
+        waiting: [
+          { id: "old", submittedAt: daysAgo(40) },
+          { id: "new", submittedAt: daysAgo(1) },
+        ],
+      },
+    });
+    expect(gardenWide.result.current.tabBadges.work).toEqual({ severity: "critical", count: 2 });
+    expect(gardenWide.result.current.overviewAlerts[0]).toMatchObject({
+      key: "work-critical",
+      label: 'app.garden.detail.alert.workCritical {"count":2}',
     });
   });
 
