@@ -8,6 +8,7 @@ import { useQueuedWorkActions } from "@green-goods/shared/hooks/work/useQueuedWo
 import { useWorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { isUserAddress } from "@green-goods/shared/utils/blockchain/address";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { RiCheckLine, RiCloseLine, RiErrorWarningLine } from "@remixicon/react";
 import React from "react";
@@ -99,12 +100,14 @@ export const GardenWork: React.FC = () => {
     );
 
   const hasMedia = Array.isArray(work.media) && work.media.length > 0;
-  const resolvedActionTitle =
-    actionTitle ??
+  // Read the action as its work card does, without a generated name or timestamps.
+  const resolvedActionTitle = toWorkDisplayTitle(
+    actionTitle,
     intl.formatMessage({
       id: "app.home.work.unknownAction",
       defaultMessage: "Unknown action",
-    });
+    })
+  );
 
   // The gardener's own queued work: where it stands and what they can do about it.
   const retryFooter =

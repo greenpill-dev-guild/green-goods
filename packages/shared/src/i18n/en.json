@@ -3331,6 +3331,7 @@
   "app.workCard.readyToSign": "Ready to sign and upload",
   "app.workCard.reviewRecorded": "Review added to the garden record",
   "app.workCard.sentForConfirmation": "Transaction sent",
+  "app.workCard.untitledWork": "Untitled Work",
   "app.workDashboard.badge.needsReview": "Needs review",
   "app.workDashboard.badge.reviewedByYou": "Reviewed by you",
   "app.workDashboard.badge.uploading": "Uploading",
