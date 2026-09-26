@@ -1,9 +1,6 @@
-import enMessages from "@green-goods/shared/i18n/en";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
-import { IntlProvider } from "react-intl";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import { renderWithProviders, screen } from "@/__tests__/test-utils";
 import { EditGardenDialog, type EditGardenDialogProps } from "./EditGardenDialog";
 
 vi.mock("@green-goods/shared/hooks/garden/useUpdateGarden", () => {
@@ -52,13 +49,7 @@ function renderDialog(garden: EditGardenDialogProps["garden"]) {
     ],
     { initialEntries: ["/garden/settings"] }
   );
-  render(
-    <QueryClientProvider client={new QueryClient()}>
-      <IntlProvider locale="en" messages={enMessages}>
-        <RouterProvider router={router} />
-      </IntlProvider>
-    </QueryClientProvider>
-  );
+  renderWithProviders(<RouterProvider router={router} />);
 }
 
 describe("EditGardenDialog", () => {

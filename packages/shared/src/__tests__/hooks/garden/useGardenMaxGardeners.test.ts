@@ -2,12 +2,12 @@
  * @vitest-environment jsdom
  */
 
-import { QueryClient } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { gardensKeys } from "../../../config/query-keys/garden";
 import type { Address } from "../../../types/domain";
+import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const GARDEN = "0x1111111111111111111111111111111111111111" as Address;
@@ -22,7 +22,7 @@ const { useGardenMaxGardeners } = await import("../../../hooks/garden/useGardenM
 describe("useGardenMaxGardeners", () => {
   it("reads the cap from the garden's account, and again once a saved cap refreshes the gardens", async () => {
     mocks.readContract.mockResolvedValueOnce(25n).mockResolvedValueOnce(30n);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = createTestQueryClient();
 
     const { result } = renderHookWithQueryClient(() => useGardenMaxGardeners(GARDEN, 42161), {
       queryClient,
