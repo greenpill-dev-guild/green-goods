@@ -7,6 +7,7 @@ import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
 import { useGardenDerivedState } from "../../garden/useGardenDerivedState";
 import { useGardenDetailData } from "../../garden/useGardenDetailData";
+import { useGardenMaxGardeners } from "../../garden/useGardenMaxGardeners";
 import { useKarmaIntegration } from "../../garden/useKarmaIntegration";
 import { useEffectiveToolbarPermissions } from "../../roles/useEffectiveToolbarPermissions";
 import { useCanvasSearchParams } from "../../navigation/useCanvasSearchParams";
@@ -103,12 +104,23 @@ export function useGardenWorkspaceController() {
     allocations,
     works,
     worksComplete,
+    gardenReviewQueue,
     hypercerts,
     hypercertsLoading,
     hypercertsError,
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
   const karmaIntegration = useKarmaIntegration(garden);
+  const maxGardeners = useGardenMaxGardeners(
+    garden?.id as Address | undefined,
+    garden?.chainId
+  ).data;
+  // The gardener cap is a chain read the indexer does not carry, so it joins the workspace's
+  // garden here: undefined until read, which the settings form never takes for unlimited.
+  const workspaceGarden = useMemo(
+    () => (garden ? { ...garden, maxGardeners } : undefined),
+    [garden, maxGardeners]
+  );
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const viewActions = useMemo(
@@ -143,6 +155,7 @@ export function useGardenWorkspaceController() {
     garden: garden ?? { id: selectedGarden?.id ?? "", domainMask: 0, name: "", chainId: 0 },
     works,
     worksComplete,
+    gardenReviewQueue,
     assessments,
     hypercerts,
     allocations,
@@ -284,7 +297,7 @@ export function useGardenWorkspaceController() {
     error,
     fetching,
     fetchingAssessments,
-    garden,
+    garden: workspaceGarden,
     gardenOptions,
     hypercertSheetCloseTo,
     poolCommitmentId,

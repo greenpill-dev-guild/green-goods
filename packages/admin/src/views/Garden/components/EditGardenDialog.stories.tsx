@@ -24,6 +24,7 @@ const GARDEN = {
   bannerImage: "",
   domainMask: 3,
   openJoining: true,
+  maxGardeners: 0,
 } as unknown as EditGardenDialogProps["garden"];
 
 const HASH = `0x${"3f".repeat(32)}` as const;
@@ -42,7 +43,7 @@ function SaveProgress({ run, pendingCount }: { run: GardenSettingsSaveRun; pendi
         label={formatMessage({ id: "app.garden.settings.save.listLabel" })}
         rows={buildGardenSettingsSaveRows(run, formatMessage)}
       />
-      <p className="text-xs text-text-sub" data-slot="dirty-state">
+      <p className="body-xs text-text-sub" data-slot="dirty-state">
         {gardenSettingsSaveLine(run, pendingCount, formatMessage)}
       </p>
     </div>
@@ -82,6 +83,11 @@ type Story = StoryObj<typeof EditGardenDialog>;
 type SaveStory = StoryObj<typeof SaveProgress>;
 
 export const OwnerEditing: Story = {};
+
+/** A garden whose account caps gardeners opens with Limit gardeners on and the cap filled in. */
+export const CappedGarden: Story = {
+  args: { garden: { ...GARDEN, maxGardeners: 25 } },
+};
 
 /** A steward who is not the owner reads why the name is locked. */
 export const StewardNotOwner: Story = {

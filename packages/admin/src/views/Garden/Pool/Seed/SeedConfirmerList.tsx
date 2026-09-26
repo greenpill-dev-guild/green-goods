@@ -41,7 +41,7 @@ export function SeedConfirmerList({
           defaultMessage: "Confirmers",
         })}
       </AdminCardTitle>
-      <p className="text-xs text-text-soft">
+      <p className="body-xs text-text-soft">
         {values.confirmers.length === 0
           ? values.direction === "REQUEST"
             ? formatMessage({
@@ -62,7 +62,7 @@ export function SeedConfirmerList({
         <ul className="divide-y divide-stroke-soft">
           {values.confirmers.map((address) => (
             <li key={address} className="flex items-center justify-between gap-2 py-1.5">
-              <span className="truncate font-mono text-xs text-text-strong" title={address}>
+              <span className="truncate font-mono body-xs text-text-strong" title={address}>
                 {address}
               </span>
               <AdminButton
@@ -115,7 +115,7 @@ export function SeedConfirmerList({
         </AdminButton>
       </div>
       {errorOf("confirmers") ? (
-        <p className="text-xs text-error-dark">{errorOf("confirmers")}</p>
+        <p className="body-xs text-error-dark">{errorOf("confirmers")}</p>
       ) : null}
       {values.confirmers.length > 0 ? (
         <AdminTextField

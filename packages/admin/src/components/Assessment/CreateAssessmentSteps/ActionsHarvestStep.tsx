@@ -101,7 +101,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
       >
         {domainActions.length === 0 ? (
           <div className="rounded-md border border-dashed border-stroke-soft p-6 text-center">
-            <p className="text-sm text-text-soft">
+            <p className="body-sm text-text-soft">
               {selectedDomain === null
                 ? formatMessage({
                     id: "app.admin.assessment.domainAction.chooseDomainFirst",
@@ -118,7 +118,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
           </div>
         ) : (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-text-soft">
+            <div className="flex items-center justify-between body-xs text-text-soft">
               <span>
                 {formatMessage(
                   {
@@ -164,7 +164,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                   <div
                     key={action.id}
                     className={cn(
-                      "flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm transition",
+                      "flex items-start gap-2 rounded-lg border px-3 py-2.5 body-sm transition",
                       isChecked
                         ? "border-primary-base bg-primary-alpha-10 text-primary-dark"
                         : "border-stroke-soft bg-bg-white text-text-sub hover:border-primary-alpha-24 hover:bg-primary-alpha-10",
@@ -192,7 +192,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                         {action.title}
                       </span>
                       {action.slug && (
-                        <span className="block truncate text-xs text-text-soft" title={action.slug}>
+                        <span className="block truncate body-xs text-text-soft" title={action.slug}>
                           {action.slug}
                         </span>
                       )}
@@ -205,7 +205,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
         )}
 
         {/* Always render to reserve space */}
-        <span className="block min-h-[1.25rem] text-xs text-error-dark">{"\u00A0"}</span>
+        <span className="block min-h-[1.25rem] body-xs text-error-dark">{"\u00A0"}</span>
       </Section>
 
       {/* Reporting Period */}

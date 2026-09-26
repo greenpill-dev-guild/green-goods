@@ -74,26 +74,26 @@ PR1's branch already carries this hub as its first commit.
 - [x] Per-asset endowment amounts (D14, D9, D27, D31, D33)
 - [x] Payouts, Impact, Karma copy (D10, D19, D30, D31, D33, D34)
 - [x] Stories, en/es/pt, QA catalog, rendered proof, critical gate
-- [ ] PR opened, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
+- [x] PR opened, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
 
 ### PR4 — Shell, cookies, tone
 
-- [ ] Outlined Hub trio (DEC-A), codify DL-043
-- [ ] Phone app bar and nav (D16); FAB icon (D17), codify DL-050; tab rail cue (D18)
-- [ ] Phone alert order (D36), codify DL-051
-- [ ] Purple Actions tone (D21, DEC-C), codify DL-045, bump `token_version`
-- [ ] Campaign cookie jars home and flow dialog (D19, D20, D22, D31, D34, DEC-D), codify DL-046
-- [ ] Profile name (D8)
-- [ ] Stories, en/es/pt, QA catalog, before/after pairs sent to Afo
-- [ ] Afo's yes, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
+- [x] Outlined Hub trio (DEC-A), codify DL-043
+- [x] Phone app bar and nav (D16); FAB icon (D17), codify DL-050; tab rail cue (D18)
+- [x] Phone alert order (D36), codify DL-051
+- [x] Purple Actions tone (D21, DEC-C), codify DL-045, bump `token_version`
+- [x] Campaign cookie jars home and flow dialog (D19, D20, D22, D31, D34, DEC-D), codify DL-046
+- [x] Profile name (D8)
+- [x] Stories, en/es/pt, QA catalog, before/after pairs sent to Afo
+- [x] Afo's yes, CI green, bot reviews resolved, merged; sub-lane and Linear child updated (#908, 2026-09-25)
 
 ### PR5 — Copy, Storybook, polish
 
-- [ ] Shared admin layout stylesheet for Storybook (D24, DEC-F)
-- [ ] Type scale migration with a rendered census (D32)
-- [ ] View colours onto Warm Earth aliases (D32)
-- [ ] Ratchet in the design-token check; frontend-design Rules 9 and 13 clarified (D32)
-- [ ] Remaining copy and nesting (D30, D33); remaining write-surface stories (D25)
+- [x] Shared admin layout stylesheet for Storybook (D24, DEC-F)
+- [x] Type scale migration with a rendered census (D32)
+- [x] View colours onto Warm Earth aliases (D32)
+- [x] Ratchet in the design-token check; frontend-design Rules 9 and 13 clarified (D32)
+- [x] Remaining copy and nesting (D30, D33); remaining write-surface stories (D25)
 - [ ] PR opened, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
 
 ### QA Pass 1 and 2

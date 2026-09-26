@@ -25,12 +25,22 @@ violated half of these. Validators check structure; this contract is what "desig
 - **The primary is rightmost; secondaries sit left of it in declaration order.** Destructive acts
   never share a cluster with routine acts — they get their own row, region, or the confirm
   dialog's danger slot. (Brief: destructive separation; Fitts's Law.)
+- **A review surface renders its action set outlined.** The Hub exists to review work, so its
+  trio (Submit Work, Create Assessment, Create Hypercert) fills no button above the queue. The
+  declared primary still sorts rightmost and fills the FAB (DL-043). Proof:
+  [hub.utils.ts](../../../packages/shared/src/hooks/admin-ui/hub/hub.utils.ts) —
+  `buildHubViewActions` declares every action `secondary` and keeps Submit Work `primary`.
 - **Tab-specific actions live in the tab's content**, end-aligned in the section they act on —
   a section-header trailing act, a right-rail quick-actions card, or a row's one trailing act.
   Never in the view header.
 - **Below 1024px the same view action set rides the FabButton speed dial**, primary nearest the
   trigger ([useViewActions.ts:71](../../../packages/shared/src/hooks/admin-ui/useViewActions.ts) —
   "mirroring the desktop row's primary-rightmost emphasis"). One action set, two presentations.
+- **The FAB shows its primary action's icon.** A multi-action FAB wears the primary's glyph, so it
+  never promises a create its dial does not hold, and swaps to a close icon while the dial is open
+  (DL-050). The Hub's FAB still shows "+", Submit Work's own icon. Proof:
+  [FabButton.tsx](../../../packages/admin/src/components/Shell/FabButton.tsx) — `FabIcon` is
+  `config.icon` unless the dial is open.
 
 ## 2. Dialog taxonomy and continuity
 
@@ -86,6 +96,11 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   (~300–340px) carries container status, quick actions, and activity/updates. Decided for the
   pool tab 2026-08-16 (DL-008). Collapse to one column below ~900px — rail content stacks after the left
   column, nothing disappears. (web.dev responsive; brief: no hidden critical data.)
+- **On phones, a tab's alert card leads.** Below 768px the rail stacks after the main column,
+  except the Attention Needed card, which leads above it, so the steward's next task is the first
+  thing on screen (DL-051, amending DL-008's collapse order for that one card). Proof:
+  [OverviewTab.tsx](../../../packages/admin/src/views/Garden/components/OverviewTab.tsx) —
+  `alertsLead` places `GardenAlertsCard` by `useMediaQuery`, so the rail keeps its landmark.
 - **Group by proximity, not by boxes.** Cards contain one coherent subject each; don't wrap
   every list in nested containers. Information density is a feature on operational screens —
   organize it, don't dilute it. (Laws of UX proximity/common region; brief: no card-itis.)

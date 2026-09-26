@@ -23,18 +23,18 @@ export function CommitmentTimeline({ events }: { events: CommitmentDialogControl
         })}
       </AdminCardTitle>
       {events.length === 0 ? (
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.commitment.timelineEmpty",
             defaultMessage: "Nothing recorded yet.",
           })}
         </p>
       ) : (
-        <ol className="divide-y divide-stroke-soft text-sm">
+        <ol className="divide-y divide-stroke-soft body-sm">
           {events.map((event) => (
             <li key={event.id} className="flex justify-between gap-2 py-1.5">
               <span className="text-text-strong">{eventLabel(event, formatMessage)}</span>
-              <span className="shrink-0 text-xs text-text-soft" title={event.actor ?? undefined}>
+              <span className="shrink-0 body-xs text-text-soft" title={event.actor ?? undefined}>
                 {[
                   event.actor ? shortAddress(event.actor) : null,
                   formatUnixDate(event.timestamp, locale, ""),

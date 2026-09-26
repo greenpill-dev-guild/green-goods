@@ -42,7 +42,7 @@ export function PoolStatusCasts({
             defaultMessage: "The pool console is for this garden's stewards",
           })}
         </AdminCardTitle>
-        <p className="text-sm text-text-soft">
+        <p className="body-sm text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.stewardOnly.body",
             defaultMessage:
@@ -88,7 +88,7 @@ export function PoolStatusCasts({
             defaultMessage: "Couldn’t load this pool",
           })}
         </AdminCardTitle>
-        <p className="max-w-md text-sm text-text-soft">
+        <p className="max-w-md body-sm text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.readError.body",
             defaultMessage:
@@ -121,7 +121,7 @@ export function PoolStatusCasts({
             defaultMessage: "Commitment pooling isn't switched on in this app yet",
           })}
         </AdminCardTitle>
-        <p className="text-sm text-text-soft">
+        <p className="body-sm text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.unavailable.body",
             defaultMessage:
@@ -141,7 +141,7 @@ export function PoolStatusCasts({
             defaultMessage: "This garden has no commitment pool",
           })}
         </AdminCardTitle>
-        <p className="text-sm text-text-soft">
+        <p className="body-sm text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.unregistered.body",
             defaultMessage:

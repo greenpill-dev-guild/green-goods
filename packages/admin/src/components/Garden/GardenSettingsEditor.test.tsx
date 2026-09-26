@@ -320,6 +320,57 @@ describe("GardenSettingsEditor explicit save", () => {
     expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
   });
 
+  it("shows a rename another steward made while the form was open, and never sends it back", () => {
+    const view = renderEditor();
+
+    view.rerender(
+      <EditorHarness overrides={{ garden: { ...GARDEN, name: "Renamed Elsewhere" } }} />
+    );
+
+    expect(screen.getByLabelText(/Name/, { selector: "input" })).toHaveValue("Renamed Elsewhere");
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
+    for (const mutation of allMutations()) expect(mutation).not.toHaveBeenCalled();
+  });
+
+  it("takes another steward's rename beside a pending edit, and Save sends only the edit", async () => {
+    const user = userEvent.setup();
+    const view = renderEditor();
+    const descriptionInput = screen.getByLabelText("Description");
+    await user.clear(descriptionInput);
+    await user.type(descriptionInput, "Restoring the river bank.");
+
+    view.rerender(
+      <EditorHarness overrides={{ garden: { ...GARDEN, name: "Renamed Elsewhere" } }} />
+    );
+
+    // A refresh takes every field the steward has not edited; the fields they have edited keep
+    // their edits, so the rename shows and Save sends the description alone.
+    expect(screen.getByLabelText(/Name/, { selector: "input" })).toHaveValue("Renamed Elsewhere");
+    expect(screen.getByLabelText("Description")).toHaveValue("Restoring the river bank.");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(await screen.findByText("All changes saved")).toBeInTheDocument();
+    expect(mockUpdateDescription).toHaveBeenCalledWith({
+      gardenAddress,
+      value: "Restoring the river bank.",
+    });
+    expect(mockUpdateName).not.toHaveBeenCalled();
+  });
+
+  it("keeps a staged banner through another steward's change", async () => {
+    const view = renderEditor();
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["banner"], "banner.png", { type: "image/png" });
+    fireEvent.change(input, { target: { files: [file] } });
+    expect(await screen.findByText(/banner\.png/)).toBeInTheDocument();
+
+    view.rerender(
+      <EditorHarness overrides={{ garden: { ...GARDEN, name: "Renamed Elsewhere" } }} />
+    );
+
+    expect(screen.getByLabelText(/Name/, { selector: "input" })).toHaveValue("Renamed Elsewhere");
+    expect(screen.getByText(/banner\.png/)).toBeInTheDocument();
+  });
+
   it("starts over when the editor is handed another garden", async () => {
     const user = userEvent.setup();
     const view = renderEditor();
@@ -540,6 +591,30 @@ describe("GardenSettingsEditor explicit save", () => {
     await waitFor(() => {
       expect(mockSetMaxGardeners).toHaveBeenCalledWith({ gardenAddress, value: 0 });
     });
+  });
+
+  it("holds Limit gardeners until the garden's cap loads, then takes it without sending it", async () => {
+    const user = userEvent.setup();
+    const unread = { ...GARDEN, maxGardeners: undefined };
+    const view = renderEditor({ garden: unread });
+
+    // An unread cap is not unlimited: the switch waits and says why.
+    expect(screen.getByRole("switch", { name: "Limit gardeners" })).toBeDisabled();
+    expect(
+      screen.getByText("The current limit hasn't loaded yet, so it can't be changed.")
+    ).toBeInTheDocument();
+
+    // The steward edits another field, and then the cap loads.
+    const locationInput = screen.getByLabelText("Location");
+    await user.clear(locationInput);
+    await user.type(locationInput, "Lisbon, Portugal");
+    view.rerender(<EditorHarness overrides={{ garden: { ...unread, maxGardeners: 25 } }} />);
+
+    expect(screen.getByRole("switch", { name: "Limit gardeners" })).toBeChecked();
+    expect(screen.getByLabelText("Maximum gardeners")).toHaveValue(25);
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() => expect(mockUpdateLocation).toHaveBeenCalled());
+    expect(mockSetMaxGardeners).not.toHaveBeenCalled();
   });
 
   it("selects a domain inline and saves it with the rest on Save", async () => {

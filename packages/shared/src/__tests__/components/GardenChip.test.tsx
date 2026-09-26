@@ -235,7 +235,9 @@ describe("GardenChip", () => {
 
     const trigger = screen.getByRole("button");
     expect(trigger.style.width).toBe("");
-    expect(trigger.style.maxWidth).toBe("calc(100vw - 2rem)");
+    // Bounded by the slot it sits in; the app bar's phone story checks that the
+    // slot ends before the bar's actions.
+    expect(trigger.style.maxWidth).toBe("100%");
 
     await user.click(trigger);
 

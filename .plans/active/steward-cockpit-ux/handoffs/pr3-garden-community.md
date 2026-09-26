@@ -215,6 +215,15 @@ Garden; nothing was saved or sent):
 - Evidence-only diff command and result (if applicable): `git diff --exit-code 2691746af6e2f28f384e1bcecaba76abbc75f8bf..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
 
+## Merge
+
+- PR: https://github.com/greenpill-dev-guild/green-goods/pull/906, merged into `develop` with
+  `gh pr merge 906 --repo greenpill-dev-guild/green-goods --merge` at `2026-09-25T19:21:59Z`
+  (merge commit `2a0a8f16d`), after seven review rounds.
+- At merge: CI Gate green on head `af978376b`; Codex reacted 👍 to `af978376b`; CodeRabbit
+  approved `af978376b` after its change request on `bc01146eb` was fixed in `2691746af`; no
+  unresolved review threads.
+
 ## Risks / Blockers
 
 - `useGardenDetailData` has many consumers; delete the summed bigint only after every consumer

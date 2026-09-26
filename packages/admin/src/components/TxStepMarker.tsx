@@ -28,7 +28,7 @@ export function TxStepMarker({ state, label, size = "md" }: TxStepMarkerProps) {
       aria-hidden
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full border-2 font-medium transition-all",
-        size === "md" ? "h-8 w-8 text-sm" : "h-6 w-6 text-xs",
+        size === "md" ? "h-8 w-8 body-sm" : "h-6 w-6 body-xs",
         // Done and running follow the admin step dot (ActionFlowStepper): the
         // workspace action fill with its paired foreground (the darker action
         // role DESIGN.md sets for step markers), and a tinted ring while it runs.

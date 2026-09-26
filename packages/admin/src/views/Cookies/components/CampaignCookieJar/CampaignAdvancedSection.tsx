@@ -1,6 +1,6 @@
 import { AdminButton } from "@/components/AdminButton";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
-import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
+import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
 
 export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps) {
   const {
@@ -29,7 +29,7 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
   return (
     <section className="surface-section overflow-visible">
       <details open={advancedOpen} onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}>
-        <summary className="cursor-pointer text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+        <summary className="cursor-pointer text-title-sm font-semibold text-text-strong">
           {formatMessage({
             id: "cockpit.community.cookies.advanced",
             defaultMessage: "Advanced",

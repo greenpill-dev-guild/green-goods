@@ -12,14 +12,14 @@ const meta: Meta<typeof AdminButton> = {
     docs: {
       description: {
         component:
-          "M3 common button with filled, tonal, elevated, outlined, text, and danger variants. Uses full-round shape, label-large typography, M3 state layers, and tokenized spring motion.",
+          "M3 common button with filled, tonal, elevated, outlined, text, danger, and outlined danger variants. Uses full-round shape, label-large typography, M3 state layers, and tokenized spring motion.",
       },
     },
   },
   argTypes: {
     variant: {
       control: "select",
-      options: ["filled", "tonal", "elevated", "outlined", "text", "danger"],
+      options: ["filled", "tonal", "elevated", "outlined", "text", "danger", "outlinedDanger"],
     },
     size: { control: "select", options: ["sm", "md", "lg"] },
     loading: { control: "boolean" },
@@ -40,6 +40,11 @@ export const Tonal: Story = {
 
 export const Outlined: Story = {
   args: { variant: "outlined", size: "md", children: "Cancel" },
+};
+
+/** A destructive action at outlined emphasis, beside a filled primary (Reject next to Approve). */
+export const OutlinedDanger: Story = {
+  args: { variant: "outlinedDanger", size: "md", children: "Reject" },
 };
 
 export const WithIcon: Story = {

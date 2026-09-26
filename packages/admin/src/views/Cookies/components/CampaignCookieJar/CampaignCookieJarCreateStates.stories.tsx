@@ -6,7 +6,7 @@ import {
 import { CampaignCookieJarSubmittedState } from "./CampaignCookieJarCreateStates";
 
 const meta: Meta<typeof CampaignCookieJarSubmittedState> = {
-  title: "Admin/Workspaces/Cookies/CampaignCookieJar/CreateStates",
+  title: "Admin/Workflows/Community/Payouts/CampaignCookieJar/CreateStates",
   component: CampaignCookieJarSubmittedState,
   tags: ["autodocs"],
   decorators: campaignCookieJarStoryDecorators,

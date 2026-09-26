@@ -58,6 +58,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
     },
     works: workspace.works,
     worksComplete: workspace.worksComplete,
+    gardenReviewQueue: workspace.gardenReviewQueue,
     assessments: workspace.assessments,
     hypercerts: workspace.hypercerts,
     allocations: workspace.allocations,

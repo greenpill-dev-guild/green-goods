@@ -91,7 +91,15 @@ Entity references in lists (gardens, actions) include small thumbnails — 40px 
 
 ## Rule 9: Typography Utilities
 
-Use `label-md`, `body-md` utilities from theme.css instead of raw Tailwind text sizes for form labels and body text. In admin these utilities resolve through the remapped cockpit scale (14px body/labels · 12px meta · 11px chips-only). Mind the role split: `label-xs text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta) — it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
+Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). In admin the cockpit scale (`packages/admin/DESIGN.md` § Typography) is:
+
+- `body-sm` 14px body · `body-xs` 12px meta · `label-xs` 12px label (500) · `label-sm` 11px, chips only · `body-md` 16px.
+- `text-title-md font-semibold` (16/24) for card, section, and step titles and metric values · `text-title-lg font-semibold leading-[var(--type-title-lg-lh)]` (22/28) for dialog, sheet, and flow titles and full-page state headings.
+- The `text-body-*`, `text-label-*`, and `text-title-*` aliases are on the scale too.
+
+The named classes are Tailwind utilities, so a weight, leading, or tracking utility adjusts them (`body-sm font-medium`) and responsive variants work (`body-xs sm:body-sm`). `check:design-tokens` fails on a raw size anywhere in `packages/admin/src`, stories included.
+
+Mind the role split: `label-xs text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta) — it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
 
 ## Rule 10: Icon Sizing Convention
 
@@ -118,7 +126,9 @@ Status indicators must not rely on color alone. Use icons alongside color (WCAG 
 
 ## Rule 13: Dark Mode — Semantic Tokens Only
 
-Never use raw Tailwind colors (`bg-neutral-*`, `text-gray-*`). Always use semantic tokens (`bg-bg-sub`, `text-text-strong`; in admin, the role tokens `--admin-surface-0` / `--m3-*` / `--tone-*`).
+Never use raw Tailwind colors (`bg-neutral-*`, `text-gray-*`). Always use semantic tokens (`bg-bg-sub`, `text-text-strong`).
+
+In admin, views colour through the Warm Earth aliases (`text-text-strong`, `text-text-sub`, `bg-bg-white`, `border-stroke-soft`, …). The M3 role tokens (`rgb(var(--m3-*))`) and `--admin-surface-*` belong inside the `Admin*` primitives (the field family included), the shell (`components/Shell`), and `ActionFlowShell`; `check:design-tokens` fails on a raw `--m3-*` colour anywhere else in `packages/admin/src`, stories included. Workspace tone (`--tone-*`) keeps to Rule 18's budget.
 
 ## Rule 14: Modal Mobile Safety
 
@@ -231,7 +241,7 @@ The six enforceable invariants of the admin cockpit finish — treat violations 
 
 - **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows.
 - **Admin radius set** — 4/8/12/16/9999px only; no 20/24/28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin).
-- **Four-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, one filled `--tone-action` header action, and the nav-shell FAB fill (plus the faint canvas wash).
+- **Four-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, at most one filled `--tone-action` header action (none on a review surface such as the Hub, DL-043), and the nav-shell FAB fill (plus the faint canvas wash).
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
 - **AdminButton only** — pill shape, one 14px label at every size, Title Case action labels (en; DL-012); admin views never render the shared `Button` (`gg-button`; `EmptyState` takes an `AdminButton` element as its action). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
 - **Shared pieces ride the shared family** — the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the cockpit metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-031). Never restyle a shared piece from admin; move the token.

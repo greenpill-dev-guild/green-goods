@@ -113,7 +113,6 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   // params, and workflow components. They are reviewed through their
   // composed children — we do not render a whole route inside a single
   // story.
-  "Actions/ActionDetail.tsx",
   "Actions/CreateAction.tsx",
   "Actions/EditAction.tsx",
   "Actions/GreenWillPanel.tsx",
@@ -142,7 +141,7 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   "Garden/WorkDetail/index.tsx",
 
   // Pure helpers — small visual primitives (`DetailRow`, `ReviewSummary`,
-  // `TabBadge`, `SectionStateCard`, `GardenHeroBanner`, etc.) plus
+  // `TabBadge`, `SectionStateCard`, etc.) plus
   // non-visual utilities (zod schemas, parsers). Reviewed implicitly
   // through the tab stories that consume them.
   "Garden/components/GardenDetailHelpers.tsx",

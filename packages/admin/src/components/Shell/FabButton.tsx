@@ -1,6 +1,6 @@
 import type { FabAction, FabConfig } from "@green-goods/shared/components/Canvas/NavigationBar";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiAddLine } from "@remixicon/react";
+import { RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -30,11 +30,11 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const reasonIdBase = useId();
   const speedDialShadow = "var(--admin-speed-dial-shadow, var(--m3-elevation-2))";
   const isSingleAction = config.actions.length <= 1;
-  // Multi-action FABs present a neutral "+" opener (rotates to "×" on open), not
-  // any one action's glyph — so the collapsed button reads as "open the menu",
-  // never as a duplicate of the primary action inside the dial. Single-action
-  // FABs keep their own action icon (direct-fire, no menu).
-  const FabIcon = isSingleAction ? config.icon : RiAddLine;
+  // A FAB shows its primary action's icon (useViewActions puts it in
+  // config.icon), so the button says what it mostly does; a dial swaps it for
+  // a close icon while open (DL-050). The Hub still shows "+", Submit Work's
+  // own icon.
+  const FabIcon = !isSingleAction && speedDialOpen ? RiCloseLine : config.icon;
   const floatingActionLabel =
     isSingleAction && config.actions[0]
       ? formatMessage({ id: config.actions[0].labelId })
@@ -254,7 +254,11 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         // label and tooltip, so the accessible name has to be that same string
         // — speech input activates a control by what it says (WCAG 2.5.3).
         aria-label={
-          isSingleAction ? floatingActionLabel : formatMessage({ id: "cockpit.fab.openActions" })
+          isSingleAction
+            ? floatingActionLabel
+            : formatMessage({
+                id: speedDialOpen ? "cockpit.fab.closeActions" : "cockpit.fab.openActions",
+              })
         }
         aria-haspopup={isSingleAction ? undefined : "menu"}
         // Explicit false while collapsed: a menu control that drops the
@@ -274,12 +278,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2"
         )}
       >
-        <FabIcon
-          className={cn(
-            "h-5 w-5 transition-[rotate] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-reduce:transition-none",
-            speedDialOpen && "rotate-45"
-          )}
-        />
+        <FabIcon className="h-5 w-5" />
         {mobileFloating && isSingleAction && (
           <span className="text-left text-body-md font-semibold">
             {floatingActionLabel}

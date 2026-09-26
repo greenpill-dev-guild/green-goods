@@ -7,6 +7,17 @@ import { AdminNotificationPanel } from "./AdminNotificationPanel";
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111";
 const mockPermissions = vi.hoisted(() => ({ showCommunity: true, isLoading: false }));
+const approvedWork = {
+  id: "work-1",
+  title: "Harvest & Yield Record - 2026-07-08T12:34:00.000Z",
+  status: "approved",
+  createdAt: Date.now(),
+};
+const mockWorks = vi.hoisted(() => ({
+  works: [] as Array<{ id: string; title: string; status: string; createdAt: number }>,
+  worksComplete: true,
+  gardenReviewQueue: undefined as unknown,
+}));
 
 vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
   useEffectiveToolbarPermissions: () => mockPermissions,
@@ -22,14 +33,9 @@ vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () 
 vi.mock("@green-goods/shared/hooks/garden/useGardenDetailData", () => ({
   useGardenDetailData: () => ({
     garden: { id: GARDEN_ID, domainMask: 1, name: "Chakra Farm", chainId: 11155111 },
-    works: [
-      {
-        id: "work-1",
-        title: "Harvest & Yield Record - 2026-07-08T12:34:00.000Z",
-        status: "approved",
-        createdAt: Date.now(),
-      },
-    ],
+    works: mockWorks.works,
+    worksComplete: mockWorks.worksComplete,
+    gardenReviewQueue: mockWorks.gardenReviewQueue,
     assessments: [],
     hypercerts: [],
     allocations: [
@@ -67,6 +73,9 @@ describe("AdminNotificationPanel", () => {
   beforeEach(() => {
     mockPermissions.showCommunity = true;
     mockPermissions.isLoading = false;
+    mockWorks.works = [approvedWork];
+    mockWorks.worksComplete = true;
+    mockWorks.gardenReviewQueue = undefined;
   });
 
   it("offers Community alerts and links only to viewers who can open Community", () => {
@@ -97,5 +106,25 @@ describe("AdminNotificationPanel", () => {
 
     expect(screen.getByText("Registro de colheita")).toBeInTheDocument();
     expect(screen.queryByText("Harvest & Yield Record")).not.toBeInTheDocument();
+  });
+
+  it("raises a review stall that only the garden's whole queue shows", () => {
+    const daysAgo = (days: number) => Math.floor((Date.now() - days * 86_400_000) / 1000);
+    // The newest page holds only recent work; the week-old work sits beyond it.
+    mockWorks.works = [{ id: "new", title: "Mulching", status: "pending", createdAt: daysAgo(1) }];
+    mockWorks.worksComplete = false;
+    mockWorks.gardenReviewQueue = {
+      lastReviewedAt: daysAgo(9),
+      waiting: [
+        { id: "old", submittedAt: daysAgo(40) },
+        { id: "new", submittedAt: daysAgo(1) },
+      ],
+    };
+
+    renderPanel();
+
+    expect(
+      screen.getByRole("button", { name: /No reviews in 7 days, and 2 works are waiting\./ })
+    ).toBeInTheDocument();
   });
 });

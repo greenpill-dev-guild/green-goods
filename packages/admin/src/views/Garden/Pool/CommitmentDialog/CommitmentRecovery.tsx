@@ -49,7 +49,7 @@ export function CommitmentRecovery({
     >
       {reconciliation.readAvailable && reconciliation.count > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2">
-          <p className="flex min-w-0 items-start gap-2 text-sm">
+          <p className="flex min-w-0 items-start gap-2 body-sm">
             <RiRefreshLine className="mt-0.5 h-4 w-4 shrink-0 text-primary-dark" aria-hidden />
             <span>
               <span className="font-medium text-text-strong">
@@ -85,14 +85,14 @@ export function CommitmentRecovery({
             })}
           </AdminButton>
           {blockedReason ? (
-            <p className="basis-full text-xs text-warning-dark">{blockedReason}</p>
+            <p className="basis-full body-xs text-warning-dark">{blockedReason}</p>
           ) : null}
         </div>
       ) : null}
 
       {reconciliation.readbackStatus === "pending" ? (
         <p
-          className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 text-sm text-text-soft"
+          className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 body-sm text-text-soft"
           role="status"
           aria-live="polite"
         >
@@ -106,7 +106,7 @@ export function CommitmentRecovery({
 
       {reconciliation.readbackStatus === "succeeded" ? (
         <p
-          className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 text-sm text-success-dark"
+          className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 body-sm text-success-dark"
           role="status"
           aria-live="polite"
         >
@@ -120,7 +120,7 @@ export function CommitmentRecovery({
 
       {reconciliation.readbackStatus === "needsFreshReview" ? (
         <div
-          className="flex items-start gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 text-sm text-warning-dark"
+          className="flex items-start gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 body-sm text-warning-dark"
           role="alert"
         >
           <RiErrorWarningLine className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
@@ -137,7 +137,7 @@ export function CommitmentRecovery({
       {reconciliation.readbackStatus === "unavailable" ||
       (!reconciliation.readAvailable && !reconciliation.isLoading) ? (
         <div
-          className="flex items-start gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 text-sm text-warning-dark"
+          className="flex items-start gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2 body-sm text-warning-dark"
           role="alert"
         >
           <RiErrorWarningLine className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
@@ -161,7 +161,7 @@ export function CommitmentRecovery({
         offer the act.
       */}
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2">
-            <p className="min-w-0 text-sm">
+            <p className="min-w-0 body-sm">
               <span className="font-medium text-text-strong">
                 {evidenceOnly
                   ? formatMessage({
@@ -201,7 +201,7 @@ export function CommitmentRecovery({
           </div>
           {can.attachAssessment ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2">
-              <p className="min-w-0 text-sm">
+              <p className="min-w-0 body-sm">
                 <span className="font-medium text-text-strong">
                   {formatMessage({
                     id: "cockpit.garden.pool.commitment.accepted.assessment",
@@ -231,7 +231,7 @@ export function CommitmentRecovery({
             </div>
           ) : null}
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2">
-            <p className="min-w-0 text-sm">
+            <p className="min-w-0 body-sm">
               <span className="font-medium text-text-strong">
                 {formatMessage({
                   id: "cockpit.garden.pool.commitment.accepted.calledOff",

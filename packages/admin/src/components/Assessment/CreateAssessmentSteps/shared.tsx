@@ -196,8 +196,8 @@ export function Section({
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-base font-semibold text-text-strong">{title}</h3>
-        <p className="mt-0.5 text-sm text-text-soft">{description}</p>
+        <h3 className="text-title-md font-semibold text-text-strong">{title}</h3>
+        <p className="mt-0.5 body-sm text-text-soft">{description}</p>
       </div>
       {children}
     </section>
@@ -216,10 +216,10 @@ export function ReviewRow({
   const intl = useIntl();
   return (
     <div>
-      <p className="text-xs font-semibold uppercase text-text-soft">{label}</p>
+      <p className="body-xs font-semibold uppercase text-text-soft">{label}</p>
       <p
         className={cn(
-          "mt-1 text-sm text-text-sub",
+          "mt-1 body-sm text-text-sub",
           multiline ? "whitespace-pre-wrap break-words" : "truncate"
         )}
       >

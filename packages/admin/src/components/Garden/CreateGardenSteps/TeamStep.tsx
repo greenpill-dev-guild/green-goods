@@ -22,7 +22,7 @@ export function TeamStep() {
   return (
     <div className="space-y-5">
       <div className="rounded-lg border border-primary-light bg-primary-lighter/40 p-3.5 body-sm text-text-sub">
-        <p className="label-md font-semibold text-text-strong">
+        <p className="label-md text-text-strong">
           {formatMessage({
             id: "app.admin.garden.create.teamAdvisory.title",
             defaultMessage: "Planned team members",

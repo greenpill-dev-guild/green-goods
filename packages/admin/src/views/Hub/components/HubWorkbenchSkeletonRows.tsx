@@ -15,7 +15,7 @@ export function HubWorkbenchSkeletonRows({
       <ul className="hub-workbench-grid" role="list" aria-busy="true">
         {Array.from({ length: count }).map((_, index) => (
           <li key={`hub-card-skeleton-${index}`} aria-hidden="true" className="min-w-0">
-            <div className="pointer-events-none h-full rounded-2xl bg-[rgb(var(--m3-surface-container-low))] p-4 shadow-[var(--edge-rest),var(--m3-elevation-1)]">
+            <div className="pointer-events-none h-full rounded-2xl bg-bg-weak p-4 shadow-[var(--edge-rest),var(--m3-elevation-1)]">
               {hasMedia ? (
                 <div className="aspect-[16/9] rounded-xl skeleton-shimmer" />
               ) : (

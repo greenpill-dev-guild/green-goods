@@ -1,11 +1,12 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import type { Work } from "@green-goods/shared/types/domain";
 import type { EASWorkListRow } from "@green-goods/shared/types/eas-responses";
 import pt from "@green-goods/shared/i18n/pt.json";
 import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
-import { expect, within } from "storybook/test";
+import { expect, mocked, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -18,6 +19,7 @@ import {
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
 import { daysAgo } from "../../../../shared/.storybook/fixtures";
+import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { AdminNotificationPanel } from "./AdminNotificationPanel";
 
 /**
@@ -101,5 +103,26 @@ export const SelectedGardenUpdatesPortuguese: Story = {
     await expect(await canvas.findByText("Atividade recente")).toBeVisible();
     await expect(await canvas.findByText("Registro de colheita")).toBeVisible();
     await expect(canvas.queryByText("Harvest & Yield Record")).not.toBeInTheDocument();
+  },
+};
+
+type GardensQuery = ReturnType<typeof useGardens>;
+
+/** While the garden list is still loading, the panel holds a loading status, not an empty one. */
+export const Loading: Story = {
+  beforeEach: () => {
+    mocked(useGardens).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isFetched: false,
+      isError: false,
+      error: null,
+    } as unknown as GardensQuery);
+    return resetHookMocks(useGardens);
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("status", { name: "Loading..." })).toBeVisible();
+    await expect(canvas.queryByText("No notifications")).not.toBeInTheDocument();
   },
 };

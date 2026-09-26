@@ -186,14 +186,16 @@ function ErrorCard({
           >
             {icon}
           </div>
-          <h2 className="text-lg font-semibold text-text-strong">{title}</h2>
-          <p className="mt-2 text-sm text-text-sub">{description}</p>
+          <h2 className="text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
+            {title}
+          </h2>
+          <p className="mt-2 body-sm text-text-sub">{description}</p>
           {details && (
             <details className="mt-4 text-left">
-              <summary className="cursor-pointer text-xs font-medium text-text-soft hover:text-text-sub">
+              <summary className="cursor-pointer label-xs text-text-soft hover:text-text-sub">
                 {technicalDetailsLabel}
               </summary>
-              <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-bg-soft p-3 text-xs text-text-sub">
+              <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-bg-soft p-3 body-xs text-text-sub">
                 {details}
               </pre>
             </details>

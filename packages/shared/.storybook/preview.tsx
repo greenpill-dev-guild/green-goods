@@ -94,6 +94,11 @@ const preview: Preview = {
     // which is how we verify the admin flows' bottom-sheet + two-column breakpoints.
     viewport: {
       options: {
+        mobileSmall: {
+          name: "Mobile (360)",
+          styles: { width: "360px", height: "780px" },
+          type: "mobile",
+        },
         mobile: { name: "Mobile (375)", styles: { width: "375px", height: "812px" }, type: "mobile" },
         tablet: { name: "Tablet (768)", styles: { width: "768px", height: "1024px" }, type: "tablet" },
         desktop: { name: "Desktop (1280)", styles: { width: "1280px", height: "800px" }, type: "desktop" },

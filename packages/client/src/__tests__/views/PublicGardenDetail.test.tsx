@@ -520,6 +520,21 @@ describe("GardenDetail", () => {
     expect(tile).toHaveFocus();
   });
 
+  it("titles a field note without the timestamps its stored title carries", () => {
+    const stamped = "Planting Event - 2026-03-04T22:38:24.283Z - 2026-03-04T22:38:24.331Z";
+    mockUsePublicGardenDetail.mockReturnValue(
+      detailResult({ fieldNotes: [{ ...makeNote(0), title: stamped }] })
+    );
+    renderView();
+
+    const tile = screen.getByRole("button", { name: /Planting Event/ });
+    expect(within(tile).getByRole("heading", { level: 3 })).toHaveTextContent(/^Planting Event$/);
+    expect(within(tile).getByAltText("Photo logged with Planting Event")).toBeInTheDocument();
+
+    fireEvent.click(tile);
+    expect(screen.getByRole("dialog", { name: "Planting Event" })).toBeInTheDocument();
+  });
+
   it("does not publish a certificate count before the garden resolves", () => {
     // useHypercerts is disabled without a gardenId, so it reports isLoading
     // false with an empty list — which must not render as a confident 0.

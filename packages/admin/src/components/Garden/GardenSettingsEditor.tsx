@@ -155,9 +155,10 @@ export const GardenSettingsEditor = forwardRef<
     return () => URL.revokeObjectURL(url);
   }, [draft.bannerFile]);
 
-  // Adopt refreshed garden values (post-save invalidation, garden switch)
-  // whenever the steward has no pending edits — never clobber a dirty draft,
-  // and never a landed value the refresh has yet to report.
+  // Adopt refreshed garden values (post-save invalidation, another steward's
+  // change, garden switch) field by field: whatever the steward has not edited
+  // takes the refresh, their own edits stay, and so does a landed value the
+  // refresh has yet to report (see adoptRefreshedGarden).
   const gardenSnapshot = JSON.stringify([
     gardenAddress,
     garden.name,
@@ -166,18 +167,21 @@ export const GardenSettingsEditor = forwardRef<
     garden.bannerImage,
     garden.domainMask ?? 0,
     !!garden.openJoining,
-    garden.maxGardeners ?? 0,
+    garden.maxGardeners ?? null,
   ]);
   const lastSnapshotRef = useRef(gardenSnapshot);
   const lastGardenAddressRef = useRef(gardenAddress);
+  // The garden the draft last synced to: what the steward was shown.
+  const shownGardenRef = useRef(garden);
 
   // Plain per-render computation — compares against what the chain holds.
   const dirtyFields = dirtyFieldsOf(draft, garden, landed);
-  const isDirty = dirtyFields.length > 0;
 
   useEffect(() => {
     if (lastSnapshotRef.current === gardenSnapshot) return;
     lastSnapshotRef.current = gardenSnapshot;
+    const shown = shownGardenRef.current;
+    shownGardenRef.current = garden;
     // Another garden starts over: its draft, landed values, and save run are
     // not this one's.
     if (lastGardenAddressRef.current !== gardenAddress) {
@@ -188,13 +192,11 @@ export const GardenSettingsEditor = forwardRef<
       return;
     }
     setLanded((current) => withoutReportedValues(current, garden));
-    if (!isDirty && !isSaving) {
-      setDraft((current) => adoptRefreshedGarden(current, garden, landed));
-    }
-    // The snapshot-equality guard above is the real trigger; isDirty/isSaving/
-    // garden/landed are listed so the guard always reads current values (no
-    // stale closure) and the effect needs no exhaustive-deps suppression.
-  }, [gardenSnapshot, gardenAddress, isDirty, isSaving, garden, landed]);
+    setDraft((current) => adoptRefreshedGarden(current, shown, garden, landed));
+    // The snapshot-equality guard above is the real trigger; garden/landed are
+    // listed so the guard always reads current values (no stale closure) and
+    // the effect needs no exhaustive-deps suppression.
+  }, [gardenSnapshot, gardenAddress, garden, landed]);
 
   const canEditProfile = canManage;
   const canEditName = isOwner;
@@ -370,6 +372,7 @@ export const GardenSettingsEditor = forwardRef<
   }));
 
   const disabledProfileField = !canEditProfile || isSaving;
+  const capLocked = disabledProfileField || !draft.capRead;
 
   const toggleDomain = (domain: Domain) => {
     setDraft((current) => {
@@ -517,20 +520,27 @@ export const GardenSettingsEditor = forwardRef<
               id: "app.garden.settings.limitGardeners",
               defaultMessage: "Limit gardeners",
             })}
-            description={formatMessage({
-              id: "app.garden.settings.maxGardenersDescription",
-              defaultMessage: "Cap how many gardeners can join. Off means unlimited.",
-            })}
+            description={
+              draft.capRead
+                ? formatMessage({
+                    id: "app.garden.settings.maxGardenersDescription",
+                    defaultMessage: "Cap how many gardeners can join. Off means unlimited.",
+                  })
+                : formatMessage({
+                    id: "app.garden.settings.maxGardenersUnread",
+                    defaultMessage: "The current limit hasn't loaded yet, so it can't be changed.",
+                  })
+            }
           >
             <Switch
-              disabled={disabledProfileField}
+              disabled={capLocked}
               checked={draft.limitGardeners}
               onCheckedChange={(checked) =>
                 setDraft((current) => ({ ...current, limitGardeners: checked === true }))
               }
               surface="admin"
               aria-labelledby="garden-settings-limit-gardeners-label"
-              className={cn(disabledProfileField && "cursor-not-allowed opacity-50")}
+              className={cn(capLocked && "cursor-not-allowed opacity-50")}
             />
           </AdminSettingRow>
 

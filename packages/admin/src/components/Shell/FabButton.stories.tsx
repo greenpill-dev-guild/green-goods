@@ -1,8 +1,9 @@
 import {
   RiCheckboxCircleLine,
+  RiExternalLinkLine,
   RiFileList3Line,
   RiHandCoinLine,
-  RiSeedlingLine,
+  RiSettings3Line,
   RiUserAddLine,
 } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
@@ -19,7 +20,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The cockpit's creation FAB (Cockpit M3, finished): circular, tone-action filled, warm chrome shadow at rest. Multi-action configs open the speed dial (the + rotates 45°); single-action configs fire directly and get a hover tooltip. Floats above the nav bar on tablet/mobile only — desktop carries inline header actions instead.",
+          "The cockpit's creation FAB (Cockpit M3, finished): circular, tone-action filled, warm chrome shadow at rest. It shows its primary action's icon; a multi-action config opens the speed dial and swaps the icon for a close icon while open (DL-050). Single-action configs fire directly and get a hover tooltip. Floats above the nav bar on tablet/mobile only — desktop carries inline header actions instead.",
       },
     },
   },
@@ -32,7 +33,8 @@ const meta = {
   ],
   args: {
     config: {
-      icon: RiSeedlingLine,
+      // As useViewActions builds it: the FAB takes the primary's icon.
+      icon: RiCheckboxCircleLine,
       label: "Create",
       actions: [
         {
@@ -74,6 +76,39 @@ export const SpeedDial: Story = {
     // The chosen item unmounts with the dial; focus returns to the FAB rather
     // than falling to <body>.
     await expect(fab).toHaveFocus();
+  },
+};
+
+/** The Garden dial shows Edit Garden's gear, its primary, rather than a "+" (DL-050). */
+export const GardenDial: Story = {
+  args: {
+    config: {
+      icon: RiSettings3Line,
+      label: "Garden actions",
+      actions: [
+        {
+          id: "edit-garden",
+          icon: RiSettings3Line,
+          label: "Edit Garden",
+          labelId: "cockpit.garden.action.editGarden",
+        },
+        {
+          id: "view-public",
+          icon: RiExternalLinkLine,
+          label: "View Public",
+          labelId: "cockpit.garden.action.viewPublic",
+        },
+      ],
+      onAction: fn(),
+    },
+    mobileFloating: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const fab = canvas.getByRole("button", { name: /open/i });
+    await userEvent.click(fab);
+    await expect(fab).toHaveAttribute("aria-expanded", "true");
+    await expect(await canvas.findAllByRole("menuitem")).toHaveLength(2);
   },
 };
 

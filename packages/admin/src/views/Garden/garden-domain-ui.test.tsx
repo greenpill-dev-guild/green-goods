@@ -13,8 +13,9 @@ import { SubmitWorkPanel } from "./SubmitWork";
 
 const gardenAddress = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12";
 
-const { mockCanManageGarden, settingsEditorProbe } = vi.hoisted(() => ({
+const { mockCanManageGarden, mockReviewQueue, settingsEditorProbe } = vi.hoisted(() => ({
   mockCanManageGarden: vi.fn(() => true),
+  mockReviewQueue: { medianReviewLatencyMs: null, pendingCount: 0 },
   // Captures the dirty-state reporter the workspace passes to the (mocked)
   // settings editor, so tests can drive the dialog's close guard directly.
   settingsEditorProbe: {
@@ -59,7 +60,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController"
           approvedInRangeCount: 0,
           approvedInLastThirtyDays: 0,
           impactVelocityDelta: 0,
-          reviewQueue: { medianReviewLatencyMs: null },
+          reviewQueue: mockReviewQueue,
           pendingWorks: [],
           filteredActivityEvents: [],
         },
@@ -172,7 +173,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenDerivedState", () => ({
     approvedInRangeCount: 0,
     approvedInLastThirtyDays: 0,
     impactVelocityDelta: 0,
-    reviewQueue: { medianReviewLatencyMs: null },
+    reviewQueue: mockReviewQueue,
     pendingWorks: [],
     filteredActivityEvents: [],
   }),
@@ -305,6 +306,7 @@ describe("garden domain recovery UI", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCanManageGarden.mockReturnValue(true);
+    mockReviewQueue.pendingCount = 0;
   });
 
   function GardenWorkspaceHarness() {
@@ -330,6 +332,24 @@ describe("garden domain recovery UI", () => {
     );
     return router;
   }
+
+  it("counts Pending Work across the whole garden, not only its newest page", () => {
+    // The page holds no pending rows; the garden's whole queue has six waiting.
+    mockReviewQueue.pendingCount = 6;
+    const router = createMemoryRouter(
+      [{ path: "/garden/health", element: <GardenWorkspaceHarness /> }],
+      { initialEntries: ["/garden/health"] }
+    );
+    render(
+      <TestProviders>
+        <RouterProvider router={router} />
+      </TestProviders>
+    );
+
+    const pendingWork = screen.getByText("Pending Work").closest(".garden-stat-row");
+    expect(pendingWork).not.toBeNull();
+    expect(within(pendingWork as HTMLElement).getByText("6")).toBeInTheDocument();
+  });
 
   it("closes pristine garden settings straight to health with no discard prompt", async () => {
     const user = userEvent.setup();

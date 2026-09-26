@@ -24,7 +24,7 @@ export function SubmissionDetails({
 
   return (
     <section className="surface-inset sm:p-6">
-      <h3 className="text-sm font-semibold text-text-strong">
+      <h3 className="body-sm font-semibold text-text-strong">
         {formatMessage({ id: "app.work.detail.submissionDetails" })}
       </h3>
 
@@ -36,7 +36,7 @@ export function SubmissionDetails({
           value={
             <span>
               {actionTitle ?? `Action #${work.actionUID}`}
-              {actionSlug && <span className="ml-1.5 text-xs text-text-soft">({actionSlug})</span>}
+              {actionSlug && <span className="ml-1.5 body-xs text-text-soft">({actionSlug})</span>}
             </span>
           }
         />
@@ -69,10 +69,10 @@ export function SubmissionDetails({
         {/* Gardener feedback */}
         {work.feedback && (
           <div className="mt-3 rounded-md bg-bg-weak p-3">
-            <p className="text-xs font-medium text-text-soft">
+            <p className="label-xs text-text-soft">
               {formatMessage({ id: "app.work.detail.gardenerNotes" })}
             </p>
-            <p className="mt-1 text-sm text-text-sub">{work.feedback}</p>
+            <p className="mt-1 body-sm text-text-sub">{work.feedback}</p>
           </div>
         )}
       </div>

@@ -182,7 +182,7 @@ export function EditGardenDialog({
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p
                 className={cn(
-                  "text-xs",
+                  "body-xs",
                   settingsForm.isDirty ? "text-warning-dark" : "text-text-soft"
                 )}
                 aria-live="polite"
@@ -224,6 +224,7 @@ export function EditGardenDialog({
               bannerImage: garden.bannerImage,
               domainMask: garden.domainMask,
               openJoining: garden.openJoining,
+              maxGardeners: garden.maxGardeners,
             }}
             canManage={canManage}
             isOwner={isOwner}
@@ -241,7 +242,7 @@ export function EditGardenDialog({
                 {bannerRemovalStaged ? (
                   <div className="flex h-28 w-full flex-col items-center justify-center gap-1 bg-bg-soft px-3 text-center text-text-soft">
                     <RiImageLine className="h-5 w-5" />
-                    <span className="text-xs">
+                    <span className="body-xs">
                       {formatMessage({
                         id: "app.garden.settings.bannerWillBeRemoved",
                         defaultMessage: "Will be removed on save",
@@ -287,7 +288,7 @@ export function EditGardenDialog({
                   </div>
                 )}
               </div>
-              <div className="space-y-1 p-3 text-sm text-text-sub">
+              <div className="space-y-1 p-3 body-sm text-text-sub">
                 <h3 className="label-md truncate text-text-strong" title={garden.name}>
                   {garden.name}
                 </h3>

@@ -9,6 +9,7 @@ import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { buildActionId } from "@green-goods/shared/utils/action/parsers";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
@@ -175,9 +176,11 @@ export function FieldNoteDialog({
     [formatMessage]
   );
 
-  const title =
-    note.title ||
-    formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" });
+  // A stored title can end in timestamps older submissions appended; readers see the title alone.
+  const title = toWorkDisplayTitle(
+    note.title,
+    formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" })
+  );
 
   const legacy = metadata as WorkMetadataV1 | null;
   const details =
