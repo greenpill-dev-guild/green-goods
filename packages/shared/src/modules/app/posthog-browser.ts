@@ -1,5 +1,6 @@
 import { type CaptureResult, posthog } from "posthog-js";
 import { registerTelemetrySink, restoreExceptionTopLevelProps } from "./posthog";
+import { isReportingCeremonyPath, redactPrivatePaths } from "./private-paths";
 
 const POSTHOG_API_HOST = "https://us.i.posthog.com";
 const EXTENSION_TAB_ERROR = /^No tab with id: \d+\.$/;
@@ -100,6 +101,34 @@ export function dropDevelopmentHostExceptions(event: CaptureResult | null): Capt
   return host && isDevelopmentHost(host) ? null : event;
 }
 
+// Element-level capture can carry what a ceremony page displays: pairing codes, accounts, reports.
+const CEREMONY_ELEMENT_EVENTS = new Set(["$snapshot", "$autocapture", "$rageclick", "$dead_click"]);
+
+function redactStrings(value: unknown, depth: number): unknown {
+  if (typeof value === "string") return redactPrivatePaths(value);
+  if (depth > 4 || value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map((entry) => redactStrings(entry, depth + 1));
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [key, redactStrings(entry, depth + 1)])
+  );
+}
+
+/** Keep reporting ceremony links and page content out of analytics. */
+export function protectReportingCeremonies(event: CaptureResult | null): CaptureResult | null {
+  if (!event) return event;
+  const onCeremony =
+    typeof window !== "undefined" && isReportingCeremonyPath(window.location.pathname);
+  if (onCeremony && CEREMONY_ELEMENT_EVENTS.has(event.event)) return null;
+  return {
+    ...event,
+    properties: redactStrings(event.properties, 0) as CaptureResult["properties"],
+    ...(event.$set ? { $set: redactStrings(event.$set, 0) as CaptureResult["$set"] } : {}),
+    ...(event.$set_once
+      ? { $set_once: redactStrings(event.$set_once, 0) as CaptureResult["$set_once"] }
+      : {}),
+  };
+}
+
 /** Load and connect the browser analytics transport after the application is interactive. */
 export function initializePostHog(apiKey: string): void {
   if (!apiKey || initializedKey === apiKey) return;
@@ -108,6 +137,7 @@ export function initializePostHog(apiKey: string): void {
     api_host: POSTHOG_API_HOST,
     capture_exceptions: true,
     before_send: [
+      protectReportingCeremonies,
       dropDevelopmentHostExceptions,
       restoreExceptionTopLevelProps,
       dropExtensionExceptions,

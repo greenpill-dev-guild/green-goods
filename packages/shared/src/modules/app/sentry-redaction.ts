@@ -1,3 +1,5 @@
+import { redactPrivatePaths } from "./private-paths";
+
 const REDACTED = "[REDACTED]";
 const REDACTED_EMAIL = "[REDACTED_EMAIL]";
 const REDACTED_TOKEN = "[REDACTED_TOKEN]";
@@ -25,7 +27,7 @@ export type RedactedSentryValue =
   | { [key: string]: RedactedSentryValue };
 
 export function redactSentryString(value: string): string {
-  return value
+  return redactPrivatePaths(value)
     .replace(JWT_PATTERN, REDACTED_TOKEN)
     .replace(EMAIL_PATTERN, REDACTED_EMAIL)
     .replace(WALLET_PATTERN, REDACTED_WALLET)
