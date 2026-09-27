@@ -123,6 +123,21 @@ only after the solo reproduction confirms it.
   real clock, so it failed on develop too; its clock is pinned to 2026-08-28. The QA test-cases
   docs page is regenerated from the catalog.
 
+## Review round 2 (PR #921, 2026-09-26)
+
+- `discardJob` now refuses a job whose send holds its execution claim. Every `processJob` takes
+  that claim through `acquireWorkJobs`, commitment acts included, so a discard during a tap, a
+  passkey background flush, or another tab's send is refused and the row says so. The store port
+  gained an optional `hasActiveExecutionClaim`, implemented by the IndexedDB store. RED: without
+  the guard the new seam test fails `expected true to be false`. This touches the shared JobQueue
+  module, so the push plan is critical.
+- Membership is read the way the claim contract tests it: `readGardenMembership` asks all six
+  role views (GuardLib.isGardenMember accepts every hat, funder and community included) and
+  returns null when a read fails, and `useGardenMembership` keeps that null as unknown instead of
+  `useHasRole`'s "no". The roster fallback and the protocol pool's claim gardens count all six
+  role lists. The roles hook exposes `membershipUnavailable` and `retryMembership`, which read the
+  garden list and the chain again.
+
 ## Tests (RED first)
 
 - `packages/shared/src/__tests__/commitment-acts.test.ts`: an `it.each` table over
