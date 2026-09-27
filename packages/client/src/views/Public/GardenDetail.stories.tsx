@@ -4,7 +4,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { PUBLIC_HISTORY_PAGE_SIZE } from "@green-goods/shared/commitment-pooling/public";
 import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import GardenDetail from "./GardenDetail";
 
@@ -91,5 +91,31 @@ export const ShortDescription: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("A neighborhood garden.")).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "See more" })).not.toBeInTheDocument();
+  },
+};
+
+export const ResizeWhileExpanded: Story = {
+  decorators: [
+    seeded(
+      "Neighbors grow food, share harvests, and care for the soil together. Everyone can join a workday and learn from the community."
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const initialWidth = canvasElement.style.width;
+    try {
+      canvasElement.style.width = "320px";
+      const more = await canvas.findByRole("button", { name: "See more" });
+      await userEvent.click(more);
+      await expect(canvasElement.querySelector("#public-garden-description")).toHaveFocus();
+      canvasElement.style.width = "900px";
+      await userEvent.click(canvas.getAllByRole("button", { name: "Show less" })[1]);
+      await waitFor(() =>
+        expect(canvas.queryByRole("button", { name: "See more" })).not.toBeInTheDocument()
+      );
+      await expect(canvas.getByText(/^Neighbors grow food/).parentElement).toHaveFocus();
+    } finally {
+      canvasElement.style.width = initialWidth;
+    }
   },
 };

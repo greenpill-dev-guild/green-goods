@@ -50,6 +50,7 @@ export default function GardenDetail() {
   const descriptionRef = useRef<HTMLDivElement>(null);
   const descriptionToggleRef = useRef<HTMLButtonElement>(null);
   const descriptionLedeRef = useRef<HTMLDivElement>(null);
+  const restoreDescriptionFocus = useRef(false);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const { data: gardens = [] } = usePublicGardens();
   // Pinned so the field-note explorer links resolve against the same chain the
@@ -112,7 +113,17 @@ export default function GardenDetail() {
     if (!(lede instanceof HTMLElement)) return;
     let active = true;
     const measure = () => {
-      if (active) setDescriptionOverflows(lede.scrollHeight > lede.clientHeight + 1);
+      if (!active) return;
+      const overflows = lede.scrollHeight > lede.clientHeight + 1;
+      setDescriptionOverflows(overflows);
+      if (
+        restoreDescriptionFocus.current ||
+        (!overflows && document.activeElement === descriptionToggleRef.current)
+      ) {
+        // Resizing can remove the toggle; the restored narrative stays mounted.
+        (overflows ? descriptionToggleRef.current : descriptionLedeRef.current)?.focus();
+        restoreDescriptionFocus.current = false;
+      }
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -129,7 +140,7 @@ export default function GardenDetail() {
   }, [descriptionExpanded]);
 
   const showLess = () => {
-    descriptionToggleRef.current?.focus();
+    restoreDescriptionFocus.current = true;
     setExpandedGardenId(null);
   };
 

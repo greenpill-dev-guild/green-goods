@@ -416,6 +416,19 @@ describe("GardenDetail", () => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "See more" }));
   });
 
+  it("keeps focus on the description when it fits after expanding and resizing", () => {
+    const height = vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(180);
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(72);
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "See more" }));
+
+    height.mockReturnValue(72);
+    fireEvent.click(screen.getAllByRole("button", { name: "Show less" })[1]);
+
+    expect(screen.queryByRole("button", { name: "See more" })).not.toBeInTheDocument();
+    expect(screen.getByText(mockGardens[0].description).parentElement).toHaveFocus();
+  });
+
   it("does not offer expansion when the hero description fits", () => {
     vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(48);
     vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(48);

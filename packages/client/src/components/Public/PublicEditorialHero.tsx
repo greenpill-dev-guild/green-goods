@@ -56,6 +56,7 @@ export interface PublicEditorialHeroProps {
   lede?: ReactNode;
   /** Optional paragraph styling for a consuming page's lede length. */
   ledeClassName?: string;
+  /** Focusable lede container for pages that measure and collapse the narrative. */
   ledeContainerRef?: Ref<HTMLDivElement>;
   /**
    * Optional small-print disclaimer rendered under a hairline rule with a
@@ -178,6 +179,7 @@ export function PublicEditorialHero({
               {lede ? (
                 <div
                   ref={ledeContainerRef}
+                  tabIndex={ledeContainerRef ? -1 : undefined}
                   className={cn(animateEntrance && "editorial-fade-up-2", "mt-4 max-w-prose")}
                 >
                   <EditorialLede className={ledeClassName}>{lede}</EditorialLede>
