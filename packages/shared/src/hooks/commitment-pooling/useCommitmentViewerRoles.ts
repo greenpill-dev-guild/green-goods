@@ -23,6 +23,7 @@ import type { Address, Garden } from "../../types/domain";
 import { isAddressInList } from "../../utils/blockchain/address";
 import { useGardens } from "../blockchain/useBaseLists";
 import { isGardenMember, usePendingJoinsVersion } from "../garden/useJoinGarden";
+import { useGardenRecord } from "../garden/useGardenRecord";
 import { useGardenPermissions } from "../garden/useGardenPermissions";
 import { useGardenMembership } from "../roles/useGardenMembership";
 import { useHasRole } from "../roles/useHasRole";
@@ -158,9 +159,15 @@ export function useCommitmentViewerRoles(input: {
   const pendingJoinsVersion = usePendingJoinsVersion();
   const garden = gardens.find((entry) => entry.id.toLowerCase() === routeGarden?.toLowerCase());
   const poolHost = pool?.garden?.toLowerCase();
-  const hostGarden = poolHost
+  const listedHost = poolHost
     ? gardens.find((entry) => entry.id.toLowerCase() === poolHost)
     : undefined;
+  // The list holds only the newest gardens, and the protocol's own may sit past
+  // it, so the host is read on its own when the list lacks it.
+  const hostRecord = useGardenRecord((pool?.garden as Address | undefined) ?? null, {
+    enabled: gardensKnown && Boolean(poolHost) && !listedHost,
+  });
+  const hostGarden = listedHost ?? hostRecord.data ?? undefined;
 
   const isSteward = wearsStewardHat || isOwner;
   // Read on every render on purpose: the overlay lives in localStorage, and a
@@ -169,6 +176,8 @@ export function useCommitmentViewerRoles(input: {
     ? true
     : membershipIn(viewer, garden, chainMembership, gardensKnown);
   const hostMember = membershipIn(viewer, hostGarden, hostMembership, gardensKnown);
+  // A member of a host whose record has not arrived has no option to show yet.
+  const hostOptionPending = hostMember === true && !hostGarden;
 
   // The contract refuses the host as a garden claim's context
   // (GardenClaimMustBeExternal), so it never joins `stewarded`. A personal
@@ -182,13 +191,17 @@ export function useCommitmentViewerRoles(input: {
       address: entry.id as Address,
       name: entry.name,
     });
+    const listed = gardens.filter((entry) =>
+      isHost(entry) ? hostMember === true : holdsRosterRole(viewer, entry)
+    );
+    // A host read on its own leads the list it was missing from.
+    const unlistedHost =
+      hostMember === true && hostGarden && !gardens.some(isHost) ? [hostGarden] : [];
     return {
-      member: gardens
-        .filter((entry) => (isHost(entry) ? hostMember === true : holdsRosterRole(viewer, entry)))
-        .map(asOption),
+      member: [...unlistedHost, ...listed].map(asOption),
       stewarded: gardens.filter((entry) => !isHost(entry) && canManageGarden(entry)).map(asOption),
     };
-  }, [gardens, poolHost, hostMember, viewer, canManageGarden, pendingJoinsVersion]);
+  }, [gardens, poolHost, hostGarden, hostMember, viewer, canManageGarden, pendingJoinsVersion]);
 
   return {
     isSteward,
@@ -198,15 +211,17 @@ export function useCommitmentViewerRoles(input: {
     stewardsCounterparty: stewardsCp || ownsCp,
     garden,
     claimGardens,
-    claimGardensKnown: gardensKnown && hostMember !== null,
+    claimGardensKnown: gardensKnown && hostMember !== null && !hostOptionPending,
     membershipUnavailable:
       gardensQuery.isError ||
       (chainMembership.isError && isMemberHere !== true) ||
-      (hostMembership.isError && hostMember !== true),
+      (hostMembership.isError && hostMember !== true) ||
+      (hostOptionPending && hostRecord.isError),
     retryMembership: () => {
       void gardensQuery.refetch();
       chainMembership.refetch();
       hostMembership.refetch();
+      if (hostOptionPending) void hostRecord.refetch();
     },
   };
 }

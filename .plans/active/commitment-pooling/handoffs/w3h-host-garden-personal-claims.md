@@ -98,8 +98,8 @@ claim.
 
 ## Unblock evidence
 
-RED and GREEN recorded; PR merged; sub-lane `completed`; Linear child Done. As of 2026-09-27, RED
-and GREEN are recorded above and the PR is not yet merged.
+The lane closes when RED and GREEN are recorded, the PR merges, the sub-lane is `completed`, and
+the Linear child is Done. As of 2026-09-27, RED and GREEN are recorded above; the PR is open.
 
 ## Validation Receipt
 

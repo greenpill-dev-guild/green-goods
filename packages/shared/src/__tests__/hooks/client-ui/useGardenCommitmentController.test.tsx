@@ -138,6 +138,11 @@ vi.mock("../../../hooks/roles/useGardenMembership", () => ({
   }),
 }));
 
+vi.mock("../../../hooks/garden/useGardenRecord", () => ({
+  // Every host these tests use is in the garden list, so its own read never runs.
+  useGardenRecord: () => ({ data: undefined, isLoading: false, isError: false, refetch: vi.fn() }),
+}));
+
 vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
   useGardenPermissions: () => ({
     canManageGarden: (garden: { id: string }) => mocks.managedGardens.has(garden.id.toLowerCase()),

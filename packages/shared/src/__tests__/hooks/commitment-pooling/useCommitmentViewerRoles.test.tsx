@@ -33,6 +33,8 @@ const mocks = vi.hoisted(() => ({
   >(),
   /** Gardens the reader stewards, by lowercased id. */
   managed: new Set<string>(),
+  /** The host's own record, read when the garden list does not hold it. */
+  hostRecord: null as RosterGarden | null,
   refetchMembership: vi.fn(),
 }));
 
@@ -54,6 +56,15 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
     isSuccess: !mocks.gardensLoading && !mocks.gardensError,
     isError: mocks.gardensError,
     refetch: mocks.refetchGardens,
+  }),
+}));
+
+vi.mock("../../../hooks/garden/useGardenRecord", () => ({
+  useGardenRecord: (_garden: string | null, { enabled = true }: { enabled?: boolean } = {}) => ({
+    data: enabled ? mocks.hostRecord : undefined,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
   }),
 }));
 
@@ -85,6 +96,7 @@ describe("useCommitmentViewerRoles", () => {
     mocks.membership = { isMember: false, isLoading: false, isError: false };
     mocks.membershipByGarden = new Map();
     mocks.managed = new Set();
+    mocks.hostRecord = null;
     mocks.gardens = [
       { id: HOST, name: "Host Garden", gardeners: [], stewards: [] },
       { id: OTHER, name: "Other Garden", gardeners: [], stewards: [] },
@@ -199,6 +211,20 @@ describe("useCommitmentViewerRoles", () => {
     expect(result.current.isMemberHere).toBeNull();
     expect(result.current.claimGardensKnown).toBe(false);
     expect(result.current.claimGardens.member).toEqual([]);
+  });
+
+  it("reads the host on its own when it sits past the newest gardens the list holds", () => {
+    // The list holds only the newest gardens, and the protocol's own may sit past it.
+    mocks.gardens = [{ id: OTHER, name: "Other Garden", gardeners: [], stewards: [] }];
+    mocks.hostRecord = { id: HOST, name: "Host Garden", gardeners: [], stewards: [] };
+    mocks.membershipByGarden = new Map([
+      [HOST.toLowerCase(), { isMember: true, isLoading: false, isError: false }],
+      [OTHER.toLowerCase(), { isMember: false, isLoading: false, isError: false }],
+    ]);
+
+    const { result } = roles(OTHER, HOST);
+    expect(result.current.claimGardens.member).toEqual([{ address: HOST, name: "Host Garden" }]);
+    expect(result.current.claimGardensKnown).toBe(true);
   });
 
   it("keeps membership unknown when the garden list fails, and reads them all again on retry", () => {

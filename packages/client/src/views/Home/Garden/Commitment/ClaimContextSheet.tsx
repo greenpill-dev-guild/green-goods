@@ -42,6 +42,8 @@ export interface ClaimContextSheetProps {
  * afterwards: a garden claim stores the garden as claimant and the steward as
  * the one who asked.
  */
+const same = (left: Address, right: Address) => left.toLowerCase() === right.toLowerCase();
+
 export function ClaimContextSheet({
   open,
   onOpenChange,
@@ -55,20 +57,29 @@ export function ClaimContextSheet({
   const first = memberGardens[0] ?? stewardedGardens[0];
   const [context, setContext] = useState<ClaimContext | null>(null);
 
-  // Each opening starts from the first personal option; back and retry keep
-  // whatever was chosen until the sheet closes, and nothing is submitted between.
+  // Each opening starts from the first personal option. While the sheet is
+  // open a choice stands, even as the lists refresh behind it (the host's own
+  // read landing adds an option), unless its garden has left them. Nothing is
+  // submitted between.
   useEffect(() => {
-    if (!open) return;
-    setContext(
-      memberGardens[0]
+    if (!open) {
+      setContext(null);
+      return;
+    }
+    setContext((current) => {
+      const offered =
+        current &&
+        (current.kind === "personal" ? memberGardens : stewardedGardens).some((garden) =>
+          same(garden.address, current.garden)
+        );
+      if (current && offered) return current;
+      return memberGardens[0]
         ? { kind: "personal", garden: memberGardens[0].address }
         : first
           ? { kind: "garden", garden: first.address }
-          : null
-    );
-  }, [open, memberGardens, first]);
-
-  const same = (left: Address, right: Address) => left.toLowerCase() === right.toLowerCase();
+          : null;
+    });
+  }, [open, memberGardens, stewardedGardens, first]);
 
   return (
     <DialogShell
