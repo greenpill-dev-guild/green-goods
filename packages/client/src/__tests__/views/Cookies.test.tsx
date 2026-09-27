@@ -6,7 +6,14 @@
 
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders as render, screen, userEvent, waitFor, within } from "../test-utils";
+import {
+  act,
+  renderWithProviders as render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "../test-utils";
 
 const TEST_JAR = "0x1111111111111111111111111111111111111111" as const;
 const TEST_TOKEN = "0x2222222222222222222222222222222222222222" as const;
@@ -226,6 +233,11 @@ describe("CookiesPage", () => {
     mockUseUser.mockReturnValue({ primaryAddress: undefined });
 
     renderPage();
+
+    // Settle the real lazy module before asserting the loaded card, not its fallback.
+    await act(async () => {
+      await vi.dynamicImportSettled();
+    });
 
     expect(
       screen.getByRole("heading", {
