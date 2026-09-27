@@ -32,7 +32,7 @@ import {
 import { jobQueueDB } from "./db";
 import { convertQueuedHeicMedia } from "./job-media-conversion";
 import { sendCheckpointOf, writeSendCheckpoint } from "./queue-policy";
-import { createSendChainReads, type SendChainReads } from "./send-chain-reads";
+import { createSendChainReads, intentHead, type SendChainReads } from "./send-chain-reads";
 import {
   holdingSend,
   observeTransactionNonce,
@@ -185,11 +185,14 @@ export async function executeWorkJob(
     if (payload.uploadCheckpoint) payload.uploadCheckpoint.transactionReverted = true;
     await jobQueueDB.updateJob(job);
   };
+  // Read just before the send: a lost one is then timed on the chain's clock.
+  const intent = await intentHead(reads.readChainHead);
   const result = await holdingSend(jobId, () =>
     sendWithCheckpoint({
       sender,
       call: { ...contractCall, chainId },
       jobIds: [jobId],
+      intent,
       assertOwnership: async () => {
         await sender.assertOwnership?.(job.userAddress, chainId);
       },

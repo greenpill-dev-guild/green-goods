@@ -77,9 +77,9 @@ export async function sendRecordedAct(
       sender,
       call,
       jobIds: [jobId],
+      intent,
       record: async (next) => {
-        const send = next(sendCheckpointOf(job) ?? {});
-        writeSendCheckpoint(job, send && intent ? { ...send, ...intent } : send);
+        writeSendCheckpoint(job, next(sendCheckpointOf(job) ?? {}));
         await store.updateJob(job);
       },
     })

@@ -29,6 +29,7 @@ import {
 import { logger } from "../app/logger";
 import type { ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
 import { sendCheckpointOf, writeSendCheckpoint } from "../job-queue/queue-policy";
+import { intentHead } from "../job-queue/send-chain-reads";
 import { holdingSends } from "../job-queue/send-guards";
 import type { saveUnderClaim, WorkClaim } from "../job-queue/work-claims";
 import type { ContractCall, TransactionSender } from "../transactions/types";
@@ -74,6 +75,8 @@ export interface UploadQueuedWorkPorts {
   now(): number;
   /** The nonce a transaction used, read off it while the network holds it; null once it does not. */
   readTransactionNonce?(hash: Hex, chainId: number): Promise<number | null>;
+  /** The chain's latest block and its time, in seconds. */
+  readChainHead?(chainId: number): Promise<{ number: bigint; timestamp: number }>;
 }
 
 interface ChunkItem {
@@ -256,10 +259,15 @@ export async function uploadQueuedWork(
         if (items.length === 0) return {};
       }
 
+      // Read once, just before the call goes out: every item it carries is
+      // then timed on the chain's clock if the answer is lost.
+      const { readChainHead } = ports;
+      const intent = await intentHead(readChainHead && (() => readChainHead(chainId)));
       const result = await sendWithCheckpoint({
         sender,
         call: { ...callOf(items), chainId },
         jobIds: items.map(({ job }) => job.id),
+        intent,
         record: (next) => recordAll(items, next),
         now: ports.now,
       });

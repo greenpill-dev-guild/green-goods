@@ -52,6 +52,8 @@ export type StrandedLookupResult = LookupResult;
 interface LookupWindow {
   sinceMs: number;
   sentAtMs: number;
+  /** The chain's time at the intent, in seconds, when the send kept it. */
+  intentChainTime?: number;
 }
 
 export type StrandedWorkLookup = (
@@ -153,6 +155,7 @@ async function resolveStrandedSend(send: {
     lookup = await send.lookUp({
       sinceMs: Math.min(recordedAt, send.createdAt) - CLOCK_DRIFT_MS,
       sentAtMs: recordedAt,
+      intentChainTime: checkpoint.intentChainTime,
     });
   } catch (error) {
     logger.warn("[StrandedIntent] Could not check whether a queued send landed", {

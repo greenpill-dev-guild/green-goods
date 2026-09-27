@@ -4,9 +4,15 @@ import type { WorkDecision, WorkSubmission } from "../../../modules/data/eas-sen
 import { createEasLandedLookup } from "../../../modules/work/eas-landed-lookup";
 import {
   resolveStrandedDecisionIntent,
+  resolveStrandedWorkIntent,
   STRANDED_INTENT_GRACE_MS,
 } from "../../../modules/work/stranded-intent";
-import type { ApprovalJobPayload, Job } from "../../../types/job-queue";
+import type {
+  ApprovalJobPayload,
+  Job,
+  SendCheckpoint,
+  WorkJobPayload,
+} from "../../../types/job-queue";
 
 const GARDEN = "0x2222222222222222222222222222222222222222";
 const GARDENER = "0x1111111111111111111111111111111111111111";
@@ -210,35 +216,65 @@ describe("whether a lost work or decision send reached the chain", () => {
   });
 });
 
-describe("settling a lost decision with the steward's decisions on that work", () => {
-  let sequence = 0;
-  /** A decision whose send lost its answer when its intent was recorded. */
-  function lostDecision(fields: Partial<ApprovalJobPayload> = {}): Job<ApprovalJobPayload> {
-    sequence += 1;
-    return {
-      id: `lost-decision-${sequence}`,
-      kind: "approval",
-      chainId: 42161,
-      userAddress: GARDENER,
-      createdAt: SENT_MS,
-      attempts: 0,
-      synced: false,
-      payload: {
-        actionUID: 1,
-        workUID: WORK_UID,
-        gardenAddress: GARDEN,
-        gardenerAddress: GARDENER,
-        approved: true,
-        confidence: 2,
-        verificationMethod: 1,
-        sendCheckpoint: {
-          broadcastPending: true,
-          broadcastPendingAt: new Date(SENT_MS).toISOString(),
-        },
-        ...fields,
+let sequence = 0;
+/** A send record whose answer was lost when its intent was recorded. */
+const lostRecord = (record: Partial<SendCheckpoint> = {}): SendCheckpoint => ({
+  broadcastPending: true,
+  broadcastPendingAt: new Date(SENT_MS).toISOString(),
+  ...record,
+});
+
+/** A work whose send lost its answer. */
+function lostWork(record: Partial<SendCheckpoint> = {}): Job<WorkJobPayload> {
+  sequence += 1;
+  return {
+    id: `lost-work-${sequence}`,
+    kind: "work",
+    chainId: 42161,
+    userAddress: GARDENER,
+    createdAt: SENT_MS,
+    attempts: 0,
+    synced: false,
+    payload: {
+      clientWorkId: "client-1",
+      actionUID: 1,
+      gardenAddress: GARDEN,
+      feedback: "",
+      uploadCheckpoint: {
+        submittedAt: new Date(SENT_MS).toISOString(),
+        files: {},
+        ...lostRecord(record),
       },
-    } as Job<ApprovalJobPayload>;
-  }
+    },
+  } as Job<WorkJobPayload>;
+}
+
+/** A decision whose send lost its answer. */
+function lostDecision(fields: Partial<ApprovalJobPayload> = {}): Job<ApprovalJobPayload> {
+  sequence += 1;
+  return {
+    id: `lost-decision-${sequence}`,
+    kind: "approval",
+    chainId: 42161,
+    userAddress: GARDENER,
+    createdAt: SENT_MS,
+    attempts: 0,
+    synced: false,
+    payload: {
+      actionUID: 1,
+      workUID: WORK_UID,
+      gardenAddress: GARDEN,
+      gardenerAddress: GARDENER,
+      approved: true,
+      confidence: 2,
+      verificationMethod: 1,
+      sendCheckpoint: lostRecord(),
+      ...fields,
+    },
+  } as Job<ApprovalJobPayload>;
+}
+
+describe("settling a lost decision with the steward's decisions on that work", () => {
   const settle = (job: Job<ApprovalJobPayload>, eas: ReturnType<typeof easAt>) =>
     resolveStrandedDecisionIntent(job, 42161, {
       lookUp: eas.lookup.decision,
@@ -275,5 +311,36 @@ describe("settling a lost decision with the steward's decisions on that work", (
       status: "landed",
       transactionHash: TX,
     });
+  });
+});
+
+describe("timing a lost send by the chain's time it kept", () => {
+  const kept = { intentChainTime: SENT_S };
+  const deps = <Lookup>(lookUp: Lookup) => ({ lookUp, now: () => NOW_MS, persist: vi.fn() });
+
+  it.each([
+    [
+      "work",
+      (eas: ReturnType<typeof easAt>) =>
+        resolveStrandedWorkIntent(lostWork(kept), 42161, deps(eas.lookup.work)),
+    ],
+    [
+      "decision",
+      (eas: ReturnType<typeof easAt>) =>
+        resolveStrandedDecisionIntent(
+          lostDecision({ sendCheckpoint: lostRecord(kept) }),
+          42161,
+          deps(eas.lookup.decision)
+        ),
+    ],
+  ] as const)("waits on a lost %s until EAS passes the window on the chain's clock, whatever the device's clock did", async (_kind, settle) => {
+    // The device's clock moved half an hour forward after the send, so only ten
+    // minutes have passed on the chain, and EAS has processed nine of them.
+    const early = easAt({ clockAheadS: 1800, indexedThroughS: SENT_S + 540 });
+    await expect(settle(early)).resolves.toEqual({ status: "waiting" });
+
+    // Once EAS has processed past the window on the chain's clock, the send is missing.
+    const caughtUp = easAt({ indexedThroughS: SENT_S + GRACE_S + 60 });
+    await expect(settle(caughtUp)).resolves.toEqual({ status: "reopened" });
   });
 });

@@ -94,6 +94,32 @@ describe("sending one call while recording how far it got", () => {
     });
   });
 
+  it("keeps the chain's head with the intent, and on every record after it", async () => {
+    const { record, history } = recorder();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(TX);
+      return { hash: TX, sponsored: false };
+    });
+    // Nothing this send does can land before that head, so a lost send is timed from it.
+    const head = { intentBlock: 100n, intentChainTime: 1_234 };
+
+    await sendWithCheckpoint({
+      sender,
+      call: createMockContractCall(),
+      jobIds: JOBS,
+      record: record as never,
+      now: () => AT,
+      intent: head,
+    });
+
+    expect(history).toEqual([
+      { broadcastPending: true, broadcastPendingAt: "2026-09-18T10:00:00.000Z", ...head },
+      expect.objectContaining({ transactionHash: TX, ...head }),
+    ]);
+  });
+
   it("clears the intent when the estimate reverts after it, since nothing was signed", async () => {
     // The chain moved between the preflight and the wallet's own estimate.
     const refusals = [

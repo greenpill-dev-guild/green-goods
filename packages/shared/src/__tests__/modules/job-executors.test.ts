@@ -2013,6 +2013,33 @@ describe("work and decisions keep the send rules commitment acts follow", () => 
 
   it.each(
     kinds
+  )("keeps the chain's head with a $kind's intent, and sends without it when the chain cannot say", async ({
+    kind,
+    make,
+    run,
+  }) => {
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(HASH);
+      return { hash: HASH, sponsored: false };
+    });
+    // A lost send is then timed on the chain's clock, whatever the device's clock does.
+    const kept = make(`${kind}-keeps-head`);
+    const readChainHead = vi.fn().mockResolvedValue({ number: 100n, timestamp: 1_234 });
+    await expect(run(kept, sender, { reads: { readChainHead } })).resolves.toBe(HASH);
+    expect(sendCheckpointOf(kept)).toMatchObject({ intentBlock: 100n, intentChainTime: 1_234 });
+
+    // The lookup falls back to the device's clock, so a failed read never stops the send.
+    const unread = make(`${kind}-head-unread`);
+    const failing = vi.fn().mockRejectedValue(new Error("rpc unavailable"));
+    await expect(run(unread, sender, { reads: { readChainHead: failing } })).resolves.toBe(HASH);
+    expect(sendCheckpointOf(unread)).toMatchObject({ transactionHash: HASH });
+    expect(sendCheckpointOf(unread)?.intentChainTime).toBeUndefined();
+  });
+
+  it.each(
+    kinds
   )("offers a lost $kind again only when no tab holds it, its account has nothing waiting and its bundler cannot land it", async ({
     kind,
     make,

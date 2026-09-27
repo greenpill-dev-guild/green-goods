@@ -15,7 +15,7 @@ import {
 } from "../work/work-confirmation";
 import { jobQueueDB } from "./db";
 import { hasRecordedSend, writeSendCheckpoint } from "./queue-policy";
-import { createSendChainReads, type SendChainReads } from "./send-chain-reads";
+import { createSendChainReads, intentHead, type SendChainReads } from "./send-chain-reads";
 import {
   holdingSend,
   observeTransactionNonce,
@@ -107,11 +107,14 @@ export async function executeApprovalJob(
     payload.gardenAddress as `0x${string}`,
     attestationData
   );
+  // Read just before the send: a lost one is then timed on the chain's clock.
+  const intent = await intentHead(reads.readChainHead);
   const result = await holdingSend(job.id, () =>
     sendWithCheckpoint({
       sender,
       call: contractCall,
       jobIds: [job.id],
+      intent,
       record: async (next) => {
         writeSendCheckpoint(job, next(payload.sendCheckpoint ?? {}));
         await persist(job);

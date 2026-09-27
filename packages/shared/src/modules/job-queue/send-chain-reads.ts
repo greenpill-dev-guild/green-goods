@@ -5,6 +5,7 @@
  * the network, and a later run settles what is on record instead of sending it
  * again. These reads back the guards on that settle (`send-guards`). Each can
  * only keep a send waiting, and one that is missing or fails keeps it waiting.
+ * The chain's head, read just before a send, is kept with its intent.
  *
  * @module modules/job-queue/send-chain-reads
  */
@@ -20,6 +21,8 @@ import type { Hex } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import { createPimlicoClientForChain } from "../../config/pimlico";
 import type { Address } from "../../types/domain";
+import type { SendCheckpoint } from "../../types/job-queue";
+import { logger } from "../app/logger";
 
 export interface SendChainReads {
   /**
@@ -60,6 +63,26 @@ export interface SendChainReadOptions {
   /** The bundler's status for a UserOperation; the default asks the chain's Pimlico bundler. */
   getUserOperationStatus?: (hash: Hex) => Promise<{ status: string }>;
   config?: Config;
+}
+
+/**
+ * The chain's head just before a work or decision send, to keep with its
+ * intent. A read that fails keeps nothing and never stops the send: a lost
+ * send is then timed by the device's clock set against the chain's. A
+ * commitment act reads its head without this fallback, since it needs the
+ * block to tell its own claim from an earlier one.
+ */
+export async function intentHead(
+  readChainHead: SendChainReads["readChainHead"]
+): Promise<Pick<SendCheckpoint, "intentBlock" | "intentChainTime"> | undefined> {
+  if (!readChainHead) return undefined;
+  try {
+    const head = await readChainHead();
+    return { intentBlock: head.number, intentChainTime: head.timestamp };
+  } catch (error) {
+    logger.warn("[JobQueue] Could not read the chain's head before a queued send", { error });
+    return undefined;
+  }
 }
 
 /** Only the node's own "no such transaction" says it no longer holds one. */

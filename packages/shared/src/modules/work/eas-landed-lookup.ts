@@ -86,7 +86,8 @@ export function createEasLandedLookup(deps: EasLookupDependencies = {}): EasLand
   async function absentOnceCovered(
     chainId: number,
     indexed: bigint | null,
-    sentAtMs: number
+    sentAtMs: number,
+    intentChainTime: number | undefined
   ): Promise<StrandedLookupResult> {
     if (indexed === null || now() - sentAtMs < STRANDED_INTENT_GRACE_MS)
       return { status: "unknown" };
@@ -94,13 +95,14 @@ export function createEasLandedLookup(deps: EasLookupDependencies = {}): EasLand
       chainId,
       indexedBlock: indexed,
       sentAtMs,
+      intentChainTime,
       readBlockTime,
       now,
     });
     return covered ? { status: "absent" } : { status: "unknown" };
   }
 
-  const work: StrandedWorkLookup = async ({ sinceMs, sentAtMs, ...input }) => {
+  const work: StrandedWorkLookup = async ({ sinceMs, sentAtMs, intentChainTime, ...input }) => {
     const indexed = await indexedBlock(input.chainId);
     const transactionHashes = new Map<string, Hex | undefined>();
     const identity = await resolveDeferredWorkIdentity({
@@ -119,14 +121,21 @@ export function createEasLandedLookup(deps: EasLookupDependencies = {}): EasLand
         },
       },
     });
-    if (identity.status === "waiting") return absentOnceCovered(input.chainId, indexed, sentAtMs);
+    if (identity.status === "waiting")
+      return absentOnceCovered(input.chainId, indexed, sentAtMs, intentChainTime);
     // A failed metadata read or a duplicate identity proves nothing either way.
     if (identity.status !== "resolved") return { status: "unknown" };
     const transactionHash = transactionHashes.get(identity.workUID.toLowerCase());
     return transactionHash ? { status: "found", transactionHash } : { status: "unknown" };
   };
 
-  const decision: StrandedDecisionLookup = async ({ sinceMs, sentAtMs, steward, ...input }) => {
+  const decision: StrandedDecisionLookup = async ({
+    sinceMs,
+    sentAtMs,
+    intentChainTime,
+    steward,
+    ...input
+  }) => {
     const indexed = await indexedBlock(input.chainId);
     const sent = await decisions({
       attester: steward,
@@ -139,7 +148,7 @@ export function createEasLandedLookup(deps: EasLookupDependencies = {}): EasLand
     // sending twice. One that differs in any field, such as its feedback or review
     // notes, is another decision, and never settles this send.
     const landed = sent.find(({ decision: made }) => sameDecision(made, input.decision));
-    if (!landed) return absentOnceCovered(input.chainId, indexed, sentAtMs);
+    if (!landed) return absentOnceCovered(input.chainId, indexed, sentAtMs, intentChainTime);
     return landed.transactionHash
       ? { status: "found", transactionHash: landed.transactionHash }
       : { status: "unknown" };

@@ -47,6 +47,11 @@ export interface CheckpointedSend {
   jobIds: readonly string[];
   /** Must reject when a write fails: nothing may be sent without its intent on record. */
   record: RecordSend;
+  /**
+   * The chain's head just before the send, kept with its intent. Nothing the
+   * send does can land before it, so a lost send is timed from it.
+   */
+  intent?: Pick<SendCheckpoint, "intentBlock" | "intentChainTime">;
   assertOwnership?: () => void | Promise<void>;
   now?: () => number;
 }
@@ -65,6 +70,7 @@ export async function sendWithCheckpoint({
   call,
   jobIds,
   record,
+  intent,
   assertOwnership,
   now = Date.now,
 }: CheckpointedSend): Promise<CheckpointedSendResult> {
@@ -107,6 +113,7 @@ export async function sendWithCheckpoint({
         await record(() => ({
           broadcastPending: true,
           broadcastPendingAt: at,
+          ...intent,
           ...(reference ? { broadcast: reference } : {}),
         }));
         intentRecorded = true;
