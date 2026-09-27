@@ -306,6 +306,25 @@ replaced that join with each row's own receipt. The other two are fixed in `b05a
 The `shared-job-queue-construction` seam's fingerprint moved with its test and is re-certified
 (`scripts/data/module-seam-registry.json`, reviewed 2026-09-27).
 
+## Review round 10 on #923 (2026-09-27)
+
+Codex reviewed `8d44b0d39` (P2): a transaction its own account signed can be dropped, or cancelled
+in the wallet, while no tab watches, and then no receipt ever answers it. Its hash might have been a
+Safe's id, so the act was never reopened and waited for good, neither discardable nor sendable.
+
+`b7e4bece8` keeps the account's next nonce with each intent (`intentNonce`, from `readNextNonce`).
+Once the act reads absent past the grace window, a transaction on record reopens only when it can
+never be included (`transactionSuperseded`). Three things must hold: the account has no code, so the
+hash is one it signed; the node no longer holds the transaction; and the account's mined nonce has
+passed the recorded one. Every read fails closed. A Safe's id, a counterfactual account and an
+EIP-7702 account never show this, so they still complete only when the act lands.
+
+An evicted transaction whose nonce is still unspent keeps waiting, because its signature stays valid
+and a wallet may broadcast it again. Cancelling it in the wallet spends the nonce and reopens the
+act. One narrow residual remains: a wallet that knew of transactions the node never saw may give
+this one a later nonce, and if the node has also dropped it, the act can reopen while it could still
+land.
+
 ## RED and GREEN evidence
 
 RED at `4615608d9` plus the new tests, `bun run test -- src/__tests__/modules/job-executors.test.ts src/__tests__/modules/job-queue.seam.test.ts src/__tests__/commitment-queue-state.test.tsx` in `packages/shared`: six failed, each as the gap predicts (`offline_job_identity_conflict` on a re-tap; `receipt timeout` and `connection lost` rejected instead of waiting; a stranded act completed by sending again; a refused act resolved `complete`; `discardable: true` on a recorded send). The declined-prompt guard passed, as it should.
@@ -327,6 +346,10 @@ at `6781a51b2`.
 Review round 2 was RED against `e43476bef`: the work-link case returned the other link's
 transaction, and it passes at `15476ac0a`. The no-locks case was RED against `c8fc57412` (a lost
 act with no Web Locks was offered again, `send-intent-expired`) and passes at `826b65352`.
+
+Review round 10 was RED against `dfb022bc7`: four tests failed. A transaction another took the
+nonce of stayed waiting in the resolver, the send kept no nonce, the settle never asked whether the
+nonce was spent, and the nonce reads did not exist. All pass at `b7e4bece8`.
 
 Review round 9 was RED against `8d44b0d39`: a Check Again on a commitment act ran the executor
 twice, sending again, and the in-memory replaced mark did not exist. All three tests pass at
@@ -379,7 +402,8 @@ re-certified if its fingerprint moves. Adjust the test paths to the files that e
 ## Out of scope
 
 The creations' `submittedTxHash` path; the claim-context findings N42 and N43; discarding a Safe
-transaction that is never executed, which waits as work and decisions do.
+transaction that is never executed, which waits as work and decisions do; and a work or decision
+transaction that is dropped or cancelled while no tab watches, which waits for good, as on develop.
 
 ## Unblock evidence
 
@@ -397,11 +421,11 @@ holds W1-1's proof and belongs to Codex's lane, so `record-tdd` is not run over 
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `b05a6c529` (on `fix/commitment-send-record`, PR #923)
-- Run at (UTC): `2026-09-27T05:43:31Z` to `2026-09-27T05:46:47Z`, with the shared full typecheck just before and test quality rerun after the seam re-certification
+- Tested implementation commit SHA: `b7e4bece8` (on `fix/commitment-send-record`, PR #923)
+- Run at (UTC): `2026-09-27T06:03:00Z` to `2026-09-27T06:06:28Z`
 - Exact command(s): in `packages/shared`, `bun run typecheck -- --scope full` and `bun run test`; in `packages/client` and `packages/admin`, `bun run typecheck`; in `packages/client`, `bun run test`; at the root, `bash scripts/quality/check-test-quality.sh`, `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings` and `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`. The catalog checks, `bun run --cwd packages/qa build`, `node scripts/quality/check-qa-id-ledger.mjs --base origin/develop` and `bun --bun x vitest run --dir scripts/agents`, last ran at `6781a51b2`; no catalog, ledger or agent-tool file has changed since.
-- Result: shared, client and admin typechecks exit 0; shared 5,924 passed in 543 files; client 1,413 passed in 143 files; test quality passed, with four certified seams and no drift; oxlint exit 0; source structure passed against `origin/develop`. At `6781a51b2`: QA build 354 active cases; ledger 420 ids, none removed; agent tools 260 passed. The previous head `8d44b0d39` passed the critical pre-push plan, all 30 checks.
-- Validated paths: every non-plan path the branch changes, `git diff --name-only $(git merge-base origin/develop b05a6c529) b05a6c529 -- . ':!.plans'` (32 paths)
+- Result: shared, client and admin typechecks exit 0; shared 5,927 passed in 543 files; client 1,413 passed in 143 files; test quality passed, with four certified seams and no drift; oxlint exit 0; source structure passed against `origin/develop`. At `6781a51b2`: QA build 354 active cases; ledger 420 ids, none removed; agent tools 260 passed. The previous head `dfb022bc7` passed the critical pre-push plan, all 30 checks.
+- Validated paths: every non-plan path the branch changes, `git diff --name-only $(git merge-base origin/develop b7e4bece8) b7e4bece8 -- . ':!.plans'` (32 paths)
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code b05a6c529 -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
-- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation. Captured at `6bf248187`: `client-commitments-queuedactrow--proof-already-broadcast` in light and dark ("Your proof has left this phone and is waiting for the network to confirm it", Check Again, no Discard); `git diff --exit-code 6bf248187 b05a6c529` over the row and its stories exits 0. Re-captured at `d0929ae34`: `--never-reached-the-network` in light ("Your take-up never reached the network. If your wallet still shows its request, reject it there first. Then send it again or discard it.", Discard and Send Now); the i18n files are unchanged since. Labelled Storybook; the authenticated walk, PWA-126 with Rabby, stays pending for the recorded call.
+- Evidence-only diff command and result (if applicable): `git diff --exit-code b7e4bece8 -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
+- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation. Captured at `6bf248187`: `client-commitments-queuedactrow--proof-already-broadcast` in light and dark ("Your proof has left this phone and is waiting for the network to confirm it", Check Again, no Discard); `git diff --exit-code 6bf248187 b7e4bece8` over the row and its stories exits 0, and its `confirming` copy is unchanged in en, es and pt. Re-captured at `d0929ae34`: `--never-reached-the-network` in light ("Your take-up never reached the network. If your wallet still shows its request, reject it there first. Then send it again or discard it.", Discard and Send Now). `git diff --exit-code d0929ae34 b7e4bece8` over the row, its stories and the en, es and pt catalogs exits 0. Labelled Storybook; the authenticated walk, PWA-126 with Rabby, stays pending for the recorded call.
