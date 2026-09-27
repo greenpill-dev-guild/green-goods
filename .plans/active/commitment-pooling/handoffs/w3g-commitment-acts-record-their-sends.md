@@ -3,13 +3,13 @@
 ## Lane
 
 - Execution sub-lane: `w3g_commitment_send_record` (machine lane `state_api`)
-- Branch: `fix/commitment-send-record`, from a fresh `origin/develop` after W3-F merges, or earlier
-  if Afo moves it up; it touches no visual rule
-- Depends on: `w3f_inspector_story_and_names`
+- Branch: `fix/commitment-send-record`, from a fresh `origin/develop` after W3-A merges; it runs
+  before W3-B because it touches no visual rule (§ 1 row 49)
+- Depends on: `w3a_members_act`
 - Merge: `--merge` on green CI and resolved bot threads
 - Class: critical (the shared JobQueue module and its commitment executor)
 - Linear child: `status.json` → `execution_sub_lanes.w3g_commitment_send_record.linear.issue`
-- Decision: § 1 row 48
+- Decision: § 1 rows 48 and 49
 
 ## Scope
 

@@ -649,16 +649,17 @@
     "w3b_commitment_screen_chrome": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "ready",
+      "status": "blocked",
       "branch": null,
-      "depends_on": ["w3a_members_act"],
+      "depends_on": ["w3h_host_claim_context"],
       "handoff": "handoffs/w3b-commitment-screen-chrome.md",
       "linear": {
         "sync": true,
         "issue": "PRD-991",
         "parentIssue": "PRD-650"
       },
-      "linear_issues": ["PRD-991", "PRD-650"]
+      "linear_issues": ["PRD-991", "PRD-650"],
+      "blocked_reason": "Waits for W3-H (w3h_host_claim_context) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 rows 47 and 49)"
     },
     "w3c_seed_wizard_questions": {
       "machine_lane": "ui",
@@ -723,17 +724,31 @@
     "w3g_commitment_send_record": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
-      "depends_on": ["w3f_inspector_story_and_names"],
+      "status": "in_progress",
+      "branch": "fix/commitment-send-record",
+      "depends_on": ["w3a_members_act"],
       "handoff": "handoffs/w3g-commitment-acts-record-their-sends.md",
       "linear": {
         "sync": true,
         "issue": "PRD-996",
         "parentIssue": "PRD-650"
       },
-      "linear_issues": ["PRD-996", "PRD-650"],
-      "blocked_reason": "Waits for W3-F (w3f_inspector_story_and_names) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 rows 47 and 48)"
+      "linear_issues": ["PRD-996", "PRD-650"]
+    },
+    "w3h_host_claim_context": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["w3g_commitment_send_record"],
+      "handoff": "handoffs/w3h-host-garden-personal-claims.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-997",
+        "parentIssue": "PRD-650"
+      },
+      "linear_issues": ["PRD-997", "PRD-650"],
+      "blocked_reason": "Waits for W3-G (w3g_commitment_send_record) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 rows 47 and 49)"
     }
   },
   "follow_on": {
@@ -1550,6 +1565,14 @@
       "status": "passed",
       "branch": "fix/commitment-take-up-membership",
       "note": "W3-A merged in #921 as 4615608d9 (tree identical to the tested head dfc08fa85; critical push gate and CI Gate green); authenticated wallet walk pending. W3-B ready. W3-G added for N41 with Linear child PRD-996 (§ 1 row 48); N42 and N43 recorded in § 4c"
+    },
+    {
+      "timestamp": "2026-09-27T01:30:52.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "in_progress",
+      "branch": "fix/commitment-send-record",
+      "note": "Afo set the order after W3-A (§ 1 row 49): W3-G now, then W3-H for N42 (Linear child PRD-997), then W3-B to W3-F; N43 not scheduled before the cut"
     }
   ]
 }
