@@ -9,12 +9,12 @@ import type { TurnWriter } from "./writer";
  */
 export function askEditMenu(writer: TurnWriter, draft: DraftRecord): void {
   const labels: Array<[string, string]> = [];
-  if (writer.core.settings.gardens.length > 1) labels.push(["garden", "Garden"]);
+  if (writer.core.settings.gardens.length > 1) labels.push(["garden", writer.text("edit.garden")]);
   labels.push(
-    ["action", "Activity"],
-    ["title", "Title"],
-    ["timeSpentMinutes", "Time spent"],
-    ["feedback", "Description"]
+    ["action", writer.text("edit.action")],
+    ["title", writer.text("edit.title")],
+    ["timeSpentMinutes", writer.text("edit.time")],
+    ["feedback", writer.text("edit.feedback")]
   );
   for (const input of draft.snapshot?.definition.inputs ?? []) {
     if (input.type !== "repeater") labels.push([`details.${input.key}`, input.title]);

@@ -32,15 +32,17 @@ export class CeremonyError extends Error {
   }
 }
 
+type Fetcher = (input: string, init: RequestInit) => Promise<Response>;
+
 export interface CeremonyClientOptions {
   basePath?: string;
-  fetch?: typeof fetch;
+  fetch?: Fetcher;
 }
 
 export class CeremonyClient {
   private csrf: string | null = null;
   private readonly base: string;
-  private readonly call: typeof fetch;
+  private readonly call: Fetcher;
 
   constructor(options: CeremonyClientOptions = {}) {
     this.base = options.basePath ?? "/api/messaging";
