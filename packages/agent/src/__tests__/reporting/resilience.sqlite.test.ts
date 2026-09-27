@@ -169,11 +169,8 @@ describe("identity under key rotation", () => {
     await harness.press(ADA, "I agree");
     const participant = one<{ id: string }>("SELECT id FROM participants").id;
 
-    harness.keys = {
-      ...harness.keys,
-      lookupKeys: `h2:${Buffer.alloc(32, 9).toString("base64")},${harness.keys.lookupKeys}`,
-      currentLookupVersion: "h2",
-    };
+    // A new first entry becomes current for sealing and lookups; the old one keeps opening.
+    harness.keys = `k3:${Buffer.alloc(32, 9).toString("base64")},${harness.keys}`;
     harness.restart();
     expect((await harness.say(ADA, "1"))[0]).toContain("Which activity in TAS");
     expect(one("SELECT count(*) AS n FROM channel_subjects")).toEqual({ n: 1 });
@@ -181,7 +178,7 @@ describe("identity under key rotation", () => {
 
     inTransaction(harness.core.db, () => backfillLookupAliases(harness.core));
     expect(missingCurrentAliases(harness.core)).toBe(0);
-    inTransaction(harness.core.db, () => retireLookupVersion(harness.core, "h1"));
+    inTransaction(harness.core.db, () => retireLookupVersion(harness.core, "k1"));
     await harness.press(ADA, "Tree planting");
     expect(one<{ id: string }>("SELECT id FROM participants").id).toBe(participant);
     expect(one("SELECT count(*) AS n FROM work_drafts")).toEqual({ n: 1 });

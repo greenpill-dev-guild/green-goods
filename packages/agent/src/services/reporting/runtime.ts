@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { randomBytes, randomUUID } from "node:crypto";
+import { REPORTING_SUPPORT_CONTACT } from "@green-goods/shared/modules/agent-reporting";
 import type { ReportingKeyring } from "./keyring";
 
 /** Time and identity sources are injected so tests replay exact schedules and identifiers. */
@@ -58,7 +59,7 @@ export const DEFAULT_REPORTING_SETTINGS: Omit<
   "chainId" | "browserOrigin" | "gardens"
 > = {
   noticeVersion: "2026-09-26",
-  supportContact: "afo@wefa.world",
+  supportContact: REPORTING_SUPPORT_CONTACT,
   preConsentRetentionMs: 24 * 60 * 60 * 1000,
   inactiveDraftRetentionMs: 7 * 24 * 60 * 60 * 1000,
   linkChallengeTtlMs: 10 * 60 * 1000,

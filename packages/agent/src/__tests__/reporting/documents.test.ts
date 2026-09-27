@@ -40,7 +40,7 @@ function pdf(pages: number): Uint8Array {
 }
 
 describe.skipIf(!available("pdfinfo"))("document tools with Poppler", () => {
-  const tools = createDocumentTools({ conversionEnabled: false });
+  const tools = createDocumentTools();
 
   it("counts pages and refuses documents over the page budget", async () => {
     expect(await tools.inspectPdf(pdf(3))).toEqual({ ok: true, pages: 3 });
@@ -60,10 +60,10 @@ describe.skipIf(!available("pdfinfo"))("document tools with Poppler", () => {
 });
 
 describe("office conversion", () => {
-  it("stays unavailable until the capability is enabled", async () => {
-    const tools = createDocumentTools({ conversionEnabled: false });
-    await expect(tools.convertToPdf(new Uint8Array([1]), "docx")).rejects.toBeInstanceOf(
-      LocalToolError
+  it("reports conversion as unavailable when LibreOffice is not installed", async () => {
+    const tools = createDocumentTools({ libreOfficeBin: "/nonexistent/soffice" });
+    await expect(tools.convertToPdf(new Uint8Array([1]), "docx")).rejects.toMatchObject(
+      new LocalToolError("unavailable")
     );
   });
 });

@@ -74,8 +74,6 @@ export interface ReportingChain {
   ): Promise<AccountKind>;
   blockNumber(chainId: number): Promise<bigint>;
   transactionReceipt(chainId: number, hash: Hex): Promise<TransactionReceiptView | null>;
-  /** Resolves a UserOperation to its bundled transaction once included. */
-  userOperationTransaction(chainId: number, userOperationHash: Hex): Promise<Hex | null>;
   attestation(chainId: number, uid: Hex): Promise<AttestationView | null>;
   /** Bounded scan used when a broadcast hash was never reported. */
   attestedEvents(

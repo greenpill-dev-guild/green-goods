@@ -2,19 +2,39 @@ import { inTransaction } from "./database";
 import type { ReportingCore } from "./runtime";
 
 /**
- * Independent operating switches. Intake pause stops new domain intake; model pause falls back to
- * deterministic questions; publication pause fences unsent reservations; message pause holds the
- * outbox. Provider statuses, execution outcomes and receipt reconciliation keep running under
- * every pause, and a pause can never revoke bytes already signed or broadcast.
+ * Independent operating switches, changed at runtime through the operator routes. Intake pause
+ * stops new domain intake; model pause falls back to deterministic questions; the documents and
+ * voice switches decide whether PDFs, Word files and voice notes are read at all; publication
+ * pause fences unsent reservations; message pause holds the outbox. Provider statuses, execution
+ * outcomes and receipt reconciliation keep running under every pause, and a pause can never
+ * revoke bytes already signed or broadcast.
  */
-export type ControlName = "intake" | "model_processing" | "publication" | "outbound_messages";
+export type ControlName =
+  | "intake"
+  | "model_processing"
+  | "documents"
+  | "voice"
+  | "publication"
+  | "outbound_messages";
 
 export const CONTROL_NAMES: readonly ControlName[] = [
   "intake",
   "model_processing",
+  "documents",
+  "voice",
   "publication",
   "outbound_messages",
 ];
+
+/** A new database starts with everything off but replies; each switch is an operator decision. */
+export const INITIAL_CONTROLS: Readonly<Record<ControlName, boolean>> = {
+  intake: false,
+  model_processing: false,
+  documents: false,
+  voice: false,
+  publication: false,
+  outbound_messages: true,
+};
 
 export interface ControlState {
   enabled: boolean;
@@ -27,7 +47,10 @@ interface ControlRow {
 }
 
 /** Seeds missing switches; an existing operator decision survives restarts. */
-export function ensureControls(core: ReportingCore, defaults: Record<ControlName, boolean>): void {
+export function ensureControls(
+  core: ReportingCore,
+  defaults: Readonly<Record<ControlName, boolean>>
+): void {
   inTransaction(core.db, () => {
     for (const name of CONTROL_NAMES) {
       core.db

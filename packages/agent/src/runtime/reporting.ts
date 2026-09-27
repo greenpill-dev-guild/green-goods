@@ -10,7 +10,7 @@ import type { AccountProofVerifier } from "../services/reporting/browser-access"
 import type { ReportingCatalog } from "../services/reporting/catalog";
 import type { ReportingChain } from "../services/reporting/chain";
 import type { ReportingConfig } from "../services/reporting/config";
-import { ensureControls } from "../services/reporting/controls";
+import { type ControlName, ensureControls, INITIAL_CONTROLS } from "../services/reporting/controls";
 import { inTransaction, openReportingDatabase } from "../services/reporting/database";
 import { type DelegatedSender, executeDelegated } from "../services/reporting/delegated";
 import { watchOwnerAttempt } from "../services/reporting/execution";
@@ -78,6 +78,8 @@ export interface ReportingRuntimeOptions {
     gasPerSubmission: number;
     permissionIdFor: GrantDeps["permissionIdFor"];
   };
+  /** Operator switches for a new database; only the loopback driver starts any of them on. */
+  initialControls?: Readonly<Record<ControlName, boolean>>;
   /** Extra job handlers owned by other slices (media processing, retention). */
   jobs?: (core: ReportingCore) => Partial<Record<JobKind, JobHandler>>;
   /** Only the loopback development driver serves plain HTTP cookies. */
@@ -106,10 +108,9 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
       chainId: options.chainId,
       browserOrigin: config.browserOrigin,
       gardens: config.gardens,
-      ...(config.supportContact ? { supportContact: config.supportContact } : {}),
     },
   };
-  ensureControls(core, config.initialControls);
+  ensureControls(core, options.initialControls ?? INITIAL_CONTROLS);
   const deployment = resolveReportingDeployment(options.chainId);
   const media = createFilesystemMediaStore(config.mediaDir, keyring);
   const delegationModules = options.delegationModules ?? [];
@@ -173,15 +174,10 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
           core,
           media,
           fetcher: options.mediaFetcher,
-          tools: createDocumentTools({ conversionEnabled: config.conversionEnabled }),
+          tools: createDocumentTools(),
           audio: createAudioTools(),
           catalog: options.catalog,
           openai: config.openai,
-          capabilities: {
-            documents: config.documentsEnabled,
-            conversion: config.conversionEnabled,
-            voice: config.voiceEnabled,
-          },
         },
         job
       ),

@@ -24,12 +24,7 @@ import type {
  * Deterministic test doubles for the reporting harness. They prove orchestration only: canned
  * catalog, model and transport behavior says nothing about live provider or chain compatibility.
  */
-export const TEST_KEYS = {
-  encryptionKeys: `k1:${Buffer.alloc(32, 1).toString("base64")},k2:${Buffer.alloc(32, 2).toString("base64")}`,
-  currentEncryptionVersion: "k1",
-  lookupKeys: `h1:${Buffer.alloc(32, 3).toString("base64")}`,
-  currentLookupVersion: "h1",
-};
+export const TEST_KEYS = `k1:${Buffer.alloc(32, 1).toString("base64")},k2:${Buffer.alloc(32, 2).toString("base64")}`;
 
 export const TAS: EnabledGarden = {
   key: "tas",

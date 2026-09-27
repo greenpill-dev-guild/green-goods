@@ -84,12 +84,6 @@ export class FakeChain implements ReportingChain {
     return this.hidden.has(hash) ? null : (this.receipts.get(hash) ?? null);
   }
 
-  async userOperationTransaction(_chainId: number, hash: Hex): Promise<Hex | null> {
-    this.guard();
-    const tx = this.userOperations.get(hash) ?? null;
-    return tx && !this.hidden.has(tx) ? tx : null;
-  }
-
   async attestation(_chainId: number, uid: Hex): Promise<AttestationView | null> {
     this.guard();
     return this.attestations.get(uid) ?? null;

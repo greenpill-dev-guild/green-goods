@@ -66,11 +66,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Document and audio tools, pinned to the Debian trixie base of this image. Poppler backs
-# agent-reporting PDF inspection (AGENT_REPORTING_DOCUMENTS_ENABLED) and ffmpeg/ffprobe back
-# voice-note normalization (AGENT_REPORTING_VOICE_ENABLED); each reporting capability stays off
-# until its fixtures pass in this image.
-# LibreOffice conversion is not installed: it needs the Writer and Calc components, not only
-# libreoffice-core, and remains disabled pending that package decision.
+# agent-reporting PDF inspection (the `documents` operator control) and ffmpeg/ffprobe back
+# voice-note normalization (the `voice` control); each control starts off and stays off until its
+# fixtures pass in this image.
+# LibreOffice is not installed: conversion needs the Writer and Calc components, not only
+# libreoffice-core. Without it, Word files are read as native text, pending that package decision.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       poppler-utils=25.03.0-5+deb13u4 \

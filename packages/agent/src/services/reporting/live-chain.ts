@@ -22,7 +22,6 @@ import {
   type Transport,
   zeroHash,
 } from "viem";
-import { createBundlerClient, UserOperationReceiptNotFoundError } from "viem/account-abstraction";
 import type {
   AccountKind,
   Addr,
@@ -62,7 +61,6 @@ class PermissionStateUnavailableError extends Error {
 export interface LiveChainOptions {
   chain: Chain;
   rpcUrl: string;
-  bundlerRpcUrl: string | null;
   fetch?: typeof fetch;
   /** Replaces the RPC transport; tests use it to answer JSON-RPC calls directly. */
   transport?: Transport;
@@ -98,9 +96,6 @@ export function createLiveReportingChain(options: LiveChainOptions): ReportingCh
     chain: options.chain,
     transport: options.transport ?? http(options.rpcUrl),
   });
-  const bundler = options.bundlerRpcUrl
-    ? createBundlerClient({ client, transport: http(options.bundlerRpcUrl) })
-    : null;
   const request = options.fetch ?? fetch;
   const eas = (chainId: number) => getEASConfig(chainId);
 
@@ -233,17 +228,6 @@ export function createLiveReportingChain(options: LiveChainOptions): ReportingCh
         };
       } catch (error) {
         if (error instanceof TransactionReceiptNotFoundError) return null;
-        throw error;
-      }
-    },
-
-    async userOperationTransaction(_chainId, userOperationHash) {
-      if (!bundler) return null; // the bounded event scan still resolves the attestation
-      try {
-        const receipt = await bundler.getUserOperationReceipt({ hash: userOperationHash });
-        return receipt.receipt.transactionHash;
-      } catch (error) {
-        if (error instanceof UserOperationReceiptNotFoundError) return null;
         throw error;
       }
     },

@@ -5,6 +5,7 @@ import {
   VOICE_LIMITS,
 } from "../../../services/reporting/media/audio";
 import type { DocumentTools, PdfInspection } from "../../../services/reporting/media/documents";
+import { LocalToolError } from "../../../services/reporting/media/subprocess";
 import type { InboundMediaFetcher } from "../../../services/reporting/transport";
 
 /**
@@ -36,6 +37,8 @@ export class FixtureMediaFetcher implements InboundMediaFetcher {
 export class FakeDocumentTools implements DocumentTools {
   pages = new Map<string, PdfInspection>();
   conversions = 0;
+  /** Whether LibreOffice is "installed"; without it conversion is unavailable, as in the image. */
+  converts = false;
 
   async inspectPdf(bytes: Uint8Array): Promise<PdfInspection> {
     const marker = new TextDecoder().decode(bytes.subarray(0, 64));
@@ -44,6 +47,7 @@ export class FakeDocumentTools implements DocumentTools {
   }
 
   async convertToPdf(): Promise<Uint8Array> {
+    if (!this.converts) throw new LocalToolError("unavailable");
     this.conversions += 1;
     return new TextEncoder().encode("%PDF-1.7 converted");
   }

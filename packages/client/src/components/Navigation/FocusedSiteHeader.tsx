@@ -1,11 +1,8 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
-import { APP_NAME } from "@green-goods/shared/config/app";
+import { APP_NAME, REPORTING_SUPPORT_CONTACT } from "@green-goods/shared/config/app";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-
-/** The prototype's named support contact (technical brief section 10.1). */
-const SUPPORT_CONTACT = "afo@wefa.world";
 
 /**
  * Header for reporting ceremony pages: the mark on a solid canvas and one Help control. There is
@@ -76,9 +73,9 @@ export function FocusedSiteHeader() {
                 email: (
                   <a
                     className="font-medium text-text-strong-950 underline"
-                    href={`mailto:${SUPPORT_CONTACT}`}
+                    href={`mailto:${REPORTING_SUPPORT_CONTACT}`}
                   >
-                    {SUPPORT_CONTACT}
+                    {REPORTING_SUPPORT_CONTACT}
                   </a>
                 ),
               }

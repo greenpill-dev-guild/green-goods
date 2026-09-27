@@ -31,9 +31,8 @@ export interface MediaDeps {
   tools: DocumentTools;
   audio: AudioTools;
   catalog: ReportingCatalog;
-  /** `transcriptionModel` is present only when voice notes are configured. */
+  /** `transcriptionModel` is present only when a transcription model is pinned. */
   openai: (OpenAIConfig & { transcriptionModel?: string | null }) | null;
-  capabilities: { documents: boolean; conversion: boolean; voice: boolean };
 }
 
 interface AssetRow {
@@ -96,7 +95,7 @@ async function loadOriginal(deps: MediaDeps, asset: AssetRow): Promise<Uint8Arra
   return bytes;
 }
 
-function limitationFor(detected: DetectedType, caps: MediaDeps["capabilities"]): Limitation | null {
+function limitationFor(core: ReportingCore, detected: DetectedType): Limitation | null {
   if (detected.kind === "unsupported") {
     // Known containers that are protected, active or oversized are named as unreadable files.
     return detected.reason === "unknown_format" || detected.reason === "legacy_office"
@@ -104,13 +103,17 @@ function limitationFor(detected: DetectedType, caps: MediaDeps["capabilities"]):
       : "media.unreadable";
   }
   if (detected.kind === "video") return "media.unsupported";
-  if (detected.kind === "audio") return caps.voice ? null : "media.voiceOff";
-  if ((detected.kind === "pdf" || detected.kind === "docx") && !caps.documents)
+  if (detected.kind === "audio")
+    return readControl(core, "voice").enabled ? null : "media.voiceOff";
+  if (
+    (detected.kind === "pdf" || detected.kind === "docx") &&
+    !readControl(core, "documents").enabled
+  )
     return "media.documentsOff";
   return null;
 }
 
-/** Turns a detected file into what the model may see, converting Office files when enabled. */
+/** Turns a detected file into what the model may see, converting Word files when LibreOffice is available. */
 async function sourceFor(
   deps: MediaDeps,
   detected: DetectedType,
@@ -130,9 +133,14 @@ async function sourceFor(
     return { kind: "table", table: read.table };
   }
   let pdf = detected.kind === "pdf" ? bytes : null;
-  if (detected.kind === "docx" && deps.capabilities.conversion) {
-    pdf = await deps.tools.convertToPdf(bytes, "docx");
-    warnings.push("converted_from_docx");
+  if (detected.kind === "docx") {
+    try {
+      pdf = await deps.tools.convertToPdf(bytes, "docx");
+      warnings.push("converted_from_docx");
+    } catch (error) {
+      // Without LibreOffice in the image the file is read below as native Word text instead.
+      if (!(error instanceof LocalToolError && error.reason === "unavailable")) throw error;
+    }
   }
   if (pdf) {
     const inspected = await deps.tools.inspectPdf(pdf);
@@ -175,7 +183,7 @@ export async function processMedia(deps: MediaDeps, job: ClaimedJob): Promise<Jo
   const detected = typeof bytes === "string" ? null : detectType(bytes);
   const warnings: string[] = [];
   let limitation: Limitation | null =
-    typeof bytes === "string" ? bytes : limitationFor(detected as DetectedType, deps.capabilities);
+    typeof bytes === "string" ? bytes : limitationFor(core, detected as DetectedType);
   let evidence: { digest: string } | null = null;
   let source: MediaSource | null = null;
   let transcript: { text: string; model: string } | null = null;

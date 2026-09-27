@@ -101,7 +101,6 @@ export class Harness {
   openai: (OpenAIConfig & { transcriptionModel?: string | null }) | null = null;
   /** Key material for the next `open`; a test rotates it and restarts. */
   keys = TEST_KEYS;
-  capabilities = { documents: true, conversion: false, voice: false };
   readonly delegationModules: import("@green-goods/shared/modules/agent-reporting").PermissionModuleEntry[] =
     [];
   /** Smart-account proofs are fixtures: a Kernel address accepts the signature `0x6b65726e656c`. */
@@ -117,6 +116,8 @@ export class Harness {
     ensureControls(this.core, {
       intake: true,
       model_processing: false,
+      documents: true,
+      voice: false,
       publication: true,
       outbound_messages: true,
       ...options.controls,
@@ -232,7 +233,6 @@ export class Harness {
               audio: this.audio,
               catalog: this.catalog,
               openai: this.openai,
-              capabilities: this.capabilities,
             },
             job
           ),

@@ -35,7 +35,6 @@ function chainWith(handler: Handler, fetchStub?: typeof fetch) {
   return createLiveReportingChain({
     chain: arbitrum,
     rpcUrl: "https://rpc.test",
-    bundlerRpcUrl: null,
     transport: custom({
       async request({ method, params }) {
         return handler(method, (params ?? []) as unknown[]);

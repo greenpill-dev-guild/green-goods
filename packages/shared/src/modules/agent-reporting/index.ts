@@ -139,3 +139,4 @@ export type { AttestScope, CallRuleFailure, WordRule } from "./call-policy";
 export { ATTEST_SELECTOR, attestCallFailures, attestWordRules } from "./call-policy";
 export type { CeremonyClientOptions } from "./ceremony-client";
 export { CeremonyClient, CeremonyError } from "./ceremony-client";
+export { REPORTING_SUPPORT_CONTACT } from "./support";

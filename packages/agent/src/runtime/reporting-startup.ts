@@ -9,10 +9,11 @@ import { createLiveReportingRuntime } from "./reporting-live";
 const log = createLogger("reporting");
 
 /**
- * Chat transports available to this build, by `AGENT_REPORTING_TRANSPORT`. The reporting core
- * ships before any production transport: the WhatsApp adapter registers here in the next stack
- * PR. Until one is registered, enabling reporting logs an error and leaves it off instead of
- * starting a core that could never receive or answer a message.
+ * Chat transports available to this build, by `AGENT_REPORTING_TRANSPORT`, which is also the on
+ * switch: empty keeps reporting off. The reporting core ships before any production transport;
+ * the WhatsApp adapter registers here as `whatsapp` in the next stack PR. Until one is registered,
+ * a set value logs an error and leaves reporting off instead of starting a core that could never
+ * receive or answer a message. The synthetic test transport is never registered here.
  */
 export interface TransportAdapter {
   transport: OutboundTransport;
@@ -31,21 +32,30 @@ export function startReporting(input: {
   dataDir: string;
   trustedProxy?: TrustedProxyConfig;
 }): ReportingRuntime | null {
-  const config = loadReportingConfig(input.env, {
+  const loaded = loadReportingConfig(input.env, {
     chainId: input.chainId,
     isProduction: input.isProduction,
     dataDir: input.dataDir,
   });
-  if (!config) return null;
-  const name = input.env.AGENT_REPORTING_TRANSPORT?.trim() ?? "";
-  const adapter = TRANSPORTS[name];
+  if (!loaded) return null;
+  const adapter = TRANSPORTS[loaded.transport];
   if (!adapter) {
     log.error(
-      { transport: name || null },
-      "Agent reporting is enabled but no transport adapter is available; reporting stays off"
+      { transport: loaded.transport },
+      "AGENT_REPORTING_TRANSPORT names a transport this build does not have; reporting stays off"
     );
     return null;
   }
+  const { config } = loaded;
+  log.info(
+    {
+      transport: loaded.transport,
+      extraction: Boolean(config.openai),
+      transcription: Boolean(config.openai?.transcriptionModel),
+      jev: config.interpretation.provider === "jev",
+    },
+    "Agent reporting starting; model providers without a pinned model stay off"
+  );
   const runtime = createLiveReportingRuntime({
     config,
     chain: input.chain,

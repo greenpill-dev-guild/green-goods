@@ -1,12 +1,15 @@
-import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHmac, hkdfSync, randomBytes } from "node:crypto";
 
 /**
  * Versioned key material for private reporting records.
  *
- * Encryption and lookup (HMAC) keys are separate sets: rotating one never rewrites the other, and
- * an HMAC alias can never be used to decrypt anything. Every sealed value names its key version
- * and is bound to a record context through AES-GCM associated data, so a ciphertext copied into
- * another row or column fails authentication instead of decrypting as the wrong record.
+ * One list holds every key version, current first: `version:base64key` pairs, comma separated,
+ * each key 32 bytes. The first entry seals new values and names new lookup aliases; older entries
+ * keep earlier values readable and earlier aliases matchable until they are retired. Each
+ * version's encryption and lookup (HMAC) keys are derived from its key with HKDF under separate
+ * labels, so an HMAC alias can never be used to decrypt anything. Every sealed value names its key
+ * version and is bound to a record context through AES-GCM associated data, so a ciphertext copied
+ * into another row or column fails authentication instead of decrypting as the wrong record.
  */
 export interface ReportingKeyring {
   seal(plaintext: string, context: string): string;
@@ -20,22 +23,24 @@ export interface ReportingKeyring {
   lookup(version: string, purpose: string, value: string): string;
 }
 
-export interface ReportingKeyringConfig {
-  /** `version:base64key` pairs, comma separated. */
-  encryptionKeys: string;
-  currentEncryptionVersion: string;
-  lookupKeys: string;
-  currentLookupVersion: string;
-}
-
 class ReportingKeyringError extends Error {}
 
 const VERSION_PATTERN = /^[a-z0-9][a-z0-9_-]{0,15}$/i;
 const IV_BYTES = 12;
 const TAG_BYTES = 16;
 
-function parseKeySet(label: string, raw: string): Map<string, Buffer> {
-  const keys = new Map<string, Buffer>();
+interface KeyVersion {
+  version: string;
+  encryption: Buffer;
+  lookup: Buffer;
+}
+
+function derive(key: Buffer, purpose: "encryption" | "lookup"): Buffer {
+  return Buffer.from(hkdfSync("sha256", key, Buffer.alloc(0), `gg-agent-reporting:${purpose}`, 32));
+}
+
+function parseKeys(raw: string): KeyVersion[] {
+  const versions: KeyVersion[] = [];
   for (const entry of raw
     .split(",")
     .map((part) => part.trim())
@@ -44,61 +49,48 @@ function parseKeySet(label: string, raw: string): Map<string, Buffer> {
     const version = separator > 0 ? entry.slice(0, separator) : "";
     const material = separator > 0 ? entry.slice(separator + 1) : "";
     if (!VERSION_PATTERN.test(version)) {
-      throw new ReportingKeyringError(`${label} contains an invalid key version`);
+      throw new ReportingKeyringError("The reporting key list contains an invalid key version");
     }
     const key = Buffer.from(material, "base64");
     if (key.length !== 32) {
-      throw new ReportingKeyringError(`${label} key ${version} must decode to 32 bytes`);
+      throw new ReportingKeyringError(`Reporting key ${version} must decode to 32 bytes`);
     }
-    if (keys.has(version)) {
-      throw new ReportingKeyringError(`${label} repeats key version ${version}`);
+    if (versions.some((known) => known.version === version)) {
+      throw new ReportingKeyringError(`The reporting key list repeats version ${version}`);
     }
-    keys.set(version, key);
+    versions.push({
+      version,
+      encryption: derive(key, "encryption"),
+      lookup: derive(key, "lookup"),
+    });
   }
-  if (keys.size === 0) throw new ReportingKeyringError(`${label} has no keys`);
-  return keys;
+  if (versions.length === 0) throw new ReportingKeyringError("The reporting key list has no keys");
+  return versions;
 }
 
 function associatedData(context: string): Buffer {
   return Buffer.from(`gg-agent-reporting:${context}`, "utf8");
 }
 
-export function createReportingKeyring(config: ReportingKeyringConfig): ReportingKeyring {
-  const encryption = parseKeySet("Encryption key set", config.encryptionKeys);
-  const lookups = parseKeySet("Lookup key set", config.lookupKeys);
-  const current = encryption.get(config.currentEncryptionVersion);
-  if (!current) {
-    throw new ReportingKeyringError("The current encryption key version is not configured");
-  }
-  if (!lookups.has(config.currentLookupVersion)) {
-    throw new ReportingKeyringError("The current lookup key version is not configured");
-  }
-  for (const encryptionKey of encryption.values()) {
-    for (const lookupKey of lookups.values()) {
-      if (encryptionKey.equals(lookupKey)) {
-        throw new ReportingKeyringError("Encryption and lookup keys must be distinct");
-      }
-    }
-  }
-
-  const lookupVersions = [
-    config.currentLookupVersion,
-    ...[...lookups.keys()].filter((version) => version !== config.currentLookupVersion),
-  ];
+export function createReportingKeyring(keys: string): ReportingKeyring {
+  const versions = parseKeys(keys);
+  const current = versions[0] as KeyVersion;
+  const encryption = new Map(versions.map((entry) => [entry.version, entry.encryption]));
+  const lookups = new Map(versions.map((entry) => [entry.version, entry.lookup]));
 
   return {
-    lookupVersions,
-    currentLookupVersion: config.currentLookupVersion,
+    lookupVersions: versions.map((entry) => entry.version),
+    currentLookupVersion: current.version,
     seal(plaintext, context) {
       const iv = randomBytes(IV_BYTES);
-      const cipher = createCipheriv("aes-256-gcm", current, iv);
+      const cipher = createCipheriv("aes-256-gcm", current.encryption, iv);
       cipher.setAAD(associatedData(context));
       const body = Buffer.concat([
         cipher.update(plaintext, "utf8"),
         cipher.final(),
         cipher.getAuthTag(),
       ]);
-      return `${config.currentEncryptionVersion}.${iv.toString("base64url")}.${body.toString("base64url")}`;
+      return `${current.version}.${iv.toString("base64url")}.${body.toString("base64url")}`;
     },
     open(sealed, context) {
       const [version, ivText, bodyText, ...rest] = sealed.split(".");
@@ -118,9 +110,9 @@ export function createReportingKeyring(config: ReportingKeyringConfig): Reportin
     },
     sealBytes(plaintext, context) {
       const iv = randomBytes(IV_BYTES);
-      const cipher = createCipheriv("aes-256-gcm", current, iv);
+      const cipher = createCipheriv("aes-256-gcm", current.encryption, iv);
       cipher.setAAD(associatedData(context));
-      const version = Buffer.from(config.currentEncryptionVersion, "utf8");
+      const version = Buffer.from(current.version, "utf8");
       return Buffer.concat([
         Buffer.from([version.length]),
         version,

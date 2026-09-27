@@ -81,28 +81,12 @@ export async function startDriver(
   const config: ReportingConfig = {
     dbPath: join(dataDir, "reporting.db"),
     mediaDir: join(dataDir, "media"),
-    keys: {
-      encryptionKeys: `d1:${key()}`,
-      currentEncryptionVersion: "d1",
-      lookupKeys: `l1:${key()}`,
-      currentLookupVersion: "l1",
-    },
+    keys: `d1:${key()}`,
     browserOrigin: origin,
     gardens: [TAS, AIYELOJA],
-    supportContact: null,
-    initialControls: {
-      intake: true,
-      model_processing: false,
-      publication: true,
-      outbound_messages: true,
-    },
     interpretation: { provider: "none" },
     openai: null,
     pinata: null,
-    bundlerRpcUrl: null,
-    voiceEnabled: false,
-    documentsEnabled: false,
-    conversionEnabled: false,
     workerIntervalMs: 250,
   };
   const runtime = createReportingRuntime({
@@ -116,6 +100,14 @@ export async function startDriver(
       verifyMessage({ address, message, signature }),
     transport,
     mediaFetcher: new FixtureMediaFetcher(media),
+    initialControls: {
+      intake: true,
+      model_processing: false,
+      documents: false,
+      voice: false,
+      publication: true,
+      outbound_messages: true,
+    },
     secureCookies: false,
     workerId: "driver",
   });

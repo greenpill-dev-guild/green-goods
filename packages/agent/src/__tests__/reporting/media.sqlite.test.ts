@@ -166,9 +166,9 @@ describe("limits", () => {
     expect((await send("pdf-1", pdf, "application/pdf"))[0]).toContain("more than 20 pages");
   });
 
-  it("keeps documents private and says reading is off when the capability is disabled", async () => {
+  it("keeps documents private and says reading is off when the documents switch is off", async () => {
     await plantingDraft();
-    harness.capabilities.documents = false;
+    setControl(harness.core, "documents", false, { actor: "operator", reason: "documents off" });
     const pdf = new TextEncoder().encode("%PDF-1.7 site report");
     expect((await send("pdf-2", pdf, "application/pdf"))[0]).toContain(
       "reading documents is turned off"
@@ -321,9 +321,9 @@ describe("documents", () => {
     expect(harness.documents.conversions).toBe(0);
   });
 
-  it("converts Word to PDF when conversion is enabled", async () => {
+  it("converts Word to PDF when LibreOffice is available", async () => {
     await plantingDraft();
-    harness.capabilities.conversion = true;
+    harness.documents.converts = true;
     modelOn([]);
     await send(
       "doc-2",

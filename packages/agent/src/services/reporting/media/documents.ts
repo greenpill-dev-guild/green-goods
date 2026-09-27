@@ -18,11 +18,13 @@ export type PdfInspection =
 
 const DOCUMENT_LIMITS = { maxPdfPages: 20, maxBytes: 10 * 1024 * 1024, timeoutMs: 60_000 };
 
-export function createDocumentTools(options: {
-  popplerBin?: string;
-  libreOfficeBin?: string;
-  conversionEnabled: boolean;
-}): DocumentTools {
+/**
+ * Poppler reads PDFs; LibreOffice converts Word files to PDF when it is installed. Without it,
+ * conversion reports the tool as unavailable and Word files are read as native text instead.
+ */
+export function createDocumentTools(
+  options: { popplerBin?: string; libreOfficeBin?: string } = {}
+): DocumentTools {
   const pdfinfo = options.popplerBin ? join(options.popplerBin, "pdfinfo") : "pdfinfo";
   const soffice = options.libreOfficeBin ?? "soffice";
   return {
@@ -50,7 +52,6 @@ export function createDocumentTools(options: {
     },
 
     async convertToPdf(bytes, kind) {
-      if (!options.conversionEnabled) throw new LocalToolError("unavailable");
       return withWorkspace("gg-reporting-doc-", async (dir) => {
         const input = `input.${kind}`;
         await writeFile(join(dir, input), bytes, { mode: 0o600 });

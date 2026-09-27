@@ -14,8 +14,7 @@ const VOICE = new Uint8Array([...new TextEncoder().encode("OggS"), ...new Array(
 const SAID = "I planted twelve baobab seedlings by the fence this morning";
 
 beforeEach(() => {
-  harness = new Harness();
-  harness.capabilities.voice = true;
+  harness = new Harness({ controls: { voice: true } });
 });
 
 afterEach(() => {
@@ -132,14 +131,14 @@ describe("voice notes", () => {
     expect(draft()?.content.feedback).toBeNull();
   });
 
-  it("says voice notes are unavailable when the capability or model processing is off", async () => {
-    harness.capabilities.voice = false;
+  it("says voice notes are unavailable when the voice switch or model processing is off", async () => {
+    setControl(harness.core, "voice", false, { actor: "operator", reason: "voice off" });
     await sendVoice("voice-1");
     expect((await harness.press(ADA, "I agree")).join("\n")).toContain(
       "Voice notes aren't supported yet"
     );
 
-    harness.capabilities.voice = true;
+    setControl(harness.core, "voice", true, { actor: "operator", reason: "voice on" });
     const replies = await sendVoice("voice-2");
     expect(replies.join("\n")).toContain("I can't listen to voice notes right now");
     expect(voiceConsents()).toBe(0);

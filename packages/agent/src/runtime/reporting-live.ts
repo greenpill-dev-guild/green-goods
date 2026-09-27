@@ -36,11 +36,7 @@ export function createLiveReportingRuntime(input: {
   jobs?: (core: ReportingCore) => Partial<Record<JobKind, JobHandler>>;
 }): ReportingRuntime {
   const { config } = input;
-  const chain = createLiveReportingChain({
-    chain: input.chain,
-    rpcUrl: input.rpcUrl,
-    bundlerRpcUrl: config.bundlerRpcUrl,
-  });
+  const chain = createLiveReportingChain({ chain: input.chain, rpcUrl: input.rpcUrl });
   const catalog = createLiveReportingCatalog({
     chain,
     indexerUrl: getIndexerUrl(

@@ -21,6 +21,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@green-goods/shared/config/app", () => ({
   APP_NAME: "Green Goods",
+  REPORTING_SUPPORT_CONTACT: "afo@wefa.world",
 }));
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({

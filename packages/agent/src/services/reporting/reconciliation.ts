@@ -95,9 +95,8 @@ async function resolve(
 ): Promise<Resolution> {
   const { chain } = deps;
   const attempt = latestAttempt(deps.core, operation.id);
-  let hash = (attempt?.transactionHash as Hex | null) ?? null;
-  if (!hash && attempt?.userOperationHash)
-    hash = await chain.userOperationTransaction(envelope.chainId, attempt.userOperationHash as Hex);
+  // A UserOperation hash alone names no transaction; the range search below finds its attestation.
+  const hash = (attempt?.transactionHash as Hex | null) ?? null;
   // Only a mined receipt that lacks this envelope is a conflict; a hash without a receipt may
   // still be waiting in the mempool, or replaced by a transaction the range search finds.
   let receiptMismatch = false;
