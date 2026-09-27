@@ -159,6 +159,8 @@
     "./hooks/admin-ui/pool/useSettlementOperationsController": "./src/hooks/admin-ui/pool/useSettlementOperationsController.ts",
     "./hooks/admin-ui/useAdminAccessState": "./src/hooks/admin-ui/useAdminAccessState.ts",
     "./hooks/admin-ui/useDirtyClose": "./src/hooks/admin-ui/useDirtyClose.ts",
+    "./hooks/agent-reporting/useAgentReportingCeremony": "./src/hooks/agent-reporting/useAgentReportingCeremony.ts",
+    "./hooks/agent-reporting/useAgentReportingRecovery": "./src/hooks/agent-reporting/useAgentReportingRecovery.ts",
     "./hooks/analytics/useAnalyticsIdentity": "./src/hooks/analytics/useAnalyticsIdentity.ts",
     "./hooks/analytics/usePageView": "./src/hooks/analytics/usePageView.ts",
     "./hooks/app/useTheme": "./src/hooks/app/useTheme.ts",

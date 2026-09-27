@@ -1,3 +1,4 @@
+import { agentReportingKeys } from "./agent-reporting";
 import { actionsKeys, assessmentsKeys, gardensKeys, platformKeys } from "./garden";
 import { commitmentPoolingKeys } from "./commitment-pooling";
 import { creditKeys } from "./credit";
@@ -52,4 +53,5 @@ export const queryKeys = {
   credit: creditKeys,
   savedOffers: savedOffersKeys,
   gardenJoinRequests: gardenJoinRequestKeys,
+  agentReporting: agentReportingKeys,
 } as const;
