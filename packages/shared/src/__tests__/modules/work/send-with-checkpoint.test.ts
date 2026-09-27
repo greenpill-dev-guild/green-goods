@@ -7,6 +7,7 @@ import {
 import { sendWithCheckpoint } from "../../../modules/work/send-with-checkpoint";
 import {
   forgetWorkBroadcast,
+  retainedTransactionReplaced,
   retainedWorkBroadcastReference,
 } from "../../../modules/work/work-confirmation";
 import type { SendCheckpoint } from "../../../types/job-queue";
@@ -93,6 +94,31 @@ describe("sending one call while recording how far it got", () => {
     });
   });
 
+  it("clears the intent when the estimate reverts after it, since nothing was signed", async () => {
+    // The chain moved between the preflight and the wallet's own estimate.
+    const refusals = [
+      Object.assign(new Error("Execution reverted for an unknown reason."), {
+        name: "EstimateGasExecutionError",
+      }),
+      Object.assign(new Error("request failed"), {
+        cause: Object.assign(new Error("execution reverted"), { code: 3 }),
+      }),
+    ];
+    for (const refusal of refusals) {
+      const { record, current } = recorder();
+      const sender = createMockTransactionSender({ authMode: "wallet" });
+      vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+        await options?.onBeforeBroadcast?.();
+        throw refusal;
+      });
+      await expect(send(sender, record as never)).resolves.toMatchObject({
+        status: "not-sent",
+        cancelled: false,
+      });
+      expect(current()).toBeUndefined();
+    }
+  });
+
   it("clears a cancelled wallet transaction checkpoint so a deliberate retry is safe", async () => {
     const { record, current } = recorder();
     const sender = createMockTransactionSender({ authMode: "wallet" });
@@ -119,7 +145,28 @@ describe("sending one call while recording how far it got", () => {
       throw new TransactionReplacementError("replaced");
     });
     await expect(send(sender, record as never)).resolves.toMatchObject({ status: "may-have-sent" });
-    expect(current()).toMatchObject({ broadcast: { kind: "transaction", hash: TX } });
+    // The record says so: this transaction can never be included, whatever took its place.
+    expect(current()).toMatchObject({
+      broadcast: { kind: "transaction", hash: TX },
+      transactionReplaced: true,
+    });
+  });
+
+  it("keeps the replaced mark in memory when storage refuses it", async () => {
+    const { record: write } = recorder();
+    // Storage takes the intent and the transaction, then refuses the mark.
+    const record = vi.fn(async (next: Parameters<typeof write>[0]) => {
+      if (write.mock.calls.length >= 2) throw new Error("storage unavailable");
+      await write(next);
+    });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcastReference?.({ kind: "transaction", hash: TX });
+      throw new TransactionReplacementError("replaced");
+    });
+    await expect(send(sender, record as never)).resolves.toMatchObject({ status: "may-have-sent" });
+    for (const id of JOBS) expect(retainedTransactionReplaced(id)).toBe(true);
   });
 
   it("records the hash a sender only returns", async () => {

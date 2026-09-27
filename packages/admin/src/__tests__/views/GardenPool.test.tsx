@@ -44,6 +44,11 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", () =
   usePoolConsoleController: () => mocks.controller!,
 }));
 
+// This view proves pool actions; ENS resolution has its own coverage.
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: null }),
+}));
+
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
   useMediaQuery: () => true,
 }));
