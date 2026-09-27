@@ -123,7 +123,7 @@ export const EN_REPORTING_COPY = {
   "publish.uncertain":
     "Your publication was sent but I can't confirm it on chain yet. I won't send it twice; I'll tell you when I know.",
   "publish.unknown":
-    "I didn't hear back from your wallet, so I can't tell yet whether your report was sent. I won't send it again; I'm checking the chain and will tell you what I find.",
+    "I didn't hear back from your wallet, so I can't tell yet whether it was sent. I won't send it again; I'm checking the chain and will tell you what I find.",
   "publish.rejected":
     "The signature was declined, so nothing was published. Here is your report again; confirm it when you're ready.",
   "publish.reverted":
@@ -133,8 +133,7 @@ export const EN_REPORTING_COPY = {
     "Reporting in chat is on for {garden} until {until}. I'll still ask you to confirm each report.",
   "grant.paused":
     "Reporting permission is paused. I'll ask you to publish with your passkey instead.",
-  "review.pendingList":
-    "Work waiting for your review in {garden}:\n{items}\nReply REVIEW followed by the number to start.",
+  "review.pendingList": "Work waiting for your review in {garden}. Choose one to start:",
   "review.none": "There's no work waiting for your review.",
   "review.askDecision": "Do you approve or reject “{title}” by {gardener}?",
   "review.approve": "Approve",
@@ -150,6 +149,24 @@ export const EN_REPORTING_COPY = {
   "review.selfReview": "You can't review your own work.",
   "review.notSteward": "Your account isn't a steward of {garden}, so you can't review this work.",
   "review.recorded": "Your review is recorded ✅\nTransaction: {tx}",
+  "account.wallet": "wallet",
+  "account.passkey": "passkey",
+  "review.link":
+    "To review work, verify your existing Green Goods account (wallet or passkey) here. The link expires in 10 minutes and never moves funds.",
+  "review.confidence.0": "None",
+  "review.askRejectionFeedback":
+    "Tell the gardener why you're rejecting this work (it will be public).",
+  "review.noFeedback": "(none)",
+  "review.feedbackInvalid": "Please send feedback of up to 2,000 characters.",
+  "review.frozen": "This review can't be changed now because it is already being recorded.",
+  "review.confirmToken":
+    "To record your review, reply CONFIRM {token} exactly as shown in the summary.",
+  "review.cancelled": "Review cancelled. Nothing was recorded.",
+  "review.signLink": "Open this page to check and sign your decision with your {kind}.",
+  "review.signLabel": "Check and sign",
+  "review.rejectedBeforeSend":
+    "The signature was declined, so your review wasn't recorded. Here it is again; confirm it when you're ready.",
+  "review.reverted": "Recording your review failed on chain. Check it and confirm again to retry.",
   "recovery.started":
     "To move your Green Goods account to this chat, open this page and verify the account you used before. The link expires in 10 minutes.",
   "recovery.code": "Send this code in the browser recovery page: {code}",

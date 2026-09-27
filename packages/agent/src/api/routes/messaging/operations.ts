@@ -9,7 +9,12 @@ import { inTransaction } from "../../../services/reporting/database";
 import { recordOwnerOutcome, reserveOwnerAttempt } from "../../../services/reporting/execution";
 import { operationById, operationForSubject } from "../../../services/reporting/operations";
 import { retryPreparation } from "../../../services/reporting/preparation";
-import { draftView, operationView } from "../../../services/reporting/views";
+import {
+  draftView,
+  operationView,
+  reviewView,
+  sessionOwnsOperation,
+} from "../../../services/reporting/views";
 import { currentSession, failure, limited, type MessagingRouteDeps, readBody } from "./http";
 
 /**
@@ -28,6 +33,20 @@ export function registerOperationRoutes(app: Hono, deps: MessagingRouteDeps): vo
       return failure(c, "unavailable");
     }
     const view = draftView(deps.core(), c.req.param("id"));
+    return view ? c.json(view) : failure(c, "unavailable");
+  });
+
+  app.get("/messaging/reviews/:id", (c) => {
+    const session = currentSession(c, deps, false);
+    if (!session) return failure(c, "access_required");
+    if (limited(c, deps, "messaging_read", session.accessId)) return failure(c, "rate_limited");
+    if (
+      session.request.resourceKind !== "review" ||
+      session.request.resourceId !== c.req.param("id")
+    ) {
+      return failure(c, "unavailable");
+    }
+    const view = reviewView(deps.core(), c.req.param("id"));
     return view ? c.json(view) : failure(c, "unavailable");
   });
 
@@ -96,13 +115,7 @@ export function registerOperationRoutes(app: Hono, deps: MessagingRouteDeps): vo
     if (!session) return failure(c, "access_required");
     const core = deps.core();
     const operation = operationById(core, c.req.param("id"));
-    if (
-      !operation ||
-      operation.draftId !== session.request.resourceId ||
-      operation.authorAccountId !== session.accountBindingId
-    ) {
-      return failure(c, "unavailable");
-    }
+    if (!operation || !sessionOwnsOperation(session, operation)) return failure(c, "unavailable");
     return c.json({ ok: true, operation: operationView(core, operation) });
   });
 

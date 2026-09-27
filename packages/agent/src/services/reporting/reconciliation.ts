@@ -7,22 +7,19 @@ import {
   type ReportingChain,
   type TransactionReceiptView,
 } from "./chain";
-import { invalidateConfirmation } from "./confirmations";
-import { commitLifecycle } from "./coordinator/draft-commit";
-import { askConfirmation } from "./coordinator/prompting";
 import { inTransaction } from "./database";
-import { loadDraft } from "./drafts";
-import { enqueueJob, type ClaimedJob } from "./jobs";
-import { participantWriter } from "./notify";
+import type { ClaimedJob } from "./jobs";
+import { operationSubject } from "./operation-subjects";
 import { type OperationRecord, operationById, setOperationState } from "./operations";
 import { audit } from "./participants";
 import type { ReportingCore } from "./runtime";
 import type { JobOutcome } from "./worker";
 
 /**
- * Independent receipt verification. Success means a matching attestation in the canonical chain:
- * the EAS contract emitted `Attested` for the garden, the human account attested (a bundler or
- * EntryPoint sender does not count) and the attestation carries exactly the frozen payload. A
+ * Independent receipt verification for reports and steward decisions. Success means a matching
+ * attestation in the canonical chain: the EAS contract emitted `Attested` for the garden, the human
+ * account attested (a bundler or EntryPoint sender does not count) and the attestation carries
+ * exactly the frozen payload. A
  * browser hint never proves publication, and nothing here ever sends again.
  */
 export interface ReconciliationDeps {
@@ -160,37 +157,7 @@ function publish(
       observedBlockHash: verified.blockHash,
       logIndex: verified.logIndex,
     });
-  const draft = operation.draftId ? loadDraft(core, operation.draftId) : null;
-  if (operation.kind !== "work" || !draft || envelope.kind !== "work") return;
-  core.db
-    .query(
-      `INSERT OR IGNORE INTO work_records
-         (chain_id, work_uid, draft_id, garden_address, action_uid, attester, transaction_hash, published_revision, observed_at)
-       VALUES ($chain, $uid, $draft, $garden, $action, $attester, $tx, $revision, $now)`
-    )
-    .run({
-      chain: envelope.chainId,
-      uid: verified.uid,
-      draft: draft.id,
-      garden: envelope.gardenAddress,
-      action: envelope.fields.actionUID,
-      attester: envelope.accountAddress,
-      tx: verified.transactionHash,
-      revision: envelope.revision,
-      now: core.clock.now(),
-    });
-  commitLifecycle(core, draft, [{ type: "RECEIPT_VERIFIED" }], { participantAction: false });
-  participantWriter(core, {
-    participantId: draft.participantId,
-    conversationId: draft.conversationId,
-    dedupePrefix: `published:${operation.id}`,
-  })?.say("publish.published", { uid: verified.uid, tx: verified.transactionHash });
-  enqueueJob(core, {
-    kind: "purge_private_content",
-    subjectId: draft.id,
-    dedupeKey: `purge:published:${draft.id}`,
-    payload: { scope: "draft" },
-  });
+  operationSubject(core, operation)?.recorded(verified, envelope, `published:${operation.id}`);
 }
 
 function revert(deps: ReconciliationDeps, operation: OperationRecord): void {
@@ -199,21 +166,11 @@ function revert(deps: ReconciliationDeps, operation: OperationRecord): void {
   if (attempt)
     updateAttempt(core, attempt.id, { state: "reverted", reasonCode: "definitive_revert" });
   setOperationState(core, operation.id, "failed", { failureCode: "reverted" });
-  const draft = operation.draftId ? loadDraft(core, operation.draftId) : null;
-  if (!draft) return;
-  const { draft: reviewed } = commitLifecycle(core, draft, [{ type: "DEFINITIVE_FAILURE" }], {
-    participantAction: false,
-  });
-  invalidateConfirmation(core, { draftId: draft.id });
-  const writer = participantWriter(core, {
-    participantId: draft.participantId,
-    conversationId: draft.conversationId,
-    dedupePrefix: `reverted:${operation.id}`,
-  });
-  if (writer) {
-    writer.say("publish.reverted");
-    askConfirmation(writer, reviewed, operation.envelope?.accountAddress ?? null);
-  }
+  operationSubject(core, operation)?.reopen(
+    "reverted",
+    operation.envelope?.accountAddress ?? null,
+    `reverted:${operation.id}`
+  );
 }
 
 export async function reconcileOperation(

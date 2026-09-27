@@ -12,6 +12,12 @@ import { watchOwnerAttempt } from "../../../services/reporting/execution";
 import { createFilesystemMediaStore } from "../../../services/reporting/media-store";
 import { prepareOperation } from "../../../services/reporting/preparation";
 import { reconcileOperation } from "../../../services/reporting/reconciliation";
+import {
+  listPendingReviews,
+  openReview,
+  type ReviewJobDeps,
+  resolveReviewAuthority,
+} from "../../../services/reporting/review-jobs";
 import * as z from "zod";
 import { ensureControls, type ControlName } from "../../../services/reporting/controls";
 import { openReportingDatabase } from "../../../services/reporting/database";
@@ -161,6 +167,15 @@ export class Harness {
     });
   }
 
+  reviewDeps(): ReviewJobDeps {
+    return {
+      core: this.core,
+      chain: this.chain,
+      deployment: this.chain.deployment,
+      delegationModules: this.delegationModules,
+    };
+  }
+
   media() {
     return createFilesystemMediaStore(join(this.dir, "media"), this.core.keyring);
   }
@@ -214,6 +229,9 @@ export class Harness {
             job
           ),
         watch_owner_attempt: async (job) => watchOwnerAttempt(this.core, job),
+        review_list: (job) => listPendingReviews(this.reviewDeps(), job),
+        review_open: (job) => openReview(this.reviewDeps(), job),
+        review_authority: (job) => resolveReviewAuthority(this.reviewDeps(), job),
         reconcile_operation: (job) =>
           reconcileOperation(
             { core: this.core, chain: this.chain, scanWindowBlocks: 10_000n },

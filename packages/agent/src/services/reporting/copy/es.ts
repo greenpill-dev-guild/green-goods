@@ -118,7 +118,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "publish.uncertain":
     "Tu publicación se envió, pero aún no puedo confirmarla en la cadena. No la enviaré dos veces; te avisaré cuando lo sepa.",
   "publish.unknown":
-    "No recibí respuesta de tu billetera, así que aún no sé si tu reporte se envió. No lo enviaré otra vez; estoy revisando la cadena y te diré lo que encuentre.",
+    "No recibí respuesta de tu billetera, así que aún no sé si se envió. No lo enviaré otra vez; estoy revisando la cadena y te diré lo que encuentre.",
   "publish.rejected":
     "La firma fue rechazada, así que no se publicó nada. Aquí está tu reporte otra vez; confírmalo cuando quieras.",
   "publish.reverted":
@@ -127,8 +127,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "grant.active":
     "Los reportes desde el chat están activos para {garden} hasta {until}. Igual te pediré que confirmes cada reporte.",
   "grant.paused": "El permiso de reportes está en pausa. Te pediré publicar con tu passkey.",
-  "review.pendingList":
-    "Trabajo esperando tu revisión en {garden}:\n{items}\nResponde REVIEW seguido del número para empezar.",
+  "review.pendingList": "Trabajo esperando tu revisión en {garden}. Elige uno para empezar:",
   "review.none": "No hay trabajo esperando tu revisión.",
   "review.askDecision": "¿Apruebas o rechazas «{title}» de {gardener}?",
   "review.approve": "Aprobar",
@@ -144,6 +143,24 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.selfReview": "No puedes revisar tu propio trabajo.",
   "review.notSteward": "Tu cuenta no administra {garden}, así que no puedes revisar este trabajo.",
   "review.recorded": "Tu revisión quedó registrada ✅\nTransacción: {tx}",
+  "account.wallet": "billetera",
+  "account.passkey": "llave de acceso",
+  "review.link":
+    "Para revisar trabajos, verifica aquí tu cuenta existente de Green Goods (billetera o llave de acceso). El enlace vence en 10 minutos y nunca mueve fondos.",
+  "review.confidence.0": "Ninguna",
+  "review.askRejectionFeedback": "Dile al jardinero por qué rechazas este trabajo (será público).",
+  "review.noFeedback": "(ninguno)",
+  "review.feedbackInvalid": "Envía un comentario de hasta 2.000 caracteres.",
+  "review.frozen": "Esta revisión ya no se puede cambiar porque se está registrando.",
+  "review.confirmToken":
+    "Para registrar tu revisión, responde CONFIRM {token} tal como aparece en el resumen.",
+  "review.cancelled": "Revisión cancelada. No se registró nada.",
+  "review.signLink": "Abre esta página para revisar y firmar tu decisión con tu {kind}.",
+  "review.signLabel": "Revisar y firmar",
+  "review.rejectedBeforeSend":
+    "La firma fue rechazada, así que tu revisión no se registró. Aquí está de nuevo; confírmala cuando quieras.",
+  "review.reverted":
+    "El registro de tu revisión falló en la cadena. Revísala y confírmala de nuevo para reintentar.",
   "recovery.started":
     "Para mover tu cuenta de Green Goods a este chat, abre esta página y verifica la cuenta que usabas antes. El enlace caduca en 10 minutos.",
   "recovery.code": "Envía este código en la página de recuperación del navegador: {code}",

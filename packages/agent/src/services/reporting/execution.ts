@@ -11,25 +11,24 @@ import {
   updateAttempt,
 } from "./attempts";
 import type { ReportingChain } from "./chain";
-import { activeConsentId, hasPublicationConsent } from "./consent";
-import { confirmationById, invalidateConfirmation } from "./confirmations";
-import { commitLifecycle, lifecycleState } from "./coordinator/draft-commit";
-import { askConfirmation } from "./coordinator/prompting";
+import { confirmationById } from "./confirmations";
 import { inTransaction } from "./database";
-import { loadDraft } from "./drafts";
 import { type ClaimedJob, enqueueJob } from "./jobs";
 import { participantWriter } from "./notify";
+import { operationSubject } from "./operation-subjects";
 import { operationById, setOperationState } from "./operations";
 import { audit } from "./participants";
 import type { ReportingCore } from "./runtime";
 import type { BrowserSession } from "./sessions";
+import { sessionOwnsOperation } from "./views";
 import type { JobOutcome } from "./worker";
 
 /**
- * Owner-signed execution, driven by the browser ceremony. The Agent reserves exactly one attempt
- * before any wallet prompt and owns the truth of its outcome: a broadcast or uncertain result moves
- * to reconciliation and keeps its reservation; only a proven rejection before sending returns the
- * report for explicit reconfirmation. A forged or late hint can never release a recorded send.
+ * Owner-signed execution of a report or a steward decision, driven by the browser ceremony. The
+ * Agent reserves exactly one attempt before any wallet prompt and owns the truth of its outcome: a
+ * broadcast or uncertain result moves to reconciliation and keeps its reservation; only a proven
+ * rejection before sending returns the subject for explicit reconfirmation. A forged or late hint
+ * can never release a recorded send.
  */
 export type ExecutionError =
   | "unavailable"
@@ -39,17 +38,10 @@ export type ExecutionError =
   | "stale_revision"
   | "dependency_unavailable";
 
+/** The operation behind the session's own resource and account; anything else is unavailable. */
 function scopedOperation(core: ReportingCore, operationId: string, session: BrowserSession) {
   const operation = operationById(core, operationId);
-  if (
-    !operation ||
-    operation.kind !== "work" ||
-    operation.draftId !== session.request.resourceId ||
-    operation.authorAccountId !== session.accountBindingId
-  ) {
-    return null;
-  }
-  return operation;
+  return operation && sessionOwnsOperation(session, operation) ? operation : null;
 }
 
 export async function reserveOwnerAttempt(
@@ -68,6 +60,7 @@ export async function reserveOwnerAttempt(
   const operation = scopedOperation(core, input.operationId, input.session);
   if (!operation || operation.authorizationMode !== "owner")
     return { ok: false, errorCode: "unavailable" };
+  const requiresOperator = operation.kind === "review";
   let fromBlock: bigint;
   try {
     const roles = await chain.gardenRoles(
@@ -75,32 +68,19 @@ export async function reserveOwnerAttempt(
       operation.gardenAddress as `0x${string}`,
       input.session.account
     );
-    if (!roles.gardener && !roles.operator) return { ok: false, errorCode: "forbidden" };
+    const allowed = requiresOperator ? roles.operator : roles.gardener || roles.operator;
+    if (!allowed) return { ok: false, errorCode: "forbidden" };
     fromBlock = await chain.blockNumber(operation.chainId);
   } catch {
     return { ok: false, errorCode: "dependency_unavailable" };
   }
   return inTransaction(core.db, () => {
-    const draft = operation.draftId ? loadDraft(core, operation.draftId) : null;
+    const subject = operationSubject(core, operation);
     const confirmation = confirmationById(core, operation.confirmationId);
-    if (
-      !draft ||
-      lifecycleState(draft) !== "awaitingWallet" ||
-      draft.revision !== operation.resourceRevision
-    ) {
+    if (!subject?.awaitingOwner || subject.revision !== operation.resourceRevision) {
       return { ok: false as const, errorCode: "stale_revision" as const };
     }
-    const subject = participantWriter(core, {
-      participantId: draft.participantId,
-      conversationId: draft.conversationId,
-      dedupePrefix: "reserve",
-    })?.target.subjectId;
-    if (
-      !confirmation ||
-      !subject ||
-      !activeConsentId(core, subject, "processing") ||
-      !hasPublicationConsent(core, draft.id, draft.revision, confirmation.summaryDigest)
-    ) {
+    if (!confirmation || !subject.consented(confirmation.summaryDigest)) {
       return { ok: false as const, errorCode: "forbidden" as const };
     }
     const fresh = operationById(core, operation.id);
@@ -115,7 +95,7 @@ export async function reserveOwnerAttempt(
       fromBlock: Number(fromBlock),
     });
     if (typeof reserved === "string") return { ok: false as const, errorCode: reserved };
-    commitLifecycle(core, draft, [{ type: "ATTEMPT_RESERVED" }], { participantAction: true });
+    subject.advance("ATTEMPT_RESERVED", true);
     enqueueJob(core, {
       kind: "watch_owner_attempt",
       subjectId: reserved.attempt.id,
@@ -210,14 +190,9 @@ export function recordOwnerOutcome(
       );
       return { ok: false, errorCode: "conflict" };
     }
-    const draft = operation.draftId ? loadDraft(core, operation.draftId) : null;
-    if (!draft) return { ok: false, errorCode: "unavailable" };
+    const subject = operationSubject(core, operation);
+    if (!subject) return { ok: false, errorCode: "unavailable" };
     const outcome = input.outcome;
-    const writer = participantWriter(core, {
-      participantId: draft.participantId,
-      conversationId: draft.conversationId,
-      dedupePrefix: `outcome:${attempt.id}`,
-    });
 
     let attemptState: string;
     let operationState: string;
@@ -231,34 +206,25 @@ export function recordOwnerOutcome(
         reasonCode: outcome.kind === "uncertain" ? outcome.reason : null,
       });
       setOperationState(core, operation.id, "reconciling");
-      commitLifecycle(
-        core,
-        draft,
-        [{ type: outcome.kind === "broadcast" ? "BROADCAST" : "OUTCOME_UNCERTAIN" }],
-        { participantAction: true }
-      );
+      subject.advance(outcome.kind === "broadcast" ? "BROADCAST" : "OUTCOME_UNCERTAIN", true);
       enqueueJob(core, {
         kind: "reconcile_operation",
         subjectId: operation.id,
         dedupeKey: `reconcile:${attempt.id}`,
         maxAttempts: 40,
       });
-      if (outcome.kind === "uncertain") writer?.say("publish.uncertain");
+      if (outcome.kind === "uncertain")
+        participantWriter(core, {
+          participantId: subject.participantId,
+          conversationId: subject.conversationId,
+          dedupePrefix: `outcome:${attempt.id}`,
+        })?.say("publish.uncertain");
     } else {
       attemptState = outcome.kind;
       operationState = "failed";
       updateAttempt(core, attempt.id, { state: outcome.kind, reasonCode: outcome.reason });
       setOperationState(core, operation.id, "failed", { failureCode: outcome.kind });
-      const { draft: reviewed } = commitLifecycle(core, draft, [{ type: "REJECTED_BEFORE_SEND" }], {
-        participantAction: true,
-      });
-      invalidateConfirmation(core, { draftId: draft.id });
-      if (writer) {
-        writer.say(
-          outcome.kind === "rejected_before_send" ? "publish.rejected" : "publish.preparationFailed"
-        );
-        askConfirmation(writer, reviewed, input.session.account);
-      }
+      subject.reopen(outcome.kind, input.session.account, `outcome:${attempt.id}`);
     }
     const response = { ok: true as const, operationState, attemptState };
     storeOutcome(core, {
@@ -320,12 +286,12 @@ export function watchOwnerAttempt(core: ReportingCore, job: ClaimedJob): JobOutc
       dedupeKey: `reconcile:${attempt.id}`,
       maxAttempts: 40,
     });
-    const draft = operation.draftId ? loadDraft(core, operation.draftId) : null;
-    if (!draft) return { status: "done" };
-    commitLifecycle(core, draft, [{ type: "OUTCOME_UNCERTAIN" }], { participantAction: false });
+    const subject = operationSubject(core, operation);
+    if (!subject) return { status: "done" };
+    subject.advance("OUTCOME_UNCERTAIN", false);
     participantWriter(core, {
-      participantId: draft.participantId,
-      conversationId: draft.conversationId,
+      participantId: subject.participantId,
+      conversationId: subject.conversationId,
       dedupePrefix: `watch:${attempt.id}`,
     })?.say("publish.unknown");
     return { status: "done" };

@@ -283,7 +283,7 @@ export async function prepareOperation(
       });
       out.say(
         "publish.signLink",
-        { kind: account.kind === "eoa" ? "wallet" : "passkey" },
+        { kind: out.text(account.kind === "eoa" ? "account.wallet" : "account.passkey") },
         { url, label: out.text("publish.signLabel") }
       );
     });

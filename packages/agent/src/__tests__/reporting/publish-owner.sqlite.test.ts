@@ -9,6 +9,7 @@ import { setControl } from "../../services/reporting/controls";
 import { TestBrowser } from "./support/browser";
 import {
   adaAccount,
+  bolaAccount,
   confirmLinkAndPublish,
   latestLink,
   openSigningPage,
@@ -155,7 +156,7 @@ describe("owner publication", () => {
       reason_code: "callback_missing",
     });
     expect(sentTexts().slice(-2)).toEqual([
-      "I didn't hear back from your wallet, so I can't tell yet whether your report was sent. I won't send it again; I'm checking the chain and will tell you what I find.",
+      "I didn't hear back from your wallet, so I can't tell yet whether it was sent. I won't send it again; I'm checking the chain and will tell you what I find.",
       expect.stringContaining("Your report is published ✅"),
     ]);
     // A late failure hint cannot rewrite a verified publication.
@@ -253,6 +254,27 @@ describe("owner publication", () => {
       failure_code: "receipt_mismatch",
     });
     expect(sentTexts().some((text) => text.includes("published ✅"))).toBe(false);
+  });
+
+  it("never counts the same payload attested by another account as the gardener's publication", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    harness.chain.grantRole(TAS.address, bolaAccount.address, { gardener: true });
+    const copy = harness.chain.submit({
+      attester: bolaAccount.address,
+      to: envelope.call.to,
+      data: envelope.call.data,
+    });
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: copy,
+    });
+    await harness.drain();
+    expect(row("SELECT state, failure_code FROM execution_operations")).toEqual({
+      state: "reconciling",
+      failure_code: "receipt_mismatch",
+    });
   });
 
   it("reports a definitive revert and asks for renewed intent", async () => {

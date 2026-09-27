@@ -134,7 +134,7 @@ export function answerGrantChoice(writer: TurnWriter, choice: string): void {
   });
   writer.say(
     "publish.signLink",
-    { kind: "passkey" },
+    { kind: writer.text("account.passkey") },
     { url, label: writer.text("publish.allowReporting") }
   );
 }

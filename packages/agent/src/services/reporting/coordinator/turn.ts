@@ -23,6 +23,14 @@ import { handleReportAnswer } from "./report-answer";
 import { confirmDraft, handleReportCommand } from "./report-commands";
 import { handleReportMessage } from "./report-message";
 import type { TurnExternal } from "./report-work";
+import { isReviewPrompt, nextReviewStep } from "./review-prompts";
+import {
+  answerReviewPrompt,
+  answerReviewSelection,
+  handleReviewCommand,
+  requestReview,
+} from "./review-steps";
+import { StaleReviewError } from "../reviews";
 import { TurnWriter } from "./writer";
 
 /**
@@ -138,7 +146,11 @@ function applyTurn(
         handleReportMessage(writer, { kind: "message", text: null, media: [] }, external);
       return "consume";
     case "answer":
-      if (plan.prompt.kind === "publication_consent" && plan.option) {
+      if (plan.prompt.kind === "select_review_work") {
+        answerReviewSelection(writer, plan);
+      } else if (isReviewPrompt(plan.prompt.kind) && writer.ctx.review) {
+        answerReviewPrompt(writer, writer.ctx.review, plan);
+      } else if (plan.prompt.kind === "publication_consent" && plan.option) {
         confirmPublication(writer, null, true);
       } else if (plan.prompt.kind === "grant_choice" && plan.option) {
         answerGrantChoice(writer, plan.option.value);
@@ -154,21 +166,46 @@ function applyTurn(
         handleReportAnswer(writer, plan, external);
       }
       return "consume";
-    case "message":
+    case "message": {
+      const { review, prompt, account } = writer.ctx;
+      // While a decision question is open, free text re-asks it instead of starting a report.
+      if (review && account && isReviewPrompt(prompt?.kind) && plan.media.length === 0) {
+        nextReviewStep(writer, review, account.address);
+        return "consume";
+      }
       handleReportMessage(writer, plan, external);
       return "consume";
-    case "command": {
-      const { command } = plan;
-      if (command.kind === "stop" || command.kind === "delete")
-        withdrawProcessing(writer, command.kind);
-      else if (command.kind === "pair") handlePairing(writer, command.code);
-      else if (command.kind === "publish") confirmPublication(writer, command.token, false);
-      else if (command.kind === "help" || command.kind === "start") writer.say("help");
-      else if (deps.commands?.[command.kind]) deps.commands[command.kind]?.(writer, plan);
-      else handleReportCommand(writer, command, external);
-      return "consume";
     }
+    case "command":
+      routeCommand(deps, writer, plan, external);
+      return "consume";
   }
+}
+
+function routeCommand(
+  deps: CoordinatorDeps,
+  writer: TurnWriter,
+  plan: Extract<TurnPlan, { kind: "command" }>,
+  external: TurnExternal
+): void {
+  const { command } = plan;
+  const { review } = writer.ctx;
+  if (command.kind === "stop" || command.kind === "delete")
+    return withdrawProcessing(writer, command.kind);
+  if (command.kind === "pair") return handlePairing(writer, command.code);
+  if (command.kind === "publish") return confirmPublication(writer, command.token, false);
+  if (command.kind === "help" || command.kind === "start") return writer.say("help");
+  if (command.kind === "review") return requestReview(writer, command.index);
+  if (review && reviewOwnsCommand(writer) && handleReviewCommand(writer, review, command)) return;
+  const owned = deps.commands?.[command.kind];
+  if (owned) return owned(writer, plan);
+  handleReportCommand(writer, command, external);
+}
+
+/** Commands such as CONFIRM or CANCEL belong to an open decision while its question is showing. */
+function reviewOwnsCommand(writer: TurnWriter): boolean {
+  const { review, prompt, draft } = writer.ctx;
+  return Boolean(review && (isReviewPrompt(prompt?.kind) || !draft));
 }
 
 function finalizeEvent(core: ReportingCore, event: InboxEventRow, outcome: TurnOutcome): void {
@@ -210,6 +247,8 @@ async function runTurn(
         !now ||
         now.draft?.id !== ctx.draft?.id ||
         now.draft?.revision !== ctx.draft?.revision ||
+        now.review?.id !== ctx.review?.id ||
+        now.review?.revision !== ctx.review?.revision ||
         now.prompt?.id !== ctx.prompt?.id
       ) {
         throw new StaleDraftError();
@@ -219,7 +258,7 @@ async function runTurn(
       return "committed" as const;
     });
   } catch (error) {
-    if (error instanceof StaleDraftError) return "stale";
+    if (error instanceof StaleDraftError || error instanceof StaleReviewError) return "stale";
     throw error;
   }
 }

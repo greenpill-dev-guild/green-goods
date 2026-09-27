@@ -9,6 +9,7 @@ import {
   type ParticipantBinding,
 } from "../participants";
 import { matchReply, openPrompt, type PromptOption, type PromptRecord } from "../prompts";
+import { openReviewFor, type ReviewRecord } from "../reviews";
 import type { ReportingCore } from "../runtime";
 import type { InboundMediaReference, InboundMessageEvent } from "../transport";
 import { type ChatCommand, consentAnswer, parseCommand } from "./commands";
@@ -24,6 +25,8 @@ export interface TurnContext {
   prompt: PromptRecord | null;
   draft: DraftRecord | null;
   draftUnavailable: boolean;
+  /** The steward's open decision in this conversation, if any. */
+  review: ReviewRecord | null;
   account: AccountBinding | null;
   intakeEnabled: boolean;
   modelEnabled: boolean;
@@ -51,6 +54,7 @@ const TEXT_ANSWER_PROMPTS = new Set([
   "feedback",
   "conflict",
   "edit_field",
+  "select_review_work",
   "review_decision",
   "review_confidence",
   "review_feedback",
@@ -84,6 +88,7 @@ export function loadTurnContext(core: ReportingCore, event: InboxEventRow): Turn
     prompt: openPrompt(core, event.conversation_id),
     draft,
     draftUnavailable,
+    review: binding ? openReviewFor(core, binding.participantId, event.conversation_id) : null,
     account: binding ? activeAccount(core, binding.participantId, core.settings.chainId) : null,
     intakeEnabled: readControl(core, "intake").enabled,
     modelEnabled: readControl(core, "model_processing").enabled,
