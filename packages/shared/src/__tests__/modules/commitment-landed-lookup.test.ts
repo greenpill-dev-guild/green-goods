@@ -113,13 +113,34 @@ async function lookUp(
   return lookup({ job, chainId: 42161, sinceMs: SINCE_MS });
 }
 
-/** One page of a log held newest first: after the cursor's row when there is one, else by count. */
+/**
+ * One page of a log held in the query's order, newest first and then by id. A
+ * cursor keeps the rows strictly before it in that order, as the indexer's
+ * predicate does; without one, the page starts at a count.
+ */
 function page(
   rows: CommitmentEventRecord[],
-  { limit = 50, offset = 0, before }: { limit?: number; offset?: number; before?: { id: string } }
+  {
+    limit = 50,
+    offset = 0,
+    before,
+  }: { limit?: number; offset?: number; before?: { timestamp: number; id: string } }
 ): CommitmentEventRecord[] {
-  const start = before ? rows.findIndex((row) => row.id === before.id) + 1 : offset;
-  return rows.slice(start, start + limit);
+  const rest = before
+    ? rows.filter(
+        (row) =>
+          row.timestamp < before.timestamp ||
+          (row.timestamp === before.timestamp && row.id < before.id)
+      )
+    : rows.slice(offset);
+  return rest.slice(0, limit);
+}
+
+/** Rows that fill the log ahead of the act, ids falling as the query orders them. */
+function busyRows(count: number): CommitmentEventRecord[] {
+  return Array.from({ length: count }, (_, index) =>
+    row("UNITS_COMMITTED", OTHER, { id: `busy-${String(count - index).padStart(5, "0")}` })
+  );
 }
 
 /** A take-up's send record keeps the head block its intent read: block 100. */
@@ -296,31 +317,21 @@ describe("createCommitmentLandedLookup", () => {
   });
 
   it("pages through a busy window, and says unknown when the window outruns the pages it reads", async () => {
-    const busy = Array.from({ length: 200 }, (_, index) =>
-      row("UNITS_COMMITTED", OTHER, { id: `row-${index}` })
-    );
-    await expect(lookUp(confirm, [...busy, row("CONFIRMATION_RECORDED", CALLER)])).resolves.toEqual(
-      { status: "found", transactionHash: TX }
-    );
+    await expect(
+      lookUp(confirm, [...busyRows(200), row("CONFIRMATION_RECORDED", CALLER)])
+    ).resolves.toEqual({ status: "found", transactionHash: TX });
 
-    const busier = Array.from({ length: 2_001 }, (_, index) =>
-      row("UNITS_COMMITTED", OTHER, { id: `row-${index}` })
-    );
-    await expect(lookUp(confirm, busier)).resolves.toEqual({ status: "unknown" });
+    await expect(lookUp(confirm, busyRows(2_001))).resolves.toEqual({ status: "unknown" });
   });
 
   it("keeps its place by cursor, so a row rolled back between pages never hides the act", async () => {
-    const log = [
-      ...Array.from({ length: 200 }, (_, index) =>
-        row("UNITS_COMMITTED", OTHER, { id: `row-${String(index).padStart(3, "0")}` })
-      ),
-      row("CONFIRMATION_RECORDED", CALLER),
-    ];
+    // Same-second rows, ordered by id as the indexer orders them; the act's row comes last.
+    const log = [...busyRows(200), row("CONFIRMATION_RECORDED", CALLER)];
     let reads = 0;
     const activity = async (input: {
       limit?: number;
       offset?: number;
-      before?: { id: string };
+      before?: { timestamp: number; id: string };
     }) => {
       reads += 1;
       // After the first page, the indexer rolls back a row above the act's.
