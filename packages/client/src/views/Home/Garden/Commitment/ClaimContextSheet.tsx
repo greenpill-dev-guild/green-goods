@@ -7,9 +7,9 @@ import { useIntl } from "react-intl";
 /**
  * What a claim is scoped to: the person, through a garden they belong to, or
  * a garden they steward. The garden travels with the choice because on the
- * protocol pool it is never the route's garden — that is the host, which the
- * contract refuses as a garden-claim context (GardenClaimMustBeExternal) and
- * which most claimants hold no hat in.
+ * protocol pool it need not be the route's garden. The host may carry a
+ * personal claim from someone who holds a role there, but the contract refuses
+ * it as a garden claim's context (GardenClaimMustBeExternal).
  */
 export type ClaimContext =
   | { kind: "personal"; garden: Address }
