@@ -135,3 +135,5 @@ export {
 } from "./api-contract";
 export type { ReportingProofFields, ReportingPurpose } from "./proof";
 export { buildReportingProofMessage, REPORTING_PROOF_AUDIENCE } from "./proof";
+export type { AttestScope, CallRuleFailure, WordRule } from "./call-policy";
+export { ATTEST_SELECTOR, attestCallFailures, attestWordRules } from "./call-policy";

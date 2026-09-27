@@ -183,10 +183,10 @@ function attestCall(easAddress: Hex, schemaUID: Hex, recipient: Hex, data: Hex) 
   };
 }
 
-type EnvelopeInput<T extends UnsignedEnvelope> = Omit<
-  T,
-  "version" | "easAddress" | "schemaUID" | "encodedData" | "call"
->;
+/** Distributes over the envelope kinds so each input keeps its own fields. */
+type EnvelopeInput<T extends UnsignedEnvelope> = T extends UnsignedEnvelope
+  ? Omit<T, "version" | "easAddress" | "schemaUID" | "encodedData" | "call">
+  : never;
 
 export function buildEnvelope<T extends UnsignedEnvelope>(
   deployment: ReportingDeployment,

@@ -47,6 +47,7 @@ import { logger } from "./services/logger";
 import { rateLimiter } from "./services/rate-limiter";
 import { captureAgentException, initAgentSentry, shutdownAgentSentry } from "./services/sentry";
 import { createResendSubscriptionClient } from "./services/subscriptions";
+import { startReporting } from "./runtime/reporting-startup";
 import { createShutdownHandler } from "./runtime/shutdown";
 import {
   createGardenJoinRequestCipher,
@@ -129,6 +130,20 @@ async function main(): Promise<void> {
   // LAUNCH
   // ============================================================================
 
+  const trustedProxy = {
+    hops: config.trustedProxyHops,
+    cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),
+  };
+  // Agent reporting stays off unless enabled and a chat transport adapter is available.
+  const reporting = startReporting({
+    env: process.env,
+    chain: config.chain,
+    chainId: config.chainId,
+    rpcUrl: agentRpcUrl,
+    isProduction: config.isProduction,
+    trustedProxy,
+  });
+
   // Start HTTP server in both modes (health + API endpoints always available)
   const server = createServer({
     isAIReady: isAIModelLoaded,
@@ -170,10 +185,8 @@ async function main(): Promise<void> {
     allowedOrigins: resolveAllowedOrigins(config.publicAllowedOrigins, {
       includeDevelopmentDefaults: config.isDevelopment,
     }),
-    trustedProxy: {
-      hops: config.trustedProxyHops,
-      cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),
-    },
+    trustedProxy,
+    ...(reporting ? { messaging: reporting.messaging } : {}),
     uploadSigning: {
       pinataJwt: config.pinataJwt,
       pinataUploadsApiBaseUrl: config.pinataUploadsApiBaseUrl,
@@ -268,6 +281,7 @@ async function main(): Promise<void> {
       closeDB,
       shutdownAgentAnalytics,
       shutdownAgentSentry,
+      ...(reporting ? [() => reporting.stop()] : []),
     ],
     exit: (code) => process.exit(code),
     logger,

@@ -201,6 +201,7 @@
     "./hooks/garden/useGardenOperations": "./src/hooks/garden/useGardenOperations.ts",
     "./hooks/garden/useGardenJoinRequests": "./src/hooks/garden/useGardenJoinRequests.ts",
     "./modules/agent-reporting": "./src/modules/agent-reporting/index.ts",
+    "./modules/agent-reporting/kernel-permissions": "./src/modules/agent-reporting/kernel-permissions.ts",
     "./modules/garden-join-requests": "./src/modules/garden-join-requests/index.ts",
     "./hooks/garden/useGardenPermissions": "./src/hooks/garden/useGardenPermissions.ts",
     "./hooks/garden/useKarmaIntegration": "./src/hooks/garden/useKarmaIntegration.ts",
