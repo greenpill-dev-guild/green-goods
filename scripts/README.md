@@ -74,7 +74,7 @@ policy. Release sessions still use the existing release operator.
 |---|---|---|
 | `setup.js` | `npm run setup -- --profile host`, `npm run setup -- --profile isolated`, `npm run setup -- --profile cloud` | First-clone and workspace setup; checks deps, bootstraps Bun when allowed, installs dependencies, and handles host/isolated/cloud env posture |
 | `clean.js` | `bun run dev:clean`, `bun run dev:clean -- --dry-run` | Remove disposable build/test/cache artifacts from the current checkout only; never stops services, removes dependencies, touches env files, or inspects sibling worktrees |
-| `doctor.js` | `bun run dev:health -- <mode>` | Non-mutating readiness check (ports, tools, env, profiles) |
+| `doctor.js` | `bun run dev:health -- <mode>` | Non-mutating readiness check (ports, tools, env, profiles), including warning-only personal engineering skill availability for Codex and Claude |
 | `env-template-init.js` | `node scripts/dev/env-template-init.js` | Generate `.env.template` skeleton from `.env.schema` (one-shot) |
 | `env-sync.js` | `bun run env:sync` | Run `op inject` against `.env.template` to materialize `.env` |
 | `env-check.js` | `bun run env:check`, called from `doctor.js` | Validate `.env` has all required `.env.schema` keys non-empty |
@@ -220,6 +220,8 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 ### `harness/` — skill and planning helpers
 | Script | Caller | Purpose |
 |---|---|---|
+| `command-policy.mjs` | Claude Bash hook and `.codex/hooks/pre_tool_policy.sh` | Inspect ordinary shell commands without executing input; share command matching while preserving Claude production warnings and Codex blocks |
+| `agent-hooks.test.mjs` | `bun run check --only review-guardrails-test` | Synthetic hook events and command fixtures covering advisory lifecycle events, harmless quoted data, restricted commands, and harness registration |
 | `plan-hub.mjs` | `plan` skill | Manage `.plans/{ideas,backlog,active,archive}/` queue, lane status, TDD gates, taxonomy summaries, and root-layout validation |
 | `plan-hub.test.mjs` | `node --test scripts/harness/plan-hub.test.mjs` | Black-box fixture checks for plan-hub schema, taxonomy, summaries, and TDD proof gates |
 | `skill-trigger-eval.mjs` | `bun run check --only skill-evaluation` (on-demand, not CI) | Routes the fixture queries in `scripts/data/skill-trigger-eval.json` against the live SKILL.md descriptions via a cheap `claude -p` call — catches description-routing regressions after trigger edits |

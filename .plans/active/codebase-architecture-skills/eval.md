@@ -68,3 +68,25 @@ specialist review matrix.
 `coverage_ratchet` is due `2026-09-22`. Raise every supported configured metric by two points and
 update parity expectations in the same change. If measured coverage cannot support the increase,
 record the evidence and blocker; do not archive this hub or describe the ratchet as complete.
+## Agent workflow reliability pilot — 2026-09-26
+
+Apply this rubric to the next normally authorized task in each category. Do not create extra
+product work or run billed model simulations to fill the table. This is a practical pilot, not a
+statistical comparison of agents or repositories.
+
+| Scenario | Useful evidence | Observation |
+|---|---|---|
+| Documentation correction | Narrow change; working links and consistent routing | Pending |
+| Bug fix | Reproduced defect; useful regression proof | Pending |
+| Domain change | Owning rule identified; accepted and rejected behavior checked | Pending |
+| UI correction | Local design guidance applied; rendered proof labeled | Pending |
+| Bounded refactor | Behavior preserved; concrete maintenance cost reduced | Pending |
+
+For each task, record its reference, agent/session, acceptance outcome, scope adherence,
+verification, and human corrections. Record skill use only when observable; an agent saying it
+followed a skill or a file being available is not behavioral proof. Record elapsed time or token
+usage only if already available, without adding instrumentation.
+
+Live registration observations remain separate: Claude Desktop **Code** session — pending;
+Codex session — pending. Synthetic events prove scripts and checked-in wiring, not that another
+application session loaded the configuration. Terminal Claude CLI is not Desktop evidence.
