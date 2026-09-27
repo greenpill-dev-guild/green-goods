@@ -121,4 +121,4 @@ for, taken on staging rather than the Browser pane, which was hidden.
 - Validated paths: the non-plan paths `538b2d4e2` changes against `c17a03b46`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
 - Evidence-only diff command and result (if applicable): this handoff commit changes only plan files
-- Rendered proof: pending, a clean-room capture of one rehearsal garden's page by its own link and of the archive without it.
+- Rendered proof: clean-room headless Chromium (Playwright, a fresh context per page, no sign-in, service workers blocked, 1280 × 900) against staging on 2026-09-27 at 10:34Z, after #928 deployed. `https://staging.greengoods.app/gardens/0xF7b892886998DAe960D64a9db488336684F137A0` (Aiyeloja Family Garden) and `/gardens/0xf401f34378384713222d1d21f63359cc4E8a858a` (Green Goods Community Garden) each rendered the garden with the line saying it is not in the public lists, `robots` set to `noindex`, and no Support This Garden link. `/gardens` named neither garden. No page errors. The screenshots stay outside the repository.

@@ -1298,10 +1298,10 @@ name the files, steps, tests and commands.
 | PR | Covers | Handoff | Class | Status |
 |---|---|---|---|---|
 | W3-A Members act, everyone reads | N37, N38, N35 (queue half) | [handoff](handoffs/w3a-members-act-everyone-reads.md) | Critical | Merged in #921 (`4615608d9`); the authenticated wallet walk stays pending for the recorded call |
-| W3-B The commitment screen keeps its chrome | N39, N40, N9, N10, N5 (app row), N23 | [handoff](handoffs/w3b-commitment-screen-chrome.md) | Sensitive; pairs before merge | Merged in #926 (`48aa97fd5`) after Afo approved the pairs |
+| W3-B The commitment screen keeps its chrome | N39, N40, N9, N10, N5 (app row), N23 | [handoff](handoffs/w3b-commitment-screen-chrome.md) | Sensitive; pairs before merge | Merged in #926 (`48aa97fd5`) after Afo approved the row and rail pairs; the notice and fixed-bar checks moved to QA Pass 2 (PRD-730) |
 | W3-C The seed wizard asks what a steward can answer | N8, N4, N12, N6, N11, N5 (admin row and tray), N30 | [handoff](handoffs/w3c-seed-wizard-questions.md) | Sensitive; pairs before merge | Merged in #927 (`127ae1376`) after Afo approved the pairs |
 | W3-D Unlisted, not unreachable | N2 | [handoff](handoffs/w3d-unlisted-gardens-reachable.md) | Sensitive | Merged in #928 (`303d114fd`); both rehearsal gardens open on staging |
-| W3-E Sessions: one account at a time | N36; N35 (sign-out half) only if reproduced | [handoff](handoffs/w3e-account-sessions.md) | Critical | Merged in #929 (`544ba639d`); the sign-out half not taken, since its reproduction has not run |
+| W3-E Sessions: one account at a time | N36; N35 (sign-out half) only if reproduced | [handoff](handoffs/w3e-account-sessions.md) | Critical | Merged in #929 (`544ba639d`); the sign-out reproduction moved to PRD-1001, the Home capture to QA Pass 2 (PRD-730) |
 | W3-F The inspector renders; people have names | N26, N17; the client composite stories if time allows | [handoff](handoffs/w3f-inspector-story-and-names.md) | Routine | Merged in #930 (`df63a1580`); composite stories moved to W4-3 |
 | W3-G Commitment acts record their sends | N41 | [handoff](handoffs/w3g-commitment-acts-record-their-sends.md) | Critical | Merged in #923 (`7fdc87f78`) and #931 (`2aca5c59a`); PWA-126 walk pending |
 | W3-H The host garden counts for a personal claim | N42 | [handoff](handoffs/w3h-host-garden-personal-claims.md) | Sensitive | Merged in #925 (`c17a03b46`); the on-chain claim rides the protocol-pool walk |
@@ -1314,8 +1314,9 @@ Two reproductions ride the solo Stage A gate before the recorded call, not the c
 (§ 6.2): N1 (which dialog, whether Tab moves focus, the body's computed `pointer-events`, a second
 mounted `AdminDialog` surface, an open wallet modal) and N35's sign-out (Rabby extension or Rabby
 Mobile over WalletConnect, whether the wallet showed a connection request or a transaction, whether
-the app reloaded on return, the auth breadcrumbs). Their results go to the Linear children of W3-E
-and of the cockpit's dialog work, not to this file.
+the app reloaded on return, the auth breadcrumbs). N35's result goes to PRD-1001, which took it over
+from W3-E's Linear child on 2026-09-27, and N1's to the cockpit's dialog work; neither goes to this
+file.
 
 | After 2.0.0 | Covers | Waits on |
 |---|---|---|

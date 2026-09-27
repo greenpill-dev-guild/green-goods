@@ -635,7 +635,7 @@
     "w3a_members_act": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "passed",
+      "status": "in_progress",
       "branch": "fix/commitment-take-up-membership",
       "depends_on": [],
       "handoff": "handoffs/w3a-members-act-everyone-reads.md",
@@ -719,7 +719,7 @@
     "w3g_commitment_send_record": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "passed",
+      "status": "in_progress",
       "branch": "fix/commitment-send-record",
       "depends_on": ["w3a_members_act"],
       "handoff": "handoffs/w3g-commitment-acts-record-their-sends.md",
@@ -733,7 +733,7 @@
     "w3h_host_claim_context": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "passed",
+      "status": "in_progress",
       "branch": "fix/host-garden-personal-claims",
       "depends_on": ["w3g_commitment_send_record"],
       "handoff": "handoffs/w3h-host-garden-personal-claims.md",
@@ -1631,6 +1631,46 @@
       "status": "passed",
       "branch": "fix/host-garden-personal-claims",
       "note": "Merged in #925 as c17a03b46; the claim landing on chain rides the protocol-pool walk; Linear PRD-997 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3a_members_act",
+      "status": "in_progress",
+      "branch": "fix/commitment-take-up-membership",
+      "note": "Back to in_progress: the harness counts passed as done, and the authenticated wallet walk (PWA-123 to PWA-125) is still pending; Linear PRD-990 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3b_commitment_screen_chrome",
+      "status": "completed",
+      "branch": "fix/commitment-screen-chrome",
+      "note": "Afo's approval covered the row and cycle-rail pairs; the commitment screen, the readiness notice as member and steward, and the fixed bars on a real scroll were never captured and moved to QA Pass 2 (PRD-730); PRD-991 Done, since its Done when asks for pairs only for the row edge"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3e_account_sessions",
+      "status": "completed",
+      "branch": "fix/account-switch-state-reset",
+      "note": "The sign-out reproduction, and any restore-path change, moved to PRD-1001; the mock-auth Home capture moved to QA Pass 2 (PRD-730); PRD-994 Done, since its Done when holds"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "in_progress",
+      "branch": "fix/commitment-send-record",
+      "note": "Back to in_progress: the harness counts passed as done, and the PWA-126 walk on the recorded call is still pending; Linear PRD-996 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3h_host_claim_context",
+      "status": "in_progress",
+      "branch": "fix/host-garden-personal-claims",
+      "note": "Back to in_progress: the harness counts passed as done, and the claim landing on chain rides the protocol-pool walk; Linear PRD-997 In Progress"
     }
   ]
 }
