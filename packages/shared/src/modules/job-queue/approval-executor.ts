@@ -1,10 +1,9 @@
-import type { Hex } from "viem";
 import { getEASConfig, type EASConfig } from "../../config/blockchain";
 import type { ApprovalJobPayload, Job } from "../../types/job-queue";
 import { buildApprovalAttestContractCall } from "../../utils/eas/transaction-builder";
-import { TransactionRevertedError, type TransactionSender } from "../transactions/types";
+import type { TransactionSender } from "../transactions/types";
 import { buildQueuedApprovalDraft } from "../work/queued-work-draft";
-import { sendWithCheckpoint } from "../work/send-with-checkpoint";
+import { sendWithCheckpoint, settleRecordedSend } from "../work/send-with-checkpoint";
 import { settleStrandedDecisionIntent } from "../work/stranded-intent";
 import {
   AwaitingWorkConfirmation,
@@ -26,48 +25,6 @@ export interface ApprovalJobExecutorDeps {
 }
 
 /**
- * Confirm a decision that was already sent, instead of sending it again: the
- * resolver accepts a second decision for the same work, and a second approval
- * would also repeat its impact report.
- */
-async function settleRecordedSend(
-  job: Job<ApprovalJobPayload>,
-  chainId: number,
-  sender: TransactionSender,
-  deps: ApprovalJobExecutorDeps,
-  persist: (job: Job<ApprovalJobPayload>) => Promise<void>
-): Promise<Hex> {
-  const checkpoint = job.payload.sendCheckpoint;
-  const broadcast = checkpoint?.broadcast ?? retainedWorkBroadcastReference(job.id);
-  let transactionHash =
-    checkpoint?.transactionHash ?? (broadcast?.kind === "transaction" ? broadcast.hash : undefined);
-  let state: "confirmed" | "reverted" | "unresolved" = "unresolved";
-  if (broadcast?.kind === "user-operation" && !transactionHash) {
-    const result = await sender.reconcileBroadcast?.(broadcast);
-    state = result?.status ?? "unresolved";
-    if (result?.status === "confirmed") transactionHash = result.transactionHash;
-  } else if (transactionHash) {
-    state = await (deps.reconcile ?? reconcileWorkTransaction)(transactionHash, chainId);
-  }
-  if (state === "confirmed") return transactionHash!;
-  if (state === "reverted") {
-    // Nothing was recorded, so the decision may be sent again.
-    const revertedHash = transactionHash ?? broadcast?.hash ?? "0x";
-    writeSendCheckpoint(job, undefined);
-    forgetWorkBroadcast(job.id);
-    await persist(job);
-    throw new TransactionRevertedError(revertedHash);
-  }
-  // A transaction hash may be a Safe transaction still collecting signatures.
-  if (transactionHash) throw new AwaitingWorkConfirmation(transactionHash);
-  return (deps.settleStrandedIntent ?? settleStrandedDecisionIntent)(
-    job,
-    chainId,
-    broadcast?.hash ?? "0x"
-  );
-}
-
-/**
  * Execute an approval attestation job: encode and send (no IPFS needed).
  *
  * The send is checkpointed like queued work: an intent just before the call
@@ -83,7 +40,21 @@ export async function executeApprovalJob(
   const payload = job.payload as ApprovalJobPayload;
   const persist = deps.persist ?? ((updated) => jobQueueDB.updateJob(updated));
   if (hasRecordedSend(job) || retainedWorkBroadcastReference(job.id)) {
-    const hash = await settleRecordedSend(job, chainId, sender, deps, persist);
+    // Confirmed rather than sent again: the resolver accepts a second decision
+    // for the same work, and a second approval would repeat its impact report.
+    const hash = await settleRecordedSend({
+      jobId: job.id,
+      checkpoint: payload.sendCheckpoint,
+      chainId,
+      sender,
+      reconcile: deps.reconcile,
+      clear: async () => {
+        writeSendCheckpoint(job, undefined);
+        await persist(job);
+      },
+      settleStranded: (pendingHash) =>
+        (deps.settleStrandedIntent ?? settleStrandedDecisionIntent)(job, chainId, pendingHash),
+    });
     forgetWorkBroadcast(job.id);
     return hash;
   }

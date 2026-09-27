@@ -25,7 +25,13 @@ import {
   type TxResult,
 } from "../transactions/types";
 import { classifySendFailure } from "./send-outcome";
-import { forgetWorkBroadcast, rememberWorkBroadcast } from "./work-confirmation";
+import {
+  AwaitingWorkConfirmation,
+  forgetWorkBroadcast,
+  reconcileWorkTransaction,
+  rememberWorkBroadcast,
+  retainedWorkBroadcastReference,
+} from "./work-confirmation";
 
 /** Applies a change to the send record of every job the call carries, and persists it. */
 export type RecordSend = (
@@ -126,4 +132,47 @@ export async function sendWithCheckpoint({
     for (const id of jobIds) forgetWorkBroadcast(id);
     return { status: "not-sent", cancelled: failure.cancelled, error };
   }
+}
+
+/**
+ * Settle a send already on record instead of sending it again: a transaction by
+ * its receipt, a UserOperation through the sender's own reconcile, and an
+ * intent no receipt can answer through the caller's `settleStranded`. A revert
+ * clears the record through `clear`, so the call may be sent again; a send
+ * still on its way throws `AwaitingWorkConfirmation`.
+ */
+export async function settleRecordedSend(input: {
+  jobId: string;
+  checkpoint: SendCheckpoint | undefined;
+  chainId: number;
+  sender: TransactionSender;
+  reconcile?: typeof reconcileWorkTransaction;
+  /** Removes the record from the job and persists it. */
+  clear: () => Promise<void>;
+  /** The transaction that landed, or a waiting or reopened error. */
+  settleStranded: (pendingHash: Hex) => Promise<Hex>;
+}): Promise<Hex> {
+  const { checkpoint, jobId } = input;
+  const broadcast = checkpoint?.broadcast ?? retainedWorkBroadcastReference(jobId);
+  let transactionHash =
+    checkpoint?.transactionHash ?? (broadcast?.kind === "transaction" ? broadcast.hash : undefined);
+  let state: "confirmed" | "reverted" | "unresolved" = "unresolved";
+  if (broadcast?.kind === "user-operation" && !transactionHash) {
+    const result = await input.sender.reconcileBroadcast?.(broadcast);
+    state = result?.status ?? "unresolved";
+    if (result?.status === "confirmed") transactionHash = result.transactionHash;
+  } else if (transactionHash) {
+    state = await (input.reconcile ?? reconcileWorkTransaction)(transactionHash, input.chainId);
+  }
+  if (state === "confirmed") return transactionHash!;
+  if (state === "reverted") {
+    // Nothing was recorded on chain, so the call may be sent again.
+    const revertedHash = transactionHash ?? broadcast?.hash ?? "0x";
+    forgetWorkBroadcast(jobId);
+    await input.clear();
+    throw new TransactionRevertedError(revertedHash);
+  }
+  // A transaction hash may be a Safe transaction still collecting signatures.
+  if (transactionHash) throw new AwaitingWorkConfirmation(transactionHash);
+  return input.settleStranded(broadcast?.hash ?? "0x");
 }
