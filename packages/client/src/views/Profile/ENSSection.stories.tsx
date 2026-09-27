@@ -1,4 +1,5 @@
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useENSClaim } from "@green-goods/shared/hooks/ens/useENSClaim";
 import { useENSRegistrationStatus } from "@green-goods/shared/hooks/ens/useENSRegistrationStatus";
 import { useENSReleaseName } from "@green-goods/shared/hooks/ens/useENSReleaseName";
@@ -8,8 +9,9 @@ import { useSlugAvailability } from "@green-goods/shared/hooks/ens/useSlugAvaila
 import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, screen, userEvent, within } from "storybook/test";
-import { ENSSection } from "./ENSSection";
+import { withAdminIdentityRole } from "../../../../shared/.storybook/decorators";
 import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
+import { ENSSection } from "./ENSSection";
 
 const ACCOUNT = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e" as Address;
 
@@ -22,6 +24,7 @@ function withUsername({ releasing = false, online = true } = {}) {
     mocked(useGreenGoodsEnsName).mockReturnValue({ data: "afo.greengoods.eth" } as ReturnType<
       typeof useGreenGoodsEnsName
     >);
+    mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
     mocked(useENSRegistrationStatus).mockReturnValue({ data: undefined } as ReturnType<
       typeof useENSRegistrationStatus
     >);
@@ -42,6 +45,7 @@ function withUsername({ releasing = false, online = true } = {}) {
       useOnlineStatus,
       useProtocolMemberStatus,
       useGreenGoodsEnsName,
+      useEnsName,
       useENSRegistrationStatus,
       useSlugAvailability,
       useENSClaim,
@@ -53,7 +57,7 @@ function withUsername({ releasing = false, online = true } = {}) {
 /**
  * The Profile username card for a member who holds a Green Goods name. Releasing it asks first:
  * Release Username in the warning fill over an outlined Cancel in the shared bar (DL-016). The ENS
- * reads and the release mutation are mocked.
+ * reads and the release mutation are mocked; the account is the dev deployer wallet.
  */
 const meta: Meta<typeof ENSSection> = {
   title: "Client/Profile/ENSSection",
@@ -68,6 +72,7 @@ const meta: Meta<typeof ENSSection> = {
         <Story />
       </div>
     ),
+    withAdminIdentityRole("deployer"),
   ],
 };
 

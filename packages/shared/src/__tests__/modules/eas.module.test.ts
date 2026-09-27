@@ -45,6 +45,7 @@ import {
   getGardenAssessments,
   getWorkApprovals,
   getWorkApprovalsForWork,
+  getWorkListPage,
   getWorks,
   getWorksByGardener,
   parseWorkApprovalAttestation,
@@ -334,6 +335,36 @@ describe("modules/data/eas", () => {
       await expect(getWorks(undefined, 11155111, reader)).resolves.toMatchObject([
         { id: workAttestation.id },
       ]);
+    });
+  });
+
+  describe("address filters", () => {
+    // EAS stores addresses checksummed and compares filters exactly, so a
+    // lowercase address reads zero rows instead of failing.
+    const stored = "0xA0Cf798816D4b9b9866b5330EEa46a18382f251e";
+    const lowercase = stored.toLowerCase();
+
+    it.each([
+      ["getWorkListPage", () => getWorkListPage(lowercase, { chainId: 11155111 }, reader)],
+      ["getWorks", () => getWorks(lowercase, 11155111, reader)],
+      ["getGardenAssessments", () => getGardenAssessments(lowercase, 11155111, undefined, reader)],
+      ["getWorkApprovals", () => getWorkApprovals(lowercase, 11155111, reader)],
+    ])("%s asks for the recipient in the spelling EAS stores", async (_name, read) => {
+      mockQuery.mockResolvedValue({ data: { attestations: [] } });
+
+      await read();
+
+      expect(mockQuery.mock.calls[0][1].where.recipient).toEqual({ equals: stored });
+    });
+
+    it("spells every garden of a multi-garden read, and the gardener of an attester read", async () => {
+      mockQuery.mockResolvedValue({ data: { attestations: [] } });
+
+      await getWorks([lowercase], 11155111, reader);
+      await getWorksByGardener(lowercase, 11155111, reader);
+
+      expect(mockQuery.mock.calls[0][1].where.recipient).toEqual({ in: [stored] });
+      expect(mockQuery.mock.calls[1][1].where.attester).toEqual({ equals: stored });
     });
   });
 

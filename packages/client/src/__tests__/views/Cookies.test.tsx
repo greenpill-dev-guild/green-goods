@@ -6,7 +6,6 @@
 
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent } from "@testing-library/react";
 import { renderWithProviders as render, screen, userEvent, waitFor, within } from "../test-utils";
 
 const TEST_JAR = "0x1111111111111111111111111111111111111111" as const;
@@ -177,16 +176,12 @@ vi.mock("@green-goods/shared/components/feedback/TransactionSuccessAffordance", 
 
 import CookiesPage from "../../views/Public/Cookies";
 
-function renderPage(path = `/cookies?jar=${TEST_JAR}`, openWalletSurface = true) {
-  const result = render(
+function renderPage(path = `/cookies?jar=${TEST_JAR}`) {
+  return render(
     <MemoryRouter initialEntries={[path]}>
       <CookiesPage />
     </MemoryRouter>
   );
-  if (openWalletSurface) {
-    fireEvent.click(screen.getByRole("button", { name: "Explore Cookie Jars" }));
-  }
-  return result;
 }
 
 describe("CookiesPage", () => {
@@ -226,7 +221,7 @@ describe("CookiesPage", () => {
     mockDepositMutate.mockImplementation((_params, options) => options?.onSuccess?.());
   });
 
-  it("asks disconnected visitors to connect before claiming", async () => {
+  it("offers contextual wallet actions inside each jar", async () => {
     const user = userEvent.setup();
     mockUseUser.mockReturnValue({ primaryAddress: undefined });
 
@@ -241,15 +236,17 @@ describe("CookiesPage", () => {
     expect(
       await screen.findByText(/Connect a wallet to check claim access and add funds/i)
     ).toBeInTheDocument();
-    const connectButtons = screen.getAllByRole("button", { name: "Connect Wallet" });
-    expect(connectButtons.length).toBeGreaterThanOrEqual(1);
-    await user.click(connectButtons[0]!);
+    const card = await screen.findByRole("article", { name: "Earth Week Cookie Jar" });
+    expect(screen.queryByRole("button", { name: "Connect Wallet" })).toBeNull();
+
+    await user.click(within(card).getByRole("button", { name: "Check claim access" }));
     expect(mockLoginWithWallet).toHaveBeenCalledTimes(1);
+    await user.click(within(card).getByRole("button", { name: "Add funds" }));
+    expect(mockLoginWithWallet).toHaveBeenCalledTimes(2);
     expect(mockOpenWallet).not.toHaveBeenCalled();
   });
 
-  it("keeps wallet connection available when a listed jar cannot be read", async () => {
-    const user = userEvent.setup();
+  it("does not offer wallet actions when a listed jar cannot be read", async () => {
     mockUseUser.mockReturnValue({ primaryAddress: undefined });
     mockUseCampaignCookieJar.mockReturnValue({
       jar: null,
@@ -261,15 +258,17 @@ describe("CookiesPage", () => {
     renderPage("/cookies");
 
     expect(await screen.findByText(/This cookie jar could not be loaded/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
-    expect(mockLoginWithWallet).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Check claim access" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add funds" })).toBeNull();
   });
 
-  it("keeps the wallet surface deferred until the visitor asks to explore jars", () => {
-    renderPage("/cookies", false);
+  it("shows public cookie jars without requiring an explore action", async () => {
+    renderPage("/cookies");
 
-    expect(screen.getByRole("button", { name: "Explore Cookie Jars" })).toBeInTheDocument();
-    expect(screen.queryByRole("article", { name: "Earth Week Cookie Jar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Explore Cookie Jars" })).toBeNull();
+    expect(
+      await screen.findByRole("article", { name: "Earth Week Cookie Jar" })
+    ).toBeInTheDocument();
   });
 
   it("uses editorial record skeletons while the campaign list loads", async () => {

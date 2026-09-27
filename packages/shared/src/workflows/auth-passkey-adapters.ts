@@ -21,7 +21,6 @@ import {
   getPimlicoBundlerUrl,
   getPimlicoSponsorshipPolicyId,
 } from "../config/pimlico";
-import { ENV } from "../lib/env";
 import {
   trackAuthPasskeyLoginFailed,
   trackAuthPasskeyLoginStarted,
@@ -126,13 +125,7 @@ async function buildSmartAccount(
   knownAddress?: Hex
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
   assertPrimaryPasskeyProfile(chainId);
-  // Account construction is a read/auth capability. Missing sponsorship
-  // configuration prevents Celo submission, but not sign-in or recovery.
-  const sponsorshipPolicyId =
-    chainId === 42220
-      ? ENV.VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID?.trim() ||
-        ENV.VITE_PIMLICO_SPONSORSHIP_POLICY_ID?.trim()
-      : getPimlicoSponsorshipPolicyId(chainId);
+  const sponsorshipPolicyId = getPimlicoSponsorshipPolicyId(chainId);
   const chain = getChain(chainId);
   const publicClient = createPublicClientForChain(chainId);
   const pimlicoClient = createPimlicoClientForChain(chainId);
@@ -148,7 +141,7 @@ async function buildSmartAccount(
     chain,
     bundlerTransport: http(getPimlicoBundlerUrl(chainId)),
     paymaster: pimlicoClient,
-    ...(sponsorshipPolicyId ? { paymasterContext: { sponsorshipPolicyId } } : {}),
+    paymasterContext: { sponsorshipPolicyId },
     userOperation: {
       estimateFeesPerGas: async () => {
         const { fast } = await pimlicoClient.getUserOperationGasPrice();

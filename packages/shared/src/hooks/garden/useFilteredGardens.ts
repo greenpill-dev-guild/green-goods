@@ -1,4 +1,4 @@
-import type { Domain, Garden } from "../../types/domain";
+import { Domain, type Garden } from "../../types/domain";
 import { gardenHasMember } from "../../utils/app/garden";
 import { expandDomainMask } from "../../utils/domain";
 
@@ -10,6 +10,28 @@ export interface GardenFiltersState {
   sort: GardenSortOrder;
   /** Keep gardens tagged with any of these domains; empty or unset keeps all. */
   domains?: Domain[];
+}
+
+/** What Home shows before anyone filters, and what Reset returns to. */
+export const DEFAULT_GARDEN_FILTERS: GardenFiltersState = { scope: "all", sort: "recent" };
+
+/**
+ * Read filters saved on the device. Saved input is untrusted: anything that is
+ * not a known scope, sort, or domain falls back to the default for that field.
+ */
+export function parseGardenFilters(value: unknown): GardenFiltersState {
+  if (!value || typeof value !== "object") return DEFAULT_GARDEN_FILTERS;
+  const saved = value as { scope?: unknown; sort?: unknown; domains?: unknown };
+  const domains = Array.isArray(saved.domains)
+    ? saved.domains.filter(
+        (domain): domain is Domain => typeof domain === "number" && domain in Domain
+      )
+    : [];
+  return {
+    scope: saved.scope === "mine" ? "mine" : DEFAULT_GARDEN_FILTERS.scope,
+    sort: saved.sort === "name" ? "name" : DEFAULT_GARDEN_FILTERS.sort,
+    ...(domains.length > 0 ? { domains } : {}),
+  };
 }
 
 export interface UseFilteredGardensResult {
@@ -90,8 +112,8 @@ export function useFilteredGardens(
   }
 
   // Compute filter state
-  const isScopeFiltered = scope !== "all";
-  const isSortFiltered = sort !== "recent";
+  const isScopeFiltered = scope !== DEFAULT_GARDEN_FILTERS.scope;
+  const isSortFiltered = sort !== DEFAULT_GARDEN_FILTERS.sort;
   const isDomainFiltered = domains.length > 0;
   const isFilterActive = isScopeFiltered || isSortFiltered || isDomainFiltered;
   const activeFilterCount =

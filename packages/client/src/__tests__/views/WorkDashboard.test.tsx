@@ -573,6 +573,22 @@ describe("WorkDashboard", () => {
     expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
   });
 
+  it("keeps Completed loading while the gardener's own work is still being read", () => {
+    mockUseMyWorks.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isFetching: true,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+
+    renderDashboard();
+    fireEvent.click(screen.getByTestId("tab-completed"));
+
+    expect(screen.getByText("Loading your work...")).toBeInTheDocument();
+    expect(screen.queryByText("No completed work")).not.toBeInTheDocument();
+  });
+
   it("opens the original work route from the My work reviewed completed filter", () => {
     const onClose = vi.fn();
     mockUseMyWorks.mockReturnValue({
@@ -615,7 +631,9 @@ describe("WorkDashboard", () => {
     renderDashboard(onClose);
 
     fireEvent.click(screen.getByTestId("tab-completed"));
-    fireEvent.change(screen.getByDisplayValue("By you"), {
+    // Completed opens on All, so a gardener sees their reviewed work without filtering.
+    expect(screen.getByText("Reviewed planting")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: /completed work filter/i }), {
       target: { value: "myWorkReviewed" },
     });
     fireEvent.click(screen.getByText("Reviewed planting"));
@@ -704,7 +722,7 @@ describe("WorkDashboard", () => {
     renderDashboard();
 
     fireEvent.click(screen.getByTestId("tab-completed"));
-    fireEvent.change(screen.getByDisplayValue("By you"), {
+    fireEvent.change(screen.getByRole("combobox", { name: /completed work filter/i }), {
       target: { value: "myWorkReviewed" },
     });
 

@@ -134,7 +134,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
               {isLoading ? (
                 <div className="w-full h-full bg-bg-soft-200">
                   <div
-                    className={cn("h-full", pwaStatusStyles.information.progress)}
+                    className={cn("h-full", pwaStatusStyles.primary.progress)}
                     style={{
                       animationName: "standardTabLoading",
                       animationDuration: "var(--spring-effects-slow-duration)",

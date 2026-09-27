@@ -18,7 +18,7 @@ The [accepted wallet plan](gardener-celo-wallets.md) reopens `state_api`, `ui_cl
 `release_ops`. The existing Garden Safe/CCIP canary remains accepted. The separate Kernel
 passkey/G$ canary and production activation remain human release prerequisites.
 
-- [x] Complete chain-aware passkey routing and the dedicated Celo policy binding.
+- [x] Complete chain-aware passkey routing and the dedicated Celo policy binding. (2026-09-21, PR #854: the binding now falls back to the general policy when no Celo override is set.)
 - [x] Complete the Celo balance, contributor receipts, and fee-aware existing send flow.
 - [x] Complete W23 translations, DOM tests, and the automated critical release checks.
 - [ ] Complete authenticated Brave proof and the production Kernel canary.

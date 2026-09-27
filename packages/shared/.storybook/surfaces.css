@@ -111,6 +111,8 @@
      against index.css. */
   --gg-button-radius: var(--radius-full);
   --gg-button-radius-pressed: var(--radius-full);
+  --gg-button-radius-compact: var(--radius-full);
+  --gg-button-radius-compact-pressed: var(--radius-full);
   --gg-button-weight: 500;
   --gg-label-md: 0.875rem;
   --gg-label-sm: 0.875rem;
@@ -188,11 +190,15 @@
 [data-surface-scope="app"] {
   --gg-button-radius: var(--radius-lg);
   --gg-button-radius-pressed: var(--radius-squircle);
+  --gg-button-radius-compact: var(--radius-squircle);
+  --gg-button-radius-compact-pressed: var(--radius-md);
   --gg-button-weight: var(--text-label-sm--font-weight);
 }
 
 [data-surface-scope="website"] {
   --gg-button-radius: var(--radius-none);
   --gg-button-radius-pressed: var(--radius-none);
+  --gg-button-radius-compact: var(--radius-none);
+  --gg-button-radius-compact-pressed: var(--radius-none);
   --gg-button-weight: var(--font-weight-semibold, 600);
 }

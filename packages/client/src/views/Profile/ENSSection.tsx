@@ -4,6 +4,8 @@ import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDial
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { ENSProgressTimeline } from "@green-goods/shared/components/Progress/ENSProgressTimeline";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useENSClaim } from "@green-goods/shared/hooks/ens/useENSClaim";
 import { useENSRegistrationStatus } from "@green-goods/shared/hooks/ens/useENSRegistrationStatus";
 import { useENSReleaseName } from "@green-goods/shared/hooks/ens/useENSReleaseName";
@@ -13,6 +15,8 @@ import { useSlugAvailability } from "@green-goods/shared/hooks/ens/useSlugAvaila
 import { useSlugForm } from "@green-goods/shared/hooks/ens/useSlugForm";
 import { SW_MESSAGE } from "@green-goods/shared/modules/app/service-worker-protocol";
 import type { Address } from "@green-goods/shared/types/domain";
+import { chosenPasskeyUsername } from "@green-goods/shared/utils/app/text";
+import { suggestSlug } from "@green-goods/shared/utils/blockchain/ens";
 import {
   RiAlertLine,
   RiCheckLine,
@@ -37,8 +41,25 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
   const isOnline = useOnlineStatus();
   const { data: isProtocolMember = false, isLoading: isMembershipLoading } =
     useProtocolMemberStatus(primaryAddress as `0x${string}` | undefined);
-  const slugForm = useSlugForm();
+  // Start from the name the account already goes by: the username it chose for
+  // its passkey, or the label of its wallet's ENS name. It stays editable, and
+  // the availability check below runs on it like on anything typed.
+  const { authMode, userName } = useAuthState();
+  const { data: walletEnsName } = useEnsName(primaryAddress);
+  const knownName = chosenPasskeyUsername(authMode, userName) ?? walletEnsName?.split(".")[0];
+  const suggestedSlug = knownName ? suggestSlug(knownName) : "";
+  const slugForm = useSlugForm(suggestedSlug);
   const slugValue = slugForm.watch("slug");
+  // The suggestion can arrive after the form mounts (the wallet's ENS name
+  // resolves) or change with the account. It replaces only what it put in the
+  // field itself, never something typed.
+  const appliedSuggestion = useRef(suggestedSlug);
+  useEffect(() => {
+    const current = slugForm.getValues("slug");
+    if (current === suggestedSlug || current !== appliedSuggestion.current) return;
+    appliedSuggestion.current = suggestedSlug;
+    slugForm.reset({ slug: suggestedSlug });
+  }, [suggestedSlug, slugForm]);
   const { data: isSlugAvailable, isFetching: isCheckingSlug } = useSlugAvailability(
     slugValue || undefined
   );

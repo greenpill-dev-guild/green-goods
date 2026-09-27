@@ -10,7 +10,6 @@
 import type { SmartAccountClient } from "permissionless";
 import { encodeFunctionData } from "viem";
 import type { SmartAccountClientResolver } from "../../types/auth";
-import { getPimlicoSponsorshipPolicyId } from "../../config/pimlico";
 import {
   assertSmartAccountClient,
   assertSmartAccountClientResolverActive,
@@ -59,7 +58,6 @@ export class PasskeySender implements TransactionSender {
 
     const chainId = call.chainId ?? this.client.chain?.id;
     if (chainId === undefined) throw new SmartAccountClientError("chain_mismatch");
-    if (chainId === 42220) getPimlicoSponsorshipPolicyId(chainId);
     if (call.chainId !== undefined && !this.deps.resolveSmartAccountClient) {
       throw new SmartAccountClientError("resolver_unavailable");
     }

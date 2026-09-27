@@ -90,7 +90,7 @@ describe("passkey cross-chain account construction", () => {
     expect(factoryCalls).toHaveLength(1);
   });
 
-  it("constructs the Celo account for authentication without any sponsorship policy", async () => {
+  it("constructs the Celo account with the built-in general policy when nothing is configured", async () => {
     vi.stubEnv("VITE_PIMLICO_API_KEY", "test-api-key");
     vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", undefined);
     vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", undefined);
@@ -100,6 +100,8 @@ describe("passkey cross-chain account construction", () => {
       defaultPasskeyAdapters.getRpId()
     );
     expect(result.address).toBe(ACCOUNT);
-    expect(result.client.paymasterContext).toBeUndefined();
+    expect(result.client.paymasterContext).toEqual({
+      sponsorshipPolicyId: "sp_next_monster_badoon",
+    });
   });
 });

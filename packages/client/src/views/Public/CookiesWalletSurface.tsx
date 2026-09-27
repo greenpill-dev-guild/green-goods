@@ -9,7 +9,6 @@ import { useCampaignCookieJarCampaigns } from "@green-goods/shared/hooks/cookie-
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { usePublicGardens } from "@green-goods/shared/hooks/public/usePublicGardens";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { WalletConnectButton } from "@/components/Actions/WalletConnectButton";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
@@ -324,7 +323,6 @@ function CookiesCampaignSurface() {
             <p className="mt-4 max-w-2xl text-base leading-[1.6] text-text-sub-600 md:text-lg">
               {gridLede}
             </p>
-            {!primaryAddress ? <WalletConnectButton className="mt-5" /> : null}
             {primaryAddress ? (
               <div className="mt-5">
                 <ConnectionStatusLine

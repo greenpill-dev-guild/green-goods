@@ -1,11 +1,11 @@
 /**
  * GardensList Component Tests
  *
- * Tests the profile gardens list: loading, empty, member/non-member gardens,
- * join flow, and null address handling.
+ * Tests the profile's "My gardens" list: loading, empty, and error states, the
+ * gardens an account belongs to, and opening one. Joining lives on the garden.
  */
 
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -20,72 +20,16 @@ const mockGardensState = {
   isFetching: false,
   refetch: vi.fn(),
 };
-const mockJoinState = {
-  joinGarden: vi.fn(),
-  isJoining: false,
-  joiningGardenId: null as string | null,
-};
 const mockNavigate = vi.fn();
-// Captures callbacks scheduled via useTimeout so we can assert and trigger
-// them deterministically without real timers.
-const mockTimeoutSet = vi.fn();
-const mockTimeoutClear = vi.fn();
-
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", () => ({
-  ConfirmDialog: ({
-    isOpen,
-    onClose,
-    onConfirm,
-    title,
-  }: {
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm: () => void;
-    title: string;
-  }) =>
-    isOpen
-      ? createElement(
-          "div",
-          { "data-testid": "join-dialog" },
-          createElement("span", null, title),
-          createElement("button", { "data-testid": "confirm-join", onClick: onConfirm }, "Confirm"),
-          createElement("button", { "data-testid": "cancel-join", onClick: onClose }, "Cancel")
-        )
-      : null,
-}));
-
-vi.mock("@green-goods/shared/utils/debug", () => ({
-  debugError: vi.fn(),
-}));
-
-vi.mock("@green-goods/shared/utils/app/haptics", () => ({
-  hapticLight: vi.fn(),
-  hapticSuccess: vi.fn(),
-}));
-
-vi.mock("@green-goods/shared/utils/errors/contract-errors", () => ({
-  isAlreadyGardenerError: () => false,
-  parseAndFormatError: () => ({ title: "Error", message: "Something went wrong" }),
-}));
-
 vi.mock("@green-goods/shared/hooks/garden/useJoinGarden", () => ({
   isGardenMember: (address: string, gardeners: string[], _stewards: string[], _id: string) =>
     gardeners.includes(address),
-  useJoinGarden: () => mockJoinState,
   usePendingJoinsVersion: () => 0,
-}));
-
-vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
-  toastService: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useGardens: () => mockGardensState,
-}));
-
-vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
-  useTimeout: () => ({ set: mockTimeoutSet, clear: mockTimeoutClear, isPending: false }),
 }));
 
 // Mock @tanstack/react-query
@@ -105,7 +49,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 
 // Mock @remixicon/react
 vi.mock("@remixicon/react", () => ({
-  RiCheckLine: (props: any) => createElement("span", props),
+  RiArrowRightSLine: (props: any) => createElement("span", props),
   RiMapPinLine: (props: any) => createElement("span", props),
   RiLoader4Line: (props: any) => createElement("span", props),
   RiPlantLine: (props: any) => createElement("span", props),
@@ -140,8 +84,6 @@ describe("GardensList", () => {
     mockGardensState.isError = false;
     mockGardensState.isLoading = false;
     mockGardensState.isFetching = false;
-    mockJoinState.isJoining = false;
-    mockJoinState.joiningGardenId = null;
   });
 
   afterEach(() => {
@@ -194,14 +136,22 @@ describe("GardensList", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/home");
   });
 
-  it("shows member badge for gardens user belongs to", () => {
+  it("lists only the gardens the account belongs to, open or not", () => {
     mockGardensState.data = [
       {
         id: "0xgarden1",
         name: "My Garden",
         location: "Berlin",
-        openJoining: true,
+        openJoining: false,
         gardeners: [MOCK_ADDRESS],
+        stewards: [],
+      },
+      {
+        id: "0xgarden2",
+        name: "Open Garden",
+        location: "Lagos",
+        openJoining: true,
+        gardeners: [],
         stewards: [],
       },
     ];
@@ -210,211 +160,44 @@ describe("GardensList", () => {
 
     expect(screen.getByText("My Garden")).toBeInTheDocument();
     expect(screen.getByText("Berlin")).toBeInTheDocument();
-    expect(screen.getByText("Member")).toBeInTheDocument();
+    // Joining lives on the garden itself, so an open garden is not offered here.
+    expect(screen.queryByText("Open Garden")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Join" })).not.toBeInTheDocument();
   });
 
-  it("constrains long garden names and locations without displacing row actions", () => {
-    const longMemberName = "RegenerativeBioregionStewardshipGardenCollective2026";
-    const longJoinableName = "WatershedCommonsSeedLibraryNeighborhoodGardenCollective";
+  it("opens the garden when its row is pressed", async () => {
+    const user = userEvent.setup();
+    mockGardensState.data = [
+      { id: "0xgarden1", name: "My Garden", gardeners: [MOCK_ADDRESS], stewards: [] },
+    ];
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+    await user.click(screen.getByRole("button", { name: /my garden/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith("/home/0xgarden1");
+  });
+
+  it("constrains long garden names and locations inside the row", () => {
+    const longName = "RegenerativeBioregionStewardshipGardenCollective2026";
     const longLocation = "RuaDasCooperativasNeighborhoodWithLongUnbrokenPlaceNameLisbonPortugal";
-
     mockGardensState.data = [
       {
-        id: "0xgarden-member-long",
-        name: longMemberName,
+        id: "0xgarden-long",
+        name: longName,
         location: longLocation,
-        openJoining: true,
         gardeners: [MOCK_ADDRESS],
         stewards: [],
       },
-      {
-        id: "0xgarden-joinable-long",
-        name: longJoinableName,
-        location: longLocation,
-        openJoining: true,
-        gardeners: [],
-        stewards: [],
-      },
     ];
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
-    const memberName = screen.getByText(longMemberName);
-    const joinableName = screen.getByText(longJoinableName);
-    const locationRows = screen.getAllByText(longLocation);
-    const memberBadge = screen.getByText("Member").parentElement;
-    const joinButton = screen.getByRole("button", { name: "Join" });
-
-    for (const gardenName of [memberName, joinableName]) {
-      expect(gardenName).toHaveClass("line-clamp-2", "min-w-0", "max-w-full");
-      expect(gardenName.className).toContain("[overflow-wrap:anywhere]");
-      expect(gardenName.parentElement).toHaveClass("min-w-0", "flex-1");
-      expect(gardenName.parentElement?.parentElement).toHaveClass("min-w-0", "w-full");
-    }
-
-    for (const location of locationRows) {
-      expect(location).toHaveClass("min-w-0", "truncate");
-      expect(location.parentElement).toHaveClass("min-w-0", "max-w-full");
-    }
-
-    expect(memberBadge).toHaveClass("shrink-0");
-    expect(joinButton).toHaveClass("shrink-0");
-  });
-
-  it("shows join button for open gardens user has not joined", () => {
-    mockGardensState.data = [
-      {
-        id: "0xgarden2",
-        name: "Open Garden",
-        location: "",
-        openJoining: true,
-        gardeners: [],
-        stewards: [],
-      },
-    ];
-
-    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
-
-    expect(screen.getByText("Open Garden")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Join" })).toBeInTheDocument();
-    expect(screen.queryByText(/join as a gardener/i)).not.toBeInTheDocument();
-  });
-
-  it("opens join dialog when Join is clicked", async () => {
-    const user = userEvent.setup();
-    mockGardensState.data = [
-      {
-        id: "0xgarden2",
-        name: "Open Garden",
-        location: "",
-        openJoining: true,
-        gardeners: [],
-        stewards: [],
-      },
-    ];
-
-    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
-
-    await user.click(screen.getByRole("button", { name: "Join" }));
-    expect(screen.getByTestId("join-dialog")).toBeInTheDocument();
-    expect(screen.getByText("Join Garden")).toBeInTheDocument();
-  });
-
-  it("hides closed gardens where user is not a member", () => {
-    mockGardensState.data = [
-      {
-        id: "0xgarden3",
-        name: "Private Garden",
-        location: "",
-        openJoining: false,
-        gardeners: [],
-        stewards: [],
-      },
-    ];
-
-    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
-
-    expect(screen.queryByText("Private Garden")).not.toBeInTheDocument();
-    expect(screen.getByText(/no gardens yet/i)).toBeInTheDocument();
-  });
-
-  it("schedules a delayed ENS-discovery toast on first successful join", async () => {
-    const user = userEvent.setup();
-    const { toastService } = await import("@green-goods/shared/components/Toast/toast.service");
-    mockGardensState.data = [
-      {
-        id: "0xfresh",
-        name: "Fresh Garden",
-        location: "",
-        openJoining: true,
-        // User is not in any garden's gardener list, so wasFirstJoin = true
-        gardeners: [],
-        stewards: [],
-      },
-    ];
-    mockJoinState.joinGarden.mockResolvedValue(undefined);
-    mockTimeoutSet.mockClear();
-
-    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
-
-    // Open the join confirm dialog and confirm
-    await user.click(screen.getByRole("button", { name: "Join" }));
-    await user.click(screen.getByTestId("confirm-join"));
-
-    expect(mockJoinState.joinGarden).toHaveBeenCalledExactlyOnceWith("0xfresh");
-
-    // ensDiscoveryTimeout.set was called with the toast callback at 2000ms
-    expect(mockTimeoutSet).toHaveBeenCalledTimes(1);
-    const [scheduledFn, delay] = mockTimeoutSet.mock.calls[0] as [() => void, number];
-    expect(delay).toBe(2000);
-    expect(typeof scheduledFn).toBe("function");
-
-    // Trigger the captured callback and assert the discovery toast fires.
-    scheduledFn();
-    expect(toastService.info).toHaveBeenCalledWith(
-      expect.objectContaining({ context: "ensDiscovery" })
-    );
-  });
-
-  it("reports a failed garden join without showing success or scheduling discovery", async () => {
-    const user = userEvent.setup();
-    const { toastService } = await import("@green-goods/shared/components/Toast/toast.service");
-    const failure = new Error("Network request failed");
-    mockGardensState.data = [
-      {
-        id: "0xfresh",
-        name: "Fresh Garden",
-        location: "",
-        openJoining: true,
-        gardeners: [],
-        stewards: [],
-      },
-    ];
-    mockJoinState.joinGarden.mockRejectedValueOnce(failure);
-
-    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
-    await user.click(screen.getByRole("button", { name: "Join" }));
-    await user.click(screen.getByTestId("confirm-join"));
-
-    await waitFor(() => {
-      expect(toastService.error).toHaveBeenCalledWith(
-        expect.objectContaining({ context: "joinGarden", error: failure })
-      );
-    });
-    expect(mockJoinState.joinGarden).toHaveBeenCalledExactlyOnceWith("0xfresh");
-    expect(toastService.success).not.toHaveBeenCalled();
-    expect(mockTimeoutSet).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("join-dialog")).not.toBeInTheDocument();
-  });
-
-  it("does not schedule the discovery toast when user is already a member of another garden", async () => {
-    const user = userEvent.setup();
-    mockGardensState.data = [
-      {
-        id: "0xexisting",
-        name: "Existing Garden",
-        location: "",
-        openJoining: true,
-        gardeners: [MOCK_ADDRESS],
-        stewards: [],
-      },
-      {
-        id: "0xfresh",
-        name: "Fresh Garden",
-        location: "",
-        openJoining: true,
-        gardeners: [],
-        stewards: [],
-      },
-    ];
-    mockJoinState.joinGarden.mockResolvedValue(undefined);
-    mockTimeoutSet.mockClear();
-
-    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
-
-    await user.click(screen.getByRole("button", { name: "Join" }));
-    await user.click(screen.getByTestId("confirm-join"));
-
-    expect(mockTimeoutSet).not.toHaveBeenCalled();
+    const gardenName = screen.getByText(longName);
+    expect(gardenName).toHaveClass("line-clamp-2", "min-w-0", "max-w-full");
+    expect(gardenName.className).toContain("[overflow-wrap:anywhere]");
+    expect(gardenName.parentElement).toHaveClass("min-w-0", "flex-1");
+    const location = screen.getByText(longLocation);
+    expect(location).toHaveClass("min-w-0", "truncate");
+    expect(location.parentElement).toHaveClass("min-w-0", "max-w-full");
   });
 });

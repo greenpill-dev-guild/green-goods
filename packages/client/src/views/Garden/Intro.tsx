@@ -181,7 +181,6 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           activeTab={String(effectiveDomain ?? "")}
           onTabChange={(tabId) => {
             const domain = Number(tabId) as Domain;
-            hapticSelection();
             setSelectedDomain(domain);
             // Clear action/garden selection when switching domains
             setActionUID(null);

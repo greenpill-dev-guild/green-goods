@@ -5,7 +5,6 @@ import { useAuthActions, useAuthState } from "@green-goods/shared/hooks/auth/use
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import type { Address } from "@green-goods/shared/types/domain";
-import { hapticLight } from "@green-goods/shared/utils/app/haptics";
 import { debugError } from "@green-goods/shared/utils/debug";
 import { RiKeyLine, RiLogoutBoxRLine, RiUserLine, RiWalletLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -27,7 +26,6 @@ export const AccountInfo: React.FC = () => {
   const intl = useIntl();
 
   const handleLogout = async () => {
-    hapticLight();
     try {
       await signOut();
       navigate(APP_ROUTES.login, {

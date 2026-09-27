@@ -14,7 +14,7 @@ import { getEASConfig } from "../../config/blockchain";
 import type { EASWork, EASWorkApproval } from "../../types/eas-responses";
 import { isZeroBytes32 } from "../../utils/blockchain/bytes";
 import { parseDataToWork, parseDataToWorkApproval } from "./eas-parse";
-import { EASFetchError, validatedAttestations } from "./eas-read-validation";
+import { EASFetchError, easStoredAddress, validatedAttestations } from "./eas-read-validation";
 import { easGraphQL } from "./graphql";
 import { createEasClient, type GraphQLReader } from "./graphql-client";
 
@@ -55,7 +55,7 @@ export const getWorkListPage = async (
       where: {
         schemaId: { equals: easConfig.WORK.uid },
         revoked: { equals: false },
-        recipient: { equals: gardenAddress },
+        recipient: { equals: easStoredAddress(gardenAddress) },
       },
       take,
       skip,

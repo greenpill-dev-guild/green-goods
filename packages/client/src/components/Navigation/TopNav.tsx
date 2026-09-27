@@ -96,11 +96,7 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
         }}
         size="tall"
       >
-        <GardenNotifications
-          garden={garden}
-          notifications={works}
-          onClose={() => setIsOpen(false)}
-        />
+        <GardenNotifications garden={garden} notifications={works} />
       </AppSheet>
     </>
   );

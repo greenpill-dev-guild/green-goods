@@ -39,7 +39,7 @@ const FilterOptionButton = ({
     onClick={onClick}
     disabled={disabled}
     className={cn(
-      "flex min-h-[56px] min-w-0 w-full flex-col justify-center rounded-[var(--radius-2xl)] border border-stroke-soft-200 bg-bg-white-0 p-3 text-left text-sm tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+      "flex min-h-[56px] min-w-0 w-full flex-col justify-center rounded-[var(--radius-2xl)] border border-stroke-soft-200 bg-bg-white-0 p-3 text-left text-sm transition-[background-color,border-color,box-shadow,transform,scale] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
       selected
         ? `${pwaStatusStyles.primary.border} ${pwaStatusStyles.primary.surface} ${pwaStatusStyles.primary.text} shadow-sm`
         : "",
@@ -164,7 +164,7 @@ export const GardensFilterSheet = ({
         }),
         description: intl.formatMessage({
           id: "app.home.filters.description",
-          defaultMessage: "Choose which gardens to show and how to order them.",
+          defaultMessage: "Narrow and sort the garden list.",
         }),
       }}
       size="full"

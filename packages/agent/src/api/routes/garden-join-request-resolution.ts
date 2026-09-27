@@ -12,6 +12,7 @@ import {
   type GardenJoinRequestRouteContext,
   gardenJoinRequestFailure,
   gardenJoinRequestsUnavailable,
+  reportGardenJoinRequestUnavailable,
   prepareGardenJoinRequest,
 } from "./garden-join-request-auth";
 
@@ -52,6 +53,8 @@ export async function handleGardenJoinRequestResolution(
   const store = ctx.store;
   const chain = ctx.deps.gardenJoinRequestChainReader;
   if (!store || !chain) return gardenJoinRequestsUnavailable(c, ctx);
+  // Which dependency the request was waiting on, so a 503 names its cause.
+  let stage = "role_read";
   try {
     if (!(await chain.canManage(preflight.garden, authenticated.proof.accountAddress))) {
       return gardenJoinRequestFailure(
@@ -62,12 +65,15 @@ export async function handleGardenJoinRequestResolution(
         403
       );
     }
+    stage = "store_read";
     const request = await store.getById(preflight.garden, requestId);
     if (!request) {
       return gardenJoinRequestFailure(c, ctx, "request_not_found", "Join request not found.", 404);
     }
+    stage = "membership_read";
     const isMember = await chain.isMember(preflight.garden, request.accountAddress);
     if (isMember) {
+      stage = "proof_claim";
       if (!(await claimGardenJoinRequestProof(store, authenticated.proof))) {
         return gardenJoinRequestFailure(
           c,
@@ -77,6 +83,7 @@ export async function handleGardenJoinRequestResolution(
           409
         );
       }
+      stage = "store_reconcile";
       const welcomed = await store.reconcileWelcomed(
         preflight.garden,
         requestId,
@@ -94,6 +101,7 @@ export async function handleGardenJoinRequestResolution(
         409
       );
     }
+    stage = "proof_claim";
     if (!(await claimGardenJoinRequestProof(store, authenticated.proof))) {
       return gardenJoinRequestFailure(
         c,
@@ -120,6 +128,7 @@ export async function handleGardenJoinRequestResolution(
         409
       );
     }
+    stage = "store_resolve";
     const resolved = await store.resolve({
       gardenAddress: preflight.garden,
       requestId,
@@ -140,7 +149,8 @@ export async function handleGardenJoinRequestResolution(
     }
     void trackResolution("declined", authenticated.proof.factory !== undefined);
     return publicBrowserCorsResponse(c, ctx.deps, { ok: true, request: resolved.request });
-  } catch {
+  } catch (error) {
+    reportGardenJoinRequestUnavailable("resolve", stage, error);
     return gardenJoinRequestsUnavailable(c, ctx);
   }
 }

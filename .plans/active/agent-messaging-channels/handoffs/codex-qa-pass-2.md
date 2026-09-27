@@ -17,6 +17,8 @@ Independently review Opus 5.5's implementation and proof at each completed check
 
 Use technical brief sections 11–12, current plan slices and eval.md as the acceptance contract. Verify schema/exports/deployment scopes match actual code; inspect the ERD XOR invariant and migration tests. Confirm support and privacy prerequisites before live intake. Record current-head evidence and any unmet gate before a readiness verdict; do not mark a lane complete from documentation alone.
 
+Include the confirmed-Action snapshot race through transaction inclusion, independent owner revocation with Agent/proxy/database unavailable and a still-usable delegated key, and PublicShell/SiteHeader routing across browser/installed contexts. Reject delegation readiness without section 9.3 proof; inspect both old signed operations and stale enable authorization replay after revocation. These are required runtime cases, not claims established by the documentation review.
+
 ## Validation
 
 Render `bun run check --plan -- --intent qa` before checks. Run actual focused tests through the owning package wrapper; record exact commands here and in status.json. Retain required critical checks for Shared auth, Work and JobQueue. Existing wrappers include `bun run --cwd packages/agent test -- <test-file>` and `bun run --cwd packages/shared test -- <test-file>`; placeholders are not executable evidence. No obsolete intake-hook command is authoritative.

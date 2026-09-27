@@ -1,5 +1,4 @@
-import { Button } from "@green-goods/shared/components/Button";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense } from "react";
 import { useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker, EditorialTitleAccent } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
@@ -8,7 +7,7 @@ import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 const CookiesWalletSurface = lazy(() => import("./CookiesWalletSurface"));
 
-function CookiesReadOnlyPage({ onExplore }: { onExplore: () => void }) {
+function CookiesLoadingPage() {
   const { formatMessage } = useIntl();
 
   return (
@@ -50,12 +49,6 @@ function CookiesReadOnlyPage({ onExplore }: { onExplore: () => void }) {
                 "Connect a wallet to see which jars you can claim from, or add funds to support a seasonal campaign.",
             })}
           </p>
-          <Button type="button" size="lg" onClick={onExplore} className="mt-8">
-            {formatMessage({
-              id: "public.cookies.openWalletSurface",
-              defaultMessage: "Explore Cookie Jars",
-            })}
-          </Button>
         </div>
       </section>
       <PublicFooter variant="soil" />
@@ -64,16 +57,9 @@ function CookiesReadOnlyPage({ onExplore }: { onExplore: () => void }) {
 }
 
 export default function CookiesPage() {
-  const [showWalletSurface, setShowWalletSurface] = useState(false);
-  const openWalletSurface = () => setShowWalletSurface(true);
-
-  if (showWalletSurface) {
-    return (
-      <Suspense fallback={<CookiesReadOnlyPage onExplore={openWalletSurface} />}>
-        <CookiesWalletSurface />
-      </Suspense>
-    );
-  }
-
-  return <CookiesReadOnlyPage onExplore={openWalletSurface} />;
+  return (
+    <Suspense fallback={<CookiesLoadingPage />}>
+      <CookiesWalletSurface />
+    </Suspense>
+  );
 }

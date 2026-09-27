@@ -19,6 +19,8 @@ Then own root `.env.schema`/Agent config validation, bounded durable Meta inbox,
 
 The UI slice supplies the scoped browser outcome/checkpoint producer; both lanes share the typed command contract. No browser Dexie default instance enters the Agent. Publication controls are enforced at actual send boundaries; outcome and status reconciliation keep running during pauses.
 
+Persist the confirmed Action definition bytes/source/block/digest on the revision and bind them into confirmation/preparation. Later instruction updates do not reinterpret a pending report; explicit adoption creates a new confirmed revision. Prove updates between reservation and inclusion for both authorization branches while retaining live resolver eligibility checks. Kernel enablement depends on the UI/Shared independent owner-revocation proof in technical brief section 9.3; reconcile externally revoked permissions from chain on restart without requiring a surviving Agent callback.
+
 ## TDD Proof
 
 - RED: pending; choose concrete owning test paths with the first implementation slice.

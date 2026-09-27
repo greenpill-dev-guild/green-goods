@@ -310,7 +310,7 @@ describe("passkey chain routing", () => {
     );
   });
 
-  it("blocks a Celo send before signing when its sponsorship policy is absent", async () => {
+  it("sends on Celo with nothing configured, as it does on Arbitrum", async () => {
     vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", undefined);
     vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", undefined);
     const primary = createFakeSmartAccountClient();
@@ -318,10 +318,8 @@ describe("passkey chain routing", () => {
     const sender = new PasskeySender(primary, {
       resolveSmartAccountClient: vi.fn().mockResolvedValue(celo),
     });
-    await expect(sender.sendContractCall({ ...TEST_CALL, chainId: 42220 })).rejects.toMatchObject({
-      code: "policy_unavailable",
-    });
-    expect(celo.sendUserOperation).not.toHaveBeenCalled();
+    await sender.sendContractCall({ ...TEST_CALL, chainId: 42220 });
+    expect(celo.sendUserOperation).toHaveBeenCalledOnce();
   });
 
   it("allows a Celo send with the configured general sponsorship policy", async () => {

@@ -109,7 +109,7 @@ Emphasis is carried by fill, outline, and colour. The corner belongs to the surf
 | **Icon buttons** | Circle | Circle | Tightens to the 12px squircle | Close, back, share, menu, remove |
 | **Chips** | Capsule | Capsule | — | Filters and choices; selected uses the action fill (DL-017) |
 
-**Rule (DL-026, values DL-029)**: one button corner per surface. In the installed app it is the 16px field corner (`rounded.lg`), so a button and the field beside it share one shape; at the 32px compact size that corner is a capsule, which is accepted because compact actions sit beside text, not fields. On the public website buttons are square (`rounded.none`), like its editorial cards, dialogs, and panels. The website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop and no legacy `variant`; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
+**Rule (DL-026, values DL-029)**: one button corner per surface. In the installed app it is the 16px field corner (`rounded.lg`), so a button and the field beside it share one shape; the 32px compact size keeps that corner's proportion rather than its number, 12px at rest and 8px pressed (`--gg-button-radius-compact`, `--gg-button-radius-compact-pressed`; DL-038), because 16px on a 32px button is a full capsule and stopped reading as one of the app's buttons. On the public website buttons are square (`rounded.none`), like its editorial cards, dialogs, and panels. The website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`, and their `-compact` pair) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop and no legacy `variant`; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
 
 **Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with a 44px finger box on every tier and one 14px label, DL-030), and the admin FAB follows the capsule rule at both sizes (`rounded-full` — 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps — the capsule is that set's 9999 step.
 
@@ -118,14 +118,17 @@ Emphasis is carried by fill, outline, and colour. The corner belongs to the surf
 Interactive elements shift shape on engagement. This creates physical, tactile feedback — the "Expressive touch" from M3 that makes interfaces feel alive.
 
 **Buttons** (DL-001, built in DL-026, values DL-029):
-- In the installed app, primary and secondary buttons tighten one step on press and spring back on release: 16px to 12px. Website buttons are square and do not morph
+- In the installed app, primary and secondary buttons tighten one step on press and spring back on release: 16px to 12px, and 12px to 8px at the compact size (DL-038). Website buttons are square and do not morph
+- A pressed button also takes its hover fill, because touch has no hover: without it a tap changed nothing visible but the corner (DL-039)
 - Icon buttons tighten from a circle to the 12px squircle
 - All use `--spring-spatial-fast` for the morph transition; under `prefers-reduced-motion` they keep their resting shape
 
 **Cards** (complements lift-and-press):
 - Hover: scale(1.008) + green shadow glow (lift-and-press)
-- Press: scale(0.985) + corner radius tightens 2-4px (shape morph addition)
+- Press: scale(0.985). In the installed app every card or row that opens something (`data-pressable="card"` or `"row"`) presses in through one rule in the client's `animation.css` (DL-039); the public website's cards stay still
 - Combined: the card feels like it's being pressed into the surface
+
+**Haptics** (DL-039): the installed app answers every press from one listener (`installPressHaptics`, mounted by `AppShell`). Buttons, icon buttons, and floating action buttons get the light tap; tabs, chips, switches, radios, and anything with a pressed state (`aria-pressed`, such as a card that toggles a choice) get the selection tap. Cards and rows that only navigate stay silent, as native apps do. A control never calls a press haptic itself; outcome haptics (success, error, warning) stay with the code that knows the outcome. The admin cockpit and the public website install nothing.
 
 **Admin carve-out**: the card motion above is client canon. Admin cards never lift, scale, or glow — hover/press feedback is an elevation step (`--m3-elevation-1`→`2`) or the neutral ink layer `rgb(var(--m3-on-surface)/0.08)` only.
 
@@ -148,10 +151,14 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
   border-radius: var(--gg-button-radius-pressed);
 }
 
-/* Card — complement lift-and-press with radius tighten */
-.card-interactive:active {
-  transform: scale(0.985);
-  border-radius: var(--radius-squircle);
+/* Compact keeps the proportion: 12px at rest, 8px pressed (DL-038) */
+.gg-button[data-size="compact"][data-emphasis] {
+  border-radius: var(--gg-button-radius-compact);
+}
+
+/* Card or row that opens something: client animation.css (DL-039) */
+:root:not(:has([data-site="website"])) :is([data-pressable="card"], [data-pressable="row"]):active {
+  scale: 0.985;
 }
 ```
 

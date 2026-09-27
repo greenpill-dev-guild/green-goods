@@ -17,6 +17,8 @@ Own platform-neutral `/agent/reporting/:requestId` and `/agent/reporting/recover
 
 Integrate existing EOA/Kernel authentication, the read-only confirmed report, separate Kernel permission approval, exact prepared-envelope signing and minimal durable attempt/outcome checkpoints. Resume failure callbacks after reload and scoped reauthentication. Account/session/revision changes invalidate access; unknown sends remain reserved. A fresh publication permit is required before the owner sender is invoked.
 
+Keep both browser and installed-context ceremony routes under PublicShell and a typed focused SiteHeader variant; no third shell. Scope includes `router.tsx`, route trees/loaders, PublicShell, SiteHeader and its Storybook story with default-route regression proof. Reuse this same view for the static `/agent/reporting/permissions` route before `:requestId`. Its owner revocation path must work without Agent APIs, proxy, session, database, signer or sponsorship, as specified in technical brief section 9.3. Validate/reconstruct the public descriptor and installed permission, derive the exact module revocation in Shared, confirm with the owner and verify chain state. Keep delegation disabled until this path passes, including existing-passkey access without an Agent lookup.
+
 Own `packages/client/vercel.json` proxy/headers with Agent response middleware and serving-edge log settings. Prove deployed headers, cookie forwarding/clearing, Origin/CSRF, canary log redaction and existing-passkey origin/build configuration. Include browser refresh/handoff, private-cache exclusion and en/es/pt copy. Help exposes Afolabi at afo@wefa.world.
 
 ## TDD Proof

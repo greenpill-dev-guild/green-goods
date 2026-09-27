@@ -17,6 +17,8 @@ Run the current harness and acceptance in technical brief sections 11–12, then
 
 Adversarial proof includes duplicate/reclaimed ingress, HMAC rotation/racing insert, no-hash terminal failure/reload, uncertain sends, forged outcome hints, atomic outcome/outbox writes, asynchronous provider failure, consent withdrawal at the Shared dispatch boundary, publication pause after preparation/queueing, private-file cleanup and relinking. Use synthetic Telegram-shaped input without requiring a live Telegram adapter.
 
+Cover Action instruction updates after reservation and during owner/delegated sends using the confirmed snapshot. Prove independent owner revocation with Agent/proxy/database unavailable, including old signed operations and stale enable-authorization replay; keep delegation disabled until section 9.3 passes. Verify canonical PublicShell/SiteHeader routing, the independent permissions mode and unaffected default public/PWA routes.
+
 Before tester intake, rehearse help/deletion/incident contact with Afolabi (afo@wefa.world) and verify privacy/provider/retention gates. Deployed edge/header proof and authenticated Brave wallet/passkey proof are separate from harness fixtures. Record every capability omitted from the demo. Submit each completed checkpoint and final integration evidence to Astra.
 
 ## Validation

@@ -24,7 +24,7 @@ export const cardVariants = tv({
     },
     animating: {
       default:
-        "active:brightness-102 transition-[background-color,filter,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
+        "active:brightness-102 transition-[background-color,filter,box-shadow,transform,scale] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
       none: "",
     },
   },

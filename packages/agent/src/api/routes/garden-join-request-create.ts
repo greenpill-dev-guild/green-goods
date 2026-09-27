@@ -17,6 +17,7 @@ import {
   gardenJoinRequestFailure,
   gardenJoinRequestsUnavailable,
   prepareGardenJoinRequest,
+  reportGardenJoinRequestUnavailable,
 } from "./garden-join-request-auth";
 import { validateCreateGardenJoinRequest } from "@green-goods/shared/public-contracts/join-requests";
 import type { Context } from "hono";
@@ -80,6 +81,8 @@ export async function handleCreateGardenJoinRequest(
     return gardenJoinRequestsUnavailable(c, ctx);
   }
   let gardenRateLimitReserved = false;
+  // Which dependency the request was waiting on, so a 503 names its cause.
+  let stage: CreateStage = "open_joining_read";
   try {
     if (await chain.isOpenJoining(preflight.garden)) {
       void trackCreateRejected("open_joining", authenticated.proof.factory !== undefined);
@@ -91,6 +94,7 @@ export async function handleCreateGardenJoinRequest(
         409
       );
     }
+    stage = "membership_read";
     if (await chain.isMember(preflight.garden, authenticated.proof.accountAddress)) {
       void trackCreateRejected("already_member", authenticated.proof.factory !== undefined);
       return gardenJoinRequestFailure(
@@ -115,6 +119,7 @@ export async function handleCreateGardenJoinRequest(
       return publicBrowserCorsResponse(c, ctx.deps, gardenRateError, 429);
     }
     gardenRateLimitReserved = true;
+    stage = "proof_claim";
     if (!(await claimGardenJoinRequestProof(store, authenticated.proof))) {
       releaseMaterialRateLimit(ctx.deps, "join_request_create_garden", preflight.garden);
       gardenRateLimitReserved = false;
@@ -128,6 +133,7 @@ export async function handleCreateGardenJoinRequest(
       );
     }
     const now = ctx.deps.now?.() ?? Date.now();
+    stage = "store_create";
     const result = await store.create({
       gardenAddress: preflight.garden,
       accountAddress: authenticated.proof.accountAddress,
@@ -163,14 +169,21 @@ export async function handleCreateGardenJoinRequest(
       { ok: true, request: toGardenJoinRequestSelfRecord(result.request) },
       result.created ? 201 : 200
     );
-  } catch {
+  } catch (error) {
     if (gardenRateLimitReserved) {
       releaseMaterialRateLimit(ctx.deps, "join_request_create_garden", preflight.garden);
     }
-    void trackCreateRejected("service_unavailable", authenticated.proof.factory !== undefined);
+    reportGardenJoinRequestUnavailable("create", stage, error);
+    void trackCreateRejected(
+      "service_unavailable",
+      authenticated.proof.factory !== undefined,
+      stage
+    );
     return gardenJoinRequestsUnavailable(c, ctx);
   }
 }
+
+type CreateStage = "open_joining_read" | "membership_read" | "proof_claim" | "store_create";
 
 function trackCreateRejected(
   errorClass:
@@ -182,12 +195,14 @@ function trackCreateRejected(
     | "queue_full"
     | "rate_limited"
     | "service_unavailable",
-  isCounterfactual = false
+  isCounterfactual = false,
+  stage?: CreateStage
 ): Promise<void> {
   return trackGardenJoinRequestEvent("join_request_create_rejected", {
     kind: "garden_membership",
     error_class: errorClass,
     is_counterfactual: isCounterfactual,
     retry: false,
+    ...(stage ? { stage } : {}),
   });
 }

@@ -145,6 +145,10 @@ describe("DraftsTab", () => {
     expect(
       screen.getByText(/drafts are automatically saved when you start adding photos/i)
     ).toBeInTheDocument();
+    // Refresh sits with the status line on the left, as it does on Pending and Completed.
+    expect(screen.getByTestId("work-list-actions")).toContainElement(
+      screen.getByRole("button", { name: /refresh drafts/i })
+    );
   });
 
   it("renders draft cards with action titles and garden names", () => {

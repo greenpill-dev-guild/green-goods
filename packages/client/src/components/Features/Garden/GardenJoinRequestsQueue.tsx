@@ -12,6 +12,7 @@ import {
 } from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { isCancelledTxError } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine, RiGroupLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -70,6 +71,8 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
             })
       );
     } catch (caught) {
+      // Declining the signature is a choice, not a failure; the request stays in the queue.
+      if (isCancelledTxError(caught)) return;
       setLocalError(
         caught instanceof Error
           ? caught.message

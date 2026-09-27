@@ -42,6 +42,83 @@ interface WorkListTabProps {
   savedAt?: number;
 }
 
+interface WorkListHeaderProps {
+  /** The count or offline line; it never truncates (DL-032). */
+  statusText?: string | null;
+  /** Shows the compact Refresh beside the status line when set. */
+  onRefresh?: () => void;
+  isFetching?: boolean;
+  refreshLabel?: string;
+  /** Actions that sit with the status line, such as Upload all. */
+  actions?: React.ReactNode;
+  /** Filters, right-aligned; they give way before the status line does. */
+  children?: React.ReactNode;
+}
+
+/**
+ * The one header row every Work Dashboard tab shares: status line and compact
+ * Refresh on the left, filters on the right (DL-032). The row keeps the height
+ * of a tab that has a filter, so a tab without one (Drafts) starts its list at
+ * the same place.
+ */
+export const WorkListHeader: React.FC<WorkListHeaderProps> = ({
+  statusText,
+  onRefresh,
+  isFetching,
+  refreshLabel,
+  actions,
+  children,
+}) => {
+  const intl = useIntl();
+  return (
+    <div
+      className={`mb-4 flex min-h-14 gap-2 px-4 pt-4 ${actions ? "items-start" : "items-center"}`}
+      data-testid="work-list-header"
+    >
+      <div
+        className={
+          actions
+            ? "flex min-w-0 flex-1 flex-wrap items-center gap-0.5"
+            : "flex shrink-0 items-center gap-0.5"
+        }
+        data-testid="work-list-actions"
+      >
+        {statusText ? (
+          <p
+            role="status"
+            className="whitespace-nowrap text-sm text-text-sub-600"
+            title={statusText}
+          >
+            {statusText}
+          </p>
+        ) : null}
+        {onRefresh ? (
+          <IconButton
+            className="shrink-0"
+            size="compact"
+            aria-label={
+              isFetching
+                ? intl.formatMessage({
+                    id: "app.common.refreshing",
+                    defaultMessage: "Refreshing...",
+                  })
+                : (refreshLabel ??
+                  intl.formatMessage({ id: "app.common.refresh", defaultMessage: "Refresh" }))
+            }
+            icon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+            loading={isFetching}
+            onClick={onRefresh}
+          />
+        ) : null}
+        {actions}
+      </div>
+      <div className={actions ? "flex shrink-0 justify-end" : "flex min-w-0 flex-1 justify-end"}>
+        {children}
+      </div>
+    </div>
+  );
+};
+
 export const WorkListTab: React.FC<WorkListTabProps> = ({
   items,
   isLoading,
@@ -77,51 +154,14 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
 
   return (
     <div className="min-h-full flex flex-col">
-      <div
-        className={`mb-4 px-4 pt-4 flex gap-2 ${headerActions ? "items-start" : "items-center"}`}
-        data-testid="work-list-header"
+      <WorkListHeader
+        statusText={statusText}
+        onRefresh={showRefresh ? onRefresh : undefined}
+        isFetching={isFetching}
+        actions={headerActions}
       >
-        <div
-          className={
-            headerActions
-              ? "flex min-w-0 flex-1 flex-wrap items-center gap-0.5"
-              : "flex shrink-0 items-center gap-0.5"
-          }
-          data-testid="work-list-actions"
-        >
-          {statusText ? (
-            <p
-              role="status"
-              className="whitespace-nowrap text-sm text-text-sub-600"
-              title={statusText}
-            >
-              {statusText}
-            </p>
-          ) : null}
-          {showRefresh ? (
-            <IconButton
-              className="shrink-0"
-              size="compact"
-              aria-label={intl.formatMessage(
-                isFetching
-                  ? { id: "app.common.refreshing", defaultMessage: "Refreshing..." }
-                  : { id: "app.common.refresh", defaultMessage: "Refresh" }
-              )}
-              icon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
-              loading={isFetching}
-              onClick={onRefresh}
-            />
-          ) : null}
-          {headerActions}
-        </div>
-        <div
-          className={
-            headerActions ? "flex shrink-0 justify-end" : "flex min-w-0 flex-1 justify-end"
-          }
-        >
-          {headerContent}
-        </div>
-      </div>
+        {headerContent}
+      </WorkListHeader>
 
       <div className="flex flex-1 flex-col px-4 pb-4">
         {isLoading ? (

@@ -1,3 +1,5 @@
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import {
   useGardenJoinRequestAvailability,
   useGardenJoinRequests,
@@ -8,8 +10,9 @@ import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, fn, mocked, screen, userEvent, within } from "storybook/test";
-import { GardenJoinRequestDialog } from "./GardenJoinRequestDialog";
+import { withSignedOutAuth } from "../../../../../shared/.storybook/decorators";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
+import { GardenJoinRequestDialog } from "./GardenJoinRequestDialog";
 
 const GARDEN = "0x749f84ca070cd2f98d9353f49ece77c1a3fed532" as Address;
 const ACCOUNT = "0x1111111111111111111111111111111111111111" as Address;
@@ -53,11 +56,24 @@ function selfRequest(
   };
 }
 
-function withJoinRequests(overrides: Partial<JoinRequests> = {}) {
+/** `accountName` is the name the account already goes by; without one it is just an address. */
+function withJoinRequests(overrides: Partial<JoinRequests> = {}, accountName?: string) {
   return () => {
     mocked(useGardenJoinRequestAvailability).mockReturnValue(true);
     mocked(useGardenJoinRequests).mockReturnValue(joinRequests(overrides));
-    return resetHookMocks(useGardenJoinRequestAvailability, useGardenJoinRequests);
+    mocked(useGreenGoodsEnsName).mockReturnValue({
+      data: accountName ?? null,
+      isLoading: false,
+    } as ReturnType<typeof useGreenGoodsEnsName>);
+    mocked(useEnsName).mockReturnValue({ data: null, isLoading: false } as ReturnType<
+      typeof useEnsName
+    >);
+    return resetHookMocks(
+      useGardenJoinRequestAvailability,
+      useGardenJoinRequests,
+      useGreenGoodsEnsName,
+      useEnsName
+    );
   };
 }
 
@@ -69,7 +85,9 @@ async function openSheet() {
 /**
  * A person outside a closed garden asks to join it. The sheet follows the request through each
  * state the garden stewards and the agent API can return, with the actions pinned in the shared
- * bar (DL-016). The data hook is mocked per story; the sheet itself is the real component.
+ * bar (DL-016). The data hook and the name lookups are mocked per story; the sheet itself is the
+ * real component. The account comes from the data hook and auth holds no chosen username, so the
+ * form asks for a display name unless a story gives the account a name.
  */
 const meta: Meta<typeof GardenJoinRequestDialog> = {
   title: "Client/Sheets/Request to Join",
@@ -86,6 +104,7 @@ const meta: Meta<typeof GardenJoinRequestDialog> = {
         </div>
       </MemoryRouter>
     ),
+    withSignedOutAuth,
   ],
 };
 
@@ -104,6 +123,16 @@ export const RequestForm: Story = {
     );
     await userEvent.type(sheet.getByRole("textbox", { name: "Display name" }), "Ana");
     await expect(send).toBeEnabled();
+  },
+};
+
+export const RequestingAsAccountName: Story = {
+  beforeEach: withJoinRequests({}, "ana.greengoods.eth"),
+  play: async () => {
+    const sheet = await openSheet();
+    await expect(sheet.getByText("ana.greengoods.eth")).toBeVisible();
+    await expect(sheet.queryByRole("textbox", { name: "Display name" })).not.toBeInTheDocument();
+    await expect(sheet.getByRole("button", { name: "Send Request" })).toBeEnabled();
   },
 };
 
