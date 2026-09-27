@@ -2626,6 +2626,7 @@
   "app.offline.status.went.offline": "You're offline. Your work stays on this device until you upload it from Your Work.",
   "app.pool.charter": "Neighbours here offer help and ask for it: rides, tools, workshops and garden work. What you commit to is kept in the open, and the person you did it for confirms it.",
   "app.pool.charter.title": "What this pool is for",
+  "app.pool.charter.loading": "Reading this pool's agreement…",
   "app.pool.charter.unavailable": "This pool's agreement can't be read right now.",
   "app.pool.notReady.member": "Your steward is setting this pool up.",
   "app.pool.notReady.stewardSetup": "Finish setting it up in the steward dashboard.",

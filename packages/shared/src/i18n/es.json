@@ -2626,6 +2626,7 @@
   "app.offline.status.went.offline": "Estás sin conexión. Tu trabajo queda en este dispositivo hasta que lo subas desde Tu trabajo.",
   "app.pool.charter": "Aquí los vecinos ofrecen ayuda y la piden: transporte, herramientas, talleres y trabajo en la huerta. Lo que te comprometes a hacer queda a la vista, y la persona para quien lo hiciste lo confirma.",
   "app.pool.charter.title": "Para qué es este fondo común",
+  "app.pool.charter.loading": "Leyendo el acuerdo de este fondo común…",
   "app.pool.charter.unavailable": "Ahora no se puede leer el acuerdo de este fondo común.",
   "app.pool.notReady.member": "Tu custodio está preparando este fondo común.",
   "app.pool.notReady.stewardSetup": "Termina de prepararlo en el panel de administración.",

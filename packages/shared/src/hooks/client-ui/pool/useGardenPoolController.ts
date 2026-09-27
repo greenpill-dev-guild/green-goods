@@ -47,18 +47,20 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     selectedCycleId !== null && cycles.some((cycle) => cycle.cycleId === selectedCycleId)
       ? selectedCycleId
       : null;
-  const { hasRole: stewardsPool } = useHasRole(
+  const stewardRole = useHasRole(
     pool.garden as Address,
     (viewer ?? undefined) as Address | undefined,
     "steward",
     chainId
   );
-  const { hasRole: ownsPool } = useHasRole(
+  const ownerRole = useHasRole(
     pool.garden as Address,
     (viewer ?? undefined) as Address | undefined,
     "owner",
     chainId
   );
+  const stewardsPool = stewardRole.hasRole;
+  const ownsPool = ownerRole.hasRole;
   const queue = useCommitmentQueueState(viewer as Address | null);
   const { pendingCreates, refresh: refreshQueue } = queue;
   const { retryAndSend } = useJobQueue();
@@ -145,7 +147,14 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     poolState,
     isParticipating: !NON_PARTICIPATING_STATES.has(poolState),
     canCreate: poolState === "OPEN" && (pool.poolType !== "PROTOCOL" || stewardsPool || ownsPool),
-    stewardsPool: stewardsPool || ownsPool,
+    // Whether the reader stewards the pool's garden. Null until both role reads
+    // answer, and while either failed, so no copy assumes an answer it lacks.
+    stewardsPool:
+      stewardsPool || ownsPool
+        ? true
+        : stewardRole.isLoading || ownerRole.isLoading || stewardRole.error || ownerRole.error
+          ? null
+          : false,
     acts: { retry, discard },
   };
 }

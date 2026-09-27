@@ -22,8 +22,10 @@ export interface PoolLifecycleNoticeProps {
   /**
    * Stewards the pool's garden. Only a steward can finish setting a pool up,
    * from the steward dashboard, so only a steward reads what it still needs.
+   * Null while the role is unknown: then the notice says only what is true for
+   * anyone.
    */
-  isSteward?: boolean;
+  isSteward?: boolean | null;
 }
 
 /**
@@ -37,7 +39,7 @@ export interface PoolLifecycleNoticeProps {
 export function PoolLifecycleNotice({
   pool,
   inline = false,
-  isSteward = false,
+  isSteward = null,
 }: PoolLifecycleNoticeProps) {
   const { formatMessage } = useIntl();
   const state = pool.state ?? "UNKNOWN";
@@ -78,12 +80,12 @@ export function PoolLifecycleNotice({
           description={formatMessage({
             // A member can do nothing about the setup, so they read one sentence.
             id:
-              state === "NOT_READY" && !isSteward
+              state === "NOT_READY" && isSteward === false
                 ? "app.pool.notReady.member"
                 : `app.pool.state.${notice.key}.body`,
           })}
         />
-        {state === "NOT_READY" && isSteward ? (
+        {state === "NOT_READY" && isSteward === true ? (
           // What a pool needs before it takes anything, in the words the
           // stewards' own setup uses. A qualifying starting assessment is also
           // required on chain, but the app has no selector for it yet, so the
@@ -103,7 +105,7 @@ export function PoolLifecycleNotice({
             />
           </ul>
         ) : null}
-        {state === "NOT_READY" && isSteward ? (
+        {state === "NOT_READY" && isSteward === true ? (
           <p className="text-xs text-text-sub-600">
             {formatMessage({ id: "app.pool.notReady.stewardSetup" })}
           </p>

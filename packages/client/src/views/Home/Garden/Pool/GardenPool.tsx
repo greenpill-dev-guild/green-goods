@@ -73,8 +73,28 @@ export function GardenPool({ pool }: GardenPoolProps) {
     : charterUnavailable
       ? formatMessage({ id: "app.pool.charter.unavailable" })
       : charterLoading
-        ? formatMessage({ id: "app.pool.loading" })
+        ? formatMessage({ id: "app.pool.charter.loading" })
         : formatMessage({ id: "app.pool.charter" });
+
+  // The seasons and the pool's agreement, shown above the list and, before the
+  // first commitment, above the empty state, when members most need them.
+  const seasons = (
+    <>
+      <CycleRail
+        cycles={controller.cycles}
+        selectedCycleId={controller.selectedCycleId}
+        onSelect={controller.setSelectedCycleId}
+        onShowCharter={() => setCharterOpen(true)}
+      />
+      {/* With no season to hang the agreement on, it stays on the page. */}
+      {controller.cycles.length === 0 ? (
+        <p className="flex gap-2 text-xs leading-relaxed text-text-sub-600">
+          <RiInformationLine className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {charterWords}
+        </p>
+      ) : null}
+    </>
+  );
 
   // The door fixes the direction; the form never asks it again. Creation is
   // only offered while the pool is open, since a paused pool takes nothing,
@@ -83,64 +103,127 @@ export function GardenPool({ pool }: GardenPoolProps) {
   // would queue an act that can only revert.
   const openDoor = (door: CommitmentDoor) => navigate(`commitments/new?direction=${door}`);
   return (
-    <CommitmentStateLadder
-      availability={controller.commitments.availability}
-      isLoading={controller.commitments.isLoading}
-      isError={controller.commitments.isError}
-      isOnline={controller.isOnline}
-      // A creation still on this phone is a row, so the list is not empty.
-      isEmpty={
-        controller.commitments.commitments.length === 0 && controller.ownCreations.length === 0
-      }
-      onRetry={() => void controller.commitments.refetch()}
-      copy={{
-        loadingId: "app.pool.loading",
-        errorId: "app.pool.error",
-        emptyTitleId: "app.pool.emptyTitle",
-        emptyDescriptionId: "app.pool.emptyDescription",
-        emptyLead:
-          controller.poolState === "PAUSED" ? (
-            <PoolLifecycleNotice pool={pool} inline />
+    <>
+      <CommitmentStateLadder
+        availability={controller.commitments.availability}
+        isLoading={controller.commitments.isLoading}
+        isError={controller.commitments.isError}
+        isOnline={controller.isOnline}
+        // A creation still on this phone is a row, so the list is not empty.
+        isEmpty={
+          controller.commitments.commitments.length === 0 && controller.ownCreations.length === 0
+        }
+        onRetry={() => void controller.commitments.refetch()}
+        copy={{
+          loadingId: "app.pool.loading",
+          errorId: "app.pool.error",
+          emptyTitleId: "app.pool.emptyTitle",
+          emptyDescriptionId: "app.pool.emptyDescription",
+          emptyLead: (
+            <>
+              {controller.poolState === "PAUSED" ? (
+                <PoolLifecycleNotice pool={pool} inline />
+              ) : null}
+              {seasons}
+            </>
+          ),
+          // An empty pool keeps its big inline doors and draws no floating entry:
+          // there is nothing to scroll past, and the invitation is the screen.
+          emptyAction: controller.canCreate ? (
+            <div className="flex w-full max-w-xs flex-col gap-2">
+              <Button
+                type="button"
+                onClick={() => openDoor("offer")}
+                leadingIcon={<RiSeedlingLine className="h-4 w-4" aria-hidden="true" />}
+              >
+                {formatMessage({ id: "app.pool.empty.offer" })}
+              </Button>
+              <Button
+                type="button"
+                emphasis="secondary"
+                onClick={() => openDoor("request")}
+                leadingIcon={<RiHandHeartLine className="h-4 w-4" aria-hidden="true" />}
+              >
+                {formatMessage({ id: "app.pool.empty.request" })}
+              </Button>
+            </div>
           ) : undefined,
-        // An empty pool keeps its big inline doors and draws no floating entry:
-        // there is nothing to scroll past, and the invitation is the screen.
-        emptyAction: controller.canCreate ? (
-          <div className="flex w-full max-w-xs flex-col gap-2">
-            <Button
-              type="button"
-              onClick={() => openDoor("offer")}
-              leadingIcon={<RiSeedlingLine className="h-4 w-4" aria-hidden="true" />}
+        }}
+      >
+        {controller.poolState === "PAUSED" ? <PoolLifecycleNotice pool={pool} inline /> : null}
+
+        {seasons}
+
+        <div
+          className="flex flex-wrap gap-2"
+          role="group"
+          aria-label={formatMessage({ id: "app.commitments.filter.label" })}
+        >
+          {DIRECTION_FILTERS.map((filter) => {
+            const selected = filter.id === controller.direction;
+            return (
+              <Chip
+                key={filter.id}
+                selected={selected}
+                onClick={() => controller.setDirection(filter.id)}
+              >
+                {formatMessage({ id: filter.labelId })}
+              </Chip>
+            );
+          })}
+          {/* The daily list holds the living; how things ended folds behind one
+            quiet scope, the way the drawer splits Live from History. */}
+          {controller.settledCount > 0 || controller.liveness === "settled" ? (
+            <Chip
+              selected={controller.liveness === "settled"}
+              onClick={() =>
+                controller.setLiveness(controller.liveness === "settled" ? "live" : "settled")
+              }
+              className="ml-auto"
             >
-              {formatMessage({ id: "app.pool.empty.offer" })}
-            </Button>
-            <Button
-              type="button"
-              emphasis="secondary"
-              onClick={() => openDoor("request")}
-              leadingIcon={<RiHandHeartLine className="h-4 w-4" aria-hidden="true" />}
-            >
-              {formatMessage({ id: "app.pool.empty.request" })}
-            </Button>
+              {formatMessage(
+                { id: "app.commitments.filter.settled" },
+                { count: controller.settledCount }
+              )}
+            </Chip>
+          ) : null}
+        </div>
+
+        {controller.ownCreations.length > 0 ? (
+          <div className="space-y-2" data-component="PoolPendingCreations">
+            {controller.ownCreations.map((creation) => (
+              <PendingCreationRow
+                key={creation.jobId}
+                creation={creation}
+                isBusy={controller.busyJobId === creation.jobId}
+                onRetry={(jobId) => void controller.acts.retry(jobId)}
+                onDiscard={(jobId) => void controller.acts.discard(jobId)}
+              />
+            ))}
           </div>
-        ) : undefined,
-      }}
-    >
-      {controller.poolState === "PAUSED" ? <PoolLifecycleNotice pool={pool} inline /> : null}
+        ) : null}
 
-      <CycleRail
-        cycles={controller.cycles}
-        selectedCycleId={controller.selectedCycleId}
-        onSelect={controller.setSelectedCycleId}
-        onShowCharter={() => setCharterOpen(true)}
-      />
+        {controller.rows.length === 0 ? (
+          controller.ownCreations.length === 0 ? (
+            <p className="py-6 text-center text-sm text-text-sub-600">
+              {formatMessage({ id: "app.commitments.filter.noMatches" })}
+            </p>
+          ) : null
+        ) : (
+          <div className="space-y-2">
+            {controller.rows.map((row) => (
+              <CommitmentRow
+                key={row.commitment.id}
+                row={row}
+                title={controller.titleOf(row.commitment.metadataCID)}
+                onOpen={(id) => navigate(`commitments/${id.toString()}`)}
+              />
+            ))}
+          </div>
+        )}
 
-      {/* With no season to hang the agreement on, it stays on the page. */}
-      {controller.cycles.length === 0 ? (
-        <p className="flex gap-2 text-xs leading-relaxed text-text-sub-600">
-          <RiInformationLine className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {charterWords}
-        </p>
-      ) : null}
+        {controller.canCreate ? <PoolCreateEntry onChoose={openDoor} /> : null}
+      </CommitmentStateLadder>
       <AppSheet
         isOpen={charterOpen}
         onClose={() => setCharterOpen(false)}
@@ -149,76 +232,6 @@ export function GardenPool({ pool }: GardenPoolProps) {
       >
         <p className="text-sm leading-relaxed text-text-strong-950">{charterWords}</p>
       </AppSheet>
-
-      <div
-        className="flex flex-wrap gap-2"
-        role="group"
-        aria-label={formatMessage({ id: "app.commitments.filter.label" })}
-      >
-        {DIRECTION_FILTERS.map((filter) => {
-          const selected = filter.id === controller.direction;
-          return (
-            <Chip
-              key={filter.id}
-              selected={selected}
-              onClick={() => controller.setDirection(filter.id)}
-            >
-              {formatMessage({ id: filter.labelId })}
-            </Chip>
-          );
-        })}
-        {/* The daily list holds the living; how things ended folds behind one
-            quiet scope, the way the drawer splits Live from History. */}
-        {controller.settledCount > 0 || controller.liveness === "settled" ? (
-          <Chip
-            selected={controller.liveness === "settled"}
-            onClick={() =>
-              controller.setLiveness(controller.liveness === "settled" ? "live" : "settled")
-            }
-            className="ml-auto"
-          >
-            {formatMessage(
-              { id: "app.commitments.filter.settled" },
-              { count: controller.settledCount }
-            )}
-          </Chip>
-        ) : null}
-      </div>
-
-      {controller.ownCreations.length > 0 ? (
-        <div className="space-y-2" data-component="PoolPendingCreations">
-          {controller.ownCreations.map((creation) => (
-            <PendingCreationRow
-              key={creation.jobId}
-              creation={creation}
-              isBusy={controller.busyJobId === creation.jobId}
-              onRetry={(jobId) => void controller.acts.retry(jobId)}
-              onDiscard={(jobId) => void controller.acts.discard(jobId)}
-            />
-          ))}
-        </div>
-      ) : null}
-
-      {controller.rows.length === 0 ? (
-        controller.ownCreations.length === 0 ? (
-          <p className="py-6 text-center text-sm text-text-sub-600">
-            {formatMessage({ id: "app.commitments.filter.noMatches" })}
-          </p>
-        ) : null
-      ) : (
-        <div className="space-y-2">
-          {controller.rows.map((row) => (
-            <CommitmentRow
-              key={row.commitment.id}
-              row={row}
-              title={controller.titleOf(row.commitment.metadataCID)}
-              onOpen={(id) => navigate(`commitments/${id.toString()}`)}
-            />
-          ))}
-        </div>
-      )}
-
-      {controller.canCreate ? <PoolCreateEntry onChoose={openDoor} /> : null}
-    </CommitmentStateLadder>
+    </>
   );
 }
