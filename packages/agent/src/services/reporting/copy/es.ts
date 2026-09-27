@@ -97,6 +97,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Ese código no coincide con ninguna verificación abierta. Revisa el código en la página de Green Goods.",
   "link.accountMismatch":
     "Este chat está vinculado a otra cuenta. Verifica con {account} o escribe a {support}.",
+  "link.accountTaken":
+    "Esa cuenta ya está vinculada a otro chat. Si es tuya, envía RECOVER desde el chat que quieres usar. Soporte: {support}",
   "publish.consent":
     "¿Publicar tu reporte confirmado en {garden} desde {account}? El título, la descripción, los detalles y las fotos se hacen públicos y no se pueden borrar. Responde PUBLISH {token} para continuar.",
   "publish.publish": "Publicar",
@@ -115,8 +117,10 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "publish.sending": "Publicando tu reporte. Te avisaré cuando esté en la cadena.",
   "publish.uncertain":
     "Tu publicación se envió, pero aún no puedo confirmarla en la cadena. No la enviaré dos veces; te avisaré cuando lo sepa.",
+  "publish.unknown":
+    "No recibí respuesta de tu billetera, así que aún no sé si tu reporte se envió. No lo enviaré otra vez; estoy revisando la cadena y te diré lo que encuentre.",
   "publish.rejected":
-    "La firma fue rechazada, así que no se publicó nada. Responde CONFIRM {token} para intentarlo de nuevo.",
+    "La firma fue rechazada, así que no se publicó nada. Aquí está tu reporte otra vez; confírmalo cuando quieras.",
   "publish.reverted":
     "La publicación falló en la cadena. Tu reporte está guardado; revísalo y confírmalo de nuevo para reintentar.",
   "publish.published": "Tu reporte está publicado ✅\nTrabajo: {uid}\nTransacción: {tx}",

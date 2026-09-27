@@ -75,7 +75,11 @@ describe("story-first reporting", () => {
     expect(await harness.say(ADA, "CONFIRM 9999")).toEqual([
       `To publish, reply CONFIRM ${summaryToken(summary)} exactly as shown in the summary.`,
     ]);
-    await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
+    const linking = await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
+    expect(linking).toEqual([
+      "To publish, verify your existing Green Goods account (wallet or passkey) here. The link expires in 10 minutes and never moves funds.",
+      "When the page shows a code, send it here as: PAIR 123456",
+    ]);
 
     const draft = harness.core.db
       .query("SELECT id, revision, machine_snapshot FROM work_drafts")
@@ -94,7 +98,7 @@ describe("story-first reporting", () => {
       invalidated_at: null,
     });
     expect(harness.core.db.query("SELECT kind, state FROM processing_jobs").all()).toEqual([
-      { kind: "resolve_authority", state: "pending" },
+      { kind: "resolve_authority", state: "succeeded" },
     ]);
   });
 

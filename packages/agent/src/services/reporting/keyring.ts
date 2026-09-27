@@ -11,6 +11,9 @@ import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "node:
 export interface ReportingKeyring {
   seal(plaintext: string, context: string): string;
   open(sealed: string, context: string): string;
+  /** Binary form for private media objects: version byte length, version, IV, ciphertext, tag. */
+  sealBytes(plaintext: Uint8Array, context: string): Uint8Array;
+  openBytes(sealed: Uint8Array, context: string): Uint8Array;
   /** Lookup versions accepted during intake, current first. */
   readonly lookupVersions: readonly string[];
   readonly currentLookupVersion: string;
@@ -112,6 +115,41 @@ export function createReportingKeyring(config: ReportingKeyringConfig): Reportin
         decipher.update(body.subarray(0, body.length - TAG_BYTES)),
         decipher.final(),
       ]).toString("utf8");
+    },
+    sealBytes(plaintext, context) {
+      const iv = randomBytes(IV_BYTES);
+      const cipher = createCipheriv("aes-256-gcm", current, iv);
+      cipher.setAAD(associatedData(context));
+      const version = Buffer.from(config.currentEncryptionVersion, "utf8");
+      return Buffer.concat([
+        Buffer.from([version.length]),
+        version,
+        iv,
+        cipher.update(plaintext),
+        cipher.final(),
+        cipher.getAuthTag(),
+      ]);
+    },
+    openBytes(sealed, context) {
+      const buffer = Buffer.from(sealed);
+      const versionLength = buffer[0] ?? 0;
+      const version = buffer.subarray(1, 1 + versionLength).toString("utf8");
+      const key = encryption.get(version);
+      const bodyStart = 1 + versionLength + IV_BYTES;
+      if (!key || buffer.length < bodyStart + TAG_BYTES) {
+        throw new ReportingKeyringError("Sealed object has an unknown format or key version");
+      }
+      const decipher = createDecipheriv(
+        "aes-256-gcm",
+        key,
+        buffer.subarray(1 + versionLength, bodyStart)
+      );
+      decipher.setAAD(associatedData(context));
+      decipher.setAuthTag(buffer.subarray(buffer.length - TAG_BYTES));
+      return Buffer.concat([
+        decipher.update(buffer.subarray(bodyStart, buffer.length - TAG_BYTES)),
+        decipher.final(),
+      ]);
     },
     lookup(version, purpose, value) {
       const key = lookups.get(version);

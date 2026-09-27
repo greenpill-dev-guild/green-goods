@@ -1,28 +1,122 @@
 import { type CopyValues, type ReportingCopyKey, reportingText } from "../copy";
 import { enqueueReply } from "../outbox";
+import type { ParticipantBinding } from "../participants";
 import { issuePrompt, type PromptOption, type PromptRecord, replyIdFor } from "../prompts";
 import type { ReportingCore } from "../runtime";
 import type { OutboundMessage } from "../transport";
 import type { TurnContext } from "./context";
 
+export interface ReplyTarget {
+  conversationId: string;
+  subjectId: string;
+  binding: ParticipantBinding | null;
+  locale: string;
+  /** Stable prefix for reply dedupe keys: an inbound event ID or a job's own identity. */
+  dedupePrefix: string;
+}
+
 /**
- * Collects one turn's writes inside its commit transaction. Replies get deterministic dedupe
- * keys (event, position, kind), so a turn replayed after a crash cannot enqueue a reply twice,
- * and the source entry for the inbound message is written once and referenced by provenance.
+ * Writes replies and questions for one conversation inside the caller's transaction. Replies get
+ * deterministic dedupe keys (prefix, position, kind), so a replayed turn or job cannot enqueue a
+ * message twice.
  */
-export class TurnWriter {
+export class ConversationWriter {
   private replyIndex = 0;
-  private sourceId: string | null = null;
 
   constructor(
     readonly core: ReportingCore,
-    readonly ctx: TurnContext
+    readonly target: ReplyTarget
   ) {}
 
   text(key: ReportingCopyKey, values: CopyValues = {}): string {
-    return reportingText(this.ctx.locale, key, {
+    return reportingText(this.target.locale, key, {
       support: this.core.settings.supportContact,
       ...values,
+    });
+  }
+
+  reply(message: OutboundMessage, kind: string, promptId?: string, operationId?: string): void {
+    const index = this.replyIndex;
+    this.replyIndex += 1;
+    const binding = this.target.binding;
+    enqueueReply(this.core, {
+      conversationId: this.target.conversationId,
+      subjectId: this.target.subjectId,
+      participantId: binding?.participantId ?? null,
+      bindingId: binding?.bindingId ?? null,
+      identityEpoch: binding?.identityEpoch ?? null,
+      promptId: promptId ?? null,
+      operationId: operationId ?? null,
+      dedupeKey: `${this.target.dedupePrefix}:${index}:${kind}`,
+      replyKind: kind,
+      audience: "conversation",
+      message,
+    });
+  }
+
+  say(key: ReportingCopyKey, values: CopyValues = {}, link?: OutboundMessage["link"]): void {
+    this.reply({ text: this.text(key, values), ...(link ? { link } : {}) }, key);
+  }
+
+  /** Issues the conversation's single open question and sends it with numbered choices. */
+  ask(
+    input: {
+      subjectKind: PromptRecord["subjectKind"];
+      resourceId: string | null;
+      resourceRevision: number | null;
+      kind: string;
+      fieldKey?: string | null;
+      options?: PromptOption[];
+      page?: number;
+    },
+    text: (prompt: PromptRecord) => string,
+    link?: OutboundMessage["link"]
+  ): PromptRecord {
+    const prompt = issuePrompt(this.core, {
+      conversationId: this.target.conversationId,
+      subjectId: this.target.subjectId,
+      participantId: this.target.binding?.participantId ?? null,
+      ...input,
+    });
+    const choices = prompt.options.map((option) => ({
+      id: replyIdFor(prompt, option),
+      label: option.label,
+    }));
+    const numbered =
+      prompt.options.length > 0
+        ? `\n${prompt.options.map((option, index) => `${index + 1}. ${option.label}`).join("\n")}`
+        : "";
+    this.reply(
+      {
+        text: `${text(prompt)}${numbered}`,
+        ...(choices.length ? { choices } : {}),
+        ...(link ? { link } : {}),
+      },
+      `prompt:${input.kind}`,
+      prompt.id
+    );
+    return prompt;
+  }
+}
+
+/** A conversation writer bound to one inbound event, which also records its source entry. */
+export class TurnWriter extends ConversationWriter {
+  private sourceId: string | null = null;
+
+  constructor(
+    core: ReportingCore,
+    readonly ctx: TurnContext
+  ) {
+    super(core, {
+      conversationId: ctx.conversationId,
+      subjectId: ctx.subjectId,
+      get binding() {
+        return ctx.binding;
+      },
+      get locale() {
+        return ctx.locale;
+      },
+      dedupePrefix: ctx.event.id,
     });
   }
 
@@ -61,67 +155,5 @@ export class TurnWriter {
         received: message.sentAt,
       });
     return (this.sourceId = id);
-  }
-
-  reply(message: OutboundMessage, kind: string, promptId?: string, operationId?: string): void {
-    const index = this.replyIndex;
-    this.replyIndex += 1;
-    enqueueReply(this.core, {
-      conversationId: this.ctx.conversationId,
-      subjectId: this.ctx.subjectId,
-      participantId: this.ctx.binding?.participantId ?? null,
-      bindingId: this.ctx.binding?.bindingId ?? null,
-      identityEpoch: this.ctx.binding?.identityEpoch ?? null,
-      promptId: promptId ?? null,
-      operationId: operationId ?? null,
-      dedupeKey: `${this.ctx.event.id}:${index}:${kind}`,
-      replyKind: kind,
-      audience: "conversation",
-      message,
-    });
-  }
-
-  say(key: ReportingCopyKey, values: CopyValues = {}): void {
-    this.reply({ text: this.text(key, values) }, key);
-  }
-
-  /** Issues the conversation's single open question and sends it with numbered choices. */
-  ask(
-    input: {
-      subjectKind: PromptRecord["subjectKind"];
-      resourceId: string | null;
-      resourceRevision: number | null;
-      kind: string;
-      fieldKey?: string | null;
-      options?: PromptOption[];
-      page?: number;
-    },
-    text: (prompt: PromptRecord) => string,
-    link?: OutboundMessage["link"]
-  ): PromptRecord {
-    const prompt = issuePrompt(this.core, {
-      conversationId: this.ctx.conversationId,
-      subjectId: this.ctx.subjectId,
-      participantId: this.ctx.binding?.participantId ?? null,
-      ...input,
-    });
-    const choices = prompt.options.map((option) => ({
-      id: replyIdFor(prompt, option),
-      label: option.label,
-    }));
-    const numbered =
-      prompt.options.length > 0
-        ? `\n${prompt.options.map((option, index) => `${index + 1}. ${option.label}`).join("\n")}`
-        : "";
-    this.reply(
-      {
-        text: `${text(prompt)}${numbered}`,
-        ...(choices.length ? { choices } : {}),
-        ...(link ? { link } : {}),
-      },
-      `prompt:${input.kind}`,
-      prompt.id
-    );
-    return prompt;
   }
 }

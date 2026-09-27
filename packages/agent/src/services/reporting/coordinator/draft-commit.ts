@@ -9,6 +9,7 @@ import {
   type ReportLifecycleContext,
   type ReportLifecycleEvent,
 } from "@green-goods/shared/workflows/agent-reporting";
+import { invalidateConfirmation } from "../confirmations";
 import {
   commitDraft,
   type DraftRecord,
@@ -96,7 +97,30 @@ export function commitContentChange(
     participantAction: true,
   });
   if (committed === "stale") throw new StaleDraftError();
+  if (!["collecting", "review"].includes(lifecycleState(draft)))
+    supersedeConfirmedWork(core, draft.id);
   return committed;
+}
+
+/**
+ * A material edit after confirmation invalidates that confirmation, cancels an operation that never
+ * reached an unresolved attempt and retires open browser links for the old revision.
+ */
+function supersedeConfirmedWork(core: Parameters<typeof commitDraft>[0], draftId: string): void {
+  invalidateConfirmation(core, { draftId });
+  core.db
+    .query(
+      `UPDATE execution_operations SET state = 'cancelled', failure_code = 'superseded', version = version + 1, updated_at = $now
+       WHERE draft_id = $draft AND state IN ('created','preparing','preparation_failed','prepared')
+         AND NOT EXISTS (SELECT 1 FROM execution_attempts a WHERE a.operation_id = execution_operations.id
+           AND a.state IN ('reserved','wallet_pending','signed','broadcast','uncertain'))`
+    )
+    .run({ draft: draftId, now: core.clock.now() });
+  core.db
+    .query(
+      "UPDATE continuation_requests SET state = 'revoked' WHERE resource_id = $draft AND state = 'open'"
+    )
+    .run({ draft: draftId });
 }
 
 /** Commits lifecycle-only events at the current revision. */

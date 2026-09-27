@@ -99,6 +99,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Esse código não corresponde a nenhuma verificação aberta. Confira o código na página do Green Goods.",
   "link.accountMismatch":
     "Este chat está vinculado a outra conta. Verifique com {account} ou escreva para {support}.",
+  "link.accountTaken":
+    "Essa conta já está vinculada a outro chat. Se for sua, envie RECOVER pelo chat que você quer usar. Suporte: {support}",
   "publish.consent":
     "Publicar seu relato confirmado em {garden} pela conta {account}? O título, a descrição, os detalhes e as fotos ficam públicos e não podem ser apagados. Responda PUBLISH {token} para continuar.",
   "publish.publish": "Publicar",
@@ -117,8 +119,10 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "publish.sending": "Publicando seu relato agora. Aviso quando estiver na blockchain.",
   "publish.uncertain":
     "Sua publicação foi enviada, mas ainda não consigo confirmá-la na blockchain. Não vou enviá-la duas vezes; aviso quando souber.",
+  "publish.unknown":
+    "Não recebi resposta da sua carteira, então ainda não sei se seu relatório foi enviado. Não vou enviá-lo de novo; estou verificando a blockchain e aviso o que encontrar.",
   "publish.rejected":
-    "A assinatura foi recusada, então nada foi publicado. Responda CONFIRM {token} para tentar de novo.",
+    "A assinatura foi recusada, então nada foi publicado. Aqui está seu relato de novo; confirme quando quiser.",
   "publish.reverted":
     "A publicação falhou na blockchain. Seu relato está guardado; confira e confirme de novo para tentar outra vez.",
   "publish.published": "Seu relato foi publicado ✅\nTrabalho: {uid}\nTransação: {tx}",

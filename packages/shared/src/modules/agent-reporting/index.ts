@@ -108,3 +108,29 @@ export {
   withDecision,
   withFeedback,
 } from "./review";
+export type {
+  AccessResponse,
+  AttemptOutcome,
+  AttemptResponse,
+  ChallengeResponse,
+  OperationView,
+  OutcomeRequest,
+  ReportingErrorCode,
+  ResourceView,
+} from "./api-contract";
+export {
+  accessResponseSchema,
+  attemptRequestSchema,
+  attemptResponseSchema,
+  challengeCreateRequestSchema,
+  challengeResponseSchema,
+  envelopeSchema,
+  operationCreateRequestSchema,
+  outcomeRequestSchema,
+  outcomeResponseSchema,
+  proofRequestSchema,
+  REPORTING_ERROR_CODES,
+  resourceViewSchema,
+} from "./api-contract";
+export type { ReportingProofFields, ReportingPurpose } from "./proof";
+export { buildReportingProofMessage, REPORTING_PROOF_AUDIENCE } from "./proof";

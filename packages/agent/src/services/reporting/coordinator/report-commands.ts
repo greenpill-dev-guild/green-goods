@@ -10,6 +10,7 @@ import { type ReportingCopyKey, reportingText } from "../copy";
 import type { DraftRecord } from "../drafts";
 import { enqueueJob } from "../jobs";
 import { setParticipantLocale } from "../participants";
+import { retryPreparation } from "../preparation";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
 import type { ChatCommand } from "./commands";
 import { commitLifecycle, EDITABLE_STATES, lifecycleState } from "./draft-commit";
@@ -167,15 +168,7 @@ export function handleReportCommand(
       });
     }
     case "retry": {
-      if (draft && lifecycleState(draft) === "preparationFailed") {
-        commitLifecycle(core, draft, [{ type: "RETRY_PREPARATION" }], { participantAction: true });
-        enqueueJob(core, {
-          kind: "prepare_operation",
-          subjectId: draft.id,
-          dedupeKey: `prepare:${draft.id}:${core.clock.now()}`,
-        });
-        return writer.say("publish.sending");
-      }
+      if (draft && retryPreparation(core, draft.id)) return writer.say("publish.sending");
       if (draft && lifecycleState(draft) === "authority") {
         enqueueJob(core, {
           kind: "resolve_authority",

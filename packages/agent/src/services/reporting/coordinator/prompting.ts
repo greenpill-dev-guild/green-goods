@@ -11,7 +11,7 @@ import { type CatalogResult, orderActions } from "../catalog";
 import type { DraftRecord } from "../drafts";
 import type { PromptOption } from "../prompts";
 import type { EnabledGarden } from "../runtime";
-import type { TurnWriter } from "./writer";
+import type { ConversationWriter, TurnWriter } from "./writer";
 
 export interface CatalogView {
   garden: EnabledGarden | null;
@@ -217,7 +217,7 @@ function conflictValue(draft: DraftRecord, field: string): unknown {
 
 /** Renders the confirmation summary from validated state and issues the token-bound prompt. */
 export function askConfirmation(
-  writer: TurnWriter,
+  writer: ConversationWriter,
   draft: DraftRecord,
   account: string | null
 ): void {

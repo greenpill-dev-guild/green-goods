@@ -44,6 +44,8 @@ export interface ReportingSettings {
   inactiveDraftRetentionMs: number;
   linkChallengeTtlMs: number;
   browserSessionTtlMs: number;
+  /** How long an owner-signing attempt may wait for the browser's outcome before reconciling. */
+  walletResponseWindowMs: number;
   recoveryTtlMs: number;
   conversationLeaseMs: number;
   maxEventAttempts: number;
@@ -61,6 +63,7 @@ export const DEFAULT_REPORTING_SETTINGS: Omit<
   inactiveDraftRetentionMs: 7 * 24 * 60 * 60 * 1000,
   linkChallengeTtlMs: 10 * 60 * 1000,
   browserSessionTtlMs: 15 * 60 * 1000,
+  walletResponseWindowMs: 10 * 60 * 1000,
   recoveryTtlMs: 10 * 60 * 1000,
   conversationLeaseMs: 30 * 1000,
   maxEventAttempts: 5,

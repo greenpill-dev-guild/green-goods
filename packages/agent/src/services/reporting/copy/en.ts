@@ -102,6 +102,8 @@ export const EN_REPORTING_COPY = {
     "That code doesn't match an open verification. Check the code on the Green Goods page.",
   "link.accountMismatch":
     "This chat is linked to a different account. Verify with {account} or contact {support}.",
+  "link.accountTaken":
+    "That account is already linked to another chat. If it's yours, send RECOVER from the chat you want to use. Support: {support}",
   "publish.consent":
     "Publish your confirmed report to {garden} from {account}? The title, description, details and photos become public and cannot be deleted. Reply PUBLISH {token} to continue.",
   "publish.publish": "Publish",
@@ -120,8 +122,10 @@ export const EN_REPORTING_COPY = {
   "publish.sending": "Publishing your report now. I'll confirm when it's on chain.",
   "publish.uncertain":
     "Your publication was sent but I can't confirm it on chain yet. I won't send it twice; I'll tell you when I know.",
+  "publish.unknown":
+    "I didn't hear back from your wallet, so I can't tell yet whether your report was sent. I won't send it again; I'm checking the chain and will tell you what I find.",
   "publish.rejected":
-    "The signature was declined, so nothing was published. Reply CONFIRM {token} to try again.",
+    "The signature was declined, so nothing was published. Here is your report again; confirm it when you're ready.",
   "publish.reverted":
     "The publication failed on chain. Your report is saved; check it and confirm again to retry.",
   "publish.published": "Your report is published ✅\nWork: {uid}\nTransaction: {tx}",

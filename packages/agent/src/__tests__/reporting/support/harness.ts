@@ -3,6 +3,15 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Hono } from "hono";
+import { verifyMessage } from "viem";
+import { registerMessagingRoutes } from "../../../api/routes/messaging";
+import { InMemoryPublicRateLimiter } from "../../../api/public-protection";
+import { resolveAuthority } from "../../../services/reporting/authority";
+import type { AccountProofVerifier } from "../../../services/reporting/browser-access";
+import { watchOwnerAttempt } from "../../../services/reporting/execution";
+import { createFilesystemMediaStore } from "../../../services/reporting/media-store";
+import { prepareOperation } from "../../../services/reporting/preparation";
+import { reconcileOperation } from "../../../services/reporting/reconciliation";
 import * as z from "zod";
 import { ensureControls, type ControlName } from "../../../services/reporting/controls";
 import { openReportingDatabase } from "../../../services/reporting/database";
@@ -33,6 +42,8 @@ import {
   TAS,
   TEST_KEYS,
 } from "./fixtures";
+import { FixtureUploader } from "./browser";
+import { FakeChain } from "./fake-chain";
 
 /** Synthetic ingress exists only in test and dev-driver composition, never in `createServer`. */
 const SYNTHETIC_REALM = /^(synthetic|telegram-fixture|whatsapp-fixture):[a-z0-9-]+$/;
@@ -117,6 +128,15 @@ export class Harness {
   readonly interpreter = new FixtureInterpreter();
   readonly transport = new RecordingTransport();
   readonly app = new Hono();
+  readonly chain = new FakeChain();
+  readonly uploader = new FixtureUploader();
+  readonly delegationModules: import("@green-goods/shared/modules/agent-reporting").PermissionModuleEntry[] =
+    [];
+  /** Smart-account proofs are fixtures: a Kernel address accepts the signature `0x6b65726e656c`. */
+  readonly verifier: AccountProofVerifier = async ({ address, message, signature }) =>
+    this.chain.kernels.has(address.toLowerCase())
+      ? signature === "0x6b65726e656c"
+      : verifyMessage({ address, message, signature });
   core: ReportingCore;
   private eventCounter = 0;
 
@@ -130,6 +150,19 @@ export class Harness {
       ...options.controls,
     });
     mountSyntheticIngress(this.app, () => this.core);
+    registerMessagingRoutes(this.app, {
+      core: () => this.core,
+      chain: this.chain,
+      verifier: this.verifier,
+      media: this.media(),
+      rateLimiter: new InMemoryPublicRateLimiter(),
+      secureCookies: true,
+      cookiePath: "/api/messaging",
+    });
+  }
+
+  media() {
+    return createFilesystemMediaStore(join(this.dir, "media"), this.core.keyring);
   }
 
   private open(): ReportingCore {
@@ -162,7 +195,33 @@ export class Harness {
       interpreter: this.interpreter,
       interpretationTimeoutMs: 2_000,
       transport: this.transport,
-      jobs: { ...this.options.jobs?.(this), ...jobs },
+      jobs: {
+        resolve_authority: (job) =>
+          resolveAuthority(
+            { core: this.core, chain: this.chain, delegationModules: this.delegationModules },
+            job
+          ),
+        prepare_operation: (job) =>
+          prepareOperation(
+            {
+              core: this.core,
+              chain: this.chain,
+              catalog: this.catalog,
+              uploader: this.uploader,
+              media: this.media(),
+              deployment: this.chain.deployment,
+            },
+            job
+          ),
+        watch_owner_attempt: async (job) => watchOwnerAttempt(this.core, job),
+        reconcile_operation: (job) =>
+          reconcileOperation(
+            { core: this.core, chain: this.chain, scanWindowBlocks: 10_000n },
+            job
+          ),
+        ...this.options.jobs?.(this),
+        ...jobs,
+      },
       workerId: "worker-a",
     };
   }

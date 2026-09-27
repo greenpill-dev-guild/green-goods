@@ -53,9 +53,13 @@ export const EAS_ATTEST_ABI = [
 
 export const REPORTING_CHAIN_IDS = [42161, 11155111] as const;
 
+/**
+ * Encoder-facing addresses use `0x${string}`: this workspace registers viem's `Address` as plain
+ * `string`, which would let unchecked text reach calldata and the wire contract.
+ */
 export interface ReportingDeployment {
   chainId: number;
-  easAddress: Address;
+  easAddress: Hex;
   work: { schemaUID: Hex; schema: string };
   review: { schemaUID: Hex; schema: string };
 }
@@ -70,7 +74,7 @@ export function resolveReportingDeployment(chainId: number): ReportingDeployment
   const config = getEASConfig(chainId);
   const deployment = {
     chainId,
-    easAddress: config.EAS.address as Address,
+    easAddress: config.EAS.address as Hex,
     work: { schemaUID: config.WORK.uid as Hex, schema: config.WORK.schema },
     review: { schemaUID: config.WORK_APPROVAL.uid as Hex, schema: config.WORK_APPROVAL.schema },
   };
@@ -107,12 +111,12 @@ interface EnvelopeCommon {
   operationId: string;
   revision: number;
   chainId: number;
-  accountAddress: Address;
-  gardenAddress: Address;
-  easAddress: Address;
+  accountAddress: Hex;
+  gardenAddress: Hex;
+  easAddress: Hex;
   schemaUID: Hex;
   encodedData: Hex;
-  call: { to: Address; data: Hex; value: "0" };
+  call: { to: Hex; data: Hex; value: "0" };
 }
 
 export interface WorkEnvelope extends EnvelopeCommon {
@@ -155,9 +159,9 @@ export function encodeSchemaData(schema: string, values: readonly unknown[]): He
 }
 
 /** EAS request defaults every Green Goods work and review attestation uses. */
-function attestCall(easAddress: Address, schemaUID: Hex, recipient: Address, data: Hex) {
+function attestCall(easAddress: Hex, schemaUID: Hex, recipient: Hex, data: Hex) {
   return {
-    to: getAddress(easAddress),
+    to: getAddress(easAddress) as Hex,
     value: "0" as const,
     data: encodeFunctionData({
       abi: EAS_ATTEST_ABI,
@@ -195,9 +199,9 @@ export function buildEnvelope<T extends UnsignedEnvelope>(
   const unsigned = {
     ...input,
     version: 1 as const,
-    accountAddress: input.accountAddress.toLowerCase() as Address,
-    gardenAddress: input.gardenAddress.toLowerCase() as Address,
-    easAddress: deployment.easAddress.toLowerCase() as Address,
+    accountAddress: input.accountAddress.toLowerCase() as Hex,
+    gardenAddress: input.gardenAddress.toLowerCase() as Hex,
+    easAddress: deployment.easAddress.toLowerCase() as Hex,
     schemaUID: schema.schemaUID,
   } as unknown as UnsignedEnvelope;
   const encodedData = encodeSchemaData(schema.schema, schemaValues(unsigned));

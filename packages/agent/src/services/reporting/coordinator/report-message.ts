@@ -3,6 +3,7 @@ import { createDraft } from "../drafts";
 import { recordMediaIntake } from "../media-intake";
 import type { TurnPlan } from "./context";
 import { commitLifecycle, EDITABLE_STATES, lifecycleState } from "./draft-commit";
+import { handleReportCommand } from "./report-commands";
 import {
   apply,
   applyInterpretation,
@@ -88,5 +89,10 @@ export function handleReportMessage(
     return;
   }
   if (!text && plan.media.length > 0 && !work.changed) return; // the media job replies after processing
+  if (!work.changed && !["collecting", "review"].includes(lifecycleState(draft))) {
+    // Past confirmation an unchanged message must not reissue the summary over the open question.
+    handleReportCommand(writer, { kind: "status" }, external);
+    return;
+  }
   finish(writer, draft, work, external, ctx.draft ? "message" : "story");
 }

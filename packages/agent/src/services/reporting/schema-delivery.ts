@@ -39,6 +39,7 @@ export const BROWSER_AND_DELIVERY_TABLES: readonly string[] = [
     verified_account TEXT,
     verified_account_kind TEXT CHECK (verified_account_kind IN ('eoa','kernel')),
     pairing_code_hash TEXT,
+    pairing_code_ciphertext TEXT,
     pairing_attempts INTEGER NOT NULL DEFAULT 0,
     proof_issued_at INTEGER,
     created_at INTEGER NOT NULL,

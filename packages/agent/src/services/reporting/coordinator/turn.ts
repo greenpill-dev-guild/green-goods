@@ -15,6 +15,7 @@ import {
   releaseConversationLease,
 } from "../leases";
 import type { EnabledGarden, ReportingCore } from "../runtime";
+import { answerGrantChoice, confirmPublication, handlePairing } from "./account-steps";
 import { answerConsent, sendConsentNotice, withdrawProcessing } from "./consent-step";
 import { loadTurnContext, planTurn, type TurnContext, type TurnPlan } from "./context";
 import { StaleDraftError } from "./draft-commit";
@@ -137,7 +138,11 @@ function applyTurn(
         handleReportMessage(writer, { kind: "message", text: null, media: [] }, external);
       return "consume";
     case "answer":
-      if (plan.prompt.kind === "confirm_report" && plan.option) {
+      if (plan.prompt.kind === "publication_consent" && plan.option) {
+        confirmPublication(writer, null, true);
+      } else if (plan.prompt.kind === "grant_choice" && plan.option) {
+        answerGrantChoice(writer, plan.option.value);
+      } else if (plan.prompt.kind === "confirm_report" && plan.option) {
         if (plan.option.value === "confirm") confirmDraft(writer, null, true, external);
         else
           handleReportCommand(
@@ -156,6 +161,8 @@ function applyTurn(
       const { command } = plan;
       if (command.kind === "stop" || command.kind === "delete")
         withdrawProcessing(writer, command.kind);
+      else if (command.kind === "pair") handlePairing(writer, command.code);
+      else if (command.kind === "publish") confirmPublication(writer, command.token, false);
       else if (command.kind === "help" || command.kind === "start") writer.say("help");
       else if (deps.commands?.[command.kind]) deps.commands[command.kind]?.(writer, plan);
       else handleReportCommand(writer, command, external);

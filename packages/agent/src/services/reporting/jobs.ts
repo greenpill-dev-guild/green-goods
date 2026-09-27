@@ -12,6 +12,7 @@ export type JobKind =
   | "resolve_authority"
   | "prepare_operation"
   | "execute_delegated"
+  | "watch_owner_attempt"
   | "reconcile_operation"
   | "reconcile_grant"
   | "purge_private_content"
