@@ -296,7 +296,7 @@ describe("modules/data/greengoods", () => {
   });
 
   describe("getActions", () => {
-    it("fetches an older action by identity before applying the recent-catalog limit", async () => {
+    it("fetches selected actions before applying the recent-catalog limit", async () => {
       const rows = Array.from({ length: 101 }, (_, index) => ({
         id: `42161-${101 - index}`,
         chainId: 42161,
@@ -321,18 +321,32 @@ describe("modules/data/greengoods", () => {
         expect(query).toContain("Action(where: $where");
         expect(variables.where).toEqual({
           chainId: { _eq: 42161 },
-          id: { _eq: "42161-1" },
+          id: { _in: ["42161-1"] },
         });
         return {
-          data: { Action: rows.filter((row) => row.id === variables.where.id._eq).slice(0, 100) },
+          data: {
+            Action: rows.filter((row) => variables.where.id._in.includes(row.id)).slice(0, 100),
+          },
         };
       });
-      const result = await getActions(reader, { chainId: 42161, actionId: "42161-1" });
+      const result = await getActions(reader, { chainId: 42161, actionIds: ["42161-1"] });
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({ id: "42161-1", title: "Action 1" });
       expect(result[0].inputs).toEqual(
         instructionTemplates["agro.planting_event"].uiConfig.details.inputs
       );
+
+      const actionIds = ["42161-1", "42161-2"];
+      mockQuery.mockImplementationOnce(async (_query, variables) => {
+        expect(variables.where).toEqual({
+          chainId: { _eq: 42161 },
+          id: { _in: actionIds },
+        });
+        return { data: { Action: rows.filter((row) => actionIds.includes(row.id)) } };
+      });
+      const selected = await getActions(reader, { chainId: 42161, actionIds });
+      expect(selected.map((action) => action.id)).toEqual(["42161-2", "42161-1"]);
+      expect(mockQuery).toHaveBeenCalledTimes(3);
     });
 
     it("surfaces missing or unknown indexer domains instead of coercing them to solar", () => {

@@ -63,7 +63,7 @@ const canonicalAction: Action = {
 
 const panelSeeds: Parameters<typeof withSeededQueryClient>[0] = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
-  [queryKeys.actions.detail(DEFAULT_CHAIN_ID, 1), canonicalAction],
+  [queryKeys.actions.byUIDs(DEFAULT_CHAIN_ID, [1]), [canonicalAction]],
   [queryKeys.works.merged(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID), [WAITING_WORK]],
   [queryKeys.works.online(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID), WAITING_WORK_READ],
 ];
@@ -146,12 +146,14 @@ export const CustomActionPortuguese: Story = {
     withSeededQueryClient([
       ...panelSeeds,
       [
-        queryKeys.actions.detail(DEFAULT_CHAIN_ID, 1),
-        {
-          ...canonicalAction,
-          slug: "custom.harvest",
-          translations: { pt: { status: "reviewed", data: { title: "Colheita da comunidade" } } },
-        },
+        queryKeys.actions.byUIDs(DEFAULT_CHAIN_ID, [1]),
+        [
+          {
+            ...canonicalAction,
+            slug: "custom.harvest",
+            translations: { pt: { status: "reviewed", data: { title: "Colheita da comunidade" } } },
+          },
+        ],
       ],
     ]),
   ],

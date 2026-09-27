@@ -193,7 +193,7 @@ export async function parseInstructionMetadata(
 /** Fetches action definitions from the indexer and enriches media + UI config. */
 export async function getActions(
   reader: GraphQLReader = greenGoodsIndexer,
-  { chainId = DEFAULT_CHAIN_ID, actionId }: { chainId?: number; actionId?: string } = {}
+  { chainId = DEFAULT_CHAIN_ID, actionIds }: { chainId?: number; actionIds?: string[] } = {}
 ): Promise<Action[]> {
   try {
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
@@ -216,7 +216,7 @@ export async function getActions(
 
     const { data, error } = await reader.query(
       QUERY,
-      { where: { chainId: { _eq: chainId }, ...(actionId ? { id: { _eq: actionId } } : {}) } },
+      { where: { chainId: { _eq: chainId }, ...(actionIds ? { id: { _in: actionIds } } : {}) } },
       "getActions"
     );
 
