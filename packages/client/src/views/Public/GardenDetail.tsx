@@ -7,7 +7,7 @@ import {
 } from "@green-goods/shared/hooks/public/usePublicGardens";
 import { useHypercerts } from "@green-goods/shared/hooks/hypercerts/useHypercerts";
 import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
@@ -47,6 +47,12 @@ import { rememberGardenReturn } from "./gardenReturnFocus";
 export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
+  const [expandedGardenId, setExpandedGardenId] = useState<string | null>(null);
+  const descriptionRef = useRef<HTMLDivElement>(null);
+  const descriptionToggleRef = useRef<HTMLButtonElement>(null);
+  const descriptionLedeRef = useRef<HTMLDivElement>(null);
+  const restoreDescriptionFocus = useRef(false);
+  const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const { data: gardens = [] } = usePublicGardens();
   // Pinned so the field-note explorer links resolve against the same chain the
   // notes were read from.
@@ -100,6 +106,44 @@ export default function GardenDetail() {
     }
     return null;
   }, [garden, summary]);
+  const descriptionExpanded = Boolean(id && expandedGardenId === id && identity?.description);
+
+  useEffect(() => {
+    if (descriptionExpanded) return;
+    const lede = descriptionLedeRef.current?.firstElementChild;
+    if (!(lede instanceof HTMLElement)) return;
+    let active = true;
+    const measure = () => {
+      if (!active) return;
+      const overflows = lede.scrollHeight > lede.clientHeight + 1;
+      setDescriptionOverflows(overflows);
+      if (
+        restoreDescriptionFocus.current ||
+        (!overflows && document.activeElement === descriptionToggleRef.current)
+      ) {
+        // Resizing can remove the toggle; the restored narrative stays mounted.
+        (overflows ? descriptionToggleRef.current : descriptionLedeRef.current)?.focus();
+        restoreDescriptionFocus.current = false;
+      }
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(lede);
+    void document.fonts?.ready.then(measure);
+    return () => {
+      active = false;
+      observer.disconnect();
+    };
+  }, [identity?.description, descriptionExpanded]);
+
+  useEffect(() => {
+    if (descriptionExpanded) descriptionRef.current?.focus();
+  }, [descriptionExpanded]);
+
+  const showLess = () => {
+    restoreDescriptionFocus.current = true;
+    setExpandedGardenId(null);
+  };
 
   // Hand the archive a focus target for the reader's way back.
   useEffect(() => {
@@ -138,20 +182,50 @@ export default function GardenDetail() {
         kicker={identity?.location || undefined}
         title={identity?.name || " "}
         lede={
-          identity?.description ||
-          formatMessage({
-            id: "public.gardenDetail.place.empty",
-            defaultMessage: "Garden narrative will appear here as it is published.",
-          })
+          descriptionExpanded
+            ? undefined
+            : identity?.description ||
+              formatMessage({
+                id: "public.gardenDetail.place.empty",
+                defaultMessage: "Garden narrative will appear here as it is published.",
+              })
         }
+        ledeClassName="line-clamp-3"
+        ledeContainerRef={descriptionLedeRef}
         actions={
-          <EditorialGhostLink to="/gardens" size="lg">
-            <span aria-hidden="true">←</span>
-            {formatMessage({
-              id: "public.gardenDetail.backToArchive",
-              defaultMessage: "All Gardens",
-            })}
-          </EditorialGhostLink>
+          <>
+            <EditorialGhostLink to="/gardens" size="lg">
+              <span aria-hidden="true">←</span>
+              {formatMessage({
+                id: "public.gardenDetail.backToArchive",
+                defaultMessage: "All Gardens",
+              })}
+            </EditorialGhostLink>
+            {identity?.description && (descriptionOverflows || descriptionExpanded) ? (
+              <Button
+                ref={descriptionToggleRef}
+                type="button"
+                emphasis="secondary"
+                size="lg"
+                aria-controls="public-garden-description"
+                aria-expanded={descriptionExpanded}
+                onClick={() => {
+                  if (descriptionExpanded) showLess();
+                  else setExpandedGardenId(id ?? null);
+                }}
+              >
+                {descriptionExpanded
+                  ? formatMessage({
+                      id: "public.gardenDetail.description.showLess",
+                      defaultMessage: "Show less",
+                    })
+                  : formatMessage({
+                      id: "public.gardenDetail.description.seeMore",
+                      defaultMessage: "See more",
+                    })}
+              </Button>
+            ) : null}
+          </>
         }
         publicationMark={
           unlisted
@@ -165,6 +239,24 @@ export default function GardenDetail() {
 
       <div className="bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-24">
         <div className="mx-auto flex max-w-7xl flex-col gap-20">
+          {identity?.description && descriptionExpanded ? (
+            <div
+              id="public-garden-description"
+              ref={descriptionRef}
+              tabIndex={-1}
+              className="max-w-3xl scroll-mt-24 outline-none"
+            >
+              <p className="whitespace-pre-line break-words text-base leading-relaxed text-text-sub-600 sm:text-lg">
+                {identity.description}
+              </p>
+              <Button type="button" emphasis="tertiary" className="mt-4" onClick={showLess}>
+                {formatMessage({
+                  id: "public.gardenDetail.description.showLess",
+                  defaultMessage: "Show less",
+                })}
+              </Button>
+            </div>
+          ) : null}
           <dl className="grid grid-cols-2 gap-x-8 gap-y-6 border-y border-stroke-soft-200 py-8 sm:grid-cols-4">
             <StatCell
               label={formatMessage({

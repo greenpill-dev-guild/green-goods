@@ -1,9 +1,11 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
-import type { Work } from "@green-goods/shared/types/domain";
+import { type Action, Domain, type Work } from "@green-goods/shared/types/domain";
 import type { EASWorkListRow } from "@green-goods/shared/types/eas-responses";
+import pt from "@green-goods/shared/i18n/pt.json";
 import type { Meta, StoryObj } from "@storybook/react";
+import { IntlProvider } from "react-intl";
 import { expect, mocked, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -27,7 +29,7 @@ import { AdminNotificationPanel } from "./AdminNotificationPanel";
  */
 const WAITING_WORK: Work = {
   id: "work-rio-soil-1",
-  title: "Soil moisture readings",
+  title: "Harvest & Yield Record - 2026-07-08T12:34:00.000Z",
   actionUID: 1,
   gardenerAddress: STORYBOOK_STEWARD_ADDRESS,
   gardenAddress: STORYBOOK_PRIMARY_ADMIN_GARDEN.id,
@@ -45,6 +47,27 @@ const WAITING_WORK: Work = {
 const { status: _waitingStatus, ...waitingAttestation } = WAITING_WORK;
 const WAITING_WORK_READ: EASWorkListRow[] = [{ ...waitingAttestation, approval: null }];
 
+const canonicalAction: Action = {
+  id: `${DEFAULT_CHAIN_ID}-1`,
+  slug: "agro.harvest_yield",
+  title: "Harvest & Yield Record",
+  inputs: [],
+  description: "",
+  domain: Domain.AGRO,
+  capitals: [],
+  media: [],
+  createdAt: 0,
+  startTime: 0,
+  endTime: 0,
+};
+
+const panelSeeds: Parameters<typeof withSeededQueryClient>[0] = [
+  ...STORYBOOK_ADMIN_SHELL_SEEDS,
+  [queryKeys.actions.byUIDs(DEFAULT_CHAIN_ID, [1]), [canonicalAction]],
+  [queryKeys.works.merged(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID), [WAITING_WORK]],
+  [queryKeys.works.online(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID), WAITING_WORK_READ],
+];
+
 const meta = {
   title: "Admin/Shell/AdminNotificationPanel",
   component: AdminNotificationPanel,
@@ -59,14 +82,7 @@ const meta = {
   },
   decorators: [
     withAdminIdentity,
-    withSeededQueryClient([
-      ...STORYBOOK_ADMIN_SHELL_SEEDS,
-      [queryKeys.works.merged(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID), [WAITING_WORK]],
-      [
-        queryKeys.works.online(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID),
-        WAITING_WORK_READ,
-      ],
-    ]),
+    withSeededQueryClient(panelSeeds),
     withRouter([`/hub?gardenId=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}`]),
     withAdminPrimitiveFrame,
   ],
@@ -90,7 +106,39 @@ export const SelectedGardenUpdates: Story = {
   },
 };
 
+export const SelectedGardenUpdatesPortuguese: Story = {
+  render: (args) => (
+    <IntlProvider locale="pt" messages={pt}>
+      <AdminNotificationPanel {...args} />
+    </IntlProvider>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Atividade recente")).toBeVisible();
+    await expect(await canvas.findByText("Registro de colheita")).toBeVisible();
+    await expect(canvas.queryByText("Harvest & Yield Record")).not.toBeInTheDocument();
+  },
+};
+
 type GardensQuery = ReturnType<typeof useGardens>;
+
+export const GeneratedActionTitlePortuguese: Story = {
+  decorators: [
+    withSeededQueryClient([
+      ...panelSeeds,
+      [
+        queryKeys.works.merged(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID),
+        [{ ...WAITING_WORK, title: "Action 1" }],
+      ],
+      [
+        queryKeys.works.online(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID),
+        [{ ...WAITING_WORK_READ[0], title: "Action 1" }],
+      ],
+    ]),
+  ],
+  render: SelectedGardenUpdatesPortuguese.render,
+  play: SelectedGardenUpdatesPortuguese.play,
+};
 
 /** While the garden list is still loading, the panel holds a loading status, not an empty one. */
 export const Loading: Story = {
@@ -108,5 +156,29 @@ export const Loading: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("status", { name: "Loading..." })).toBeVisible();
     await expect(canvas.queryByText("No notifications")).not.toBeInTheDocument();
+  },
+};
+
+export const CustomActionPortuguese: Story = {
+  decorators: [
+    withSeededQueryClient([
+      ...panelSeeds,
+      [
+        queryKeys.actions.byUIDs(DEFAULT_CHAIN_ID, [1]),
+        [
+          {
+            ...canonicalAction,
+            slug: "custom.harvest",
+            translations: { pt: { status: "reviewed", data: { title: "Colheita da comunidade" } } },
+          },
+        ],
+      ],
+    ]),
+  ],
+  render: SelectedGardenUpdatesPortuguese.render,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Colheita da comunidade")).toBeVisible();
+    await expect(canvas.queryByText("Registro de colheita")).not.toBeInTheDocument();
   },
 };
