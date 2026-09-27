@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockTransactionSender } from "@green-goods/shared/testing";
 import type { ApprovalJobPayload, WorkJobPayload } from "../../types/job-queue";
 import { forgetWorkBroadcast } from "../../modules/work/work-confirmation";
+import { addWebLocks } from "../test-utils/web-locks";
 
 // Ensure fake-indexeddb is loaded before job-queue module
 import "fake-indexeddb/auto";
@@ -20,6 +21,13 @@ vi.mock("@wagmi/core", () => ({
   getPublicClient: vi.fn(() => ({
     readContract: vi.fn(),
   })),
+  // A lost send reopens only when the chain allows it: its clock, which the
+  // indexers have reached, and an account with nothing waiting.
+  getBlock: vi.fn(async () => ({
+    number: 100n,
+    timestamp: BigInt(Math.floor(Date.now() / 1000)),
+  })),
+  getTransactionCount: vi.fn(async () => 0),
 }));
 
 vi.mock("../../modules/app/posthog", () => ({
@@ -30,6 +38,7 @@ vi.mock("../../modules/app/posthog", () => ({
 // No stranded send in these tests ever landed on-chain.
 vi.mock("../../modules/data/eas-sent-attestations", () => ({
   getWorkSubmissionsSince: vi.fn(async () => []),
+  getEasIndexedBlock: vi.fn(async () => 100n),
 }));
 vi.mock("../../modules/work/simulate", () => ({
   simulateWorkSubmission: vi.fn(async () => undefined),
@@ -363,6 +372,13 @@ describe("modules/job-queue", () => {
   });
 
   describe("a send whose answer was lost", () => {
+    // A lost send reopens only where Web Locks can say no tab still holds it.
+    let removeLocks: () => void;
+    beforeEach(() => {
+      removeLocks = addWebLocks();
+    });
+    afterEach(() => removeLocks());
+
     const strandedWork = async () => {
       const jobId = await jobQueue.addJob(
         "work",

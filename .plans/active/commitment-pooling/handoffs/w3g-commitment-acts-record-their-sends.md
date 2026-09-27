@@ -421,6 +421,10 @@ The creations' `submittedTxHash` path; the claim-context findings N42 and N43; d
 transaction that is never executed, which waits as work and decisions do; and a work or decision
 transaction that is dropped or cancelled while no tab watches, which waits for good, as on develop.
 
+Work and decisions take up these rules in #936 (PRD-1002): a Safe's id settles by the work's or
+decision's landing on EAS, a transaction that can never be included reopens, an absence counts only
+once EAS has processed past the grace window, and every send holds its lock behind the same guards.
+
 ## Unblock evidence
 
 The lane closes when all of these hold. As of 2026-09-27:

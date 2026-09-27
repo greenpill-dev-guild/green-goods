@@ -21,6 +21,7 @@ import {
   queuedWorkJob,
 } from "../../test-utils/queued-jobs";
 import { createMockTransactionSender } from "../../test-utils/transaction-fakes";
+import { sendLockName, stubWebLocks } from "../../test-utils/web-locks";
 
 const USER = QUEUED_JOB_USER;
 const GARDEN = QUEUED_JOB_GARDEN;
@@ -587,5 +588,73 @@ describe("Upload all", () => {
         [EAS_CONFIG.WORK_APPROVAL.uid, 1],
       ],
     ]);
+  });
+
+  it("holds every item's send while the call is out, and leaves one another tab holds to it", async () => {
+    const [first, second, third] = [work(), work(), decision()];
+    const { ports, store } = harness([first, second, third]);
+    // Another tab is mid-send on the second, perhaps frozen with its prompt open.
+    const held = new Set([sendLockName(second.id)]);
+    stubWebLocks(held);
+    const heldDuringSend: string[] = [];
+    const calls: Array<Array<[string, number]>> = [];
+    const sender = createMockTransactionSender();
+    vi.mocked(sender.sendContractCall).mockImplementation(async (call, options) => {
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: OPERATION });
+      heldDuringSend.push(...held);
+      calls.push(
+        (call.args[0] as Array<{ schema: string; data: unknown[] }>).map((group) => [
+          group.schema,
+          group.data.length,
+        ])
+      );
+      await options?.onBroadcast?.(TX);
+      return { hash: TX, sponsored: true };
+    });
+
+    try {
+      await expect(upload(ports, sender)).resolves.toEqual({
+        status: "uploaded",
+        sent: 2,
+        flagged: 0,
+      });
+      expect(heldDuringSend).toEqual(
+        expect.arrayContaining([sendLockName(first.id), sendLockName(third.id)])
+      );
+      // The call carried the first work and the decision; the other tab keeps the second.
+      expect(calls).toEqual([
+        [
+          [EAS_CONFIG.WORK.uid, 1],
+          [EAS_CONFIG.WORK_APPROVAL.uid, 1],
+        ],
+      ]);
+      expect(sendOf(store, second.id)?.broadcastPending).toBeUndefined();
+      expect(ports.processJob).not.toHaveBeenCalledWith(second.id, expect.anything());
+      expect(held).toEqual(new Set([sendLockName(second.id)]));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("keeps the nonce the call's transaction used on every item once its receipt does not come", async () => {
+    const jobs = [work(), decision()];
+    // Read off the transaction itself while the network holds it, once for the call.
+    const readTransactionNonce = vi.fn(async () => 7);
+    const { ports, store } = harness(jobs, { readTransactionNonce });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(TX);
+      throw new Error("receipt timeout");
+    });
+
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "send-unconfirmed" });
+    for (const { id } of jobs)
+      expect(sendOf(store, id)).toMatchObject({
+        transactionHash: TX,
+        transactionNonce: { hash: TX, nonce: 7 },
+      });
+    expect(readTransactionNonce).toHaveBeenCalledOnce();
+    expect(readTransactionNonce).toHaveBeenCalledWith(TX, 42161);
   });
 });

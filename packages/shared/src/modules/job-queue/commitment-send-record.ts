@@ -6,29 +6,18 @@
  * (`send-with-checkpoint`): an intent before the call can reach the network,
  * then its reference and transaction. A later run settles what is on record
  * instead of sending it again, and Discard reads the same record, so an act
- * whose transaction may still land is neither dropped nor repeated.
- *
- * The record says a send may be out; the send's lock says whether a tab still
- * holds it. A tab the OS froze keeps its locks and a closed one gives them up,
- * so a lost send is offered again only once no tab's wallet prompt can still
- * send it. A browser without Web Locks cannot say, so there it is never offered
- * again: it completes when the chain shows it landed. Nor is it offered again
- * while its account has a transaction the network holds but has not mined,
- * which may be the send itself if its answer was lost after the network took it,
- * nor while its bundler still holds a passkey send's UserOperation.
- *
- * A transaction on record is offered again only once it can never be included:
- * its account signs its own transactions, and another took its nonce. A Safe's
- * id never shows that, so such a send completes only when the act lands.
+ * whose transaction may still land is neither dropped nor repeated. Each send
+ * holds its lock, and a lost one is offered again only as `send-guards` allows:
+ * once no tab, account or bundler may still send it, and, for a transaction on
+ * record, once another took its nonce. A Safe's id never shows that, so such
+ * an act completes only when it lands.
  *
  * @module modules/job-queue/commitment-send-record
  */
 
 import type { Hex } from "viem";
-import type { Address } from "../../types/domain";
 import type { Job, SendCheckpoint } from "../../types/job-queue";
-import { logger } from "../app/logger";
-import type { BroadcastReference, ContractCall, TransactionSender } from "../transactions/types";
+import type { ContractCall, TransactionSender } from "../transactions/types";
 import { sendWithCheckpoint, settleRecordedSend } from "../work/send-with-checkpoint";
 import { settleStrandedCommitmentIntent, StrandedSendReopened } from "../work/stranded-intent";
 import {
@@ -44,138 +33,12 @@ import type {
   CommitmentQueueExecutorDeps,
 } from "./job-executors";
 import { sendCheckpointOf, writeSendCheckpoint } from "./queue-policy";
-
-/** Held from just before an act's send until its answer, per job and across tabs. */
-const SEND_LOCK_PREFIX = "green-goods:queue-send:";
-
-/** The origin's Web Locks, where the browser provides them. */
-function sendLocks(): LockManager | undefined {
-  return typeof navigator === "undefined" ? undefined : navigator.locks;
-}
-
-/**
- * Run an act's send while holding its lock. A lock another tab holds means
- * that tab is mid-send, perhaps frozen with its prompt open, so the act is
- * left to it: the queue skips a job whose ownership changed.
- */
-async function holdingSend<T>(jobId: string, send: () => Promise<T>): Promise<T> {
-  const locks = sendLocks();
-  if (!locks) return send();
-  return locks.request(SEND_LOCK_PREFIX + jobId, { ifAvailable: true }, async (lock) => {
-    if (!lock) throw new Error("submission-ownership-changed");
-    return send();
-  });
-}
-
-/**
- * Whether a tab still holds this act's send: its wallet prompt may yet send it.
- * When the locks cannot say, because the browser keeps none or the read
- * failed, the act keeps waiting rather than risk a second send.
- */
-async function stillSending(jobId: string): Promise<boolean> {
-  const locks = sendLocks();
-  if (!locks) return true;
-  try {
-    const { held = [] } = await locks.query();
-    return held.some((lock) => lock.name === SEND_LOCK_PREFIX + jobId);
-  } catch (error) {
-    logger.warn("[JobQueue] Could not read which tabs hold a commitment act's send", {
-      jobId,
-      error,
-    });
-    return true;
-  }
-}
-
-/**
- * Whether the account has a transaction the network holds but has not mined.
- * When the chain cannot say, the act keeps waiting rather than risk a second send.
- */
-async function accountStillSending(
-  account: Address,
-  chainReads: CommitmentChainReads
-): Promise<boolean> {
-  if (!chainReads.hasPendingTransaction) return true;
-  try {
-    return await chainReads.hasPendingTransaction(account);
-  } catch (error) {
-    logger.warn("[JobQueue] Could not read whether a commitment act's account has a send waiting", {
-      error,
-    });
-    return true;
-  }
-}
-
-/**
- * Whether the bundler still holds this act's UserOperation, so it may yet land.
- * When the bundler cannot say, the act keeps waiting rather than risk a second send.
- */
-async function operationStillQueued(
-  reference: BroadcastReference | undefined,
-  chainReads: CommitmentChainReads
-): Promise<boolean> {
-  if (reference?.kind !== "user-operation") return false;
-  if (!chainReads.userOperationMayLand) return true;
-  try {
-    return await chainReads.userOperationMayLand(reference.hash);
-  } catch (error) {
-    logger.warn("[JobQueue] Could not read whether a commitment act's UserOperation may land", {
-      error,
-    });
-    return true;
-  }
-}
-
-/**
- * Keep the nonce the act's transaction used, read off the transaction while the
- * network holds it. A transaction the network never showed keeps no nonce, and
- * then nothing can prove another took it: the act waits rather than risk a
- * second send.
- */
-export async function observeTransactionNonce(
-  job: Job,
-  chainReads: CommitmentChainReads,
-  store: Pick<CommitmentExecutorStore, "updateJob">
-): Promise<void> {
-  const checkpoint = sendCheckpointOf(job);
-  const hash = checkpoint?.transactionHash;
-  if (!checkpoint || !hash || checkpoint.transactionNonce?.hash === hash) return;
-  if (!chainReads.readTransactionNonce) return;
-  try {
-    const nonce = await chainReads.readTransactionNonce(hash);
-    if (nonce === null) return;
-    writeSendCheckpoint(job, { ...checkpoint, transactionNonce: { hash, nonce } });
-    await store.updateJob(job);
-  } catch (error) {
-    logger.warn("[JobQueue] Could not read the nonce a commitment act's transaction used", {
-      error,
-    });
-  }
-}
-
-/**
- * Whether the act's transaction can never be included because another took its
- * nonce. Only the nonce read off this very transaction can show it; one read
- * for another hash, or a count read before the prompt, cannot. When the chain
- * cannot say, the act keeps waiting rather than risk a second send.
- */
-async function transactionSuperseded(
-  checkpoint: SendCheckpoint | undefined,
-  account: Address,
-  chainReads: CommitmentChainReads
-): Promise<boolean> {
-  const hash = checkpoint?.transactionHash;
-  const used = checkpoint?.transactionNonce;
-  if (!hash || used?.hash !== hash || !chainReads.transactionSuperseded) return false;
-  try {
-    return await chainReads.transactionSuperseded(hash, account, used.nonce);
-  } catch (error) {
-    logger.warn("[JobQueue] Could not read whether a commitment act's transaction lost its nonce", {
-      error,
-    });
-    return false;
-  }
-}
+import {
+  holdingSend,
+  observeTransactionNonce,
+  recordedTransactionSuperseded,
+  sendMayStillLand,
+} from "./send-guards";
 
 /** A send on record waits for its confirmation; a reopened one waits for the person. */
 export function waitingForRecordedSend(error: unknown): CommitmentQueueExecution | undefined {
@@ -279,16 +142,8 @@ export async function settleActSend(
             transactionMadeClaim: chainReads.transactionMadeClaim,
             resolveWorkIdentity: deps.resolveWorkIdentity,
           }),
-        stillSending: async () =>
-          (await stillSending(jobId)) ||
-          (await accountStillSending(stranded.userAddress as Address, chainReads)) ||
-          (await operationStillQueued(sendCheckpointOf(stranded)?.broadcast, chainReads)),
-        transactionSuperseded: () =>
-          transactionSuperseded(
-            sendCheckpointOf(stranded),
-            stranded.userAddress as Address,
-            chainReads
-          ),
+        stillSending: () => sendMayStillLand(stranded, chainReads),
+        transactionSuperseded: () => recordedTransactionSuperseded(stranded, chainReads),
         persist: (updated) => store.updateJob(updated),
       });
     });
