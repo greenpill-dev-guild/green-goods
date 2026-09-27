@@ -69,10 +69,42 @@ Adjust the test paths to the files that exist.
 
 N43, checking the other protocol contexts against chain roles; the send record (W3-G).
 
+## Implementation notes (2026-09-27)
+
+- `useCommitmentViewerRoles` reads the host's own membership with a second `useGardenMembership`
+  call on `pool.garden`. The route and the host now share one rule (`membershipIn`): a completed
+  chain read decides, a join that landed after it overrides its "no", and the indexed roster stands
+  in only while the chain has not answered.
+- The host joins `member` on that read and never joins `stewarded`. Other gardens are still listed
+  from the roster and the join overlay.
+- `claimGardensKnown` also waits for the host's read, so a pending read never shows Find a Garden.
+  A failed host read counts toward `membershipUnavailable`, and Retry reads it again.
+- `ClaimContextSheet` needed no change: it lists whatever the hook hands it, and a lone personal
+  choice is preselected. Its comment and the controller's now say which claim refuses the host.
+- No client test was added for the queued context. The client passes the chosen context through
+  unchanged, which the existing delegation test covers, and nothing in the client decides the host.
+
+## RED and GREEN evidence
+
+RED at `524e3aefd` with the new tests, in `packages/shared`,
+`bun run test -- src/__tests__/hooks/commitment-pooling/useCommitmentViewerRoles.test.tsx src/__tests__/hooks/client-ui/useGardenCommitmentController.test.tsx`:
+five failed, each as the gap predicts. A host-only member on the protocol pool got no act, the host
+was missing from `member` in three cases, and Retry read only the route. GREEN at `54fcf3e0b`: both
+suites pass, with the controller's default fixture now listing the host it stewards for a personal
+claim.
+
 ## Unblock evidence
 
-RED and GREEN recorded; PR merged; sub-lane `completed`; Linear child Done.
+RED and GREEN recorded; PR merged; sub-lane `completed`; Linear child Done. As of 2026-09-27, RED
+and GREEN are recorded above and the PR is not yet merged.
 
 ## Validation Receipt
 
-Pending.
+- Tested implementation commit SHA: `54fcf3e0b` (on `fix/host-garden-personal-claims`)
+- Run at (UTC): `2026-09-27T07:12:52Z` to `2026-09-27T07:17:30Z`
+- Exact command(s): `bun run --cwd packages/shared test -- src/__tests__/hooks/commitment-pooling src/__tests__/hooks/client-ui`, `bun run --cwd packages/client test -- src/__tests__/views/GardenCommitment.test.tsx`, `bun run --cwd packages/shared typecheck -- --scope full`, `bun run --cwd packages/client typecheck`, `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings` and `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`
+- Result: shared hooks 108 passed in 12 files; the client commitment view 30 passed; shared and client typechecks exit 0; oxlint exit 0; source structure passed against `origin/develop`. The local pre-push gate was skipped at the owner's direction; PR CI runs the full suites.
+- Validated paths: the five paths `54fcf3e0b` changes against `524e3aefd`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 54fcf3e0b -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
+- Rendered proof: none yet. The change is in the roles hook's lists, and the sheet renders them unchanged. Mock-auth localhost or Storybook proof of a host-only member stays pending.
