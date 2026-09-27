@@ -120,8 +120,11 @@ reaching a rail.
 ## Unblock evidence
 
 The lane closes when RED and GREEN are recorded, Afo approves the pairs, the PR merges, the sub-lane
-is `completed`, and the Linear child is Done. As of 2026-09-27, RED and GREEN are recorded above, the
-Storybook pairs are with Afo, and the PR is open.
+is `completed`, and the Linear child is Done. As of 2026-09-27 all of these hold: Afo approved the
+pairs, #927 merged as `127ae1376`, the sub-lane is `completed`, and PRD-992 is Done. The focused
+field was measured at 1280 from static Storybook builds in headless Chromium: before the change the
+filled field's container grew from 41px to 42px on focus, and on develop it stays at 40px, so nothing
+below it moves.
 
 ## Validation Receipt
 
@@ -132,4 +135,4 @@ Storybook pairs are with Afo, and the PR is open.
 - Validated paths: the non-plan paths `5070ad612` changes against `c17a03b46`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
 - Evidence-only diff command and result (if applicable): `git diff --exit-code 5070ad612 -- <the validated paths>` → exit 0 before the story commit, which changes only stories, and this handoff commit
-- Rendered proof: Storybook, headless Chromium, built from this branch (after) and from develop at `956a85121`, the same tree as `7fdc87f78`, whose admin is unchanged since (before), at 375 and 1280 in light and dark: `admin-pool-seedstepproof--ordinary-rule`, `admin-pool-seedrewardsection--no-reward` and `--external-payout`, `admin-pool-seedstephowmuch--kept-by-proof` and `--garden-work`, `admin-shell-actionflowstepper--completed` and the new `--run-done`, `admin-primitives-admintextfield--state-catalog`, `admin-pool-poolcommitmentscard--open`, `admin-pool-seedtraylist--three-rows-one-not-sent`, `admin-pool-setupflowfooter--incomplete`, and the new `admin-pool-seedflowfooter--pool-not-open`. Sent to Afo as contact sheets. A focused field's measured height stays pending for a rendered story with focus.
+- Rendered proof: Storybook, headless Chromium, built from this branch (after) and from develop at `956a85121`, the same tree as `7fdc87f78`, whose admin is unchanged since (before), at 375 and 1280 in light and dark: `admin-pool-seedstepproof--ordinary-rule`, `admin-pool-seedrewardsection--no-reward` and `--external-payout`, `admin-pool-seedstephowmuch--kept-by-proof` and `--garden-work`, `admin-shell-actionflowstepper--completed` and the new `--run-done`, `admin-primitives-admintextfield--state-catalog`, `admin-pool-poolcommitmentscard--open`, `admin-pool-seedtraylist--three-rows-one-not-sent`, `admin-pool-setupflowfooter--incomplete`, and the new `admin-pool-seedflowfooter--pool-not-open`. Sent to Afo as contact sheets. Focus measurement, 2026-09-27 at 10:45Z: headless Chromium (Playwright) at 1280 × 900 with outside network refused, on `admin-primitives-admintextfield--filled`, reading the field container's height before and after focusing its input. In a static build of develop at `c17a03b46`, before this lane, the container grew from 41px to 42px; in a static build of `8f9d4759f`, whose `AdminTextField.tsx` matches `127ae1376`, it stays at 40px.

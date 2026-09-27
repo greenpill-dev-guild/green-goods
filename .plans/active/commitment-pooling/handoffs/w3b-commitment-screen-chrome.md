@@ -115,8 +115,14 @@ suites pass.
 ## Unblock evidence
 
 The lane closes when RED and GREEN are recorded, Afo approves the pairs, the PR merges, the sub-lane
-is `completed`, and the Linear child is Done. As of 2026-09-27, RED and GREEN are recorded above, the
-Storybook pairs are with Afo, and the PR is open.
+is `completed`, and the Linear child is Done. As of 2026-09-27, #926 merged as `48aa97fd5`, and
+PRD-991 is Done, since its Done when asks for approved pairs only for the row edge. Afo approved the
+pairs that were captured: the row and the cycle rail. The rendered proof above also asks for the
+commitment screen, the readiness notice as member and as steward, and the fixed bars on a real
+scroll. None of those was captured: they have no story, and the Vite dev server that mock auth needs
+cannot serve through this lane's linked dependencies. Their observation moved to QA Pass 2
+(PRD-730), which walks these screens with real accounts. With that move recorded, the sub-lane is
+`completed`.
 
 ## Validation Receipt
 
@@ -127,4 +133,4 @@ Storybook pairs are with Afo, and the PR is open.
 - Validated paths: the 18 non-plan paths `401547ade` changes against `7fdc87f78`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
 - Evidence-only diff command and result (if applicable): `git diff --exit-code 401547ade -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
-- Rendered proof: Storybook, headless Chromium, built from `401547ade` (after) and from develop at `956a85121`, the same tree as `7fdc87f78` (before), at 375 and 1280 in light and dark: the row with its marker (`client-commitments-commitmentrow--provider-needs-you`, `--send-failed`, and the new `--request`), and the cycle rail with one cycle and with two (`client-commitments-cyclerail--unnamed-cycle`, `--season-and-campaign`, and the new `--one-season`). Sent to Afo as contact sheets. The readiness notice and the fixed chrome on a real scroll have no story; mock-auth localhost proof of those stays pending.
+- Rendered proof: Storybook, headless Chromium, built from `401547ade` (after) and from develop at `956a85121`, the same tree as `7fdc87f78` (before), at 375 and 1280 in light and dark: the row with its marker (`client-commitments-commitmentrow--provider-needs-you`, `--send-failed`, and the new `--request`), and the cycle rail with one cycle and with two (`client-commitments-cyclerail--unnamed-cycle`, `--season-and-campaign`, and the new `--one-season`). Sent to Afo as contact sheets. The commitment screen, the readiness notice and the fixed chrome on a real scroll were not captured: they have no story, and mock-auth localhost could not run in this worktree. Their observation moved to QA Pass 2 (PRD-730) on 2026-09-27.

@@ -116,8 +116,9 @@ Clearing site data, drafts, queued work or the reading cache; the membership and
 ## Step 4: the wallet sign-out
 
 Not taken. The solo reproduction of N35's sign-out (Rabby extension or Rabby Mobile over
-WalletConnect) has not been run; it rides the solo Stage A gate, and its result goes to this lane's
-Linear child. The restore path is unchanged.
+WalletConnect) has not been run; it rides the solo Stage A gate. On 2026-09-27 the reproduction, and
+the restore-path change if it confirms, moved to PRD-1001, so its result goes there rather than to
+this lane's Linear child, which is Done. The restore path is unchanged.
 
 ## RED and GREEN evidence
 
@@ -129,7 +130,13 @@ suite passes.
 ## Unblock evidence
 
 The lane closes when RED and GREEN are recorded, the PR merges, the sub-lane is `completed`, the
-Linear child is Done, and the reproduction's result is written under step 4 either way.
+Linear child is Done, and the reproduction's result is written under step 4 either way. As of
+2026-09-27, #929 merged as `544ba639d`, and PRD-994 is Done, since its Done when holds. The
+reproduction has not run, so step 4 has no result to record; it records instead that the
+reproduction, and any restore-path change, moved to PRD-1001. The mock-auth localhost capture moved
+to QA Pass 2 (PRD-730), since this lane's linked-dependency worktree cannot run the Vite dev server
+it needs. The reading cache's stored copies of the last account's reads are PRD-1000. With those
+moves recorded, the sub-lane is `completed`.
 
 ## Validation Receipt
 
@@ -140,4 +147,4 @@ Linear child is Done, and the reproduction's result is written under step 4 eith
 - Validated paths: the non-plan paths `a790fc47a` changes against `c17a03b46`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages scripts` → empty
 - Evidence-only diff command and result (if applicable): the develop merge brings only other lanes' paths, and this handoff commit changes only plan files
-- Rendered proof: pending, mock-auth localhost: filter Home as one mock role, switch to another, and capture Home opening with defaults.
+- Rendered proof: not taken in this lane. On 2026-09-27 it moved to QA Pass 2 (PRD-730): filter Home as one account, switch to another, and see Home open with defaults.

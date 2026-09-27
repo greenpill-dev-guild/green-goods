@@ -635,7 +635,7 @@
     "w3a_members_act": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "passed",
+      "status": "in_progress",
       "branch": "fix/commitment-take-up-membership",
       "depends_on": [],
       "handoff": "handoffs/w3a-members-act-everyone-reads.md",
@@ -649,8 +649,8 @@
     "w3b_commitment_screen_chrome": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "completed",
+      "branch": "fix/commitment-screen-chrome",
       "depends_on": ["w3h_host_claim_context"],
       "handoff": "handoffs/w3b-commitment-screen-chrome.md",
       "linear": {
@@ -658,14 +658,13 @@
         "issue": "PRD-991",
         "parentIssue": "PRD-650"
       },
-      "linear_issues": ["PRD-991", "PRD-650"],
-      "blocked_reason": "Waits for W3-H (w3h_host_claim_context) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 rows 47 and 49)"
+      "linear_issues": ["PRD-991", "PRD-650"]
     },
     "w3c_seed_wizard_questions": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "completed",
+      "branch": "fix/seed-wizard-questions",
       "depends_on": ["w3b_commitment_screen_chrome"],
       "handoff": "handoffs/w3c-seed-wizard-questions.md",
       "linear": {
@@ -673,13 +672,12 @@
         "issue": "PRD-992",
         "parentIssue": "PRD-650"
       },
-      "linear_issues": ["PRD-992", "PRD-650"],
-      "blocked_reason": "Waits for W3-B (w3b_commitment_screen_chrome) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+      "linear_issues": ["PRD-992", "PRD-650"]
     },
     "w3d_unlisted_gardens_reachable": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "fix/unlisted-gardens-reachable",
       "depends_on": ["w3c_seed_wizard_questions"],
       "handoff": "handoffs/w3d-unlisted-gardens-reachable.md",
@@ -693,7 +691,7 @@
     "w3e_account_sessions": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "fix/account-switch-state-reset",
       "depends_on": ["w3d_unlisted_gardens_reachable"],
       "handoff": "handoffs/w3e-account-sessions.md",
@@ -707,7 +705,7 @@
     "w3f_inspector_story_and_names": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "fix/inspector-story-and-names",
       "depends_on": ["w3e_account_sessions"],
       "handoff": "handoffs/w3f-inspector-story-and-names.md",
@@ -735,8 +733,8 @@
     "w3h_host_claim_context": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "fix/host-garden-personal-claims",
       "depends_on": ["w3g_commitment_send_record"],
       "handoff": "handoffs/w3h-host-garden-personal-claims.md",
       "linear": {
@@ -744,8 +742,7 @@
         "issue": "PRD-997",
         "parentIssue": "PRD-650"
       },
-      "linear_issues": ["PRD-997", "PRD-650"],
-      "blocked_reason": "Waits for W3-G (w3g_commitment_send_record) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 rows 47 and 49)"
+      "linear_issues": ["PRD-997", "PRD-650"]
     }
   },
   "follow_on": {
@@ -1578,6 +1575,102 @@
       "status": "in_progress",
       "branch": "fix/commitment-send-record",
       "note": "Codex's first review of #923: six findings fixed in 6781a51b2 (indexer coverage before an absence, paging, full claim identity, chain-clock floor, Safe ids settled by landing, per-job send lock); receipt at 6781a51b2; authenticated walk PWA-126 pending"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3b_commitment_screen_chrome",
+      "status": "completed",
+      "branch": "fix/commitment-screen-chrome",
+      "note": "Merged in #926 as 48aa97fd5 after Afo approved the Storybook pairs; Linear PRD-991 Done; mock-auth capture of the notice and fixed bars pending"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3c_seed_wizard_questions",
+      "status": "completed",
+      "branch": "fix/seed-wizard-questions",
+      "note": "Merged in #927 as 127ae1376 after Afo approved the Storybook pairs; focused field measured at 1280 (41 to 42px before, 40 to 40px after); Linear PRD-992 Done"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3d_unlisted_gardens_reachable",
+      "status": "completed",
+      "branch": "fix/unlisted-gardens-reachable",
+      "note": "Merged in #928 as 303d114fd; both rehearsal gardens open by their own links on staging (clean-room headless Chromium), unlisted line and noindex present, archive lists neither; Linear PRD-993 Done"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3e_account_sessions",
+      "status": "completed",
+      "branch": "fix/account-switch-state-reset",
+      "note": "Merged in #929 as 544ba639d; step 4 not taken (solo reproduction not run); mock-auth capture pending; reading-cache copies tracked in PRD-1000; Linear PRD-994 Done"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3f_inspector_story_and_names",
+      "status": "completed",
+      "branch": "fix/inspector-story-and-names",
+      "note": "Merged in #930 as df63a1580; Detail story seeds its cycle and runs in the story gate; composite stories moved to W4-3; Linear PRD-995 Done"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "passed",
+      "branch": "fix/commitment-send-record",
+      "note": "Merged in #923 as 7fdc87f78; late review comments fixed in #931 (merged as 2aca5c59a); PWA-126 walk on the recorded call pending; Linear PRD-996 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3h_host_claim_context",
+      "status": "passed",
+      "branch": "fix/host-garden-personal-claims",
+      "note": "Merged in #925 as c17a03b46; the claim landing on chain rides the protocol-pool walk; Linear PRD-997 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3a_members_act",
+      "status": "in_progress",
+      "branch": "fix/commitment-take-up-membership",
+      "note": "Back to in_progress: the harness counts passed as done, and the authenticated wallet walk (PWA-123 to PWA-125) is still pending; Linear PRD-990 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3b_commitment_screen_chrome",
+      "status": "completed",
+      "branch": "fix/commitment-screen-chrome",
+      "note": "Afo's approval covered the row and cycle-rail pairs; the commitment screen, the readiness notice as member and steward, and the fixed bars on a real scroll were never captured and moved to QA Pass 2 (PRD-730); PRD-991 Done, since its Done when asks for pairs only for the row edge"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3e_account_sessions",
+      "status": "completed",
+      "branch": "fix/account-switch-state-reset",
+      "note": "The sign-out reproduction, and any restore-path change, moved to PRD-1001; the mock-auth Home capture moved to QA Pass 2 (PRD-730); PRD-994 Done, since its Done when holds"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "in_progress",
+      "branch": "fix/commitment-send-record",
+      "note": "Back to in_progress: the harness counts passed as done, and the PWA-126 walk on the recorded call is still pending; Linear PRD-996 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3h_host_claim_context",
+      "status": "in_progress",
+      "branch": "fix/host-garden-personal-claims",
+      "note": "Back to in_progress: the harness counts passed as done, and the claim landing on chain rides the protocol-pool walk; Linear PRD-997 In Progress"
     }
   ]
 }
