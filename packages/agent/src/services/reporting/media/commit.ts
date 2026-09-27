@@ -205,8 +205,15 @@ function commitInTransaction(
     .get({ draft: asset.draftId, id: asset.id }) as { n: number };
   // One reply after the last file of a batch, not one question per photo.
   if (pending.n === 0) {
+    // Without an extraction (model processing off or unavailable) the file was only kept.
     if (!result.transcript)
-      writer.say(result.sourceKind === "image" ? "media.photoAdded" : "media.fileRead");
+      writer.say(
+        result.sourceKind === "image"
+          ? "media.photoAdded"
+          : result.extraction
+            ? "media.fileRead"
+            : "media.fileKept"
+      );
     const account = activeAccount(core, asset.participantId, core.settings.chainId);
     promptNextStepFor(writer, next, catalog, account?.address ?? null);
   }

@@ -18,6 +18,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Los reportes están en pausa por mantenimiento. Tu mensaje está guardado y responderé cuando se reanuden. Soporte: {support}",
   "media.photoAdded": "Foto agregada a tu reporte.",
   "media.fileRead": "Leí tu archivo y agregué a tu reporte lo que pude.",
+  "media.fileKept": "Guardé tu archivo en privado. Te preguntaré los detalles.",
   "media.tooLarge":
     "Ese archivo pesa más de 10 MB, así que no puedo usarlo. Tu reporte está guardado.",
   "media.unsupported":

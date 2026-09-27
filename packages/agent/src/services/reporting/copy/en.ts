@@ -21,6 +21,7 @@ export const EN_REPORTING_COPY = {
     "Reporting is paused for maintenance. Your message is saved and I'll reply when it resumes. Support: {support}",
   "media.photoAdded": "Photo added to your report.",
   "media.fileRead": "I read your file and added what I could to your report.",
+  "media.fileKept": "I saved your file privately. I'll ask you for the details instead.",
   "media.tooLarge": "That file is larger than 10 MB, so I can't use it. Your report is saved.",
   "media.unsupported":
     "I can't use that kind of file. Your report is saved; send photos (JPEG, PNG or WebP), a PDF, a Word or Excel file, a CSV, or type the details.",

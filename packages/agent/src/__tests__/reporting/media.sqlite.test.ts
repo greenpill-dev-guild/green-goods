@@ -205,6 +205,19 @@ describe("spreadsheets", () => {
     return new Uint8Array(await book.xlsx.writeBuffer());
   }
 
+  it("says a file was only kept, not read, while model processing is off", async () => {
+    await plantingDraft();
+    const replies = await send(
+      "sheet-1",
+      await workbook(),
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    expect(replies).toContain("I saved your file privately. I'll ask you for the details instead.");
+    expect(replies).not.toContain("I read your file and added what I could to your report.");
+    expect(replies.at(-1)).toContain("Seedlings planted?");
+    expect(draft()?.content.details.seedlings).toBeUndefined();
+  });
+
   it("computes totals from visible literal cells, never from a cached formula or the model", async () => {
     await plantingDraft();
     const openai = scriptedOpenAI([

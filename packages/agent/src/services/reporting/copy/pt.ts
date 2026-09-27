@@ -18,6 +18,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Os relatos estão pausados para manutenção. Sua mensagem foi guardada e vou responder quando voltarem. Suporte: {support}",
   "media.photoAdded": "Foto adicionada ao seu relato.",
   "media.fileRead": "Li seu arquivo e adicionei ao seu relato o que consegui.",
+  "media.fileKept": "Salvei seu arquivo com privacidade. Vou perguntar os detalhes.",
   "media.tooLarge":
     "Esse arquivo tem mais de 10 MB, então não posso usá-lo. Seu relato está salvo.",
   "media.unsupported":
