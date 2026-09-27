@@ -127,8 +127,36 @@ async function operationStillQueued(
 }
 
 /**
+ * Keep the nonce the act's transaction used, read off the transaction while the
+ * network holds it. A transaction the network never showed keeps no nonce, and
+ * then nothing can prove another took it: the act waits rather than risk a
+ * second send.
+ */
+export async function observeTransactionNonce(
+  job: Job,
+  chainReads: CommitmentChainReads,
+  store: Pick<CommitmentExecutorStore, "updateJob">
+): Promise<void> {
+  const checkpoint = sendCheckpointOf(job);
+  const hash = checkpoint?.transactionHash;
+  if (!checkpoint || !hash || checkpoint.transactionNonce?.hash === hash) return;
+  if (!chainReads.readTransactionNonce) return;
+  try {
+    const nonce = await chainReads.readTransactionNonce(hash);
+    if (nonce === null) return;
+    writeSendCheckpoint(job, { ...checkpoint, transactionNonce: { hash, nonce } });
+    await store.updateJob(job);
+  } catch (error) {
+    logger.warn("[JobQueue] Could not read the nonce a commitment act's transaction used", {
+      error,
+    });
+  }
+}
+
+/**
  * Whether the act's transaction can never be included because another took its
- * nonce. Only a record that kept its intent's nonce can show it. When the chain
+ * nonce. Only the nonce read off this very transaction can show it; one read
+ * for another hash, or a count read before the prompt, cannot. When the chain
  * cannot say, the act keeps waiting rather than risk a second send.
  */
 async function transactionSuperseded(
@@ -137,10 +165,10 @@ async function transactionSuperseded(
   chainReads: CommitmentChainReads
 ): Promise<boolean> {
   const hash = checkpoint?.transactionHash;
-  const nonce = checkpoint?.intentNonce;
-  if (!hash || nonce === undefined || !chainReads.transactionSuperseded) return false;
+  const used = checkpoint?.transactionNonce;
+  if (!hash || used?.hash !== hash || !chainReads.transactionSuperseded) return false;
   try {
-    return await chainReads.transactionSuperseded(hash, account, nonce);
+    return await chainReads.transactionSuperseded(hash, account, used.nonce);
   } catch (error) {
     logger.warn("[JobQueue] Could not read whether a commitment act's transaction lost its nonce", {
       error,
@@ -178,8 +206,8 @@ export async function sendRecordedAct(
   call: ContractCall,
   sender: TransactionSender,
   store: CommitmentExecutorStore,
-  /** The chain's head and the account's next nonce just before the send, kept with its intent. */
-  intent?: Pick<SendCheckpoint, "intentBlock" | "intentChainTime" | "intentNonce">
+  /** The chain's head just before the send, kept with its intent. */
+  intent?: Pick<SendCheckpoint, "intentBlock" | "intentChainTime">
 ): Promise<Hex> {
   const result = await holdingSend(jobId, () =>
     sendWithCheckpoint({
@@ -239,8 +267,10 @@ export async function settleActSend(
 ): Promise<CommitmentQueueExecution> {
   const settleStranded =
     deps.settleStrandedIntent ??
-    ((stranded: Job, strandedChain: number, pendingHash: Hex) =>
-      settleStrandedCommitmentIntent(stranded, strandedChain, pendingHash, {
+    (async (stranded: Job, strandedChain: number, pendingHash: Hex) => {
+      // Each pass while the network holds the transaction may keep its nonce.
+      await observeTransactionNonce(stranded, chainReads, store);
+      return settleStrandedCommitmentIntent(stranded, strandedChain, pendingHash, {
         lookUp:
           deps.lookUpLanded ??
           createCommitmentLandedLookup({
@@ -260,7 +290,8 @@ export async function settleActSend(
             chainReads
           ),
         persist: (updated) => store.updateJob(updated),
-      }));
+      });
+    });
   try {
     const txHash = await settleRecordedSend({
       jobId,

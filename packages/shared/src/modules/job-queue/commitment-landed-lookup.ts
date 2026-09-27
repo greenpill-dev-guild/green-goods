@@ -236,12 +236,15 @@ async function findInLog(
 ): Promise<{ row?: CommitmentEventRecord; complete: boolean }> {
   // A row whose receipt could not be read leaves the read incomplete: it may be the one.
   let unverified = false;
+  // Each page starts after the oldest row read, not at a count: a row the
+  // indexer adds or rolls back between pages shifts a count, never a cursor.
+  let before: { timestamp: number; id: string } | undefined;
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const rows = await activity({
       chainId,
       commitmentId,
       limit: PAGE_SIZE,
-      offset: page * PAGE_SIZE,
+      ...(before && { before }),
     });
     for (const row of rows) {
       if (row.timestamp < sinceS) continue;
@@ -252,6 +255,7 @@ async function findInLog(
     const oldest = rows.at(-1);
     if (rows.length < PAGE_SIZE || !oldest || oldest.timestamp < sinceS)
       return { complete: !unverified };
+    before = { timestamp: oldest.timestamp, id: oldest.id };
   }
   return { complete: false };
 }

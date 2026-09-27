@@ -56,8 +56,11 @@ export type CommitmentChainReads = Pick<
    * after the network took it may be that transaction.
    */
   hasPendingTransaction?: (account: Address) => Promise<boolean>;
-  /** The nonce the account's next transaction would use, counting those the network holds. */
-  readNextNonce?: (account: Address) => Promise<number>;
+  /**
+   * The nonce this transaction used, while the network holds it; null once it
+   * does not. The account's next nonce before a prompt is only a floor.
+   */
+  readTransactionNonce?: (hash: Hex) => Promise<number | null>;
   /**
    * Whether this transaction can never be included because another took its
    * nonce: the account has no code, so the hash is a transaction it signed; the
@@ -285,8 +288,15 @@ export function createCommitmentChainReads({
       ]);
       return pending > mined;
     },
-    readNextNonce: (account) =>
-      getTransactionCount(wagmiConfig, { address: account, blockTag: "pending", chainId }),
+    readTransactionNonce: (hash) =>
+      getTransaction(wagmiConfig, { hash, chainId }).then(
+        (transaction) => transaction.nonce,
+        (error: unknown) => {
+          // Only the node's own "no such transaction" says it no longer holds it.
+          if (error instanceof Error && error.name === "TransactionNotFoundError") return null;
+          throw error;
+        }
+      ),
     transactionSuperseded: async (hash, account, nonce) => {
       const [code, mined, held] = await Promise.all([
         getBytecode(wagmiConfig, { address: account, chainId }),

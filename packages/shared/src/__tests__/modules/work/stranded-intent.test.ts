@@ -453,7 +453,11 @@ describe("settling a commitment act no receipt can", () => {
     // A transaction its account signed can never be included once that nonce
     // is spent: the wallet cancelled or replaced it while no tab was watching.
     const absent = vi.fn().mockResolvedValue({ status: "absent" });
-    const record = { broadcastPending: false, transactionHash: TX, intentNonce: 5 };
+    const record = {
+      broadcastPending: false,
+      transactionHash: TX,
+      transactionNonce: { hash: TX, nonce: 5 },
+    };
     const superseded = strandedTakeUp(pastGrace(), record);
     await expect(
       resolveStrandedCommitmentIntent(superseded, 42161, {
