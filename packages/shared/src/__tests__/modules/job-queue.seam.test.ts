@@ -95,6 +95,28 @@ describe("createJobQueue", () => {
     ).rejects.toThrow("offline_job_identity_conflict");
   });
 
+  it("joins a repeated act whose first send is already on record", async () => {
+    // The record is the queue's, not the act's: a second tap on the same
+    // take-up is the same job, not a conflicting one.
+    const claim = {
+      commitmentId: 1n,
+      kind: 1,
+      gardenContext: "0x2222222222222222222222222222222222222222",
+    } as JobKindMap["claim"];
+    const { deps, queue } = setup();
+    const first = await queue.addJob("claim", claim, USER);
+    const stored = await deps.store.getJob(first);
+    await deps.store.updateJob({
+      ...stored!,
+      payload: {
+        ...(stored!.payload as object),
+        sendCheckpoint: { broadcastPending: false, transactionHash: `0x${"44".repeat(32)}` },
+      },
+    });
+
+    await expect(queue.addJob("claim", { ...claim }, USER)).resolves.toBe(first);
+  });
+
   it("emits an empty sync result", async () => {
     const { deps, queue } = setup();
     await expect(queue.flush({ transactionSender: null, userAddress: USER })).resolves.toEqual({

@@ -5,7 +5,9 @@
  * its answer is lost (a wallet that never replied, a UserOperation no bundler
  * reports), no receipt can settle it and the job would wait forever. The
  * person's own attestations can settle it: landed work carries its client work
- * id in its metadata, and a landed decision names the work it decides.
+ * id in its metadata, and a landed decision names the work it decides. A
+ * commitment act is settled by a lookup its executor supplies, which reads the
+ * pool's event log and the module's own records.
  *
  * @module modules/work/stranded-intent
  */
@@ -34,6 +36,7 @@ const LOOKUP_INTERVAL_MS = 5 * 60_000;
 const CLOCK_DRIFT_MS = 24 * 60 * 60_000;
 
 type LookupResult = { status: "found"; transactionHash: Hex } | { status: "absent" | "unknown" };
+export type StrandedLookupResult = LookupResult;
 
 export type StrandedWorkLookup = (input: {
   clientWorkId: string;
@@ -241,6 +244,42 @@ export async function resolveStrandedDecisionIntent(
   });
 }
 
+/** Whether a commitment act's lost send reached the chain after `sinceMs`. */
+export type StrandedCommitmentLookup = (input: {
+  job: Job;
+  chainId: number;
+  sinceMs: number;
+}) => Promise<LookupResult>;
+
+type CommitmentPayloadWithRecord = { sendCheckpoint?: SendCheckpoint };
+
+export async function resolveStrandedCommitmentIntent(
+  job: Job,
+  chainId: number,
+  deps: Partial<Omit<StrandedIntentDependencies<StrandedCommitmentLookup, unknown>, "lookUp">> & {
+    lookUp: StrandedCommitmentLookup;
+  }
+): Promise<StrandedIntentResolution> {
+  const payload = job.payload as CommitmentPayloadWithRecord;
+  const checkpoint = payload.sendCheckpoint;
+  if (!checkpoint || !isStrandedIntentCandidate(checkpoint)) return { status: "waiting" };
+  const persist = deps.persist ?? persistJob;
+  return resolveStrandedSend({
+    jobId: job.id,
+    createdAt: job.createdAt,
+    checkpoint,
+    now: deps.now?.() ?? Date.now(),
+    lookUp: (sinceMs) => deps.lookUp({ job, chainId, sinceMs }),
+    // A reopened act waits for the person's Send Now: the commitment may have
+    // moved on while its send was lost, so nothing sends it on its own.
+    reopen: () => {
+      delete payload.sendCheckpoint;
+      job.meta = { ...job.meta, requiresExplicitSend: true };
+    },
+    persist: () => persist(job),
+  });
+}
+
 async function settle(
   resolution: Promise<StrandedIntentResolution>,
   pendingHash: Hex
@@ -269,4 +308,14 @@ export function settleStrandedDecisionIntent(
   deps: Partial<StrandedIntentDependencies<StrandedDecisionLookup, ApprovalJobPayload>> = {}
 ): Promise<Hex> {
   return settle(resolveStrandedDecisionIntent(job, chainId, deps), pendingHash);
+}
+
+/** For the commitment executor: the transaction that landed, or a waiting or reopened error. */
+export function settleStrandedCommitmentIntent(
+  job: Job,
+  chainId: number,
+  pendingHash: Hex,
+  deps: Parameters<typeof resolveStrandedCommitmentIntent>[2]
+): Promise<Hex> {
+  return settle(resolveStrandedCommitmentIntent(job, chainId, deps), pendingHash);
 }

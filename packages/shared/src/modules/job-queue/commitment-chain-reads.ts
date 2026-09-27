@@ -1,4 +1,8 @@
-import { readContract as wagmiReadContract, type Config } from "@wagmi/core";
+import {
+  readContract as wagmiReadContract,
+  simulateContract as wagmiSimulateContract,
+  type Config,
+} from "@wagmi/core";
 import { keccak256, toBytes, type Hex } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import type { CommitmentJobExecutionDependencies } from "../commitment-pooling/jobs";
@@ -18,12 +22,26 @@ export type CommitmentChainReads = Pick<
   | "readWorkLinkPayloadHash"
   | "readWorkLinkCommitmentState"
   | "hasMembership"
->;
+> & {
+  /**
+   * Runs an act's call without sending it. A wallet estimates inside its own
+   * send, after the queue records the intent, so a refusal found there would
+   * read as a send that may have gone out; asking first keeps it a refusal.
+   */
+  simulateSend?: (call: {
+    address: Address;
+    functionName: string;
+    args: readonly unknown[];
+    account: Address;
+    chainId: number;
+  }) => Promise<void>;
+};
 
 export interface CommitmentChainReadOptions {
   chainId: number;
   moduleAddress: Address;
   readContract?: typeof wagmiReadContract;
+  simulateContract?: typeof wagmiSimulateContract;
   config?: Config;
 }
 
@@ -31,6 +49,7 @@ export function createCommitmentChainReads({
   chainId,
   moduleAddress,
   readContract = wagmiReadContract,
+  simulateContract = wagmiSimulateContract,
   config,
 }: CommitmentChainReadOptions): CommitmentChainReads {
   const wagmiConfig = config ?? getWagmiConfig();
@@ -108,6 +127,16 @@ export function createCommitmentChainReads({
         chainId,
       })) as { state: number; contributorsFrozen: boolean };
       return { state: value.state, contributorsFrozen: value.contributorsFrozen };
+    },
+    simulateSend: async (call) => {
+      await simulateContract(wagmiConfig, {
+        address: call.address,
+        abi: CommitmentPoolingModuleABI,
+        functionName: call.functionName,
+        args: call.args,
+        account: call.account,
+        chainId: call.chainId,
+      } as Parameters<typeof wagmiSimulateContract>[1]);
     },
     hasMembership: async (garden, account) => {
       const results = await Promise.all(

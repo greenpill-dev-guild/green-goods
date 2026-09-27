@@ -14,6 +14,7 @@ import {
   STRANDED_INTENT_GRACE_MS,
   StrandedSendReopened,
   isStrandedIntentCandidate,
+  resolveStrandedCommitmentIntent,
   resolveStrandedDecisionIntent,
   resolveStrandedWorkIntent,
   settleStrandedWorkIntent,
@@ -356,5 +357,57 @@ describe("settling a send no receipt can", () => {
     // Decisions have no send control of their own yet, so nothing holds it for a tap.
     expect(approval.meta?.requiresExplicitSend).toBeUndefined();
     expect(persist).toHaveBeenCalledWith(approval);
+  });
+});
+
+describe("settling a commitment act no receipt can", () => {
+  function strandedTakeUp(broadcastPendingAt: string): Job {
+    sequence += 1;
+    return {
+      id: `take-up-${sequence}`,
+      kind: "claim",
+      chainId: 42161,
+      userAddress: GARDENER,
+      createdAt: NOW - 45 * 60_000,
+      attempts: 0,
+      synced: false,
+      payload: {
+        commitmentId: 7n,
+        kind: 1,
+        gardenContext: GARDEN,
+        gardenAddress: GARDEN,
+        sendCheckpoint: { broadcastPending: true, broadcastPendingAt },
+      },
+    } as Job;
+  }
+
+  it("completes a take-up the chain shows landed, and asks with the act and its window", async () => {
+    const act = strandedTakeUp(minutesAgo(10));
+    const lookUp = vi.fn().mockResolvedValue({ status: "found", transactionHash: TX });
+
+    await expect(
+      resolveStrandedCommitmentIntent(act, 42161, { ...deps(lookUp), lookUp })
+    ).resolves.toEqual({ status: "landed", transactionHash: TX });
+    expect(lookUp).toHaveBeenCalledWith(
+      expect.objectContaining({ job: act, chainId: 42161, sinceMs: expect.any(Number) })
+    );
+  });
+
+  it("waits while an absence is young, then reopens it for the person to send", async () => {
+    const young = strandedTakeUp(minutesAgo(10));
+    const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
+    await expect(
+      resolveStrandedCommitmentIntent(young, 42161, { ...deps(lookUp), lookUp })
+    ).resolves.toEqual({ status: "waiting" });
+
+    const old = strandedTakeUp(new Date(NOW - STRANDED_INTENT_GRACE_MS - 60_000).toISOString());
+    const persist = vi.fn();
+    await expect(
+      resolveStrandedCommitmentIntent(old, 42161, { now: () => NOW, lookUp, persist })
+    ).resolves.toEqual({ status: "reopened" });
+    // The record is gone, so Discard and Send Now both work; nothing sends on its own.
+    expect((old.payload as { sendCheckpoint?: unknown }).sendCheckpoint).toBeUndefined();
+    expect(old.meta?.requiresExplicitSend).toBe(true);
+    expect(persist).toHaveBeenCalledWith(old);
   });
 });
