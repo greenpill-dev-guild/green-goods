@@ -93,3 +93,41 @@ export async function getCommitmentActivity(
     })
   );
 }
+
+/** The link an operation key made, as the indexer holds it: who linked, when, and its log position. */
+export interface IndexedWorkLink {
+  linkedBy: Address;
+  /** The link's block time, in seconds. */
+  linkedAt: number;
+  /** The WorkLinked event's log index in its block. */
+  logIndex: number;
+}
+
+/**
+ * The link one caller's operation key made, or null before the indexer holds
+ * it. Its time and log index pick out the link's own row in the activity log.
+ * The indexer keeps each work's latest link, so a work relinked under another
+ * key no longer answers to this one.
+ */
+export async function getWorkLinkByOperation(
+  chainId: number,
+  caller: Address,
+  operationKey: string,
+  reader: GraphQLReader = greenGoodsIndexer
+): Promise<IndexedWorkLink | null> {
+  const query = `query WorkLinkByOperation($chainId: Int!, $operationKey: String!) { CommitmentWorkAttribution(where: { chainId: { _eq: $chainId }, operationKey: { _eq: $operationKey }, linkSeen: { _eq: true } }, limit: 10) { linkedBy linkedAt linkPayloadLogIndex } }`;
+  const rows = await queryRows(
+    query,
+    { chainId, operationKey: operationKey.toLowerCase() },
+    "CommitmentWorkAttribution",
+    "getWorkLinkByOperation",
+    reader
+  );
+  const row = rows.find((candidate) => address(candidate.linkedBy) === address(caller));
+  const linkedBy = address(row?.linkedBy);
+  const linkedAt = optionalNumber(row?.linkedAt);
+  const logIndex = optionalNumber(row?.linkPayloadLogIndex);
+  return linkedBy && linkedAt !== null && logIndex !== null
+    ? { linkedBy, linkedAt, logIndex }
+    : null;
+}

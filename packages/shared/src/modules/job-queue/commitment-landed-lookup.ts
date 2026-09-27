@@ -8,8 +8,8 @@
  * instead: the pool's event log, as the indexer holds it, names who acted and
  * in which transaction. A take-up is matched by its whole identity, which the
  * indexer keeps for each claimant's latest request. A work link is decided by
- * the module's own record of its operation key, because its event carries no
- * link identity.
+ * the module's own record of its operation key, and its row is the one the
+ * indexer ties to that key, because the log's row carries no link identity.
  *
  * "Found" needs the landed row. "Absent" needs the log read back to the start
  * of the window, and the indexer's processed block, timed on the chain itself,
@@ -25,7 +25,11 @@ import { zeroHash, type Hex } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import type { Job } from "../../types/job-queue";
-import { getCommitmentActivity } from "../commitment-pooling/data-activity";
+import {
+  getCommitmentActivity,
+  getWorkLinkByOperation,
+  type IndexedWorkLink,
+} from "../commitment-pooling/data-activity";
 import { getCommitmentClaimRequests } from "../commitment-pooling/data-commitments";
 import { queryProcessedBlocks } from "../commitment-pooling/data-pool-funding-indexed-queries";
 import type { CommitmentEventRecord } from "../commitment-pooling/types";
@@ -50,6 +54,11 @@ interface LookupDependencies {
   readWorkLinkPayloadHash: (caller: Address, operationKey: Hex) => Promise<Hex>;
   activity?: typeof getCommitmentActivity;
   claimRequests?: typeof getCommitmentClaimRequests;
+  workLinkByOperation?: (
+    chainId: number,
+    caller: Address,
+    operationKey: string
+  ) => Promise<IndexedWorkLink | null>;
   /** The chain's time at a block, in seconds: the latest block when none is named. */
   readBlockTime?: (chainId: number, blockNumber?: bigint) => Promise<number>;
   /** The last block the indexer processed on a chain, or null when it cannot say. */
@@ -121,6 +130,28 @@ async function takeUpMatch(
   };
 }
 
+/**
+ * A work link's row is the one the indexer ties to its operation key: the
+ * caller's link at that block time and log index. Another work the same caller
+ * linked in the window never stands in for it, and until the indexer ties the
+ * key to a row, none matches.
+ */
+async function workLinkMatch(
+  job: Job,
+  payload: Record<string, unknown>,
+  chainId: number,
+  workLinkByOperation: NonNullable<LookupDependencies["workLinkByOperation"]>
+): Promise<RowMatch> {
+  const caller = job.userAddress;
+  const link = await workLinkByOperation(chainId, caller, String(payload.operationKey));
+  if (!link) return () => false;
+  return (row) =>
+    row.eventType === "WORK_LINKED" &&
+    same(row.actor, caller) &&
+    row.timestamp === link.linkedAt &&
+    row.id.endsWith(`-${link.logIndex}`);
+}
+
 function actMatch(job: Job, payload: Record<string, unknown>): RowMatch {
   const caller = job.userAddress;
   switch (job.kind) {
@@ -130,8 +161,6 @@ function actMatch(job: Job, payload: Record<string, unknown>): RowMatch {
         same(row.actor, caller) &&
         typeof payload.cid === "string" &&
         row.data === payload.cid;
-    case "workLink":
-      return (row) => row.eventType === "WORK_LINKED" && same(row.actor, caller);
     case "confirmation":
       return payload.action === "submit"
         ? (row) => row.eventType === "READY_FOR_CONFIRMATION"
@@ -171,6 +200,7 @@ async function findInLog(
 export function createCommitmentLandedLookup(deps: LookupDependencies): StrandedCommitmentLookup {
   const activity = deps.activity ?? getCommitmentActivity;
   const claimRequests = deps.claimRequests ?? getCommitmentClaimRequests;
+  const workLinkByOperation = deps.workLinkByOperation ?? getWorkLinkByOperation;
   const blockTime = deps.readBlockTime ?? chainBlockTime;
   const readIndexedBlock = deps.readIndexedBlock ?? indexedBlock;
   const now = deps.now ?? Date.now;
@@ -195,7 +225,13 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
     const landed =
       job.kind === "claim"
         ? await takeUpMatch(job, payload, chainId, claimRequests, intentOnChainS)
-        : { recorded: false, matches: actMatch(job, payload) };
+        : {
+            recorded: false,
+            matches:
+              job.kind === "workLink"
+                ? await workLinkMatch(job, payload, chainId, workLinkByOperation)
+                : actMatch(job, payload),
+          };
     const log = await findInLog(
       activity,
       chainId,

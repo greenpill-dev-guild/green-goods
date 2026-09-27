@@ -88,6 +88,8 @@ async function lookUp(
   chain: {
     requests?: CommitmentClaimRequestRecord[];
     storedLink?: `0x${string}`;
+    /** The indexer's record of the link the operation key made. */
+    link?: { linkedBy: string; linkedAt: number; logIndex: number };
     /** Seconds the device clock runs ahead of the chain's. */
     deviceAheadS?: number;
     /** Seconds the indexer's processed block trails the chain head. */
@@ -101,6 +103,7 @@ async function lookUp(
     readWorkLinkPayloadHash: vi.fn().mockResolvedValue(chain.storedLink ?? zeroHash),
     activity: vi.fn(async ({ limit = 50, offset = 0 }) => rows.slice(offset, offset + limit)),
     claimRequests: vi.fn().mockResolvedValue(chain.requests ?? []),
+    workLinkByOperation: vi.fn().mockResolvedValue(chain.link ?? null),
     readIndexedBlock: vi.fn().mockResolvedValue(99n),
     readBlockTime: vi.fn(async (_chainId: number, block?: bigint) =>
       block === undefined ? chainNowS : chainNowS - (chain.indexerBehindS ?? 30)
@@ -247,17 +250,30 @@ describe("createCommitmentLandedLookup", () => {
     await expect(lookUp(confirm, busier)).resolves.toEqual({ status: "unknown" });
   });
 
-  it("decides a work link by the module's record, and waits for the log to name its transaction", async () => {
+  it("decides a work link by the module's record, and takes its transaction only from its own row", async () => {
     const link = act("workLink", {
       clientOperationId: "op",
       operationKey: TX,
       requirementIndex: 0,
     });
-    await expect(lookUp(link, [row("WORK_LINKED", CALLER)])).resolves.toEqual({ status: "absent" });
-    await expect(lookUp(link, [row("WORK_LINKED", CALLER)], { storedLink: TX })).resolves.toEqual({
-      status: "found",
-      transactionHash: TX,
+    const indexed = { linkedBy: CALLER, linkedAt: AFTER, logIndex: 3 };
+    const linked = row("WORK_LINKED", CALLER, { id: `42161-${TX}-3` });
+    // Another work the same reader linked to this commitment in the window.
+    const otherLink = row("WORK_LINKED", CALLER, {
+      id: `42161-${OLD_TX}-7`,
+      txHash: OLD_TX,
+      timestamp: AFTER + 30,
     });
-    await expect(lookUp(link, [], { storedLink: TX })).resolves.toEqual({ status: "unknown" });
+    await expect(lookUp(link, [linked])).resolves.toEqual({ status: "absent" });
+    await expect(
+      lookUp(link, [otherLink, linked], { storedLink: TX, link: indexed })
+    ).resolves.toEqual({ status: "found", transactionHash: TX });
+    // The module holds the link, but no row the indexer ties to its operation: wait.
+    await expect(lookUp(link, [otherLink], { storedLink: TX, link: indexed })).resolves.toEqual({
+      status: "unknown",
+    });
+    await expect(lookUp(link, [otherLink, linked], { storedLink: TX })).resolves.toEqual({
+      status: "unknown",
+    });
   });
 });
