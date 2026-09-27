@@ -101,6 +101,18 @@ Clearing site data, drafts, queued work or the reading cache; the membership and
   remounts the screens and no open sheet or typed text carries over. The remount happens only when
   a different account replaces the last one, not on a sign-out or a reload.
 
+- Review round 2 on #929: a direct switch resets and remounts even when storage refuses, since
+  the session keeps the account it last saw and each part of the reset runs on its own; a work
+  approval whose receipt the last account was waiting on (`gg:pending-work-approval:v1`) is
+  cleared with the rest; and the session seam lists the reset as a direct consumer and its test as
+  integration proof. Two threads were answered without a change. The reading cache's stored copies
+  of the last account's queries stay, since the reading cache is out of this lane: the next
+  account's screens read queries keyed by their own address, so those copies are never shown as
+  theirs; purging them belongs to the reading cache (a follow-up for PRD-974's owner). Two tabs
+  signed into different accounts at once is not a state this device supports, since the wallet's
+  selected account and the passkey credential are origin-wide; the reset treats the device as one
+  account at a time.
+
 ## Step 4: the wallet sign-out
 
 Not taken. The solo reproduction of N35's sign-out (Rabby extension or Rabby Mobile over
@@ -121,11 +133,11 @@ Linear child is Done, and the reproduction's result is written under step 4 eith
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `38e9c190c` (on `fix/account-switch-state-reset`)
-- Run at (UTC): `2026-09-27T08:55Z` to `2026-09-27T09:10:07Z`, on the same tree just before its commit
-- Exact command(s): `bun run --cwd packages/shared test` (full, before the mount moved from the providers into `AuthGate`); after the move, `bun run --cwd packages/shared test -- src/__tests__/hooks/auth src/__tests__/stores src/__tests__/providers` and `bun run --cwd packages/client test -- src/__tests__/routes src/__tests__/views/fund.test.tsx src/__tests__/views/VaultManagePositions.test.tsx src/__tests__/views/PublicVaults.test.tsx src/__tests__/views/Cookies.test.tsx src/__tests__/vite/pwa-shell.test.ts`; `bun run --cwd packages/shared typecheck -- --scope full`; `bun run --cwd packages/client typecheck`; `bun run --cwd packages/admin typecheck`; `bun --bun run oxlint` over the touched shared folders with `--deny-warnings`; `bun run check --only ontology`; `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`
-- Result: the full shared suite passed 5,936 tests (17 skipped) with the mount in the providers; after the move, the auth, store and provider suites passed 196 tests in 19 files and the client wallet-runtime and route suites passed 179 in 14. Every typecheck, oxlint, ontology and source structure passed. The critical plan's full client, admin and agent suites and the local pre-push gate were skipped at the owner's direction; PR CI runs the full suites.
-- Validated paths: the non-plan paths `38e9c190c` changes against `c17a03b46`
-- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages` → empty
-- Evidence-only diff command and result (if applicable): this handoff commit changes only plan files
+- Tested implementation commit SHA: `a790fc47a` (on `fix/account-switch-state-reset`)
+- Run at (UTC): `2026-09-27T09:55Z` to `2026-09-27T10:16Z`, on `a790fc47a` itself
+- Exact command(s): `bun run --cwd packages/shared test` (full); `bun run --cwd packages/shared test -- src/__tests__/hooks/auth src/__tests__/hooks/work src/__tests__/modules/session.test.ts src/__tests__/providers src/__tests__/stores`; `bun run --cwd packages/client test -- src/__tests__/routes src/__tests__/views/fund.test.tsx`; `bun run --cwd packages/shared typecheck -- --scope full`; `bun run --cwd packages/client typecheck`; `bun run --cwd packages/admin typecheck`; `bun --bun run oxlint packages/shared/src/hooks/auth packages/shared/src/hooks/work packages/shared/src/providers --deny-warnings`; `node scripts/quality/check-direct-tested-seams.mjs`; `bun run check --only test-quality`; `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`
+- Result: the full shared suite passed 5,939 tests (17 skipped); the focused suites passed 483 tests in 47 files, and the client wallet-runtime and route suites 104 in 10 (run after round 1, on paths round 2 did not change). Every typecheck, oxlint, the seam registry, test quality and source structure passed. After develop was merged in, the auth, store, provider and session suites passed again (228 tests in 20 files). The critical plan's full client, admin and agent suites and the local pre-push gate were skipped at the owner's direction; PR CI runs the full suites.
+- Validated paths: the non-plan paths `a790fc47a` changes against `c17a03b46`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages scripts` → empty
+- Evidence-only diff command and result (if applicable): the develop merge brings only other lanes' paths, and this handoff commit changes only plan files
 - Rendered proof: pending, mock-auth localhost: filter Home as one mock role, switch to another, and capture Home opening with defaults.
