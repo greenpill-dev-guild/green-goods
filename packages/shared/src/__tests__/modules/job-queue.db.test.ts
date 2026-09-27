@@ -6,6 +6,7 @@ import "fake-indexeddb/auto";
 // Import directly from db.ts to avoid EAS SDK dependency chain
 import { jobQueueDB } from "../../modules/job-queue/db";
 
+import { hasActiveExecutionClaim } from "../../modules/job-queue/execution-claims";
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
 
@@ -141,9 +142,9 @@ describe("durable work admission", () => {
     await jobQueueDB.releaseExecutionClaim([id], "second");
     // The claim is visible to a discard only while it is held.
     expect(await jobQueueDB.acquireExecutionClaim([id], "third")).toBe(true);
-    expect(await jobQueueDB.hasActiveExecutionClaim(id)).toBe(true);
+    expect(await hasActiveExecutionClaim(id)).toBe(true);
     await jobQueueDB.releaseExecutionClaim([id], "third");
-    expect(await jobQueueDB.hasActiveExecutionClaim(id)).toBe(false);
+    expect(await hasActiveExecutionClaim(id)).toBe(false);
   });
   it("keeps legacy hash mappings unresolved with durable evidence instead of inferring a completed account", async () => {
     const clientWorkId = crypto.randomUUID();

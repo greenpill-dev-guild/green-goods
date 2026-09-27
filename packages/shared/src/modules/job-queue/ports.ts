@@ -86,11 +86,6 @@ export interface JobQueueStore {
   markJobFailed(id: string, error: string): Promise<void>;
   markJobTerminalFailed(id: string, error: string): Promise<void>;
   deleteJob(id: string): Promise<void>;
-  /**
-   * Whether a send holds this job's execution claim right now. Optional, so a
-   * store without the claim table (tests, fakes) reads as "not claimed".
-   */
-  hasActiveExecutionClaim?(id: string): Promise<boolean>;
   getImagesForJob(jobId: string): Promise<Array<{ id: string; file: File; url: string }>>;
   getStats(userAddress: string): Promise<QueueStats>;
   storeClientWorkIdMapping(
@@ -192,6 +187,11 @@ export interface JobQueueConfig {
   storageQuotaCacheTTL: number;
 }
 
+/** Whether a send holds a job's execution claim right now (`execution-claims`). */
+export interface JobQueueExecutionClaims {
+  isClaimed(jobId: string): Promise<boolean>;
+}
+
 export interface JobQueueDependencies {
   store: JobQueueStore;
   events: JobQueueEvents;
@@ -206,6 +206,8 @@ export interface JobQueueDependencies {
   config: JobQueueConfig;
   lifecycle: JobQueueLifecycle;
   logger: JobQueueLogger;
+  /** Optional, so a queue built without the claim table (tests, fakes) reads as "not claimed". */
+  executionClaims?: JobQueueExecutionClaims;
 }
 
 export interface JobQueueHandle {

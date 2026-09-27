@@ -11,7 +11,7 @@
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import type { WorkLinkJobPayload } from "../commitment-pooling/jobs";
 import { forgetWorkBroadcast, retainedWorkBroadcast } from "../work/work-confirmation";
-import type { JobQueueEvents, JobQueueStore } from "./ports";
+import type { JobQueueEvents, JobQueueExecutionClaims, JobQueueStore } from "./ports";
 import { hasRecordedSend } from "./queue-policy";
 
 /**
@@ -49,8 +49,9 @@ export function isDiscardableJob(
  */
 export function createJobRecovery(
   store: Pick<JobQueueStore, "getJob" | "amendJob" | "deleteJob"> &
-    Partial<Pick<JobQueueStore, "getJobs" | "markJobTerminalFailed" | "hasActiveExecutionClaim">>,
-  events: Pick<JobQueueEvents, "emit">
+    Partial<Pick<JobQueueStore, "getJobs" | "markJobTerminalFailed">>,
+  events: Pick<JobQueueEvents, "emit">,
+  claims?: JobQueueExecutionClaims
 ) {
   return {
     async retryJob(jobId: string): Promise<void> {
@@ -95,9 +96,7 @@ export function createJobRecovery(
       // whoever started it: a tap, a background flush, or another tab.
       // Deleting the record then would orphan a transaction that may still
       // broadcast, so a claimed job is refused.
-      if (store.hasActiveExecutionClaim && (await store.hasActiveExecutionClaim(jobId))) {
-        return false;
-      }
+      if (claims && (await claims.isClaimed(jobId))) return false;
       if (job.kind === "work" && store.getJobs && store.markJobTerminalFailed) {
         const dependents = await store.getJobs({
           userAddress: job.userAddress,

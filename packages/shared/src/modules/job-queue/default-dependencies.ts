@@ -20,6 +20,7 @@ import {
   WorkTransactionReverted,
 } from "../work/work-confirmation";
 import { jobQueueDB } from "./db";
+import { hasActiveExecutionClaim } from "./execution-claims";
 import { jobQueueEventBus } from "./event-bus";
 import { createJobExecutorRegistry, type JobExecutor } from "./executor-registry";
 import {
@@ -98,6 +99,7 @@ function createDefaultExecutorRegistry() {
 export function createDefaultJobQueueDependencies(): JobQueueDependencies {
   return {
     store: jobQueueDB,
+    executionClaims: { isClaimed: hasActiveExecutionClaim },
     events: jobQueueEventBus,
     executors: createDefaultExecutorRegistry(),
     admission: createCommitmentQueueAdmission({

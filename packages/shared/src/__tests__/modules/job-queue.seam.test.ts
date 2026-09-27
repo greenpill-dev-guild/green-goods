@@ -238,10 +238,7 @@ describe("discardJob and execution claims", () => {
     // A tap, a background flush or another tab can be mid-send: deleting the
     // record then would orphan a transaction that may still broadcast.
     const claimed = vi.fn().mockResolvedValue(true);
-    const store = Object.assign(createInMemoryJobQueueStore(), {
-      hasActiveExecutionClaim: claimed,
-    });
-    const { queue } = setup({ store });
+    const { queue } = setup({ executionClaims: { isClaimed: claimed } });
     const id = await queue.addJob("work", {} as JobKindMap["work"], USER);
 
     await expect(queue.discardJob(id)).resolves.toBe(false);
