@@ -134,7 +134,11 @@ function renderShellWithRoute(initialRoute: string, priorEntries: string[] = [])
               { element: createElement(PublicShell) },
               createElement(Route, { path: "fund", element: createElement(FundContent) }),
               createElement(Route, { path: "gardens", element: createElement(GardensContent) }),
-              createElement(Route, { path: "vaults", element: createElement(VaultsContent) })
+              createElement(Route, { path: "vaults", element: createElement(VaultsContent) }),
+              createElement(Route, {
+                path: "agent/reporting/:requestId",
+                element: createElement("div", { "data-testid": "ceremony-content" }),
+              })
             )
           )
         )
@@ -280,6 +284,16 @@ describe("PublicShell", () => {
 
     expect(screen.getByTestId("fund-content")).toBeInTheDocument();
     expect(window.scrollY).toBe(720);
+  });
+
+  it("gives chat ceremony pages the focused shell: no navigation, install CTA or editorial styling", () => {
+    const { container } = renderShellWithRoute("/agent/reporting/abcdefghijklmnop");
+
+    expect(screen.getByTestId("ceremony-content")).toBeInTheDocument();
+    expect(document.querySelector('header[data-variant="focused"]')).toBeInTheDocument();
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    expect(screen.queryByText("Install App")).not.toBeInTheDocument();
+    expect(container.querySelector('[data-site="website"]')).toBeNull();
   });
 
   it("no bottom nav (AppBar) visible in browser mode", () => {

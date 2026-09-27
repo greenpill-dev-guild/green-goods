@@ -254,6 +254,12 @@ describe("presentation-specific boot fallback", () => {
     expect(detectPresentation({ href: "https://www.greengoods.app/gardens" })).toBe("website");
     expect(
       detectPresentation({
+        href: "https://www.greengoods.app/agent/reporting/abcdefghijklmnop",
+        displayMode: "standalone",
+      })
+    ).toBe("website");
+    expect(
+      detectPresentation({
         href: "https://www.greengoods.app/impact",
         displayMode: "standalone",
       })
@@ -313,6 +319,10 @@ describe("presentation-specific boot fallback", () => {
       "banner"
     );
     expect(detectBootDataset({ href: "http://localhost:3001/actions" }).bootHero).toBe("banner");
+    expect(
+      detectBootDataset({ href: "https://www.greengoods.app/agent/reporting/abcdefghijklmnop" })
+        .bootHero
+    ).toBe("focused");
     // PWA boots never render the website skeleton, so no variant is stamped.
     expect(
       detectBootDataset({ href: "https://www.greengoods.app/home", displayMode: "standalone" })

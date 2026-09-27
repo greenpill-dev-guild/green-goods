@@ -21,6 +21,9 @@ export const CLIENT_ROUTE_IDS = {
   publicImpact: "public-impact",
   publicActions: "public-actions",
   publicGlossary: "public-glossary",
+  publicReporting: "public-reporting",
+  publicReportingRecovery: "public-reporting-recovery",
+  publicReportingPermissions: "public-reporting-permissions",
   login: "login",
   home: "home",
   garden: "garden",
@@ -143,6 +146,28 @@ const combinedAppRoutes = [
             path: "glossary",
             lazy: async () => ({
               Component: (await import("@/views/Public/Glossary")).default,
+            }),
+          },
+          // Static before dynamic: the permissions page must never be read as a locator.
+          {
+            id: CLIENT_ROUTE_IDS.publicReportingPermissions,
+            path: "agent/reporting/permissions",
+            lazy: async () => ({
+              Component: (await import("@/views/Public/AgentReporting/PermissionsPage")).default,
+            }),
+          },
+          {
+            id: CLIENT_ROUTE_IDS.publicReportingRecovery,
+            path: "agent/reporting/recover/:requestId",
+            lazy: async () => ({
+              Component: (await import("@/views/Public/AgentReporting")).ReportingRecoveryPage,
+            }),
+          },
+          {
+            id: CLIENT_ROUTE_IDS.publicReporting,
+            path: "agent/reporting/:requestId",
+            lazy: async () => ({
+              Component: (await import("@/views/Public/AgentReporting")).ReportingCeremonyPage,
             }),
           },
         ],
