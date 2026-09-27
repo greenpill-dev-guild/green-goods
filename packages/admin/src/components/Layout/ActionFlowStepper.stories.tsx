@@ -39,14 +39,17 @@ type Story = StoryObj<typeof meta>;
 
 export const FirstStep: Story = { args: { currentStep: 1 } };
 export const MidFlow: Story = { args: { currentStep: 2 } };
-export const Completed: Story = { args: { currentStep: 4 } };
-
 // The run finished: every step checked, none current, none to reopen.
-export const RunDone: Story = { args: { currentStep: 4, complete: true } };
+export const Completed: Story = { args: { currentStep: 4, complete: true } };
 
 // Vertical orientation — the labelled rail used in the desktop two-column layout.
 export const VerticalRail: Story = {
   args: { orientation: "vertical", currentStep: 2 },
+};
+
+// The desktop rail once the run is done: every step checked, and a line saying so.
+export const VerticalRailDone: Story = {
+  args: { orientation: "vertical", currentStep: 4, complete: true },
 };
 
 // Accent follows the workspace tone: under data-tone="hub" the stepper renders

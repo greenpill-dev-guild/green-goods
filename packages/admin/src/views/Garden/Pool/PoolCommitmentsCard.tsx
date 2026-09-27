@@ -201,7 +201,10 @@ export function PoolCommitmentsCard({
         {pendingCreates.length > 0 && scope === "open" && focus === null ? (
           <ul className="divide-y divide-stroke-soft" data-testid="pool-queued">
             {pendingCreates.map((row) => (
-              <li key={row.jobId} className="flex flex-wrap items-center gap-2 py-2">
+              <li
+                key={row.jobId}
+                className={`flex flex-wrap items-center gap-2 py-2 ps-3 ${directionEdgeClass(row.direction)}`}
+              >
                 <span className="truncate text-body-md text-text-strong" title={row.title ?? ""}>
                   {row.title ??
                     formatMessage({

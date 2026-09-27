@@ -67,6 +67,10 @@ export function ActionFlowStepper({
 }: ActionFlowStepperProps) {
   const { formatMessage } = useIntl();
   const total = steps.length;
+  const doneLabel = formatMessage(
+    { id: "app.common.stepsDone", defaultMessage: "All {total} steps done" },
+    { total }
+  );
   // Clamp only the label lookup; controllers keep currentStep in range.
   const currentTitle = steps[Math.min(Math.max(currentStep, 1), total) - 1]?.title ?? "";
 
@@ -99,56 +103,64 @@ export function ActionFlowStepper({
 
   if (orientation === "vertical") {
     return (
-      <ol data-component="ActionFlowStepper" data-orientation="vertical" className="flex flex-col">
-        {steps.map((step, index) => {
-          const stepNumber = index + 1;
-          const completed = complete || currentStep > stepNumber;
-          const isCurrent = !complete && currentStep === stepNumber;
-          const isLast = index === total - 1;
-          return (
-            <li
-              key={step.id}
-              aria-current={isCurrent ? "step" : undefined}
-              className="flex min-w-0 gap-3"
-            >
-              <div className="flex flex-col items-center">
-                {renderDot(step, stepNumber, completed, isCurrent)}
-                {!isLast ? (
-                  // Vertical connector — fills the gap to the next dot, tinted once
-                  // the step completes (matches the horizontal fill direction).
-                  <span
-                    aria-hidden
+      <div data-component="ActionFlowStepper" data-orientation="vertical">
+        <ol className="flex flex-col">
+          {steps.map((step, index) => {
+            const stepNumber = index + 1;
+            const completed = complete || currentStep > stepNumber;
+            const isCurrent = !complete && currentStep === stepNumber;
+            const isLast = index === total - 1;
+            return (
+              <li
+                key={step.id}
+                aria-current={isCurrent ? "step" : undefined}
+                className="flex min-w-0 gap-3"
+              >
+                <div className="flex flex-col items-center">
+                  {renderDot(step, stepNumber, completed, isCurrent)}
+                  {!isLast ? (
+                    // Vertical connector — fills the gap to the next dot, tinted once
+                    // the step completes (matches the horizontal fill direction).
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "my-1 w-0.5 flex-1 transition-colors duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
+                        completed
+                          ? "bg-[rgb(var(--tone-action,var(--primary-action)))]"
+                          : "bg-stroke-soft"
+                      )}
+                    />
+                  ) : null}
+                </div>
+                <div className={cn("min-w-0 pt-0.5", !isLast && "pb-5")}>
+                  <p
                     className={cn(
-                      "my-1 w-0.5 flex-1 transition-colors duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
-                      completed
-                        ? "bg-[rgb(var(--tone-action,var(--primary-action)))]"
-                        : "bg-stroke-soft"
+                      "truncate body-sm font-medium",
+                      isCurrent
+                        ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
+                        : completed
+                          ? "text-text-strong"
+                          : "text-text-sub"
                     )}
-                  />
-                ) : null}
-              </div>
-              <div className={cn("min-w-0 pt-0.5", !isLast && "pb-5")}>
-                <p
-                  className={cn(
-                    "truncate body-sm font-medium",
-                    isCurrent
-                      ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
-                      : completed
-                        ? "text-text-strong"
-                        : "text-text-sub"
-                  )}
-                  title={step.title}
-                >
-                  {step.title}
-                </p>
-                {step.description ? (
-                  <p className="mt-0.5 line-clamp-2 body-xs text-text-soft">{step.description}</p>
-                ) : null}
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+                    title={step.title}
+                  >
+                    {step.title}
+                  </p>
+                  {step.description ? (
+                    <p className="mt-0.5 line-clamp-2 body-xs text-text-soft">{step.description}</p>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+        {/* With no step current, the rail says the run is done. */}
+        {complete ? (
+          <p data-region="action-flow-step-label" className="mt-3 label-xs text-text-sub">
+            {doneLabel}
+          </p>
+        ) : null}
+      </div>
     );
   }
 
@@ -187,10 +199,7 @@ export function ActionFlowStepper({
       </ol>
       <p data-region="action-flow-step-label" className="mt-1.5 label-xs text-text-sub">
         {complete
-          ? formatMessage(
-              { id: "app.common.stepsDone", defaultMessage: "All {total} steps done" },
-              { total }
-            )
+          ? doneLabel
           : formatMessage(
               {
                 id: "app.common.stepProgress",

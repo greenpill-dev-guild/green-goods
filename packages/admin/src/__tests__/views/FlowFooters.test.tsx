@@ -32,6 +32,34 @@ describe("the flow footers", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Open the pool before seeding into it.");
   });
 
+  it("say why Try Again is off once a pass has left rows unsent", () => {
+    renderWithProviders(
+      <SeedFlowFooter
+        phase="done"
+        busy={false}
+        stepIndex={3}
+        isLast
+        seedDisabled
+        blockedReason="This reward token can't be read right now."
+        count={1}
+        addAnotherDisabled={false}
+        unsent
+        onCancel={noop}
+        onBack={noop}
+        onNext={noop}
+        onAddAnother={noop}
+        onSeed={noop}
+        onDone={noop}
+        onBackToTray={noop}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "This reward token can't be read right now."
+    );
+  });
+
   it("say why Next is off in the setup flow", () => {
     renderWithProviders(
       <SetupFlowFooter

@@ -62,6 +62,12 @@ export function SeedFlowFooter({
   if (phase === "done") {
     return (
       <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+        {/* A retry that cannot run says why, as the compose step does. */}
+        {unsent && seedDisabled && blockedReason ? (
+          <p className="min-w-0 body-xs text-text-soft sm:flex-1">
+            <span role="status">{blockedReason}</span>
+          </p>
+        ) : null}
         {unsent ? (
           <>
             <AdminButton type="button" variant="outlined" onClick={onBackToTray}>

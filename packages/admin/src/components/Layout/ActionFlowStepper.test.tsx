@@ -11,17 +11,30 @@ const STEPS: ActionFlowStep[] = [
   { id: "review", title: "Review" },
 ];
 
-function renderStepper(currentStep: number, complete = false) {
+function renderStepper(
+  currentStep: number,
+  complete = false,
+  orientation: "horizontal" | "vertical" = "horizontal"
+) {
   return render(
     <IntlProvider locale="en" messages={enMessages}>
-      <ActionFlowStepper steps={STEPS} currentStep={currentStep} complete={complete} />
+      <ActionFlowStepper
+        steps={STEPS}
+        currentStep={currentStep}
+        complete={complete}
+        orientation={orientation}
+      />
     </IntlProvider>
   );
 }
 
 describe("ActionFlowStepper", () => {
-  it("checks every step, and marks none current, once the run completes", () => {
-    renderStepper(4, true);
+  // The desktop rail says so too: with no step current, nothing else would.
+  it.each([
+    "horizontal",
+    "vertical",
+  ] as const)("checks every step, marks none current, and says so, once the run completes (%s)", (orientation) => {
+    renderStepper(4, true, orientation);
 
     expect(document.querySelector('[aria-current="step"]')).toBeNull();
     expect(screen.getByText("All 4 steps done")).toBeInTheDocument();
