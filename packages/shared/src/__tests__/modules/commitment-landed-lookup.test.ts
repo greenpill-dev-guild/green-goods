@@ -76,13 +76,19 @@ async function lookUp(
     /** Seconds the device's clock runs ahead of the chain's. */
     clockAheadS?: number;
     nowMs?: number;
+    /** Stands in for the indexer's log, to change it between page reads. */
+    activity?: (input: {
+      limit?: number;
+      offset?: number;
+      before?: { timestamp: number; id: string };
+    }) => Promise<CommitmentEventRecord[]>;
   } = {}
 ) {
   const nowMs = chain.nowMs ?? NOW_MS;
   const chainNowS = nowMs / 1000 - (chain.clockAheadS ?? 0);
   const lookup = createCommitmentLandedLookup({
     readWorkLinkPayloadHash: vi.fn().mockResolvedValue(chain.storedLink ?? zeroHash),
-    activity: vi.fn(async ({ limit = 50, offset = 0 }) => rows.slice(offset, offset + limit)),
+    activity: vi.fn(chain.activity ?? (async (input) => page(rows, input))),
     transactionMadeWorkLink: vi.fn(async (hash: string) => {
       if (chain.unreadable?.includes(hash)) throw new Error("receipt unavailable");
       return (chain.linkedIn ?? []).includes(hash);
@@ -105,6 +111,15 @@ async function lookUp(
     now: () => nowMs,
   });
   return lookup({ job, chainId: 42161, sinceMs: SINCE_MS });
+}
+
+/** One page of a log held newest first: after the cursor's row when there is one, else by count. */
+function page(
+  rows: CommitmentEventRecord[],
+  { limit = 50, offset = 0, before }: { limit?: number; offset?: number; before?: { id: string } }
+): CommitmentEventRecord[] {
+  const start = before ? rows.findIndex((row) => row.id === before.id) + 1 : offset;
+  return rows.slice(start, start + limit);
 }
 
 /** A take-up's send record keeps the head block its intent read: block 100. */
@@ -292,6 +307,30 @@ describe("createCommitmentLandedLookup", () => {
       row("UNITS_COMMITTED", OTHER, { id: `row-${index}` })
     );
     await expect(lookUp(confirm, busier)).resolves.toEqual({ status: "unknown" });
+  });
+
+  it("keeps its place by cursor, so a row rolled back between pages never hides the act", async () => {
+    const log = [
+      ...Array.from({ length: 200 }, (_, index) =>
+        row("UNITS_COMMITTED", OTHER, { id: `row-${String(index).padStart(3, "0")}` })
+      ),
+      row("CONFIRMATION_RECORDED", CALLER),
+    ];
+    let reads = 0;
+    const activity = async (input: {
+      limit?: number;
+      offset?: number;
+      before?: { id: string };
+    }) => {
+      reads += 1;
+      // After the first page, the indexer rolls back a row above the act's.
+      if (reads === 2) log.splice(0, 1);
+      return page(log, input);
+    };
+    await expect(lookUp(confirm, log, { activity })).resolves.toEqual({
+      status: "found",
+      transactionHash: TX,
+    });
   });
 
   it("decides a work link by the module's record of its own payload, and names it from its own event", async () => {

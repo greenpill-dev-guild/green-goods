@@ -426,7 +426,8 @@ transaction that is dropped or cancelled while no tab watches, which waits for g
 The lane closes when all of these hold. As of 2026-09-27:
 
 - RED and GREEN recorded: done, under RED and GREEN evidence.
-- PR #923 merged: not yet.
+- PR #923 merged: done, as `7fdc87f78`. Two review comments posted minutes before the merge are
+  addressed in the follow-up below.
 - PWA-126 walked on the recorded call: pending.
 - Then the sub-lane moves to `completed` and the Linear child to Done; until then it stays open.
 
@@ -434,6 +435,27 @@ W3-H starts once #923 merges (§ 1 row 49); it does not wait for the walk.
 
 The proof is recorded here, under RED and GREEN evidence. The `state_api` machine lane's TDD record
 holds W1-1's proof and belongs to Codex's lane, so `record-tdd` is not run over it.
+
+## Follow-up after the merge (2026-09-27)
+
+Two Codex comments on #923 arrived minutes before it merged, and both held. The follow-up branch
+`fix/commitment-send-nonce-cursor` fixes them:
+
+- **The nonce the transaction used.** The account's pending nonce read before the wallet prompt is
+  only a floor: the wallet may know sends this network does not, or another send may go out while
+  the prompt is open. A transaction with a later nonce could then read as superseded and be offered
+  again. The send record now keeps `transactionNonce`, the nonce read off the transaction itself
+  with the hash it was read for. It is read when a send stops waiting for its receipt, and on each
+  settle pass while the network holds the transaction. "Superseded" reads only that nonce. A
+  transaction the network never showed keeps waiting, since nothing can prove another took its
+  nonce. `readNextNonce` and `intentNonce` are gone; a record an earlier build kept drops its
+  `intentNonce` on its next write.
+- **Paging by cursor.** The landed lookup read the commitment's log by offset. A row the indexer
+  rolls back between pages shifts the rest up, so the send's own row could fall between two pages
+  and read as absent. The lookup now pages from after the oldest row it read, on the log's own
+  order (`timestamp` then `id`). `getCommitmentActivity` takes that cursor as `before`. The query
+  was checked read-only against the hosted indexer: the page after a cursor equals the rows after
+  it, ties on timestamp included.
 
 ## Validation Receipt
 
