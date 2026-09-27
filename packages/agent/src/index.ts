@@ -8,6 +8,7 @@
  * Future platforms: Discord, WhatsApp, SMS
  */
 
+import { dirname } from "node:path";
 import { createServer, createThirdwebCheckoutClient, startServer } from "./api/server";
 import { resolveAllowedOrigins } from "./api/public-protection";
 import { getConfig } from "./config";
@@ -141,6 +142,7 @@ async function main(): Promise<void> {
     chainId: config.chainId,
     rpcUrl: agentRpcUrl,
     isProduction: config.isProduction,
+    dataDir: dirname(config.dbPath),
     trustedProxy,
   });
 

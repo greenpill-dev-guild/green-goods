@@ -27,11 +27,14 @@ export function startReporting(input: {
   chainId: number;
   rpcUrl: string;
   isProduction: boolean;
+  /** The directory of the Agent's database; reporting data lives beside it. */
+  dataDir: string;
   trustedProxy?: TrustedProxyConfig;
 }): ReportingRuntime | null {
   const config = loadReportingConfig(input.env, {
     chainId: input.chainId,
     isProduction: input.isProduction,
+    dataDir: input.dataDir,
   });
   if (!config) return null;
   const name = input.env.AGENT_REPORTING_TRANSPORT?.trim() ?? "";

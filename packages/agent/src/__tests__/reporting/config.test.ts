@@ -17,9 +17,18 @@ const complete = {
     "tas|0x00000000000000000000000000000000000000A1|TAS;aiyeloja|0x00000000000000000000000000000000000000B2|Aiyeloja Family Garden",
 };
 
-const base = { chainId: 42161, isProduction: true };
+const base = { chainId: 42161, isProduction: true, dataDir: "/data" };
 
 describe("reporting configuration", () => {
+  it("keeps reporting data beside the Agent database, on the Agent's volume", () => {
+    const config = loadReportingConfig(
+      { ...complete, AGENT_REPORTING_DB_PATH: "data/elsewhere.db" },
+      base
+    );
+    expect(config?.dbPath).toBe("/data/reporting.db");
+    expect(config?.mediaDir).toBe("/data/reporting-media");
+  });
+
   it("stays off unless explicitly enabled", () => {
     expect(loadReportingConfig({}, base)).toBeNull();
     expect(loadReportingConfig({ AGENT_REPORTING_ENABLED: "yes" }, base)).toBeNull();
@@ -120,6 +129,7 @@ describe("reporting configuration", () => {
         chainId: 42161,
         rpcUrl: "https://rpc.test",
         isProduction: true,
+        dataDir: "/data",
       })
     ).toBeNull();
   });

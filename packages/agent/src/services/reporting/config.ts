@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import type { ControlName } from "./controls";
 import type { ReportingKeyringConfig } from "./keyring";
 import type { EnabledGarden } from "./runtime";
@@ -73,9 +74,14 @@ function parseReportingGardens(raw: string, chainId: number): EnabledGarden[] {
   return gardens;
 }
 
+/**
+ * `dataDir` is the directory of the Agent's own database. Reporting keeps its database and private
+ * media beside it, so they live on the same persistent volume (`/data` on Fly) instead of the
+ * image's working directory, which a deploy replaces.
+ */
 export function loadReportingConfig(
   env: Record<string, string | undefined>,
-  base: { chainId: number; isProduction: boolean }
+  base: { chainId: number; isProduction: boolean; dataDir: string }
 ): ReportingConfig | null {
   if (!flag(env.AGENT_REPORTING_ENABLED)) return null;
   const missing: string[] = [];
@@ -128,8 +134,8 @@ export function loadReportingConfig(
   }
   const pinataJwt = text(env.PINATA_JWT);
   return {
-    dbPath: text(env.AGENT_REPORTING_DB_PATH) ?? "data/reporting.db",
-    mediaDir: text(env.AGENT_REPORTING_MEDIA_DIR) ?? "data/reporting-media",
+    dbPath: join(base.dataDir, "reporting.db"),
+    mediaDir: join(base.dataDir, "reporting-media"),
     keys,
     browserOrigin,
     gardens: parseReportingGardens(gardensRaw, base.chainId),
