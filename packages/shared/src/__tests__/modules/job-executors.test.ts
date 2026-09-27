@@ -826,6 +826,68 @@ describe("commitment acts record their sends", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["claim", { commitmentId: 7n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN }],
+    [
+      "evidence",
+      {
+        clientEvidenceId: "proof",
+        commitmentId: 7n,
+        cid: "bafy-proof",
+        creditedContributors: [USER],
+        gardenAddress: GARDEN,
+      },
+    ],
+    [
+      "workLink",
+      {
+        clientOperationId: "operation",
+        commitmentId: 7n,
+        workUID: HASH,
+        requirementIndex: 0,
+        operationKey: HASH,
+        gardenAddress: GARDEN,
+      },
+    ],
+    ["confirmation", { action: "confirm", commitmentId: 7n, gardenAddress: GARDEN }],
+  ])("settles a recorded %s by receipt, by UserOperation or from the chain, never sending again", async (kind, payload) => {
+    const operation = `0x${"cd".repeat(32)}` as const;
+    const sender = createMockTransactionSender({ authMode: "passkey" });
+    sender.reconcileBroadcast = vi
+      .fn()
+      .mockResolvedValue({ status: "confirmed", transactionHash: HASH });
+    const recorded = (id: string, sendCheckpoint: object) =>
+      job(kind, { ...payload, sendCheckpoint }, { id: `${kind}-${id}` });
+    const byReceipt = recorded("by-receipt", { broadcastPending: false, transactionHash: HASH });
+    const byOperation = recorded("by-operation", {
+      broadcastPending: false,
+      broadcast: { kind: "user-operation", chainId: 42161, hash: operation },
+    });
+    const stranded = recorded("stranded", {
+      broadcastPending: true,
+      broadcastPendingAt: new Date(0).toISOString(),
+    });
+    const settleStrandedIntent = vi.fn().mockResolvedValue(HASH);
+    const deps = {
+      demoActive: () => false,
+      reads: reads(),
+      store: store(),
+      reconcile: vi.fn().mockResolvedValue("confirmed"),
+      settleStrandedIntent,
+    };
+
+    for (const act of [byReceipt, byOperation, stranded]) {
+      await expect(executeCommitmentQueueJob(act.id, act, 42161, sender, deps)).resolves.toEqual({
+        status: "complete",
+        txHash: HASH,
+      });
+    }
+    expect(deps.reconcile).toHaveBeenCalledWith(HASH, 42161);
+    expect(sender.reconcileBroadcast).toHaveBeenCalledOnce();
+    expect(settleStrandedIntent).toHaveBeenCalledWith(stranded, 42161, "0x");
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("clears the intent when the person declines, so the take-up can still be dropped", async () => {
     const claim = takeUp("claim-declined");
     const declined = new WorkSendCancelledError();

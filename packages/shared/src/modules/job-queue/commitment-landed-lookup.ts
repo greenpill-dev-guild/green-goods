@@ -16,6 +16,7 @@
 
 import { zeroHash, type Hex } from "viem";
 import type { Address } from "../../types/domain";
+import type { Job } from "../../types/job-queue";
 import { getCommitmentActivity } from "../commitment-pooling/data-activity";
 import type { CommitmentEventRecord } from "../commitment-pooling/types";
 import type { StrandedCommitmentLookup } from "../work/stranded-intent";
@@ -24,7 +25,12 @@ import type { StrandedCommitmentLookup } from "../work/stranded-intent";
 const ACTIVITY_LIMIT = 200;
 /** `ClaimType.Garden`: the claimant is the garden, and the caller only requested it. */
 const GARDEN_CLAIM = 0;
-const CLAIM_LIFECYCLE = new Set(["CLAIM_REQUESTED", "ACCEPTED", "CLAIM_DECLINED"]);
+/**
+ * How far a take-up's request may precede its job on the device's clock. The
+ * chain names no job, so a request counts only once the job existed: an older
+ * one belongs to an earlier ask, and a steward may have declined it since.
+ */
+const CLAIM_CLOCK_TOLERANCE_S = 120;
 
 interface LookupDependencies {
   readWorkLinkPayloadHash: (caller: Address, operationKey: Hex) => Promise<Hex>;
@@ -35,28 +41,28 @@ const same = (left: string | null | undefined, right: string | null | undefined)
   Boolean(left && right && left.toLowerCase() === right.toLowerCase());
 
 /**
- * The row that shows this act landed, newest first. A take-up is decided by
- * the reader's latest claim event, so a request a steward has since declined
- * does not count for a later ask.
+ * The row that shows this act landed, newest first. A take-up landed when the
+ * log holds its request or its acceptance from after the job was created,
+ * whatever came next: a steward who declines it quickly still declined a
+ * request that reached the chain, so it is never sent again.
  */
 function landedRow(
-  kind: string,
+  job: Job,
   payload: Record<string, unknown>,
-  caller: string,
   rows: readonly CommitmentEventRecord[]
 ): CommitmentEventRecord | undefined {
-  switch (kind) {
+  const caller = job.userAddress;
+  switch (job.kind) {
     case "claim": {
       const claimant =
         Number(payload.kind) === GARDEN_CLAIM ? String(payload.gardenContext) : caller;
-      const latest = rows.find(
+      const floor = Math.floor(job.createdAt / 1000) - CLAIM_CLOCK_TOLERANCE_S;
+      return rows.find(
         (row) =>
-          CLAIM_LIFECYCLE.has(row.eventType) &&
-          (row.eventType === "CLAIM_REQUESTED"
-            ? same(row.actor, caller)
-            : same(row.actor, claimant))
+          row.timestamp >= floor &&
+          ((row.eventType === "CLAIM_REQUESTED" && same(row.actor, caller)) ||
+            (row.eventType === "ACCEPTED" && same(row.actor, claimant)))
       );
-      return latest && latest.eventType !== "CLAIM_DECLINED" ? latest : undefined;
     }
     case "evidence":
       return rows.find(
@@ -94,9 +100,8 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
     });
     const since = Math.floor(sinceMs / 1000);
     const landed = landedRow(
-      job.kind,
+      job,
       payload,
-      job.userAddress,
       rows.filter((row) => row.timestamp >= since)
     );
     if (landed) return { status: "found", transactionHash: landed.txHash as Hex };

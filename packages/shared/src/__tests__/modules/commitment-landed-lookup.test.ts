@@ -11,8 +11,12 @@ const GARDEN = "0x2222222222222222222222222222222222222222";
 const OTHER = "0x3333333333333333333333333333333333333333";
 const TX = `0x${"ab".repeat(32)}` as const;
 const OLD_TX = `0x${"cd".repeat(32)}` as const;
-const SINCE_MS = 1_000_000_000;
-const AFTER = SINCE_MS / 1000 + 60;
+/** When the job was created, on the device's clock. */
+const CREATED_MS = 1_000_000_000;
+/** The resolver's window reaches a day back, for devices whose clocks drift. */
+const SINCE_MS = CREATED_MS - 24 * 60 * 60_000;
+const AFTER = CREATED_MS / 1000 + 60;
+const EARLIER_ASK = CREATED_MS / 1000 - 60 * 60;
 
 function act(kind: string, payload: Record<string, unknown>): Job {
   return {
@@ -20,7 +24,7 @@ function act(kind: string, payload: Record<string, unknown>): Job {
     kind,
     payload: { commitmentId: 7n, gardenAddress: GARDEN, ...payload },
     userAddress: CALLER,
-    createdAt: SINCE_MS,
+    createdAt: CREATED_MS,
     attempts: 0,
     synced: false,
   } as Job;
@@ -79,9 +83,18 @@ describe("createCommitmentLandedLookup", () => {
       "found",
     ],
     [
-      "a request a steward has since declined",
+      "a request a steward declined before the lookup ran",
       takeUp,
       [row("CLAIM_DECLINED", CALLER), row("CLAIM_REQUESTED", CALLER)],
+      "found",
+    ],
+    [
+      "a request from an earlier ask, since declined",
+      takeUp,
+      [
+        row("CLAIM_DECLINED", CALLER, { timestamp: EARLIER_ASK + 60, txHash: OLD_TX }),
+        row("CLAIM_REQUESTED", CALLER, { timestamp: EARLIER_ASK, txHash: OLD_TX }),
+      ],
       "absent",
     ],
     ["someone else's request", takeUp, [row("CLAIM_REQUESTED", OTHER)], "absent"],
@@ -101,9 +114,9 @@ describe("createCommitmentLandedLookup", () => {
     ["another confirmer's confirmation", confirm, [row("CONFIRMATION_RECORDED", OTHER)], "absent"],
     ["a commitment sent for confirmation", submit, [row("READY_FOR_CONFIRMATION", null)], "found"],
     [
-      "a row from before the send",
-      takeUp,
-      [row("CLAIM_REQUESTED", CALLER, { timestamp: SINCE_MS / 1000 - 1, txHash: OLD_TX })],
+      "a row from before the window",
+      confirm,
+      [row("CONFIRMATION_RECORDED", CALLER, { timestamp: SINCE_MS / 1000 - 1, txHash: OLD_TX })],
       "absent",
     ],
   ])("reads %s", async (_case, job, rows, status) => {
