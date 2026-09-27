@@ -8,11 +8,17 @@
  * instead of sending it again, and Discard reads the same record, so an act
  * whose transaction may still land is neither dropped nor repeated.
  *
+ * The record says a send may be out; the send's lock says whether a tab still
+ * holds it. A tab the OS froze keeps its locks and a closed one gives them up,
+ * so a lost send is offered again only once no tab's wallet prompt can still
+ * send it.
+ *
  * @module modules/job-queue/commitment-send-record
  */
 
 import type { Hex } from "viem";
 import type { Job } from "../../types/job-queue";
+import { logger } from "../app/logger";
 import type { ContractCall, TransactionSender } from "../transactions/types";
 import { sendWithCheckpoint, settleRecordedSend } from "../work/send-with-checkpoint";
 import { settleStrandedCommitmentIntent, StrandedSendReopened } from "../work/stranded-intent";
@@ -29,6 +35,45 @@ import type {
   CommitmentQueueExecutorDeps,
 } from "./job-executors";
 import { sendCheckpointOf, writeSendCheckpoint } from "./queue-policy";
+
+/** Held from just before an act's send until its answer, per job and across tabs. */
+const SEND_LOCK_PREFIX = "green-goods:queue-send:";
+
+/** The origin's Web Locks, where the browser provides them. */
+function sendLocks(): LockManager | undefined {
+  return typeof navigator === "undefined" ? undefined : navigator.locks;
+}
+
+/**
+ * Run an act's send while holding its lock. A lock another tab holds means
+ * that tab is mid-send, perhaps frozen with its prompt open, so the act is
+ * left to it: the queue skips a job whose ownership changed.
+ */
+async function holdingSend<T>(jobId: string, send: () => Promise<T>): Promise<T> {
+  const locks = sendLocks();
+  if (!locks) return send();
+  return locks.request(SEND_LOCK_PREFIX + jobId, { ifAvailable: true }, async (lock) => {
+    if (!lock) throw new Error("submission-ownership-changed");
+    return send();
+  });
+}
+
+/**
+ * Whether a tab still holds this act's send: its wallet prompt may yet send it.
+ * When the locks cannot say, the act keeps waiting rather than risk a second send.
+ */
+async function stillSending(jobId: string): Promise<boolean> {
+  try {
+    const { held = [] } = (await sendLocks()?.query()) ?? {};
+    return held.some((lock) => lock.name === SEND_LOCK_PREFIX + jobId);
+  } catch (error) {
+    logger.warn("[JobQueue] Could not read which tabs hold a commitment act's send", {
+      jobId,
+      error,
+    });
+    return true;
+  }
+}
 
 /** A send on record waits for its confirmation; a reopened one waits for the person. */
 export function waitingForRecordedSend(error: unknown): CommitmentQueueExecution | undefined {
@@ -60,15 +105,17 @@ export async function sendRecordedAct(
   sender: TransactionSender,
   store: CommitmentExecutorStore
 ): Promise<Hex> {
-  const result = await sendWithCheckpoint({
-    sender,
-    call,
-    jobIds: [jobId],
-    record: async (next) => {
-      writeSendCheckpoint(job, next(sendCheckpointOf(job) ?? {}));
-      await store.updateJob(job);
-    },
-  });
+  const result = await holdingSend(jobId, () =>
+    sendWithCheckpoint({
+      sender,
+      call,
+      jobIds: [jobId],
+      record: async (next) => {
+        writeSendCheckpoint(job, next(sendCheckpointOf(job) ?? {}));
+        await store.updateJob(job);
+      },
+    })
+  );
   switch (result.status) {
     case "sent":
       if (result.confirmation === "pending") throw new AwaitingWorkConfirmation(result.hash);
@@ -91,7 +138,8 @@ export async function sendRecordedAct(
 /**
  * Settle an act whose send is on record instead of sending it again: by its
  * receipt, its UserOperation, or, when the answer was lost, by what the chain
- * recorded once the stranded-intent window has passed.
+ * recorded once the stranded-intent window has passed. A transaction no
+ * receipt answers, such as a Safe's own id, completes when the act lands.
  */
 export async function settleActSend(
   jobId: string,
@@ -109,6 +157,7 @@ export async function settleActSend(
         lookUp: createCommitmentLandedLookup({
           readWorkLinkPayloadHash: chainReads.readWorkLinkPayloadHash,
         }),
+        stillSending: () => stillSending(jobId),
         persist: (updated) => store.updateJob(updated),
       }));
   try {
@@ -120,6 +169,7 @@ export async function settleActSend(
       reconcile: deps.reconcile,
       clear: () => clearActSendRecord(job, store),
       settleStranded: (pendingHash) => settleStranded(job, chainId, pendingHash),
+      settleUnanswered: (transactionHash) => settleStranded(job, chainId, transactionHash),
     });
     forgetWorkBroadcast(jobId);
     return { status: "complete", txHash };

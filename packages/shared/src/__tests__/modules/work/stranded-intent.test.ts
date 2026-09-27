@@ -24,6 +24,7 @@ import {
   rememberWorkBroadcast,
   retainedWorkBroadcast,
 } from "../../../modules/work/work-confirmation";
+import { hasRecordedSend } from "../../../modules/job-queue/queue-policy";
 
 const NOW = Date.parse("2026-09-16T12:00:00Z");
 const GARDEN = "0x2222222222222222222222222222222222222222";
@@ -361,7 +362,7 @@ describe("settling a send no receipt can", () => {
 });
 
 describe("settling a commitment act no receipt can", () => {
-  function strandedTakeUp(broadcastPendingAt: string): Job {
+  function strandedTakeUp(broadcastPendingAt: string, record: object = {}): Job {
     sequence += 1;
     return {
       id: `take-up-${sequence}`,
@@ -376,10 +377,11 @@ describe("settling a commitment act no receipt can", () => {
         kind: 1,
         gardenContext: GARDEN,
         gardenAddress: GARDEN,
-        sendCheckpoint: { broadcastPending: true, broadcastPendingAt },
+        sendCheckpoint: { broadcastPending: true, broadcastPendingAt, ...record },
       },
     } as Job;
   }
+  const pastGrace = () => new Date(NOW - STRANDED_INTENT_GRACE_MS - 60_000).toISOString();
 
   it("completes a take-up the chain shows landed, and asks with the act and its window", async () => {
     const act = strandedTakeUp(minutesAgo(10));
@@ -409,5 +411,48 @@ describe("settling a commitment act no receipt can", () => {
     expect((old.payload as { sendCheckpoint?: unknown }).sendCheckpoint).toBeUndefined();
     expect(old.meta?.requiresExplicitSend).toBe(true);
     expect(persist).toHaveBeenCalledWith(old);
+  });
+
+  it("completes a transaction no receipt answers once the act lands, and never reopens it", async () => {
+    // A Safe's own transaction id never produces a receipt, and the Safe may
+    // still be collecting signatures, so only the act's landing settles it.
+    const safeId = `0x${"5a".repeat(20)}` as const;
+    const record = { broadcastPending: false, transactionHash: safeId };
+    const absent = vi.fn().mockResolvedValue({ status: "absent" });
+    const unanswered = strandedTakeUp(pastGrace(), record);
+    await expect(
+      resolveStrandedCommitmentIntent(unanswered, 42161, { ...deps(absent), lookUp: absent })
+    ).resolves.toEqual({ status: "waiting" });
+    expect((unanswered.payload as { sendCheckpoint?: object }).sendCheckpoint).toMatchObject(
+      record
+    );
+
+    const found = vi.fn().mockResolvedValue({ status: "found", transactionHash: TX });
+    const executed = strandedTakeUp(pastGrace(), record);
+    await expect(
+      resolveStrandedCommitmentIntent(executed, 42161, { ...deps(found), lookUp: found })
+    ).resolves.toEqual({ status: "landed", transactionHash: TX });
+  });
+
+  it("keeps an act waiting while another tab still holds its send, since that prompt may yet go out", async () => {
+    const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
+    const held = strandedTakeUp(pastGrace());
+    await expect(
+      resolveStrandedCommitmentIntent(held, 42161, {
+        ...deps(lookUp),
+        lookUp,
+        stillSending: async () => true,
+      })
+    ).resolves.toEqual({ status: "waiting" });
+    expect(hasRecordedSend(held)).toBe(true);
+
+    const released = strandedTakeUp(pastGrace());
+    await expect(
+      resolveStrandedCommitmentIntent(released, 42161, {
+        ...deps(lookUp),
+        lookUp,
+        stillSending: async () => false,
+      })
+    ).resolves.toEqual({ status: "reopened" });
   });
 });

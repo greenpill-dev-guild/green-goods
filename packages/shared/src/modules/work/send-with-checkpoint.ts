@@ -139,7 +139,8 @@ export async function sendWithCheckpoint({
  * its receipt, a UserOperation through the sender's own reconcile, and an
  * intent no receipt can answer through the caller's `settleStranded`. A revert
  * clears the record through `clear`, so the call may be sent again; a send
- * still on its way throws `AwaitingWorkConfirmation`.
+ * still on its way throws `AwaitingWorkConfirmation`. A transaction no receipt
+ * answers is waited on, unless the caller settles it by `settleUnanswered`.
  */
 export async function settleRecordedSend(input: {
   jobId: string;
@@ -151,6 +152,12 @@ export async function settleRecordedSend(input: {
   clear: () => Promise<void>;
   /** The transaction that landed, or a waiting or reopened error. */
   settleStranded: (pendingHash: Hex) => Promise<Hex>;
+  /**
+   * The transaction that landed, for a transaction no receipt answers (a
+   * Safe's own id never produces one), or a waiting error. It must never
+   * reopen the send: the Safe may still be collecting signatures.
+   */
+  settleUnanswered?: (transactionHash: Hex) => Promise<Hex>;
 }): Promise<Hex> {
   const { checkpoint, jobId } = input;
   const broadcast = checkpoint?.broadcast ?? retainedWorkBroadcastReference(jobId);
@@ -172,7 +179,10 @@ export async function settleRecordedSend(input: {
     await input.clear();
     throw new TransactionRevertedError(revertedHash);
   }
-  // A transaction hash may be a Safe transaction still collecting signatures.
-  if (transactionHash) throw new AwaitingWorkConfirmation(transactionHash);
+  if (transactionHash) {
+    // A transaction hash may be a Safe transaction still collecting signatures.
+    if (!input.settleUnanswered) throw new AwaitingWorkConfirmation(transactionHash);
+    return input.settleUnanswered(transactionHash);
+  }
   return input.settleStranded(broadcast?.hash ?? "0x");
 }

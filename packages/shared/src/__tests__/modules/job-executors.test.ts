@@ -852,6 +852,8 @@ describe("commitment acts record their sends", () => {
     ["confirmation", { action: "confirm", commitmentId: 7n, gardenAddress: GARDEN }],
   ])("settles a recorded %s by receipt, by UserOperation or from the chain, never sending again", async (kind, payload) => {
     const operation = `0x${"cd".repeat(32)}` as const;
+    // A Safe's own transaction id: no receipt ever answers it.
+    const safeId = `0x${"5a".repeat(20)}` as const;
     const sender = createMockTransactionSender({ authMode: "passkey" });
     sender.reconcileBroadcast = vi
       .fn()
@@ -867,16 +869,17 @@ describe("commitment acts record their sends", () => {
       broadcastPending: true,
       broadcastPendingAt: new Date(0).toISOString(),
     });
+    const unanswered = recorded("unanswered", { broadcastPending: false, transactionHash: safeId });
     const settleStrandedIntent = vi.fn().mockResolvedValue(HASH);
     const deps = {
       demoActive: () => false,
       reads: reads(),
       store: store(),
-      reconcile: vi.fn().mockResolvedValue("confirmed"),
+      reconcile: vi.fn(async (hash: string) => (hash === HASH ? "confirmed" : "unresolved")),
       settleStrandedIntent,
     };
 
-    for (const act of [byReceipt, byOperation, stranded]) {
+    for (const act of [byReceipt, byOperation, stranded, unanswered]) {
       await expect(executeCommitmentQueueJob(act.id, act, 42161, sender, deps)).resolves.toEqual({
         status: "complete",
         txHash: HASH,
@@ -885,7 +888,64 @@ describe("commitment acts record their sends", () => {
     expect(deps.reconcile).toHaveBeenCalledWith(HASH, 42161);
     expect(sender.reconcileBroadcast).toHaveBeenCalledOnce();
     expect(settleStrandedIntent).toHaveBeenCalledWith(stranded, 42161, "0x");
+    // Settled by the act's landing on chain, under the id the wallet gave.
+    expect(settleStrandedIntent).toHaveBeenCalledWith(unanswered, 42161, safeId);
     expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("holds its send while the prompt is open, and leaves an act to a tab still holding one", async () => {
+    // A tab the OS froze keeps its locks and a closed one gives them up, so
+    // another tab can tell a wallet prompt that may still send. The origin's
+    // locks are stood in for, since a test worker's own may be missing.
+    const lockName = (id: string) => `green-goods:queue-send:${id}`;
+    const held = new Set<string>();
+    vi.stubGlobal("navigator", {
+      locks: {
+        request: async (
+          name: string,
+          options: { ifAvailable?: boolean },
+          granted: (lock: { name: string } | null) => Promise<unknown>
+        ) => {
+          if (options.ifAvailable && held.has(name)) return granted(null);
+          held.add(name);
+          try {
+            return await granted({ name });
+          } finally {
+            held.delete(name);
+          }
+        },
+        query: async () => ({ held: [...held].map((name) => ({ name })) }),
+      },
+    });
+    const heldDuringSend: string[] = [];
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      heldDuringSend.push(...held);
+      await options?.onBroadcast?.(HASH);
+      return { hash: HASH, sponsored: false };
+    });
+    const deps = { demoActive: () => false, reads: reads(), store: store() };
+
+    try {
+      const sent = takeUp("claim-holds-lock");
+      await expect(executeCommitmentQueueJob(sent.id, sent, 42161, sender, deps)).resolves.toEqual({
+        status: "complete",
+        txHash: HASH,
+      });
+      expect(heldDuringSend).toEqual([lockName(sent.id)]);
+      expect(held.size).toBe(0);
+
+      const elsewhere = takeUp("claim-held-elsewhere");
+      held.add(lockName(elsewhere.id));
+      await expect(
+        executeCommitmentQueueJob(elsewhere.id, elsewhere, 42161, sender, deps)
+      ).rejects.toThrow("submission-ownership-changed");
+      expect(sender.sendContractCall).toHaveBeenCalledOnce();
+      expect(hasRecordedSend(elsewhere)).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("clears the intent when the person declines, so the take-up can still be dropped", async () => {

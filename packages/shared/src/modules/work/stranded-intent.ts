@@ -7,7 +7,9 @@
  * person's own attestations can settle it: landed work carries its client work
  * id in its metadata, and a landed decision names the work it decides. A
  * commitment act is settled by a lookup its executor supplies, which reads the
- * pool's event log and the module's own records.
+ * pool's event log and the module's own records. That lookup also settles an
+ * act whose transaction no receipt answers, such as a Safe's own id, but only
+ * by its landing: such a send is never reopened.
  *
  * @module modules/work/stranded-intent
  */
@@ -138,8 +140,10 @@ async function resolveStrandedSend(send: {
   checkpoint: SendCheckpoint;
   now: number;
   lookUp: (sinceMs: number) => Promise<LookupResult>;
-  /** Clears the intent so the job may be sent again. */
-  reopen: () => void;
+  /** Clears the intent so the job may be sent again. Absent, nothing reopens the send. */
+  reopen?: () => void;
+  /** Whether a tab still holds the send, so its wallet prompt may yet send it. */
+  stillSending?: () => Promise<boolean>;
   persist: () => Promise<void>;
 }): Promise<StrandedIntentResolution> {
   const { checkpoint, jobId, now } = send;
@@ -171,6 +175,8 @@ async function resolveStrandedSend(send: {
     return { status: "landed", transactionHash: lookup.transactionHash };
   }
   if (lookup.status === "unknown" || age < STRANDED_INTENT_GRACE_MS) return { status: "waiting" };
+  // A prompt still open in a tab the OS froze can send after any window.
+  if (!send.reopen || (await send.stillSending?.())) return { status: "waiting" };
 
   // Still absent well after the send: nothing landed, so the job may be sent again.
   send.reopen();
@@ -258,11 +264,17 @@ export async function resolveStrandedCommitmentIntent(
   chainId: number,
   deps: Partial<Omit<StrandedIntentDependencies<StrandedCommitmentLookup, unknown>, "lookUp">> & {
     lookUp: StrandedCommitmentLookup;
+    /** Whether a tab still holds the act's send: its prompt may yet send it. */
+    stillSending?: () => Promise<boolean>;
   }
 ): Promise<StrandedIntentResolution> {
   const payload = job.payload as CommitmentPayloadWithRecord;
   const checkpoint = payload.sendCheckpoint;
-  if (!checkpoint || !isStrandedIntentCandidate(checkpoint)) return { status: "waiting" };
+  // A transaction no receipt answers is looked up as well, since a Safe's own
+  // id never produces one. Its landing completes the act; its absence never
+  // reopens it, because the Safe may still be collecting signatures.
+  const reopenable = isStrandedIntentCandidate(checkpoint);
+  if (!checkpoint || (!reopenable && !checkpoint.transactionHash)) return { status: "waiting" };
   const persist = deps.persist ?? persistJob;
   return resolveStrandedSend({
     jobId: job.id,
@@ -272,10 +284,13 @@ export async function resolveStrandedCommitmentIntent(
     lookUp: (sinceMs) => deps.lookUp({ job, chainId, sinceMs }),
     // A reopened act waits for the person's Send Now: the commitment may have
     // moved on while its send was lost, so nothing sends it on its own.
-    reopen: () => {
-      delete payload.sendCheckpoint;
-      job.meta = { ...job.meta, requiresExplicitSend: true };
-    },
+    reopen: reopenable
+      ? () => {
+          delete payload.sendCheckpoint;
+          job.meta = { ...job.meta, requiresExplicitSend: true };
+        }
+      : undefined,
+    stillSending: deps.stillSending,
     persist: () => persist(job),
   });
 }
