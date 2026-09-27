@@ -635,7 +635,7 @@
     "w3a_members_act": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "fix/commitment-take-up-membership",
       "depends_on": [],
       "handoff": "handoffs/w3a-members-act-everyone-reads.md",
@@ -649,7 +649,7 @@
     "w3b_commitment_screen_chrome": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "branch": null,
       "depends_on": ["w3a_members_act"],
       "handoff": "handoffs/w3b-commitment-screen-chrome.md",
@@ -658,8 +658,7 @@
         "issue": "PRD-991",
         "parentIssue": "PRD-650"
       },
-      "linear_issues": ["PRD-991", "PRD-650"],
-      "blocked_reason": "Waits for W3-A (w3a_members_act) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+      "linear_issues": ["PRD-991", "PRD-650"]
     },
     "w3c_seed_wizard_questions": {
       "machine_lane": "ui",
@@ -720,6 +719,21 @@
       },
       "linear_issues": ["PRD-995", "PRD-650"],
       "blocked_reason": "Waits for W3-E (w3e_account_sessions) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+    },
+    "w3g_commitment_send_record": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["w3f_inspector_story_and_names"],
+      "handoff": "handoffs/w3g-commitment-acts-record-their-sends.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-996",
+        "parentIssue": "PRD-650"
+      },
+      "linear_issues": ["PRD-996", "PRD-650"],
+      "blocked_reason": "Waits for W3-F (w3f_inspector_story_and_names) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 rows 47 and 48)"
     }
   },
   "follow_on": {
@@ -1528,6 +1542,14 @@
       "status": "tdd_recorded",
       "branch": "feature/commitment-pooling-client-loop",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-27T01:22:06.000Z",
+      "actor": "claude",
+      "lane": "w3a_members_act",
+      "status": "passed",
+      "branch": "fix/commitment-take-up-membership",
+      "note": "W3-A merged in #921 as 4615608d9 (tree identical to the tested head dfc08fa85; critical push gate and CI Gate green); authenticated wallet walk pending. W3-B ready. W3-G added for N41 with Linear child PRD-996 (§ 1 row 48); N42 and N43 recorded in § 4c"
     }
   ]
 }

@@ -66,6 +66,7 @@ Decided with Afo on 2026-09-20 over four question rounds.
 | 45 | The work flow keeps action, then garden, then commitment. The control becomes picker cards and the commitment-first door is made visible; the work-under-commitment abstraction waits for the first real season (decision 10). | Afo likes the current order; the native select and the hidden deep link are the friction. |
 | 46 | Six first-run prompts stand for 2.0.0 with the count shown before signing. After it, fix the EIP-5792 adapter defects recorded in § 7 first, then plan a module-side set-up entry (decision 11). The rehearsal wallet was Rabby; whether it reported batching support is checked in the solo reproduction. | A contract change does not fit the window, and the adapter path may already be the fix for a capable wallet. |
 | 47 | Process for the rehearsal follow-ups: six PRs before the 2 October cut, W3-A to W3-F, each from a fresh `origin/develop` after the previous one merges, with a Linear child under PRD-989. W3-B and W3-C wait for Afo's yes on rendered pairs at 1280 and 375, light and dark; the others merge on green CI and resolved bot reviews. PR #919 merged as the review's record. | The cockpit's protocol worked; visual-rule changes are seen rendered before they roll out. |
+| 48 | W3-A merged on 26 September without the send-record change. Commitment acts adopt the queue's send record as W3-G, a seventh PR before the 2 October cut (N41; Afo, 26 September). | A send record touches every commitment act kind and the queue's settle path, which is its own piece of work; until W3-G lands, the queued-act row offers Discard after a send that may have broadcast. |
 
 Decision 33 closed differently from its planned rebase: PRs #873–#892 merged as one stack into
 `develop` at `2596642cb9bd04ceba2f4f4db2865a04f0eee2b7`. The post-stack corrections are
@@ -141,7 +142,7 @@ Each line was checked against the source or the chain in this session.
 | A QA plan Afo can run on a call | § 6 | Written; authenticated rehearsal pending |
 | Issues come back to an AI session and get fixed | § 6.5, § 6.6 | Process written; first run pending |
 | Payouts can be recorded; a season can end | § 6.6 fix-window builds | End and Archive merged; external-payout recording remains a gap (§ 7) |
-| Fix what the rehearsal found | § 4c accepted queue W3-A to W3-F; W4 after 2.0.0 | Decisions taken 2026-09-26 (§ 1 rows 36–47); W3-A in progress, W3-B to W3-F queued; N1 and the wallet sign-out reproduce in the solo Stage A gate |
+| Fix what the rehearsal found | § 4c accepted queue W3-A to W3-G; W4 after 2.0.0 | Decisions taken 2026-09-26 (§ 1 rows 36–48); W3-A merged in #921, W3-B to W3-G queued; N1 and the wallet sign-out reproduce in the solo Stage A gate |
 
 ### Rehearsal ledger (Afo-owned; no wallet result recorded here)
 
@@ -1234,6 +1235,29 @@ Three findings sit beside `steward-cockpit-ux` work on the same patterns: N19 be
 Case), N30 beside D11 (a control disabled with no reason), and N26 beside D24 and D25 (Storybook
 coverage). At `e06b92ed0` the pooling instances are still open.
 
+#### W3-A review (2026-09-26)
+
+- **P1**
+  - N41: A commitment act (a take-up, a proof, a work link, a confirmation) keeps no record of its
+    send. When the wallet broadcasts and the receipt wait then fails, the queue cannot tell the act
+    from one that never left, so the queued-act row offers Discard and deleting it drops the only
+    local record of a transaction that may still land. A send in a tab the browser freezes can
+    lose its execution claim the same way. Work and decisions record each send through
+    `sendWithCheckpoint` and settle it later; the commitment executor calls the sender directly,
+    and only the creations, work links and proofs read the chain before sending (row 48).
+  - N42: On the protocol pool the claim-context lists leave the host garden out of both lists, but
+    the contract refuses the host only as a garden-claim context (`GardenClaimMustBeExternal`). A
+    personal claim accepts membership in any supplied garden, the host included
+    (`AcceptanceLib.resolveClaimant`), so a reader whose only garden is the host sees Find a Garden
+    and cannot take up. The exclusion predates W3-A on develop.
+- **P2**
+  - N43: The protocol pool's claim contexts come from the indexed rosters and the join overlay
+    only; W3-A's chain read covers the route garden. A role revoked elsewhere stays selectable
+    until the indexer catches up, and the queued claim then fails the contract's check; a role a
+    steward just granted stays hidden until then.
+
+All three came from the bot reviews of PR #921 (CodeRabbit and Codex).
+
 ### Structural questions
 
 - **S1, many of the same thing.** Folding rows into one card is a read-side change that covers
@@ -1261,7 +1285,7 @@ All eleven were taken with Afo on 2026-09-26: hidden gardens (row 36), the What 
 (38), the split (39), the community and funder shares (40), non-members read and members act (41),
 what "member" means to the app (42), wallet-mode queued acts (43), what resets when the account
 changes (44), commitments in the work flow (45), and six first-run prompts (46). Row 47 records the
-process.
+process. Row 48 records the send-record lane.
 
 ### Accepted queue
 
@@ -1272,12 +1296,15 @@ name the files, steps, tests and commands.
 
 | PR | Covers | Handoff | Class | Status |
 |---|---|---|---|---|
-| W3-A Members act, everyone reads | N37, N38, N35 (queue half) | [handoff](handoffs/w3a-members-act-everyone-reads.md) | Critical | In progress on `fix/commitment-take-up-membership` |
+| W3-A Members act, everyone reads | N37, N38, N35 (queue half) | [handoff](handoffs/w3a-members-act-everyone-reads.md) | Critical | Merged in #921 (`4615608d9`); the authenticated wallet walk stays pending for the recorded call |
 | W3-B The commitment screen keeps its chrome | N39, N40, N9, N10, N5 (app row), N23 | [handoff](handoffs/w3b-commitment-screen-chrome.md) | Sensitive; pairs before merge | Queued |
 | W3-C The seed wizard asks what a steward can answer | N8, N4, N12, N6, N11, N5 (admin row and tray), N30 | [handoff](handoffs/w3c-seed-wizard-questions.md) | Sensitive; pairs before merge | Queued |
 | W3-D Unlisted, not unreachable | N2 | [handoff](handoffs/w3d-unlisted-gardens-reachable.md) | Sensitive | Queued |
 | W3-E Sessions: one account at a time | N36; N35 (sign-out half) only if reproduced | [handoff](handoffs/w3e-account-sessions.md) | Critical | Queued |
 | W3-F The inspector renders; people have names | N26, N17; the client composite stories if time allows | [handoff](handoffs/w3f-inspector-story-and-names.md) | Routine | Queued |
+| W3-G Commitment acts record their sends | N41 | [handoff](handoffs/w3g-commitment-acts-record-their-sends.md) | Critical | Queued |
+
+N42 and N43, found in W3-A's review, predate W3-A on develop and wait for Afo's call on where they land.
 
 Two reproductions ride the solo Stage A gate before the recorded call, not the call itself
 (§ 6.2): N1 (which dialog, whether Tab moves focus, the body's computed `pointer-events`, a second
