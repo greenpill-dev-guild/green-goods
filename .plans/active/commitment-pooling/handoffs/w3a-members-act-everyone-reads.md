@@ -157,7 +157,9 @@ only after the solo reproduction confirms it.
   roster, because a six-role chain read for every garden is out of proportion.
 - Residual: the lease renews on a timer, so a tab the browser freezes, or throttles to one timer a
   minute, can still let it lapse; the in-tab claim still blocks a discard from the same tab. The
-  work upload's hold has the same limit.
+  work upload's hold has the same limit. W3-G closes it for commitment acts: the send's intent is
+  on the stored job before the prompt, so a lapsed claim lets another tab neither drop nor resend
+  the act.
 - The `shared-job-queue-construction` seam is re-certified after its three proof files passed.
 
 ## Review round 4 (PR #921, 2026-09-26)
@@ -243,7 +245,8 @@ resolved. Then the sub-lane moves to `completed` and the Linear child to Done.
 - Exact command(s): the pre-push hook's `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts`; before it, `bun run test -- src/__tests__/modules/job-queue.seam.test.ts src/__tests__/modules/job-queue.db.test.ts src/__tests__/modules/job-queue.imports.test.ts src/__tests__/modules/job-queue.claim-hold.test.ts` in `packages/shared`, and `bun run typecheck` and `bun run test` in `packages/client`
 - Result: push gate, critical plan over 50 changed paths, "Automated checks passed" on all 30 checks (format, lint, validation-system-test, test-quality, the typecheck, test and build checks for shared, client, admin and agent, docs-authority, docs-test, docs-build, staged-modules, source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, agent-tools-test); `browser-proof` pending (advisory). The seam's three proof files and the claim-hold test: 38 passed. Client typecheck exit 0; client suite 1,412 passed in 143 files. GitHub CI on `dfc08fa85`: CI Gate passed, no job failed.
 - Validated paths: every path PR #921 changed, `git diff --name-only e5bf40de0 dfc08fa85` (50 paths)
-- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all` → empty after the last commit and before the push
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- $(git diff --name-only e5bf40de0 dfc08fa85)` → empty at `dfc08fa85`, after the last commit and before the push; the unscoped status was empty too
+- Evidence-only diff command and result (if applicable): `git diff --exit-code dfc08fa85 4615608d9 -- $(git diff --name-only e5bf40de0 dfc08fa85)` → exit 0, so the merged commit carries the tested tree on every validated path (run 2026-09-27 UTC)
 - Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, light: `client-commitments-jointoact--open-to-join`, `--steward-lets-you-in`, `--protocol-pool`; `client-commitments-queuedactrow--waiting-for-membership`, `--proof-already-broadcast`. Labelled Storybook; no mock-auth localhost run and no authenticated wallet proof, which stays pending for the recorded call.
 
 An earlier receipt at `d5bc36434` (22:57 UTC, sensitive plan) covered the first push; review rounds 1 to 3 changed the tree after it.

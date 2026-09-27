@@ -25,8 +25,9 @@ holds a role there. A garden claim still may not.
   garden claim that names the host. A personal claim needs `isGardenMember(gardenContext,
   msg.sender)` in any garden, the host included, and then `requirePricedOfferClaimAuthority`, which
   adds no host rule.
-- On a protocol pool the route garden is the host, so W3-A's chain read (`useGardenMembership` for
-  the route) already answers the reader's role in the host.
+- The route garden is not always the host. A protocol commitment opens through any garden's route
+  (`GardenCommitment.test.tsx` covers a member's garden), and W3-A's chain read
+  (`useGardenMembership`) answers for the route, so it cannot stand in for the host.
 - `useGardenCommitmentController` takes `canClaimHere` on a protocol pool from whether either list
   has an entry, so a reader whose only garden is the host sees Find a Garden.
 - `CommitmentClaims.tsx` hands `claimGardens.member` and `claimGardens.stewarded` to
@@ -35,8 +36,9 @@ holds a role there. A garden claim still may not.
 ## Steps
 
 1. **The lists.** Keep the host in `member` when the reader holds a role there, and keep it out of
-   `stewarded`. Take the host's answer from the route garden's chain read, with the join overlay,
-   the way `isMemberHere` does, so a revoked host role is not offered.
+   `stewarded`. Read the host's membership from chain for `pool.garden` itself, with its own
+   `useGardenMembership` call and the join overlay, the way `isMemberHere` does for the route, so a
+   revoked host role is not offered and a host-only member is not missed.
 2. **The comment.** Rewrite the roles hook's comment to say which claim the host is refused for.
 3. **The sheet.** Check that `ClaimContextSheet` reads well when the host is the only personal
    choice, and that a garden claim never lists it.
@@ -44,7 +46,8 @@ holds a role there. A garden claim still may not.
 ## Tests (RED first)
 
 - `useCommitmentViewerRoles`: a reader whose only role is in the host gets the host in `member` and
-  not in `stewarded`; a host steward gets the host in `member` only.
+  not in `stewarded`; a host steward gets the host in `member` only; with the commitment opened
+  through another garden's route, the host's answer still comes from the host's own read.
 - `useGardenCommitmentController`: a host-only member on the protocol pool gets `canClaimHere`
   true; a chain denial for the host takes it away.
 - A client test that the personal claim queues with the host as its garden context.

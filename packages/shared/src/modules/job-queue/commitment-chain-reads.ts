@@ -1,6 +1,16 @@
-import { readContract as wagmiReadContract, type Config } from "@wagmi/core";
-import { keccak256, toBytes, type Hex } from "viem";
+import {
+  getBlock as wagmiGetBlock,
+  getBytecode as wagmiGetBytecode,
+  getTransaction as wagmiGetTransaction,
+  getTransactionCount as wagmiGetTransactionCount,
+  getTransactionReceipt as wagmiGetTransactionReceipt,
+  readContract as wagmiReadContract,
+  simulateContract as wagmiSimulateContract,
+  type Config,
+} from "@wagmi/core";
+import { decodeEventLog, keccak256, toBytes, type Hex } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
+import { createPimlicoClientForChain } from "../../config/pimlico";
 import type { CommitmentJobExecutionDependencies } from "../commitment-pooling/jobs";
 import type { Address } from "../../types/domain";
 import { CommitmentPoolingModuleABI, GardenAccountABI } from "../../utils/blockchain/contracts";
@@ -18,12 +28,82 @@ export type CommitmentChainReads = Pick<
   | "readWorkLinkPayloadHash"
   | "readWorkLinkCommitmentState"
   | "hasMembership"
->;
+> & {
+  /**
+   * Runs an act's call without sending it. A wallet estimates inside its own
+   * send, after the queue records the intent, so a refusal found there would
+   * read as a send that may have gone out; asking first keeps it a refusal.
+   */
+  simulateSend?: (call: {
+    address: Address;
+    functionName: string;
+    args: readonly unknown[];
+    account: Address;
+    chainId: number;
+  }) => Promise<void>;
+  /**
+   * Whether this transaction's receipt holds the module's WorkLinked event for
+   * this link, made by this caller's operation key. The event carries the key,
+   * so it names the one link, where a row's time or position may not.
+   */
+  transactionMadeWorkLink?: (
+    transactionHash: Hex,
+    link: { commitmentId: bigint; workUID: Hex; operationKey: Hex; linker: Address }
+  ) => Promise<boolean>;
+  /**
+   * Whether the account has a transaction the network holds but has not mined:
+   * its pending nonce is ahead of its mined one. A send whose answer was lost
+   * after the network took it may be that transaction.
+   */
+  hasPendingTransaction?: (account: Address) => Promise<boolean>;
+  /** The nonce the account's next transaction would use, counting those the network holds. */
+  readNextNonce?: (account: Address) => Promise<number>;
+  /**
+   * Whether this transaction can never be included because another took its
+   * nonce: the account has no code, so the hash is a transaction it signed; the
+   * network no longer holds it; and the account's mined nonce has passed the
+   * one it was due to use. A Safe's id, or a send from any account with code,
+   * never reads as superseded.
+   */
+  transactionSuperseded?: (hash: Hex, account: Address, nonce: number) => Promise<boolean>;
+  /** The chain's latest block and its time, in seconds. */
+  readChainHead?: () => Promise<{ number: bigint; timestamp: number }>;
+  /**
+   * The block of this transaction when its receipt holds this take-up's own
+   * event, its request or its acceptance, matched whole; null otherwise.
+   */
+  transactionMadeClaim?: (
+    transactionHash: Hex,
+    claim: {
+      commitmentId: bigint;
+      claimant: Address;
+      requestedBy: Address;
+      kind: number;
+      gardenContext: Address;
+    }
+  ) => Promise<bigint | null>;
+  /**
+   * Whether the bundler may still land this UserOperation: every status but one
+   * it never held (`not_found`) or refused (`rejected`). A passkey send's
+   * pending state lives there, not in the account's nonce.
+   */
+  userOperationMayLand?: (hash: Hex) => Promise<boolean>;
+};
+
+const sameHex = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
 
 export interface CommitmentChainReadOptions {
   chainId: number;
   moduleAddress: Address;
   readContract?: typeof wagmiReadContract;
+  simulateContract?: typeof wagmiSimulateContract;
+  getBlock?: typeof wagmiGetBlock;
+  getBytecode?: typeof wagmiGetBytecode;
+  getTransaction?: typeof wagmiGetTransaction;
+  getTransactionCount?: typeof wagmiGetTransactionCount;
+  getTransactionReceipt?: typeof wagmiGetTransactionReceipt;
+  /** The bundler's status for a UserOperation; the default asks the chain's Pimlico bundler. */
+  getUserOperationStatus?: (hash: Hex) => Promise<{ status: string }>;
   config?: Config;
 }
 
@@ -31,6 +111,14 @@ export function createCommitmentChainReads({
   chainId,
   moduleAddress,
   readContract = wagmiReadContract,
+  simulateContract = wagmiSimulateContract,
+  getBlock = wagmiGetBlock,
+  getBytecode = wagmiGetBytecode,
+  getTransaction = wagmiGetTransaction,
+  getTransactionCount = wagmiGetTransactionCount,
+  getTransactionReceipt = wagmiGetTransactionReceipt,
+  getUserOperationStatus = (hash) =>
+    createPimlicoClientForChain(chainId).getUserOperationStatus({ hash }),
   config,
 }: CommitmentChainReadOptions): CommitmentChainReads {
   const wagmiConfig = config ?? getWagmiConfig();
@@ -108,6 +196,111 @@ export function createCommitmentChainReads({
         chainId,
       })) as { state: number; contributorsFrozen: boolean };
       return { state: value.state, contributorsFrozen: value.contributorsFrozen };
+    },
+    simulateSend: async (call) => {
+      await simulateContract(wagmiConfig, {
+        address: call.address,
+        abi: CommitmentPoolingModuleABI,
+        functionName: call.functionName,
+        args: call.args,
+        account: call.account,
+        chainId: call.chainId,
+      } as Parameters<typeof wagmiSimulateContract>[1]);
+    },
+    transactionMadeWorkLink: async (transactionHash, link) => {
+      const receipt = await getTransactionReceipt(wagmiConfig, { hash: transactionHash, chainId });
+      if (receipt.status !== "success") return false;
+      return receipt.logs.some((log) => {
+        if (!sameHex(log.address, moduleAddress)) return false;
+        try {
+          const event = decodeEventLog({
+            abi: CommitmentPoolingModuleABI,
+            data: log.data,
+            topics: log.topics,
+          });
+          if (event.eventName !== "WorkLinked") return false;
+          const args = event.args as unknown as {
+            commitmentId: bigint;
+            workUID: Hex;
+            operationKey: Hex;
+            linker: Address;
+          };
+          return (
+            args.commitmentId === link.commitmentId &&
+            sameHex(args.workUID, link.workUID) &&
+            sameHex(args.operationKey, link.operationKey) &&
+            sameHex(args.linker, link.linker)
+          );
+        } catch {
+          // Another event, or one this ABI cannot read: not this link.
+          return false;
+        }
+      });
+    },
+    readChainHead: async () => {
+      const head = await getBlock(wagmiConfig, { chainId });
+      return { number: head.number, timestamp: Number(head.timestamp) };
+    },
+    transactionMadeClaim: async (transactionHash, claim) => {
+      const receipt = await getTransactionReceipt(wagmiConfig, { hash: transactionHash, chainId });
+      if (receipt.status !== "success") return null;
+      const madeIt = receipt.logs.some((log) => {
+        if (!sameHex(log.address, moduleAddress)) return false;
+        try {
+          const event = decodeEventLog({
+            abi: CommitmentPoolingModuleABI,
+            data: log.data,
+            topics: log.topics,
+          });
+          const args = event.args as unknown as {
+            commitmentId: bigint;
+            claimant: Address;
+            requestedBy?: Address;
+            kind: number;
+            gardenContext: Address;
+          };
+          const sameClaim =
+            args.commitmentId === claim.commitmentId &&
+            sameHex(args.claimant, claim.claimant) &&
+            Number(args.kind) === claim.kind &&
+            sameHex(args.gardenContext, claim.gardenContext);
+          if (event.eventName === "ClaimRequested")
+            return sameClaim && sameHex(args.requestedBy ?? "", claim.requestedBy);
+          return event.eventName === "CommitmentAccepted" && sameClaim;
+        } catch {
+          // Another event, or one this ABI cannot read: not this take-up.
+          return false;
+        }
+      });
+      return madeIt ? receipt.blockNumber : null;
+    },
+    userOperationMayLand: async (hash) => {
+      const { status } = await getUserOperationStatus(hash);
+      return status !== "not_found" && status !== "rejected";
+    },
+    hasPendingTransaction: async (account) => {
+      const [pending, mined] = await Promise.all([
+        getTransactionCount(wagmiConfig, { address: account, blockTag: "pending", chainId }),
+        getTransactionCount(wagmiConfig, { address: account, blockTag: "latest", chainId }),
+      ]);
+      return pending > mined;
+    },
+    readNextNonce: (account) =>
+      getTransactionCount(wagmiConfig, { address: account, blockTag: "pending", chainId }),
+    transactionSuperseded: async (hash, account, nonce) => {
+      const [code, mined, held] = await Promise.all([
+        getBytecode(wagmiConfig, { address: account, chainId }),
+        getTransactionCount(wagmiConfig, { address: account, blockTag: "latest", chainId }),
+        getTransaction(wagmiConfig, { hash, chainId }).then(
+          () => true,
+          (error: unknown) => {
+            // Only the node's own "no such transaction" says it dropped this one.
+            if (error instanceof Error && error.name === "TransactionNotFoundError") return false;
+            throw error;
+          }
+        ),
+      ]);
+      return (!code || code === "0x") && !held && mined > nonce;
     },
     hasMembership: async (garden, account) => {
       const results = await Promise.all(

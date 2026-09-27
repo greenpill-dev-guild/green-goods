@@ -14,6 +14,7 @@ const claim: PendingCommitmentAct = {
 /**
  * An act taken on this phone that has not reached the chain, drawn where the act bar would be.
  * It names the act, says why it waits, and offers Send Now and, when the send never left, Discard.
+ * A send on record says it is waiting for the network and offers Check Again instead.
  */
 const meta: Meta<typeof QueuedActRow> = {
   title: "Client/Commitments/QueuedActRow",
@@ -40,9 +41,19 @@ export const WaitingForMembership: Story = {
 
 export const ProofAlreadyBroadcast: Story = {
   args: {
-    act: { ...claim, jobId: "job-evidence-1", kind: "evidence", discardable: false },
+    act: {
+      ...claim,
+      jobId: "job-evidence-1",
+      kind: "evidence",
+      waitingReason: "awaiting-confirmation",
+      discardable: false,
+    },
     onDiscard: null,
   },
+};
+
+export const NeverReachedTheNetwork: Story = {
+  args: { act: { ...claim, waitingReason: "send-intent-expired" } },
 };
 
 export const Sending: Story = {

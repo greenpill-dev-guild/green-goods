@@ -187,14 +187,16 @@ async function sendAndSettle(
  *   has already waited for the receipt.
  * - Waiting (no steady connection, membership still being read, work not indexed
  *   yet): it stays queued and is not an error, because the tap cannot settle it.
- * - Declined at the wallet: the send never left, so the job is dropped through
- *   the queue's own `discardJob` and the refusal is reported. The composers keep
- *   their own drafts, so nothing the person made is lost.
- * - Failed any other way: the job stays. A commitment job records no broadcast
- *   checkpoint, so a wallet that broadcast before the receipt timed out looks
- *   exactly like one that never sent, and dropping it would throw away the only
- *   record of a transaction that may still land. The queued row and the
- *   failed-act surface carry it from here, with Try Again.
+ * - Sent but not yet confirmed (the receipt wait failed, or the answer was lost):
+ *   the act's send is on record (`commitment-send-record`), so it waits as
+ *   `awaiting-confirmation`. No screen offers to drop it, and a later run
+ *   confirms it from the chain instead of sending it again.
+ * - Declined at the wallet: the send never left and its record is cleared, so
+ *   the job is dropped through the queue's own `discardJob` and the refusal is
+ *   reported. The composers keep their own drafts, so nothing the person made
+ *   is lost.
+ * - Failed any other way: the job stays. The queued row and the failed-act
+ *   surface carry it from here, with Try Again.
  */
 async function sendFromTap(
   jobId: string,
