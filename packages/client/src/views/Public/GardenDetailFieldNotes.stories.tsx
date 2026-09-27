@@ -14,6 +14,7 @@ const CHAIN_ID = 42161;
 const action: Action = {
   id: `${CHAIN_ID}-1`,
   slug: "waste.sorting_breakdown",
+  instructions: "ipfs://action-fixture",
   title: "Sorting & Breakdown",
   description: "Record sorted materials.",
   domain: Domain.WASTE,

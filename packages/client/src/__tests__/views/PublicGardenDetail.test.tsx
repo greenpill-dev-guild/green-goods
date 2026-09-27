@@ -293,7 +293,10 @@ describe("GardenDetail", () => {
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
     mockUsePublicGardenDetail.mockReturnValue(detailResult());
     mockUseHypercerts.mockReturnValue({ hypercerts: [], isLoading: false });
-    mockUseAction.mockReturnValue({ data: { inputs: [] }, refetch: vi.fn() });
+    mockUseAction.mockReturnValue({
+      data: { inputs: [], instructions: "ipfs://action-fixture" },
+      refetch: vi.fn(),
+    });
     // Pre-launch: no pool registered for this Garden.
     mockUsePublicGardenPool.mockReturnValue({
       data: {
@@ -454,6 +457,7 @@ describe("GardenDetail", () => {
     mockUseAction.mockReturnValue({
       data: {
         id: "42161-1",
+        instructions: "ipfs://action-fixture",
         title: "Planting",
         inputs: [
           { key: "seedlingsPlanted", title: "Seedlings Planted", options: [] },
@@ -499,6 +503,7 @@ describe("GardenDetail", () => {
     mockUseAction.mockReturnValue({
       data: {
         id: "42161-1",
+        instructions: "ipfs://action-fixture",
         title: "Waste Sorting",
         inputs: [
           {
@@ -576,7 +581,11 @@ describe("GardenDetail", () => {
     ["pending", { data: undefined, isPending: true, fetchStatus: "fetching" }],
     ["failed", { data: undefined, isError: true }],
     ["missing", { data: null }],
-    ["instruction fallback", { data: { inputs: [], instructionsFallback: true } }],
+    ["missing instructions", { data: { inputs: [] } }],
+    [
+      "instruction fallback",
+      { data: { inputs: [], instructions: "ipfs://action-fixture", instructionsFallback: true } },
+    ],
   ])("withholds untranslated action-specific values when lookup is %s", (_, query) => {
     const refetch = vi.fn();
     mockUseAction.mockReturnValue({ ...query, refetch });
@@ -608,6 +617,7 @@ describe("GardenDetail", () => {
   it("preserves numeric units in both top-level and repeater details", () => {
     mockUseAction.mockReturnValue({
       data: {
+        instructions: "ipfs://action-fixture",
         inputs: [
           { key: "amount", title: "Amount", type: "number", unit: "kg" },
           {

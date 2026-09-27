@@ -168,7 +168,7 @@ export function FieldNoteDialog({
   const { metadata, status: metadataStatus, retryFetch } = useWorkMetadata(note.metadata);
   const actionQuery = useAction(note.actionUID, chainId);
   const action = actionQuery.data;
-  const actionReady = Boolean(action && !action.instructionsFallback);
+  const actionReady = Boolean(action?.instructions && !action.instructionsFallback);
   const inputs = action ? localizeAction(action, intl.locale).inputs : [];
   // The viewer ships English defaults for every string it renders or announces.
   // The public site is translated, so it gets the whole set, not just the two
