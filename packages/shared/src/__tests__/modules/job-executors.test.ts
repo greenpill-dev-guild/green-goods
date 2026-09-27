@@ -893,12 +893,12 @@ describe("commitment acts record their sends", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
-  it("holds its send while the prompt is open, and leaves an act to a tab still holding one", async () => {
-    // A tab the OS froze keeps its locks and a closed one gives them up, so
-    // another tab can tell a wallet prompt that may still send. The origin's
-    // locks are stood in for, since a test worker's own may be missing.
-    const lockName = (id: string) => `green-goods:queue-send:${id}`;
-    const held = new Set<string>();
+  const lockName = (id: string) => `green-goods:queue-send:${id}`;
+  /**
+   * Stands in for the origin's Web Locks, since a test worker's own may be
+   * missing. A tab the OS froze keeps its locks and a closed one gives them up.
+   */
+  function stubLocks(held: Set<string>) {
     vi.stubGlobal("navigator", {
       locks: {
         request: async (
@@ -917,6 +917,11 @@ describe("commitment acts record their sends", () => {
         query: async () => ({ held: [...held].map((name) => ({ name })) }),
       },
     });
+  }
+
+  it("holds its send while the prompt is open, and leaves an act to a tab still holding one", async () => {
+    const held = new Set<string>();
+    stubLocks(held);
     const heldDuringSend: string[] = [];
     const sender = createMockTransactionSender({ authMode: "wallet" });
     vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
@@ -943,6 +948,52 @@ describe("commitment acts record their sends", () => {
       ).rejects.toThrow("submission-ownership-changed");
       expect(sender.sendContractCall).toHaveBeenCalledOnce();
       expect(hasRecordedSend(elsewhere)).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("offers a lost act again only when the browser's locks show no tab still holding its send", async () => {
+    // Long past the grace window, and the chain holds no sign of it.
+    const lost = (id: string) => {
+      const act = takeUp(id);
+      act.payload = {
+        ...act.payload,
+        sendCheckpoint: { broadcastPending: true, broadcastPendingAt: new Date(0).toISOString() },
+      } as typeof act.payload;
+      return act;
+    };
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const deps = {
+      demoActive: () => false,
+      reads: reads(),
+      store: store(),
+      lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
+    };
+    const settle = (act: ReturnType<typeof lost>) =>
+      executeCommitmentQueueJob(act.id, act, 42161, sender, deps);
+    const held = new Set<string>();
+
+    try {
+      // Without Web Locks nothing can say whether another tab's prompt is open.
+      vi.stubGlobal("navigator", {});
+      await expect(settle(lost("claim-no-locks"))).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+
+      stubLocks(held);
+      const holding = lost("claim-still-held");
+      held.add(lockName(holding.id));
+      await expect(settle(holding)).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+      await expect(settle(lost("claim-released"))).resolves.toEqual({
+        status: "waiting",
+        reason: "send-intent-expired",
+      });
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
     }

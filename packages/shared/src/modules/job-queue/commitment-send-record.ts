@@ -11,7 +11,8 @@
  * The record says a send may be out; the send's lock says whether a tab still
  * holds it. A tab the OS froze keeps its locks and a closed one gives them up,
  * so a lost send is offered again only once no tab's wallet prompt can still
- * send it.
+ * send it. A browser without Web Locks cannot say, so there it is never offered
+ * again: it completes when the chain shows it landed.
  *
  * @module modules/job-queue/commitment-send-record
  */
@@ -60,11 +61,14 @@ async function holdingSend<T>(jobId: string, send: () => Promise<T>): Promise<T>
 
 /**
  * Whether a tab still holds this act's send: its wallet prompt may yet send it.
- * When the locks cannot say, the act keeps waiting rather than risk a second send.
+ * When the locks cannot say, because the browser keeps none or the read
+ * failed, the act keeps waiting rather than risk a second send.
  */
 async function stillSending(jobId: string): Promise<boolean> {
+  const locks = sendLocks();
+  if (!locks) return true;
   try {
-    const { held = [] } = (await sendLocks()?.query()) ?? {};
+    const { held = [] } = await locks.query();
     return held.some((lock) => lock.name === SEND_LOCK_PREFIX + jobId);
   } catch (error) {
     logger.warn("[JobQueue] Could not read which tabs hold a commitment act's send", {
@@ -148,15 +152,17 @@ export async function settleActSend(
   sender: TransactionSender,
   store: CommitmentExecutorStore,
   chainReads: CommitmentChainReads,
-  deps: Pick<CommitmentQueueExecutorDeps, "reconcile" | "settleStrandedIntent">
+  deps: Pick<CommitmentQueueExecutorDeps, "reconcile" | "settleStrandedIntent" | "lookUpLanded">
 ): Promise<CommitmentQueueExecution> {
   const settleStranded =
     deps.settleStrandedIntent ??
     ((stranded: Job, strandedChain: number, pendingHash: Hex) =>
       settleStrandedCommitmentIntent(stranded, strandedChain, pendingHash, {
-        lookUp: createCommitmentLandedLookup({
-          readWorkLinkPayloadHash: chainReads.readWorkLinkPayloadHash,
-        }),
+        lookUp:
+          deps.lookUpLanded ??
+          createCommitmentLandedLookup({
+            readWorkLinkPayloadHash: chainReads.readWorkLinkPayloadHash,
+          }),
         stillSending: () => stillSending(jobId),
         persist: (updated) => store.updateJob(updated),
       }));

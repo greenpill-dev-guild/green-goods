@@ -7,7 +7,7 @@ import {
   forgetWorkBroadcast,
 } from "../work/work-confirmation";
 import { sendWithCheckpoint } from "../work/send-with-checkpoint";
-import { settleStrandedWorkIntent } from "../work/stranded-intent";
+import { settleStrandedWorkIntent, type StrandedCommitmentLookup } from "../work/stranded-intent";
 import { getEASConfig, type EASConfig } from "../../config/blockchain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { buildWorkAttestContractCall } from "../../utils/eas/transaction-builder";
@@ -82,6 +82,8 @@ export interface CommitmentQueueExecutorDeps {
   reconcile?: typeof reconcileWorkTransaction;
   /** Settles a lost send's intent from what the chain recorded; the default reads the pool's log. */
   settleStrandedIntent?: (job: Job, chainId: number, pendingHash: Hex) => Promise<Hex>;
+  /** What the default settle asks of the chain; the default reads the pool's log. */
+  lookUpLanded?: StrandedCommitmentLookup;
 }
 
 /**
