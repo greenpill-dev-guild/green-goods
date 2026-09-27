@@ -38,6 +38,7 @@ test("agent default and explicit paths preserve Node and SQLite lanes", () => {
   const sqlite = resolve("agent", "test", ["src/__tests__/storage.sqlite.test.ts"]);
   assert.equal(sqlite.steps.length, 1);
   assert.deepEqual(sqlite.steps[0], all.steps[1]);
+  assert.deepEqual(resolve("agent", "test", ["src/__tests__/reporting/report-flow.sqlite.test.ts"]).steps, [all.steps[1]]);
   assert.equal(resolve("agent", "test", ["--scope", "unit", "--coverage"]).steps[0].args[0], "scripts/run-coverage.mjs");
 });
 

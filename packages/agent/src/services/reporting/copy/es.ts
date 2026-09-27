@@ -1,0 +1,149 @@
+import type { ReportingCopyKey } from "./en";
+
+export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
+  "consent.notice":
+    "¡Hola! Soy el asistente de reportes de Green Goods, operado por WEFA. Para ayudarte a reportar el trabajo del huerto, guardo y leo los mensajes y archivos que envías aquí{processors}. Nada se hace público hasta que confirmes un reporte.\n\nEnvía STOP en cualquier momento para detenerme, DELETE para borrar tus datos no publicados o HELP para soporte ({support}).\n\n¿Estás de acuerdo?",
+  "consent.processors": " y puedo usar OpenAI y TypeSafe para entenderlos",
+  "consent.agree": "Acepto",
+  "consent.decline": "No, gracias",
+  "consent.declined":
+    "De acuerdo. No procesaré tus mensajes y eliminé lo que enviaste. Escribe a {support} si cambias de opinión.",
+  "consent.granted": "¡Gracias! Cuéntame el trabajo que hiciste. Puedes enviar texto y fotos.",
+  "consent.stopped":
+    "Detuviste el asistente. No leeré mensajes nuevos hasta que envíes START. Los reportes publicados siguen siendo públicos; los borradores sin publicar se están eliminando. Soporte: {support}",
+  "consent.deleted":
+    "Se están eliminando tus borradores y archivos sin publicar. Los reportes publicados siguen públicos en la cadena e IPFS y no se pueden borrar. Soporte: {support}",
+  help: "Reportes de Green Goods:\n• Describe tu trabajo y envía fotos para iniciar un reporte.\n• NEW inicia un reporte nuevo, STATUS muestra dónde vas, CANCEL cancela el reporte actual.\n• STOP detiene el procesamiento, DELETE borra los datos no publicados.\nSoporte: {support}",
+  "intake.paused":
+    "Los reportes están en pausa por mantenimiento. Tu mensaje está guardado y responderé cuando se reanuden. Soporte: {support}",
+  "unsupported.media":
+    "Todavía no puedo procesar ese tipo de archivo. Envía fotos (JPEG, PNG o WebP), PDF, Word (DOCX), Excel (XLSX) o CSV. Tu reporte está guardado.",
+  "report.askGarden": "¿Para qué huerto es este reporte?",
+  "report.noGardens":
+    "Todavía no hay huertos configurados para reportar. Tu mensaje está guardado. Soporte: {support}",
+  "report.askAction": "¿Qué actividad de {garden} describe mejor tu trabajo?",
+  "report.moreChoices": "Más opciones",
+  "report.noActions":
+    "{garden} no tiene actividades abiertas para reportar ahora. Tu borrador está guardado; escribe a {support} si no lo esperabas.",
+  "report.catalogUnavailable":
+    "No puedo leer las actividades de {garden} en este momento. Tu borrador está guardado; envía cualquier mensaje para intentarlo de nuevo.",
+  "report.askNumber": "¿{title}? Responde con un número{unit}.",
+  "report.askChoice": "¿{title}?",
+  "report.askMulti": "¿{title}? Puedes elegir más de una, por ejemplo: 1, 3.",
+  "report.askText": "¿{title}?",
+  "report.askTime": "¿Cuánto tiempo dedicaste a este trabajo? Por ejemplo: 2 horas o 45 minutos.",
+  "report.askTimeUnit": "¿Fueron {value} horas o {value} minutos?",
+  "report.hours": "Horas",
+  "report.minutes": "Minutos",
+  "report.askTitle": "¿Qué título debería tener este reporte?",
+  "report.askFeedback": "Describe en una o dos frases el trabajo que hiciste.",
+  "report.askEvidence": "Envía {count} foto(s) del trabajo.",
+  "report.evidenceLimit":
+    "Esta actividad acepta hasta {maximum} fotos, así que no agregué la última.",
+  "report.photoAdded": "Foto recibida ({have} hasta ahora).",
+  "report.conflict":
+    "Me dijiste «{current}» para {field}, pero se sugirió «{proposed}» a partir de {source}. ¿Cuál es correcto?",
+  "report.keepCurrent": "Mantener {current}",
+  "report.useProposed": "Usar {proposed}",
+  "report.unsupportedInput":
+    "{action} necesita una lista ({field}) que aún no puedo recoger en el chat. Elige otra actividad o envía esta desde la app de Green Goods. Tu borrador está guardado.",
+  "report.invalid.not_a_number": "Responde con un número, por ejemplo 12.",
+  "report.invalid.ambiguous_number":
+    "¿Es un número entero o decimal? Escríbelo sin separador de miles, por ejemplo 1200 o 1,2.",
+  "report.invalid.negative": "Responde con un número igual o mayor que cero.",
+  "report.invalid.unit_mismatch":
+    "Esto se cuenta en {unit}, pero escribiste {stated}. ¿Puedes darlo en {unit}?",
+  "report.invalid.unit_required": "Incluye la unidad, por ejemplo 2 horas o 30 minutos.",
+  "report.invalid.unknown_option": "Elige una de las opciones respondiendo con su número.",
+  "report.invalid.too_long": "Es un poco largo. ¿Puedes acortarlo?",
+  "report.invalid.empty": "No recibí una respuesta. ¿Puedes intentarlo de nuevo?",
+  "report.summary":
+    "Revisa tu reporte para {garden}:\n• Actividad: {action}\n• Título: {title}\n• Tiempo dedicado: {time}\n• Descripción: {feedback}{details}\n• Fotos: {photos}\n\nAl publicarse, el título, la descripción, los detalles y las fotos se hacen públicos en Arbitrum e IPFS y no se pueden borrar.{account}\n\nResponde CONFIRM {token} para publicar, EDIT para cambiar algo o CANCEL.",
+  "report.summaryAccount": "\nLo publicará tu cuenta {account}.",
+  "report.confirm": "Confirmar",
+  "report.edit": "Editar",
+  "report.cancel": "Cancelar",
+  "edit.garden": "Huerto",
+  "edit.action": "Actividad",
+  "edit.title": "Título",
+  "edit.time": "Tiempo dedicado",
+  "edit.feedback": "Descripción",
+  "report.editPrompt": "¿Qué quieres cambiar? Dímelo, por ejemplo: «fueron 3 horas».",
+  "report.cancelled": "Reporte cancelado. El contenido sin publicar se eliminará.",
+  "report.nothingToCancel": "No hay ningún reporte en curso.",
+  "report.confirmToken": "Para publicar, responde CONFIRM {token} tal como aparece en el resumen.",
+  "report.frozen":
+    "Este reporte se está publicando, así que no puedo cambiarlo ahora. Guardé tu mensaje y lo usaré si la publicación no se completa.",
+  "report.alreadyPublished": "Ese reporte ya está publicado. Envía NEW para empezar otro.",
+  "report.newStarted": "Nuevo reporte iniciado. Cuéntame el trabajo que hiciste.",
+  "report.resumeFirst":
+    "Tienes un reporte en curso. Envía CANCEL para descartarlo o continúa con él.",
+  "report.status": "Tu reporte para {garden} está {state}.",
+  "state.collecting": "todavía en preparación",
+  "state.review": "esperando tu confirmación",
+  "state.authority": "esperando la verificación de la cuenta",
+  "state.preparing": "preparándose para publicar",
+  "state.signature": "esperando tu firma",
+  "state.publishing": "publicándose",
+  "report.noStatus": "No tienes un reporte en curso. Describe tu trabajo para empezar uno.",
+  "report.expired":
+    "Tu reporte sin terminar caducó tras 7 días sin actividad, así que se eliminó su contenido privado.",
+  "link.request":
+    "Para publicar, verifica aquí tu cuenta de Green Goods (billetera o passkey). El enlace caduca en 10 minutos y nunca mueve fondos.",
+  "link.label": "Verificar cuenta",
+  "link.pairHint": "Cuando la página muestre un código, envíalo aquí así: PAIR 123456",
+  "link.paired": "Tu cuenta {account} ya está vinculada.",
+  "link.pairFailed":
+    "Ese código no coincide con ninguna verificación abierta. Revisa el código en la página de Green Goods.",
+  "link.accountMismatch":
+    "Este chat está vinculado a otra cuenta. Verifica con {account} o escribe a {support}.",
+  "publish.consent":
+    "¿Publicar tu reporte confirmado en {garden} desde {account}? El título, la descripción, los detalles y las fotos se hacen públicos y no se pueden borrar. Responde PUBLISH {token} para continuar.",
+  "publish.publish": "Publicar",
+  "publish.signLink": "Abre esta página para revisar y firmar la publicación exacta con tu {kind}.",
+  "publish.signLabel": "Revisar y publicar",
+  "publish.grantOffer":
+    "Tu cuenta con passkey puede permitir que Green Goods publique tus próximos reportes en {garden} después de que confirmes cada uno aquí: hasta {count} reportes en 24 horas, solo reportes, revocable cuando quieras. O publica solo este reporte.",
+  "publish.allowReporting": "Permitir reportes en el chat",
+  "publish.thisReportOnly": "Publicar solo este reporte",
+  "publish.roleMissing":
+    "Tu cuenta no es jardinera de {garden}, así que no puedo publicar allí. Tu reporte está guardado; pide a un administrador del huerto que te agregue y responde RETRY.",
+  "publish.paused":
+    "La publicación está en pausa. Tu reporte confirmado está guardado y continuará cuando se reanude.",
+  "publish.preparationFailed":
+    "No pude preparar tu reporte para publicarlo. Está guardado; responde RETRY para intentarlo de nuevo.",
+  "publish.sending": "Publicando tu reporte. Te avisaré cuando esté en la cadena.",
+  "publish.uncertain":
+    "Tu publicación se envió, pero aún no puedo confirmarla en la cadena. No la enviaré dos veces; te avisaré cuando lo sepa.",
+  "publish.rejected":
+    "La firma fue rechazada, así que no se publicó nada. Responde CONFIRM {token} para intentarlo de nuevo.",
+  "publish.reverted":
+    "La publicación falló en la cadena. Tu reporte está guardado; revísalo y confírmalo de nuevo para reintentar.",
+  "publish.published": "Tu reporte está publicado ✅\nTrabajo: {uid}\nTransacción: {tx}",
+  "grant.active":
+    "Los reportes desde el chat están activos para {garden} hasta {until}. Igual te pediré que confirmes cada reporte.",
+  "grant.paused": "El permiso de reportes está en pausa. Te pediré publicar con tu passkey.",
+  "review.pendingList":
+    "Trabajo esperando tu revisión en {garden}:\n{items}\nResponde REVIEW seguido del número para empezar.",
+  "review.none": "No hay trabajo esperando tu revisión.",
+  "review.askDecision": "¿Apruebas o rechazas «{title}» de {gardener}?",
+  "review.approve": "Aprobar",
+  "review.reject": "Rechazar",
+  "review.askConfidence": "¿Qué tanta confianza tienes en este trabajo?",
+  "review.confidence.1": "Baja",
+  "review.confidence.2": "Media",
+  "review.confidence.3": "Alta",
+  "review.askFeedback":
+    "Agrega comentarios para quien hizo el trabajo (serán públicos). Si apruebas puedes responder SKIP.",
+  "review.summary":
+    "Tu revisión de «{title}» en {garden}:\n• Decisión: {decision}\n• Confianza: {confidence}\n• Comentarios: {feedback}\n• Método: revisión humana\n\nLa decisión y los comentarios se hacen públicos en Arbitrum.\nResponde CONFIRM {token} para registrarla, EDIT para cambiarla o CANCEL.",
+  "review.selfReview": "No puedes revisar tu propio trabajo.",
+  "review.notSteward": "Tu cuenta no administra {garden}, así que no puedes revisar este trabajo.",
+  "review.recorded": "Tu revisión quedó registrada ✅\nTransacción: {tx}",
+  "recovery.started":
+    "Para mover tu cuenta de Green Goods a este chat, abre esta página y verifica la cuenta que usabas antes. El enlace caduca en 10 minutos.",
+  "recovery.code": "Envía este código en la página de recuperación del navegador: {code}",
+  "recovery.completed":
+    "Este chat ya está vinculado a tu cuenta. El chat anterior ya no tiene acceso y cualquier permiso de reportes queda en pausa hasta que lo apruebes de nuevo.",
+  "error.generic": "Algo salió mal de mi lado. Tu reporte está guardado. Soporte: {support}",
+};

@@ -181,10 +181,10 @@ export function resolvePackageCommand(pkg, action, args = []) {
       const selected = values.suite ? ADMIN_HUB_TESTS : scope === "live" ? SHARED_LIVE_TESTS : paths;
       const env = pkg === "shared" ? (scope === "live" ? { RUN_LIVE_RPC_TESTS: "true" } : {}) : { APP_ENV: "test" };
       if (pkg === "agent") {
-        const sqlitePaths = paths.filter((path) => path.includes("storage.sqlite.test"));
-        const unitPaths = paths.filter((path) => !path.includes("storage.sqlite.test"));
+        const sqlitePaths = paths.filter((path) => path.includes(".sqlite.test"));
+        const unitPaths = paths.filter((path) => !path.includes(".sqlite.test"));
         if (scope === "unit" && sqlitePaths.length) throw new Error("SQLite paths require --scope sqlite or all");
-        if (scope === "sqlite" && unitPaths.length) throw new Error("SQLite scope accepts only storage.sqlite.test paths");
+        if (scope === "sqlite" && unitPaths.length) throw new Error("SQLite scope accepts only *.sqlite.test paths");
         if (values.coverage) add("bun", ["scripts/run-coverage.mjs", ...unitPaths, ...flags], env);
         else {
           if (scope !== "sqlite" && (paths.length === 0 || unitPaths.length > 0)) {
