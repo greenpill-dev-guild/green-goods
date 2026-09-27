@@ -22,7 +22,7 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import type { Address } from "viem";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111" as Address;
 const GARDENER = "0x2222222222222222222222222222222222222222" as Address;
@@ -287,12 +287,13 @@ function renderView(route = "/gardens/solar-community-garden", locale: "en" | "p
 }
 
 describe("GardenDetail", () => {
+  afterEach(() => vi.restoreAllMocks());
   beforeEach(() => {
     vi.clearAllMocks();
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
     mockUsePublicGardenDetail.mockReturnValue(detailResult());
     mockUseHypercerts.mockReturnValue({ hypercerts: [], isLoading: false });
-    mockUseAction.mockReturnValue({ data: null });
+    mockUseAction.mockReturnValue({ data: { inputs: [] }, refetch: vi.fn() });
     // Pre-launch: no pool registered for this Garden.
     mockUsePublicGardenPool.mockReturnValue({
       data: {
@@ -376,6 +377,8 @@ describe("GardenDetail", () => {
   });
 
   it("shows a clamped hero description, reveals the full body, then returns to the initial state", () => {
+    vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(180);
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(72);
     const description = "A long garden narrative with field context. ".repeat(30).trim();
     mockUsePublicGardenDetail.mockReturnValue({
       ...detailResult(),
@@ -408,6 +411,14 @@ describe("GardenDetail", () => {
       "false"
     );
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "See more" }));
+  });
+
+  it("does not offer expansion when the hero description fits", () => {
+    vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(48);
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(48);
+    renderView();
+    expect(screen.queryByRole("button", { name: "See more" })).not.toBeInTheDocument();
+    expect(screen.getByText(mockGardens[0].description)).toBeInTheDocument();
   });
 
   it("pages the note grid locally without asking the hook for more", () => {
@@ -549,7 +560,7 @@ describe("GardenDetail", () => {
     expect(within(dialog).queryByText(/\{\"category\"/)).not.toBeInTheDocument();
   });
 
-  it("localizes known detail keys when the action catalog is unavailable", () => {
+  it("localizes legacy detail keys absent from the resolved action", () => {
     const note = makeNote(0);
     note.metadata = JSON.stringify({ details: { seedlingsPlanted: 12, soilType: "clay" } });
     mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [note] }));
@@ -559,6 +570,63 @@ describe("GardenDetail", () => {
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("Mudas plantadas")).toBeInTheDocument();
     expect(within(dialog).getByText("Tipo de solo")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["pending", { data: undefined, isPending: true, fetchStatus: "fetching" }],
+    ["failed", { data: undefined, isError: true }],
+    ["missing", { data: null }],
+    ["instruction fallback", { data: { inputs: [], instructionsFallback: true } }],
+  ])("withholds untranslated action-specific values when lookup is %s", (_, query) => {
+    const refetch = vi.fn();
+    mockUseAction.mockReturnValue({ ...query, refetch });
+    const note = makeNote(0);
+    note.metadata = JSON.stringify({ timeSpentMinutes: 90, details: { soilType: "clay" } });
+    mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [note] }));
+    renderView("/gardens/solar-community-garden", "pt");
+    fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("1h 30m")).toBeInTheDocument();
+    expect(within(dialog).queryByText("clay")).not.toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        pt[
+          "isPending" in query
+            ? "public.gardenDetail.notes.detailsLoading"
+            : "public.gardenDetail.notes.detailsUnavailable"
+        ]
+      )
+    ).toBeInTheDocument();
+    if (!("isPending" in query)) {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: pt["public.gardenDetail.retry"] })
+      );
+      expect(refetch).toHaveBeenCalledOnce();
+    }
+  });
+
+  it("preserves numeric units in both top-level and repeater details", () => {
+    mockUseAction.mockReturnValue({
+      data: {
+        inputs: [
+          { key: "amount", title: "Amount", type: "number", unit: "kg" },
+          {
+            key: "rows",
+            title: "Rows",
+            type: "repeater",
+            repeaterFields: [{ key: "amount", title: "Amount", type: "number", unit: "kg" }],
+          },
+        ],
+      },
+    });
+    const note = makeNote(0);
+    note.metadata = JSON.stringify({ details: { amount: 2, rows: [{ amount: 3 }] } });
+    mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [note] }));
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Amount (kg)")).toBeInTheDocument();
+    expect(within(dialog).getByText("Amount (kg): 3")).toBeInTheDocument();
   });
 
   it("opens a note in the source dialog and returns focus to its tile", () => {

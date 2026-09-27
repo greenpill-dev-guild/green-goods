@@ -49,6 +49,8 @@ export default function GardenDetail() {
   const [expandedGardenId, setExpandedGardenId] = useState<string | null>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const descriptionToggleRef = useRef<HTMLButtonElement>(null);
+  const descriptionLedeRef = useRef<HTMLDivElement>(null);
+  const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const { data: gardens = [] } = usePublicGardens();
   // Pinned so the field-note explorer links resolve against the same chain the
   // notes were read from.
@@ -105,6 +107,24 @@ export default function GardenDetail() {
   const descriptionExpanded = Boolean(id && expandedGardenId === id && identity?.description);
 
   useEffect(() => {
+    if (descriptionExpanded) return;
+    const lede = descriptionLedeRef.current?.firstElementChild;
+    if (!(lede instanceof HTMLElement)) return;
+    let active = true;
+    const measure = () => {
+      if (active) setDescriptionOverflows(lede.scrollHeight > lede.clientHeight + 1);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(lede);
+    void document.fonts?.ready.then(measure);
+    return () => {
+      active = false;
+      observer.disconnect();
+    };
+  }, [identity?.description, descriptionExpanded]);
+
+  useEffect(() => {
     if (descriptionExpanded) descriptionRef.current?.focus();
   }, [descriptionExpanded]);
 
@@ -149,6 +169,7 @@ export default function GardenDetail() {
               })
         }
         ledeClassName="line-clamp-3"
+        ledeContainerRef={descriptionLedeRef}
         actions={
           <>
             <EditorialGhostLink to="/gardens" size="lg">
@@ -158,7 +179,7 @@ export default function GardenDetail() {
                 defaultMessage: "All Gardens",
               })}
             </EditorialGhostLink>
-            {identity?.description ? (
+            {identity?.description && (descriptionOverflows || descriptionExpanded) ? (
               <Button
                 ref={descriptionToggleRef}
                 type="button"

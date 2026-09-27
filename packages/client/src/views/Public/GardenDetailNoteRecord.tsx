@@ -105,6 +105,11 @@ function NoteMediaMosaic({
 
 type FormatMessage = ReturnType<typeof useIntl>["formatMessage"];
 
+function detailLabel(input: WorkInput | undefined, key: string, formatMessage: FormatMessage) {
+  const title = input?.title ?? fallbackDetailLabel(key, formatMessage);
+  return input?.unit && !title.includes(`(${input.unit})`) ? `${title} (${input.unit})` : title;
+}
+
 function formatDetailValue(
   value: unknown,
   input: WorkInput | undefined,
@@ -123,9 +128,7 @@ function formatDetailValue(
         .map(([key, childValue]) => {
           const child = input.repeaterFields?.find((field) => field.key === key);
           const display = formatDetailValue(childValue, child, formatMessage);
-          return display
-            ? `${child?.title ?? fallbackDetailLabel(key, formatMessage)}: ${display}`
-            : null;
+          return display ? `${detailLabel(child, key, formatMessage)}: ${display}` : null;
         })
         .filter((field): field is string => Boolean(field));
       return fields.length ? fields.join(", ") : null;
@@ -163,7 +166,9 @@ export function FieldNoteDialog({
   const titleId = "public-garden-detail-note-title";
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const { metadata, status: metadataStatus, retryFetch } = useWorkMetadata(note.metadata);
-  const { data: action } = useAction(note.actionUID, chainId);
+  const actionQuery = useAction(note.actionUID, chainId);
+  const action = actionQuery.data;
+  const actionReady = Boolean(action && !action.instructionsFallback);
   const inputs = action ? localizeAction(action, intl.locale).inputs : [];
   // The viewer ships English defaults for every string it renders or announces.
   // The public site is translated, so it gets the whole set, not just the two
@@ -203,6 +208,13 @@ export function FieldNoteDialog({
       ? metadata.details
       : {};
   const timeSpent = formatTimeSpent(metadata?.timeSpentMinutes);
+  const needsAction = Object.keys(details).length > 0;
+  const actionLoading =
+    needsAction && !actionReady && actionQuery.isPending && actionQuery.fetchStatus !== "paused";
+  const actionUnavailable = needsAction && !actionReady && !actionLoading;
+  const detailsLoading = metadataStatus === "loading" || actionLoading;
+  const detailsUnavailable =
+    metadataStatus === "error" || metadataStatus === "unavailable" || actionUnavailable;
   const metadataRows: Array<{ label: string; value: string }> = [];
   if (timeSpent) {
     metadataRows.push({
@@ -210,12 +222,12 @@ export function FieldNoteDialog({
       value: timeSpent,
     });
   }
-  for (const [key, value] of Object.entries(details)) {
+  for (const [key, value] of Object.entries(actionReady ? details : {})) {
     const input = inputs.find((item) => item.key === key);
     const display = formatDetailValue(value, input, formatMessage);
     if (display) {
       metadataRows.push({
-        label: input?.title ?? fallbackDetailLabel(key, formatMessage),
+        label: detailLabel(input, key, formatMessage),
         value: display,
       });
     }
@@ -285,11 +297,7 @@ export function FieldNoteDialog({
           })}
       </p>
 
-      {note.metadata &&
-      (metadataRows.length > 0 ||
-        metadataStatus === "loading" ||
-        metadataStatus === "error" ||
-        metadataStatus === "unavailable") ? (
+      {note.metadata && (metadataRows.length > 0 || detailsLoading || detailsUnavailable) ? (
         <section
           className="mt-8 border-t border-stroke-soft-200 pt-6"
           aria-labelledby="public-garden-detail-note-details"
@@ -311,20 +319,29 @@ export function FieldNoteDialog({
                 </div>
               ))}
             </dl>
-          ) : metadataStatus === "loading" ? (
+          ) : null}
+          {detailsLoading ? (
             <p role="status" className="mt-4 text-sm text-text-sub-600">
               {formatMessage({ id: "public.gardenDetail.notes.detailsLoading" })}
             </p>
-          ) : (
+          ) : detailsUnavailable ? (
             <div className="mt-4 text-sm text-text-sub-600">
               <p>{formatMessage({ id: "public.gardenDetail.notes.detailsUnavailable" })}</p>
-              {metadataStatus === "error" ? (
-                <Button type="button" emphasis="tertiary" onClick={retryFetch}>
+              {metadataStatus === "error" ||
+              (actionUnavailable && actionQuery.fetchStatus !== "paused") ? (
+                <Button
+                  type="button"
+                  emphasis="tertiary"
+                  onClick={() => {
+                    if (metadataStatus === "error") retryFetch();
+                    if (actionUnavailable) void actionQuery.refetch();
+                  }}
+                >
                   {formatMessage({ id: "public.gardenDetail.retry" })}
                 </Button>
               ) : null}
             </div>
-          )}
+          ) : null}
         </section>
       ) : null}
 

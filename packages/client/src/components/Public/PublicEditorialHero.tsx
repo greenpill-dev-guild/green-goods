@@ -1,5 +1,5 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { useLocation } from "react-router-dom";
 import { EditorialDivider, EditorialHeading, EditorialKicker, EditorialLede } from "./atoms";
 
@@ -56,6 +56,7 @@ export interface PublicEditorialHeroProps {
   lede?: ReactNode;
   /** Optional paragraph styling for a consuming page's lede length. */
   ledeClassName?: string;
+  ledeContainerRef?: Ref<HTMLDivElement>;
   /**
    * Optional small-print disclaimer rendered under a hairline rule with a
    * monospaced "note —" prefix. Used by Fund's hero.
@@ -89,6 +90,7 @@ export function PublicEditorialHero({
   titleId,
   lede,
   ledeClassName,
+  ledeContainerRef,
   disclaimer,
   photoCredit,
   actions,
@@ -174,7 +176,10 @@ export function PublicEditorialHero({
                 {title}
               </EditorialHeading>
               {lede ? (
-                <div className={cn(animateEntrance && "editorial-fade-up-2", "mt-4 max-w-prose")}>
+                <div
+                  ref={ledeContainerRef}
+                  className={cn(animateEntrance && "editorial-fade-up-2", "mt-4 max-w-prose")}
+                >
                   <EditorialLede className={ledeClassName}>{lede}</EditorialLede>
                 </div>
               ) : null}

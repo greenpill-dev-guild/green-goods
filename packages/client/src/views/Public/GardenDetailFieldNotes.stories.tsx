@@ -22,11 +22,16 @@ const action: Action = {
   createdAt: 1_700_000_000_000,
   capitals: [],
   media: [],
-  inputs: instructionTemplates["waste.sorting_breakdown"].uiConfig.details.inputs,
+  inputs: instructionTemplates["waste.sorting_breakdown"].uiConfig.details.inputs.map((input) => ({
+    ...input,
+    repeaterFields: input.repeaterFields?.map((field) =>
+      field.key === "weightKg" ? { ...field, title: "Weight", unit: "kg" } : field
+    ),
+  })),
   translations: Object.fromEntries(
     [
-      ["pt", "Separação por categoria", "Categoria", "Plástico", "Peso (kg)"],
-      ["es", "Separación por categoría", "Categoría", "Plástico", "Peso (kg)"],
+      ["pt", "Separação por categoria", "Categoria", "Plástico", "Peso"],
+      ["es", "Separación por categoría", "Categoría", "Plástico", "Peso"],
     ].map(([locale, title, category, plastic, weight]) => [
       locale,
       {
@@ -109,5 +114,29 @@ export const Spanish: Story = {
     const dialog = within(await within(canvasElement.ownerDocument.body).findByRole("dialog"));
     await expect(dialog.getByText("Separación por categoría")).toBeVisible();
     await expect(dialog.getByText("Categoría: Plástico, Peso (kg): 15")).toBeVisible();
+  },
+};
+
+export const UnavailableInstructions: Story = {
+  decorators: [
+    withSeededQueryClient([
+      [
+        queryKeys.actions.detail(CHAIN_ID, note.actionUID),
+        { ...action, instructionsFallback: true },
+      ],
+    ]),
+  ],
+  render: Portuguese.render,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: /Waste sorting/ }));
+    const dialog = within(await within(canvasElement.ownerDocument.body).findByRole("dialog"));
+    await expect(
+      dialog.getByText(pt["public.gardenDetail.notes.detailsUnavailable"])
+    ).toBeVisible();
+    await expect(dialog.getByText("1h 30m")).toBeVisible();
+    await expect(dialog.queryByText("Separação por categoria")).not.toBeInTheDocument();
+    await expect(
+      dialog.getByRole("button", { name: pt["public.gardenDetail.retry"] })
+    ).toBeVisible();
   },
 };
