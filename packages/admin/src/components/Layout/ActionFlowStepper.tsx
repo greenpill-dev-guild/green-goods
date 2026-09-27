@@ -31,6 +31,8 @@ export interface ActionFlowStepperProps {
   onStepClick?: (step: number) => void;
   /** "horizontal" (compact, mobile header) | "vertical" (labelled desktop rail). */
   orientation?: "horizontal" | "vertical";
+  /** The run finished: every step shows its check, none is current, and none reopens. */
+  complete?: boolean;
 }
 
 const DOT_BASE =
@@ -61,6 +63,7 @@ export function ActionFlowStepper({
   currentStep,
   onStepClick,
   orientation = "horizontal",
+  complete = false,
 }: ActionFlowStepperProps) {
   const { formatMessage } = useIntl();
   const total = steps.length;
@@ -78,7 +81,7 @@ export function ActionFlowStepper({
         {completed ? <RiCheckLine className="h-3 w-3" aria-hidden /> : stepNumber}
       </span>
     );
-    if (completed && onStepClick) {
+    if (completed && onStepClick && !complete) {
       return (
         <button
           type="button"
@@ -99,8 +102,8 @@ export function ActionFlowStepper({
       <ol data-component="ActionFlowStepper" data-orientation="vertical" className="flex flex-col">
         {steps.map((step, index) => {
           const stepNumber = index + 1;
-          const completed = currentStep > stepNumber;
-          const isCurrent = currentStep === stepNumber;
+          const completed = complete || currentStep > stepNumber;
+          const isCurrent = !complete && currentStep === stepNumber;
           const isLast = index === total - 1;
           return (
             <li
@@ -154,8 +157,8 @@ export function ActionFlowStepper({
       <ol data-region="action-flow-stepper" className="flex items-center gap-1.5">
         {steps.map((step, index) => {
           const stepNumber = index + 1;
-          const completed = currentStep > stepNumber;
-          const isCurrent = currentStep === stepNumber;
+          const completed = complete || currentStep > stepNumber;
+          const isCurrent = !complete && currentStep === stepNumber;
           const isLast = index === total - 1;
           return (
             <li
@@ -183,10 +186,18 @@ export function ActionFlowStepper({
         })}
       </ol>
       <p data-region="action-flow-step-label" className="mt-1.5 label-xs text-text-sub">
-        {formatMessage(
-          { id: "app.common.stepProgress", defaultMessage: "Step {current} of {total} · {label}" },
-          { current: currentStep, total, label: currentTitle }
-        )}
+        {complete
+          ? formatMessage(
+              { id: "app.common.stepsDone", defaultMessage: "All {total} steps done" },
+              { total }
+            )
+          : formatMessage(
+              {
+                id: "app.common.stepProgress",
+                defaultMessage: "Step {current} of {total} · {label}",
+              },
+              { current: currentStep, total, label: currentTitle }
+            )}
       </p>
     </div>
   );

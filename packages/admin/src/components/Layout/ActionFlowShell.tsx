@@ -27,6 +27,8 @@ export interface ActionFlowShellProps {
   currentStep?: number;
   /** Jump back to an already-completed step (1-indexed). */
   onStepClick?: (step: number) => void;
+  /** The run finished: the stepper checks every step and marks none current. */
+  complete?: boolean;
   /**
    * In-flow back (e.g. configure → qualify). When provided, a back-arrow renders
    * in the header. Omit it on the first phase so the only way out is the dialog
@@ -72,6 +74,7 @@ export function ActionFlowShell({
   steps,
   currentStep = 1,
   onStepClick,
+  complete = false,
   onBack,
   backLabel,
   backDisabled = false,
@@ -135,6 +138,7 @@ export function ActionFlowShell({
                 steps={steps as ActionFlowStep[]}
                 currentStep={currentStep}
                 onStepClick={onStepClick}
+                complete={complete}
                 orientation="horizontal"
               />
             </div>
@@ -153,6 +157,7 @@ export function ActionFlowShell({
               steps={steps as ActionFlowStep[]}
               currentStep={currentStep}
               onStepClick={onStepClick}
+              complete={complete}
               orientation="vertical"
             />
           </aside>

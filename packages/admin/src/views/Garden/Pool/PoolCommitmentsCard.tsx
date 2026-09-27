@@ -17,7 +17,12 @@ import {
   type PoolCommitmentScope,
   selectPoolCommitmentRows,
 } from "./poolCommitmentRows";
-import { commitmentStateChip, directionLabel, formatUnixDate } from "./poolPresentation";
+import {
+  commitmentStateChip,
+  directionEdgeClass,
+  directionLabel,
+  formatUnixDate,
+} from "./poolPresentation";
 
 export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
 
@@ -328,7 +333,7 @@ export function PoolCommitmentsCard({
               return (
                 <li
                   key={commitment.id}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2"
+                  className={`flex flex-wrap items-center justify-between gap-2 py-2 ps-3 ${directionEdgeClass(commitment.direction)}`}
                   data-testid={`pool-commitment-${commitment.commitmentId.toString()}`}
                 >
                   <button

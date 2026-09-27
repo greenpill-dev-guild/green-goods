@@ -14,6 +14,8 @@ export interface SeedFlowFooterProps {
   isLast: boolean;
   /** No pool, or a pool that is not open: nothing can be seeded into it. */
   seedDisabled: boolean;
+  /** Why seeding is off, said under the buttons the way the app composer's bar does. */
+  blockedReason?: string | null;
   /** How many commitments seeding would make: the ones added so far, and this one. */
   count: number;
   /** Another like this would be one offer more than the steward has room for. */
@@ -43,6 +45,7 @@ export function SeedFlowFooter({
   stepIndex,
   isLast,
   seedDisabled,
+  blockedReason = null,
   count,
   addAnotherDisabled,
   unsent,
@@ -92,7 +95,13 @@ export function SeedFlowFooter({
   return (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
       <p className="min-w-0 body-xs text-text-soft sm:flex-1" data-testid="seed-prompt-count">
-        {isLast && phase === "compose" ? promptCount(count, formatMessage) : null}
+        {isLast && phase === "compose" ? (
+          seedDisabled && blockedReason && !busy ? (
+            <span role="status">{blockedReason}</span>
+          ) : (
+            promptCount(count, formatMessage)
+          )
+        ) : null}
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         <AdminButton

@@ -11,15 +11,22 @@ const STEPS: ActionFlowStep[] = [
   { id: "review", title: "Review" },
 ];
 
-function renderStepper(currentStep: number) {
+function renderStepper(currentStep: number, complete = false) {
   return render(
     <IntlProvider locale="en" messages={enMessages}>
-      <ActionFlowStepper steps={STEPS} currentStep={currentStep} />
+      <ActionFlowStepper steps={STEPS} currentStep={currentStep} complete={complete} />
     </IntlProvider>
   );
 }
 
 describe("ActionFlowStepper", () => {
+  it("checks every step, and marks none current, once the run completes", () => {
+    renderStepper(4, true);
+
+    expect(document.querySelector('[aria-current="step"]')).toBeNull();
+    expect(screen.getByText("All 4 steps done")).toBeInTheDocument();
+  });
+
   it("renders the orientation label naming the current step", () => {
     renderStepper(2);
     // "Step {current} of {total} · {label}" — the journey anchor near the dots.

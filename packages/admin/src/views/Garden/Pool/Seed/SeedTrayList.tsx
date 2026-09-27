@@ -2,6 +2,7 @@ import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { SeedTrayRow } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { directionEdgeClass } from "../poolPresentation";
 
 export interface SeedTrayListProps {
   /** The commitments already added in this sitting, beside the one under review. */
@@ -62,7 +63,10 @@ export function SeedTrayList({ rows, busy, onEdit, onRemove }: SeedTrayListProps
           ].join(" · ");
 
           return (
-            <li key={row.clientCommitmentId} className="flex flex-wrap items-center gap-2 py-2">
+            <li
+              key={row.clientCommitmentId}
+              className={`flex flex-wrap items-center gap-2 py-2 ps-3 ${directionEdgeClass(values.direction)}`}
+            >
               {/* The basis lets the actions drop below the words where a phone has no room for both. */}
               <div className="min-w-0 flex-1 basis-56">
                 <p className="flex items-center gap-2">
