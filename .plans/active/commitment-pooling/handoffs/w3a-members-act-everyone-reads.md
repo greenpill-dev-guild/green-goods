@@ -160,6 +160,16 @@ only after the solo reproduction confirms it.
   work upload's hold has the same limit.
 - The `shared-job-queue-construction` seam is re-certified after its three proof files passed.
 
+## Review round 4 (PR #921, 2026-09-26)
+
+- CodeRabbit and Codex found that a commitment act keeps no record of its send, so Discard can drop
+  an act whose transaction may still land: a receipt wait that fails after the broadcast leaves the
+  act looking unsent (N41). Afo decided that W3-A merges without it and that it becomes its own
+  queue lane, W3-G (§ 1 row 48). Both threads point to the lane's Linear child.
+- Codex found that the protocol pool leaves the host garden out of the personal claim contexts,
+  which the contract accepts (N42), and that contexts other than the route garden are not checked
+  against chain roles (N43). Both predate W3-A on develop and wait for Afo's call.
+
 ## Tests (RED first)
 
 - `packages/shared/src/__tests__/commitment-acts.test.ts`: an `it.each` table over
@@ -228,15 +238,16 @@ resolved. Then the sub-lane moves to `completed` and the Linear child to Done.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `d5bc36434` (on `fix/commitment-take-up-membership`, pushed 2026-09-26 with Afo's go; the PR opened from this branch is the merge record)
-- Run at (UTC): `2026-09-26T22:57:56Z`
-- Exact command(s): `bun run --cwd packages/shared typecheck -- --scope full`; `bun run --cwd packages/client typecheck -- --scope full`; `bun run --filter @green-goods/shared test -- src/__tests__/commitment-acts.test.ts src/__tests__/commitment-queue-state.test.tsx src/__tests__/hooks/client-ui/useGardenCommitmentController.test.tsx src/__tests__/hooks/commitment-pooling/useCommitmentViewerRoles.test.tsx src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx`; `bun run --filter @green-goods/client test -- src/__tests__/views/GardenCommitment.test.tsx src/__tests__/views/commitmentActions.test.ts`; `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings`; `bun run check --only vocabulary`; `bun run --cwd packages/qa build`; `node scripts/quality/check-qa-id-ledger.mjs --base origin/develop`; `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:… --test-path client:…` (the seven test paths above)
-- Result: shared and client typecheck exit 0; shared 37 passed (5 files); client 52 passed (2 files); oxlint exit 0; vocabulary clean; qa build 353 active cases; ledger 419 ids, none removed; push gate (sensitive plan, 34 paths) "Automated checks passed": format, lint, shared-typecheck, shared-test, shared-build, client-test, staged-modules, source-structure, ontology, qa-id-ledger, story-quality, agent-tools-test; `browser-proof` pending (advisory)
-- Validated paths: `packages/shared/src/modules/commitment-pooling/acts.ts`, `packages/shared/src/hooks/commitment-pooling/useCommitmentViewerRoles.ts`, `packages/shared/src/hooks/commitment-pooling/useCommitmentQueueState.ts`, `packages/shared/src/hooks/commitment-pooling/index.ts`, `packages/shared/src/hooks/client-ui/commitment/controller.types.ts`, `packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts`, `packages/client/src/views/Home/Garden/Commitment/{GardenCommitment,JoinToAct,QueuedActRow,commitmentActions}.tsx|ts`, the two new story files, the six test files, `packages/shared/src/i18n/{en,es,pt}.json`, `scripts/data/qa-test-catalog.json`, `scripts/data/qa-test-id-ledger.json`
-- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the paths above>` → empty after the commit
-- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, light: `client-commitments-jointoact--open-to-join`, `--steward-lets-you-in`, `--protocol-pool`; `client-commitments-queuedactrow--waiting-for-membership`, `--proof-already-broadcast`. Labelled Storybook; no mock-auth localhost run (this worktree serves no client) and no authenticated wallet proof, which stays pending for the recorded call.
+- Tested implementation commit SHA: `dfc08fa85` (PR #921's head; the squash merge `4615608d9` on `develop` has the identical tree)
+- Run at (UTC): `2026-09-27T00:49:11Z`
+- Exact command(s): the pre-push hook's `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts`; before it, `bun run test -- src/__tests__/modules/job-queue.seam.test.ts src/__tests__/modules/job-queue.db.test.ts src/__tests__/modules/job-queue.imports.test.ts src/__tests__/modules/job-queue.claim-hold.test.ts` in `packages/shared`, and `bun run typecheck` and `bun run test` in `packages/client`
+- Result: push gate, critical plan over 50 changed paths, "Automated checks passed" on all 30 checks (format, lint, validation-system-test, test-quality, the typecheck, test and build checks for shared, client, admin and agent, docs-authority, docs-test, docs-build, staged-modules, source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, agent-tools-test); `browser-proof` pending (advisory). The seam's three proof files and the claim-hold test: 38 passed. Client typecheck exit 0; client suite 1,412 passed in 143 files. GitHub CI on `dfc08fa85`: CI Gate passed, no job failed.
+- Validated paths: every path PR #921 changed, `git diff --name-only e5bf40de0 dfc08fa85` (50 paths)
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all` → empty after the last commit and before the push
+- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, light: `client-commitments-jointoact--open-to-join`, `--steward-lets-you-in`, `--protocol-pool`; `client-commitments-queuedactrow--waiting-for-membership`, `--proof-already-broadcast`. Labelled Storybook; no mock-auth localhost run and no authenticated wallet proof, which stays pending for the recorded call.
+
+An earlier receipt at `d5bc36434` (22:57 UTC, sensitive plan) covered the first push; review rounds 1 to 3 changed the tree after it.
 
 ## Merge
 
-Waits for the push and the PR (Afo's say), CI Gate, and resolved bot reviews; then `--merge`,
-sub-lane `completed`, PRD-990 Done.
+Merged 2026-09-27T01:15:51Z as `4615608d9` by squash, after CI Gate passed on `dfc08fa85` and CodeRabbit's change requests were dismissed on Afo's decision (§ 1 row 48). This handoff named `--merge`; the squash keeps the tree identical, and the branch commits cited above stay reachable at `refs/pull/921/head`. The sub-lane is `passed`. It becomes `completed`, and PRD-990 Done, after the authenticated wallet walk (PWA-123 to PWA-125) on the recorded call.

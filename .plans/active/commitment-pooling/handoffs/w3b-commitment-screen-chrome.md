@@ -3,8 +3,8 @@
 ## Lane
 
 - Execution sub-lane: `w3b_commitment_screen_chrome` (machine lane `ui`)
-- Branch: `fix/commitment-screen-chrome`, from a fresh `origin/develop` after W3-A merges
-- Depends on: `w3a_members_act`
+- Branch: `fix/commitment-screen-chrome`, from a fresh `origin/develop` after W3-H merges (§ 1 row 49)
+- Depends on: `w3h_host_claim_context`
 - Merge: after Afo's yes on rendered before-and-after pairs at 1280 and 375, light and dark
   (§ 1 row 47), then `--merge` on green CI and resolved bot threads
 - Class: sensitive (client journeys)
