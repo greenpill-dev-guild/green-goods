@@ -9,8 +9,8 @@
  * in which transaction. A take-up is matched by its whole identity, which the
  * indexer keeps for each claimant's latest request. A work link is decided by
  * the module's own record of its operation key, which must hold this link's
- * own payload, and named by the chain's WorkLinked log in the block the
- * indexer gives, since the log's row carries no link identity.
+ * own payload, and named by the caller's WorkLinked row whose receipt carries
+ * that key, since the row itself carries no link identity.
  *
  * "Found" needs the landed row. "Absent" needs the log read back to the start
  * of the window, and the indexer's processed block, timed on the chain itself,
@@ -26,11 +26,7 @@ import { zeroHash, type Hex } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import type { Job } from "../../types/job-queue";
-import {
-  getCommitmentActivity,
-  getWorkLinkByOperation,
-  type IndexedWorkLink,
-} from "../commitment-pooling/data-activity";
+import { getCommitmentActivity } from "../commitment-pooling/data-activity";
 import { getCommitmentClaimRequests } from "../commitment-pooling/data-commitments";
 import { queryProcessedBlocks } from "../commitment-pooling/data-pool-funding-indexed-queries";
 import { hashWorkLinkPayload } from "../commitment-pooling/job-identity";
@@ -63,13 +59,8 @@ interface LookupDependencies {
   readWorkLinkPayloadHash: (caller: Address, operationKey: Hex) => Promise<Hex>;
   activity?: typeof getCommitmentActivity;
   claimRequests?: typeof getCommitmentClaimRequests;
-  workLinkByOperation?: (
-    chainId: number,
-    caller: Address,
-    operationKey: string
-  ) => Promise<IndexedWorkLink | null>;
-  /** The executor's chain read of a link's WorkLinked log; without it a link is never named. */
-  readWorkLinkTransaction?: CommitmentChainReads["readWorkLinkTransaction"];
+  /** The executor's check of a link's receipt; without it a link is never named. */
+  transactionMadeWorkLink?: CommitmentChainReads["transactionMadeWorkLink"];
   resolveWorkIdentity?: CommitmentQueueExecutorDeps["resolveWorkIdentity"];
   /** The chain's time at a block, in seconds: the latest block when none is named. */
   readBlockTime?: (chainId: number, blockNumber?: bigint) => Promise<number>;
@@ -78,7 +69,7 @@ interface LookupDependencies {
   now?: () => number;
 }
 
-type RowMatch = (row: CommitmentEventRecord) => boolean;
+type RowMatch = (row: CommitmentEventRecord) => boolean | Promise<boolean>;
 
 const same = (left: string | null | undefined, right: string | null | undefined) =>
   Boolean(left && right && left.toLowerCase() === right.toLowerCase());
@@ -165,16 +156,17 @@ async function linkedWork(
  * A work link landed when the module's record of its operation key holds this
  * link's own payload. A key that holds another link never carried this one,
  * and sending again will say so (`work-link-payload-mismatch`). The link is
- * named by the chain's WorkLinked log in the block the indexer gives, matched
- * by the key the event carries: another link in a block with the same time
- * and log index never stands in for it.
+ * named by the caller's WorkLinked row whose receipt carries that key. The
+ * log keeps every link, so a work relinked under another key since is still
+ * found, and another link at the same time or position never stands in for it.
  */
 async function workLinkLanded(
   job: Job,
   payload: Record<string, unknown>,
-  chainId: number,
+  input: { chainId: number; sinceS: number },
   deps: LookupDependencies
 ): Promise<StrandedLookupResult> {
+  const { chainId, sinceS } = input;
   const caller = job.userAddress as Address;
   const operationKey = payload.operationKey as Hex;
   const stored = await deps.readWorkLinkPayloadHash(caller, operationKey);
@@ -189,20 +181,22 @@ async function workLinkLanded(
   const commitmentId = BigInt(String(payload.commitmentId));
   if (stored !== hashWorkLinkPayload(commitmentId, workUID, Number(payload.requirementIndex)))
     return { status: "absent" };
-  const link = await (deps.workLinkByOperation ?? getWorkLinkByOperation)(
+  const madeLink = deps.transactionMadeWorkLink;
+  if (!madeLink) return { status: "unknown" };
+  const log = await findInLog(
+    deps.activity ?? getCommitmentActivity,
     chainId,
-    caller,
-    operationKey
-  );
-  if (!link || !deps.readWorkLinkTransaction) return { status: "unknown" };
-  const transactionHash = await deps.readWorkLinkTransaction({
-    blockNumber: link.blockNumber,
     commitmentId,
-    workUID,
-    operationKey,
-    linker: caller,
-  });
-  return transactionHash ? { status: "found", transactionHash } : { status: "unknown" };
+    sinceS,
+    async (row) =>
+      row.eventType === "WORK_LINKED" &&
+      same(row.actor, caller) &&
+      (await madeLink(row.txHash as Hex, { commitmentId, workUID, operationKey, linker: caller }))
+  );
+  // Landed on the module's word, but the log has not named its row yet.
+  return log.row
+    ? { status: "found", transactionHash: log.row.txHash as Hex }
+    : { status: "unknown" };
 }
 
 function actMatch(job: Job, payload: Record<string, unknown>): RowMatch {
@@ -242,8 +236,9 @@ async function findInLog(
       limit: PAGE_SIZE,
       offset: page * PAGE_SIZE,
     });
-    const row = rows.find((candidate) => candidate.timestamp >= sinceS && matches(candidate));
-    if (row) return { row, complete: true };
+    for (const row of rows) {
+      if (row.timestamp >= sinceS && (await matches(row))) return { row, complete: true };
+    }
     const oldest = rows.at(-1);
     if (rows.length < PAGE_SIZE || !oldest || oldest.timestamp < sinceS) return { complete: true };
   }
@@ -258,7 +253,8 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
   const now = deps.now ?? Date.now;
   return async ({ job, chainId, sinceMs }) => {
     const payload = job.payload as Record<string, unknown>;
-    if (job.kind === "workLink") return workLinkLanded(job, payload, chainId, deps);
+    if (job.kind === "workLink")
+      return workLinkLanded(job, payload, { chainId, sinceS: Math.floor(sinceMs / 1000) }, deps);
     const checkedAt = now();
     const sentAt = intentAtMs(job);
     // The intent on the chain's clock: the device clock is set against the

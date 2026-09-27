@@ -1,11 +1,11 @@
 import {
-  getPublicClient as wagmiGetPublicClient,
   getTransactionCount as wagmiGetTransactionCount,
+  getTransactionReceipt as wagmiGetTransactionReceipt,
   readContract as wagmiReadContract,
   simulateContract as wagmiSimulateContract,
   type Config,
 } from "@wagmi/core";
-import { keccak256, toBytes, type Hex } from "viem";
+import { decodeEventLog, keccak256, toBytes, type Hex } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import type { CommitmentJobExecutionDependencies } from "../commitment-pooling/jobs";
 import type { Address } from "../../types/domain";
@@ -38,17 +38,14 @@ export type CommitmentChainReads = Pick<
     chainId: number;
   }) => Promise<void>;
   /**
-   * The transaction of the WorkLinked event this caller's operation key made in
-   * one block, or null when that block holds none. The event carries the key,
-   * so it names the one link, where a block time or log index alone may not.
+   * Whether this transaction's receipt holds the module's WorkLinked event for
+   * this link, made by this caller's operation key. The event carries the key,
+   * so it names the one link, where a row's time or position may not.
    */
-  readWorkLinkTransaction?: (link: {
-    blockNumber: bigint;
-    commitmentId: bigint;
-    workUID: Hex;
-    operationKey: Hex;
-    linker: Address;
-  }) => Promise<Hex | null>;
+  transactionMadeWorkLink?: (
+    transactionHash: Hex,
+    link: { commitmentId: bigint; workUID: Hex; operationKey: Hex; linker: Address }
+  ) => Promise<boolean>;
   /**
    * Whether the account has a transaction the network holds but has not mined:
    * its pending nonce is ahead of its mined one. A send whose answer was lost
@@ -62,8 +59,8 @@ export interface CommitmentChainReadOptions {
   moduleAddress: Address;
   readContract?: typeof wagmiReadContract;
   simulateContract?: typeof wagmiSimulateContract;
-  getPublicClient?: typeof wagmiGetPublicClient;
   getTransactionCount?: typeof wagmiGetTransactionCount;
+  getTransactionReceipt?: typeof wagmiGetTransactionReceipt;
   config?: Config;
 }
 
@@ -72,8 +69,8 @@ export function createCommitmentChainReads({
   moduleAddress,
   readContract = wagmiReadContract,
   simulateContract = wagmiSimulateContract,
-  getPublicClient = wagmiGetPublicClient,
   getTransactionCount = wagmiGetTransactionCount,
+  getTransactionReceipt = wagmiGetTransactionReceipt,
   config,
 }: CommitmentChainReadOptions): CommitmentChainReads {
   const wagmiConfig = config ?? getWagmiConfig();
@@ -162,26 +159,36 @@ export function createCommitmentChainReads({
         chainId: call.chainId,
       } as Parameters<typeof wagmiSimulateContract>[1]);
     },
-    readWorkLinkTransaction: async (link) => {
-      const client = getPublicClient(wagmiConfig, { chainId });
-      if (!client) return null;
-      const events = (await client.getContractEvents({
-        address: moduleAddress,
-        abi: CommitmentPoolingModuleABI,
-        eventName: "WorkLinked",
-        args: { commitmentId: link.commitmentId, workUID: link.workUID },
-        fromBlock: link.blockNumber,
-        toBlock: link.blockNumber,
-      })) as unknown as Array<{
-        transactionHash: Hex | null;
-        args: { operationKey?: Hex; linker?: Address };
-      }>;
-      const event = events.find(
-        ({ args }) =>
-          args.operationKey?.toLowerCase() === link.operationKey.toLowerCase() &&
-          args.linker?.toLowerCase() === link.linker.toLowerCase()
-      );
-      return event?.transactionHash ?? null;
+    transactionMadeWorkLink: async (transactionHash, link) => {
+      const receipt = await getTransactionReceipt(wagmiConfig, { hash: transactionHash, chainId });
+      if (receipt.status !== "success") return false;
+      const same = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
+      return receipt.logs.some((log) => {
+        if (!same(log.address, moduleAddress)) return false;
+        try {
+          const event = decodeEventLog({
+            abi: CommitmentPoolingModuleABI,
+            data: log.data,
+            topics: log.topics,
+          });
+          if (event.eventName !== "WorkLinked") return false;
+          const args = event.args as unknown as {
+            commitmentId: bigint;
+            workUID: Hex;
+            operationKey: Hex;
+            linker: Address;
+          };
+          return (
+            args.commitmentId === link.commitmentId &&
+            same(args.workUID, link.workUID) &&
+            same(args.operationKey, link.operationKey) &&
+            same(args.linker, link.linker)
+          );
+        } catch {
+          // Another event, or one this ABI cannot read: not this link.
+          return false;
+        }
+      });
     },
     hasPendingTransaction: async (account) => {
       const [pending, mined] = await Promise.all([

@@ -13,7 +13,9 @@ import {
   hashSeriesCreationPayload,
   hashWorkLinkPayload,
 } from "../../modules/commitment-pooling/jobs";
+import { encodeAbiParameters, encodeEventTopics } from "viem";
 import { createCommitmentChainReads } from "../../modules/job-queue/commitment-chain-reads";
+import { CommitmentPoolingModuleABI } from "../../utils/blockchain/contracts";
 import { executeApprovalJob } from "../../modules/job-queue/approval-executor";
 import { executeCommitmentQueueJob, executeWorkJob } from "../../modules/job-queue/job-executors";
 import { jobQueueDB } from "../../modules/job-queue/db";
@@ -1133,37 +1135,46 @@ describe("commitment chain reads", () => {
     await expect(chainReads.hasPendingTransaction?.(USER)).resolves.toBe(false);
   });
 
-  it("names a work link's transaction by the key its WorkLinked event carries", async () => {
+  it("confirms a work link by the key its WorkLinked event carries", async () => {
     const OTHER_KEY = `0x${"99".repeat(32)}` as const;
-    const getContractEvents = vi.fn().mockResolvedValue([
-      // Another link in the same block, by the same caller.
-      { transactionHash: ZERO_HASH, args: { operationKey: OTHER_KEY, linker: USER } },
-      { transactionHash: MOCK_TX_HASH, args: { operationKey: HASH, linker: USER } },
-    ]);
-    const getPublicClient = vi.fn(() => ({ getContractEvents }));
+    const workLinked = (operationKey: `0x${string}`, emitter: Address = MODULE) => ({
+      address: emitter,
+      topics: encodeEventTopics({
+        abi: CommitmentPoolingModuleABI,
+        eventName: "WorkLinked",
+        args: { commitmentId: 7n, workUID: HASH, contributor: USER },
+      }),
+      data: encodeAbiParameters(
+        [{ type: "uint16" }, { type: "address" }, { type: "bytes32" }],
+        [0, USER, operationKey]
+      ),
+    });
+    const getTransactionReceipt = vi.fn().mockResolvedValue({
+      status: "success",
+      logs: [workLinked(OTHER_KEY), workLinked(HASH)],
+    });
     const chainReads = createCommitmentChainReads({
       chainId: 42161,
       moduleAddress: MODULE,
-      getPublicClient: getPublicClient as never,
+      getTransactionReceipt: getTransactionReceipt as never,
       config: {} as Config,
     });
-    const link = { blockNumber: 42n, commitmentId: 7n, workUID: HASH, operationKey: HASH };
+    const link = { commitmentId: 7n, workUID: HASH, operationKey: HASH, linker: USER };
 
-    await expect(chainReads.readWorkLinkTransaction?.({ ...link, linker: USER })).resolves.toBe(
-      MOCK_TX_HASH
-    );
-    expect(getContractEvents).toHaveBeenCalledWith(
-      expect.objectContaining({
-        address: MODULE,
-        eventName: "WorkLinked",
-        args: { commitmentId: 7n, workUID: HASH },
-        fromBlock: 42n,
-        toBlock: 42n,
-      })
-    );
+    await expect(chainReads.transactionMadeWorkLink?.(MOCK_TX_HASH, link)).resolves.toBe(true);
+    expect(getTransactionReceipt).toHaveBeenCalledWith(expect.anything(), {
+      hash: MOCK_TX_HASH,
+      chainId: 42161,
+    });
+    // Another linker, or the same event from another contract, is not this link.
     await expect(
-      chainReads.readWorkLinkTransaction?.({ ...link, linker: GARDEN })
-    ).resolves.toBeNull();
+      chainReads.transactionMadeWorkLink?.(MOCK_TX_HASH, { ...link, linker: GARDEN })
+    ).resolves.toBe(false);
+    getTransactionReceipt.mockResolvedValue({
+      status: "success",
+      logs: [workLinked(HASH, GARDEN)],
+    });
+    await expect(chainReads.transactionMadeWorkLink?.(MOCK_TX_HASH, link)).resolves.toBe(false);
   });
 });
 

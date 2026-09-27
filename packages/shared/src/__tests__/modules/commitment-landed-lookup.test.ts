@@ -90,9 +90,8 @@ async function lookUp(
     requests?: CommitmentClaimRequestRecord[];
     storedLink?: `0x${string}`;
     /** The indexer's record of the link the operation key made. */
-    link?: { linkedBy: `0x${string}`; blockNumber: bigint };
-    /** The transaction the chain's WorkLinked log names, in the block the indexer gives. */
-    linkTransaction?: `0x${string}` | null;
+    /** Transactions whose receipts carry this link's own WorkLinked event. */
+    linkedIn?: readonly string[];
     /** How a deferred link's work resolves, from its client work id. */
     resolvedWork?: `0x${string}` | null;
     /** Seconds the device clock runs ahead of the chain's. */
@@ -108,8 +107,7 @@ async function lookUp(
     readWorkLinkPayloadHash: vi.fn().mockResolvedValue(chain.storedLink ?? zeroHash),
     activity: vi.fn(async ({ limit = 50, offset = 0 }) => rows.slice(offset, offset + limit)),
     claimRequests: vi.fn().mockResolvedValue(chain.requests ?? []),
-    workLinkByOperation: vi.fn().mockResolvedValue(chain.link ?? null),
-    readWorkLinkTransaction: vi.fn().mockResolvedValue(chain.linkTransaction ?? null),
+    transactionMadeWorkLink: vi.fn(async (hash: string) => (chain.linkedIn ?? []).includes(hash)),
     resolveWorkIdentity: vi
       .fn()
       .mockResolvedValue(
@@ -263,7 +261,7 @@ describe("createCommitmentLandedLookup", () => {
     await expect(lookUp(confirm, busier)).resolves.toEqual({ status: "unknown" });
   });
 
-  it("decides a work link by the module's record of its own payload, and names it by the chain's log", async () => {
+  it("decides a work link by the module's record of its own payload, and names it from its own event", async () => {
     const WORK = `0x${"77".repeat(32)}` as const;
     const OTHER_WORK = `0x${"88".repeat(32)}` as const;
     const link = act("workLink", {
@@ -273,27 +271,34 @@ describe("createCommitmentLandedLookup", () => {
       workUID: WORK,
     });
     const stored = hashWorkLinkPayload(7n, WORK, 0);
-    const indexed = { linkedBy: CALLER, blockNumber: 42n } as const;
-    // Another link by the same reader, in a block with the same time and log index.
-    const sameCursor = row("WORK_LINKED", CALLER, { id: `42161-${OLD_TX}-0`, txHash: OLD_TX });
+    // Two links by the same reader: another work's, newer, and this one. Only
+    // this one's receipt carries its operation key, whatever the rows' times.
+    const otherLink = row("WORK_LINKED", CALLER, {
+      id: `42161-${OLD_TX}-0`,
+      txHash: OLD_TX,
+      timestamp: AFTER + 30,
+    });
+    const linked = row("WORK_LINKED", CALLER, { id: `42161-${TX}-0`, txHash: TX });
+    const history = [otherLink, linked];
 
-    await expect(lookUp(link, [sameCursor])).resolves.toEqual({ status: "absent" });
+    await expect(lookUp(link, history)).resolves.toEqual({ status: "absent" });
     // The key carries another link: this one never landed, and sending it again will say why.
     await expect(
-      lookUp(link, [sameCursor], {
+      lookUp(link, history, {
         storedLink: hashWorkLinkPayload(7n, OTHER_WORK, 0),
-        link: indexed,
-        linkTransaction: OLD_TX,
+        linkedIn: [OLD_TX],
       })
     ).resolves.toEqual({ status: "absent" });
-    await expect(
-      lookUp(link, [sameCursor], { storedLink: stored, link: indexed, linkTransaction: TX })
-    ).resolves.toEqual({ status: "found", transactionHash: TX });
-    // Landed, but not yet tied to a block, or the block's log not yet read.
-    await expect(lookUp(link, [], { storedLink: stored })).resolves.toEqual({ status: "unknown" });
-    await expect(lookUp(link, [], { storedLink: stored, link: indexed })).resolves.toEqual({
-      status: "unknown",
+    // Named from the log's own history, even once the work has been relinked
+    // under another key and the indexer's attribution has moved on.
+    await expect(lookUp(link, history, { storedLink: stored, linkedIn: [TX] })).resolves.toEqual({
+      status: "found",
+      transactionHash: TX,
     });
+    // Landed, but the log has not indexed its row yet.
+    await expect(
+      lookUp(link, [otherLink], { storedLink: stored, linkedIn: [TX] })
+    ).resolves.toEqual({ status: "unknown" });
 
     // A deferred link learns its work from its client work id first.
     const deferred = act("workLink", {
@@ -303,15 +308,10 @@ describe("createCommitmentLandedLookup", () => {
       clientWorkId: "client-work",
     });
     await expect(
-      lookUp(deferred, [], {
-        storedLink: stored,
-        link: indexed,
-        linkTransaction: TX,
-        resolvedWork: WORK,
-      })
+      lookUp(deferred, history, { storedLink: stored, linkedIn: [TX], resolvedWork: WORK })
     ).resolves.toEqual({ status: "found", transactionHash: TX });
     await expect(
-      lookUp(deferred, [], { storedLink: stored, link: indexed, linkTransaction: TX })
+      lookUp(deferred, history, { storedLink: stored, linkedIn: [TX] })
     ).resolves.toEqual({ status: "unknown" });
   });
 });

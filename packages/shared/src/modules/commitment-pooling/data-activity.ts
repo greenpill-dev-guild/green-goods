@@ -93,35 +93,3 @@ export async function getCommitmentActivity(
     })
   );
 }
-
-/** The link an operation key made, as the indexer holds it: who linked, and in which block. */
-export interface IndexedWorkLink {
-  linkedBy: Address;
-  /** The block of the link's WorkLinked event, where the chain names its transaction. */
-  blockNumber: bigint;
-}
-
-/**
- * The link one caller's operation key made, or null before the indexer holds
- * it. The indexer keeps each work's latest link, so a work relinked under
- * another key no longer answers to this one.
- */
-export async function getWorkLinkByOperation(
-  chainId: number,
-  caller: Address,
-  operationKey: string,
-  reader: GraphQLReader = greenGoodsIndexer
-): Promise<IndexedWorkLink | null> {
-  const query = `query WorkLinkByOperation($chainId: Int!, $operationKey: String!) { CommitmentWorkAttribution(where: { chainId: { _eq: $chainId }, operationKey: { _eq: $operationKey }, linkSeen: { _eq: true } }, limit: 10) { linkedBy linkPayloadBlockNumber } }`;
-  const rows = await queryRows(
-    query,
-    { chainId, operationKey: operationKey.toLowerCase() },
-    "CommitmentWorkAttribution",
-    "getWorkLinkByOperation",
-    reader
-  );
-  const row = rows.find((candidate) => address(candidate.linkedBy) === address(caller));
-  const linkedBy = address(row?.linkedBy);
-  const blockNumber = optionalInteger(row?.linkPayloadBlockNumber);
-  return linkedBy && blockNumber !== null ? { linkedBy, blockNumber } : null;
-}

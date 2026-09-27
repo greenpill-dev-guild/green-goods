@@ -187,7 +187,7 @@ export async function settleActSend(
           deps.lookUpLanded ??
           createCommitmentLandedLookup({
             readWorkLinkPayloadHash: chainReads.readWorkLinkPayloadHash,
-            readWorkLinkTransaction: chainReads.readWorkLinkTransaction,
+            transactionMadeWorkLink: chainReads.transactionMadeWorkLink,
             resolveWorkIdentity: deps.resolveWorkIdentity,
           }),
         stillSending: async () =>
