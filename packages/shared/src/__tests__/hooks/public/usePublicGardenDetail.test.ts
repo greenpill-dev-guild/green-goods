@@ -113,6 +113,34 @@ describe("usePublicGardenDetail", () => {
 
     expect(result.current.data?.garden?.id).toBe(garden.id);
     expect(result.current.data?.garden?.name).toBe("Riparian Restoration");
+    expect(result.current.data?.unlisted).toBe(false);
+  });
+
+  it("opens an unlisted garden by its own link, and never one hidden everywhere", async () => {
+    // Curated addresses from config/garden-visibility: the editorial tier, then the other.
+    const communityGarden = "0xf401f34378384713222d1d21f63359cc4E8a858a";
+    const liveGardenCoop = "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8";
+    mockGetGardens.mockResolvedValue([
+      createMockGarden({ id: communityGarden, name: "Green Goods Community Garden" }),
+      createMockGarden({ id: liveGardenCoop, name: "Live Garden Coop" }),
+    ]);
+
+    const { result } = renderHook(() => usePublicGardenDetail(communityGarden.toLowerCase()), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+    expect(result.current.data?.garden?.id).toBe(communityGarden);
+    expect(result.current.data?.unlisted).toBe(true);
+
+    const { result: hidden } = renderHook(() => usePublicGardenDetail(liveGardenCoop), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => {
+      expect(hidden.current.isSuccess).toBe(true);
+    });
+    expect(hidden.current.data?.garden).toBeNull();
   });
 
   it("resolves a garden by slug derived from name", async () => {

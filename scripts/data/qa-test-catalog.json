@@ -669,6 +669,30 @@
       "source": "qa-readiness-catalog-2026-09-21"
     },
     {
+      "id": "PUB-060",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "content",
+      "area": "Gardens",
+      "scenario": "An unlisted garden opens by its own link and says it is unlisted",
+      "preconditions": [
+        "The public link of a garden kept off the public lists, such as Green Goods Community Garden"
+      ],
+      "steps": [
+        "Open the garden's public page by its own link",
+        "Read the foot of the hero card",
+        "Open the Gardens archive and look for the garden"
+      ],
+      "expected": "The page opens with the garden's record and one quiet line, This Garden is not in the public lists; the page asks search engines not to index it; the archive, counters and funding list still leave the garden out",
+      "evidence": "Screenshot of the page with the line, and of the archive without the garden",
+      "role": "none",
+      "tags": ["garden-records"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-rehearsal-followups-2026-09-27"
+    },
+    {
       "id": "PUB-028",
       "tab": "Public Website",
       "platform": "Desktop Browser",

@@ -16,7 +16,7 @@
  * @vitest-environment jsdom
  */
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -165,6 +165,7 @@ const messages: Record<string, string> = {
   "public.gardenDetail.backToArchive": "All Gardens",
   "public.gardenDetail.place.empty": "Garden narrative will appear here.",
   "public.gardenDetail.support": "Support This Garden",
+  "public.gardenDetail.unlisted": "This Garden is not in the public lists.",
   "public.gardenDetail.evidence.cta": "View Public Evidence",
   "public.gardenDetail.stats.entries": "Entries",
   "public.gardenDetail.stats.handsAtWork": "Hands at work",
@@ -211,6 +212,7 @@ function detailResult(
     works: boolean;
     assessments: boolean;
     isLoading: boolean;
+    unlisted: boolean;
   }> = {}
 ) {
   const fieldNotes = overrides.fieldNotes ?? [makeNote(0), makeNote(1)];
@@ -233,6 +235,7 @@ function detailResult(
         works: Boolean(overrides.works),
         assessments: Boolean(overrides.assessments),
       },
+      unlisted: Boolean(overrides.unlisted),
     },
     isLoading: Boolean(overrides.isLoading),
   };
@@ -288,6 +291,22 @@ describe("GardenDetail", () => {
   it("renders the Garden name as the editorial h1", () => {
     renderView();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Solar Community Garden");
+    // A listed Garden says nothing about lists, and crawlers may index it.
+    expect(screen.queryByText("This Garden is not in the public lists.")).toBeNull();
+    expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
+  });
+
+  it("says an unlisted Garden is not in the public lists, and keeps crawlers off it", async () => {
+    mockUsePublicGardenDetail.mockReturnValue(detailResult({ unlisted: true }));
+    renderView();
+
+    expect(screen.getByText("This Garden is not in the public lists.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+        "content",
+        "noindex"
+      );
+    });
   });
 
   it("resolves the Garden by slug", () => {
