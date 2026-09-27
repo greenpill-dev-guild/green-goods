@@ -13,7 +13,9 @@ import {
   GARDENS_HIDDEN_EVERYWHERE,
   GARDENS_HIDDEN_FROM_EDITORIAL,
   isGardenHiddenEverywhere,
+  isGardenPubliclyReachable,
   isGardenPubliclyVisible,
+  isGardenUnlisted,
 } from "../../config/garden-visibility";
 
 const LIVE_GARDEN_COOP = "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8";
@@ -99,6 +101,22 @@ describe("config/garden-visibility", () => {
     it("treats null and undefined metadata as absent", () => {
       expect(isGardenPubliclyVisible({ id: VIDA_VERDE, name: null, location: null })).toBe(false);
       expect(isGardenPubliclyVisible({ id: VIDA_VERDE })).toBe(false);
+    });
+  });
+
+  describe("isGardenPubliclyReachable and isGardenUnlisted", () => {
+    it("keeps an editorial-hidden garden reachable by its own link, unlisted; the rest as before", () => {
+      for (const id of [COMMUNITY_GARDEN, AIYELOJA.toLowerCase(), MAMA_GARDENS]) {
+        expect(isGardenPubliclyReachable(garden(id))).toBe(true);
+        expect(isGardenUnlisted(garden(id))).toBe(true);
+      }
+      // Hidden everywhere means no page at all.
+      expect(isGardenPubliclyReachable(garden(LIVE_GARDEN_COOP))).toBe(false);
+      expect(isGardenUnlisted(garden(LIVE_GARDEN_COOP))).toBe(false);
+      // An ordinary garden is listed and reachable; a placeholder is neither.
+      expect(isGardenPubliclyReachable(garden(VIDA_VERDE))).toBe(true);
+      expect(isGardenUnlisted(garden(VIDA_VERDE))).toBe(false);
+      expect(isGardenPubliclyReachable(garden(VIDA_VERDE, "", ""))).toBe(false);
     });
   });
 });
