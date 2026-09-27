@@ -294,6 +294,18 @@ describe("PublicShell", () => {
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
     expect(screen.queryByText("Install App")).not.toBeInTheDocument();
     expect(container.querySelector('[data-site="website"]')).toBeNull();
+
+    // Help explains the page in place and keeps the permissions page and a person reachable.
+    fireEvent.click(screen.getByRole("button", { name: "Help" }));
+    expect(screen.getByRole("link", { name: "Reporting permissions" })).toHaveAttribute(
+      "href",
+      "/agent/reporting/permissions"
+    );
+    expect(screen.getByRole("link", { name: "afo@wefa.world" })).toHaveAttribute(
+      "href",
+      "mailto:afo@wefa.world"
+    );
+    expect(screen.getByTestId("ceremony-content")).toBeInTheDocument();
   });
 
   it("no bottom nav (AppBar) visible in browser mode", () => {

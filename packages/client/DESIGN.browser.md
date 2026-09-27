@@ -45,8 +45,10 @@ transactional pages that someone reaches from a chat link, usually on a phone, s
 editorial dialect on purpose:
 
 - **Focused shell.** `PublicShell` renders `FocusedSiteHeader` for this prefix: the mark on a solid
-  canvas, no navigation, no `Install App` CTA, no footer and no hero. Nothing leads away from a
-  signature in progress. The boot skeleton uses the matching `focused` variant.
+  canvas and one Help control, with no navigation, no `Install App` CTA, no footer and no hero.
+  Nothing leads away from a signature in progress. Help opens in place and explains the page, what
+  becomes public and returning to the chat, and links the static permissions page and the support
+  contact. The boot skeleton uses the matching `focused` variant.
 - **App surface.** The shell omits `data-site="website"`, so shared buttons and fields keep the app
   corner together. One narrow column, one step at a time, Inter throughout; no Fraunces.
 - **Website presentation even when installed.** The prefix is a public website prefix, so an
