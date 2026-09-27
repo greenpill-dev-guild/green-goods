@@ -3,37 +3,73 @@
 ## Lane
 
 - Owner: Opus 5.5 (Claude)
-- Branch: record the approved implementation checkout before dispatch
-- Status: blocked (see status.json)
+- Branch: `feature/agent-reporting-core` (PR #2), stacked on `chore/whatsapp-prototype-scope-lock`
+  (PR #864) at pinned parent `8457b8aa2f82b4de41bd8de1551d7d9f5a36da8e`
+- Status: in progress (see status.json). PR #2 scope is implemented and fixture-tested; live gates
+  and the WhatsApp transport (PR #3) remain. Independent review by Astra has not happened yet.
 - Support owner: Afolabi, [afo@wefa.world](mailto:afo@wefa.world)
 
 ## Start gate
 
-Before implementation, run `node scripts/harness/plan-hub.mjs linear-sync --feature agent-messaging-channels --json`, reconcile the existing tracker scope, and record verified canonical identifiers with `record-linear`. Keep `parent_only`; no new lane issues. This documentation update does not dispatch a task. Follow the current package slices in [plan.todo.md](../plan.todo.md#current-build-sequence), not the historical step numbers. No branch switch or creation is implied.
+Completed on 2026-09-27: `linear-sync` and `record-linear` kept `parent_only` under PRD-998 and
+recorded this branch for the state_api and ui lanes. No lane issues were created.
 
-## Scope
+## What changed in PR #2
 
-Own the minimum Shared pure reporting contract and explicit exports, Agent coordinator, SQLite stores/migrations and reproducible API harness first. Complete story-first Action inference/clarification, fixed submission fields including confirmed time, provenance and revisions; never require browser editing. Agent consumes only declared server-safe Shared exports.
+The [capability record](../reports/2026-09-27-reporting-core-capability-record.md) lists every
+capability with its implemented, fixture-tested, live-tested and shipped state. In short:
 
-Then own root `.env.schema`/Agent config validation, bounded durable Meta inbox, fenced conversation processing and atomic reply intents; OpenAI/Jev and isolated media conversion; stable channel-subject IDs and versioned HMAC aliases; processing/publication consent; operation reservations and durable terminal outcomes; grant/executor policy; receipt reconciliation; correlated provider delivery statuses; cleanup, relinking and dispatch controls.
+- Shared: report and review rules, lifecycles, envelopes, canonical digests, proof messages, the
+  ceremony wire contract and client, Kernel call rules and the permission builder.
+- Agent: SQLite schema with `user_version` migrations; durable inbox, conversation leases with
+  fencing, revision CAS, jobs, outbox with dispatch-time consent and binding checks, delivery
+  status; the story-first coordinator with deterministic questions; consent, expiry and cleanup;
+  owner publication with attempts, outcomes, watchdog and receipt or range reconciliation; steward
+  review; recovery with epochs; Kernel grants and a restricted executor (disabled); operator controls.
+- Content: OpenAI Responses extraction and Jev decisions with fallbacks; photos, PDFs, Word,
+  spreadsheets with visible-literal arithmetic; voice notes behind a separate consent and switch;
+  bounded local tools; private storage.
+- Harness: in-process Hono tests with real temporary SQLite, injected clock and IDs, fixture
+  chain, catalog, transport and wallets; the loopback driver with `walkthrough.http`, samples and
+  `reporting:walkthrough`.
 
-The UI slice supplies the scoped browser outcome/checkpoint producer; both lanes share the typed command contract. No browser Dexie default instance enters the Agent. Publication controls are enforced at actual send boundaries; outcome and status reconciliation keep running during pauses.
+Defects found and fixed while building, each with a regression test: a racing insert could
+create a second channel subject; an unmined reported hash was treated as a receipt conflict; the
+delegated executor stranded confirmed reports when publishing paused or a grant lapsed, and could
+use a grant that expired while it awaited the chain.
 
-Persist the confirmed Action definition bytes/source/block/digest on the revision and bind them into confirmation/preparation. Later instruction updates do not reinterpret a pending report; explicit adoption creates a new confirmed revision. Prove updates between reservation and inclusion for both authorization branches while retaining live resolver eligibility checks. Kernel enablement depends on the UI/Shared independent owner-revocation proof in technical brief section 9.3; reconcile externally revoked permissions from chain on restart without requiring a surviving Agent callback.
+## What remains
+
+- PR #3: the WhatsApp `TransportAdapter` (capability record section 6).
+- Live gates in capability record section 4, including real receipts, Kernel proof verification on
+  RPC, model evaluation and the Agent image build.
+- Delegation stays disabled until the section 9.3 owner-revocation path and module compatibility
+  are proven.
 
 ## TDD Proof
 
-- RED: pending; choose concrete owning test paths with the first implementation slice.
-- GREEN: pending; run the same behavior proof after implementation.
-- Proof limit: no runtime proof recorded.
+- RED: `AGENT_SQLITE_INTEGRATION=true bun --bun run vitest run src/__tests__/reporting/publish-owner.sqlite.test.ts -t "not mined yet"`
+  (in `packages/agent`) failed before `575a987a5`: the operation recorded `receipt_mismatch` for a
+  hash whose transaction was not mined yet.
+- GREEN: the same command passes after the fix; the full SQLite lane passes.
+- Further proof that the tests guard behavior: removing the voice consent gate fails four voice
+  tests; returning "done" on a publication pause fails the delegated pause test.
 
 ## Validation
 
-Render `bun run check --plan -- --intent qa` before checks. Run actual focused tests through the owning package wrapper; record exact commands here and in status.json. Retain required critical checks for Shared auth, Work and JobQueue. Existing wrappers include `bun run --cwd packages/agent test -- <test-file>` and `bun run --cwd packages/shared test -- <test-file>`; placeholders are not executable evidence. No obsolete intake-hook command is authoritative.
+Selector: `node scripts/dev/ci-local.js --plan --intent push --base 8457b8aa2f82b4de41bd8de1551d7d9f5a36da8e`
+selects the critical push plan (critical overrides on shared-test, client-test, admin-test and
+agent-test). The contracts checks are blocked locally because this worktree has no contract
+submodules; CI runs them. Focused runs during the work:
+
+- `bun run --cwd packages/agent test` and `bun run --cwd packages/agent test --scope sqlite`
+- `bun run --cwd packages/agent typecheck --scope tests`
+- `node scripts/quality/check-source-structure.js --base 8457b8aa2f82b4de41bd8de1551d7d9f5a36da8e`
+- `bash scripts/quality/check-test-quality.sh`; `bun run lint`
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
+- Tested implementation commit SHA: pending the full push gate
 - Run at (UTC): pending
 - Exact command(s): pending
 - Result: pending
@@ -44,4 +80,6 @@ Render `bun run check --plan -- --intent qa` before checks. Run actual focused t
 
 ## Risks / Blockers
 
-Tracker/start-gate reconciliation must complete before implementation. Live stages retain provider, processing, privacy, custody and deployed-browser/chain gates; they do not block synthetic fixtures.
+Model quality, provider behavior, wallet and bundler compatibility and chain inclusion are not
+established by fixtures. `.env.schema` needs the settings in capability record section 5, which
+agents cannot add. LibreOffice conversion waits on a package decision.

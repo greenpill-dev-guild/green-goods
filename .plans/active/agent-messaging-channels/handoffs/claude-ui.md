@@ -3,37 +3,74 @@
 ## Lane
 
 - Owner: Opus 5.5 (Claude)
-- Branch: record the approved implementation checkout before dispatch
-- Status: blocked (see status.json)
+- Branch: `feature/agent-reporting-core` (PR #2), with the state_api lane
+- Status: in progress (see status.json). The ceremony pages and Shared hooks are implemented and
+  fixture-tested; authenticated signing proof, deployed proxy proof and the section 9.3 permission
+  mode remain. Independent review by Astra has not happened yet.
 - Support owner: Afolabi, [afo@wefa.world](mailto:afo@wefa.world)
 
 ## Start gate
 
-Before implementation, run `node scripts/harness/plan-hub.mjs linear-sync --feature agent-messaging-channels --json`, reconcile the existing tracker scope, and record verified canonical identifiers with `record-linear`. Keep `parent_only`; no new lane issues. This documentation update does not dispatch a task. Follow the current package slices in [plan.todo.md](../plan.todo.md#current-build-sequence), not the historical step numbers. No branch switch or creation is implied.
+Completed on 2026-09-27 with the state_api lane (`parent_only`, PRD-998).
 
-## Scope
+## What changed in PR #2
 
-Own platform-neutral `/agent/reporting/:requestId` and `/agent/reporting/recover/:requestId` with PWA design components and no installation prerequisite. Proposed Shared hooks are `useAgentReportingCeremony` and `useAgentReportingRecovery`, backed by `modules/agent-reporting/` transport/machines and declared exports. Keep hooks in Shared. The client owns route/presentation/provider composition and views; there is no ordinary composer hydration or mandatory first-run account creation.
+- Shared hooks `useAgentReportingCeremony` and `useAgentReportingRecovery` (declared exports) on the
+  typed `CeremonyClient`. Nothing is requested until the person continues; proof signs the Agent's
+  exact message with the existing wallet or passkey signer; new links pair through the chat; a
+  refreshed tab resumes only its own session.
+- Publishing checks the frozen envelope independently before reserving, rebuilds the `attest` call
+  from its calldata, sends through the existing transaction sender, reports the broadcast hash as
+  soon as it exists, classifies failures with the Work queue's send rules and replays an
+  undelivered outcome with the same idempotency key after a reload.
+- Client routes `/agent/reporting/:requestId`, `/agent/reporting/recover/:requestId` and the static
+  `/agent/reporting/permissions` (no API calls; states that delegated publishing is unavailable)
+  under PublicShell with `FocusedSiteHeader`: the mark and a Help control, no navigation or install
+  CTA. Website presentation even when an installed app captures the link; a focused boot skeleton.
+  The wallet runtime loads only on these pages and without analytics identity. Copy in en, es, pt.
+- `vercel.json` proxies `/api/messaging` to the Agent on the same origin and serves both prefixes
+  `no-store`, `no-referrer` and `noindex`. PostHog and Sentry drop link locators and take no
+  recordings on ceremony pages. Ceremony queries never enter the persisted reading cache. The pages
+  are not WebMCP routes. `DESIGN.browser.md` records the route exception.
 
-Integrate existing EOA/Kernel authentication, the read-only confirmed report, separate Kernel permission approval, exact prepared-envelope signing and minimal durable attempt/outcome checkpoints. Resume failure callbacks after reload and scoped reauthentication. Account/session/revision changes invalidate access; unknown sends remain reserved. A fresh publication permit is required before the owner sender is invoked.
+The Help control and the focused header are a separate component rather than a `SiteHeader`
+variant: the editorial header's markup is geometry-locked to the boot skeleton, and the ceremony
+header shares none of its behavior.
 
-Keep both browser and installed-context ceremony routes under PublicShell and a typed focused SiteHeader variant; no third shell. Scope includes `router.tsx`, route trees/loaders, PublicShell, SiteHeader and its Storybook story with default-route regression proof. Reuse this same view for the static `/agent/reporting/permissions` route before `:requestId`. Its owner revocation path must work without Agent APIs, proxy, session, database, signer or sponsorship, as specified in technical brief section 9.3. Validate/reconstruct the public descriptor and installed permission, derive the exact module revocation in Shared, confirm with the owner and verify chain state. Keep delegation disabled until this path passes, including existing-passkey access without an Agent lookup.
+## What remains
 
-Own `packages/client/vercel.json` proxy/headers with Agent response middleware and serving-edge log settings. Prove deployed headers, cookie forwarding/clearing, Origin/CSRF, canary log redaction and existing-passkey origin/build configuration. Include browser refresh/handoff, private-cache exclusion and en/es/pt copy. Help exposes Afolabi at afo@wefa.world.
+- Authenticated Brave proof of wallet and passkey signing, and the deployed proxy, cookie, Origin
+  and header checks (capability record section 4).
+- The section 9.3 permission mode on `/agent/reporting/permissions`: owner revocation without the
+  Agent, descriptor import and reconstruction. Delegation stays disabled until it passes.
 
 ## TDD Proof
 
-- RED: pending; choose concrete owning test paths with the first implementation slice.
-- GREEN: pending; run the same behavior proof after implementation.
-- Proof limit: no runtime proof recorded.
+- RED: with the pre-reservation envelope check removed from `useAgentReportingCeremony`,
+  `bun run vitest run src/__tests__/hooks/agent-reporting/` (in `packages/shared`) fails
+  "refuses an envelope that no longer matches its own digest before reserving anything"; with the
+  restore-time replay removed it fails "replays an outcome it could not deliver".
+- GREEN: the same command passes with both in place (10 tests).
+- These are mutation checks on behavior written with the tests, not tests written before the code.
 
-## Validation
+## Rendered proof
 
-Render `bun run check --plan -- --intent qa` before checks. Run actual focused tests through the owning package wrapper; record exact commands here and in status.json. Retain required critical checks for Shared auth, Work and JobQueue. Existing wrappers include `bun run --cwd packages/agent test -- <test-file>` and `bun run --cwd packages/shared test -- <test-file>`; placeholders are not executable evidence. No obsolete intake-hook command is authoritative.
+- **Storybook** (`Client/Public/AgentReporting/Ceremony`, app surface) on 2026-09-27: review at
+  desktop width; pairing, review with the wrong account, prove (connected), outcome unknown and
+  recovery code at 375 px. The other stories (intro, connect, submitted, published, not sent,
+  unavailable, recovery confirm, permissions) are defined but were not inspected one by one, and
+  these checks predate the Help control.
+- **mock-auth localhost** (`client-http-3011`, `?mockAuth=deployer&presentation=website`) against the
+  loopback driver on 2026-09-27: a real Agent-issued link rendered the intro with no API request;
+  Continue produced one `POST /api/messaging/challenges` → 201 through the same-origin proxy and
+  the connect stage; with no signer under mock auth, Sign to continue failed gracefully with no
+  proof submitted. The permissions page made no API request; the page head carried
+  `noindex, nofollow` and `no-referrer`, the focused header and no navigation.
+- **Authenticated** wallet or passkey signing: pending (requires Brave with a real account).
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
+- Tested implementation commit SHA: pending the full push gate
 - Run at (UTC): pending
 - Exact command(s): pending
 - Result: pending
@@ -44,4 +81,5 @@ Render `bun run check --plan -- --intent qa` before checks. Run actual focused t
 
 ## Risks / Blockers
 
-Tracker/start-gate reconciliation must complete before implementation. Live stages retain provider, processing, privacy, custody and deployed-browser/chain gates; they do not block synthetic fixtures.
+Wallet prompts, passkey origin binding and mobile handoff are unproven. The beta frontend cannot run
+ceremonies against the production Agent, which accepts one configured origin.

@@ -60,8 +60,14 @@ its stage gates and the current handoffs below. The older numbered steps are his
 
 - [x] User assigned Opus 5.5 to build and Astra to review, and named Afolabi as support owner.
 - [x] Reconcile the local handoffs with the current account, route, media and execution contracts.
-- [ ] Run `node scripts/harness/plan-hub.mjs linear-sync --feature agent-messaging-channels --json`, reconcile the existing tracker scope, and record the canonical identifiers with `record-linear` before code or agent dispatch. Preserve `parent_only`; do not create duplicate lane issues or reapply historical writes. The unresolved historical parent reference must be resolved against live Linear before recording it.
-- [ ] Record the selected implementation checkout and first bounded slice. No agent has been dispatched by this document update.
+- [x] Run `node scripts/harness/plan-hub.mjs linear-sync --feature agent-messaging-channels --json`, reconcile the existing tracker scope, and record the canonical identifiers with `record-linear` before code or agent dispatch. Done on 2026-09-27: `parent_only` under PRD-998, no lane issues.
+- [x] Record the selected implementation checkout and first bounded slice: `feature/agent-reporting-core` (PR #2), stacked on PR #864 at `8457b8aa2`.
+
+**PR #2 status (2026-09-27):** the transport-independent reporting core, browser ceremonies and
+reproducible API harness are implemented and fixture-tested; nothing is live-tested. The
+[capability record](reports/2026-09-27-reporting-core-capability-record.md) lists each capability,
+the section 12.1 coverage, the remaining live gates, the settings for `.env.schema` and the PR #3
+WhatsApp handoff. Astra's independent review has not happened yet.
 
 ### Package boundaries and proof
 

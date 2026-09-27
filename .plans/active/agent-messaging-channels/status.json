@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-09-27T03:27:36.159658+00:00"
+    "updated_at": "2026-09-27T10:02:29.970Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,7 +26,8 @@
     "openai_scope_alignment": "reports/2026-09-25-openai-scope-alignment.md",
     "final_brief_review": "reports/2026-09-26-final-brief-review.md",
     "final_brief_validation": "reports/2026-09-26-final-brief-validation.md",
-    "accepted_review_decisions": "reports/2026-09-26-accepted-review-decisions.md"
+    "accepted_review_decisions": "reports/2026-09-26-accepted-review-decisions.md",
+    "reporting_core_capability_record": "reports/2026-09-27-reporting-core-capability-record.md"
   },
   "notes": [
     "CURRENT EXECUTION CONTRACT: technical-brief.md sections 11–12, plan.todo.md Current build sequence and the current handoffs. Remaining notes preserve chronological decisions; later user decisions supersede historical scope statements.",
@@ -65,39 +66,51 @@
   "lanes": {
     "state_api": {
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "feature/agent-reporting-core",
       "depends_on": [],
       "handoff": "handoffs/claude-state-api.md",
       "handoff_note": "Opus 5.5: current Shared reporting rules/exports, Agent harness/coordinator, SQLite identity/draft/operation stores, Meta/media/model adapters, grants, durable failure outcomes, receipt/outbox/cleanup and operating controls. Story clarification and fixed-field proof belong here. Follow current plan slices, not historical steps. Preserve confirmed Action snapshots across pending sends and reconcile externally revoked permissions.",
       "skill_tags": ["data-layer", "testing", "web3"],
-      "manual_blocked": true,
+      "manual_blocked": false,
       "ready_when_dependencies_met": false,
       "tdd": {
         "mode": "required",
-        "status": "pending",
-        "red": {},
-        "green": {},
-        "note": "Choose actual owning test paths with the first current-scope implementation slice and record RED/GREEN proof. Old WhatsApp intake/composer and historical step commands are superseded. See the lane handoff; no runtime test is represented as present or passing."
+        "status": "green_recorded",
+        "red": {
+          "command": "cd packages/agent && AGENT_SQLITE_INTEGRATION=true bun --bun run vitest run src/__tests__/reporting/publish-owner.sqlite.test.ts -t \"not mined yet\"",
+          "evidence": "Failed before 575a987a5: the operation recorded failure_code receipt_mismatch for a reported hash whose transaction was not mined yet (expected pending)."
+        },
+        "green": {
+          "command": "cd packages/agent && AGENT_SQLITE_INTEGRATION=true bun --bun run vitest run src/__tests__/reporting/publish-owner.sqlite.test.ts -t \"not mined yet\"",
+          "evidence": "Passes at 575a987a5 and later; the full SQLite lane (bun run --cwd packages/agent test --scope sqlite) passes. Mutation checks: removing the voice consent gate fails 4 voice tests; returning done on a publication pause fails the delegated pause test."
+        },
+        "note": "PR #2 on feature/agent-reporting-core; see handoffs/claude-state-api.md"
       },
       "blocked_reason": "Complete tracker/start-gate reconciliation and record the first bounded implementation slice; builder is assigned. Live gates remain stage-specific and do not block the synthetic harness."
     },
     "ui": {
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "feature/agent-reporting-core",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "handoff_note": "Opus 5.5: platform-neutral existing-account ceremony routes, proposed useAgentReportingCeremony/useAgentReportingRecovery Shared hooks, prepared-envelope execution and durable outcome retries, deployment/header/log proof and PWA design controls. No composer hydration or first-run enrollment. Include canonical PublicShell/SiteHeader composition and independently available owner revocation before enabling delegation.",
       "skill_tags": ["ui", "react", "web3"],
-      "manual_blocked": true,
+      "manual_blocked": false,
       "ready_when_dependencies_met": false,
       "tdd": {
         "mode": "required",
-        "status": "pending",
-        "red": {},
-        "green": {},
-        "note": "Choose actual owning test paths with the first current-scope implementation slice and record RED/GREEN proof. Old WhatsApp intake/composer and historical step commands are superseded. See the lane handoff; no runtime test is represented as present or passing."
+        "status": "green_recorded",
+        "red": {
+          "command": "cd packages/shared && bun run vitest run src/__tests__/hooks/agent-reporting/",
+          "evidence": "Mutation checks: with the pre-reservation envelope check removed, the envelope-mismatch test fails; with the restore-time outcome replay removed, the lost-outcome replay test fails. Written with the behavior, not before it."
+        },
+        "green": {
+          "command": "cd packages/shared && bun run vitest run src/__tests__/hooks/agent-reporting/",
+          "evidence": "10 tests pass with both guards in place (c44ed6724 and later)."
+        },
+        "note": "PR #2 ceremony hooks and pages; see handoffs/claude-ui.md"
       },
       "blocked_reason": "Complete tracker/start-gate reconciliation and record the first bounded implementation slice; builder is assigned. Live gates remain stage-specific and do not block the synthetic harness. Delegation enablement additionally requires the Agent-independent owner revocation proof in technical brief section 9.3."
     },
@@ -320,6 +333,46 @@
       "status": "scope_amended",
       "branch": "chore/whatsapp-prototype-scope-lock",
       "note": "User accepted PR-review remedies: Afolabi (afo@wefa.world) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs replace the historical dispatch and obsolete hook commands. Durable terminal outcomes, dispatch-time pause controls, stable subject identity/HMAC alias rotation, exclusive operation parents, root schema and deployed edge proof are required. Local scope is reconciled; tracker/start-gate reconciliation remains before dispatch. Synthetic transport fixtures are required; live Telegram remains optional. No runtime build, external message or tracker write occurred."
+    },
+    {
+      "timestamp": "2026-09-27T05:31:18.190Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/agent-reporting-core",
+      "note": "PR #2 of the hackathon stack: Opus 5.5 builds the transport-independent reporting core on feature/agent-reporting-core from pinned parent 8457b8aa2f82b4de41bd8de1551d7d9f5a36da8e (chore/whatsapp-prototype-scope-lock, PR #864). Meta/WhatsApp adapters are PR #3."
+    },
+    {
+      "timestamp": "2026-09-27T05:31:22.339Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/agent-reporting-core",
+      "note": "PR #2 browser ceremonies: /agent/reporting/:requestId, /agent/reporting/recover/:requestId and static /agent/reporting/permissions on the same branch as state_api."
+    },
+    {
+      "timestamp": "2026-09-27T05:31:47.306Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-09-27T10:02:25.556Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/agent-reporting-core",
+      "note": "PR #2 on feature/agent-reporting-core; see handoffs/claude-state-api.md"
+    },
+    {
+      "timestamp": "2026-09-27T10:02:29.973Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/agent-reporting-core",
+      "note": "PR #2 ceremony hooks and pages; see handoffs/claude-ui.md"
     }
   ],
   "taxonomy": {
@@ -332,7 +385,7 @@
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": "2026-05-10T23:05:15.718Z",
-    "parentIssue": "PRD-339",
+    "parentIssue": "PRD-998",
     "lanes": {},
     "project": "Agent Messaging Channels (WhatsApp + SMS)",
     "laneSyncMode": "parent_only"
