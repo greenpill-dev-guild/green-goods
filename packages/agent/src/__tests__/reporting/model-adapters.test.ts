@@ -1,0 +1,231 @@
+import { describe, expect, it } from "vitest";
+import {
+  createModelInterpreter,
+  type InterpretationRequest,
+  InterpretationUnavailableError,
+} from "../../services/reporting/interpretation";
+import { extractWithOpenAI } from "../../services/reporting/model-extraction";
+import { routeWithJev } from "../../services/reporting/model-routing";
+
+/**
+ * Provider adapters against recorded response shapes, with fetch replaced. These prove request
+ * construction and defensive parsing only; live Jev and OpenAI behavior is not exercised here.
+ */
+const request: InterpretationRequest = {
+  locale: "en",
+  draftRevision: 3,
+  message: { sourceEntryId: "src-1", text: "Planted 12 baobabs at TAS, took about 3 hours" },
+  content: { actionUID: null, title: null, timeSpentMinutes: null, feedback: null, details: {} },
+  requirements: [{ kind: "garden" }],
+  gardens: [
+    { key: "tas", label: "TAS" },
+    { key: "aiyeloja", label: "Aiyeloja Family Garden" },
+  ],
+  actions: [
+    {
+      uid: 7,
+      title: "Tree planting",
+      inputs: [
+        {
+          key: "seedlings",
+          title: "Seedlings planted",
+          placeholder: "",
+          type: "number",
+          required: true,
+          options: [],
+          unit: "seedlings",
+        },
+      ],
+    },
+  ],
+  observations: [],
+} as unknown as InterpretationRequest;
+
+function recorder(body: unknown, status = 200) {
+  const calls: Array<{ url: string; init: RequestInit }> = [];
+  const fetchStub = (async (url: string, init: RequestInit) => {
+    calls.push({ url, init });
+    return new Response(JSON.stringify(body), { status });
+  }) as unknown as typeof fetch;
+  return { calls, fetchStub };
+}
+
+const signal = () => new AbortController().signal;
+
+describe("Jev routing", () => {
+  const config = { apiKey: "jev-test", baseUrl: "https://jev.test", model: "jev-latest" };
+
+  it("asks typed choices over candidates only and keeps confident answers", async () => {
+    const { calls, fetchStub } = recorder({
+      model: "jev-2026-09",
+      answers: {
+        intent: { type: "choice", choice: "report_content", confidence: 0.91 },
+        garden: { type: "choice", choice: "tas", confidence: 0.8 },
+        action: { type: "choice", choice: "a7", confidence: 0.77 },
+      },
+    });
+    const routing = await routeWithJev({ ...config, fetch: fetchStub }, request, signal());
+    expect(routing).toEqual({
+      intent: "report_content",
+      gardenKey: "tas",
+      actionUID: 7,
+      model: "jev-2026-09",
+    });
+    const [call] = calls;
+    expect(call?.url).toBe("https://jev.test/v1/systemone");
+    expect((call?.init.headers as Record<string, string>).authorization).toBe("Bearer jev-test");
+    const sent = JSON.parse(String(call?.init.body));
+    expect(sent.model).toBe("jev-latest");
+    expect(Object.keys(sent.questions.garden.criteria)).toEqual(["tas", "aiyeloja", "none"]);
+    expect(Object.keys(sent.questions.action.criteria)).toEqual(["a7", "none"]);
+    // The snapshot carries the message and confirmed fields, never identities or links.
+    expect(sent.state).toEqual({
+      workflowVersion: 1,
+      draftRevision: 3,
+      locale: "en",
+      message: "Planted 12 baobabs at TAS, took about 3 hours",
+      confirmedFields: { title: null, timeSpentMinutes: null, details: {} },
+      stillNeeded: ["garden"],
+    });
+  });
+
+  it("treats low-confidence or out-of-list answers as no decision", async () => {
+    const { fetchStub } = recorder({
+      model: "jev-2026-09",
+      answers: {
+        intent: { type: "choice", choice: "cancel", confidence: 0.4 },
+        garden: { type: "choice", choice: "elsewhere", confidence: 0.99 },
+        action: { type: "choice", choice: "a99", confidence: 0.99 },
+      },
+    });
+    expect(await routeWithJev({ ...config, fetch: fetchStub }, request, signal())).toMatchObject({
+      intent: "unclear",
+      gardenKey: null,
+      actionUID: null,
+    });
+  });
+
+  it("reports rate limits and malformed bodies as unavailable", async () => {
+    const limited = recorder({ error: "rate limited" }, 429);
+    await expect(
+      routeWithJev({ ...config, fetch: limited.fetchStub }, request, signal())
+    ).rejects.toMatchObject({ reason: "provider_error" });
+    const malformed = recorder({ model: "x", answers: {} });
+    await expect(
+      routeWithJev({ ...config, fetch: malformed.fetchStub }, request, signal())
+    ).rejects.toMatchObject({ reason: "malformed" });
+  });
+});
+
+describe("OpenAI extraction", () => {
+  const config = { apiKey: "sk-test", baseUrl: "https://openai.test/v1", model: "test-model" };
+  const withAction = {
+    ...request,
+    content: { ...request.content, actionUID: 7 },
+  } as InterpretationRequest;
+
+  function output(value: unknown, status = "completed") {
+    return {
+      model: "test-model-2026",
+      status,
+      output: [
+        { type: "message", content: [{ type: "output_text", text: JSON.stringify(value) }] },
+      ],
+    };
+  }
+
+  it("requests strict structured output without storage and keeps only allowed fields", async () => {
+    const { calls, fetchStub } = recorder(
+      output({
+        intent: "report_content",
+        gardenKey: "tas",
+        actionUID: 7,
+        facts: [
+          { field: "details.seedlings", value: 12, original: "12 baobabs", unit: "seedlings" },
+          { field: "timeSpentMinutes", value: 180, original: "about 3 hours", unit: null },
+          { field: "details.password", value: "x", original: null, unit: null },
+        ],
+      })
+    );
+    const extraction = await extractWithOpenAI(
+      { ...config, fetch: fetchStub },
+      withAction,
+      signal()
+    );
+    expect(extraction.facts).toEqual([
+      {
+        field: "details.seedlings",
+        value: 12,
+        kind: "reported",
+        original: "12 baobabs",
+        unit: "seedlings",
+      },
+      { field: "timeSpentMinutes", value: 180, kind: "reported", original: "about 3 hours" },
+    ]);
+    const sent = JSON.parse(String(calls[0]?.init.body));
+    expect(calls[0]?.url).toBe("https://openai.test/v1/responses");
+    expect(sent.store).toBe(false);
+    expect(sent.text.format).toMatchObject({ type: "json_schema", strict: true });
+    expect(sent.text.format.schema.properties.facts.items.properties.field.enum).toEqual([
+      "title",
+      "timeSpentMinutes",
+      "feedback",
+      "details.seedlings",
+    ]);
+  });
+
+  it("rejects refusals, incomplete responses and invalid JSON", async () => {
+    const refusal = recorder({
+      model: "m",
+      status: "completed",
+      output: [{ type: "message", content: [{ type: "refusal" }] }],
+    });
+    await expect(
+      extractWithOpenAI({ ...config, fetch: refusal.fetchStub }, withAction, signal())
+    ).rejects.toBeInstanceOf(InterpretationUnavailableError);
+    const incomplete = recorder(output({}, "incomplete"));
+    await expect(
+      extractWithOpenAI({ ...config, fetch: incomplete.fetchStub }, withAction, signal())
+    ).rejects.toMatchObject({ reason: "malformed" });
+  });
+});
+
+describe("combined interpreter", () => {
+  it("uses Jev's decisions, OpenAI's facts, and survives one provider failing", async () => {
+    const interpreter = createModelInterpreter({
+      route: async () => ({
+        intent: "report_content",
+        gardenKey: "tas",
+        actionUID: 7,
+        model: "jev",
+      }),
+      extract: async () => ({
+        intent: "status",
+        gardenKey: "aiyeloja",
+        actionUID: null,
+        facts: [{ field: "timeSpentMinutes", value: 180, kind: "reported" }],
+        model: "openai",
+      }),
+    });
+    expect(await interpreter?.interpret(request, signal())).toEqual({
+      intent: "report_content",
+      gardenKey: "tas",
+      actionUID: 7,
+      facts: [{ field: "timeSpentMinutes", value: 180, kind: "reported" }],
+      models: ["jev", "openai"],
+    });
+
+    const routingOnly = createModelInterpreter({
+      route: async () => ({ intent: "status", gardenKey: null, actionUID: null, model: "jev" }),
+      extract: async () => {
+        throw new InterpretationUnavailableError("timeout");
+      },
+    });
+    expect(await routingOnly?.interpret(request, signal())).toMatchObject({
+      intent: "status",
+      facts: [],
+      models: ["jev"],
+    });
+    expect(createModelInterpreter({ route: null, extract: null })).toBeNull();
+  });
+});

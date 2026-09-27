@@ -75,9 +75,29 @@ export function retryDelayMs(attempt: number): number {
   return Math.min(10 * 60 * 1000, 5_000 * 2 ** Math.max(0, attempt - 1)) + ((attempt * 137) % 1000);
 }
 
+/**
+ * Replies allowed without live processing consent: the notice itself, answers to consent
+ * decisions, help, and outcome notices for publications already sent. Everything else waiting for
+ * a participant who withdrew is suppressed at the dispatch boundary.
+ */
+const CONSENT_EXEMPT = new Set([
+  "prompt:processing_consent",
+  "consent.declined",
+  "consent.stopped",
+  "consent.deleted",
+  "help",
+  "publish.published",
+  "publish.unknown",
+  "publish.uncertain",
+  "publish.reverted",
+  "review.recorded",
+]);
+
 interface OutboxRow {
   id: string;
   conversation_id: string;
+  channel_subject_id: string;
+  reply_kind: string;
   channel_binding_id: string | null;
   identity_epoch: number | null;
   audience: "conversation" | "bound_participant";
@@ -92,8 +112,8 @@ function claimNext(
   return inTransaction(core.db, () => {
     const row = core.db
       .query(
-        `SELECT id, conversation_id, channel_binding_id, identity_epoch, audience, payload_ciphertext, attempts, state,
-                next_attempt_at
+        `SELECT id, conversation_id, channel_subject_id, reply_kind, channel_binding_id, identity_epoch, audience,
+                payload_ciphertext, attempts, state, next_attempt_at
          FROM delivery_outbox WHERE conversation_id = $conversation
            AND state IN ('pending','retry_wait','dispatching') ORDER BY dispatch_seq LIMIT 1`
       )
@@ -102,6 +122,21 @@ function claimNext(
       | null;
     if (!row || row.state === "dispatching" || row.next_attempt_at > core.clock.now()) return null;
     const now = core.clock.now();
+    const consented = core.db
+      .query(
+        `SELECT 1 AS ok FROM consent_records WHERE channel_subject_id = $subject
+         AND purpose = 'processing' AND withdrawn_at IS NULL`
+      )
+      .get({ subject: row.channel_subject_id });
+    if (!consented && !CONSENT_EXEMPT.has(row.reply_kind)) {
+      core.db
+        .query(
+          `UPDATE delivery_outbox SET state = 'suppressed', last_error_code = 'consent_withdrawn',
+             updated_at = $now WHERE id = $id`
+        )
+        .run({ id: row.id, now });
+      return claimNext(core, conversationId);
+    }
     if (row.audience === "bound_participant") {
       const live = core.db
         .query(

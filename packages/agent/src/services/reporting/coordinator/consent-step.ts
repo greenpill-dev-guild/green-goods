@@ -73,9 +73,11 @@ export function withdrawProcessing(writer: TurnWriter, mode: "stop" | "delete"):
   const { core, ctx } = writer;
   withdrawConsent(core, ctx.subjectId, ["processing", "voice"], `chat:${mode}`);
   closeConversationPrompt(core, ctx.conversationId);
-  if (ctx.draft && EDITABLE_STATES.has(lifecycleState(ctx.draft))) {
-    commitLifecycle(core, ctx.draft, [{ type: "CANCEL" }], { participantAction: true });
-  }
+  const cancelled =
+    ctx.draft && EDITABLE_STATES.has(lifecycleState(ctx.draft))
+      ? commitLifecycle(core, ctx.draft, [{ type: "CANCEL" }], { participantAction: true }).refused
+          .length === 0
+      : false;
   if (ctx.binding) {
     core.db
       .query(
@@ -83,12 +85,22 @@ export function withdrawProcessing(writer: TurnWriter, mode: "stop" | "delete"):
          WHERE participant_id = $participant AND state = 'active'`
       )
       .run({ participant: ctx.binding.participantId, now: core.clock.now() });
-    enqueueJob(core, {
-      kind: "purge_private_content",
-      subjectId: ctx.binding.participantId,
-      dedupeKey: `purge:participant:${ctx.binding.participantId}:${ctx.event.id}`,
-      payload: { scope: "participant" },
-    });
+    // STOP removes the cancelled report's private content; DELETE removes all unpublished content.
+    if (mode === "delete") {
+      enqueueJob(core, {
+        kind: "purge_private_content",
+        subjectId: ctx.binding.participantId,
+        dedupeKey: `purge:participant:${ctx.binding.participantId}:${ctx.event.id}`,
+        payload: { scope: "participant" },
+      });
+    } else if (cancelled && ctx.draft) {
+      enqueueJob(core, {
+        kind: "purge_private_content",
+        subjectId: ctx.draft.id,
+        dedupeKey: `purge:draft:${ctx.draft.id}`,
+        payload: { scope: "draft" },
+      });
+    }
   }
   writer.say(mode === "stop" ? "consent.stopped" : "consent.deleted");
   audit(core, `consent_withdrawn_${mode}`, { kind: "channel_subject", id: ctx.subjectId });

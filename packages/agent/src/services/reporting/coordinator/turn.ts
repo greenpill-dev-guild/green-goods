@@ -275,10 +275,18 @@ export async function processConversation(
   );
   if (!lease) return 0;
   let committed = 0;
+  const seen = new Map<string, number>();
   try {
     for (;;) {
       const event = nextConversationEvent(core, conversationId);
       if (!event) break;
+      // A turn must move its event on; one that keeps coming back is parked, not spun on.
+      const visits = (seen.get(event.id) ?? 0) + 1;
+      seen.set(event.id, visits);
+      if (visits > MAX_REPLANS) {
+        inTransaction(core.db, () => deferInboxEvent(core, event.id, "turn_repeated", 60_000));
+        return committed;
+      }
       let result: CommitResult = "stale";
       for (let attempt = 0; attempt < MAX_REPLANS && result === "stale"; attempt += 1) {
         try {

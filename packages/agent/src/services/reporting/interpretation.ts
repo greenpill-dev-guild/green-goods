@@ -79,3 +79,59 @@ export async function interpretWithDeadline(
     clearTimeout(timer);
   }
 }
+
+/**
+ * Combines the configured providers for one text turn: at most one Jev routing call and one
+ * OpenAI extraction call, run together. Jev's typed decisions win for intent, garden and Action;
+ * extracted facts come only from OpenAI. One failing provider does not discard the other.
+ */
+export function createModelInterpreter(providers: {
+  route:
+    | ((
+        request: InterpretationRequest,
+        signal: AbortSignal
+      ) => Promise<{
+        intent: InterpretedIntent;
+        gardenKey: string | null;
+        actionUID: number | null;
+        model: string;
+      }>)
+    | null;
+  extract:
+    | ((
+        request: InterpretationRequest,
+        signal: AbortSignal
+      ) => Promise<{
+        intent: InterpretedIntent;
+        gardenKey: string | null;
+        actionUID: number | null;
+        facts: ProposedFact[];
+        model: string;
+      }>)
+    | null;
+}): ReportInterpreter | null {
+  const { route, extract } = providers;
+  if (!route && !extract) return null;
+  return {
+    async interpret(request, signal) {
+      const [routing, extraction] = await Promise.allSettled([
+        route ? route(request, signal) : Promise.resolve(null),
+        extract ? extract(request, signal) : Promise.resolve(null),
+      ]);
+      const routed = routing.status === "fulfilled" ? routing.value : null;
+      const extracted = extraction.status === "fulfilled" ? extraction.value : null;
+      if (!routed && !extracted) throw new InterpretationUnavailableError("provider_error");
+      const intent = routed?.intent ?? extracted?.intent ?? "unclear";
+      const contentIntent = intent === "report_content" || intent === "correction";
+      return {
+        intent,
+        gardenKey: routed ? routed.gardenKey : (extracted?.gardenKey ?? null),
+        actionUID: routed ? routed.actionUID : (extracted?.actionUID ?? null),
+        facts: contentIntent ? (extracted?.facts ?? []) : [],
+        models: [routed?.model, extracted?.model].filter((model): model is string =>
+          Boolean(model)
+        ),
+      };
+    },
+  };
+}

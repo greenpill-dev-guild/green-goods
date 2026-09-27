@@ -75,6 +75,7 @@ export const EN_REPORTING_COPY = {
   "report.editPrompt":
     "What would you like to change? Just tell me, for example: “time was 3 hours”.",
   "report.cancelled": "Report cancelled. Unpublished content will be removed.",
+  "report.cancelHint": "To cancel this report, reply CANCEL.",
   "report.nothingToCancel": "There's no report in progress.",
   "report.confirmToken": "To publish, reply CONFIRM {token} exactly as shown in the summary.",
   "report.frozen":

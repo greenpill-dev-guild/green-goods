@@ -70,6 +70,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "edit.feedback": "Descripción",
   "report.editPrompt": "¿Qué quieres cambiar? Dímelo, por ejemplo: «fueron 3 horas».",
   "report.cancelled": "Reporte cancelado. El contenido sin publicar se eliminará.",
+  "report.cancelHint": "Para cancelar este reporte, responde CANCEL.",
   "report.nothingToCancel": "No hay ningún reporte en curso.",
   "report.confirmToken": "Para publicar, responde CONFIRM {token} tal como aparece en el resumen.",
   "report.frozen":

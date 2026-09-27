@@ -107,10 +107,12 @@ export function readInboxPayload<T extends NormalizedInboundEvent = InboundMessa
 /**
  * A conversation is ordered by arrival: its earliest pending event blocks later ones until due,
  * so a deferred message is never overtaken by a later correction. Events held for consent are the
- * exception; they wait aside so the consent answer itself can be read.
+ * exception; they wait aside so the consent answer itself can be read, and once their pre-consent
+ * window has passed they are left for the retention sweep, never read again.
  */
 const CANDIDATE_EVENTS = `
-  kind = 'message' AND (state = 'pending' OR (state = 'quarantined' AND next_attempt_at <= $now))`;
+  kind = 'message' AND (state = 'pending' OR (state = 'quarantined' AND next_attempt_at <= $now
+    AND (expires_at IS NULL OR expires_at > $now)))`;
 
 /** Conversations whose next event is due, oldest arrival first. */
 export function conversationsWithWork(core: ReportingCore, limit = 20): string[] {

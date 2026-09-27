@@ -28,6 +28,17 @@ export function handleReportMessage(
   const text = plan.text?.trim() || null;
   let draft = ctx.draft;
 
+  // Interpreted non-content intents route to deterministic replies; cancelling still needs the
+  // explicit command, so a misread message can never discard a report.
+  const intent = external.interpretation?.intent;
+  if (
+    plan.media.length === 0 &&
+    (intent === "status" || intent === "help" || intent === "cancel")
+  ) {
+    if (intent === "status") return handleReportCommand(writer, { kind: "status" }, external);
+    return writer.say(intent === "cancel" && draft ? "report.cancelHint" : "help");
+  }
+
   if (draft && !EDITABLE_STATES.has(lifecycleState(draft))) {
     commitLifecycle(core, draft, [{ type: "DEFERRED_INPUT", sourceId: sourceEntryId }], {
       participantAction: true,

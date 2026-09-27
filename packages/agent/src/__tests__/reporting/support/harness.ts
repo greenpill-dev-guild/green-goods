@@ -12,6 +12,7 @@ import { watchOwnerAttempt } from "../../../services/reporting/execution";
 import { createFilesystemMediaStore } from "../../../services/reporting/media-store";
 import { prepareOperation } from "../../../services/reporting/preparation";
 import { reconcileOperation } from "../../../services/reporting/reconciliation";
+import { purgePrivateContent, sweepRetention } from "../../../services/reporting/retention";
 import {
   listPendingReviews,
   openReview,
@@ -232,6 +233,9 @@ export class Harness {
         review_list: (job) => listPendingReviews(this.reviewDeps(), job),
         review_open: (job) => openReview(this.reviewDeps(), job),
         review_authority: (job) => resolveReviewAuthority(this.reviewDeps(), job),
+        purge_private_content: (job) =>
+          purgePrivateContent({ core: this.core, media: this.media() }, job),
+        retention_sweep: (job) => sweepRetention({ core: this.core, media: this.media() }, job),
         reconcile_operation: (job) =>
           reconcileOperation(
             { core: this.core, chain: this.chain, scanWindowBlocks: 10_000n },
