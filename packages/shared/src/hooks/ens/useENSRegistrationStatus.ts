@@ -1,11 +1,11 @@
 /**
  * ENS Registration Status Hook
  *
- * Tracks CCIP delivery status for ENS subdomain registrations.
- * Checks L2 cache for registration intent, then queries L1 receiver
- * for authoritative confirmation of CCIP delivery.
+ * Tracks CCIP delivery status for ENS subdomain registrations and releases.
+ * Checks the sender, receiver, and forward ENS record before reporting Ready.
+ * Delayed requests can recover on refocus or a manual status check.
  *
- * Uses adaptive polling: 60s for first 10 min, 30s after, stops at 25 min.
+ * Claims pause polling after 25 minutes; releases and observation errors keep retrying.
  *
  * Return data is fully serializable (no BigInt, no functions) for
  * IndexedDB persistence via the reading cache (QueryPersistenceProvider).
@@ -14,13 +14,12 @@
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { type Address, createPublicClient, http, keccak256, toBytes, zeroAddress } from "viem";
-import { mainnet, sepolia } from "viem/chains";
+import { useEffect } from "react";
+import { type Address, keccak256, toBytes, zeroAddress } from "viem";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import type { ENSRegistrationData } from "../../types/domain";
-import { getRpcUrl } from "../../utils/blockchain/chain-registry";
 import {
   createClients,
   GreenGoodsENSABI,
@@ -28,6 +27,7 @@ import {
 } from "../../utils/blockchain/contracts";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { ensKeys } from "../../config/query-keys/identity";
+import { createENSL1Client, getENSL1ChainId, readENSL1ReceiverAddress } from "./availability";
 
 /**
  * Minimal ABI for querying the L1 ENSReceiver's getRegistration view.
@@ -53,43 +53,13 @@ const ENS_RECEIVER_VIEW_ABI = [
   },
 ] as const;
 
-/**
- * Map L2 chain ID to the L1 chain where the ENS receiver lives.
- * Returns null if the chain doesn't support ENS via CCIP.
- */
-function getENSL1ChainId(l2ChainId: number): number | null {
-  switch (l2ChainId) {
-    case 42161: // Arbitrum → Ethereum Mainnet
-      return 1;
-    case 11155111: // Sepolia testnet → same chain (both contracts on Sepolia)
-      return 11155111;
-    case 31337: // Local dev → same chain
-      return 31337;
-    default:
-      return null;
-  }
-}
-
-/** Create an L1 public client for cross-chain ENS verification */
-function createL1Client(l1ChainId: number) {
-  const chain = l1ChainId === 1 ? mainnet : sepolia;
-  const alchemyKey =
-    (typeof import.meta !== "undefined" && import.meta.env?.VITE_ALCHEMY_API_KEY) || "demo";
-  const rpcUrl = getRpcUrl(l1ChainId, alchemyKey);
-
-  return createPublicClient({
-    chain,
-    transport: http(rpcUrl),
-  });
-}
-
-/** Timeout threshold after which we consider CCIP delivery timed out */
+/** Delay threshold for CCIP delivery; it never overrides confirmed completion. */
 const TIMEOUT_MS = 25 * 60_000; // 25 minutes
 
 export function useENSRegistrationStatus(slug: string | undefined) {
   const queryClient = useQueryClient();
 
-  return useQuery<ENSRegistrationData>({
+  const query = useQuery<ENSRegistrationData>({
     queryKey: ensKeys.registrationStatus(slug ?? ""),
     queryFn: async (): Promise<ENSRegistrationData> => {
       if (!slug) return { status: "available" };
@@ -101,6 +71,11 @@ export function useENSRegistrationStatus(slug: string | undefined) {
       }
 
       const { publicClient } = createClients(DEFAULT_CHAIN_ID);
+      // Mutations cancel older reads before seeding the next operation.
+      const previousData = queryClient.getQueryData<ENSRegistrationData>(
+        ensKeys.registrationStatus(slug)
+      );
+      let { submittedAt, ccipMessageId, release } = previousData ?? {};
 
       // Check L2 cache first — if slug has an owner on L2, it's at least pending
       const slugHash = keccak256(toBytes(slug));
@@ -111,37 +86,21 @@ export function useENSRegistrationStatus(slug: string | undefined) {
         args: [slugHash],
       })) as Address;
 
-      if (l2Owner === zeroAddress) {
-        return { status: "available" };
-      }
-
-      // Preserve submittedAt and ccipMessageId from cache-seeded data (set by useENSClaim)
-      const previousData = queryClient.getQueryData<ENSRegistrationData>(
-        ensKeys.registrationStatus(slug)
-      );
-      const submittedAt = previousData?.submittedAt;
-      const ccipMessageId = previousData?.ccipMessageId;
-
-      // Check if registration has timed out (>25 min since submission)
-      if (submittedAt && Date.now() - submittedAt > TIMEOUT_MS) {
-        return { status: "timed_out", submittedAt, ccipMessageId };
-      }
+      // A sender cache may be empty after a migration or briefly lag a receipt.
+      // Only both chains agreeing on absence can clear a previously active name.
+      let hasRegistration = l2Owner !== zeroAddress;
+      let receiverChecked = false;
 
       // Slug claimed on L2 — check L1 for CCIP delivery confirmation
       const l1ChainId = getENSL1ChainId(DEFAULT_CHAIN_ID);
       if (l1ChainId) {
         try {
-          // Read L1 receiver address from L2 contract
-          const l1ReceiverAddress = (await publicClient.readContract({
-            address: ensAddress,
-            abi: GreenGoodsENSABI,
-            functionName: "l1Receiver",
-          })) as Address;
+          const l1ReceiverAddress = await readENSL1ReceiverAddress({ ensAddress, publicClient });
 
           if (l1ReceiverAddress && l1ReceiverAddress !== zeroAddress) {
             // Use same client if L1 == L2 (testnet), otherwise create L1 client
             const l1Client =
-              l1ChainId === DEFAULT_CHAIN_ID ? publicClient : createL1Client(l1ChainId);
+              l1ChainId === DEFAULT_CHAIN_ID ? publicClient : createENSL1Client(l1ChainId);
 
             const result = await l1Client.readContract({
               address: l1ReceiverAddress,
@@ -157,7 +116,45 @@ export function useENSRegistrationStatus(slug: string | undefined) {
               registeredAt: bigint;
             };
 
-            if (registration.owner !== zeroAddress) {
+            receiverChecked = true;
+            if (
+              release &&
+              previousData?.status === "available" &&
+              (l2Owner !== zeroAddress ||
+                (registration.owner !== zeroAddress &&
+                  registration.owner.toLowerCase() !== release.owner.toLowerCase()))
+            ) {
+              // A completed release must not mask a later reservation made on
+              // another device or by the next owner of this slug.
+              release = undefined;
+              submittedAt = undefined;
+              ccipMessageId = undefined;
+            }
+            if (release) {
+              const owner = release.owner.toLowerCase();
+              // A receiver-only name normally indicates a migrated record. An
+              // explicit outgoing release instead waits for both chains to clear.
+              const completed =
+                previousData?.status === "available" ||
+                (l2Owner.toLowerCase() !== owner && registration.owner.toLowerCase() !== owner);
+              const delayed = submittedAt !== undefined && Date.now() - submittedAt > TIMEOUT_MS;
+              return {
+                status: completed ? "available" : delayed ? "timed_out" : "pending",
+                release,
+                submittedAt,
+                ccipMessageId,
+              };
+            }
+            hasRegistration ||= registration.owner !== zeroAddress;
+            const ownerMatchesSender =
+              l2Owner === zeroAddress || l2Owner.toLowerCase() === registration.owner.toLowerCase();
+            // Delivery can succeed even if resolver setup failed. Verify the name
+            // actually points to its owner before showing it as ready to use.
+            const resolvedOwner =
+              registration.owner !== zeroAddress && ownerMatchesSender
+                ? await l1Client.getEnsAddress({ name: `${slug}.greengoods.eth` })
+                : null;
+            if (resolvedOwner && resolvedOwner.toLowerCase() === registration.owner.toLowerCase()) {
               return {
                 status: "active",
                 submittedAt,
@@ -172,26 +169,48 @@ export function useENSRegistrationStatus(slug: string | undefined) {
           }
         } catch (error) {
           logger.warn("L1 ENS receiver query failed, will retry", { error, slug, l1ChainId });
-          // Fall through to return "pending" — the adaptive polling will retry
+          // A failed observation is not a lifecycle transition. React Query
+          // retains the last confirmed data and exposes the retryable error.
+          throw error;
         }
       }
 
-      return { status: "pending", submittedAt, ccipMessageId };
+      const awaitingSubmittedClaim = submittedAt && previousData?.status !== "active";
+      if (receiverChecked && !hasRegistration && !awaitingSubmittedClaim) {
+        return { status: "available" };
+      }
+      // Age is a fallback only after checking completion, never a terminal failure.
+      const delayed = submittedAt !== undefined && Date.now() - submittedAt > TIMEOUT_MS;
+      return { status: delayed ? "timed_out" : "pending", submittedAt, ccipMessageId, release };
     },
     enabled: Boolean(slug),
     staleTime: STALE_TIME_MEDIUM, // 30s
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
     refetchInterval: (query) => {
       const data = query.state.data;
+      if (query.state.status === "error") return 30_000;
       if (!data) return false;
 
-      // Poll while status is pending or submitted; stop on terminal states
-      const isPollable = data.status === "pending";
+      // Keep a release observable until its receiver record clears, even when delayed.
+      const isPollable = data.status === "pending" || (data.release && data.status === "timed_out");
       if (!isPollable) return false;
 
-      // Adaptive polling: 60s for first 10 min, then 30s, stop after 25 min
+      // Adaptive polling: 60s for first 10 min, then 30s.
       const elapsed = Date.now() - (data.submittedAt ?? Date.now());
-      if (elapsed > TIMEOUT_MS) return false;
+
       return elapsed < 10 * 60_000 ? 60_000 : 30_000;
     },
   });
+
+  const releasedOwner = query.data?.status === "available" ? query.data.release?.owner : undefined;
+  useEffect(() => {
+    if (!releasedOwner) return;
+    // The account lookup can still hold the receiver's pre-release name.
+    void queryClient.invalidateQueries({
+      queryKey: ensKeys.protocolName(releasedOwner.toLowerCase()),
+    });
+  }, [queryClient, releasedOwner]);
+
+  return query;
 }

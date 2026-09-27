@@ -14,7 +14,7 @@ export const ProfileAccount: React.FC = () => {
       <InstallCta />
       <AppSettings />
       <GardensList primaryAddress={primaryAddress} />
-      <ENSSection primaryAddress={primaryAddress} />
+      <ENSSection key={primaryAddress} primaryAddress={primaryAddress} />
       <AccountInfo />
     </>
   );

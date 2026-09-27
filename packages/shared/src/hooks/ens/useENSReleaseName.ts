@@ -26,6 +26,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getChain } from "../../config/chains";
 import { ensKeys } from "../../config/query-keys/identity";
 import { logger } from "../../modules/app/logger";
+import type { ENSRegistrationData } from "../../types/domain";
 import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
@@ -233,9 +234,13 @@ export function useENSReleaseName() {
         hash: txHash,
         timeout: TX_RECEIPT_TIMEOUT_MS,
       });
+      if (receipt.status !== "success") {
+        throw new Error("Name release transaction reverted");
+      }
 
       let ccipMessageId: string | null = null;
       for (const log of receipt.logs) {
+        if (log.address.toLowerCase() !== ensAddress.toLowerCase()) continue;
         try {
           const decoded = decodeEventLog({
             abi: GreenGoodsENSABI,
@@ -253,9 +258,21 @@ export function useENSReleaseName() {
 
       return { slug, owner, ccipMessageId, submittedAt: Date.now(), txHash };
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(ensKeys.protocolName(data.owner), null);
-      queryClient.invalidateQueries({ queryKey: ensKeys.all });
+    onSuccess: async (data) => {
+      // A pre-release read must not overwrite the outgoing operation. Both
+      // queries persist so reopening the profile can resume receiver polling.
+      await queryClient.cancelQueries({ queryKey: ensKeys.all });
+      queryClient.setQueryData<ENSRegistrationData>(ensKeys.registrationStatus(data.slug), {
+        status: "pending",
+        release: { owner: data.owner },
+        submittedAt: data.submittedAt,
+        ccipMessageId: data.ccipMessageId ?? undefined,
+      });
+      queryClient.setQueryData(
+        ensKeys.protocolName(data.owner.toLowerCase()),
+        `${data.slug}.greengoods.eth`
+      );
+      void queryClient.invalidateQueries({ queryKey: ensKeys.all });
 
       toastService.success({
         title: "Name release started",

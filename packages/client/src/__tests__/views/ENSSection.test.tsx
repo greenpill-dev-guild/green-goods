@@ -3,7 +3,7 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
@@ -23,6 +23,10 @@ let mockProtocolMember = true;
 let mockProtocolMemberLoading = false;
 let mockRegistrationData: Record<string, unknown> | undefined;
 let mockSlugValue = "";
+let mockAvailable = true;
+let mockNameLoading = false;
+let mockRegistrationError = false;
+const mockCheckRegistration = vi.fn();
 let mockExistingGreenGoodsEnsName: string | null = null;
 let mockSponsoredReleaseUnavailable = false;
 
@@ -75,7 +79,7 @@ vi.mock("@green-goods/shared/hooks/ens/useSlugForm", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/ens/useSlugAvailability", () => ({
-  useSlugAvailability: () => ({ data: true, isFetching: false }),
+  useSlugAvailability: () => ({ data: mockAvailable, isFetching: false }),
 }));
 
 vi.mock("@green-goods/shared/hooks/ens/useENSClaim", () => ({
@@ -96,17 +100,21 @@ vi.mock("@green-goods/shared/hooks/ens/useENSReleaseName", () => ({
 vi.mock("@green-goods/shared/hooks/ens/useENSRegistrationStatus", () => ({
   useENSRegistrationStatus: (slug?: string) => {
     mockUseENSRegistrationStatus(slug);
-    return { data: slug ? mockRegistrationData : undefined };
+    return {
+      data: slug ? mockRegistrationData : undefined,
+      refetch: mockCheckRegistration,
+      isError: mockRegistrationError,
+    };
   },
 }));
 
 vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
-  useGreenGoodsEnsName: () => ({ data: mockExistingGreenGoodsEnsName }),
+  useGreenGoodsEnsName: () => ({ data: mockExistingGreenGoodsEnsName, isLoading: mockNameLoading }),
 }));
 
 vi.mock("@green-goods/shared/components/Progress/ENSProgressTimeline", () => ({
-  ENSProgressTimeline: ({ slug }: { slug: string; data: unknown }) =>
-    createElement("div", { "data-testid": "ens-progress" }, slug),
+  ENSProgressTimeline: ({ slug, phase }: { slug: string; data: unknown; phase?: string }) =>
+    createElement("div", { "data-testid": "ens-progress", "data-phase": phase }, slug),
 }));
 
 vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", () => ({
@@ -162,6 +170,9 @@ describe("Profile ENSSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockProtocolMember = true;
+    mockAvailable = true;
+    mockNameLoading = false;
+    mockRegistrationError = false;
     mockProtocolMemberLoading = false;
     mockRegistrationData = undefined;
     mockSlugValue = "";
@@ -177,7 +188,10 @@ describe("Profile ENSSection", () => {
       value: { writeText: mockClipboardWriteText },
     });
     mockMutateAsync.mockResolvedValue({});
-    mockReleaseMutateAsync.mockResolvedValue({ slug: "forest" });
+    mockReleaseMutateAsync.mockImplementation(async () => {
+      mockRegistrationData = { status: "pending", release: { owner: PRIMARY_ADDRESS } };
+      return { slug: "forest" };
+    });
   });
 
   afterEach(() => {
@@ -188,12 +202,10 @@ describe("Profile ENSSection", () => {
   it("shows claim form for protocol members without an existing registration", () => {
     renderENSSection();
 
-    expect(screen.getByText("Claim your name")).toBeInTheDocument();
-    expect(screen.getByText("Claim your Green Goods name")).toBeInTheDocument();
+    expect(screen.getByText("Username")).toBeInTheDocument();
+    expect(screen.getByText("Your Green Goods name")).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Choose a personal name tied to your work. Registration takes about 15-20 minutes."
-      )
+      screen.getByText("A personal name people can use to find your work.")
     ).toBeInTheDocument();
     expect(screen.getByText("Claim Name")).toBeInTheDocument();
     expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith(undefined);
@@ -242,12 +254,12 @@ describe("Profile ENSSection", () => {
 
     renderENSSection();
 
-    expect(screen.getByText("Claim your name")).toBeInTheDocument();
-    expect(screen.getByText("Claim your Green Goods name")).toBeInTheDocument();
+    expect(screen.getByText("Username")).toBeInTheDocument();
+    expect(screen.getByText("Your Green Goods name")).toBeInTheDocument();
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent("Not available yet");
     expect(status).toHaveTextContent("Join a garden to unlock your Green Goods name.");
-    expect(screen.queryByText("Claim Name")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
     expect(
       screen.queryByLabelText("Choose your personal Green Goods name")
     ).not.toBeInTheDocument();
@@ -259,7 +271,7 @@ describe("Profile ENSSection", () => {
 
     renderENSSection();
 
-    expect(screen.queryByText("Claim your name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Username")).not.toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
@@ -280,7 +292,51 @@ describe("Profile ENSSection", () => {
     });
     expect(mockReset).toHaveBeenCalled();
     expect(screen.getByTestId("ens-progress")).toHaveTextContent("river");
-    expect(screen.queryByText("Claim Name")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
+  });
+
+  it("suppresses a taken result from our own claim before its receipt arrives", async () => {
+    let receive!: () => void;
+    mockMutateAsync.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          receive = resolve;
+        })
+    );
+    mockSlugValue = "river";
+    const user = userEvent.setup();
+    const view = renderENSSection();
+    await user.click(screen.getByRole("button", { name: "Claim Name" }));
+    mockAvailable = false; // The focus refetch sees our own newly reserved name.
+    view.rerender(ensSection());
+    expect(screen.queryByText("This name is already taken")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Name taken")).not.toBeInTheDocument();
+    expect(screen.getByTestId("ens-progress")).toHaveAttribute("data-phase", "submitting");
+    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
+    mockRegistrationData = { status: "pending" };
+    await act(async () => receive());
+    expect(screen.getByTestId("ens-progress")).not.toHaveAttribute("data-phase");
+    await user.click(screen.getByRole("button", { name: "Check status" }));
+    expect(mockCheckRegistration).toHaveBeenCalledOnce();
+  });
+
+  it("returns to the editable form when submission is rejected", async () => {
+    mockSlugValue = "river";
+    mockMutateAsync.mockRejectedValueOnce(new Error("User rejected request"));
+    renderENSSection();
+    await userEvent.click(screen.getByRole("button", { name: "Claim Name" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Claim Name" })).toBeEnabled());
+    expect(screen.queryByTestId("ens-progress")).not.toBeInTheDocument();
+  });
+
+  it("waits for the account's existing name before offering another claim", () => {
+    mockNameLoading = true;
+    mockAvailable = false;
+    mockSlugValue = "river";
+    renderENSSection();
+    expect(screen.queryByText("This name is already taken")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("ens-progress")).toHaveAttribute("data-phase", "checking");
   });
 
   it("hides claim form when registration is active", async () => {
@@ -296,7 +352,7 @@ describe("Profile ENSSection", () => {
     await waitFor(() => {
       expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
     });
-    expect(screen.queryByText("Claim Name")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
   });
 
   it("hides claim form when the address already has a Green Goods ENS name", () => {
@@ -306,19 +362,30 @@ describe("Profile ENSSection", () => {
     renderENSSection();
 
     expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith("forest");
-    expect(screen.getAllByText("forest")).toHaveLength(2);
+    expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
     expect(screen.getByText("Release Username")).toBeInTheDocument();
     expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
-    expect(screen.queryByText("Claim Name")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
   });
 
-  it("releases the current ENS name after confirmation", async () => {
+  it.each([
+    "pending",
+    "available",
+  ])("can claim again after a release first observed as %s", async (releaseStatus) => {
     const user = userEvent.setup();
-    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
+    mockSlugValue = "forest";
+    mockGetValues.mockReturnValue("forest");
     mockRegistrationData = { status: "active" };
-    mockReleaseMutateAsync.mockResolvedValue({ slug: "forest" });
+    mockReleaseMutateAsync.mockImplementation(async () => {
+      mockRegistrationData = { status: releaseStatus, release: { owner: PRIMARY_ADDRESS } };
+      if (releaseStatus === "available") mockExistingGreenGoodsEnsName = null;
+      return { slug: "forest" };
+    });
 
-    renderENSSection();
+    const view = renderENSSection();
+    await user.click(screen.getByRole("button", { name: "Claim Name" }));
+    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
+    view.rerender(ensSection());
 
     await user.click(screen.getByText("Release Username"));
 
@@ -332,7 +399,63 @@ describe("Profile ENSSection", () => {
     await waitFor(() => {
       expect(mockReleaseMutateAsync).toHaveBeenCalled();
     });
-    expect(screen.getByText("Release started")).toBeInTheDocument();
+    if (releaseStatus === "pending") {
+      expect(screen.getByText("Release started")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Check status" })).toBeEnabled();
+    }
+    mockRegistrationData = { status: "available", release: { owner: PRIMARY_ADDRESS } };
+    mockExistingGreenGoodsEnsName = null;
+    view.rerender(ensSection());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Claim Name" })).toBeEnabled());
+    mockGetValues.mockReturnValue("canopy");
+    mockRegistrationData = { status: "pending" };
+    await user.click(screen.getByRole("button", { name: "Claim Name" }));
+    await waitFor(() => expect(mockMutateAsync).toHaveBeenLastCalledWith({ slug: "canopy" }));
+    expect(screen.getByTestId("ens-progress")).toHaveTextContent("canopy");
+    mockExistingGreenGoodsEnsName = "canopy.greengoods.eth";
+    mockRegistrationData = { status: "active" };
+    view.rerender(ensSection());
+    expect(screen.getByRole("button", { name: "Release Username" })).toBeEnabled();
+  });
+
+  it.each([
+    "pending",
+    "timed_out",
+  ])("keeps recovery and retry available for an owned %s name", async (status) => {
+    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
+    mockRegistrationData = { status };
+    const view = renderENSSection();
+    expect(screen.getByRole("button", { name: "Release Username" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "Check status" }));
+    expect(mockCheckRegistration).toHaveBeenCalledOnce();
+    mockSponsoredReleaseUnavailable = true;
+    view.rerender(ensSection());
+    await userEvent.click(screen.getByRole("button", { name: "Request Username Change" }));
+    expect(screen.getByLabelText("Desired username")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check status" })).toBeEnabled();
+    expect(mockReleaseMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("offers retry for a failed refresh of a confirmed name", async () => {
+    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
+    mockRegistrationData = { status: "active" };
+    mockRegistrationError = true;
+    renderENSSection();
+    expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Couldn’t check your name. Please try again."
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Check status" }));
+    expect(mockCheckRegistration).toHaveBeenCalledOnce();
+  });
+
+  it("resumes a restored release without permitting duplicate release", () => {
+    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
+    mockRegistrationData = { status: "pending", release: { owner: PRIMARY_ADDRESS } };
+    renderENSSection();
+    expect(screen.getByRole("button", { name: "Release started" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Check status" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
   });
 
   it("prepares a support request when sponsored release is unavailable", async () => {
