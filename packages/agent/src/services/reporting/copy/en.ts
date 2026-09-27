@@ -186,9 +186,14 @@ export const EN_REPORTING_COPY = {
   "review.reverted": "Recording your review failed on chain. Check it and confirm again to retry.",
   "recovery.started":
     "To move your Green Goods account to this chat, open this page and verify the account you used before. The link expires in 10 minutes.",
-  "recovery.code": "Send this code in the browser recovery page: {code}",
+  "recovery.code": "Enter this code on the Green Goods recovery page: {code}",
   "recovery.completed":
     "This chat is now linked to your account. Your old chat no longer has access, and any chat reporting permission is paused until you approve it again.",
+  "recovery.label": "Move my account",
+  "recovery.alreadyLinked": "This chat is already linked to {account}. Nothing needs to be moved.",
+  "recovery.draftOpen": "Finish or cancel the report in this chat first, then send RECOVER again.",
+  "recovery.suspended":
+    "This chat's access is paused while your account moves to another chat. Support: {support}",
   "error.generic": "Something went wrong on my side. Your report is saved. Support: {support}",
 } as const;
 

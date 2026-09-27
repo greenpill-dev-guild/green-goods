@@ -38,6 +38,7 @@ export type TurnPlan =
   | { kind: "consent_answer"; answer: "agree" | "decline" }
   | { kind: "hold" }
   | { kind: "held_by_pause" }
+  | { kind: "suspended" }
   | { kind: "stale_reply" }
   | { kind: "command"; command: ChatCommand }
   | { kind: "answer"; prompt: PromptRecord; option: PromptOption | null; text: string | null }
@@ -114,6 +115,8 @@ export function planTurn(ctx: TurnContext): TurnPlan {
   }
 
   const maintenanceSafe = command && ["stop", "delete", "help"].includes(command.kind);
+  // An owner proved this account elsewhere to move it; this chat waits for the outcome.
+  if (ctx.binding?.bindingStatus === "suspended" && !maintenanceSafe) return { kind: "suspended" };
   if (!ctx.intakeEnabled && !maintenanceSafe) return { kind: "held_by_pause" };
   if (command) return { kind: "command", command };
 

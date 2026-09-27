@@ -187,8 +187,14 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "O registro da sua revisão falhou na blockchain. Confira e confirme novamente para tentar de novo.",
   "recovery.started":
     "Para mover sua conta Green Goods para este chat, abra esta página e verifique a conta que você usava antes. O link expira em 10 minutos.",
-  "recovery.code": "Envie este código na página de recuperação no navegador: {code}",
+  "recovery.code": "Digite este código na página de recuperação do Green Goods: {code}",
   "recovery.completed":
     "Este chat agora está vinculado à sua conta. O chat antigo não tem mais acesso e qualquer permissão de relatos fica pausada até você aprová-la de novo.",
+  "recovery.label": "Mover minha conta",
+  "recovery.alreadyLinked": "Este chat já está vinculado a {account}. Não há nada para mover.",
+  "recovery.draftOpen":
+    "Primeiro termine ou cancele o relato deste chat e depois envie RECOVER de novo.",
+  "recovery.suspended":
+    "O acesso deste chat está pausado enquanto sua conta é movida para outro chat. Suporte: {support}",
   "error.generic": "Algo deu errado do meu lado. Seu relato está guardado. Suporte: {support}",
 };

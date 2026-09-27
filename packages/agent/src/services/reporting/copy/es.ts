@@ -181,8 +181,14 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "El registro de tu revisión falló en la cadena. Revísala y confírmala de nuevo para reintentar.",
   "recovery.started":
     "Para mover tu cuenta de Green Goods a este chat, abre esta página y verifica la cuenta que usabas antes. El enlace caduca en 10 minutos.",
-  "recovery.code": "Envía este código en la página de recuperación del navegador: {code}",
+  "recovery.code": "Escribe este código en la página de recuperación de Green Goods: {code}",
   "recovery.completed":
     "Este chat ya está vinculado a tu cuenta. El chat anterior ya no tiene acceso y cualquier permiso de reportes queda en pausa hasta que lo apruebes de nuevo.",
+  "recovery.label": "Mover mi cuenta",
+  "recovery.alreadyLinked": "Este chat ya está vinculado a {account}. No hay nada que mover.",
+  "recovery.draftOpen":
+    "Primero termina o cancela el reporte de este chat y luego envía RECOVER de nuevo.",
+  "recovery.suspended":
+    "El acceso de este chat está en pausa mientras tu cuenta se mueve a otro chat. Soporte: {support}",
   "error.generic": "Algo salió mal de mi lado. Tu reporte está guardado. Soporte: {support}",
 };

@@ -11,6 +11,7 @@ import {
 } from "./continuations";
 import { inTransaction } from "./database";
 import { activeAccount } from "./participants";
+import { verifyRecoveryProof } from "./recovery";
 import type { ReportingCore } from "./runtime";
 
 /**
@@ -211,6 +212,9 @@ export async function verifyChallengeProof(
   if (kind === "unsupported") return { ok: false, errorCode: "unsupported_scope" };
 
   return inTransaction(core.db, (): ProofResult => {
+    if (request.purpose === "recovery") {
+      return verifyRecoveryProof(core, request, challenge, { account, kind });
+    }
     const bound = request.participantId
       ? activeAccount(core, request.participantId, core.settings.chainId)
       : null;

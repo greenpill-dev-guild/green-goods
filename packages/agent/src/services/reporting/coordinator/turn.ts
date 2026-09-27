@@ -30,6 +30,7 @@ import {
   handleReviewCommand,
   requestReview,
 } from "./review-steps";
+import { startRecovery } from "../recovery";
 import { StaleReviewError } from "../reviews";
 import { TurnWriter } from "./writer";
 
@@ -141,6 +142,9 @@ function applyTurn(
     case "held_by_pause":
       writer.say("intake.paused");
       return "pause";
+    case "suspended":
+      writer.say("recovery.suspended");
+      return "consume";
     case "stale_reply":
       if (writer.ctx.draft)
         handleReportMessage(writer, { kind: "message", text: null, media: [] }, external);
@@ -196,6 +200,7 @@ function routeCommand(
   if (command.kind === "publish") return confirmPublication(writer, command.token, false);
   if (command.kind === "help" || command.kind === "start") return writer.say("help");
   if (command.kind === "review") return requestReview(writer, command.index);
+  if (command.kind === "recover") return startRecovery(writer);
   if (review && reviewOwnsCommand(writer) && handleReviewCommand(writer, review, command)) return;
   const owned = deps.commands?.[command.kind];
   if (owned) return owned(writer, plan);

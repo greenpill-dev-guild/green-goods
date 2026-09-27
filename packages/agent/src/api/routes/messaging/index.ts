@@ -2,6 +2,7 @@ import type { Hono } from "hono";
 import { registerAccessRoutes } from "./access";
 import { type MessagingRouteDeps, privateResponses } from "./http";
 import { registerOperationRoutes } from "./operations";
+import { registerRecoveryRoutes } from "./recovery";
 
 export type { MessagingRouteDeps } from "./http";
 
@@ -10,4 +11,5 @@ export function registerMessagingRoutes(app: Hono, deps: MessagingRouteDeps): vo
   app.use("/messaging/*", privateResponses);
   registerAccessRoutes(app, deps);
   registerOperationRoutes(app, deps);
+  registerRecoveryRoutes(app, deps);
 }
