@@ -10,13 +10,17 @@ import {
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
 import { POOL_STORY_SEEDS, STORY_GARDEN, storyCommitmentDialog } from "../poolStoryFixtures";
+import { STORY_CYCLES } from "../poolStoryPools";
 import { CommitmentDialogPanel } from "./index";
 
 // The panel reads the commitment through the shared controller; the cache
-// carries the detail and its timeline so the real component renders over
-// fixtures. Roles are chain reads, so the fixture viewer renders the
-// bystander's detail: facts, roster and timeline without steward acts.
+// carries the detail, its timeline and its cycle so the real component renders
+// over fixtures. A read left unseeded goes to the network, which the story gate
+// refuses, and a failed cycle read turns the record into its error cast. Roles
+// are chain reads, so the fixture viewer renders the bystander's detail: facts,
+// roster and timeline without steward acts.
 const dialog = storyCommitmentDialog();
+const cycleId = dialog.commitment?.cycleId ?? 0n;
 const COMMITMENT_STORY_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
   ...POOL_STORY_SEEDS,
@@ -30,6 +34,10 @@ const COMMITMENT_STORY_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
     dialog.events,
   ],
   [queryKeys.commitmentPooling.protocolPool(DEFAULT_CHAIN_ID), { poolId: null, rootGarden: null }],
+  [
+    queryKeys.commitmentPooling.cycle(DEFAULT_CHAIN_ID, cycleId),
+    STORY_CYCLES.find((cycle) => cycle.cycleId === cycleId) ?? null,
+  ],
 ];
 
 const meta: Meta<typeof CommitmentDialogPanel> = {
