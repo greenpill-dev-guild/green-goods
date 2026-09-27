@@ -20,7 +20,13 @@ export interface ReportingConfig {
   interpretation:
     | { provider: "none" }
     | { provider: "jev"; apiKey: string; baseUrl: string; model: string };
-  openai: { apiKey: string; baseUrl: string; model: string } | null;
+  /** `transcriptionModel` is set only for voice notes, which need their own pinned model. */
+  openai: {
+    apiKey: string;
+    baseUrl: string;
+    model: string;
+    transcriptionModel: string | null;
+  } | null;
   pinata: { jwt: string; uploadsApiBaseUrl?: string } | null;
   bundlerRpcUrl: string | null;
   voiceEnabled: boolean;
@@ -112,6 +118,14 @@ export function loadReportingConfig(
     // The model is an explicit, reviewed choice; the Agent never guesses a model name.
     throw new ReportingConfigError("AGENT_REPORTING_OPENAI_MODEL is required with an OpenAI key");
   }
+  const transcriptionModel = text(env.AGENT_REPORTING_OPENAI_TRANSCRIPTION_MODEL);
+  const voiceEnabled = flag(env.AGENT_REPORTING_VOICE_ENABLED);
+  if (voiceEnabled && !(openaiKey && openaiModel && transcriptionModel)) {
+    // Voice has no local fallback: without transcription it stays off rather than half-working.
+    throw new ReportingConfigError(
+      "AGENT_REPORTING_VOICE_ENABLED needs AGENT_REPORTING_OPENAI_API_KEY and AGENT_REPORTING_OPENAI_TRANSCRIPTION_MODEL"
+    );
+  }
   const pinataJwt = text(env.PINATA_JWT);
   return {
     dbPath: text(env.AGENT_REPORTING_DB_PATH) ?? "data/reporting.db",
@@ -140,6 +154,7 @@ export function loadReportingConfig(
             apiKey: openaiKey,
             baseUrl: text(env.AGENT_REPORTING_OPENAI_BASE_URL) ?? "https://api.openai.com/v1",
             model: openaiModel,
+            transcriptionModel,
           }
         : null,
     pinata: pinataJwt
@@ -151,7 +166,7 @@ export function loadReportingConfig(
         }
       : null,
     bundlerRpcUrl: text(env.AGENT_REPORTING_BUNDLER_RPC_URL),
-    voiceEnabled: flag(env.AGENT_REPORTING_VOICE_ENABLED),
+    voiceEnabled,
     documentsEnabled: flag(env.AGENT_REPORTING_DOCUMENTS_ENABLED),
     conversionEnabled: flag(env.AGENT_REPORTING_CONVERSION_ENABLED),
     workerIntervalMs: Number(text(env.AGENT_REPORTING_WORKER_INTERVAL_MS) ?? 2_000),

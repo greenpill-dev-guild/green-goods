@@ -27,6 +27,21 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "media.pdfTooLong":
     "Ese documento tiene más de 20 páginas, así que no lo leí. Envía las páginas importantes como un PDF más corto o como fotos.",
   "media.voiceOff": "Todavía no se aceptan notas de voz. Por favor, escribe tu actualización.",
+  "media.voicePaused": "Ahora no puedo escuchar notas de voz. Por favor, escribe tu actualización.",
+  "media.voiceTooLong":
+    "Esa nota de voz dura más de 2 minutos, así que no la envié a ningún lado. Envía una más corta o escribe tu actualización.",
+  "media.voiceEmpty":
+    "No pude oír palabras en esa nota de voz. Inténtalo de nuevo o escribe tu actualización.",
+  "media.voiceFailed":
+    "No pude transcribir esa nota de voz. Tu reporte está guardado; inténtalo de nuevo o escribe tu actualización.",
+  "voice.consent":
+    "¿Puedo transcribir tus notas de voz? Envío la grabación a OpenAI para convertirla en texto, agrego el texto a tu reporte y te lo muestro para que lo revises. La grabación nunca se publica.",
+  "voice.agree": "Sí, transcribir",
+  "voice.decline": "No, escribiré",
+  "voice.granted": "Gracias. Estoy transcribiendo tu nota de voz.",
+  "voice.declined":
+    "De acuerdo, no transcribiré notas de voz. Por favor, escribe tu actualización.",
+  "voice.heard": "Escuché: “{transcript}”\nSi entendí algo mal, envía la corrección.",
   "media.documentsOff":
     "Guardé tu archivo en privado, pero la lectura de documentos está desactivada por ahora. Escribe los datos clave o envía fotos.",
   "media.fetchFailed": "No pude descargar tu archivo. Por favor, envíalo de nuevo.",

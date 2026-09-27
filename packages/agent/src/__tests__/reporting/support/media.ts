@@ -1,12 +1,17 @@
 import { deflateRawSync } from "node:zlib";
+import {
+  type AudioTools,
+  type NormalizedAudio,
+  VOICE_LIMITS,
+} from "../../../services/reporting/media/audio";
 import type { DocumentTools, PdfInspection } from "../../../services/reporting/media/documents";
 import type { InboundMediaFetcher } from "../../../services/reporting/transport";
 
 /**
- * Media doubles: provider downloads served from memory, document tools with scripted page counts
- * and conversions, a scripted OpenAI Responses endpoint and a small ZIP writer for Office-shaped
- * fixtures. They prove orchestration and limits; real Poppler, LibreOffice and model behavior need
- * their own fixtures before those capabilities are enabled.
+ * Media doubles: provider downloads served from memory, document and audio tools with scripted
+ * results, scripted OpenAI Responses and Audio endpoints and a small ZIP writer for Office-shaped
+ * fixtures. They prove orchestration and limits; real Poppler, LibreOffice, ffmpeg and model
+ * behavior need their own fixtures before those capabilities are enabled.
  */
 export class FixtureMediaFetcher implements InboundMediaFetcher {
   fetches = 0;
@@ -44,10 +49,26 @@ export class FakeDocumentTools implements DocumentTools {
   }
 }
 
-/** A Responses endpoint that returns the next scripted structured output. */
-export function scriptedOpenAI(outputs: unknown[]) {
+/**
+ * A Responses endpoint that returns the next scripted structured output, and an Audio endpoint that
+ * returns the next scripted transcript (`null` answers 503).
+ */
+export function scriptedOpenAI(outputs: unknown[], transcripts: Array<string | null> = []) {
   const requests: Array<Record<string, unknown>> = [];
-  const fetchStub = (async (_url: string, init: RequestInit) => {
+  const transcriptions: Array<{ model: string; language: string | null; bytes: number }> = [];
+  const fetchStub = (async (url: string, init: RequestInit) => {
+    if (url.endsWith("/audio/transcriptions")) {
+      const form = init.body as FormData;
+      const file = form.get("file") as Blob;
+      transcriptions.push({
+        model: String(form.get("model")),
+        language: form.get("language") === null ? null : String(form.get("language")),
+        bytes: file.size,
+      });
+      const text = transcripts.shift();
+      if (text === undefined || text === null) return new Response("{}", { status: 503 });
+      return new Response(JSON.stringify({ text }));
+    }
     requests.push(JSON.parse(String(init.body)));
     const output = outputs.shift();
     if (output === undefined) return new Response("{}", { status: 503 });
@@ -63,13 +84,27 @@ export function scriptedOpenAI(outputs: unknown[]) {
   }) as unknown as typeof fetch;
   return {
     requests,
+    transcriptions,
     config: {
       apiKey: "sk-test",
       baseUrl: "https://openai.test/v1",
       model: "test-model",
+      transcriptionModel: "test-transcribe",
       fetch: fetchStub,
     },
   };
+}
+
+/** Audio normalization with a scripted duration; the bytes pass through unchanged. */
+export class FakeAudioTools implements AudioTools {
+  seconds = 12;
+  normalized = 0;
+
+  async normalize(bytes: Uint8Array): Promise<NormalizedAudio> {
+    this.normalized += 1;
+    if (this.seconds > VOICE_LIMITS.maxSeconds) return { ok: false, reason: "too_long" };
+    return { ok: true, wav: bytes, seconds: this.seconds };
+  }
 }
 
 /** Writes a ZIP with deflated entries, enough for Office-shaped fixtures. */

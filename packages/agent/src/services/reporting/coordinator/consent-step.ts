@@ -105,3 +105,50 @@ export function withdrawProcessing(writer: TurnWriter, mode: "stop" | "delete"):
   writer.say(mode === "stop" ? "consent.stopped" : "consent.deleted");
   audit(core, `consent_withdrawn_${mode}`, { kind: "channel_subject", id: ctx.subjectId });
 }
+
+/**
+ * The answer to the separate voice-note question. Agreeing records voice consent and requeues the
+ * notes held for it; declining leaves them untranscribed, and nothing from them leaves the Agent.
+ */
+export function answerVoiceConsent(writer: TurnWriter, answer: string): void {
+  const { core, ctx } = writer;
+  if (ctx.prompt?.kind === "voice_consent") resolvePrompt(core, ctx.prompt.id);
+  const binding = ctx.binding;
+  if (!binding) return;
+  const held = core.db
+    .query(
+      `SELECT id FROM media_assets WHERE participant_id = $participant AND asset_kind = 'audio'
+       AND state = 'quarantined'`
+    )
+    .all({ participant: binding.participantId }) as Array<{ id: string }>;
+  const now = core.clock.now();
+  if (answer !== "agree") {
+    core.db
+      .query(
+        `UPDATE media_assets SET state = 'unsupported', updated_at = $now
+         WHERE participant_id = $participant AND asset_kind = 'audio' AND state = 'quarantined'`
+      )
+      .run({ participant: binding.participantId, now });
+    writer.say("voice.declined");
+    audit(core, "voice_consent_declined", { kind: "participant", id: binding.participantId });
+    return;
+  }
+  grantConsent(core, {
+    subjectId: ctx.subjectId,
+    participantId: binding.participantId,
+    purpose: "voice",
+    sourceEventId: ctx.event.id,
+  });
+  for (const { id } of held) {
+    core.db
+      .query("UPDATE media_assets SET state = 'received', updated_at = $now WHERE id = $id")
+      .run({ id, now });
+    enqueueJob(core, {
+      kind: "process_media",
+      subjectId: id,
+      dedupeKey: `media:voice:${id}:${ctx.event.id}`,
+    });
+  }
+  writer.say("voice.granted");
+  audit(core, "voice_consent_granted", { kind: "participant", id: binding.participantId });
+}

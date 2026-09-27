@@ -66,8 +66,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Document and audio tools, pinned to the Debian trixie base of this image. Poppler backs
-# agent-reporting PDF inspection (AGENT_REPORTING_DOCUMENTS_ENABLED) and ffmpeg backs audio
-# normalization; each reporting capability stays off until its fixtures pass in this image.
+# agent-reporting PDF inspection (AGENT_REPORTING_DOCUMENTS_ENABLED) and ffmpeg/ffprobe back
+# voice-note normalization (AGENT_REPORTING_VOICE_ENABLED); each reporting capability stays off
+# until its fixtures pass in this image.
 # LibreOffice conversion is not installed: it needs the Writer and Calc components, not only
 # libreoffice-core, and remains disabled pending that package decision.
 RUN apt-get update \
@@ -76,7 +77,8 @@ RUN apt-get update \
       ffmpeg=7:7.1.5-0+deb13u1 \
     && rm -rf /var/lib/apt/lists/* \
     && pdfinfo -v \
-    && ffmpeg -hide_banner -version | head -n 1
+    && ffmpeg -hide_banner -version | head -n 1 \
+    && ffprobe -hide_banner -version | head -n 1
 
 # Copy production dependencies and runtime workspace files only.
 # Env vars are injected by the runtime platform;

@@ -29,6 +29,20 @@ export const EN_REPORTING_COPY = {
   "media.pdfTooLong":
     "That document has more than 20 pages, so I didn't read it. Send the pages that matter as a shorter PDF or photos.",
   "media.voiceOff": "Voice notes aren't supported yet. Please type your update.",
+  "media.voicePaused": "I can't listen to voice notes right now. Please type your update.",
+  "media.voiceTooLong":
+    "That voice note is longer than 2 minutes, so I didn't send it anywhere. Send a shorter one or type your update.",
+  "media.voiceEmpty":
+    "I couldn't hear any words in that voice note. Please try again or type your update.",
+  "media.voiceFailed":
+    "I couldn't transcribe that voice note. Your report is saved; please try again or type your update.",
+  "voice.consent":
+    "Can I transcribe your voice notes? I send the recording to OpenAI to turn it into text, add the text to your report and show it to you to check. The recording itself is never published.",
+  "voice.agree": "Yes, transcribe",
+  "voice.decline": "No, I'll type",
+  "voice.granted": "Thank you. I'm transcribing your voice note now.",
+  "voice.declined": "OK, I won't transcribe voice notes. Please type your update instead.",
+  "voice.heard": "I heard: “{transcript}”\nIf I got anything wrong, just send the correction.",
   "media.documentsOff":
     "I saved your file privately, but reading documents is turned off right now. Please type the key details or send photos.",
   "media.fetchFailed": "I couldn't download your file. Please send it again.",

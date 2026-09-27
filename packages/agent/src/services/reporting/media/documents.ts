@@ -1,14 +1,11 @@
-import { execFile } from "node:child_process";
-import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { LocalToolError, runTool, withWorkspace } from "./subprocess";
 
 /**
- * Local document tooling with hard bounds. Each run gets a fresh private directory, a minimal
- * environment with no secrets, a wall-clock limit, capped output and cleanup on every path. PDFs
- * are inspected with Poppler so page coverage is known before any model call; Word and Excel files
- * can be converted to PDF by LibreOffice when that capability is enabled. A converter process is
- * not a sandbox by itself: network isolation and resource limits come from the worker container.
+ * Local document tooling with hard bounds (see `subprocess.ts`). PDFs are inspected with Poppler
+ * so page coverage is known before any model call; Word and Excel files can be converted to PDF by
+ * LibreOffice when that capability is enabled.
  */
 export interface DocumentTools {
   inspectPdf(bytes: Uint8Array): Promise<PdfInspection>;
@@ -21,49 +18,6 @@ export type PdfInspection =
 
 const DOCUMENT_LIMITS = { maxPdfPages: 20, maxBytes: 10 * 1024 * 1024, timeoutMs: 60_000 };
 
-export class DocumentToolError extends Error {
-  constructor(readonly reason: "unavailable" | "timeout" | "failed" | "too_large") {
-    super(`Document processing failed: ${reason}`);
-    this.name = "DocumentToolError";
-  }
-}
-
-function run(
-  command: string,
-  args: string[],
-  options: { cwd: string; timeoutMs: number; maxOutput: number }
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    execFile(
-      command,
-      args,
-      {
-        cwd: options.cwd,
-        timeout: options.timeoutMs,
-        maxBuffer: options.maxOutput,
-        killSignal: "SIGKILL",
-        env: { PATH: process.env.PATH ?? "/usr/bin:/bin", HOME: options.cwd, LANG: "C.UTF-8" },
-      },
-      (error, stdout) => {
-        if (!error) return resolve(String(stdout));
-        const code = (error as NodeJS.ErrnoException & { killed?: boolean }).code;
-        if (code === "ENOENT") return reject(new DocumentToolError("unavailable"));
-        if ((error as { killed?: boolean }).killed) return reject(new DocumentToolError("timeout"));
-        reject(new DocumentToolError("failed"));
-      }
-    );
-  });
-}
-
-async function withWorkspace<T>(work: (dir: string) => Promise<T>): Promise<T> {
-  const dir = await mkdtemp(join(tmpdir(), "gg-reporting-doc-"));
-  try {
-    return await work(dir);
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-}
-
 export function createDocumentTools(options: {
   popplerBin?: string;
   libreOfficeBin?: string;
@@ -73,17 +27,17 @@ export function createDocumentTools(options: {
   const soffice = options.libreOfficeBin ?? "soffice";
   return {
     async inspectPdf(bytes) {
-      return withWorkspace(async (dir) => {
+      return withWorkspace("gg-reporting-doc-", async (dir) => {
         await writeFile(join(dir, "input.pdf"), bytes, { mode: 0o600 });
         let info: string;
         try {
-          info = await run(pdfinfo, ["input.pdf"], {
+          info = await runTool(pdfinfo, ["input.pdf"], {
             cwd: dir,
             timeoutMs: 15_000,
             maxOutput: 64 * 1024,
           });
         } catch (error) {
-          if (error instanceof DocumentToolError && error.reason === "unavailable") throw error;
+          if (error instanceof LocalToolError && error.reason === "unavailable") throw error;
           return { ok: false, reason: "unreadable" };
         }
         const pages = Number(/^Pages:\s+(\d+)/m.exec(info)?.[1] ?? Number.NaN);
@@ -96,12 +50,12 @@ export function createDocumentTools(options: {
     },
 
     async convertToPdf(bytes, kind) {
-      if (!options.conversionEnabled) throw new DocumentToolError("unavailable");
-      return withWorkspace(async (dir) => {
+      if (!options.conversionEnabled) throw new LocalToolError("unavailable");
+      return withWorkspace("gg-reporting-doc-", async (dir) => {
         const input = `input.${kind}`;
         await writeFile(join(dir, input), bytes, { mode: 0o600 });
         // A fresh profile per run: no shared state, macros or remembered external links.
-        await run(
+        await runTool(
           soffice,
           [
             "--headless",
@@ -120,10 +74,9 @@ export function createDocumentTools(options: {
         );
         const outputs = await readdir(join(dir, "out")).catch(() => [] as string[]);
         const pdf = outputs.find((name) => name.endsWith(".pdf"));
-        if (!pdf) throw new DocumentToolError("failed");
+        if (!pdf) throw new LocalToolError("failed");
         const converted = new Uint8Array(await readFile(join(dir, "out", pdf)));
-        if (converted.byteLength > DOCUMENT_LIMITS.maxBytes)
-          throw new DocumentToolError("too_large");
+        if (converted.byteLength > DOCUMENT_LIMITS.maxBytes) throw new LocalToolError("too_large");
         return converted;
       });
     },

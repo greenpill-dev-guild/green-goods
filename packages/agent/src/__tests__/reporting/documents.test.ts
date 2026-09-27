@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { createDocumentTools, DocumentToolError } from "../../services/reporting/media/documents";
+import { createDocumentTools } from "../../services/reporting/media/documents";
+import { LocalToolError } from "../../services/reporting/media/subprocess";
 
 /**
  * The real Poppler path on generated PDFs, skipped where `pdfinfo` is not installed. LibreOffice
@@ -62,7 +63,7 @@ describe("office conversion", () => {
   it("stays unavailable until the capability is enabled", async () => {
     const tools = createDocumentTools({ conversionEnabled: false });
     await expect(tools.convertToPdf(new Uint8Array([1]), "docx")).rejects.toBeInstanceOf(
-      DocumentToolError
+      LocalToolError
     );
   });
 });

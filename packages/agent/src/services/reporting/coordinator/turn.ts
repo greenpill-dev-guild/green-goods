@@ -16,7 +16,12 @@ import {
 } from "../leases";
 import type { EnabledGarden, ReportingCore } from "../runtime";
 import { answerGrantChoice, confirmPublication, handlePairing } from "./account-steps";
-import { answerConsent, sendConsentNotice, withdrawProcessing } from "./consent-step";
+import {
+  answerConsent,
+  answerVoiceConsent,
+  sendConsentNotice,
+  withdrawProcessing,
+} from "./consent-step";
 import { loadTurnContext, planTurn, type TurnContext, type TurnPlan } from "./context";
 import { StaleDraftError } from "./draft-commit";
 import { handleReportAnswer } from "./report-answer";
@@ -156,6 +161,11 @@ function applyTurn(
         answerReviewPrompt(writer, writer.ctx.review, plan);
       } else if (plan.prompt.kind === "publication_consent" && plan.option) {
         confirmPublication(writer, null, true);
+      } else if (plan.prompt.kind === "voice_consent" && plan.option) {
+        answerVoiceConsent(writer, plan.option.value);
+        // Declining re-asks the report's open question; agreeing replies once transcribed.
+        if (plan.option.value !== "agree" && writer.ctx.draft)
+          handleReportMessage(writer, { kind: "message", text: null, media: [] }, external);
       } else if (plan.prompt.kind === "grant_choice" && plan.option) {
         answerGrantChoice(writer, plan.option.value);
       } else if (plan.prompt.kind === "confirm_report" && plan.option) {

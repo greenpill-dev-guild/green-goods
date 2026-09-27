@@ -38,6 +38,7 @@ import {
   type ReportingCore,
   systemClock,
 } from "../services/reporting/runtime";
+import { createAudioTools } from "../services/reporting/media/audio";
 import { createDocumentTools } from "../services/reporting/media/documents";
 import { processMedia } from "../services/reporting/media/process";
 import type { InboundMediaFetcher, OutboundTransport } from "../services/reporting/transport";
@@ -173,6 +174,7 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
           media,
           fetcher: options.mediaFetcher,
           tools: createDocumentTools({ conversionEnabled: config.conversionEnabled }),
+          audio: createAudioTools(),
           catalog: options.catalog,
           openai: config.openai,
           capabilities: {

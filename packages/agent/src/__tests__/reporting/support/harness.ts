@@ -55,7 +55,7 @@ import { FixtureUploader } from "./browser";
 import { FakeDelegatedSender } from "./delegated";
 import { FakeChain } from "./fake-chain";
 import { mountSyntheticIngress } from "./synthetic";
-import { FakeDocumentTools, FixtureMediaFetcher } from "./media";
+import { FakeAudioTools, FakeDocumentTools, FixtureMediaFetcher } from "./media";
 
 export interface Person {
   realm: string;
@@ -97,7 +97,8 @@ export class Harness {
   readonly mediaFiles = new Map<string, Uint8Array>();
   readonly mediaFailures = { remaining: 0 };
   readonly documents = new FakeDocumentTools();
-  openai: OpenAIConfig | null = null;
+  readonly audio = new FakeAudioTools();
+  openai: (OpenAIConfig & { transcriptionModel?: string | null }) | null = null;
   /** Key material for the next `open`; a test rotates it and restarts. */
   keys = TEST_KEYS;
   capabilities = { documents: true, conversion: false, voice: false };
@@ -228,6 +229,7 @@ export class Harness {
               media: this.media(),
               fetcher: new FixtureMediaFetcher(this.mediaFiles, this.mediaFailures),
               tools: this.documents,
+              audio: this.audio,
               catalog: this.catalog,
               openai: this.openai,
               capabilities: this.capabilities,

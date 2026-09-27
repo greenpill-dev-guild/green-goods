@@ -30,6 +30,10 @@ export type Limitation =
   | "media.unreadable"
   | "media.pdfTooLong"
   | "media.voiceOff"
+  | "media.voicePaused"
+  | "media.voiceTooLong"
+  | "media.voiceEmpty"
+  | "media.voiceFailed"
   | "media.documentsOff"
   | "media.fetchFailed";
 
@@ -47,11 +51,17 @@ export interface ProcessingResult {
   limitation: Limitation | null;
   evidence: { digest: string } | null;
   extraction: MediaExtraction | null;
+  /** What a voice note said, shown back to the gardener to check. */
+  transcript: { text: string; model: string } | null;
   warnings: string[];
   sourceKind: MediaSource["kind"] | null;
 }
 
 const done: JobOutcome = { status: "done" };
+
+function clip(text: string): string {
+  return text.length > 600 ? `${text.slice(0, 600)}…` : text;
+}
 
 export function safeDraft(core: ReportingCore, draftId: string) {
   try {
@@ -154,7 +164,27 @@ function commitInTransaction(
       mime: "image/jpeg",
     });
   }
-  content = applyReportChanges(content, changesFrom(asset, result), draft.snapshot).content;
+  let changes = changesFrom(asset, result);
+  if (result.transcript && !content.feedback) {
+    // The recording's words become the description, marked transcribed rather than typed.
+    changes = [
+      {
+        field: "feedback",
+        value: result.transcript.text,
+        provenance: {
+          kind: "transcribed",
+          origin: "model",
+          sources: [
+            { sourceEntryId: asset.sourceEntryId, assetId: asset.id, location: "voice note" },
+          ],
+          model: result.transcript.model,
+          gardenerStated: false,
+        },
+      },
+      ...changes.filter((change) => change.field !== "feedback"),
+    ];
+  }
+  content = applyReportChanges(content, changes, draft.snapshot).content;
   const next =
     content === draft.content
       ? draft
@@ -163,6 +193,7 @@ function commitInTransaction(
           cause: `media:${asset.id}`,
           sourceEventId: asset.sourceEventId,
         });
+  if (result.transcript) writer.say("voice.heard", { transcript: clip(result.transcript.text) });
   if (result.warnings.includes("hidden_content_excluded")) writer.say("media.hiddenExcluded");
   if (result.warnings.some((warning) => warning !== "hidden_content_excluded"))
     writer.say("media.partial");
@@ -174,7 +205,8 @@ function commitInTransaction(
     .get({ draft: asset.draftId, id: asset.id }) as { n: number };
   // One reply after the last file of a batch, not one question per photo.
   if (pending.n === 0) {
-    writer.say(result.sourceKind === "image" ? "media.photoAdded" : "media.fileRead");
+    if (!result.transcript)
+      writer.say(result.sourceKind === "image" ? "media.photoAdded" : "media.fileRead");
     const account = activeAccount(core, asset.participantId, core.settings.chainId);
     promptNextStepFor(writer, next, catalog, account?.address ?? null);
   }

@@ -90,6 +90,28 @@ describe("reporting configuration", () => {
     ).toThrow(ReportingConfigError);
   });
 
+  it("keeps voice notes off unless OpenAI transcription is fully configured", () => {
+    const openai = {
+      ...complete,
+      AGENT_REPORTING_OPENAI_API_KEY: "sk-live",
+      AGENT_REPORTING_OPENAI_MODEL: "reviewed-model",
+    };
+    expect(() =>
+      loadReportingConfig({ ...openai, AGENT_REPORTING_VOICE_ENABLED: "true" }, base)
+    ).toThrow(/AGENT_REPORTING_OPENAI_TRANSCRIPTION_MODEL/);
+    const voice = loadReportingConfig(
+      {
+        ...openai,
+        AGENT_REPORTING_VOICE_ENABLED: "true",
+        AGENT_REPORTING_OPENAI_TRANSCRIPTION_MODEL: "reviewed-transcribe",
+      },
+      base
+    );
+    expect(voice?.voiceEnabled).toBe(true);
+    expect(voice?.openai?.transcriptionModel).toBe("reviewed-transcribe");
+    expect(loadReportingConfig(openai, base)?.voiceEnabled).toBe(false);
+  });
+
   it("does not start reporting without a transport adapter", () => {
     expect(
       startReporting({

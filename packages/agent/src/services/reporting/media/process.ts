@@ -7,12 +7,15 @@ import type { OpenAIConfig } from "../openai-responses";
 import type { ReportingCore } from "../runtime";
 import type { InboundMediaFetcher, InboundMediaReference } from "../transport";
 import type { JobOutcome } from "../worker";
+import type { AudioTools } from "./audio";
 import { applyProcessedAsset, type Limitation, safeDraft } from "./commit";
 import { type DetectedType, detectType } from "./detect";
-import { DocumentToolError, type DocumentTools } from "./documents";
+import type { DocumentTools } from "./documents";
 import { extractFromMedia, type MediaExtraction, type MediaSource } from "./extract";
 import { ImageRejectedError, sanitizeImage } from "./image";
+import { LocalToolError } from "./subprocess";
 import { readCsv, readWorkbook } from "./tables";
+import { hearVoiceNote } from "./voice";
 
 /**
  * The durable media job. It fetches bounded bytes through the transport, identifies them from the
@@ -26,8 +29,10 @@ export interface MediaDeps {
   media: PrivateMediaStore;
   fetcher: InboundMediaFetcher;
   tools: DocumentTools;
+  audio: AudioTools;
   catalog: ReportingCatalog;
-  openai: OpenAIConfig | null;
+  /** `transcriptionModel` is present only when voice notes are configured. */
+  openai: (OpenAIConfig & { transcriptionModel?: string | null }) | null;
   capabilities: { documents: boolean; conversion: boolean; voice: boolean };
 }
 
@@ -99,7 +104,7 @@ function limitationFor(detected: DetectedType, caps: MediaDeps["capabilities"]):
       : "media.unreadable";
   }
   if (detected.kind === "video") return "media.unsupported";
-  if (detected.kind === "audio") return caps.voice ? "media.unsupported" : "media.voiceOff";
+  if (detected.kind === "audio") return caps.voice ? null : "media.voiceOff";
   if ((detected.kind === "pdf" || detected.kind === "docx") && !caps.documents)
     return "media.documentsOff";
   return null;
@@ -173,6 +178,7 @@ export async function processMedia(deps: MediaDeps, job: ClaimedJob): Promise<Jo
     typeof bytes === "string" ? bytes : limitationFor(detected as DetectedType, deps.capabilities);
   let evidence: { digest: string } | null = null;
   let source: MediaSource | null = null;
+  let transcript: { text: string; model: string } | null = null;
 
   if (!limitation && detected && typeof bytes !== "string") {
     try {
@@ -209,6 +215,34 @@ export async function processMedia(deps: MediaDeps, job: ClaimedJob): Promise<Jo
         );
         evidence = { digest: stored.digest };
         source = { kind: "image", bytes: clean.bytes, mime: clean.mime };
+      } else if (detected.kind === "audio") {
+        inTransaction(core.db, () =>
+          setAsset(core, asset.id, { detected_type: detected.mime, asset_kind: "audio" })
+        );
+        const heard = await hearVoiceNote(
+          deps,
+          {
+            id: asset.id,
+            conversationId: asset.conversation_id,
+            participantId: asset.participant_id,
+            sourceEntryId: asset.source_entry_id,
+          },
+          {
+            bytes,
+            mime: detected.mime,
+            locale: participantLocale(core, asset.participant_id),
+            lastAttempt: job.attempts >= job.maxAttempts,
+          }
+        );
+        // A held note waits for the voice consent answer, which requeues it.
+        if (heard.kind === "held") return done;
+        if (heard.kind === "retry")
+          return { status: "retry", errorCode: "transcription", delayMs: 30_000 };
+        if (heard.kind === "limitation") limitation = heard.limitation;
+        else {
+          transcript = { text: heard.text, model: heard.model };
+          source = { kind: "transcript", text: heard.text };
+        }
       } else {
         const prepared = await sourceFor(deps, detected, bytes, warnings);
         if (typeof prepared === "string") limitation = prepared;
@@ -222,7 +256,7 @@ export async function processMedia(deps: MediaDeps, job: ClaimedJob): Promise<Jo
       }
     } catch (error) {
       if (error instanceof ImageRejectedError) limitation = "media.unreadable";
-      else if (error instanceof DocumentToolError)
+      else if (error instanceof LocalToolError)
         limitation = error.reason === "unavailable" ? "media.documentsOff" : "media.unreadable";
       else throw error;
     }
@@ -245,7 +279,8 @@ export async function processMedia(deps: MediaDeps, job: ClaimedJob): Promise<Jo
         AbortSignal.timeout(45_000)
       );
     } catch {
-      warnings.push("extraction_unavailable");
+      // A transcript is used in full even when no details could be proposed from it.
+      if (source.kind !== "transcript") warnings.push("extraction_unavailable");
     }
   }
   const cause = core.db
@@ -262,7 +297,7 @@ export async function processMedia(deps: MediaDeps, job: ClaimedJob): Promise<Jo
       sourceEntryId: asset.source_entry_id,
       sourceEventId: cause.inbox_event_id,
     },
-    { limitation, evidence, extraction, warnings, sourceKind: source?.kind ?? null }
+    { limitation, evidence, extraction, transcript, warnings, sourceKind: source?.kind ?? null }
   );
 }
 
