@@ -15,12 +15,12 @@ import { selectCommitmentPoolingAvailability } from "../commitment-pooling/selec
 import { StrandedSendReopened } from "../work/stranded-intent";
 import { InvalidWorkAttachmentError, PendingHeicConversionError } from "../work/work-attachments";
 import {
+  acquireWorkJobs,
   AwaitingWorkConfirmation,
   isWorkSubmissionCancelled,
   WorkTransactionReverted,
 } from "../work/work-confirmation";
 import { jobQueueDB } from "./db";
-import { hasActiveExecutionClaim } from "./execution-claims";
 import { jobQueueEventBus } from "./event-bus";
 import { createJobExecutorRegistry, type JobExecutor } from "./executor-registry";
 import {
@@ -99,7 +99,7 @@ function createDefaultExecutorRegistry() {
 export function createDefaultJobQueueDependencies(): JobQueueDependencies {
   return {
     store: jobQueueDB,
-    executionClaims: { isClaimed: hasActiveExecutionClaim },
+    executionClaims: { acquire: (jobId) => acquireWorkJobs([jobId]) },
     events: jobQueueEventBus,
     executors: createDefaultExecutorRegistry(),
     admission: createCommitmentQueueAdmission({

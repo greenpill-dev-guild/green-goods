@@ -237,17 +237,20 @@ describe("discardJob and execution claims", () => {
   it("refuses to discard a job while a send holds its execution claim", async () => {
     // A tap, a background flush or another tab can be mid-send: deleting the
     // record then would orphan a transaction that may still broadcast.
-    const claimed = vi.fn().mockResolvedValue(true);
-    const { queue } = setup({ executionClaims: { isClaimed: claimed } });
+    const acquire = vi.fn().mockResolvedValue(null);
+    const { queue } = setup({ executionClaims: { acquire } });
     const id = await queue.addJob("work", {} as JobKindMap["work"], USER);
 
     await expect(queue.discardJob(id)).resolves.toBe(false);
-    expect(claimed).toHaveBeenCalledWith(id);
+    expect(acquire).toHaveBeenCalledWith(id);
     expect(await queue.getPendingCount(USER)).toBe(1);
 
-    claimed.mockResolvedValue(false);
+    // Free: the discard holds the claim while it deletes, then lets it go.
+    const release = vi.fn().mockResolvedValue(undefined);
+    acquire.mockResolvedValue({ release });
     await expect(queue.discardJob(id)).resolves.toBe(true);
     expect(await queue.getPendingCount(USER)).toBe(0);
+    expect(release).toHaveBeenCalledOnce();
   });
 });
 

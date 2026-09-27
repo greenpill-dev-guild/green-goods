@@ -90,31 +90,36 @@ export function createJobRecovery(
     },
 
     async discardJob(jobId: string): Promise<boolean> {
-      const job = await store.getJob(jobId);
-      if (!job || !isDiscardableJob(job)) return false;
-      // A send in flight holds the job's execution claim until it settles,
-      // whoever started it: a tap, a background flush, or another tab.
-      // Deleting the record then would orphan a transaction that may still
-      // broadcast, so a claimed job is refused.
-      if (claims && (await claims.isClaimed(jobId))) return false;
-      if (job.kind === "work" && store.getJobs && store.markJobTerminalFailed) {
-        const dependents = await store.getJobs({
-          userAddress: job.userAddress,
-          kind: "workLink",
-          synced: false,
-        });
-        for (const dependent of dependents) {
-          const payload = dependent.payload as WorkLinkJobPayload;
-          if ("sourceWorkJobId" in payload && payload.sourceWorkJobId === jobId) {
-            const error = "identity_conflict:source-work-terminal";
-            await store.markJobTerminalFailed(dependent.id, error);
-            events.emit("job:failed", { jobId: dependent.id, job: dependent, error });
+      // A send holds the job's execution claim for its whole length, whoever
+      // started it: a tap, a background flush, or another tab. Taking the
+      // claim first makes the check and the delete one held act: a running
+      // send refuses the discard, and no send can start until it is done.
+      const hold = claims ? await claims.acquire(jobId) : null;
+      if (claims && !hold) return false;
+      try {
+        const job = await store.getJob(jobId);
+        if (!job || !isDiscardableJob(job)) return false;
+        if (job.kind === "work" && store.getJobs && store.markJobTerminalFailed) {
+          const dependents = await store.getJobs({
+            userAddress: job.userAddress,
+            kind: "workLink",
+            synced: false,
+          });
+          for (const dependent of dependents) {
+            const payload = dependent.payload as WorkLinkJobPayload;
+            if ("sourceWorkJobId" in payload && payload.sourceWorkJobId === jobId) {
+              const error = "identity_conflict:source-work-terminal";
+              await store.markJobTerminalFailed(dependent.id, error);
+              events.emit("job:failed", { jobId: dependent.id, job: dependent, error });
+            }
           }
         }
+        await store.deleteJob(jobId);
+        events.emit("job:failed", { jobId, job, error: "discarded" });
+        return true;
+      } finally {
+        await hold?.release();
       }
-      await store.deleteJob(jobId);
-      events.emit("job:failed", { jobId, job, error: "discarded" });
-      return true;
     },
   };
 }

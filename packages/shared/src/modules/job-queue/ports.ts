@@ -187,9 +187,12 @@ export interface JobQueueConfig {
   storageQuotaCacheTTL: number;
 }
 
-/** Whether a send holds a job's execution claim right now (`execution-claims`). */
+/**
+ * Takes a job's execution claim for the length of a recovery act, so no send
+ * can start or be running while it runs. Null when a send holds the claim.
+ */
 export interface JobQueueExecutionClaims {
-  isClaimed(jobId: string): Promise<boolean>;
+  acquire(jobId: string): Promise<{ release(): Promise<void> } | null>;
 }
 
 export interface JobQueueDependencies {
@@ -206,7 +209,7 @@ export interface JobQueueDependencies {
   config: JobQueueConfig;
   lifecycle: JobQueueLifecycle;
   logger: JobQueueLogger;
-  /** Optional, so a queue built without the claim table (tests, fakes) reads as "not claimed". */
+  /** Optional, so a queue built without the claim table (tests, fakes) discards unclaimed. */
   executionClaims?: JobQueueExecutionClaims;
 }
 
