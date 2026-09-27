@@ -147,7 +147,7 @@ export async function startDriver(
 
   app.post("/__driver/media/:id/sample-photo", async (c) => {
     const photo = await sharp({
-      create: { width: 320, height: 240, channels: 3, background: "#40916c" },
+      create: { width: 320, height: 240, channels: 3, background: { r: 64, g: 145, b: 108 } },
     })
       .withExif({ IFD0: { Artist: "sample", Copyright: "fixture" } })
       .jpeg()

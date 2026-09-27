@@ -33,7 +33,7 @@ export async function sanitizeImage(
         fit: "inside",
         withoutEnlargement: true,
       })
-      .flatten({ background: "#ffffff" })
+      .flatten({ background: { r: 255, g: 255, b: 255 } })
       .jpeg({ quality: LIMITS.quality })
       .toBuffer({ resolveWithObject: true });
     return {
