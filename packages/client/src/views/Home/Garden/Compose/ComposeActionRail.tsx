@@ -36,7 +36,7 @@ export function ComposeActionRail({ form, chainId, actions: allActions }: Compos
   // expired or not-yet-open action could never be kept. The same filter the
   // Work composer applies.
   const actions = useMemo(() => {
-    const now = Date.now() / 1000;
+    const now = Date.now();
     return allActions.filter((action) => now >= action.startTime && now <= action.endTime);
   }, [allActions]);
   const { formatMessage } = useIntl();

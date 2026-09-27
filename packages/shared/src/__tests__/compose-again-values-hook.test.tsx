@@ -13,12 +13,15 @@ import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useComposeAgainValues } from "../hooks/commitment-pooling/useComposeAgainValues";
-import type { Address } from "../types/domain";
+import type { Action, Address } from "../types/domain";
+import { createMockAction } from "./test-utils/mock-factories";
 
 const MAKER = "0x1111111111111111111111111111111111111111" as Address;
 const SOMEONE_ELSE = "0x2222222222222222222222222222222222222222" as Address;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const mocks = vi.hoisted(() => ({
+  actions: [] as Action[],
   detail: null as unknown,
   enabled: [] as boolean[],
 }));
@@ -32,7 +35,9 @@ vi.mock("../hooks/commitment-pooling/useCommitmentPooling", () => ({
 vi.mock("../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   useCommitmentMetadataFor: () => ({ version: 1, title: "Bike repair afternoons" }),
 }));
-vi.mock("../hooks/blockchain/useBaseLists", () => ({ useActions: () => ({ data: [] }) }));
+vi.mock("../hooks/blockchain/useBaseLists", () => ({
+  useActions: () => ({ data: mocks.actions }),
+}));
 
 const commitment = {
   poolId: 7n,
@@ -61,6 +66,7 @@ function values(overrides: Partial<Parameters<typeof useComposeAgainValues>[0]> 
 
 describe("useComposeAgainValues", () => {
   beforeEach(() => {
+    mocks.actions = [];
     mocks.detail = { commitment, requirements: [] };
     mocks.enabled = [];
   });
@@ -89,5 +95,23 @@ describe("useComposeAgainValues", () => {
   it("reads nothing at all for an ordinary empty composer", () => {
     expect(values({ fromCommitmentId: null })).toBeNull();
     expect(mocks.enabled).toEqual([false]);
+  });
+
+  it("carries a garden-work requirement only while its action can still take work", () => {
+    const now = Date.now();
+    // Action times are milliseconds, as getActions stores them.
+    mocks.actions = [
+      createMockAction({ id: "42161-44", startTime: now - DAY_MS, endTime: now + DAY_MS }),
+      createMockAction({ id: "42161-45", startTime: now - 2 * DAY_MS, endTime: now - DAY_MS }),
+    ];
+    mocks.detail = {
+      commitment: { ...commitment, commitmentType: "DOMAIN_IMPACT" },
+      requirements: [
+        { requirementIndex: 0, actionUID: 44n, requiredCount: 2 },
+        { requirementIndex: 1, actionUID: 45n, requiredCount: 1 },
+      ],
+    };
+
+    expect(values()?.requirements).toEqual([{ actionUID: "44", requiredCount: 2 }]);
   });
 });
