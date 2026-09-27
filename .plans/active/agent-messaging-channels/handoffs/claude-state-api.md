@@ -31,12 +31,13 @@ capability with its implemented, fixture-tested, live-tested and shipped state. 
   bounded local tools; private storage.
 - Harness: in-process Hono tests with real temporary SQLite, injected clock and IDs, fixture
   chain, catalog, transport and wallets; the loopback driver with `walkthrough.http`, samples and
-  `reporting:walkthrough`.
+  `reporting:walkthrough`. Both driver scripts are registered in `scripts/data/command-policy.json`.
 
 Defects found and fixed while building, each with a regression test: a racing insert could
 create a second channel subject; an unmined reported hash was treated as a receipt conflict; the
 delegated executor stranded confirmed reports when publishing paused or a grant lapsed, and could
-use a grant that expired while it awaited the chain.
+use a grant that expired while it awaited the chain; and with model processing off (the default),
+a file that was only stored was reported as read.
 
 ## What remains
 
@@ -59,8 +60,8 @@ use a grant that expired while it awaited the chain.
 
 Selector: `node scripts/dev/ci-local.js --plan --intent push --base 8457b8aa2f82b4de41bd8de1551d7d9f5a36da8e`
 selects the critical push plan (critical overrides on shared-test, client-test, admin-test and
-agent-test). The contracts checks are blocked locally because this worktree has no contract
-submodules; CI runs them. Focused runs during the work:
+agent-test). The contracts checks need the contract submodules, initialized in this worktree with
+`git submodule update --init --recursive`. Focused runs during the work:
 
 - `bun run --cwd packages/agent test` and `bun run --cwd packages/agent test --scope sqlite`
 - `bun run --cwd packages/agent typecheck --scope tests`
@@ -69,14 +70,30 @@ submodules; CI runs them. Focused runs during the work:
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending the full push gate
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `75e2d70148e9e13ae5d19a3cbac3e6eb7edcc8c4`
+- Run at (UTC): 2026-09-27T11:36:29Z
+- Exact command(s): the pre-push hook's
+  `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts`
+  (plan `push · critical · 249 changed path(s)` from the merge base with `origin/develop`)
+- Result: every automated check passed: format, lint, validation-system-test, test-quality,
+  abi-artifacts, the Shared, Client, Admin, Agent and Indexer typecheck, test and build legs,
+  contracts-build, contracts-test, contracts-verify-fast, docs-authority, docs-test, docs-build,
+  staged-modules, source-structure, design-guardrails, agent-guidance, supply-chain, story-quality
+  and review-guardrails-test. `browser-proof` stays pending (manual). Turbo replayed the package
+  test legs, whose inputs this commit does not change, from the gate runs on `de1194002`, where
+  they ran in full: Shared 6004 passed and 17 skipped; Client 1415 passed (on the first run two
+  tests hit their 10-second timeout under load; they passed on the rerun and 5 of 5 times alone);
+  Admin 1069; Agent 348 passed and 1 skipped; the Agent SQLite lane 81. Contracts test and
+  verify-fast ran on this commit.
+- Validated paths: `.github bun.lock docs packages scripts` (everything the branch changes outside
+  this hub)
+- Worktree identity command and result:
+  `git status --porcelain=v1 --untracked-files=all -- .github bun.lock docs packages scripts` → empty
+- Evidence-only diff command and result (if applicable):
+  `git diff --exit-code 75e2d70148e9e13ae5d19a3cbac3e6eb7edcc8c4..HEAD -- .github bun.lock docs packages scripts`
+  → empty; the receipt commit changes only `.plans/`
+- Evidence-only worktree-status command and result (if applicable):
+  `git status --porcelain=v1 --untracked-files=all -- .github bun.lock docs packages scripts` → empty
 
 ## Risks / Blockers
 

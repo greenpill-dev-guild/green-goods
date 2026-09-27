@@ -28,11 +28,11 @@
 
 **Stage:** `active`
 
-**Status:** `ACTIVE — Opus 5.5 builds; Astra reviews; tracker start gate pending`
+**Status:** `ACTIVE — PR #2 (reporting core) in draft; Astra review, live gates and PR #3 (WhatsApp transport) pending`
 
 **Created:** 2026-04-17
 
-**Last updated:** 2026-09-26
+**Last updated:** 2026-09-27
 
 **Specification:** [current technical brief](technical-brief.md), with [earlier slice context](spec.md)
 

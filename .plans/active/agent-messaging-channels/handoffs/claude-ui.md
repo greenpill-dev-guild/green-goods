@@ -70,14 +70,27 @@ header shares none of its behavior.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending the full push gate
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+The state_api lane's gate run covers this lane; the
+[state_api receipt](claude-state-api.md#validation-receipt) has the full result.
+
+- Tested implementation commit SHA: `75e2d70148e9e13ae5d19a3cbac3e6eb7edcc8c4`
+- Run at (UTC): 2026-09-27T11:36:29Z
+- Exact command(s): the pre-push hook's
+  `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts`
+  (critical push plan)
+- Result: every automated check passed, including shared-test, client-test, the Shared and Client
+  typecheck and build legs, story-quality, design-guardrails and source-structure; Turbo replayed
+  the unchanged Shared and Client test legs from full runs on `de1194002` (Shared 6004 passed and
+  17 skipped; Client 1415 passed). `browser-proof` stays pending (manual): authenticated signing
+  is unproven, as above.
+- Validated paths: `.github bun.lock docs packages scripts`
+- Worktree identity command and result:
+  `git status --porcelain=v1 --untracked-files=all -- .github bun.lock docs packages scripts` → empty
+- Evidence-only diff command and result (if applicable):
+  `git diff --exit-code 75e2d70148e9e13ae5d19a3cbac3e6eb7edcc8c4..HEAD -- .github bun.lock docs packages scripts`
+  → empty; the receipt commit changes only `.plans/`
+- Evidence-only worktree-status command and result (if applicable):
+  `git status --porcelain=v1 --untracked-files=all -- .github bun.lock docs packages scripts` → empty
 
 ## Risks / Blockers
 
