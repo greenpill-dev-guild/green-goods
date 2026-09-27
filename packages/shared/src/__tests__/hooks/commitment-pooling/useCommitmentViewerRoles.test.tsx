@@ -63,6 +63,7 @@ vi.mock("../../../hooks/garden/useGardenRecord", () => ({
   useGardenRecord: (_garden: string | null, { enabled = true }: { enabled?: boolean } = {}) => ({
     data: enabled ? mocks.hostRecord : undefined,
     isLoading: false,
+    isSuccess: enabled,
     isError: false,
     refetch: vi.fn(),
   }),
@@ -225,6 +226,12 @@ describe("useCommitmentViewerRoles", () => {
     const { result } = roles(OTHER, HOST);
     expect(result.current.claimGardens.member).toEqual([{ address: HOST, name: "Host Garden" }]);
     expect(result.current.claimGardensKnown).toBe(true);
+
+    // A read that settles with no record cannot name the option: the reader can try again.
+    mocks.hostRecord = null;
+    const missing = roles(OTHER, HOST);
+    expect(missing.result.current.claimGardensKnown).toBe(false);
+    expect(missing.result.current.membershipUnavailable).toBe(true);
   });
 
   it("keeps membership unknown when the garden list fails, and reads them all again on retry", () => {

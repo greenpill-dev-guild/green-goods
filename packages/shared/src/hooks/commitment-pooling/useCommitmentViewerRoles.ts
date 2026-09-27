@@ -216,7 +216,8 @@ export function useCommitmentViewerRoles(input: {
       gardensQuery.isError ||
       (chainMembership.isError && isMemberHere !== true) ||
       (hostMembership.isError && hostMember !== true) ||
-      (hostOptionPending && hostRecord.isError),
+      // A host read that failed, or settled with no record, cannot name its option.
+      (hostOptionPending && (hostRecord.isError || hostRecord.isSuccess)),
     retryMembership: () => {
       void gardensQuery.refetch();
       chainMembership.refetch();
