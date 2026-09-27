@@ -4,6 +4,7 @@ import { useIntl } from "react-intl";
 
 import { EmptyState, FormProgress } from "@/components/Communication";
 import { TopNav } from "@/components/Navigation";
+import { FixedBar } from "../FixedBar";
 
 export interface ProofShellProps {
   children: React.ReactNode;
@@ -13,7 +14,10 @@ export interface ProofShellProps {
   bar?: React.ReactNode;
 }
 
-/** The proof composer's chrome: back, the three-beat progress, a body, a bar. */
+/**
+ * The proof composer's chrome: back, the three-beat progress, a body, a bar.
+ * The top nav and the bar are fixed to the viewport, as on the work view.
+ */
 export function ProofShell({ children, onBack, progress, bar }: ProofShellProps) {
   const { formatMessage } = useIntl();
   const steps = [
@@ -23,19 +27,17 @@ export function ProofShell({ children, onBack, progress, bar }: ProofShellProps)
   ];
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      <TopNav onBackClick={onBack}>
+    <div className="w-full">
+      <TopNav onBackClick={onBack} overlay>
         {progress ? <FormProgress currentStep={progress} steps={steps} /> : null}
       </TopNav>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <div className="flex flex-1 flex-col gap-4 p-4 pb-24">
-          <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
-            {formatMessage({ id: "app.proof.title" })}
-          </p>
-          {children}
-        </div>
+      <div className="flex flex-col gap-4 p-4 pt-20">
+        <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
+          {formatMessage({ id: "app.proof.title" })}
+        </p>
+        {children}
       </div>
-      {bar}
+      {bar ? <FixedBar>{bar}</FixedBar> : null}
     </div>
   );
 }

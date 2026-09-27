@@ -82,6 +82,28 @@ export const Named: Story = {
   },
 };
 
+/** A request carries the information edge; an offer, the primary one (DL-052). */
+export const Request: Story = {
+  args: {
+    row: row({
+      commitment: commitment({
+        direction: "REQUEST",
+        derivedState: "REQUESTED",
+        onchainState: "REQUESTED",
+        unitLabel: "rides",
+      }),
+      needsYou: false,
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: /3 rides/ })).toHaveAttribute(
+      "data-direction",
+      "REQUEST"
+    );
+  },
+};
+
 export const ConfirmerWaiting: Story = {
   args: {
     row: row({

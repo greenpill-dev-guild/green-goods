@@ -46,6 +46,7 @@ const mockFlush = vi.fn();
 const mockRetryAndSend = vi.fn();
 const mockDiscardJob = vi.fn();
 const mockUseGardenPoolController = vi.fn();
+const mockUsePoolCharter = vi.fn();
 
 const AVAILABLE = { status: "available", capability: {} } as const;
 const UNAVAILABLE = { status: "unavailable", reason: "not-integrated", capability: {} } as const;
@@ -136,8 +137,9 @@ function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
   const { cycles } = mockUseCommitmentCycles();
   const queue = mockUseQueueState();
   const commitments = mockUseCommitments();
-  const stewardsPool = mockUseHasRole().hasRole;
-  const ownsPool = mockUseHasRole().hasRole;
+  const role = mockUseHasRole();
+  const stewardsPool = role.hasRole;
+  const ownsPool = role.hasRole;
   const ownCreations = queue.pendingCreates.filter(
     (entry: { poolId: string }) => entry.poolId === targetPool.poolId.toString()
   );
@@ -196,6 +198,7 @@ function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
     isParticipating: !["NOT_READY", "READY", "CLOSED", "COMPOSTED"].includes(poolState),
     canCreate:
       poolState === "OPEN" && (targetPool.poolType !== "PROTOCOL" || stewardsPool || ownsPool),
+    stewardsPool: stewardsPool || ownsPool ? true : role.isLoading ? null : false,
     acts: {
       flush: mockFlush,
       retry: (jobId: string) => runBusy(jobId, () => mockRetryAndSend(jobId)),
@@ -228,6 +231,7 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentCycleNames: () => mockUseCommitmentCycleNames(),
   useCommitmentQueueState: () => mockUseQueueState(),
   useCommitmentReason: (cid: string | null) => mockUseReason(cid),
+  usePoolCharter: (cid: string | null) => mockUsePoolCharter(cid),
 }));
 
 const { GardenPool } = await import("../../views/Home/Garden/Pool");
@@ -249,6 +253,7 @@ describe("GardenPool", () => {
       refresh: vi.fn(),
     });
     mockUseReason.mockReturnValue({ reason: null, isLoading: false, isUnavailable: false });
+    mockUsePoolCharter.mockReturnValue({ charter: null, isLoading: false, isUnavailable: false });
     mockRetryAndSend.mockResolvedValue(undefined);
     mockDiscardJob.mockResolvedValue(undefined);
     mockFlush.mockResolvedValue(undefined);
@@ -381,7 +386,8 @@ describe("GardenPool", () => {
     expect(screen.getByText("Why: Flooding on the lower terraces")).toBeInTheDocument();
   });
 
-  it("lists what a pool still needs before it takes anything", () => {
+  it("lists what a pool still needs for its stewards, and where they finish it", () => {
+    mockUseHasRole.mockReturnValue({ hasRole: true, isLoading: false });
     render(
       <GardenPool
         pool={pool({
@@ -401,6 +407,23 @@ describe("GardenPool", () => {
     expect(
       screen.getByText("How many commitments one person can hold at once")
     ).toBeInTheDocument();
+    expect(screen.getByText(/steward dashboard/i)).toBeInTheDocument();
+  });
+
+  it("says only what is true for anyone while the steward read is still out", () => {
+    mockUseHasRole.mockReturnValue({ hasRole: false, isLoading: true });
+    render(<GardenPool pool={pool({ state: "NOT_READY", charterCID: "bafy-charter" })} />);
+
+    expect(screen.queryByText("Your steward is setting this pool up.")).toBeNull();
+    expect(screen.queryByRole("list", { name: "What this pool still needs" })).toBeNull();
+    expect(screen.getByText(/when its stewards set one up/i)).toBeInTheDocument();
+  });
+
+  it("tells a member only that their steward is setting the pool up", () => {
+    render(<GardenPool pool={pool({ state: "NOT_READY", charterCID: "bafy-charter" })} />);
+
+    expect(screen.getByText("Your steward is setting this pool up.")).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "What this pool still needs" })).toBeNull();
   });
 
   it("says why a pool is paused even when it holds nothing yet", () => {
@@ -690,6 +713,107 @@ describe("GardenPool", () => {
 
     expect(screen.queryByRole("button", { name: "Offer or Request" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Offer support" })).not.toBeInTheDocument();
+  });
+
+  it("draws one season as a full-width card, and two or more as a rail", () => {
+    const season = {
+      id: "42161-1",
+      cycleId: 1n,
+      cycleType: "SEASON",
+      state: "OPEN",
+      commitmentsFulfilled: 6n,
+      commitmentsDue: 16n,
+    };
+    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
+    mockUseCommitmentCycles.mockReturnValue({ cycles: [season] });
+    const { unmount } = render(<GardenPool pool={pool()} />);
+    expect(screen.queryByRole("group", { name: "Seasons and campaigns" })).toBeNull();
+    expect(screen.getByRole("button", { name: /6 of 16 kept/ })).toHaveClass("w-full");
+    unmount();
+
+    mockUseCommitmentCycles.mockReturnValue({
+      cycles: [season, { ...season, id: "42161-2", cycleId: 2n, cycleType: "CAMPAIGN" }],
+    });
+    render(<GardenPool pool={pool()} />);
+    expect(screen.getByRole("group", { name: "Seasons and campaigns" })).toBeInTheDocument();
+  });
+
+  it("opens the pool's own agreement from its season, and the general words only without one", async () => {
+    const user = userEvent.setup();
+    const season = {
+      id: "42161-1",
+      cycleId: 1n,
+      cycleType: "SEASON",
+      state: "OPEN",
+      commitmentsFulfilled: 6n,
+      commitmentsDue: 16n,
+    };
+    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
+    mockUseCommitmentCycles.mockReturnValue({ cycles: [season] });
+    mockUsePoolCharter.mockReturnValue({
+      charter: { version: 1, purpose: "Tools and rides shared across the valley." },
+      isLoading: false,
+      isUnavailable: false,
+    });
+    const { unmount } = render(<GardenPool pool={pool({ charterCID: "bafy-charter" })} />);
+    // The general sentence no longer sits under the seasons on every pool.
+    expect(screen.queryByText(/offer help and ask for it/i)).toBeNull();
+    await user.click(screen.getByRole("button", { name: "What this pool is for" }));
+    expect(
+      await screen.findByText("Tools and rides shared across the valley.")
+    ).toBeInTheDocument();
+    expect(mockUsePoolCharter).toHaveBeenCalledWith("bafy-charter");
+    unmount();
+
+    mockUsePoolCharter.mockReturnValue({ charter: null, isLoading: false, isUnavailable: false });
+    render(<GardenPool pool={pool()} />);
+    await user.click(screen.getByRole("button", { name: "What this pool is for" }));
+    expect(await screen.findByText(/offer help and ask for it/i)).toBeInTheDocument();
+  });
+
+  it("says the agreement is on its way, and keeps it reachable before the first commitment", async () => {
+    const user = userEvent.setup();
+    const season = {
+      id: "42161-1",
+      cycleId: 1n,
+      cycleType: "SEASON",
+      state: "OPEN",
+      commitmentsFulfilled: 0n,
+      commitmentsDue: 0n,
+    };
+    // No commitments yet: the empty state still carries the season and its agreement.
+    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [] }));
+    mockUseCommitmentCycles.mockReturnValue({ cycles: [season] });
+    mockUsePoolCharter.mockReturnValue({ charter: null, isLoading: true, isUnavailable: false });
+    render(<GardenPool pool={pool({ charterCID: "bafy-charter" })} />);
+
+    await user.click(screen.getByRole("button", { name: "What this pool is for" }));
+    expect(await screen.findByText("Reading this pool's agreement…")).toBeInTheDocument();
+  });
+
+  it("edges each row by its direction, and sets its marker at label size", () => {
+    mockUseCommitments.mockReturnValue(
+      commitmentsResult({
+        commitments: [
+          commitment({ derivedState: "READY_FOR_CONFIRMATION", counterparty: VIEWER }),
+          commitment({
+            id: "42161-12",
+            commitmentId: 12n,
+            direction: "REQUEST",
+            unitLabel: "rides",
+          }),
+        ],
+      })
+    );
+
+    render(<GardenPool pool={pool()} />);
+
+    const [offer, request] = screen.getAllByRole("button", { name: /hours|rides/ });
+    expect(offer).toHaveClass("border-s-[3px]", "border-s-primary");
+    expect(request).toHaveClass("border-s-[3px]", "border-s-information-base");
+    const marker = screen.getByText("Needs you");
+    expect(marker).toHaveClass("text-xs");
+    expect(marker).not.toHaveClass("uppercase");
   });
 
   it("explains what the pool is for before listing what is in it", () => {

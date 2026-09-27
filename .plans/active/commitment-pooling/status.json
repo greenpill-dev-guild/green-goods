@@ -679,8 +679,8 @@
     "w3d_unlisted_gardens_reachable": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "fix/unlisted-gardens-reachable",
       "depends_on": ["w3c_seed_wizard_questions"],
       "handoff": "handoffs/w3d-unlisted-gardens-reachable.md",
       "linear": {
@@ -688,8 +688,7 @@
         "issue": "PRD-993",
         "parentIssue": "PRD-650"
       },
-      "linear_issues": ["PRD-993", "PRD-650"],
-      "blocked_reason": "Waits for W3-C (w3c_seed_wizard_questions) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+      "linear_issues": ["PRD-993", "PRD-650"]
     },
     "w3e_account_sessions": {
       "machine_lane": "state_api",

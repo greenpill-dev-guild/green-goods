@@ -34,7 +34,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { getEASConfig } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { isGardenPubliclyVisible } from "../../config/garden-visibility";
+import { isGardenPubliclyReachable, isGardenUnlisted } from "../../config/garden-visibility";
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { getAssessmentSchemas } from "../../modules/assessment/schemas";
@@ -90,6 +90,11 @@ export interface PublicGardenDetail {
   /** True when either EAS read failed. Same name and meaning as `usePublicImpactEvidence`. */
   partialData: boolean;
   unavailableSources: PublicGardenUnavailableSources;
+  /**
+   * The garden is kept out of the public lists but opens by its own link. The
+   * page says so and asks crawlers not to index it.
+   */
+  unlisted: boolean;
 }
 
 export interface UsePublicGardenDetailOptions {
@@ -120,17 +125,22 @@ export function usePublicGardenDetail(
     queryKey: publicKeys.gardenDetail(lookup || "none", chainId),
     enabled: lookup.length > 0,
     queryFn: async (): Promise<PublicGardenDetail> => {
-      // Resolve against the public set only. Without this, a garden curated
-      // off the archive would still render a full detail page at its own URL,
-      // which is the leak the curation is meant to close.
-      const gardens = (await getGardens()).filter(isGardenPubliclyVisible);
+      // Resolve against the reachable set. A garden hidden everywhere has no
+      // page at all; one kept off the lists still opens by its own link, and
+      // says it is unlisted (decision § 1 row 36 of the pooling QA plan).
+      const gardens = (await getGardens()).filter(isGardenPubliclyReachable);
+      // Names are steward-editable, so a slug can collide. A listed garden
+      // keeps its slug; an unlisted one answers to it only when no listed
+      // garden does and no other unlisted one shares it.
+      const bySlug = gardens.filter(
+        (g) => publicGardenHelpers.deriveSlug(g.name ?? "", g.id).toLowerCase() === lookup
+      );
+      const unlistedBySlug = bySlug.filter(isGardenUnlisted);
 
       const matched =
         gardens.find((g) => g.id.toLowerCase() === lookup) ??
-        gardens.find(
-          (g) => publicGardenHelpers.deriveSlug(g.name ?? "", g.id).toLowerCase() === lookup
-        ) ??
-        null;
+        bySlug.find((g) => !isGardenUnlisted(g)) ??
+        (unlistedBySlug.length === 1 ? unlistedBySlug[0] : null);
 
       if (!matched) {
         return {
@@ -141,6 +151,7 @@ export function usePublicGardenDetail(
           totalFieldNotes: 0,
           partialData: false,
           unavailableSources: { works: false, assessments: false },
+          unlisted: false,
         };
       }
 
@@ -210,6 +221,7 @@ export function usePublicGardenDetail(
         totalFieldNotes: fieldNotes.length,
         partialData: unavailableSources.works || unavailableSources.assessments,
         unavailableSources,
+        unlisted: isGardenUnlisted(matched),
       };
     },
     staleTime: STALE_TIME_RARE,
