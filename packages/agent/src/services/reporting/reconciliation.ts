@@ -98,12 +98,16 @@ async function resolve(
   let hash = (attempt?.transactionHash as Hex | null) ?? null;
   if (!hash && attempt?.userOperationHash)
     hash = await chain.userOperationTransaction(envelope.chainId, attempt.userOperationHash as Hex);
+  // Only a mined receipt that lacks this envelope is a conflict; a hash without a receipt may
+  // still be waiting in the mempool, or replaced by a transaction the range search finds.
+  let receiptMismatch = false;
   if (hash) {
     const receipt = await chain.transactionReceipt(envelope.chainId, hash);
     if (receipt?.status === "reverted") return { kind: "reverted" };
     if (receipt) {
       const verified = await verifyReceipt(chain, envelope, receipt);
       if (verified) return { kind: "verified", verified };
+      receiptMismatch = true;
     }
   }
   // No usable hash, or the reported one does not carry this envelope: search the bounded range.
@@ -132,7 +136,7 @@ async function resolve(
   }
   if (matches.length === 1) return { kind: "verified", verified: matches[0] as Verified };
   if (matches.length > 1) return { kind: "conflict", reason: "multiple_matches" };
-  return hash ? { kind: "conflict", reason: "receipt_mismatch" } : { kind: "pending" };
+  return receiptMismatch ? { kind: "conflict", reason: "receipt_mismatch" } : { kind: "pending" };
 }
 
 /**

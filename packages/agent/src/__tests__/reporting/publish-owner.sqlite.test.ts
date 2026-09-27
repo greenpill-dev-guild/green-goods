@@ -229,6 +229,38 @@ describe("owner publication", () => {
     expect(row("SELECT state FROM execution_operations")).toEqual({ state: "published" });
   });
 
+  it("waits for a reported hash that is not mined yet instead of calling it a conflict", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = harness.chain.submit({
+      attester: adaAccount.address,
+      to: envelope.call.to,
+      data: envelope.call.data,
+    });
+    harness.chain.hidden.add(hash);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    expect(row("SELECT state, failure_code FROM execution_operations")).toEqual({
+      state: "reconciling",
+      failure_code: null,
+    });
+    expect(
+      row("SELECT last_error_code FROM processing_jobs WHERE kind = 'reconcile_operation'")
+    ).toEqual({ last_error_code: "receipt_pending" });
+
+    harness.chain.hidden.delete(hash);
+    harness.clock.advance(30_000);
+    await harness.drain();
+    expect(row("SELECT state, transaction_hash FROM execution_operations")).toEqual({
+      state: "published",
+      transaction_hash: hash,
+    });
+  });
+
   it("treats a reported hash that carries another payload as a conflict, never as publication", async () => {
     await confirmLinkAndPublish(harness);
     const { browser, view, envelope } = await openSigningPage(harness);
