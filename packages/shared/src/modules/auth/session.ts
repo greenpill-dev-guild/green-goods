@@ -233,6 +233,21 @@ export function clearStoredWalletAddress(storage: SessionStorage = localStorage)
   storage.removeItem(WALLET_ADDRESS_STORAGE_KEY);
 }
 
+/**
+ * The last account signed in on this device, in lower case. It outlives
+ * sign-out on purpose, so the next account can be told apart from it
+ * (`useIdentityChangeReset`).
+ */
+const LAST_ACCOUNT_STORAGE_KEY = "greengoods_last_account";
+
+export function getLastAccount(storage: SessionStorage = localStorage): Hex | null {
+  return asHexAddress(storage.getItem(LAST_ACCOUNT_STORAGE_KEY));
+}
+
+export function setLastAccount(address: Hex, storage: SessionStorage = localStorage): void {
+  storage.setItem(LAST_ACCOUNT_STORAGE_KEY, address.toLowerCase());
+}
+
 /** Store embedded wallet address in localStorage */
 export function setEmbeddedAddress(address: Address, storage: SessionStorage = localStorage): void {
   storage.setItem(EMBEDDED_ADDRESS_KEY, address);

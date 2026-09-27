@@ -33,6 +33,9 @@ Read `.claude/skills/design/implementation.md` before frontend work.
 - Prefer event-driven invalidation over polling.
 - Add every new user-facing string to `src/i18n/en.json`, `src/i18n/es.json`, and `src/i18n/pt.json`.
 - Use `logger` and typed domain models (`Address`, discriminated unions, `unknown` for untrusted data).
+- Stores: a persisted store either keys its records by `chainId:address` or is cleared by
+  `useIdentityChangeReset` (`hooks/auth`) when a different account signs in on the device.
+  Add a new store to that hook's list, or say beside the list why it stays.
 
 ## Package Notes
 
