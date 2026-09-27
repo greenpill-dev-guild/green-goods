@@ -110,7 +110,8 @@ every run, and `process-job.ts` would never end it on attempts.
   intent until its answer. A lock held elsewhere leaves the act to that tab, and the settle reads
   the same lock before it reopens anything. A browser without Web Locks never reopens a lost act:
   it completes when the chain shows it landed. Nor does an account with a transaction the network
-  holds but has not mined (`hasPendingTransaction`), which may be the send itself.
+  holds but has not mined (`hasPendingTransaction`), which may be the send itself, nor a passkey
+  send whose UserOperation its bundler still holds (`userOperationMayLand`).
 - `commitment-landed-lookup.ts` (new): the stranded lookup. A take-up landed when the indexer's
   record of its claimant's request matches it whole (claimant, requester, kind and garden context)
   and follows the send's intent, or when the log holds the claimant's acceptance after the intent,
@@ -138,7 +139,8 @@ every run, and `process-job.ts` would never end it on attempts.
 - `useCommitmentQueueState`: a pending act's reason is `awaiting-confirmation` whenever a send is
   on record, and a stale stored `awaiting-confirmation` never outlives its record.
 - Client: `QueuedActRow` says `confirming` and `notSent`, and a send on record offers Check Again
-  and no Discard. Three keys in en, es and pt. Stories: `ProofAlreadyBroadcast` now carries the
+  and no Discard. `notSent` asks the person to reject any request their wallet still shows before
+  sending again. Three keys in en, es and pt. Stories: `ProofAlreadyBroadcast` now carries the
   confirming state; `NeverReachedTheNetwork` is new.
 - Two executor tests changed for the protocol: the send is called with the protocol's options,
   and the deferred-UID test now checks that no persisted payload carries `resolvedWorkUID`.
@@ -172,7 +174,8 @@ Residuals, recorded rather than fixed:
   its lock is gone. The contract refuses a second proof with the same CID, a second confirmation
   and a second submission, a repeated work link is a no-op, and an open take-up cannot be accepted
   twice. The one harmful double is an approval-gated take-up that a steward declined in between:
-  its late request asks again.
+  its late request asks again. Since round 7 the reopened act's message asks the person to reject
+  any request their wallet still shows before sending again.
 - Work and decisions keep the older rules. A transaction no receipt answers still waits, and their
   lookups read EAS's indexer with no freshness check and no send lock. Left for a follow-up.
 
@@ -253,6 +256,21 @@ before each act sends (`readChainTime`) and keeps it with the intent (`intentCha
 the send did lands at or after that time and an earlier ask before it, so the lookup takes the
 floor from it with no tolerance, and times the indexer's coverage from it too.
 
+## Review round 7 on #923 (2026-09-27)
+
+Codex reviewed `608050d51` (P1): a passkey send's pending state lives at its bundler, not in the
+account's nonce, so a UserOperation still queued there could be offered again after the window.
+`d0929ae34` asks the Pimlico bundler for the operation's status before any reopen
+(`userOperationMayLand`). Only `not_found` or `rejected` lets the act reopen; every other status,
+and a failed read, keeps it waiting.
+
+CodeRabbit reviewed `8c8f3ff3b` (Major) on the closed-tab residual: a tab closed with its wallet
+prompt open releases its lock and has no transaction pending, so the act can reopen while that
+prompt could still be approved. No other tab can see that prompt, and the reopen already waits for
+the person's Send. The same commit makes that Send informed: the `notSent` message now asks the
+person to reject any request their wallet still shows first, in en, es and pt. It also removes a
+stale test comment CodeRabbit noted.
+
 ## RED and GREEN evidence
 
 RED at `4615608d9` plus the new tests, `bun run test -- src/__tests__/modules/job-executors.test.ts src/__tests__/modules/job-queue.seam.test.ts src/__tests__/commitment-queue-state.test.tsx` in `packages/shared`: six failed, each as the gap predicts (`offline_job_identity_conflict` on a re-tap; `receipt timeout` and `connection lost` rejected instead of waiting; a stranded act completed by sending again; a refused act resolved `complete`; `discardable: true` on a recorded send). The declined-prompt guard passed, as it should.
@@ -275,6 +293,9 @@ Review round 2 was RED against `e43476bef`: the work-link case returned the othe
 transaction, and it passes at `15476ac0a`. The no-locks case was RED against `c8fc57412` (a lost
 act with no Web Locks was offered again, `send-intent-expired`) and passes at `826b65352`.
 
+Review round 7 was RED against `8c8f3ff3b`: a lost passkey act whose UserOperation the bundler
+still held was offered again, and the status read did not exist. Both pass at `d0929ae34`.
+
 Review round 6 was RED against `608050d51`: a request declined half a minute before the retry's
 recorded intent read found, the send kept no chain time, and the chain-time read did not exist. All
 three pass at `2aeda3deb`.
@@ -293,7 +314,8 @@ offered again, and the pending-nonce read did not exist. Both pass at `a8ed6dba8
 
 ## Rendered proof
 
-Storybook: the queued-act row's two new waiting states, labelled. This lane changes the shared
+Storybook: the queued-act row's two new waiting states, labelled, and the reworded `notSent`
+state re-captured at `d0929ae34`. This lane changes the shared
 JobQueue, which is in the authenticated-session class (AGENTS.md § Browser Evidence), so the
 authenticated walk is required and stays pending until the recorded call: PWA-126 walks a take-up
 whose confirmation is lost, with Rabby.
@@ -331,11 +353,11 @@ holds W1-1's proof and belongs to Codex's lane, so `record-tdd` is not run over 
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `2aeda3deb` (on `fix/commitment-send-record`, PR #923)
-- Run at (UTC): `2026-09-27T05:00:59Z` to `2026-09-27T05:03:59Z`, with the shared full typecheck just before
+- Tested implementation commit SHA: `d0929ae34` (on `fix/commitment-send-record`, PR #923)
+- Run at (UTC): `2026-09-27T05:12:51Z` to `2026-09-27T05:16:27Z`, with the shared full typecheck and the i18n tests just before
 - Exact command(s): in `packages/shared`, `bun run typecheck -- --scope full` and `bun run test`; in `packages/client` and `packages/admin`, `bun run typecheck`; in `packages/client`, `bun run test`; at the root, `bash scripts/quality/check-test-quality.sh`, `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings` and `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`. The catalog checks, `bun run --cwd packages/qa build`, `node scripts/quality/check-qa-id-ledger.mjs --base origin/develop` and `bun --bun x vitest run --dir scripts/agents`, last ran at `6781a51b2`; no catalog, ledger or agent-tool file has changed since.
-- Result: shared, client and admin typechecks exit 0; shared 5,920 passed in 543 files; client 1,413 passed in 143 files; test quality passed; oxlint exit 0; source structure passed against `origin/develop`. At `6781a51b2`: QA build 354 active cases; ledger 420 ids, none removed; agent tools 260 passed. The previous head `608050d51` passed the critical pre-push plan, all 30 checks.
-- Validated paths: every non-plan path the branch changes, `git diff --name-only $(git merge-base origin/develop 2aeda3deb) 2aeda3deb -- . ':!.plans'` (29 paths)
+- Result: shared, client and admin typechecks exit 0; shared 5,921 passed in 543 files; client 1,413 passed in 143 files; test quality passed; oxlint exit 0; source structure passed against `origin/develop`. At `6781a51b2`: QA build 354 active cases; ledger 420 ids, none removed; agent tools 260 passed. The previous head `8c8f3ff3b` passed the critical pre-push plan, all 30 checks.
+- Validated paths: every non-plan path the branch changes, `git diff --name-only $(git merge-base origin/develop d0929ae34) d0929ae34 -- . ':!.plans'` (29 paths)
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 2aeda3deb -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
-- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, captured at `6bf248187`: `client-commitments-queuedactrow--proof-already-broadcast` in light and dark ("Your proof has left this phone and is waiting for the network to confirm it", Check Again, no Discard) and `--never-reached-the-network` in light ("Your take-up never reached the network", Discard and Send Now). `git diff --exit-code 6bf248187 2aeda3deb` over the row, its stories and the shared i18n files exits 0. Labelled Storybook; the authenticated walk, PWA-126 with Rabby, stays pending for the recorded call.
+- Evidence-only diff command and result (if applicable): `git diff --exit-code d0929ae34 -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
+- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation. Captured at `6bf248187`: `client-commitments-queuedactrow--proof-already-broadcast` in light and dark ("Your proof has left this phone and is waiting for the network to confirm it", Check Again, no Discard); `git diff --exit-code 6bf248187 d0929ae34` over the row and its stories exits 0. Re-captured at `d0929ae34`: `--never-reached-the-network` in light ("Your take-up never reached the network. If your wallet still shows its request, reject it there first. Then send it again or discard it.", Discard and Send Now, wrapping cleanly in the card). Labelled Storybook; the authenticated walk, PWA-126 with Rabby, stays pending for the recorded call.
