@@ -290,6 +290,9 @@ restate them here. Plan-specific deltas:
   sub-lanes under an umbrella tracker that is itself a child of that parent, record the tracker in
   `linear.trackers` (`name: issue`) and point their `parentIssue` at it. The manifest parents those
   lanes under the tracker and never writes the tracker issue itself.
+- A `linear-sync` update record leaves out any field the hub does not record, such as a parent,
+  milestone, due date, or project; keep that field's current Linear value. On a create record, null
+  means the new issue starts without that field.
 
 ### Progress Updates
 

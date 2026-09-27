@@ -1058,7 +1058,7 @@ function buildExecutionSubLaneLinearRecord(status, laneName, lane, project, team
     action: issue ? "update" : "create",
     issue,
     parentId: parentIssue,
-    parentRef: parentIssue ? null : null,
+    parentRef: null,
     title: linearLaneTitle(status, laneName),
     team,
     state: linearStateForLane(status, lane),
@@ -1101,6 +1101,23 @@ function linearLaneIsActionable(status, laneName) {
   return false;
 }
 
+// Record fields the hub may leave unrecorded (null).
+const OPTIONAL_LINEAR_RECORD_FIELDS = new Set(["parentId", "parentRef", "project", "milestone", "dueDate"]);
+
+// An update record leaves out an optional field the hub does not record, so
+// the applier keeps its current Linear value; a null would read as "clear it"
+// and could strip a parent, milestone, due date, or project set in Linear. A
+// create record keeps the null: the new issue starts without that field.
+function omitUnrecordedFieldsFromUpdate(record) {
+  if (record.action !== "update") {
+    return record;
+  }
+
+  return Object.fromEntries(
+    Object.entries(record).filter(([field, value]) => value !== null || !OPTIONAL_LINEAR_RECORD_FIELDS.has(field)),
+  );
+}
+
 function buildLinearSyncManifest(status) {
   const normalized = refreshLaneStatuses(structuredClone(status));
   const warnings = [];
@@ -1119,7 +1136,7 @@ function buildLinearSyncManifest(status) {
     warnings.push("Plan is missing Linear parent issue.");
   }
 
-  const parent = {
+  const parent = omitUnrecordedFieldsFromUpdate({
     action: parentIssue ? "update" : "create",
     issue: parentIssue,
     title: `${normalized.feature.title} roadmap`,
@@ -1129,7 +1146,7 @@ function buildLinearSyncManifest(status) {
     labels: linearLabelsForStatus(normalized, LINEAR_PARENT_ACTIVITY_LABEL),
     project,
     description: buildLinearParentDescription(normalized, laneSyncMode),
-  };
+  });
 
   const executionSubLanes = executionSubLanesForLinear(normalized);
   const canonicalLaneNames = executionSubLanes.length > 0
@@ -1176,7 +1193,7 @@ function buildLinearSyncManifest(status) {
     ? []
     : executionSubLanes.map(([laneName, lane]) =>
       buildExecutionSubLaneLinearRecord(normalized, laneName, lane, project, team, priority));
-  const lanes = [...executionLanes, ...canonicalLanes];
+  const lanes = [...executionLanes, ...canonicalLanes].map(omitUnrecordedFieldsFromUpdate);
 
   return {
     version: 1,

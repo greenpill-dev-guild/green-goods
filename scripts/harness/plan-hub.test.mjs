@@ -1106,7 +1106,7 @@ test("linear-sync uses execution sub-lanes without duplicating aggregate impleme
     assert.equal(manifest.lanes[0].parentId, "PRD-1000");
     assert.equal(Object.hasOwn(manifest.lanes[0], "branch"), false);
     assert.deepEqual(manifest.lanes[0].milestone, { key: "build", targetDate: "2026-07-31" });
-    assert.equal(manifest.lanes[0].dueDate, null);
+    assert.equal(Object.hasOwn(manifest.lanes[0], "dueDate"), false);
     assert.ok(manifest.lanes[0].labels.includes("ai:codex"));
     assert.equal(manifest.lanes[1].action, "create");
     assert.equal(manifest.lanes[1].title, "Settlement Evidence for Execution Linear");
@@ -1131,6 +1131,44 @@ test("linear-sync uses execution sub-lanes without duplicating aggregate impleme
         settlement_evidence: "2026-09-30",
       },
     });
+  }));
+
+test("linear-sync update records leave out fields the hub does not record", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "unrecorded-fields", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "unrecorded-fields");
+    status.linear = {
+      parentIssue: "PRD-1500",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+    };
+    status.execution_sub_lanes = {
+      release_ops: {
+        machine_lane: null,
+        owner: "human",
+        status: "blocked",
+        blocked_reason: "Waits for the release window.",
+        branch: null,
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1501", parentIssue: null },
+      },
+    };
+    writeStatus(root, "active", "unrecorded-fields", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "unrecorded-fields", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    const lane = manifest.lanes.find((record) => record.lane === "release_ops");
+    assert.equal(lane.action, "update");
+    // A null would tell the applier to clear a parent, milestone, due date, or
+    // project someone set in Linear; an absent field leaves that value alone.
+    for (const field of ["parentId", "parentRef", "milestone", "dueDate", "project"]) {
+      assert.equal(Object.hasOwn(lane, field), false, `${field} is sent on an update`);
+    }
+    assert.equal(manifest.parent.action, "update");
+    assert.equal(Object.hasOwn(manifest.parent, "project"), false);
   }));
 
 test("execution and canonical lane scheduling metadata must reference valid project dates", () =>
