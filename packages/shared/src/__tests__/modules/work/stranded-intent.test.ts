@@ -219,6 +219,46 @@ describe("settling a send no receipt can", () => {
 
     await resolveStrandedWorkIntent(work, 42161, at(5 * 60_000));
     expect(lookUp).toHaveBeenCalledTimes(2);
+
+    // A device clock set back never holds the next lookup for as long as it moved.
+    await resolveStrandedWorkIntent(work, 42161, at(-5 * 60_000));
+    expect(lookUp).toHaveBeenCalledTimes(3);
+  });
+
+  it("waits out a send that kept the chain's time on the chain's clock, whichever way the device's clock moved", async () => {
+    // The device's clock ran an hour fast when the send was recorded and has
+    // since been set right, so by the device the send has not happened yet.
+    const intentAt = NOW / 1000 - 10 * 60;
+    const record = {
+      broadcastPending: true,
+      broadcastPendingAt: new Date(NOW + 50 * 60_000).toISOString(),
+      intentChainTime: intentAt,
+    };
+    // A lookup may answer absent on a module's word alone, as a work link's
+    // does, so the window holds the send until the chain's clock passes it.
+    const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
+    const at = (chainTime: () => Promise<number>) => ({ ...deps(lookUp), chainTime });
+    await expect(
+      resolveStrandedWorkIntent(
+        strandedWork(record),
+        42161,
+        at(async () => intentAt + 10 * 60)
+      )
+    ).resolves.toEqual({ status: "waiting" });
+    await expect(
+      resolveStrandedWorkIntent(
+        strandedWork(record),
+        42161,
+        at(async () => intentAt + 31 * 60)
+      )
+    ).resolves.toEqual({ status: "reopened" });
+    // A chain that cannot be read keeps the window open.
+    const unread = at(async () => {
+      throw new Error("rpc unavailable");
+    });
+    await expect(resolveStrandedWorkIntent(strandedWork(record), 42161, unread)).resolves.toEqual({
+      status: "waiting",
+    });
   });
 
   it("tells the executor what to do next", async () => {

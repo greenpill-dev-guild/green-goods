@@ -316,6 +316,26 @@ describe("createCommitmentLandedLookup", () => {
     });
   });
 
+  it("times an act that kept the chain's time on the chain's clock alone, however the device's clock moved", async () => {
+    // The device's clock ran two hours fast when the send was recorded and has
+    // since been set right, so by the device the send has not happened yet.
+    const corrected = act("confirmation", {
+      action: "confirm",
+      sendCheckpoint: {
+        broadcastPending: true,
+        broadcastPendingAt: new Date(CREATED_MS + 2 * 60 * 60_000).toISOString(),
+        intentChainTime: CREATED_MS / 1000,
+      },
+    });
+    await expect(lookUp(corrected, [], { indexerBehindS: 60 })).resolves.toEqual({
+      status: "absent",
+    });
+    // An indexer short of the window on the chain's clock still proves nothing.
+    await expect(lookUp(corrected, [], { indexerBehindS: 20 * 60 })).resolves.toEqual({
+      status: "unknown",
+    });
+  });
+
   it("reads how far the indexer has processed before it reads the log", async () => {
     // A trailing indexer's next batch carries the act's row and moves it past
     // the window. It lands right after the lookup's first read: a log read

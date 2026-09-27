@@ -101,7 +101,7 @@ function easAt(chain: {
     ),
     now: () => NOW_MS,
   });
-  return { lookup, submissions, decisions };
+  return { lookup, submissions, decisions, chainNowS };
 }
 
 const workSend = {
@@ -315,25 +315,34 @@ describe("settling a lost decision with the steward's decisions on that work", (
 });
 
 describe("timing a lost send by the chain's time it kept", () => {
-  const kept = { intentChainTime: SENT_S };
-  const deps = <Lookup>(lookUp: Lookup) => ({ lookUp, now: () => NOW_MS, persist: vi.fn() });
+  const deps = <Lookup>(eas: ReturnType<typeof easAt>, lookUp: Lookup) => ({
+    lookUp,
+    now: () => NOW_MS,
+    persist: vi.fn(),
+    chainTime: async () => eas.chainNowS,
+  });
+  /** The chain's time at the intent, with the device's time at it. */
+  const kept = (recordedAtMs = SENT_MS) => ({
+    intentChainTime: SENT_S,
+    broadcastPendingAt: new Date(recordedAtMs).toISOString(),
+  });
 
   it.each([
     [
       "work",
-      (eas: ReturnType<typeof easAt>) =>
-        resolveStrandedWorkIntent(lostWork(kept), 42161, deps(eas.lookup.work)),
+      (eas: ReturnType<typeof easAt>, recordedAtMs?: number) =>
+        resolveStrandedWorkIntent(lostWork(kept(recordedAtMs)), 42161, deps(eas, eas.lookup.work)),
     ],
     [
       "decision",
-      (eas: ReturnType<typeof easAt>) =>
+      (eas: ReturnType<typeof easAt>, recordedAtMs?: number) =>
         resolveStrandedDecisionIntent(
-          lostDecision({ sendCheckpoint: lostRecord(kept) }),
+          lostDecision({ sendCheckpoint: lostRecord(kept(recordedAtMs)) }),
           42161,
-          deps(eas.lookup.decision)
+          deps(eas, eas.lookup.decision)
         ),
     ],
-  ] as const)("waits on a lost %s until EAS passes the window on the chain's clock, whatever the device's clock did", async (_kind, settle) => {
+  ] as const)("times a lost %s on the chain's clock, whichever way the device's clock moved", async (_kind, settle) => {
     // The device's clock moved half an hour forward after the send, so only ten
     // minutes have passed on the chain, and EAS has processed nine of them.
     const early = easAt({ clockAheadS: 1800, indexedThroughS: SENT_S + 540 });
@@ -342,5 +351,12 @@ describe("timing a lost send by the chain's time it kept", () => {
     // Once EAS has processed past the window on the chain's clock, the send is missing.
     const caughtUp = easAt({ indexedThroughS: SENT_S + GRACE_S + 60 });
     await expect(settle(caughtUp)).resolves.toEqual({ status: "reopened" });
+
+    // The device's clock ran two hours fast when the send was recorded and has
+    // since been set right, so by the device the send has not happened yet. The
+    // chain's clock still says the window has passed.
+    await expect(settle(caughtUp, SENT_MS + 2 * 60 * 60_000)).resolves.toEqual({
+      status: "reopened",
+    });
   });
 });

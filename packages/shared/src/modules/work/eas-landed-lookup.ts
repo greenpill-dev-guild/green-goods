@@ -89,7 +89,10 @@ export function createEasLandedLookup(deps: EasLookupDependencies = {}): EasLand
     sentAtMs: number,
     intentChainTime: number | undefined
   ): Promise<StrandedLookupResult> {
-    if (indexed === null || now() - sentAtMs < STRANDED_INTENT_GRACE_MS)
+    if (indexed === null) return { status: "unknown" };
+    // Timed on the chain's clock when the send kept it, since the device's clock
+    // may since have moved either way, and on the device's clock otherwise.
+    if (intentChainTime === undefined && now() - sentAtMs < STRANDED_INTENT_GRACE_MS)
       return { status: "unknown" };
     const covered = await indexedPastGraceWindow({
       chainId,

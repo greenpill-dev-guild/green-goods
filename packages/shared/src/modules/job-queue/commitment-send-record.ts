@@ -33,6 +33,7 @@ import type {
   CommitmentQueueExecutorDeps,
 } from "./job-executors";
 import { sendCheckpointOf, writeSendCheckpoint } from "./queue-policy";
+import { chainTimeOf } from "./send-chain-reads";
 import {
   holdingSend,
   observeTransactionNonce,
@@ -144,6 +145,7 @@ export async function settleActSend(
           }),
         stillSending: () => sendMayStillLand(stranded, chainReads),
         transactionSuperseded: () => recordedTransactionSuperseded(stranded, chainReads),
+        chainTime: chainTimeOf(chainReads),
         persist: (updated) => store.updateJob(updated),
       });
     });

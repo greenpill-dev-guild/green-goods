@@ -32,7 +32,12 @@ import {
 import { jobQueueDB } from "./db";
 import { convertQueuedHeicMedia } from "./job-media-conversion";
 import { sendCheckpointOf, writeSendCheckpoint } from "./queue-policy";
-import { createSendChainReads, intentHead, type SendChainReads } from "./send-chain-reads";
+import {
+  chainTimeOf,
+  createSendChainReads,
+  intentHead,
+  type SendChainReads,
+} from "./send-chain-reads";
 import {
   holdingSend,
   observeTransactionNonce,
@@ -89,6 +94,7 @@ export async function executeWorkJob(
         lookUp: deps.lookUpLanded ?? createEasLandedLookup().work,
         stillSending: () => sendMayStillLand(stranded, reads),
         transactionSuperseded: () => recordedTransactionSuperseded(stranded, reads),
+        chainTime: chainTimeOf(reads),
       });
     });
   const checkpoint = payload.uploadCheckpoint;

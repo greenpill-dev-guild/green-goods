@@ -85,6 +85,12 @@ export async function intentHead(
   }
 }
 
+/** The chain's latest block time, in seconds, when these reads can tell it. */
+export function chainTimeOf(reads: SendChainReads): (() => Promise<number>) | undefined {
+  const { readChainHead } = reads;
+  return readChainHead && (async () => (await readChainHead()).timestamp);
+}
+
 /** Only the node's own "no such transaction" says it no longer holds one. */
 function notHeld(error: unknown): boolean {
   return error instanceof Error && error.name === "TransactionNotFoundError";

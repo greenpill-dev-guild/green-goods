@@ -15,7 +15,12 @@ import {
 } from "../work/work-confirmation";
 import { jobQueueDB } from "./db";
 import { hasRecordedSend, writeSendCheckpoint } from "./queue-policy";
-import { createSendChainReads, intentHead, type SendChainReads } from "./send-chain-reads";
+import {
+  chainTimeOf,
+  createSendChainReads,
+  intentHead,
+  type SendChainReads,
+} from "./send-chain-reads";
 import {
   holdingSend,
   observeTransactionNonce,
@@ -69,6 +74,7 @@ export async function executeApprovalJob(
         lookUp: deps.lookUpLanded ?? createEasLandedLookup().decision,
         stillSending: () => sendMayStillLand(stranded, reads),
         transactionSuperseded: () => recordedTransactionSuperseded(stranded, reads),
+        chainTime: chainTimeOf(reads),
         persist,
       });
     });

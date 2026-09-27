@@ -38,7 +38,7 @@ import {
 
 /** How long a send may go unfound on-chain before its job is offered to send again. */
 export const STRANDED_INTENT_GRACE_MS = 30 * 60_000;
-/** The indexer trails the chain, so a younger send is not looked up yet. */
+/** The indexer trails the chain, so a younger send timed by the device is not looked up yet. */
 const LOOKUP_AFTER_MS = 2 * 60_000;
 /** One job is looked up at most this often. */
 const LOOKUP_INTERVAL_MS = 5 * 60_000;
@@ -86,6 +86,13 @@ export interface StrandedIntentDependencies<Lookup, Payload> {
    * saw it replaced.
    */
   transactionSuperseded: () => Promise<boolean>;
+  /**
+   * The chain's latest block time, in seconds. A send that kept the chain's
+   * time at its intent waits out its window on that clock, since the
+   * device's may since have moved either way. Without it, the device's clock
+   * times the send.
+   */
+  chainTime: () => Promise<number>;
 }
 
 /** A lookup is always supplied; the clock, the store and the guards may be. */
@@ -108,6 +115,25 @@ export class StrandedSendReopened extends Error {
 
 const lastLookupAt = new Map<string, number>();
 const persistJob = (job: Job) => jobQueueDB.updateJob(job);
+
+/**
+ * Whether the chain's clock has passed a send's grace window. A chain that
+ * cannot be read keeps the window open.
+ */
+async function chainPastWindow(
+  clock: { read: () => Promise<number>; windowEndsAt: number },
+  jobId: string
+): Promise<boolean> {
+  try {
+    return (await clock.read()) >= clock.windowEndsAt;
+  } catch (error) {
+    logger.warn("[StrandedIntent] Could not read the chain's time for a lost send", {
+      jobId,
+      error,
+    });
+    return false;
+  }
+}
 
 /**
  * Whether no receipt can settle this intent. A transaction hash never is:
@@ -134,6 +160,8 @@ async function resolveStrandedSend(send: {
   reopen?: () => void;
   /** Whether the send may still land, so a wallet prompt or the network may yet send it. */
   stillSending?: () => Promise<boolean>;
+  /** The chain's latest block time, in seconds: a send that kept the chain's time is timed on it. */
+  chainTime?: () => Promise<number>;
   persist: () => Promise<void>;
 }): Promise<StrandedIntentResolution> {
   const { checkpoint, jobId, now } = send;
@@ -145,8 +173,20 @@ async function resolveStrandedSend(send: {
     return { status: "waiting" };
   }
   const age = now - recordedAt;
-  if (age < LOOKUP_AFTER_MS) return { status: "waiting" };
-  if (now - (lastLookupAt.get(jobId) ?? Number.NEGATIVE_INFINITY) < LOOKUP_INTERVAL_MS)
+  // A send that kept the chain's time waits out its window on that clock when
+  // it can be read, since the device's clock may since have moved either way.
+  // Any other send is timed by the device's clock.
+  const chainClock =
+    checkpoint.intentChainTime !== undefined && send.chainTime
+      ? {
+          read: send.chainTime,
+          windowEndsAt: checkpoint.intentChainTime + STRANDED_INTENT_GRACE_MS / 1000,
+        }
+      : undefined;
+  if (!chainClock && age < LOOKUP_AFTER_MS) return { status: "waiting" };
+  // A device clock set back since the last lookup never holds the next one.
+  const lastLookup = lastLookupAt.get(jobId);
+  if (lastLookup !== undefined && now >= lastLookup && now - lastLookup < LOOKUP_INTERVAL_MS)
     return { status: "waiting" };
   lastLookupAt.set(jobId, now);
 
@@ -168,7 +208,13 @@ async function resolveStrandedSend(send: {
     lastLookupAt.delete(jobId);
     return { status: "landed", transactionHash: lookup.transactionHash };
   }
-  if (lookup.status === "unknown" || age < STRANDED_INTENT_GRACE_MS) return { status: "waiting" };
+  if (lookup.status === "unknown") return { status: "waiting" };
+  // The window holds even a lookup's absence: one may answer on a module's word
+  // alone, as a work link's does, while the send is still on its way.
+  const windowPassed = chainClock
+    ? await chainPastWindow(chainClock, jobId)
+    : age >= STRANDED_INTENT_GRACE_MS;
+  if (!windowPassed) return { status: "waiting" };
   // A prompt still open in a tab the OS froze can send after any window.
   if (!send.reopen || (await send.stillSending?.())) return { status: "waiting" };
 
@@ -225,6 +271,7 @@ async function resolveRecordedSend<Payload>(input: {
     // A transaction on record may still land until another takes its nonce.
     stillSending: async () =>
       Boolean(await deps.stillSending?.()) || (onRecord && !(await superseded?.())),
+    chainTime: deps.chainTime,
     persist: () => persist(job),
   });
 }

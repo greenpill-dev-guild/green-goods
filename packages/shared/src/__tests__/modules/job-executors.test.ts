@@ -1020,6 +1020,59 @@ describe("commitment acts record their sends", () => {
     }
   });
 
+  it("waits out a lost act that kept the chain's time on the chain's clock, whichever way the device's clock moved", async () => {
+    // The device's clock ran two hours fast when the send was recorded and has
+    // since been set right, so by the device the send has not happened yet.
+    const intentAt = Math.floor(Date.now() / 1000) - 45 * 60;
+    const lost = (id: string) => {
+      const act = takeUp(id);
+      act.payload = {
+        ...act.payload,
+        sendCheckpoint: {
+          broadcastPending: true,
+          broadcastPendingAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(),
+          intentChainTime: intentAt,
+          intentBlock: 100n,
+        },
+      } as typeof act.payload;
+      return act;
+    };
+    const readChainHead = vi.fn();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const deps = {
+      demoActive: () => false,
+      reads: {
+        ...reads(),
+        readChainHead,
+        hasPendingTransaction: vi.fn().mockResolvedValue(false),
+        userOperationMayLand: vi.fn().mockResolvedValue(false),
+      },
+      store: store(),
+      lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
+    };
+    const settle = (act: ReturnType<typeof lost>) =>
+      executeCommitmentQueueJob(act.id, act, 42161, sender, deps);
+    stubWebLocks(new Set());
+
+    try {
+      // Ten minutes after the send on the chain's clock, its window holds it.
+      readChainHead.mockResolvedValueOnce({ number: 100n, timestamp: intentAt + 10 * 60 });
+      await expect(settle(lost("claim-window-open"))).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+      // Past the window on the chain's clock, it is offered again.
+      readChainHead.mockResolvedValueOnce({ number: 200n, timestamp: intentAt + 31 * 60 });
+      await expect(settle(lost("claim-window-passed"))).resolves.toEqual({
+        status: "waiting",
+        reason: "send-intent-expired",
+      });
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("offers a transaction on record again only once another took its nonce", async () => {
     // Long past the grace window, no receipt, and the chain holds no sign of the act.
     const unanswered = (id: string, nonce?: number, extra: Record<string, unknown> = {}) => {
@@ -2088,6 +2141,51 @@ describe("work and decisions keep the send rules commitment acts follow", () => 
       const released = lost("released");
       await expect(run(released, sender, deps)).rejects.toBeInstanceOf(StrandedSendReopened);
       expect(hasRecordedSend(released)).toBe(false);
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it.each(
+    kinds
+  )("waits out a lost $kind that kept the chain's time on the chain's clock, whichever way the device's clock moved", async ({
+    kind,
+    make,
+    run,
+  }) => {
+    // The device's clock ran two hours fast when the send was recorded and has
+    // since been set right, so by the device the send has not happened yet.
+    const intentAt = Math.floor(Date.now() / 1000) - 45 * 60;
+    const lost = (id: string) =>
+      make(`${kind}-${id}`, {
+        broadcastPending: true,
+        broadcastPendingAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(),
+        intentChainTime: intentAt,
+      });
+    const readChainHead = vi.fn();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const deps = {
+      reads: {
+        readChainHead,
+        hasPendingTransaction: vi.fn().mockResolvedValue(false),
+        userOperationMayLand: vi.fn().mockResolvedValue(false),
+      },
+      lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
+    };
+    stubWebLocks(new Set());
+
+    try {
+      // Ten minutes after the send on the chain's clock, its window holds it.
+      readChainHead.mockResolvedValueOnce({ number: 100n, timestamp: intentAt + 10 * 60 });
+      await expect(run(lost("window-open"), sender, deps)).rejects.toBeInstanceOf(
+        AwaitingWorkConfirmation
+      );
+      // Past the window on the chain's clock, it is offered again.
+      readChainHead.mockResolvedValueOnce({ number: 200n, timestamp: intentAt + 31 * 60 });
+      await expect(run(lost("window-passed"), sender, deps)).rejects.toBeInstanceOf(
+        StrandedSendReopened
+      );
       expect(sender.sendContractCall).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
