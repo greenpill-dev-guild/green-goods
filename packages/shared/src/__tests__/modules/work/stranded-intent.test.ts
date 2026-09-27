@@ -21,6 +21,7 @@ import {
 } from "../../../modules/work/stranded-intent";
 import {
   AwaitingWorkConfirmation,
+  rememberTransactionReplaced,
   rememberWorkBroadcast,
   retainedWorkBroadcast,
 } from "../../../modules/work/work-confirmation";
@@ -446,6 +447,30 @@ describe("settling a commitment act no receipt can", () => {
       resolveStrandedCommitmentIntent(replaced, 42161, { ...deps(absent), lookUp: absent })
     ).resolves.toEqual({ status: "reopened" });
     expect(hasRecordedSend(replaced)).toBe(false);
+  });
+
+  it("reads a replaced mark storage refused from memory, and writes it back while it waits", async () => {
+    const absent = vi.fn().mockResolvedValue({ status: "absent" });
+    const record = { broadcastPending: false, transactionHash: TX };
+    const young = strandedTakeUp(minutesAgo(10), record);
+    rememberTransactionReplaced(young.id);
+    const persist = vi.fn();
+    await expect(
+      resolveStrandedCommitmentIntent(young, 42161, { now: () => NOW, lookUp: absent, persist })
+    ).resolves.toEqual({ status: "waiting" });
+    expect(persist).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          sendCheckpoint: expect.objectContaining({ transactionReplaced: true }),
+        }),
+      })
+    );
+
+    const old = strandedTakeUp(pastGrace(), record);
+    rememberTransactionReplaced(old.id);
+    await expect(
+      resolveStrandedCommitmentIntent(old, 42161, { ...deps(absent), lookUp: absent })
+    ).resolves.toEqual({ status: "reopened" });
   });
 
   it("keeps an act waiting while another tab still holds its send, since that prompt may yet go out", async () => {

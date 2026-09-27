@@ -40,6 +40,15 @@ const SEND_RECORDS: Record<string, { field: string; keepsOtherState?: boolean }>
   confirmation: { field: "sendCheckpoint" },
 };
 
+/**
+ * Whether the tap that finds a lost send never landed also sends it again.
+ * Work and decisions do, since their button says Send. A commitment act's says
+ * Check Again, so the act only reopens, and the person reads why before sending.
+ */
+export function sendsOnReopen(kind: string): boolean {
+  return kind === "work" || kind === "approval";
+}
+
 /** Whether this kind records each send, so a send on record is settled rather than sent again. */
 export function recordsSends(kind: string): boolean {
   return Object.prototype.hasOwnProperty.call(SEND_RECORDS, kind);

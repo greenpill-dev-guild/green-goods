@@ -312,6 +312,32 @@ describe("processJob", () => {
     });
   });
 
+  it("reopens a commitment act on its Check Again without sending it in the same tap", async () => {
+    // The tap was a check: the person sees that the act never landed, and is asked
+    // to clear any request their wallet still shows, before anything sends.
+    const reopening = () => ({
+      execute: vi.fn().mockResolvedValue({ status: "waiting", reason: "send-intent-expired" }),
+    });
+    const act = reopening();
+    const { queue } = setup({
+      store: createInMemoryJobQueueStore([queuedJob({ kind: "claim" })]),
+      executors: act,
+    });
+    expect(
+      await queue.processJob("job-1", { transactionSender: {} as never, explicit: true })
+    ).toMatchObject({ error: "send-intent-expired", skipped: true });
+    expect(act.execute).toHaveBeenCalledTimes(1);
+
+    // Work keeps its one-tap send: its button said Send.
+    const work = reopening();
+    const { queue: workQueue } = setup({
+      store: createInMemoryJobQueueStore([queuedJob()]),
+      executors: work,
+    });
+    await workQueue.processJob("job-1", { transactionSender: {} as never, explicit: true });
+    expect(work.execute).toHaveBeenCalledTimes(2);
+  });
+
   it("still reconciles a persisted UserOperation at the retry ceiling", async () => {
     const store = createInMemoryJobQueueStore([
       queuedJob({

@@ -7,6 +7,7 @@ import {
 import { sendWithCheckpoint } from "../../../modules/work/send-with-checkpoint";
 import {
   forgetWorkBroadcast,
+  retainedTransactionReplaced,
   retainedWorkBroadcastReference,
 } from "../../../modules/work/work-confirmation";
 import type { SendCheckpoint } from "../../../types/job-queue";
@@ -149,6 +150,23 @@ describe("sending one call while recording how far it got", () => {
       broadcast: { kind: "transaction", hash: TX },
       transactionReplaced: true,
     });
+  });
+
+  it("keeps the replaced mark in memory when storage refuses it", async () => {
+    const { record: write } = recorder();
+    // Storage takes the intent and the transaction, then refuses the mark.
+    const record = vi.fn(async (next: Parameters<typeof write>[0]) => {
+      if (write.mock.calls.length >= 2) throw new Error("storage unavailable");
+      await write(next);
+    });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcastReference?.({ kind: "transaction", hash: TX });
+      throw new TransactionReplacementError("replaced");
+    });
+    await expect(send(sender, record as never)).resolves.toMatchObject({ status: "may-have-sent" });
+    for (const id of JOBS) expect(retainedTransactionReplaced(id)).toBe(true);
   });
 
   it("records the hash a sender only returns", async () => {

@@ -26,7 +26,11 @@ import { logger } from "../app/logger";
 import { resolveDeferredWorkIdentity } from "../commitment-pooling/work-identity";
 import { getWorkDecisionsSince, getWorkSubmissionsSince } from "../data/eas-sent-attestations";
 import { jobQueueDB } from "../job-queue/db";
-import { AwaitingWorkConfirmation, forgetWorkBroadcast } from "./work-confirmation";
+import {
+  AwaitingWorkConfirmation,
+  forgetWorkBroadcast,
+  retainedTransactionReplaced,
+} from "./work-confirmation";
 
 /** How long a send may go unfound on-chain before its job is offered to send again. */
 export const STRANDED_INTENT_GRACE_MS = 30 * 60_000;
@@ -274,10 +278,23 @@ export async function resolveStrandedCommitmentIntent(
   // id never produces one. Its landing completes the act; its absence never
   // reopens it, because the Safe may still be collecting signatures. One the
   // wallet saw replaced can never be included, so its absence does reopen it.
+  const persist = deps.persist ?? persistJob;
+  if (checkpoint && !checkpoint.transactionReplaced && retainedTransactionReplaced(job.id)) {
+    // Storage refused the mark when the wallet saw the replacement: write it
+    // again, and read it from memory until it lands.
+    checkpoint.transactionReplaced = true;
+    try {
+      await persist(job);
+    } catch (error) {
+      logger.warn("[StrandedIntent] Could not write a replaced transaction's mark", {
+        jobId: job.id,
+        error,
+      });
+    }
+  }
   const reopenable =
     isStrandedIntentCandidate(checkpoint) || checkpoint?.transactionReplaced === true;
   if (!checkpoint || (!reopenable && !checkpoint.transactionHash)) return { status: "waiting" };
-  const persist = deps.persist ?? persistJob;
   return resolveStrandedSend({
     jobId: job.id,
     createdAt: job.createdAt,

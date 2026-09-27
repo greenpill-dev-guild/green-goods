@@ -19,7 +19,12 @@ import type {
   ProcessJobContext,
   ProcessJobResult,
 } from "./ports";
-import { createOfflineTxHash, hasRecordedSend, isWaitingReprobeThrottled } from "./queue-policy";
+import {
+  createOfflineTxHash,
+  hasRecordedSend,
+  isWaitingReprobeThrottled,
+  sendsOnReopen,
+} from "./queue-policy";
 import { holdWorkClaims } from "./work-claims";
 
 interface ProcessJobDependencies {
@@ -216,8 +221,14 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
           jobId,
           job: { ...job, meta: { ...meta, waitingReason: execution.reason } },
         });
-        // An earlier send never landed and was just cleared; the person's tap sends it now.
-        if (execution.reason === "send-intent-expired" && context.explicit && !reopened)
+        // An earlier send never landed and was just cleared; where the tap said
+        // Send, it sends now.
+        if (
+          execution.reason === "send-intent-expired" &&
+          context.explicit &&
+          !reopened &&
+          sendsOnReopen(job.kind)
+        )
           return processJob(jobId, context, true);
         return { success: false, error: execution.reason, skipped: true };
       }

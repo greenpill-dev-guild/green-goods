@@ -30,6 +30,7 @@ import {
   AwaitingWorkConfirmation,
   forgetWorkBroadcast,
   reconcileWorkTransaction,
+  rememberTransactionReplaced,
   rememberWorkBroadcast,
   retainedWorkBroadcastReference,
 } from "./work-confirmation";
@@ -128,8 +129,9 @@ export async function sendWithCheckpoint({
     if (error instanceof TransactionReplacementError && error.code === "transaction_replaced") {
       // Another call took this transaction's place, so it can never be
       // included. Whether that call did the same thing is unknown until the
-      // caller inspects what landed, so the record stays and says so. Without
-      // the mark the send is only waited on, never offered again: still safe.
+      // caller inspects what landed, so the record stays and says so. The mark
+      // is remembered first: storage that refuses it only loses it on reload.
+      for (const id of jobIds) rememberTransactionReplaced(id);
       try {
         await record((current) => ({ ...current, transactionReplaced: true }));
       } catch (markError) {
