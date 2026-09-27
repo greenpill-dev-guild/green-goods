@@ -151,16 +151,20 @@ export default function GardenDetail() {
         }
       />
 
-      <div className="bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-24">
+      <div className="bg-bg-weak-50 px-6 pt-16 pb-16 sm:px-10 sm:pt-20 md:pb-24">
         <div className="mx-auto flex max-w-7xl flex-col gap-20">
           <div className="space-y-8">
-            <EditorialGhostLink to="/gardens" size="lg">
+            <Link
+              to="/gardens"
+              viewTransition
+              className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-primary-action underline underline-offset-4 transition-colors hover:text-primary-action-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-action"
+            >
               <span aria-hidden="true">←</span>
               {formatMessage({
                 id: "public.gardenDetail.backToArchive",
                 defaultMessage: "All Gardens",
               })}
-            </EditorialGhostLink>
+            </Link>
             <section aria-labelledby="public-garden-description-title" className="max-w-3xl">
               <EditorialHeading id="public-garden-description-title" size="sub">
                 {formatMessage({

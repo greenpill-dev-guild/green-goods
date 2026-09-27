@@ -17,7 +17,7 @@ const longDescription = [
   "Everyone is welcome at our open workdays. Bring your questions and a willingness to help; tools and practical guidance are available on site. Together we are creating a garden that can keep nourishing the neighborhood for years to come.",
 ].join("\n\n");
 
-function seeded(description: string, location = "Austin") {
+function seeded(description: string, location = "Austin", name = "Community Garden") {
   return withSeededQueryClient([
     [queryKeys.public.gardens(DEFAULT_CHAIN_ID), []],
     [
@@ -25,7 +25,7 @@ function seeded(description: string, location = "Austin") {
       {
         garden: {
           id: gardenId,
-          name: "Community Garden",
+          name,
           description,
           location,
           stewards: [],
@@ -115,16 +115,27 @@ export const MissingDescription: Story = {
 };
 
 export const LongLocation: Story = {
-  decorators: [seeded("A neighborhood garden.", "Santa Teresa, Rio de Janeiro, Brasil")],
+  decorators: [
+    seeded(
+      "A neighborhood garden.",
+      "Santa Teresa, Rio de Janeiro, Brasil",
+      "Santa Teresa Community Garden"
+    ),
+  ],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const hero = await canvas.findByRole("region", { name: "Community Garden" });
+    const hero = await canvas.findByRole("region", { name: "Santa Teresa Community Garden" });
     const title = within(hero).getByRole("heading", { level: 1 });
     const location = within(hero).getByText("Santa Teresa, Rio de Janeiro, Brasil");
+    const archive = canvas.getByRole("link", { name: "All Gardens" });
     await expect(location).toBeVisible();
     await expect(location.getBoundingClientRect().top).toBeGreaterThanOrEqual(
       title.getBoundingClientRect().bottom
     );
     await expect(location.scrollHeight).toBeLessThanOrEqual(location.clientHeight + 1);
+    await expect(
+      archive.getBoundingClientRect().top - location.getBoundingClientRect().bottom
+    ).toBeLessThanOrEqual(80);
+    await expect(getComputedStyle(archive).textDecorationLine).toContain("underline");
   },
 };
