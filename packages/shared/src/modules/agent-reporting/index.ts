@@ -37,6 +37,7 @@ export {
   ReportingDeploymentError,
   resolveReportingDeployment,
 } from "./envelope";
+export { acceptsChatReports } from "./gardens";
 export type { AnswerFailure, AnswerResult, DetailCheck } from "./field-answers";
 export {
   MAX_DETAIL_TEXT_LENGTH,

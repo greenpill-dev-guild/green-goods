@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { randomBytes, randomUUID } from "node:crypto";
 import { REPORTING_SUPPORT_CONTACT } from "@green-goods/shared/modules/agent-reporting";
+import type { GardenDirectory } from "./gardens";
 import type { ReportingKeyring } from "./keyring";
 
 /** Time and identity sources are injected so tests replay exact schedules and identifiers. */
@@ -27,20 +28,12 @@ export const randomIds: ReportingIds = {
   },
 };
 
-export interface EnabledGarden {
-  key: string;
-  chainId: number;
-  address: `0x${string}`;
-  label: string;
-}
-
 /** Accepted defaults from technical brief sections 9 and 10; deployments may only shorten them. */
 export interface ReportingSettings {
   chainId: number;
   noticeVersion: string;
   supportContact: string;
   browserOrigin: string;
-  gardens: readonly EnabledGarden[];
   preConsentRetentionMs: number;
   inactiveDraftRetentionMs: number;
   linkChallengeTtlMs: number;
@@ -54,10 +47,7 @@ export interface ReportingSettings {
   choicePageSize: number;
 }
 
-export const DEFAULT_REPORTING_SETTINGS: Omit<
-  ReportingSettings,
-  "chainId" | "browserOrigin" | "gardens"
-> = {
+export const DEFAULT_REPORTING_SETTINGS: Omit<ReportingSettings, "chainId" | "browserOrigin"> = {
   noticeVersion: "2026-09-26",
   supportContact: REPORTING_SUPPORT_CONTACT,
   preConsentRetentionMs: 24 * 60 * 60 * 1000,
@@ -79,4 +69,6 @@ export interface ReportingCore {
   clock: ReportingClock;
   ids: ReportingIds;
   settings: ReportingSettings;
+  /** Every garden that accepts chat reports, refreshed from the indexer by the worker. */
+  gardens: GardenDirectory;
 }

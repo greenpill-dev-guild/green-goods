@@ -9,11 +9,8 @@ import type {
   InterpretationResult,
   ReportInterpreter,
 } from "../../../services/reporting/interpretation";
-import type {
-  EnabledGarden,
-  ReportingClock,
-  ReportingIds,
-} from "../../../services/reporting/runtime";
+import type { GardenDirectory, ReportingGarden } from "../../../services/reporting/gardens";
+import type { ReportingClock, ReportingIds } from "../../../services/reporting/runtime";
 import type {
   OutboundRequest,
   OutboundResult,
@@ -26,18 +23,23 @@ import type {
  */
 export const TEST_KEYS = `k1:${Buffer.alloc(32, 1).toString("base64")},k2:${Buffer.alloc(32, 2).toString("base64")}`;
 
-export const TAS: EnabledGarden = {
+export const TAS: ReportingGarden = {
   key: "tas",
   chainId: 42161,
   address: "0x00000000000000000000000000000000000000a1",
   label: "TAS",
 };
-export const AIYELOJA: EnabledGarden = {
+export const AIYELOJA: ReportingGarden = {
   key: "aiyeloja",
   chainId: 42161,
   address: "0x00000000000000000000000000000000000000a2",
   label: "Aiyeloja Family Garden",
 };
+
+/** A fixed garden list; the live directory reads every garden from the indexer. */
+export function fixedGardens(gardens: ReportingGarden[] = [TAS, AIYELOJA]): GardenDirectory {
+  return { list: () => gardens, refresh: async () => undefined };
+}
 
 export const ACTION_REGISTRY = "0x00000000000000000000000000000000000000b0" as const;
 
@@ -121,7 +123,7 @@ export class FixtureCatalog implements ReportingCatalog {
     [AIYELOJA.key, [snapshot(planting())]],
   ]);
 
-  async eligibleActions(garden: EnabledGarden): Promise<CatalogResult> {
+  async eligibleActions(garden: ReportingGarden): Promise<CatalogResult> {
     this.calls += 1;
     if (this.unavailable) return { ok: false, reason: "unavailable" };
     return { ok: true, actions: this.actions.get(garden.key) ?? [] };

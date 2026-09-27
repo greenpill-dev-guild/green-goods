@@ -54,8 +54,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "media.partial":
     "Só consegui ler parte desse arquivo. Confira o resumo com atenção antes de confirmar.",
   "report.askGarden": "Para qual horta é este relato?",
-  "report.noGardens":
-    "Ainda não há hortas configuradas para relatos. Sua mensagem está guardada. Suporte: {support}",
+  "report.gardensUnavailable":
+    "Não consigo carregar a lista de hortas agora. Sua mensagem está guardada; envie outra mensagem em alguns minutos. Suporte: {support}",
   "report.askAction": "Qual atividade em {garden} descreve melhor o seu trabalho?",
   "report.moreChoices": "Mais opções",
   "report.noActions":
@@ -184,6 +184,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.selfReview": "Você não pode revisar o seu próprio trabalho.",
   "review.notSteward":
     "Sua conta não é responsável por {garden}, então você não pode revisar este trabalho.",
+  "review.notOperator":
+    "Sua conta não é responsável por nenhuma horta, então não há trabalhos para você revisar.",
   "review.recorded": "Sua revisão foi registrada ✅\nTransação: {tx}",
   "account.wallet": "carteira",
   "account.passkey": "chave de acesso",

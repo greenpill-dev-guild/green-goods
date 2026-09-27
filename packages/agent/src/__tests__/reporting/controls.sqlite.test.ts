@@ -18,7 +18,7 @@ import {
   systemClock,
 } from "../../services/reporting/runtime";
 import { REPORTING_MIGRATIONS } from "../../services/reporting/schema";
-import { TEST_KEYS } from "./support/fixtures";
+import { fixedGardens, TEST_KEYS } from "./support/fixtures";
 
 /** Operator switches live in the database, so a schema upgrade must keep every earlier decision. */
 let dir: string;
@@ -41,8 +41,8 @@ function coreFor(path: string): ReportingCore {
       ...DEFAULT_REPORTING_SETTINGS,
       chainId: 42161,
       browserOrigin: "https://greengoods.test",
-      gardens: [],
     },
+    gardens: fixedGardens([]),
   };
 }
 

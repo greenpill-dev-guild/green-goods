@@ -10,11 +10,9 @@ const complete = {
   AGENT_REPORTING_TRANSPORT: "whatsapp",
   AGENT_REPORTING_KEYS: `k1:${key(1)}`,
   AGENT_REPORTING_BROWSER_ORIGIN: "https://greengoods.app",
-  AGENT_REPORTING_GARDENS:
-    "tas|0x00000000000000000000000000000000000000A1|TAS;aiyeloja|0x00000000000000000000000000000000000000B2|Aiyeloja Family Garden",
 };
 
-const base = { chainId: 42161, isProduction: true, dataDir: "/data" };
+const base = { isProduction: true, dataDir: "/data" };
 
 describe("reporting configuration", () => {
   it("keeps reporting data beside the Agent database, on the Agent's volume", () => {
@@ -35,7 +33,7 @@ describe("reporting configuration", () => {
 
   it("names every missing required setting", () => {
     expect(() => loadReportingConfig({ AGENT_REPORTING_TRANSPORT: "whatsapp" }, base)).toThrow(
-      /AGENT_REPORTING_KEYS.*AGENT_REPORTING_BROWSER_ORIGIN.*AGENT_REPORTING_GARDENS/
+      /AGENT_REPORTING_KEYS.*AGENT_REPORTING_BROWSER_ORIGIN/
     );
   });
 
@@ -54,12 +52,6 @@ describe("reporting configuration", () => {
     expect(
       loadReportingConfig(loopback, { ...base, isProduction: false })?.config.browserOrigin
     ).toBe("http://127.0.0.1:8787");
-  });
-
-  it("refuses malformed gardens", () => {
-    expect(() =>
-      loadReportingConfig({ ...complete, AGENT_REPORTING_GARDENS: "tas|not-an-address|TAS" }, base)
-    ).toThrow(ReportingConfigError);
   });
 
   it("uses a model provider only when this build pins its model, whatever the environment says", () => {

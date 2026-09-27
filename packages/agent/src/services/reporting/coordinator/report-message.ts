@@ -74,13 +74,7 @@ export function handleReportMessage(
 
   const work: Working = { content: draft.content, snapshot: draft.snapshot, changed: false };
   if (external.interpretation) {
-    applyInterpretation(
-      work,
-      external.interpretation,
-      external,
-      sourceEntryId,
-      core.settings.gardens
-    );
+    applyInterpretation(work, external.interpretation, external, sourceEntryId, core.gardens);
   } else if (text && ctx.draft && !work.content.feedback) {
     apply(work, [
       { field: "feedback", value: text, provenance: gardenerFact(sourceEntryId, text) },

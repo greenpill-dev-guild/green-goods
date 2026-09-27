@@ -19,6 +19,7 @@ import { type ClaimedJob, enqueueJob } from "./jobs";
 import { participantWriter } from "./notify";
 import { upsertOperation } from "./operations";
 import { audit, participantEpoch } from "./participants";
+import { findGarden } from "./gardens";
 import type { ReportingCore } from "./runtime";
 import type { BrowserSession } from "./sessions";
 import type { JobOutcome } from "./worker";
@@ -69,9 +70,7 @@ export async function proposeGrant(
   ) {
     return { ok: false, errorCode: "unsupported_scope" };
   }
-  const garden = core.settings.gardens.find(
-    (candidate) => candidate.address === gardenAddress.toLowerCase()
-  );
+  const garden = findGarden(core.gardens, gardenAddress);
   if (!garden) return { ok: false, errorCode: "unavailable" };
   const now = core.clock.now();
   const schema = purpose === "reporting" ? deps.deployment.work : deps.deployment.review;
@@ -260,7 +259,7 @@ function resumeWithGrant(core: ReportingCore, draftId: string, grant: GrantRecor
     conversationId: draft.conversationId,
     dedupePrefix: `grant-active:${grant.id}`,
   })?.say("grant.active", {
-    garden: gardenLabel(core.settings.gardens, grant.gardenAddress),
+    garden: gardenLabel(core.gardens, grant.gardenAddress),
     until: new Date(grant.validUntil).toISOString().slice(0, 16).replace("T", " "),
   });
 }

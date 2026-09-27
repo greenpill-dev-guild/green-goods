@@ -9,7 +9,7 @@ import type { PromptRecord } from "../prompts";
 import type { TurnPlan } from "./context";
 import { EDITABLE_STATES, lifecycleState } from "./draft-commit";
 import { askEditField } from "./edit-menu";
-import { askAction, askField, promptNextStep } from "./prompting";
+import { answeredGarden, askAction, askField, askGarden, promptNextStep } from "./prompting";
 import { handleReportMessage } from "./report-message";
 import {
   adoptAction,
@@ -58,12 +58,8 @@ export function handleReportAnswer(
 
   switch (prompt.kind) {
     case "select_garden": {
-      const chosen =
-        option?.value ??
-        presentedKeys(prompt)[Number(text) - 1] ??
-        core.settings.gardens.find((g) => g.label.toLowerCase() === text?.trim().toLowerCase())
-          ?.key;
-      const garden = core.settings.gardens.find((candidate) => candidate.key === chosen);
+      if (page !== null) return askGarden(writer, draft, page);
+      const garden = answeredGarden(core.gardens, prompt, option, text);
       if (!garden) return invalid(writer, "unknown_option");
       apply(work, [
         { field: "garden", value: gardenRef(garden), provenance: gardenerFact(sourceEntryId) },

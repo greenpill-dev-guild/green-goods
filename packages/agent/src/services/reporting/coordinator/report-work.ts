@@ -9,7 +9,7 @@ import {
 import { resolveWorkSubmissionTitle } from "@green-goods/shared/utils/work/workTitles";
 import type { DraftRecord } from "../drafts";
 import type { InterpretationResult } from "../interpretation";
-import type { EnabledGarden } from "../runtime";
+import { type GardenDirectory, gardenByKey, type ReportingGarden } from "../gardens";
 import { commitContentChange } from "./draft-commit";
 import { type CatalogView, promptNextStep } from "./prompting";
 import type { TurnWriter } from "./writer";
@@ -43,7 +43,7 @@ const systemFact = (sourceEntryId: string): FieldProvenance => ({
   gardenerStated: false,
 });
 
-export function gardenRef(garden: EnabledGarden) {
+export function gardenRef(garden: ReportingGarden) {
   return { chainId: garden.chainId, address: garden.address };
 }
 
@@ -86,19 +86,19 @@ export function adoptAction(
   work.changed = true;
 }
 
-/** Fills garden and Action only when configuration and the catalog leave no ambiguity. */
+/** Fills garden and Action only when the garden list and the catalog leave no ambiguity. */
 export function autoFill(
   writer: TurnWriter,
   work: Working,
   external: TurnExternal,
   sourceEntryId: string
 ): void {
-  const gardens = writer.core.settings.gardens;
+  const gardens = writer.core.gardens.list();
   if (!work.content.garden && gardens.length === 1) {
     apply(work, [
       {
         field: "garden",
-        value: gardenRef(gardens[0] as EnabledGarden),
+        value: gardenRef(gardens[0] as ReportingGarden),
         provenance: systemFact(sourceEntryId),
       },
     ]);
@@ -116,7 +116,7 @@ export function applyInterpretation(
   result: InterpretationResult,
   external: TurnExternal,
   sourceEntryId: string,
-  gardens: readonly EnabledGarden[]
+  gardens: GardenDirectory
 ): void {
   const provenance = (
     kind: FieldProvenance["kind"],
@@ -131,7 +131,7 @@ export function applyInterpretation(
     model: result.models.join(","),
     gardenerStated: false,
   });
-  const garden = gardens.find((candidate) => candidate.key === result.gardenKey);
+  const garden = result.gardenKey ? gardenByKey(gardens, result.gardenKey) : null;
   if (garden)
     apply(work, [
       { field: "garden", value: gardenRef(garden), provenance: provenance("reported") },

@@ -7,6 +7,7 @@ import {
   type InboxEventRow,
   nextConversationEvent,
 } from "../inbox";
+import { findGarden, type ReportingGarden } from "../gardens";
 import { interpretWithDeadline, type ReportInterpreter } from "../interpretation";
 import {
   acquireConversationLease,
@@ -14,7 +15,7 @@ import {
   holdsLease,
   releaseConversationLease,
 } from "../leases";
-import type { EnabledGarden, ReportingCore } from "../runtime";
+import type { ReportingCore } from "../runtime";
 import { answerGrantChoice, confirmPublication, handlePairing } from "./account-steps";
 import {
   answerConsent,
@@ -27,6 +28,7 @@ import { StaleDraftError } from "./draft-commit";
 import { handleReportAnswer } from "./report-answer";
 import { confirmDraft, handleReportCommand } from "./report-commands";
 import { handleReportMessage } from "./report-message";
+import { answeredGarden } from "./prompting";
 import type { TurnExternal } from "./report-work";
 import { isReviewPrompt, nextReviewStep } from "./review-prompts";
 import {
@@ -64,16 +66,13 @@ function catalogGarden(
   core: ReportingCore,
   ctx: TurnContext,
   plan: TurnPlan
-): EnabledGarden | null {
-  const gardens = core.settings.gardens;
-  if (plan.kind === "answer" && plan.prompt.kind === "select_garden") {
-    const key = plan.option?.value ?? plan.prompt.options[Number(plan.text) - 1]?.value;
-    return gardens.find((garden) => garden.key === key) ?? null;
-  }
+): ReportingGarden | null {
+  if (plan.kind === "answer" && plan.prompt.kind === "select_garden")
+    return answeredGarden(core.gardens, plan.prompt, plan.option, plan.text);
   const address = ctx.draft?.content.garden?.address;
-  if (address)
-    return gardens.find((garden) => garden.address.toLowerCase() === address.toLowerCase()) ?? null;
-  return gardens.length === 1 ? (gardens[0] as EnabledGarden) : null;
+  if (address) return findGarden(core.gardens, address);
+  const gardens = core.gardens.list();
+  return gardens.length === 1 ? (gardens[0] as ReportingGarden) : null;
 }
 
 async function gatherExternal(
@@ -108,7 +107,7 @@ async function gatherExternal(
           details: content?.details ?? {},
         },
         requirements: content ? outstandingRequirements(content, ctx.draft?.snapshot ?? null) : [],
-        gardens: deps.core.settings.gardens.map((candidate) => ({
+        gardens: deps.core.gardens.list().map((candidate) => ({
           key: candidate.key,
           label: candidate.label,
         })),

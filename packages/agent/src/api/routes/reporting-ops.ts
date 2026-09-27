@@ -14,7 +14,7 @@ const ControlChange = z.object({
 
 /**
  * Operator controls for agent reporting, behind the Agent's API bearer token: queue health,
- * the four operating switches, and replay of a failed job. Pausing never revokes bytes already
+ * the operating switches (`CONTROL_NAMES`), and replay of a failed job. Pausing never revokes bytes already
  * signed or broadcast; reconciliation keeps running under every switch.
  */
 export function registerReportingOpsRoutes(

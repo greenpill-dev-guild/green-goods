@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { AIYELOJA, TAS } from "./support/fixtures";
 import { ADA, Harness, summaryToken } from "./support/harness";
 
 /**
@@ -42,6 +43,23 @@ describe("story-first reporting", () => {
       revision: 1,
       lifecycle: "open",
     });
+  });
+
+  it("pages the garden question when more gardens accept reports than fit in one message", async () => {
+    harness.close();
+    const others = Array.from({ length: 10 }, (_, index) => ({
+      key: `garden-${index + 1}`,
+      chainId: 42161,
+      address: `0x${(index + 16).toString(16).padStart(40, "0")}` as const,
+      label: `Garden ${index + 1}`,
+    }));
+    harness = new Harness({ gardens: [...others, TAS, AIYELOJA] });
+    const first = (await consented())[1];
+    expect(first).toContain("10. Garden 10");
+    expect(first).not.toContain("TAS");
+    const next = await harness.press(ADA, "More options");
+    expect(next[0]).toBe("Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden");
+    expect((await harness.press(ADA, "TAS"))[0]).toContain("Which activity in TAS");
   });
 
   it("collects every required field, validates answers against the Action and confirms a bound revision", async () => {

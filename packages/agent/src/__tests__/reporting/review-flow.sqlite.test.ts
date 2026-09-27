@@ -185,7 +185,7 @@ describe("steward review", () => {
     await linkedSteward();
     harness.chain.grantRole(TAS.address, stewardAccount.address, {});
     expect(await harness.say(BOLA, "REVIEW")).toEqual([
-      "Your account isn't a steward of TAS, Aiyeloja Family Garden, so you can't review this work.",
+      "Your account isn't a steward of any garden, so there's no work for you to review.",
     ]);
   });
 

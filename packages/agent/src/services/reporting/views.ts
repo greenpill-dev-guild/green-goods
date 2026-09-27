@@ -73,7 +73,7 @@ export function draftView(core: ReportingCore, draftId: string): ResourceView | 
     resourceId: draft.id,
     revision: draft.revision,
     state: lifecycleState(draft),
-    gardenLabel: gardenLabel(core.settings.gardens, content.garden?.address),
+    gardenLabel: gardenLabel(core.gardens, content.garden?.address),
     title: content.title ?? "",
     lines,
     evidence: content.evidence.map((item) => ({
@@ -106,7 +106,7 @@ export function reviewView(core: ReportingCore, reviewId: string): ResourceView 
     resourceId: review.id,
     revision: review.revision,
     state: reviewState(review),
-    gardenLabel: gardenLabel(core.settings.gardens, content.gardenAddress),
+    gardenLabel: gardenLabel(core.gardens, content.gardenAddress),
     title: review.workTitle,
     lines: [
       { label: "Work", value: content.workUID },

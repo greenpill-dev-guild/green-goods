@@ -9,23 +9,35 @@ import {
 import type { WorkInput } from "@green-goods/shared/types/domain";
 import { type CatalogResult, orderActions } from "../catalog";
 import type { DraftRecord } from "../drafts";
-import type { PromptOption } from "../prompts";
-import type { EnabledGarden } from "../runtime";
+import { findGarden, type GardenDirectory, gardenByKey, type ReportingGarden } from "../gardens";
+import type { PromptOption, PromptRecord } from "../prompts";
 import type { ConversationWriter, TurnWriter } from "./writer";
 
 export interface CatalogView {
-  garden: EnabledGarden | null;
+  garden: ReportingGarden | null;
   result: CatalogResult | null;
 }
 
-export function gardenLabel(
-  gardens: readonly EnabledGarden[],
-  address: string | undefined
-): string {
-  return (
-    gardens.find((garden) => garden.address.toLowerCase() === address?.toLowerCase())?.label ??
-    "your garden"
-  );
+export function gardenLabel(gardens: GardenDirectory, address: string | undefined): string {
+  return findGarden(gardens, address)?.label ?? "your garden";
+}
+
+/**
+ * The garden a garden question's answer names: the chosen option, its number, or a name that
+ * matches exactly one garden. Names are steward-editable and need not be unique.
+ */
+export function answeredGarden(
+  gardens: GardenDirectory,
+  prompt: PromptRecord,
+  chosen: PromptOption | null | undefined,
+  text: string | null | undefined
+): ReportingGarden | null {
+  const presented = prompt.options.filter((choice) => !choice.value.startsWith("page:"));
+  const key = chosen?.value ?? presented[Number(text) - 1]?.value;
+  if (key) return gardenByKey(gardens, key);
+  const name = text?.trim().toLowerCase();
+  const named = name ? gardens.list().filter((garden) => garden.label.toLowerCase() === name) : [];
+  return named.length === 1 ? (named[0] as ReportingGarden) : null;
 }
 
 export function formatMinutes(minutes: number): string {
@@ -116,19 +128,28 @@ export function askAction(
   );
 }
 
-export function askGarden(writer: ConversationWriter, draft: DraftRecord): void {
-  const gardens = writer.core.settings.gardens;
+/** Every garden accepts reports, so the list is paged like Actions. */
+export function askGarden(writer: ConversationWriter, draft: DraftRecord, page = 0): void {
+  const gardens = writer.core.gardens.list();
   if (gardens.length === 0) {
-    writer.say("report.noGardens");
+    // The list only comes back empty when the indexer could not be read.
+    writer.say("report.gardensUnavailable");
     return;
   }
+  const size = writer.core.settings.choicePageSize;
+  const options = gardens
+    .slice(page * size, page * size + size)
+    .map((garden, index) => option(`${index}`, garden.label, garden.key));
+  if (gardens.length > (page + 1) * size)
+    options.push(option("more", writer.text("report.moreChoices"), `page:${page + 1}`));
   writer.ask(
     {
       subjectKind: "draft",
       resourceId: draft.id,
       resourceRevision: draft.revision,
       kind: "select_garden",
-      options: gardens.map((garden, index) => option(`${index}`, garden.label, garden.key)),
+      options,
+      page,
     },
     () => writer.text("report.askGarden")
   );
@@ -247,7 +268,7 @@ export function askConfirmation(
     },
     (prompt) =>
       writer.text("report.summary", {
-        garden: gardenLabel(writer.core.settings.gardens, summary.garden.address),
+        garden: gardenLabel(writer.core.gardens, summary.garden.address),
         action: snapshot.definition.title,
         title: summary.title,
         time: formatMinutes(summary.timeSpentMinutes),

@@ -84,7 +84,7 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
         },
         (prompt) =>
           out.text("publish.consent", {
-            garden: gardenLabel(core.settings.gardens, garden.address),
+            garden: gardenLabel(core.gardens, garden.address),
             account: account.address,
             token: prompt.token,
           })
@@ -102,7 +102,7 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
   if (!roles.gardener && !roles.operator) {
     inTransaction(core.db, () =>
       writer()?.say("publish.roleMissing", {
-        garden: gardenLabel(core.settings.gardens, garden.address),
+        garden: gardenLabel(core.gardens, garden.address),
       })
     );
     return done;
@@ -145,7 +145,7 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
         },
         () =>
           out.text("publish.grantOffer", {
-            garden: gardenLabel(core.settings.gardens, garden.address),
+            garden: gardenLabel(core.gardens, garden.address),
             count: 5,
           })
       );

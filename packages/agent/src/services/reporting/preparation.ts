@@ -25,6 +25,7 @@ import {
   setOperationState,
 } from "./operations";
 import { accountById, participantEpoch } from "./participants";
+import { findGarden } from "./gardens";
 import type { ReportingCore } from "./runtime";
 import type { EvidenceUploader } from "./uploader";
 import type { JobOutcome } from "./worker";
@@ -95,7 +96,7 @@ function fail(
     });
     if (blocker === "role_missing") {
       writer?.say("publish.roleMissing", {
-        garden: gardenLabel(core.settings.gardens, draft.content.garden?.address),
+        garden: gardenLabel(core.gardens, draft.content.garden?.address),
       });
     } else if (blocker !== "consent_withdrawn") writer?.say("publish.preparationFailed");
   });
@@ -143,10 +144,8 @@ export async function prepareOperation(
     return { status: "done" };
   }
 
-  const enabledGarden = core.settings.gardens.find(
-    (candidate) => candidate.address.toLowerCase() === garden.address.toLowerCase()
-  );
-  if (!enabledGarden) {
+  const listed = findGarden(core.gardens, garden.address);
+  if (!listed) {
     fail(core, draft, operation, job.id, "action_ineligible");
     return { status: "done" };
   }
@@ -155,7 +154,7 @@ export async function prepareOperation(
     const [roles, mask, catalog] = await Promise.all([
       deps.chain.gardenRoles(garden.chainId, garden.address, account.address),
       deps.chain.gardenDomainMask(garden.chainId, garden.address),
-      deps.catalog.eligibleActions(enabledGarden, core.clock.now()),
+      deps.catalog.eligibleActions(listed, core.clock.now()),
     ]);
     if (!roles.gardener && !roles.operator) {
       fail(core, draft, operation, job.id, "role_missing");

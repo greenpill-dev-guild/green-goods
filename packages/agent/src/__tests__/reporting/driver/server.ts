@@ -26,7 +26,13 @@ import { requestById } from "../../../services/reporting/continuations";
 import type { ReportingConfig } from "../../../services/reporting/config";
 import { FixtureUploader } from "../support/browser";
 import { FakeChain } from "../support/fake-chain";
-import { AIYELOJA, FixtureCatalog, RecordingTransport, TAS } from "../support/fixtures";
+import {
+  AIYELOJA,
+  FixtureCatalog,
+  fixedGardens,
+  RecordingTransport,
+  TAS,
+} from "../support/fixtures";
 import { FixtureMediaFetcher } from "../support/media";
 import { mountSyntheticIngress } from "../support/synthetic";
 
@@ -83,7 +89,6 @@ export async function startDriver(
     mediaDir: join(dataDir, "media"),
     keys: `d1:${key()}`,
     browserOrigin: origin,
-    gardens: [TAS, AIYELOJA],
     interpretation: { provider: "none" },
     openai: null,
     pinata: null,
@@ -93,6 +98,7 @@ export async function startDriver(
     config,
     chainId: 42161,
     chain,
+    gardens: fixedGardens([TAS, AIYELOJA]),
     catalog: new FixtureCatalog(),
     interpreter: null,
     uploader: new FixtureUploader(),

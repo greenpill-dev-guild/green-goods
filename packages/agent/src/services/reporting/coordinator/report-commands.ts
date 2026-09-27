@@ -163,7 +163,7 @@ export function handleReportCommand(
       if (!draft) return writer.say("report.noStatus");
       const state = STATE_COPY[lifecycleState(draft)] ?? "state.publishing";
       return writer.say("report.status", {
-        garden: gardenLabel(core.settings.gardens, draft.content.garden?.address),
+        garden: gardenLabel(core.gardens, draft.content.garden?.address),
         state: writer.text(state),
       });
     }

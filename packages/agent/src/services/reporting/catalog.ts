@@ -1,5 +1,5 @@
 import type { ActionDefinitionSnapshot } from "@green-goods/shared/modules/agent-reporting";
-import type { EnabledGarden } from "./runtime";
+import type { ReportingGarden } from "./gardens";
 
 /**
  * The eligible Actions of one enabled garden, each frozen as a definition snapshot. An unreadable
@@ -12,7 +12,7 @@ export type CatalogResult =
   | { ok: false; reason: "unavailable" };
 
 export interface ReportingCatalog {
-  eligibleActions(garden: EnabledGarden, nowMs: number): Promise<CatalogResult>;
+  eligibleActions(garden: ReportingGarden, nowMs: number): Promise<CatalogResult>;
 }
 
 /** Candidate list used by prompts, ordered deterministically by title then UID. */

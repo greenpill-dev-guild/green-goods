@@ -52,8 +52,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "media.partial":
     "Solo pude leer parte de ese archivo. Revisa el resumen con cuidado antes de confirmar.",
   "report.askGarden": "¿Para qué huerto es este reporte?",
-  "report.noGardens":
-    "Todavía no hay huertos configurados para reportar. Tu mensaje está guardado. Soporte: {support}",
+  "report.gardensUnavailable":
+    "No puedo cargar la lista de huertos en este momento. Tu mensaje está guardado; escríbeme de nuevo en unos minutos. Soporte: {support}",
   "report.askAction": "¿Qué actividad de {garden} describe mejor tu trabajo?",
   "report.moreChoices": "Más opciones",
   "report.noActions":
@@ -178,6 +178,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Tu revisión de «{title}» en {garden}:\n• Decisión: {decision}\n• Confianza: {confidence}\n• Comentarios: {feedback}\n• Método: revisión humana\n\nLa decisión y los comentarios se hacen públicos en Arbitrum.\nResponde CONFIRM {token} para registrarla, EDIT para cambiarla o CANCEL.",
   "review.selfReview": "No puedes revisar tu propio trabajo.",
   "review.notSteward": "Tu cuenta no administra {garden}, así que no puedes revisar este trabajo.",
+  "review.notOperator":
+    "Tu cuenta no administra ningún huerto, así que no tienes trabajos para revisar.",
   "review.recorded": "Tu revisión quedó registrada ✅\nTransacción: {tx}",
   "account.wallet": "billetera",
   "account.passkey": "llave de acceso",

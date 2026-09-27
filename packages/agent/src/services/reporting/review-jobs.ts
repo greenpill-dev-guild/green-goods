@@ -19,7 +19,8 @@ import { conversationRealm, participantWriter } from "./notify";
 import { freezeEnvelope, upsertOperation } from "./operations";
 import { activeAccount, participantEpoch } from "./participants";
 import { commitReview, loadReview, openReviewIntent, reviewState } from "./reviews";
-import type { EnabledGarden, ReportingCore } from "./runtime";
+import { gardenByKey, type ReportingGarden } from "./gardens";
+import type { ReportingCore } from "./runtime";
 import type { JobOutcome } from "./worker";
 
 /**
@@ -55,6 +56,10 @@ function shortTitle(title: string): string {
   return title.length > 40 ? `${title.slice(0, 39)}…` : title;
 }
 
+/**
+ * Every garden accepts reports, so this asks the chain about each garden in turn and lists pending
+ * work only where the steward's account holds the operator role now.
+ */
 export async function listPendingReviews(
   deps: ReviewJobDeps,
   job: ClaimedJob
@@ -63,9 +68,9 @@ export async function listPendingReviews(
   const conversationId = String(job.payload.conversationId ?? "");
   const account = activeAccount(core, job.subjectId, core.settings.chainId);
   if (!account) return done;
-  const stewarded: Array<{ garden: EnabledGarden; works: PublishedWorkView[] }> = [];
+  const stewarded: Array<{ garden: ReportingGarden; works: PublishedWorkView[] }> = [];
   try {
-    for (const garden of core.settings.gardens) {
+    for (const garden of core.gardens.list()) {
       const roles = await chain.gardenRoles(garden.chainId, garden.address, account.address);
       if (!roles.operator) continue;
       const works = await chain.pendingWork(garden.chainId, garden.address);
@@ -83,9 +88,7 @@ export async function listPendingReviews(
     const out = writerFor(core, job.subjectId, conversationId, `review-list:${job.id}`);
     if (!out) return;
     if (stewarded.length === 0) {
-      out.say("review.notSteward", {
-        garden: core.settings.gardens.map((garden) => garden.label).join(", "),
-      });
+      out.say("review.notOperator");
       return;
     }
     const items = stewarded.flatMap(({ garden, works }) => works.map((work) => ({ garden, work })));
@@ -115,7 +118,7 @@ export async function openReview(deps: ReviewJobDeps, job: ClaimedJob): Promise<
   const { core, chain } = deps;
   const conversationId = String(job.payload.conversationId ?? "");
   const [gardenKey, workUID] = String(job.payload.workKey ?? "").split(":");
-  const garden = core.settings.gardens.find((candidate) => candidate.key === gardenKey);
+  const garden = gardenKey ? gardenByKey(core.gardens, gardenKey) : null;
   const account = activeAccount(core, job.subjectId, core.settings.chainId);
   if (!garden || !account || !workUID?.startsWith("0x")) return done;
   let work: PublishedWorkView | null;
@@ -192,7 +195,7 @@ export async function resolveReviewAuthority(
         : null;
   if (refusal) {
     inTransaction(core.db, () =>
-      writer()?.say(refusal, { garden: gardenLabel(core.settings.gardens, content.gardenAddress) })
+      writer()?.say(refusal, { garden: gardenLabel(core.gardens, content.gardenAddress) })
     );
     return done;
   }

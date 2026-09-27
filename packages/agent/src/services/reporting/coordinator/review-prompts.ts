@@ -95,7 +95,7 @@ export function askReviewConfirmation(
     (prompt) =>
       writer.text("review.summary", {
         title: review.workTitle,
-        garden: gardenLabel(writer.core.settings.gardens, content.gardenAddress),
+        garden: gardenLabel(writer.core.gardens, content.gardenAddress),
         decision: writer.text(content.decision === "reject" ? "review.reject" : "review.approve"),
         confidence:
           content.decision === "reject"

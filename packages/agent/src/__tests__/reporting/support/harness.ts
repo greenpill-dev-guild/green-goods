@@ -41,14 +41,14 @@ import {
   type ReportingWorkerDeps,
   type TickSummary,
 } from "../../../services/reporting/worker";
+import type { ReportingGarden } from "../../../services/reporting/gardens";
 import {
-  AIYELOJA,
   FixtureCatalog,
   FixtureInterpreter,
+  fixedGardens,
   ManualClock,
   RecordingTransport,
   SequentialIds,
-  TAS,
   TEST_KEYS,
 } from "./fixtures";
 import { FixtureUploader } from "./browser";
@@ -77,6 +77,8 @@ export const BOLA: Person = {
 
 export interface HarnessOptions {
   controls?: Partial<Record<ControlName, boolean>>;
+  /** The gardens the directory lists; TAS and Aiyeloja Family Garden by default. */
+  gardens?: ReportingGarden[];
   settings?: Partial<ReportingSettings>;
   jobs?: (harness: Harness) => ReportingWorkerDeps["jobs"];
 }
@@ -169,9 +171,9 @@ export class Harness {
         ...DEFAULT_REPORTING_SETTINGS,
         chainId: 42161,
         browserOrigin: "https://greengoods.test",
-        gardens: [TAS, AIYELOJA],
         ...this.options.settings,
       },
+      gardens: fixedGardens(this.options.gardens),
     };
   }
 

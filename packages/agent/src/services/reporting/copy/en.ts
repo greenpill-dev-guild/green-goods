@@ -53,8 +53,8 @@ export const EN_REPORTING_COPY = {
   "media.partial":
     "I could only read part of that file. Please check the summary carefully before confirming.",
   "report.askGarden": "Which garden is this report for?",
-  "report.noGardens":
-    "No garden is set up for reporting yet. Your message is saved. Support: {support}",
+  "report.gardensUnavailable":
+    "I can't load the list of gardens right now. Your message is saved; please send another message in a few minutes. Support: {support}",
   "report.askAction": "Which activity in {garden} best matches your work?",
   "report.moreChoices": "More options",
   "report.noActions":
@@ -182,6 +182,8 @@ export const EN_REPORTING_COPY = {
     "Your review of “{title}” in {garden}:\n• Decision: {decision}\n• Confidence: {confidence}\n• Feedback: {feedback}\n• Method: human review\n\nThe decision and feedback become public on Arbitrum.\nReply CONFIRM {token} to record it, EDIT to change it, or CANCEL.",
   "review.selfReview": "You can't review your own work.",
   "review.notSteward": "Your account isn't a steward of {garden}, so you can't review this work.",
+  "review.notOperator":
+    "Your account isn't a steward of any garden, so there's no work for you to review.",
   "review.recorded": "Your review is recorded ✅\nTransaction: {tx}",
   "account.wallet": "wallet",
   "account.passkey": "passkey",

@@ -10,6 +10,7 @@ import type { AccountProofVerifier } from "../services/reporting/browser-access"
 import type { ReportingCatalog } from "../services/reporting/catalog";
 import type { ReportingChain } from "../services/reporting/chain";
 import type { ReportingConfig } from "../services/reporting/config";
+import type { GardenDirectory } from "../services/reporting/gardens";
 import { type ControlName, ensureControls, INITIAL_CONTROLS } from "../services/reporting/controls";
 import { inTransaction, openReportingDatabase } from "../services/reporting/database";
 import { type DelegatedSender, executeDelegated } from "../services/reporting/delegated";
@@ -58,6 +59,8 @@ export interface ReportingRuntimeOptions {
   config: ReportingConfig;
   chainId: number;
   chain: ReportingChain;
+  /** Every garden that accepts chat reports; the worker refreshes it each pass. */
+  gardens: GardenDirectory;
   catalog: ReportingCatalog;
   interpreter: ReportInterpreter | null;
   uploader: EvidenceUploader;
@@ -107,8 +110,8 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
       ...DEFAULT_REPORTING_SETTINGS,
       chainId: options.chainId,
       browserOrigin: config.browserOrigin,
-      gardens: config.gardens,
     },
+    gardens: options.gardens,
   };
   ensureControls(core, options.initialControls ?? INITIAL_CONTROLS);
   const deployment = resolveReportingDeployment(options.chainId);

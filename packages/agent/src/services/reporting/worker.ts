@@ -1,3 +1,4 @@
+import { createLogger } from "../logger";
 import { type CoordinatorDeps, processConversation } from "./coordinator/turn";
 import { inTransaction } from "./database";
 import { conversationsWithWork, consumeInboxEvent, readInboxPayload } from "./inbox";
@@ -5,6 +6,8 @@ import { type ClaimedJob, claimJob, completeJob, type JobKind, retryJob } from "
 import { applyDeliveryStatus } from "./delivery-status";
 import { dispatchOutbox, recoverStalledDispatches } from "./outbox";
 import type { InboundStatusEvent, OutboundTransport } from "./transport";
+
+const log = createLogger("reporting");
 
 /**
  * One pass over every durable queue: provider statuses, conversation turns, background jobs and
@@ -75,7 +78,17 @@ async function runJobs(deps: ReportingWorkerDeps, limit: number): Promise<number
   return ran;
 }
 
+/** An unreachable indexer must not stop the queues: turns keep using the last garden list. */
+async function refreshGardens(core: ReportingWorkerDeps["core"]): Promise<void> {
+  try {
+    await core.gardens.refresh(core.clock.now());
+  } catch (err) {
+    log.warn({ err }, "Could not refresh the garden list; keeping the last one");
+  }
+}
+
 export async function tick(deps: ReportingWorkerDeps): Promise<TickSummary> {
+  await refreshGardens(deps.core);
   const statuses = applyPendingStatuses(deps);
   let turns = 0;
   for (const conversationId of conversationsWithWork(deps.core)) {

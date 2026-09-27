@@ -33,7 +33,6 @@ export function startReporting(input: {
   trustedProxy?: TrustedProxyConfig;
 }): ReportingRuntime | null {
   const loaded = loadReportingConfig(input.env, {
-    chainId: input.chainId,
     isProduction: input.isProduction,
     dataDir: input.dataDir,
   });

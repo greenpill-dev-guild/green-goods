@@ -9,7 +9,7 @@ import type { TurnWriter } from "./writer";
  */
 export function askEditMenu(writer: TurnWriter, draft: DraftRecord): void {
   const labels: Array<[string, string]> = [];
-  if (writer.core.settings.gardens.length > 1) labels.push(["garden", writer.text("edit.garden")]);
+  if (writer.core.gardens.list().length > 1) labels.push(["garden", writer.text("edit.garden")]);
   labels.push(
     ["action", writer.text("edit.action")],
     ["title", writer.text("edit.title")],

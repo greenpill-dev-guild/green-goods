@@ -9,6 +9,7 @@ import { createModelInterpreter } from "../services/reporting/interpretation";
 import type { JobKind } from "../services/reporting/jobs";
 import { createLiveReportingCatalog } from "../services/reporting/live-catalog";
 import { createLiveReportingChain } from "../services/reporting/live-chain";
+import { createLiveGardenDirectory } from "../services/reporting/live-gardens";
 import { extractWithOpenAI } from "../services/reporting/model-extraction";
 import { routeWithJev } from "../services/reporting/model-routing";
 import type { ReportingCore } from "../services/reporting/runtime";
@@ -18,8 +19,8 @@ import type { JobHandler } from "../services/reporting/worker";
 import { createReportingRuntime, type ReportingRuntime } from "./reporting";
 
 /**
- * Production adapters for the reporting core: Arbitrum reads through the Agent RPC, the indexer
- * and published Action instructions, the configured model providers, Pinata for consented public
+ * Production adapters for the reporting core: Arbitrum reads through the Agent RPC, the indexer's
+ * gardens and Actions with each Action's published instructions, the configured model providers, Pinata for consented public
  * evidence and the existing EOA/ERC-1271/ERC-6492 proof verifier. The transport is the caller's:
  * a messaging adapter in production, the loopback driver in development.
  */
@@ -37,12 +38,13 @@ export function createLiveReportingRuntime(input: {
 }): ReportingRuntime {
   const { config } = input;
   const chain = createLiveReportingChain({ chain: input.chain, rpcUrl: input.rpcUrl });
+  const indexerUrl = getIndexerUrl(
+    { VITE_ENVIO_INDEXER_URL: process.env.VITE_ENVIO_INDEXER_URL },
+    false
+  );
   const catalog = createLiveReportingCatalog({
     chain,
-    indexerUrl: getIndexerUrl(
-      { VITE_ENVIO_INDEXER_URL: process.env.VITE_ENVIO_INDEXER_URL },
-      false
-    ),
+    indexerUrl,
     registryAddress: getNetworkContracts(input.chainId).actionRegistry as `0x${string}`,
     fetchInstructions: (cid) => getJsonByHash(cid, { timeoutMs: 5_000 }),
   });
@@ -58,6 +60,7 @@ export function createLiveReportingRuntime(input: {
     config,
     chainId: input.chainId,
     chain,
+    gardens: createLiveGardenDirectory({ indexerUrl, chainId: input.chainId }),
     catalog,
     interpreter,
     uploader: createPinataEvidenceUploader({

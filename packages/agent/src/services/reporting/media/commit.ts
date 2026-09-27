@@ -14,6 +14,7 @@ import { inTransaction } from "../database";
 import { DraftContentUnavailableError, loadDraft } from "../drafts";
 import { participantWriter } from "../notify";
 import { activeAccount } from "../participants";
+import { findGarden } from "../gardens";
 import type { ReportingCore } from "../runtime";
 import type { JobOutcome } from "../worker";
 import type { MediaExtraction, MediaSource } from "./extract";
@@ -79,13 +80,10 @@ export async function applyProcessedAsset(
   result: ProcessingResult
 ): Promise<JobOutcome> {
   const garden = safeDraft(core, asset.draftId)?.content.garden;
-  const configured =
-    core.settings.gardens.find(
-      (candidate) => candidate.address.toLowerCase() === garden?.address.toLowerCase()
-    ) ?? null;
+  const listed = findGarden(core.gardens, garden?.address);
   const catalog: CatalogView = {
-    garden: configured,
-    result: configured ? await catalogFor(configured) : null,
+    garden: listed,
+    result: listed ? await catalogFor(listed) : null,
   };
   try {
     return inTransaction(core.db, () => commitInTransaction(core, asset, result, catalog));

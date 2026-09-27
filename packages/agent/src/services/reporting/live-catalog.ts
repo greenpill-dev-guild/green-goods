@@ -8,7 +8,7 @@ import { Domain, type WorkInput } from "@green-goods/shared/types/domain";
 import * as z from "zod";
 import type { CatalogResult, ReportingCatalog } from "./catalog";
 import type { ReportingChain } from "./chain";
-import type { EnabledGarden } from "./runtime";
+import type { ReportingGarden } from "./gardens";
 
 /**
  * The live Action catalog: Action rows from the Green Goods indexer and each Action's published
@@ -142,7 +142,7 @@ export function createLiveReportingCatalog(options: LiveCatalogOptions): Reporti
   }
 
   return {
-    async eligibleActions(garden: EnabledGarden, nowMs: number): Promise<CatalogResult> {
+    async eligibleActions(garden: ReportingGarden, nowMs: number): Promise<CatalogResult> {
       const cached = cache.get(garden.address);
       const fresh =
         cached && cached.expiresAt > nowMs

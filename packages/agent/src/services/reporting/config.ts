@@ -1,5 +1,4 @@
 import { join } from "node:path";
-import type { EnabledGarden } from "./runtime";
 
 /**
  * Agent reporting configuration, read from the root `.env`. `AGENT_REPORTING_TRANSPORT` names the
@@ -14,7 +13,6 @@ export interface ReportingConfig {
   /** `version:base64key` pairs, current first; see `createReportingKeyring`. */
   keys: string;
   browserOrigin: string;
-  gardens: EnabledGarden[];
   interpretation:
     | { provider: "none" }
     | { provider: "jev"; apiKey: string; baseUrl: string; model: string };
@@ -48,35 +46,9 @@ const WORKER_INTERVAL_MS = 2_000;
 
 export class ReportingConfigError extends Error {}
 
-const GARDEN_PATTERN = /^([a-z0-9-]{1,32})\|(0x[0-9a-fA-F]{40})\|(.{1,64})$/;
-
 function text(value: string | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
-}
-
-/** `key|0xaddress|Label` entries separated by `;`, all on the Agent's single default chain. */
-function parseReportingGardens(raw: string, chainId: number): EnabledGarden[] {
-  const gardens = raw
-    .split(";")
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-    .map((entry) => {
-      const match = GARDEN_PATTERN.exec(entry);
-      if (!match) throw new ReportingConfigError(`Invalid AGENT_REPORTING_GARDENS entry: ${entry}`);
-      const [, key, address, label] = match as unknown as [string, string, string, string];
-      return {
-        key,
-        chainId,
-        address: address.toLowerCase() as `0x${string}`,
-        label: label.trim(),
-      };
-    });
-  const keys = new Set(gardens.map((garden) => garden.key));
-  if (gardens.length === 0 || keys.size !== gardens.length) {
-    throw new ReportingConfigError("AGENT_REPORTING_GARDENS needs distinct garden keys");
-  }
-  return gardens;
 }
 
 /**
@@ -86,7 +58,7 @@ function parseReportingGardens(raw: string, chainId: number): EnabledGarden[] {
  */
 export function loadReportingConfig(
   env: Record<string, string | undefined>,
-  base: { chainId: number; isProduction: boolean; dataDir: string },
+  base: { isProduction: boolean; dataDir: string },
   models: ReportingModels = PINNED_MODELS
 ): { transport: string; config: ReportingConfig } | null {
   const transport = text(env.AGENT_REPORTING_TRANSPORT);
@@ -99,7 +71,6 @@ export function loadReportingConfig(
   };
   const keys = need("AGENT_REPORTING_KEYS");
   const browserOrigin = need("AGENT_REPORTING_BROWSER_ORIGIN");
-  const gardensRaw = need("AGENT_REPORTING_GARDENS");
   if (missing.length > 0) {
     throw new ReportingConfigError(`Agent reporting is enabled but ${missing.join(", ")} missing`);
   }
@@ -129,7 +100,6 @@ export function loadReportingConfig(
       mediaDir: join(base.dataDir, "reporting-media"),
       keys,
       browserOrigin,
-      gardens: parseReportingGardens(gardensRaw, base.chainId),
       interpretation:
         jevKey && models.jev
           ? { provider: "jev", apiKey: jevKey, baseUrl: JEV_BASE_URL, model: models.jev }
