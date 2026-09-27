@@ -21,10 +21,8 @@ import {
   type ReviewJobDeps,
   resolveReviewAuthority,
 } from "../../../services/reporting/review-jobs";
-import * as z from "zod";
 import { ensureControls, type ControlName } from "../../../services/reporting/controls";
 import { openReportingDatabase } from "../../../services/reporting/database";
-import { acceptInboundEvent } from "../../../services/reporting/inbox";
 import { createReportingKeyring } from "../../../services/reporting/keyring";
 import {
   DEFAULT_REPORTING_SETTINGS,
@@ -53,58 +51,8 @@ import {
 } from "./fixtures";
 import { FixtureUploader } from "./browser";
 import { FakeChain } from "./fake-chain";
+import { mountSyntheticIngress } from "./synthetic";
 import { FakeDocumentTools, FixtureMediaFetcher } from "./media";
-
-/** Synthetic ingress exists only in test and dev-driver composition, never in `createServer`. */
-const SYNTHETIC_REALM = /^(synthetic|telegram-fixture|whatsapp-fixture):[a-z0-9-]+$/;
-
-const EventSchema = z.discriminatedUnion("kind", [
-  z.object({
-    kind: z.literal("message"),
-    providerRealm: z.string().regex(SYNTHETIC_REALM),
-    eventId: z.string().min(1).max(128),
-    providerMessageId: z.string().min(1).max(128),
-    chat: z.object({
-      externalChatId: z.string().min(1),
-      threadId: z.string().optional(),
-      kind: z.enum(["direct", "group"]),
-    }),
-    sender: z.object({ externalSubjectId: z.string().min(1) }),
-    sentAt: z.number().int(),
-    text: z.string().max(4_000).optional(),
-    replyId: z.string().max(200).optional(),
-    media: z
-      .array(
-        z.object({
-          providerMediaId: z.string(),
-          declaredMime: z.string().optional(),
-          declaredName: z.string().optional(),
-          declaredSize: z.number().optional(),
-        })
-      )
-      .max(10)
-      .optional(),
-    locale: z.string().max(10).optional(),
-  }),
-  z.object({
-    kind: z.literal("delivery_status"),
-    providerRealm: z.string().regex(SYNTHETIC_REALM),
-    eventId: z.string().min(1).max(128),
-    providerMessageId: z.string().min(1),
-    status: z.enum(["sent", "delivered", "read", "failed"]),
-    errorCode: z.string().optional(),
-    occurredAt: z.number().int(),
-  }),
-]);
-
-export function mountSyntheticIngress(app: Hono, core: () => ReportingCore): void {
-  app.post("/__synthetic/events", async (c) => {
-    const parsed = EventSchema.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) return c.json({ error: "invalid_event" }, 400);
-    const result = acceptInboundEvent(core(), parsed.data as NormalizedInboundEvent);
-    return c.json(result, result.status === "accepted" ? 202 : 200);
-  });
-}
 
 export interface Person {
   realm: string;
