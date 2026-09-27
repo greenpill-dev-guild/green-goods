@@ -57,6 +57,16 @@ export const COMMITMENT_NOTE_MAX_LENGTH = 280;
 export const COMMITMENT_UNIT_LABEL_MAX_LENGTH = 24;
 
 /**
+ * The suggestions both composers offer beside their free fields: the units a
+ * service is usually counted in, common counts, common hour totals for garden
+ * work, and common spans in days. A chip stores the words it shows.
+ */
+export const COMMITMENT_UNIT_CHOICES = ["hours", "sessions", "rides", "meals", "repairs"] as const;
+export const COMMITMENT_COUNT_CHOICES = [1, 2, 3, 4, 6] as const;
+export const COMMITMENT_HOUR_CHOICES = [1, 2, 4, 6, 12] as const;
+export const COMMITMENT_DAY_CHOICES = [7, 14, 30] as const;
+
+/**
  * Metadata written before the limits could hold a 120-character title and a
  * 2,000-character note. Readers keep that tolerance, so an older commitment
  * still reads in full.

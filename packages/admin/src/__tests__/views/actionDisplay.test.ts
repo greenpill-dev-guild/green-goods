@@ -4,7 +4,7 @@ import ptMessages from "@green-goods/shared/i18n/pt.json";
 import type { IntlShape } from "react-intl";
 import { describe, expect, it } from "vitest";
 import actionsConfig from "../../../../contracts/config/actions.json";
-import { localizeActionForDisplay } from "@/views/Hub/actionDisplay";
+import { localizeActionForDisplay, localizeWorkActivityTitle } from "@/views/Hub/actionDisplay";
 
 function createIntl(locale: "es" | "pt", messages: Record<string, string>) {
   const formatMessage = ((descriptor: { id: string; defaultMessage?: string }) =>
@@ -69,5 +69,24 @@ describe("actionDisplay", () => {
 
     expect(display.title).toBe("Prontidão solar da comunidade");
     expect(display.description).toBe("Descrição revisada pela comunidade.");
+  });
+});
+
+describe("Work activity identity", () => {
+  it("distinguishes built-in, custom, and unresolved actions sharing a title", () => {
+    const canonical = canonicalActions.find((action) => action.slug === "agro.harvest_yield")!;
+    const custom = { ...canonical, slug: "custom.harvest", inputs: [] };
+    const intl = createIntl("pt", ptMessages);
+    expect(localizeWorkActivityTitle(canonical.title, canonical, intl)).toBe(
+      "Registro de colheita"
+    );
+    expect(localizeWorkActivityTitle(canonical.title, custom, intl)).toBe(canonical.title);
+    expect(localizeWorkActivityTitle(canonical.title, undefined, intl)).toBe(canonical.title);
+    expect(localizeWorkActivityTitle("Our own report", canonical, intl)).toBe("Our own report");
+    const reviewed: Action = {
+      ...custom,
+      translations: { pt: { status: "reviewed", data: { title: "Nossa colheita" } } },
+    };
+    expect(localizeWorkActivityTitle(canonical.title, reviewed, intl)).toBe("Nossa colheita");
   });
 });

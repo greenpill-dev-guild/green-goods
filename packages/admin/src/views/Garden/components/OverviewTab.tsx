@@ -1,3 +1,5 @@
+import { useActionsByUID } from "@green-goods/shared/hooks/action/useAction";
+import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { AdminWorkspaceSectionTab } from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
 import {
@@ -18,7 +20,7 @@ import { Link } from "react-router-dom";
 
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
-import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
+import { localizeWorkActivityTitle } from "@/views/Hub/actionDisplay";
 import { type GardenAlert, GardenAlertsCard } from "./GardenAlertsCard";
 import { formatReviewTime, SectionStateCard } from "./GardenDetailHelpers";
 import {
@@ -29,6 +31,7 @@ import {
 import { KarmaIntegrationPanel } from "./KarmaIntegrationPanel";
 
 export interface OverviewTabProps {
+  chainId?: number;
   mode: "health" | "activity";
   section: string | undefined;
   selectedItem: string | undefined;
@@ -62,6 +65,7 @@ export interface OverviewTabProps {
 }
 
 export function OverviewTab({
+  chainId,
   mode,
   section,
   selectedItem,
@@ -84,7 +88,8 @@ export function OverviewTab({
   treasuryBalance,
   karmaIntegration,
 }: OverviewTabProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const formatActivityTime = useLocalizedRelativeTime();
   const formatEventTime = useLocalizedEventTime();
   // Below 768px the rail stacks after the main column, so on phones the alerts
@@ -94,9 +99,19 @@ export function OverviewTab({
   const isHealthMode = mode === "health";
   const isActivityMode = mode === "activity";
   const activityEventLimit = isActivityMode ? Number.POSITIVE_INFINITY : 8;
+  const actions = useActionsByUID(
+    filteredActivityEvents
+      .slice(0, activityEventLimit)
+      .flatMap((event) => (event.actionUID === undefined ? [] : [event.actionUID])),
+    chainId
+  );
   const formatActivityTitle = (event: GardenActivityEvent) =>
     event.category === "work"
-      ? localizeCanonicalActionTitle(event.title, formatMessage)
+      ? localizeWorkActivityTitle(
+          event.title,
+          findActionByUID(actions, event.actionUID ?? null),
+          intl
+        )
       : event.title;
 
   if (isLoading) {

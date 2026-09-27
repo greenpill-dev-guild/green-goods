@@ -11,6 +11,12 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { OverviewTab } from "./OverviewTab";
 
+vi.mock("@green-goods/shared/hooks/action/useAction", () => ({
+  useActionsByUID: () => [
+    { id: "42161-7", slug: "agro.harvest_yield", title: "Harvest & Yield Record", inputs: [] },
+  ],
+}));
+
 const karmaIntegration = {
   status: {
     status: "synced",
@@ -116,6 +122,7 @@ describe("OverviewTab", () => {
       {
         id: "work-harvest",
         category: "work",
+        actionUID: 7,
         title: "Harvest & Yield Record - 2026-07-08T12:34:00.000Z",
         description: "Aprovado · 8 de jul. de 2026",
         timestamp: Date.now() - 31 * DAY_MS,

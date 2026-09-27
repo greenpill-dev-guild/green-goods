@@ -30,6 +30,7 @@ function seeded(description: string) {
         assessmentCount: 0,
         totalFieldNotes: 0,
         partialData: false,
+        unlisted: false,
         unavailableSources: { works: false, assessments: false },
       },
     ],

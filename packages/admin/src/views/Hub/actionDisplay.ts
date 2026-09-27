@@ -182,3 +182,13 @@ export function localizeActionForDisplay(
 
   return { ...localized, title, description };
 }
+
+/** Only translate a generated Work title after resolving its action identity. */
+export function localizeWorkActivityTitle(
+  title: string,
+  action: Action | null | undefined,
+  intl: Pick<IntlShape, "formatMessage" | "locale">
+): string {
+  if (!action || !matchesCanonicalTitle(title, action.title)) return title;
+  return localizeActionForDisplay(action, intl).title + title.slice(action.title.length);
+}

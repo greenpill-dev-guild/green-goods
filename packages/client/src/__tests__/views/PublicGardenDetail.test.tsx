@@ -16,7 +16,7 @@
  * @vitest-environment jsdom
  */
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import pt from "@green-goods/shared/i18n/pt";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -188,6 +188,7 @@ const messages: Record<string, string> = {
   "public.gardenDetail.description.showLess": "Show less",
   "public.gardenDetail.place.empty": "Garden narrative will appear here.",
   "public.gardenDetail.support": "Support This Garden",
+  "public.gardenDetail.unlisted": "This Garden is not in the public lists.",
   "public.gardenDetail.evidence.cta": "View Public Evidence",
   "public.gardenDetail.stats.entries": "Entries",
   "public.gardenDetail.stats.handsAtWork": "Hands at work",
@@ -241,6 +242,7 @@ function detailResult(
     works: boolean;
     assessments: boolean;
     isLoading: boolean;
+    unlisted: boolean;
   }> = {}
 ) {
   const fieldNotes = overrides.fieldNotes ?? [makeNote(0), makeNote(1)];
@@ -263,6 +265,7 @@ function detailResult(
         works: Boolean(overrides.works),
         assessments: Boolean(overrides.assessments),
       },
+      unlisted: Boolean(overrides.unlisted),
     },
     isLoading: Boolean(overrides.isLoading),
   };
@@ -294,7 +297,12 @@ describe("GardenDetail", () => {
     mockUsePublicGardenDetail.mockReturnValue(detailResult());
     mockUseHypercerts.mockReturnValue({ hypercerts: [], isLoading: false });
     mockUseAction.mockReturnValue({
-      data: { inputs: [], instructions: "ipfs://action-fixture" },
+      data: {
+        inputs: [
+          { key: "seedlingsPlanted", title: "Seedlings planted", type: "number", options: [] },
+        ],
+        instructions: "ipfs://action-fixture",
+      },
       refetch: vi.fn(),
     });
     // Pre-launch: no pool registered for this Garden.
@@ -323,6 +331,32 @@ describe("GardenDetail", () => {
   it("renders the Garden name as the editorial h1", () => {
     renderView();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Solar Community Garden");
+    // A listed Garden says nothing about lists, and crawlers may index it.
+    expect(screen.queryByText("This Garden is not in the public lists.")).toBeNull();
+    expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
+  });
+
+  it("offers no Support link until it knows the Garden is listed", () => {
+    // Opened by its own link on a slow connection: the archive has no card for it yet.
+    mockUsePublicGardens.mockReturnValue({ data: [], isLoading: false });
+    mockUsePublicGardenDetail.mockReturnValue({ data: undefined, isLoading: true });
+    renderView();
+    expect(screen.queryByRole("link", { name: "Support This Garden" })).toBeNull();
+  });
+
+  it("says an unlisted Garden is not in the public lists, and keeps crawlers off it", async () => {
+    mockUsePublicGardenDetail.mockReturnValue(detailResult({ unlisted: true }));
+    renderView();
+
+    expect(screen.getByText("This Garden is not in the public lists.")).toBeInTheDocument();
+    // The funding list leaves it out, so the page offers no way into it.
+    expect(screen.queryByRole("link", { name: "Support This Garden" })).toBeNull();
+    await waitFor(() => {
+      expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+        "content",
+        "noindex"
+      );
+    });
   });
 
   it("resolves the Garden by slug", () => {
@@ -463,7 +497,7 @@ describe("GardenDetail", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
     expect(mockUseWorkMetadata).toHaveBeenCalledWith(makeNote(0).metadata);
-    expect(mockUseAction).toHaveBeenCalledWith(1, 42161);
+    expect(mockUseAction).toHaveBeenCalledWith(1, 42161, makeNote(0).id);
   });
 
   it("uses the exact action’s Portuguese labels even when it is outside the recent catalog", () => {
@@ -496,18 +530,17 @@ describe("GardenDetail", () => {
     });
     const note = makeNote(0);
     note.metadata = JSON.stringify({
-      details: { seedlingsPlanted: 12, soilType: "clay", customMetric: 3 },
+      details: { seedlingsPlanted: 12, soilType: "clay" },
     });
     mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [note] }));
     renderView("/gardens/solar-community-garden", "pt");
 
     fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
-    expect(mockUseAction).toHaveBeenCalledWith(note.actionUID, 42161);
+    expect(mockUseAction).toHaveBeenCalledWith(note.actionUID, 42161, note.id);
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("Mudas registradas")).toBeInTheDocument();
     expect(within(dialog).getByText("Solo observado")).toBeInTheDocument();
     expect(within(dialog).getByText("Argila")).toBeInTheDocument();
-    expect(within(dialog).getByText("Custom Metric")).toBeInTheDocument();
     expect(within(dialog).queryByText("Seedlings Planted")).not.toBeInTheDocument();
     expect(within(dialog).queryByText("clay")).not.toBeInTheDocument();
   });
@@ -578,7 +611,7 @@ describe("GardenDetail", () => {
     expect(within(dialog).queryByText(/\{\"category\"/)).not.toBeInTheDocument();
   });
 
-  it("localizes legacy detail keys absent from the resolved action", () => {
+  it("withholds detail keys absent from the historical action", () => {
     const note = makeNote(0);
     note.metadata = JSON.stringify({ details: { seedlingsPlanted: 12, soilType: "clay" } });
     mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [note] }));
@@ -586,8 +619,10 @@ describe("GardenDetail", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Mudas plantadas")).toBeInTheDocument();
-    expect(within(dialog).getByText("Tipo de solo")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(pt["public.gardenDetail.notes.detailsUnavailable"])
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText("clay")).not.toBeInTheDocument();
   });
 
   it.each([
@@ -595,6 +630,30 @@ describe("GardenDetail", () => {
     ["failed", { data: undefined, isError: true }],
     ["missing", { data: null }],
     ["missing instructions", { data: { inputs: [] } }],
+    [
+      "missing reviewed translation",
+      {
+        data: {
+          instructions: "ipfs://action-fixture",
+          inputs: [{ key: "soilType", title: "Soil", options: ["clay"] }],
+        },
+      },
+    ],
+    [
+      "missing option translation",
+      {
+        data: {
+          instructions: "ipfs://action-fixture",
+          inputs: [{ key: "soilType", title: "Soil", options: ["clay"] }],
+          translations: {
+            pt: {
+              status: "reviewed",
+              data: { uiConfig: { details: { inputs: [{ key: "soilType", title: "Solo" }] } } },
+            },
+          },
+        },
+      },
+    ],
     [
       "instruction fallback",
       { data: { inputs: [], instructions: "ipfs://action-fixture", instructionsFallback: true } },

@@ -152,21 +152,61 @@ export interface StepValidity {
 
 /** Whether a step holds enough to move on. The last step always does. */
 export function isStepValid(id: StepId, input: StepValidity): boolean {
+  return stepBlockedReason(id, input) === null;
+}
+
+/** What a step still needs, as a message, or null when it may move on. */
+export interface StepBlockedReason {
+  id: string;
+  defaultMessage: string;
+  values?: Record<string, number>;
+}
+
+/** The first thing a step still needs, in the order its fields appear. */
+export function stepBlockedReason(id: StepId, input: StepValidity): StepBlockedReason | null {
   switch (id) {
     case "how":
+      if (input.purpose.trim().length === 0)
+        return {
+          id: "cockpit.garden.pool.setup.blocked.purpose",
+          defaultMessage: "Say what this pool is for.",
+        };
       // An agreement written before the limit can load longer than it, and
       // setup pins it again, so it has to fit before the flow moves on.
-      return (
-        input.purpose.trim().length > 0 &&
-        input.purpose.length <= POOL_PURPOSE_MAX_LENGTH &&
-        input.capValue !== null &&
-        input.capValue > 0n
-      );
+      if (input.purpose.length > POOL_PURPOSE_MAX_LENGTH)
+        return {
+          id: "cockpit.garden.pool.setup.blocked.purposeTooLong",
+          defaultMessage: "Shorten the agreement to {max, number} characters or fewer.",
+          values: { max: POOL_PURPOSE_MAX_LENGTH },
+        };
+      if (input.capValue === null || input.capValue <= 0n)
+        return {
+          id: "cockpit.garden.pool.setup.blocked.cap",
+          defaultMessage: "Say how many commitments one person can hold at once.",
+        };
+      return null;
     case "cycle":
-      return input.name.trim().length > 0 && input.datesValid && !input.secondSeasonBlocked;
+      if (input.name.trim().length === 0)
+        return { id: "cockpit.garden.pool.setup.blocked.name", defaultMessage: "Give it a name." };
+      if (!input.datesValid)
+        return {
+          id: "cockpit.garden.pool.setup.blocked.dates",
+          defaultMessage: "Choose an end date after the start.",
+        };
+      if (input.secondSeasonBlocked)
+        return {
+          id: "cockpit.garden.pool.setup.blocked.secondSeason",
+          defaultMessage: "A season is already running here, so open a campaign instead.",
+        };
+      return null;
     case "split":
-      return input.splitValid;
+      return input.splitValid
+        ? null
+        : {
+            id: "cockpit.garden.pool.setup.blocked.split",
+            defaultMessage: "Make each split add up to 100%.",
+          };
     case "open":
-      return true;
+      return null;
   }
 }

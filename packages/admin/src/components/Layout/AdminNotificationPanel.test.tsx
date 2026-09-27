@@ -5,16 +5,25 @@ import { renderWithProviders, screen } from "@/__tests__/test-utils";
 import pt from "@green-goods/shared/i18n/pt.json";
 import { AdminNotificationPanel } from "./AdminNotificationPanel";
 
+const mockActions = vi.hoisted(() => vi.fn());
+vi.mock("@green-goods/shared/hooks/action/useAction", () => ({ useActionsByUID: mockActions }));
 const GARDEN_ID = "0x1111111111111111111111111111111111111111";
 const mockPermissions = vi.hoisted(() => ({ showCommunity: true, isLoading: false }));
 const approvedWork = {
   id: "work-1",
   title: "Harvest & Yield Record - 2026-07-08T12:34:00.000Z",
+  actionUID: 7,
   status: "approved",
   createdAt: Date.now(),
 };
 const mockWorks = vi.hoisted(() => ({
-  works: [] as Array<{ id: string; title: string; status: string; createdAt: number }>,
+  works: [] as Array<{
+    id: string;
+    title: string;
+    status: string;
+    createdAt: number;
+    actionUID?: number;
+  }>,
   worksComplete: true,
   gardenReviewQueue: undefined as unknown,
 }));
@@ -71,6 +80,9 @@ function renderPanel() {
 
 describe("AdminNotificationPanel", () => {
   beforeEach(() => {
+    mockActions.mockReturnValue([
+      { id: "11155111-7", slug: "agro.harvest_yield", title: "Harvest & Yield Record", inputs: [] },
+    ]);
     mockPermissions.showCommunity = true;
     mockPermissions.isLoading = false;
     mockWorks.works = [approvedWork];
@@ -104,6 +116,7 @@ describe("AdminNotificationPanel", () => {
       </IntlProvider>
     );
 
+    expect(mockActions).toHaveBeenCalledWith([7], 11155111);
     expect(screen.getByText("Registro de colheita")).toBeInTheDocument();
     expect(screen.queryByText("Harvest & Yield Record")).not.toBeInTheDocument();
   });

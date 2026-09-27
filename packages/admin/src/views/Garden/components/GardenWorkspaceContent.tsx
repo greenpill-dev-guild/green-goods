@@ -49,6 +49,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
     <div className="mt-4 min-h-0 flex-1 space-y-4">
       {workspace.view === "health" || workspace.view === "activity" ? (
         <OverviewTab
+          chainId={workspace.garden.chainId}
           mode={workspace.view}
           section={workspace.section}
           selectedItem={workspace.selectedItem}

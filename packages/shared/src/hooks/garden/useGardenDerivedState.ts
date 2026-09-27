@@ -44,6 +44,7 @@ interface DerivedStateInput {
   garden: { id: string; domainMask?: number; name: string; chainId: number };
   works: Array<{
     id: string;
+    actionUID?: number;
     title?: string;
     status: string;
     createdAt: number;
@@ -290,6 +291,7 @@ export function useGardenDerivedState({
       timestamp: toMs(work.createdAt),
       href: adminRoutes.hubWorkDetail(work.id, { gardenId: gardenAddress }),
       itemId: work.id,
+      actionUID: work.actionUID,
     })),
     ...assessments.map((assessment) => ({
       id: `assessment-${assessment.id}`,

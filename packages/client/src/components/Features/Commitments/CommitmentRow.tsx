@@ -1,4 +1,5 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type InboxCommitment } from "@green-goods/shared/commitment-pooling";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { RiSeedlingLine } from "@remixicon/react";
@@ -18,6 +19,10 @@ export interface CommitmentRowProps {
 
 /**
  * One commitment, as a member sees it in their own list.
+ *
+ * A 3px edge on the inline start tells its direction at a glance: offers in the
+ * primary tone, requests in the information tone (DL-052). The chip still names
+ * the state, and the direction word stays where the chip does not say it.
  *
  * The title lives in off-chain metadata that nothing in the app resolves yet,
  * so the row leads with what the commitment actually is: its unit label and
@@ -48,8 +53,12 @@ export function CommitmentRow({ row, title, sendFailed, onOpen }: CommitmentRowP
       {...(onOpen
         ? { type: "button" as const, onClick: () => onOpen(commitment.commitmentId) }
         : {})}
-      className="flex w-full items-start gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-3 text-left"
+      className={cn(
+        "flex w-full items-start gap-3 rounded-[var(--radius-lg)] border border-s-[3px] border-stroke-soft-200 bg-bg-white-0 p-3 text-left",
+        commitment.direction === "REQUEST" ? "border-s-information-base" : "border-s-primary"
+      )}
       data-component="CommitmentRow"
+      data-direction={commitment.direction}
       data-needs-you={needsYou ? "true" : "false"}
     >
       <span
@@ -102,11 +111,11 @@ export function CommitmentRow({ row, title, sendFailed, onOpen }: CommitmentRowP
             {formatMessage({ id: state.labelId })}
           </StatusBadge>
           {sendFailed ? (
-            <span className="text-[10px] font-medium uppercase tracking-wide text-error-base">
+            <span className="text-xs font-medium text-error-base">
               {formatMessage({ id: "app.commitments.row.sendFailed" })}
             </span>
           ) : needsYou ? (
-            <span className="text-[10px] font-medium uppercase tracking-wide text-warning-base">
+            <span className="text-xs font-medium text-warning-base">
               {formatMessage({ id: "app.commitments.row.needsYou" })}
             </span>
           ) : null}

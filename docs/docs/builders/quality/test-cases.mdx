@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:1e57615943bd0d502f77614cadfce6686bb9714a40f0f64c9be7ba7ecbae733a"
+source_digest: "sha256:81651ffa4d8158e0fedc4caef00e2577d4944ba08d93d5795c8afa847d1cbd4c"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -163,7 +163,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PUB-035` | Transaction | Fund | Donate to a garden from /fund: asset pick, denomination toggle, approve and deposit | Recording of the donation and the success state |
 | `PUB-037` | Transaction | Vaults | Endow a campaign vault on /vaults through wrap, approve, and confirm | Recording of the checkout |
 
-### P1 (25) {#public-website-p1}
+### P1 (26) {#public-website-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -192,6 +192,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PUB-057` | Content & vocabulary | Gardens | Unit summaries on the public page use the commitments' own unit labels | Screenshot of the unit summaries |
 | `PUB-058` | Data integrity | Gardens | A cancelled cycle never appears on the public page | Screenshots of the open and finished cycles |
 | `PUB-059` | Resilience | Gardens | A cycle-name outage shows a notice, not broken cards | Screenshot of the notice with the cards |
+| `PUB-060` | Content & vocabulary | Gardens | An unlisted garden opens by its own link and says it is unlisted | Screenshots of the page with the line, of the robots tag in the page head, and of the archive and the Fund list without the garden |
 
 ### P2 (16) {#public-website-p2}
 

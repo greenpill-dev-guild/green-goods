@@ -127,11 +127,11 @@ export function useGardenCommitmentController(input: {
   );
   const hasPendingClaimRequest = ownRequest?.state === "PENDING";
   // Who may take this up. On a garden pool the chain gates a personal claim on
-  // a role in the route garden; on the protocol pool the claim goes through a
-  // garden of the reader's own, never the host, so any such garden counts.
-  // Until the pool record is read its type is unknown, and guessing "garden"
-  // would offer the host's members a personal claim the contract refuses
-  // (GardenClaimMustBeExternal), so eligibility stays unknown too.
+  // a role in the route garden. On the protocol pool the claim goes through a
+  // garden of the reader's own, the host included for a personal claim, so any
+  // such garden counts. Until the pool record is read its type is unknown, and
+  // both who may claim and whether a claim needs a context turn on it, so
+  // eligibility stays unknown too.
   const isProtocolPool = poolQuery.pool?.poolType === "PROTOCOL";
   const hasClaimGarden =
     roles.claimGardens.member.length > 0 || roles.claimGardens.stewarded.length > 0;

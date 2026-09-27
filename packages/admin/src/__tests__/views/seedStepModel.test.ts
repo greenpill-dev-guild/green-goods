@@ -14,9 +14,13 @@ import {
   buildSeedCycleOptions,
   buildSeedStepConfigs,
   CONFIRMER_ADDRESS_PATTERN,
+  railForRewardAnswer,
+  rewardAnswerOf,
+  seedBlockedReason,
   STEP_FIELDS,
   STEPS,
   seedErrorText,
+  stepFieldsFor,
   withConfirmer,
 } from "@/views/Garden/Pool/Seed/seedStepModel";
 
@@ -33,6 +37,38 @@ describe("seedStepModel", () => {
     expect(STEP_FIELDS.proof).toContain("confirmers");
     expect(STEP_FIELDS.review).toEqual([]);
     expect(buildSeedStepConfigs(formatMessage).map((step) => step.id)).toEqual(STEPS);
+  });
+
+  it("asks garden work for no unit, since it is counted in hours, and every other kind for one", () => {
+    expect(stepFieldsFor("howMuch", "GARDEN_WORK")).not.toContain("unitLabel");
+    expect(stepFieldsFor("howMuch", "GARDEN_WORK")).toContain("targetUnits");
+    expect(stepFieldsFor("howMuch", "SERVICE")).toContain("unitLabel");
+    expect(stepFieldsFor("howMuch", "SEASON_CAMPAIGN")).toContain("unitLabel");
+    expect(stepFieldsFor("proof", "GARDEN_WORK")).toEqual(STEP_FIELDS.proof);
+  });
+
+  it("names the first reason seeding is off", () => {
+    const open = { poolOpen: true, capacityOver: false, rewardUnknown: false };
+    expect(seedBlockedReason(open)).toBeNull();
+    expect(seedBlockedReason({ ...open, poolOpen: false, capacityOver: true })?.id).toBe(
+      "cockpit.garden.pool.seed.blocked.poolClosed"
+    );
+    expect(seedBlockedReason({ ...open, capacityOver: true })?.id).toBe(
+      "cockpit.garden.pool.seed.blocked.capacity"
+    );
+    expect(seedBlockedReason({ ...open, rewardUnknown: true })?.id).toBe(
+      "cockpit.garden.pool.seed.blocked.reward"
+    );
+  });
+
+  it("maps the reward question onto the rail choices", () => {
+    expect(rewardAnswerOf("NONE")).toBe("no");
+    expect(rewardAnswerOf("ARBITRUM_EXTERNAL")).toBe("yes");
+    expect(rewardAnswerOf("CELO_SETTLEMENT")).toBe("yes");
+    expect(railForRewardAnswer("no", "CELO_SETTLEMENT")).toBe("NONE");
+    // Yes keeps a rail already chosen, or starts on the one every garden can use.
+    expect(railForRewardAnswer("yes", "CELO_SETTLEMENT")).toBe("CELO_SETTLEMENT");
+    expect(railForRewardAnswer("yes", "NONE")).toBe("ARBITRUM_EXTERNAL");
   });
 
   it("accepts a real confirmer once and rejects malformed, zero, and duplicate addresses", () => {

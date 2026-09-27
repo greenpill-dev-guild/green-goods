@@ -763,11 +763,13 @@ describe("commitment acts record their sends", () => {
     const reconcile = vi.fn().mockResolvedValue("unresolved");
     // The chain's head goes with the intent: nothing this send did can predate it.
     const readChainHead = vi.fn().mockResolvedValue({ number: 100n, timestamp: 1_234 });
-    // So does the account's next nonce, the one its own transaction was due to use.
-    const readNextNonce = vi.fn().mockResolvedValue(5);
+    // The nonce comes off the transaction itself once it is out: the wallet
+    // may know sends this network does not, so a count read before the prompt
+    // is only a floor.
+    const readTransactionNonce = vi.fn().mockResolvedValue(7);
     const deps = {
       demoActive: () => false,
-      reads: { ...reads(), readChainHead, readNextNonce },
+      reads: { ...reads(), readChainHead, readTransactionNonce },
       store: jobStore,
       reconcile,
     };
@@ -781,9 +783,9 @@ describe("commitment acts record their sends", () => {
       transactionHash: HASH,
       intentChainTime: 1_234,
       intentBlock: 100n,
-      intentNonce: 5,
+      transactionNonce: { hash: HASH, nonce: 7 },
     });
-    expect(readNextNonce).toHaveBeenCalledWith(USER);
+    expect(readTransactionNonce).toHaveBeenCalledWith(HASH);
     expect(jobStore.updateJob).toHaveBeenCalledWith(claim);
     expect(isDiscardableJob(claim)).toBe(false);
 
@@ -1044,7 +1046,7 @@ describe("commitment acts record their sends", () => {
 
   it("offers a transaction on record again only once another took its nonce", async () => {
     // Long past the grace window, no receipt, and the chain holds no sign of the act.
-    const unanswered = (id: string, intentNonce?: number) => {
+    const unanswered = (id: string, nonce?: number, extra: Record<string, unknown> = {}) => {
       const act = takeUp(id);
       act.payload = {
         ...act.payload,
@@ -1053,19 +1055,23 @@ describe("commitment acts record their sends", () => {
           broadcastPendingAt: new Date(0).toISOString(),
           broadcast: { kind: "transaction", hash: HASH },
           transactionHash: HASH,
-          ...(intentNonce === undefined ? {} : { intentNonce }),
+          ...(nonce === undefined ? {} : { transactionNonce: { hash: HASH, nonce } }),
+          ...extra,
         },
       } as typeof act.payload;
       return act;
     };
     const sender = createMockTransactionSender({ authMode: "wallet" });
     const transactionSuperseded = vi.fn().mockResolvedValue(false);
+    // The network no longer holds the transaction, so its nonce cannot be read now.
+    const readTransactionNonce = vi.fn().mockResolvedValue(null);
     const deps = {
       demoActive: () => false,
       reads: {
         ...reads(),
         hasPendingTransaction: vi.fn().mockResolvedValue(false),
         transactionSuperseded,
+        readTransactionNonce,
       },
       store: store(),
       reconcile: vi.fn().mockResolvedValue("unresolved"),
@@ -1086,6 +1092,25 @@ describe("commitment acts record their sends", () => {
       transactionSuperseded.mockClear();
       await expect(settle(unanswered("claim-no-nonce"))).resolves.toEqual(waiting);
       expect(transactionSuperseded).not.toHaveBeenCalled();
+      // Nor can a count read before the prompt, or a nonce read off another hash:
+      // the transaction may use a later nonce the wallet knew and this network did not.
+      await expect(
+        settle(unanswered("claim-floor-only", undefined, { intentNonce: 5 }))
+      ).resolves.toEqual(waiting);
+      await expect(
+        settle(
+          unanswered("claim-other-hash", undefined, {
+            transactionNonce: { hash: `0x${"cd".repeat(32)}`, nonce: 5 },
+          })
+        )
+      ).resolves.toEqual(waiting);
+      expect(transactionSuperseded).not.toHaveBeenCalled();
+      // While the network holds it, the settle pass keeps the nonce it used.
+      readTransactionNonce.mockResolvedValueOnce(9);
+      const held = unanswered("claim-held");
+      await expect(settle(held)).resolves.toEqual(waiting);
+      expect(sendCheckpointOf(held)).toMatchObject({ transactionNonce: { hash: HASH, nonce: 9 } });
+      expect(transactionSuperseded).toHaveBeenCalledWith(HASH, USER, 9);
 
       transactionSuperseded.mockResolvedValue(true);
       const spent = unanswered("claim-nonce-spent", 5);
@@ -1337,7 +1362,7 @@ describe("commitment chain reads", () => {
       name: "TransactionNotFoundError",
     });
     const getTransaction = vi.fn(async () => {
-      if (state.held) return { hash: HASH };
+      if (state.held) return { hash: HASH, nonce: 5 };
       throw notFound;
     });
     const getBytecode = vi.fn(async () => state.code);
@@ -1353,7 +1378,11 @@ describe("commitment chain reads", () => {
     });
     const superseded = () => chainReads.transactionSuperseded?.(HASH, USER, 5);
 
-    await expect(chainReads.readNextNonce?.(USER)).resolves.toBe(7);
+    // The nonce a transaction used comes off the transaction while the network holds it.
+    state.held = true;
+    await expect(chainReads.readTransactionNonce?.(HASH)).resolves.toBe(5);
+    state.held = false;
+    await expect(chainReads.readTransactionNonce?.(HASH)).resolves.toBeNull();
     // The account has no code, so the hash is a transaction it signed, and the
     // network dropped it while its nonce went to another.
     await expect(superseded()).resolves.toBe(true);

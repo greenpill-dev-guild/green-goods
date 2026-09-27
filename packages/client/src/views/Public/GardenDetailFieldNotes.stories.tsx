@@ -81,7 +81,7 @@ const meta = {
   decorators: [
     withSeededQueryClient([
       [queryKeys.actions.byChain(CHAIN_ID), []],
-      [queryKeys.actions.detail(CHAIN_ID, note.actionUID), action],
+      [queryKeys.actions.atWork(CHAIN_ID, note.actionUID, note.id), action],
     ]),
   ],
   args: { notes: [note], total: 1, loading: false, unavailable: false, chainId: CHAIN_ID },
@@ -122,7 +122,7 @@ export const UnavailableInstructions: Story = {
   decorators: [
     withSeededQueryClient([
       [
-        queryKeys.actions.detail(CHAIN_ID, note.actionUID),
+        queryKeys.actions.atWork(CHAIN_ID, note.actionUID, note.id),
         { ...action, instructionsFallback: true },
       ],
     ]),
@@ -139,5 +139,29 @@ export const UnavailableInstructions: Story = {
     await expect(
       dialog.getByRole("button", { name: pt["public.gardenDetail.retry"] })
     ).toBeVisible();
+  },
+};
+
+export const IncompleteTranslation: Story = {
+  decorators: [
+    withSeededQueryClient([
+      [
+        queryKeys.actions.atWork(CHAIN_ID, note.actionUID, note.id),
+        {
+          ...action,
+          translations: { pt: { status: "reviewed", data: { title: "Triagem" } } },
+        },
+      ],
+    ]),
+  ],
+  render: Portuguese.render,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: /Waste sorting/ }));
+    const dialog = within(await within(canvasElement.ownerDocument.body).findByRole("dialog"));
+    await expect(
+      dialog.getByText(pt["public.gardenDetail.notes.detailsUnavailable"])
+    ).toBeVisible();
+    await expect(dialog.getByText("1h 30m")).toBeVisible();
+    await expect(dialog.queryByText(/Category: Plastic/)).not.toBeInTheDocument();
   },
 };

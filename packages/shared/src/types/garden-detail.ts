@@ -26,6 +26,7 @@ export interface GardenActivityEvent {
   timestamp: number;
   href?: string;
   itemId?: string;
+  actionUID?: number;
 }
 
 export interface RoleDirectoryEntry {

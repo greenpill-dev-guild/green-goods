@@ -90,7 +90,9 @@ export function writeSendCheckpoint(job: Job, send: SendCheckpoint | undefined):
     broadcastPendingAt: _pendingAt,
     intentBlock: _block,
     intentChainTime: _chainTime,
-    intentNonce: _nonce,
+    transactionNonce: _nonce,
+    // A floor an earlier build kept in place of the transaction's own nonce.
+    intentNonce: _legacyNonce,
     transactionHash: _hash,
     transactionReplaced: _replaced,
     ...rest

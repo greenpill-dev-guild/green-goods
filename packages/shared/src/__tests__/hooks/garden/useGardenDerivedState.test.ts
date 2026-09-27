@@ -55,6 +55,7 @@ describe("useGardenDerivedState", () => {
         works: works ?? [
           {
             id: "approved-work",
+            actionUID: 7,
             title: "Recent approved work",
             status: "approved",
             createdAt: now,
@@ -178,6 +179,9 @@ describe("useGardenDerivedState", () => {
     expect(
       result.current.activityEvents.find((event) => event.category === "work")?.href
     ).toBeTruthy();
+    expect(
+      result.current.activityEvents.find((event) => event.category === "work")?.actionUID
+    ).toBe(7);
 
     const permitted = renderDerivedState(communitySignals);
     expect(permitted.result.current.overviewAlerts.map((alert) => alert.key)).toEqual([

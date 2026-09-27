@@ -6,7 +6,7 @@ import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublic
 import { useWorkMetadata } from "@green-goods/shared/hooks/work/useWorkMetadata";
 import type { WorkInput, WorkMetadataV1 } from "@green-goods/shared/types/domain";
 import { useAction } from "@green-goods/shared/hooks/action/useAction";
-import { localizeAction } from "@green-goods/shared/utils/action/translations";
+import { getLocalizedWorkInputs } from "@green-goods/shared/utils/action/translations";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { useCallback, useMemo, useState } from "react";
@@ -166,10 +166,8 @@ export function FieldNoteDialog({
   const titleId = "public-garden-detail-note-title";
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const { metadata, status: metadataStatus, retryFetch } = useWorkMetadata(note.metadata);
-  const actionQuery = useAction(note.actionUID, chainId);
+  const actionQuery = useAction(note.actionUID, chainId, note.id);
   const action = actionQuery.data;
-  const actionReady = Boolean(action?.instructions && !action.instructionsFallback);
-  const inputs = action ? localizeAction(action, intl.locale).inputs : [];
   // The viewer ships English defaults for every string it renders or announces.
   // The public site is translated, so it gets the whole set, not just the two
   // that happen to be visible.
@@ -207,6 +205,8 @@ export function FieldNoteDialog({
     metadata?.details && typeof metadata.details === "object" && !Array.isArray(metadata.details)
       ? metadata.details
       : {};
+  const inputs = getLocalizedWorkInputs(action, details, intl.locale);
+  const actionReady = inputs !== null;
   const timeSpent = formatTimeSpent(metadata?.timeSpentMinutes);
   const needsAction = Object.keys(details).length > 0;
   const actionLoading =
@@ -223,7 +223,7 @@ export function FieldNoteDialog({
     });
   }
   for (const [key, value] of Object.entries(actionReady ? details : {})) {
-    const input = inputs.find((item) => item.key === key);
+    const input = inputs?.find((item) => item.key === key);
     const display = formatDetailValue(value, input, formatMessage);
     if (display) {
       metadataRows.push({

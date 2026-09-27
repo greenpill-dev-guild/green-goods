@@ -19,6 +19,8 @@ export const actionsKeys = {
   byChain: (chainId: number) => ["greengoods", "actions", chainId] as const,
   detail: (chainId: number, actionUID: number) =>
     ["greengoods", "actions", chainId, "detail", actionUID] as const,
+  atWork: (chainId: number, actionUID: number, workUID: string) =>
+    ["greengoods", "actions", chainId, "atWork", actionUID, workUID] as const,
 } as const;
 
 export const assessmentsKeys = {

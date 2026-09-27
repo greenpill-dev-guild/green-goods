@@ -1,3 +1,5 @@
+import { useActionsByUID } from "@green-goods/shared/hooks/action/useAction";
+import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
 import {
   NotificationPanel,
   type NotificationPanelItem,
@@ -16,10 +18,11 @@ import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
-import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
+import { localizeWorkActivityTitle } from "@/views/Hub/actionDisplay";
 
 export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const formatEventTime = useLocalizedEventTime();
   const navigate = useNavigate();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
@@ -75,6 +78,13 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
     openSection,
   });
 
+  const actions = useActionsByUID(
+    derived.activityEvents
+      .slice(0, 8)
+      .flatMap((event) => (event.actionUID === undefined ? [] : [event.actionUID])),
+    workspace.garden?.chainId ?? selectedGarden?.chainId
+  );
+
   const sections = useMemo<NotificationPanelSection[]>(() => {
     if (!workspace.garden) return [];
 
@@ -94,7 +104,11 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
           id: event.id,
           title:
             event.category === "work"
-              ? localizeCanonicalActionTitle(event.title, formatMessage)
+              ? localizeWorkActivityTitle(
+                  event.title,
+                  findActionByUID(actions, event.actionUID ?? null),
+                  intl
+                )
               : event.title,
           description: event.description,
           meta: formatEventTime(event.timestamp),
@@ -122,6 +136,8 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
       },
     ];
   }, [
+    actions,
+    intl,
     derived.activityEvents,
     derived.overviewAlerts,
     formatEventTime,

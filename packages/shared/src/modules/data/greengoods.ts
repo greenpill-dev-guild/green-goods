@@ -142,7 +142,7 @@ function normalizeInstructionConfig(
   };
 }
 
-function getActionInstructionFallback(slug: string): ActionInstructionConfig {
+export function getActionInstructionFallback(slug: string): ActionInstructionConfig {
   const template = instructionTemplates[slug] ?? defaultTemplate;
   return cloneInstructionConfig(template);
 }
@@ -173,17 +173,20 @@ function parseActionInstructionCandidate(
   };
 }
 
-async function parseInstructionMetadata(
+export async function parseInstructionMetadata(
   data: Blob | string,
-  fallbackConfig: ActionInstructionConfig
+  fallbackConfig: ActionInstructionConfig,
+  requireInputs = false
 ): Promise<ParsedActionInstructionMetadata> {
-  if (typeof data === "string") {
-    return parseActionInstructionCandidate(JSON.parse(data), fallbackConfig);
+  const text = typeof data === "string" ? data : data instanceof Blob ? await data.text() : null;
+  if (text !== null) {
+    const candidate = JSON.parse(text);
+    if (requireInputs && !Array.isArray(candidate?.uiConfig?.details?.inputs)) {
+      throw new Error("Action instructions have no recorded input definitions");
+    }
+    return parseActionInstructionCandidate(candidate, fallbackConfig);
   }
-  if (data instanceof Blob) {
-    const text = await data.text();
-    return parseActionInstructionCandidate(JSON.parse(text), fallbackConfig);
-  }
+  if (requireInputs) throw new Error("Action instructions are unavailable");
   return { config: cloneInstructionConfig(fallbackConfig) };
 }
 
