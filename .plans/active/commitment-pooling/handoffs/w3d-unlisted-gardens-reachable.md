@@ -68,11 +68,44 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path 
 Changing which gardens are on either tier, the archive and counters, and the pooling bands on the
 page.
 
+## Implementation notes (2026-09-27)
+
+- `garden-visibility.ts` gains `isGardenPubliclyReachable` (false for the hidden-everywhere tier and
+  for a garden never filled in) and `isGardenUnlisted` (the editorial tier).
+  `isGardenPubliclyVisible` is now reachable and not unlisted, so the archive, counters and lists
+  read exactly what they read before.
+- `usePublicGardenDetail` resolves against the reachable set and returns `unlisted`.
+- The garden page prints the line in the hero card's publication mark, at the foot of the card,
+  and sets `<meta name="robots" content="noindex">` through `react-helmet-async`, which renders
+  through React 19's head hoisting. The key is `public.gardenDetail.unlisted`, in the page's own
+  namespace rather than the sketched `public.garden.unlisted`, and the copy capitalises Garden as
+  the public pages do: "This Garden is not in the public lists."
+- The public work page reads the same hook, so a shared note from an unlisted garden now opens as
+  well; it carries the same noindex tag.
+- § 6.3's note now reads "reachable by its own link and not listed". PUB-060 is the catalog case
+  for the unlisted page, registered in the ID ledger and listed with the other public-page cases.
+
+## RED and GREEN evidence
+
+RED at `c17a03b46` with the new and changed tests: four failed as the gap predicts. The predicates
+did not exist; the detail hook returned no `unlisted` and resolved no editorial-hidden garden; the
+page printed no line and set no robots tag. The work page's noindex test failed the same way before
+its change. GREEN at `538b2d4e2`: the visibility and public hook suites (73 tests in 12 files) and
+the public garden, semantics, work and editorial page suites (64 tests in 4 files) pass.
+
 ## Unblock evidence
 
 RED and GREEN recorded; PR merged; A9, B7 and M8 walkable on staging; sub-lane `completed`;
-Linear child Done.
+Linear child Done. As of 2026-09-27, RED and GREEN are recorded above and the PR is open; the
+clean-room capture of the page and the archive is pending.
 
 ## Validation Receipt
 
-Pending.
+- Tested implementation commit SHA: `538b2d4e2` (on `fix/unlisted-gardens-reachable`)
+- Run at (UTC): `2026-09-27T08:38Z` to `2026-09-27T08:52:54Z`, on the same tree just before its commit
+- Exact command(s): `bun run --cwd packages/shared test --` over `src/__tests__/config/garden-visibility.test.ts` and `src/__tests__/hooks/public`; `bun run --cwd packages/client test --` over `PublicGardenDetail`, `PublicGardenDetailSemantics`, `PublicWorkDetail` and `commitment-editorial`; `bun --bun x vitest run --dir scripts/agents qa-app-build`; `node scripts/quality/check-qa-id-ledger.mjs`; `node scripts/docs/generate.mjs --check`; `bun run check --only ontology`; `bun run --cwd packages/shared typecheck -- --scope full`; `bun run --cwd packages/client typecheck` and `-- --scope tests`; `bun --bun run oxlint packages/client/src/views/Public packages/shared/src/config packages/shared/src/hooks/public --deny-warnings`; `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`
+- Result: 73 shared tests in 12 files and 64 client tests in 4 files passed; the catalog contract test passed 23; the ledger check found 421 ids with none removed, reintroduced or reactivated; generated docs, ontology, typechecks, oxlint and source structure passed. The local pre-push gate was skipped at the owner's direction; PR CI runs the full suites.
+- Validated paths: the non-plan paths `538b2d4e2` changes against `c17a03b46`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
+- Evidence-only diff command and result (if applicable): this handoff commit changes only plan files
+- Rendered proof: pending, a clean-room capture of one rehearsal garden's page by its own link and of the archive without it.
