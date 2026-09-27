@@ -681,11 +681,12 @@
       ],
       "steps": [
         "Open the garden's public page by its own link",
-        "Read the foot of the hero card",
-        "Open the Gardens archive and look for the garden"
+        "Read the foot of the hero card and the actions at the foot of the page",
+        "In the browser's developer tools, find the robots meta tag in the page head",
+        "Open the Gardens archive and the Fund page, and look for the garden in each"
       ],
-      "expected": "The page opens with the garden's record and one quiet line, This Garden is not in the public lists; the page asks search engines not to index it; the archive, counters and funding list still leave the garden out",
-      "evidence": "Screenshot of the page with the line, and of the archive without the garden",
+      "expected": "The page opens with the garden's record and one quiet line, This Garden is not in the public lists, and offers no Support This Garden link; the page head carries a robots meta tag with content noindex; the archive and the Fund page's list still leave the garden out",
+      "evidence": "Screenshots of the page with the line, of the robots tag in the page head, and of the archive and the Fund list without the garden",
       "role": "none",
       "tags": ["garden-records"],
       "requiresProduction": false,

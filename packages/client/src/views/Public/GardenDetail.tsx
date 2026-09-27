@@ -227,12 +227,15 @@ export default function GardenDetail() {
           <StewardsSection stewards={identity?.stewards ?? []} loading={detailLoading} />
 
           <div className="flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-10">
-            <EditorialPrimaryLink to={fundHref}>
-              {formatMessage({
-                id: "public.gardenDetail.support",
-                defaultMessage: "Support This Garden",
-              })}
-            </EditorialPrimaryLink>
+            {/* The funding list leaves an unlisted Garden out, so its link would find nothing. */}
+            {unlisted ? null : (
+              <EditorialPrimaryLink to={fundHref}>
+                {formatMessage({
+                  id: "public.gardenDetail.support",
+                  defaultMessage: "Support This Garden",
+                })}
+              </EditorialPrimaryLink>
+            )}
             <EditorialGhostLink to="/impact">
               {formatMessage({
                 id: "public.gardenDetail.evidence.cta",

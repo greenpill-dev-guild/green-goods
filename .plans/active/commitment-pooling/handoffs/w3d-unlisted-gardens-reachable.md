@@ -82,6 +82,11 @@ page.
   the public pages do: "This Garden is not in the public lists."
 - The public work page reads the same hook, so a shared note from an unlisted garden now opens as
   well; it carries the same noindex tag.
+- The page offers no Support This Garden link for an unlisted garden: the Fund page resolves its
+  `?garden=` against the listed set, so the link would find nothing. Funding an unlisted garden by
+  its own link would be a new product decision, not part of this lane.
+- The branch is cut from develop at `c17a03b46` before W3-B and W3-C merge, since it touches none
+  of their files; it takes develop again before it merges.
 - § 6.3's note now reads "reachable by its own link and not listed". PUB-060 is the catalog case
   for the unlisted page, registered in the ID ledger and listed with the other public-page cases.
 
@@ -95,9 +100,10 @@ the public garden, semantics, work and editorial page suites (64 tests in 4 file
 
 ## Unblock evidence
 
-RED and GREEN recorded; PR merged; A9, B7 and M8 walkable on staging; sub-lane `completed`;
-Linear child Done. As of 2026-09-27, RED and GREEN are recorded above and the PR is open; the
-clean-room capture of the page and the archive is pending.
+The lane closes when RED and GREEN are recorded, the PR merges, A9, B7 and M8 are walkable on
+staging, the sub-lane is `completed`, and the Linear child is Done. As of 2026-09-27, RED and GREEN
+are recorded above, PR #928 is open, and the sub-lane is `in_progress`; the clean-room capture of
+the page and the archive is pending.
 
 ## Validation Receipt
 

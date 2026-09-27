@@ -301,6 +301,8 @@ describe("GardenDetail", () => {
     renderView();
 
     expect(screen.getByText("This Garden is not in the public lists.")).toBeInTheDocument();
+    // The funding list leaves it out, so the page offers no way into it.
+    expect(screen.queryByRole("link", { name: "Support This Garden" })).toBeNull();
     await waitFor(() => {
       expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
         "content",
