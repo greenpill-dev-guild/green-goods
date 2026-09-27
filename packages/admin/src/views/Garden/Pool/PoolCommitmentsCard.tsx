@@ -17,7 +17,12 @@ import {
   type PoolCommitmentScope,
   selectPoolCommitmentRows,
 } from "./poolCommitmentRows";
-import { commitmentStateChip, directionLabel, formatUnixDate } from "./poolPresentation";
+import {
+  commitmentStateChip,
+  directionEdgeClass,
+  directionLabel,
+  formatUnixDate,
+} from "./poolPresentation";
 
 export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
 
@@ -196,7 +201,10 @@ export function PoolCommitmentsCard({
         {pendingCreates.length > 0 && scope === "open" && focus === null ? (
           <ul className="divide-y divide-stroke-soft" data-testid="pool-queued">
             {pendingCreates.map((row) => (
-              <li key={row.jobId} className="flex flex-wrap items-center gap-2 py-2">
+              <li
+                key={row.jobId}
+                className={`flex flex-wrap items-center gap-2 py-2 ps-3 ${directionEdgeClass(row.direction)}`}
+              >
                 <span className="truncate text-body-md text-text-strong" title={row.title ?? ""}>
                   {row.title ??
                     formatMessage({
@@ -328,7 +336,7 @@ export function PoolCommitmentsCard({
               return (
                 <li
                   key={commitment.id}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2"
+                  className={`flex flex-wrap items-center justify-between gap-2 py-2 ps-3 ${directionEdgeClass(commitment.direction)}`}
                   data-testid={`pool-commitment-${commitment.commitmentId.toString()}`}
                 >
                   <button

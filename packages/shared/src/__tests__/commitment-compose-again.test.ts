@@ -85,7 +85,9 @@ describe("composerValuesFromCommitment", () => {
       title: "Water the north beds",
       note: "Mornings, before the heat",
       links: ["https://example.org/beds"],
-      unitLabel: "sessions",
+      // Garden work is counted in hours, whatever unit the earlier record carried:
+      // neither composer shows a unit for it.
+      unitLabel: "hours",
       targetUnits: 4,
       claimMode: "APPROVAL_GATED",
       openTeam: false,
@@ -130,6 +132,7 @@ describe("composerValuesFromCommitment", () => {
     });
     expect(external).toMatchObject({
       kind: "SEASON_CAMPAIGN",
+      unitLabel: "sessions",
       claimMode: "APPROVAL_GATED",
       confirmers: [CONFIRMER_A, CONFIRMER_B],
       confirmationThreshold: 2,
@@ -207,6 +210,6 @@ describe("composerValuesFromCommitment", () => {
     });
 
     expect(values).not.toHaveProperty("title");
-    expect(values).toMatchObject({ kind: "GARDEN_WORK", unitLabel: "sessions", targetUnits: 4 });
+    expect(values).toMatchObject({ kind: "GARDEN_WORK", unitLabel: "hours", targetUnits: 4 });
   });
 });

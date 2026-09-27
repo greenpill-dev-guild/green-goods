@@ -297,6 +297,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
         >
           {/* Container */}
           <div
+            data-region="field-container"
             className={cn(
               // Shape: small-top only (top corners rounded, bottom flat). 8px
               // (--m3-shape-sm, the chip/sm tier) is a deliberate step up from the 4px
@@ -339,21 +340,23 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
                 <TrailingIcon className="h-full w-full" />
               </span>
             ) : null}
-          </div>
 
-          {/* Active indicator — a horizontal line below the container */}
-          <div
-            aria-hidden="true"
-            className={cn(
-              "w-full transition-all duration-[var(--spring-spatial-fast-duration)]",
-              hasError
-                ? "h-0.5 bg-[rgb(var(--m3-error))]"
-                : focused
-                  ? "h-0.5 bg-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
-                  : "h-px bg-[rgb(var(--m3-on-surface-variant))]",
-              disabled && "bg-[rgb(var(--m3-on-surface)/0.38)] h-px"
-            )}
-          />
+            {/* Active indicator: a line along the container's bottom edge, drawn
+                inside it so the field keeps its height when focus thickens it. */}
+            <div
+              aria-hidden="true"
+              data-region="active-indicator"
+              className={cn(
+                "pointer-events-none absolute inset-x-0 bottom-0 transition-all duration-[var(--spring-spatial-fast-duration)]",
+                hasError
+                  ? "h-0.5 bg-[rgb(var(--m3-error))]"
+                  : focused
+                    ? "h-0.5 bg-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
+                    : "h-px bg-[rgb(var(--m3-on-surface-variant))]",
+                disabled && "bg-[rgb(var(--m3-on-surface)/0.38)] h-px"
+              )}
+            />
+          </div>
 
           {supporting}
         </div>
