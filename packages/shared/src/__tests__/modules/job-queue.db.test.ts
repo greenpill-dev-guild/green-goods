@@ -139,6 +139,11 @@ describe("durable work admission", () => {
     await jobQueueDB.releaseExecutionClaim([id], "first");
     expect(await jobQueueDB.acquireExecutionClaim([id], "second")).toBe(true);
     await jobQueueDB.releaseExecutionClaim([id], "second");
+    // The claim is visible to a discard only while it is held.
+    expect(await jobQueueDB.acquireExecutionClaim([id], "third")).toBe(true);
+    expect(await jobQueueDB.hasActiveExecutionClaim(id)).toBe(true);
+    await jobQueueDB.releaseExecutionClaim([id], "third");
+    expect(await jobQueueDB.hasActiveExecutionClaim(id)).toBe(false);
   });
   it("keeps legacy hash mappings unresolved with durable evidence instead of inferring a completed account", async () => {
     const clientWorkId = crypto.randomUUID();

@@ -428,6 +428,13 @@ class JobQueueStore {
     });
   }
 
+  /** Whether a send holds this job's execution claim now; an expired claim does not count. */
+  async hasActiveExecutionClaim(id: string): Promise<boolean> {
+    const db = await this.init();
+    const claim = await db.execution_claims.get(id);
+    return Boolean(claim && claim.expiresAt > Date.now());
+  }
+
   async releaseExecutionClaim(ids: string[], token: string): Promise<void> {
     const db = await this.init();
     await db.transaction("rw", db.execution_claims, async () => {

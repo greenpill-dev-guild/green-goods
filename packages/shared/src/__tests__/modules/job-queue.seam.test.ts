@@ -233,6 +233,27 @@ describe("createJobQueue", () => {
   });
 });
 
+describe("discardJob and execution claims", () => {
+  it("refuses to discard a job while a send holds its execution claim", async () => {
+    // A tap, a background flush or another tab can be mid-send: deleting the
+    // record then would orphan a transaction that may still broadcast.
+    const claimed = vi.fn().mockResolvedValue(true);
+    const store = Object.assign(createInMemoryJobQueueStore(), {
+      hasActiveExecutionClaim: claimed,
+    });
+    const { queue } = setup({ store });
+    const id = await queue.addJob("work", {} as JobKindMap["work"], USER);
+
+    await expect(queue.discardJob(id)).resolves.toBe(false);
+    expect(claimed).toHaveBeenCalledWith(id);
+    expect(await queue.getPendingCount(USER)).toBe(1);
+
+    claimed.mockResolvedValue(false);
+    await expect(queue.discardJob(id)).resolves.toBe(true);
+    expect(await queue.getPendingCount(USER)).toBe(0);
+  });
+});
+
 describe("processJob", () => {
   it("skips missing, synced, offline, backoff, and senderless jobs", async () => {
     const clock = createFakeJobQueueClock(1_000);

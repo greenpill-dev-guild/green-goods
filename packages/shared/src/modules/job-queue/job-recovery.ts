@@ -49,7 +49,7 @@ export function isDiscardableJob(
  */
 export function createJobRecovery(
   store: Pick<JobQueueStore, "getJob" | "amendJob" | "deleteJob"> &
-    Partial<Pick<JobQueueStore, "getJobs" | "markJobTerminalFailed">>,
+    Partial<Pick<JobQueueStore, "getJobs" | "markJobTerminalFailed" | "hasActiveExecutionClaim">>,
   events: Pick<JobQueueEvents, "emit">
 ) {
   return {
@@ -91,6 +91,13 @@ export function createJobRecovery(
     async discardJob(jobId: string): Promise<boolean> {
       const job = await store.getJob(jobId);
       if (!job || !isDiscardableJob(job)) return false;
+      // A send in flight holds the job's execution claim until it settles,
+      // whoever started it: a tap, a background flush, or another tab.
+      // Deleting the record then would orphan a transaction that may still
+      // broadcast, so a claimed job is refused.
+      if (store.hasActiveExecutionClaim && (await store.hasActiveExecutionClaim(jobId))) {
+        return false;
+      }
       if (job.kind === "work" && store.getJobs && store.markJobTerminalFailed) {
         const dependents = await store.getJobs({
           userAddress: job.userAddress,
