@@ -31,14 +31,15 @@ real provider, wallet or chain. *State*: how the capability ships.
 
 | Capability | Implemented | Fixture-tested | Live-tested | State |
 | --- | --- | --- | --- | --- |
-| Story-first drafts, Action clarification, fixed fields, corrections, revisions, confirmation tokens | Yes | Yes | No | On with the intake switch |
+| Story-first drafts, Action clarification, fixed fields, corrections, revisions, confirmation tokens | Yes | Yes | No | Off until an operator turns on the `intake` control |
+| Every garden accepts reports: the Agent's chain's gardens from the indexer, without placeholders or gardens hidden everywhere, paged in chat | Yes | Yes (fixture indexer responses) | No | On |
 | Durable inbox, conversation leases with fencing, revision CAS, jobs, outbox, retries, restart recovery, operator controls | Yes | Yes | No | On |
-| Jev typed decisions and OpenAI Responses extraction with deterministic fallback questions | Yes | Yes (scripted responses) | No | Off until keys, a pinned model and the model-processing switch |
+| Jev typed decisions and OpenAI Responses extraction with deterministic fallback questions | Yes | Yes (scripted responses) | No | Off: no model is pinned in code yet; then a key and the `model_processing` control |
 | Photos: byte detection, sanitizing, metadata stripping, private originals | Yes | Yes (real Sharp) | No | On |
-| PDF and Word reading with page provenance | Yes | Yes (real Poppler for page counts; scripted extraction) | No | Off (`AGENT_REPORTING_DOCUMENTS_ENABLED`) |
-| Office-to-PDF conversion | Yes | Orchestration only (fake converter) | No | Off; LibreOffice is not in the image (decision needed) |
+| PDF and Word reading with page provenance | Yes | Yes (real Poppler for page counts; scripted extraction) | No | Off (`documents` control) |
+| Office-to-PDF conversion | Yes | Orchestration only (fake converter) | No | Unavailable: LibreOffice is not in the image, so Word files are read as native text (decision needed) |
 | XLSX and CSV with exact cells, visible-literal arithmetic and hidden-content flags | Yes | Yes (real ExcelJS) | No | On with model processing |
-| Voice notes: separate consent, ffmpeg normalization, OpenAI Audio transcription, transcript shown back | Yes | Yes (real ffmpeg; scripted transcription) | No | Off (`AGENT_REPORTING_VOICE_ENABLED`), needs a pinned transcription model |
+| Voice notes: separate consent, ffmpeg normalization, OpenAI Audio transcription, transcript shown back | Yes | Yes (real ffmpeg; scripted transcription) | No | Off (`voice` control); needs a transcription model pinned in code |
 | EOA account proof and pairing through chat | Yes | Yes (real EIP-191 signatures) | No | On |
 | Kernel account proof (ERC-1271 and counterfactual ERC-6492) | Yes | Fixture verifier | No | Needs RPC proof on Arbitrum |
 | Browser sessions, CSRF, exact Origin, no-store responses | Yes | Yes | No | On |
@@ -81,59 +82,56 @@ real receipts, removed roles on chain) need the live gates below.
 
 1. WhatsApp transport and provisioning (PR #3).
 2. Authenticated browser proof of wallet and passkey signing on the ceremony pages, in Brave.
-3. Real Arbitrum work and review attestations with matching receipts; Pinata uploads.
+3. Real Arbitrum work and review attestations with matching receipts, including a Kernel UserOperation
+   found by the bounded event scan within the RPC's log-range limits; Pinata uploads.
 4. Kernel ERC-1271 and ERC-6492 proof verification against Arbitrum RPC.
 5. Deployed Vercel proxy, cookie, Origin and header proof against the deployed Agent. Vercel's
    request logs record page paths, locator included; confirm their retention and access before live
    links go out.
-6. Pinned OpenAI and Jev models evaluated on consented or synthetic files, including voice.
-7. The Agent image built in CI with the pinned Poppler and ffmpeg; its size increase is not yet measured.
-8. Delegation: module compatibility, custody, measured gas caps, browser permission setup and
-   section 9.3 owner revocation with the Agent unavailable. Delegation stays disabled until all pass.
-9. Before tester intake: the support rehearsal, processor terms and the remaining retention schedule.
+6. OpenAI and Jev models evaluated on consented or synthetic files, including voice, then pinned in
+   code (`PINNED_MODELS` in `packages/agent/src/services/reporting/config.ts`).
+7. The indexer's garden list on Arbitrum (names, hidden gardens) and steward review, which reads
+   chain roles for every garden in turn.
+8. The Agent image built in CI with the pinned Poppler and ffmpeg; its size increase is not yet measured.
+9. Delegation: module compatibility, custody, measured gas caps, browser permission setup and
+   section 9.3 owner revocation with the Agent unavailable. Delegation stays disabled until all pass;
+   its sender will need a bundler setting then.
+10. Before tester intake: the support rehearsal, processor terms and the remaining retention schedule.
 
 ## 5. Configuration to add to the root `.env.schema`
 
-Agents cannot edit `.env.schema`. These are the settings the Agent reads; secrets should follow the
-file's existing `_OP_REF` pattern, and every switch starts off.
+Agents cannot edit `.env.schema`. Only what differs between deployments or is secret is an
+environment setting; secrets should follow the file's existing `_OP_REF` pattern.
 
 ```dotenv
-AGENT_REPORTING_ENABLED=false
 AGENT_REPORTING_TRANSPORT=
-AGENT_REPORTING_DB_PATH=data/reporting.db
-AGENT_REPORTING_MEDIA_DIR=data/reporting-media
-AGENT_REPORTING_ENCRYPTION_KEYS=
-AGENT_REPORTING_ENCRYPTION_KEY_VERSION=
-AGENT_REPORTING_LOOKUP_KEYS=
-AGENT_REPORTING_LOOKUP_KEY_VERSION=
+AGENT_REPORTING_KEYS=
 AGENT_REPORTING_BROWSER_ORIGIN=https://www.greengoods.app
-AGENT_REPORTING_GARDENS=
-AGENT_REPORTING_SUPPORT_CONTACT=afo@wefa.world
-AGENT_REPORTING_INTAKE_ENABLED=false
-AGENT_REPORTING_JEV_API_KEY=
-AGENT_REPORTING_JEV_BASE_URL=https://api.typesafe.ai
-AGENT_REPORTING_JEV_MODEL=jev-latest
 AGENT_REPORTING_OPENAI_API_KEY=
-AGENT_REPORTING_OPENAI_BASE_URL=https://api.openai.com/v1
-AGENT_REPORTING_OPENAI_MODEL=
-AGENT_REPORTING_OPENAI_TRANSCRIPTION_MODEL=
-AGENT_REPORTING_BUNDLER_RPC_URL=
-AGENT_REPORTING_DOCUMENTS_ENABLED=false
-AGENT_REPORTING_CONVERSION_ENABLED=false
-AGENT_REPORTING_VOICE_ENABLED=false
-AGENT_REPORTING_WORKER_INTERVAL_MS=2000
+AGENT_REPORTING_JEV_API_KEY=
 ```
 
-`AGENT_REPORTING_GARDENS` takes `key|0xaddress|Label` entries separated by `;`. The encryption and
-lookup key settings take `version:base64key` entries separated by commas, each key 32 bytes, and the
-`_VERSION` setting names the one used for new writes. Publication uploads use the existing
-`PINATA_JWT`; `PINATA_UPLOADS_API_URL` is optional and defaults to `https://uploads.pinata.cloud/v3`.
+- `AGENT_REPORTING_TRANSPORT` names the chat transport and is the only on switch: empty keeps
+  reporting off. The only planned value is `whatsapp`, which PR #3 registers; until then any value
+  logs an error and leaves reporting off. The synthetic test transport cannot be selected here.
+- `AGENT_REPORTING_KEYS` takes `version:base64key` entries separated by commas, each key 32 bytes,
+  current first. Rotate by adding a new first entry; keep older entries while data sealed under
+  them remains. Each entry's encryption and lookup keys are derived separately (HKDF).
+- The model keys do nothing until a model is pinned in code, which none is yet.
+- Reporting keeps its database and private media beside the Agent's own database (`DB_PATH`, which
+  is `/data/agent.db` on the Fly volume). Publication uploads use the existing `PINATA_JWT`, and
+  `PINATA_UPLOADS_API_URL` is optional.
+- Every garden accepts reports; there is no garden list to configure.
+- Operator decisions are controls, not settings: `POST /reporting/ops/controls/:name` with the Agent
+  API bearer token and `{ "enabled": true, "reason": "..." }`, for `intake`, `model_processing`,
+  `documents`, `voice`, `publication` and `outbound_messages`. A new database starts with all of
+  them off except `outbound_messages`.
 
 ## 6. PR #3 handoff: WhatsApp transport
 
-- Implement a `TransportAdapter` and register it in the `TRANSPORTS` map in
-  `packages/agent/src/runtime/reporting-startup.ts`; `AGENT_REPORTING_TRANSPORT` selects it and
-  startup refuses to run reporting without one.
+- Implement a `TransportAdapter` and register it as `whatsapp` in the `TRANSPORTS` map in
+  `packages/agent/src/runtime/reporting-startup.ts`; `AGENT_REPORTING_TRANSPORT=whatsapp` then
+  turns reporting on, and startup refuses to run reporting without a registered transport.
 - Inbound: verify `X-Hub-Signature-256` over the raw body before parsing, normalize messages and
   statuses into the existing inbound event types, and hand them to `acceptInboundEvent`, which
   persists before acknowledgement. Statuses reach `applyDeliveryStatus` in `delivery-status.ts`.
@@ -141,14 +139,19 @@ lookup key settings take `version:base64key` entries separated by commas, each k
   time limits the media job passes; refuse redirects to other hosts.
 - Outbound: implement `OutboundTransport.send` with the outbox idempotency key; map provider
   failures to `retryable`, `terminal` or `uncertain`. Buttons arrive as `choices` with reply IDs.
-  Add template messages for the 24-hour window.
+  WhatsApp lists hold at most 10 rows with short titles, while the core pages choices 10 at a time
+  plus "More options" and garden names are steward-editable: set `choicePageSize` to 9 for the
+  adapter and shorten long labels. Add template messages for the 24-hour window.
 - Provisioning: Meta app, test number, webhook subscription and Fly secrets.
 - Keep `mountSyntheticIngress` and the driver out of `createServer`; they are test composition.
 
 ## 7. Decisions for Afolabi
 
+Decided on 27 September 2026: every garden accepts chat reports (this replaces the TAS and Aiyeloja
+Family Garden prototype choice), and the reporting settings shrink to the five above.
+
 - LibreOffice: install `libreoffice-writer-nogui` and `libreoffice-calc-nogui` (the approved
   `libreoffice-core` alone cannot convert), or keep Office conversion disabled.
-- Pin the OpenAI extraction and transcription models after evaluation.
+- Pin the OpenAI extraction and transcription models and the Jev model in code after evaluation.
 - The canonical browser origin; ceremonies work only on the origin the Agent is configured with, so
   the beta frontend cannot run them against the production Agent.

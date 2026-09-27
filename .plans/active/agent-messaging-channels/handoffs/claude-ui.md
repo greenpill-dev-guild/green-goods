@@ -33,8 +33,9 @@ Completed on 2026-09-27 with the state_api lane (`parent_only`, PRD-998).
   recordings on ceremony pages. Ceremony queries never enter the persisted reading cache. The pages
   are not WebMCP routes. `DESIGN.browser.md` records the route exception.
 
-The Help control and the focused header are a separate component rather than a `SiteHeader`
-variant: the editorial header's markup is geometry-locked to the boot skeleton, and the ceremony
+The support contact is one Shared constant, which the header takes from `@green-goods/shared/config/app`
+so public pages do not load the reporting rules. The Help control and the focused header are a
+separate component rather than a `SiteHeader` variant: the editorial header's markup is geometry-locked to the boot skeleton, and the ceremony
 header shares none of its behavior.
 
 ## What remains
@@ -70,27 +71,17 @@ header shares none of its behavior.
 
 ## Validation Receipt
 
-The state_api lane's gate run covers this lane; the
-[state_api receipt](claude-state-api.md#validation-receipt) has the full result.
+The receipt for `75e2d70` no longer covers HEAD: the configuration and garden changes that followed
+it touch validated paths. Pending the push gate for those commits.
 
-- Tested implementation commit SHA: `75e2d70148e9e13ae5d19a3cbac3e6eb7edcc8c4`
-- Run at (UTC): 2026-09-27T11:36:29Z
-- Exact command(s): the pre-push hook's
-  `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts`
-  (critical push plan)
-- Result: every automated check passed, including shared-test, client-test, the Shared and Client
-  typecheck and build legs, story-quality, design-guardrails and source-structure; Turbo replayed
-  the unchanged Shared and Client test legs from full runs on `de1194002` (Shared 6004 passed and
-  17 skipped; Client 1415 passed). `browser-proof` stays pending (manual): authenticated signing
-  is unproven, as above.
+- Tested implementation commit SHA: pending
+- Run at (UTC): pending
+- Exact command(s): pending
+- Result: pending
 - Validated paths: `.github bun.lock docs packages scripts`
-- Worktree identity command and result:
-  `git status --porcelain=v1 --untracked-files=all -- .github bun.lock docs packages scripts` → empty
-- Evidence-only diff command and result (if applicable):
-  `git diff --exit-code 75e2d70148e9e13ae5d19a3cbac3e6eb7edcc8c4..HEAD -- .github bun.lock docs packages scripts`
-  → empty; the receipt commit changes only `.plans/`
-- Evidence-only worktree-status command and result (if applicable):
-  `git status --porcelain=v1 --untracked-files=all -- .github bun.lock docs packages scripts` → empty
+- Worktree identity command and result: pending
+- Evidence-only diff command and result (if applicable): pending
+- Evidence-only worktree-status command and result (if applicable): pending
 
 ## Risks / Blockers
 

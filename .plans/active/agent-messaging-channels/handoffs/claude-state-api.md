@@ -27,8 +27,12 @@ capability with its implemented, fixture-tested, live-tested and shipped state. 
   owner publication with attempts, outcomes, watchdog and receipt or range reconciliation; steward
   review; recovery with epochs; Kernel grants and a restricted executor (disabled); operator controls.
 - Content: OpenAI Responses extraction and Jev decisions with fallbacks; photos, PDFs, Word,
-  spreadsheets with visible-literal arithmetic; voice notes behind a separate consent and switch;
+  spreadsheets with visible-literal arithmetic; voice notes behind a separate consent and control;
   bounded local tools; private storage.
+- Configuration (decided 2026-09-27): every garden accepts chat reports, read from the indexer;
+  the environment holds only the transport (the on switch), one key list, the browser origin and
+  the model keys; intake, model processing, documents, voice and publication are operator controls
+  that start off; model versions are pinned in code. Capability record section 5 has the details.
 - Harness: in-process Hono tests with real temporary SQLite, injected clock and IDs, fixture
   chain, catalog, transport and wallets; the loopback driver with `walkthrough.http`, samples and
   `reporting:walkthrough`. Both driver scripts are registered in `scripts/data/command-policy.json`.
@@ -36,8 +40,9 @@ capability with its implemented, fixture-tested, live-tested and shipped state. 
 Defects found and fixed while building, each with a regression test: a racing insert could
 create a second channel subject; an unmined reported hash was treated as a receipt conflict; the
 delegated executor stranded confirmed reports when publishing paused or a grant lapsed, and could
-use a grant that expired while it awaited the chain; and with model processing off (the default),
-a file that was only stored was reported as read.
+use a grant that expired while it awaited the chain; with model processing off (the default), a
+file that was only stored was reported as read; and the reporting database and media defaulted to
+the image's working directory instead of the Agent's volume, so a deploy would have wiped them.
 
 ## What remains
 
@@ -70,30 +75,17 @@ agent-test). The contracts checks need the contract submodules, initialized in t
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `75e2d70148e9e13ae5d19a3cbac3e6eb7edcc8c4`
-- Run at (UTC): 2026-09-27T11:36:29Z
-- Exact command(s): the pre-push hook's
-  `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts`
-  (plan `push · critical · 249 changed path(s)` from the merge base with `origin/develop`)
-- Result: every automated check passed: format, lint, validation-system-test, test-quality,
-  abi-artifacts, the Shared, Client, Admin, Agent and Indexer typecheck, test and build legs,
-  contracts-build, contracts-test, contracts-verify-fast, docs-authority, docs-test, docs-build,
-  staged-modules, source-structure, design-guardrails, agent-guidance, supply-chain, story-quality
-  and review-guardrails-test. `browser-proof` stays pending (manual). Turbo replayed the package
-  test legs, whose inputs this commit does not change, from the gate runs on `de1194002`, where
-  they ran in full: Shared 6004 passed and 17 skipped; Client 1415 passed (on the first run two
-  tests hit their 10-second timeout under load; they passed on the rerun and 5 of 5 times alone);
-  Admin 1069; Agent 348 passed and 1 skipped; the Agent SQLite lane 81. Contracts test and
-  verify-fast ran on this commit.
-- Validated paths: `.github bun.lock docs packages scripts` (everything the branch changes outside
-  this hub)
-- Worktree identity command and result:
-  `git status --porcelain=v1 --untracked-files=all -- .github bun.lock docs packages scripts` → empty
-- Evidence-only diff command and result (if applicable):
-  `git diff --exit-code 75e2d70148e9e13ae5d19a3cbac3e6eb7edcc8c4..HEAD -- .github bun.lock docs packages scripts`
-  → empty; the receipt commit changes only `.plans/`
-- Evidence-only worktree-status command and result (if applicable):
-  `git status --porcelain=v1 --untracked-files=all -- .github bun.lock docs packages scripts` → empty
+The receipt for `75e2d70` no longer covers HEAD: the configuration and garden changes that followed
+it touch validated paths. Pending the push gate for those commits.
+
+- Tested implementation commit SHA: pending
+- Run at (UTC): pending
+- Exact command(s): pending
+- Result: pending
+- Validated paths: `.github bun.lock docs packages scripts`
+- Worktree identity command and result: pending
+- Evidence-only diff command and result (if applicable): pending
+- Evidence-only worktree-status command and result (if applicable): pending
 
 ## Risks / Blockers
 
