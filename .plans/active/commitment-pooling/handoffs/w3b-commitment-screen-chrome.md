@@ -115,8 +115,10 @@ suites pass.
 ## Unblock evidence
 
 The lane closes when RED and GREEN are recorded, Afo approves the pairs, the PR merges, the sub-lane
-is `completed`, and the Linear child is Done. As of 2026-09-27, RED and GREEN are recorded above, the
-Storybook pairs are with Afo, and the PR is open.
+is `completed`, and the Linear child is Done. As of 2026-09-27 all of these hold: Afo approved the
+pairs, #926 merged as `48aa97fd5`, the sub-lane is `completed`, and PRD-991 is Done. The mock-auth
+localhost capture of the not-ready notice and the fixed bars stays pending: the lane's worktrees link
+their dependencies, and the Vite dev server that mock auth needs cannot serve through those links.
 
 ## Validation Receipt
 

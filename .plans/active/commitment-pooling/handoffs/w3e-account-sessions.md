@@ -129,7 +129,11 @@ suite passes.
 ## Unblock evidence
 
 The lane closes when RED and GREEN are recorded, the PR merges, the sub-lane is `completed`, the
-Linear child is Done, and the reproduction's result is written under step 4 either way.
+Linear child is Done, and the reproduction's result is written under step 4 either way. As of
+2026-09-27 all of these hold: #929 merged as `544ba639d`, the sub-lane is `completed`, PRD-994 is
+Done, and step 4 records that the reproduction has not run. Still open: the mock-auth localhost
+capture, which needs a Vite dev server this lane's linked-dependency worktree cannot run; and the
+reading cache's stored copies of the last account's reads, tracked as PRD-1000.
 
 ## Validation Receipt
 

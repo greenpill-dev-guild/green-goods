@@ -90,7 +90,9 @@ inspector, pool and Hub suites pass (75 tests in five files).
 ## Unblock evidence
 
 The lane closes when RED and GREEN are recorded, the PR merges, the sub-lane is `completed`, the
-Linear child is Done, and the composite stories' fate is written here (above: W4-3).
+Linear child is Done, and the composite stories' fate is written here (above: W4-3). As of
+2026-09-27 all of these hold: #930 merged as `df63a1580`, the sub-lane is `completed`, and PRD-995 is
+Done.
 
 ## Validation Receipt
 

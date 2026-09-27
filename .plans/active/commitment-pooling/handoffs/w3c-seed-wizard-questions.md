@@ -120,8 +120,11 @@ reaching a rail.
 ## Unblock evidence
 
 The lane closes when RED and GREEN are recorded, Afo approves the pairs, the PR merges, the sub-lane
-is `completed`, and the Linear child is Done. As of 2026-09-27, RED and GREEN are recorded above, the
-Storybook pairs are with Afo, and the PR is open.
+is `completed`, and the Linear child is Done. As of 2026-09-27 all of these hold: Afo approved the
+pairs, #927 merged as `127ae1376`, the sub-lane is `completed`, and PRD-992 is Done. The focused
+field was measured at 1280 from static Storybook builds in headless Chromium: before the change the
+filled field's container grew from 41px to 42px on focus, and on develop it stays at 40px, so nothing
+below it moves.
 
 ## Validation Receipt
 
