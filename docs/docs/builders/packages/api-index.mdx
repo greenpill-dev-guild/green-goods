@@ -18,7 +18,7 @@ generated_from:
   - packages/indexer/package.json
   - packages/shared/package.json
   - packages/shared/src/public-contracts/routes.ts
-source_digest: "sha256:9e56d7288a02f6f2a42366019abf9e9adb3d53a8fd4f8ae3461001f9b4fbb3dd"
+source_digest: "sha256:66b0f0398ea614360a7655e1d9fd7bd2ef9d2ba8c5e5f7e5a3ad76cf60869bba"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
@@ -200,6 +200,8 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/admin-ui/useAdminAccessState` | `./src/hooks/admin-ui/useAdminAccessState.ts` |
 | @green-goods/shared | `./hooks/admin-ui/useCanvasChromeProbe` | `./src/hooks/admin-ui/useCanvasChromeProbe.ts` |
 | @green-goods/shared | `./hooks/admin-ui/useDirtyClose` | `./src/hooks/admin-ui/useDirtyClose.ts` |
+| @green-goods/shared | `./hooks/agent-reporting/useAgentReportingCeremony` | `./src/hooks/agent-reporting/useAgentReportingCeremony.ts` |
+| @green-goods/shared | `./hooks/agent-reporting/useAgentReportingRecovery` | `./src/hooks/agent-reporting/useAgentReportingRecovery.ts` |
 | @green-goods/shared | `./hooks/analytics/useAnalyticsIdentity` | `./src/hooks/analytics/useAnalyticsIdentity.ts` |
 | @green-goods/shared | `./hooks/analytics/usePageView` | `./src/hooks/analytics/usePageView.ts` |
 | @green-goods/shared | `./hooks/app/useArrivalState` | `./src/hooks/app/useArrivalState.ts` |
@@ -407,6 +409,8 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./mocks/browser` | `./src/__mocks__/browser/index.ts` |
 | @green-goods/shared | `./mocks/server` | `./src/__mocks__/server/index.ts` |
 | @green-goods/shared | `./modules` | `./src/modules/index.ts` |
+| @green-goods/shared | `./modules/agent-reporting` | `./src/modules/agent-reporting/index.ts` |
+| @green-goods/shared | `./modules/agent-reporting/kernel-permissions` | `./src/modules/agent-reporting/kernel-permissions.ts` |
 | @green-goods/shared | `./modules/app/analytics-events` | `./src/modules/app/analytics-events.ts` |
 | @green-goods/shared | `./modules/app/cache-recovery` | `./src/modules/app/cache-recovery.ts` |
 | @green-goods/shared | `./modules/app/error-categories` | `./src/modules/app/error-categories.ts` |
@@ -530,6 +534,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./utils/debug` | `./src/utils/debug.ts` |
 | @green-goods/shared | `./utils/domain` | `./src/utils/domain.ts` |
 | @green-goods/shared | `./utils/eas/explorers` | `./src/utils/eas/explorers.ts` |
+| @green-goods/shared | `./utils/eas/work-metadata` | `./src/utils/eas/work-metadata.ts` |
 | @green-goods/shared | `./utils/errors/blockchain-errors` | `./src/utils/errors/blockchain-errors.ts` |
 | @green-goods/shared | `./utils/errors/contract-errors` | `./src/utils/errors/contract-errors.ts` |
 | @green-goods/shared | `./utils/errors/extract-message` | `./src/utils/errors/extract-message.ts` |
@@ -546,4 +551,5 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./utils/work/image-compression` | `./src/utils/work/image-compression.ts` |
 | @green-goods/shared | `./utils/work/workTitles` | `./src/utils/work/workTitles.ts` |
 | @green-goods/shared | `./workflows` | `./src/workflows/index.ts` |
+| @green-goods/shared | `./workflows/agent-reporting` | `./src/workflows/agent-reporting/index.ts` |
 | @green-goods/shared | `./workflows/createGarden` | `./src/workflows/createGarden.ts` |
