@@ -229,6 +229,25 @@ export const outcomeRequestSchema = z.object({
   outcome: outcomeSchema,
 });
 
+export const operationResponseSchema = z.object({
+  ok: z.literal(true),
+  operation: operationViewSchema,
+});
+
+export const recoveryStepSchema = z.object({
+  ok: z.literal(true),
+  state: z.enum([
+    "started",
+    "account_verified",
+    "channel_verified",
+    "confirmed",
+    "applied",
+    "expired",
+    "failed",
+  ]),
+  account: address.nullable(),
+});
+
 export const outcomeResponseSchema = z.object({
   ok: z.literal(true),
   operationState: z.string(),
@@ -242,3 +261,4 @@ export type OperationView = z.infer<typeof operationViewSchema>;
 export type AttemptResponse = z.infer<typeof attemptResponseSchema>;
 export type OutcomeRequest = z.infer<typeof outcomeRequestSchema>;
 export type AttemptOutcome = z.infer<typeof outcomeSchema>;
+export type RecoveryStep = z.infer<typeof recoveryStepSchema>;
