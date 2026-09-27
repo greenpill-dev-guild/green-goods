@@ -709,8 +709,8 @@
     "w3f_inspector_story_and_names": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "fix/inspector-story-and-names",
       "depends_on": ["w3e_account_sessions"],
       "handoff": "handoffs/w3f-inspector-story-and-names.md",
       "linear": {
@@ -718,8 +718,7 @@
         "issue": "PRD-995",
         "parentIssue": "PRD-650"
       },
-      "linear_issues": ["PRD-995", "PRD-650"],
-      "blocked_reason": "Waits for W3-E (w3e_account_sessions) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+      "linear_issues": ["PRD-995", "PRD-650"]
     },
     "w3g_commitment_send_record": {
       "machine_lane": "state_api",
