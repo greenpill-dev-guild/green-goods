@@ -80,4 +80,27 @@ describe("useCommitmentQueueState", () => {
       retryable: false,
     });
   });
+
+  it("names the act still on this phone for its commitment, with why it waits", async () => {
+    // A wallet reader has no background flush, so the screen needs the job
+    // itself to offer Send Now and Discard, not only the fact that one exists.
+    mocks.getJobs.mockResolvedValue([
+      creation({
+        id: "claim-1",
+        kind: "claim",
+        payload: { commitmentId: 9n, gardenAddress: VIEWER },
+        meta: { waitingForDependency: true, waitingReason: "membership-unavailable" },
+      }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingCommitmentIds.has("9")).toBe(true));
+    expect(result.current.pendingActs.get("9")).toMatchObject({
+      jobId: "claim-1",
+      kind: "claim",
+      waitingReason: "membership-unavailable",
+      discardable: true,
+    });
+    // A creation names no commitment yet, so it is a pending create, not an act.
+    expect(result.current.pendingActs.size).toBe(1);
+  });
 });

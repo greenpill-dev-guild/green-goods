@@ -191,6 +191,7 @@ function queueState(overrides: Partial<CommitmentQueueState> = {}): CommitmentQu
     failedCount: 0,
     failedCommitmentIds: new Set(),
     failedJobs: new Map(),
+    pendingActs: new Map(),
     hasPendingCreate: false,
     pendingCreates: [],
     isUnavailable: false,
