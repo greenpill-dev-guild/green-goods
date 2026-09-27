@@ -197,7 +197,12 @@ export async function verifyChallengeProof(
       ...(proof.factoryData ? { factoryData: proof.factoryData } : {}),
     });
     kind = valid
-      ? await deps.chain.accountKind(core.settings.chainId, account, proof.factory)
+      ? await deps.chain.accountKind(
+          core.settings.chainId,
+          account,
+          proof.factory,
+          proof.factoryData
+        )
       : "unsupported";
   } catch {
     return { ok: false, errorCode: "dependency_unavailable" };

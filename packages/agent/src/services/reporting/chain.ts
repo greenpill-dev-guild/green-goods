@@ -66,7 +66,12 @@ export interface ReportingChain {
   gardenRoles(chainId: number, garden: string, account: string): Promise<GardenRoles>;
   gardenDomainMask(chainId: number, garden: string): Promise<number | null>;
   /** Classifies an account: code at the address, or the counterfactual factory used in its proof. */
-  accountKind(chainId: number, account: string, factory?: string): Promise<AccountKind>;
+  accountKind(
+    chainId: number,
+    account: string,
+    factory?: string,
+    factoryData?: Hex
+  ): Promise<AccountKind>;
   blockNumber(chainId: number): Promise<bigint>;
   transactionReceipt(chainId: number, hash: Hex): Promise<TransactionReceiptView | null>;
   /** Resolves a UserOperation to its bundled transaction once included. */
