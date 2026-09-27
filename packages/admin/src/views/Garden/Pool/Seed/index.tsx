@@ -44,7 +44,8 @@ import {
   buildSeedStepConfigs,
   type SeedFieldError,
   seedErrorText,
-  STEP_FIELDS,
+  seedBlockedReason,
+  stepFieldsFor,
   STEPS,
   withConfirmer,
 } from "./seedStepModel";
@@ -232,7 +233,7 @@ export function SeedCommitmentDialog({
   });
 
   const goNext = useCallback(async () => {
-    const valid = await form.trigger(STEP_FIELDS[currentStep]);
+    const valid = await form.trigger(stepFieldsFor(currentStep, form.getValues("kind")));
     if (valid) setStepIndex((index) => index + 1);
   }, [form, currentStep]);
 
@@ -381,6 +382,12 @@ export function SeedCommitmentDialog({
         })
       : null;
 
+  const seedBlocked = seedBlockedReason({
+    poolOpen: pool.poolId !== undefined && pool.model.status === "open",
+    capacityOver: capacity.over,
+    rewardUnknown: trayRewardUnknown,
+  });
+
   const footer = (
     <SeedFlowFooter
       phase={tray.isSending ? "sending" : settled ? "done" : "compose"}
@@ -393,6 +400,7 @@ export function SeedCommitmentDialog({
         capacity.over ||
         trayRewardUnknown
       }
+      blockedReason={seedBlocked ? formatMessage(seedBlocked) : null}
       count={tray.size}
       addAnotherDisabled={
         poolDefaultsPending || rewardUnitsUnknown || (capacity.full && values.direction === "OFFER")
@@ -438,6 +446,7 @@ export function SeedCommitmentDialog({
           }
           steps={stepConfigs}
           currentStep={stepIndex + 1}
+          complete={settled && !unsent}
           // Once every row is sent, the answers are spent: seeding them again
           // would be a second commitment, so no step opens and the way on is Done.
           onStepClick={

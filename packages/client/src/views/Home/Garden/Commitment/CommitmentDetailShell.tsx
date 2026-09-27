@@ -4,6 +4,7 @@ import { useIntl } from "react-intl";
 
 import { EmptyState } from "@/components/Communication";
 import { TopNav } from "@/components/Navigation";
+import { FixedBar } from "../FixedBar";
 
 export interface CommitmentDetailShellProps {
   children: React.ReactNode;
@@ -14,7 +15,9 @@ export interface CommitmentDetailShellProps {
 
 /**
  * The frame every cast of the detail screen shares: back, the commitment's
- * own heading, a scrolling body, and the fixed bar when there is one.
+ * own heading, the body, and the bar when there is one. The top nav and the
+ * bar are fixed to the viewport, as on the work view, so they stay put however
+ * far the body scrolls.
  */
 export function CommitmentDetailShell({
   children,
@@ -25,19 +28,17 @@ export function CommitmentDetailShell({
   // TopNav owns the back affordance only; it takes no title of its own, so the
   // commitment names itself in its own heading rather than in a tooltip.
   return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      <TopNav onBackClick={onBack} />
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="space-y-4 p-4 pb-24">
-          {title ? (
-            <h1 className="truncate text-lg font-medium text-text-strong-950" title={title}>
-              {title}
-            </h1>
-          ) : null}
-          {children}
-        </div>
+    <div className="w-full">
+      <TopNav onBackClick={onBack} overlay />
+      <div className="space-y-4 p-4 pt-20">
+        {title ? (
+          <h1 className="truncate text-lg font-medium text-text-strong-950" title={title}>
+            {title}
+          </h1>
+        ) : null}
+        {children}
       </div>
-      {bar}
+      {bar ? <FixedBar>{bar}</FixedBar> : null}
     </div>
   );
 }

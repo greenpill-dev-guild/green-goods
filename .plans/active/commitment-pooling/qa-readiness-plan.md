@@ -1577,7 +1577,7 @@ Every reachable act against its cases. Nothing in § 7 has a case.
 | Payout plan; prepare; dispatch, retry, requeue; rejected prompt; read again; cancel | ADM-118 · ADM-119 · ADM-084 · ADM-109 · ADM-120 · ADM-121 · ADM-122 · ADM-123 · ADM-124 · ADM-086 |
 | Relay settlement; gardener delivery; treasury top-up | ADM-043 · ADM-044 · ADM-087 · ADM-045 |
 | Reading in the app | PWA-100 · PWA-101 · PWA-102 · PWA-105 |
-| Reading on the public page | PUB-056 · PUB-057 · PUB-045 · PUB-058 · PUB-059 · PUB-028 |
+| Reading on the public page | PUB-056 · PUB-057 · PUB-045 · PUB-058 · PUB-059 · PUB-060 · PUB-028 |
 
 ### Validation receipt, catalog
 
@@ -1688,7 +1688,8 @@ group first, because they cannot be edited after the cycle opens. Record payout 
   with `[prod]` or `[local]`.
 - One symptom per note where possible. Say "catalog" when the problem is the case, not the product.
 - Do not fix anything live. Do not retry an irreversible write whose outcome is unknown.
-- Keep wording on real records realistic. The protocol pool is on the public site.
+- Keep wording on real records realistic. The protocol pool is on the public site, reachable by
+  its own link and not listed.
 - Never show a seed phrase, private key, or the allowlist on the recording.
 
 ### 6.4 Exit criteria for the first run

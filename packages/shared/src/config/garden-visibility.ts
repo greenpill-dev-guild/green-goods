@@ -13,10 +13,13 @@
  *
  * Two tiers:
  *   - `GARDENS_HIDDEN_EVERYWHERE` is filtered inside `getGardens()`, so the
- *     garden is absent from the client PWA and admin dashboard as well.
- *   - `GARDENS_HIDDEN_FROM_EDITORIAL` is filtered only by the public hooks, so
+ *     garden is absent from the client PWA and admin dashboard as well, and
+ *     its public page does not exist.
+ *   - `GARDENS_HIDDEN_FROM_EDITORIAL` is filtered only by the public lists, so
  *     the garden keeps working normally for the people using it while staying
  *     off the public archive, impact ledger, funding list, and proof counters.
+ *     It is unlisted, not unreachable: its own page still opens by its link,
+ *     says it is not in the lists, and asks crawlers not to index it.
  *
  * To change a garden's visibility, edit the relevant list. Every entry carries
  * the reason it is there.
@@ -74,8 +77,14 @@ export function isGardenHiddenEverywhere(address: string): boolean {
   return hiddenEverywhere.has(address.toLowerCase());
 }
 
+interface PublicGardenFields {
+  id: string;
+  name?: string | null;
+  location?: string | null;
+}
+
 /**
- * True when a garden should appear on the public website.
+ * True when a garden's own public page may open by its link.
  *
  * Also carries the placeholder check that was previously copy-pasted across
  * the three public hooks: a garden with neither name nor location has never
@@ -83,15 +92,23 @@ export function isGardenHiddenEverywhere(address: string): boolean {
  * `Garden.initialized`, but `getGardens()` does not select that field, so the
  * heuristic stands in until it does.
  */
-export function isGardenPubliclyVisible(garden: {
-  id: string;
-  name?: string | null;
-  location?: string | null;
-}): boolean {
-  const address = garden.id.toLowerCase();
-  if (hiddenEverywhere.has(address) || hiddenFromEditorial.has(address)) return false;
+export function isGardenPubliclyReachable(garden: PublicGardenFields): boolean {
+  if (hiddenEverywhere.has(garden.id.toLowerCase())) return false;
 
   const hasName = (garden.name ?? "").trim().length > 0;
   const hasLocation = (garden.location ?? "").trim().length > 0;
   return hasName || hasLocation;
+}
+
+/** True when a garden is kept out of the public lists but keeps its own page. */
+export function isGardenUnlisted(garden: Pick<PublicGardenFields, "id">): boolean {
+  return hiddenFromEditorial.has(garden.id.toLowerCase());
+}
+
+/**
+ * True when a garden should appear on the public website's lists: the archive,
+ * impact ledger, funding list, and proof counters.
+ */
+export function isGardenPubliclyVisible(garden: PublicGardenFields): boolean {
+  return isGardenPubliclyReachable(garden) && !isGardenUnlisted(garden);
 }

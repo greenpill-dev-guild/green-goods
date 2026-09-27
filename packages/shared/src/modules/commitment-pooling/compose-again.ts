@@ -135,7 +135,10 @@ export function composerValuesFromCommitment(
     if (metadata.note) values.note = metadata.note;
     values.links = (metadata.links ?? []).map((link) => link.url);
   }
-  if (commitment.unitLabel) values.unitLabel = commitment.unitLabel;
+  // Garden work is counted in hours, as both composers set it and neither asks;
+  // an earlier record may carry another unit, which no field would show.
+  if (kind === "GARDEN_WORK") values.unitLabel = "hours";
+  else if (commitment.unitLabel) values.unitLabel = commitment.unitLabel;
   if (commitment.targetUnits > 0n && commitment.targetUnits <= BigInt(Number.MAX_SAFE_INTEGER)) {
     values.targetUnits = Number(commitment.targetUnits);
   }
