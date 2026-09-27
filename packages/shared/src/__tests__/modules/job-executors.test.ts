@@ -953,7 +953,7 @@ describe("commitment acts record their sends", () => {
     }
   });
 
-  it("offers a lost act again only when the browser's locks show no tab still holding its send", async () => {
+  it("offers a lost act again only when no tab holds its send and its account has nothing waiting", async () => {
     // Long past the grace window, and the chain holds no sign of it.
     const lost = (id: string) => {
       const act = takeUp(id);
@@ -964,9 +964,10 @@ describe("commitment acts record their sends", () => {
       return act;
     };
     const sender = createMockTransactionSender({ authMode: "wallet" });
+    const hasPendingTransaction = vi.fn().mockResolvedValue(false);
     const deps = {
       demoActive: () => false,
-      reads: reads(),
+      reads: { ...reads(), hasPendingTransaction },
       store: store(),
       lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
     };
@@ -989,6 +990,13 @@ describe("commitment acts record their sends", () => {
         status: "waiting",
         reason: "awaiting-confirmation",
       });
+      // A transaction the network holds but has not mined may be the lost send.
+      hasPendingTransaction.mockResolvedValueOnce(true);
+      await expect(settle(lost("claim-account-busy"))).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+      expect(hasPendingTransaction).toHaveBeenCalledWith(USER);
       await expect(settle(lost("claim-released"))).resolves.toEqual({
         status: "waiting",
         reason: "send-intent-expired",
@@ -1103,6 +1111,26 @@ describe("commitment chain reads", () => {
     });
 
     await expect(chainReads.hasMembership?.(GARDEN, USER)).resolves.toBeNull();
+  });
+
+  it("reads a waiting transaction from the account's pending nonce", async () => {
+    const getTransactionCount = vi.fn(async (_config: unknown, request: { blockTag: string }) =>
+      request.blockTag === "pending" ? 5 : 4
+    );
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      getTransactionCount: getTransactionCount as never,
+      config: {} as Config,
+    });
+
+    await expect(chainReads.hasPendingTransaction?.(USER)).resolves.toBe(true);
+    expect(getTransactionCount).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ address: USER, blockTag: "pending", chainId: 42161 })
+    );
+    getTransactionCount.mockImplementation(async () => 4);
+    await expect(chainReads.hasPendingTransaction?.(USER)).resolves.toBe(false);
   });
 
   it("names a work link's transaction by the key its WorkLinked event carries", async () => {

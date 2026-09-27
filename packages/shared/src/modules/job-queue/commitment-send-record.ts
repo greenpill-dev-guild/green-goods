@@ -12,12 +12,15 @@
  * holds it. A tab the OS froze keeps its locks and a closed one gives them up,
  * so a lost send is offered again only once no tab's wallet prompt can still
  * send it. A browser without Web Locks cannot say, so there it is never offered
- * again: it completes when the chain shows it landed.
+ * again: it completes when the chain shows it landed. Nor is it offered again
+ * while its account has a transaction the network holds but has not mined,
+ * which may be the send itself if its answer was lost after the network took it.
  *
  * @module modules/job-queue/commitment-send-record
  */
 
 import type { Hex } from "viem";
+import type { Address } from "../../types/domain";
 import type { Job } from "../../types/job-queue";
 import { logger } from "../app/logger";
 import type { ContractCall, TransactionSender } from "../transactions/types";
@@ -73,6 +76,25 @@ async function stillSending(jobId: string): Promise<boolean> {
   } catch (error) {
     logger.warn("[JobQueue] Could not read which tabs hold a commitment act's send", {
       jobId,
+      error,
+    });
+    return true;
+  }
+}
+
+/**
+ * Whether the account has a transaction the network holds but has not mined.
+ * When the chain cannot say, the act keeps waiting rather than risk a second send.
+ */
+async function accountStillSending(
+  account: Address,
+  chainReads: CommitmentChainReads
+): Promise<boolean> {
+  if (!chainReads.hasPendingTransaction) return true;
+  try {
+    return await chainReads.hasPendingTransaction(account);
+  } catch (error) {
+    logger.warn("[JobQueue] Could not read whether a commitment act's account has a send waiting", {
       error,
     });
     return true;
@@ -168,7 +190,9 @@ export async function settleActSend(
             readWorkLinkTransaction: chainReads.readWorkLinkTransaction,
             resolveWorkIdentity: deps.resolveWorkIdentity,
           }),
-        stillSending: () => stillSending(jobId),
+        stillSending: async () =>
+          (await stillSending(jobId)) ||
+          (await accountStillSending(stranded.userAddress as Address, chainReads)),
         persist: (updated) => store.updateJob(updated),
       }));
   try {

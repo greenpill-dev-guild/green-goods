@@ -1,5 +1,6 @@
 import {
   getPublicClient as wagmiGetPublicClient,
+  getTransactionCount as wagmiGetTransactionCount,
   readContract as wagmiReadContract,
   simulateContract as wagmiSimulateContract,
   type Config,
@@ -48,6 +49,12 @@ export type CommitmentChainReads = Pick<
     operationKey: Hex;
     linker: Address;
   }) => Promise<Hex | null>;
+  /**
+   * Whether the account has a transaction the network holds but has not mined:
+   * its pending nonce is ahead of its mined one. A send whose answer was lost
+   * after the network took it may be that transaction.
+   */
+  hasPendingTransaction?: (account: Address) => Promise<boolean>;
 };
 
 export interface CommitmentChainReadOptions {
@@ -56,6 +63,7 @@ export interface CommitmentChainReadOptions {
   readContract?: typeof wagmiReadContract;
   simulateContract?: typeof wagmiSimulateContract;
   getPublicClient?: typeof wagmiGetPublicClient;
+  getTransactionCount?: typeof wagmiGetTransactionCount;
   config?: Config;
 }
 
@@ -65,6 +73,7 @@ export function createCommitmentChainReads({
   readContract = wagmiReadContract,
   simulateContract = wagmiSimulateContract,
   getPublicClient = wagmiGetPublicClient,
+  getTransactionCount = wagmiGetTransactionCount,
   config,
 }: CommitmentChainReadOptions): CommitmentChainReads {
   const wagmiConfig = config ?? getWagmiConfig();
@@ -173,6 +182,13 @@ export function createCommitmentChainReads({
           args.linker?.toLowerCase() === link.linker.toLowerCase()
       );
       return event?.transactionHash ?? null;
+    },
+    hasPendingTransaction: async (account) => {
+      const [pending, mined] = await Promise.all([
+        getTransactionCount(wagmiConfig, { address: account, blockTag: "pending", chainId }),
+        getTransactionCount(wagmiConfig, { address: account, blockTag: "latest", chainId }),
+      ]);
+      return pending > mined;
     },
     hasMembership: async (garden, account) => {
       const results = await Promise.all(
