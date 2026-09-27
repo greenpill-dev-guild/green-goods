@@ -761,14 +761,24 @@ describe("commitment acts record their sends", () => {
     });
     const jobStore = store();
     const reconcile = vi.fn().mockResolvedValue("unresolved");
-    const deps = { demoActive: () => false, reads: reads(), store: jobStore, reconcile };
+    // The chain's time goes with the intent: nothing this send did can predate it.
+    const readChainTime = vi.fn().mockResolvedValue(1_234);
+    const deps = {
+      demoActive: () => false,
+      reads: { ...reads(), readChainTime },
+      store: jobStore,
+      reconcile,
+    };
 
     await expect(executeCommitmentQueueJob(claim.id, claim, 42161, sender, deps)).resolves.toEqual({
       status: "waiting",
       reason: "awaiting-confirmation",
     });
     // The stored job says the send is out, so no screen offers to drop it.
-    expect(sendCheckpointOf(claim)?.transactionHash).toBe(HASH);
+    expect(sendCheckpointOf(claim)).toMatchObject({
+      transactionHash: HASH,
+      intentChainTime: 1_234,
+    });
     expect(jobStore.updateJob).toHaveBeenCalledWith(claim);
     expect(isDiscardableJob(claim)).toBe(false);
 
@@ -1113,6 +1123,19 @@ describe("commitment chain reads", () => {
     });
 
     await expect(chainReads.hasMembership?.(GARDEN, USER)).resolves.toBeNull();
+  });
+
+  it("reads the chain's time from its latest block", async () => {
+    const getBlock = vi.fn().mockResolvedValue({ timestamp: 1_700_000_000n });
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      getBlock: getBlock as never,
+      config: {} as Config,
+    });
+
+    await expect(chainReads.readChainTime?.()).resolves.toBe(1_700_000_000);
+    expect(getBlock).toHaveBeenCalledWith(expect.anything(), { chainId: 42161 });
   });
 
   it("reads a waiting transaction from the account's pending nonce", async () => {

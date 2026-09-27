@@ -1,4 +1,5 @@
 import {
+  getBlock as wagmiGetBlock,
   getTransactionCount as wagmiGetTransactionCount,
   getTransactionReceipt as wagmiGetTransactionReceipt,
   readContract as wagmiReadContract,
@@ -52,6 +53,8 @@ export type CommitmentChainReads = Pick<
    * after the network took it may be that transaction.
    */
   hasPendingTransaction?: (account: Address) => Promise<boolean>;
+  /** The chain's time at its latest block, in seconds. */
+  readChainTime?: () => Promise<number>;
 };
 
 export interface CommitmentChainReadOptions {
@@ -59,6 +62,7 @@ export interface CommitmentChainReadOptions {
   moduleAddress: Address;
   readContract?: typeof wagmiReadContract;
   simulateContract?: typeof wagmiSimulateContract;
+  getBlock?: typeof wagmiGetBlock;
   getTransactionCount?: typeof wagmiGetTransactionCount;
   getTransactionReceipt?: typeof wagmiGetTransactionReceipt;
   config?: Config;
@@ -69,6 +73,7 @@ export function createCommitmentChainReads({
   moduleAddress,
   readContract = wagmiReadContract,
   simulateContract = wagmiSimulateContract,
+  getBlock = wagmiGetBlock,
   getTransactionCount = wagmiGetTransactionCount,
   getTransactionReceipt = wagmiGetTransactionReceipt,
   config,
@@ -190,6 +195,7 @@ export function createCommitmentChainReads({
         }
       });
     },
+    readChainTime: async () => Number((await getBlock(wagmiConfig, { chainId })).timestamp),
     hasPendingTransaction: async (account) => {
       const [pending, mined] = await Promise.all([
         getTransactionCount(wagmiConfig, { address: account, blockTag: "pending", chainId }),

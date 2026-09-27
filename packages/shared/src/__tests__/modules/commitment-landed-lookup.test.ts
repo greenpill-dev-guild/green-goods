@@ -221,6 +221,35 @@ describe("createCommitmentLandedLookup", () => {
     if (status === "found") expect(result).toMatchObject({ transactionHash: TX });
   });
 
+  it("takes a take-up's floor from the chain's time recorded with its intent", async () => {
+    // A retry whose earlier ask was declined half a minute before it.
+    const intentAt = CREATED_MS / 1000;
+    const retry = act("claim", {
+      kind: 1,
+      gardenContext: GARDEN,
+      sendCheckpoint: {
+        broadcastPending: true,
+        broadcastPendingAt: new Date(CREATED_MS).toISOString(),
+        intentChainTime: intentAt,
+      },
+    });
+    const declinedAsk = [
+      row("CLAIM_DECLINED", CALLER, { timestamp: intentAt - 10, txHash: OLD_TX }),
+      row("CLAIM_REQUESTED", CALLER, { timestamp: intentAt - 30, txHash: OLD_TX }),
+    ];
+    await expect(
+      lookUp(retry, declinedAsk, {
+        requests: [request({ requestedAt: intentAt - 30, state: "DECLINED" })],
+      })
+    ).resolves.toEqual({ status: "absent" });
+    // The retry's own request, in the next block, counts, whatever came next.
+    await expect(
+      lookUp(retry, [row("CLAIM_REQUESTED", CALLER, { timestamp: intentAt })], {
+        requests: [request({ requestedAt: intentAt, state: "DECLINED" })],
+      })
+    ).resolves.toEqual({ status: "found", transactionHash: TX });
+  });
+
   it("sets the device clock against the chain's before matching a take-up to its send", async () => {
     // The device runs ten minutes ahead, so the request's chain time sits well
     // before the job's device time, and still after the send.

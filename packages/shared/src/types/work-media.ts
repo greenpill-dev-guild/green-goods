@@ -9,6 +9,11 @@ export interface WorkUploadCheckpoint {
   broadcastPending?: boolean;
   /** When the intent was recorded, so an intent that never reached the chain can be resolved. */
   broadcastPendingAt?: string;
+  /**
+   * The chain's latest block time when the intent was recorded, in seconds.
+   * Whatever this send did lands at or after it, and an earlier ask before it.
+   */
+  intentChainTime?: number;
   transactionReverted?: boolean;
   /**
    * The wallet saw this transaction replaced by a different call, so it can

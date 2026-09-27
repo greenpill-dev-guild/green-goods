@@ -412,7 +412,10 @@ export async function executeCommitmentQueueJob(
           account: job.userAddress as Address,
           chainId: targetChain,
         });
-        return sendRecordedAct(jobId, job, call, sender, store);
+        // Read after the simulation, just before the intent: nothing this send
+        // does can land before it, so an earlier ask never passes for this one.
+        const intentChainTime = await chainReads.readChainTime?.();
+        return sendRecordedAct(jobId, job, call, sender, store, intentChainTime);
       },
     });
   } catch (error) {

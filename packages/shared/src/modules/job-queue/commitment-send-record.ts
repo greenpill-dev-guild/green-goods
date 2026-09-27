@@ -129,7 +129,9 @@ export async function sendRecordedAct(
   job: Job,
   call: ContractCall,
   sender: TransactionSender,
-  store: CommitmentExecutorStore
+  store: CommitmentExecutorStore,
+  /** The chain's time just before the send, kept with its intent. */
+  intentChainTime?: number
 ): Promise<Hex> {
   const result = await holdingSend(jobId, () =>
     sendWithCheckpoint({
@@ -137,7 +139,11 @@ export async function sendRecordedAct(
       call,
       jobIds: [jobId],
       record: async (next) => {
-        writeSendCheckpoint(job, next(sendCheckpointOf(job) ?? {}));
+        const send = next(sendCheckpointOf(job) ?? {});
+        writeSendCheckpoint(
+          job,
+          send && intentChainTime !== undefined ? { ...send, intentChainTime } : send
+        );
         await store.updateJob(job);
       },
     })

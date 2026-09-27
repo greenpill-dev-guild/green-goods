@@ -49,9 +49,10 @@ const MAX_PAGES = 10;
 /** `ClaimType.Garden`: the claimant is the garden, and the caller only requested it. */
 const GARDEN_CLAIM = 0;
 /**
- * How far before its intent a take-up's request may sit, in chain seconds. The
- * device clock is set against the chain's first, so this absorbs only the
- * latest block's age and the time the read took.
+ * For a record kept without the chain's time, how far before its estimated
+ * intent a take-up's request may sit, in chain seconds. The device clock is set
+ * against the chain's first, so this absorbs only the latest block's age and
+ * the time the read took. A record with the chain's time needs none.
  */
 const CLAIM_CLOCK_TOLERANCE_S = 120;
 
@@ -94,9 +95,10 @@ function intentAtMs(job: Job): number {
 
 /**
  * A take-up landed when the indexer's record of its claimant's request matches
- * it whole (who asked, as what, through which garden) and follows its intent on
- * the chain's clock. An earlier request belongs to an earlier ask, which a
- * steward may have declined since; a later decline of this one does not matter.
+ * it whole (who asked, as what, through which garden) and is no older than
+ * `floor`, its intent on the chain's clock. An earlier request belongs to an
+ * earlier ask, which a steward may have declined since, however recently; a
+ * later decline of this one does not matter.
  * The request's row names its transaction. An acceptance of the claimant after
  * the intent counts too: an accepted commitment takes no other claim, so
  * sending again could only revert.
@@ -106,13 +108,12 @@ async function takeUpMatch(
   payload: Record<string, unknown>,
   chainId: number,
   claimRequests: typeof getCommitmentClaimRequests,
-  intentOnChainS: () => Promise<number>
+  floor: number
 ): Promise<{ recorded: boolean; matches: RowMatch }> {
   const caller = job.userAddress;
   const byGarden = Number(payload.kind) === GARDEN_CLAIM;
   const gardenContext = String(payload.gardenContext);
   const claimant = byGarden ? gardenContext : caller;
-  const floor = (await intentOnChainS()) - CLAIM_CLOCK_TOLERANCE_S;
   const requests = await claimRequests(chainId, BigInt(String(payload.commitmentId)));
   const request = requests.find(
     (record) =>
@@ -257,16 +258,24 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
       return workLinkLanded(job, payload, { chainId, sinceS: Math.floor(sinceMs / 1000) }, deps);
     const checkedAt = now();
     const sentAt = intentAtMs(job);
-    // The intent on the chain's clock: the device clock is set against the
-    // latest block, as that block is read.
+    const recordedChainTime = sendCheckpointOf(job)?.intentChainTime;
+    // The intent on the chain's clock: kept with the intent, or, for a record
+    // kept without it, the device clock set against the latest block as read.
     let onChain: Promise<number> | undefined;
     const intentOnChainS = () =>
-      (onChain ??= blockTime(chainId).then(
-        (chainNowS) => sentAt / 1000 - (now() / 1000 - chainNowS)
-      ));
+      (onChain ??=
+        recordedChainTime !== undefined
+          ? Promise.resolve(recordedChainTime)
+          : blockTime(chainId).then((chainNowS) => sentAt / 1000 - (now() / 1000 - chainNowS)));
     const landed =
       job.kind === "claim"
-        ? await takeUpMatch(job, payload, chainId, claimRequests, intentOnChainS)
+        ? await takeUpMatch(
+            job,
+            payload,
+            chainId,
+            claimRequests,
+            recordedChainTime ?? (await intentOnChainS()) - CLAIM_CLOCK_TOLERANCE_S
+          )
         : { recorded: false, matches: actMatch(job, payload) };
     const log = await findInLog(
       activity,
