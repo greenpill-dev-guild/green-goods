@@ -82,10 +82,16 @@ N43, checking the other protocol contexts against chain roles; the send record (
   from the roster and the join overlay.
 - `claimGardensKnown` also waits for the host's read, so a pending read never shows Find a Garden.
   A failed host read counts toward `membershipUnavailable`, and Retry reads it again.
-- `ClaimContextSheet` needed no change: it lists whatever the hook hands it, and a lone personal
-  choice is preselected. Its comment and the controller's now say which claim refuses the host.
-- No client test was added for the queued context. The client passes the chosen context through
-  unchanged, which the existing delegation test covers, and nothing in the client decides the host.
+- The garden list holds only the newest gardens, so a host past it (the protocol's own) is read on
+  its own with `useGardenRecord` and leads the personal list. Until that record arrives the list is
+  not known; a read that fails or settles with no record counts as unavailable, and Retry reads it
+  again (review rounds 1 and 2).
+- `ClaimContextSheet` keeps a choice while its lists refresh behind the open sheet, since the host's
+  read landing refreshes them, and resets only on opening or when the chosen garden leaves the
+  lists (review round 1). A client test covers it. The client passes the chosen context through
+  unchanged, and nothing in the client decides the host.
+- CodeRabbit suggested passing the pool's chain to the host record read. The app runs on one
+  default chain (AGENTS.md), which is the chain `useGardenRecord` already reads, so it stays as is.
 
 ## RED and GREEN evidence
 
@@ -96,6 +102,11 @@ was missing from `member` in three cases, and Retry read only the route. GREEN a
 suites pass, with the controller's default fixture now listing the host it stewards for a personal
 claim.
 
+Review round 1 was RED against `5e7888017`: a host past the garden list was never offered, and the
+open sheet replaced the reader's garden-claim choice with the host when its lists refreshed. Both
+pass at `10f0ac102`. Review round 2 was RED against `10f0ac102`: a host record that settled empty
+left the list unknown with no retry. It passes at `57d5fc4f6`.
+
 ## Unblock evidence
 
 The lane closes when RED and GREEN are recorded, the PR merges, the sub-lane is `completed`, and
@@ -103,11 +114,11 @@ the Linear child is Done. As of 2026-09-27, RED and GREEN are recorded above; th
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `54fcf3e0b` (on `fix/host-garden-personal-claims`)
-- Run at (UTC): `2026-09-27T07:12:52Z` to `2026-09-27T07:17:30Z`
-- Exact command(s): `bun run --cwd packages/shared test -- src/__tests__/hooks/commitment-pooling src/__tests__/hooks/client-ui`, `bun run --cwd packages/client test -- src/__tests__/views/GardenCommitment.test.tsx`, `bun run --cwd packages/shared typecheck -- --scope full`, `bun run --cwd packages/client typecheck`, `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings` and `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`
-- Result: shared hooks 108 passed in 12 files; the client commitment view 30 passed; shared and client typechecks exit 0; oxlint exit 0; source structure passed against `origin/develop`. The local pre-push gate was skipped at the owner's direction; PR CI runs the full suites.
-- Validated paths: the five paths `54fcf3e0b` changes against `524e3aefd`
+- Tested implementation commit SHA: `57d5fc4f6` (on `fix/host-garden-personal-claims`)
+- Run at (UTC): `2026-09-27T07:49:30Z` to `2026-09-27T07:51:20Z`
+- Exact command(s): `bun run --cwd packages/shared test -- src/__tests__/hooks/commitment-pooling src/__tests__/hooks/client-ui/useGardenCommitmentController.test.tsx`, `bun run --cwd packages/client test -- src/__tests__/components/ClaimContextSheet.test.tsx src/__tests__/components/CommitmentClaims.test.tsx src/__tests__/views/GardenCommitment.test.tsx`, `bun run --cwd packages/shared typecheck -- --scope full`, `bun run --cwd packages/client typecheck -- --scope tests`, `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings` and `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`
+- Result: shared 26 passed in 3 files; client 35 passed in 3 files, the sheet's own test included; shared and client typechecks exit 0; oxlint exit 0; source structure passed against `origin/develop`. The local pre-push gate was skipped at the owner's direction; PR CI runs the full suites and passed at `10f0ac102`.
+- Validated paths: the six non-plan paths `57d5fc4f6` changes against `7fdc87f78`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 54fcf3e0b -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
-- Rendered proof: none yet. The change is in the roles hook's lists, and the sheet renders them unchanged. Mock-auth localhost or Storybook proof of a host-only member stays pending.
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 57d5fc4f6 -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
+- Rendered proof: none yet. Mock-auth localhost or Storybook proof of a host-only member's claim sheet stays pending.
