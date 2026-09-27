@@ -138,6 +138,28 @@ only after the solo reproduction confirms it.
   role lists. The roles hook exposes `membershipUnavailable` and `retryMembership`, which read the
   garden list and the chain again.
 
+## Review round 3 (PR #921, 2026-09-26)
+
+- A send keeps its execution claim alive for its whole length: `processJob` holds the claim with
+  `holdWorkClaims`, which renews the 60-second lease every 20 seconds until the send settles, so a
+  wallet or passkey prompt left open past a minute no longer lets it lapse (Codex P1).
+- `discardJob` takes the job's claim instead of reading it, so the check and the delete are one
+  held act: a running send refuses the discard, and no send can start while the discard runs. The
+  port is `executionClaims.acquire`, wired to `acquireWorkJobs`; the read-only `execution-claims`
+  module is gone. Proof: `job-queue.claim-hold.test.ts` (the hold stops before the claim is
+  released) and the seam test (a refused claim refuses the discard; a granted one is released once).
+- Ask Again honours the members-only rule: `canAskAgain` also needs `canClaimHere === true`
+  (Codex P2).
+- A completed chain read is the authority for the route garden. A chain "no" beats an indexed
+  roster that still lists a revoked role, and only the pending-join overlay overrides it (Codex P2).
+  The roster is read directly rather than through `isGardenMember`, whose cleanup erases the
+  overlay once the roster lists the viewer. The protocol pool's claim gardens still come from the
+  roster, because a six-role chain read for every garden is out of proportion.
+- Residual: the lease renews on a timer, so a tab the browser freezes, or throttles to one timer a
+  minute, can still let it lapse; the in-tab claim still blocks a discard from the same tab. The
+  work upload's hold has the same limit.
+- The `shared-job-queue-construction` seam is re-certified after its three proof files passed.
+
 ## Tests (RED first)
 
 - `packages/shared/src/__tests__/commitment-acts.test.ts`: an `it.each` table over
