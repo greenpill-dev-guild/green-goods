@@ -36,6 +36,8 @@ export class FakeChain implements ReportingChain {
   readonly events: AttestedEvent[] = [];
   readonly userOperations = new Map<Hex, Hex>();
   readonly works = new Map<Hex, PublishedWorkView & { approved?: boolean }>();
+  /** `${account}:${permissionId}` for permissions the owner has installed. */
+  readonly permissions = new Set<string>();
   private nonce = 0;
 
   grantRole(garden: string, account: string, roles: Partial<GardenRoles>): void {
@@ -126,6 +128,15 @@ export class FakeChain implements ReportingChain {
   async work(_chainId: number, uid: Hex): Promise<PublishedWorkView | null> {
     this.guard();
     return this.works.get(uid) ?? null;
+  }
+
+  async permissionInstalled(
+    _chainId: number,
+    account: string,
+    permissionId: Hex
+  ): Promise<boolean> {
+    this.guard();
+    return this.permissions.has(`${lower(account)}:${permissionId.toLowerCase()}`);
   }
 
   private accepts(attester: Addr, schema: Hex, recipient: Addr, data: Hex): boolean {

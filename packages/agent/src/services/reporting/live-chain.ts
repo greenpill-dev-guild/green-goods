@@ -52,6 +52,13 @@ const EIP7702_DESIGNATOR = "0xef0100";
 const WORK_LIST_LIMIT = 50;
 const DECISION_LIMIT = 200;
 
+export class PermissionStateUnavailableError extends Error {
+  constructor() {
+    super("Kernel permission state is not readable until the module compatibility gate passes");
+    this.name = "PermissionStateUnavailableError";
+  }
+}
+
 export interface LiveChainOptions {
   chain: Chain;
   rpcUrl: string;
@@ -304,5 +311,11 @@ export function createLiveReportingChain(options: LiveChainOptions): ReportingCh
     },
 
     work: decodeWork,
+
+    async permissionInstalled() {
+      // Reading a Kernel permission's enforceable state is part of the unproven module spike;
+      // refusing here keeps a grant from ever reading as active on this adapter.
+      throw new PermissionStateUnavailableError();
+    },
   };
 }

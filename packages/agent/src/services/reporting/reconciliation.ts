@@ -135,6 +135,24 @@ async function resolve(
   return hash ? { kind: "conflict", reason: "receipt_mismatch" } : { kind: "pending" };
 }
 
+/**
+ * A delegated attempt that reached the chain spent its reservation, whether it was included or
+ * reverted: budgets move from reserved to consumed and are never given back by a retry.
+ */
+function settleGrantBudget(core: ReportingCore, attemptId: string): void {
+  const row = core.db
+    .query("SELECT execution_grant_id, gas_reserved FROM execution_attempts WHERE id = $id")
+    .get({ id: attemptId }) as { execution_grant_id: string | null; gas_reserved: number } | null;
+  if (!row?.execution_grant_id) return;
+  core.db
+    .query(
+      `UPDATE execution_grants SET submissions_reserved = submissions_reserved - 1, submissions_consumed = submissions_consumed + 1,
+         gas_reserved = gas_reserved - $gas, gas_consumed = gas_consumed + $gas, version = version + 1
+       WHERE id = $grant AND submissions_reserved > 0`
+    )
+    .run({ grant: row.execution_grant_id, gas: row.gas_reserved });
+}
+
 function publish(
   deps: ReconciliationDeps,
   operation: OperationRecord,
@@ -150,6 +168,7 @@ function publish(
     blockHash: verified.blockHash,
     logIndex: verified.logIndex,
   });
+  if (attempt) settleGrantBudget(core, attempt.id);
   if (attempt)
     updateAttempt(core, attempt.id, {
       state: "confirmed",
@@ -163,8 +182,10 @@ function publish(
 function revert(deps: ReconciliationDeps, operation: OperationRecord): void {
   const { core } = deps;
   const attempt = latestAttempt(core, operation.id);
-  if (attempt)
+  if (attempt) {
+    settleGrantBudget(core, attempt.id);
     updateAttempt(core, attempt.id, { state: "reverted", reasonCode: "definitive_revert" });
+  }
   setOperationState(core, operation.id, "failed", { failureCode: "reverted" });
   operationSubject(core, operation)?.reopen(
     "reverted",

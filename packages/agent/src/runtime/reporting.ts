@@ -12,7 +12,9 @@ import type { ReportingChain } from "../services/reporting/chain";
 import type { ReportingConfig } from "../services/reporting/config";
 import { ensureControls } from "../services/reporting/controls";
 import { inTransaction, openReportingDatabase } from "../services/reporting/database";
+import { type DelegatedSender, executeDelegated } from "../services/reporting/delegated";
 import { watchOwnerAttempt } from "../services/reporting/execution";
+import { type GrantDeps, reconcileGrant } from "../services/reporting/grants";
 import type { ReportInterpreter } from "../services/reporting/interpretation";
 import type { JobKind } from "../services/reporting/jobs";
 import { createReportingKeyring } from "../services/reporting/keyring";
@@ -65,6 +67,16 @@ export interface ReportingRuntimeOptions {
   trustedProxy?: TrustedProxyConfig;
   /** Stays empty until the Kernel permission gates pass; delegation is disabled without entries. */
   delegationModules?: readonly PermissionModuleEntry[];
+  /**
+   * The restricted executor's signer and the Kernel adapter, supplied only once signer custody
+   * and module compatibility are proven. Without it, grants and delegated execution are refused.
+   */
+  delegation?: {
+    sender: DelegatedSender;
+    gasCap: number;
+    gasPerSubmission: number;
+    permissionIdFor: GrantDeps["permissionIdFor"];
+  };
   /** Extra job handlers owned by other slices (media processing, retention). */
   jobs?: (core: ReportingCore) => Partial<Record<JobKind, JobHandler>>;
   /** Only the loopback development driver serves plain HTTP cookies. */
@@ -106,6 +118,16 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
     deployment,
     delegationModules,
   };
+  const { delegation } = options;
+  const grantDeps: Omit<GrantDeps, "core" | "chain"> | null = delegation
+    ? {
+        deployment,
+        modules: delegationModules,
+        signerAddress: delegation.sender.signerAddress,
+        gasCap: delegation.gasCap,
+        permissionIdFor: delegation.permissionIdFor,
+      }
+    : null;
   const jobs: Partial<Record<JobKind, JobHandler>> = {
     resolve_authority: (job) =>
       resolveAuthority({ core, chain: options.chain, delegationModules }, job),
@@ -127,6 +149,23 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
     review_list: (job) => listPendingReviews(reviewDeps, job),
     review_open: (job) => openReview(reviewDeps, job),
     review_authority: (job) => resolveReviewAuthority(reviewDeps, job),
+    ...(grantDeps && delegation
+      ? {
+          reconcile_grant: (job) =>
+            reconcileGrant({ core, chain: options.chain, ...grantDeps }, job),
+          execute_delegated: (job) =>
+            executeDelegated(
+              {
+                core,
+                chain: options.chain,
+                deployment,
+                sender: delegation.sender,
+                gasPerSubmission: delegation.gasPerSubmission,
+              },
+              job
+            ),
+        }
+      : {}),
     process_media: (job) =>
       processMedia(
         {
@@ -177,6 +216,7 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
       verifier: options.verifier,
       media,
       rateLimiter: new InMemoryPublicRateLimiter(),
+      ...(grantDeps ? { grants: grantDeps } : {}),
       ...(options.trustedProxy ? { trustedProxy: options.trustedProxy } : {}),
       secureCookies: options.secureCookies ?? true,
       cookiePath: "/api/messaging",

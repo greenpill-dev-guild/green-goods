@@ -14,6 +14,8 @@ import { processMedia } from "../../../services/reporting/media/process";
 import type { OpenAIConfig } from "../../../services/reporting/openai-responses";
 import { prepareOperation } from "../../../services/reporting/preparation";
 import { reconcileOperation } from "../../../services/reporting/reconciliation";
+import { executeDelegated } from "../../../services/reporting/delegated";
+import { reconcileGrant } from "../../../services/reporting/grants";
 import { purgePrivateContent, sweepRetention } from "../../../services/reporting/retention";
 import {
   listPendingReviews,
@@ -50,6 +52,7 @@ import {
   TEST_KEYS,
 } from "./fixtures";
 import { FixtureUploader } from "./browser";
+import { FakeDelegatedSender } from "./delegated";
 import { FakeChain } from "./fake-chain";
 import { mountSyntheticIngress } from "./synthetic";
 import { FakeDocumentTools, FixtureMediaFetcher } from "./media";
@@ -88,6 +91,9 @@ export class Harness {
   readonly app = new Hono();
   readonly chain = new FakeChain();
   readonly uploader = new FixtureUploader();
+  readonly sender = new FakeDelegatedSender(this.chain);
+  /** The permission identifier the fake Kernel adapter derives for every grant. */
+  readonly permissionId = "0x7e57ab1e" as const;
   readonly mediaFiles = new Map<string, Uint8Array>();
   readonly mediaFailures = { remaining: 0 };
   readonly documents = new FakeDocumentTools();
@@ -123,7 +129,18 @@ export class Harness {
       rateLimiter: new InMemoryPublicRateLimiter(),
       secureCookies: true,
       cookiePath: "/api/messaging",
+      grants: this.grantDeps(),
     });
+  }
+
+  grantDeps() {
+    return {
+      deployment: this.chain.deployment,
+      modules: this.delegationModules,
+      signerAddress: this.sender.signerAddress,
+      gasCap: 2_000_000,
+      permissionIdFor: async () => this.permissionId,
+    };
   }
 
   reviewDeps(): ReviewJobDeps {
@@ -189,6 +206,19 @@ export class Harness {
           ),
         watch_owner_attempt: async (job) => watchOwnerAttempt(this.core, job),
         review_list: (job) => listPendingReviews(this.reviewDeps(), job),
+        reconcile_grant: (job) =>
+          reconcileGrant({ core: this.core, chain: this.chain, ...this.grantDeps() }, job),
+        execute_delegated: (job) =>
+          executeDelegated(
+            {
+              core: this.core,
+              chain: this.chain,
+              deployment: this.chain.deployment,
+              sender: this.sender,
+              gasPerSubmission: 200_000,
+            },
+            job
+          ),
         review_open: (job) => openReview(this.reviewDeps(), job),
         review_authority: (job) => resolveReviewAuthority(this.reviewDeps(), job),
         process_media: (job) =>

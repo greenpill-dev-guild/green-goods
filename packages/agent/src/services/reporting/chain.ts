@@ -92,6 +92,8 @@ export interface ReportingChain {
   /** Published work awaiting review in a garden, newest first. */
   pendingWork(chainId: number, garden: string): Promise<PublishedWorkView[]>;
   work(chainId: number, workUID: Hex): Promise<PublishedWorkView | null>;
+  /** Whether a Kernel permission is installed and enforceable for the account right now. */
+  permissionInstalled(chainId: number, account: string, permissionId: Hex): Promise<boolean>;
 }
 
 /** keccak256("Attested(address,address,bytes32,bytes32)") */
