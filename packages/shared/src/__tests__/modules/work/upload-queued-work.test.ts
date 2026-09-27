@@ -62,7 +62,7 @@ function harness(jobs: Job[], overrides: Partial<UploadQueuedWorkPorts> = {}) {
   const resumed = vi.fn();
   const ports: UploadQueuedWorkPorts = {
     confirmOnline: vi.fn(async () => true),
-    suspendPreparation: vi.fn(() => resumed),
+    suspendPreparation: vi.fn(async () => resumed),
     listJobs: async () => [...store.values()].map((job) => structuredClone(job)),
     getJob: async (id) => structuredClone(store.get(id)),
     acquire: async (ids) =>

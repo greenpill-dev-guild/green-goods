@@ -16,7 +16,7 @@ import {
 } from "../../../../../shared/.storybook/fixtures";
 import { CompletedTab } from "./CompletedTab";
 import { PendingTab } from "./PendingTab";
-import { buildUploadActions, type UploadBarState } from "./uploadActions";
+import { buildUploadAction, type UploadBarState } from "./uploadActions";
 import { WorkDashboardShell } from "./WorkDashboardShell";
 
 const GARDEN = "0xf401f34378384713222d1d21f63359cc4e8a858a" as Address;
@@ -119,7 +119,7 @@ interface DashboardFrameProps {
   isFetching?: boolean;
   isOffline?: boolean;
   savedAt?: number;
-  /** Queued work and decisions: renders the Pending toolbar action when set. */
+  /** Queued work and decisions: renders the Pending header action when set. */
   uploads?: Partial<UploadBarState>;
   /** Works whose decision from this device still waits to upload. */
   waitingUploadIds?: string[];
@@ -127,6 +127,7 @@ interface DashboardFrameProps {
 
 const NO_UPLOADS: UploadBarState = {
   readyCount: 0,
+  attentionCount: 0,
   preparingCount: 0,
   pausedForDataSaver: false,
   isPreparing: false,
@@ -147,8 +148,8 @@ function DashboardFrame({
   waitingUploadIds = [],
 }: DashboardFrameProps) {
   const intl = useIntl();
-  const actions = uploads
-    ? buildUploadActions(
+  const uploadAction = uploads
+    ? buildUploadAction(
         { ...NO_UPLOADS, ...uploads },
         { onUpload: fn(), onPrepareNow: fn() },
         intl.formatMessage
@@ -197,7 +198,7 @@ function DashboardFrame({
           isOffline={isOffline}
           savedAt={savedAt}
           pendingFilter={pendingFilter}
-          uploadActions={actions}
+          uploadAction={uploadAction}
           onPendingFilterChange={fn()}
           activeAddress={STEWARD}
           reviewerGardenIds={[GARDEN]}
@@ -386,7 +387,7 @@ export const PendingUploadStatesPortuguese: Story = {
   parameters: { locale: "pt" },
 };
 
-/** Nothing is prepared yet and preparation is running. */
+/** Nothing is prepared yet: Upload all waits with a spinner, at the width it keeps once ready. */
 export const PendingPreparingUploads: Story = {
   args: {
     tab: "pending",
@@ -396,7 +397,10 @@ export const PendingPreparingUploads: Story = {
   },
 };
 
-/** Data Saver holds preparation back; both available actions stay in the Pending toolbar. */
+/**
+ * Data Saver holds preparation back: the header sends what is ready, and offers
+ * Prepare now once nothing is.
+ */
 export const PendingDataSaver: Story = {
   args: {
     tab: "pending",
@@ -444,4 +448,18 @@ export const PendingWaitingToUploadSpanish: Story = {
 export const PendingWaitingToUploadPortuguese: Story = {
   args: PendingWaitingToUpload.args,
   parameters: { locale: "pt" },
+};
+
+/** Text enlargement keeps the action and filter usable on a narrow phone. */
+export const PendingUploadEnlargedText: Story = {
+  args: PendingUploadStates.args,
+  parameters: { locale: "es" },
+  decorators: [
+    (Story) => (
+      <>
+        <style>{"html { font-size: 200%; }"}</style>
+        <Story />
+      </>
+    ),
+  ],
 };

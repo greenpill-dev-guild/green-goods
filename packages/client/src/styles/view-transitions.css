@@ -29,10 +29,6 @@
   view-transition-name: app-bar;
 }
 
-.vt-sync-status {
-  view-transition-name: sync-status;
-}
-
 .vt-offline-banner {
   view-transition-name: offline-banner;
 }
@@ -96,16 +92,13 @@
  * plays and the outgoing snapshot never doubles it.
  */
 ::view-transition-group(app-bar),
-::view-transition-group(sync-status),
 ::view-transition-group(offline-banner),
 ::view-transition-new(app-bar),
-::view-transition-new(sync-status),
 ::view-transition-new(offline-banner) {
   animation: none;
 }
 
 ::view-transition-old(app-bar),
-::view-transition-old(sync-status),
 ::view-transition-old(offline-banner) {
   animation: none;
   opacity: 0;

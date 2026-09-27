@@ -3040,7 +3040,6 @@
   "app.submission.status.error": "error",
   "app.submission.status.inProgress": "in progress",
   "app.submission.status.pending": "pending",
-  "app.syncBar.pendingOffline": "Offline: {count, plural, one {# item} other {# items}} saved on this device",
   "app.syncBar.pendingOnline": "{count, plural, one {# item} other {# items}} waiting to upload",
   "app.title": "Welcome to the App",
   "app.toast.actionFailed": "Action failed",
@@ -6001,7 +6000,7 @@
   "app.uploads.blocked.workMissing": "Can't upload: this work isn't on the garden record",
   "app.uploads.blocked.selfReview": "Can't upload: you can't review your own work",
   "app.uploads.blocked.refused": "Can't upload: the garden record won't accept it",
-  "app.uploads.uploadAll": "Upload all ({count})",
+  "app.uploads.uploadAll": "Upload all",
   "app.uploads.uploadReady": "Upload {count} ready",
   "app.uploads.prepareNow": "Prepare now",
   "app.uploads.uploading": "Uploading…",
@@ -6018,6 +6017,5 @@
   "app.uploads.discardFailedMessage": "The work is still on this device. Try again in a moment.",
   "app.uploads.discardRefusedMessage": "It may already be on its way to the garden record. Check Your Work.",
   "app.uploads.tryAgainFailedTitle": "Couldn't try again",
-  "app.uploads.tryAgainFailedMessage": "Your work is still saved on this device. Try again in a moment.",
-  "app.syncBar.reviewUploads": "Review uploads"
+  "app.uploads.tryAgainFailedMessage": "Your work is still saved on this device. Try again in a moment."
 }

@@ -62,7 +62,7 @@ This repo runs multiple concurrent Claude/Codex sessions. Stay inside the paths 
 
 ## The lesson this tab exists to enforce
 
-This session found real drift: prototype casts had invented UI (a text-grid intro, an Action select on the details step) that did not match the shipping client. **Every specimen must name its shipping counterpart with a file:line citation and mirror its anatomy** — e.g. `WorkCard` status edges (`packages/shared/src/components/Cards/WorkCard/WorkCard.tsx`), `CardBase` accent variants, `StatusBadge`, `DomainBadge`, `FormInfo` (`packages/client/src/components/Cards/Form/FormInfo.tsx`), `ActionCard`/`GardenCard` selection cards + `Carousel` (`packages/client/src/views/Garden/Intro.tsx`), `FabButton`, `StandardTabs`, `SyncStatusBar`, `TopNav` + `FormProgress`. Where a kit specimen deliberately diverges (or the component is net-new to pooling with no shipping counterpart yet), the gallery entry must say so explicitly instead of implying parity. Open the real component before writing its entry — never cite from memory.
+This session found real drift: prototype casts had invented UI (a text-grid intro, an Action select on the details step) that did not match the shipping client. **Every specimen must name its shipping counterpart with a file:line citation and mirror its anatomy** — e.g. `WorkCard` status edges (`packages/shared/src/components/Cards/WorkCard/WorkCard.tsx`), `CardBase` accent variants, `StatusBadge`, `DomainBadge`, `FormInfo` (`packages/client/src/components/Cards/Form/FormInfo.tsx`), `ActionCard`/`GardenCard` selection cards + `Carousel` (`packages/client/src/views/Garden/Intro.tsx`), `FabButton`, `StandardTabs`, `TopNav` + `FormProgress`. Where a kit specimen deliberately diverges (or the component is net-new to pooling with no shipping counterpart yet), the gallery entry must say so explicitly instead of implying parity. Open the real component before writing its entry — never cite from memory.
 
 ## What to build
 
@@ -107,7 +107,7 @@ stepper, data table, GardenChip, canvas chrome). Editorial is a small set
 install CTA) rendered from the existing `.s-public` classes.
 
 **Naming.** The shipping component name leads each entry title
-(StandardTabs, FormInfo, SyncStatusBar, StatusBadge, AdminCard…); the kit
+(StandardTabs, FormInfo, StatusBadge, AdminCard…); the kit
 builder name appears in the annotation line. Net-new components carry their
 pooling name plus an explicit **NET-NEW** tag.
 
@@ -126,8 +126,7 @@ use / when not) ⑤ where-used screen ids as **clickable chips** linking
 delta sentence naming what shipping does differently, with `file:line`.
 
 **Drift policy: flag all, redraw nothing.** Every fidelity-gap specimen from
-the Phase 1 audit (flowHeader's added title h1, syncBar's single state vs
-the 3-state + Sync All shipping bar, FAB squircle/icon-swap vs rounded-full
+the Phase 1 audit (flowHeader's added title h1, FAB squircle/icon-swap vs rounded-full
 rotate-45, text-only domain row vs icon DomainBadge, selCard 200px 2-up vs
 ~full-width 212px shipping slides, homeHeader 44px vs 32px icon buttons,
 gardenTabs missing counts/icons, banner tone set vs Alert's, formInfo
