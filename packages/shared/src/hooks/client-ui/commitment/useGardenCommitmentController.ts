@@ -330,7 +330,9 @@ export function useGardenCommitmentController(input: {
       commitment &&
         (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED") &&
         !pending &&
-        !queueState.isUnavailable
+        !queueState.isUnavailable &&
+        // Every take-up entry point honours the members-only rule, asking again included.
+        canClaimHere === true
     ),
     claimNeedsContext: isProtocolPool,
     membership,

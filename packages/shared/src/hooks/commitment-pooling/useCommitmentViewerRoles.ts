@@ -30,16 +30,29 @@ import { useHasRole } from "../roles/useHasRole";
 const NO_GARDENS: Garden[] = [];
 
 /**
- * Whether the roster names the viewer in any of the six roles, with the join
- * overlay for a gardener whose join landed before the indexer caught up. The
+ * Whether the indexed roster names the viewer in any of the six roles. The
  * contract counts every hat (`GuardLib.isGardenMember`), so evaluators, owners,
- * funders and community members are members too.
+ * funders and community members are members too. Read directly, without
+ * `isGardenMember`'s cleanup, so a stale roster never erases a fresh join.
  */
+function rosterListsViewer(viewer: Address | null | undefined, garden: Garden): boolean {
+  return [
+    garden.gardeners,
+    garden.stewards,
+    garden.evaluators,
+    garden.owners,
+    garden.funders,
+    garden.communities,
+  ].some((list) => isAddressInList(viewer, list));
+}
+
+/** Whether this device just joined the garden: the pending-join overlay alone. */
+function joinedJustNow(viewer: Address | null | undefined, garden: Garden): boolean {
+  return isGardenMember(viewer, [], [], garden.id);
+}
+
 function holdsRosterRole(viewer: Address | null | undefined, garden: Garden): boolean {
-  if (isGardenMember(viewer, garden.gardeners, garden.stewards, garden.id)) return true;
-  return [garden.evaluators, garden.owners, garden.funders, garden.communities].some((list) =>
-    isAddressInList(viewer, list)
-  );
+  return rosterListsViewer(viewer, garden) || joinedJustNow(viewer, garden);
 }
 
 export interface ClaimGardenOption {
@@ -140,13 +153,25 @@ export function useCommitmentViewerRoles(input: {
   // Read on every render on purpose: the overlay lives in localStorage, and a
   // render is the cheapest way to see a join whichever surface wrote it.
   const rosterOrOverlay = garden ? holdsRosterRole(viewer, garden) : false;
+  const freshJoin = garden ? joinedJustNow(viewer, garden) : false;
   const chainPending = chainMembership.isLoading || chainMembership.isError;
+  // A completed chain read is the authority: the queue and the contract test
+  // the same roles. Only a join that landed after that read (the overlay) may
+  // override its "no"; an indexed roster can still list a revoked role.
+  // The overlay is keyed by the garden's own id, so a "no" waits for the list
+  // before it counts: a join that just landed must not flash the join card.
   const isMemberHere: boolean | null =
-    isSteward || chainMembership.isMember === true || rosterOrOverlay
+    isSteward || chainMembership.isMember === true || freshJoin
       ? true
-      : chainPending || !gardensKnown
-        ? null
-        : false;
+      : chainMembership.isMember === false
+        ? gardensKnown
+          ? false
+          : null
+        : rosterOrOverlay
+          ? true
+          : chainPending || !gardensKnown
+            ? null
+            : false;
 
   return {
     isSteward,

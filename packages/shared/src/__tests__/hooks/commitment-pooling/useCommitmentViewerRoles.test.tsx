@@ -100,6 +100,8 @@ describe("useCommitmentViewerRoles", () => {
   });
 
   it("counts every role the contract accepts, funders and community members included", () => {
+    // The roster is the fallback while the chain has not answered.
+    mocks.membership = { isMember: null, isLoading: false, isError: false };
     mocks.gardens = [
       { id: HOST, name: "Host Garden", gardeners: [], stewards: [], funders: [VIEWER] },
       { id: OTHER, name: "Other Garden", gardeners: [], stewards: [], communities: [VIEWER] },
@@ -107,6 +109,20 @@ describe("useCommitmentViewerRoles", () => {
     const { result } = roles();
     expect(result.current.isMemberHere).toBe(true);
     expect(result.current.claimGardens.member).toEqual([{ address: OTHER, name: "Other Garden" }]);
+  });
+
+  it("trusts a completed chain denial over a stale roster, and a fresh join over both", () => {
+    // The indexer can still list a role the chain has just revoked; the queue
+    // and the contract test the chain, so its "no" wins.
+    mocks.gardens = [{ id: HOST, name: "Host Garden", gardeners: [VIEWER], stewards: [] }];
+    mocks.membership = { isMember: false, isLoading: false, isError: false };
+    expect(roles().result.current.isMemberHere).toBe(false);
+    // A join this device just made landed after that read, so it still counts.
+    window.localStorage.setItem(
+      PENDING_JOINS_KEY,
+      JSON.stringify({ [HOST]: { address: VIEWER, timestamp: Date.now() } })
+    );
+    expect(roles().result.current.isMemberHere).toBe(true);
   });
 
   it("answers null while the chain read is on its way, and false once it has answered", () => {

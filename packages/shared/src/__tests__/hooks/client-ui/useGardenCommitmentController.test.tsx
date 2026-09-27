@@ -601,4 +601,35 @@ describe("useGardenCommitmentController", () => {
     expect(result.current.actKind).toBeNull();
     expect(result.current.membership).toMatchObject({ isMember: null, garden: null });
   });
+
+  it("offers Ask Again only while the reader may still take the commitment up", () => {
+    // The claim panel offers Ask Again beside a declined request. Asking again
+    // is a take-up too, so it needs the same membership.
+    mocks.commitmentQuery.detail = commitmentDetailFixture({
+      commitment: commitmentFixture({
+        derivedState: "OFFERED",
+        onchainState: "OFFERED",
+        creator: MARIA,
+        leadProvider: MARIA,
+        claimMode: "APPROVAL_GATED",
+      }),
+      contributors: [],
+    });
+    mocks.pool = poolFixture({ poolType: "GARDEN", garden: DEMO_GARDEN });
+    mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:gardener`, true]]);
+    mocks.gardens = [{ id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] }];
+    const { result, rerender } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    expect(result.current.canAskAgain).toBe(true);
+
+    // The role was revoked: the chain now says no, whatever the roster still lists.
+    mocks.roleAnswers = new Map();
+    rerender();
+    expect(result.current.canAskAgain).toBe(false);
+  });
 });
