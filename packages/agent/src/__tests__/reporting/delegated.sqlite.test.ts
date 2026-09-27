@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setControl } from "../../services/reporting/controls";
+import { loadDraft } from "../../services/reporting/drafts";
 import { liveGrant } from "../../services/reporting/grants-store";
+import { operationById } from "../../services/reporting/operations";
 import { TestBrowser } from "./support/browser";
 import { latestLink, reportUntilSummary } from "./support/flows";
-import { AIYELOJA, TAS } from "./support/fixtures";
+import { AIYELOJA, planting, snapshot, TAS } from "./support/fixtures";
 import { ADA, Harness, summaryToken } from "./support/harness";
 
 /**
@@ -32,8 +34,8 @@ afterEach(() => {
   harness.close();
 });
 
-function one<T>(sql: string): T {
-  return harness.core.db.query(sql).get() as T;
+function one<T>(sql: string, params: Record<string, string> = {}): T {
+  return harness.core.db.query(sql).get(params) as T;
 }
 
 /** Confirms a report, links the Kernel account and consents to publish. */
@@ -222,6 +224,39 @@ describe("Kernel reporting grant", () => {
     await harness.drain();
     expect(harness.sender.signed).toBe(signedBefore + 1);
     expect(harness.transport.sent.at(-1)?.message.text).toMatch(/^Your report is published ✅/);
+  });
+
+  it("sends the confirmed Action snapshot when instructions change before sending", async () => {
+    await confirmedKernelReport();
+    await harness.press(ADA, "Allow reporting in chat");
+    await grantInBrowser();
+    await harness.drain();
+
+    const summary = await reportUntilSummary(harness);
+    let confirmed: string | undefined;
+    // The registry publishes new instructions after preparation, before the executor signs.
+    betweenPreparationAndSending(() => {
+      const { draft_id: draftId } = one<{ draft_id: string }>(
+        "SELECT draft_id FROM execution_operations ORDER BY rowid DESC LIMIT 1"
+      );
+      confirmed = loadDraft(harness.core, draftId)?.snapshot?.digest;
+      harness.catalog.actions.set(TAS.key, [
+        snapshot(planting({ title: "Tree planting v2" }), "bafy-v2", 200n),
+      ]);
+    });
+    await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
+    const operation = one<{ id: string; state: string }>(
+      "SELECT id, state FROM execution_operations ORDER BY rowid DESC LIMIT 1"
+    );
+    expect(operation.state).toBe("published");
+    expect(confirmed).toBeDefined();
+    const envelope = operationById(harness.core, operation.id)?.envelope;
+    expect(envelope?.kind === "work" ? envelope.actionDefinitionDigest : null).toBe(confirmed);
+    expect(
+      one("SELECT count(*) AS n FROM execution_attempts WHERE operation_id = $id", {
+        id: operation.id,
+      })
+    ).toEqual({ n: 1 });
   });
 
   it("returns the report to its owner when the grant expires before it is sent", async () => {
