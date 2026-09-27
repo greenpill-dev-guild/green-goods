@@ -64,15 +64,18 @@ Copy and polish beyond the three places named (W4-3), and any change to who may 
 
 ## Implementation notes (2026-09-27)
 
-- **The Detail story needed no reseed.** At develop (`c17a03b46`) its seeds match the keys the
-  dialog controller reads (`commitmentPoolingKeys.commitment` and `.activity` with the same
-  filters), and a static Storybook build renders the whole record, "Proof added" included. The
-  not-found cast did not reproduce on a fresh build. The story now carries the `storybook-ci` tag,
-  so its play test runs in the story gate. The gate's browser runner cannot load modules through a
-  worktree with linked dependencies, so PR CI's Storybook job is the gate's first run of it.
+- **The Detail story needed its cycle.** Its commitment and activity seeds match the keys the
+  dialog controller reads, so a static build with network access renders the whole record. The
+  story gate's browser refuses the network, though. The Detail commitment's cycle (12) was never
+  seeded, and the controller counts a failed cycle read as a failed record, so the gate saw
+  "Proof added" and then the error cast. Seeding the cycle fixes it. A static build with every
+  outside request refused now renders the whole record without calling the indexer. The story
+  carries the `storybook-ci` tag, so its play test runs in the story gate.
 - **Names, not addresses.** `CommitmentPeople` (`views/Garden/Pool`) holds the pool row's rule, the
   provider for the receiver whichever side created the record, each named through the shared
-  `AddressDisplay`. The pool row and the inspector's summary line both use it, and the summary's
+  `AddressDisplay`. The provider is the lead provider once one is set: on a request taken up as a
+  garden claim, the counterparty is the garden's account. A long actor name in the timeline
+  truncates, whole in its title (review round 2). The pool row and the inspector's summary line both use it, and the summary's
   arrow is gone. The timeline names each actor and the Hub confirm row names who
   committed through `AddressDisplay`.
 - **Composite stories move to W4-3.** The member commitment screen and the app pool tab stories
@@ -91,11 +94,11 @@ Linear child is Done, and the composite stories' fate is written here (above: W4
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `defbcde8e` (on `fix/inspector-story-and-names`)
-- Run at (UTC): `2026-09-27T09:12Z` to `2026-09-27T09:28:04Z`, on the same tree just before its commit
-- Exact command(s): in `packages/admin`, `bun run test --` over `CommitmentPeople`, `HubConfirm`, `CommitmentDialog`, `GardenPool` and `HubDetail`; `bun run --cwd packages/admin typecheck` and `-- --scope tests`; `bun --bun run oxlint packages/admin/src/views/Garden/Pool packages/admin/src/views/Hub --deny-warnings`; `bun run check --only design-tokens`; `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`; `bun run --filter @green-goods/shared build-storybook` before and after the change
-- Result: 75 tests in five files passed, and the two name suites (14 tests) passed again after the Hub row's address guard; typechecks, oxlint, the design-token check and source structure passed. The story gate's browser runner cannot load modules through this worktree's linked dependencies, so the Detail story's play test first runs in PR CI's Storybook job. The local pre-push gate was skipped at the owner's direction; PR CI runs the full suites.
-- Validated paths: the non-plan paths `defbcde8e` changes against `c17a03b46`
+- Tested implementation commit SHA: `8f9d4759f` (on `fix/inspector-story-and-names`)
+- Run at (UTC): `2026-09-27T10:36:27Z` to `2026-09-27T10:43Z`, on `8f9d4759f` itself
+- Exact command(s): in `packages/admin`, `bun run test --` over `CommitmentPeople`, `HubConfirm`, `CommitmentDialog` and `GardenPool`, then `CommitmentDialog` and `GardenPool` alone; `bun run --cwd packages/admin typecheck` and `-- --scope tests`; `bun --bun run oxlint packages/admin/src/views/Garden/Pool packages/admin/src/views/Hub --deny-warnings`; `bun run check --only design-tokens`; `bun run --filter @green-goods/shared check:stories`; `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`; `bun run --filter @green-goods/shared build-storybook`, then the Detail story rendered from that build in headless Chromium with every non-local request refused
+- Result: in the four-file run, two tests timed out at 10 seconds under a load average near 250. Both files passed alone (51 tests), and the name and Hub suites passed in the same run. Typechecks, oxlint, the design-token check, the story contract and source structure passed. Offline, the Detail story renders the whole record with "Proof added" and no indexer call. The story gate's own vitest browser runner cannot load modules through this worktree's linked dependencies, so PR CI's Storybook job runs it. The local pre-push gate was skipped at the owner's direction; PR CI runs the full suites.
+- Validated paths: the non-plan paths `8f9d4759f` changes against the develop it merged (`303d114fd`)
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages` → empty
 - Evidence-only diff command and result (if applicable): this handoff commit changes only plan files
-- Rendered proof: Storybook, headless Chromium, at 1280 in light and dark, before (a static build of develop at `c17a03b46`) and after (a static build of this branch made before a type-only guard on the Hub row's address, which renders the same): `admin-pool-commitmentdialogpanel--detail`, `admin-pool-commitmentsummary--proof-in`, `admin-pool-commitmenttimeline--recorded`, `admin-hub-hubconfirmqueue--queue`, and `admin-pool-poolcommitmentscard--open`, which is unchanged. Sent to Afo as contact sheets.
+- Rendered proof: Storybook, headless Chromium, at 1280 in light and dark, before (develop at `c17a03b46`) and after (this branch before the lead-provider change, which the `GardenClaim` story now shows): the inspector's Detail story, the summary line, the timeline, the Hub confirm queue, and the unchanged pool row. Sent to Afo as contact sheets.
