@@ -19,6 +19,11 @@ export interface WorkUploadCheckpoint {
    * did lands in a later block, since that one was already sealed.
    */
   intentBlock?: bigint;
+  /**
+   * The account's next nonce when the intent was recorded, counting what the
+   * network held: the one this send's own transaction was due to use.
+   */
+  intentNonce?: number;
   transactionReverted?: boolean;
   /**
    * The wallet saw this transaction replaced by a different call, so it can

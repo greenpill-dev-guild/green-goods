@@ -172,8 +172,9 @@ export async function settleRecordedSend(input: {
   settleStranded: (pendingHash: Hex) => Promise<Hex>;
   /**
    * The transaction that landed, for a transaction no receipt answers (a
-   * Safe's own id never produces one), or a waiting error. It must never
-   * reopen the send: the Safe may still be collecting signatures.
+   * Safe's own id never produces one), or a waiting error. Absence alone must
+   * never reopen the send, since the Safe may still be collecting signatures:
+   * only proof the transaction can never be included may.
    */
   settleUnanswered?: (transactionHash: Hex) => Promise<Hex>;
 }): Promise<Hex> {

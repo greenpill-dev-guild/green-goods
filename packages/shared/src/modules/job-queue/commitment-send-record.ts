@@ -17,12 +17,16 @@
  * which may be the send itself if its answer was lost after the network took it,
  * nor while its bundler still holds a passkey send's UserOperation.
  *
+ * A transaction on record is offered again only once it can never be included:
+ * its account signs its own transactions, and another took its nonce. A Safe's
+ * id never shows that, so such a send completes only when the act lands.
+ *
  * @module modules/job-queue/commitment-send-record
  */
 
 import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
-import type { Job } from "../../types/job-queue";
+import type { Job, SendCheckpoint } from "../../types/job-queue";
 import { logger } from "../app/logger";
 import type { BroadcastReference, ContractCall, TransactionSender } from "../transactions/types";
 import { sendWithCheckpoint, settleRecordedSend } from "../work/send-with-checkpoint";
@@ -122,6 +126,29 @@ async function operationStillQueued(
   }
 }
 
+/**
+ * Whether the act's transaction can never be included because another took its
+ * nonce. Only a record that kept its intent's nonce can show it. When the chain
+ * cannot say, the act keeps waiting rather than risk a second send.
+ */
+async function transactionSuperseded(
+  checkpoint: SendCheckpoint | undefined,
+  account: Address,
+  chainReads: CommitmentChainReads
+): Promise<boolean> {
+  const hash = checkpoint?.transactionHash;
+  const nonce = checkpoint?.intentNonce;
+  if (!hash || nonce === undefined || !chainReads.transactionSuperseded) return false;
+  try {
+    return await chainReads.transactionSuperseded(hash, account, nonce);
+  } catch (error) {
+    logger.warn("[JobQueue] Could not read whether a commitment act's transaction lost its nonce", {
+      error,
+    });
+    return false;
+  }
+}
+
 /** A send on record waits for its confirmation; a reopened one waits for the person. */
 export function waitingForRecordedSend(error: unknown): CommitmentQueueExecution | undefined {
   if (error instanceof AwaitingWorkConfirmation)
@@ -151,8 +178,8 @@ export async function sendRecordedAct(
   call: ContractCall,
   sender: TransactionSender,
   store: CommitmentExecutorStore,
-  /** The chain's head just before the send, kept with its intent. */
-  head?: { number: bigint; timestamp: number }
+  /** The chain's head and the account's next nonce just before the send, kept with its intent. */
+  intent?: Pick<SendCheckpoint, "intentBlock" | "intentChainTime" | "intentNonce">
 ): Promise<Hex> {
   const result = await holdingSend(jobId, () =>
     sendWithCheckpoint({
@@ -161,12 +188,7 @@ export async function sendRecordedAct(
       jobIds: [jobId],
       record: async (next) => {
         const send = next(sendCheckpointOf(job) ?? {});
-        writeSendCheckpoint(
-          job,
-          send && head
-            ? { ...send, intentBlock: head.number, intentChainTime: head.timestamp }
-            : send
-        );
+        writeSendCheckpoint(job, send && intent ? { ...send, ...intent } : send);
         await store.updateJob(job);
       },
     })
@@ -194,7 +216,8 @@ export async function sendRecordedAct(
  * Settle an act whose send is on record instead of sending it again: by its
  * receipt, its UserOperation, or, when the answer was lost, by what the chain
  * recorded once the stranded-intent window has passed. A transaction no
- * receipt answers, such as a Safe's own id, completes when the act lands.
+ * receipt answers completes when the act lands, and is offered again only once
+ * another took its nonce, which a Safe's own id never shows.
  */
 export async function settleActSend(
   jobId: string,
@@ -224,6 +247,12 @@ export async function settleActSend(
           (await stillSending(jobId)) ||
           (await accountStillSending(stranded.userAddress as Address, chainReads)) ||
           (await operationStillQueued(sendCheckpointOf(stranded)?.broadcast, chainReads)),
+        transactionSuperseded: () =>
+          transactionSuperseded(
+            sendCheckpointOf(stranded),
+            stranded.userAddress as Address,
+            chainReads
+          ),
         persist: (updated) => store.updateJob(updated),
       }));
   try {

@@ -449,6 +449,34 @@ describe("settling a commitment act no receipt can", () => {
     expect(hasRecordedSend(replaced)).toBe(false);
   });
 
+  it("offers a transaction again once another took its nonce, and never on absence alone", async () => {
+    // A transaction its account signed can never be included once that nonce
+    // is spent: the wallet cancelled or replaced it while no tab was watching.
+    const absent = vi.fn().mockResolvedValue({ status: "absent" });
+    const record = { broadcastPending: false, transactionHash: TX, intentNonce: 5 };
+    const superseded = strandedTakeUp(pastGrace(), record);
+    await expect(
+      resolveStrandedCommitmentIntent(superseded, 42161, {
+        ...deps(absent),
+        lookUp: absent,
+        transactionSuperseded: async () => true,
+      })
+    ).resolves.toEqual({ status: "reopened" });
+    expect(hasRecordedSend(superseded)).toBe(false);
+    expect(superseded.meta?.requiresExplicitSend).toBe(true);
+
+    // With its nonce unspent, the signed transaction may still land.
+    const unspent = strandedTakeUp(pastGrace(), record);
+    await expect(
+      resolveStrandedCommitmentIntent(unspent, 42161, {
+        ...deps(absent),
+        lookUp: absent,
+        transactionSuperseded: async () => false,
+      })
+    ).resolves.toEqual({ status: "waiting" });
+    expect(hasRecordedSend(unspent)).toBe(true);
+  });
+
   it("reads a replaced mark storage refused from memory, and writes it back while it waits", async () => {
     const absent = vi.fn().mockResolvedValue({ status: "absent" });
     const record = { broadcastPending: false, transactionHash: TX };

@@ -763,9 +763,11 @@ describe("commitment acts record their sends", () => {
     const reconcile = vi.fn().mockResolvedValue("unresolved");
     // The chain's head goes with the intent: nothing this send did can predate it.
     const readChainHead = vi.fn().mockResolvedValue({ number: 100n, timestamp: 1_234 });
+    // So does the account's next nonce, the one its own transaction was due to use.
+    const readNextNonce = vi.fn().mockResolvedValue(5);
     const deps = {
       demoActive: () => false,
-      reads: { ...reads(), readChainHead },
+      reads: { ...reads(), readChainHead, readNextNonce },
       store: jobStore,
       reconcile,
     };
@@ -779,7 +781,9 @@ describe("commitment acts record their sends", () => {
       transactionHash: HASH,
       intentChainTime: 1_234,
       intentBlock: 100n,
+      intentNonce: 5,
     });
+    expect(readNextNonce).toHaveBeenCalledWith(USER);
     expect(jobStore.updateJob).toHaveBeenCalledWith(claim);
     expect(isDiscardableJob(claim)).toBe(false);
 
@@ -1038,6 +1042,65 @@ describe("commitment acts record their sends", () => {
     }
   });
 
+  it("offers a transaction on record again only once another took its nonce", async () => {
+    // Long past the grace window, no receipt, and the chain holds no sign of the act.
+    const unanswered = (id: string, intentNonce?: number) => {
+      const act = takeUp(id);
+      act.payload = {
+        ...act.payload,
+        sendCheckpoint: {
+          broadcastPending: false,
+          broadcastPendingAt: new Date(0).toISOString(),
+          broadcast: { kind: "transaction", hash: HASH },
+          transactionHash: HASH,
+          ...(intentNonce === undefined ? {} : { intentNonce }),
+        },
+      } as typeof act.payload;
+      return act;
+    };
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const transactionSuperseded = vi.fn().mockResolvedValue(false);
+    const deps = {
+      demoActive: () => false,
+      reads: {
+        ...reads(),
+        hasPendingTransaction: vi.fn().mockResolvedValue(false),
+        transactionSuperseded,
+      },
+      store: store(),
+      reconcile: vi.fn().mockResolvedValue("unresolved"),
+      lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
+    };
+    const settle = (act: ReturnType<typeof unanswered>) =>
+      executeCommitmentQueueJob(act.id, act, 42161, sender, deps);
+    const waiting = { status: "waiting", reason: "awaiting-confirmation" };
+    stubLocks(new Set());
+
+    try {
+      // Its nonce unspent, or unreadable, the signed transaction may still land.
+      await expect(settle(unanswered("claim-nonce-unspent", 5))).resolves.toEqual(waiting);
+      expect(transactionSuperseded).toHaveBeenCalledWith(HASH, USER, 5);
+      transactionSuperseded.mockRejectedValueOnce(new Error("rpc down"));
+      await expect(settle(unanswered("claim-nonce-unread", 5))).resolves.toEqual(waiting);
+      // A record without the nonce cannot show it: it completes only by landing.
+      transactionSuperseded.mockClear();
+      await expect(settle(unanswered("claim-no-nonce"))).resolves.toEqual(waiting);
+      expect(transactionSuperseded).not.toHaveBeenCalled();
+
+      transactionSuperseded.mockResolvedValue(true);
+      const spent = unanswered("claim-nonce-spent", 5);
+      await expect(settle(spent)).resolves.toEqual({
+        status: "waiting",
+        reason: "send-intent-expired",
+      });
+      expect(hasRecordedSend(spent)).toBe(false);
+      expect(isDiscardableJob(spent)).toBe(true);
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("clears the intent when the person declines, so the take-up can still be dropped", async () => {
     const claim = takeUp("claim-declined");
     const declined = new WorkSendCancelledError();
@@ -1258,6 +1321,57 @@ describe("commitment chain reads", () => {
     );
     getTransactionCount.mockImplementation(async () => 4);
     await expect(chainReads.hasPendingTransaction?.(USER)).resolves.toBe(false);
+  });
+
+  it("reads a transaction as superseded only once its signer's mined nonce has passed it", async () => {
+    const state = { code: undefined as string | undefined, mined: 6, held: false };
+    const notFound = Object.assign(new Error("Transaction not found"), {
+      name: "TransactionNotFoundError",
+    });
+    const getTransaction = vi.fn(async () => {
+      if (state.held) return { hash: HASH };
+      throw notFound;
+    });
+    const getBytecode = vi.fn(async () => state.code);
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      getBytecode: getBytecode as never,
+      getTransaction: getTransaction as never,
+      getTransactionCount: vi.fn(async (_config: unknown, request: { blockTag: string }) =>
+        request.blockTag === "pending" ? 7 : state.mined
+      ) as never,
+      config: {} as Config,
+    });
+    const superseded = () => chainReads.transactionSuperseded?.(HASH, USER, 5);
+
+    await expect(chainReads.readNextNonce?.(USER)).resolves.toBe(7);
+    // The account has no code, so the hash is a transaction it signed, and the
+    // network dropped it while its nonce went to another.
+    await expect(superseded()).resolves.toBe(true);
+    expect(getBytecode).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ address: USER, chainId: 42161 })
+    );
+    expect(getTransaction).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ hash: HASH, chainId: 42161 })
+    );
+    // Its nonce unspent, the signed transaction may still land.
+    state.mined = 5;
+    await expect(superseded()).resolves.toBe(false);
+    state.mined = 6;
+    // The network still holds it.
+    state.held = true;
+    await expect(superseded()).resolves.toBe(false);
+    state.held = false;
+    // A Safe's id, or any send from an account with code, never reads as superseded.
+    state.code = "0x6080";
+    await expect(superseded()).resolves.toBe(false);
+    state.code = undefined;
+    // Any other failure is no answer.
+    getTransaction.mockRejectedValueOnce(new Error("rpc down"));
+    await expect(superseded()).rejects.toThrow("rpc down");
   });
 
   it("confirms a work link by the key its WorkLinked event carries", async () => {

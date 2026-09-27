@@ -414,9 +414,15 @@ export async function executeCommitmentQueueJob(
         });
         // Read after the simulation, just before the intent: nothing this send
         // does can land in that block or before, so an earlier ask never passes
-        // for this one.
-        const head = await chainReads.readChainHead?.();
-        return sendRecordedAct(jobId, job, call, sender, store, head);
+        // for this one. The next nonce is the one its own transaction is due to use.
+        const [head, nonce] = await Promise.all([
+          chainReads.readChainHead?.(),
+          chainReads.readNextNonce?.(job.userAddress as Address),
+        ]);
+        return sendRecordedAct(jobId, job, call, sender, store, {
+          ...(head && { intentBlock: head.number, intentChainTime: head.timestamp }),
+          ...(nonce !== undefined && { intentNonce: nonce }),
+        });
       },
     });
   } catch (error) {

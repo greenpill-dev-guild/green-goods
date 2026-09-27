@@ -8,8 +8,10 @@
  * id in its metadata, and a landed decision names the work it decides. A
  * commitment act is settled by a lookup its executor supplies, which reads the
  * pool's event log and the module's own records. That lookup also settles an
- * act whose transaction no receipt answers, such as a Safe's own id, but only
- * by its landing: such a send is never reopened.
+ * act whose transaction no receipt answers, such as a Safe's own id, by its
+ * landing. Such a send reopens only once it can never be included: the wallet
+ * saw it replaced, or another transaction took its nonce, which a Safe's id
+ * never shows.
  *
  * @module modules/work/stranded-intent
  */
@@ -270,14 +272,21 @@ export async function resolveStrandedCommitmentIntent(
     lookUp: StrandedCommitmentLookup;
     /** Whether a tab still holds the act's send: its prompt may yet send it. */
     stillSending?: () => Promise<boolean>;
+    /**
+     * Whether the act's transaction can never be included because another took
+     * its nonce. Without it, a transaction on record reopens only when the
+     * wallet saw it replaced.
+     */
+    transactionSuperseded?: () => Promise<boolean>;
   }
 ): Promise<StrandedIntentResolution> {
   const payload = job.payload as CommitmentPayloadWithRecord;
   const checkpoint = payload.sendCheckpoint;
   // A transaction no receipt answers is looked up as well, since a Safe's own
-  // id never produces one. Its landing completes the act; its absence never
-  // reopens it, because the Safe may still be collecting signatures. One the
-  // wallet saw replaced can never be included, so its absence does reopen it.
+  // id never produces one. Its landing completes the act. Its absence alone
+  // never reopens it, because the Safe may still be collecting signatures: only
+  // proof it can never be included does, a replacement the wallet saw or
+  // another transaction on its nonce.
   const persist = deps.persist ?? persistJob;
   if (checkpoint && !checkpoint.transactionReplaced && retainedTransactionReplaced(job.id)) {
     // Storage refused the mark when the wallet saw the replacement: write it
@@ -292,8 +301,11 @@ export async function resolveStrandedCommitmentIntent(
       });
     }
   }
+  const replaced = checkpoint?.transactionReplaced === true;
+  const onRecord = Boolean(checkpoint?.transactionHash) && !replaced;
+  const superseded = deps.transactionSuperseded;
   const reopenable =
-    isStrandedIntentCandidate(checkpoint) || checkpoint?.transactionReplaced === true;
+    isStrandedIntentCandidate(checkpoint) || replaced || (onRecord && superseded !== undefined);
   if (!checkpoint || (!reopenable && !checkpoint.transactionHash)) return { status: "waiting" };
   return resolveStrandedSend({
     jobId: job.id,
@@ -309,7 +321,9 @@ export async function resolveStrandedCommitmentIntent(
           job.meta = { ...job.meta, requiresExplicitSend: true };
         }
       : undefined,
-    stillSending: deps.stillSending,
+    // A transaction on record may still land until another takes its nonce.
+    stillSending: async () =>
+      Boolean(await deps.stillSending?.()) || (onRecord && !(await superseded?.())),
     persist: () => persist(job),
   });
 }

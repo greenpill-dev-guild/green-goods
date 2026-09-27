@@ -1,5 +1,7 @@
 import {
   getBlock as wagmiGetBlock,
+  getBytecode as wagmiGetBytecode,
+  getTransaction as wagmiGetTransaction,
   getTransactionCount as wagmiGetTransactionCount,
   getTransactionReceipt as wagmiGetTransactionReceipt,
   readContract as wagmiReadContract,
@@ -54,6 +56,16 @@ export type CommitmentChainReads = Pick<
    * after the network took it may be that transaction.
    */
   hasPendingTransaction?: (account: Address) => Promise<boolean>;
+  /** The nonce the account's next transaction would use, counting those the network holds. */
+  readNextNonce?: (account: Address) => Promise<number>;
+  /**
+   * Whether this transaction can never be included because another took its
+   * nonce: the account has no code, so the hash is a transaction it signed; the
+   * network no longer holds it; and the account's mined nonce has passed the
+   * one it was due to use. A Safe's id, or a send from any account with code,
+   * never reads as superseded.
+   */
+  transactionSuperseded?: (hash: Hex, account: Address, nonce: number) => Promise<boolean>;
   /** The chain's latest block and its time, in seconds. */
   readChainHead?: () => Promise<{ number: bigint; timestamp: number }>;
   /**
@@ -86,6 +98,8 @@ export interface CommitmentChainReadOptions {
   readContract?: typeof wagmiReadContract;
   simulateContract?: typeof wagmiSimulateContract;
   getBlock?: typeof wagmiGetBlock;
+  getBytecode?: typeof wagmiGetBytecode;
+  getTransaction?: typeof wagmiGetTransaction;
   getTransactionCount?: typeof wagmiGetTransactionCount;
   getTransactionReceipt?: typeof wagmiGetTransactionReceipt;
   /** The bundler's status for a UserOperation; the default asks the chain's Pimlico bundler. */
@@ -99,6 +113,8 @@ export function createCommitmentChainReads({
   readContract = wagmiReadContract,
   simulateContract = wagmiSimulateContract,
   getBlock = wagmiGetBlock,
+  getBytecode = wagmiGetBytecode,
+  getTransaction = wagmiGetTransaction,
   getTransactionCount = wagmiGetTransactionCount,
   getTransactionReceipt = wagmiGetTransactionReceipt,
   getUserOperationStatus = (hash) =>
@@ -268,6 +284,23 @@ export function createCommitmentChainReads({
         getTransactionCount(wagmiConfig, { address: account, blockTag: "latest", chainId }),
       ]);
       return pending > mined;
+    },
+    readNextNonce: (account) =>
+      getTransactionCount(wagmiConfig, { address: account, blockTag: "pending", chainId }),
+    transactionSuperseded: async (hash, account, nonce) => {
+      const [code, mined, held] = await Promise.all([
+        getBytecode(wagmiConfig, { address: account, chainId }),
+        getTransactionCount(wagmiConfig, { address: account, blockTag: "latest", chainId }),
+        getTransaction(wagmiConfig, { hash, chainId }).then(
+          () => true,
+          (error: unknown) => {
+            // Only the node's own "no such transaction" says it dropped this one.
+            if (error instanceof Error && error.name === "TransactionNotFoundError") return false;
+            throw error;
+          }
+        ),
+      ]);
+      return (!code || code === "0x") && !held && mined > nonce;
     },
     hasMembership: async (garden, account) => {
       const results = await Promise.all(
