@@ -4,12 +4,14 @@ import {
   type GardenPoolDirection,
   useGardenPoolController,
 } from "@green-goods/shared/hooks/client-ui/pool/useGardenPoolController";
-import { type CommitmentPoolRecord } from "@green-goods/shared/commitment-pooling";
+import { type CommitmentPoolRecord, usePoolCharter } from "@green-goods/shared/commitment-pooling";
 import { RiHandHeartLine, RiInformationLine, RiSeedlingLine } from "@remixicon/react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
 import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
+import { AppSheet } from "@/components/Sheets/AppSheet";
 import { CycleRail } from "./CycleRail";
 import { PendingCreationRow } from "./PendingCreationRow";
 import { type CommitmentDoor, PoolCreateEntry } from "./PoolCreateEntry";
@@ -36,6 +38,12 @@ export function GardenPool({ pool }: GardenPoolProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const controller = useGardenPoolController(pool);
+  const [charterOpen, setCharterOpen] = useState(false);
+  const {
+    charter,
+    isLoading: charterLoading,
+    isUnavailable: charterUnavailable,
+  } = usePoolCharter(pool.charterCID);
 
   if (!controller.isParticipating) {
     // A creation queued before the pool closed can never land now, and these
@@ -53,10 +61,20 @@ export function GardenPool({ pool }: GardenPoolProps) {
             discardOnly
           />
         ))}
-        <PoolLifecycleNotice pool={pool} />
+        <PoolLifecycleNotice pool={pool} isSteward={controller.stewardsPool} />
       </div>
     );
   }
+
+  // The pool's own agreement, from its charter. The general sentence stands in
+  // only for a pool that has none; one that cannot be read says so.
+  const charterWords = charter?.purpose
+    ? charter.purpose
+    : charterUnavailable
+      ? formatMessage({ id: "app.pool.charter.unavailable" })
+      : charterLoading
+        ? formatMessage({ id: "app.pool.loading" })
+        : formatMessage({ id: "app.pool.charter" });
 
   // The door fixes the direction; the form never asks it again. Creation is
   // only offered while the pool is open, since a paused pool takes nothing,
@@ -113,12 +131,24 @@ export function GardenPool({ pool }: GardenPoolProps) {
         cycles={controller.cycles}
         selectedCycleId={controller.selectedCycleId}
         onSelect={controller.setSelectedCycleId}
+        onShowCharter={() => setCharterOpen(true)}
       />
 
-      <p className="flex gap-2 text-xs leading-relaxed text-text-sub-600">
-        <RiInformationLine className="h-4 w-4 shrink-0" aria-hidden="true" />
-        {formatMessage({ id: "app.pool.charter" })}
-      </p>
+      {/* With no season to hang the agreement on, it stays on the page. */}
+      {controller.cycles.length === 0 ? (
+        <p className="flex gap-2 text-xs leading-relaxed text-text-sub-600">
+          <RiInformationLine className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {charterWords}
+        </p>
+      ) : null}
+      <AppSheet
+        isOpen={charterOpen}
+        onClose={() => setCharterOpen(false)}
+        header={{ title: formatMessage({ id: "app.pool.charter.title" }) }}
+        size="compact"
+      >
+        <p className="text-sm leading-relaxed text-text-strong-950">{charterWords}</p>
+      </AppSheet>
 
       <div
         className="flex flex-wrap gap-2"

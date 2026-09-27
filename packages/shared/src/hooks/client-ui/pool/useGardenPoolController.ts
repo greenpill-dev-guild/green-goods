@@ -145,6 +145,7 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     poolState,
     isParticipating: !NON_PARTICIPATING_STATES.has(poolState),
     canCreate: poolState === "OPEN" && (pool.poolType !== "PROTOCOL" || stewardsPool || ownsPool),
+    stewardsPool: stewardsPool || ownsPool,
     acts: { retry, discard },
   };
 }

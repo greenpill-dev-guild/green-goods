@@ -1,15 +1,18 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type CommitmentCycleRecord,
   useCommitmentCycleNames,
 } from "@green-goods/shared/commitment-pooling";
-import { RiFlagLine, RiSunLine } from "@remixicon/react";
+import { RiFlagLine, RiInformationLine, RiSunLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
 export interface CycleRailProps {
   cycles: CommitmentCycleRecord[];
   selectedCycleId: bigint | null;
   onSelect: (cycleId: bigint | null) => void;
+  /** Opens what the pool is for, from an info button on each card. */
+  onShowCharter?: () => void;
 }
 
 /**
@@ -24,8 +27,11 @@ export interface CycleRailProps {
  * Each slide carries its own scope's counts. They are never summed across
  * slides: a season and a campaign measure different things, and adding them
  * would invent a number the garden never agreed to.
+ *
+ * One cycle is one card at full width, since a track with nothing beside it
+ * only clips the card. Two or more ride the rail.
  */
-export function CycleRail({ cycles, selectedCycleId, onSelect }: CycleRailProps) {
+export function CycleRail({ cycles, selectedCycleId, onSelect, onShowCharter }: CycleRailProps) {
   const { formatMessage, formatDate } = useIntl();
   const { byCycleId } = useCommitmentCycleNames(cycles);
 
@@ -57,71 +63,92 @@ export function CycleRail({ cycles, selectedCycleId, onSelect }: CycleRailProps)
     return formatMessage({ id: "app.pool.rail.dates" }, { start: startLabel, end: endLabel });
   };
 
+  const single = cycles.length === 1;
+  const cards = cycles.map((cycle) => {
+    const isCampaign = cycle.cycleType === "CAMPAIGN";
+    const selected = selectedCycleId === cycle.cycleId;
+    const kindLabel = formatMessage({
+      id: isCampaign ? "app.pool.rail.campaign" : "app.pool.rail.season",
+    });
+    const stateLabel = formatMessage({
+      id: `app.pool.cycleState.${(cycle.state ?? "UNKNOWN").toLowerCase()}`,
+    });
+    const name = byCycleId.get(cycle.cycleId.toString())?.name ?? null;
+    const dates = calmRange(cycle);
+
+    return (
+      <div
+        key={cycle.id}
+        className={cn("relative", single ? "w-full" : "min-w-[13rem] shrink-0 snap-start")}
+      >
+        <button
+          type="button"
+          data-pressable="card"
+          aria-pressed={selected}
+          onClick={() => onSelect(selected ? null : cycle.cycleId)}
+          className={cn(
+            "w-full rounded-[var(--radius-lg)] border p-3 text-left",
+            onShowCharter && "pe-12",
+            selected
+              ? "border-primary-alpha-24 bg-primary-alpha-10"
+              : "border-stroke-soft-200 bg-bg-white-0"
+          )}
+        >
+          {/* Chips lead, then the name, then the calm date, then the counts,
+              all on one left axis. */}
+          <span className="flex items-center gap-1.5 text-xs font-medium text-text-sub-600">
+            {isCampaign ? (
+              <RiFlagLine className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <RiSunLine className="h-4 w-4" aria-hidden="true" />
+            )}
+            <span>{kindLabel}</span>
+            <span aria-hidden="true">·</span>
+            <span>{stateLabel}</span>
+          </span>
+          {name ? (
+            <span
+              className="mt-1 block truncate text-sm font-medium text-text-strong-950"
+              title={name}
+            >
+              {name}
+            </span>
+          ) : null}
+          {dates ? <span className="mt-1 block text-xs text-text-sub-600">{dates}</span> : null}
+          <span className="mt-1 block text-xs text-text-sub-600">
+            {formatMessage(
+              { id: "app.pool.rail.counts" },
+              {
+                kept: Number(cycle.commitmentsFulfilled),
+                made: Number(cycle.commitmentsDue),
+              }
+            )}
+          </span>
+        </button>
+        {/* A sibling of the card, never inside it: a button cannot hold a button. */}
+        {onShowCharter ? (
+          <IconButton
+            emphasis="tertiary"
+            size="compact"
+            onClick={onShowCharter}
+            aria-label={formatMessage({ id: "app.pool.charter.title" })}
+            title={formatMessage({ id: "app.pool.charter.title" })}
+            icon={<RiInformationLine className="h-4 w-4" aria-hidden="true" />}
+            className="absolute end-2 top-2"
+          />
+        ) : null}
+      </div>
+    );
+  });
+
+  if (single) return cards[0];
   return (
     <div
       className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1"
       role="group"
       aria-label={formatMessage({ id: "app.pool.rail.label" })}
     >
-      {cycles.map((cycle) => {
-        const isCampaign = cycle.cycleType === "CAMPAIGN";
-        const selected = selectedCycleId === cycle.cycleId;
-        const kindLabel = formatMessage({
-          id: isCampaign ? "app.pool.rail.campaign" : "app.pool.rail.season",
-        });
-        const stateLabel = formatMessage({
-          id: `app.pool.cycleState.${(cycle.state ?? "UNKNOWN").toLowerCase()}`,
-        });
-        const name = byCycleId.get(cycle.cycleId.toString())?.name ?? null;
-        const dates = calmRange(cycle);
-
-        return (
-          <button
-            key={cycle.id}
-            type="button"
-            data-pressable="card"
-            aria-pressed={selected}
-            onClick={() => onSelect(selected ? null : cycle.cycleId)}
-            className={cn(
-              "min-w-[13rem] shrink-0 snap-start rounded-[var(--radius-lg)] border p-3 text-left",
-              selected
-                ? "border-primary-alpha-24 bg-primary-alpha-10"
-                : "border-stroke-soft-200 bg-bg-white-0"
-            )}
-          >
-            {/* Chips lead, then the name, then the calm date, then the counts,
-              all on one left axis. */}
-            <span className="flex items-center gap-1.5 text-xs font-medium text-text-sub-600">
-              {isCampaign ? (
-                <RiFlagLine className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <RiSunLine className="h-4 w-4" aria-hidden="true" />
-              )}
-              <span>{kindLabel}</span>
-              <span aria-hidden="true">·</span>
-              <span>{stateLabel}</span>
-            </span>
-            {name ? (
-              <span
-                className="mt-1 block truncate text-sm font-medium text-text-strong-950"
-                title={name}
-              >
-                {name}
-              </span>
-            ) : null}
-            {dates ? <span className="mt-1 block text-xs text-text-sub-600">{dates}</span> : null}
-            <span className="mt-1 block text-xs text-text-sub-600">
-              {formatMessage(
-                { id: "app.pool.rail.counts" },
-                {
-                  kept: Number(cycle.commitmentsFulfilled),
-                  made: Number(cycle.commitmentsDue),
-                }
-              )}
-            </span>
-          </button>
-        );
-      })}
+      {cards}
     </div>
   );
 }
