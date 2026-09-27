@@ -1245,6 +1245,45 @@ function validateLinearSchedule(status, laneLinear, path, errors) {
   }
 }
 
+// A tracker is an umbrella Linear issue that sits directly under the hub's
+// parent and groups some execution sub-lanes. `linear.trackers` maps a name to
+// its issue; a synced sub-lane may name a recorded tracker as its parentIssue,
+// so the manifest parents that lane under the tracker. The manifest never
+// writes the tracker issue itself.
+function linearTrackerEntries(linear) {
+  const trackers = linear?.trackers;
+  if (!trackers || typeof trackers !== "object" || Array.isArray(trackers)) {
+    return [];
+  }
+
+  return Object.entries(trackers)
+    .map(([name, issue]) => [name, normalizedLinearIssue(issue)])
+    .filter(([, issue]) => issue);
+}
+
+function validateLinearTrackers(linear, errors) {
+  const trackers = linear.trackers;
+  if (trackers === undefined || trackers === null) {
+    return;
+  }
+  if (typeof trackers !== "object" || Array.isArray(trackers)) {
+    errors.push("linear.trackers must be an object when present");
+    return;
+  }
+
+  const canonicalParent = canonicalLinearParentIssue(linear);
+  for (const [name, issue] of Object.entries(trackers)) {
+    if (!EXECUTION_SUB_LANE_NAME.test(name)) {
+      errors.push(`linear.trackers has invalid key "${name}"`);
+    }
+    if (!hasText(issue)) {
+      errors.push(`linear.trackers.${name} must be a Linear issue identifier`);
+    } else if (issue.trim() === canonicalParent) {
+      errors.push(`linear.trackers.${name} cannot reuse the canonical parent issue`);
+    }
+  }
+}
+
 function validateLinear(status, errors) {
   const linear = status.linear;
   if (linear === undefined) {
@@ -1280,6 +1319,7 @@ function validateLinear(status, errors) {
 
   validateLinearDateMap(linear.milestones, "linear.milestones", errors);
   validateLinearDateMap(linear.operationalCheckpoints, "linear.operationalCheckpoints", errors);
+  validateLinearTrackers(linear, errors);
 
   if (linear.lanes === undefined || linear.lanes === null) {
     return;
@@ -1338,6 +1378,16 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
       } else {
         issueOwners.set(issue, `linear.lanes.${laneName}`);
       }
+    }
+  }
+  const trackers = linearTrackerEntries(status.linear);
+  const trackerIssues = new Set(trackers.map(([, issue]) => issue));
+  for (const [trackerName, issue] of trackers) {
+    const previousOwner = issueOwners.get(issue);
+    if (previousOwner) {
+      errors.push(`linear.trackers.${trackerName} duplicates ${issue} already used by ${previousOwner}`);
+    } else {
+      issueOwners.set(issue, `linear.trackers.${trackerName}`);
     }
   }
   for (const [laneName, lane] of Object.entries(subLanes)) {
@@ -1444,9 +1494,11 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
         errors.push(
           `execution_sub_lanes.${laneName}.linear.parentIssue cannot be set without a canonical linear.parentIssue`,
         );
-      } else if (parentIssue !== canonicalParent) {
+      } else if (parentIssue !== canonicalParent && !trackerIssues.has(parentIssue)) {
         errors.push(
-          `execution_sub_lanes.${laneName}.linear.parentIssue must match canonical parent ${canonicalParent} or be null`,
+          trackerIssues.size === 0
+            ? `execution_sub_lanes.${laneName}.linear.parentIssue must match canonical parent ${canonicalParent} or be null`
+            : `execution_sub_lanes.${laneName}.linear.parentIssue must match canonical parent ${canonicalParent} or an issue in linear.trackers, or be null`,
         );
       }
     }

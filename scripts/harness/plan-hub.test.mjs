@@ -1261,6 +1261,86 @@ test("execution sub-lane validation rejects parent drift and duplicate issue rel
     assert.match(result.stderr, /cannot reuse the canonical parent issue/);
   }));
 
+// One sub-lane sits under the hub parent (PRD-1400) and one names PRD-1410, an
+// umbrella tracker that is only valid when the hub records it in linear.trackers.
+function writeTrackedSubLaneHub(root, slug, trackers) {
+  assert.equal(runPlanHub(root, ["scaffold", slug, "--stage", "active"]).status, 0);
+  const status = readStatus(root, "active", slug);
+  status.linear = {
+    parentIssue: "PRD-1400",
+    ...(trackers ? { trackers } : {}),
+    syncDirection: "plans_to_linear_visibility",
+    laneSyncMode: "lane_issues",
+    lastSyncedAt: "2026-07-20T00:00:00.000Z",
+  };
+  status.execution_sub_lanes = {
+    contracts: {
+      machine_lane: "contracts",
+      owner: "codex",
+      status: "ready",
+      branch: "feature/tracker-direct-lane",
+      depends_on: [],
+      handoff: "handoffs/codex-contracts.md",
+      linear: { sync: true, issue: "PRD-1401", parentIssue: "PRD-1400" },
+    },
+    follow_up: {
+      machine_lane: "ui",
+      owner: "claude",
+      status: "ready",
+      branch: "fix/tracker-follow-up",
+      depends_on: [],
+      handoff: "handoffs/codex-state-api.md",
+      linear: { sync: true, issue: "PRD-1411", parentIssue: "PRD-1410" },
+    },
+  };
+  writeStatus(root, "active", slug, status);
+  return status;
+}
+
+test("execution sub-lanes can nest under a tracker recorded on the hub", () =>
+  withFixture((root) => {
+    const status = writeTrackedSubLaneHub(root, "tracked-linear", { follow_ups: "PRD-1410" });
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "tracked-linear", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const parentIds = Object.fromEntries(
+      JSON.parse(result.stdout).lanes.map((lane) => [lane.lane, lane.parentId]),
+    );
+    assert.equal(parentIds.follow_up, "PRD-1410");
+    assert.equal(parentIds.contracts, "PRD-1400");
+
+    // The registry is the only way in: a tracker cannot be the hub parent or a
+    // lane's own issue, and a parent the hub has not recorded is still drift.
+    status.linear.trackers.hub = "PRD-1400";
+    status.execution_sub_lanes.contracts.linear.issue = "PRD-1410";
+    status.execution_sub_lanes.follow_up.linear.parentIssue = "PRD-9999";
+    writeStatus(root, "active", "tracked-linear", status);
+
+    const invalid = runPlanHub(root, ["validate"]);
+    assert.notEqual(invalid.status, 0);
+    assert.match(invalid.stderr, /linear\.trackers\.hub cannot reuse the canonical parent issue/);
+    assert.match(
+      invalid.stderr,
+      /contracts\.linear\.issue duplicates PRD-1410 already used by linear\.trackers\.follow_ups/,
+    );
+    assert.match(
+      invalid.stderr,
+      /follow_up\.linear\.parentIssue must match canonical parent PRD-1400 or an issue in linear\.trackers, or be null/,
+    );
+  }));
+
+test("hubs without linear.trackers keep the canonical parent check", () =>
+  withFixture((root) => {
+    writeTrackedSubLaneHub(root, "untracked-linear", null);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(
+      result.stderr,
+      /: execution_sub_lanes\.follow_up\.linear\.parentIssue must match canonical parent PRD-1400 or be null$/m,
+    );
+  }));
+
 test("execution sub-lane validation rejects compatibility issue-list drift", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "compatibility-issue-drift", "--stage", "active"]).status, 0);

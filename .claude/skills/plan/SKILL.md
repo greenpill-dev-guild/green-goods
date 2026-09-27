@@ -286,6 +286,10 @@ restate them here. Plan-specific deltas:
 - Use `source:plans` whenever the Linear record mirrors a `.plans` item.
 - Linear *project* descriptions (not issues) follow
   `.claude/context/linear-project-template.md`.
+- A synced execution sub-lane's `linear.parentIssue` is the hub's parent issue or null. To nest
+  sub-lanes under an umbrella tracker that is itself a child of that parent, record the tracker in
+  `linear.trackers` (`name: issue`) and point their `parentIssue` at it. The manifest parents those
+  lanes under the tracker and never writes the tracker issue itself.
 
 ### Progress Updates
 
