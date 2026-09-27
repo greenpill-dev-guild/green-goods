@@ -8,6 +8,7 @@ import {
 import { useHypercerts } from "@green-goods/shared/hooks/hypercerts/useHypercerts";
 import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useEffect, useMemo } from "react";
+import { Helmet } from "react-helmet-async";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -116,8 +117,18 @@ export default function GardenDetail() {
   const assessmentsUnavailable = detail?.unavailableSources.assessments ?? false;
   const fundHref = identity ? `/fund?garden=${encodeURIComponent(identity.slug)}` : "/fund";
 
+  const unlisted = detail?.unlisted ?? false;
+  // The detail decides; until it arrives, only the archive's own card proves a Garden listed.
+  const listed = detail ? !detail.unlisted : Boolean(summary);
+
   return (
     <>
+      {/* Unlisted means unlisted to crawlers too. */}
+      {unlisted ? (
+        <Helmet>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+      ) : null}
       <PublicEditorialHero
         variant="banner"
         imageSrc={identity?.bannerImage || getPublicHeroImage("gardens")}
@@ -141,6 +152,14 @@ export default function GardenDetail() {
               defaultMessage: "All Gardens",
             })}
           </EditorialGhostLink>
+        }
+        publicationMark={
+          unlisted
+            ? formatMessage({
+                id: "public.gardenDetail.unlisted",
+                defaultMessage: "This Garden is not in the public lists.",
+              })
+            : undefined
         }
       />
 
@@ -210,12 +229,15 @@ export default function GardenDetail() {
           <StewardsSection stewards={identity?.stewards ?? []} loading={detailLoading} />
 
           <div className="flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-10">
-            <EditorialPrimaryLink to={fundHref}>
-              {formatMessage({
-                id: "public.gardenDetail.support",
-                defaultMessage: "Support This Garden",
-              })}
-            </EditorialPrimaryLink>
+            {/* The funding list leaves an unlisted Garden out, so its link would find nothing. */}
+            {listed ? (
+              <EditorialPrimaryLink to={fundHref}>
+                {formatMessage({
+                  id: "public.gardenDetail.support",
+                  defaultMessage: "Support This Garden",
+                })}
+              </EditorialPrimaryLink>
+            ) : null}
             <EditorialGhostLink to="/impact">
               {formatMessage({
                 id: "public.gardenDetail.evidence.cta",

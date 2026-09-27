@@ -48,7 +48,7 @@ export const FirstStep: Story = {};
 
 /** A step in the middle, with nothing typed yet, so Next stays out of reach. */
 export const Incomplete: Story = {
-  args: { stepIndex: 1, canContinue: false },
+  args: { stepIndex: 1, canContinue: false, blockedReason: "Choose an end date after the start." },
 };
 
 /** The last step names the write it is about to make. */

@@ -2,7 +2,13 @@ import { Chip } from "@green-goods/shared/components/Chip";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Action } from "@green-goods/shared/types/domain";
 import { type CommitmentComposerValues } from "@green-goods/shared/commitment-pooling";
-import { COMMITMENT_UNIT_LABEL_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/metadata";
+import {
+  COMMITMENT_COUNT_CHOICES as COUNT_CHOICES,
+  COMMITMENT_DAY_CHOICES as DAY_CHOICES,
+  COMMITMENT_HOUR_CHOICES as HOUR_CHOICES,
+  COMMITMENT_UNIT_CHOICES as UNIT_CHOICES,
+  COMMITMENT_UNIT_LABEL_MAX_LENGTH,
+} from "@green-goods/shared/modules/commitment-pooling/metadata";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
 
@@ -16,11 +22,6 @@ export interface ComposeHowMuchProps {
   /** The garden's registered actions, for garden work. */
   actions: Action[];
 }
-
-const UNIT_CHOICES = ["hours", "sessions", "rides", "meals", "repairs"] as const;
-const COUNT_CHOICES = [1, 2, 3, 4, 6] as const;
-const HOUR_CHOICES = [1, 2, 4, 6, 12] as const;
-const DAY_CHOICES = [7, 14, 30] as const;
 
 /**
  * How much is put in, by when, and on what terms it is kept.

@@ -319,6 +319,14 @@ function renderMounted() {
 }
 
 const dialog = () => screen.getByRole("dialog");
+/** A reward rail, shown once the reward question is answered Yes. */
+function rewardRail(name: RegExp) {
+  if (!within(dialog()).queryByRole("radio", { name })) {
+    fireEvent.click(within(dialog()).getByRole("radio", { name: "Yes" }));
+  }
+  return within(dialog()).getByRole("radio", { name });
+}
+
 const next = () => fireEvent.click(within(dialog()).getByRole("button", { name: /^next$/i }));
 
 function fillWhat(title = "Market rides") {
@@ -482,12 +490,12 @@ describe("SeedCommitmentDialog (W8)", () => {
     fillHowMuch();
     next();
     await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
-    const celo = within(dialog()).getByRole("radio", { name: /celo g\$ settlement/i });
+    const celo = rewardRail(/celo g\$ settlement/i);
     expect(celo).toBeDisabled();
     expect(within(dialog()).getByText(/settlement account to be active/i)).toBeInTheDocument();
-    fireEvent.click(within(dialog()).getByRole("radio", { name: /external payout record/i }));
+    fireEvent.click(rewardRail(/external payout record/i));
     expect(within(dialog()).getByLabelText(/paid from/i)).toBeInTheDocument();
-    fireEvent.click(within(dialog()).getByRole("radio", { name: /^none/i }));
+    fireEvent.click(within(dialog()).getByRole("radio", { name: "No" }));
     expect(within(dialog()).queryByLabelText(/paid from/i)).not.toBeInTheDocument();
   });
 
@@ -537,12 +545,8 @@ describe("SeedCommitmentDialog (W8)", () => {
     await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
     fillHowMuch();
     next();
-    await waitFor(() =>
-      expect(
-        within(dialog()).getByRole("radio", { name: /external payout record/i })
-      ).toBeInTheDocument()
-    );
-    fireEvent.click(within(dialog()).getByRole("radio", { name: /external payout record/i }));
+    await waitFor(() => expect(rewardRail(/external payout record/i)).toBeInTheDocument());
+    fireEvent.click(rewardRail(/external payout record/i));
     fireEvent.change(within(dialog()).getByLabelText(/token \(address\)/i), {
       target: { value: REWARD_TOKEN },
     });
@@ -565,7 +569,7 @@ describe("SeedCommitmentDialog (W8)", () => {
     fillHowMuch();
     next();
     await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
-    fireEvent.click(within(dialog()).getByRole("radio", { name: /external payout record/i }));
+    fireEvent.click(rewardRail(/external payout record/i));
     fireEvent.change(within(dialog()).getByLabelText(/paid from/i), {
       target: { value: GARDEN },
     });
@@ -594,7 +598,7 @@ describe("SeedCommitmentDialog (W8)", () => {
     fillHowMuch();
     next();
     await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
-    fireEvent.click(within(dialog()).getByRole("radio", { name: /external payout record/i }));
+    fireEvent.click(rewardRail(/external payout record/i));
     fireEvent.change(within(dialog()).getByLabelText(/token \(address\)/i), {
       target: { value: REWARD_TOKEN },
     });
@@ -611,7 +615,7 @@ describe("SeedCommitmentDialog (W8)", () => {
     fillHowMuch();
     next();
     await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
-    fireEvent.click(within(dialog()).getByRole("radio", { name: /external payout record/i }));
+    fireEvent.click(rewardRail(/external payout record/i));
     fireEvent.change(within(dialog()).getByLabelText(/paid from/i), {
       target: { value: GARDEN },
     });
@@ -630,8 +634,7 @@ describe("SeedCommitmentDialog (W8)", () => {
     await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
     next();
     await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
-    fireEvent.click(within(dialog()).getByText(/advanced: declared reward/i));
-    fireEvent.click(within(dialog()).getByRole("radio", { name: /none/i }));
+    fireEvent.click(within(dialog()).getByRole("radio", { name: "No" }));
     mocks.rewardTokenReadable = false;
     settleQueries();
     next();
@@ -650,7 +653,7 @@ describe("SeedCommitmentDialog (W8)", () => {
     fillHowMuch();
     next();
     await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
-    fireEvent.click(within(dialog()).getByRole("radio", { name: /external payout record/i }));
+    fireEvent.click(rewardRail(/external payout record/i));
     fireEvent.change(within(dialog()).getByLabelText(/paid from/i), {
       target: { value: GARDEN },
     });
