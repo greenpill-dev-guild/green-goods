@@ -3,10 +3,10 @@
  * @vitest-environment jsdom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_VAULT = "0x4444444444444444444444444444444444444444";
 const TEST_USER = "0x1111111111111111111111111111111111111111";
@@ -29,33 +29,25 @@ vi.mock("../../../utils/blockchain/vaults", () => ({
 
 import { useVaultPreview } from "../../../hooks/vault/useVaultPreview";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 describe("useVaultPreview", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("returns undefined preview when no data available", () => {
     mockUseReadContracts.mockReturnValue({ data: undefined, isLoading: true });
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useVaultPreview({
           vaultAddress: TEST_VAULT as `0x${string}`,
           amount: 1000n,
           userAddress: TEST_USER as `0x${string}`,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     expect(result.current.preview).toBeUndefined();
@@ -75,7 +67,7 @@ describe("useVaultPreview", () => {
       isLoading: false,
     });
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useVaultPreview({
           vaultAddress: TEST_VAULT as `0x${string}`,
@@ -83,7 +75,7 @@ describe("useVaultPreview", () => {
           shares: 950n,
           userAddress: TEST_USER as `0x${string}`,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     expect(result.current.preview).toEqual({
@@ -111,14 +103,14 @@ describe("useVaultPreview", () => {
       isLoading: false,
     });
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useVaultPreview({
           vaultAddress: TEST_VAULT as `0x${string}`,
           amount: 1000n,
           userAddress: TEST_USER as `0x${string}`,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     expect(result.current.preview).toEqual({
@@ -135,13 +127,13 @@ describe("useVaultPreview", () => {
   it("builds empty contracts array when vaultAddress is undefined", () => {
     mockUseReadContracts.mockReturnValue({ data: undefined, isLoading: false });
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useVaultPreview({
           vaultAddress: undefined,
           amount: 1000n,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     expect(result.current.preview).toBeUndefined();
@@ -155,14 +147,14 @@ describe("useVaultPreview", () => {
   it("disables query when enabled=false", () => {
     mockUseReadContracts.mockReturnValue({ data: undefined, isLoading: false });
 
-    renderHook(
+    renderHookWithQueryClient(
       () =>
         useVaultPreview({
           vaultAddress: TEST_VAULT as `0x${string}`,
           amount: 1000n,
           enabled: false,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     const call = mockUseReadContracts.mock.calls[0][0];
@@ -172,12 +164,12 @@ describe("useVaultPreview", () => {
   it("uses ZERO_ADDRESS as default userAddress", () => {
     mockUseReadContracts.mockReturnValue({ data: undefined, isLoading: false });
 
-    renderHook(
+    renderHookWithQueryClient(
       () =>
         useVaultPreview({
           vaultAddress: TEST_VAULT as `0x${string}`,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     const call = mockUseReadContracts.mock.calls[0][0];
@@ -194,12 +186,12 @@ describe("useVaultPreview", () => {
   it("defaults amount and shares to 0n when not provided", () => {
     mockUseReadContracts.mockReturnValue({ data: undefined, isLoading: false });
 
-    renderHook(
+    renderHookWithQueryClient(
       () =>
         useVaultPreview({
           vaultAddress: TEST_VAULT as `0x${string}`,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     const call = mockUseReadContracts.mock.calls[0][0];
@@ -214,13 +206,13 @@ describe("useVaultPreview", () => {
   it("passes chainId through to every vault read", () => {
     mockUseReadContracts.mockReturnValue({ data: undefined, isLoading: false });
 
-    renderHook(
+    renderHookWithQueryClient(
       () =>
         useVaultPreview({
           vaultAddress: TEST_VAULT as `0x${string}`,
           chainId: 42161,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     const call = mockUseReadContracts.mock.calls[0][0];
@@ -233,13 +225,13 @@ describe("useVaultPreview", () => {
   it("uses the safe withdraw max-loss basis by default", () => {
     mockUseReadContracts.mockReturnValue({ data: undefined, isLoading: false });
 
-    renderHook(
+    renderHookWithQueryClient(
       () =>
         useVaultPreview({
           vaultAddress: TEST_VAULT as `0x${string}`,
           userAddress: TEST_USER as `0x${string}`,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     const call = mockUseReadContracts.mock.calls[0][0];
@@ -250,14 +242,14 @@ describe("useVaultPreview", () => {
   it("threads caller-provided maxLossBps into maxWithdraw", () => {
     mockUseReadContracts.mockReturnValue({ data: undefined, isLoading: false });
 
-    renderHook(
+    renderHookWithQueryClient(
       () =>
         useVaultPreview({
           vaultAddress: TEST_VAULT as `0x${string}`,
           userAddress: TEST_USER as `0x${string}`,
           maxLossBps: 50n,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     const call = mockUseReadContracts.mock.calls[0][0];

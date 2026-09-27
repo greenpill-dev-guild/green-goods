@@ -1,4 +1,4 @@
-import { encodeAbiParameters, keccak256, type Hex } from "viem";
+import { encodeAbiParameters, type Hex, keccak256 } from "viem";
 
 import type { Address } from "../../types/domain";
 
@@ -9,16 +9,6 @@ export type IndexedDisbursementState =
   | "CONFIRMED"
   | "FAILED"
   | "CANCELLED";
-
-export function selectConfirmedDisbursementTotal(
-  disbursements: readonly { state: IndexedDisbursementState; amount: bigint }[]
-): bigint {
-  return disbursements.reduce(
-    (total, disbursement) =>
-      disbursement.state === "CONFIRMED" ? total + disbursement.amount : total,
-    0n
-  );
-}
 
 export type SettlementDeliveryState =
   | { status: "confirmed" }
@@ -75,112 +65,6 @@ export function deriveSettlementDeliveryState(input: {
   return { status: "unknown" };
 }
 
-export function selectConsiderationStatus(input: {
-  rail: "UNKNOWN" | "NONE" | "ARBITRUM_EXTERNAL" | "CELO_SETTLEMENT";
-  considerationPaid: boolean;
-  settlement?: SettlementDeliveryState;
-}) {
-  if (input.rail === "ARBITRUM_EXTERNAL") {
-    return {
-      rail: input.rail,
-      status: input.considerationPaid ? "paid" : "unpaid",
-    } as const;
-  }
-  if (input.rail === "CELO_SETTLEMENT") {
-    return {
-      rail: input.rail,
-      status: input.settlement?.status ?? "not-started",
-    } as const;
-  }
-  if (input.rail === "NONE") return { rail: input.rail, status: "none" } as const;
-  return { rail: input.rail, status: "unknown" } as const;
-}
-
-export interface PaymentSnapshotRowInput {
-  contributor: Address;
-  recipient: Address;
-  recognitionWeightBps: number;
-  paymentWeightBps: number;
-  amount: bigint;
-}
-
-export function hashPaymentSnapshot(input: {
-  chainId: number;
-  payoutPlanId: bigint;
-  paymentSnapshotVersion: number;
-  gardenRetainedAmount: bigint;
-  contributorPayoutTotal: bigint;
-  rows: readonly PaymentSnapshotRowInput[];
-}): Hex {
-  return keccak256(
-    encodeAbiParameters(
-      [
-        { type: "uint256" },
-        { type: "uint256" },
-        { type: "uint32" },
-        { type: "uint256" },
-        { type: "uint256" },
-        {
-          type: "tuple[]",
-          components: [
-            { name: "contributor", type: "address" },
-            { name: "recipient", type: "address" },
-            { name: "recognitionWeightBps", type: "uint16" },
-            { name: "paymentWeightBps", type: "uint16" },
-            { name: "amount", type: "uint256" },
-          ],
-        },
-      ],
-      [
-        BigInt(input.chainId),
-        input.payoutPlanId,
-        input.paymentSnapshotVersion,
-        input.gardenRetainedAmount,
-        input.contributorPayoutTotal,
-        input.rows.map((row) => ({ ...row })),
-      ]
-    )
-  );
-}
-
-const PAYOUT_KIND_ORDINAL = {
-  CONTRIBUTOR_CONSIDERATION: 0,
-  FUNDING: 1,
-  LOAN_PRINCIPAL: 2,
-  GARDEN_BENEFICIARY: 3,
-  REFUND: 4,
-} as const;
-
-export function hashBeneficiarySnapshot(input: {
-  chainId: number;
-  payoutPlanId: bigint;
-  payoutKind: keyof typeof PAYOUT_KIND_ORDINAL;
-  beneficiaryGarden: Address;
-  beneficiaryRecipient: Address;
-  amount: bigint;
-}): Hex {
-  return keccak256(
-    encodeAbiParameters(
-      [
-        { type: "uint256" },
-        { type: "uint256" },
-        { type: "uint8" },
-        { type: "address" },
-        { type: "address" },
-        { type: "uint256" },
-      ],
-      [
-        BigInt(input.chainId),
-        input.payoutPlanId,
-        PAYOUT_KIND_ORDINAL[input.payoutKind],
-        input.beneficiaryGarden,
-        input.beneficiaryRecipient,
-        input.amount,
-      ]
-    )
-  );
-}
-
 export interface RecognitionEntryInput {
   contributor: Address;
   recognitionWeightBps: number;
@@ -222,20 +106,6 @@ export function hashRecognitionSnapshot(input: {
       ]
     )
   );
-}
-
-export function deriveCommitmentSettlementFlow(input: {
-  payerGarden: Address;
-  providerGarden: Address;
-  protocolGarden: Address;
-}): "PROTOCOL_TO_GARDEN" | "GARDEN_TO_PROTOCOL" | "GARDEN_TO_GARDEN" | "INTERNAL" {
-  const payer = input.payerGarden.toLowerCase();
-  const provider = input.providerGarden.toLowerCase();
-  const protocol = input.protocolGarden.toLowerCase();
-  if (payer === provider) return "INTERNAL";
-  if (payer === protocol) return "PROTOCOL_TO_GARDEN";
-  if (provider === protocol) return "GARDEN_TO_PROTOCOL";
-  return "GARDEN_TO_GARDEN";
 }
 
 export function selectSettlementActions(input: {
@@ -293,37 +163,4 @@ export function selectOperationsCapabilities(input: {
     canRequeueOrCancel,
     showOperations: input.isDeployer || canQueueFunding || canDispatchOrRetry || canRequeueOrCancel,
   };
-}
-
-export function selectSettlementReadiness(input: {
-  sourcePaused: boolean;
-  executorPaused: boolean;
-  batchWithinLimit: boolean;
-  amountWithinCap: boolean;
-  batchAmountWithinCap: boolean;
-  feeReserveLow: boolean;
-  peerConfigured: boolean;
-  sourceAccountActive: boolean;
-  executorRouteActive: boolean;
-}) {
-  return {
-    sourceReady: !input.sourcePaused,
-    executorReady: !input.executorPaused && input.executorRouteActive,
-    batchWithinLimit: input.batchWithinLimit,
-    amountWithinCap: input.amountWithinCap,
-    batchAmountWithinCap: input.batchAmountWithinCap,
-    feeReserveReady: !input.feeReserveLow,
-    peerReady: input.peerConfigured,
-    accountReady: input.sourceAccountActive,
-    ready:
-      !input.sourcePaused &&
-      !input.executorPaused &&
-      input.batchWithinLimit &&
-      input.amountWithinCap &&
-      input.batchAmountWithinCap &&
-      !input.feeReserveLow &&
-      input.peerConfigured &&
-      input.sourceAccountActive &&
-      input.executorRouteActive,
-  } as const;
 }

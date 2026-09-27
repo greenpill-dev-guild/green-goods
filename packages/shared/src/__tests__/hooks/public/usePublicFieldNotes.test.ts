@@ -3,12 +3,12 @@
  * @vitest-environment jsdom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import { createMockGarden, createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -38,21 +38,6 @@ import { usePublicFieldNotes } from "../../../hooks/public/usePublicFieldNotes";
 // Helpers
 // ============================================
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-      mutations: { retry: false },
-    },
-  });
-}
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 // ============================================
 // Tests
 // ============================================
@@ -62,7 +47,7 @@ describe("usePublicFieldNotes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockGetGardens.mockResolvedValue([]);
     mockGetWorks.mockResolvedValue([]);
   });
@@ -73,8 +58,8 @@ describe("usePublicFieldNotes", () => {
     ]);
     mockGetWorks.mockResolvedValue([]);
 
-    const { result } = renderHook(() => usePublicFieldNotes(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicFieldNotes(), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -110,8 +95,8 @@ describe("usePublicFieldNotes", () => {
       ];
     });
 
-    const { result } = renderHook(() => usePublicFieldNotes(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicFieldNotes(), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -133,9 +118,12 @@ describe("usePublicFieldNotes", () => {
       }),
     ]);
 
-    const { result } = renderHook(() => usePublicFieldNotes({ gardenAddress: garden.id }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => usePublicFieldNotes({ gardenAddress: garden.id }),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -160,8 +148,8 @@ describe("usePublicFieldNotes", () => {
     );
     mockGetWorks.mockResolvedValue(works);
 
-    const { result } = renderHook(() => usePublicFieldNotes({ limit: 10 }), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicFieldNotes({ limit: 10 }), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -189,9 +177,12 @@ describe("usePublicFieldNotes", () => {
     );
     mockGetWorks.mockResolvedValue(works);
 
-    const { result } = renderHook(() => usePublicFieldNotes({ limit: 10, cursor: 10 }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => usePublicFieldNotes({ limit: 10, cursor: 10 }),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -208,8 +199,8 @@ describe("usePublicFieldNotes", () => {
     mockGetGardens.mockResolvedValue([garden]);
     mockGetWorks.mockRejectedValue(new Error("EAS down"));
 
-    const { result } = renderHook(() => usePublicFieldNotes(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicFieldNotes(), {
+      queryClient,
     });
 
     await waitFor(() => {

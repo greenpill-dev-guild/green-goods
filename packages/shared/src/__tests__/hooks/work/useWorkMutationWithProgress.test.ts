@@ -7,17 +7,17 @@
  * wallet stage mapping, and reset behavior.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import {
   createMockAction,
   createMockFiles,
   createMockWorkDraft,
   MOCK_ADDRESSES,
 } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -109,21 +109,6 @@ import { useWorkMutationWithProgress } from "../../../hooks/work/useWorkMutation
 // Test helpers
 // ============================================
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-}
-
 function createDefaultOptions() {
   return {
     authMode: "wallet" as const,
@@ -143,7 +128,7 @@ describe("useWorkMutationWithProgress", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockMutateAsync.mockResolvedValue({ hash: "0xabc", uid: "0x123" });
   });
 
@@ -153,9 +138,12 @@ describe("useWorkMutationWithProgress", () => {
 
   describe("initial state", () => {
     it("starts with idle progress", () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       expect(result.current.progress.stage).toBe("idle");
       expect(result.current.progress.overallProgress).toBe(0);
@@ -164,9 +152,12 @@ describe("useWorkMutationWithProgress", () => {
     });
 
     it("exposes mutation, progress, and convenience methods", () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       expect(result.current.mutation).toBeDefined();
       expect(result.current.progress).toBeDefined();
@@ -184,9 +175,12 @@ describe("useWorkMutationWithProgress", () => {
 
   describe("submitWork", () => {
     it("transitions progress through stages on successful submission", async () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       const draft = createMockWorkDraft();
       const images = createMockFiles(2);
@@ -201,9 +195,12 @@ describe("useWorkMutationWithProgress", () => {
     });
 
     it("resets progress before each new submission", async () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       // Manually set an error state first
       act(() => {
@@ -226,9 +223,12 @@ describe("useWorkMutationWithProgress", () => {
     });
 
     it("calls mutation.mutateAsync with draft and images", async () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       const draft = createMockWorkDraft({ feedback: "My work" });
       const images = createMockFiles(1);
@@ -244,9 +244,12 @@ describe("useWorkMutationWithProgress", () => {
       const expectedResult = { hash: "0xTxHash", uid: "0xUID" };
       mockMutateAsync.mockResolvedValue(expectedResult);
 
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       let submitResult: any;
       await act(async () => {
@@ -268,9 +271,12 @@ describe("useWorkMutationWithProgress", () => {
     it("sets error state when mutation fails", async () => {
       mockMutateAsync.mockRejectedValue(new Error("Upload failed"));
 
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       await act(async () => {
         try {
@@ -292,9 +298,12 @@ describe("useWorkMutationWithProgress", () => {
       const error = new Error("Gas estimation failed");
       mockMutateAsync.mockRejectedValue(error);
 
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       await expect(
         act(async () => {
@@ -309,9 +318,12 @@ describe("useWorkMutationWithProgress", () => {
     it("uses generic message for non-Error throws", async () => {
       mockMutateAsync.mockRejectedValue("string error");
 
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       await act(async () => {
         try {
@@ -334,9 +346,12 @@ describe("useWorkMutationWithProgress", () => {
 
   describe("updateProgress (wallet stage mapping)", () => {
     it("maps 'validating' to 'compressing'", () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       act(() => {
         result.current.updateProgress("validating");
@@ -346,9 +361,12 @@ describe("useWorkMutationWithProgress", () => {
     });
 
     it("maps 'uploading' to 'uploading'", () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       act(() => {
         result.current.updateProgress("uploading");
@@ -358,9 +376,12 @@ describe("useWorkMutationWithProgress", () => {
     });
 
     it("maps 'confirming' to 'confirming'", () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       act(() => {
         result.current.updateProgress("confirming");
@@ -370,9 +391,12 @@ describe("useWorkMutationWithProgress", () => {
     });
 
     it("maps 'syncing' to 'syncing'", () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       act(() => {
         result.current.updateProgress("syncing");
@@ -382,9 +406,12 @@ describe("useWorkMutationWithProgress", () => {
     });
 
     it("maps 'complete' to 'complete'", () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       act(() => {
         result.current.updateProgress("complete");
@@ -394,9 +421,12 @@ describe("useWorkMutationWithProgress", () => {
     });
 
     it("maps unknown stages to 'idle'", () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       act(() => {
         result.current.updateProgress("unknown-stage");
@@ -412,9 +442,12 @@ describe("useWorkMutationWithProgress", () => {
 
   describe("reset", () => {
     it("resets both mutation and progress state", async () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       // Advance progress
       act(() => {
@@ -434,9 +467,12 @@ describe("useWorkMutationWithProgress", () => {
     });
 
     it("can submit again after reset", async () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       // First submission
       await act(async () => {
@@ -472,9 +508,12 @@ describe("useWorkMutationWithProgress", () => {
 
   describe("setStageProgress", () => {
     it("allows direct stage progress updates", () => {
-      const { result } = renderHook(() => useWorkMutationWithProgress(createDefaultOptions()), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useWorkMutationWithProgress(createDefaultOptions()),
+        {
+          queryClient,
+        }
+      );
 
       act(() => {
         result.current.setStage("uploading");

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-19T22:46:56.155Z",
-    "updated_at": "2026-09-20T03:56:56.592Z"
+    "updated_at": "2026-09-27T08:09:58.924683Z"
   },
   "links": {
     "brief": "brief.md",
@@ -37,10 +37,11 @@
   "notes": [
     "User selected local implementation on 2026-09-19, beginning with step 1 guidance, and later authorized a commit of completed slices. Branch changes, publication, and Linear writes remain unauthorized.",
     "Preparation complete at 459ca0b904a46511e31293ef921dfc8c3af70496. See reports/2026-09-19-preparation.md for evidence and limitations.",
-    "Steps 1–2, 4, 6 and 7 are locally complete. Step 8's first Shared helper batch and diff-aware guard passed review; further package batches remain. Step 3 sharding and step 5 measured floors have local proof, with current-SHA CI pending. Live Shared tests fail another session's uncommitted locale case. The default Apple Git exposes a separate validation-system failure; command-scoped Git 2.55 passes. Remaining local work: step 8 expansion, steps 9–10, and snapshot 06.",
+    "September 27 local steps 8\u201310 implemented: 29 Shared/two Admin helper conversions, six unused settlement exports removed, eight memory/SQLite conformance cases, five stale mocks removed and one same-subject file merge. Shared full coverage passed (5,876 tests, all floors); focused Admin/Agent and selected types/build/quality checks passed. Full Client validation is blocked by 10-second DetailsGate timeouts; focused baseline-source and restored-source runs both passed. See reports/2026-09-26-snapshot-06.md. Validation was collected before commit; independent QA/current-SHA CI remain pending.",
     "Selected order: original items 1, 4, 3, 11, 2+7, 5+8+9+10+6b, 12. Item 6a deferred.",
-    "The 2026-09-22 coverage checkpoint remains in codebase-architecture-skills. Step 1 changes no thresholds or ratchet obligation. Live PR checks confirmed #795 and #802 remain open at their preparation heads.",
-    "The linear-sync start manifest proposed a missing parent with parent_only visibility. No Linear write is authorized or recorded."
+    "Historical September 19 preparation: the architecture hub owned the September 22 checkpoint, and PRs #795/#802 were open then. Fresh September 27 reads: #802 merged on September 20; #795 remains open at efd85dcebab17ceb9da87cb78fce8d3fd6aef714. Existing floors and architecture checkpoint ownership are unchanged by this slice.",
+    "The linear-sync start manifest proposed a missing parent with parent_only visibility. No Linear write is authorized or recorded.",
+    "User authorized remaining local work on September 26\u201327. Publication, branch changes and Linear writes remain outside scope. Named layout guards and the batch-approval cache fixture are retained after inspection; isolate:false remains deferred."
   ],
   "lanes": {
     "ui": {
@@ -66,7 +67,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "in_progress",
+      "status": "blocked",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
@@ -81,10 +82,10 @@
           "command": "node scripts/dev/node-cli.js node --test scripts/quality/workflow-performance-parity.test.mjs",
           "evidence": "After measured image-compression floor: 32/32 passed; fixed-source full Shared coverage 499 files/5326 tests passed. /private/tmp/green-goods-image-compression-floor-green.log and /private/tmp/green-goods-image-compression-full-coverage-08f.log"
         },
-        "note": ""
+        "note": "Historical tooling RED/GREEN retained. The September 27 slice preserves runtime behavior; mechanical-refactor proof, adapter conformance and a caught/restored revision fault are in Snapshot 06. Client whole-suite timeouts remain an explicit validation blocker."
       },
       "skill_tags": ["planning", "testing", "tooling"],
-      "manual_blocked": false
+      "manual_blocked": true
     },
     "contracts": {
       "owner": "codex",
@@ -408,6 +409,38 @@
       "status": "in_progress",
       "branch": null,
       "note": "User authorized committing completed local slices and hub only; steps 3/5 retain current-SHA CI obligations, steps 8-11 remain open. No push or Linear write."
+    },
+    {
+      "timestamp": "2026-09-27T07:05:54.795260Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Remaining consolidation implemented locally; final verification and Snapshot 06 reconciliation in progress."
+    },
+    {
+      "timestamp": "2026-09-27T07:33:57.004503Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Local consolidation complete and Shared full coverage green. Client full validation hits DetailsGate timeouts; focused baseline/restored source runs pass. Scope expansion requested for a table-driven test repair; no Client edits yet."
+    },
+    {
+      "timestamp": "2026-09-27T07:34:49.300566Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "blocked",
+      "branch": null,
+      "note": "Selected local changes are implemented and preserved. Full Client validation hits DetailsGate timeouts; applying the proposed out-of-target table refactor awaits scope approval. No Client edits, commit or publication."
+    },
+    {
+      "timestamp": "2026-09-27T08:09:58.924683Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "blocked",
+      "branch": null,
+      "note": "User authorized a local commit of the completed changes and hub records. Client timeout repair remains outside scope; no branch change, push, PR or external write is authorized. Verification evidence was collected before commit."
     }
   ]
 }

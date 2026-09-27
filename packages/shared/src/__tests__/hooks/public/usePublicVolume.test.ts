@@ -3,12 +3,12 @@
  * @vitest-environment jsdom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import { createMockGarden, createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -44,21 +44,6 @@ import {
 // Helpers
 // ============================================
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-      mutations: { retry: false },
-    },
-  });
-}
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 // ============================================
 // Tests
 // ============================================
@@ -68,7 +53,7 @@ describe("usePublicVolume", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockGetGardens.mockResolvedValue([]);
     mockGetWorks.mockResolvedValue([]);
     mockGetGardenAssessments.mockResolvedValue([]);
@@ -82,8 +67,8 @@ describe("usePublicVolume", () => {
   });
 
   it("returns null when an unknown volume is requested", async () => {
-    const { result } = renderHook(() => usePublicVolume(999), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicVolume(999), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -138,8 +123,8 @@ describe("usePublicVolume", () => {
       },
     ]);
 
-    const { result } = renderHook(() => usePublicVolume(SEASON_ONE_VOLUME_ID), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicVolume(SEASON_ONE_VOLUME_ID), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -163,8 +148,8 @@ describe("usePublicVolume", () => {
     mockGetWorks.mockRejectedValue(new Error("EAS unavailable"));
     mockGetGardenAssessments.mockRejectedValue(new Error("EAS unavailable"));
 
-    const { result } = renderHook(() => usePublicVolume(SEASON_ONE_VOLUME_ID), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicVolume(SEASON_ONE_VOLUME_ID), {
+      queryClient,
     });
 
     await waitFor(() => {

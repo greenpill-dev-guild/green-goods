@@ -10,10 +10,11 @@
  * the interface contract, validation, and error handling.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
@@ -135,18 +136,6 @@ vi.mock("viem", () => ({
 
 import { type ListingStep, useCreateListing } from "../../../hooks/hypercerts/useCreateListing";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-}
-
 // ============================================
 // Test Suite
 // ============================================
@@ -156,7 +145,7 @@ describe("useCreateListing", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockAssertMarketplaceReady.mockReturnValue({
       available: true,
       status: "available",
@@ -190,8 +179,8 @@ describe("useCreateListing", () => {
 
   describe("initial state", () => {
     it("starts with idle step and no error", () => {
-      const { result } = renderHook(() => useCreateListing(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN), {
+        queryClient,
       });
 
       expect(result.current.step).toBe("idle");
@@ -200,8 +189,8 @@ describe("useCreateListing", () => {
     });
 
     it("provides createListing and reset functions", () => {
-      const { result } = renderHook(() => useCreateListing(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN), {
+        queryClient,
       });
 
       expect(typeof result.current.createListing).toBe("function");
@@ -211,8 +200,8 @@ describe("useCreateListing", () => {
 
   describe("validation", () => {
     it("throws when garden address is missing", async () => {
-      const { result } = renderHook(() => useCreateListing(undefined), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useCreateListing(undefined), {
+        queryClient,
       });
 
       await act(async () => {
@@ -240,8 +229,8 @@ describe("useCreateListing", () => {
       mockAssertMarketplaceReady.mockImplementation(() => {
         throw new Error("Marketplace configuration incomplete: hypercertExchange");
       });
-      const { result } = renderHook(() => useCreateListing(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN), {
+        queryClient,
       });
 
       await act(async () => {
@@ -272,8 +261,8 @@ describe("useCreateListing", () => {
 
   describe("invalidation", () => {
     it("keeps marketplace listing invalidation after a successful listing", async () => {
-      const { result } = renderHook(() => useCreateListing(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN), {
+        queryClient,
       });
 
       await act(async () => {
@@ -322,8 +311,8 @@ describe("useCreateListing", () => {
 
   describe("reset", () => {
     it("resets step to idle", () => {
-      const { result } = renderHook(() => useCreateListing(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN), {
+        queryClient,
       });
 
       act(() => result.current.reset());

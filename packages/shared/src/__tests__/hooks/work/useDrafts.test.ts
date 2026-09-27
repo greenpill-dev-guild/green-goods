@@ -6,13 +6,14 @@
  * image management, resume, sync, and query invalidation.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkTab } from "../../../stores/workFlowTypes";
 import type { WorkDraftRecord } from "../../../types/job-queue";
 import { createMockFile, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -64,21 +65,6 @@ const mockDraftDB = draftDB as unknown as Record<string, ReturnType<typeof vi.fn
 
 const TEST_CHAIN_ID = 11155111;
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-}
-
 function createMockDraftRecord(overrides?: Partial<WorkDraftRecord>): WorkDraftRecord {
   return {
     id: "draft-1",
@@ -104,7 +90,7 @@ describe("useDrafts", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockUserAddress = MOCK_ADDRESSES.user;
 
     // Default: no drafts, no images
@@ -125,8 +111,8 @@ describe("useDrafts", () => {
 
   describe("listing drafts", () => {
     it("returns empty array when no drafts exist", async () => {
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -144,8 +130,8 @@ describe("useDrafts", () => {
         { id: "img-1", file: createMockFile(), url: "blob:test" },
       ]);
 
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -165,8 +151,8 @@ describe("useDrafts", () => {
       mockDraftDB.getDraftsForUser.mockResolvedValue([emptyDraft, goodDraft]);
       mockDraftDB.getImagesForDraft.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -179,8 +165,8 @@ describe("useDrafts", () => {
     it("does not fetch drafts when user is not authenticated", async () => {
       mockUserAddress = null;
 
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       // Query should be disabled
@@ -199,8 +185,8 @@ describe("useDrafts", () => {
 
   describe("creating drafts", () => {
     it("creates a draft and sets it as active", async () => {
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -227,8 +213,8 @@ describe("useDrafts", () => {
     it("throws when user is not authenticated", async () => {
       mockUserAddress = null;
 
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -247,8 +233,8 @@ describe("useDrafts", () => {
 
   describe("updating drafts", () => {
     it("updates a draft with new data", async () => {
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -272,8 +258,8 @@ describe("useDrafts", () => {
 
   describe("deleting drafts", () => {
     it("deletes a draft from the database", async () => {
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -286,8 +272,8 @@ describe("useDrafts", () => {
     });
 
     it("clears activeDraftId when deleting the active draft", async () => {
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -315,8 +301,8 @@ describe("useDrafts", () => {
     it("adds an image to a draft", async () => {
       const file = createMockFile();
 
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -329,8 +315,8 @@ describe("useDrafts", () => {
     });
 
     it("removes an image from a draft", async () => {
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -345,8 +331,8 @@ describe("useDrafts", () => {
     it("sets all images for a draft (replaces existing)", async () => {
       const files = [createMockFile("a.jpg"), createMockFile("b.jpg")];
 
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -376,8 +362,8 @@ describe("useDrafts", () => {
         { id: "img-1", file: createMockFile(), url: "blob:test" },
       ]);
 
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -404,8 +390,8 @@ describe("useDrafts", () => {
         })
       );
       const restoreForm = vi.fn();
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -424,8 +410,8 @@ describe("useDrafts", () => {
     it("throws when draft is not found", async () => {
       mockDraftDB.getDraft.mockResolvedValue(undefined);
 
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -443,8 +429,8 @@ describe("useDrafts", () => {
 
       mockDraftDB.getDraft.mockResolvedValue(createMockDraftRecord());
 
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -463,8 +449,8 @@ describe("useDrafts", () => {
 
   describe("clearActiveDraft", () => {
     it("deletes the active draft", async () => {
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -481,8 +467,8 @@ describe("useDrafts", () => {
     });
 
     it("does nothing when no active draft", async () => {
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -501,8 +487,8 @@ describe("useDrafts", () => {
 
   describe("getActiveDraft", () => {
     it("returns null when no active draft", async () => {
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -522,8 +508,8 @@ describe("useDrafts", () => {
         { id: "img-1", file: createMockFile(), url: "blob:url" },
       ]);
 
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -549,8 +535,8 @@ describe("useDrafts", () => {
 
   describe("mutation states", () => {
     it("exposes creating, updating, and deleting states", async () => {
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useDrafts(), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -563,6 +549,7 @@ describe("useDrafts", () => {
 });
 
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
+
 it("deleting active work clears its evidence and invalidates saves", async () => {
   mockDraftDB.getDraftsForUser.mockResolvedValue([]);
   mockDraftDB.deleteDraft.mockResolvedValue(undefined);
@@ -574,8 +561,8 @@ it("deleting active work clears its evidence and invalidates saves", async () =>
     images: [createMockFile()],
   });
   const epoch = useWorkFlowStore.getState().draftEpoch;
-  const client = createQueryClient();
-  const { result } = renderHook(() => useDrafts(), { wrapper: createWrapper(client) });
+  const client = createTestQueryClient();
+  const { result } = renderHookWithQueryClient(() => useDrafts(), { queryClient: client });
   await act(async () => {
     await result.current.deleteDraft("active");
   });

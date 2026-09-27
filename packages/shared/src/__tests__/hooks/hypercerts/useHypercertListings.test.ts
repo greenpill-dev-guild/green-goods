@@ -6,10 +6,11 @@
  * and loading/error state handling.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as const;
@@ -40,18 +41,6 @@ vi.mock("../../../config", () => ({
 import { useHypercertListings } from "../../../hooks/hypercerts/useHypercertListings";
 import type { RegisteredOrderView } from "../../../types/hypercerts";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-}
-
 // ============================================
 // Test Suite
 // ============================================
@@ -61,12 +50,12 @@ describe("useHypercertListings", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
   });
 
   it("returns empty listings array initially", () => {
-    const { result } = renderHook(() => useHypercertListings(undefined), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useHypercertListings(undefined), {
+      queryClient,
     });
 
     expect(result.current.listings).toEqual([]);
@@ -75,8 +64,8 @@ describe("useHypercertListings", () => {
   });
 
   it("does not fetch when gardenAddress is undefined", () => {
-    renderHook(() => useHypercertListings(undefined), {
-      wrapper: createWrapper(queryClient),
+    renderHookWithQueryClient(() => useHypercertListings(undefined), {
+      queryClient,
     });
 
     expect(mockGetRegisteredOrders).not.toHaveBeenCalled();
@@ -98,8 +87,8 @@ describe("useHypercertListings", () => {
     ];
     mockGetRegisteredOrders.mockResolvedValue(mockOrders);
 
-    const { result } = renderHook(() => useHypercertListings(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useHypercertListings(TEST_GARDEN), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -112,8 +101,8 @@ describe("useHypercertListings", () => {
   it("handles fetch errors", async () => {
     mockGetRegisteredOrders.mockRejectedValue(new Error("RPC error"));
 
-    const { result } = renderHook(() => useHypercertListings(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useHypercertListings(TEST_GARDEN), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -126,8 +115,8 @@ describe("useHypercertListings", () => {
   it("provides a refetch function", async () => {
     mockGetRegisteredOrders.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useHypercertListings(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useHypercertListings(TEST_GARDEN), {
+      queryClient,
     });
 
     await waitFor(() => {

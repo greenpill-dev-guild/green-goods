@@ -16,12 +16,9 @@ Expected files: `.claude/context/testing.md`, `.claude/skills/review/SKILL.md`, 
 
 ## Browser evidence decision (item 4)
 
-| Design | Benefit | Obligation |
-|---|---|---|
-| Accept manual receipts before push | Preserves the existing push requirement | Bind evidence to surface, checked inputs, authenticated session and freshness; stale/missing evidence cannot pass |
-| Permit ordinary push after automated checks, retain manual proof at readiness | Removes publication pressure to bypass automated checks | Distinguish published from ready; missing automated capabilities still block |
+The September 19 decision allowed ordinary push after automated checks while retaining a readiness requirement. That implementation is historical and has since been superseded. Follow the current repository [browser-evidence policy](../../../AGENTS.md#browser-evidence) and [validation pipeline](../../../.claude/context/validation-pipeline.md), which own the applicable surfaces, evidence classes and gates. This plan does not override them.
 
-The user selected the second design on 2026-09-19. The local implementation permits ordinary noncritical push only after selected automated checks pass; manual authenticated browser proof stays pending for readiness. The attachment's “manual or capability-blocked” exemption must not become blanket success. Missing automated capabilities, critical overrides and readiness/ship/merge/release requirements remain enforceable. CI clean-room evidence does not become authenticated local proof. A later request authorized committing completed local slices; push and publication remain unauthorized.
+The current test-consolidation slice changes no visible runtime behavior. No new rendered proof is claimed. Missing automated capabilities or failed checks cannot be relabeled as success. Publication and external records remain outside this local implementation authorization.
 
 ## Requirements retained from the original prompt
 

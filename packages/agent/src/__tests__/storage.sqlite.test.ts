@@ -2,18 +2,20 @@ import { Database } from "bun:sqlite";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { closeDB, getDB, initDB } from "../services/db";
-import { createSavedOfferCipher } from "../services/saved-offers";
-import type { SavedOfferCipher } from "../services/saved-offers";
-import {
-  createGardenJoinRequestCipher,
-  createSqliteGardenJoinRequestStore,
-} from "../services/garden-join-requests";
 import {
   canonicalSavedOfferPayload,
   type SavedOfferPayloadV1,
 } from "@green-goods/shared/public-contracts";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { closeDB, getDB, initDB } from "../services/db";
+import {
+  createGardenJoinRequestCipher,
+  createSqliteGardenJoinRequestStore,
+  type EncryptedGardenJoinRequest,
+} from "../services/garden-join-requests";
+import type { SavedOfferCipher } from "../services/saved-offers";
+import { createSavedOfferCipher } from "../services/saved-offers";
+import { gardenJoinRequestStoreContract } from "./test-utils/garden-join-request-contract";
 
 let databaseDirectory: string;
 let databasePath: string;
@@ -175,38 +177,6 @@ describe("agent storage with real bun:sqlite", () => {
         .query("SELECT COUNT(*) AS count FROM garden_join_requests WHERE gardenAddress = ?")
         .get(garden)
     ).toEqual({ count: 1 });
-  });
-
-  it("deletes expired join requests on self and queue reads", async () => {
-    const cipher = createGardenJoinRequestCipher("ad".repeat(32));
-    let requestId = 0;
-    const store = createSqliteGardenJoinRequestStore(cipher, {
-      id: () => `sqlite-expired-request-${++requestId}`,
-    });
-    const garden = `0x${"a".repeat(40)}` as const;
-    const account = `0x${"b".repeat(40)}` as const;
-    const expiredInput = {
-      gardenAddress: garden,
-      accountAddress: account,
-      displayName: "Expired request",
-      requestedVia: "garden_detail" as const,
-      requestedAt: "2026-07-01T12:00:00.000Z",
-      expiresAt: "2026-08-01T12:00:00.000Z",
-    };
-    await store.create(expiredInput);
-
-    await expect(
-      store.getMine(garden, account, "2026-08-02T12:00:00.000Z")
-    ).resolves.toBeUndefined();
-    await store.create(expiredInput);
-    await expect(
-      store.listPending(garden, { nowIso: "2026-08-02T12:00:00.000Z" })
-    ).resolves.toEqual({ items: [] });
-    expect(
-      rawDatabase()
-        .query("SELECT COUNT(*) AS count FROM garden_join_requests WHERE gardenAddress = ?")
-        .get(garden)
-    ).toEqual({ count: 0 });
   });
 
   it("persists encrypted users and retrieves them after reopening the database", async () => {
@@ -376,4 +346,21 @@ describe("agent storage with real bun:sqlite", () => {
       record: { version: 1 },
     });
   });
+});
+
+gardenJoinRequestStoreContract("SQLite garden join request store", () => {
+  const sqlite = rawDatabase();
+  sqlite.exec("DELETE FROM garden_join_requests; DELETE FROM garden_join_request_proofs;");
+  let requestId = 0;
+  return {
+    store: createSqliteGardenJoinRequestStore(createGardenJoinRequestCipher("ab".repeat(32)), {
+      id: () => `sqlite-contract-${++requestId}`,
+    }),
+    inspectEncryptedRecords: () =>
+      sqlite.query("SELECT * FROM garden_join_requests").all() as EncryptedGardenJoinRequest[],
+    inspectProofKeys: () =>
+      (
+        sqlite.query("SELECT nonce FROM garden_join_request_proofs").all() as { nonce: string }[]
+      ).map(({ nonce }) => nonce),
+  };
 });

@@ -6,10 +6,11 @@
  * with a validator (viem's isAddress) and resolveEnsName as the resolver.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -38,20 +39,6 @@ import { useEnsName, useEnsNames } from "../../../hooks/blockchain/useEnsName";
 const VALID_ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as const;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-    },
-  });
-}
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 // ============================================
 // Tests
 // ============================================
@@ -60,7 +47,7 @@ describe("useEnsName", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     vi.clearAllMocks();
   });
 
@@ -72,8 +59,8 @@ describe("useEnsName", () => {
     it("resolves a valid address to an ENS name", async () => {
       mockResolveEnsName.mockResolvedValue("vitalik.eth");
 
-      const { result } = renderHook(() => useEnsName(VALID_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsName(VALID_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -85,8 +72,8 @@ describe("useEnsName", () => {
     it("passes the normalized address to the resolver", async () => {
       mockResolveEnsName.mockResolvedValue("vitalik.eth");
 
-      renderHook(() => useEnsName(VALID_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      renderHookWithQueryClient(() => useEnsName(VALID_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -103,8 +90,8 @@ describe("useEnsName", () => {
     it("returns null when address has no ENS name", async () => {
       mockResolveEnsName.mockResolvedValue(null);
 
-      const { result } = renderHook(() => useEnsName(VALID_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsName(VALID_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -116,8 +103,8 @@ describe("useEnsName", () => {
     it("returns null for the zero address", async () => {
       mockResolveEnsName.mockResolvedValue(null);
 
-      const { result } = renderHook(() => useEnsName(ZERO_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsName(ZERO_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -133,8 +120,8 @@ describe("useEnsName", () => {
 
   describe("input validation", () => {
     it("does not fetch when address is null", async () => {
-      const { result } = renderHook(() => useEnsName(null), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsName(null), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -144,8 +131,8 @@ describe("useEnsName", () => {
     });
 
     it("does not fetch when address is undefined", async () => {
-      const { result } = renderHook(() => useEnsName(undefined), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsName(undefined), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -155,9 +142,12 @@ describe("useEnsName", () => {
     });
 
     it("does not fetch for an invalid address (fails isAddress check)", async () => {
-      const { result } = renderHook(() => useEnsName("not-an-address" as `0x${string}`), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useEnsName("not-an-address" as `0x${string}`),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.fetchStatus).toBe("idle");
@@ -174,8 +164,8 @@ describe("useEnsName", () => {
     it("sets error state when resolver rejects", async () => {
       mockResolveEnsName.mockRejectedValue(new Error("RPC timeout"));
 
-      const { result } = renderHook(() => useEnsName(VALID_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsName(VALID_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -193,8 +183,8 @@ describe("useEnsName", () => {
     it("uses lowercased address in the query key", async () => {
       mockResolveEnsName.mockResolvedValue("vitalik.eth");
 
-      renderHook(() => useEnsName(VALID_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      renderHookWithQueryClient(() => useEnsName(VALID_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -213,9 +203,12 @@ describe("useEnsName", () => {
 
   it("resolves unique roster addresses through the single-name query cache", async () => {
     mockResolveEnsName.mockResolvedValue("vitalik.eth");
-    const { result } = renderHook(() => useEnsNames([VALID_ADDRESS, VALID_ADDRESS]), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useEnsNames([VALID_ADDRESS, VALID_ADDRESS]),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.get(VALID_ADDRESS.toLowerCase())).toBe("vitalik.eth");
@@ -228,9 +221,9 @@ describe("useEnsName", () => {
 
   it("keeps resolved roster names while disabled, and starts no lookup", async () => {
     mockResolveEnsName.mockResolvedValue("vitalik.eth");
-    const { result, rerender } = renderHook(
+    const { result, rerender } = renderHookWithQueryClient(
       ({ enabled }) => useEnsNames([VALID_ADDRESS], { enabled }),
-      { wrapper: createWrapper(queryClient), initialProps: { enabled: true } }
+      { queryClient, initialProps: { enabled: true } }
     );
     await waitFor(() => {
       expect(result.current.get(VALID_ADDRESS.toLowerCase())).toBe("vitalik.eth");
@@ -241,9 +234,12 @@ describe("useEnsName", () => {
     expect(result.current.get(VALID_ADDRESS.toLowerCase())).toBe("vitalik.eth");
 
     mockResolveEnsName.mockClear();
-    const unopened = renderHook(() => useEnsNames([ZERO_ADDRESS], { enabled: false }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const unopened = renderHookWithQueryClient(
+      () => useEnsNames([ZERO_ADDRESS], { enabled: false }),
+      {
+        queryClient,
+      }
+    );
     expect(unopened.result.current.size).toBe(0);
     expect(mockResolveEnsName).not.toHaveBeenCalled();
   });
@@ -254,9 +250,12 @@ describe("useEnsName", () => {
 
   describe("options", () => {
     it("respects enabled=false override", async () => {
-      const { result } = renderHook(() => useEnsName(VALID_ADDRESS, { enabled: false }), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useEnsName(VALID_ADDRESS, { enabled: false }),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.fetchStatus).toBe("idle");

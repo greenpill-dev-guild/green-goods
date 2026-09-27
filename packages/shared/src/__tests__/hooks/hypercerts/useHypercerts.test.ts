@@ -6,10 +6,11 @@
  * sync status transitions, and list/detail query modes.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -53,18 +54,6 @@ import {
 } from "../../../hooks/hypercerts/useHypercerts";
 import { createMockHypercertRecord, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-}
-
 // ============================================
 // Test Suite
 // ============================================
@@ -74,7 +63,7 @@ describe("useHypercerts", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockGetGardenHypercerts.mockResolvedValue([]);
     mockGetHypercertById.mockResolvedValue(null);
     mockGetHypercertFromSdkApi.mockResolvedValue(null);
@@ -88,8 +77,8 @@ describe("useHypercerts", () => {
 
   describe("default state", () => {
     it("returns empty arrays and null when no params", () => {
-      const { result } = renderHook(() => useHypercerts(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useHypercerts(), {
+        queryClient,
       });
 
       expect(result.current.hypercerts).toEqual([]);
@@ -111,9 +100,12 @@ describe("useHypercerts", () => {
       ];
       mockGetGardenHypercerts.mockResolvedValue(mockRecords);
 
-      const { result } = renderHook(() => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.hypercerts).toHaveLength(2);
@@ -129,9 +121,12 @@ describe("useHypercerts", () => {
     it("passes status filter to query function", async () => {
       mockGetGardenHypercerts.mockResolvedValue([]);
 
-      renderHook(() => useHypercerts({ gardenId: MOCK_ADDRESSES.garden, status: "active" }), {
-        wrapper: createWrapper(queryClient),
-      });
+      renderHookWithQueryClient(
+        () => useHypercerts({ gardenId: MOCK_ADDRESSES.garden, status: "active" }),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(mockGetGardenHypercerts).toHaveBeenCalledWith(
@@ -143,8 +138,8 @@ describe("useHypercerts", () => {
     });
 
     it("does not fetch when gardenId is missing", () => {
-      renderHook(() => useHypercerts({}), {
-        wrapper: createWrapper(queryClient),
+      renderHookWithQueryClient(() => useHypercerts({}), {
+        queryClient,
       });
 
       expect(mockGetGardenHypercerts).not.toHaveBeenCalled();
@@ -153,9 +148,12 @@ describe("useHypercerts", () => {
     it("handles fetch errors", async () => {
       mockGetGardenHypercerts.mockRejectedValue(new Error("Network error"));
 
-      const { result } = renderHook(() => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.hasError).toBe(true);
@@ -174,9 +172,12 @@ describe("useHypercerts", () => {
       const record = createMockHypercertRecord({ id: "hc-detail" });
       mockGetHypercertById.mockResolvedValue(record);
 
-      const { result } = renderHook(() => useHypercerts({ hypercertId: "hc-detail" }), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useHypercerts({ hypercertId: "hc-detail" }),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.hypercert).not.toBeNull();
@@ -197,8 +198,8 @@ describe("useHypercerts", () => {
         status: "active",
       });
 
-      const { result } = renderHook(() => useHypercerts({ hypercertId: "hc-sdk" }), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useHypercerts({ hypercertId: "hc-sdk" }), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -212,9 +213,12 @@ describe("useHypercerts", () => {
       mockGetHypercertById.mockResolvedValue(null);
       mockGetHypercertFromSdkApi.mockResolvedValue(null);
 
-      const { result } = renderHook(() => useHypercerts({ hypercertId: "nonexistent" }), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useHypercerts({ hypercertId: "nonexistent" }),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -224,13 +228,13 @@ describe("useHypercerts", () => {
     });
 
     it("does not run list query when hypercertId is set", () => {
-      renderHook(
+      renderHookWithQueryClient(
         () =>
           useHypercerts({
             gardenId: MOCK_ADDRESSES.garden,
             hypercertId: "hc-1",
           }),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       expect(mockGetGardenHypercerts).not.toHaveBeenCalled();
@@ -256,13 +260,13 @@ describe("useHypercerts", () => {
       mockGetHypercertById.mockResolvedValue(null);
       mockGetHypercertFromSdkApi.mockResolvedValue(null);
 
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () =>
           useHypercerts({
             hypercertId: "hc-optimistic",
             optimisticData,
           }),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       // Should show optimistic data immediately without waiting
@@ -273,13 +277,13 @@ describe("useHypercerts", () => {
     });
 
     it("does not show loading state when optimistic data is available", () => {
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () =>
           useHypercerts({
             hypercertId: "hc-optimistic",
             optimisticData,
           }),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       expect(result.current.isLoading).toBe(false);
@@ -292,13 +296,13 @@ describe("useHypercerts", () => {
       });
       mockGetHypercertById.mockResolvedValue(realRecord);
 
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () =>
           useHypercerts({
             hypercertId: "hc-optimistic",
             optimisticData,
           }),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       await waitFor(() => {
@@ -318,9 +322,12 @@ describe("useHypercerts", () => {
     it("provides a refetch function", async () => {
       mockGetGardenHypercerts.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);

@@ -1,5 +1,9 @@
 # Evaluation and completion evidence
 
+## Current checkpoint — 2026-09-27
+
+The remaining local implementation and fresh evidence are recorded in [Snapshot 06](reports/2026-09-26-snapshot-06.md). Shared full coverage passed all floors (5,876 tests). Full Client validation remains blocked by DetailsGate timeouts; focused runs passed with both original and restored runtime source. The proposed table refactor awaits scope approval. The dated sections below retain historical results; their dirty-locale, Apple Git and original browser-policy statements do not describe the current checkout or policy.
+
 ## Preparation and plan validation
 
 Preparation is a source/measurement refresh, not a full audit rerun. The [dated report](reports/2026-09-19-preparation.md) records source identity, inventory method, open PR heads, CI and coverage references, target dispositions and limits.
@@ -28,7 +32,7 @@ Render `bun run check --plan -- --intent <intent>` for actual changed paths firs
 | Helpers | Before/after JSON reports with identical names and zero failures; preserve retry/cache/provider semantics; list exclusions |
 | Deletion | Same-fault surviving test or verified absence of callers; targeted suite passes; staged-module/direct-proof registry protections retained |
 | Store contract | Both adapters run common cases; SQLite covers withdrawal, expiry/sweep, stale revisions, pending cap, encryption and persistence |
-| Layout | Real subject geometry/interactions and faithful boot-document fixture; required authenticated Brave evidence. Similar markup in a story is not equivalent proof. |
+| Layout | Real subject geometry/interactions and faithful boot-document fixture; select the evidence class using current AGENTS.md. Similar markup in a story is not equivalent proof. |
 | File merge | Baseline/registry exclusions checked; same-subject cases retained; bun run check --only test-quality |
 | Ratio summary | Informational output handles additions, deletions and zero-source changes; cannot fail the required gate |
 

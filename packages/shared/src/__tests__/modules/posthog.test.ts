@@ -20,6 +20,8 @@ vi.mock("posthog-js", () => ({
   },
 }));
 
+import { trackWorkApprovalPresentationFailed } from "../../modules/app/analytics-events";
+import { trackAuthWalletRestore } from "../../modules/app/authWalletRestoreAnalytics";
 import {
   getDistinctId,
   identify,
@@ -31,8 +33,6 @@ import {
   trackOfflineEvent,
   trackSyncPerformance,
 } from "../../modules/app/posthog";
-import { trackWorkApprovalPresentationFailed } from "../../modules/app/analytics-events";
-import { trackAuthWalletRestore } from "../../modules/app/authWalletRestoreAnalytics";
 
 describe("modules/posthog", () => {
   beforeEach(() => {
@@ -192,5 +192,18 @@ describe("modules/posthog", () => {
       trackAppLifecycle("app_background");
       expect(mockCapture).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("modules/posthog throttling", () => {
+  it("throttles frequent identical events", () => {
+    const sink = { capture: vi.fn() };
+    const unregister = registerTelemetrySink(sink);
+
+    track("storage_estimate", {});
+    track("storage_estimate", {});
+
+    expect(sink.capture).toHaveBeenCalledOnce();
+    unregister();
   });
 });

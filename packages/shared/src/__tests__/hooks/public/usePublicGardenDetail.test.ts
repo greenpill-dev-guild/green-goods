@@ -3,12 +3,12 @@
  * @vitest-environment jsdom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import { createMockGarden, createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -47,21 +47,6 @@ import { usePublicGardenDetail } from "../../../hooks/public/usePublicGardenDeta
 // Helpers
 // ============================================
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-      mutations: { retry: false },
-    },
-  });
-}
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 // ============================================
 // Tests
 // ============================================
@@ -71,7 +56,7 @@ describe("usePublicGardenDetail", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockGetGardens.mockResolvedValue([]);
     mockGetWorks.mockResolvedValue([]);
     mockGetGardenAssessments.mockResolvedValue([]);
@@ -84,8 +69,8 @@ describe("usePublicGardenDetail", () => {
   });
 
   it("does not fetch when no slug or address is provided", async () => {
-    const { result } = renderHook(() => usePublicGardenDetail(undefined), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(undefined), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -103,9 +88,12 @@ describe("usePublicGardenDetail", () => {
 
     mockGetGardens.mockResolvedValue([garden]);
 
-    const { result } = renderHook(() => usePublicGardenDetail(MOCK_ADDRESSES.garden), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => usePublicGardenDetail(MOCK_ADDRESSES.garden),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -123,9 +111,12 @@ describe("usePublicGardenDetail", () => {
 
     mockGetGardens.mockResolvedValue([garden]);
 
-    const { result } = renderHook(() => usePublicGardenDetail("pacific-northwest-conservatory"), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => usePublicGardenDetail("pacific-northwest-conservatory"),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -139,8 +130,8 @@ describe("usePublicGardenDetail", () => {
       createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Other" }),
     ]);
 
-    const { result } = renderHook(() => usePublicGardenDetail("nonexistent-slug"), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail("nonexistent-slug"), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -202,8 +193,8 @@ describe("usePublicGardenDetail", () => {
       },
     ]);
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -233,8 +224,8 @@ describe("usePublicGardenDetail", () => {
     );
     mockGetWorks.mockResolvedValue(works);
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -251,8 +242,8 @@ describe("usePublicGardenDetail", () => {
     mockGetWorks.mockRejectedValue(new Error("EAS unavailable"));
     mockGetGardenAssessments.mockResolvedValue([]);
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -275,8 +266,8 @@ describe("usePublicGardenDetail", () => {
     mockGetWorks.mockResolvedValue([]);
     mockGetGardenAssessments.mockRejectedValue(new Error("EAS unavailable"));
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -302,8 +293,8 @@ describe("usePublicGardenDetail", () => {
       ASSESSMENT: { uid: CONFIGURED_UID },
     });
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -323,8 +314,8 @@ describe("usePublicGardenDetail", () => {
     mockGetWorks.mockResolvedValue([]);
     mockGetGardenAssessments.mockResolvedValue([]);
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -337,9 +328,12 @@ describe("usePublicGardenDetail", () => {
   it("propagates garden indexer fetch failure", async () => {
     mockGetGardens.mockRejectedValue(new Error("Indexer down"));
 
-    const { result } = renderHook(() => usePublicGardenDetail(MOCK_ADDRESSES.garden), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => usePublicGardenDetail(MOCK_ADDRESSES.garden),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
@@ -359,10 +353,13 @@ describe("usePublicGardenDetail", () => {
     });
     mockGetGardens.mockResolvedValueOnce([firstGarden, secondGarden]);
 
-    const { result, rerender } = renderHook(({ lookup }) => usePublicGardenDetail(lookup), {
-      initialProps: { lookup: firstGarden.id },
-      wrapper: createWrapper(queryClient),
-    });
+    const { result, rerender } = renderHookWithQueryClient(
+      ({ lookup }) => usePublicGardenDetail(lookup),
+      {
+        initialProps: { lookup: firstGarden.id },
+        queryClient,
+      }
+    );
     await waitFor(() => expect(result.current.data?.garden?.name).toBe("First Garden"));
 
     let resolveSecondRead: (gardens: Array<typeof firstGarden>) => void = () => {};
