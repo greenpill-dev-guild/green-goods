@@ -249,21 +249,3 @@ export function commitDraft(
   }
   return loadDraft(core, input.draftId) as DraftRecord;
 }
-
-export function revisionDigests(
-  core: ReportingCore,
-  draftId: string,
-  revision: number
-): { contentDigest: string; actionDefinitionDigest: string | null } | null {
-  const row = core.db
-    .query(
-      "SELECT content_digest, action_definition_digest FROM draft_revisions WHERE draft_id = $id AND revision = $revision"
-    )
-    .get({ id: draftId, revision }) as {
-    content_digest: string;
-    action_definition_digest: string | null;
-  } | null;
-  return row
-    ? { contentDigest: row.content_digest, actionDefinitionDigest: row.action_definition_digest }
-    : null;
-}

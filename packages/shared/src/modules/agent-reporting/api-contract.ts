@@ -32,7 +32,7 @@ export const reportingErrorSchema = z.object({
 });
 export type ReportingErrorCode = (typeof REPORTING_ERROR_CODES)[number];
 
-export const purposeSchema = z.enum([
+const purposeSchema = z.enum([
   "link_account",
   "publish_work",
   "review_decision",
@@ -41,7 +41,7 @@ export const purposeSchema = z.enum([
   "recovery",
 ]);
 
-export const proofFieldsSchema = z.object({
+const proofFieldsSchema = z.object({
   purpose: purposeSchema,
   challengeId: z.string(),
   browserNonce: z.string(),
@@ -57,7 +57,7 @@ export const proofFieldsSchema = z.object({
 
 export const challengeCreateRequestSchema = z.object({ requestId: z.string().min(16).max(128) });
 
-export const challengeStateSchema = z.enum([
+const challengeStateSchema = z.enum([
   "issued",
   "proof_verified",
   "paired",
@@ -90,7 +90,7 @@ export const proofRequestSchema = z.object({
   factoryData: hex.optional(),
 });
 
-export const accessScopeSchema = z.object({
+const accessScopeSchema = z.object({
   purpose: purposeSchema,
   resourceKind: z.enum(["draft", "review", "grant", "recovery", "account"]),
   resourceId: z.string().nullable(),
@@ -155,7 +155,7 @@ export const envelopeSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const operationViewSchema = z.object({
+const operationViewSchema = z.object({
   operationId: z.string(),
   kind: z.enum(["work", "review"]),
   state: z.string(),
@@ -170,7 +170,7 @@ export const operationViewSchema = z.object({
   failureCode: z.string().nullable(),
 });
 
-export const summaryLineSchema = z.object({ label: z.string(), value: z.string() });
+const summaryLineSchema = z.object({ label: z.string(), value: z.string() });
 
 export const resourceViewSchema = z.object({
   ok: z.literal(true),
@@ -206,7 +206,7 @@ export const attemptResponseSchema = z.object({
   payloadDigest: digest,
 });
 
-export const outcomeSchema = z.discriminatedUnion("kind", [
+const outcomeSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("broadcast"),
     transactionHash: digest.optional(),

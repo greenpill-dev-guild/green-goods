@@ -1,24 +1,9 @@
-import {
-  applyReportChanges,
-  type FieldChange,
-  withEvidence,
-} from "@green-goods/shared/modules/agent-reporting";
 import type { ReportingCatalog } from "../catalog";
 import { readControl } from "../controls";
-import {
-  commitContentChange,
-  EDITABLE_STATES,
-  lifecycleState,
-  StaleDraftError,
-} from "../coordinator/draft-commit";
-import { promptNextStepFor } from "../coordinator/prompting";
 import { inTransaction } from "../database";
-import { DraftContentUnavailableError, loadDraft } from "../drafts";
 import type { ClaimedJob } from "../jobs";
 import type { PrivateMediaStore } from "../media-store";
-import { participantWriter } from "../notify";
 import type { OpenAIConfig } from "../openai-responses";
-import { activeAccount } from "../participants";
 import type { ReportingCore } from "../runtime";
 import type { InboundMediaFetcher, InboundMediaReference } from "../transport";
 import type { JobOutcome } from "../worker";

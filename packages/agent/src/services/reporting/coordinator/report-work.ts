@@ -36,7 +36,7 @@ export const gardenerFact = (
   gardenerStated: true,
 });
 
-export const systemFact = (sourceEntryId: string): FieldProvenance => ({
+const systemFact = (sourceEntryId: string): FieldProvenance => ({
   kind: "computed",
   origin: "system",
   sources: [{ sourceEntryId }],

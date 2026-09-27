@@ -3,14 +3,13 @@ import {
   type FieldChange,
   withEvidence,
 } from "@green-goods/shared/modules/agent-reporting";
-import type { CatalogView } from "../coordinator/prompting";
 import {
   commitContentChange,
   EDITABLE_STATES,
   lifecycleState,
   StaleDraftError,
 } from "../coordinator/draft-commit";
-import { promptNextStepFor } from "../coordinator/prompting";
+import { type CatalogView, promptNextStepFor } from "../coordinator/prompting";
 import { inTransaction } from "../database";
 import { DraftContentUnavailableError, loadDraft } from "../drafts";
 import { participantWriter } from "../notify";

@@ -44,7 +44,7 @@ function text(value: string | undefined): string | null {
 }
 
 /** `key|0xaddress|Label` entries separated by `;`, all on the Agent's single default chain. */
-export function parseReportingGardens(raw: string, chainId: number): EnabledGarden[] {
+function parseReportingGardens(raw: string, chainId: number): EnabledGarden[] {
   const gardens = raw
     .split(";")
     .map((entry) => entry.trim())

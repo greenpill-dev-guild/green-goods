@@ -7,7 +7,7 @@ export interface EvidenceUploader {
   upload(input: { bytes: Uint8Array; name: string; mime: string }): Promise<{ cid: string }>;
 }
 
-export class EvidenceUploadError extends Error {
+class EvidenceUploadError extends Error {
   constructor(
     readonly reason: "unconfigured" | "rejected" | "timeout" | "malformed",
     readonly status?: number

@@ -24,7 +24,7 @@ export class StaleDraftError extends Error {
   }
 }
 
-export function applyLifecycle(
+function applyLifecycle(
   lifecycle: ReportLifecycle,
   events: readonly ReportLifecycleEvent[]
 ): { lifecycle: ReportLifecycle; refused: ReportLifecycleEvent[] } {

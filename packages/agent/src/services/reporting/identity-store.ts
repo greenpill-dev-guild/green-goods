@@ -14,7 +14,7 @@ import type { ReportingCore } from "./runtime";
 const SUBJECT_PURPOSE = "channel-subject";
 const CHAT_PURPOSE = "conversation";
 
-export function normalizeExternalId(value: string): string {
+function normalizeExternalId(value: string): string {
   return value.normalize("NFC").trim();
 }
 

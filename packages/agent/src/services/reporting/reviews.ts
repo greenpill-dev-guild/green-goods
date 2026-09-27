@@ -20,7 +20,7 @@ import type { ReportingCore } from "./runtime";
  * and the previous content is kept in sealed history, so what the steward confirmed can always be
  * reconstructed. Reviewers see published work only, never the gardener's private draft material.
  */
-export const REVIEW_LIFECYCLE_VERSION = 1;
+const REVIEW_LIFECYCLE_VERSION = 1;
 
 export type ReviewLifecycle = PersistedLifecycle<ReviewLifecycleContext>;
 

@@ -122,7 +122,7 @@ export function operationForSubject(
   );
 }
 
-export function hasUnresolvedAttempt(core: ReportingCore, operationId: string): boolean {
+function hasUnresolvedAttempt(core: ReportingCore, operationId: string): boolean {
   return (
     core.db
       .query(

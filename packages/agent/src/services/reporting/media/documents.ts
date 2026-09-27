@@ -19,7 +19,7 @@ export type PdfInspection =
   | { ok: true; pages: number }
   | { ok: false; reason: "encrypted" | "too_many_pages" | "unreadable"; pages?: number };
 
-export const DOCUMENT_LIMITS = { maxPdfPages: 20, maxBytes: 10 * 1024 * 1024, timeoutMs: 60_000 };
+const DOCUMENT_LIMITS = { maxPdfPages: 20, maxBytes: 10 * 1024 * 1024, timeoutMs: 60_000 };
 
 export class DocumentToolError extends Error {
   constructor(readonly reason: "unavailable" | "timeout" | "failed" | "too_large") {

@@ -114,13 +114,6 @@ export function claimJob(
 }
 
 /** True when the caller still owns the job; use inside any transaction that records its effect. */
-export function holdsJob(core: ReportingCore, job: ClaimedJob): boolean {
-  const row = core.db
-    .query("SELECT state, lease_holder, fence FROM processing_jobs WHERE id = $id")
-    .get({ id: job.id }) as { state: string; lease_holder: string | null; fence: number } | null;
-  return row?.state === "leased" && row.lease_holder === job.holder && row.fence === job.fence;
-}
-
 export function completeJob(core: ReportingCore, job: ClaimedJob): boolean {
   return (
     core.db
@@ -157,20 +150,6 @@ export function retryJob(
       now: core.clock.now(),
     });
   return failed ? "failed" : "retrying";
-}
-
-export function cancelJobs(
-  core: ReportingCore,
-  subjectId: string,
-  kinds: readonly JobKind[]
-): number {
-  return core.db
-    .query(
-      `UPDATE processing_jobs SET state = 'cancelled', lease_holder = NULL, updated_at = $now
-       WHERE subject_id = $subject AND state IN ('pending','leased')
-         AND kind IN (${kinds.map((kind) => `'${kind}'`).join(",")})`
-    )
-    .run({ subject: subjectId, now: core.clock.now() }).changes;
 }
 
 /** Operator replay of a failed job; it keeps its dedupe identity and history. */

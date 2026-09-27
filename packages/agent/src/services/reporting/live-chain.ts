@@ -52,7 +52,7 @@ const EIP7702_DESIGNATOR = "0xef0100";
 const WORK_LIST_LIMIT = 50;
 const DECISION_LIMIT = 200;
 
-export class PermissionStateUnavailableError extends Error {
+class PermissionStateUnavailableError extends Error {
   constructor() {
     super("Kernel permission state is not readable until the module compatibility gate passes");
     this.name = "PermissionStateUnavailableError";

@@ -28,7 +28,7 @@ export interface ReportingKeyringConfig {
   currentLookupVersion: string;
 }
 
-export class ReportingKeyringError extends Error {}
+class ReportingKeyringError extends Error {}
 
 const VERSION_PATTERN = /^[a-z0-9][a-z0-9_-]{0,15}$/i;
 const IV_BYTES = 12;

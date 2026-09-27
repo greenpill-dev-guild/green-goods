@@ -8,6 +8,7 @@ import { GRANT_LIMITS, type GrantPolicy } from "../../../modules/agent-reporting
 import {
   grantPermissionValidator,
   grantPolicies,
+  grantRevocationDescriptor,
 } from "../../../modules/agent-reporting/kernel-permissions";
 
 /**
@@ -85,5 +86,44 @@ describe("Kernel reporting permission", () => {
     expect(first.getIdentifier()).toBe(again.getIdentifier());
     expect(first.getIdentifier()).not.toBe(other.getIdentifier());
     expect(await first.getEnableData("0x00000000000000000000000000000000000000ca")).toMatch(/^0x/);
+  });
+});
+
+describe("owner revocation descriptor", () => {
+  it("carries only public facts the owner can save, export and re-import", () => {
+    const { policy: grant } = policy("0x00000000000000000000000000000000000000c2");
+    const descriptor = grantRevocationDescriptor({
+      policy: grant,
+      permissionId: "0x7e57ab1e",
+      validatorAddress: "0x0000000000000000000000000000000000007a11",
+      validatorCodeHash: `0x${"ab".repeat(32)}`,
+      policyDigest: `0x${"cd".repeat(32)}`,
+    });
+
+    // No owner secret, authorization signature or calldata: revocation is derived in code.
+    expect(Object.keys(descriptor).sort()).toEqual([
+      "account",
+      "chainId",
+      "entryPointVersion",
+      "gardenAddress",
+      "kernelVersion",
+      "moduleRef",
+      "permissionId",
+      "policyDigest",
+      "purpose",
+      "signerAddress",
+      "validUntil",
+      "validatorAddress",
+      "validatorCodeHash",
+      "version",
+    ]);
+    expect(descriptor).toMatchObject({
+      account: grant.account,
+      signerAddress: signer.address,
+      kernelVersion: "0.3.1",
+      entryPointVersion: "0.7",
+      validUntil: grant.validUntil,
+    });
+    expect(JSON.parse(JSON.stringify(descriptor))).toEqual(descriptor);
   });
 });

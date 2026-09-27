@@ -123,7 +123,7 @@ export function recordDraftConfirmation(
   });
 }
 
-export function cancelDraft(writer: TurnWriter): void {
+function cancelDraft(writer: TurnWriter): void {
   const { core, ctx } = writer;
   const draft = ctx.draft;
   if (!draft) return writer.say("report.nothingToCancel");

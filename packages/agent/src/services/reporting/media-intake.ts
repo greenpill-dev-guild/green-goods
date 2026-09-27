@@ -17,7 +17,7 @@ export type AssetKind =
   | "video"
   | "unsupported";
 
-export function declaredAssetKind(mime: string | undefined): AssetKind {
+function declaredAssetKind(mime: string | undefined): AssetKind {
   const type = (mime ?? "").toLowerCase().split(";")[0]?.trim() ?? "";
   if (["image/jpeg", "image/png", "image/webp"].includes(type)) return "image";
   if (type === "application/pdf") return "pdf";

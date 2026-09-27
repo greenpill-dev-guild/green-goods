@@ -2,7 +2,8 @@ import { type CoordinatorDeps, processConversation } from "./coordinator/turn";
 import { inTransaction } from "./database";
 import { conversationsWithWork, consumeInboxEvent, readInboxPayload } from "./inbox";
 import { type ClaimedJob, claimJob, completeJob, type JobKind, retryJob } from "./jobs";
-import { applyDeliveryStatus, dispatchOutbox, recoverStalledDispatches } from "./outbox";
+import { applyDeliveryStatus } from "./delivery-status";
+import { dispatchOutbox, recoverStalledDispatches } from "./outbox";
 import type { InboundStatusEvent, OutboundTransport } from "./transport";
 
 /**

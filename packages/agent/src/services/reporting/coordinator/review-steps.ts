@@ -103,8 +103,7 @@ export function answerReviewPrompt(
   review: ReviewRecord,
   plan: Extract<TurnPlan, { kind: "answer" }>
 ): void {
-  const { core, ctx } = writer;
-  const account = ctx.account;
+  const account = writer.ctx.account;
   if (!account) return writer.say("review.none");
   const { prompt } = plan;
   if (prompt.kind === "confirm_review") {

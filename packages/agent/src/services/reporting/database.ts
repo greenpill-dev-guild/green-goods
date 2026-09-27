@@ -8,7 +8,7 @@ import { REPORTING_MIGRATIONS, type ReportingMigration } from "./schema";
  * schema rewrites `user_version` on every open and holds custodial key material; these records
  * need a real migration version and must stay apart from that data.
  */
-export class ReportingSchemaVersionError extends Error {}
+class ReportingSchemaVersionError extends Error {}
 
 export function openReportingDatabase(path: string): Database {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
@@ -22,7 +22,7 @@ export function openReportingDatabase(path: string): Database {
   return db;
 }
 
-export function migrateReportingDatabase(
+function migrateReportingDatabase(
   db: Database,
   migrations: readonly ReportingMigration[] = REPORTING_MIGRATIONS
 ): number {

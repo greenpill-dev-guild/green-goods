@@ -20,14 +20,6 @@ export type AttemptState =
   | "confirmed"
   | "reverted";
 
-export const UNRESOLVED_ATTEMPT_STATES: readonly AttemptState[] = [
-  "reserved",
-  "wallet_pending",
-  "signed",
-  "broadcast",
-  "uncertain",
-];
-
 export interface AttemptRecord {
   id: string;
   operationId: string;
