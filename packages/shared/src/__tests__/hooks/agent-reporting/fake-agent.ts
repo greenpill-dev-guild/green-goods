@@ -57,6 +57,8 @@ export class FakeAgent {
   pairingCode = "481516";
   recovery: RecoveryStep["state"] = "started";
   recoveryCode = "271828";
+  /** Outcome POSTs to lose before they reach the Agent, as a dropped connection would. */
+  dropOutcomes = 0;
   operation: OperationView = {
     operationId: "op-1",
     kind: "work",
@@ -210,6 +212,10 @@ export class FakeAgent {
       body,
       headers: { ...(init.headers as Record<string, string>) },
     });
+    if (path.endsWith("/outcome") && this.dropOutcomes > 0) {
+      this.dropOutcomes -= 1;
+      throw new TypeError("Failed to fetch");
+    }
     const { status, value } = this.route(init.method ?? "GET", path, body);
     return new Response(JSON.stringify(value), { status });
   }

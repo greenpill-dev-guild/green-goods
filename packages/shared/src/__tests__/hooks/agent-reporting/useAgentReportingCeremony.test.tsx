@@ -174,6 +174,28 @@ describe("reporting ceremony page", () => {
     expect(calls).toEqual([]);
   });
 
+  it("replays an outcome it could not deliver, with the same key, after a reload", async () => {
+    wallet("send");
+    agent.dropOutcomes = 2;
+    const first = render();
+    await reachReview(first.result);
+    await act(() => first.result.current.publish());
+    expect(first.result.current.stage).toBe("submitted");
+    expect(agent.operation.state).toBe("prepared");
+    first.unmount();
+
+    const { result } = render();
+    await waitFor(() => expect(result.current.stage).toBe("submitted"));
+    const outcomes = agent.requests("POST", "/operations/op-1/outcome");
+    expect(outcomes).toHaveLength(3);
+    expect(outcomes[2]?.body).toEqual(outcomes[0]?.body);
+    expect(outcomes[2]?.body).toMatchObject({
+      idempotencyKey: "at-1:broadcast",
+      outcome: { kind: "broadcast", transactionHash: TX_HASH },
+    });
+    expect(agent.operation.state).toBe("reconciling");
+  });
+
   it("resumes its own session after a refresh without opening a new challenge", async () => {
     const first = render();
     await reachReview(first.result);
