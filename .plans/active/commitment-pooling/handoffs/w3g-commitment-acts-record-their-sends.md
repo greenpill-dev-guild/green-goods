@@ -113,8 +113,9 @@ every run, and `process-job.ts` would never end it on attempts.
   whatever came next. The device clock is set against the chain's latest block before comparing,
   with two minutes of tolerance, so a request from an earlier ask does not count. A proof is
   matched by its CID, a confirmation by its confirmer, a submission by the ready-for-confirmation
-  event, and a work link by the module's operation record, with the log naming its transaction.
-  The log is read a page at a time, up to ten pages of 200 rows, and a busier window answers
+  event, and a work link by the module's operation record. A work link's transaction comes only
+  from the row the indexer ties to its operation key, at that block time and log index, never from
+  another link by the same person. The log is read a page at a time, up to ten pages of 200 rows, and a busier window answers
   unknown. An absence answers absent only once the indexer's processed block, timed on chain, is
   past the send's grace window.
 - `stranded-intent.ts`: `resolveStrandedCommitmentIntent` and `settleStrandedCommitmentIntent` run
@@ -166,6 +167,17 @@ Residuals, recorded rather than fixed:
 - Work and decisions keep the older rules. A transaction no receipt answers still waits, and their
   lookups read EAS's indexer with no freshness check and no send lock. Left for a follow-up.
 
+## Review round 2 on #923 (2026-09-27)
+
+CodeRabbit reviewed `e43476bef` and requested one change. The lookup matched a work link's row by
+its caller alone, so a second work the same person linked to the commitment in the window could
+lend the job its transaction. `15476ac0a` reads the indexer's work attribution by operation key
+(`getWorkLinkByOperation`) and takes only the row at that link's block time and log index. The
+module's operation record still decides whether the link landed. Until the indexer ties the key to
+a row, the lookup answers unknown. CodeRabbit's suggested patch, never matching a row, would have
+left every recovered link waiting for good, so it was not applied as written. A work relinked under
+another key within the window also waits, since the attribution keeps only the latest link.
+
 ## RED and GREEN evidence
 
 RED at `4615608d9` plus the new tests, `bun run test -- src/__tests__/modules/job-executors.test.ts src/__tests__/modules/job-queue.seam.test.ts src/__tests__/commitment-queue-state.test.tsx` in `packages/shared`: six failed, each as the gap predicts (`offline_job_identity_conflict` on a re-tap; `receipt timeout` and `connection lost` rejected instead of waiting; a stranded act completed by sending again; a refused act resolved `complete`; `discardable: true` on a recorded send). The declined-prompt guard passed, as it should.
@@ -183,6 +195,9 @@ found. A ten-minute clock lead and a busy second page read absent or unknown ins
 a trailing indexer read absent. A Safe id waited instead of completing, for all four act kinds and
 in the resolver. The send ran without its lock, and a held lock did not stop the reopen. All pass
 at `6781a51b2`.
+
+Review round 2 was RED against `e43476bef`: the work-link case returned the other link's
+transaction, and it passes at `15476ac0a`.
 
 ## Rendered proof
 
@@ -218,11 +233,11 @@ holds W1-1's proof and belongs to Codex's lane, so `record-tdd` is not run over 
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `6781a51b2` (on `fix/commitment-send-record`, PR #923)
-- Run at (UTC): `2026-09-27T03:33:11Z` to `2026-09-27T03:36:08Z`, then the catalog checks
-- Exact command(s): in `packages/shared`, `bun run typecheck -- --scope full` and `bun run test`; in `packages/client`, `bun run typecheck` and `bun run test`; at the root, `bash scripts/quality/check-test-quality.sh`, `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings`, `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`, `bun run --cwd packages/qa build`, `node scripts/quality/check-qa-id-ledger.mjs --base origin/develop` and `bun --bun x vitest run --dir scripts/agents`.
-- Result: shared typecheck exit 0; shared 5,914 passed in 543 files; client typecheck exit 0; client 1,413 passed in 143 files; test quality passed; oxlint exit 0; source structure passed against `origin/develop`. QA build 354 active cases; ledger 420 ids, none removed; agent tools 260 passed. The earlier head `f745503fa` passed the critical pre-push plan, all 30 checks over 30 paths.
-- Validated paths: every non-plan path the branch changes, `git diff --name-only origin/develop 6781a51b2 -- . ':!.plans'` (26 paths)
+- Tested implementation commit SHA: `15476ac0a` (on `fix/commitment-send-record`, PR #923)
+- Run at (UTC): `2026-09-27T03:57:14Z` to `2026-09-27T03:59:53Z`
+- Exact command(s): in `packages/shared`, `bun run typecheck -- --scope full` and `bun run test`; in `packages/client`, `bun run typecheck` and `bun run test`; at the root, `bash scripts/quality/check-test-quality.sh`, `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings` and `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`. The catalog checks, `bun run --cwd packages/qa build`, `node scripts/quality/check-qa-id-ledger.mjs --base origin/develop` and `bun --bun x vitest run --dir scripts/agents`, last ran at `6781a51b2`; no catalog, ledger or agent-tool file has changed since.
+- Result: shared typecheck exit 0; shared 5,914 passed in 543 files; client typecheck exit 0; client 1,413 passed in 143 files; test quality passed; oxlint exit 0; source structure passed against `origin/develop`. At `6781a51b2`: QA build 354 active cases; ledger 420 ids, none removed; agent tools 260 passed. The previous head `e43476bef` passed the critical pre-push plan, all 30 checks over 31 paths, and its CI passed.
+- Validated paths: every non-plan path the branch changes, `git diff --name-only origin/develop 15476ac0a -- . ':!.plans'` (27 paths)
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 6781a51b2 -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
-- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, captured at `6bf248187`: `client-commitments-queuedactrow--proof-already-broadcast` in light and dark ("Your proof has left this phone and is waiting for the network to confirm it", Check Again, no Discard) and `--never-reached-the-network` in light ("Your take-up never reached the network", Discard and Send Now). `git diff --exit-code 6bf248187 6781a51b2` over the row, its stories and the shared i18n files exits 0. Labelled Storybook; the authenticated walk, PWA-126 with Rabby, stays pending for the recorded call.
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 15476ac0a -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
+- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, captured at `6bf248187`: `client-commitments-queuedactrow--proof-already-broadcast` in light and dark ("Your proof has left this phone and is waiting for the network to confirm it", Check Again, no Discard) and `--never-reached-the-network` in light ("Your take-up never reached the network", Discard and Send Now). `git diff --exit-code 6bf248187 15476ac0a` over the row, its stories and the shared i18n files exits 0. Labelled Storybook; the authenticated walk, PWA-126 with Rabby, stays pending for the recorded call.
