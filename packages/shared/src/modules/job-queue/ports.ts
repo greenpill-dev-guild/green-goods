@@ -187,6 +187,14 @@ export interface JobQueueConfig {
   storageQuotaCacheTTL: number;
 }
 
+/**
+ * Takes a job's execution claim for the length of a recovery act, so no send
+ * can start or be running while it runs. Null when a send holds the claim.
+ */
+export interface JobQueueExecutionClaims {
+  acquire(jobId: string): Promise<{ release(): Promise<void> } | null>;
+}
+
 export interface JobQueueDependencies {
   store: JobQueueStore;
   events: JobQueueEvents;
@@ -201,6 +209,8 @@ export interface JobQueueDependencies {
   config: JobQueueConfig;
   lifecycle: JobQueueLifecycle;
   logger: JobQueueLogger;
+  /** Optional, so a queue built without the claim table (tests, fakes) discards unclaimed. */
+  executionClaims?: JobQueueExecutionClaims;
 }
 
 export interface JobQueueHandle {

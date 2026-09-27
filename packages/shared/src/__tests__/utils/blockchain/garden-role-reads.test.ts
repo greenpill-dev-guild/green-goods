@@ -23,7 +23,10 @@ vi.mock("../../../utils/blockchain/garden-hats", () => ({
   fetchHatsModuleAddress: (...args: unknown[]) => mockFetchHatsModuleAddress(...args),
 }));
 
-import { readGardenRoleHat } from "../../../utils/blockchain/garden-role-reads";
+import {
+  readGardenMembership,
+  readGardenRoleHat,
+} from "../../../utils/blockchain/garden-role-reads";
 
 const GARDEN = "0x1111111111111111111111111111111111111111";
 const ACCOUNT = "0x2222222222222222222222222222222222222222";
@@ -70,5 +73,36 @@ describe("utils/blockchain/garden-role-reads", () => {
       /Hats module is not configured/
     );
     expect(mockReadContract).not.toHaveBeenCalled();
+  });
+
+  it("counts any of the six roles as membership, and a failed read as unknown, not no", async () => {
+    // GuardLib.isGardenMember accepts every hat, community and funder included.
+    const communityOnly = vi.fn(
+      async (_garden: string, _account: string, role: string) => role === "community"
+    );
+    await expect(readGardenMembership(GARDEN, ACCOUNT, CHAIN_ID, communityOnly)).resolves.toBe(
+      true
+    );
+    expect(communityOnly).toHaveBeenCalledTimes(6);
+
+    const none = vi.fn(async () => false);
+    await expect(readGardenMembership(GARDEN, ACCOUNT, CHAIN_ID, none)).resolves.toBe(false);
+
+    const failedFunderRead = vi.fn(async (_garden: string, _account: string, role: string) => {
+      if (role === "funder") throw new Error("rpc unavailable");
+      return false;
+    });
+    await expect(
+      readGardenMembership(GARDEN, ACCOUNT, CHAIN_ID, failedFunderRead)
+    ).resolves.toBeNull();
+
+    // One yes is enough, whatever else failed.
+    const failedButGardener = vi.fn(async (_garden: string, _account: string, role: string) => {
+      if (role === "funder") throw new Error("rpc unavailable");
+      return role === "gardener";
+    });
+    await expect(readGardenMembership(GARDEN, ACCOUNT, CHAIN_ID, failedButGardener)).resolves.toBe(
+      true
+    );
   });
 });

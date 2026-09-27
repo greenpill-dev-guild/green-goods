@@ -80,11 +80,16 @@ export interface UploadPreparationPorts {
   now(): number;
 }
 
+interface PreparationHold {
+  ready: Promise<void>;
+  release(): void;
+}
+
 export interface UploadPreparation {
   /** Look for items to prepare; a request during a run is served when it ends. */
   schedule(): void;
-  /** Hold preparation back between items while an upload runs. Returns the release. */
-  suspend(): () => void;
+  /** Stop new passes and wait for any in-flight claim to be released. */
+  suspend(): PreparationHold;
   /** Prepare under Data Saver for the rest of this session. */
   prepareNow(): void;
   stop(): void;
@@ -100,6 +105,7 @@ function chainOf(job: Job, fallback: number) {
 
 export function createUploadPreparation(ports: UploadPreparationPorts): UploadPreparation {
   let running = false;
+  const idleWaiters = new Set<() => void>();
   let requested = false;
   let stopped = false;
   let suspended = 0;
@@ -115,7 +121,7 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
     if (ports.isDataSaverOn() && !snapshot.dataSaverOverride) return "data-saver";
     // Asked last: it may probe, and a hidden or Data Saver page spends nothing on it.
     if (!(await ports.confirmOnline())) return "unconfirmed";
-    return null;
+    return suspended > 0 ? "uploading" : null;
   };
 
   const wantsPreparation = (job: Job): boolean => {
@@ -134,7 +140,7 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
     try {
       // Read again under the claim: another holder may have changed it.
       const job = await ports.getJob(id);
-      if (!job || !wantsPreparation(job)) return;
+      if (stopped || suspended > 0 || !job || !wantsPreparation(job)) return;
       publish({ activeJobId: id });
       const result = await ports.prepare(job, ports.chainId, claim);
       if (result === "retry-later") {
@@ -184,6 +190,8 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
       } while (requested && !stopped);
     } finally {
       running = false;
+      for (const resolve of idleWaiters) resolve();
+      idleWaiters.clear();
       scheduleRetry();
     }
   };
@@ -215,11 +223,16 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
       suspended += 1;
       publish({ paused: "uploading" });
       let released = false;
-      return () => {
-        if (released) return;
-        released = true;
-        suspended -= 1;
-        if (suspended === 0) start();
+      return {
+        ready: running
+          ? new Promise<void>((resolve) => idleWaiters.add(resolve))
+          : Promise.resolve(),
+        release: () => {
+          if (released) return;
+          released = true;
+          suspended -= 1;
+          if (suspended === 0) start();
+        },
       };
     },
     prepareNow: () => {
@@ -240,7 +253,7 @@ let active: UploadPreparation | undefined;
  * starts held too: it loads only once the connection is first confirmed, and a
  * Submit tapped at that moment must still send its own work.
  */
-const openHolds = new Set<Array<() => void>>();
+const openHolds = new Set<PreparationHold[]>();
 
 /** The preparation the signed-in session runs, so the dashboard and uploads can reach it. */
 export function setActiveUploadPreparation(preparation: UploadPreparation | undefined) {
@@ -257,11 +270,13 @@ export function prepareUploadsNow(): void {
 }
 
 /** Hold preparation back, the current one and any set before the release, until released. */
-export function suspendUploadPreparation(): () => void {
+export async function suspendUploadPreparation(): Promise<() => void> {
   const releases = active ? [active.suspend()] : [];
   openHolds.add(releases);
+  // A session may mount a new scheduler while an older pass is draining.
+  for (let index = 0; index < releases.length; index += 1) await releases[index].ready;
   return () => {
     if (!openHolds.delete(releases)) return;
-    for (const release of releases) release();
+    for (const hold of releases) hold.release();
   };
 }

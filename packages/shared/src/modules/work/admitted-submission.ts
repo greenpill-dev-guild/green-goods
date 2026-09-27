@@ -72,7 +72,7 @@ export async function submitAdmittedWork(
   input: ResolvedSubmitWorkCommand,
   ports: SubmitWorkPorts
 ): Promise<SubmitWorkOutcome> {
-  const resumePreparation = ports.suspendPreparation();
+  const resumePreparation = await ports.suspendPreparation();
   try {
     return await admitAndSend(input, ports);
   } finally {

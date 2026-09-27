@@ -54,6 +54,8 @@ import {
 import {
   createUploadPreparation,
   setActiveUploadPreparation,
+  scheduleUploadPreparation,
+  type UploadPreparationPorts,
 } from "../../../modules/work/upload-preparation";
 import { uploadQueuedWork } from "../../../modules/work/upload-queued-work";
 import { createDefaultUploadQueuedWorkPorts } from "../../../modules/work/upload-queued-work-defaults";
@@ -147,7 +149,7 @@ const stillQueued = async () =>
 let unmountPreparation = () => undefined as void;
 
 /** Background preparation as useWorkUploadPreparation mounts it: every admission wakes it. */
-function mountPreparation() {
+function mountPreparation(overrides: Partial<UploadPreparationPorts> = {}) {
   const prepared: string[] = [];
   const preparation = createUploadPreparation({
     userAddress: USER,
@@ -165,6 +167,7 @@ function mountPreparation() {
     },
     recover: async () => undefined,
     now: () => Date.now(),
+    ...overrides,
   });
   setActiveUploadPreparation(preparation);
   const stopWaking = jobQueueEventBus.on("job:added", () => preparation.schedule());
@@ -311,6 +314,58 @@ describe("an online Submit while background preparation runs", () => {
     });
     expect(send).toHaveBeenCalledOnce();
     expect(prepared).toEqual([]);
+    expect(await stillQueued()).toEqual([]);
+  });
+
+  it.each([
+    "passkey",
+    "wallet",
+  ] as const)("sends a declined %s retry after draining the background claim", async (authMode) => {
+    const input = submission(authMode);
+    const sender = passkeySender(async (options) => {
+      await broadcast(options);
+      await options?.onBroadcast?.(TX);
+    });
+    const ports = createDefaultSubmitWorkPorts({ sender });
+    ports.connectivity.confirm = async () => false;
+    const queued = await submitWork(input, ports);
+    if (queued.kind !== "queued") throw new Error("expected durable offline admission");
+    const job = await jobQueueDB.getJob(queued.jobId);
+    if (!job) throw new Error("expected queued job");
+    await jobQueueDB.updateJob({ ...job, meta: { ...job.meta, requiresExplicitSend: true } });
+    let entered!: () => void;
+    const claimed = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    mountPreparation({
+      acquire: async (ids) => {
+        const claims = await acquireAvailableWorkJobs(ids, { background: true });
+        entered();
+        await gate;
+        return claims;
+      },
+    });
+    scheduleUploadPreparation();
+    await claimed;
+    ports.connectivity.confirm = async () => true;
+    const send = vi.fn<typeof ports.direct.submitWork>(async (command) => {
+      await command.onBroadcast?.(TX);
+      return TX;
+    });
+    ports.direct.submitWork = send;
+    const retry = submitWork(input, ports);
+    // Let Submit reach the held claim before the background acquisition finishes.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    release();
+    await expect(retry).resolves.toMatchObject({
+      kind: authMode === "wallet" ? "direct" : "processed",
+      txHash: TX,
+    });
+    expect(authMode === "wallet" ? send : sender.sendContractCall).toHaveBeenCalledOnce();
     expect(await stillQueued()).toEqual([]);
   });
 

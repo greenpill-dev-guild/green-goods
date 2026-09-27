@@ -231,7 +231,7 @@ jobs:
         run: bun run check --only qa-id-ledger
 
       - name: Run guidance guardrail tests
-        run: node --test scripts/quality/branch-name-policy.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs
+        run: node --test scripts/harness/agent-hooks.test.mjs scripts/quality/branch-name-policy.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs
 
       - name: Check test quality
         run: bun run check --only test-quality

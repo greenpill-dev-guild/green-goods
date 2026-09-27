@@ -15,6 +15,7 @@ import { selectCommitmentPoolingAvailability } from "../commitment-pooling/selec
 import { StrandedSendReopened } from "../work/stranded-intent";
 import { InvalidWorkAttachmentError, PendingHeicConversionError } from "../work/work-attachments";
 import {
+  acquireWorkJobs,
   AwaitingWorkConfirmation,
   isWorkSubmissionCancelled,
   WorkTransactionReverted,
@@ -98,6 +99,7 @@ function createDefaultExecutorRegistry() {
 export function createDefaultJobQueueDependencies(): JobQueueDependencies {
   return {
     store: jobQueueDB,
+    executionClaims: { acquire: (jobId) => acquireWorkJobs([jobId]) },
     events: jobQueueEventBus,
     executors: createDefaultExecutorRegistry(),
     admission: createCommitmentQueueAdmission({

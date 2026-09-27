@@ -74,7 +74,7 @@ export interface SubmitWorkPorts {
   };
   sender: TransactionSender | null;
   /** Holds background preparation back until the returned release, so it cannot claim this Submit's work. */
-  suspendPreparation(): () => void;
+  suspendPreparation(): Promise<() => void>;
   onWalletStage?: (stage: WalletSubmissionStage, message: string) => void;
   onQueueFallback?: (optimistic: Work) => void | Promise<void>;
 }

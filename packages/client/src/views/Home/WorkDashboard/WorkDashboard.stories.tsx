@@ -127,6 +127,7 @@ interface DashboardFrameProps {
 
 const NO_UPLOADS: UploadBarState = {
   readyCount: 0,
+  attentionCount: 0,
   preparingCount: 0,
   pausedForDataSaver: false,
   isPreparing: false,
@@ -447,4 +448,18 @@ export const PendingWaitingToUploadSpanish: Story = {
 export const PendingWaitingToUploadPortuguese: Story = {
   args: PendingWaitingToUpload.args,
   parameters: { locale: "pt" },
+};
+
+/** Text enlargement keeps the action and filter usable on a narrow phone. */
+export const PendingUploadEnlargedText: Story = {
+  args: PendingUploadStates.args,
+  parameters: { locale: "es" },
+  decorators: [
+    (Story) => (
+      <>
+        <style>{"html { font-size: 200%; }"}</style>
+        <Story />
+      </>
+    ),
+  ],
 };

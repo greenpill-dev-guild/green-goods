@@ -1,6 +1,23 @@
 # Design Implementation
 
-Execution companion to the `design` skill: how to express Warm Earth *in code*. Direction lives in [SKILL.md](./SKILL.md) / [language.md](./language.md); runtime tokens in `packages/shared/src/styles/theme.css`. Generic Tailwind v4 / Radix / WCAG mechanics are model-known — this file holds only the repo-specific parts. Tailwind's shared-scan gotcha is in root `AGENTS.md § Known Gotchas`; token roles and anti-patterns live in [language.md](./language.md) and [SKILL.md](./SKILL.md).
+Execution companion to the `design` skill: how to express Warm Earth *in code*. Direction lives in [SKILL.md](./SKILL.md) / [language.md](./language.md); runtime tokens in `packages/shared/src/styles/theme.css`. Generic Tailwind v4 / Radix / WCAG mechanics are model-known — this file holds only the repo-specific parts. Tailwind's shared-scan gotcha is in `packages/shared/AGENTS.md`; token roles and anti-patterns live in [language.md](./language.md) and [SKILL.md](./SKILL.md).
+
+## Platform and source rules
+
+Before frontend, UI, CSS, accessibility, or browser-proof work, use `modern-web-guidance` and
+retrieve current guidance with the repository-installed tool:
+
+```bash
+DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search "agentic frontend CSS accessibility browser validation DevTools MCP"
+DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility
+```
+
+Target Baseline Widely Available. Prefer semantic HTML, native controls, and platform CSS;
+keep focus, accessible names, touch targets, loading/error/empty states, and reduced motion usable.
+Root `DESIGN.md` owns tokens; `packages/shared/src/styles/theme.css` is their runtime projection.
+Use semantic color, radius, material, and spring tokens rather than raw values. Use Remixicon.
+The owning surface's `DESIGN.md` and package guide govern its UI; use the shared
+[alignment protocol](system-alignment-review.md) for a full design-system review.
 
 ## New Component Runbook
 
@@ -64,4 +81,6 @@ Baseline + directional (forwards / backwards / fade) + reduced-motion gating are
 
 ## Validation roll-up
 
-`bun run check --only design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run check --only vocabulary` · when a component / story / Storybook surface changes: `bun run --filter @green-goods/shared check:stories` + `check:story-quality`.
+Follow [the validation pipeline](../../context/validation-pipeline.md) for `agentic-readiness`,
+DesignMD/generated/token checks, vocabulary, and applicable Storybook coverage and quality proof.
+Label rendered proof per [Browser Evidence](../../../AGENTS.md#browser-evidence).

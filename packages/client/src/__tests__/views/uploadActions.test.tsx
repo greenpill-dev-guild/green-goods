@@ -13,6 +13,7 @@ function header(state: Partial<UploadBarState>) {
   const action = buildUploadAction(
     {
       readyCount: 0,
+      attentionCount: 0,
       preparingCount: 0,
       pausedForDataSaver: false,
       isPreparing: false,
@@ -39,6 +40,13 @@ describe("buildUploadAction", () => {
 
     expect(action).toMatchObject({ label: "Upload 2 ready", testId: "upload-all" });
     expect(action?.loading).toBeUndefined();
+  });
+
+  it("names only ready items when another item needs attention", () => {
+    expect(header({ readyCount: 1, attentionCount: 1 }).action).toMatchObject({
+      label: "Upload 1 ready",
+      testId: "upload-all",
+    });
   });
 
   it("sends what is ready under Data Saver, and offers Prepare now once nothing is", () => {
@@ -70,7 +78,7 @@ describe("buildUploadAction", () => {
   });
 
   it("holds its uploading state until the upload settles", () => {
-    const { action } = header({ readyCount: 0, isUploading: true });
+    const { action } = header({ readyCount: 0, attentionCount: 0, isUploading: true });
 
     expect(action).toMatchObject({ label: "Uploading…", loading: true, testId: "upload-all" });
   });

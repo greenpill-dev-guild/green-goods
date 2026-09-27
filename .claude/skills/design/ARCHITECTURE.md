@@ -98,7 +98,9 @@ Full palettes with file paths live in `prompt-contract.md` and `client-prompt-co
 
 ## Always-loaded context
 
-The highest-frequency rules are mirrored in root `CLAUDE.md` and `AGENTS.md` under "Design System" / "Design Language" so trivial edits (padding, copy, a single component touch) don't require a full skill load. The full spec is this file + `language.md` + the prompt contracts.
+Root `AGENTS.md` routes frontend work to the owning package guide and `implementation.md`.
+This file, `language.md`, and the prompt contracts own the design sources; do not mirror the
+spec into root instruction files.
 
 If you're editing more than one component, changing layout composition, creating a new view, or reviewing a PR → **explicitly load `design` (SKILL.md + implementation.md)**.
 
