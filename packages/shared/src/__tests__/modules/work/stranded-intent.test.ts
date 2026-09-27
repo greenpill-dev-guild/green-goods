@@ -14,15 +14,18 @@ import {
   STRANDED_INTENT_GRACE_MS,
   StrandedSendReopened,
   isStrandedIntentCandidate,
+  resolveStrandedCommitmentIntent,
   resolveStrandedDecisionIntent,
   resolveStrandedWorkIntent,
   settleStrandedWorkIntent,
 } from "../../../modules/work/stranded-intent";
 import {
   AwaitingWorkConfirmation,
+  rememberTransactionReplaced,
   rememberWorkBroadcast,
   retainedWorkBroadcast,
 } from "../../../modules/work/work-confirmation";
+import { hasRecordedSend } from "../../../modules/job-queue/queue-policy";
 
 const NOW = Date.parse("2026-09-16T12:00:00Z");
 const GARDEN = "0x2222222222222222222222222222222222222222";
@@ -356,5 +359,167 @@ describe("settling a send no receipt can", () => {
     // Decisions have no send control of their own yet, so nothing holds it for a tap.
     expect(approval.meta?.requiresExplicitSend).toBeUndefined();
     expect(persist).toHaveBeenCalledWith(approval);
+  });
+});
+
+describe("settling a commitment act no receipt can", () => {
+  function strandedTakeUp(broadcastPendingAt: string, record: object = {}): Job {
+    sequence += 1;
+    return {
+      id: `take-up-${sequence}`,
+      kind: "claim",
+      chainId: 42161,
+      userAddress: GARDENER,
+      createdAt: NOW - 45 * 60_000,
+      attempts: 0,
+      synced: false,
+      payload: {
+        commitmentId: 7n,
+        kind: 1,
+        gardenContext: GARDEN,
+        gardenAddress: GARDEN,
+        sendCheckpoint: { broadcastPending: true, broadcastPendingAt, ...record },
+      },
+    } as Job;
+  }
+  const pastGrace = () => new Date(NOW - STRANDED_INTENT_GRACE_MS - 60_000).toISOString();
+
+  it("completes a take-up the chain shows landed, and asks with the act and its window", async () => {
+    const act = strandedTakeUp(minutesAgo(10));
+    const lookUp = vi.fn().mockResolvedValue({ status: "found", transactionHash: TX });
+
+    await expect(
+      resolveStrandedCommitmentIntent(act, 42161, { ...deps(lookUp), lookUp })
+    ).resolves.toEqual({ status: "landed", transactionHash: TX });
+    expect(lookUp).toHaveBeenCalledWith(
+      expect.objectContaining({ job: act, chainId: 42161, sinceMs: expect.any(Number) })
+    );
+  });
+
+  it("waits while an absence is young, then reopens it for the person to send", async () => {
+    const young = strandedTakeUp(minutesAgo(10));
+    const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
+    await expect(
+      resolveStrandedCommitmentIntent(young, 42161, { ...deps(lookUp), lookUp })
+    ).resolves.toEqual({ status: "waiting" });
+
+    const old = strandedTakeUp(new Date(NOW - STRANDED_INTENT_GRACE_MS - 60_000).toISOString());
+    const persist = vi.fn();
+    await expect(
+      resolveStrandedCommitmentIntent(old, 42161, { now: () => NOW, lookUp, persist })
+    ).resolves.toEqual({ status: "reopened" });
+    // The record is gone, so Discard and Send Now both work; nothing sends on its own.
+    expect((old.payload as { sendCheckpoint?: unknown }).sendCheckpoint).toBeUndefined();
+    expect(old.meta?.requiresExplicitSend).toBe(true);
+    expect(persist).toHaveBeenCalledWith(old);
+  });
+
+  it("completes a transaction no receipt answers once the act lands, and never reopens it", async () => {
+    // A Safe's own transaction id never produces a receipt, and the Safe may
+    // still be collecting signatures, so only the act's landing settles it.
+    const safeId = `0x${"5a".repeat(20)}` as const;
+    const record = { broadcastPending: false, transactionHash: safeId };
+    const absent = vi.fn().mockResolvedValue({ status: "absent" });
+    const unanswered = strandedTakeUp(pastGrace(), record);
+    await expect(
+      resolveStrandedCommitmentIntent(unanswered, 42161, { ...deps(absent), lookUp: absent })
+    ).resolves.toEqual({ status: "waiting" });
+    expect((unanswered.payload as { sendCheckpoint?: object }).sendCheckpoint).toMatchObject(
+      record
+    );
+
+    const found = vi.fn().mockResolvedValue({ status: "found", transactionHash: TX });
+    const executed = strandedTakeUp(pastGrace(), record);
+    await expect(
+      resolveStrandedCommitmentIntent(executed, 42161, { ...deps(found), lookUp: found })
+    ).resolves.toEqual({ status: "landed", transactionHash: TX });
+  });
+
+  it("offers a transaction the wallet saw replaced again once nothing landed in its place", async () => {
+    // Unlike a Safe's id, a replaced transaction can never be included.
+    const absent = vi.fn().mockResolvedValue({ status: "absent" });
+    const replaced = strandedTakeUp(pastGrace(), {
+      broadcastPending: false,
+      transactionHash: TX,
+      transactionReplaced: true,
+    });
+    await expect(
+      resolveStrandedCommitmentIntent(replaced, 42161, { ...deps(absent), lookUp: absent })
+    ).resolves.toEqual({ status: "reopened" });
+    expect(hasRecordedSend(replaced)).toBe(false);
+  });
+
+  it("offers a transaction again once another took its nonce, and never on absence alone", async () => {
+    // A transaction its account signed can never be included once that nonce
+    // is spent: the wallet cancelled or replaced it while no tab was watching.
+    const absent = vi.fn().mockResolvedValue({ status: "absent" });
+    const record = { broadcastPending: false, transactionHash: TX, intentNonce: 5 };
+    const superseded = strandedTakeUp(pastGrace(), record);
+    await expect(
+      resolveStrandedCommitmentIntent(superseded, 42161, {
+        ...deps(absent),
+        lookUp: absent,
+        transactionSuperseded: async () => true,
+      })
+    ).resolves.toEqual({ status: "reopened" });
+    expect(hasRecordedSend(superseded)).toBe(false);
+    expect(superseded.meta?.requiresExplicitSend).toBe(true);
+
+    // With its nonce unspent, the signed transaction may still land.
+    const unspent = strandedTakeUp(pastGrace(), record);
+    await expect(
+      resolveStrandedCommitmentIntent(unspent, 42161, {
+        ...deps(absent),
+        lookUp: absent,
+        transactionSuperseded: async () => false,
+      })
+    ).resolves.toEqual({ status: "waiting" });
+    expect(hasRecordedSend(unspent)).toBe(true);
+  });
+
+  it("reads a replaced mark storage refused from memory, and writes it back while it waits", async () => {
+    const absent = vi.fn().mockResolvedValue({ status: "absent" });
+    const record = { broadcastPending: false, transactionHash: TX };
+    const young = strandedTakeUp(minutesAgo(10), record);
+    rememberTransactionReplaced(young.id);
+    const persist = vi.fn();
+    await expect(
+      resolveStrandedCommitmentIntent(young, 42161, { now: () => NOW, lookUp: absent, persist })
+    ).resolves.toEqual({ status: "waiting" });
+    expect(persist).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          sendCheckpoint: expect.objectContaining({ transactionReplaced: true }),
+        }),
+      })
+    );
+
+    const old = strandedTakeUp(pastGrace(), record);
+    rememberTransactionReplaced(old.id);
+    await expect(
+      resolveStrandedCommitmentIntent(old, 42161, { ...deps(absent), lookUp: absent })
+    ).resolves.toEqual({ status: "reopened" });
+  });
+
+  it("keeps an act waiting while another tab still holds its send, since that prompt may yet go out", async () => {
+    const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
+    const held = strandedTakeUp(pastGrace());
+    await expect(
+      resolveStrandedCommitmentIntent(held, 42161, {
+        ...deps(lookUp),
+        lookUp,
+        stillSending: async () => true,
+      })
+    ).resolves.toEqual({ status: "waiting" });
+    expect(hasRecordedSend(held)).toBe(true);
+
+    const released = strandedTakeUp(pastGrace());
+    await expect(
+      resolveStrandedCommitmentIntent(released, 42161, {
+        ...deps(lookUp),
+        lookUp,
+        stillSending: async () => false,
+      })
+    ).resolves.toEqual({ status: "reopened" });
   });
 });

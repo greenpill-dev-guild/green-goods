@@ -1573,6 +1573,14 @@
       "status": "in_progress",
       "branch": "fix/commitment-send-record",
       "note": "Afo set the order after W3-A (§ 1 row 49): W3-G now, then W3-H for N42 (Linear child PRD-997), then W3-B to W3-F; N43 not scheduled before the cut"
+    },
+    {
+      "timestamp": "2026-09-27T03:37:24.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "in_progress",
+      "branch": "fix/commitment-send-record",
+      "note": "Codex's first review of #923: six findings fixed in 6781a51b2 (indexer coverage before an absence, paging, full claim identity, chain-clock floor, Safe ids settled by landing, per-job send lock); receipt at 6781a51b2; authenticated walk PWA-126 pending"
     }
   ]
 }

@@ -3193,6 +3193,32 @@
       "source": "prd-990"
     },
     {
+      "id": "PWA-126",
+      "priority": "P1",
+      "kind": "transaction",
+      "scenario": "A take-up whose confirmation is lost waits as sent, and is never dropped or sent twice",
+      "preconditions": [
+        "Signed in with a wallet",
+        "A member of the garden, on an offered commitment"
+      ],
+      "steps": [
+        "Press Take This Up",
+        "While the wallet asks, set the page offline in DevTools, then approve in the wallet",
+        "Read the row above the status band",
+        "Go back online, reload, and press Check Again"
+      ],
+      "expected": "Offline, the row says the take-up has left this phone and is waiting for the network to confirm it, with Check Again and no Discard; after the reload it says the same; Check Again confirms it without a second wallet prompt, the band moves to the accepted state and the row clears",
+      "evidence": "Screenshot of the row while offline and of the screen after Check Again",
+      "role": "gardener",
+      "tags": ["commitments", "queue", "tx"],
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "area": "Commitments",
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-996"
+    },
+    {
       "id": "PWA-103",
       "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
