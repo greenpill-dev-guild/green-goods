@@ -204,6 +204,12 @@ export async function sendRecordedAct(
       await clearActSendRecord(job, store);
       throw result.error;
     case "not-sent":
+      // Nothing reached the chain. A person who declined is not asked again
+      // until they send it themselves: a background flush passes the act by.
+      if (result.cancelled) {
+        job.meta = { ...job.meta, requiresExplicitSend: true };
+        await store.updateJob(job);
+      }
       throw result.error;
     case "may-have-sent":
       throw new AwaitingWorkConfirmation(

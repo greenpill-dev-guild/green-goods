@@ -73,11 +73,13 @@ async function lookUp(
     resolvedWork?: `0x${string}` | null;
     /** Seconds the indexer's processed block trails the chain head. */
     indexerBehindS?: number;
+    /** Seconds the device's clock runs ahead of the chain's. */
+    clockAheadS?: number;
     nowMs?: number;
   } = {}
 ) {
   const nowMs = chain.nowMs ?? NOW_MS;
-  const chainNowS = nowMs / 1000;
+  const chainNowS = nowMs / 1000 - (chain.clockAheadS ?? 0);
   const lookup = createCommitmentLandedLookup({
     readWorkLinkPayloadHash: vi.fn().mockResolvedValue(chain.storedLink ?? zeroHash),
     activity: vi.fn(async ({ limit = 50, offset = 0 }) => rows.slice(offset, offset + limit)),
@@ -229,6 +231,39 @@ describe("createCommitmentLandedLookup", () => {
     await expect(lookUp(unordered, asked, { claimedIn: madeHere })).resolves.toEqual({
       status: "unknown",
     });
+  });
+
+  it("opens its window at the intent's chain time, so a device clock days ahead still finds the act", async () => {
+    // Two days fast, the device's day-back window opens after the act's own row.
+    const aheadS = 2 * 24 * 60 * 60;
+    const intentAt = CREATED_MS / 1000 - aheadS;
+    const record = {
+      broadcastPending: true,
+      broadcastPendingAt: new Date(CREATED_MS).toISOString(),
+      intentChainTime: intentAt,
+      intentBlock: 100n,
+    };
+    const landed = { timestamp: intentAt + 60 };
+    const confirmed = act("confirmation", { action: "confirm", sendCheckpoint: record });
+    await expect(
+      lookUp(confirmed, [row("CONFIRMATION_RECORDED", CALLER, landed)], { clockAheadS: aheadS })
+    ).resolves.toEqual({ status: "found", transactionHash: TX });
+
+    const WORK = `0x${"77".repeat(32)}` as const;
+    const link = act("workLink", {
+      clientOperationId: "op",
+      operationKey: TX,
+      requirementIndex: 0,
+      workUID: WORK,
+      sendCheckpoint: record,
+    });
+    await expect(
+      lookUp(link, [row("WORK_LINKED", CALLER, landed)], {
+        clockAheadS: aheadS,
+        storedLink: hashWorkLinkPayload(7n, WORK, 0),
+        linkedIn: [TX],
+      })
+    ).resolves.toEqual({ status: "found", transactionHash: TX });
   });
 
   it("answers absent only once the indexer has processed past the send's grace window", async () => {

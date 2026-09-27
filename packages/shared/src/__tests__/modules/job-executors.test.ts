@@ -1101,7 +1101,7 @@ describe("commitment acts record their sends", () => {
     }
   });
 
-  it("clears the intent when the person declines, so the take-up can still be dropped", async () => {
+  it("clears the intent when the person declines, and waits for their own tap to ask again", async () => {
     const claim = takeUp("claim-declined");
     const declined = new WorkSendCancelledError();
     const sender = createMockTransactionSender({ authMode: "wallet" });
@@ -1109,16 +1109,24 @@ describe("commitment acts record their sends", () => {
       await options?.onBeforeBroadcast?.();
       throw declined;
     });
+    const jobStore = store();
+    // What each write stored, so the flag is known to have reached storage.
+    const stored: Array<Job["meta"]> = [];
+    jobStore.updateJob.mockImplementation(async (written: Job) => {
+      stored.push({ ...written.meta });
+    });
 
     await expect(
       executeCommitmentQueueJob(claim.id, claim, 42161, sender, {
         demoActive: () => false,
         reads: reads(),
-        store: store(),
+        store: jobStore,
       })
     ).rejects.toBe(declined);
     expect(hasRecordedSend(claim)).toBe(false);
     expect(isDiscardableJob(claim)).toBe(true);
+    // A background flush passes it by until the person sends it themselves.
+    expect(stored.at(-1)).toMatchObject({ requiresExplicitSend: true });
   });
 
   it("asks the chain before recording an intent, so a refused act fails at once", async () => {

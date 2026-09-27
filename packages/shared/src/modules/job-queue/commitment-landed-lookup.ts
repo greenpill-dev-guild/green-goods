@@ -263,11 +263,14 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
   const now = deps.now ?? Date.now;
   return async ({ job, chainId, sinceMs }) => {
     const payload = job.payload as Record<string, unknown>;
-    if (job.kind === "workLink")
-      return workLinkLanded(job, payload, { chainId, sinceS: Math.floor(sinceMs / 1000) }, deps);
+    const recordedChainTime = sendCheckpointOf(job)?.intentChainTime;
+    // The window opens at the intent on the chain's clock, when it was kept:
+    // nothing this send did can land before it. A window read off the device's
+    // clock would open after the send's own row on a device running days ahead.
+    const sinceS = recordedChainTime ?? Math.floor(sinceMs / 1000);
+    if (job.kind === "workLink") return workLinkLanded(job, payload, { chainId, sinceS }, deps);
     const checkedAt = now();
     const sentAt = intentAtMs(job);
-    const recordedChainTime = sendCheckpointOf(job)?.intentChainTime;
     const intentBlock = sendCheckpointOf(job)?.intentBlock;
     // The intent on the chain's clock: kept with the intent, or, for a record
     // kept without it, the device clock set against the latest block as read.
@@ -289,7 +292,7 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
       activity,
       chainId,
       BigInt(String(payload.commitmentId)),
-      Math.floor(sinceMs / 1000),
+      sinceS,
       matches
     );
     if (log.row) return { status: "found", transactionHash: log.row.txHash as Hex };
