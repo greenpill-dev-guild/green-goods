@@ -50,6 +50,16 @@ export const MiddleStep: Story = { args: { stepIndex: 1 } };
 
 export const ReadyToSeed: Story = { args: { stepIndex: 3, isLast: true } };
 
+/** The pool is not open, so Seed is off, and the footer says why. */
+export const PoolNotOpen: Story = {
+  args: {
+    stepIndex: 3,
+    isLast: true,
+    seedDisabled: true,
+    blockedReason: "Open the pool before seeding into it.",
+  },
+};
+
 export const ReadyToCreateSeveral: Story = { args: { stepIndex: 3, isLast: true, count: 3 } };
 
 /** Another offer would be one more than the steward may hold open at once. */

@@ -41,6 +41,9 @@ export const FirstStep: Story = { args: { currentStep: 1 } };
 export const MidFlow: Story = { args: { currentStep: 2 } };
 export const Completed: Story = { args: { currentStep: 4 } };
 
+// The run finished: every step checked, none current, none to reopen.
+export const RunDone: Story = { args: { currentStep: 4, complete: true } };
+
 // Vertical orientation — the labelled rail used in the desktop two-column layout.
 export const VerticalRail: Story = {
   args: { orientation: "vertical", currentStep: 2 },
