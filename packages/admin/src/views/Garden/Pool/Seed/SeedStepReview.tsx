@@ -307,8 +307,8 @@ export function SeedStepReview({
       )}
       {section(
         formatMessage({
-          id: "cockpit.garden.pool.seed.reward",
-          defaultMessage: "Advanced: declared reward",
+          id: "cockpit.garden.pool.seed.rewardRow",
+          defaultMessage: "Reward",
         }),
         [
           [

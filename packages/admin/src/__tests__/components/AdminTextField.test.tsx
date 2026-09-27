@@ -31,6 +31,16 @@ describe("AdminTextField", () => {
   });
 });
 
+describe("the filled field's active indicator", () => {
+  it("sits inside the container, so focusing a field never moves what sits below it", () => {
+    render(<AdminTextField label="Name" />);
+
+    const indicator = document.querySelector('[data-region="active-indicator"]');
+    expect(indicator?.parentElement).toHaveAttribute("data-region", "field-container");
+    expect(indicator).toHaveClass("absolute", "bottom-0");
+  });
+});
+
 describe("AdminTextArea", () => {
   it("renders a real textarea with the shared field anatomy", () => {
     render(<AdminTextArea label="Reason" helperText="Members read this" />);
