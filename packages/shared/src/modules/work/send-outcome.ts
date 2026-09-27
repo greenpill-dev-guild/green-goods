@@ -4,7 +4,8 @@
  * A send intent is recorded immediately before a call can reach the network
  * (`onBeforeBroadcast`). A failure before that point never sent anything. After
  * it, only a refusal that came back from the person or the network proves the
- * call was not broadcast; a lost response may hide a send that landed, so the
+ * call was not broadcast, or an estimate the contract refused, since nothing is
+ * signed after that; a lost response may hide a send that landed, so the
  * intent is kept for reconciliation instead of risking a second attestation.
  *
  * @module modules/work/send-outcome
@@ -48,6 +49,25 @@ function hasNetworkRefusal(error: unknown): boolean {
   return false;
 }
 
+/**
+ * An estimate the contract refused: viem's own estimate (it throws
+ * `EstimateGasExecutionError` only from estimating), or a wallet's, which
+ * answers JSON-RPC 3, "execution reverted", from running the call. Submitting a
+ * signed transaction never runs it, so nothing was signed or broadcast. The
+ * chain can move between a preflight and the wallet's estimate.
+ */
+function refusedWhileEstimating(error: unknown): boolean {
+  const seen = new Set<object>();
+  let cause = error;
+  while (cause && typeof cause === "object" && !seen.has(cause)) {
+    seen.add(cause);
+    if ("name" in cause && cause.name === "EstimateGasExecutionError") return true;
+    if ("code" in cause && Number((cause as { code: unknown }).code) === 3) return true;
+    cause = "cause" in cause ? (cause as { cause: unknown }).cause : undefined;
+  }
+  return false;
+}
+
 export function classifySendFailure(
   error: unknown,
   context: { intentRecorded: boolean; broadcastKnown: boolean }
@@ -57,6 +77,7 @@ export function classifySendFailure(
   // never reported its intent.
   if (context.broadcastKnown) return { kind: "may-have-sent" };
   if (!context.intentRecorded) return { kind: "not-sent", cancelled };
-  if (cancelled || hasNetworkRefusal(error)) return { kind: "not-sent", cancelled };
+  if (cancelled || hasNetworkRefusal(error) || refusedWhileEstimating(error))
+    return { kind: "not-sent", cancelled };
   return { kind: "may-have-sent" };
 }

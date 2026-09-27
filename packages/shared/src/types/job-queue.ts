@@ -102,7 +102,14 @@ export interface WorkJobPayload {
 /** What a queued send recorded about reaching the network, so it is confirmed, never sent twice. */
 export type SendCheckpoint = Pick<
   WorkUploadCheckpoint,
-  "broadcast" | "broadcastPending" | "broadcastPendingAt" | "transactionHash"
+  | "broadcast"
+  | "broadcastPending"
+  | "broadcastPendingAt"
+  | "intentBlock"
+  | "intentChainTime"
+  | "intentNonce"
+  | "transactionHash"
+  | "transactionReplaced"
 >;
 
 export interface ApprovalJobPayload {

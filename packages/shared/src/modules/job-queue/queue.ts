@@ -4,7 +4,7 @@ import { canonicalJobPayload, commitmentJobIdentity } from "../commitment-poolin
 import { JobMaintenance } from "./job-maintenance";
 import { createJobProcessor } from "./process-job";
 import type { FlushContext, FlushResult, JobQueueDependencies, JobQueueHandle } from "./ports";
-import { isTerminallyFailedJob } from "./queue-policy";
+import { isTerminallyFailedJob, payloadWithoutSendRecord } from "./queue-policy";
 import { createQueueReaders } from "./queue-readers";
 import { createJobRecovery } from "./job-recovery";
 
@@ -84,7 +84,10 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
             !isTerminallyFailedJob(job) && commitmentJobIdentity(job.kind, job.payload) === identity
         );
         if (existing) {
-          if (canonicalJobPayload(existing.payload) !== canonicalJobPayload(persistedPayload)) {
+          if (
+            canonicalJobPayload(payloadWithoutSendRecord(existing)) !==
+            canonicalJobPayload(persistedPayload)
+          ) {
             throw new Error(`offline_job_identity_conflict:${identity}`);
           }
           return existing.id;

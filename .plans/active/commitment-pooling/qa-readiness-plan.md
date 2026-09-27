@@ -1308,6 +1308,8 @@ name the files, steps, tests and commands.
 
 N42 and N43, found in W3-A's review, predate W3-A on develop. N42 is W3-H; N43 is not scheduled before the cut (row 49).
 
+The W3 children sit under PRD-989 in Linear, but the hub schema cannot say so: `plan-hub.mjs validate` requires each sub-lane's `linear.parentIssue` to equal the hub's parent, PRD-650, and the Linear manifest copies that field into `parentId`. Do not apply manifest parent fields to the W3 lanes until the harness can record a nested parent.
+
 Two reproductions ride the solo Stage A gate before the recorded call, not the call itself
 (§ 6.2): N1 (which dialog, whether Tab moves focus, the body's computed `pointer-events`, a second
 mounted `AdminDialog` surface, an open wallet modal) and N35's sign-out (Rabby extension or Rabby

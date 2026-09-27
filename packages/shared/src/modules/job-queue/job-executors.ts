@@ -7,7 +7,7 @@ import {
   forgetWorkBroadcast,
 } from "../work/work-confirmation";
 import { sendWithCheckpoint } from "../work/send-with-checkpoint";
-import { settleStrandedWorkIntent } from "../work/stranded-intent";
+import { settleStrandedWorkIntent, type StrandedCommitmentLookup } from "../work/stranded-intent";
 import { getEASConfig, type EASConfig } from "../../config/blockchain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { buildWorkAttestContractCall } from "../../utils/eas/transaction-builder";
@@ -16,7 +16,12 @@ import { PendingHeicConversionError } from "../work/work-attachments";
 import { convertQueuedHeicMedia } from "./job-media-conversion";
 import type { TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "./db";
-import { sendCheckpointOf, writeSendCheckpoint } from "./queue-policy";
+import {
+  hasRecordedSend,
+  recordsSends,
+  sendCheckpointOf,
+  writeSendCheckpoint,
+} from "./queue-policy";
 import { type Hex } from "viem";
 import {
   executeCommitmentJob,
@@ -35,6 +40,8 @@ import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blo
 import { logger } from "../app/logger";
 import { createCommitmentChainReads, type CommitmentChainReads } from "./commitment-chain-reads";
 import { buildCommitmentContractCall } from "./commitment-call-builder";
+import { sendRecordedAct, settleActSend, waitingForRecordedSend } from "./commitment-send-record";
+import type { Address } from "../../types/domain";
 
 type EncodeWork = typeof import("../../utils/eas/encoders").encodeWorkData;
 type SimulateWork = typeof import("../work/simulate").simulateWorkSubmission;
@@ -72,6 +79,11 @@ export interface CommitmentQueueExecutorDeps {
     garden: `0x${string}`;
     caller: `0x${string}`;
   }) => Promise<DeferredWorkIdentityResolution>;
+  reconcile?: typeof reconcileWorkTransaction;
+  /** Settles a lost send's intent from what the chain recorded; the default reads the pool's log. */
+  settleStrandedIntent?: (job: Job, chainId: number, pendingHash: Hex) => Promise<Hex>;
+  /** What the default settle asks of the chain; the default reads the pool's log. */
+  lookUpLanded?: StrandedCommitmentLookup;
 }
 
 /**
@@ -322,6 +334,10 @@ export async function executeCommitmentQueueJob(
   }
   const store = deps.store ?? jobQueueDB;
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
+  const chainReads = deps.reads ?? createCommitmentChainReads({ chainId, moduleAddress });
+  if (recordsSends(job.kind) && (hasRecordedSend(job) || retainedWorkBroadcastReference(jobId))) {
+    return settleActSend(jobId, job, chainId, sender, store, chainReads, deps);
+  }
   const publishEvidence = deps.publishEvidence ?? publishPendingEvidence;
   const published =
     job.kind === "evidence"
@@ -372,22 +388,48 @@ export async function executeCommitmentQueueJob(
   }
   const commitmentJob = toCommitmentJob({ ...executionJob, id: jobId }, chainId, moduleAddress);
 
-  const chainReads = deps.reads ?? createCommitmentChainReads({ chainId, moduleAddress });
-  const result = await executeCommitmentJob(commitmentJob, {
-    ...chainReads,
-    resolveSeriesId: (clientSeriesId) => store.getSeriesIdByClientId(clientSeriesId),
-    send: async ({ kind, payload, moduleAddress: target, chainId: targetChain }) => {
-      const call = buildCommitmentContractCall(kind, payload);
-      const sent = await sender.sendContractCall({
-        address: target,
-        abi: CommitmentPoolingModuleABI,
-        functionName: call.functionName,
-        args: call.args,
-        chainId: targetChain,
-      });
-      return sent.hash;
-    },
-  });
+  let result: Awaited<ReturnType<typeof executeCommitmentJob>>;
+  try {
+    result = await executeCommitmentJob(commitmentJob, {
+      ...chainReads,
+      resolveSeriesId: (clientSeriesId) => store.getSeriesIdByClientId(clientSeriesId),
+      send: async ({ kind, payload, moduleAddress: target, chainId: targetChain }) => {
+        const built = buildCommitmentContractCall(kind, payload);
+        const call = {
+          address: target,
+          abi: CommitmentPoolingModuleABI,
+          functionName: built.functionName,
+          args: built.args,
+          chainId: targetChain,
+        };
+        if (!recordsSends(job.kind)) return (await sender.sendContractCall(call)).hash;
+        // A wallet estimates inside its own send, after the intent is recorded;
+        // asking the chain first keeps a refusal a refusal.
+        await chainReads.simulateSend?.({
+          address: target,
+          functionName: built.functionName,
+          args: built.args,
+          account: job.userAddress as Address,
+          chainId: targetChain,
+        });
+        // Read after the simulation, just before the intent: nothing this send
+        // does can land in that block or before, so an earlier ask never passes
+        // for this one. The next nonce is the one its own transaction is due to use.
+        const [head, nonce] = await Promise.all([
+          chainReads.readChainHead?.(),
+          chainReads.readNextNonce?.(job.userAddress as Address),
+        ]);
+        return sendRecordedAct(jobId, job, call, sender, store, {
+          ...(head && { intentBlock: head.number, intentChainTime: head.timestamp }),
+          ...(nonce !== undefined && { intentNonce: nonce }),
+        });
+      },
+    });
+  } catch (error) {
+    const waiting = waitingForRecordedSend(error);
+    if (waiting) return waiting;
+    throw error;
+  }
 
   if (result.status === "recovered") {
     if (result.entityId !== undefined && job.kind === "commitmentSeries") {

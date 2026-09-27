@@ -22,7 +22,7 @@ import { commitmentPoolingKeys } from "../../config/query-keys/commitment-poolin
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
-import { isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
+import { hasRecordedSend, isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
 import type { CommitmentJobKind } from "../../modules/commitment-pooling/job-types";
 import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/jobs";
 import type { Job } from "../../types/job-queue";
@@ -143,6 +143,17 @@ function explainTerminalFailure(
  * who is reading, and a second identity source is a second thing that can
  * disagree about it.
  */
+/**
+ * Why an act still on this phone waits. A send on record is the answer
+ * whatever the stored reason says: the reason can outlive the record, and the
+ * record is what keeps the act from being dropped or sent twice.
+ */
+function pendingActWaitingReason(job: Job): string | null {
+  if (hasRecordedSend(job)) return "awaiting-confirmation";
+  const reason = job.meta?.waitingReason;
+  return typeof reason === "string" && reason !== "awaiting-confirmation" ? reason : null;
+}
+
 export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueueState {
   const queryClient = useQueryClient();
   const queryKey = useMemo(() => commitmentPoolingKeys.queueState(viewer), [viewer]);
@@ -229,8 +240,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
         pendingActs.set(commitmentId, {
           jobId: job.id,
           kind: job.kind as CommitmentJobKind,
-          waitingReason:
-            typeof job.meta?.waitingReason === "string" ? job.meta.waitingReason : null,
+          waitingReason: pendingActWaitingReason(job),
           discardable: isDiscardableJob(job),
           createdAt: job.createdAt,
         });

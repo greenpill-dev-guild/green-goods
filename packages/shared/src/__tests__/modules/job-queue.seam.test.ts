@@ -95,6 +95,28 @@ describe("createJobQueue", () => {
     ).rejects.toThrow("offline_job_identity_conflict");
   });
 
+  it("joins a repeated act whose first send is already on record", async () => {
+    // The record is the queue's, not the act's: a second tap on the same
+    // take-up is the same job, not a conflicting one.
+    const claim = {
+      commitmentId: 1n,
+      kind: 1,
+      gardenContext: "0x2222222222222222222222222222222222222222",
+    } as JobKindMap["claim"];
+    const { deps, queue } = setup();
+    const first = await queue.addJob("claim", claim, USER);
+    const stored = await deps.store.getJob(first);
+    await deps.store.updateJob({
+      ...stored!,
+      payload: {
+        ...(stored!.payload as object),
+        sendCheckpoint: { broadcastPending: false, transactionHash: `0x${"44".repeat(32)}` },
+      },
+    });
+
+    await expect(queue.addJob("claim", { ...claim }, USER)).resolves.toBe(first);
+  });
+
   it("emits an empty sync result", async () => {
     const { deps, queue } = setup();
     await expect(queue.flush({ transactionSender: null, userAddress: USER })).resolves.toEqual({
@@ -288,6 +310,32 @@ describe("processJob", () => {
       error: "transaction_sender_unavailable",
       skipped: true,
     });
+  });
+
+  it("reopens a commitment act on its Check Again without sending it in the same tap", async () => {
+    // The tap was a check: the person sees that the act never landed, and is asked
+    // to clear any request their wallet still shows, before anything sends.
+    const reopening = () => ({
+      execute: vi.fn().mockResolvedValue({ status: "waiting", reason: "send-intent-expired" }),
+    });
+    const act = reopening();
+    const { queue } = setup({
+      store: createInMemoryJobQueueStore([queuedJob({ kind: "claim" })]),
+      executors: act,
+    });
+    expect(
+      await queue.processJob("job-1", { transactionSender: {} as never, explicit: true })
+    ).toMatchObject({ error: "send-intent-expired", skipped: true });
+    expect(act.execute).toHaveBeenCalledTimes(1);
+
+    // Work keeps its one-tap send: its button said Send.
+    const work = reopening();
+    const { queue: workQueue } = setup({
+      store: createInMemoryJobQueueStore([queuedJob()]),
+      executors: work,
+    });
+    await workQueue.processJob("job-1", { transactionSender: {} as never, explicit: true });
+    expect(work.execute).toHaveBeenCalledTimes(2);
   });
 
   it("still reconciles a persisted UserOperation at the retry ceiling", async () => {
