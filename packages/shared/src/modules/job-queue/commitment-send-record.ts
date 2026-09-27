@@ -14,7 +14,8 @@
  * send it. A browser without Web Locks cannot say, so there it is never offered
  * again: it completes when the chain shows it landed. Nor is it offered again
  * while its account has a transaction the network holds but has not mined,
- * which may be the send itself if its answer was lost after the network took it.
+ * which may be the send itself if its answer was lost after the network took it,
+ * nor while its bundler still holds a passkey send's UserOperation.
  *
  * @module modules/job-queue/commitment-send-record
  */
@@ -23,7 +24,7 @@ import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
 import type { Job } from "../../types/job-queue";
 import { logger } from "../app/logger";
-import type { ContractCall, TransactionSender } from "../transactions/types";
+import type { BroadcastReference, ContractCall, TransactionSender } from "../transactions/types";
 import { sendWithCheckpoint, settleRecordedSend } from "../work/send-with-checkpoint";
 import { settleStrandedCommitmentIntent, StrandedSendReopened } from "../work/stranded-intent";
 import {
@@ -95,6 +96,26 @@ async function accountStillSending(
     return await chainReads.hasPendingTransaction(account);
   } catch (error) {
     logger.warn("[JobQueue] Could not read whether a commitment act's account has a send waiting", {
+      error,
+    });
+    return true;
+  }
+}
+
+/**
+ * Whether the bundler still holds this act's UserOperation, so it may yet land.
+ * When the bundler cannot say, the act keeps waiting rather than risk a second send.
+ */
+async function operationStillQueued(
+  reference: BroadcastReference | undefined,
+  chainReads: CommitmentChainReads
+): Promise<boolean> {
+  if (reference?.kind !== "user-operation") return false;
+  if (!chainReads.userOperationMayLand) return true;
+  try {
+    return await chainReads.userOperationMayLand(reference.hash);
+  } catch (error) {
+    logger.warn("[JobQueue] Could not read whether a commitment act's UserOperation may land", {
       error,
     });
     return true;
@@ -198,7 +219,8 @@ export async function settleActSend(
           }),
         stillSending: async () =>
           (await stillSending(jobId)) ||
-          (await accountStillSending(stranded.userAddress as Address, chainReads)),
+          (await accountStillSending(stranded.userAddress as Address, chainReads)) ||
+          (await operationStillQueued(sendCheckpointOf(stranded)?.broadcast, chainReads)),
         persist: (updated) => store.updateJob(updated),
       }));
   try {

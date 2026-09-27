@@ -89,7 +89,6 @@ async function lookUp(
   chain: {
     requests?: CommitmentClaimRequestRecord[];
     storedLink?: `0x${string}`;
-    /** The indexer's record of the link the operation key made. */
     /** Transactions whose receipts carry this link's own WorkLinked event. */
     linkedIn?: readonly string[];
     /** How a deferred link's work resolves, from its client work id. */

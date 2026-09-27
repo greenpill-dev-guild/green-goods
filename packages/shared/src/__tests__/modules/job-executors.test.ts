@@ -977,9 +977,10 @@ describe("commitment acts record their sends", () => {
     };
     const sender = createMockTransactionSender({ authMode: "wallet" });
     const hasPendingTransaction = vi.fn().mockResolvedValue(false);
+    const userOperationMayLand = vi.fn().mockResolvedValue(false);
     const deps = {
       demoActive: () => false,
-      reads: { ...reads(), hasPendingTransaction },
+      reads: { ...reads(), hasPendingTransaction, userOperationMayLand },
       store: store(),
       lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
     };
@@ -1009,6 +1010,23 @@ describe("commitment acts record their sends", () => {
         reason: "awaiting-confirmation",
       });
       expect(hasPendingTransaction).toHaveBeenCalledWith(USER);
+      // A passkey send's pending state lives at its bundler, not in the account's nonce.
+      const operation = `0x${"0e".repeat(32)}` as const;
+      const queued = lost("claim-operation-queued");
+      queued.payload = {
+        ...queued.payload,
+        sendCheckpoint: {
+          broadcastPending: true,
+          broadcastPendingAt: new Date(0).toISOString(),
+          broadcast: { kind: "user-operation", chainId: 42161, hash: operation },
+        },
+      } as typeof queued.payload;
+      userOperationMayLand.mockResolvedValueOnce(true);
+      await expect(settle(queued)).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+      expect(userOperationMayLand).toHaveBeenCalledWith(operation);
       await expect(settle(lost("claim-released"))).resolves.toEqual({
         status: "waiting",
         reason: "send-intent-expired",
@@ -1136,6 +1154,28 @@ describe("commitment chain reads", () => {
 
     await expect(chainReads.readChainTime?.()).resolves.toBe(1_700_000_000);
     expect(getBlock).toHaveBeenCalledWith(expect.anything(), { chainId: 42161 });
+  });
+
+  it("asks the bundler whether a UserOperation may still land", async () => {
+    const getUserOperationStatus = vi.fn();
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      getUserOperationStatus,
+      config: {} as Config,
+    });
+    // Only an operation the bundler never held, or refused, can no longer land.
+    for (const [status, mayLand] of [
+      ["not_found", false],
+      ["rejected", false],
+      ["not_submitted", true],
+      ["submitted", true],
+      ["included", true],
+    ] as const) {
+      getUserOperationStatus.mockResolvedValueOnce({ status, transactionHash: null });
+      await expect(chainReads.userOperationMayLand?.(HASH)).resolves.toBe(mayLand);
+    }
+    expect(getUserOperationStatus).toHaveBeenCalledWith(HASH);
   });
 
   it("reads a waiting transaction from the account's pending nonce", async () => {

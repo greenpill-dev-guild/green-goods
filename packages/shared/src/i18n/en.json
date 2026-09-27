@@ -1020,7 +1020,7 @@
   "app.commitment.queue.act.waitingMembership": "{act} waits for your garden membership to land. It spends no tries while it does.",
   "app.commitment.queue.sendNow": "Send Now",
   "app.commitment.queue.act.confirming": "{act} has left this phone and is waiting for the network to confirm it.",
-  "app.commitment.queue.act.notSent": "{act} never reached the network. You can send it again or discard it.",
+  "app.commitment.queue.act.notSent": "{act} never reached the network. If your wallet still shows its request, reject it there first. Then send it again or discard it.",
   "app.commitment.queue.checkAgain": "Check Again",
   "app.commitment.queue.act.sending": "{act} is being sent from this phone.",
   "app.commitment.queue.discardFailed": "It couldn't be discarded. It may already be on its way, and it clears once it lands.",

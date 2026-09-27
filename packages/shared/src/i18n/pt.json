@@ -1020,7 +1020,7 @@
   "app.commitment.queue.act.waitingMembership": "{act} aguarda que a sua participação no jardim seja registrada. Não gasta tentativas enquanto isso.",
   "app.commitment.queue.sendNow": "Enviar agora",
   "app.commitment.queue.act.confirming": "{act} já saiu deste telefone e aguarda a confirmação da rede.",
-  "app.commitment.queue.act.notSent": "{act} não chegou à rede. Pode enviar de novo ou descartar.",
+  "app.commitment.queue.act.notSent": "{act} não chegou à rede. Se a carteira ainda mostrar o pedido, rejeite-o lá primeiro. Depois envie de novo ou descarte.",
   "app.commitment.queue.checkAgain": "Verificar de novo",
   "app.commitment.queue.act.sending": "{act} está a caminho a partir deste telefone.",
   "app.commitment.queue.discardFailed": "Não foi possível descartar. Talvez já esteja a caminho; desaparece quando chegar.",

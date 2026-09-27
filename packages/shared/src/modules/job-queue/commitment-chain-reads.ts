@@ -8,6 +8,7 @@ import {
 } from "@wagmi/core";
 import { decodeEventLog, keccak256, toBytes, type Hex } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
+import { createPimlicoClientForChain } from "../../config/pimlico";
 import type { CommitmentJobExecutionDependencies } from "../commitment-pooling/jobs";
 import type { Address } from "../../types/domain";
 import { CommitmentPoolingModuleABI, GardenAccountABI } from "../../utils/blockchain/contracts";
@@ -55,6 +56,12 @@ export type CommitmentChainReads = Pick<
   hasPendingTransaction?: (account: Address) => Promise<boolean>;
   /** The chain's time at its latest block, in seconds. */
   readChainTime?: () => Promise<number>;
+  /**
+   * Whether the bundler may still land this UserOperation: every status but one
+   * it never held (`not_found`) or refused (`rejected`). A passkey send's
+   * pending state lives there, not in the account's nonce.
+   */
+  userOperationMayLand?: (hash: Hex) => Promise<boolean>;
 };
 
 export interface CommitmentChainReadOptions {
@@ -65,6 +72,8 @@ export interface CommitmentChainReadOptions {
   getBlock?: typeof wagmiGetBlock;
   getTransactionCount?: typeof wagmiGetTransactionCount;
   getTransactionReceipt?: typeof wagmiGetTransactionReceipt;
+  /** The bundler's status for a UserOperation; the default asks the chain's Pimlico bundler. */
+  getUserOperationStatus?: (hash: Hex) => Promise<{ status: string }>;
   config?: Config;
 }
 
@@ -76,6 +85,8 @@ export function createCommitmentChainReads({
   getBlock = wagmiGetBlock,
   getTransactionCount = wagmiGetTransactionCount,
   getTransactionReceipt = wagmiGetTransactionReceipt,
+  getUserOperationStatus = (hash) =>
+    createPimlicoClientForChain(chainId).getUserOperationStatus({ hash }),
   config,
 }: CommitmentChainReadOptions): CommitmentChainReads {
   const wagmiConfig = config ?? getWagmiConfig();
@@ -196,6 +207,10 @@ export function createCommitmentChainReads({
       });
     },
     readChainTime: async () => Number((await getBlock(wagmiConfig, { chainId })).timestamp),
+    userOperationMayLand: async (hash) => {
+      const { status } = await getUserOperationStatus(hash);
+      return status !== "not_found" && status !== "rejected";
+    },
     hasPendingTransaction: async (account) => {
       const [pending, mined] = await Promise.all([
         getTransactionCount(wagmiConfig, { address: account, blockTag: "pending", chainId }),
