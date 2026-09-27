@@ -65,6 +65,19 @@ FROM oven/bun:${BUN_VERSION}-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Document and audio tools, pinned to the Debian trixie base of this image. Poppler backs
+# agent-reporting PDF inspection (AGENT_REPORTING_DOCUMENTS_ENABLED) and ffmpeg backs audio
+# normalization; each reporting capability stays off until its fixtures pass in this image.
+# LibreOffice conversion is not installed: it needs the Writer and Calc components, not only
+# libreoffice-core, and remains disabled pending that package decision.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      poppler-utils=25.03.0-5+deb13u4 \
+      ffmpeg=7:7.1.5-0+deb13u1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && pdfinfo -v \
+    && ffmpeg -hide_banner -version | head -n 1
+
 # Copy production dependencies and runtime workspace files only.
 # Env vars are injected by the runtime platform;
 # bun's --env-file=../../.env in the start script is a no-op when the file is absent.
