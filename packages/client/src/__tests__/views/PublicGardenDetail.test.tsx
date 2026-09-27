@@ -296,6 +296,14 @@ describe("GardenDetail", () => {
     expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
   });
 
+  it("offers no Support link until it knows the Garden is listed", () => {
+    // Opened by its own link on a slow connection: the archive has no card for it yet.
+    mockUsePublicGardens.mockReturnValue({ data: [], isLoading: false });
+    mockUsePublicGardenDetail.mockReturnValue({ data: undefined, isLoading: true });
+    renderView();
+    expect(screen.queryByRole("link", { name: "Support This Garden" })).toBeNull();
+  });
+
   it("says an unlisted Garden is not in the public lists, and keeps crawlers off it", async () => {
     mockUsePublicGardenDetail.mockReturnValue(detailResult({ unlisted: true }));
     renderView();

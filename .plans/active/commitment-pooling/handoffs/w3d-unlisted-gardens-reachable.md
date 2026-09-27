@@ -85,6 +85,10 @@ page.
 - The page offers no Support This Garden link for an unlisted garden: the Fund page resolves its
   `?garden=` against the listed set, so the link would find nothing. Funding an unlisted garden by
   its own link would be a new product decision, not part of this lane.
+- Review round 2 on #928: the Support link waits until the Garden is known to be listed (the detail
+  decides; before it arrives only the archive's own card proves a listing), and a slug a listed
+  garden shares resolves to the listed garden. An unlisted garden answers to a slug only when no
+  listed garden does and no other unlisted one shares it; an exact address always resolves.
 - The branch is cut from develop at `c17a03b46` before W3-B and W3-C merge, since it touches none
   of their files; it takes develop again before it merges.
 - § 6.3's note now reads "reachable by its own link and not listed". PUB-060 is the catalog case

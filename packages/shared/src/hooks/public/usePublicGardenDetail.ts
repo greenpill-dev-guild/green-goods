@@ -129,13 +129,18 @@ export function usePublicGardenDetail(
       // page at all; one kept off the lists still opens by its own link, and
       // says it is unlisted (decision § 1 row 36 of the pooling QA plan).
       const gardens = (await getGardens()).filter(isGardenPubliclyReachable);
+      // Names are steward-editable, so a slug can collide. A listed garden
+      // keeps its slug; an unlisted one answers to it only when no listed
+      // garden does and no other unlisted one shares it.
+      const bySlug = gardens.filter(
+        (g) => publicGardenHelpers.deriveSlug(g.name ?? "", g.id).toLowerCase() === lookup
+      );
+      const unlistedBySlug = bySlug.filter(isGardenUnlisted);
 
       const matched =
         gardens.find((g) => g.id.toLowerCase() === lookup) ??
-        gardens.find(
-          (g) => publicGardenHelpers.deriveSlug(g.name ?? "", g.id).toLowerCase() === lookup
-        ) ??
-        null;
+        bySlug.find((g) => !isGardenUnlisted(g)) ??
+        (unlistedBySlug.length === 1 ? unlistedBySlug[0] : null);
 
       if (!matched) {
         return {

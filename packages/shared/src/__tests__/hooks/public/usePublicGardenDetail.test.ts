@@ -116,6 +116,24 @@ describe("usePublicGardenDetail", () => {
     expect(result.current.data?.unlisted).toBe(false);
   });
 
+  it("resolves a slug a listed garden shares to the listed garden, whichever comes first", async () => {
+    const communityGarden = "0xf401f34378384713222d1d21f63359cc4E8a858a";
+    const listed = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Shared Name" });
+    mockGetGardens.mockResolvedValue([
+      createMockGarden({ id: communityGarden, name: "Shared Name" }),
+      listed,
+    ]);
+
+    const { result } = renderHook(() => usePublicGardenDetail("shared-name"), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+    expect(result.current.data?.garden?.id).toBe(listed.id);
+    expect(result.current.data?.unlisted).toBe(false);
+  });
+
   it("opens an unlisted garden by its own link, and never one hidden everywhere", async () => {
     // Curated addresses from config/garden-visibility: the editorial tier, then the other.
     const communityGarden = "0xf401f34378384713222d1d21f63359cc4E8a858a";

@@ -118,6 +118,8 @@ export default function GardenDetail() {
   const fundHref = identity ? `/fund?garden=${encodeURIComponent(identity.slug)}` : "/fund";
 
   const unlisted = detail?.unlisted ?? false;
+  // The detail decides; until it arrives, only the archive's own card proves a Garden listed.
+  const listed = detail ? !detail.unlisted : Boolean(summary);
 
   return (
     <>
@@ -228,14 +230,14 @@ export default function GardenDetail() {
 
           <div className="flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-10">
             {/* The funding list leaves an unlisted Garden out, so its link would find nothing. */}
-            {unlisted ? null : (
+            {listed ? (
               <EditorialPrimaryLink to={fundHref}>
                 {formatMessage({
                   id: "public.gardenDetail.support",
                   defaultMessage: "Support This Garden",
                 })}
               </EditorialPrimaryLink>
-            )}
+            ) : null}
             <EditorialGhostLink to="/impact">
               {formatMessage({
                 id: "public.gardenDetail.evidence.cta",
