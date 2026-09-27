@@ -163,6 +163,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "publish.published": "Seu relato foi publicado ✅\nTrabalho: {uid}\nTransação: {tx}",
   "grant.active":
     "Os relatos pelo chat estão ativos para {garden} até {until}. Ainda vou pedir que você confirme cada relato.",
+  "grant.unavailable":
+    "Não posso publicar isto pelo chat: a permissão de relato está pausada, esgotada ou terminou. Confirme de novo e eu envio uma página para você assinar.",
   "grant.paused":
     "A permissão de relatos está pausada. Vou pedir que você publique com sua passkey.",
   "review.pendingList": "Trabalhos aguardando sua revisão em {garden}. Escolha um para começar:",

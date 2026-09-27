@@ -162,6 +162,8 @@ export const EN_REPORTING_COPY = {
   "publish.published": "Your report is published ✅\nWork: {uid}\nTransaction: {tx}",
   "grant.active":
     "Reporting in chat is on for {garden} until {until}. I'll still ask you to confirm each report.",
+  "grant.unavailable":
+    "I can't publish this one from chat: the reporting permission is paused, used up or has ended. Confirm again and I'll send you a page to sign it yourself.",
   "grant.paused":
     "Reporting permission is paused. I'll ask you to publish with your passkey instead.",
   "review.pendingList": "Work waiting for your review in {garden}. Choose one to start:",

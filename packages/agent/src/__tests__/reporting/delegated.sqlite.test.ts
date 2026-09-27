@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { setControl } from "../../services/reporting/controls";
+import { liveGrant } from "../../services/reporting/grants-store";
 import { TestBrowser } from "./support/browser";
 import { latestLink, reportUntilSummary } from "./support/flows";
-import { TAS } from "./support/fixtures";
+import { AIYELOJA, TAS } from "./support/fixtures";
 import { ADA, Harness, summaryToken } from "./support/harness";
 
 /**
@@ -156,6 +158,89 @@ describe("Kernel reporting grant", () => {
     await harness.drain();
     expect(harness.sender.signed).toBe(1);
     expect(one("SELECT state FROM execution_operations")).toEqual({ state: "published" });
+  });
+
+  it("never lets a reporting grant stand in for a review or another garden", async () => {
+    await confirmedKernelReport();
+    await harness.press(ADA, "Allow reporting in chat");
+    await grantInBrowser();
+    await harness.drain();
+    const { account_binding_id: accountBindingId } = one<{ account_binding_id: string }>(
+      "SELECT account_binding_id FROM execution_grants"
+    );
+    const scope = { accountBindingId, chainId: 42161 };
+    expect(
+      liveGrant(harness.core, { ...scope, purpose: "reporting", gardenAddress: TAS.address })
+    ).not.toBeNull();
+    expect(
+      liveGrant(harness.core, { ...scope, purpose: "review", gardenAddress: TAS.address })
+    ).toBeNull();
+    expect(
+      liveGrant(harness.core, { ...scope, purpose: "reporting", gardenAddress: AIYELOJA.address })
+    ).toBeNull();
+  });
+
+  /** Runs `between` when the executor checks roles, after preparation and before any signature. */
+  function betweenPreparationAndSending(between: () => void): void {
+    const roles = harness.chain.gardenRoles.bind(harness.chain);
+    harness.chain.gardenRoles = async (...args: Parameters<typeof roles>) => {
+      const latest = one<{ state: string }>(
+        "SELECT state FROM execution_operations ORDER BY rowid DESC LIMIT 1"
+      );
+      if (latest.state === "prepared") {
+        harness.chain.gardenRoles = roles;
+        between();
+      }
+      return roles(...args);
+    };
+  }
+
+  it("holds a prepared delegated report while publishing is paused, then sends it", async () => {
+    await confirmedKernelReport();
+    await harness.press(ADA, "Allow reporting in chat");
+    await grantInBrowser();
+    await harness.drain();
+    const signedBefore = harness.sender.signed;
+
+    const summary = await reportUntilSummary(harness);
+    betweenPreparationAndSending(() =>
+      setControl(harness.core, "publication", false, { actor: "operator", reason: "test pause" })
+    );
+    await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
+    expect(harness.sender.signed).toBe(signedBefore);
+    expect(one("SELECT state FROM execution_operations ORDER BY rowid DESC LIMIT 1")).toEqual({
+      state: "prepared",
+    });
+    expect(
+      one(
+        "SELECT state, last_error_code FROM processing_jobs WHERE kind = 'execute_delegated' ORDER BY rowid DESC LIMIT 1"
+      )
+    ).toEqual({ state: "pending", last_error_code: "publication_paused" });
+
+    setControl(harness.core, "publication", true, { actor: "operator", reason: "resume" });
+    harness.clock.advance(5 * 60_000);
+    await harness.drain();
+    expect(harness.sender.signed).toBe(signedBefore + 1);
+    expect(harness.transport.sent.at(-1)?.message.text).toMatch(/^Your report is published ✅/);
+  });
+
+  it("returns the report to its owner when the grant expires before it is sent", async () => {
+    await confirmedKernelReport();
+    await harness.press(ADA, "Allow reporting in chat");
+    await grantInBrowser();
+    await harness.drain();
+    const signedBefore = harness.sender.signed;
+
+    const summary = await reportUntilSummary(harness);
+    betweenPreparationAndSending(() => harness.clock.advance(25 * 60 * 60 * 1000));
+    const replies = await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
+    expect(harness.sender.signed).toBe(signedBefore);
+    expect(
+      one("SELECT state, failure_code FROM execution_operations ORDER BY rowid DESC LIMIT 1")
+    ).toEqual({ state: "failed", failure_code: "delegated_expired" });
+    const text = replies.join("\n");
+    expect(text).toContain("I can't publish this one from chat");
+    expect(text).toMatch(/CONFIRM \d{4}/);
   });
 
   it("refuses grant proposals when no verified module is configured", async () => {

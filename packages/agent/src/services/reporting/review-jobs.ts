@@ -277,7 +277,7 @@ export function reopenReview(
   core: ReportingCore,
   reviewId: string,
   prefix: string,
-  reason: "review.rejectedBeforeSend" | "review.reverted"
+  reason: "review.rejectedBeforeSend" | "review.reverted" | "grant.unavailable"
 ): void {
   const review = loadReview(core, reviewId);
   if (!review) return;

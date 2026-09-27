@@ -22,7 +22,12 @@ export type SubjectEvent =
   | "OUTCOME_UNCERTAIN"
   | "RECEIPT_VERIFIED";
 
-export type ReopenReason = "rejected_before_send" | "preparation_failed" | "reverted";
+export type ReopenReason =
+  | "rejected_before_send"
+  | "preparation_failed"
+  | "reverted"
+  /** A delegated operation whose grant can no longer be used; the owner can still sign it. */
+  | "grant_unavailable";
 
 export interface OperationSubject {
   kind: "draft" | "review";
@@ -81,7 +86,7 @@ function draftSubject(core: ReportingCore, loaded: DraftRecord): OperationSubjec
     reopen(reason, account, prefix) {
       const event = reason === "reverted" ? "DEFINITIVE_FAILURE" : "REJECTED_BEFORE_SEND";
       const { draft: reviewed } = commitLifecycle(core, draft, [{ type: event }], {
-        participantAction: reason !== "reverted",
+        participantAction: reason === "rejected_before_send" || reason === "preparation_failed",
       });
       invalidateConfirmation(core, { draftId: draft.id });
       const out = writer(prefix);
@@ -91,7 +96,9 @@ function draftSubject(core: ReportingCore, loaded: DraftRecord): OperationSubjec
           ? "publish.reverted"
           : reason === "rejected_before_send"
             ? "publish.rejected"
-            : "publish.preparationFailed"
+            : reason === "grant_unavailable"
+              ? "grant.unavailable"
+              : "publish.preparationFailed"
       );
       askConfirmation(out, reviewed, account);
     },
@@ -156,7 +163,11 @@ function reviewSubject(core: ReportingCore, loaded: ReviewRecord): OperationSubj
         core,
         review.id,
         prefix,
-        reason === "reverted" ? "review.reverted" : "review.rejectedBeforeSend"
+        reason === "reverted"
+          ? "review.reverted"
+          : reason === "grant_unavailable"
+            ? "grant.unavailable"
+            : "review.rejectedBeforeSend"
       );
     },
     recorded(verified, _envelope, prefix) {

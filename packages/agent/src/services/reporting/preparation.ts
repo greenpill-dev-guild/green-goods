@@ -262,6 +262,8 @@ export async function prepareOperation(
           kind: "execute_delegated",
           subjectId: operation.id,
           dedupeKey: `execute:${operation.id}:${envelope.payloadDigest}`,
+          // A publication pause can last hours; the grant's own expiry bounds the wait.
+          maxAttempts: 288,
         });
         return;
       }
