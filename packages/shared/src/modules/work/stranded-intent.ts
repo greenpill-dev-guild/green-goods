@@ -19,7 +19,7 @@
  */
 
 import type { Hex } from "viem";
-import type { Address } from "../../types/domain";
+import type { Address, WorkApprovalDraft } from "../../types/domain";
 import type {
   ApprovalJobPayload,
   Job,
@@ -29,6 +29,7 @@ import type {
 import { logger } from "../app/logger";
 import { jobQueueDB } from "../job-queue/db";
 import { writeSendCheckpoint } from "../job-queue/queue-policy";
+import { buildQueuedApprovalDraft } from "./queued-work-draft";
 import {
   AwaitingWorkConfirmation,
   forgetWorkBroadcast,
@@ -64,8 +65,8 @@ export type StrandedWorkLookup = (
 
 export type StrandedDecisionLookup = (
   input: {
-    workUID: string;
-    approved: boolean;
+    /** The decision as its send encodes it. */
+    decision: WorkApprovalDraft;
     chainId: number;
     steward: Address;
   } & LookupWindow
@@ -263,8 +264,7 @@ export async function resolveStrandedDecisionIntent(
     checkpoint: job.payload.sendCheckpoint,
     lookUp: (window) =>
       deps.lookUp({
-        workUID: job.payload.workUID,
-        approved: job.payload.approved,
+        decision: buildQueuedApprovalDraft(job.payload),
         chainId,
         steward: job.userAddress as Address,
         ...window,

@@ -260,8 +260,13 @@ describe("settling a send no receipt can", () => {
       resolveStrandedDecisionIntent(approval, 42161, { now: () => NOW, lookUp, persist })
     ).resolves.toEqual({ status: "reopened" });
     expect(lookUp).toHaveBeenCalledWith({
-      workUID: WORK_UID,
-      approved: true,
+      decision: {
+        actionUID: 1,
+        workUID: WORK_UID,
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+      },
       chainId: 42161,
       steward: GARDENER,
       sinceMs: NOW - 45 * 60_000 - 24 * 60 * 60_000,

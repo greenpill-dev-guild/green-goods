@@ -3,7 +3,8 @@
  *
  * A work carries its client work id in its metadata, and a decision names the
  * work it decides, so the person's own attestations, as EAS's indexer holds
- * them, settle a send no receipt can. "Found" needs the landed attestation.
+ * them, settle a send no receipt can. "Found" needs the landed attestation:
+ * for a decision, one that carries every field its send encodes.
  * "Absent" needs more than an empty answer: EAS must have processed a block,
  * timed on the chain itself, past the send's grace window (`indexer-coverage`).
  * EAS writes a block range's attestations before it moves its processed block,
@@ -14,6 +15,8 @@
  */
 
 import type { Hex } from "viem";
+import type { WorkApprovalDraft } from "../../types/domain";
+import type { EASWorkApproval } from "../../types/eas-responses";
 import { logger } from "../app/logger";
 import { resolveDeferredWorkIdentity } from "../commitment-pooling/work-identity";
 import {
@@ -41,6 +44,22 @@ interface EasLookupDependencies {
 export interface EasLandedLookup {
   work: StrandedWorkLookup;
   decision: StrandedDecisionLookup;
+}
+
+/**
+ * Whether a landed decision is the one a send of this draft encodes. The
+ * encoder writes a missing text as an empty one.
+ */
+function sameDecision(made: EASWorkApproval, sent: WorkApprovalDraft): boolean {
+  return (
+    made.workUID.toLowerCase() === sent.workUID.toLowerCase() &&
+    made.actionUID === sent.actionUID &&
+    made.approved === sent.approved &&
+    made.feedback === (sent.feedback ?? "") &&
+    made.confidence === sent.confidence &&
+    made.verificationMethod === sent.verificationMethod &&
+    made.reviewNotesCID === (sent.reviewNotesCID ?? "")
+  );
 }
 
 export function createEasLandedLookup(deps: EasLookupDependencies = {}): EasLandedLookup {
@@ -111,13 +130,15 @@ export function createEasLandedLookup(deps: EasLookupDependencies = {}): EasLand
     const indexed = await indexedBlock(input.chainId);
     const sent = await decisions({
       attester: steward,
-      workUID: input.workUID,
+      workUID: input.decision.workUID,
       chainId: input.chainId,
       sinceSeconds: sinceMs / 1000,
     });
-    // The resolver accepts a repeated decision, so the same decision on the same
-    // work from the same steward counts as this one: completing it beats sending twice.
-    const landed = sent.find(({ decision: made }) => made.approved === input.approved);
+    // The resolver accepts a repeated decision, so one this steward already made
+    // with every field this send carries counts as this one: completing it beats
+    // sending twice. One that differs in any field, such as its feedback or review
+    // notes, is another decision, and never settles this send.
+    const landed = sent.find(({ decision: made }) => sameDecision(made, input.decision));
     if (!landed) return absentOnceCovered(input.chainId, indexed, sentAtMs);
     return landed.transactionHash
       ? { status: "found", transactionHash: landed.transactionHash }

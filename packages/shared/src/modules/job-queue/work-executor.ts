@@ -95,7 +95,7 @@ export async function executeWorkJob(
   const broadcast = checkpoint?.broadcast ?? retainedWorkBroadcastReference(jobId);
   const previousHash = broadcast?.hash ?? checkpoint?.transactionHash;
   if (previousHash) {
-    let state: "confirmed" | "reverted" | "unresolved" = "unresolved";
+    let state: "confirmed" | "reverted" | "unresolved";
     let transactionHash = checkpoint?.transactionHash;
     if (broadcast?.kind === "user-operation") {
       const result = await sender.reconcileBroadcast?.(broadcast);

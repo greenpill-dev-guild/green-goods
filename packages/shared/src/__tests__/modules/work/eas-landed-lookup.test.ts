@@ -2,11 +2,16 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WorkDecision, WorkSubmission } from "../../../modules/data/eas-sent-attestations";
 import { createEasLandedLookup } from "../../../modules/work/eas-landed-lookup";
-import { STRANDED_INTENT_GRACE_MS } from "../../../modules/work/stranded-intent";
+import {
+  resolveStrandedDecisionIntent,
+  STRANDED_INTENT_GRACE_MS,
+} from "../../../modules/work/stranded-intent";
+import type { ApprovalJobPayload, Job } from "../../../types/job-queue";
 
 const GARDEN = "0x2222222222222222222222222222222222222222";
 const GARDENER = "0x1111111111111111111111111111111111111111";
 const TX = `0x${"ab".repeat(32)}` as const;
+const EARLIER_TX = `0x${"cd".repeat(32)}` as const;
 const WORK_UID = `0x${"44".repeat(32)}`;
 /** When the send's intent was recorded, on the device's clock. */
 const SENT_MS = 1_790_000_000_000;
@@ -32,7 +37,11 @@ function indexedWork(clientWorkId: string, id = WORK_UID): WorkSubmission {
   } as WorkSubmission;
 }
 
-function indexedDecision(approved: boolean): WorkDecision {
+function indexedDecision(
+  approved: boolean,
+  made: Partial<WorkDecision["decision"]> = {},
+  transactionHash: `0x${string}` = TX
+): WorkDecision {
   return {
     decision: {
       id: `0x${"77".repeat(32)}`,
@@ -46,8 +55,9 @@ function indexedDecision(approved: boolean): WorkDecision {
       verificationMethod: 1,
       reviewNotesCID: "",
       createdAt: 1,
+      ...made,
     },
-    transactionHash: TX,
+    transactionHash,
   } as WorkDecision;
 }
 
@@ -97,8 +107,13 @@ const workSend = {
   sentAtMs: SENT_MS,
 } as const;
 const decisionSend = {
-  workUID: WORK_UID,
-  approved: true,
+  decision: {
+    actionUID: 1,
+    workUID: WORK_UID,
+    approved: true,
+    confidence: 2,
+    verificationMethod: 1,
+  },
   chainId: 42161,
   steward: GARDENER,
   sinceMs: SENT_MS - DAY_MS,
@@ -192,5 +207,73 @@ describe("whether a lost work or decision send reached the chain", () => {
 
     const trailing = easAt({ clockAheadS: 3600, indexedThroughS: intentOnChainS + GRACE_S - 60 });
     await expect(trailing.lookup.work(workSend)).resolves.toEqual({ status: "unknown" });
+  });
+});
+
+describe("settling a lost decision with the steward's decisions on that work", () => {
+  let sequence = 0;
+  /** A decision whose send lost its answer when its intent was recorded. */
+  function lostDecision(fields: Partial<ApprovalJobPayload> = {}): Job<ApprovalJobPayload> {
+    sequence += 1;
+    return {
+      id: `lost-decision-${sequence}`,
+      kind: "approval",
+      chainId: 42161,
+      userAddress: GARDENER,
+      createdAt: SENT_MS,
+      attempts: 0,
+      synced: false,
+      payload: {
+        actionUID: 1,
+        workUID: WORK_UID,
+        gardenAddress: GARDEN,
+        gardenerAddress: GARDENER,
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+        sendCheckpoint: {
+          broadcastPending: true,
+          broadcastPendingAt: new Date(SENT_MS).toISOString(),
+        },
+        ...fields,
+      },
+    } as Job<ApprovalJobPayload>;
+  }
+  const settle = (job: Job<ApprovalJobPayload>, eas: ReturnType<typeof easAt>) =>
+    resolveStrandedDecisionIntent(job, 42161, {
+      lookUp: eas.lookup.decision,
+      now: () => NOW_MS,
+      persist: vi.fn(),
+    });
+
+  it.each([
+    ["feedback", { feedback: "Mulch spread along the north beds" }],
+    ["confidence", { confidence: 3 }],
+    ["verification method", { verificationMethod: 3 }],
+    ["review notes", { reviewNotesCID: "bafy-review-notes" }],
+    ["action", { actionUID: 2 }],
+  ])("never takes an earlier decision with another %s for the one the send carried", async (_field, sent) => {
+    // The steward decided this work before, and EAS has processed past the window.
+    const eas = easAt({
+      decisions: [indexedDecision(true)],
+      indexedThroughS: SENT_S + GRACE_S + 60,
+    });
+
+    await expect(settle(lostDecision(sent), eas)).resolves.toEqual({ status: "reopened" });
+  });
+
+  it("completes it with the steward's decision that carries every field it sent", async () => {
+    const sent = {
+      feedback: "Mulch spread along the north beds",
+      reviewNotesCID: "bafy-review-notes",
+    };
+    const eas = easAt({
+      decisions: [indexedDecision(true, {}, EARLIER_TX), indexedDecision(true, sent)],
+    });
+
+    await expect(settle(lostDecision(sent), eas)).resolves.toEqual({
+      status: "landed",
+      transactionHash: TX,
+    });
   });
 });
