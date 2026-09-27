@@ -1,16 +1,40 @@
 # Messaging integration delivery proposal
 
+> **Latest user alignment:** API harness first; document/photo/spreadsheet support required.
+> OpenAI is the selected content-processing provider. The current prototype supports existing
+> EOAs and Kernel passkey accounts. Passkey-first onboarding and optional Profile wallet linking
+> are wholly future work. Browser views use `/agent/reporting/:requestId` and
+> `/agent/reporting/recover/:requestId`. Jev retains typed decisions; automatic Office conversion is included. See the
+> [current brief](technical-brief.md) and [scope clarification](reports/2026-09-25-openai-scope-alignment.md).
+> Earlier dispatch is historical; this amendment does not mark runtime proof complete.
+> **Final review, 26 September:** accepted limits are 24h/5 reports and 1h/5 reviews; local data
+> expires after 24h before consent or 7 days of draft inactivity, with source-file cleanup after
+> publication/reconciliation. Current build and acceptance gates live in technical brief section 12.
+> See the [review closure](reports/2026-09-26-final-brief-review.md).
+
+
+> **Prototype scope confirmed:** existing wallets and pre-enrolled garden members; TAS and
+> Aiyeloja Family Garden are the prototype choices. Verify membership and operator authority
+> independently for each configured garden. Use prepared accounts; future passkey/Profile setup and role migration are separate from the reporting demo.
+
+> **25 September account/conversation correction:** EOAs use exact wallet signing; existing Kernel
+> passkey users can opt into separate limited reporting and review permissions, pending compatibility
+> proof. EIP-7702 remains excluded. Story-first chat, repeated Jev/LLM interpretation, an API-first
+> test phase and two PWA-style browser view families are the current target. See the
+> [technical brief](technical-brief.md) and [research amendment](reports/2026-09-25-account-and-conversation-amendment.md).
+> Older dispatch below remains historical and must be reconciled before assignment; no runtime gate is complete.
+
 **Feature slug:** agent-messaging-channels
 
 **Stage:** `active`
 
-**Status:** `ACTIVE — Buildathon prototype slice locked 2026-09-21; target architecture remains a proposal`
+**Status:** `ACTIVE — final brief reviewed; builder/tracker reconciliation required`
 
 **Created:** 2026-04-17
 
-**Last updated:** 2026-09-22 UTC
+**Last updated:** 2026-09-26
 
-**Specification:** [canonical architecture](spec.md) — section 15.1 holds the prototype slice
+**Specification:** [current technical brief](technical-brief.md), with [earlier slice context](spec.md)
 
 **Evaluation:** [acceptance and failure tests](eval.md)
 
@@ -24,9 +48,21 @@ manual Linear writes described in [Linear changes](#linear-changes) **were appli
 what remains deliberately unrun is `linear-sync` and `record-linear`, the Implementation Start Gate.
 Do not repeat the manual writes.
 
-The **Buildathon prototype** section below is an active dispatch list. The
-[target delivery sequence](#target-delivery-sequence-post-prototype) after it remains a design for
-scope selection, not a dispatch list.
+## Current build sequence
+
+Use [technical brief section 12](technical-brief.md#12-implementation-order-and-acceptance)
+and its [stage gates](technical-brief.md#122-stage-gates-and-ownership) as the current implementation
+contract. The first deliverable is a reproducible API harness with real temporary SQLite and the
+production-intended coordinator; live provider credentials and wallet access are not prerequisites.
+Kernel delegation, model/format quality and browser/chain compatibility require their own later proof.
+Assign a builder and reconcile the old tracker/handoff scope before implementation dispatch.
+
+## Historical dispatch — September 21–22
+
+The sections below preserve the older no-model, owner-signing prototype and its issue references.
+They are not a second executable plan. Current user decisions and the technical brief supersede
+conflicting statements about PWA installation, first-run accounts, per-request signatures, provider
+selection, delegation, processing and acceptance. No lane or tracker status was advanced by this review.
 
 ## Gate status
 

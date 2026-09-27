@@ -1,25 +1,68 @@
 # Messaging architecture acceptance
 
-**Status:** Evaluation contract. Every runtime case below is unexecuted. The subset the
-Buildathon prototype must pass is listed in [Prototype subset](#prototype-subset-2026-09-21);
-everything else is deferred and must not be claimed from a demo.
+> **Latest user alignment:** API harness first; document/photo/spreadsheet support required.
+> OpenAI is the selected content-processing provider. The current prototype supports existing
+> EOAs and Kernel passkey accounts. Passkey-first onboarding and optional Profile wallet linking
+> are wholly future work. Browser views use `/agent/reporting/:requestId` and
+> `/agent/reporting/recover/:requestId`. Jev retains typed decisions; automatic Office conversion is included. See the
+> [current brief](technical-brief.md) and [scope clarification](reports/2026-09-25-openai-scope-alignment.md).
+> Earlier dispatch is historical; this amendment does not mark runtime proof complete.
+> **Final review, 26 September:** accepted limits are 24h/5 reports and 1h/5 reviews; local data
+> expires after 24h before consent or 7 days of draft inactivity, with source-file cleanup after
+> publication/reconciliation. Current build and acceptance gates live in technical brief section 12.
+> See the [review closure](reports/2026-09-26-final-brief-review.md).
 
-**Last updated:** 2026-09-22 UTC (prototype subset added 2026-09-21; `UX-04` and gate 7 added
-2026-09-22 with spec section 8.1; gates 1 through 6 are otherwise unchanged from the 2026-09-11
-research pass).
 
-**Architecture:** [spec.md](spec.md). **Sequence:** [plan.todo.md](plan.todo.md).
+> **Prototype scope confirmed:** existing wallets and pre-enrolled garden members; TAS and
+> Aiyeloja Family Garden are the prototype choices. Verify membership and operator authority
+> independently for each configured garden. Use prepared accounts; future passkey/Profile setup and role migration are separate from the reporting demo.
 
-These checks define what must be demonstrated before a selected feature is released. They are not
-test results. O1 and O2 were resolved on 2026-09-21 (see spec section 1): the no-sign-up reading
-is settled, and the prototype provider is Meta Cloud API direct. O5 is **not** waived for the
-prototype: invited testers use real WhatsApp accounts, so a real identifier is persisted and real
-photos publish irreversibly. Its minimum subset — consent at first contact, abandonment deletion
-and a named support owner — is inside the prototype; thresholds, the full retention schedule and
-support tooling wait for the pilot. O3 account authentication is
-a baseline gate; reporting delegation has an additional optional gate. O4 total-loss recovery
-remains a disclosed limitation until independently solved. O6 inference processors is **not reached
-by the prototype**: no step calls an inference provider, so gate 7 is entirely deferred.
+> **25 September account/conversation correction:** EOAs use exact wallet signing; existing Kernel
+> passkey users can opt into separate limited reporting and review permissions, pending compatibility
+> proof. EIP-7702 remains excluded. Story-first chat, repeated Jev/LLM interpretation, an API-first
+> test phase and two PWA-style browser view families are the current target. See the
+> [technical brief](technical-brief.md) and [research amendment](reports/2026-09-25-account-and-conversation-amendment.md).
+> Older dispatch below remains historical and must be reconciled before assignment; no runtime gate is complete.
+
+### Media, platform and account acceptance amendment
+
+- Synthetic harness runs without external credentials and uses actual SQLite plus production-intended coordinator code. Deterministic model fixtures are clearly separated from live quality evaluation.
+- PDF/DOCX/scanned evidence retains page/region provenance; XLSX/CSV retains sheet/cell/range provenance. Detect omitted pages/figures, over-limit files, hidden rows/sheets, missing/stale formula results and unsupported active content.
+- Model output cannot invent quantities, overwrite corrections, execute embedded instructions or change consent. Totals come from validated rows and explicit code calculations.
+- The same two browser views handle WhatsApp and synthetic Telegram contexts; a challenge remains bound to its source channel/realm. Dynamic return navigation cannot be an open redirect.
+- Current account acceptance uses existing EOA and Kernel accounts. Profile linking, passkey-first onboarding and account migration are future-only and add no gate to this prototype.
+
+### Additional acceptance for the current target
+
+All cases are planned and unexecuted. Apply them alongside the current technical brief; the older subset below does not cover these capabilities.
+
+- Drive the real coordinator and SQLite through synthetic messages before Meta integration; distinguish fake signer/chain results from live proof.
+- Infer an eligible Action from a story; clarify ambiguity, preserve source evidence, and re-evaluate meaningful corrections without stale writes.
+- EOA exact-signing path; Kernel reporting grant setup and a subsequent chat-only confirmed report; separate review grant setup and subsequent review.
+- Reporting permission must reject reviews. Test wrong garden/schema/target, nested calldata changes, batches, expiry, cumulative gas/frequency exhaustion and role removal.
+- Prove same existing Kernel address/owner, exact module/EntryPoint versions, current bundler/paymaster behavior, enable/revoke uncertainty and owner recovery.
+- Recheck review resolver effects; no hidden financial effects or self-review under delegated execution.
+- Confirm both public route families use PWA controls without installation, with passkey/wallet method choice and contextual Help; test all server-owned purposes, refresh and mobile handoff.
+- Browser-session revocation, executor pause and onchain permission revocation must be distinguishable; relinking pauses execution and cannot silently renew permissions.
+- If voice is included: actual codec/MIME validation, accented-language transcription, uncertainty correction, duration/bytes/CPU limits and cleanup on failure. Unsupported media must preserve the draft.
+
+> **24 September amendment:** Also apply the
+> [current technical brief's acceptance walkthrough](technical-brief.md#12-implementation-order-and-acceptance).
+> The dated prototype subset below covers the earlier dispatch only. It does not establish proof
+> of persistent linking, public no-install signing routes, steward DM review, relinking, model
+> interpretation or restricted execution. All runtime cases remain unexecuted.
+
+## Current acceptance authority
+
+[Technical brief section 12](technical-brief.md#12-implementation-order-and-acceptance), its harness
+matrix and section 11 failure contract define current acceptance. All runtime cases remain unexecuted.
+The amendments above apply to the current scope. In particular, models and separate Kernel reporting/review
+permissions are included, subject to their live proof gates.
+
+The remaining sections preserve the September 21–22 acceptance baseline and its case identifiers.
+Their statements that models/delegation are deferred, or that only the old prototype subset is required,
+are historical. Use individual failure cases when still applicable, without treating that old cut line
+as current scope. Processor settings and minimum audit/backup retention must be settled before real data.
 
 ## Prototype subset (2026-09-21)
 

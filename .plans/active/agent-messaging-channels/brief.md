@@ -1,74 +1,94 @@
-# Messaging access for gardeners
+# WhatsApp impact reporting
 
-**Status:** ACTIVE. The target architecture remains a proposal; the Buildathon prototype slice
-(spec section 15.1) was scope-locked on 2026-09-21 and is authorized to build.
+**Status:** ACTIVE architecture work; implementation lanes remain blocked and unproven.
+**Last updated:** 26 September 2026
+**Product:** Green Goods. WEFA operates the initial WhatsApp integration.
 
-**Last updated:** 2026-09-22 UTC.
+**Current architecture:** [Technical brief, dependencies, state machines, ERD and sequences](technical-brief.md).
+**Earlier research and slice:** [Specification history](spec.md).
+**Delivery and proof:** [Plan](plan.todo.md), [acceptance](eval.md), [execution state](status.json).
 
-**Canonical architecture:** [Identity, garden workflows and provider design](spec.md).
+## The experience
 
-**Delivery and proof:** [proposed sequence](plan.todo.md), [acceptance tests](eval.md).
+Gardeners report their work through the Green Goods WhatsApp agent. They send descriptions, photos, documents and spreadsheets, answer only the missing questions, correct the draft and confirm the exact report in chat.
+Stewards discuss and prepare approval or rejection in WhatsApp. The browser is used for account
+linking, application access, recovery or the final signature when needed. PWA installation is never
+required.
 
-Let gardeners prepare work in WhatsApp and continue the same activity in Green Goods, using their existing passkey or EOA where they have one. Keep the gardener's identity and history consistent across channels while each account retains its own signing authority.
+The current prototype supports existing EOAs and existing Kernel passkey accounts. Creating a
+passkey-first account for every user and adding an EOA from Profile are future work only. Linking a
+messaging channel does not create a wallet, grant garden membership or transfer signing authority.
+Work remains attributed to the gardener; review remains attributed to the steward.
 
-The first community is TAS in Nigeria, using English — that is the pilot setting, not product
-scope; the criteria are geography neutral and the prototype runs against a test cohort. The user
-has accepted secure PWA confirmation for final steward approvals and binding commitments. The
-proposed initial reporting path also asks the gardener to review and sign each onchain work
-publication in the browser. A browser visit does not require PWA installation.
+## Accepted direction as of September 25
 
-## The proposed experience
+- A DM-first hackathon is acceptable. Recommend the existing Meta Cloud API direct path, with the
+  selected TAS or Aiyeloja Family Garden confirmed in each report. An existing group is no longer a
+  requirement for the demo, and a smaller group alone does not establish Groups API eligibility.
+- EOAs sign exact publications and reviews. Existing Kernel passkey users can grant limited reporting
+  permission and a separate review permission, then confirm each action in chat. Prove compatibility
+  before enabling either grant. No EIP-7702 account upgrade. Record through WhatsApp Web.
+- WEFA operates the WhatsApp integration, including its processor arrangements and
+  participant support. Green Goods remains the product. Each garden's authorized stewards provide community context and review.
+- Future groups are garden-scoped. A steward can authorize binding or changing a group's garden.
+  Changes preserve existing drafts and published history.
+- Recovery/relinking is required, while total loss of a wallet signer remains that wallet's recovery
+  problem. Phone access cannot recover an EOA key.
+- Jev-assisted interpretation is part of the target design. Green Goods owns durable state and
+  authorization. Jev supplies bounded judgments; a separate model can extract open values and write
+  conversational responses. The existing Action.inputs declaration remains the field contract.
 
-A new gardener sends a photo and description to the official WhatsApp sender. The bot saves a private draft, confirms the garden, and asks in chat for whatever the garden's chosen activity still needs — one field at a time, offering that activity's own published choices where there are any. The gardener approves the finished draft in the conversation, then follows a browser continuation. They can use an existing account or explicitly create a passkey account. After secure pairing and garden admission, they see exactly what is about to be published and sign it; the browser does not edit, because correction already happened in the chat. WhatsApp and the PWA then show the same draft and publication status.
+## Recommended implementation path
 
-An existing PWA user connects WhatsApp from account settings. Both the account and channel must prove possession. This creates a channel binding, not another wallet. An existing EOA user keeps the EOA as author; a passkey linked to the same profile does not gain control of that EOA.
+Start with a synthetic message/API harness driving the real coordinator and SQLite. Add story-first
+reporting, DM intake, public ceremonies and verified receipts. Prove Kernel permission setup, bounded
+execution and revocation; retain exact owner signing as an explicit alternative. Add relinking. Enable Jev and OpenAI content processing
+only after the applicable WEFA processing arrangements are settled. Document, visual and spreadsheet processing are required. Voice support has a separate proof requirement.
 
-Stewards receive minimal notifications and approve the exact published work in the PWA with their authorized account. Commitments can be prepared in chat, but the full binding terms and actual actor's signature stay in the PWA initially.
+The technical brief proposes two reusable PWA-style browser view families, an explicit new-dependency
+inventory, six platform-neutral wireframe states and account/access, grant, execution and recovery machines. API access
+is scoped and temporary; it is separate from Kernel execution permission. Permission is offered when
+first submitting or reviewing, after the person understands the action it enables.
 
-## Decisions resolved on 2026-09-21
+## Remaining gates
 
-1. **First-time account setup:** Resolved. RESR-75 criterion 1 was accepted as: zero account steps
-   to reach a saved private draft, then exactly one browser passkey step before that draft becomes a
-   public, gardener-signed record. No custodial wallet is created.
-2. **Provider, for the prototype:** Meta WhatsApp Cloud API direct, on the free test number. The
-   Twilio number is held unregistered; if used, it is registered with Meta as a phone number only.
-   The WhatsApp Business Account is operated by WEFA LLC. SMS and MMS are out of scope entirely —
-   Twilio does not support two-way SMS in Nigeria and MMS cannot carry report photos.
-3. **Scope:** WhatsApp only, test garden, team plus invited testers, no production data, no success
-   claim.
+The architecture document does not establish a working provider, a wallet ceremony, account roles,
+a chain transaction or an installed new dependency. The selected garden, Meta provisioning, desktop and
+mobile wallet handoff, processor terms and real-device/chain acceptance all need proof. Local draft-data retention is accepted; minimal audit/backup retention, provider settings and browser
+access durations still require operational configuration.
 
-## Decisions that remain open
+The September 21–22 numbered implementation baseline must be reconciled with the technical brief
+before dispatch. No builder or lane was assigned by this documentation update, and existing Linear
+records were not changed. The earlier no-model slice remains useful as a deterministic fallback; it
+must not be presented as the complete conversational product now requested.
 
-1. **Provider for the pilot:** Still open. Needs actual Nigeria provisioning, media, template,
-   migration and cost evidence.
-2. **Technical proof:** Backend account authentication against the deployed and counterfactual
-   Kernel configuration is largely satisfied by code already in production for join requests and
-   profile avatars, but it has not been exercised against a draft resource. Narrowly scoped report
-   delegation stays a later, separately reviewed option.
-3. **Recovery and operations:** Total-passkey-loss recovery remains unresolved (RESR-21). Consent,
-   retention, support ownership, budget and pilot thresholds must be agreed before any production
-   collection — the prototype does not need them because it collects no production data.
-4. **Reading what the gardener wrote:** Whether a model should interpret a gardener's own
-   description, so they are not asked again for what they already said, is proposed and unselected
-   (spec P6). It is blocked on settling which inference providers may receive that text, under what
-   retention and training terms (spec O6). The prototype asks its questions deterministically and
-   calls no model, so nothing a gardener writes leaves Green Goods and Meta.
-5. **Operating entity:** The WhatsApp Business Account sitting under WEFA is recorded, not settled.
-   Whether it stays there, moves to the fiscal sponsor or a Greenpill entity, or WEFA acts as a
-   named service provider, is a decision owed before the pilot.
+## Architecture review
 
-## Architecture boundaries
+The [September 25 review](reports/2026-09-25-architecture-review.md) corrects publication ownership,
+prepared-payload reuse, cookie/proxy setup, receipt matching and recovery/concurrency boundaries in
+the current technical brief. The user selected pre-enrolled participants; the reporting demo uses prepared accounts and verifies their actual roles. The newer passkey-first product direction is recorded below. TAS and Aiyeloja Family Garden are the prototype choices. Runtime lanes remain
+blocked until dispatch is reconciled, ownership is assigned and implementation proof is available.
 
-The private participant record connects separately verified accounts and channels. Garden permissions stay attached to the exact authorized blockchain account. Phone access cannot recover a wallet, grant a garden role, change an owner or renew signing permission.
+The [prototype garden decision](reports/2026-09-25-prototype-garden-decision.md) closes the review's onboarding question. WhatsApp linking and recovery remain in scope; each garden's membership is checked independently.
 
-New users do not receive custodial wallets by default in this proposal. Existing Telegram users require an explicit legacy migration path: today's bot creates EOAs and holds their keys. Work/media persistence and independent work/approval recovery also need changes; this exceeds transport polish.
+The [account and conversation amendment](reports/2026-09-25-account-and-conversation-amendment.md) records the latest research, ERD simplification tradeoffs and future personal EOA/passkey association. No runtime code or dependencies changed.
 
-The first release introduces no bot authority over approvals, commitments, funds or membership. Optional reporting delegation requires demonstrable onchain restrictions and independent owner revocation. Expiry and offchain rate limits alone do not establish an adequate permission boundary.
+## Latest alignment
 
-## Success
+The API harness remains the first implementation phase. OpenAI is selected for document/visual
+interpretation, conversation and voice transcription; exact spreadsheet parsing and arithmetic stay
+in code. No external OCR provider is planned. Jev retains its typed decision role; automatic Office conversion is included. Use
+`/agent/reporting/:requestId` and `/agent/reporting/recover/:requestId` across messaging platforms.
 
-Prove one continuous report journey across WhatsApp and PWA for both passkey and EOA users, correct garden/account authorization, recoverable failures and comprehensible consent. Measure accepted reports and total gardener, steward and support effort. Proposed pilot size and thresholds remain for TAS/research to approve.
+Passkey-first onboarding and optional Profile wallet configuration are entirely future work. The
+current reporting flow uses proven existing EOA or Kernel accounts and their actual garden roles.
+See the [scope clarification](reports/2026-09-25-openai-scope-alignment.md).
 
-This hub replaces the April assumptions. The research pass that produced it verified nothing at
-runtime; the prototype slice is the first work authorized to change behaviour, and its own proof
-is still unrun. See the spec's evidence map and the evaluation gates for the distinction.
+## Final review closure — 26 September
+
+The [final review](reports/2026-09-26-final-brief-review.md) aligns the ERDs with required proof and
+review content, specifies recovery/grant API commands and handoff behavior, and separates the API-harness
+milestone from live release gates. The user accepted reporting grants of 24 hours/5 submissions,
+review grants of 1 hour/5 decisions, a 24-hour pre-consent expiry and 7-day inactive-draft expiry,
+plus private-source cleanup after publication/reconciliation. Measured gas caps and the minimal
+audit/backup schedule remain required before their live stages.

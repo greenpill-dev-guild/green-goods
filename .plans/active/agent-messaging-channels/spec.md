@@ -1,5 +1,35 @@
 # Messaging identities and garden workflows
 
+> **Latest user alignment:** API harness first; document/photo/spreadsheet support required.
+> OpenAI is the selected content-processing provider. The current prototype supports existing
+> EOAs and Kernel passkey accounts. Passkey-first onboarding and optional Profile wallet linking
+> are wholly future work. Browser views use `/agent/reporting/:requestId` and
+> `/agent/reporting/recover/:requestId`. Jev retains typed decisions; automatic Office conversion is included. See the
+> [current brief](technical-brief.md) and [scope clarification](reports/2026-09-25-openai-scope-alignment.md).
+> Earlier dispatch is historical; this amendment does not mark runtime proof complete.
+> **Final review, 26 September:** accepted limits are 24h/5 reports and 1h/5 reviews; local data
+> expires after 24h before consent or 7 days of draft inactivity, with source-file cleanup after
+> publication/reconciliation. Current build and acceptance gates live in technical brief section 12.
+> See the [review closure](reports/2026-09-26-final-brief-review.md).
+
+
+> **25 September account/conversation correction:** EOAs use exact wallet signing; existing Kernel
+> passkey users can opt into separate limited reporting and review permissions, pending compatibility
+> proof. EIP-7702 remains excluded. Story-first chat, repeated Jev/LLM interpretation, an API-first
+> test phase and two PWA-style browser view families are the current target. See the
+> [technical brief](technical-brief.md) and [research amendment](reports/2026-09-25-account-and-conversation-amendment.md).
+> Older dispatch below remains historical and must be reconciled before assignment; no runtime gate is complete.
+
+> **24 September 2026 architecture amendment:** The current target is the
+> [WhatsApp technical brief](technical-brief.md). It records the user's newer decisions:
+> WhatsApp owns reporting and review, a public browser ceremony requires no PWA installation,
+> DMs are acceptable for the hackathon, exact wallet signing is an accepted fallback, and WEFA
+> is the initial responsible organization. It includes the dependency proposal, state machines,
+> ERD and sequences. EIP-7702 is excluded from the current target. Where this older specification conflicts,
+> the brief takes precedence for target architecture. The September 21–22 implementation slice
+> below remains historical dispatch context pending reconciliation; no runtime proof or processor
+> gate is marked complete by this amendment.
+
 **Status:** Active hub. The target architecture below remains a proposal. One slice of it — the
 Buildathon prototype in section 15.1 — was scope-locked on 2026-09-21 and is authorized to build.
 Everything outside section 15.1 stays unselected.

@@ -10,13 +10,22 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-09-22T19:30:00Z"
+    "updated_at": "2026-09-26T20:54:13.260994+00:00"
   },
   "links": {
     "brief": "brief.md",
     "spec": "spec.md",
     "plan": "plan.todo.md",
-    "eval": "eval.md"
+    "eval": "eval.md",
+    "technical_brief": "technical-brief.md",
+    "client_wireframes": "client-wireframes.svg",
+    "architecture_review": "reports/2026-09-25-architecture-review.md",
+    "prototype_garden_decision": "reports/2026-09-25-prototype-garden-decision.md",
+    "account_conversation_amendment": "reports/2026-09-25-account-and-conversation-amendment.md",
+    "platform_media_passkey_alignment": "reports/2026-09-25-platform-media-passkey-alignment.md",
+    "openai_scope_alignment": "reports/2026-09-25-openai-scope-alignment.md",
+    "final_brief_review": "reports/2026-09-26-final-brief-review.md",
+    "final_brief_validation": "reports/2026-09-26-final-brief-validation.md"
   },
   "notes": [
     "RESR-75 was accepted on 2026-09-21. The gate is cleared for the Buildathon prototype slice only; it does not authorize production data collection, a pilot provider decision, reporting delegation, custodial accounts, or any SMS work.",
@@ -40,7 +49,14 @@
     "Spec proposal P6 (model-assisted interpretation, bounded judgments plus one extraction model, in a shared module) is unselected and blocked on new gate O6 (inference-processor retention, training and regional terms). No step in the prototype calls an inference provider; nothing a gardener writes leaves Green Goods and Meta. A shadow-mode trial on real messages is inside O6, not outside it.",
     "eval.md gained UX-04 (step 16, above the cut line) and deferred gate 7, INT-01 through INT-04. A smooth step 16 demo shows a working walk, not a system that reads what the gardener wrote; PILOT-01's effort measure cannot be inferred from it.",
     "Step 16 is numbered out of runtime order deliberately. It executes between steps 5 and 6, but renumbering would have broken every existing cross-reference to steps 6 through 15 in spec.md, eval.md and the live Linear issues.",
-    "PRD-970 (Product, Buildathon prototype milestone, blocked by PRD-944) owns step 16. RESR-79 (Research, same project, no milestone) owns spec proposal P6 and gate O6, and must stay off the prototype milestone because P6 is unselected. One Linear write remains owed: PRD-947's body still describes composer hydration and needs the step 9 and 10 read-only review reflected."
+    "PRD-970 (Product, Buildathon prototype milestone, blocked by PRD-944) owns step 16. RESR-79 (Research, same project, no milestone) owns spec proposal P6 and gate O6, and must stay off the prototype milestone because P6 is unselected. One Linear write remains owed: PRD-947's body still describes composer hydration and needs the step 9 and 10 read-only review reflected.",
+    "2026-09-24 user amendment supersedes conflicting earlier target notes: WEFA is the initial responsible organization; DM-first hackathon and exact owner signing are accepted; public browser ceremonies must not require PWA installation. technical-brief.md is the current target with dependencies, Jev-assisted state design, ERD and sequences. Existing numbered dispatch and lane handoffs require reconciliation before assignment. No runtime proof, model-processor approval, delegation enablement, package installation or Linear synchronization was performed.",
+    "Latest user correction: Green Goods is the product; WEFA operates WhatsApp only. General wallet signing is the chosen path. No account upgrade or unattended signing is in scope. Add public client linking/access/sign/status/recovery routes, scoped browser sessions, wireframes and client machines. Record the demo in WhatsApp Web. technical-brief.md is current; prior research remains historical.",
+    "User resolved demo onboarding: existing wallets and pre-enrolled members; TAS and Aiyeloja Family Garden are prototype choices. Existing-account WhatsApp linking remains included. Verify each garden address and roles independently; no enrollment/account-creation flow in demo.",
+    "2026-09-25 subsequent user clarification supersedes blanket no-delegation statements above: exclude EIP-7702, retain exact EOA signing, and include separate limited reporting/review grants for existing Kernel passkey accounts subject to compatibility proof. Story-first Action inference, repeated Jev/LLM evaluation, a synthetic API-first proof phase, explicit new/media dependencies and two PWA-style browser view families are the target. Future EOA/passkey association stays personal and out of implementation scope. technical-brief.md and the account_conversation_amendment link own the current proposal. No installs, runtime changes, wallet operations or Linear synchronization; dispatch and owners remain blocked.",
+    "2026-09-25 latest alignment: user accepted reproducible API harness first, Jev/LLM recommendation and ERD simplification; required documents/visual interpretation and explicitly included spreadsheets. Generic /continue and /recover browser routes use /messaging API with provider-bound requests. Target is passkey-first personal Kernel accounts with optional Profile EOA association and separately authorized signer control; that account feature remains future implementation. Provider choices are recommendations pending evaluation. No runtime implementation, installs, external uploads, account changes or tracker writes in this documentation update.",
+    "Latest user decisions: OpenAI selected for all content processing; Jev retained for typed decisions; automatic Office-to-PDF/image conversion included. Browser routes selected as /agent/reporting/:requestId and /agent/reporting/recover/:requestId. Entire passkey-first onboarding plus optional Profile wallet model is future-only; current prototype uses existing EOA/Kernel accounts. Removed speculative account_usage field and corrected sign-in wireframe. Documentation only; runtime lanes remain blocked, with no installs or tracker writes.",
+    "Final brief review 2026-09-26: closed three documentation gap classes (domain/proof persistence, ceremony/recovery APIs and retry/handoff semantics, current delivery/acceptance authority). User accepted 24h/5 reporting and 1h/5 review grants, 24h pre-consent and 7-day inactive draft expiry plus post-publication source cleanup. Technical brief section 12 owns current implementation sequence; older dispatch is historical. Runtime/custody/provider/chain gates remain unproven; no implementation or tracker writes."
   ],
   "lanes": {
     "state_api": {
@@ -49,7 +65,7 @@
       "branch": "feature/whatsapp-prototype",
       "depends_on": [],
       "handoff": "handoffs/claude-state-api.md",
-      "handoff_note": "Buildathon prototype steps 1-8, 13 and 14: Meta webhook signature plus a leased event claim, normalization, encrypted-subject draft tables, bounded media fetch, single-use link with chat-side confirmation, draft-scoped account proof and read, the authenticated outcome route, and receipt derivation with a restart-safe outbox. Proves SEC-01, CH-01, WORK-01, SEC-02, AUTH-01, AUTH-03, OPS-05, and DATA-02 for the consent notice and the deletion path. Reuse garden-join-request-auth.ts and profile-avatars.ts rather than writing new verification.",
+      "handoff_note": "Historical handoff retained for reference only. Follow technical-brief.md sections 11\u201312 and reconcile this handoff against current scope before dispatch. Buildathon prototype steps 1-8, 13 and 14: Meta webhook signature plus a leased event claim, normalization, encrypted-subject draft tables, bounded media fetch, single-use link with chat-side confirmation, draft-scoped account proof and read, the authenticated outcome route, and receipt derivation with a restart-safe outbox. Proves SEC-01, CH-01, WORK-01, SEC-02, AUTH-01, AUTH-03, OPS-05, and DATA-02 for the consent notice and the deletion path. Reuse garden-join-request-auth.ts and profile-avatars.ts rather than writing new verification.",
       "skill_tags": ["data-layer", "testing", "web3"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,
@@ -66,7 +82,7 @@
         },
         "note": "Unrun. Prototype steps 1-8, 13 and 14. Commands are package-scoped: the root runner accepts only --cache and --force and has no typecheck script. Step 3 additionally needs AGENT_SQLITE_INTEGRATION=1."
       },
-      "blocked_reason": "No builder assigned for the 2026-09-25 to 2026-10-02 window. Unblock by naming the builder and setting the owner; do not dispatch from an unassigned lane."
+      "blocked_reason": "Named builder/ownership and current-scope handoff/tracker reconciliation required. The API harness is the first implementation phase; live integration proof gates follow separately."
     },
     "ui": {
       "owner": "unassigned",
@@ -74,7 +90,7 @@
       "branch": "feature/whatsapp-prototype",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "Buildathon prototype steps 9-12 and 15: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, open-joining admission before the attestation, the outcome call on submission completion, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, DATA-06. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.",
+      "handoff_note": "Historical handoff retained for reference only. Follow technical-brief.md sections 11\u201312 and reconcile this handoff against current scope before dispatch. Buildathon prototype steps 9-12 and 15: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, open-joining admission before the attestation, the outcome call on submission completion, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, DATA-06. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.",
       "skill_tags": ["ui", "react", "web3"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,
@@ -91,7 +107,7 @@
         },
         "note": "Unrun. Prototype steps 9-12 and 15. Step 11 also needs authenticated Brave proof on the deployed origin: a passkey ceremony cannot be proven by localhost mocks."
       },
-      "blocked_reason": "No builder assigned for the 2026-09-25 to 2026-10-02 window. Unblock by naming the builder and setting the owner; do not dispatch from an unassigned lane."
+      "blocked_reason": "Named builder/ownership and current-scope handoff/tracker reconciliation required. The API harness is the first implementation phase; live integration proof gates follow separately."
     },
     "contracts": {
       "owner": "unassigned",
@@ -117,11 +133,11 @@
       "branch": "feature/whatsapp-prototype",
       "depends_on": ["state_api", "ui"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "handoff_note": "Demo rehearsal on a real device against the Meta test number: full journey across steps 1-15, then the adversarial pass (forwarded link, preview GET, replay, concurrent consume, foreign draft id, bad webhook signature, redelivery after a mid-processing restart). Authenticated Brave for the passkey ceremony. Also run the ID-03 EOA case: an existing EOA holder opens the continuation link, signs the draft proof and publishes, with the attester and the garden's membership unchanged from before the run. That journey is claimed in eval.md and no automated step proves it. Record which deferred cases the demo does not evidence, specifically ID-05, ID-07, REC-03 and MIG-01.",
+      "handoff_note": "Historical handoff retained for reference only. Follow technical-brief.md sections 11\u201312 and reconcile this handoff against current scope before dispatch. Demo rehearsal on a real device against the Meta test number: full journey across steps 1-15, then the adversarial pass (forwarded link, preview GET, replay, concurrent consume, foreign draft id, bad webhook signature, redelivery after a mid-processing restart). Authenticated Brave for the passkey ceremony. Also run the ID-03 EOA case: an existing EOA holder opens the continuation link, signs the draft proof and publishes, with the attester and the garden's membership unchanged from before the run. That journey is claimed in eval.md and no automated step proves it. Record which deferred cases the demo does not evidence, specifically ID-05, ID-07, REC-03 and MIG-01.",
       "skill_tags": ["testing", "review"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,
-      "blocked_reason": "No builder assigned for the 2026-09-25 to 2026-10-02 window. Unblock by naming the builder and setting the owner; do not dispatch from an unassigned lane."
+      "blocked_reason": "Named builder/ownership and current-scope handoff/tracker reconciliation required. The API harness is the first implementation phase; live integration proof gates follow separately."
     },
     "qa_pass_2": {
       "owner": "codex",
@@ -129,10 +145,11 @@
       "branch": null,
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "handoff_note": "Out of prototype scope. Independent verification of auth, cross-garden denial, operation recovery and conditional delegation belongs to the pilot, after a provider decision and O5 agreement.",
+      "handoff_note": "Historical handoff retained for reference only. Follow technical-brief.md sections 11\u201312 and reconcile this handoff against current scope before dispatch. Out of prototype scope. Independent verification of auth, cross-garden denial, operation recovery and conditional delegation belongs to the pilot, after a provider decision and O5 agreement.",
       "skill_tags": ["testing", "review", "contracts"],
       "manual_blocked": true,
-      "ready_when_dependencies_met": false
+      "ready_when_dependencies_met": false,
+      "blocked_reason": "Named builder/ownership and current-scope handoff/tracker reconciliation required. The API harness is the first implementation phase; live integration proof gates follow separately."
     }
   },
   "history": [
@@ -239,6 +256,70 @@
       "status": "scope_amended",
       "branch": "chore/whatsapp-prototype-scope-lock",
       "note": "Locked correction into the chat rather than the browser. Added spec section 8.1 (two-layer draft, Action.inputs as the fill contract, per-field provenance), proposal P6 and gate O6, two section 2 evidence rows, and a fifth section 15.1 narrowing. Rewrote steps 9 and 10 from composer hydration to a read-only review and added step 16, a deterministic chat field walk in a pure shared module, above the cut line. Added UX-04 and deferred gate 7. No package source changed; no inference provider is called anywhere in the slice."
+    },
+    {
+      "timestamp": "2026-09-25T00:08:40Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_amended",
+      "branch": null,
+      "note": "Recorded the user-requested technical brief and accepted WEFA, DM and exact-signing direction. Added source-grounded wallet comparison and proposed dependencies, state machines, ERD, API boundaries, sequences and acceptance. Lanes remain blocked and runtime proof unrun; implementation dispatch reconciliation is required."
+    },
+    {
+      "timestamp": "2026-09-25T00:48:11.997049+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_amended",
+      "branch": null,
+      "note": "User chose general wallet signing and a WhatsApp Web demo; removed account-upgrade and delegated-execution scope from the current brief. Added client routes, dependency inventory, application-access semantics, three client machines and six wireframes. Green Goods owns the product; WEFA operates WhatsApp. No runtime changes or new installs."
+    },
+    {
+      "timestamp": "2026-09-25T07:47:23.969539+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_reviewed",
+      "branch": null,
+      "note": "Reviewed all current technical-brief sections and direct source seams. Corrected publication ownership, prepared envelope/checkpoint contract, same-origin proxy/session bootstrap, recovery fencing, receipt matching, state and delivery consistency. Onboarding scope remains a user question. Evidence review only; runtime lanes unchanged and live acceptance unrun."
+    },
+    {
+      "timestamp": "2026-09-25T08:09:41.490074+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded user selection of pre-enrolled TAS members and Aiyeloja Family Garden as an additional prototype garden. Closed the review onboarding question, retained per-garden authority checks and updated current brief and acceptance. Runtime lanes and deployment proof unchanged."
+    },
+    {
+      "timestamp": "2026-09-26T01:17:47.271110+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_amended",
+      "branch": null,
+      "note": "Corrected account-specific signing/delegation scope from user questions; researched Jev loop and media gaps; recorded separate review permission and future personal passkey association. Updated current brief, diagrams, ERD and acceptance proposals; no runtime proof or dispatch."
+    },
+    {
+      "timestamp": "2026-09-26T02:48:52.181967+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_aligned",
+      "branch": null,
+      "note": "Recorded accepted API-first/model/ERD direction; expanded media scope and researched tools; generalized ceremonies; clarified passkey-first Kernel with optional Profile EOA signer. Updated architecture artifacts only."
+    },
+    {
+      "timestamp": "2026-09-26T03:16:16.486766+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_amended",
+      "branch": null,
+      "note": "Latest user decisions: OpenAI selected for all content processing; Jev retained for typed decisions; automatic Office-to-PDF/image conversion included. Browser routes selected as /agent/reporting/:requestId and /agent/reporting/recover/:requestId. Entire passkey-first onboarding plus optional Profile wallet model is future-only; current prototype uses existing EOA/Kernel accounts. Removed speculative account_usage field and corrected sign-in wireframe. Documentation only; runtime lanes remain blocked, with no installs or tracker writes."
+    },
+    {
+      "timestamp": "2026-09-26T20:54:13.260994+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_reviewed",
+      "branch": null,
+      "note": "Final brief review 2026-09-26: closed three documentation gap classes (domain/proof persistence, ceremony/recovery APIs and retry/handoff semantics, current delivery/acceptance authority). User accepted 24h/5 reporting and 1h/5 review grants, 24h pre-consent and 7-day inactive draft expiry plus post-publication source cleanup. Technical brief section 12 owns current implementation sequence; older dispatch is historical. Runtime/custody/provider/chain gates remain unproven; no implementation or tracker writes."
     }
   ],
   "taxonomy": {
