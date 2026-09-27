@@ -151,8 +151,8 @@ export async function sendRecordedAct(
   call: ContractCall,
   sender: TransactionSender,
   store: CommitmentExecutorStore,
-  /** The chain's time just before the send, kept with its intent. */
-  intentChainTime?: number
+  /** The chain's head just before the send, kept with its intent. */
+  head?: { number: bigint; timestamp: number }
 ): Promise<Hex> {
   const result = await holdingSend(jobId, () =>
     sendWithCheckpoint({
@@ -163,7 +163,9 @@ export async function sendRecordedAct(
         const send = next(sendCheckpointOf(job) ?? {});
         writeSendCheckpoint(
           job,
-          send && intentChainTime !== undefined ? { ...send, intentChainTime } : send
+          send && head
+            ? { ...send, intentBlock: head.number, intentChainTime: head.timestamp }
+            : send
         );
         await store.updateJob(job);
       },
@@ -215,6 +217,7 @@ export async function settleActSend(
           createCommitmentLandedLookup({
             readWorkLinkPayloadHash: chainReads.readWorkLinkPayloadHash,
             transactionMadeWorkLink: chainReads.transactionMadeWorkLink,
+            transactionMadeClaim: chainReads.transactionMadeClaim,
             resolveWorkIdentity: deps.resolveWorkIdentity,
           }),
         stillSending: async () =>

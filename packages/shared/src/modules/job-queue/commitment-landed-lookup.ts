@@ -6,8 +6,9 @@
  * connection lost mid-send), or the reference is one no receipt answers (a
  * Safe's own transaction id), the act is settled from what the chain recorded
  * instead: the pool's event log, as the indexer holds it, names who acted and
- * in which transaction. A take-up is matched by its whole identity, which the
- * indexer keeps for each claimant's latest request. A work link is decided by
+ * in which transaction. A take-up is confirmed by its row's receipt, which holds
+ * its whole identity, in a block after the head its intent recorded. A work
+ * link is decided by
  * the module's own record of its operation key, which must hold this link's
  * own payload, and named by the caller's WorkLinked row whose receipt carries
  * that key, since the row itself carries no link identity.
@@ -26,8 +27,8 @@ import { zeroHash, type Hex } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import type { Job } from "../../types/job-queue";
+import { logger } from "../app/logger";
 import { getCommitmentActivity } from "../commitment-pooling/data-activity";
-import { getCommitmentClaimRequests } from "../commitment-pooling/data-commitments";
 import { queryProcessedBlocks } from "../commitment-pooling/data-pool-funding-indexed-queries";
 import { hashWorkLinkPayload } from "../commitment-pooling/job-identity";
 import type { CommitmentEventRecord } from "../commitment-pooling/types";
@@ -48,20 +49,14 @@ const PAGE_SIZE = 200;
 const MAX_PAGES = 10;
 /** `ClaimType.Garden`: the claimant is the garden, and the caller only requested it. */
 const GARDEN_CLAIM = 0;
-/**
- * For a record kept without the chain's time, how far before its estimated
- * intent a take-up's request may sit, in chain seconds. The device clock is set
- * against the chain's first, so this absorbs only the latest block's age and
- * the time the read took. A record with the chain's time needs none.
- */
-const CLAIM_CLOCK_TOLERANCE_S = 120;
 
 interface LookupDependencies {
   readWorkLinkPayloadHash: (caller: Address, operationKey: Hex) => Promise<Hex>;
   activity?: typeof getCommitmentActivity;
-  claimRequests?: typeof getCommitmentClaimRequests;
   /** The executor's check of a link's receipt; without it a link is never named. */
   transactionMadeWorkLink?: CommitmentChainReads["transactionMadeWorkLink"];
+  /** The executor's check of a take-up's receipt, giving its block. */
+  transactionMadeClaim?: CommitmentChainReads["transactionMadeClaim"];
   resolveWorkIdentity?: CommitmentQueueExecutorDeps["resolveWorkIdentity"];
   /** The chain's time at a block, in seconds: the latest block when none is named. */
   readBlockTime?: (chainId: number, blockNumber?: bigint) => Promise<number>;
@@ -70,7 +65,22 @@ interface LookupDependencies {
   now?: () => number;
 }
 
-type RowMatch = (row: CommitmentEventRecord) => boolean | Promise<boolean>;
+/** Whether a row shows the act landed; "unverified" when its receipt could not be read. */
+type RowMatch = (
+  row: CommitmentEventRecord
+) => boolean | "unverified" | Promise<boolean | "unverified">;
+
+/** A receipt check that answers "unverified" when the receipt cannot be read. */
+async function checked(read: () => Promise<boolean>): Promise<boolean | "unverified"> {
+  try {
+    return await read();
+  } catch (error) {
+    logger.warn("[StrandedIntent] Could not read the receipt of a commitment act's row", {
+      error,
+    });
+    return "unverified";
+  }
+}
 
 const same = (left: string | null | undefined, right: string | null | undefined) =>
   Boolean(left && right && left.toLowerCase() === right.toLowerCase());
@@ -94,44 +104,35 @@ function intentAtMs(job: Job): number {
 }
 
 /**
- * A take-up landed when the indexer's record of its claimant's request matches
- * it whole (who asked, as what, through which garden) and is no older than
- * `floor`, its intent on the chain's clock. An earlier request belongs to an
- * earlier ask, which a steward may have declined since, however recently; a
- * later decline of this one does not matter.
- * The request's row names its transaction. An acceptance of the claimant after
- * the intent counts too: an accepted commitment takes no other claim, so
- * sending again could only revert.
+ * A take-up landed when a request or acceptance row's receipt holds its own
+ * event, matched whole, in a block after the head its intent recorded. That
+ * block was already sealed, so an earlier ask sits in it or before, whatever
+ * its time, and a later decline of this one does not matter.
  */
-async function takeUpMatch(
+function takeUpByReceipt(
   job: Job,
   payload: Record<string, unknown>,
-  chainId: number,
-  claimRequests: typeof getCommitmentClaimRequests,
-  floor: number
-): Promise<{ recorded: boolean; matches: RowMatch }> {
-  const caller = job.userAddress;
+  intentBlock: bigint,
+  madeClaim: NonNullable<LookupDependencies["transactionMadeClaim"]>
+): RowMatch {
+  const caller = job.userAddress as Address;
   const byGarden = Number(payload.kind) === GARDEN_CLAIM;
-  const gardenContext = String(payload.gardenContext);
-  const claimant = byGarden ? gardenContext : caller;
-  const requests = await claimRequests(chainId, BigInt(String(payload.commitmentId)));
-  const request = requests.find(
-    (record) =>
-      same(record.claimant, claimant) &&
-      same(record.requestedBy, caller) &&
-      record.claimType === (byGarden ? "GARDEN" : "INDIVIDUAL") &&
-      same(record.gardenContext, gardenContext) &&
-      record.requestedAt >= floor
-  );
-  return {
-    recorded: request !== undefined,
-    matches: (row) =>
-      (request !== undefined &&
-        row.eventType === "CLAIM_REQUESTED" &&
-        same(row.actor, caller) &&
-        row.timestamp === request.requestedAt) ||
-      (row.eventType === "ACCEPTED" && same(row.actor, claimant) && row.timestamp >= floor),
+  const gardenContext = String(payload.gardenContext) as Address;
+  const claim = {
+    commitmentId: BigInt(String(payload.commitmentId)),
+    claimant: byGarden ? gardenContext : caller,
+    requestedBy: caller,
+    kind: Number(payload.kind),
+    gardenContext,
   };
+  return (row) =>
+    (row.eventType === "CLAIM_REQUESTED" && same(row.actor, caller)) ||
+    (row.eventType === "ACCEPTED" && same(row.actor, claim.claimant))
+      ? checked(async () => {
+          const block = await madeClaim(row.txHash as Hex, claim);
+          return block !== null && block > intentBlock;
+        })
+      : false;
 }
 
 /** The work a link names: on the job, or, for a deferred link, from its client work id. */
@@ -189,10 +190,13 @@ async function workLinkLanded(
     chainId,
     commitmentId,
     sinceS,
-    async (row) =>
-      row.eventType === "WORK_LINKED" &&
-      same(row.actor, caller) &&
-      (await madeLink(row.txHash as Hex, { commitmentId, workUID, operationKey, linker: caller }))
+    (row) =>
+      row.eventType === "WORK_LINKED" && same(row.actor, caller)
+        ? // A newer row whose receipt cannot be read does not end the search.
+          checked(() =>
+            madeLink(row.txHash as Hex, { commitmentId, workUID, operationKey, linker: caller })
+          )
+        : false
   );
   // Landed on the module's word, but the log has not named its row yet.
   return log.row
@@ -230,6 +234,8 @@ async function findInLog(
   sinceS: number,
   matches: RowMatch
 ): Promise<{ row?: CommitmentEventRecord; complete: boolean }> {
+  // A row whose receipt could not be read leaves the read incomplete: it may be the one.
+  let unverified = false;
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const rows = await activity({
       chainId,
@@ -238,17 +244,20 @@ async function findInLog(
       offset: page * PAGE_SIZE,
     });
     for (const row of rows) {
-      if (row.timestamp >= sinceS && (await matches(row))) return { row, complete: true };
+      if (row.timestamp < sinceS) continue;
+      const match = await matches(row);
+      if (match === true) return { row, complete: true };
+      if (match === "unverified") unverified = true;
     }
     const oldest = rows.at(-1);
-    if (rows.length < PAGE_SIZE || !oldest || oldest.timestamp < sinceS) return { complete: true };
+    if (rows.length < PAGE_SIZE || !oldest || oldest.timestamp < sinceS)
+      return { complete: !unverified };
   }
   return { complete: false };
 }
 
 export function createCommitmentLandedLookup(deps: LookupDependencies): StrandedCommitmentLookup {
   const activity = deps.activity ?? getCommitmentActivity;
-  const claimRequests = deps.claimRequests ?? getCommitmentClaimRequests;
   const blockTime = deps.readBlockTime ?? chainBlockTime;
   const readIndexedBlock = deps.readIndexedBlock ?? indexedBlock;
   const now = deps.now ?? Date.now;
@@ -259,6 +268,7 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
     const checkedAt = now();
     const sentAt = intentAtMs(job);
     const recordedChainTime = sendCheckpointOf(job)?.intentChainTime;
+    const intentBlock = sendCheckpointOf(job)?.intentBlock;
     // The intent on the chain's clock: kept with the intent, or, for a record
     // kept without it, the device clock set against the latest block as read.
     let onChain: Promise<number> | undefined;
@@ -267,26 +277,22 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
         recordedChainTime !== undefined
           ? Promise.resolve(recordedChainTime)
           : blockTime(chainId).then((chainNowS) => sentAt / 1000 - (now() / 1000 - chainNowS)));
-    const landed =
-      job.kind === "claim"
-        ? await takeUpMatch(
-            job,
-            payload,
-            chainId,
-            claimRequests,
-            recordedChainTime ?? (await intentOnChainS()) - CLAIM_CLOCK_TOLERANCE_S
-          )
-        : { recorded: false, matches: actMatch(job, payload) };
+    // A take-up kept without its head block cannot be ordered against an earlier
+    // ask, so the log never settles it. Every send since the head was kept has one.
+    if (job.kind === "claim" && (intentBlock === undefined || !deps.transactionMadeClaim))
+      return { status: "unknown" };
+    const matches =
+      job.kind === "claim" && intentBlock !== undefined && deps.transactionMadeClaim
+        ? takeUpByReceipt(job, payload, intentBlock, deps.transactionMadeClaim)
+        : actMatch(job, payload);
     const log = await findInLog(
       activity,
       chainId,
       BigInt(String(payload.commitmentId)),
       Math.floor(sinceMs / 1000),
-      landed.matches
+      matches
     );
     if (log.row) return { status: "found", transactionHash: log.row.txHash as Hex };
-    // The indexer's record holds the take-up, but the log has not named its transaction.
-    if (landed.recorded) return { status: "unknown" };
     if (!log.complete || checkedAt - sentAt < STRANDED_INTENT_GRACE_MS)
       return { status: "unknown" };
     const indexed = await readIndexedBlock(chainId);

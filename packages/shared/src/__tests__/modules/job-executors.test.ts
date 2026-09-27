@@ -761,11 +761,11 @@ describe("commitment acts record their sends", () => {
     });
     const jobStore = store();
     const reconcile = vi.fn().mockResolvedValue("unresolved");
-    // The chain's time goes with the intent: nothing this send did can predate it.
-    const readChainTime = vi.fn().mockResolvedValue(1_234);
+    // The chain's head goes with the intent: nothing this send did can predate it.
+    const readChainHead = vi.fn().mockResolvedValue({ number: 100n, timestamp: 1_234 });
     const deps = {
       demoActive: () => false,
-      reads: { ...reads(), readChainTime },
+      reads: { ...reads(), readChainHead },
       store: jobStore,
       reconcile,
     };
@@ -778,6 +778,7 @@ describe("commitment acts record their sends", () => {
     expect(sendCheckpointOf(claim)).toMatchObject({
       transactionHash: HASH,
       intentChainTime: 1_234,
+      intentBlock: 100n,
     });
     expect(jobStore.updateJob).toHaveBeenCalledWith(claim);
     expect(isDiscardableJob(claim)).toBe(false);
@@ -1143,8 +1144,8 @@ describe("commitment chain reads", () => {
     await expect(chainReads.hasMembership?.(GARDEN, USER)).resolves.toBeNull();
   });
 
-  it("reads the chain's time from its latest block", async () => {
-    const getBlock = vi.fn().mockResolvedValue({ timestamp: 1_700_000_000n });
+  it("reads the chain's head: its latest block and that block's time", async () => {
+    const getBlock = vi.fn().mockResolvedValue({ number: 100n, timestamp: 1_700_000_000n });
     const chainReads = createCommitmentChainReads({
       chainId: 42161,
       moduleAddress: MODULE,
@@ -1152,8 +1153,69 @@ describe("commitment chain reads", () => {
       config: {} as Config,
     });
 
-    await expect(chainReads.readChainTime?.()).resolves.toBe(1_700_000_000);
+    await expect(chainReads.readChainHead?.()).resolves.toEqual({
+      number: 100n,
+      timestamp: 1_700_000_000,
+    });
     expect(getBlock).toHaveBeenCalledWith(expect.anything(), { chainId: 42161 });
+  });
+
+  it("confirms a take-up by its request or acceptance event, in its receipt's block", async () => {
+    const GARDEN_B = "0x9999999999999999999999999999999999999999" as Address;
+    const requested = encodeEventTopics({
+      abi: CommitmentPoolingModuleABI,
+      eventName: "ClaimRequested",
+      args: { commitmentId: 7n, claimant: USER, requestedBy: USER },
+    });
+    const requestLog = (gardenContext: Address) => ({
+      address: MODULE,
+      topics: requested,
+      data: encodeAbiParameters(
+        [{ type: "uint8" }, { type: "address" }, { type: "uint64" }],
+        [1, gardenContext, 1_700_000_000n]
+      ),
+    });
+    const acceptLog = {
+      address: MODULE,
+      topics: encodeEventTopics({
+        abi: CommitmentPoolingModuleABI,
+        eventName: "CommitmentAccepted",
+        args: { commitmentId: 7n, claimant: USER, counterparty: USER },
+      }),
+      data: encodeAbiParameters(
+        [
+          { type: "uint8" },
+          { type: "address" },
+          { type: "address" },
+          { type: "address" },
+          { type: "address" },
+        ],
+        [1, GARDEN, USER, GARDEN, GARDEN]
+      ),
+    };
+    const getTransactionReceipt = vi.fn();
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      getTransactionReceipt: getTransactionReceipt as never,
+      config: {} as Config,
+    });
+    const claim = {
+      commitmentId: 7n,
+      claimant: USER,
+      requestedBy: USER,
+      kind: 1,
+      gardenContext: GARDEN,
+    };
+    const receipt = (logs: object[]) => ({ status: "success", blockNumber: 101n, logs });
+
+    getTransactionReceipt.mockResolvedValueOnce(receipt([requestLog(GARDEN)]));
+    await expect(chainReads.transactionMadeClaim?.(MOCK_TX_HASH, claim)).resolves.toBe(101n);
+    getTransactionReceipt.mockResolvedValueOnce(receipt([acceptLog]));
+    await expect(chainReads.transactionMadeClaim?.(MOCK_TX_HASH, claim)).resolves.toBe(101n);
+    // The same person's request through another garden is not this take-up.
+    getTransactionReceipt.mockResolvedValueOnce(receipt([requestLog(GARDEN_B)]));
+    await expect(chainReads.transactionMadeClaim?.(MOCK_TX_HASH, claim)).resolves.toBeNull();
   });
 
   it("asks the bundler whether a UserOperation may still land", async () => {

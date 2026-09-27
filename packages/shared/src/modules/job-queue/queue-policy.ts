@@ -79,6 +79,7 @@ export function writeSendCheckpoint(job: Job, send: SendCheckpoint | undefined):
     broadcast: _broadcast,
     broadcastPending: _pending,
     broadcastPendingAt: _pendingAt,
+    intentBlock: _block,
     intentChainTime: _chainTime,
     transactionHash: _hash,
     transactionReplaced: _replaced,

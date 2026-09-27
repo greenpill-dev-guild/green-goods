@@ -54,8 +54,22 @@ export type CommitmentChainReads = Pick<
    * after the network took it may be that transaction.
    */
   hasPendingTransaction?: (account: Address) => Promise<boolean>;
-  /** The chain's time at its latest block, in seconds. */
-  readChainTime?: () => Promise<number>;
+  /** The chain's latest block and its time, in seconds. */
+  readChainHead?: () => Promise<{ number: bigint; timestamp: number }>;
+  /**
+   * The block of this transaction when its receipt holds this take-up's own
+   * event, its request or its acceptance, matched whole; null otherwise.
+   */
+  transactionMadeClaim?: (
+    transactionHash: Hex,
+    claim: {
+      commitmentId: bigint;
+      claimant: Address;
+      requestedBy: Address;
+      kind: number;
+      gardenContext: Address;
+    }
+  ) => Promise<bigint | null>;
   /**
    * Whether the bundler may still land this UserOperation: every status but one
    * it never held (`not_found`) or refused (`rejected`). A passkey send's
@@ -63,6 +77,8 @@ export type CommitmentChainReads = Pick<
    */
   userOperationMayLand?: (hash: Hex) => Promise<boolean>;
 };
+
+const sameHex = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
 
 export interface CommitmentChainReadOptions {
   chainId: number;
@@ -178,9 +194,8 @@ export function createCommitmentChainReads({
     transactionMadeWorkLink: async (transactionHash, link) => {
       const receipt = await getTransactionReceipt(wagmiConfig, { hash: transactionHash, chainId });
       if (receipt.status !== "success") return false;
-      const same = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
       return receipt.logs.some((log) => {
-        if (!same(log.address, moduleAddress)) return false;
+        if (!sameHex(log.address, moduleAddress)) return false;
         try {
           const event = decodeEventLog({
             abi: CommitmentPoolingModuleABI,
@@ -196,9 +211,9 @@ export function createCommitmentChainReads({
           };
           return (
             args.commitmentId === link.commitmentId &&
-            same(args.workUID, link.workUID) &&
-            same(args.operationKey, link.operationKey) &&
-            same(args.linker, link.linker)
+            sameHex(args.workUID, link.workUID) &&
+            sameHex(args.operationKey, link.operationKey) &&
+            sameHex(args.linker, link.linker)
           );
         } catch {
           // Another event, or one this ABI cannot read: not this link.
@@ -206,7 +221,43 @@ export function createCommitmentChainReads({
         }
       });
     },
-    readChainTime: async () => Number((await getBlock(wagmiConfig, { chainId })).timestamp),
+    readChainHead: async () => {
+      const head = await getBlock(wagmiConfig, { chainId });
+      return { number: head.number, timestamp: Number(head.timestamp) };
+    },
+    transactionMadeClaim: async (transactionHash, claim) => {
+      const receipt = await getTransactionReceipt(wagmiConfig, { hash: transactionHash, chainId });
+      if (receipt.status !== "success") return null;
+      const madeIt = receipt.logs.some((log) => {
+        if (!sameHex(log.address, moduleAddress)) return false;
+        try {
+          const event = decodeEventLog({
+            abi: CommitmentPoolingModuleABI,
+            data: log.data,
+            topics: log.topics,
+          });
+          const args = event.args as unknown as {
+            commitmentId: bigint;
+            claimant: Address;
+            requestedBy?: Address;
+            kind: number;
+            gardenContext: Address;
+          };
+          const sameClaim =
+            args.commitmentId === claim.commitmentId &&
+            sameHex(args.claimant, claim.claimant) &&
+            Number(args.kind) === claim.kind &&
+            sameHex(args.gardenContext, claim.gardenContext);
+          if (event.eventName === "ClaimRequested")
+            return sameClaim && sameHex(args.requestedBy ?? "", claim.requestedBy);
+          return event.eventName === "CommitmentAccepted" && sameClaim;
+        } catch {
+          // Another event, or one this ABI cannot read: not this take-up.
+          return false;
+        }
+      });
+      return madeIt ? receipt.blockNumber : null;
+    },
     userOperationMayLand: async (hash) => {
       const { status } = await getUserOperationStatus(hash);
       return status !== "not_found" && status !== "rejected";

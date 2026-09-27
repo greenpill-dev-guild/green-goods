@@ -93,6 +93,31 @@ describe("sending one call while recording how far it got", () => {
     });
   });
 
+  it("clears the intent when the estimate reverts after it, since nothing was signed", async () => {
+    // The chain moved between the preflight and the wallet's own estimate.
+    const refusals = [
+      Object.assign(new Error("Execution reverted for an unknown reason."), {
+        name: "EstimateGasExecutionError",
+      }),
+      Object.assign(new Error("request failed"), {
+        cause: Object.assign(new Error("execution reverted"), { code: 3 }),
+      }),
+    ];
+    for (const refusal of refusals) {
+      const { record, current } = recorder();
+      const sender = createMockTransactionSender({ authMode: "wallet" });
+      vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+        await options?.onBeforeBroadcast?.();
+        throw refusal;
+      });
+      await expect(send(sender, record as never)).resolves.toMatchObject({
+        status: "not-sent",
+        cancelled: false,
+      });
+      expect(current()).toBeUndefined();
+    }
+  });
+
   it("clears a cancelled wallet transaction checkpoint so a deliberate retry is safe", async () => {
     const { record, current } = recorder();
     const sender = createMockTransactionSender({ authMode: "wallet" });

@@ -4,17 +4,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import { hashWorkLinkPayload } from "../../modules/commitment-pooling/job-identity";
 import { createCommitmentLandedLookup } from "../../modules/job-queue/commitment-landed-lookup";
-import type {
-  CommitmentClaimRequestRecord,
-  CommitmentEventRecord,
-} from "../../modules/commitment-pooling/types";
+import type { CommitmentEventRecord } from "../../modules/commitment-pooling/types";
 import { STRANDED_INTENT_GRACE_MS } from "../../modules/work/stranded-intent";
 import type { Job } from "../../types/job-queue";
 
 const CALLER = "0x1111111111111111111111111111111111111111";
 const GARDEN = "0x2222222222222222222222222222222222222222";
 const OTHER = "0x3333333333333333333333333333333333333333";
-const OTHER_GARDEN = "0x4444444444444444444444444444444444444444";
 const TX = `0x${"ab".repeat(32)}` as const;
 const OLD_TX = `0x${"cd".repeat(32)}` as const;
 /** When the job was created and its send's intent recorded, on the device's clock. */
@@ -62,51 +58,37 @@ function row(
   };
 }
 
-/** The indexer's record of one claimant's latest request. */
-function request(extra: Partial<CommitmentClaimRequestRecord> = {}): CommitmentClaimRequestRecord {
-  return {
-    id: `42161-7-${CALLER}`,
-    chainId: 42161,
-    commitmentId: 7n,
-    claimant: CALLER,
-    requestSeen: true,
-    requestedBy: CALLER,
-    claimType: "INDIVIDUAL",
-    gardenContext: GARDEN,
-    state: "PENDING",
-    reasonCID: null,
-    resolutionCode: null,
-    requestedAt: AFTER,
-    resolvedAt: null,
-    updatedAt: AFTER,
-    ...extra,
-  } as CommitmentClaimRequestRecord;
-}
-
 async function lookUp(
   job: Job,
   rows: CommitmentEventRecord[],
   chain: {
-    requests?: CommitmentClaimRequestRecord[];
     storedLink?: `0x${string}`;
     /** Transactions whose receipts carry this link's own WorkLinked event. */
     linkedIn?: readonly string[];
+    /** Transactions whose receipts cannot be read. */
+    unreadable?: readonly string[];
+    /** The block of each transaction whose receipt carries this take-up's own event. */
+    claimedIn?: Readonly<Record<string, bigint>>;
     /** How a deferred link's work resolves, from its client work id. */
     resolvedWork?: `0x${string}` | null;
-    /** Seconds the device clock runs ahead of the chain's. */
-    deviceAheadS?: number;
     /** Seconds the indexer's processed block trails the chain head. */
     indexerBehindS?: number;
     nowMs?: number;
   } = {}
 ) {
   const nowMs = chain.nowMs ?? NOW_MS;
-  const chainNowS = nowMs / 1000 - (chain.deviceAheadS ?? 0);
+  const chainNowS = nowMs / 1000;
   const lookup = createCommitmentLandedLookup({
     readWorkLinkPayloadHash: vi.fn().mockResolvedValue(chain.storedLink ?? zeroHash),
     activity: vi.fn(async ({ limit = 50, offset = 0 }) => rows.slice(offset, offset + limit)),
-    claimRequests: vi.fn().mockResolvedValue(chain.requests ?? []),
-    transactionMadeWorkLink: vi.fn(async (hash: string) => (chain.linkedIn ?? []).includes(hash)),
+    transactionMadeWorkLink: vi.fn(async (hash: string) => {
+      if (chain.unreadable?.includes(hash)) throw new Error("receipt unavailable");
+      return (chain.linkedIn ?? []).includes(hash);
+    }),
+    transactionMadeClaim: vi.fn(async (hash: string) => {
+      if (chain.unreadable?.includes(hash)) throw new Error("receipt unavailable");
+      return chain.claimedIn?.[hash] ?? null;
+    }),
     resolveWorkIdentity: vi
       .fn()
       .mockResolvedValue(
@@ -123,8 +105,17 @@ async function lookUp(
   return lookup({ job, chainId: 42161, sinceMs: SINCE_MS });
 }
 
-const takeUp = act("claim", { kind: 1, gardenContext: GARDEN });
-const gardenTakeUp = act("claim", { kind: 0, gardenContext: GARDEN });
+/** A take-up's send record keeps the head block its intent read: block 100. */
+const intent = {
+  broadcastPending: true,
+  broadcastPendingAt: new Date(CREATED_MS).toISOString(),
+  intentChainTime: CREATED_MS / 1000,
+  intentBlock: 100n,
+};
+const takeUp = act("claim", { kind: 1, gardenContext: GARDEN, sendCheckpoint: intent });
+const gardenTakeUp = act("claim", { kind: 0, gardenContext: GARDEN, sendCheckpoint: intent });
+/** This take-up's own request or acceptance, in the block after the head. */
+const madeHere = { [TX]: 101n };
 const proof = act("evidence", { clientEvidenceId: "proof", cid: "bafy-proof" });
 const confirm = act("confirmation", { action: "confirm" });
 const submit = act("confirmation", { action: "submit" });
@@ -132,19 +123,19 @@ const asked = [row("CLAIM_REQUESTED", CALLER)];
 
 describe("createCommitmentLandedLookup", () => {
   it.each([
-    ["a take-up request by the reader", takeUp, asked, [request()], "found"],
+    ["a take-up request by the reader", takeUp, asked, madeHere, "found"],
     [
       "a garden take-up the garden was accepted for",
       gardenTakeUp,
       [row("ACCEPTED", GARDEN)],
-      [],
+      madeHere,
       "found",
     ],
     [
       "a request a steward declined before the lookup ran",
       takeUp,
       [row("CLAIM_DECLINED", CALLER), row("CLAIM_REQUESTED", CALLER)],
-      [request({ state: "DECLINED" })],
+      madeHere,
       "found",
     ],
     [
@@ -154,74 +145,58 @@ describe("createCommitmentLandedLookup", () => {
         row("CLAIM_DECLINED", CALLER, { timestamp: EARLIER_ASK + 60, txHash: OLD_TX }),
         row("CLAIM_REQUESTED", CALLER, { timestamp: EARLIER_ASK, txHash: OLD_TX }),
       ],
-      [request({ requestedAt: EARLIER_ASK, state: "DECLINED" })],
+      { [OLD_TX]: 90n },
       "absent",
     ],
-    [
-      "someone else's request",
-      takeUp,
-      [row("CLAIM_REQUESTED", OTHER)],
-      [request({ claimant: OTHER, requestedBy: OTHER })],
-      "absent",
-    ],
-    [
-      "the reader's request for another garden",
-      gardenTakeUp,
-      asked,
-      [request({ claimant: OTHER_GARDEN, claimType: "GARDEN", gardenContext: OTHER_GARDEN })],
-      "absent",
-    ],
-    [
-      "the reader's request through another garden's membership",
-      takeUp,
-      asked,
-      [request({ gardenContext: OTHER_GARDEN })],
-      "absent",
-    ],
+    // Not a candidate: someone else asked.
+    ["someone else's request", takeUp, [row("CLAIM_REQUESTED", OTHER)], madeHere, "absent"],
+    // The reader's request, whose receipt holds another take-up: another garden, or another
+    // garden's membership. The receipt check matches the whole identity.
+    ["the reader's request for another take-up", gardenTakeUp, asked, {}, "absent"],
     [
       "the proof's own CID",
       proof,
       [row("EVIDENCE_ATTACHED", CALLER, { data: "bafy-proof" })],
-      [],
+      {},
       "found",
     ],
     [
       "another proof by the same reader",
       proof,
       [row("EVIDENCE_ATTACHED", CALLER, { data: "bafy-other" })],
-      [],
+      {},
       "absent",
     ],
-    ["the reader's confirmation", confirm, [row("CONFIRMATION_RECORDED", CALLER)], [], "found"],
+    ["the reader's confirmation", confirm, [row("CONFIRMATION_RECORDED", CALLER)], {}, "found"],
     [
       "another confirmer's confirmation",
       confirm,
       [row("CONFIRMATION_RECORDED", OTHER)],
-      [],
+      {},
       "absent",
     ],
     [
       "a commitment sent for confirmation",
       submit,
       [row("READY_FOR_CONFIRMATION", null)],
-      [],
+      {},
       "found",
     ],
     [
       "a row from before the window",
       confirm,
       [row("CONFIRMATION_RECORDED", CALLER, { timestamp: SINCE_MS / 1000 - 1, txHash: OLD_TX })],
-      [],
+      {},
       "absent",
     ],
-  ])("reads %s", async (_case, job, rows, requests, status) => {
-    const result = await lookUp(job, rows, { requests });
+  ])("reads %s", async (_case, job, rows, claimedIn, status) => {
+    const result = await lookUp(job, rows, { claimedIn });
     expect(result.status).toBe(status);
     if (status === "found") expect(result).toMatchObject({ transactionHash: TX });
   });
 
-  it("takes a take-up's floor from the chain's time recorded with its intent", async () => {
-    // A retry whose earlier ask was declined half a minute before it.
+  it("orders a take-up by its receipt's block, after the head its intent recorded", async () => {
+    // The earlier ask and its decline share the block the retry read as its head.
     const intentAt = CREATED_MS / 1000;
     const retry = act("claim", {
       kind: 1,
@@ -230,35 +205,30 @@ describe("createCommitmentLandedLookup", () => {
         broadcastPending: true,
         broadcastPendingAt: new Date(CREATED_MS).toISOString(),
         intentChainTime: intentAt,
+        intentBlock: 100n,
       },
     });
-    const declinedAsk = [
-      row("CLAIM_DECLINED", CALLER, { timestamp: intentAt - 10, txHash: OLD_TX }),
-      row("CLAIM_REQUESTED", CALLER, { timestamp: intentAt - 30, txHash: OLD_TX }),
+    const earlierAsk = [
+      row("CLAIM_DECLINED", CALLER, { timestamp: intentAt, txHash: OLD_TX }),
+      row("CLAIM_REQUESTED", CALLER, { timestamp: intentAt, txHash: OLD_TX }),
     ];
+    await expect(lookUp(retry, earlierAsk, { claimedIn: { [OLD_TX]: 100n } })).resolves.toEqual({
+      status: "absent",
+    });
     await expect(
-      lookUp(retry, declinedAsk, {
-        requests: [request({ requestedAt: intentAt - 30, state: "DECLINED" })],
-      })
-    ).resolves.toEqual({ status: "absent" });
-    // The retry's own request, in the next block, counts, whatever came next.
-    await expect(
-      lookUp(retry, [row("CLAIM_REQUESTED", CALLER, { timestamp: intentAt })], {
-        requests: [request({ requestedAt: intentAt, state: "DECLINED" })],
+      lookUp(retry, [row("CLAIM_REQUESTED", CALLER, { timestamp: intentAt }), ...earlierAsk], {
+        claimedIn: { [TX]: 101n, [OLD_TX]: 100n },
       })
     ).resolves.toEqual({ status: "found", transactionHash: TX });
-  });
-
-  it("sets the device clock against the chain's before matching a take-up to its send", async () => {
-    // The device runs ten minutes ahead, so the request's chain time sits well
-    // before the job's device time, and still after the send.
-    const requestedAt = CREATED_MS / 1000 - 600 + 60;
-    await expect(
-      lookUp(takeUp, [row("CLAIM_REQUESTED", CALLER, { timestamp: requestedAt })], {
-        requests: [request({ requestedAt })],
-        deviceAheadS: 600,
-      })
-    ).resolves.toEqual({ status: "found", transactionHash: TX });
+    // A receipt that cannot be read proves nothing either way.
+    await expect(lookUp(retry, earlierAsk, { unreadable: [OLD_TX] })).resolves.toEqual({
+      status: "unknown",
+    });
+    // Nor can a take-up kept without its head block be ordered against an earlier ask.
+    const unordered = act("claim", { kind: 1, gardenContext: GARDEN });
+    await expect(lookUp(unordered, asked, { claimedIn: madeHere })).resolves.toEqual({
+      status: "unknown",
+    });
   });
 
   it("answers absent only once the indexer has processed past the send's grace window", async () => {
@@ -327,6 +297,10 @@ describe("createCommitmentLandedLookup", () => {
     await expect(
       lookUp(link, [otherLink], { storedLink: stored, linkedIn: [TX] })
     ).resolves.toEqual({ status: "unknown" });
+    // A newer row whose receipt cannot be read does not end the search.
+    await expect(
+      lookUp(link, history, { storedLink: stored, linkedIn: [TX], unreadable: [OLD_TX] })
+    ).resolves.toEqual({ status: "found", transactionHash: TX });
 
     // A deferred link learns its work from its client work id first.
     const deferred = act("workLink", {

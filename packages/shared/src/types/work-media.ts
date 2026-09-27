@@ -14,6 +14,11 @@ export interface WorkUploadCheckpoint {
    * Whatever this send did lands at or after it, and an earlier ask before it.
    */
   intentChainTime?: number;
+  /**
+   * The chain's latest block when the intent was recorded. Whatever this send
+   * did lands in a later block, since that one was already sealed.
+   */
+  intentBlock?: bigint;
   transactionReverted?: boolean;
   /**
    * The wallet saw this transaction replaced by a different call, so it can
