@@ -6,33 +6,33 @@
  * by Vite, making DevAuthProvider dead code that Rollup tree-shakes away.
  *
  * Either way, a different account than the last one on this device starts
- * clean (`useIdentityChangeReset`); a mock-role switch reloads as another
- * address, as a real account switch can.
+ * clean (`useIdentityChangeReset`), down to the screens: the app below remounts
+ * when another account replaces the last one. A mock-role switch reads as
+ * another address, as a real account switch does.
  */
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { useIdentityChangeReset } from "../hooks/auth/useIdentityChangeReset";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
-import { AuthProvider } from "./Auth";
+import { AuthProvider, useOptionalAuthContext } from "./Auth";
 import { DevAuthProvider, hasMockAuthOverride } from "./DevAuthProvider";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   if (import.meta.env.DEV && hasMockAuthOverride()) {
     return (
       <DevAuthProvider>
-        <IdentityChangeReset />
-        {children}
+        <AccountSession>{children}</AccountSession>
       </DevAuthProvider>
     );
   }
   return (
     <AuthProvider>
-      <IdentityChangeReset />
-      {children}
+      <AccountSession>{children}</AccountSession>
     </AuthProvider>
   );
 }
 
-function IdentityChangeReset() {
-  useIdentityChangeReset(usePrimaryAddress());
-  return null;
+function AccountSession({ children }: { children: ReactNode }) {
+  const auth = useOptionalAuthContext();
+  const generation = useIdentityChangeReset(usePrimaryAddress(), Boolean(auth?.isReady));
+  return <Fragment key={generation}>{children}</Fragment>;
 }

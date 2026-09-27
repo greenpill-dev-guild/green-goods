@@ -94,6 +94,13 @@ Clearing site data, drafts, queued work or the reading cache; the membership and
   flight included, since clearing drafts is out of scope).
 - `packages/shared/AGENTS.md` states the store rule and names the hook.
 
+- Review round 1 on #929: only a ready session decides (the gate passes `isReady`), so a restore
+  that may yet fail cannot clear the last account's state; the recent send recipients
+  (`greengoods:recent-recipients`) are cleared with the rest; and the hook returns a session
+  generation that `AuthGate` keys the app under, so a direct switch from one account to another
+  remounts the screens and no open sheet or typed text carries over. The remount happens only when
+  a different account replaces the last one, not on a sign-out or a reload.
+
 ## Step 4: the wallet sign-out
 
 Not taken. The solo reproduction of N35's sign-out (Rabby extension or Rabby Mobile over
