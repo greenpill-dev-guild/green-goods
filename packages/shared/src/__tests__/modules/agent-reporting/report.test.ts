@@ -7,6 +7,7 @@ import {
   type FieldProvenance,
   reconcileDetailsWithAction,
   type ReportContent,
+  withEvidence,
 } from "../../../modules/agent-reporting/report";
 import {
   buildReportSummary,
@@ -159,6 +160,15 @@ describe("applyReportChanges", () => {
   it("drops details a newly adopted Action does not define", () => {
     const content = { ...readyReport(), details: { seedlings: 12, legacy: "x" } };
     expect(reconcileDetailsWithAction(content, snapshot).dropped).toEqual(["legacy"]);
+  });
+});
+
+describe("withEvidence", () => {
+  it("adds each sanitized image once, keyed by its digest", () => {
+    const photo = { assetId: "asset-1", sanitizedDigest: "digest-1", mime: "image/jpeg" as const };
+    const once = withEvidence(emptyReport(), photo);
+    expect(once.evidence).toEqual([photo]);
+    expect(withEvidence(once, { ...photo, assetId: "asset-2" })).toBe(once);
   });
 });
 

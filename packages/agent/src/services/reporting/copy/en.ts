@@ -19,8 +19,24 @@ export const EN_REPORTING_COPY = {
   help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
   "intake.paused":
     "Reporting is paused for maintenance. Your message is saved and I'll reply when it resumes. Support: {support}",
-  "unsupported.media":
-    "I can't process that file type yet. Please send photos (JPEG, PNG or WebP), PDF, Word (DOCX), Excel (XLSX) or CSV files. Your report is saved.",
+  "media.photoAdded": "Photo added to your report.",
+  "media.fileRead": "I read your file and added what I could to your report.",
+  "media.tooLarge": "That file is larger than 10 MB, so I can't use it. Your report is saved.",
+  "media.unsupported":
+    "I can't use that kind of file. Your report is saved; send photos (JPEG, PNG or WebP), a PDF, a Word or Excel file, a CSV, or type the details.",
+  "media.unreadable":
+    "I couldn't read that file. It may be damaged, password-protected or contain macros. Your report is saved; send it again as a PDF or photos, or type the details.",
+  "media.pdfTooLong":
+    "That document has more than 20 pages, so I didn't read it. Send the pages that matter as a shorter PDF or photos.",
+  "media.voiceOff": "Voice notes aren't supported yet. Please type your update.",
+  "media.documentsOff":
+    "I saved your file privately, but reading documents is turned off right now. Please type the key details or send photos.",
+  "media.fetchFailed": "I couldn't download your file. Please send it again.",
+  "media.late": "That file arrived after your report was confirmed, so it wasn't added.",
+  "media.hiddenExcluded":
+    "Some sheets, rows or columns in your spreadsheet were hidden, so I left them out.",
+  "media.partial":
+    "I could only read part of that file. Please check the summary carefully before confirming.",
   "report.askGarden": "Which garden is this report for?",
   "report.noGardens":
     "No garden is set up for reporting yet. Your message is saved. Support: {support}",

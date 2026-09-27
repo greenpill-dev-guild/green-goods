@@ -16,8 +16,25 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   help: "Reportes de Green Goods:\n• Describe tu trabajo y envía fotos para iniciar un reporte.\n• NEW inicia un reporte nuevo, STATUS muestra dónde vas, CANCEL cancela el reporte actual.\n• STOP detiene el procesamiento, DELETE borra los datos no publicados.\nSoporte: {support}",
   "intake.paused":
     "Los reportes están en pausa por mantenimiento. Tu mensaje está guardado y responderé cuando se reanuden. Soporte: {support}",
-  "unsupported.media":
-    "Todavía no puedo procesar ese tipo de archivo. Envía fotos (JPEG, PNG o WebP), PDF, Word (DOCX), Excel (XLSX) o CSV. Tu reporte está guardado.",
+  "media.photoAdded": "Foto agregada a tu reporte.",
+  "media.fileRead": "Leí tu archivo y agregué a tu reporte lo que pude.",
+  "media.tooLarge":
+    "Ese archivo pesa más de 10 MB, así que no puedo usarlo. Tu reporte está guardado.",
+  "media.unsupported":
+    "No puedo usar ese tipo de archivo. Tu reporte está guardado; envía fotos (JPEG, PNG o WebP), un PDF, un archivo de Word o Excel, un CSV, o escribe los detalles.",
+  "media.unreadable":
+    "No pude leer ese archivo. Puede estar dañado, protegido con contraseña o tener macros. Tu reporte está guardado; envíalo de nuevo como PDF o fotos, o escribe los detalles.",
+  "media.pdfTooLong":
+    "Ese documento tiene más de 20 páginas, así que no lo leí. Envía las páginas importantes como un PDF más corto o como fotos.",
+  "media.voiceOff": "Todavía no se aceptan notas de voz. Por favor, escribe tu actualización.",
+  "media.documentsOff":
+    "Guardé tu archivo en privado, pero la lectura de documentos está desactivada por ahora. Escribe los datos clave o envía fotos.",
+  "media.fetchFailed": "No pude descargar tu archivo. Por favor, envíalo de nuevo.",
+  "media.late": "Ese archivo llegó después de que confirmaste tu reporte, así que no se agregó.",
+  "media.hiddenExcluded":
+    "Algunas hojas, filas o columnas de tu hoja de cálculo estaban ocultas, así que las dejé fuera.",
+  "media.partial":
+    "Solo pude leer parte de ese archivo. Revisa el resumen con cuidado antes de confirmar.",
   "report.askGarden": "¿Para qué huerto es este reporte?",
   "report.noGardens":
     "Todavía no hay huertos configurados para reportar. Tu mensaje está guardado. Soporte: {support}",

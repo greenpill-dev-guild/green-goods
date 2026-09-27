@@ -10,6 +10,8 @@ import { resolveAuthority } from "../../../services/reporting/authority";
 import type { AccountProofVerifier } from "../../../services/reporting/browser-access";
 import { watchOwnerAttempt } from "../../../services/reporting/execution";
 import { createFilesystemMediaStore } from "../../../services/reporting/media-store";
+import { processMedia } from "../../../services/reporting/media/process";
+import type { OpenAIConfig } from "../../../services/reporting/openai-responses";
 import { prepareOperation } from "../../../services/reporting/preparation";
 import { reconcileOperation } from "../../../services/reporting/reconciliation";
 import { purgePrivateContent, sweepRetention } from "../../../services/reporting/retention";
@@ -51,6 +53,7 @@ import {
 } from "./fixtures";
 import { FixtureUploader } from "./browser";
 import { FakeChain } from "./fake-chain";
+import { FakeDocumentTools, FixtureMediaFetcher } from "./media";
 
 /** Synthetic ingress exists only in test and dev-driver composition, never in `createServer`. */
 const SYNTHETIC_REALM = /^(synthetic|telegram-fixture|whatsapp-fixture):[a-z0-9-]+$/;
@@ -137,6 +140,11 @@ export class Harness {
   readonly app = new Hono();
   readonly chain = new FakeChain();
   readonly uploader = new FixtureUploader();
+  readonly mediaFiles = new Map<string, Uint8Array>();
+  readonly mediaFailures = { remaining: 0 };
+  readonly documents = new FakeDocumentTools();
+  openai: OpenAIConfig | null = null;
+  capabilities = { documents: true, conversion: false, voice: false };
   readonly delegationModules: import("@green-goods/shared/modules/agent-reporting").PermissionModuleEntry[] =
     [];
   /** Smart-account proofs are fixtures: a Kernel address accepts the signature `0x6b65726e656c`. */
@@ -233,6 +241,19 @@ export class Harness {
         review_list: (job) => listPendingReviews(this.reviewDeps(), job),
         review_open: (job) => openReview(this.reviewDeps(), job),
         review_authority: (job) => resolveReviewAuthority(this.reviewDeps(), job),
+        process_media: (job) =>
+          processMedia(
+            {
+              core: this.core,
+              media: this.media(),
+              fetcher: new FixtureMediaFetcher(this.mediaFiles, this.mediaFailures),
+              tools: this.documents,
+              catalog: this.catalog,
+              openai: this.openai,
+              capabilities: this.capabilities,
+            },
+            job
+          ),
         purge_private_content: (job) =>
           purgePrivateContent({ core: this.core, media: this.media() }, job),
         retention_sweep: (job) => sweepRetention({ core: this.core, media: this.media() }, job),

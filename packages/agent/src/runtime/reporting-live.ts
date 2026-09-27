@@ -12,7 +12,7 @@ import { createLiveReportingChain } from "../services/reporting/live-chain";
 import { extractWithOpenAI } from "../services/reporting/model-extraction";
 import { routeWithJev } from "../services/reporting/model-routing";
 import type { ReportingCore } from "../services/reporting/runtime";
-import type { OutboundTransport } from "../services/reporting/transport";
+import type { InboundMediaFetcher, OutboundTransport } from "../services/reporting/transport";
 import { createPinataEvidenceUploader } from "../services/reporting/uploader";
 import type { JobHandler } from "../services/reporting/worker";
 import { createReportingRuntime, type ReportingRuntime } from "./reporting";
@@ -29,6 +29,7 @@ export function createLiveReportingRuntime(input: {
   chainId: number;
   rpcUrl: string;
   transport: OutboundTransport;
+  mediaFetcher: InboundMediaFetcher;
   trustedProxy?: TrustedProxyConfig;
   secureCookies?: boolean;
   workerId?: string;
@@ -72,6 +73,7 @@ export function createLiveReportingRuntime(input: {
       rpcUrl: input.rpcUrl,
     }),
     transport: input.transport,
+    mediaFetcher: input.mediaFetcher,
     ...(input.trustedProxy ? { trustedProxy: input.trustedProxy } : {}),
     ...(input.secureCookies === undefined ? {} : { secureCookies: input.secureCookies }),
     ...(input.workerId ? { workerId: input.workerId } : {}),

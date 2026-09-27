@@ -86,6 +86,7 @@ export {
   MAX_TITLE_LENGTH,
   reconcileDetailsWithAction,
   reportContentDigest,
+  withEvidence,
 } from "./report";
 export type { ReportRequirement, ReportSummary } from "./report-summary";
 export {

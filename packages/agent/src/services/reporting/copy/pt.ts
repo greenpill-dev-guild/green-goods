@@ -16,8 +16,26 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   help: "Relatos do Green Goods:\n• Descreva seu trabalho e envie fotos para começar um relato.\n• NEW começa um relato novo, STATUS mostra onde você está, CANCEL cancela o relato atual.\n• STOP para o processamento, DELETE apaga os dados não publicados.\nSuporte: {support}",
   "intake.paused":
     "Os relatos estão pausados para manutenção. Sua mensagem foi guardada e vou responder quando voltarem. Suporte: {support}",
-  "unsupported.media":
-    "Ainda não consigo processar esse tipo de arquivo. Envie fotos (JPEG, PNG ou WebP), PDF, Word (DOCX), Excel (XLSX) ou CSV. Seu relato está guardado.",
+  "media.photoAdded": "Foto adicionada ao seu relato.",
+  "media.fileRead": "Li seu arquivo e adicionei ao seu relato o que consegui.",
+  "media.tooLarge":
+    "Esse arquivo tem mais de 10 MB, então não posso usá-lo. Seu relato está salvo.",
+  "media.unsupported":
+    "Não posso usar esse tipo de arquivo. Seu relato está salvo; envie fotos (JPEG, PNG ou WebP), um PDF, um arquivo do Word ou Excel, um CSV, ou digite os detalhes.",
+  "media.unreadable":
+    "Não consegui ler esse arquivo. Ele pode estar danificado, protegido por senha ou conter macros. Seu relato está salvo; envie-o de novo como PDF ou fotos, ou digite os detalhes.",
+  "media.pdfTooLong":
+    "Esse documento tem mais de 20 páginas, então não o li. Envie as páginas importantes como um PDF menor ou como fotos.",
+  "media.voiceOff": "Ainda não aceitamos mensagens de voz. Por favor, digite sua atualização.",
+  "media.documentsOff":
+    "Salvei seu arquivo com privacidade, mas a leitura de documentos está desativada no momento. Digite os dados principais ou envie fotos.",
+  "media.fetchFailed": "Não consegui baixar seu arquivo. Por favor, envie de novo.",
+  "media.late":
+    "Esse arquivo chegou depois que você confirmou seu relato, então não foi adicionado.",
+  "media.hiddenExcluded":
+    "Algumas planilhas, linhas ou colunas estavam ocultas, então deixei de fora.",
+  "media.partial":
+    "Só consegui ler parte desse arquivo. Confira o resumo com atenção antes de confirmar.",
   "report.askGarden": "Para qual horta é este relato?",
   "report.noGardens":
     "Ainda não há hortas configuradas para relatos. Sua mensagem está guardada. Suporte: {support}",

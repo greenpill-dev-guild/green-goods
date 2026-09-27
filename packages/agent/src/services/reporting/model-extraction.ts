@@ -6,6 +6,9 @@ import {
   type InterpretedIntent,
   type ProposedFact,
 } from "./interpretation";
+import { type OpenAIConfig, structuredResponse } from "./openai-responses";
+
+export type { OpenAIConfig } from "./openai-responses";
 
 /**
  * OpenAI extraction: proposes field values from the gardener's own words through the Responses
@@ -13,12 +16,6 @@ import {
  * the fields the selected Action defines, drops anything else, and Shared's report rules decide
  * whether a value is valid and whether a gardener's statement already wins over it.
  */
-export interface OpenAIConfig {
-  apiKey: string;
-  baseUrl: string;
-  model: string;
-  fetch?: typeof fetch;
-}
 
 export interface Extraction {
   intent: InterpretedIntent;
@@ -104,17 +101,6 @@ const outputSchema = z.object({
     .max(20),
 });
 
-const responseSchema = z.object({
-  model: z.string(),
-  status: z.string().optional(),
-  output: z.array(
-    z.object({
-      type: z.string(),
-      content: z.array(z.object({ type: z.string(), text: z.string().optional() })).optional(),
-    })
-  ),
-});
-
 export async function extractWithOpenAI(
   config: OpenAIConfig,
   request: InterpretationRequest,
@@ -130,52 +116,17 @@ export async function extractWithOpenAI(
     activities: request.actions,
     fields,
   };
-  const call = config.fetch ?? fetch;
-  let response: Response;
-  try {
-    response = await call(`${config.baseUrl.replace(/\/+$/, "")}/responses`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${config.apiKey}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: config.model,
-        store: false,
-        max_output_tokens: 1_200,
-        input: [
-          { role: "system", content: [{ type: "input_text", text: INSTRUCTIONS }] },
-          { role: "user", content: [{ type: "input_text", text: JSON.stringify(snapshot) }] },
-        ],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "report_fields",
-            strict: true,
-            schema: schemaFor(request, fields),
-          },
-        },
-      }),
-      signal,
-    });
-  } catch {
-    throw new InterpretationUnavailableError(signal.aborted ? "timeout" : "provider_error");
-  }
-  if (!response.ok) throw new InterpretationUnavailableError("provider_error");
-  const body = responseSchema.safeParse(await response.json().catch(() => null));
-  if (!body.success || (body.data.status && body.data.status !== "completed")) {
-    throw new InterpretationUnavailableError("malformed");
-  }
-  const text = body.data.output
-    .flatMap((item) => item.content ?? [])
-    .find((part) => part.type === "output_text")?.text;
-  if (!text || text.length > 20_000) throw new InterpretationUnavailableError("malformed");
-  let raw: unknown;
-  try {
-    raw = JSON.parse(text);
-  } catch {
-    throw new InterpretationUnavailableError("malformed");
-  }
+  const { model, output: raw } = await structuredResponse(
+    config,
+    {
+      instructions: INSTRUCTIONS,
+      content: [{ type: "input_text", text: JSON.stringify(snapshot) }],
+      schemaName: "report_fields",
+      schema: schemaFor(request, fields),
+      maxOutputTokens: 1_200,
+    },
+    signal
+  );
   const parsed = outputSchema.safeParse(raw);
   if (!parsed.success) throw new InterpretationUnavailableError("malformed");
   const output = parsed.data;
@@ -196,6 +147,6 @@ export async function extractWithOpenAI(
         ...(fact.original ? { original: fact.original } : {}),
         ...(fact.unit ? { unit: fact.unit } : {}),
       })),
-    model: body.data.model,
+    model,
   };
 }

@@ -284,6 +284,17 @@ export function reconcileDetailsWithAction(
   return { content: { ...content, details, provenance }, dropped };
 }
 
+/**
+ * Adds one sanitized image as candidate evidence, once per digest. How many images an Action
+ * needs or allows is checked by the report requirements, so a gardener can still remove extras.
+ */
+export function withEvidence(content: ReportContent, item: EvidenceItem): ReportContent {
+  if (content.evidence.some((existing) => existing.sanitizedDigest === item.sanitizedDigest)) {
+    return content;
+  }
+  return { ...content, evidence: [...content.evidence, item] };
+}
+
 /** Identifies what would be published: fields and selected evidence, not private provenance. */
 export function reportContentDigest(content: ReportContent) {
   return reportingDigest("report-content", {

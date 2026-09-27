@@ -36,7 +36,9 @@ import {
   type ReportingCore,
   systemClock,
 } from "../services/reporting/runtime";
-import type { OutboundTransport } from "../services/reporting/transport";
+import { createDocumentTools } from "../services/reporting/media/documents";
+import { processMedia } from "../services/reporting/media/process";
+import type { InboundMediaFetcher, OutboundTransport } from "../services/reporting/transport";
 import type { EvidenceUploader } from "../services/reporting/uploader";
 import { type JobHandler, type TickSummary, tick } from "../services/reporting/worker";
 
@@ -58,6 +60,8 @@ export interface ReportingRuntimeOptions {
   uploader: EvidenceUploader;
   verifier: AccountProofVerifier;
   transport: OutboundTransport;
+  /** The transport's authenticated media download; files cannot be processed without it. */
+  mediaFetcher: InboundMediaFetcher;
   trustedProxy?: TrustedProxyConfig;
   /** Stays empty until the Kernel permission gates pass; delegation is disabled without entries. */
   delegationModules?: readonly PermissionModuleEntry[];
@@ -123,6 +127,23 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
     review_list: (job) => listPendingReviews(reviewDeps, job),
     review_open: (job) => openReview(reviewDeps, job),
     review_authority: (job) => resolveReviewAuthority(reviewDeps, job),
+    process_media: (job) =>
+      processMedia(
+        {
+          core,
+          media,
+          fetcher: options.mediaFetcher,
+          tools: createDocumentTools({ conversionEnabled: config.conversionEnabled }),
+          catalog: options.catalog,
+          openai: config.openai,
+          capabilities: {
+            documents: config.documentsEnabled,
+            conversion: config.conversionEnabled,
+            voice: config.voiceEnabled,
+          },
+        },
+        job
+      ),
     purge_private_content: (job) => purgePrivateContent({ core, media }, job),
     retention_sweep: (job) => sweepRetention({ core, media }, job),
     ...options.jobs?.(core),

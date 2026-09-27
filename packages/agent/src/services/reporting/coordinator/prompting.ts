@@ -44,7 +44,7 @@ function formatDetail(input: WorkInput, value: unknown): string {
 const option = (id: string, label: string, value: string): PromptOption => ({ id, label, value });
 
 export function askField(
-  writer: TurnWriter,
+  writer: ConversationWriter,
   draft: DraftRecord,
   input: WorkInput,
   pageIndex = 0
@@ -81,7 +81,7 @@ export function askField(
 }
 
 export function askAction(
-  writer: TurnWriter,
+  writer: ConversationWriter,
   draft: DraftRecord,
   view: CatalogView,
   page = 0
@@ -116,7 +116,7 @@ export function askAction(
   );
 }
 
-export function askGarden(writer: TurnWriter, draft: DraftRecord): void {
+export function askGarden(writer: ConversationWriter, draft: DraftRecord): void {
   const gardens = writer.core.settings.gardens;
   if (gardens.length === 0) {
     writer.say("report.noGardens");
@@ -135,7 +135,7 @@ export function askGarden(writer: TurnWriter, draft: DraftRecord): void {
 }
 
 function askRequirement(
-  writer: TurnWriter,
+  writer: ConversationWriter,
   draft: DraftRecord,
   requirement: ReportRequirement,
   view: CatalogView
@@ -262,9 +262,19 @@ export function askConfirmation(
 
 /** Asks for whatever the draft needs next, or shows the summary when nothing is missing. */
 export function promptNextStep(writer: TurnWriter, draft: DraftRecord, view: CatalogView): void {
+  promptNextStepFor(writer, draft, view, writer.ctx.account?.address ?? null);
+}
+
+/** The same next step from background work, which names the linked account explicitly. */
+export function promptNextStepFor(
+  writer: ConversationWriter,
+  draft: DraftRecord,
+  view: CatalogView,
+  account: string | null
+): void {
   const requirements = outstandingRequirements(draft.content, draft.snapshot);
   if (requirements.length === 0) {
-    askConfirmation(writer, draft, writer.ctx.account?.address ?? null);
+    askConfirmation(writer, draft, account);
     return;
   }
   askRequirement(writer, draft, requirements[0] as ReportRequirement, view);

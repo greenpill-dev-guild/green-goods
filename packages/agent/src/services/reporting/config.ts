@@ -24,6 +24,8 @@ export interface ReportingConfig {
   pinata: { jwt: string; uploadsApiBaseUrl?: string } | null;
   bundlerRpcUrl: string | null;
   voiceEnabled: boolean;
+  /** PDF and Word reading with the pinned Poppler tools; off until the image proves them. */
+  documentsEnabled: boolean;
   conversionEnabled: boolean;
   workerIntervalMs: number;
 }
@@ -150,6 +152,7 @@ export function loadReportingConfig(
       : null,
     bundlerRpcUrl: text(env.AGENT_REPORTING_BUNDLER_RPC_URL),
     voiceEnabled: flag(env.AGENT_REPORTING_VOICE_ENABLED),
+    documentsEnabled: flag(env.AGENT_REPORTING_DOCUMENTS_ENABLED),
     conversionEnabled: flag(env.AGENT_REPORTING_CONVERSION_ENABLED),
     workerIntervalMs: Number(text(env.AGENT_REPORTING_WORKER_INTERVAL_MS) ?? 2_000),
   };
