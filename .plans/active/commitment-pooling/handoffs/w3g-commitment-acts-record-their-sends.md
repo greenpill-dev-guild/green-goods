@@ -98,20 +98,30 @@ every run, and `process-job.ts` would never end it on attempts.
   throwing `offline_job_identity_conflict`.
 - `send-with-checkpoint.ts`: `settleRecordedSend` is the one settle step for a send on record (a
   receipt, a UserOperation, or the caller's stranded settle). The decision executor uses it in
-  place of its private copy.
+  place of its private copy. `settleUnanswered` lets a caller settle a transaction no receipt
+  answers; without it the send is waited on, as work and decisions still are.
 - `commitment-send-record.ts` (new): `sendRecordedAct` sends an act through `sendWithCheckpoint`
   with the record written on the stored job; `settleActSend` settles a recorded act; both return
   `awaiting-confirmation` and `send-intent-expired` as waits, the way the work and decision
-  registry entries do, while a declined prompt still throws so `sendFromTap` discards it.
-- `commitment-landed-lookup.ts` (new): the stranded lookup. A take-up landed when its request (by
-  the reader) or its acceptance (for the claimant) is in the log from after the job was created,
-  within two minutes of clock tolerance, whatever came next; a request from an earlier ask does not
-  count. A proof is matched by its CID, a confirmation by its confirmer, a submission by the
-  ready-for-confirmation event, and a work link by the module's operation record, with the log
-  naming its transaction. A full page older than the send answers unknown.
+  registry entries do, while a declined prompt still throws so `sendFromTap` discards it. Each
+  send holds a Web Lock named for its job (`green-goods:queue-send:<job id>`) from just before its
+  intent until its answer. A lock held elsewhere leaves the act to that tab, and the settle reads
+  the same lock before it reopens anything.
+- `commitment-landed-lookup.ts` (new): the stranded lookup. A take-up landed when the indexer's
+  record of its claimant's request matches it whole (claimant, requester, kind and garden context)
+  and follows the send's intent, or when the log holds the claimant's acceptance after the intent,
+  whatever came next. The device clock is set against the chain's latest block before comparing,
+  with two minutes of tolerance, so a request from an earlier ask does not count. A proof is
+  matched by its CID, a confirmation by its confirmer, a submission by the ready-for-confirmation
+  event, and a work link by the module's operation record, with the log naming its transaction.
+  The log is read a page at a time, up to ten pages of 200 rows, and a busier window answers
+  unknown. An absence answers absent only once the indexer's processed block, timed on chain, is
+  past the send's grace window.
 - `stranded-intent.ts`: `resolveStrandedCommitmentIntent` and `settleStrandedCommitmentIntent` run
   the same grace window as work and decisions. A reopened act clears its record and waits for the
-  person's Send Now (`requiresExplicitSend`).
+  person's Send Now (`requiresExplicitSend`). A recorded transaction no receipt answers, such as a
+  Safe's own id, is looked up too: its landing completes the act, and its absence never reopens it.
+  Nothing reopens while a tab still holds the act's send.
 - `commitment-chain-reads.ts`: `simulateSend`. The wallet and embedded senders record the intent
   before `writeContract`, which estimates inside, so each act is simulated first and a refusal
   fails before any intent.
@@ -127,6 +137,35 @@ every run, and `process-job.ts` would never end it on attempts.
 - Codex's review of the plan PR #922 found the fast decline, the missing per-kind coverage, the
   thrown wait, and the authenticated walk; each is fixed here or in the steps above.
 
+## Review round 1 on #923 (2026-09-27)
+
+Codex reviewed `6bf248187` and `f745503fa` and left six findings. All six are fixed in
+`6781a51b2`.
+
+1. P1, indexer lag. An empty log read as absent even when the indexer trailed the chain by more
+   than the grace window. An absence now needs the indexer's processed block, timed on chain, past
+   the window.
+2. P1, Safe ids. A transaction no receipt answers waited forever, even after the Safe executed it.
+   The landed lookup now settles it by the act's landing, and never reopens it.
+3. P1, frozen tab. A tab frozen with its wallet prompt open lost its execution claim, so another
+   tab could reopen the act after the window and send it again. The per-job send lock stays with a
+   frozen tab and is released by a closed one, and the reopen waits while it is held.
+4. P2, paging. More than 200 rows in the window hid the send's row for good. The lookup now pages.
+5. P2, clock drift. A device clock more than two minutes ahead put the take-up's own request below
+   the floor. The floor is now on the chain's clock.
+6. P1, claim identity. A request by the same person for another garden completed the wrong job. The
+   match now reads the indexer's claim-request record in full.
+
+Residuals, recorded rather than fixed:
+
+- A tab closed with its wallet prompt still open in the extension can send after the window, once
+  its lock is gone. The contract refuses a second proof with the same CID, a second confirmation
+  and a second submission, a repeated work link is a no-op, and an open take-up cannot be accepted
+  twice. The one harmful double is an approval-gated take-up that a steward declined in between:
+  its late request asks again.
+- Work and decisions keep the older rules. A transaction no receipt answers still waits, and their
+  lookups read EAS's indexer with no freshness check and no send lock. Left for a follow-up.
+
 ## RED and GREEN evidence
 
 RED at `4615608d9` plus the new tests, `bun run test -- src/__tests__/modules/job-executors.test.ts src/__tests__/modules/job-queue.seam.test.ts src/__tests__/commitment-queue-state.test.tsx` in `packages/shared`: six failed, each as the gap predicts (`offline_job_identity_conflict` on a re-tap; `receipt timeout` and `connection lost` rejected instead of waiting; a stranded act completed by sending again; a refused act resolved `complete`; `discardable: true` on a recorded send). The declined-prompt guard passed, as it should.
@@ -136,6 +175,14 @@ steward declined before the lookup ran" failed (1 of 13) and passed after the fi
 
 GREEN: the same files plus `commitment-landed-lookup.test.ts` and `stranded-intent.test.ts` pass,
 and the per-kind settle table passes for all four act kinds.
+
+Review round 1 was RED against `f745503fa` with the new tests: twelve failed in
+`commitment-landed-lookup.test.ts`, `stranded-intent.test.ts` and `job-executors.test.ts`, each as
+its finding predicts. Requests for another garden and through another garden's membership read
+found. A ten-minute clock lead and a busy second page read absent or unknown instead of found, and
+a trailing indexer read absent. A Safe id waited instead of completing, for all four act kinds and
+in the resolver. The send ran without its lock, and a held lock did not stop the reopen. All pass
+at `6781a51b2`.
 
 ## Rendered proof
 
@@ -158,8 +205,8 @@ re-certified if its fingerprint moves. Adjust the test paths to the files that e
 
 ## Out of scope
 
-The creations' `submittedTxHash` path; the claim-context findings N42 and N43; Safe transactions
-that collect signatures for days.
+The creations' `submittedTxHash` path; the claim-context findings N42 and N43; discarding a Safe
+transaction that is never executed, which waits as work and decisions do.
 
 ## Unblock evidence
 
@@ -171,11 +218,11 @@ holds W1-1's proof and belongs to Codex's lane, so `record-tdd` is not run over 
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `3af19d2dd` (on `fix/commitment-send-record`, PR #923)
-- Run at (UTC): `2026-09-27T02:37:04Z` to `2026-09-27T02:39:38Z`
-- Exact command(s): in `packages/shared`, `bun run typecheck -- --scope full` and `bun run test`; in `packages/client`, `bun run typecheck` and `bun run test`; at the root, `bash scripts/quality/check-test-quality.sh`, `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings` and `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`. The catalog checks, `bun run --cwd packages/qa build`, `node scripts/quality/check-qa-id-ledger.mjs --base origin/develop` and `bun --bun x vitest run --dir scripts/agents`, ran on the same tree just before the commit.
-- Result: shared typecheck exit 0; shared 5,907 passed in 543 files; client typecheck exit 0; client 1,413 passed in 143 files; test quality passed, with the four certified seams and no drift; oxlint exit 0; source structure passed against `origin/develop`. QA build 354 active cases; ledger 420 ids, none removed; agent tools 260 passed. The earlier head `6bf248187` passed the critical pre-push plan, all 24 checks over 23 paths.
-- Validated paths: every non-plan path the branch changes, `git diff --name-only origin/develop 3af19d2dd -- . ':!.plans'` (26 paths)
+- Tested implementation commit SHA: `6781a51b2` (on `fix/commitment-send-record`, PR #923)
+- Run at (UTC): `2026-09-27T03:33:11Z` to `2026-09-27T03:36:08Z`, then the catalog checks
+- Exact command(s): in `packages/shared`, `bun run typecheck -- --scope full` and `bun run test`; in `packages/client`, `bun run typecheck` and `bun run test`; at the root, `bash scripts/quality/check-test-quality.sh`, `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings`, `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`, `bun run --cwd packages/qa build`, `node scripts/quality/check-qa-id-ledger.mjs --base origin/develop` and `bun --bun x vitest run --dir scripts/agents`.
+- Result: shared typecheck exit 0; shared 5,914 passed in 543 files; client typecheck exit 0; client 1,413 passed in 143 files; test quality passed; oxlint exit 0; source structure passed against `origin/develop`. QA build 354 active cases; ledger 420 ids, none removed; agent tools 260 passed. The earlier head `f745503fa` passed the critical pre-push plan, all 30 checks over 30 paths.
+- Validated paths: every non-plan path the branch changes, `git diff --name-only origin/develop 6781a51b2 -- . ':!.plans'` (26 paths)
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 3af19d2dd -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
-- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, captured at `6bf248187`: `client-commitments-queuedactrow--proof-already-broadcast` in light and dark ("Your proof has left this phone and is waiting for the network to confirm it", Check Again, no Discard) and `--never-reached-the-network` in light ("Your take-up never reached the network", Discard and Send Now). `git diff --exit-code 6bf248187 3af19d2dd` over the row, its stories and the i18n files exits 0. Labelled Storybook; the authenticated walk, PWA-126 with Rabby, stays pending for the recorded call.
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 6781a51b2 -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
+- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, captured at `6bf248187`: `client-commitments-queuedactrow--proof-already-broadcast` in light and dark ("Your proof has left this phone and is waiting for the network to confirm it", Check Again, no Discard) and `--never-reached-the-network` in light ("Your take-up never reached the network", Discard and Send Now). `git diff --exit-code 6bf248187 6781a51b2` over the row, its stories and the shared i18n files exits 0. Labelled Storybook; the authenticated walk, PWA-126 with Rabby, stays pending for the recorded call.
