@@ -144,6 +144,8 @@ export class Harness {
   readonly mediaFailures = { remaining: 0 };
   readonly documents = new FakeDocumentTools();
   openai: OpenAIConfig | null = null;
+  /** Key material for the next `open`; a test rotates it and restarts. */
+  keys = TEST_KEYS;
   capabilities = { documents: true, conversion: false, voice: false };
   readonly delegationModules: import("@green-goods/shared/modules/agent-reporting").PermissionModuleEntry[] =
     [];
@@ -193,7 +195,7 @@ export class Harness {
     const db: Database = openReportingDatabase(join(this.dir, "reporting.db"));
     return {
       db,
-      keyring: createReportingKeyring(TEST_KEYS),
+      keyring: createReportingKeyring(this.keys),
       clock: this.clock,
       ids: this.ids,
       settings: {

@@ -137,13 +137,13 @@ export class FixtureCatalog implements ReportingCatalog {
 export class FixtureInterpreter implements ReportInterpreter {
   readonly requests: InterpretationRequest[] = [];
   responses: Array<InterpretationResult | Error> = [];
-  duringCall: (() => void) | null = null;
+  duringCall: (() => void | Promise<void>) | null = null;
 
   async interpret(request: InterpretationRequest): Promise<InterpretationResult> {
     this.requests.push(request);
     const hook = this.duringCall;
     this.duringCall = null;
-    hook?.();
+    await hook?.();
     const next = this.responses.shift();
     if (!next) throw new Error("No scripted interpretation");
     if (next instanceof Error) throw next;

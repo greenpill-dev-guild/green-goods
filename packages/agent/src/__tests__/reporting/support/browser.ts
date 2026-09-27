@@ -90,6 +90,13 @@ export class TestBrowser {
     });
   }
 
+  /** Submits a proof from a smart account whose signature the harness verifier accepts. */
+  async proveAs(account: `0x${string}`, signature: `0x${string}`) {
+    return this.request("POST", `/messaging/challenges/${this.challengeId}/proof`, {
+      body: { account, signature },
+    });
+  }
+
   async access() {
     const result = await this.request("POST", "/messaging/access", {
       body: { challengeId: this.challengeId },

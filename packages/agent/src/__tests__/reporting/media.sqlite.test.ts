@@ -245,3 +245,81 @@ describe("spreadsheets", () => {
     expect(sent).not.toContain("Salary");
   });
 });
+
+describe("documents", () => {
+  const docx = () =>
+    zip({
+      "[Content_Types].xml": "<Types/>",
+      "word/document.xml": "<w:document>Planting log</w:document>",
+    });
+
+  function modelOn(facts: unknown[]) {
+    const openai = scriptedOpenAI([{ observations: [], uncertain: [], facts }]);
+    harness.openai = openai.config;
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "documents" });
+    return openai;
+  }
+
+  it("keeps page provenance for values read from a PDF", async () => {
+    await plantingDraft();
+    harness.documents.pages.set("planting-log", { ok: true, pages: 3 });
+    const openai = modelOn([
+      {
+        field: "details.seedlings",
+        value: 12,
+        page: 2,
+        cell: null,
+        sumRange: null,
+        original: "12 seedlings",
+        unit: "seedlings",
+      },
+    ]);
+    await send("pdf-1", new TextEncoder().encode("%PDF-1.7 planting-log"), "application/pdf");
+    expect(draft()?.content.provenance["details.seedlings"]).toMatchObject({
+      kind: "transcribed",
+      sources: [expect.objectContaining({ location: "page 2" })],
+    });
+    const sent = JSON.stringify(openai.requests[0]);
+    expect(sent).toContain('"type":"input_file"');
+    expect(sent).toContain('\\"pages\\":3');
+  });
+
+  it("reads Word text natively and says embedded pictures were not read", async () => {
+    await plantingDraft();
+    modelOn([
+      {
+        field: "feedback",
+        value: "Planting log",
+        page: null,
+        cell: null,
+        sumRange: null,
+        original: null,
+        unit: null,
+      },
+    ]);
+    const replies = await send(
+      "doc-1",
+      docx(),
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    expect(replies).toContain(
+      "I could only read part of that file. Please check the summary carefully before confirming."
+    );
+    expect(harness.documents.conversions).toBe(0);
+  });
+
+  it("converts Word to PDF when conversion is enabled", async () => {
+    await plantingDraft();
+    harness.capabilities.conversion = true;
+    modelOn([]);
+    await send(
+      "doc-2",
+      docx(),
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    expect(harness.documents.conversions).toBe(1);
+    expect(
+      harness.core.db.query("SELECT state FROM media_assets WHERE asset_kind = 'docx'").get()
+    ).toEqual({ state: "ready" });
+  });
+});

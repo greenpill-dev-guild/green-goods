@@ -63,17 +63,22 @@ function findByAlias(core: ReportingCore, aliases: AliasTable, realm: string, va
   return null;
 }
 
+/**
+ * Adds the current-version alias. On the create path it must be strict: a conflict there means
+ * another writer registered the same sender first, and ignoring it would leave a second identity.
+ */
 function addCurrentAlias(
   core: ReportingCore,
   aliases: AliasTable,
   owner: string,
   realm: string,
-  value: string
+  value: string,
+  strict = false
 ) {
   const version = core.keyring.currentLookupVersion;
   core.db
     .query(
-      `INSERT OR IGNORE INTO ${aliases.table}
+      `INSERT ${strict ? "" : "OR IGNORE "}INTO ${aliases.table}
          (${aliases.ownerColumn}, provider_realm, hmac_key_version, ${aliases.hmacColumn}, created_at)
        VALUES ($owner, $realm, $version, $hmac, $now)`
     )
@@ -104,7 +109,7 @@ function resolveOrCreate(
     try {
       core.db.transaction(() => {
         create(id, value);
-        addCurrentAlias(core, aliases, id, realm, value);
+        addCurrentAlias(core, aliases, id, realm, value, true);
       })();
       return { id, created: true };
     } catch (error) {
