@@ -66,7 +66,7 @@ function makeNote(index: number) {
 const mockUsePublicGardens = vi.fn();
 const mockUsePublicGardenDetail = vi.fn();
 const mockUseHypercerts = vi.fn();
-const mockUseActions = vi.fn();
+const mockUseAction = vi.fn();
 const mockUseWorkMetadata = vi.fn((raw?: string) => ({
   metadata: raw ? JSON.parse(raw) : null,
   status: "success",
@@ -86,8 +86,8 @@ vi.mock("@green-goods/shared/hooks/work/useWorkMetadata", () => ({
   useWorkMetadata: (raw?: string) => mockUseWorkMetadata(raw),
 }));
 
-vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
-  useActions: (...args: unknown[]) => mockUseActions(...args),
+vi.mock("@green-goods/shared/hooks/action/useAction", () => ({
+  useAction: (...args: unknown[]) => mockUseAction(...args),
 }));
 
 vi.mock("@green-goods/shared/hooks/public/usePublicGardenDetail", async (importOriginal) => {
@@ -292,7 +292,7 @@ describe("GardenDetail", () => {
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
     mockUsePublicGardenDetail.mockReturnValue(detailResult());
     mockUseHypercerts.mockReturnValue({ hypercerts: [], isLoading: false });
-    mockUseActions.mockReturnValue({ data: [] });
+    mockUseAction.mockReturnValue({ data: null });
     // Pre-launch: no pool registered for this Garden.
     mockUsePublicGardenPool.mockReturnValue({
       data: {
@@ -432,41 +432,39 @@ describe("GardenDetail", () => {
   it("does not load note metadata or actions until a note opens", () => {
     renderView();
     expect(mockUseWorkMetadata).not.toHaveBeenCalled();
-    expect(mockUseActions).not.toHaveBeenCalled();
+    expect(mockUseAction).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
     expect(mockUseWorkMetadata).toHaveBeenCalledWith(makeNote(0).metadata);
-    expect(mockUseActions).toHaveBeenCalledWith(42161);
+    expect(mockUseAction).toHaveBeenCalledWith(1, 42161);
   });
 
-  it("uses reviewed Portuguese action labels and select values for recorded details", () => {
-    mockUseActions.mockReturnValue({
-      data: [
-        {
-          id: "42161-1",
-          title: "Planting",
-          inputs: [
-            { key: "seedlingsPlanted", title: "Seedlings Planted", options: [] },
-            { key: "soilType", title: "Soil Type", options: ["clay"] },
-          ],
-          translations: {
-            pt: {
-              status: "reviewed",
-              data: {
-                title: "Plantio",
-                uiConfig: {
-                  details: {
-                    inputs: [
-                      { key: "seedlingsPlanted", title: "Mudas registradas" },
-                      { key: "soilType", title: "Solo observado", options: { clay: "Argila" } },
-                    ],
-                  },
+  it("uses the exact action’s Portuguese labels even when it is outside the recent catalog", () => {
+    mockUseAction.mockReturnValue({
+      data: {
+        id: "42161-1",
+        title: "Planting",
+        inputs: [
+          { key: "seedlingsPlanted", title: "Seedlings Planted", options: [] },
+          { key: "soilType", title: "Soil Type", options: ["clay"] },
+        ],
+        translations: {
+          pt: {
+            status: "reviewed",
+            data: {
+              title: "Plantio",
+              uiConfig: {
+                details: {
+                  inputs: [
+                    { key: "seedlingsPlanted", title: "Mudas registradas" },
+                    { key: "soilType", title: "Solo observado", options: { clay: "Argila" } },
+                  ],
                 },
               },
             },
           },
         },
-      ],
+      },
     });
     const note = makeNote(0);
     note.metadata = JSON.stringify({
@@ -476,6 +474,7 @@ describe("GardenDetail", () => {
     renderView("/gardens/solar-community-garden", "pt");
 
     fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
+    expect(mockUseAction).toHaveBeenCalledWith(note.actionUID, 42161);
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("Mudas registradas")).toBeInTheDocument();
     expect(within(dialog).getByText("Solo observado")).toBeInTheDocument();
@@ -486,50 +485,48 @@ describe("GardenDetail", () => {
   });
 
   it("renders repeater rows with translated child labels and options", () => {
-    mockUseActions.mockReturnValue({
-      data: [
-        {
-          id: "42161-1",
-          title: "Waste Sorting",
-          inputs: [
-            {
-              key: "categoryBreakdown",
-              title: "Category Breakdown",
-              type: "repeater",
-              repeaterFields: [
-                { key: "category", title: "Category", options: ["Plastic", "Glass"] },
-                { key: "weightKg", title: "Weight (kg)", options: [] },
-              ],
-            },
-          ],
-          translations: {
-            pt: {
-              status: "reviewed",
-              data: {
-                title: "Triagem de resíduos",
-                uiConfig: {
-                  details: {
-                    inputs: [
-                      {
-                        key: "categoryBreakdown",
-                        title: "Separação por categoria",
-                        repeaterFields: [
-                          {
-                            key: "category",
-                            title: "Categoria",
-                            options: { Plastic: "Plástico", Glass: "Vidro" },
-                          },
-                          { key: "weightKg", title: "Peso (kg)" },
-                        ],
-                      },
-                    ],
-                  },
+    mockUseAction.mockReturnValue({
+      data: {
+        id: "42161-1",
+        title: "Waste Sorting",
+        inputs: [
+          {
+            key: "categoryBreakdown",
+            title: "Category Breakdown",
+            type: "repeater",
+            repeaterFields: [
+              { key: "category", title: "Category", options: ["Plastic", "Glass"] },
+              { key: "weightKg", title: "Weight (kg)", options: [] },
+            ],
+          },
+        ],
+        translations: {
+          pt: {
+            status: "reviewed",
+            data: {
+              title: "Triagem de resíduos",
+              uiConfig: {
+                details: {
+                  inputs: [
+                    {
+                      key: "categoryBreakdown",
+                      title: "Separação por categoria",
+                      repeaterFields: [
+                        {
+                          key: "category",
+                          title: "Categoria",
+                          options: { Plastic: "Plástico", Glass: "Vidro" },
+                        },
+                        { key: "weightKg", title: "Peso (kg)" },
+                      ],
+                    },
+                  ],
                 },
               },
             },
           },
         },
-      ],
+      },
     });
     const note = makeNote(0);
     note.metadata = JSON.stringify({

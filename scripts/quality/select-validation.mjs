@@ -120,6 +120,7 @@ function isValidationOnlyPath(path) {
 }
 
 const directRootTestChecks = new Map([
+  ["scripts/harness/agent-hooks.test.mjs", "review-guardrails-test"],
   ["scripts/lib/env-schema.test.mjs", "env-schema-test"],
   ["scripts/lib/dev-shared.test.mjs", "validation-system-test"],
   ["scripts/quality/select-validation.test.mjs", "validation-system-test"],

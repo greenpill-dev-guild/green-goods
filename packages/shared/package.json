@@ -117,6 +117,7 @@
     "./config/query-persistence": "./src/config/query-persistence.ts",
     "./config/react-query": "./src/config/react-query.ts",
     "./config/sdg": "./src/config/sdg.ts",
+    "./hooks/action/useAction": "./src/hooks/action/useAction.ts",
     "./hooks/action/useActionForm": "./src/hooks/action/useActionForm.ts",
     "./hooks/action/useActionOperations": "./src/hooks/action/useActionOperations.ts",
     "./hooks/admin-ui/actions/actionDrafts": "./src/hooks/admin-ui/actions/actionDrafts.ts",

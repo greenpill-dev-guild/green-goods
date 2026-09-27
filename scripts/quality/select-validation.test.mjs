@@ -27,6 +27,25 @@ function turboTestCommand(surface) {
   return `node ${binary} run test --filter=@green-goods/${surface} --output-logs=new-only`;
 }
 
+test("hook and doctor edits select their behavioral proof", () => {
+  const cases = [
+    ["review-guardrails-test", [
+      ".claude/scripts/task-completion-gate.sh", ".claude/scripts/teammate-idle-gate.sh",
+      ".codex/hooks/pre_tool_policy.sh", ".claude/settings.json", ".codex/hooks.json",
+      "scripts/harness/command-policy.mjs", "scripts/harness/agent-hooks.test.mjs",
+    ]],
+    ["validation-system-test", ["scripts/dev/doctor.js", "scripts/lib/dev-shared.js"]],
+  ];
+  for (const intent of ["qa", "review", "push"]) {
+    for (const [checkId, paths] of cases) {
+      for (const changedPath of paths) {
+        const plan = selectValidation({ intent, changedPaths: [changedPath] });
+        assert.ok(ids(plan).includes(checkId), `${intent}: ${changedPath}`);
+      }
+    }
+  }
+});
+
 // A hook's GIT_DIR outranks `cwd`, so without this the selector under test reads the repository
 // being pushed instead of the fixture a test just built.
 clearRepositoryLocalGitVariables();
@@ -1639,6 +1658,38 @@ test("git inputs include dirty and untracked paths and fingerprint their content
     changedTrailingWhitespace.workingCopyFingerprint,
     trailingWhitespace.workingCopyFingerprint,
   );
+});
+
+test("hook and readiness receipts expire when implementations or registrations change", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "hook-receipts-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const git = fixtureGit(directory);
+  git("init");
+  const paths = [
+    ".claude/settings.json", ".codex/hooks.json", ".codex/hooks/pre_tool_policy.sh",
+    ".claude/scripts/task-completion-gate.sh", ".claude/scripts/teammate-idle-gate.sh",
+    "scripts/harness/command-policy.mjs", "scripts/harness/agent-hooks.test.mjs",
+    "scripts/dev/doctor.js", "scripts/lib/dev-shared.js", "scripts/lib/dev-shared.test.mjs",
+    "scripts/data/validation-policy.json",
+  ];
+  for (const file of paths) {
+    mkdirSync(join(directory, file, ".."), { recursive: true });
+    writeFileSync(join(directory, file), "initial\n");
+  }
+  git("add", ".");
+  git("commit", "-m", "test: seed hook receipt fixture");
+  const receipt = (checkId, file) => {
+    const inputs = resolveGitInputs({ base: "HEAD", head: "HEAD", changedPaths: [file] }, { cwd: directory });
+    const plan = selectValidation({ intent: "qa", ...inputs });
+    return buildReceiptInputs(plan, plan.checks.find((check) => check.id === checkId)).fingerprint;
+  };
+  for (const [checkId, file] of [["review-guardrails-test", paths[0]], ["validation-system-test", "scripts/dev/doctor.js"]]) {
+    for (const dependency of paths) {
+      const before = receipt(checkId, file);
+      writeFileSync(join(directory, dependency), `changed for ${checkId}\n`);
+      assert.notEqual(receipt(checkId, file), before, dependency);
+    }
+  }
 });
 
 test("git inputs fingerprint committed patches larger than Node's default buffer", (t) => {

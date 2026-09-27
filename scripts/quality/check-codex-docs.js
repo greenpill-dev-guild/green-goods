@@ -27,18 +27,17 @@ function parseJson(relPath) {
 }
 
 function getSection(markdown, heading) {
-  const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`^#{2,6}\\s+${escapedHeading}\\n([\\s\\S]*?)(?=^#{2,6}\\s+|\\Z)`, "m");
-  const match = markdown.match(regex);
-  return match?.[1] ?? "";
+  const lines = markdown.split(/\r?\n/);
+  const start = lines.findIndex((line) => /^#{2,6}\s+/.test(line) &&
+    line.replace(/^#{2,6}\s+/, "").trim() === heading);
+  if (start < 0) return "";
+  const end = lines.findIndex((line, index) => index > start && /^#{2,6}\s+/.test(line));
+  return lines.slice(start + 1, end < 0 ? undefined : end).join("\n");
 }
 
-function extractCodeLiterals(text) {
-  return Array.from(text.matchAll(/`([^`]+)`/g), (match) => match[1]);
-}
-
-function extractBulletCommands(markdown, heading) {
-  return extractCodeLiterals(getSection(markdown, heading)).filter((value) => value.includes(" "));
+export function extractDocumentedCommands(markdown, heading) {
+  return Array.from(getSection(markdown, heading).matchAll(/`([^`]+)`/g), (match) => match[1])
+    .filter((value) => /^(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*(?:bun|node|bash)\s/.test(value));
 }
 
 function stripEnvAssignments(command) {
@@ -221,13 +220,15 @@ function validateRootGuide() {
     "packages/admin/AGENTS.md",
     "packages/agent/AGENTS.md",
     "packages/indexer/AGENTS.md",
+    "packages/qa/AGENTS.md",
+    "docs/AGENTS.md",
   ]) {
-    if (!rootGuide.includes(`\`${relPath}\``)) {
+    if (!rootGuide.includes(`](${relPath})`)) {
       fail(`AGENTS.md: package guide list is missing ${relPath}`);
     }
   }
 
-  for (const command of extractBulletCommands(rootGuide, "Common Commands")) {
+  for (const command of extractDocumentedCommands(rootGuide, "Common Commands")) {
     validateCommand(command, rootScripts, ".", "AGENTS.md");
   }
 
@@ -247,22 +248,35 @@ function validateRootGuide() {
   }
 }
 
-function validateGuideDuplication() {
-  const duplicates = findNearDuplicatePolicyBlocks(read("AGENTS.md"), read("CLAUDE.md"));
+export function claudeCompatibilityFailures(rootGuide, claudeGuide) {
+  if (claudeGuide === undefined) return [];
+  const errors = [];
+  if (!/^@(?:\.\/)?AGENTS\.md\s*$/m.test(claudeGuide)) {
+    errors.push("CLAUDE.md: import @AGENTS.md explicitly; a prose link does not load shared instructions");
+  }
+  const duplicates = findNearDuplicatePolicyBlocks(rootGuide, claudeGuide);
   for (const duplicate of duplicates) {
-    fail(
+    errors.push(
       `AGENTS.md:${duplicate.leftLine} and CLAUDE.md:${duplicate.rightLine}: near-verbatim policy block ` +
         `(${Math.round(duplicate.similarity * 100)}% shared vocabulary); keep one canonical source`,
     );
   }
+  return errors;
+}
+
+function validateGuideDuplication() {
+  failures.push(...claudeCompatibilityFailures(read("AGENTS.md"),
+    exists("CLAUDE.md") ? read("CLAUDE.md") : undefined));
 }
 
 function validatePackageGuides() {
-  const expectedPackages = ["admin", "agent", "client", "contracts", "indexer", "shared"];
+  const surfaces = ["admin", "agent", "client", "contracts", "indexer", "shared", "qa"]
+    .map((name) => `packages/${name}`);
+  surfaces.push("docs");
 
-  for (const packageName of expectedPackages) {
-    const agentsRelPath = `packages/${packageName}/AGENTS.md`;
-    const packageJsonRelPath = `packages/${packageName}/package.json`;
+  for (const directory of surfaces) {
+    const agentsRelPath = `${directory}/AGENTS.md`;
+    const packageJsonRelPath = `${directory}/package.json`;
 
     if (!exists(agentsRelPath)) {
       fail(`Missing required package guide: ${agentsRelPath}`);
@@ -271,7 +285,7 @@ function validatePackageGuides() {
 
     const guide = read(agentsRelPath);
     const scripts = parseJson(packageJsonRelPath).scripts ?? {};
-    const commands = extractBulletCommands(guide, "Commands");
+    const commands = extractDocumentedCommands(guide, "Commands");
 
     if (commands.length === 0) {
       fail(`${agentsRelPath}: missing executable commands in "## Commands" section`);
@@ -279,7 +293,7 @@ function validatePackageGuides() {
     }
 
     for (const command of commands) {
-      validateCommand(command, scripts, `packages/${packageName}`, agentsRelPath);
+      validateCommand(command, scripts, directory, agentsRelPath);
     }
   }
 
@@ -300,7 +314,7 @@ function validatePackageGuides() {
 
 function validateCodexImplementationAgent() {
   // Committed agent definitions were retired with the lean-skills consolidation;
-  // the Implementation Quality Contract obligation now lives in AGENTS.md § Agent Workflow.
+  // the Implementation Quality Contract obligation now lives in AGENTS.md § Scope and workflow.
   const guide = read("AGENTS.md");
   for (const marker of [
     "Implementation Quality Contract",
@@ -327,11 +341,9 @@ function validateGuideReferences() {
     {
       relPath: "AGENTS.md",
       requiredTerms: [
-        "packages/admin/DESIGN.md",
-        "CanvasLayout",
-        "DashboardLayout",
-        "Sidebar",
-        "Header",
+        "packages/admin/AGENTS.md",
+        ".claude/skills/design/implementation.md",
+        ".claude/skills/design/system-alignment-review.md",
       ],
     },
     {

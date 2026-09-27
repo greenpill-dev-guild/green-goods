@@ -296,6 +296,45 @@ describe("modules/data/greengoods", () => {
   });
 
   describe("getActions", () => {
+    it("fetches an older action by identity before applying the recent-catalog limit", async () => {
+      const rows = Array.from({ length: 101 }, (_, index) => ({
+        id: `42161-${101 - index}`,
+        chainId: 42161,
+        title: `Action ${101 - index}`,
+        slug: "agro.planting_event",
+        instructions: null,
+        capitals: [],
+        media: [],
+        domain: "AGRO",
+        createdAt: String(101 - index),
+      }));
+      mockQuery.mockImplementationOnce(async (query, variables) => {
+        expect(query).toContain("Action(where: $where");
+        expect(variables.where).toEqual({ chainId: { _eq: 42161 } });
+        return { data: { Action: rows.slice(0, 100) } };
+      });
+      const recent = await getActions(reader, { chainId: 42161 });
+      expect(recent).toHaveLength(100);
+      expect(recent.some((action) => action.id === "42161-1")).toBe(false);
+
+      mockQuery.mockImplementationOnce(async (query, variables) => {
+        expect(query).toContain("Action(where: $where");
+        expect(variables.where).toEqual({
+          chainId: { _eq: 42161 },
+          id: { _eq: "42161-1" },
+        });
+        return {
+          data: { Action: rows.filter((row) => row.id === variables.where.id._eq).slice(0, 100) },
+        };
+      });
+      const result = await getActions(reader, { chainId: 42161, actionId: "42161-1" });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ id: "42161-1", title: "Action 1" });
+      expect(result[0].inputs).toEqual(
+        instructionTemplates["agro.planting_event"].uiConfig.details.inputs
+      );
+    });
+
     it("surfaces missing or unknown indexer domains instead of coercing them to solar", () => {
       expect(parseIndexerDomain("SOLAR")).toBe(Domain.SOLAR);
       expect(parseIndexerDomain("UNKNOWN")).toBeNull();

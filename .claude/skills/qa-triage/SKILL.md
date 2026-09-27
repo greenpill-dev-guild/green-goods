@@ -136,7 +136,7 @@ slice = one branch = one PR, posture per [`.claude/context/qa.md § Fix posture`
   - App `163591` for client PWA + editorial website
   - Admin `262122` for admin cockpit
   - Agent `262124` — not used by this skill
-  - Always call `switch-project` before any PostHog tool call (see [CLAUDE.md § PostHog](../../../CLAUDE.md))
+  - Always call `switch-project` before any PostHog tool call (see [PostHog surface routing](../../../docs/routines/posthog-questions.md))
 - **Google Drive MCP** — `search_files`, `read_file_content`, `get_file_metadata`, `get_file_permissions` against the team Drive containing the Gemini-generated notes and the **Green Goods v1.1 QA** Sheet (file id `1IiviDIqwFM7gcD3oV48LwHNW5poCE-HmSCLtsLt3xBo`).
 - **Vercel MCP** — used for deploy correlation in Phase 3a-bis, gated on PostHog matches. Optional but recommended; without it, items lose the "this bug appeared with commit X by author Y" context.
 - **Codex CLI** resolved by `.claude/scripts/resolve-codex-binary.sh` from a valid `CODEX` override, the installed ChatGPT.app/Codex.app bundle, or `PATH` — automatic background dispatch on real runs unless `--no-codex` or `--fixture` is set.

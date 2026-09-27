@@ -281,7 +281,11 @@ export function useWorkSubmissionFlowController({
       workMutation.clearLastSubmissionOutcome();
       await form.uploadWork();
       const outcome = workMutation.getLastSubmissionOutcome();
-      if (!outcome) return false;
+      if (!outcome) {
+        // uploadWork resolves without an outcome when validation stops it: no link to schedule.
+        setIsSchedulingDependentLink(false);
+        return false;
+      }
       if (linkIntent && outcome) {
         const payload: PendingLinkRecovery["payload"] = {
           clientOperationId: `work-link:${outcome.clientWorkId}:${linkIntent.commitmentId}:${linkIntent.requirementIndex}`,

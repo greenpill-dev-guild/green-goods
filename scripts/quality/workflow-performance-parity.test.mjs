@@ -225,7 +225,7 @@ test("local hooks keep commit light and reuse the focused push contract", () => 
   assert.doesNotMatch(preToolCommands, /bun run lint/);
   assert.doesNotMatch(postToolCommands, /@green-goods\/shared typecheck/);
   assert.doesNotMatch(completionGate, /bun run|ci-local\.js|typecheck/);
-  assert.match(completionGate, /coordinator owns validation/);
+  // agent-hooks.test.mjs exercises advisory completion through real event fixtures.
 });
 
 test("every direct Node and Bun setup uses the exact repository versions", () => {

@@ -40,7 +40,7 @@ Review the diff and report on it. That is the whole job.
 1. If the PR has the label `skip-review` or `wip`, log "Review skipped (labeled)" and stop — post nothing anywhere.
 2. If the PR touches more than 50 files, deliver only a one-line note through the normal posting mechanism ("Large PR (>50 files); focused line-level review skipped") and stop.
 
-## Invariants to check (from CLAUDE.md / AGENTS.md)
+## Invariants to check (from AGENTS.md and package guides)
 
 ### 1. Hook boundary
 
@@ -127,7 +127,7 @@ This format is the body of the Linear comment (or the run-log record when the Di
 ```
 ## Review summary
 
-**Invariants checked:** 9 from CLAUDE.md / AGENTS.md
+**Invariants checked:** 9 from AGENTS.md and package guides
 **Inline flags:** N (see comments above)
 **Verdict:** [APPROVE | REQUEST_CHANGES | COMMENT_ONLY]
 

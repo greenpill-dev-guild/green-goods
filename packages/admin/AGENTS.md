@@ -10,6 +10,8 @@ foundations.
 
 ## UI Contract
 
+Read `.claude/skills/design/implementation.md` before frontend work.
+
 - Read this guide, `packages/admin/DESIGN.md`, the exported admin primitives, and the relevant guard tests before changing routes, layouts, or page structure. The public Builder page is a navigation aid for readers, not an implementation authority.
 - The canonical shell is `CanvasLayout`.
 - The Wave 3 shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`, with every workspace overlay rendering as a centered `AdminDialog` (the `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted). The three global AppBar surfaces (Profile, Settings, Notifications) render in `AdminSideSheet` — right-docked within the canvas chrome bounds on desktop, bottom sheet on mobile.
@@ -89,13 +91,13 @@ foundations.
 - The default `bun run test` discovers the full admin Vitest suite, including `src/__tests__/views/**`.
   Use a targeted test for QA Speed Mode; add `bun run build` when route wiring, view imports, or
   production build output could break.
-- In QA Speed Mode, run the targeted view/component/model test when one covers the fix and capture authenticated rendered proof for visible UI. Use `bun run build` when route wiring, view imports, or build output could break; do not run Storybook checks unless shared primitives/stories/tokens moved.
+- In QA Speed Mode, run the targeted view/component/model test when one covers the fix and capture labeled rendered proof for visible UI. Use `bun run build` when route wiring, view imports, or build output could break; do not run Storybook checks unless shared primitives/stories/tokens moved.
 - Permission and role changes often originate in shared code; use the root quick verification
   loop when shared contracts or shared hooks move.
 - Visible changes follow root [`AGENTS.md` § Browser Evidence](../../AGENTS.md#browser-evidence):
   label the engine and session behind the proof, and if the authenticated Brave path is
   unavailable, record that proof as pending and continue with labeled evidence.
-- **Tailwind v4 gotcha**: admin's content scan does not reach `packages/shared/src/`, so a shared component that uses utility classes in its JSX may render off-center, missing padding, or wrong width in admin even when it looks fine in Storybook. Before debugging the shared component, check root `AGENTS.md` → "Known Gotchas" — the fix is a fork into `packages/admin/src/components/Shell/` (the Canvas shell pattern) or inline styles inside the shared component, not utility classes in shared JSX.
+- **Tailwind v4 gotcha**: admin's content scan does not reach `packages/shared/src/`, so a shared component that uses utility classes in its JSX may render off-center, missing padding, or wrong width in admin even when it looks fine in Storybook. Before debugging the shared component, check `packages/shared/AGENTS.md` → "Package Notes" — the fix is a fork into `packages/admin/src/components/Shell/` (the Canvas shell pattern) or inline styles inside the shared component, not utility classes in shared JSX.
 
 ## Validation
 

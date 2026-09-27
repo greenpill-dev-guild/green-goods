@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
+import * as devShared from "./dev-shared.js";
 
 import {
   REPOSITORY_LOCAL_GIT_VARIABLES,
@@ -26,6 +27,48 @@ import {
 } from "./dev-shared.js";
 
 const GIBIBYTE = 1024 ** 3;
+
+test("personal skill readiness reports files and discovery symlinks without claiming loading", (t) => {
+  const home = mkdtempSync(path.join(tmpdir(), "personal-skills-"));
+  t.after(() => rmSync(home, { recursive: true, force: true }));
+  const claudeConfigDir = path.join(home, "custom-claude");
+  mkdirSync(path.join(claudeConfigDir, "skills"), { recursive: true });
+  for (const skill of ["pragmatic-programming", "domain-driven-design"]) {
+    const directory = path.join(home, ".agents/skills", skill);
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(path.join(directory, "SKILL.md"), `# ${skill}\n`);
+    symlinkSync(directory, path.join(claudeConfigDir, "skills", skill));
+  }
+  const results = devShared.inspectPersonalSkills({ home, claudeConfigDir });
+  assert.equal(results.length, 4);
+  for (const row of results) {
+    assert.equal(row.level, "pass");
+    assert.match(row.title, /skill file available/);
+    assert.equal(row.resolvedPath, realpathSync(row.path));
+    assert.doesNotMatch(row.title, /loaded|compliant|followed/i);
+  }
+});
+
+test("missing, broken, unreadable, and non-file personal skills only warn", (t) => {
+  const home = mkdtempSync(path.join(tmpdir(), "missing-skills-"));
+  t.after(() => rmSync(home, { recursive: true, force: true }));
+  const claudeConfigDir = path.join(home, ".claude");
+  mkdirSync(path.join(claudeConfigDir, "skills"), { recursive: true });
+  symlinkSync(path.join(home, "absent"), path.join(claudeConfigDir, "skills/pragmatic-programming"));
+  const notFile = path.join(home, ".agents/skills/domain-driven-design/SKILL.md");
+  mkdirSync(notFile, { recursive: true });
+  const results = devShared.inspectPersonalSkills({ home, claudeConfigDir });
+  assert.equal(results.length, 4);
+  for (const row of results) {
+    assert.equal(row.level, "warn");
+    assert.match(row.fix, /repository guidance/i);
+  }
+  const denied = devShared.inspectPersonalSkills({
+    home, claudeConfigDir,
+    access: () => { throw Object.assign(new Error("fixture permission denied"), { code: "EACCES" }); },
+  });
+  assert.ok(denied.every((row) => row.level === "warn" && row.detail.includes("EACCES")));
+});
 
 test("Docker repairs a missing local socket without overriding an intentional endpoint", () => {
   const home = "/home/dev";

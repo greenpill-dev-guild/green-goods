@@ -188,12 +188,14 @@ async function parseInstructionMetadata(
 }
 
 /** Fetches action definitions from the indexer and enriches media + UI config. */
-export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Promise<Action[]> {
+export async function getActions(
+  reader: GraphQLReader = greenGoodsIndexer,
+  { chainId = DEFAULT_CHAIN_ID, actionId }: { chainId?: number; actionId?: string } = {}
+): Promise<Action[]> {
   try {
-    const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
-      query Actions($chainId: Int!) {
-        Action(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 100) {
+      query Actions($where: Action_bool_exp!) {
+        Action(where: $where, order_by: {createdAt: desc}, limit: 100) {
           id
           chainId
           startTime
@@ -209,7 +211,11 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
       }
     `);
 
-    const { data, error } = await reader.query(QUERY, { chainId }, "getActions");
+    const { data, error } = await reader.query(
+      QUERY,
+      { where: { chainId: { _eq: chainId }, ...(actionId ? { id: { _eq: actionId } } : {}) } },
+      "getActions"
+    );
 
     if (error) throw error;
 

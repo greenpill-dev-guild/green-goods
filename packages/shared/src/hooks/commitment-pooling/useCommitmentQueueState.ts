@@ -23,6 +23,7 @@ import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
+import type { CommitmentJobKind } from "../../modules/commitment-pooling/job-types";
 import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/jobs";
 import type { Job } from "../../types/job-queue";
 import type { Address } from "../../types/domain";
@@ -45,6 +46,21 @@ export interface PendingCommitmentCreation {
    * broadcast keeps its record so a retry can recover the commitment instead
    * of filing a second one.
    */
+  discardable: boolean;
+  createdAt: number;
+}
+
+/**
+ * An act on an existing commitment that is still on this phone: taken, not
+ * sent. The screen names it and offers Send Now and Discard, because a wallet
+ * reader has no background flush to send it for them.
+ */
+export interface PendingCommitmentAct {
+  jobId: string;
+  kind: CommitmentJobKind;
+  /** Why the last flush left it waiting, when the queue recorded a reason. */
+  waitingReason: string | null;
+  /** Whether throwing it away is safe (its transaction was never sent). */
   discardable: boolean;
   createdAt: number;
 }
@@ -79,6 +95,8 @@ export interface CommitmentQueueState {
    * nobody can reach drives the alert forever and keeps its media with it.
    */
   failedJobs: ReadonlyMap<string, FailedCommitmentJob>;
+  /** The act still waiting on each commitment, keyed by decimal id. */
+  pendingActs: ReadonlyMap<string, PendingCommitmentAct>;
   /** True while a new commitment is still waiting to be placed. */
   hasPendingCreate: boolean;
   /** Every creation still on this phone, failed ones included, newest first. */
@@ -163,6 +181,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     const pendingCommitmentIds = new Set<string>();
     const failedCommitmentIds = new Set<string>();
     const failedJobs = new Map<string, FailedCommitmentJob>();
+    const pendingActs = new Map<string, PendingCommitmentAct>();
     const pendingCreates: PendingCommitmentCreation[] = [];
     let failedCount = 0;
     let hasPendingCreate = false;
@@ -205,8 +224,17 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
         }
         continue;
       }
-      if (commitmentId) pendingCommitmentIds.add(commitmentId);
-      else if (job.kind === "commitment") hasPendingCreate = true;
+      if (commitmentId) {
+        pendingCommitmentIds.add(commitmentId);
+        pendingActs.set(commitmentId, {
+          jobId: job.id,
+          kind: job.kind as CommitmentJobKind,
+          waitingReason:
+            typeof job.meta?.waitingReason === "string" ? job.meta.waitingReason : null,
+          discardable: isDiscardableJob(job),
+          createdAt: job.createdAt,
+        });
+      } else if (job.kind === "commitment") hasPendingCreate = true;
     }
     pendingCreates.sort((left, right) => right.createdAt - left.createdAt);
 
@@ -215,6 +243,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       failedCount,
       failedCommitmentIds,
       failedJobs,
+      pendingActs,
       hasPendingCreate,
       pendingCreates,
       isUnavailable: Boolean(viewer) && query.isError,

@@ -5,8 +5,7 @@ import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImageP
 import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useWorkMetadata } from "@green-goods/shared/hooks/work/useWorkMetadata";
 import type { WorkInput, WorkMetadataV1 } from "@green-goods/shared/types/domain";
-import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
-import { buildActionId } from "@green-goods/shared/utils/action/parsers";
+import { useAction } from "@green-goods/shared/hooks/action/useAction";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
@@ -164,8 +163,7 @@ export function FieldNoteDialog({
   const titleId = "public-garden-detail-note-title";
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const { metadata, status: metadataStatus, retryFetch } = useWorkMetadata(note.metadata);
-  const { data: actions = [] } = useActions(chainId);
-  const action = actions.find((item) => item.id === buildActionId(chainId, note.actionUID));
+  const { data: action } = useAction(note.actionUID, chainId);
   const inputs = action ? localizeAction(action, intl.locale).inputs : [];
   // The viewer ships English defaults for every string it renders or announces.
   // The public site is translated, so it gets the whole set, not just the two

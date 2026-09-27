@@ -44,6 +44,7 @@ export function selectCommitmentAct(input: {
   seat: CommitmentSeat | null;
   hasPendingJob?: boolean;
   isCreator?: boolean;
+  isMember?: boolean;
 }): CommitmentAct | null {
   const kind = selectCommitmentActKind(input);
   return commitmentActForKind(kind);

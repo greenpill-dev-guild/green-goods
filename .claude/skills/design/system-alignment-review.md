@@ -57,7 +57,7 @@ If prose disagrees with a higher-precedence source, the prose is the drift, not 
 7. **Client public browser surface** — `packages/client/DESIGN.browser.md`, landing/browser views, `SiteHeader`.
 8. **Docs UI** — `docs/DESIGN.md`, `docs/src/**`, Docusaurus identity, role accents.
 9. **Agentic design-development guidance** — `.claude/skills/design/**`, prompt contracts, defect grammar.
-10. **Claude and Codex repo instructions** — `CLAUDE.md`, `AGENTS.md`, `packages/*/AGENTS.md` — the Design-System / Design-Language sections that agents load by default.
+10. **Claude and Codex repo instructions** — `AGENTS.md`, local guides under `packages/` and `docs/`, and the optional `CLAUDE.md` compatibility import — verify routing to the canonical design sources.
 
 **Out of scope — do not produce findings here:**
 
@@ -160,4 +160,4 @@ If nothing in Section 1 meets all constraints, say so. "Design system is aligned
 - `scripts/design/check-tokens.sh`, `scripts/design/check-vocab.sh`, `scripts/design/md-generate.mjs` — validators and generator
 - `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**` — Storybook surface for the design system
 - `docs/docs/builders/packages/admin.mdx`, `docs/docs/builders/testing/storybook.mdx` — live UI and Storybook contracts
-- `CLAUDE.md`, `AGENTS.md`, `packages/*/AGENTS.md` — Design-System / Design-Language sections agents load by default
+- `AGENTS.md`, local guides, and the optional `CLAUDE.md` compatibility import — canonical design-source routing

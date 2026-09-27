@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createGardenJoinRequestCipher } from "../services/garden-join-requests";
 import { MemoryGardenJoinRequestStore } from "../services/garden-join-request-memory-store";
 
@@ -16,6 +16,17 @@ function createStore() {
 }
 
 describe("garden join request store", () => {
+  // The fixtures expire on 2026-09-26, and `getMine` reads the real clock when
+  // it is not handed a time, so the suite pins the clock to the day after it
+  // was written. Only Date is faked; crypto and promises run for real.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-08-28T12:00:00.000Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("keeps personal fields encrypted at rest and returns one active request", async () => {
     const store = createStore();
     const first = await store.create({
