@@ -35,11 +35,11 @@ Each track carries the same fields. The routine reads them literally, so keep th
 | 2 | Impact methodology and verifiable reporting | quarter | evidencing | Linear project *Impact Framework v0.1 Refresh* · RESR-46 / RESR-65 | Ground the base attestation schema in the live schemas and define the public metric set before the 2026-09-30 House of Alignment report |
 | 3 | Yield strategies for garden endowments | quarter | evidencing | RESR-9 / RESR-15 / RESR-8 | A strategy and preset recommendation with live APY evidence, plus the funding-rail map it sits in |
 | 4 | Capital access: off-ramps and on-ramps by geography | quarter | blocked (external) | Linear project *Capital Off-Ramp Corridors* · RESR-70 | Five provider facts that only direct contact can settle; the on-ramp side is unframed |
-| 5 | Accessible impact reporting via WhatsApp and SMS | quarter | framing | RESR-75 · Linear project *Agent Messaging Channels (WhatsApp + SMS)* | Write the entry criteria the strategy already requires (RESR-75, unowned) |
+| 5 | Accessible impact reporting via WhatsApp and SMS | quarter | graduated | RESR-75 · Linear project *Agent Messaging Channels (WhatsApp + SMS)* | Prototype entry criteria accepted; evaluate pilot reporting burden, provider/processor terms and live account/operational compatibility |
 | 6 | Revenue token models (Revnets) for a goods and services layer | next | framing | RESR-76 (RESR-15 rail row; AgroforestDAO case) | Frame what a Revnet adds beyond pooling, vaults, and cash-out, using AgroforestDAO's live setup as the case (RESR-76, unowned) |
 | 7 | Community infrastructure with AI for data sovereignty | 12mo | horizon (Phase 0) | Linear initiative *Community Evidence Mesh* | Phase 0 outputs: burden baseline, metric registry v0, Evidence Envelope v0, the ADR |
 
-**Why this order.** Commitment pooling is the core loop and the current cycle theme, so it leads. Impact methodology is second because it has the hardest deadline (the House of Alignment quarterly report on 2026-09-30 needs RESR-65), it is the Q3 strategy's third focus, and it feeds tracks 3, 5, and 7. Yield is third because the Sustainability & Monetization initiative is at risk and the research already has an owner and a cycle slot. Capital access is fourth: the desk research is finished and the next step is external, so weekly synthesis can only track and watch for regulatory movement. Accessible reporting is fifth because the strategy gates the build on entry criteria nobody had written until RESR-75, which is exactly research work. Revnets is sixth because it is the newest and least framed. The evidence mesh is the long horizon by the steward's own framing; it is reviewed monthly and connected to the near-term tracks rather than synthesized weekly.
+**Why this order.** Commitment pooling is the core loop and the current cycle theme, so it leads. Impact methodology is second because it has the hardest deadline (the House of Alignment quarterly report on 2026-09-30 needs RESR-65), it is the Q3 strategy's third focus, and it feeds tracks 3, 5, and 7. Yield is third because the Sustainability & Monetization initiative is at risk and the research already has an owner and a cycle slot. Capital access is fourth: the desk research is finished and the next step is external, so weekly synthesis can only track and watch for regulatory movement. Accessible reporting is fifth: RESR-75 cleared the prototype entry gate, while the remaining research concerns pilot reporting burden, provider/processor terms and live compatibility. Revnets is sixth because it is the newest and least framed. The evidence mesh is the long horizon by the steward's own framing; it is reviewed monthly and connected to the near-term tracks rather than synthesized weekly.
 
 ## 1. Commitment pooling
 
@@ -179,8 +179,8 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 ## 5. Accessible impact reporting via WhatsApp and SMS
 
-**Horizon:** quarter · **Stage:** framing
-**Note:** the horizon covers the research gate; the build follows it.
+**Horizon:** quarter · **Stage:** graduated
+**Note:** the entry-criteria research graduated to Product and the active Plan Hub. Pilot research remains open; graduation does not establish implementation or live proof.
 
 **Question.** What must be true before gardeners can report impact from WhatsApp or SMS with no app install and no sign-up, and what is the smallest pilot that proves lower total reporting burden rather than burden moved onto operators?
 
@@ -189,24 +189,25 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Anchors.**
 - RESR-75 (define the entry criteria for reporting impact over WhatsApp and SMS; **Done, accepted 2026-09-21**, filed 2026-09-02). The accepted criteria live in its entry-criteria note. The project below is Product-only, so the research issue stays unprojected and relates to PRD-834.
 - Linear project [Agent Messaging Channels (WhatsApp + SMS)](https://linear.app/greenpill-dev-guild/project/agent-messaging-channels-whatsapp-sms-71cda634fcf7) (Product, Backlog, target 2026-12-31): "research to entry criteria, then build behind the gate, then a pilot channel". PRD-290 (the epic) is Done as a spec. PRD-834 (third-party bot integration path for partner-run gardens; Backlog).
-- `.plans/active/agent-messaging-channels/` (the gardener signs each publication with their own passkey or EOA; no custodial wallets and no delegation. The ERC-4337 session keys, tiered rate limits and dual revoke path described here previously were the superseded April design).
+- [Current Agent Messaging Plan Hub](../../.plans/active/agent-messaging-channels/technical-brief.md): existing EOAs sign exact publications; existing Kernel users may grant separate limited reporting/review permissions after compatibility proof. Opus 5.5 builds and Astra reviews; local handoffs are reconciled and the tracker/start gate remains before dispatch.
 - The evidence mesh roadmap's Phase 1 evidence list (minutes per accepted submission, completion and abandonment, correction rate, operator minutes, data cost, language and device coverage, consent comprehension).
 - PostHog Agent project (`262124`) for what the Telegram agent already sees; read through growth-pulse or bug-intake, never re-queried here.
 
 **Status surface.** Project status update on *Agent Messaging Channels (WhatsApp + SMS)*.
 
 **Settled.**
-- The Telegram agent exists and is the foundation; WhatsApp and SMS are adapters on the same handler set (agent-messaging-channels brief).
-- The gardener signs each publication with their own passkey or EOA. The prototype uses a private draft, a single-use browser link confirmed back in the chat, and a per-request signed account proof; it creates no custodial wallet, session key or delegated signer. Reporting delegation is deferred behind a separate contract and security gate. (The session keys, tiered rate limits and keyword revocation previously recorded here were the superseded April design.)
-- Capture creates a private candidate, never an immediate public record, and every channel must produce the same candidate-evidence contract (evidence mesh thesis, locked).
+- The prototype entry criteria were accepted on 2026-09-21. The current user-approved architecture is API-harness-first and Meta DM-first, with reporting/correction/review in chat and platform-neutral browser ceremonies when authentication or signing is needed.
+- The prototype uses existing EOA/Kernel accounts and pre-enrolled TAS or Aiyeloja Family Garden members. EOA publications require exact signing; Kernel reporting and review delegation are separate, limited and subject to proof. Universal passkey onboarding/Profile wallet association remain future work.
+- OpenAI processes content and Jev makes bounded typed decisions. Documents, photos and spreadsheets are included, with isolated automatic Office conversion. Provider terms and live quality still need evidence.
+- Capture is private and consent-gated; public evidence requires separate confirmation. WEFA operates WhatsApp; Afolabi owns support at afo@wefa.world. The accepted grant/retention limits and current implementation contract live in the Plan Hub.
 
 **Open.**
-1. ~~The entry criteria themselves.~~ **Answered 2026-09-21** by RESR-75's acceptance: no-sign-up is read as zero account steps to a private draft then one browser passkey step before a gardener-signed public record. Still owed before the pilot, per that note: the support-load baseline, the Oct 1 pricing recheck, the AI-provider terms for Brasil, cohort size, the metric set against Evidence Mesh Phase 1, and the operating entity for the WhatsApp Business Account.
-2. Provider and policy constraints for the WhatsApp Business platform and SMS in the pilot geographies: template approval, opt-in rules, per-country pricing, and number provisioning. Next step: a dated source table.
-3. The minimal "report impact" payload (photo, text, location) and how it maps to the base attestation schema in track 2. Next step: one worked example per pilot domain.
-4. Which pilot garden and which metric set. Next step: the evidence mesh 90-day go or no-go.
+1. Pilot cohort, baseline and metric set: reporting completion/correction, total gardener and operator time, language/device coverage, support load and consent comprehension. A successful prototype is not pilot-effectiveness evidence.
+2. Pilot provider provisioning, templates, geography/pricing and applicable processing/retention terms. SMS is excluded from the current prototype and must not re-enter through this research track implicitly.
+3. Live content-processing quality/coverage, latency and cost; exact Kernel permission/custody compatibility and gas limits; browser/account handoff and deployed configuration proof. Track these evidence gates without treating a selected provider as a passed evaluation.
+4. Operational readiness before real intake: support rehearsal, provider settings and the remaining audit/backup retention schedule. The support owner and local draft-data retention decisions are settled; their implementation is not.
 
-**Implementable when.** For the prototype: already unblocked — the criteria were accepted on 2026-09-21 and the slice is scope-locked in the active hub. For the TAS pilot: one pilot garden with its metric set is chosen and the O5 items above are agreed.
+**Implementable when.** The prototype product direction is accepted. Opus 5.5 starts the synthetic API harness after the repository tracker/start gate; Astra reviews completed checkpoints. Live intake and each demonstrated capability require the Plan Hub's separate operating and compatibility gates. Pilot acceptance still requires the metric/cohort and evidence work above. This document update does not change Linear issue or project state.
 
 **Watch keywords.** WhatsApp, SMS, Twilio, Meta Business, messaging, agent, session key, Telegram, low-bandwidth, USSD, voice note, opt-in, template message, entry criteria, feature phone.
 

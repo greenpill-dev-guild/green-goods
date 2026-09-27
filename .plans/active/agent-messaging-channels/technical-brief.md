@@ -9,6 +9,8 @@
 
 **Final document review:** [26 September review and closure record](reports/2026-09-26-final-brief-review.md), with [completed validation results](reports/2026-09-26-final-brief-validation.md). The current specification is ready to guide the API-harness slice. Live processing, account permissions and deployment remain gated by section 12.2.
 
+**Accepted review decisions:** [Support, ownership and reliability updates](reports/2026-09-26-accepted-review-decisions.md). Afolabi owns prototype support; Opus 5.5 builds and Astra reviews. The current handoffs reflect these decisions; tracker reconciliation remains before implementation.
+
 ## 1. Product contract and delivery decision
 
 Green Goods meets gardeners in WhatsApp. A gardener describes their work, adds evidence, corrects the agent and confirms a report in chat. A steward reviews that work and records their decision in chat. A public browser page provides account linking and the final wallet or passkey ceremony when required. Installing the Green Goods PWA is never a prerequisite.
@@ -35,7 +37,7 @@ Group transport, financial commitments and legacy Telegram account migration are
 
 Section 12 is the current implementation sequence. Dated dispatch lists in the companion files are historical references and must not be executed as a second plan.
 
-This brief supersedes older target assumptions about PWA-centered reporting, the operating entity being undecided, and model interpretation being outside the desired architecture. It does not mark the older implementation tasks or processor gates complete. The old tracker/lane assignments still require reconciliation before dispatch; that bookkeeping does not change the API-harness completion boundary.
+This brief supersedes older target assumptions about PWA-centered reporting, the operating entity being undecided, and model interpretation being outside the desired architecture. It does not mark the older implementation tasks or processor gates complete. Local lane handoffs are reconciled; existing tracker scope still requires reconciliation before dispatch. That bookkeeping does not change the API-harness completion boundary.
 
 ## 2. Account authorization: EOA signing and Kernel permissions
 
@@ -426,12 +428,24 @@ erDiagram
     string status
     string locale
   }
+  CHANNEL_SUBJECT ||--o{ CHANNEL_BINDING : identifies
+  CHANNEL_SUBJECT ||--|{ SUBJECT_LOOKUP : located_by
+  CHANNEL_SUBJECT {
+    uuid id PK
+    string provider_realm
+    string subject_ciphertext
+    string encryption_key_version
+  }
+  SUBJECT_LOOKUP {
+    uuid channel_subject_id FK
+    string provider_realm
+    string hmac_key_version
+    string subject_hmac
+  }
   CHANNEL_BINDING {
     uuid id PK
     uuid participant_id FK
-    string provider_realm
-    string subject_hmac
-    string subject_ciphertext
+    uuid channel_subject_id FK
     string status
     datetime verified_at
   }
@@ -496,6 +510,10 @@ erDiagram
 
 `SOURCE_ENTRY.channel_binding_id` may be null during initial unlinked intake; preserve a protected provider subject reference until pairing. Create provisional participants only after the first-contact notice/consent policy is satisfied. Store provider realms so identical IDs from different business senders cannot collide. Conversation identity is unique by platform/provider realm plus external chat ID (and thread ID where the adapter supports threads). The sender belongs to SourceEntry/ChannelBinding, not the conversation key: a future group must share one garden-binding history across all its senders. Chat membership never supplies garden authority. Draft author account is fixed when linked publication authority is confirmed; changing it then requires a new confirmed revision and eligibility proof. An unlinked gardener can confirm the report content first, but publication waits for account pairing and explicit consent tying that unchanged content to the chosen account and garden. The pairing reply may capture both only when its prompt clearly names both decisions. `AUTH_CHALLENGE.resource_digest` binds a link to its purpose, draft/review revision, garden and expected account where known.
 
+**Stable identity and rotation:** `CHANNEL_SUBJECT.id` is the canonical internal sender identity within a provider realm. `SUBJECT_LOOKUP` stores versioned HMAC aliases with `UNIQUE(provider_realm, hmac_key_version, subject_hmac)` and a foreign key to that same subject. Keep the provider identifier encrypted and normalize it consistently before hashing. On intake, look up all accepted key versions inside the serialized lookup/create transaction; if any alias matches, reuse the subject and add the current alias. A uniqueness conflict retries lookup rather than creating another participant. Relinking closes the prior binding and attaches the new subject under the existing participant/epoch rules; it does not merge participants automatically.
+
+Rotation first dual-reads retained versions, then backfills current aliases from protected identifiers, verifies complete coverage and only then retires old lookup keys. A lookup/decryption failure blocks new identity creation; it must not create a second identity. Apply the same stable-ID and alias-migration rule to conversation lookup. Prove a new message and concurrent insert during/after rotation retain the same subject, binding, participant, consent and draft. Provisional subject/lookup rows follow the pre-consent expiry and are deleted when no retained authorized record needs them.
+
 ### 6.2 Drafts, evidence and execution
 
 ```mermaid
@@ -506,19 +524,19 @@ erDiagram
   WORK_DRAFT ||--|{ DRAFT_REVISION : versions
   DRAFT_REVISION }o--o{ SOURCE_ENTRY : derives_from
   WORK_DRAFT ||--o{ MEDIA_ASSET : collects
-  WORK_DRAFT ||--o| WORK_RECORD : publishes
+  WORK_DRAFT o|--o| WORK_RECORD : publishes
   WORK_RECORD ||--o{ REVIEW_INTENT : reviewed_by
-  ACCOUNT_BINDING ||--o{ WORK_DRAFT : authorizes
+  ACCOUNT_BINDING o|--o{ WORK_DRAFT : authorizes
   ACCOUNT_BINDING ||--o{ REVIEW_INTENT : signs
   ACCOUNT_BINDING ||--o{ APP_ACCESS_GRANT : authorizes
   PARTICIPANT ||--o{ APP_ACCESS_GRANT : holds
   ACCOUNT_BINDING ||--o{ EXECUTION_GRANT : delegates
   EXECUTION_GRANT o|--o{ EXECUTION_ATTEMPT : authorizes
   GARDEN_REF ||--o{ EXECUTION_GRANT : scopes
-  WORK_DRAFT ||--o{ EXECUTION_OPERATION : publication_attempts
-  REVIEW_INTENT ||--o{ EXECUTION_OPERATION : decision_attempts
+  WORK_DRAFT o|--o{ EXECUTION_OPERATION : publication_attempts
+  REVIEW_INTENT o|--o{ EXECUTION_OPERATION : decision_attempts
   EXECUTION_OPERATION ||--o{ EXECUTION_ATTEMPT : tracks
-  EXECUTION_OPERATION ||--o{ DELIVERY_OUTBOX : reports
+  EXECUTION_OPERATION o|--o{ DELIVERY_OUTBOX : reports
   WORK_DRAFT {
     uuid id PK
     uuid participant_id FK
@@ -674,13 +692,13 @@ For the current prototype, AccountBinding records the participant’s proven exi
 
 - Action UID is nullable during story intake; publication requires a valid, eligible Action confirmed in the summary. Do not let a database constraint force gardeners to select an Action before describing work.
 - Each execution attempt records its authorization mode and, for delegation, the specific active grant/policy digest and source binding. Reserve nonce and budget atomically; encrypted signed UserOperations are accessible only to the executor/reconciler and never to a model or browser. Reporting and review grants never substitute for each other.
-- One active channel binding per provider realm and subject HMAC; one active participant association per chain/account; the prototype binds one selected existing reporting account per participant/chain; it does not implement Profile account aggregation. Relinking is a controlled transfer, not a second claim on the same identity.
+- One active channel binding per stable `channel_subject_id`; HMAC aliases are lookup keys, not identity. One active participant association per chain/account; the prototype binds one selected existing reporting account per participant/chain; it does not implement Profile account aggregation. Relinking is a controlled transfer, not a second claim on the same identity.
 - Challenge source binding may be null only for an unlinked participant; then require the realm and protected source-subject digest. Bind signed purpose, resource reference/revision, browser nonce, expected account when known and identity epoch. Never reconstruct them from browser-supplied values.
 - One active garden binding per group conversation. Store its history and authorizing account.
 - `UNIQUE(draft_id, revision)`; compare-and-swap revision updates. Only one outstanding confirmation for a particular workflow step.
 - One logical work-publication operation per draft and author account. Attempts and replacement transactions belong to that operation. A new revision can replace an unbroadcast intent; it cannot create a second publication while an earlier broadcast is unresolved.
 - Retain each execution attempt and its user-operation hash, transaction hash and reconciliation outcome. A wallet rejection before broadcast is distinct from an unknown broadcast outcome; neither is a reason to discard earlier attempt records.
-- A review operation refers to exactly one review intent; a work operation refers to exactly one draft. Enforce this exclusive choice with a database check.
+- A review operation refers to exactly one review intent; a work operation refers to exactly one draft. Enforce this exclusive choice with a database check. The other optional relationships represent existing cases: an unlinked private draft has no author account yet, a verified chain WorkRecord may have no local draft, and an ordinary chat reply has no execution operation. Publication still requires a proven author account.
 - Media is private until explicit publication consent. A sanitized asset digest and immutable revision fix exactly which evidence a signature authorizes.
 - A confirmed draft's content digest identifies the report and sanitized evidence. The final payload digest additionally fixes uploaded CIDs, chain, contract, schema and encoded call. Recheck that the final payload implements the confirmed revision before requesting its signature.
 - A verified chain receipt determines `transaction_hash` and `attestation_uid` separately. A client callback, synthetic offline hash or successful HTTP response is not proof of publication.
@@ -702,7 +720,7 @@ Two accepted browser route families are specified in section 7.1; their implemen
 | `GET /messaging/media/:id` | Read sanitized private preview | Active resource session and asset-to-draft ownership; no-store |
 | `POST /messaging/operations/:id/prepare` | Start/resume consented upload and freeze the envelope | Current confirmed revision, publication consent and eligibility |
 | `POST /messaging/operations/:id/attempts` | Reserve exactly one wallet attempt before sending | Active session, matching digest/epoch and compare-and-swap attempt version |
-| `POST /messaging/operations/:id/outcome` | Report broadcast hash for reconciliation | Resource-scoped session; server independently checks chain receipt |
+| `POST /messaging/operations/:id/outcome` | Persist a typed attempt outcome: broadcast reference, rejected-before-send, preparation failure, or uncertain send | Resource-scoped session, attempt version/digest and idempotency; server verifies outcome before releasing reservations or announcing publication |
 | `GET /messaging/operations/:id` | Resume pending signing or outcome | Same resource scope; minimal private data |
 | `POST /messaging/relink` | Replace channel binding | Account proof plus new-channel possession; advance identity epoch |
 
@@ -900,7 +918,7 @@ All mutation commands carry a schema version, request ID, expected resource/atte
 
 Execution-grant endpoints require fresh owner proof for enabling, renewing, widening or revoking onchain permission; a verified bound-channel pause command only reduces our executor’s access. These endpoints never accept an arbitrary policy or signer chosen by the model. The server issues a policy digest and public signer reference; the browser validates account, module, scope, expiry and limits before owner approval. A successful pause response describes an API pause, not verified onchain revocation. Kernel execution jobs use service authentication and a grant reference, not an expired browser cookie.
 
-Persist the minimum send checkpoint in a dedicated ceremony record: operation ID, attempt version and public broadcast references. Keep private report text, prepared envelope, media and signing proofs in memory and reload them through the session; do not copy them into the ordinary offline composer database. Store cleanup must remove temporary previews on exit/account change. Existing JobQueue persistence of full work drafts is therefore not reusable unchanged. Exclude private draft/media APIs from service-worker caches; clear Query caches on account switch, logout and revocation. Never place report text, wallet proofs or session tokens in URLs or analytics. Honor `Cache-Control: no-store` for private responses and use a no-referrer policy on ceremony pages. A deployment refresh must preserve the URL and allow API-backed resume; offline mode can explain the interruption but cannot verify fresh authority or announce chain success.
+Persist the minimum send checkpoint in a dedicated ceremony record: operation ID, attempt version and public broadcast references. Persist a pending typed outcome with its attempt version, idempotency key, reason code and any broadcast reference in that same record; retry delivery after reload and scoped reauthentication until the API acknowledges it. Do not persist an authentication signature or expired session credential as a retry capability. Keep private report text, prepared envelope, media and signing proofs in memory and reload them through the session; do not copy them into the ordinary offline composer database. Store cleanup must remove temporary previews on exit/account change. Existing JobQueue persistence of full work drafts is therefore not reusable unchanged. Exclude private draft/media APIs from service-worker caches; clear Query caches on account switch, logout and revocation. Never place report text, wallet proofs or session tokens in URLs or analytics. Honor `Cache-Control: no-store` for private responses and use a no-referrer policy on ceremony pages. A deployment refresh must preserve the URL and allow API-backed resume; offline mode can explain the interruption but cannot verify fresh authority or announce chain success.
 
 Client acceptance covers both route families, refresh, and every reachable purpose/state; no install redirect; browser/installed-context routing; keyboard focus, mobile layout and screen-reader status; desktop extension and mobile handoff; declined proof/signature; wrong account/chain; session expiry and revocation; forwarded links; chat pairing; stale revision; duplicate tabs; reload after broadcast; delayed receipt; hidden private caches; and en/es/pt copy. No implemented frontend or wallet test is claimed by these wireframes.
 
@@ -1240,6 +1258,12 @@ Cleanup jobs and provider-file deletion requests are durable and idempotent. Res
 
 Media processing must validate MIME from bytes, cap size/count/duration, fetch only authenticated provider media endpoints, reject unsafe redirects, normalize images and strip location metadata. Keep provider URLs and raw identifiers out of public metadata. Disable raw-message logging and model prompt capture in analytics. Give voice transcription a separate consent and retention path. The demo can proceed without voice support.
 
+### 10.1 Prototype support and intake readiness
+
+**Accountable support owner: Afolabi — [afo@wefa.world](mailto:afo@wefa.world).** WEFA owns WhatsApp operations; Green Goods remains the product. A deterministic `help` command and the ceremony Help sheet show this contact. Include it in the tester invitation and first-contact notice so a broken agent does not prevent contact. Afolabi receives deletion requests, identity/relinking problems and delivery incidents, and coordinates technical incidents with the Opus 5.5 builder and Astra reviewer. Garden-specific work and membership questions go to the selected garden's authorized steward through Afolabi. Model assignments are engineering responsibilities, not substitutes for a human support contact.
+
+Before real tester intake, verify the support address and help path, consent copy, cleanup jobs, processor terms and remaining audit/backup retention settings. Record a help/deletion/incident rehearsal. If support becomes unavailable, pause new tester intake until a replacement is named and notices updated; no response-time or backup-person promise is assumed. Synthetic fixtures do not require live support availability. Never mark a live intake gate complete merely because this document names the owner.
+
 ## 11. Failure and recovery contract
 
 | Condition | Required behavior |
@@ -1267,6 +1291,20 @@ When the browser cannot report a hash, the Agent uses the recorded account, chai
 
 An expired browser session can submit no new protected request; once reauthenticated, it may report the known hash for the same reserved attempt. The background reconciler continues independently of browser sessions. A forged outcome hint cannot alter the envelope or mark an unrelated transaction as published. Store failed hints as bounded diagnostics without announcing them in chat.
 
+### 11.1.1 Durable terminal outcomes
+
+Each execution attempt has a typed durable outcome, including attempts with no transaction hash. The browser keeps a pending outcome in the minimal ceremony checkpoint and retries its authenticated POST after reload/session renewal. The Agent owns equivalent persistence for delegated attempts. Store `operationId`, attempt version, frozen payload digest, idempotency key, outcome kind, bounded reason code and optional public broadcast reference. Validate the resource/account/epoch and commit the accepted outcome, allowed reservation transition and chat reply intent atomically. If an authorization path consumes a one-time nonce, consume it in that same transaction. An authenticated exact replay returns the original result even after that nonce is consumed; a changed payload under the same key conflicts. A lost acknowledgement cannot lose the result or duplicate its reply intent.
+
+| Outcome | Reservation and recovery rule |
+| --- | --- |
+| Preparation/validation failed before any send attempt | Persist the failure; preserve the draft and explain what needs correction. No fabricated transaction hash or receipt |
+| Owner explicitly rejected before send | Record the report; release the send reservation only when the owning execution path establishes that nothing was signed/sent. Otherwise retain uncertainty. A retry needs renewed explicit intent |
+| Send result unknown or conflicting | Retain the reservation and any budget/nonce association; reconcile. Browser failure text or an expired lease is never proof of non-publication |
+| Canonical transaction/UserOperation definitively reverted | Verify independently, record the failure and any spent gas/policy count; allow a new attempt only after explicit user action. Never reset consumed grant budgets |
+| Publication verified | Persist the matching receipt and enqueue its confirmation once; retain history for reconciliation |
+
+Proof must cover a terminal no-hash failure, failed outcome POST followed by reload and reauthentication, duplicate outcome delivery, a stale/forged failure hint, failure after a recorded send, crash during the outcome/outbox transaction, and a definitive revert. After a crash before local outcome persistence, the server's pre-send reservation remains uncertain; absence of a callback cannot authorize another send. The existing non-durable `job:failed` event is insufficient. Where the Shared job processor owns a terminal transition, persist its messaging outcome in the owning store transaction; the focused ceremony path must provide the same durable contract without mounting unrelated queue behavior.
+
 ### 11.2 Inbox, conversation and delivery consistency
 
 Treat the webhook as a collection of messages/status events, not one conversation command. Verify its raw signature and business-sender realm before accepting it. Persist the bounded envelope/normalized event before acknowledging; a storage failure must not receive a success acknowledgement. Track content-message IDs separately from delivery-status updates. Unsupported content produces a deterministic response; delivery receipts do not trigger model interpretation.
@@ -1274,6 +1312,10 @@ Treat the webhook as a collection of messages/status events, not one conversatio
 Process events under a per-conversation lease and apply draft/identity revision checks inside the commit transaction. A lease has a fencing version so an expired worker cannot commit after another worker takes over. Arrival order is recorded, but provider delivery order is not assumed. Explicit reply/prompt references select the target step. An ambiguous late answer or photo asks which draft it belongs to; it cannot overwrite a newer correction. Support one active reporting draft per participant/conversation initially, with explicit resume/cancel before switching, and a separate review intent identified by work UID.
 
 Outbox writes commit with the business transition. Each row stores its destination, provider realm, operation/revision and dedupe key. Serialize replies for a conversation and suppress stale unanswered prompts when a newer revision replaces them. Persist the outbound provider message ID when returned, and consume later delivery/read/failure statuses separately. A provider timeout can leave delivery uncertain: internal deduplication prevents duplicate jobs, but cannot guarantee exactly-once chat delivery after a lost provider response. Reconcile where the provider permits it; otherwise use bounded retries and stable report identifiers. A repeated chat receipt never repeats a chain transaction.
+
+Ingress workers never send replies directly. Commit each ingress reply intent with the winning fenced domain transition, unique by `(provider_realm, event_id, reply_kind)`; a worker whose conditional commit fails creates no intent and cannot dispatch. Only the outbox sender dispatches committed rows. Use a provider idempotency key where supported and retain the uncertainty rule above where it is not.
+
+An HTTP-accepted outbound message enters `accepted`, not `delivered`. Authenticated status events are durably ingested and correlated by provider realm and message ID. Later failure/rejection enters bounded `retry_wait` or `terminal_failed` according to the provider's reason/window rules; delivery/read are monotonic evidence and duplicate or stale statuses cannot regress them. Keep each attempt's provider ID so a delayed status for an earlier attempt does not overwrite a later delivery. Test accepted-then-failed, duplicate/out-of-order statuses, and restart before retry/support handling.
 
 ### 11.3 Model, media and operational limits
 
@@ -1289,21 +1331,33 @@ Use bounded job deadlines, exponential backoff with jitter, provider `Retry-Afte
 
 Operational health reports inbox/outbox backlog, oldest pending reconciliation, upload failures and dependency availability without message bodies or user identifiers. An operator can pause new intake/model processing/publication, revoke sessions and replay a failed delivery or reconciliation job. Operator tools cannot request arbitrary signatures, bypass chat confirmation, expand a Kernel permission or reset an uncertain attempt to unsent. Only the restricted executor may act under the approved grant. Separate provider failure from invalid user data and show the gardener what can be resumed.
 
+### 11.4 Publication controls and deployment proof
+
+Keep independently configured intake, publication and outgoing-message switches. Check publication at reservation and again immediately before the actual owner wallet request or delegated signing/send. The Agent owns the authoritative permit/version; Shared must obtain a fresh acknowledgement before invoking the owner's sender, while the restricted executor rechecks it before delegated signing and broadcast. A previously prepared envelope, hydrated view, valid session or queued operation does not bypass a disabled switch. Disabling publication fences unsent reservations. An already-issued wallet request, signed UserOperation or broadcast can still land and stays under reconciliation; the switch cannot revoke bytes already outside our control. Before resending stored signed bytes, recheck the current switch and permission.
+
+Intake pause prevents new domain intake; message pause holds outbox dispatch. Persist and process provider statuses, execution outcomes and receipt reconciliation while these switches are off. Stop/delete consent commands must still be processed for existing participants even with new intake paused. Resuming delivery never repeats a chain transaction. Prove pause after preparation, pause before an owner prompt, pause of queued delegated execution, a lost permit response, and a transaction already in flight when the pause takes effect.
+
+**Configuration scope:** root `.env.schema`, Agent `src/config.ts` and its validation, and the owning deployment configuration must declare the provider/key references, independent switches and required capability settings. Validate missing/invalid values and disabled defaults; do not infer production readiness from an unset value. Client build-time passkey origin/server settings must match the existing-account path being demonstrated, with actual browser proof; this slice adds no first-run account creation. No secret value is part of this document or browser bundle.
+
+**Browser deployment scope:** `packages/client/vercel.json` owns the fixed `/api/messaging/*` proxy and ceremony response headers. Include Agent response middleware plus deployment/provider log settings in the work boundary. Verify deployed `Referrer-Policy: no-referrer`, `Cache-Control: no-store` for private HTML/API/media, proxy precedence, cookie forwarding and deletion, Origin/CSRF enforcement and session isolation. Use synthetic canary IDs to inspect application, proxy, edge and analytics logs and outbound navigation: route templates may be recorded, private IDs/tokens/bodies must not appear. Path locators are non-authorizing but still require log minimization. If the selected edge cannot redact its access records, configure exclusion/disabled logging for these routes or keep live intake blocked; a unit test or URL cleanup after page load does not prove edge privacy. Record the deployed revision and observed evidence before the browser stage passes.
+
 ## 12. Implementation order and acceptance
+
+**Build owner: Opus 5.5 (Claude). Independent reviewer: Astra (Codex).** These assignments do not start an agent task or claim runtime proof. Before the first build slice, reconcile the local handoffs and existing tracker scope through the repository Implementation Start Gate, then record the approved slice and checkout. Afolabi owns prototype support as specified in section 10.1.
 
 The user selected the reproducible API harness as the first implementation phase. Step 0 includes the minimum Shared domain and SQLite code needed to run it; steps 2–3 extend/harden those same implementations and do not create another coordinator. Live provider/account setup in step 1 is not a prerequisite for synthetic tests. The breakdown below is the current delivery order; no runtime implementation is claimed by this document. Keep implementation changes in small package-owned steps; preserve the existing critical checks for auth, Work and JobQueue.
 
 0. **First build slice: reproducible API harness.** Build the smallest production-intended coordinator/domain transition path and SQLite persistence together with a synthetic adapter, before Meta. Drive it through Hono’s in-process request API and optionally a loopback-only development runner. Use temporary SQLite/private fixture storage, injected clock/IDs, deterministic OpenAI document/vision and Jev response fixtures, fake signer/chain adapters and a recorded outbound transport. This phase needs no external credentials or participant data. The same coordinator must later receive the real adapter; do not build a second demo-only reporting engine. Prove story-first intake/correction, source provenance, both account branches, separate review grants, permission failures, deduplication, restart and uncertain execution. Canned model outputs prove orchestration, not extraction accuracy. Add an independently enabled live processor evaluation after this deterministic gate.
 
-1. **Reconcile scope and setup.** Record Green Goods DM-first, WhatsApp operations through WEFA, EOA signing plus conditional Kernel reporting and separate review permissions, pre-enrolled participants, and TAS/Aiyeloja Family Garden as the prototype choices. Confirm Meta recipients, browser origin, RPC, published contracts and applicable processor terms. Identify the builder. Record a separately funded reporter and a distinct operator account because self-approval is forbidden. For each enabled garden, confirm its Arbitrum address, an active domain-compatible Action, enrolled reporter accounts and a distinct operator. Missing membership is resolved before the recording, not by an enrollment detour during reporting. Proof: a concrete readiness record with unresolved items visible.
+1. **Configure the live demonstration.** Record Green Goods DM-first, WhatsApp operations through WEFA, EOA signing plus conditional Kernel reporting and separate review permissions, pre-enrolled participants, and TAS/Aiyeloja Family Garden as the prototype choices. Confirm Meta recipients, browser origin, RPC, published contracts and applicable processor terms. Record the named builder/reviewer and a separately funded reporter and a distinct operator account because self-approval is forbidden. For each enabled garden, confirm its Arbitrum address, an active domain-compatible Action, enrolled reporter accounts and a distinct operator. Missing membership is resolved before the recording, not by an enrollment detour during reporting. Proof: a concrete readiness record with unresolved items visible.
 2. **Shared domain contract.** Define typed commands, revision-bound confirmations and pure reporting/review transitions using `Action.inputs`. Proof: correction, unsupported fields and stale events behave correctly.
 3. **Agent persistence.** Add migrations for intake, draft revisions, media, challenges, operations and outbox; add participant/account/channel records when persistent linking is introduced. Proof: actual SQLite rollback, uniqueness, lease expiry and restart tests.
 4. **Meta DM adapter.** Register verification and webhook routes, preserve raw-body signature checks and normalize text/photo/document events, including spreadsheet attachments. Proof: signed fixture conformance plus a real test-number exchange.
 5. **Story-first reporting.** Save the gardener’s description before Action selection. Complete the deterministic clarification fallback, review and explicit publication consent in chat; models add interpretation in the next step. Proof: a report assembled and corrected entirely through messages, with no invented required values.
 6. **Document, spreadsheet, vision and Jev adapters.** Evaluate the selected OpenAI/Jev stack and automatic conversion against the synthetic/consented corpus, add only approved dependencies and provider settings, record source/model/prompt revisions and implement fallback. Prove PDF/DOCX coverage, cell/range arithmetic, embedded-figure handling, uncertain visual facts, cleanup and private/public boundaries. Proof: consented or synthetic evaluation set, refusal/ambiguity cases, bounded retries and a measured reduction in repeated questions.
 7. **Public browser ceremony and Kernel compatibility spike.** Prove restricted permission setup, execution, limits and revocation against our existing Kernel 0.3.1 account configuration. A successful EOA demo is not proof of Kernel delegation. If proof fails, retain sign-once and record the unmet target.  Add the fixed proxy route and session/CSRF boundary, no-install routes and wallet controls. Add the Shared prepared-envelope handoff and minimal checkpoint persistence; reuse the sender without unrelated queue side effects. Proof: WhatsApp Web to desktop-wallet recording, mobile handoff, no private-link leakage, scoped session expiry/revocation, exact payload signing and fresh deployed/counterfactual account-proof cases.
-8. **Receipts and steward decisions.** Connect authenticated outcome hints to independent chain verification; add DM review and decision signing. Proof: real work and review receipts with correct human attesters, no self-approval and no repeated publication after restart.
-9. **Relinking, permission pause/revoke and operating controls.** Add replacement-channel proof, epoch invalidation, retention jobs and incident pause. Proof: old channel loses access; new channel resumes only authorized drafts.
+8. **Outcomes, receipts and steward decisions.** Implement section 11.1.1 durable no-hash failures and uncertain outcomes alongside independent chain verification; add DM review and decision signing. Proof: failure POST/reload recovery, atomic outcome/outbox writes, verified reverts, real work/review receipts with correct human attesters, no self-approval and no repeated publication after restart.
+9. **Relinking, permission pause/revoke and operating controls.** Add replacement-channel proof, epoch invalidation, retention jobs and section 11.4 dispatch controls. Proof: old channel loses access; new channel resumes only authorized drafts; prepared/queued work cannot start sending after publication is paused; already-issued sends continue reconciliation.
 10. **Record the browser demo.** Use WhatsApp Web, a supported desktop wallet and the public Green Goods ceremony routes. Capture linking, an edited story-first report, EOA exact signing, Kernel permission at first submission and a subsequent chat-only submission when proven, the receipt in chat, and separate passkey review permission with a later chat-confirmed review. Prove failure/retry paths separately; avoid recording private pairing codes or unrelated messages.
 
 ### 12.1 Reproducible harness acceptance contract
@@ -1324,11 +1378,14 @@ The first slice has a concrete completion boundary: one command through the exis
 | Recovery from a new chat and browser handoff | No old-phone dependency, no transferred browser credentials and one winning epoch transition |
 | Rejected versus uncertain wallet/send attempt | Explicit retry only after proven rejection; unknown outcome never auto-resends |
 | Existing EOA and existing Kernel account | Neither path requires creating a new account or adding a Profile wallet |
-| WhatsApp and synthetic Telegram envelopes | Same public ceremony contract and report behavior; channel-bound challenges stay isolated |
+| WhatsApp and synthetic Telegram envelopes (fixtures only) | Same public ceremony contract and report behavior; channel-bound challenges stay isolated; no Telegram account, live adapter or network required |
+| HMAC rotation with a new message and racing identity insert | One stable sender/binding/participant and preserved consent/draft ownership |
+| No-hash terminal failure, lost outcome POST and reload | Durable outcome is retried after scoped reauthentication; no false receipt, duplicate reply intent or unsafe reservation release |
+| Prepared/queued operation followed by publication pause | Owner and delegated dispatch refuse new sends; uncertain/in-flight attempts keep reconciling |
 
 A separate live evaluation measures OpenAI document/vision quality, unsupported/ambiguous cases, cell extraction, locale behavior, latency, cost and cleanup. Include multi-page documents with many figures and a sheet with more than 1,000 rows to catch silent summarization/coverage assumptions. Golden fixtures carry source digests, expected facts and allowed uncertainty; stored model outputs carry version/provenance. OpenAI is the user-selected content provider; measure and pin models before enabling the live pipeline.
 
-**Telegram is optional integration evidence, not a prerequisite.** `telegraf` and a platform-neutral [InboundMessage type](../../../packages/agent/src/types.ts) already exist. A Telegram adapter can feed the same coordinator for early interactive testing, provided it bypasses the legacy custodial reporting route. Synthetic API interaction is faster and reproducible; Telegram adds realistic chat/media behavior but does not validate Meta signatures, WhatsApp pairing, media URLs or template limits. The existing [intake smoke script](../../../packages/agent/scripts/intake-smoke.ts) tests group idea/bug capture, not this reporting/authorization workflow. A dedicated harness remains implementation work.
+**A live Telegram adapter is optional integration evidence, not a prerequisite.** The synthetic Telegram-shaped fixture above is required solely to test the shared transport contract; it does not require building or deploying a Telegram integration. `telegraf` and a platform-neutral [InboundMessage type](../../../packages/agent/src/types.ts) already exist. A Telegram adapter can feed the same coordinator for early interactive testing, provided it bypasses the legacy custodial reporting route. Synthetic API interaction is faster and reproducible; Telegram adds realistic chat/media behavior but does not validate Meta signatures, WhatsApp pairing, media URLs or template limits. The existing [intake smoke script](../../../packages/agent/scripts/intake-smoke.ts) tests group idea/bug capture, not this reporting/authorization workflow. A dedicated harness remains implementation work.
 
 Run the repository's validation selector before implementation checks: `bun run check --plan -- --intent qa`. Select actual changed tests at their owning package. Existing scripts include `bun run --cwd packages/agent test -- <test-file>` and `bun run --cwd packages/agent typecheck`. New test filenames will be chosen with implementation; none is represented here as already present or passing.
 
@@ -1338,13 +1395,14 @@ The acceptance cases in section 11 are required in addition to the walkthrough. 
 
 | Stage | Completion evidence | What blocks this stage |
 | --- | --- | --- |
-| API harness | Agent-owned in-process Hono entry, Shared command/machine guards, real temporary SQLite, deterministic model/converter and fake chain/signer fixtures; replay/restart proof | Named builder and reconciled local scope; no Meta, model key, wallet, gas or production domain needed |
+| API harness | Agent-owned in-process Hono entry, Shared command/machine guards, real temporary SQLite, deterministic model/converter and fake chain/signer fixtures; replay/restart proof | Opus 5.5/Astra assigned; complete tracker/start-gate reconciliation before dispatch. No Meta, model key, wallet, gas or production domain needed |
+| Real tester intake | Afolabi contact/help path rehearsed; notices, processor terms, cleanup and audit/backup retention configured | Any missing live operating prerequisite; this gate applies before intake, not only before recording |
 | Live interpretation | Agent adapters plus isolated worker prove the chosen files/languages, source coverage, correction, cleanup, latency and configured spend cap | Pinned binaries/models, provider settings and approved processing terms for any participant data |
 | Owner-signing demo | Client/Shared ceremony, fixed origin/proxy, existing-account proof, exact prepared call and matching Arbitrum work/review receipts | Garden roles, deployed schemas, funded/sponsored calls, provider provisioning and actual browser/wallet proof |
 | Delegated demo | Separate report/review policies, isolated signer, limits, pause/revoke and receipt recovery proven on the existing Kernel configuration | Exact module/custody compatibility, nested-field restrictions and measured gas caps. Owner signing remains available but does not close this gate |
-| Recorded demonstration | Consent, notices, scoped current limits, private-data cleanup and selected journeys verified end-to-end | Named operational owner/support, remaining retention schedule and all capabilities claimed in the recording |
+| Recorded demonstration | Consent, notices, scoped current limits, private-data cleanup and selected journeys verified end-to-end | Verified support route to Afolabi, remaining retention schedule and all capabilities claimed in the recording |
 
-Agent owns persistence, API, model/media adapters, upload, outbox and reconciliation. Shared owns reusable domain validation, machine definitions, account/envelope contracts and hooks. Client owns route/shell composition and user interaction. Deployment work owns the proxy, private volume/backups, isolated converter and restricted signer. WEFA supplies WhatsApp operating arrangements; garden stewards supply garden context and review authority. Assign named implementers before dispatch. No contract or indexer change is assumed; if scope requires one, return to a separately reviewed plan.
+Agent owns persistence, API, model/media adapters, upload, outbox and reconciliation. Shared owns reusable domain validation, machine definitions, account/envelope contracts and hooks. Client owns route/shell composition and user interaction. Deployment work owns the proxy, private volume/backups, isolated converter and restricted signer. WEFA supplies WhatsApp operating arrangements; garden stewards supply garden context and review authority. Opus 5.5 implements the package-owned slices; Astra reviews their evidence before live enablement. Complete the tracker/start gate before dispatch. No contract or indexer change is assumed; if scope requires one, return to a separately reviewed plan.
 
 The exact model versions, converter image, RPC/bundler endpoints, nonzero deployment/schema addresses, canonical passkey origin, gas budgets and supported account/module matrix form a versioned readiness manifest. The service must refuse to enable an unproven capability; a missing or invalid setting never selects an unrestricted fallback. This manifest contains references to secret configuration, not secret values.
 

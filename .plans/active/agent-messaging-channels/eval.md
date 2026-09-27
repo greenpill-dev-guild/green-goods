@@ -1,5 +1,8 @@
 # Messaging architecture acceptance
 
+> **Accepted review decisions, 26 September:** Afolabi ([afo@wefa.world](mailto:afo@wefa.world)) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs are reconciled locally; the tracker/start gate remains before implementation. Durable terminal outcomes, dispatch-time publication controls, stable identity under key rotation and deployed privacy/configuration proof are required. See [current delivery](plan.todo.md#current-build-sequence) and [failure/operations contracts](technical-brief.md#11-failure-and-recovery-contract). No runtime proof or task dispatch is claimed.
+
+
 > **Latest user alignment:** API harness first; document/photo/spreadsheet support required.
 > OpenAI is the selected content-processing provider. The current prototype supports existing
 > EOAs and Kernel passkey accounts. Passkey-first onboarding and optional Profile wallet linking
@@ -22,7 +25,7 @@
 > proof. EIP-7702 remains excluded. Story-first chat, repeated Jev/LLM interpretation, an API-first
 > test phase and two PWA-style browser view families are the current target. See the
 > [technical brief](technical-brief.md) and [research amendment](reports/2026-09-25-account-and-conversation-amendment.md).
-> Older dispatch below remains historical and must be reconciled before assignment; no runtime gate is complete.
+> Older dispatch below remains historical. Current handoffs are reconciled; the tracker/start gate and runtime proof remain pending.
 
 ### Media, platform and account acceptance amendment
 
@@ -51,6 +54,20 @@ All cases are planned and unexecuted. Apply them alongside the current technical
 > The dated prototype subset below covers the earlier dispatch only. It does not establish proof
 > of persistent linking, public no-install signing routes, steward DM review, relinking, model
 > interpretation or restricted execution. All runtime cases remain unexecuted.
+
+## Accepted review proof additions
+
+All cases below are required, planned and unexecuted. Opus 5.5 supplies implementation evidence; Astra independently reviews it.
+
+- Before live intake: the invitation, deterministic `help` reply and browser Help expose Afolabi at afo@wefa.world; rehearse deletion and incident escalation independently of agent availability.
+- Persist a no-hash terminal outcome, fail its POST, reload, reauthenticate and retry. Assert one accepted result/reply intent, no fake receipt and no release of an uncertain attempt. Crash/rollback the outcome/outbox transaction and replay the same idempotency key; conflicting replay must fail.
+- Prepare a report or queue delegated execution, pause publication, and prove both Shared owner-send and Agent delegated dispatch refuse new sends. Keep reconciliation running for already-issued wallet requests/signed or broadcast attempts. Consent withdrawal still reaches the Shared dispatch boundary.
+- Rotate the subject HMAC key, then deliver a new message and race an insert: one stable subject/binding/participant and existing consent/draft ownership remain. Test migration coverage before old aliases retire.
+- Enforce exactly one draft/review parent on every execution operation; neither-parent and both-parent inserts fail. Allow an unlinked private draft, a verified chain WorkRecord with no local draft and an ordinary outbox reply with no operation; publication without a proven author is denied.
+- In a Shared/Agent integration test, queue a scoped send, process chat deletion/consent withdrawal, reload/reconnect and invoke the actual Shared sender boundary against the Agent authorization response. Assert that no wallet request, delegated send or publication occurs; an Agent-only test is insufficient.
+- Validate root schema/configuration and missing/invalid capability settings. On the deployed revision prove proxy/headers/cookies/Origin/CSRF and synthetic canary redaction/exclusion from application, edge and analytics logs.
+- Include story-first multi-Action clarification and fixed submission fields/provenance in harness and QA. Verify Agent imports the reporting module through a declared Shared export.
+- Synthetic Telegram-shaped input is required to prove platform neutrality; no live Telegram adapter or credentials are required.
 
 ## Current acceptance authority
 

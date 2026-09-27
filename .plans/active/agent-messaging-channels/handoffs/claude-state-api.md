@@ -1,27 +1,33 @@
-# Agent Messaging Channels (WhatsApp + SMS) - State/API Handoff
+# Agent reporting — State/API handoff
 
 ## Lane
 
-- Owner: unassigned (one builder, 2026-09-25 to 2026-10-02)
-- Branch: set when work begins using `<type>/<work-description>`
-- Status: blocked (see status.json; this block is derived from it)
+- Owner: Opus 5.5 (Claude)
+- Branch: record the approved implementation checkout before dispatch
+- Status: blocked (see status.json)
+- Support owner: Afolabi, [afo@wefa.world](mailto:afo@wefa.world)
+
+## Start gate
+
+Before implementation, run `node scripts/harness/plan-hub.mjs linear-sync --feature agent-messaging-channels --json`, reconcile the existing tracker scope, and record verified canonical identifiers with `record-linear`. Keep `parent_only`; no new lane issues. This documentation update does not dispatch a task. Follow the current package slices in [plan.todo.md](../plan.todo.md#current-build-sequence), not the historical step numbers. No branch switch or creation is implied.
 
 ## Scope
 
-> **Lane order.** Lanes route skill and package, not execution. Follow the numbered step
-> order in `plan.todo.md`: `state_api` and `ui` interleave in both directions, so neither
-> blocks the other.
-Buildathon prototype steps 1-8, 13 and 14: Meta webhook signature plus a leased event claim, normalization, encrypted-subject draft tables, bounded media fetch, single-use link with chat-side confirmation, draft-scoped account proof and read, the authenticated outcome route, and receipt derivation with a restart-safe outbox. Proves SEC-01, CH-01, WORK-01, SEC-02, AUTH-01, AUTH-03, OPS-05, and DATA-02 for the consent notice and the deletion path. Reuse garden-join-request-auth.ts and profile-avatars.ts rather than writing new verification.
+Own the minimum Shared pure reporting contract and explicit exports, Agent coordinator, SQLite stores/migrations and reproducible API harness first. Complete story-first Action inference/clarification, fixed submission fields including confirmed time, provenance and revisions; never require browser editing. Agent consumes only declared server-safe Shared exports.
+
+Then own root `.env.schema`/Agent config validation, bounded durable Meta inbox, fenced conversation processing and atomic reply intents; OpenAI/Jev and isolated media conversion; stable channel-subject IDs and versioned HMAC aliases; processing/publication consent; operation reservations and durable terminal outcomes; grant/executor policy; receipt reconciliation; correlated provider delivery statuses; cleanup, relinking and dispatch controls.
+
+The UI slice supplies the scoped browser outcome/checkpoint producer; both lanes share the typed command contract. No browser Dexie default instance enters the Agent. Publication controls are enforced at actual send boundaries; outcome and status reconciliation keep running during pauses.
 
 ## TDD Proof
 
-- RED: pending
-- GREEN: pending
-- Proof limit: none recorded
+- RED: pending; choose concrete owning test paths with the first implementation slice.
+- GREEN: pending; run the same behavior proof after implementation.
+- Proof limit: no runtime proof recorded.
 
 ## Validation
 
-- Pending lane implementation.
+Render `bun run check --plan -- --intent qa` before checks. Run actual focused tests through the owning package wrapper; record exact commands here and in status.json. Retain required critical checks for Shared auth, Work and JobQueue. Existing wrappers include `bun run --cwd packages/agent test -- <test-file>` and `bun run --cwd packages/shared test -- <test-file>`; placeholders are not executable evidence. No obsolete intake-hook command is authoritative.
 
 ## Validation Receipt
 
@@ -36,4 +42,4 @@ Buildathon prototype steps 1-8, 13 and 14: Meta webhook signature plus a leased 
 
 ## Risks / Blockers
 
-- Record blockers here before changing `status.json`.
+Tracker/start-gate reconciliation must complete before implementation. Live stages retain provider, processing, privacy, custody and deployed-browser/chain gates; they do not block synthetic fixtures.

@@ -1,27 +1,33 @@
-# Agent Messaging Channels (WhatsApp + SMS) - UI Handoff
+# Agent reporting — Client ceremony handoff
 
 ## Lane
 
-- Owner: unassigned (one builder, 2026-09-25 to 2026-10-02)
-- Branch: set when work begins using `<type>/<work-description>`
-- Status: blocked (see status.json; this block is derived from it)
+- Owner: Opus 5.5 (Claude)
+- Branch: record the approved implementation checkout before dispatch
+- Status: blocked (see status.json)
+- Support owner: Afolabi, [afo@wefa.world](mailto:afo@wefa.world)
+
+## Start gate
+
+Before implementation, run `node scripts/harness/plan-hub.mjs linear-sync --feature agent-messaging-channels --json`, reconcile the existing tracker scope, and record verified canonical identifiers with `record-linear`. Keep `parent_only`; no new lane issues. This documentation update does not dispatch a task. Follow the current package slices in [plan.todo.md](../plan.todo.md#current-build-sequence), not the historical step numbers. No branch switch or creation is implied.
 
 ## Scope
 
-> **Lane order.** Lanes route skill and package, not execution. Follow the numbered step
-> order in `plan.todo.md`: `state_api` and `ui` interleave in both directions, so neither
-> blocks the other.
-Buildathon prototype steps 9-12 and 15: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, open-joining admission before the attestation, the outcome call on submission completion, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, DATA-06. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.
+Own platform-neutral `/agent/reporting/:requestId` and `/agent/reporting/recover/:requestId` with PWA design components and no installation prerequisite. Proposed Shared hooks are `useAgentReportingCeremony` and `useAgentReportingRecovery`, backed by `modules/agent-reporting/` transport/machines and declared exports. Keep hooks in Shared. The client owns route/presentation/provider composition and views; there is no ordinary composer hydration or mandatory first-run account creation.
+
+Integrate existing EOA/Kernel authentication, the read-only confirmed report, separate Kernel permission approval, exact prepared-envelope signing and minimal durable attempt/outcome checkpoints. Resume failure callbacks after reload and scoped reauthentication. Account/session/revision changes invalidate access; unknown sends remain reserved. A fresh publication permit is required before the owner sender is invoked.
+
+Own `packages/client/vercel.json` proxy/headers with Agent response middleware and serving-edge log settings. Prove deployed headers, cookie forwarding/clearing, Origin/CSRF, canary log redaction and existing-passkey origin/build configuration. Include browser refresh/handoff, private-cache exclusion and en/es/pt copy. Help exposes Afolabi at afo@wefa.world.
 
 ## TDD Proof
 
-- RED: pending
-- GREEN: pending
-- Proof limit: none recorded
+- RED: pending; choose concrete owning test paths with the first implementation slice.
+- GREEN: pending; run the same behavior proof after implementation.
+- Proof limit: no runtime proof recorded.
 
 ## Validation
 
-- Pending lane implementation.
+Render `bun run check --plan -- --intent qa` before checks. Run actual focused tests through the owning package wrapper; record exact commands here and in status.json. Retain required critical checks for Shared auth, Work and JobQueue. Existing wrappers include `bun run --cwd packages/agent test -- <test-file>` and `bun run --cwd packages/shared test -- <test-file>`; placeholders are not executable evidence. No obsolete intake-hook command is authoritative.
 
 ## Validation Receipt
 
@@ -36,4 +42,4 @@ Buildathon prototype steps 9-12 and 15: draft intake port modelled on useShareTa
 
 ## Risks / Blockers
 
-- Record blockers here before changing `status.json`.
+Tracker/start-gate reconciliation must complete before implementation. Live stages retain provider, processing, privacy, custody and deployed-browser/chain gates; they do not block synthetic fixtures.

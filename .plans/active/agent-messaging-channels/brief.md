@@ -1,5 +1,8 @@
 # WhatsApp impact reporting
 
+> **Accepted review decisions, 26 September:** Afolabi ([afo@wefa.world](mailto:afo@wefa.world)) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs are reconciled locally; the tracker/start gate remains before implementation. Durable terminal outcomes, dispatch-time publication controls, stable identity under key rotation and deployed privacy/configuration proof are required. See [current delivery](plan.todo.md#current-build-sequence) and [failure/operations contracts](technical-brief.md#11-failure-and-recovery-contract). No runtime proof or task dispatch is claimed.
+
+
 **Status:** ACTIVE architecture work; implementation lanes remain blocked and unproven.
 **Last updated:** 26 September 2026
 **Product:** Green Goods. WEFA operates the initial WhatsApp integration.
@@ -57,9 +60,7 @@ a chain transaction or an installed new dependency. The selected garden, Meta pr
 mobile wallet handoff, processor terms and real-device/chain acceptance all need proof. Local draft-data retention is accepted; minimal audit/backup retention, provider settings and browser
 access durations still require operational configuration.
 
-The September 21–22 numbered implementation baseline must be reconciled with the technical brief
-before dispatch. No builder or lane was assigned by this documentation update, and existing Linear
-records were not changed. The earlier no-model slice remains useful as a deterministic fallback; it
+The current lane handoffs now follow the technical brief. Opus 5.5 is assigned to build and Astra to review; existing Linear records still need the start-gate reconciliation before dispatch. No external tracker record was changed. The earlier no-model slice remains useful as a deterministic fallback; it
 must not be presented as the complete conversational product now requested.
 
 ## Architecture review
@@ -67,7 +68,7 @@ must not be presented as the complete conversational product now requested.
 The [September 25 review](reports/2026-09-25-architecture-review.md) corrects publication ownership,
 prepared-payload reuse, cookie/proxy setup, receipt matching and recovery/concurrency boundaries in
 the current technical brief. The user selected pre-enrolled participants; the reporting demo uses prepared accounts and verifies their actual roles. The newer passkey-first product direction is recorded below. TAS and Aiyeloja Family Garden are the prototype choices. Runtime lanes remain
-blocked until dispatch is reconciled, ownership is assigned and implementation proof is available.
+blocked on tracker/start-gate reconciliation; ownership is assigned and implementation proof is still pending.
 
 The [prototype garden decision](reports/2026-09-25-prototype-garden-decision.md) closes the review's onboarding question. WhatsApp linking and recovery remain in scope; each garden's membership is checked independently.
 
@@ -92,3 +93,5 @@ milestone from live release gates. The user accepted reporting grants of 24 hour
 review grants of 1 hour/5 decisions, a 24-hour pre-consent expiry and 7-day inactive-draft expiry,
 plus private-source cleanup after publication/reconciliation. Measured gas caps and the minimal
 audit/backup schedule remain required before their live stages.
+
+The [accepted review decisions](reports/2026-09-26-accepted-review-decisions.md) record the support contact, Opus 5.5/Astra responsibilities and the updated outcome, identity, deployment and dispatch contracts.

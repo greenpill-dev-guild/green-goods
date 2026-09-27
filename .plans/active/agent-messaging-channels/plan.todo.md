@@ -22,13 +22,13 @@
 > proof. EIP-7702 remains excluded. Story-first chat, repeated Jev/LLM interpretation, an API-first
 > test phase and two PWA-style browser view families are the current target. See the
 > [technical brief](technical-brief.md) and [research amendment](reports/2026-09-25-account-and-conversation-amendment.md).
-> Older dispatch below remains historical and must be reconciled before assignment; no runtime gate is complete.
+> Older dispatch below remains historical. Current handoffs are reconciled; the tracker/start gate and runtime proof remain pending.
 
 **Feature slug:** agent-messaging-channels
 
 **Stage:** `active`
 
-**Status:** `ACTIVE — final brief reviewed; builder/tracker reconciliation required`
+**Status:** `ACTIVE — Opus 5.5 builds; Astra reviews; tracker start gate pending`
 
 **Created:** 2026-04-17
 
@@ -50,12 +50,38 @@ Do not repeat the manual writes.
 
 ## Current build sequence
 
-Use [technical brief section 12](technical-brief.md#12-implementation-order-and-acceptance)
-and its [stage gates](technical-brief.md#122-stage-gates-and-ownership) as the current implementation
-contract. The first deliverable is a reproducible API harness with real temporary SQLite and the
-production-intended coordinator; live provider credentials and wallet access are not prerequisites.
-Kernel delegation, model/format quality and browser/chain compatibility require their own later proof.
-Assign a builder and reconcile the old tracker/handoff scope before implementation dispatch.
+**Builder:** Opus 5.5 (Claude). **Independent reviewer:** Astra (Codex).
+**Prototype support:** Afolabi, [afo@wefa.world](mailto:afo@wefa.world).
+
+Use [technical brief section 12](technical-brief.md#12-implementation-order-and-acceptance),
+its stage gates and the current handoffs below. The older numbered steps are historical, not dispatch commands.
+
+### Before implementation
+
+- [x] User assigned Opus 5.5 to build and Astra to review, and named Afolabi as support owner.
+- [x] Reconcile the local handoffs with the current account, route, media and execution contracts.
+- [ ] Run `node scripts/harness/plan-hub.mjs linear-sync --feature agent-messaging-channels --json`, reconcile the existing tracker scope, and record the canonical identifiers with `record-linear` before code or agent dispatch. Preserve `parent_only`; do not create duplicate lane issues or reapply historical writes. The unresolved historical parent reference must be resolved against live Linear before recording it.
+- [ ] Record the selected implementation checkout and first bounded slice. No agent has been dispatched by this document update.
+
+### Package boundaries and proof
+
+The API harness is the first deliverable. Its minimum Shared/Agent work below is one integrated milestone, built in dependency order with small checkpoints. Live configuration follows; do not make provider credentials a prerequisite for synthetic tests. Proposed new modules/hooks below are implementation targets, not existing exports or passing test commands.
+
+| Slice | Owner and scoped boundary | Completion evidence |
+| --- | --- | --- |
+| Shared reporting rules | Opus; `packages/shared/src/modules/agent-reporting/` plus explicit leaf exports in `packages/shared/package.json` | Story-first eligible Action selection, all fixed WorkSubmission fields, provenance, corrections, confirmation and separate report/review guards. Agent imports only a declared public export |
+| Durable harness storage | Opus; Agent `src/services/db/schema.ts`, owning stores and existing DB facade | Idempotent schema upgrade with `PRAGMA user_version`; actual SQLite reopen, rollback, uniqueness, lease fencing and HMAC-alias rotation/racing-insert proof |
+| Reproducible API harness | Opus; Agent reporting coordinator and owning tests, synthetic adapter and injected processor/signer/clock ports | In-process Hono, Shared rules and real SQLite complete brief section 12.1 without credentials; synthetic WhatsApp/Telegram envelopes, no live Telegram adapter |
+| Runtime configuration and Meta intake | Opus; root `.env.schema`, Agent `src/config.ts`, webhook registrar/normalizer, inbox store and deployment settings | Configuration/schema validation, missing-key and paused-intake refusal, bounded event persistence before acknowledgement; restart-safe fenced processing and atomic reply intents |
+| Content processing | Opus; Agent OpenAI/Jev adapters and isolated conversion worker | Consented/synthetic PDF/DOCX/photo/XLSX/CSV evaluation, coverage/provenance, bounded failure/cleanup and exact code arithmetic. Add dependencies only after approval |
+| Public ceremony | Opus; Shared `modules/agent-reporting/` client transport/machines and `useAgentReportingCeremony` / `useAgentReportingRecovery` hooks; Client route IDs, presentation loaders and ceremony views | Platform-neutral routes, existing-account proof, prepared-envelope validation, private cache isolation and explicit owner-send only. These replace the old intake/composer-hydration hook boundary |
+| Deployment privacy | Opus; `packages/client/vercel.json`, Agent response middleware and provider/deployment log configuration | Deployed proxy/cookie/header/Origin checks and synthetic canary log inspection from brief section 11.4; existing-passkey origin/build configuration proven on the demonstrated path |
+| Execution and outcomes | Opus; Shared scoped sender/checkpoint store and Agent operation/reconciliation/outbox stores | Durable no-hash failures and hashes, lost POST/reload/reauthentication, atomic idempotent outcome/outbox transaction, uncertain-send refusal, receipt matching and provider delivery-status handling |
+| Kernel grant adapter | Opus; Shared owner-approval adapter plus Agent restricted executor/custody integration | Same existing account, separate bounded reporting/review grants, policy/gas limits, expiry, pause/revoke and failed/uncertain attempts. Owner signing does not count as delegation proof |
+| Relinking, cleanup and operating controls | Opus; owning Agent stores/workers and Shared dispatch guards | New-channel proof/epoch fencing, consent withdrawal before dispatch, receipt-gated private-file cleanup, publication pause after preparation/queueing, continued receipt reconciliation and support rehearsal |
+| Review and demonstration | Astra independently reviews each completed slice; Opus supplies reproducible evidence and rehearses the integration | Named support reachable before tester intake; current acceptance including story completion, failure recovery and both account paths; authenticated browser proof and real Arbitrum receipts before live capability claims |
+
+For each implementation checkpoint, render the selector with `bun run check --plan -- --intent qa` and select the actual owning test paths. Record RED/GREEN evidence and exact commands in the lane handoff when those tests exist; obsolete hook commands are removed from active lane metadata. Shared auth/Work/JobQueue changes retain their critical validation override. Astra records the tested SHA and limitations; no implementation or live proof is marked complete here.
 
 ## Historical dispatch — September 21–22
 

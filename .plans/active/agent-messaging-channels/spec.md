@@ -1,5 +1,8 @@
 # Messaging identities and garden workflows
 
+> **Accepted review decisions, 26 September:** Afolabi ([afo@wefa.world](mailto:afo@wefa.world)) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs are reconciled locally; the tracker/start gate remains before implementation. Durable terminal outcomes, dispatch-time publication controls, stable identity under key rotation and deployed privacy/configuration proof are required. See [current delivery](plan.todo.md#current-build-sequence) and [failure/operations contracts](technical-brief.md#11-failure-and-recovery-contract). No runtime proof or task dispatch is claimed.
+
+
 > **Latest user alignment:** API harness first; document/photo/spreadsheet support required.
 > OpenAI is the selected content-processing provider. The current prototype supports existing
 > EOAs and Kernel passkey accounts. Passkey-first onboarding and optional Profile wallet linking
@@ -18,7 +21,7 @@
 > proof. EIP-7702 remains excluded. Story-first chat, repeated Jev/LLM interpretation, an API-first
 > test phase and two PWA-style browser view families are the current target. See the
 > [technical brief](technical-brief.md) and [research amendment](reports/2026-09-25-account-and-conversation-amendment.md).
-> Older dispatch below remains historical and must be reconciled before assignment; no runtime gate is complete.
+> Older dispatch below remains historical. Current handoffs are reconciled; the tracker/start gate and runtime proof remain pending.
 
 > **24 September 2026 architecture amendment:** The current target is the
 > [WhatsApp technical brief](technical-brief.md). It records the user's newer decisions:
@@ -30,9 +33,7 @@
 > below remains historical dispatch context pending reconciliation; no runtime proof or processor
 > gate is marked complete by this amendment.
 
-**Status:** Active hub. The target architecture below remains a proposal. One slice of it — the
-Buildathon prototype in section 15.1 — was scope-locked on 2026-09-21 and is authorized to build.
-Everything outside section 15.1 stays unselected.
+**Status:** Historical research and September implementation baseline. Current scope and dispatch live in the technical brief and plan linked above; this older proposal does not override later accepted decisions.
 
 **Last researched:** 2026-09-11 UTC (2026-09-10 in Los Angeles).
 

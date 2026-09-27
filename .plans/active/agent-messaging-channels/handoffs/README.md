@@ -2,11 +2,16 @@
 
 Keep lane handoffs short and factual. Use one file per lane:
 
-- `claude-state-api.md` — prototype steps 1-8, 13 and 14 (agent)
-- `claude-ui.md` — prototype steps 9-12 and 15 (shared/client)
+- `claude-state-api.md` — Opus 5.5: Shared reporting rules and Agent API harness, persistence, processing and execution
+- `claude-ui.md` — Opus 5.5: platform-neutral browser ceremonies and Shared account/signing controls
 - `contracts.md` — `n/a` for the prototype; no contract change
-- `claude-qa-pass-1.md` — demo rehearsal and the adversarial pass
-- `codex-qa-pass-2.md` — out of prototype scope; belongs to the pilot
+- `claude-qa-pass-1.md` — Opus 5.5: checkpoint evidence, demo rehearsal and adversarial proof
+- `codex-qa-pass-2.md` — Astra: independent review of each checkpoint and the integrated prototype
+
+The [current build sequence](../plan.todo.md#current-build-sequence) and
+[technical brief](../technical-brief.md#12-implementation-order-and-acceptance) own scope.
+Historical step numbers do not dispatch work. Tracker reconciliation precedes implementation;
+provider, privacy and live account gates apply to their corresponding stages.
 
 Each handoff should capture:
 
