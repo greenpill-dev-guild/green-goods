@@ -184,8 +184,7 @@ const messages: Record<string, string> = {
   "public.gardenDetail.notFoundHelp": "The link may be stale.",
   "public.gardenDetail.backToGardens": "Browse Gardens",
   "public.gardenDetail.backToArchive": "All Gardens",
-  "public.gardenDetail.description.seeMore": "See more",
-  "public.gardenDetail.description.showLess": "Show less",
+  "public.gardenDetail.description.heading": "About this garden",
   "public.gardenDetail.place.empty": "Garden narrative will appear here.",
   "public.gardenDetail.support": "Support This Garden",
   "public.gardenDetail.unlisted": "This Garden is not in the public lists.",
@@ -330,7 +329,10 @@ describe("GardenDetail", () => {
 
   it("renders the Garden name as the editorial h1", () => {
     renderView();
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Solar Community Garden");
+    const title = screen.getByRole("heading", { level: 1 });
+    expect(title).toHaveTextContent("Solar Community Garden");
+    const location = screen.getByText("Austin, TX");
+    expect(title.compareDocumentPosition(location) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // A listed Garden says nothing about lists, and crawlers may index it.
     expect(screen.queryByText("This Garden is not in the public lists.")).toBeNull();
     expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
@@ -413,62 +415,36 @@ describe("GardenDetail", () => {
     expect(within(entries).getByText("2")).toBeInTheDocument();
   });
 
-  it("shows a clamped hero description, reveals the full body, then returns to the initial state", () => {
-    vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(180);
-    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(72);
-    const description = "A long garden narrative with field context. ".repeat(30).trim();
+  it.each([
+    "A neighborhood garden.",
+    "A long garden narrative with field context. ".repeat(30).trim(),
+  ])("shows the full description once in the body without hero controls: %s", (description) => {
     mockUsePublicGardenDetail.mockReturnValue({
       ...detailResult(),
       data: { ...detailResult().data, garden: { ...detailResult().data.garden, description } },
     });
     renderView();
 
-    const heroDescription = screen.getByText(description);
-    expect(heroDescription.closest("p")).toHaveClass("line-clamp-3");
-    const seeMore = screen.getByRole("button", { name: "See more" });
-    expect(seeMore).toHaveAttribute("aria-expanded", "false");
-    expect(document.getElementById("public-garden-description")).toBeNull();
-
-    fireEvent.click(seeMore);
-
-    const fullDescription = screen.getByText(description);
-    expect(fullDescription.closest("p")).not.toHaveClass("line-clamp-3");
+    const hero = screen.getByRole("region", { name: "Solar Community Garden" });
+    expect(within(hero).getByText("Austin, TX")).toBeVisible();
+    expect(within(hero).queryByText(description)).not.toBeInTheDocument();
+    expect(within(hero).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(hero).queryByRole("link")).not.toBeInTheDocument();
+    const about = screen.getByRole("region", { name: "About this garden" });
+    expect(within(about).getByText(description)).toBeVisible();
     expect(screen.getAllByText(description)).toHaveLength(1);
-    expect(screen.getAllByRole("button", { name: "Show less" })[0]).toHaveAttribute(
-      "aria-expanded",
-      "true"
-    );
-    expect(document.activeElement).toHaveAttribute("id", "public-garden-description");
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Show less" })[1]);
-
-    expect(screen.getAllByText(description)).toHaveLength(1);
-    expect(screen.getByRole("button", { name: "See more" })).toHaveAttribute(
-      "aria-expanded",
-      "false"
-    );
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "See more" }));
+    expect(screen.queryByRole("button", { name: /See more|Show less/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /All Gardens/ })).toHaveAttribute("href", "/gardens");
   });
 
-  it("keeps focus on the description when it fits after expanding and resizing", () => {
-    const height = vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(180);
-    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(72);
+  it("keeps the missing-description message in the body", () => {
+    mockUsePublicGardenDetail.mockReturnValue({
+      ...detailResult(),
+      data: { ...detailResult().data, garden: { ...detailResult().data.garden, description: "" } },
+    });
     renderView();
-    fireEvent.click(screen.getByRole("button", { name: "See more" }));
-
-    height.mockReturnValue(72);
-    fireEvent.click(screen.getAllByRole("button", { name: "Show less" })[1]);
-
-    expect(screen.queryByRole("button", { name: "See more" })).not.toBeInTheDocument();
-    expect(screen.getByText(mockGardens[0].description).parentElement).toHaveFocus();
-  });
-
-  it("does not offer expansion when the hero description fits", () => {
-    vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(48);
-    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(48);
-    renderView();
-    expect(screen.queryByRole("button", { name: "See more" })).not.toBeInTheDocument();
-    expect(screen.getByText(mockGardens[0].description)).toBeInTheDocument();
+    const about = screen.getByRole("region", { name: "About this garden" });
+    expect(within(about).getByText("Garden narrative will appear here.")).toBeVisible();
   });
 
   it("pages the note grid locally without asking the hook for more", () => {
