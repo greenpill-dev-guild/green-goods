@@ -45,6 +45,18 @@ export const Request: Story = {
   },
 };
 
+/** A request a garden took up: the person it put forward provides, not the garden's account. */
+export const GardenClaim: Story = {
+  args: {
+    commitment: {
+      direction: "REQUEST",
+      creator: STORY_MARIA,
+      counterparty: "0x4444444444444444444444444444444444444444",
+      leadProvider: STORY_JOAO,
+    },
+  },
+};
+
 /** Nobody has taken it up yet: only the creator is named. */
 export const NotTakenUp: Story = {
   args: {

@@ -12,6 +12,7 @@ import { renderWithProviders, screen } from "../test-utils";
 
 const ASKER = "0x1111111111111111111111111111111111111111" as const;
 const HELPER = "0x2222222222222222222222222222222222222222" as const;
+const GARDEN_ACCOUNT = "0x4444444444444444444444444444444444444444" as const;
 
 const names = vi.hoisted(
   () =>
@@ -49,17 +50,37 @@ function event(overrides: Partial<CommitmentEventRecord>): CommitmentEventRecord
 
 describe("who a commitment is between, by name", () => {
   it("says the provider for the receiver, whichever side asked", () => {
+    // An individual claim: the contract writes the taker as counterparty and lead provider.
     const request = commitmentFixture({
       direction: "REQUEST",
       creator: ASKER,
       counterparty: HELPER,
+      leadProvider: HELPER,
     });
     const { container } = renderWithProviders(<CommitmentPeople commitment={request} />);
     expect(container).toHaveTextContent("bea.eth for ada.eth");
   });
 
+  it("names the person a garden claim put forward, not the garden's account", () => {
+    // On a request taken up as a garden claim, the garden's account is the
+    // counterparty and the person doing the work is the lead provider.
+    const gardenClaim = commitmentFixture({
+      direction: "REQUEST",
+      creator: ASKER,
+      counterparty: GARDEN_ACCOUNT,
+      leadProvider: HELPER,
+    });
+    const { container } = renderWithProviders(<CommitmentPeople commitment={gardenClaim} />);
+    expect(container).toHaveTextContent("bea.eth for ada.eth");
+  });
+
   it("names people in the inspector's summary and timeline, not truncated addresses", () => {
-    const offer = commitmentFixture({ direction: "OFFER", creator: HELPER, counterparty: ASKER });
+    const offer = commitmentFixture({
+      direction: "OFFER",
+      creator: HELPER,
+      leadProvider: HELPER,
+      counterparty: ASKER,
+    });
     renderWithProviders(
       <>
         <CommitmentSummary

@@ -34,14 +34,18 @@ export function CommitmentTimeline({ events }: { events: CommitmentDialogControl
         <ol className="divide-y divide-stroke-soft body-sm">
           {events.map((event) => (
             <li key={event.id} className="flex justify-between gap-2 py-1.5">
-              <span className="text-text-strong">{eventLabel(event, formatMessage)}</span>
-              {/* Who acted, by name, then when. */}
-              <span className="flex shrink-0 items-center gap-1.5 body-xs text-text-soft">
+              <span className="min-w-0 text-text-strong">{eventLabel(event, formatMessage)}</span>
+              {/* Who acted, by name, then when. A long name gives way, whole in its title. */}
+              <span className="flex min-w-0 max-w-[60%] items-center gap-1.5 body-xs text-text-soft">
                 {event.actor ? (
-                  <AddressDisplay address={event.actor} interactive={false} className="body-xs" />
+                  <AddressDisplay
+                    address={event.actor}
+                    interactive={false}
+                    className="min-w-0 truncate body-xs"
+                  />
                 ) : null}
                 {event.actor ? <span aria-hidden="true">·</span> : null}
-                <span>{formatUnixDate(event.timestamp, locale, "")}</span>
+                <span className="shrink-0">{formatUnixDate(event.timestamp, locale, "")}</span>
               </span>
             </li>
           ))}
