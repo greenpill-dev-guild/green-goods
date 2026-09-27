@@ -56,6 +56,17 @@ export function retainedWorkBroadcastReference(id: string) {
 }
 export function forgetWorkBroadcast(id: string) {
   broadcasts.delete(id);
+  replacements.delete(id);
+}
+
+// A replaced transaction, remembered before its mark is written, so storage
+// that refuses the mark does not leave the send waiting for good this session.
+const replacements = new Set<string>();
+export function rememberTransactionReplaced(id: string) {
+  replacements.add(id);
+}
+export function retainedTransactionReplaced(id: string) {
+  return replacements.has(id);
 }
 
 export { claimWorkJobs } from "./execution-state";

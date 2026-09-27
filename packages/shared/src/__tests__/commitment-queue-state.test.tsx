@@ -103,4 +103,28 @@ describe("useCommitmentQueueState", () => {
     // A creation names no commitment yet, so it is a pending create, not an act.
     expect(result.current.pendingActs.size).toBe(1);
   });
+
+  it("holds Discard back from an act whose send is on record, and says it is confirming", async () => {
+    // The transaction may still land; dropping the job would lose its only
+    // local record, so the row confirms it instead.
+    mocks.getJobs.mockResolvedValue([
+      creation({
+        id: "claim-2",
+        kind: "claim",
+        payload: {
+          commitmentId: 9n,
+          gardenAddress: VIEWER,
+          sendCheckpoint: { broadcastPending: false, transactionHash: `0x${"44".repeat(32)}` },
+        },
+        attempts: 1,
+        lastError: "receipt timeout",
+      }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingActs.has("9")).toBe(true));
+    expect(result.current.pendingActs.get("9")).toMatchObject({
+      discardable: false,
+      waitingReason: "awaiting-confirmation",
+    });
+  });
 });

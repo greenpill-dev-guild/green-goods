@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:d346f20a429b686f76c1cd5978f70e8d119b5146f12a3b5f5db69a8745b38d21"
+source_digest: "sha256:1e57615943bd0d502f77614cadfce6686bb9714a40f0f64c9be7ba7ecbae733a"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -260,7 +260,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-ROLE-002` | Transaction | Work | Reject pending work with reason on iOS | Screen recording plus account role |
 | `PWA-ROLE-003` | Journey | Work | Insufficient-role user cannot approve or reject on iOS | Screenshot plus account role |
 
-### P1 (65) {#pwa-p1}
+### P1 (66) {#pwa-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -317,6 +317,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-121` | Data integrity | Commitments | The screen updates by itself once a queued act lands | Screen recording from the press to the updated band |
 | `PWA-123` | Journey | Commitments | A signed-in visitor reads a commitment and is shown how to join, not an act | Screenshot of the card |
 | `PWA-125` | Transaction | Commitments | A parked act says why it waits and can be sent or dropped from the commitment | Screenshot of the row and of the screen after Send Now |
+| `PWA-126` | Transaction | Commitments | A take-up whose confirmation is lost waits as sent, and is never dropped or sent twice | Screenshot of the row while offline and of the screen after Check Again |
 | `PWA-AND-005` | Accessibility | App-wide | Keyboard and drawer layout remain usable on Android | Screenshots |
 | `PWA-AND-008` | Data integrity | Work | [Android] Gallery image survives the submission draft and replacement | Screenshot before and after reopen |
 | `PWA-IOS-005` | Data integrity | Work | [iOS] HEIC or library image survives submission draft | Screenshot before and after reopen |

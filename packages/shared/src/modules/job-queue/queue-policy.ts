@@ -33,7 +33,38 @@ export function isWaitingReprobeThrottled(job: Job, now: number = Date.now()): b
 const SEND_RECORDS: Record<string, { field: string; keepsOtherState?: boolean }> = {
   work: { field: "uploadCheckpoint", keepsOtherState: true },
   approval: { field: "sendCheckpoint" },
+  // Commitment acts. The two creations keep their `submittedTxHash` path.
+  claim: { field: "sendCheckpoint" },
+  evidence: { field: "sendCheckpoint" },
+  workLink: { field: "sendCheckpoint" },
+  confirmation: { field: "sendCheckpoint" },
 };
+
+/**
+ * Whether the tap that finds a lost send never landed also sends it again.
+ * Work and decisions do, since their button says Send. A commitment act's says
+ * Check Again, so the act only reopens, and the person reads why before sending.
+ */
+export function sendsOnReopen(kind: string): boolean {
+  return kind === "work" || kind === "approval";
+}
+
+/** Whether this kind records each send, so a send on record is settled rather than sent again. */
+export function recordsSends(kind: string): boolean {
+  return Object.prototype.hasOwnProperty.call(SEND_RECORDS, kind);
+}
+
+/**
+ * A job's payload without its send record. The record is the queue's, not the
+ * act's: two records of the same act compare equal whether or not one of them
+ * has been sent.
+ */
+export function payloadWithoutSendRecord(job: Pick<Job, "kind" | "payload">): unknown {
+  const record = SEND_RECORDS[job.kind];
+  if (!record || !job.payload || typeof job.payload !== "object") return job.payload;
+  const { [record.field]: _sent, ...rest } = job.payload as Record<string, unknown>;
+  return rest;
+}
 
 /** What a job recorded about reaching the network while it was sent. */
 export function sendCheckpointOf(job: Pick<Job, "kind" | "payload">): SendCheckpoint | undefined {
@@ -57,7 +88,11 @@ export function writeSendCheckpoint(job: Job, send: SendCheckpoint | undefined):
     broadcast: _broadcast,
     broadcastPending: _pending,
     broadcastPendingAt: _pendingAt,
+    intentBlock: _block,
+    intentChainTime: _chainTime,
+    intentNonce: _nonce,
     transactionHash: _hash,
+    transactionReplaced: _replaced,
     ...rest
   } = (payload[record.field] ?? {}) as Record<string, unknown>;
   if (!send && (!record.keepsOtherState || payload[record.field] === undefined)) {
