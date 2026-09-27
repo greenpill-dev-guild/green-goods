@@ -10,12 +10,12 @@ import {
 } from "@wagmi/core";
 import { decodeEventLog, keccak256, toBytes, type Hex } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
-import { createPimlicoClientForChain } from "../../config/pimlico";
 import type { CommitmentJobExecutionDependencies } from "../commitment-pooling/jobs";
 import type { Address } from "../../types/domain";
 import { CommitmentPoolingModuleABI, GardenAccountABI } from "../../utils/blockchain/contracts";
 import { GARDEN_ROLE_FUNCTIONS } from "../../utils/blockchain/garden-roles";
 import { logger } from "../app/logger";
+import { createSendChainReads, type SendChainReads } from "./send-chain-reads";
 
 export type CommitmentChainReads = Pick<
   CommitmentJobExecutionDependencies,
@@ -28,70 +28,44 @@ export type CommitmentChainReads = Pick<
   | "readWorkLinkPayloadHash"
   | "readWorkLinkCommitmentState"
   | "hasMembership"
-> & {
-  /**
-   * Runs an act's call without sending it. A wallet estimates inside its own
-   * send, after the queue records the intent, so a refusal found there would
-   * read as a send that may have gone out; asking first keeps it a refusal.
-   */
-  simulateSend?: (call: {
-    address: Address;
-    functionName: string;
-    args: readonly unknown[];
-    account: Address;
-    chainId: number;
-  }) => Promise<void>;
-  /**
-   * Whether this transaction's receipt holds the module's WorkLinked event for
-   * this link, made by this caller's operation key. The event carries the key,
-   * so it names the one link, where a row's time or position may not.
-   */
-  transactionMadeWorkLink?: (
-    transactionHash: Hex,
-    link: { commitmentId: bigint; workUID: Hex; operationKey: Hex; linker: Address }
-  ) => Promise<boolean>;
-  /**
-   * Whether the account has a transaction the network holds but has not mined:
-   * its pending nonce is ahead of its mined one. A send whose answer was lost
-   * after the network took it may be that transaction.
-   */
-  hasPendingTransaction?: (account: Address) => Promise<boolean>;
-  /**
-   * The nonce this transaction used, while the network holds it; null once it
-   * does not. The account's next nonce before a prompt is only a floor.
-   */
-  readTransactionNonce?: (hash: Hex) => Promise<number | null>;
-  /**
-   * Whether this transaction can never be included because another took its
-   * nonce: the account has no code, so the hash is a transaction it signed; the
-   * network no longer holds it; and the account's mined nonce has passed the
-   * one it was due to use. A Safe's id, or a send from any account with code,
-   * never reads as superseded.
-   */
-  transactionSuperseded?: (hash: Hex, account: Address, nonce: number) => Promise<boolean>;
-  /** The chain's latest block and its time, in seconds. */
-  readChainHead?: () => Promise<{ number: bigint; timestamp: number }>;
-  /**
-   * The block of this transaction when its receipt holds this take-up's own
-   * event, its request or its acceptance, matched whole; null otherwise.
-   */
-  transactionMadeClaim?: (
-    transactionHash: Hex,
-    claim: {
-      commitmentId: bigint;
-      claimant: Address;
-      requestedBy: Address;
-      kind: number;
-      gardenContext: Address;
-    }
-  ) => Promise<bigint | null>;
-  /**
-   * Whether the bundler may still land this UserOperation: every status but one
-   * it never held (`not_found`) or refused (`rejected`). A passkey send's
-   * pending state lives there, not in the account's nonce.
-   */
-  userOperationMayLand?: (hash: Hex) => Promise<boolean>;
-};
+> &
+  SendChainReads & {
+    /**
+     * Runs an act's call without sending it. A wallet estimates inside its own
+     * send, after the queue records the intent, so a refusal found there would
+     * read as a send that may have gone out; asking first keeps it a refusal.
+     */
+    simulateSend?: (call: {
+      address: Address;
+      functionName: string;
+      args: readonly unknown[];
+      account: Address;
+      chainId: number;
+    }) => Promise<void>;
+    /**
+     * Whether this transaction's receipt holds the module's WorkLinked event for
+     * this link, made by this caller's operation key. The event carries the key,
+     * so it names the one link, where a row's time or position may not.
+     */
+    transactionMadeWorkLink?: (
+      transactionHash: Hex,
+      link: { commitmentId: bigint; workUID: Hex; operationKey: Hex; linker: Address }
+    ) => Promise<boolean>;
+    /**
+     * The block of this transaction when its receipt holds this take-up's own
+     * event, its request or its acceptance, matched whole; null otherwise.
+     */
+    transactionMadeClaim?: (
+      transactionHash: Hex,
+      claim: {
+        commitmentId: bigint;
+        claimant: Address;
+        requestedBy: Address;
+        kind: number;
+        gardenContext: Address;
+      }
+    ) => Promise<bigint | null>;
+  };
 
 const sameHex = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
 
@@ -120,13 +94,21 @@ export function createCommitmentChainReads({
   getTransaction = wagmiGetTransaction,
   getTransactionCount = wagmiGetTransactionCount,
   getTransactionReceipt = wagmiGetTransactionReceipt,
-  getUserOperationStatus = (hash) =>
-    createPimlicoClientForChain(chainId).getUserOperationStatus({ hash }),
+  getUserOperationStatus,
   config,
 }: CommitmentChainReadOptions): CommitmentChainReads {
   const wagmiConfig = config ?? getWagmiConfig();
 
   return {
+    ...createSendChainReads({
+      chainId,
+      getBlock,
+      getBytecode,
+      getTransaction,
+      getTransactionCount,
+      getUserOperationStatus,
+      config: wagmiConfig,
+    }),
     readSeriesId: async (holder, key) =>
       (await readContract(wagmiConfig, {
         address: moduleAddress,
@@ -240,10 +222,6 @@ export function createCommitmentChainReads({
         }
       });
     },
-    readChainHead: async () => {
-      const head = await getBlock(wagmiConfig, { chainId });
-      return { number: head.number, timestamp: Number(head.timestamp) };
-    },
     transactionMadeClaim: async (transactionHash, claim) => {
       const receipt = await getTransactionReceipt(wagmiConfig, { hash: transactionHash, chainId });
       if (receipt.status !== "success") return null;
@@ -276,41 +254,6 @@ export function createCommitmentChainReads({
         }
       });
       return madeIt ? receipt.blockNumber : null;
-    },
-    userOperationMayLand: async (hash) => {
-      const { status } = await getUserOperationStatus(hash);
-      return status !== "not_found" && status !== "rejected";
-    },
-    hasPendingTransaction: async (account) => {
-      const [pending, mined] = await Promise.all([
-        getTransactionCount(wagmiConfig, { address: account, blockTag: "pending", chainId }),
-        getTransactionCount(wagmiConfig, { address: account, blockTag: "latest", chainId }),
-      ]);
-      return pending > mined;
-    },
-    readTransactionNonce: (hash) =>
-      getTransaction(wagmiConfig, { hash, chainId }).then(
-        (transaction) => transaction.nonce,
-        (error: unknown) => {
-          // Only the node's own "no such transaction" says it no longer holds it.
-          if (error instanceof Error && error.name === "TransactionNotFoundError") return null;
-          throw error;
-        }
-      ),
-    transactionSuperseded: async (hash, account, nonce) => {
-      const [code, mined, held] = await Promise.all([
-        getBytecode(wagmiConfig, { address: account, chainId }),
-        getTransactionCount(wagmiConfig, { address: account, blockTag: "latest", chainId }),
-        getTransaction(wagmiConfig, { hash, chainId }).then(
-          () => true,
-          (error: unknown) => {
-            // Only the node's own "no such transaction" says it dropped this one.
-            if (error instanceof Error && error.name === "TransactionNotFoundError") return false;
-            throw error;
-          }
-        ),
-      ]);
-      return (!code || code === "0x") && !held && mined > nonce;
     },
     hasMembership: async (garden, account) => {
       const results = await Promise.all(

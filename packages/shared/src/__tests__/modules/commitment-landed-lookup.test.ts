@@ -316,6 +316,33 @@ describe("createCommitmentLandedLookup", () => {
     });
   });
 
+  it("reads how far the indexer has processed before it reads the log", async () => {
+    // A trailing indexer's next batch carries the act's row and moves it past
+    // the window. It lands right after the lookup's first read: a log read
+    // first misses the row, and a processed block read after it covers it.
+    const createdS = CREATED_MS / 1000;
+    const graceS = STRANDED_INTENT_GRACE_MS / 1000;
+    let landed = false;
+    const firstRead = <T>(value: T) => {
+      landed = true;
+      return value;
+    };
+    const lookup = createCommitmentLandedLookup({
+      readWorkLinkPayloadHash: vi.fn(),
+      activity: vi.fn(async () => firstRead(landed ? [row("CONFIRMATION_RECORDED", CALLER)] : [])),
+      readIndexedBlock: vi.fn(async () => firstRead(landed ? 120n : 99n)),
+      readBlockTime: vi.fn(async (_chainId: number, block?: bigint) =>
+        block === undefined ? NOW_MS / 1000 : createdS + graceS + (block === 120n ? 60 : -60)
+      ),
+      now: () => NOW_MS,
+    });
+
+    await expect(lookup({ job: confirm, chainId: 42161, sinceMs: SINCE_MS })).resolves.toEqual({
+      status: "found",
+      transactionHash: TX,
+    });
+  });
+
   it("pages through a busy window, and says unknown when the window outruns the pages it reads", async () => {
     await expect(
       lookUp(confirm, [...busyRows(200), row("CONFIRMATION_RECORDED", CALLER)])

@@ -3,15 +3,17 @@
  *
  * A send intent is recorded just before a send can reach the network. When
  * its answer is lost (a wallet that never replied, a UserOperation no bundler
- * reports), no receipt can settle it and the job would wait forever. The
- * person's own attestations can settle it: landed work carries its client work
- * id in its metadata, and a landed decision names the work it decides. A
- * commitment act is settled by a lookup its executor supplies, which reads the
- * pool's event log and the module's own records. That lookup also settles an
- * act whose transaction no receipt answers, such as a Safe's own id, by its
- * landing. Such a send reopens only once it can never be included: the wallet
- * saw it replaced, or another transaction took its nonce, which a Safe's id
- * never shows.
+ * reports), or its reference is one no receipt answers (a Safe's own
+ * transaction id), no receipt can settle it and the job would wait forever.
+ * What the chain recorded settles it instead, through a lookup the executor
+ * supplies: the person's own attestations for work and decisions, and the
+ * pool's event log and the module's own records for a commitment act.
+ *
+ * A landing completes the job. An intent still absent well after the send
+ * reopens it. A transaction on record reopens only once it can never be
+ * included: the wallet saw it replaced, or another transaction took its nonce,
+ * which a Safe's id never shows. Nothing reopens while a tab, the account or
+ * the bundler may still send it.
  *
  * @module modules/work/stranded-intent
  */
@@ -25,9 +27,8 @@ import type {
   WorkJobPayload,
 } from "../../types/job-queue";
 import { logger } from "../app/logger";
-import { resolveDeferredWorkIdentity } from "../commitment-pooling/work-identity";
-import { getWorkDecisionsSince, getWorkSubmissionsSince } from "../data/eas-sent-attestations";
 import { jobQueueDB } from "../job-queue/db";
+import { writeSendCheckpoint } from "../job-queue/queue-policy";
 import {
   AwaitingWorkConfirmation,
   forgetWorkBroadcast,
@@ -46,27 +47,48 @@ const CLOCK_DRIFT_MS = 24 * 60 * 60_000;
 type LookupResult = { status: "found"; transactionHash: Hex } | { status: "absent" | "unknown" };
 export type StrandedLookupResult = LookupResult;
 
-export type StrandedWorkLookup = (input: {
-  clientWorkId: string;
-  chainId: number;
-  garden: Address;
-  caller: Address;
+/** Where a lookup reads from, and when the send's intent was recorded, on the device's clock. */
+interface LookupWindow {
   sinceMs: number;
-}) => Promise<LookupResult>;
+  sentAtMs: number;
+}
 
-export type StrandedDecisionLookup = (input: {
-  workUID: string;
-  approved: boolean;
-  chainId: number;
-  steward: Address;
-  sinceMs: number;
-}) => Promise<LookupResult>;
+export type StrandedWorkLookup = (
+  input: {
+    clientWorkId: string;
+    chainId: number;
+    garden: Address;
+    caller: Address;
+  } & LookupWindow
+) => Promise<LookupResult>;
+
+export type StrandedDecisionLookup = (
+  input: {
+    workUID: string;
+    approved: boolean;
+    chainId: number;
+    steward: Address;
+  } & LookupWindow
+) => Promise<LookupResult>;
 
 export interface StrandedIntentDependencies<Lookup, Payload> {
   now: () => number;
   lookUp: Lookup;
   persist: (job: Job<Payload>) => Promise<void>;
+  /** Whether a tab, the account or the bundler may still send it: nothing reopens while one may. */
+  stillSending: () => Promise<boolean>;
+  /**
+   * Whether its transaction can never be included because another took its
+   * nonce. Without it, a transaction on record reopens only when the wallet
+   * saw it replaced.
+   */
+  transactionSuperseded: () => Promise<boolean>;
 }
+
+/** A lookup is always supplied; the clock, the store and the guards may be. */
+export type StrandedSendDependencies<Lookup, Payload> = Partial<
+  Omit<StrandedIntentDependencies<Lookup, Payload>, "lookUp">
+> & { lookUp: Lookup };
 
 export type StrandedIntentResolution =
   | { status: "landed"; transactionHash: Hex }
@@ -94,61 +116,20 @@ export function isStrandedIntentCandidate(checkpoint?: SendCheckpoint): boolean 
   return checkpoint.broadcastPending === true;
 }
 
-const lookUpLandedWork: StrandedWorkLookup = async ({ sinceMs, ...input }) => {
-  const transactionHashes = new Map<string, Hex | undefined>();
-  const identity = await resolveDeferredWorkIdentity({
-    ...input,
-    dependencies: {
-      getWorksByGardener: async () => {
-        const submissions = await getWorkSubmissionsSince({
-          attester: input.caller,
-          garden: input.garden,
-          chainId: input.chainId,
-          sinceSeconds: sinceMs / 1000,
-        });
-        for (const { work, transactionHash } of submissions)
-          transactionHashes.set(work.id.toLowerCase(), transactionHash);
-        return submissions.map(({ work }) => work);
-      },
-    },
-  });
-  if (identity.status === "waiting") return { status: "absent" };
-  // A failed metadata read or a duplicate identity proves nothing either way.
-  if (identity.status !== "resolved") return { status: "unknown" };
-  const transactionHash = transactionHashes.get(identity.workUID.toLowerCase());
-  return transactionHash ? { status: "found", transactionHash } : { status: "unknown" };
-};
-
-const lookUpLandedDecision: StrandedDecisionLookup = async ({ sinceMs, steward, ...input }) => {
-  const decisions = await getWorkDecisionsSince({
-    attester: steward,
-    workUID: input.workUID,
-    chainId: input.chainId,
-    sinceSeconds: sinceMs / 1000,
-  });
-  // The resolver accepts a repeated decision, so the same decision on the same
-  // work from the same steward counts as this one: completing it beats sending twice.
-  const landed = decisions.find(({ decision }) => decision.approved === input.approved);
-  if (!landed) return { status: "absent" };
-  return landed.transactionHash
-    ? { status: "found", transactionHash: landed.transactionHash }
-    : { status: "unknown" };
-};
-
 /**
- * Settle an intent no receipt can: complete it when its attestation landed,
- * reopen it when the attestation is still absent well after the send, or keep
- * waiting. Only an absence the indexer confirms reopens a job.
+ * Settle an intent no receipt can: complete it when it landed, reopen it when
+ * it is still absent well after the send, or keep waiting. Only an absence the
+ * lookup confirms reopens a job.
  */
 async function resolveStrandedSend(send: {
   jobId: string;
   createdAt: number;
   checkpoint: SendCheckpoint;
   now: number;
-  lookUp: (sinceMs: number) => Promise<LookupResult>;
+  lookUp: (window: LookupWindow) => Promise<LookupResult>;
   /** Clears the intent so the job may be sent again. Absent, nothing reopens the send. */
   reopen?: () => void;
-  /** Whether a tab still holds the send, so its wallet prompt may yet send it. */
+  /** Whether the send may still land, so a wallet prompt or the network may yet send it. */
   stillSending?: () => Promise<boolean>;
   persist: () => Promise<void>;
 }): Promise<StrandedIntentResolution> {
@@ -168,7 +149,10 @@ async function resolveStrandedSend(send: {
 
   let lookup: LookupResult;
   try {
-    lookup = await send.lookUp(Math.min(recordedAt, send.createdAt) - CLOCK_DRIFT_MS);
+    lookup = await send.lookUp({
+      sinceMs: Math.min(recordedAt, send.createdAt) - CLOCK_DRIFT_MS,
+      sentAtMs: recordedAt,
+    });
   } catch (error) {
     logger.warn("[StrandedIntent] Could not check whether a queued send landed", {
       jobId,
@@ -192,101 +176,21 @@ async function resolveStrandedSend(send: {
   return { status: "reopened" };
 }
 
-export async function resolveStrandedWorkIntent(
-  job: Job<WorkJobPayload>,
-  chainId: number,
-  deps: Partial<StrandedIntentDependencies<StrandedWorkLookup, WorkJobPayload>> = {}
-): Promise<StrandedIntentResolution> {
-  const checkpoint = job.payload.uploadCheckpoint;
-  const clientWorkId = job.payload.clientWorkId;
-  if (!checkpoint || !clientWorkId || !isStrandedIntentCandidate(checkpoint))
-    return { status: "waiting" };
-  const persist = deps.persist ?? persistJob;
-  return resolveStrandedSend({
-    jobId: job.id,
-    createdAt: job.createdAt,
-    checkpoint,
-    now: deps.now?.() ?? Date.now(),
-    lookUp: (sinceMs) =>
-      (deps.lookUp ?? lookUpLandedWork)({
-        clientWorkId,
-        chainId,
-        garden: job.payload.gardenAddress as Address,
-        caller: job.userAddress as Address,
-        sinceMs,
-      }),
-    // Work waits for the person's Send, so a reopened send never prompts on its own.
-    reopen: () => {
-      delete checkpoint.broadcastPending;
-      delete checkpoint.broadcastPendingAt;
-      delete checkpoint.broadcast;
-      job.meta = { ...job.meta, requiresExplicitSend: true };
-    },
-    persist: () => persist(job),
-  });
-}
-
-export async function resolveStrandedDecisionIntent(
-  job: Job<ApprovalJobPayload>,
-  chainId: number,
-  deps: Partial<StrandedIntentDependencies<StrandedDecisionLookup, ApprovalJobPayload>> = {}
-): Promise<StrandedIntentResolution> {
-  const checkpoint = job.payload.sendCheckpoint;
-  if (!checkpoint || !isStrandedIntentCandidate(checkpoint)) return { status: "waiting" };
-  const persist = deps.persist ?? persistJob;
-  return resolveStrandedSend({
-    jobId: job.id,
-    createdAt: job.createdAt,
-    checkpoint,
-    now: deps.now?.() ?? Date.now(),
-    lookUp: (sinceMs) =>
-      (deps.lookUp ?? lookUpLandedDecision)({
-        workUID: job.payload.workUID,
-        approved: job.payload.approved,
-        chainId,
-        steward: job.userAddress as Address,
-        sinceMs,
-      }),
-    // A reopened decision goes back to waiting for Upload all, which is the
-    // only thing that sends it, so it needs no flag of its own.
-    reopen: () => {
-      delete job.payload.sendCheckpoint;
-    },
-    persist: () => persist(job),
-  });
-}
-
-/** Whether a commitment act's lost send reached the chain after `sinceMs`. */
-export type StrandedCommitmentLookup = (input: {
-  job: Job;
-  chainId: number;
-  sinceMs: number;
-}) => Promise<LookupResult>;
-
-type CommitmentPayloadWithRecord = { sendCheckpoint?: SendCheckpoint };
-
-export async function resolveStrandedCommitmentIntent(
-  job: Job,
-  chainId: number,
-  deps: Partial<Omit<StrandedIntentDependencies<StrandedCommitmentLookup, unknown>, "lookUp">> & {
-    lookUp: StrandedCommitmentLookup;
-    /** Whether a tab still holds the act's send: its prompt may yet send it. */
-    stillSending?: () => Promise<boolean>;
-    /**
-     * Whether the act's transaction can never be included because another took
-     * its nonce. Without it, a transaction on record reopens only when the
-     * wallet saw it replaced.
-     */
-    transactionSuperseded?: () => Promise<boolean>;
-  }
-): Promise<StrandedIntentResolution> {
-  const payload = job.payload as CommitmentPayloadWithRecord;
-  const checkpoint = payload.sendCheckpoint;
-  // A transaction no receipt answers is looked up as well, since a Safe's own
-  // id never produces one. Its landing completes the act. Its absence alone
-  // never reopens it, because the Safe may still be collecting signatures: only
-  // proof it can never be included does, a replacement the wallet saw or
-  // another transaction on its nonce.
+/**
+ * Settle a job's send on record, whatever its kind. A transaction no receipt
+ * answers, such as a Safe's own id, is looked up as well: its landing completes
+ * the job. Its absence alone never reopens it, because the Safe may still be
+ * collecting signatures: only proof it can never be included does, a
+ * replacement the wallet saw or another transaction on its nonce.
+ */
+async function resolveRecordedSend<Payload>(input: {
+  job: Job<Payload>;
+  checkpoint: SendCheckpoint | undefined;
+  lookUp: (window: LookupWindow) => Promise<LookupResult>;
+  reopen: () => void;
+  deps: Omit<StrandedSendDependencies<unknown, Payload>, "lookUp">;
+}): Promise<StrandedIntentResolution> {
+  const { job, checkpoint, deps } = input;
   const persist = deps.persist ?? persistJob;
   if (checkpoint && !checkpoint.transactionReplaced && retainedTransactionReplaced(job.id)) {
     // Storage refused the mark when the wallet saw the replacement: write it
@@ -312,19 +216,94 @@ export async function resolveStrandedCommitmentIntent(
     createdAt: job.createdAt,
     checkpoint,
     now: deps.now?.() ?? Date.now(),
-    lookUp: (sinceMs) => deps.lookUp({ job, chainId, sinceMs }),
-    // A reopened act waits for the person's Send Now: the commitment may have
-    // moved on while its send was lost, so nothing sends it on its own.
-    reopen: reopenable
-      ? () => {
-          delete payload.sendCheckpoint;
-          job.meta = { ...job.meta, requiresExplicitSend: true };
-        }
-      : undefined,
+    lookUp: input.lookUp,
+    reopen: reopenable ? input.reopen : undefined,
     // A transaction on record may still land until another takes its nonce.
     stillSending: async () =>
       Boolean(await deps.stillSending?.()) || (onRecord && !(await superseded?.())),
     persist: () => persist(job),
+  });
+}
+
+export async function resolveStrandedWorkIntent(
+  job: Job<WorkJobPayload>,
+  chainId: number,
+  deps: StrandedSendDependencies<StrandedWorkLookup, WorkJobPayload>
+): Promise<StrandedIntentResolution> {
+  const clientWorkId = job.payload.clientWorkId;
+  if (!clientWorkId) return { status: "waiting" };
+  return resolveRecordedSend({
+    job,
+    checkpoint: job.payload.uploadCheckpoint,
+    lookUp: (window) =>
+      deps.lookUp({
+        clientWorkId,
+        chainId,
+        garden: job.payload.gardenAddress as Address,
+        caller: job.userAddress as Address,
+        ...window,
+      }),
+    // Work waits for the person's Send, so a reopened send never prompts on its
+    // own. Its uploads stay: sending again only needs a new call.
+    reopen: () => {
+      writeSendCheckpoint(job, undefined);
+      job.meta = { ...job.meta, requiresExplicitSend: true };
+    },
+    deps,
+  });
+}
+
+export async function resolveStrandedDecisionIntent(
+  job: Job<ApprovalJobPayload>,
+  chainId: number,
+  deps: StrandedSendDependencies<StrandedDecisionLookup, ApprovalJobPayload>
+): Promise<StrandedIntentResolution> {
+  return resolveRecordedSend({
+    job,
+    checkpoint: job.payload.sendCheckpoint,
+    lookUp: (window) =>
+      deps.lookUp({
+        workUID: job.payload.workUID,
+        approved: job.payload.approved,
+        chainId,
+        steward: job.userAddress as Address,
+        ...window,
+      }),
+    // A reopened decision goes back to waiting for Upload all, which is the
+    // only thing that sends it, so it needs no flag of its own.
+    reopen: () => {
+      delete job.payload.sendCheckpoint;
+    },
+    deps,
+  });
+}
+
+/** Whether a commitment act's lost send reached the chain after `sinceMs`. */
+export type StrandedCommitmentLookup = (input: {
+  job: Job;
+  chainId: number;
+  sinceMs: number;
+}) => Promise<LookupResult>;
+
+type CommitmentPayloadWithRecord = { sendCheckpoint?: SendCheckpoint };
+
+export async function resolveStrandedCommitmentIntent(
+  job: Job,
+  chainId: number,
+  deps: StrandedSendDependencies<StrandedCommitmentLookup, unknown>
+): Promise<StrandedIntentResolution> {
+  const payload = job.payload as CommitmentPayloadWithRecord;
+  return resolveRecordedSend({
+    job,
+    checkpoint: payload.sendCheckpoint,
+    lookUp: ({ sinceMs }) => deps.lookUp({ job, chainId, sinceMs }),
+    // A reopened act waits for the person's Send Now: the commitment may have
+    // moved on while its send was lost, so nothing sends it on its own.
+    reopen: () => {
+      delete payload.sendCheckpoint;
+      job.meta = { ...job.meta, requiresExplicitSend: true };
+    },
+    deps,
   });
 }
 
@@ -342,8 +321,8 @@ async function settle(
 export function settleStrandedWorkIntent(
   job: Job<WorkJobPayload>,
   chainId: number,
-  pendingHash: Hex = "0x",
-  deps: Partial<StrandedIntentDependencies<StrandedWorkLookup, WorkJobPayload>> = {}
+  pendingHash: Hex,
+  deps: StrandedSendDependencies<StrandedWorkLookup, WorkJobPayload>
 ): Promise<Hex> {
   return settle(resolveStrandedWorkIntent(job, chainId, deps), pendingHash);
 }
@@ -352,8 +331,8 @@ export function settleStrandedWorkIntent(
 export function settleStrandedDecisionIntent(
   job: Job<ApprovalJobPayload>,
   chainId: number,
-  pendingHash: Hex = "0x",
-  deps: Partial<StrandedIntentDependencies<StrandedDecisionLookup, ApprovalJobPayload>> = {}
+  pendingHash: Hex,
+  deps: StrandedSendDependencies<StrandedDecisionLookup, ApprovalJobPayload>
 ): Promise<Hex> {
   return settle(resolveStrandedDecisionIntent(job, chainId, deps), pendingHash);
 }
@@ -363,7 +342,7 @@ export function settleStrandedCommitmentIntent(
   job: Job,
   chainId: number,
   pendingHash: Hex,
-  deps: Parameters<typeof resolveStrandedCommitmentIntent>[2]
+  deps: StrandedSendDependencies<StrandedCommitmentLookup, unknown>
 ): Promise<Hex> {
   return settle(resolveStrandedCommitmentIntent(job, chainId, deps), pendingHash);
 }

@@ -1,0 +1,128 @@
+/**
+ * Whether a work or a decision whose send lost its answer reached the chain
+ *
+ * A work carries its client work id in its metadata, and a decision names the
+ * work it decides, so the person's own attestations, as EAS's indexer holds
+ * them, settle a send no receipt can. "Found" needs the landed attestation.
+ * "Absent" needs more than an empty answer: EAS must have processed a block,
+ * timed on the chain itself, past the send's grace window (`indexer-coverage`).
+ * EAS writes a block range's attestations before it moves its processed block,
+ * so that block is read first. Short of that the answer is "unknown", which
+ * keeps the send waiting.
+ *
+ * @module modules/work/eas-landed-lookup
+ */
+
+import type { Hex } from "viem";
+import { logger } from "../app/logger";
+import { resolveDeferredWorkIdentity } from "../commitment-pooling/work-identity";
+import {
+  getEasIndexedBlock,
+  getWorkDecisionsSince,
+  getWorkSubmissionsSince,
+} from "../data/eas-sent-attestations";
+import { chainBlockTime, indexedPastGraceWindow, type ReadBlockTime } from "./indexer-coverage";
+import {
+  STRANDED_INTENT_GRACE_MS,
+  type StrandedDecisionLookup,
+  type StrandedLookupResult,
+  type StrandedWorkLookup,
+} from "./stranded-intent";
+
+interface EasLookupDependencies {
+  submissions?: typeof getWorkSubmissionsSince;
+  decisions?: typeof getWorkDecisionsSince;
+  /** The last block EAS's indexer processed on a chain, or null when it cannot say. */
+  readIndexedBlock?: (chainId: number) => Promise<bigint | null>;
+  readBlockTime?: ReadBlockTime;
+  now?: () => number;
+}
+
+export interface EasLandedLookup {
+  work: StrandedWorkLookup;
+  decision: StrandedDecisionLookup;
+}
+
+export function createEasLandedLookup(deps: EasLookupDependencies = {}): EasLandedLookup {
+  // Each read is found when a lookup runs it, so a work's lookup never needs the decisions'.
+  const submissions: typeof getWorkSubmissionsSince = (input) =>
+    (deps.submissions ?? getWorkSubmissionsSince)(input);
+  const decisions: typeof getWorkDecisionsSince = (input) =>
+    (deps.decisions ?? getWorkDecisionsSince)(input);
+  const readIndexedBlock = deps.readIndexedBlock ?? ((chainId) => getEasIndexedBlock(chainId));
+  const readBlockTime = deps.readBlockTime ?? chainBlockTime;
+  const now = deps.now ?? Date.now;
+
+  /** How far EAS has indexed, read before any attestation; null when it cannot say. */
+  async function indexedBlock(chainId: number): Promise<bigint | null> {
+    try {
+      return await readIndexedBlock(chainId);
+    } catch (error) {
+      logger.warn("[StrandedIntent] Could not read how far EAS has indexed", { chainId, error });
+      return null;
+    }
+  }
+
+  /** An empty answer proves absence only once EAS has processed past the grace window. */
+  async function absentOnceCovered(
+    chainId: number,
+    indexed: bigint | null,
+    sentAtMs: number
+  ): Promise<StrandedLookupResult> {
+    if (indexed === null || now() - sentAtMs < STRANDED_INTENT_GRACE_MS)
+      return { status: "unknown" };
+    const covered = await indexedPastGraceWindow({
+      chainId,
+      indexedBlock: indexed,
+      sentAtMs,
+      readBlockTime,
+      now,
+    });
+    return covered ? { status: "absent" } : { status: "unknown" };
+  }
+
+  const work: StrandedWorkLookup = async ({ sinceMs, sentAtMs, ...input }) => {
+    const indexed = await indexedBlock(input.chainId);
+    const transactionHashes = new Map<string, Hex | undefined>();
+    const identity = await resolveDeferredWorkIdentity({
+      ...input,
+      dependencies: {
+        getWorksByGardener: async () => {
+          const sent = await submissions({
+            attester: input.caller,
+            garden: input.garden,
+            chainId: input.chainId,
+            sinceSeconds: sinceMs / 1000,
+          });
+          for (const { work: landed, transactionHash } of sent)
+            transactionHashes.set(landed.id.toLowerCase(), transactionHash);
+          return sent.map(({ work: landed }) => landed);
+        },
+      },
+    });
+    if (identity.status === "waiting") return absentOnceCovered(input.chainId, indexed, sentAtMs);
+    // A failed metadata read or a duplicate identity proves nothing either way.
+    if (identity.status !== "resolved") return { status: "unknown" };
+    const transactionHash = transactionHashes.get(identity.workUID.toLowerCase());
+    return transactionHash ? { status: "found", transactionHash } : { status: "unknown" };
+  };
+
+  const decision: StrandedDecisionLookup = async ({ sinceMs, sentAtMs, steward, ...input }) => {
+    const indexed = await indexedBlock(input.chainId);
+    const sent = await decisions({
+      attester: steward,
+      workUID: input.workUID,
+      chainId: input.chainId,
+      sinceSeconds: sinceMs / 1000,
+    });
+    // The resolver accepts a repeated decision, so the same decision on the same
+    // work from the same steward counts as this one: completing it beats sending twice.
+    const landed = sent.find(({ decision: made }) => made.approved === input.approved);
+    if (!landed) return absentOnceCovered(input.chainId, indexed, sentAtMs);
+    return landed.transactionHash
+      ? { status: "found", transactionHash: landed.transactionHash }
+      : { status: "unknown" };
+  };
+
+  return { work, decision };
+}
