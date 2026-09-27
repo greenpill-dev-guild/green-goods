@@ -60,6 +60,7 @@ export type {
   CommitmentFailureReason,
   CommitmentQueueState,
   FailedCommitmentJob,
+  PendingCommitmentAct,
   PendingCommitmentCreation,
 } from "./useCommitmentQueueState";
 export { useCommitmentQueueState } from "./useCommitmentQueueState";

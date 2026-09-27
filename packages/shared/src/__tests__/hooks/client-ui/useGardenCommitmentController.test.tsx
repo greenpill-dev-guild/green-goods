@@ -77,6 +77,7 @@ const mocks = vi.hoisted(() => ({
     failedCount: 0,
     failedCommitmentIds: new Set<string>(),
     failedJobs: new Map(),
+    pendingActs: new Map(),
     hasPendingCreate: false,
     pendingCreates: [],
     isUnavailable: false,
@@ -112,13 +113,28 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
 
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
   useActions: () => ({ data: mocks.actions }),
-  useGardens: () => ({ data: mocks.gardens }),
+  useGardens: () => ({ data: mocks.gardens, isSuccess: true, isError: false, refetch: vi.fn() }),
 }));
 
 vi.mock("../../../hooks/roles/useHasRole", () => ({
   useHasRole: (garden: string | undefined, _viewer: string | undefined, role: string) => ({
     hasRole: garden ? (mocks.roleAnswers.get(`${garden.toLowerCase()}:${role}`) ?? false) : false,
     isLoading: false,
+  }),
+}));
+
+vi.mock("../../../hooks/roles/useGardenMembership", () => ({
+  // Mirrors the chain read from the same role answers the useHasRole mock uses:
+  // any role held in a garden is membership there.
+  useGardenMembership: (garden: string | undefined) => ({
+    isMember: garden
+      ? [...mocks.roleAnswers.entries()].some(
+          ([key, held]) => held && key.startsWith(`${garden.toLowerCase()}:`)
+        )
+      : null,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
   }),
 }));
 
@@ -137,7 +153,7 @@ vi.mock("../../../hooks/work/useWorks", () => ({
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
   useCommitment: () => mocks.commitmentQuery,
-  useCommitmentPool: () => ({ pool: mocks.pool }),
+  useCommitmentPool: () => ({ pool: mocks.pool, isError: false, refetch: vi.fn() }),
   useCommitmentClaimRequests: () => ({ claimRequests: mocks.claimRequests }),
   useLinkedWorkUIDs: () => ({ linked: mocks.linked }),
 }));
@@ -191,6 +207,7 @@ beforeEach(() => {
   mocks.queue.pendingCommitmentIds = new Set();
   mocks.queue.failedCommitmentIds = new Set();
   mocks.queue.failedJobs = new Map();
+  mocks.queue.pendingActs = new Map();
   mocks.queue.isUnavailable = false;
   mocks.worksGarden = null;
   mocks.mutationPending = false;
@@ -350,6 +367,7 @@ describe("useGardenCommitmentController", () => {
         reason: "membershipLost",
         retryable: false,
       },
+      pendingAct: null,
       isUnavailable: true,
       refresh: mocks.queue.refresh,
     });
@@ -467,5 +485,151 @@ describe("useGardenCommitmentController", () => {
     );
 
     expect(() => result.current.acts.join()).toThrow("The commitment is not ready");
+  });
+
+  it("offers Take This Up only to a member of the garden pool, and reads a fresh join at once", () => {
+    const offered = commitmentDetailFixture({
+      commitment: commitmentFixture({
+        derivedState: "OFFERED",
+        onchainState: "OFFERED",
+        creator: MARIA,
+        leadProvider: MARIA,
+        claimMode: "OPEN",
+      }),
+      contributors: [],
+    });
+    mocks.commitmentQuery.detail = offered;
+    mocks.pool = poolFixture({ poolType: "GARDEN", garden: DEMO_GARDEN });
+    mocks.roleAnswers = new Map();
+    mocks.gardens = [{ id: DEMO_GARDEN, name: "Host Garden", gardeners: [], stewards: [] }];
+
+    const { result, rerender } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    // A visitor reads the record and is offered nothing; the screen says how to join.
+    expect(result.current.actKind).toBeNull();
+    expect(result.current.membership).toMatchObject({
+      isMember: false,
+      garden: { address: DEMO_GARDEN, name: "Host Garden", openJoining: false },
+      unavailable: false,
+    });
+
+    // The join overlay counts as soon as the join lands, before the roster catches up.
+    window.localStorage.setItem(
+      "greengoods:pending-joins",
+      JSON.stringify({ [DEMO_GARDEN]: { address: TUNDE, timestamp: Date.now() } })
+    );
+    rerender();
+    expect(result.current.actKind).toBe("takeUp");
+    expect(result.current.membership.isMember).toBe(true);
+    window.localStorage.removeItem("greengoods:pending-joins");
+
+    // So does the chain's gardener role when the indexer roster is stale.
+    mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:gardener`, true]]);
+    rerender();
+    expect(result.current.actKind).toBe("takeUp");
+  });
+
+  it("on the protocol pool, offers Take This Up to a member of any other garden and to nobody else", () => {
+    mocks.commitmentQuery.detail = commitmentDetailFixture({
+      commitment: commitmentFixture({
+        derivedState: "OFFERED",
+        onchainState: "OFFERED",
+        creator: MARIA,
+        leadProvider: MARIA,
+        claimMode: "OPEN",
+      }),
+      contributors: [],
+    });
+    mocks.pool = poolFixture({ poolType: "PROTOCOL", garden: DEMO_GARDEN });
+    mocks.roleAnswers = new Map();
+    // Membership in the host garden never counts: the host is not a claim context.
+    mocks.gardens = [
+      { id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] },
+      { id: MARIA, name: "Provider Garden", gardeners: [], stewards: [] },
+    ];
+    const { result, rerender } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    expect(result.current.actKind).toBeNull();
+    expect(result.current.membership).toMatchObject({
+      isMember: false,
+      garden: null,
+      unavailable: false,
+    });
+
+    mocks.gardens = [
+      { id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] },
+      { id: MARIA, name: "Provider Garden", gardeners: [TUNDE], stewards: [] },
+    ];
+    rerender();
+    expect(result.current.actKind).toBe("takeUp");
+    expect(result.current.membership.isMember).toBe(true);
+  });
+
+  it("withholds Take This Up while the pool type is unknown, even from a member", () => {
+    // Guessing "garden" before the pool reads would offer a host member a
+    // personal claim that a protocol pool refuses (GardenClaimMustBeExternal).
+    mocks.commitmentQuery.detail = commitmentDetailFixture({
+      commitment: commitmentFixture({
+        derivedState: "OFFERED",
+        onchainState: "OFFERED",
+        creator: MARIA,
+        leadProvider: MARIA,
+        claimMode: "OPEN",
+      }),
+      contributors: [],
+    });
+    mocks.pool = null;
+    mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:gardener`, true]]);
+    mocks.gardens = [{ id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] }];
+    const { result } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    expect(result.current.actKind).toBeNull();
+    expect(result.current.membership).toMatchObject({ isMember: null, garden: null });
+  });
+
+  it("offers Ask Again only while the reader may still take the commitment up", () => {
+    // The claim panel offers Ask Again beside a declined request. Asking again
+    // is a take-up too, so it needs the same membership.
+    mocks.commitmentQuery.detail = commitmentDetailFixture({
+      commitment: commitmentFixture({
+        derivedState: "OFFERED",
+        onchainState: "OFFERED",
+        creator: MARIA,
+        leadProvider: MARIA,
+        claimMode: "APPROVAL_GATED",
+      }),
+      contributors: [],
+    });
+    mocks.pool = poolFixture({ poolType: "GARDEN", garden: DEMO_GARDEN });
+    mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:gardener`, true]]);
+    mocks.gardens = [{ id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] }];
+    const { result, rerender } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    expect(result.current.canAskAgain).toBe(true);
+
+    // The role was revoked: the chain now says no, whatever the roster still lists.
+    mocks.roleAnswers = new Map();
+    rerender();
+    expect(result.current.canAskAgain).toBe(false);
   });
 });

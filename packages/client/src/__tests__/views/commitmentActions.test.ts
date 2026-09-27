@@ -92,14 +92,28 @@ describe("selectCommitmentAct", () => {
       selectCommitmentAct({
         commitment: { ...base, derivedState: "OFFERED", claimMode: "APPROVAL_GATED" },
         seat: "bystander",
+        isMember: true,
       })?.kind
     ).toBe("askToTakeUp");
     expect(
       selectCommitmentAct({
         commitment: { ...base, derivedState: "OFFERED" },
         seat: "bystander",
+        isMember: true,
       })?.kind
     ).toBe("takeUp");
+  });
+
+  it("offers a visitor nothing to take up, and nothing while membership is still being read", () => {
+    for (const isMember of [false, undefined]) {
+      expect(
+        selectCommitmentAct({
+          commitment: { ...base, derivedState: "OFFERED" },
+          seat: "bystander",
+          isMember,
+        })
+      ).toBeNull();
+    }
   });
 
   it("offers nothing once a commitment has stopped moving", () => {
