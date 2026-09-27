@@ -16,6 +16,7 @@
 
 import type { Hex } from "viem";
 import type { SendCheckpoint } from "../../types/job-queue";
+import { logger } from "../app/logger";
 import {
   type BroadcastReference,
   type ContractCall,
@@ -123,6 +124,21 @@ export async function sendWithCheckpoint({
       await record(() => undefined);
       for (const id of jobIds) forgetWorkBroadcast(id);
       return { status: "not-sent", cancelled: true, error };
+    }
+    if (error instanceof TransactionReplacementError && error.code === "transaction_replaced") {
+      // Another call took this transaction's place, so it can never be
+      // included. Whether that call did the same thing is unknown until the
+      // caller inspects what landed, so the record stays and says so. Without
+      // the mark the send is only waited on, never offered again: still safe.
+      try {
+        await record((current) => ({ ...current, transactionReplaced: true }));
+      } catch (markError) {
+        logger.warn("[SendCheckpoint] Could not mark a replaced transaction", {
+          jobIds,
+          error: markError,
+        });
+      }
+      return { status: "may-have-sent", error };
     }
     const failure = classifySendFailure(error, { intentRecorded, broadcastKnown });
     if (failure.kind === "may-have-sent") return { status: "may-have-sent", error };

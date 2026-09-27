@@ -1104,6 +1104,39 @@ describe("commitment chain reads", () => {
 
     await expect(chainReads.hasMembership?.(GARDEN, USER)).resolves.toBeNull();
   });
+
+  it("names a work link's transaction by the key its WorkLinked event carries", async () => {
+    const OTHER_KEY = `0x${"99".repeat(32)}` as const;
+    const getContractEvents = vi.fn().mockResolvedValue([
+      // Another link in the same block, by the same caller.
+      { transactionHash: ZERO_HASH, args: { operationKey: OTHER_KEY, linker: USER } },
+      { transactionHash: MOCK_TX_HASH, args: { operationKey: HASH, linker: USER } },
+    ]);
+    const getPublicClient = vi.fn(() => ({ getContractEvents }));
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      getPublicClient: getPublicClient as never,
+      config: {} as Config,
+    });
+    const link = { blockNumber: 42n, commitmentId: 7n, workUID: HASH, operationKey: HASH };
+
+    await expect(chainReads.readWorkLinkTransaction?.({ ...link, linker: USER })).resolves.toBe(
+      MOCK_TX_HASH
+    );
+    expect(getContractEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: MODULE,
+        eventName: "WorkLinked",
+        args: { commitmentId: 7n, workUID: HASH },
+        fromBlock: 42n,
+        toBlock: 42n,
+      })
+    );
+    await expect(
+      chainReads.readWorkLinkTransaction?.({ ...link, linker: GARDEN })
+    ).resolves.toBeNull();
+  });
 });
 
 describe("job executor registry", () => {

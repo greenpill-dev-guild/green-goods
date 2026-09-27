@@ -119,7 +119,11 @@ describe("sending one call while recording how far it got", () => {
       throw new TransactionReplacementError("replaced");
     });
     await expect(send(sender, record as never)).resolves.toMatchObject({ status: "may-have-sent" });
-    expect(current()).toMatchObject({ broadcast: { kind: "transaction", hash: TX } });
+    // The record says so: this transaction can never be included, whatever took its place.
+    expect(current()).toMatchObject({
+      broadcast: { kind: "transaction", hash: TX },
+      transactionReplaced: true,
+    });
   });
 
   it("records the hash a sender only returns", async () => {

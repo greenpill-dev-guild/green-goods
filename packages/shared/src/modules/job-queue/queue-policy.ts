@@ -80,6 +80,7 @@ export function writeSendCheckpoint(job: Job, send: SendCheckpoint | undefined):
     broadcastPending: _pending,
     broadcastPendingAt: _pendingAt,
     transactionHash: _hash,
+    transactionReplaced: _replaced,
     ...rest
   } = (payload[record.field] ?? {}) as Record<string, unknown>;
   if (!send && (!record.keepsOtherState || payload[record.field] === undefined)) {

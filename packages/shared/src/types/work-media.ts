@@ -10,6 +10,12 @@ export interface WorkUploadCheckpoint {
   /** When the intent was recorded, so an intent that never reached the chain can be resolved. */
   broadcastPendingAt?: string;
   transactionReverted?: boolean;
+  /**
+   * The wallet saw this transaction replaced by a different call, so it can
+   * never be included. What landed in its place is still unknown until the job
+   * inspects it; unlike a Safe's own id, its absence then settles it.
+   */
+  transactionReplaced?: boolean;
   transactionHash?: `0x${string}`;
   submittedAt: string;
   files: Record<string, { attachmentId: string; contentHash: string; cid: string }>;

@@ -272,8 +272,10 @@ export async function resolveStrandedCommitmentIntent(
   const checkpoint = payload.sendCheckpoint;
   // A transaction no receipt answers is looked up as well, since a Safe's own
   // id never produces one. Its landing completes the act; its absence never
-  // reopens it, because the Safe may still be collecting signatures.
-  const reopenable = isStrandedIntentCandidate(checkpoint);
+  // reopens it, because the Safe may still be collecting signatures. One the
+  // wallet saw replaced can never be included, so its absence does reopen it.
+  const reopenable =
+    isStrandedIntentCandidate(checkpoint) || checkpoint?.transactionReplaced === true;
   if (!checkpoint || (!reopenable && !checkpoint.transactionHash)) return { status: "waiting" };
   const persist = deps.persist ?? persistJob;
   return resolveStrandedSend({

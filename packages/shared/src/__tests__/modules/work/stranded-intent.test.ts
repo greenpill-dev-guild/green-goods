@@ -434,6 +434,20 @@ describe("settling a commitment act no receipt can", () => {
     ).resolves.toEqual({ status: "landed", transactionHash: TX });
   });
 
+  it("offers a transaction the wallet saw replaced again once nothing landed in its place", async () => {
+    // Unlike a Safe's id, a replaced transaction can never be included.
+    const absent = vi.fn().mockResolvedValue({ status: "absent" });
+    const replaced = strandedTakeUp(pastGrace(), {
+      broadcastPending: false,
+      transactionHash: TX,
+      transactionReplaced: true,
+    });
+    await expect(
+      resolveStrandedCommitmentIntent(replaced, 42161, { ...deps(absent), lookUp: absent })
+    ).resolves.toEqual({ status: "reopened" });
+    expect(hasRecordedSend(replaced)).toBe(false);
+  });
+
   it("keeps an act waiting while another tab still holds its send, since that prompt may yet go out", async () => {
     const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
     const held = strandedTakeUp(pastGrace());

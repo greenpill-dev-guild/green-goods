@@ -152,7 +152,10 @@ export async function settleActSend(
   sender: TransactionSender,
   store: CommitmentExecutorStore,
   chainReads: CommitmentChainReads,
-  deps: Pick<CommitmentQueueExecutorDeps, "reconcile" | "settleStrandedIntent" | "lookUpLanded">
+  deps: Pick<
+    CommitmentQueueExecutorDeps,
+    "reconcile" | "settleStrandedIntent" | "lookUpLanded" | "resolveWorkIdentity"
+  >
 ): Promise<CommitmentQueueExecution> {
   const settleStranded =
     deps.settleStrandedIntent ??
@@ -162,6 +165,8 @@ export async function settleActSend(
           deps.lookUpLanded ??
           createCommitmentLandedLookup({
             readWorkLinkPayloadHash: chainReads.readWorkLinkPayloadHash,
+            readWorkLinkTransaction: chainReads.readWorkLinkTransaction,
+            resolveWorkIdentity: deps.resolveWorkIdentity,
           }),
         stillSending: () => stillSending(jobId),
         persist: (updated) => store.updateJob(updated),

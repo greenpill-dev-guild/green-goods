@@ -8,8 +8,9 @@
  * instead: the pool's event log, as the indexer holds it, names who acted and
  * in which transaction. A take-up is matched by its whole identity, which the
  * indexer keeps for each claimant's latest request. A work link is decided by
- * the module's own record of its operation key, and its row is the one the
- * indexer ties to that key, because the log's row carries no link identity.
+ * the module's own record of its operation key, which must hold this link's
+ * own payload, and named by the chain's WorkLinked log in the block the
+ * indexer gives, since the log's row carries no link identity.
  *
  * "Found" needs the landed row. "Absent" needs the log read back to the start
  * of the window, and the indexer's processed block, timed on the chain itself,
@@ -32,9 +33,17 @@ import {
 } from "../commitment-pooling/data-activity";
 import { getCommitmentClaimRequests } from "../commitment-pooling/data-commitments";
 import { queryProcessedBlocks } from "../commitment-pooling/data-pool-funding-indexed-queries";
+import { hashWorkLinkPayload } from "../commitment-pooling/job-identity";
 import type { CommitmentEventRecord } from "../commitment-pooling/types";
+import { resolveDeferredWorkIdentity } from "../commitment-pooling/work-identity";
 import { greenGoodsIndexer } from "../data/graphql-client";
-import { STRANDED_INTENT_GRACE_MS, type StrandedCommitmentLookup } from "../work/stranded-intent";
+import {
+  STRANDED_INTENT_GRACE_MS,
+  type StrandedCommitmentLookup,
+  type StrandedLookupResult,
+} from "../work/stranded-intent";
+import type { CommitmentChainReads } from "./commitment-chain-reads";
+import type { CommitmentQueueExecutorDeps } from "./job-executors";
 import { sendCheckpointOf } from "./queue-policy";
 
 /** Rows read per page of the pool's log. */
@@ -59,6 +68,9 @@ interface LookupDependencies {
     caller: Address,
     operationKey: string
   ) => Promise<IndexedWorkLink | null>;
+  /** The executor's chain read of a link's WorkLinked log; without it a link is never named. */
+  readWorkLinkTransaction?: CommitmentChainReads["readWorkLinkTransaction"];
+  resolveWorkIdentity?: CommitmentQueueExecutorDeps["resolveWorkIdentity"];
   /** The chain's time at a block, in seconds: the latest block when none is named. */
   readBlockTime?: (chainId: number, blockNumber?: bigint) => Promise<number>;
   /** The last block the indexer processed on a chain, or null when it cannot say. */
@@ -130,26 +142,67 @@ async function takeUpMatch(
   };
 }
 
-/**
- * A work link's row is the one the indexer ties to its operation key: the
- * caller's link at that block time and log index. Another work the same caller
- * linked in the window never stands in for it, and until the indexer ties the
- * key to a row, none matches.
- */
-async function workLinkMatch(
+/** The work a link names: on the job, or, for a deferred link, from its client work id. */
+async function linkedWork(
   job: Job,
   payload: Record<string, unknown>,
   chainId: number,
-  workLinkByOperation: NonNullable<LookupDependencies["workLinkByOperation"]>
-): Promise<RowMatch> {
-  const caller = job.userAddress;
-  const link = await workLinkByOperation(chainId, caller, String(payload.operationKey));
-  if (!link) return () => false;
-  return (row) =>
-    row.eventType === "WORK_LINKED" &&
-    same(row.actor, caller) &&
-    row.timestamp === link.linkedAt &&
-    row.id.endsWith(`-${link.logIndex}`);
+  resolve: NonNullable<LookupDependencies["resolveWorkIdentity"]>
+): Promise<Hex | null> {
+  const known = (payload.workUID ?? payload.resolvedWorkUID) as Hex | undefined;
+  if (known) return known;
+  if (typeof payload.clientWorkId !== "string") return null;
+  const identity = await resolve({
+    clientWorkId: payload.clientWorkId,
+    chainId,
+    garden: payload.gardenAddress as Hex,
+    caller: job.userAddress as Hex,
+  });
+  return identity.status === "resolved" ? identity.workUID : null;
+}
+
+/**
+ * A work link landed when the module's record of its operation key holds this
+ * link's own payload. A key that holds another link never carried this one,
+ * and sending again will say so (`work-link-payload-mismatch`). The link is
+ * named by the chain's WorkLinked log in the block the indexer gives, matched
+ * by the key the event carries: another link in a block with the same time
+ * and log index never stands in for it.
+ */
+async function workLinkLanded(
+  job: Job,
+  payload: Record<string, unknown>,
+  chainId: number,
+  deps: LookupDependencies
+): Promise<StrandedLookupResult> {
+  const caller = job.userAddress as Address;
+  const operationKey = payload.operationKey as Hex;
+  const stored = await deps.readWorkLinkPayloadHash(caller, operationKey);
+  if (stored === zeroHash) return { status: "absent" };
+  const workUID = await linkedWork(
+    job,
+    payload,
+    chainId,
+    deps.resolveWorkIdentity ?? resolveDeferredWorkIdentity
+  );
+  if (!workUID) return { status: "unknown" };
+  const commitmentId = BigInt(String(payload.commitmentId));
+  if (stored !== hashWorkLinkPayload(commitmentId, workUID, Number(payload.requirementIndex)))
+    return { status: "absent" };
+  const link = await (deps.workLinkByOperation ?? getWorkLinkByOperation)(
+    chainId,
+    caller,
+    operationKey
+  );
+  if (!link || !deps.readWorkLinkTransaction) return { status: "unknown" };
+  const transactionHash = await deps.readWorkLinkTransaction({
+    blockNumber: link.blockNumber,
+    commitmentId,
+    workUID,
+    operationKey,
+    linker: caller,
+  });
+  return transactionHash ? { status: "found", transactionHash } : { status: "unknown" };
 }
 
 function actMatch(job: Job, payload: Record<string, unknown>): RowMatch {
@@ -200,19 +253,12 @@ async function findInLog(
 export function createCommitmentLandedLookup(deps: LookupDependencies): StrandedCommitmentLookup {
   const activity = deps.activity ?? getCommitmentActivity;
   const claimRequests = deps.claimRequests ?? getCommitmentClaimRequests;
-  const workLinkByOperation = deps.workLinkByOperation ?? getWorkLinkByOperation;
   const blockTime = deps.readBlockTime ?? chainBlockTime;
   const readIndexedBlock = deps.readIndexedBlock ?? indexedBlock;
   const now = deps.now ?? Date.now;
   return async ({ job, chainId, sinceMs }) => {
     const payload = job.payload as Record<string, unknown>;
-    if (job.kind === "workLink") {
-      const stored = await deps.readWorkLinkPayloadHash(
-        job.userAddress as Address,
-        payload.operationKey as Hex
-      );
-      if (stored === zeroHash) return { status: "absent" };
-    }
+    if (job.kind === "workLink") return workLinkLanded(job, payload, chainId, deps);
     const checkedAt = now();
     const sentAt = intentAtMs(job);
     // The intent on the chain's clock: the device clock is set against the
@@ -225,13 +271,7 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
     const landed =
       job.kind === "claim"
         ? await takeUpMatch(job, payload, chainId, claimRequests, intentOnChainS)
-        : {
-            recorded: false,
-            matches:
-              job.kind === "workLink"
-                ? await workLinkMatch(job, payload, chainId, workLinkByOperation)
-                : actMatch(job, payload),
-          };
+        : { recorded: false, matches: actMatch(job, payload) };
     const log = await findInLog(
       activity,
       chainId,
@@ -240,8 +280,8 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
       landed.matches
     );
     if (log.row) return { status: "found", transactionHash: log.row.txHash as Hex };
-    // The module or the indexer's record holds the act, but the log has not named its transaction.
-    if (job.kind === "workLink" || landed.recorded) return { status: "unknown" };
+    // The indexer's record holds the take-up, but the log has not named its transaction.
+    if (landed.recorded) return { status: "unknown" };
     if (!log.complete || checkedAt - sentAt < STRANDED_INTENT_GRACE_MS)
       return { status: "unknown" };
     const indexed = await readIndexedBlock(chainId);
