@@ -11,7 +11,8 @@
  *   (`useGardenStateStore.clearAll`);
  * - the admin's open sheets and their per-page form state
  *   (`useSheetOrchestratorStore.clearAll`);
- * - the recent send recipients (`clearRecentRecipients`);
+ * - the recent send recipients (`clearRecentRecipients`) and a work approval
+ *   whose receipt it was still waiting on (`clearPendingWorkApproval`);
  * - every cached read whose query key names the previous account;
  * - the screens themselves: the hook returns a session generation, and
  *   `AuthGate` keys the app under it, so no screen keeps the last account's
@@ -36,11 +37,12 @@
  * here (packages/shared/AGENTS.md, Stores).
  */
 
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { Hex } from "viem";
 import { queryClient } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { clearRecentRecipients } from "../blockchain/useRecentRecipients";
+import { clearPendingWorkApproval } from "../work/useWorkApprovalLifecycle";
 import { getLastAccount, setLastAccount } from "../../modules/auth/session";
 import { useGardenStateStore } from "../../stores/useGardenStateStore";
 import { useSheetOrchestratorStore } from "../../stores/useSheetOrchestratorStore";
@@ -53,23 +55,28 @@ import { useUIStore } from "../../stores/useUIStore";
  */
 export function useIdentityChangeReset(primaryAddress: Hex | null, isReady: boolean): number {
   const [generation, setGeneration] = useState(0);
+  // The last account this session saw, for when storage cannot say.
+  const seen = useRef<string | null>(null);
   // Before paint, so the new account's first frame never shows the old one's screen.
   useLayoutEffect(() => {
     // Signed out, or a restore that may yet fail: the next account may be the same one.
     if (!primaryAddress || !isReady) return;
-    let previous: Hex | null;
+    const account = primaryAddress.toLowerCase();
+    let previous = seen.current;
     try {
-      previous = getLastAccount();
+      previous = getLastAccount()?.toLowerCase() ?? previous;
+    } catch (error) {
+      logger.warn("[identity] Could not read the last account on this device", { error });
+    }
+    seen.current = account;
+    try {
       setLastAccount(primaryAddress);
     } catch (error) {
-      logger.warn("[identity] Could not read or record the last account on this device", {
-        error,
-      });
-      return;
+      // The next reload cannot tell the accounts apart, but this switch still can.
+      logger.warn("[identity] Could not record the last account on this device", { error });
     }
-    const account = previous?.toLowerCase();
-    if (account && account !== primaryAddress.toLowerCase()) {
-      forgetAccount(account);
+    if (previous && previous !== account) {
+      forgetAccount(previous);
       setGeneration((current) => current + 1);
     }
   }, [primaryAddress, isReady]);
@@ -77,11 +84,24 @@ export function useIdentityChangeReset(primaryAddress: Hex | null, isReady: bool
 }
 
 function forgetAccount(account: string): void {
-  useUIStore.getState().resetForAccountChange();
-  useGardenStateStore.getState().clearAll();
-  useSheetOrchestratorStore.getState().clearAll();
-  clearRecentRecipients();
-  queryClient.removeQueries({ predicate: ({ queryKey }) => namesAccount(queryKey, account) });
+  // Each part on its own: a store whose storage refuses the write has already
+  // reset in memory, and must not keep the rest from resetting too.
+  const parts = [
+    () => useUIStore.getState().resetForAccountChange(),
+    () => useGardenStateStore.getState().clearAll(),
+    () => useSheetOrchestratorStore.getState().clearAll(),
+    clearRecentRecipients,
+    clearPendingWorkApproval,
+    () =>
+      queryClient.removeQueries({ predicate: ({ queryKey }) => namesAccount(queryKey, account) }),
+  ];
+  for (const part of parts) {
+    try {
+      part();
+    } catch (error) {
+      logger.warn("[identity] Could not clear part of the last account's state", { error });
+    }
+  }
 }
 
 /** Whether a query key names the account anywhere in it, in any casing. */

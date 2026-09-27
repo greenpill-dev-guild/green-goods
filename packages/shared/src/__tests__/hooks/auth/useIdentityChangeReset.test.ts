@@ -13,6 +13,7 @@ import {
   useRecentRecipients,
 } from "../../../hooks/blockchain/useRecentRecipients";
 import { DEFAULT_GARDEN_FILTERS } from "../../../hooks/garden/useFilteredGardens";
+import { PENDING_WORK_APPROVAL_STORAGE_KEY } from "../../../hooks/work/useWorkApprovalLifecycle";
 import { AuthGate } from "../../../providers/AuthGate";
 import {
   DEV_MOCK_AUTH_ADDRESSES,
@@ -42,6 +43,8 @@ function leaveTraces() {
   queryClient.setQueryData(aliceRoleKey, true);
   queryClient.setQueryData(gardensKey, []);
   addRecentRecipient(CAROL, "for the seed swap");
+  // A work approval whose receipt the last account was still waiting on.
+  localStorage.setItem(PENDING_WORK_APPROVAL_STORAGE_KEY, JSON.stringify({ version: 1 }));
 }
 
 function render(address: Hex | null, ready = true) {
@@ -91,10 +94,30 @@ describe("useIdentityChangeReset", () => {
     // Reads keyed by the previous account go; shared reads stay warm.
     expect(queryClient.getQueryData(aliceRoleKey)).toBeUndefined();
     expect(queryClient.getQueryData(gardensKey)).toEqual([]);
-    // The last account's recipients are not offered to the next one.
+    // The last account's recipients are not offered to the next one, and its
+    // approval recovery does not resume under the next one's name.
     expect(recents.result.current).toEqual([]);
+    expect(localStorage.getItem(PENDING_WORK_APPROVAL_STORAGE_KEY)).toBeNull();
     // A new session generation, so the screens under the gate start over.
     expect(result.current).toBe(before + 1);
+  });
+
+  it("still starts the next account clean when storage cannot be read or written", () => {
+    const { rerender } = render(ALICE);
+    leaveTraces();
+    const refuse = () => {
+      throw new DOMException("Storage is blocked", "SecurityError");
+    };
+    const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(refuse);
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(refuse);
+    try {
+      rerender({ viewer: BOB, isReady: true });
+      expect(useUIStore.getState().gardenFilters).toEqual(DEFAULT_GARDEN_FILTERS);
+      expect(useGardenStateStore.getState().gardenStates).toEqual({});
+    } finally {
+      getItem.mockRestore();
+      setItem.mockRestore();
+    }
   });
 
   it("decides nothing while the session is still being restored", () => {
