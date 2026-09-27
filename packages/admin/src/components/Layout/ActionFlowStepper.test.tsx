@@ -29,15 +29,22 @@ function renderStepper(
 }
 
 describe("ActionFlowStepper", () => {
-  // The desktop rail says so too: with no step current, nothing else would.
+  // With no step current and every check hidden from assistive tech, only a
+  // status that was already mounted announces a run finishing in place.
   it.each([
     "horizontal",
     "vertical",
-  ] as const)("checks every step, marks none current, and says so, once the run completes (%s)", (orientation) => {
-    renderStepper(4, true, orientation);
+  ] as const)("checks every step, marks none current, and announces it when the run completes (%s)", (orientation) => {
+    const { rerender } = renderStepper(4, false, orientation);
+    expect(screen.getByRole("status")).toHaveTextContent("");
 
+    rerender(
+      <IntlProvider locale="en" messages={enMessages}>
+        <ActionFlowStepper steps={STEPS} currentStep={4} complete orientation={orientation} />
+      </IntlProvider>
+    );
     expect(document.querySelector('[aria-current="step"]')).toBeNull();
-    expect(screen.getByText("All 4 steps done")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("All 4 steps done");
   });
 
   it("renders the orientation label naming the current step", () => {

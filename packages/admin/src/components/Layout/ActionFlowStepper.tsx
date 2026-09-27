@@ -71,6 +71,13 @@ export function ActionFlowStepper({
     { id: "app.common.stepsDone", defaultMessage: "All {total} steps done" },
     { total }
   );
+  // Mounted before the run completes, so a finish that happens in place is
+  // announced; the visible done text beside it is hidden from assistive tech.
+  const doneStatus = (
+    <p role="status" className="sr-only">
+      {complete ? doneLabel : ""}
+    </p>
+  );
   // Clamp only the label lookup; controllers keep currentStep in range.
   const currentTitle = steps[Math.min(Math.max(currentStep, 1), total) - 1]?.title ?? "";
 
@@ -156,10 +163,15 @@ export function ActionFlowStepper({
         </ol>
         {/* With no step current, the rail says the run is done. */}
         {complete ? (
-          <p data-region="action-flow-step-label" className="mt-3 label-xs text-text-sub">
+          <p
+            data-region="action-flow-step-label"
+            aria-hidden="true"
+            className="mt-3 label-xs text-text-sub"
+          >
             {doneLabel}
           </p>
         ) : null}
+        {doneStatus}
       </div>
     );
   }
@@ -197,7 +209,11 @@ export function ActionFlowStepper({
           );
         })}
       </ol>
-      <p data-region="action-flow-step-label" className="mt-1.5 label-xs text-text-sub">
+      <p
+        data-region="action-flow-step-label"
+        aria-hidden={complete ? true : undefined}
+        className="mt-1.5 label-xs text-text-sub"
+      >
         {complete
           ? doneLabel
           : formatMessage(
@@ -208,6 +224,7 @@ export function ActionFlowStepper({
               { current: currentStep, total, label: currentTitle }
             )}
       </p>
+      {doneStatus}
     </div>
   );
 }
