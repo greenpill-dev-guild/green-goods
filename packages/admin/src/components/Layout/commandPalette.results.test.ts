@@ -12,6 +12,13 @@ import { describe, expect, it } from "vitest";
 const formatMessage = ((descriptor: { defaultMessage?: string; id: string }) =>
   descriptor.defaultMessage ?? descriptor.id) as IntlShape["formatMessage"];
 
+const allWorkspaces = {
+  showWork: true,
+  showGarden: true,
+  showCommunity: true,
+  showActions: true,
+};
+
 const eligibleGarden = {
   id: "garden-1",
   name: "Chakra Farm",
@@ -32,6 +39,7 @@ describe("buildCommandPaletteResults", () => {
     const results = buildCommandPaletteResults({
       query: "soil",
       role: "deployer",
+      permissions: allWorkspaces,
       formatMessage,
       staticRoutes: [],
       eligibleGardens: [eligibleGarden],
@@ -54,6 +62,7 @@ describe("buildCommandPaletteResults", () => {
     const results = buildCommandPaletteResults({
       query: "water",
       role: "deployer",
+      permissions: allWorkspaces,
       formatMessage,
       staticRoutes: [],
       eligibleGardens: [eligibleGarden],
@@ -93,6 +102,7 @@ describe("buildCommandPaletteResults", () => {
     const results = buildCommandPaletteResults({
       query: "mulch",
       role: "steward",
+      permissions: allWorkspaces,
       formatMessage,
       staticRoutes: [],
       eligibleGardens: [eligibleGarden],
@@ -144,6 +154,7 @@ describe("buildCommandPaletteResults", () => {
     const stewardResults = buildCommandPaletteResults({
       query: "co",
       role: "steward",
+      permissions: allWorkspaces,
       formatMessage,
       staticRoutes,
       eligibleGardens: [],
@@ -153,6 +164,7 @@ describe("buildCommandPaletteResults", () => {
     const deployerResults = buildCommandPaletteResults({
       query: "cookie",
       role: "deployer",
+      permissions: allWorkspaces,
       formatMessage,
       staticRoutes,
       eligibleGardens: [],
@@ -164,5 +176,39 @@ describe("buildCommandPaletteResults", () => {
     expect(deployerResults).toEqual([
       expect.objectContaining({ id: "page-cookies", href: "/cookies" }),
     ]);
+  });
+
+  it("offers a workspace only while its navigation permission holds", () => {
+    const staticRoutes = [
+      {
+        id: "page-garden",
+        labelId: "cockpit.nav.garden",
+        defaultLabel: "Garden",
+        href: "/garden",
+        permission: "showGarden" as const,
+      },
+      {
+        id: "page-community",
+        labelId: "cockpit.nav.community",
+        defaultLabel: "Community",
+        href: "/community",
+        permission: "showCommunity" as const,
+      },
+    ];
+
+    const evaluatorResults = buildCommandPaletteResults({
+      query: "",
+      role: "user",
+      permissions: { ...allWorkspaces, showCommunity: false, showActions: false },
+      formatMessage,
+      staticRoutes,
+      eligibleGardens: [],
+      actions: [],
+      assessments: [],
+    });
+
+    expect(
+      evaluatorResults.filter((result) => result.category === "pages").map((result) => result.id)
+    ).toEqual(["page-garden"]);
   });
 });

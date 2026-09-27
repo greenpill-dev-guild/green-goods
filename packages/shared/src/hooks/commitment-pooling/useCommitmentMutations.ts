@@ -7,6 +7,7 @@ import type { DeclaredConsiderationInput } from "../../modules/commitment-poolin
 import { pinCommitmentReason } from "../../modules/commitment-pooling/reasons";
 import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
+import type { TransactionSendOptions } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -124,6 +125,15 @@ export type CommitmentReasonedMutationInput =
 export type CommitmentMutationInput = CommitmentMutationCall | CommitmentReasonedMutationInput;
 
 /**
+ * An act, plus the send callbacks of the one call that carries it, so the view
+ * that started it can follow it from the wallet to the chain. Optional: an act
+ * sent without them runs exactly as before.
+ */
+export type CommitmentMutationVariables = CommitmentMutationInput & {
+  send?: Pick<TransactionSendOptions, "onBeforeBroadcast" | "onBroadcast">;
+};
+
+/**
  * Only the acts whose ABI takes a `reasonCID`. `markReadyForConfirmation` and
  * `confirmFulfillmentAsFallback` take a plain `reason` string on chain and must
  * not be pinned.
@@ -207,7 +217,7 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
   });
 
   return useMutation({
-    mutationFn: async (input: CommitmentMutationInput) => {
+    mutationFn: async ({ send, ...input }: CommitmentMutationVariables) => {
       if (!sender) throw new Error("Transaction sender is unavailable");
       // The reads are fixtures in demo mode but the sender is real, so an act
       // composed against a fixture id must not reach the deployed module.
@@ -223,14 +233,18 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
       const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
       if (isZeroAddress(moduleAddress))
         throw new Error("Commitment Pooling is not deployed on this chain");
-      const call = await resolveCall(input);
-      const result = await sender.sendContractCall({
+      const call = await resolveCall(input as CommitmentMutationInput);
+      const contractCall = {
         address: moduleAddress,
         abi: CommitmentPoolingModuleABI,
         functionName: call.action,
         args: argsFor(call),
         chainId,
-      });
+      };
+      // Only an act that follows its own send hands the sender callbacks.
+      const result = send
+        ? await sender.sendContractCall(contractCall, send)
+        : await sender.sendContractCall(contractCall);
       return result.hash;
     },
     onSuccess: async (_hash, input) => {

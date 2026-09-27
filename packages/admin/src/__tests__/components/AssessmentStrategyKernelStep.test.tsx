@@ -22,6 +22,24 @@ describe("StrategyKernelStep", () => {
     useCreateAssessmentStore.getState().reset();
   });
 
+  it("names each part in plain words, with the method as helper text and no Solar fallback", () => {
+    // A restored draft can carry a stale domain; it reads as none, never as Solar.
+    useCreateAssessmentStore.setState((state) => ({
+      form: { ...state.form, domain: 9 as Domain, diagnosis: "Riverbank erosion" },
+    }));
+
+    renderStrategyStep();
+
+    expect(screen.getByRole("textbox", { name: /The challenge/ })).toBeInTheDocument();
+    expect(screen.getByText(/\(the diagnosis\)$/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "What You'll Measure" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "How Predictable Is This Work?" })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Strategy Kernel" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/kWh|solar panels|rooftop/i)).not.toBeInTheDocument();
+  });
+
   it("explains persisted duplicate metric selections", () => {
     useCreateAssessmentStore.setState((state) => ({
       form: {

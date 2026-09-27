@@ -79,6 +79,8 @@ export function useViewActions({
           label: action.label,
           labelId: action.labelId,
           disabled: action.disabled,
+          disabledReasonId: action.disabledReasonId,
+          disabledReason: action.disabledReason,
         })),
       onAction: (actionId: string) => {
         const target = visibleActions.find((action) => action.id === actionId);

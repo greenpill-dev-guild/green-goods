@@ -65,6 +65,31 @@ vi.mock("@/views/Garden/Pool/SetupFlow", () => ({
   PoolSetupFlow: ({ open, intent }: { open: boolean; intent: string }) =>
     open ? <div data-testid="pool-setup-flow">{intent}</div> : null,
 }));
+// The settings dialog saves through the setup sequence, which reads the
+// signed-in wallet; here it only has to open.
+vi.mock(
+  "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence")
+    >()),
+    useCommitmentPoolSetupSequence: () => ({
+      state: {
+        status: "idle",
+        steps: [],
+        landed: [],
+        failedStep: null,
+        failure: null,
+        error: null,
+        cycleId: null,
+      },
+      run: vi.fn(),
+      retry: vi.fn(),
+      reset: vi.fn(),
+      batching: "unavailable",
+    }),
+  })
+);
 
 const { GardenPoolTab } = await import("@/views/Garden/Pool");
 const { default: GardenView } = await import("@/views/Garden");
@@ -194,7 +219,8 @@ function controller(overrides: ControllerOverrides = {}): PoolConsoleController 
     expire: vi.fn().mockResolvedValue("0x1"),
     acceptClaim: vi.fn().mockResolvedValue("0x1"),
     declineClaim: vi.fn().mockResolvedValue("0x1"),
-    saveSettings: vi.fn().mockResolvedValue(undefined),
+    retryQueued: vi.fn().mockResolvedValue(undefined),
+    discardQueued: vi.fn().mockResolvedValue(undefined),
   };
   const poolRecord = overrides.pool === undefined ? pool() : overrides.pool;
   const cycles = overrides.cycles ?? [cycle()];
@@ -519,6 +545,45 @@ describe("GardenPoolTab (W7)", () => {
     await waitFor(() => expect(mocks.controller!.acts.resume).toHaveBeenCalled());
   });
 
+  it("holds Resume from the wallet until the pool reads open, and says where it stands", () => {
+    mocks.controller = controller({
+      pool: pool({ state: "PAUSED", pauseReasonCID: "bafy-reason" }),
+      // The receipt landed; the pool read still lags behind it.
+      resumePhase: { status: "confirmed", key: "resume-pool", hash: null },
+    });
+    renderTab();
+    expect(screen.getByRole("button", { name: /resume pool/i })).toBeDisabled();
+    expect(
+      screen.getByText("Resumed. The pool reads open once the index shows it.")
+    ).toBeInTheDocument();
+  });
+
+  it("puts a queued send's line on the row it started from", () => {
+    const queued = {
+      chainId: 42161,
+      poolId: "7",
+      direction: "OFFER" as const,
+      unitLabel: "workshop",
+      targetUnits: "1",
+      waitingForMembership: false,
+      failed: false,
+      createdAt: 1,
+      discardable: true,
+    };
+    mocks.controller = controller({
+      pendingCreates: [
+        { ...queued, jobId: "job-a", title: "Compost workshop" },
+        { ...queued, jobId: "job-b", title: "Seed swap" },
+      ],
+      queuedPhase: (jobId: string) =>
+        jobId === "job-b" ? { status: "signing", key: "job-b" } : { status: "idle" },
+    });
+    renderTab();
+    const rows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
+    expect(within(rows[0]).queryByText("Confirm in your wallet.")).not.toBeInTheDocument();
+    expect(within(rows[1]).getByText("Confirm in your wallet.")).toBeInTheDocument();
+  });
+
   it("accepts a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
     mocks.controller = controller({
       claims: [
@@ -586,6 +651,107 @@ describe("GardenPoolTab (W7)", () => {
     const dialog = await screen.findByRole("alertdialog");
     fireEvent.click(within(dialog).getByRole("button", { name: /close pool/i }));
     await waitFor(() => expect(mocks.controller!.acts.closePool).toHaveBeenCalled());
+  });
+
+  it("lets the steward send or drop a creation still queued here, since nothing else will", async () => {
+    // The admin mounts no queue provider, so a queued row with no button is a
+    // commitment that never reaches the chain. Discard shows only where the queue
+    // would allow it: a creation whose send may have landed must stay.
+    const queued = {
+      chainId: 42161,
+      poolId: "7",
+      direction: "OFFER" as const,
+      unitLabel: "workshop",
+      targetUnits: "1",
+      waitingForMembership: false,
+      failed: false,
+      createdAt: 1,
+    };
+    mocks.controller = controller({
+      pendingCreates: [
+        { ...queued, jobId: "job-unsent", title: "Compost workshop", discardable: true },
+        { ...queued, jobId: "job-sent", title: "Seed swap", discardable: false, failed: true },
+      ],
+    });
+    renderTab();
+
+    const rows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
+    expect(within(rows[1]).queryByRole("button", { name: /discard/i })).not.toBeInTheDocument();
+
+    // A row that never tried is sent now; only one that failed is tried again.
+    expect(within(rows[0]).queryByRole("button", { name: /try again/i })).not.toBeInTheDocument();
+    fireEvent.click(within(rows[0]).getByRole("button", { name: /send now/i }));
+    await waitFor(() =>
+      expect(mocks.controller!.acts.retryQueued).toHaveBeenCalledWith("job-unsent")
+    );
+    fireEvent.click(within(rows[1]).getByRole("button", { name: /try again/i }));
+    await waitFor(() =>
+      expect(mocks.controller!.acts.retryQueued).toHaveBeenCalledWith("job-sent")
+    );
+    fireEvent.click(within(rows[0]).getByRole("button", { name: /discard/i }));
+    await waitFor(() =>
+      expect(mocks.controller!.acts.discardQueued).toHaveBeenCalledWith("job-unsent")
+    );
+  });
+
+  it("lands each count on exactly what it counts, and a count of nothing goes nowhere", () => {
+    mocks.controller = controller({
+      commitments: [
+        commitment(),
+        commitment({
+          id: "42161-2",
+          commitmentId: 2n,
+          onchainState: "DISPUTED",
+          derivedState: "DISPUTED",
+          state: "DISPUTED",
+        }),
+        commitment({ id: "42161-3", commitmentId: 3n, dueDate: NOW - 10n }),
+      ],
+    });
+    renderTab();
+    const stats = screen.getByRole("list", { name: /what needs you/i });
+    // No claim waits, so its zero is text rather than a way in.
+    expect(within(stats).getByText(/claims waiting/i)).toBeInTheDocument();
+    expect(
+      within(stats).queryByRole("button", { name: /claims waiting/i })
+    ).not.toBeInTheDocument();
+
+    const list = screen.getByTestId("pool-commitments");
+    fireEvent.click(within(stats).getByRole("button", { name: /2\s*needs recovery/i }));
+    expect(within(list).queryByTestId("pool-commitment-1")).not.toBeInTheDocument();
+    expect(within(list).getByTestId("pool-commitment-2")).toBeInTheDocument();
+    expect(within(list).getByTestId("pool-commitment-3")).toBeInTheDocument();
+
+    fireEvent.click(within(stats).getByRole("button", { name: /1\s*past due/i }));
+    expect(within(list).queryByTestId("pool-commitment-2")).not.toBeInTheDocument();
+    expect(within(list).getByTestId("pool-commitment-3")).toBeInTheDocument();
+  });
+
+  it("says on its status card when the pool is the protocol's", () => {
+    mocks.controller = controller({ pool: pool({ poolType: "PROTOCOL" }) });
+    const protocol = renderTab();
+    expect(screen.getByText("Protocol pool")).toBeInTheDocument();
+    protocol.unmount();
+
+    // Any other garden's pool carries no such chip.
+    mocks.controller = controller();
+    renderTab();
+    expect(screen.queryByText("Protocol pool")).not.toBeInTheDocument();
+  });
+
+  it("holds Set Up while offline and says why beneath it", () => {
+    mocks.controller = controller({
+      isOnline: false,
+      pool: pool({ state: "NOT_READY", openSeasonCycleId: null, charterCID: null }),
+      cycles: [],
+      commitments: [],
+    });
+    renderTab();
+    const setUp = screen.getByRole("button", { name: /set up commitments/i });
+    expect(setUp).toBeDisabled();
+    // The reason sits with the act it holds, not only in the status card.
+    const card = setUp.closest("[data-component='PoolNotReadyCard']") as HTMLElement;
+    expect(within(card).getByRole("status")).toHaveTextContent(/needs a connection/i);
   });
 
   it("disables every online act and says why when the device is offline", () => {

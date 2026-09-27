@@ -1,21 +1,32 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
 
+import { clearRepositoryLocalGitVariables, fixtureGitEnvironment } from "../lib/dev-shared.js";
+import { FROZEN_ALLOWLIST } from "../quality/check-source-structure.js";
+import { resolveGitInputs } from "../quality/select-validation.mjs";
 import {
   applyCompatibilityFilters,
   arbitrumForkAvailable,
   buildLocalValidationPlan,
   capabilityRecoveryHint,
   executePlan,
+  isPinnedCiNodeVersion,
   isSupportedCiNodeVersion,
   loadPassingReceiptStore,
   parseArguments,
   resolveVitestBatchEnvironment,
+  runCommandCheck,
   savePassingReceiptStore,
+  validateAttestation,
 } from "./ci-local.js";
+
+// A hook's GIT_DIR outranks `cwd`, and checks inherit this environment, so without this a check
+// run against a fixture would read the repository being pushed instead.
+clearRepositoryLocalGitVariables();
 
 const GIBIBYTE = 1024 ** 3;
 
@@ -51,7 +62,10 @@ test("ci-local re-entry is wired only inside the direct-run guard", () => {
   assert.match(guardedEntrypoint, /GREEN_GOODS_CI_LOCAL_NODE_REEXEC/);
   assert.match(guardedEntrypoint, /reexecUnderCompatibleNodeIfNeeded\(\{/);
   assert.match(guardedEntrypoint, /GREEN_GOODS_CI_LOCAL_COMPAT_REEXEC/);
-  assert.match(guardedEntrypoint, /isSupported: isSupportedCiNodeVersion/);
+  // The compat re-exec must test the exact policy pin, not merely a runnable range: the
+  // selector compares the toolchain exactly, so a near-pin Node blocks every check.
+  assert.match(guardedEntrypoint, /pinnedCiNodeVersion\(\)/);
+  assert.match(guardedEntrypoint, /isSupported: \(version\) => isPinnedCiNodeVersion\(version, pinnedNode\)/);
 });
 
 test("ci-local compatibility accepts Node 22 and newer", () => {
@@ -272,8 +286,8 @@ test("ordinary push passes automated checks while reporting manual browser proof
     command: null,
     manual: true,
     mandatory: true,
-    stopRule: "block-readiness",
-    state: "blocked",
+    stopRule: "advisory",
+    state: "advisory",
     blockedBy: ["authenticatedBrave"],
   };
   const calls = [];
@@ -291,12 +305,12 @@ test("ordinary push passes automated checks while reporting manual browser proof
   assert.deepEqual(result.blocked, []);
 });
 
-test("local push plan retains the pending browser obligation after compatibility filtering", () => {
+test("local push plan keeps the advisory browser obligation after compatibility filtering", () => {
   const options = parseArguments([
     "--intent",
     "push",
     "--test-path",
-    "client:src/components/Panel.test.tsx",
+    "client:src/__tests__/routes/SessionGate.test.tsx",
   ]);
   const localPlan = buildLocalValidationPlan(
     options,
@@ -304,18 +318,32 @@ test("local push plan retains the pending browser obligation after compatibility
       base: "base",
       head: "head",
       workingCopyFingerprint: "working-copy",
-      changedPaths: ["packages/client/src/components/Panel.tsx"],
+      changedPaths: ["packages/client/src/routes/SessionGate.tsx"],
       deletedPaths: [],
     },
     { profile: "test", toolchain: {}, capabilities: { dependencies: true, authenticatedBrave: false } },
   );
 
   assert.equal(localPlan.status, "ready");
-  assert.equal(localPlan.checks.find((check) => check.id === "browser-proof")?.deferredForReadiness, true);
-  assert.equal(localPlan.checks.find((check) => check.id === "browser-proof")?.state, "blocked");
+  assert.equal(localPlan.checks.find((check) => check.id === "browser-proof")?.advisory, true);
+  assert.equal(localPlan.checks.find((check) => check.id === "browser-proof")?.state, "advisory");
 });
 
-test("manual browser deferral never masks automated failure, unavailable capability, or critical push", async () => {
+test("--attest records manual evidence per check id", () => {
+  const options = parseArguments([
+    "--intent",
+    "release",
+    "--attest",
+    "browser-proof=Brave, steward session, 2026-09-22: deposit sheet renders",
+  ]);
+  assert.deepEqual(options.attestations, {
+    "browser-proof": "Brave, steward session, 2026-09-22: deposit sheet renders",
+  });
+  assert.throws(() => parseArguments(["--attest", "browser-proof"]), /check-id=evidence/);
+  assert.throws(() => parseArguments(["--attest", "browser-proof="]), /check-id=evidence/);
+});
+
+test("advisory manual proof never masks automated failure or unavailable capability, and only release requires attestation", async () => {
   const input = plan(["format", "browser-proof"]);
   input.effectiveIntent = "push";
   input.checks[1] = {
@@ -323,9 +351,10 @@ test("manual browser deferral never masks automated failure, unavailable capabil
     command: null,
     manual: true,
     mandatory: true,
-    stopRule: "block-readiness",
-    state: "blocked",
+    stopRule: "advisory",
+    state: "advisory",
     blockedBy: ["authenticatedBrave"],
+    attestation: { engines: ["authenticated Brave"] },
   };
   const failed = await executePlan(input, {
     runCheck: async () => ({ ok: false, exitCode: 7 }),
@@ -344,20 +373,152 @@ test("manual browser deferral never masks automated failure, unavailable capabil
 
   input.checks[0].state = "pending";
   input.checks[0].blockedBy = [];
-  input.checks[1].blockedBy = ["dependencies"];
-  const browserWithAutomatedCapabilityMissing = await executePlan(input, {
-    runCheck: async () => ({ ok: true, exitCode: 0 }),
-  });
-  assert.equal(browserWithAutomatedCapabilityMissing.status, "blocked");
-  assert.deepEqual(browserWithAutomatedCapabilityMissing.blocked, [{ id: "browser-proof", blockedBy: ["dependencies"] }]);
-
-  input.checks[1].blockedBy = ["authenticatedBrave"];
   input.risk = "critical";
   const critical = await executePlan(input, {
     runCheck: async () => ({ ok: true, exitCode: 0 }),
   });
-  assert.equal(critical.status, "blocked");
-  assert.deepEqual(critical.blocked, [{ id: "browser-proof", blockedBy: ["authenticatedBrave"] }]);
+  assert.equal(critical.status, "passed");
+  assert.equal(critical.exitCode, 0);
+  assert.deepEqual(critical.pendingManual, [{ id: "browser-proof", blockedBy: ["authenticatedBrave"] }]);
+
+  input.risk = "routine";
+  input.effectiveIntent = "release";
+  const unattestedRelease = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+  });
+  assert.equal(unattestedRelease.status, "blocked");
+  assert.equal(unattestedRelease.exitCode, 2);
+  assert.deepEqual(unattestedRelease.blocked, [
+    { id: "browser-proof", blockedBy: ["manual-attestation-required"] },
+  ]);
+
+  const placeholderRelease = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+    attestations: { "browser-proof": "none" },
+  });
+  assert.equal(placeholderRelease.status, "blocked");
+  assert.equal(placeholderRelease.exitCode, 2);
+  assert.equal(placeholderRelease.blocked[0]?.id, "browser-proof");
+  assert.deepEqual(placeholderRelease.blocked[0]?.blockedBy, ["manual-attestation-invalid"]);
+  assert.ok((placeholderRelease.blocked[0]?.problems ?? []).length > 0);
+  assert.deepEqual(placeholderRelease.results, [{ id: "format", ok: true, exitCode: 0, receiptInputs: undefined }].map(
+    (entry) => ({ ...entry, receiptInputs: placeholderRelease.results[0]?.receiptInputs }),
+  ));
+
+  const evidence = "authenticated Brave, steward session, 2026-09-22: deposit sheet renders";
+  const attestedRelease = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+    attestations: { "browser-proof": evidence },
+  });
+  assert.equal(attestedRelease.status, "passed");
+  assert.equal(attestedRelease.exitCode, 0);
+  const attested = attestedRelease.results.find((result) => result.id === "browser-proof");
+  assert.equal(attested?.ok, true);
+  assert.equal(attested?.attested, true);
+  assert.deepEqual(attested?.details, [`attested: ${evidence}`]);
+  assert.deepEqual(attestedRelease.pendingManual, []);
+  assert.deepEqual(attestedRelease.blocked, []);
+
+  // The same evidence on any other gate leaves the obligation pending rather than clearing it.
+  for (const intent of ["push", "readiness", "ship", "merge"]) {
+    input.effectiveIntent = intent;
+    const nonRelease = await executePlan(input, {
+      runCheck: async () => ({ ok: true, exitCode: 0 }),
+      attestations: { "browser-proof": evidence },
+    });
+    assert.equal(nonRelease.status, "passed", intent);
+    assert.deepEqual(
+      nonRelease.pendingManual,
+      [{ id: "browser-proof", blockedBy: ["authenticatedBrave"] }],
+      intent,
+    );
+    assert.ok(
+      !nonRelease.results.some((result) => result.id === "browser-proof"),
+      `${intent} must not record an attested result`,
+    );
+    // The attestation is disregarded, and the run says so rather than dropping it quietly.
+    assert.deepEqual(nonRelease.ignoredAttestations, [{ id: "browser-proof", intent }], intent);
+  }
+
+  // Nothing is reported when no attestation was supplied in the first place.
+  input.effectiveIntent = "push";
+  const withoutAttestation = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+  });
+  assert.deepEqual(withoutAttestation.ignoredAttestations, []);
+});
+
+test("a toolchain mismatch never blocks a plan holding only the advisory proof", () => {
+  const git = {
+    base: "base",
+    head: "head",
+    workingCopyFingerprint: "working-copy",
+    changedPaths: ["packages/client/src/sw/sw.ts"],
+    deletedPaths: [],
+  };
+  const offPin = { node: "24.20.0", bun: "1.4.2" };
+  const environment = (toolchain) => ({
+    profile: "test",
+    toolchain,
+    capabilities: { dependencies: true, authenticatedBrave: false },
+  });
+
+  const advisoryOptions = parseArguments(["--only", "browser-proof"]);
+  const advisoryOnly = applyCompatibilityFilters(
+    buildLocalValidationPlan(advisoryOptions, git, environment(offPin)),
+    advisoryOptions,
+  );
+  assert.deepEqual(
+    advisoryOnly.checks.map((check) => check.id),
+    ["browser-proof"],
+  );
+  assert.equal(advisoryOnly.status, "ready");
+  assert.deepEqual(advisoryOnly.environmentBlockers, []);
+
+  // A selection that does run a command still reports the mismatch.
+  const executableOptions = parseArguments(["--only", "format"]);
+  const executable = applyCompatibilityFilters(
+    buildLocalValidationPlan(executableOptions, git, environment(offPin)),
+    executableOptions,
+  );
+  assert.equal(executable.status, "blocked");
+  assert.equal(executable.checks.find((check) => check.id === "format")?.state, "blocked");
+});
+
+test("a release attestation must name an accepted engine, a date, and an observation", () => {
+  const check = { attestation: { engines: ["authenticated Brave"] } };
+
+  assert.equal(
+    validateAttestation(check, "authenticated Brave, steward session, 2026-09-22: deposit sheet renders").ok,
+    true,
+  );
+  for (const placeholder of [undefined, "", "   ", "none", "n/a", "pending"]) {
+    assert.equal(validateAttestation(check, placeholder).ok, false, JSON.stringify(placeholder));
+  }
+  assert.match(
+    validateAttestation(check, "Storybook, 2026-09-22: deposit sheet renders").problems.join(" "),
+    /must name the rendered engine/,
+  );
+  assert.match(
+    validateAttestation(check, "authenticated Brave, deposit sheet renders").problems.join(" "),
+    /YYYY-MM-DD/,
+  );
+  assert.match(
+    validateAttestation(check, "authenticated Brave 2026-09-22").problems.join(" "),
+    /what was observed/,
+  );
+  // With no declared engines the check still demands a date and an observation.
+  assert.equal(validateAttestation({}, "some session, 2026-09-22: the sheet renders").ok, true);
+  assert.equal(validateAttestation({}, "none").ok, false);
+});
+
+test("the gate re-execs unless the running Node is the pinned version itself", () => {
+  assert.equal(isPinnedCiNodeVersion("22.22.1", "22.22.1"), true);
+  assert.equal(isPinnedCiNodeVersion("22.22.0", "22.22.1"), false);
+  assert.equal(isPinnedCiNodeVersion("24.20.0", "22.22.1"), false);
+  // Without a readable pin it falls back to the runnable range rather than refusing to run.
+  assert.equal(isPinnedCiNodeVersion("22.22.0", null), true);
+  assert.equal(isPinnedCiNodeVersion("21.0.0", null), false);
 });
 
 test("post-commit push receipt reuse is exact and invalidates on tree or policy drift", async () => {
@@ -544,6 +705,111 @@ test("ci-local passes explicit lane checkpoint scope into the selector", () => {
     localPlan.checks.find((check) => check.id === "lint").command,
     "bun --bun run oxlint 'packages/client/src/components/Panel.tsx' --deny-warnings",
   );
+});
+
+// The structure checker finds its repository from its own location, so a fixture carries copies.
+const STRUCTURE_CHECKER_FILES = [
+  "scripts/quality/check-source-structure.js",
+  "scripts/quality/check-staged-modules.mjs",
+  "scripts/lib/git-guardrails.mjs",
+];
+
+function writeFixtureFile(root, path, contents) {
+  mkdirSync(dirname(join(root, path)), { recursive: true });
+  writeFileSync(join(root, path), contents);
+}
+
+// A distinct name per file keeps git from pairing one fixture file with another in a move.
+function sourceLines(count, name = "line") {
+  return Array.from({ length: count }, (_, index) => `const ${name}${index} = ${index};\n`).join("");
+}
+
+// A repository holding a copy of the structure checker plus `files`, committed as the base.
+function structureFixture(t, files) {
+  const root = mkdtempSync(join(tmpdir(), "push-gate-structure-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const environment = fixtureGitEnvironment();
+  const git = (...args) =>
+    execFileSync("git", args, {
+      cwd: root,
+      env: environment,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  for (const path of STRUCTURE_CHECKER_FILES) {
+    writeFixtureFile(root, path, readFileSync(new URL(`../../${path}`, import.meta.url), "utf8"));
+  }
+  writeFixtureFile(root, "package.json", '{ "type": "module" }\n');
+  writeFixtureFile(root, "packages/shared/package.json", '{ "exports": { ".": "./src/index.ts" } }\n');
+  for (const [path, contents] of Object.entries(files)) writeFixtureFile(root, path, contents);
+  git("init");
+  git("add", ".");
+  git("commit", "-m", "seed the base");
+  return { root, git, base: git("rev-parse", "HEAD") };
+}
+
+// Runs the push plan's own structure command inside the fixture, as the gate would.
+async function runPushStructureCheck(root, base) {
+  const options = parseArguments(["--intent", "push", "--base", base]);
+  const pushPlan = buildLocalValidationPlan(options, resolveGitInputs(options, { cwd: root }), {
+    profile: "test",
+    toolchain: {},
+    capabilities: {},
+  });
+  const structure = pushPlan.checks.find((check) => check.id === "source-structure");
+  assert.ok(structure, "changed package source selects the structure check");
+  // An absolute cwd runs the plan's command inside the fixture.
+  return runCommandCheck({ ...structure, cwd: root }, { captureOutput: true });
+}
+
+test("the push gate fails structure violations in committed work, not only uncommitted work", async (t) => {
+  const path = "packages/shared/src/config/query-persistence.ts";
+  const { root, git, base } = structureFixture(t, { [path]: sourceLines(480) });
+  // Committed, so the working tree no longer shows it; CI judges it against the base (PR #898).
+  writeFixtureFile(root, path, sourceLines(513));
+  git("commit", "-am", "grow the reading cache past the modified-file cap");
+  // Not committed yet, so only the working tree shows it.
+  writeFixtureFile(root, "packages/shared/src/config/query-snapshot.ts", sourceLines(351));
+
+  const result = await runPushStructureCheck(root, base);
+
+  assert.equal(result.exitCode, 1, result.output);
+  assert.match(result.output, /query-persistence\.ts: modified file at 513 lines/);
+  assert.match(result.output, /query-snapshot\.ts: new file at 351 lines/);
+});
+
+test("the push gate judges a moved file at its new path as a modified file", async (t) => {
+  // Take a real frozen ceiling so the fixture follows the checker's own list.
+  const [allowlisted, ceiling] = Object.entries(FROZEN_ALLOWLIST).find(([path]) =>
+    path.startsWith("packages/shared/src/utils/"),
+  );
+  const utilities = "packages/shared/src/utils";
+  const { root, git, base } = structureFixture(t, {
+    [`${utilities}/growing.ts`]: sourceLines(480, "growing"),
+    [`${utilities}/steady.ts`]: sourceLines(400, "steady"),
+    [allowlisted]: sourceLines(ceiling, "frozen"),
+  });
+  const move = (from, to, contents) => {
+    git("mv", from, to);
+    writeFixtureFile(root, to, contents);
+  };
+  // Moved and grown past the modified-file cap in one commit: CI's rename detection reports R.
+  move(`${utilities}/growing.ts`, `${utilities}/grown.ts`, sourceLines(513, "growing"));
+  // Moved unchanged: longer than the new-file cap allows, but not a new file.
+  move(`${utilities}/steady.ts`, `${utilities}/settled.ts`, sourceLines(400, "steady"));
+  // Moved unchanged, while its frozen ceiling stays keyed to the old path.
+  move(allowlisted, `${utilities}/relocated.ts`, sourceLines(ceiling, "frozen"));
+  git("commit", "-am", "move three utilities");
+
+  const result = await runPushStructureCheck(root, base);
+
+  assert.equal(result.exitCode, 1, result.output);
+  assert.match(result.output, /grown\.ts: modified file at 513 lines/);
+  assert.ok(
+    result.output.includes(`relocated.ts: ${ceiling} lines, moved from ${allowlisted}`),
+    result.output,
+  );
+  assert.doesNotMatch(result.output, /settled\.ts/);
 });
 
 // Independent package suites declare a concurrency group in the policy. Only

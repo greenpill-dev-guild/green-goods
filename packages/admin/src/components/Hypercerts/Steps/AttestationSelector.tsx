@@ -9,6 +9,7 @@ import {
 } from "@green-goods/shared/types/hypercerts";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatDateTime } from "@green-goods/shared/utils/time";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { RiCheckboxCircleLine, RiCheckboxMultipleLine, RiCloseCircleLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -55,6 +56,7 @@ export function AttestationSelector({
   const { formatMessage } = useIntl();
   const [searchQuery, setSearchQuery] = useState("");
   const [domainFilter, setDomainFilter] = useState<DomainOption | "">("");
+  const untitledWorkLabel = formatMessage({ id: "app.admin.work.untitledWork" });
 
   const selectedAssessment = useMemo(
     () => assessments?.find((a) => a.id === selectedAssessmentId) ?? null,
@@ -120,10 +122,10 @@ export function AttestationSelector({
   return (
     <div className="space-y-4">
       <header className="space-y-1">
-        <h2 className="text-lg font-semibold text-text-strong">
+        <h2 className="text-title-md font-semibold text-text-strong">
           {formatMessage({ id: "app.hypercerts.attestations.title" })}
         </h2>
-        <p className="text-sm text-text-sub">
+        <p className="body-sm text-text-sub">
           {formatMessage(
             { id: "app.hypercerts.attestations.count" },
             { count: attestations.length }
@@ -242,7 +244,7 @@ export function AttestationSelector({
       )}
 
       {!isLoading && !hasError && filtered.length === 0 && (
-        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6 text-sm text-text-sub">
+        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6 body-sm text-text-sub">
           {formatMessage({
             id:
               attestations.length === 0
@@ -257,6 +259,8 @@ export function AttestationSelector({
           const isSelected = selectedIds.includes(attestation.id);
           const bundled = bundledInfo?.[attestation.id];
           const isBundled = Boolean(bundled);
+          // The card and its tooltip read the title without its generated stamps.
+          const displayTitle = toWorkDisplayTitle(attestation.title, untitledWorkLabel);
           const approvedAt = attestation.approvedAt || attestation.createdAt;
           const formattedDate = approvedAt
             ? formatDateTime(approvedAt * 1000, { dateStyle: "medium" })
@@ -280,7 +284,7 @@ export function AttestationSelector({
                 if (isBundled) return;
                 onToggle(attestation.id);
               }}
-              title={attestation.title}
+              title={<span title={displayTitle}>{displayTitle}</span>}
               description={
                 <EnsAddressText
                   address={attestation.gardenerAddress}
@@ -289,23 +293,23 @@ export function AttestationSelector({
               }
               meta={
                 <>
-                  <span
-                    className={cn(
-                      "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 body-sm",
-                      isBundled
-                        ? "border-warning-light bg-warning-lighter text-warning-dark"
-                        : isSelected
-                          ? "border-transparent bg-[rgb(var(--m3-secondary-container))] text-[rgb(var(--m3-on-secondary-container))]"
-                          : "border-stroke-sub text-text-sub"
-                    )}
-                  >
-                    {!isBundled && isSelected && <RiCheckboxCircleLine className="h-3.5 w-3.5" />}
-                    {isBundled
-                      ? formatMessage({ id: "app.hypercerts.attestations.bundledBadge" })
-                      : isSelected
-                        ? formatMessage({ id: "app.hypercerts.attestations.selectedBadge" })
-                        : formatMessage({ id: "app.hypercerts.attestations.select" })}
-                  </span>
+                  {/* Only a state earns a badge; an unselected card is just a card
+                      (a "Select" badge read as a second button). */}
+                  {isBundled || isSelected ? (
+                    <span
+                      className={cn(
+                        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 body-sm",
+                        isBundled
+                          ? "border-warning-light bg-warning-lighter text-warning-dark"
+                          : "border-transparent bg-bg-sub text-text-strong"
+                      )}
+                    >
+                      {!isBundled && <RiCheckboxCircleLine className="h-3.5 w-3.5" />}
+                      {isBundled
+                        ? formatMessage({ id: "app.hypercerts.attestations.bundledBadge" })
+                        : formatMessage({ id: "app.hypercerts.attestations.selectedBadge" })}
+                    </span>
+                  ) : null}
                   {attestation.domain && (
                     <span className="rounded-full bg-bg-weak px-2 py-0.5 body-sm text-text-sub">
                       {formatMessage({ id: `app.hypercerts.domain.${attestation.domain}` })}

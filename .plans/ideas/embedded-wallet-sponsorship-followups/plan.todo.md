@@ -1,7 +1,7 @@
 # Embedded Wallet Sponsorship Follow-Ups Plan
 
 **Feature Slug**: `embedded-wallet-sponsorship-followups`
-**Stage**: `backlog`
+**Stage**: `ideas`
 **Status**: `BACKLOG`
 **Created**: `2026-04-12`
 **Last Updated**: `2026-04-12`

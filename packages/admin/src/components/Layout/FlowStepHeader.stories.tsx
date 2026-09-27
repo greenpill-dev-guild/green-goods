@@ -22,7 +22,7 @@ const meta = {
         component:
           "Step title + subtitle block at the top of an action-flow step body (Submit Work, " +
           "Create Assessment, Create Hypercert). One component so the three flows share the same " +
-          "heading scale: h2 'text-base font-semibold' over a 'text-sm' subtitle. The flow-level " +
+          "heading scale: h2 'text-title-md font-semibold' over a 'body-sm' subtitle. The flow-level " +
           "h1 lives in ActionFlowShell's pinned header, not here.",
       },
     },

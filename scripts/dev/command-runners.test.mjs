@@ -47,16 +47,16 @@ test('all browser presets preserve project, environment, and startup selection',
   assert.equal(resolveE2e([]).preset, 'all');
 });
 
-test('browser route policy failure prevents builds and browser proof', async () => {
+test('a failing first browser routes step prevents builds and browser proof', async () => {
   const fake = recorder({ failure: 0 });
   assert.equal(await runCommands(resolveBrowser(['routes']), fake), 19);
   assert.equal(fake.calls.length, 1);
-  assert.deepEqual(fake.calls[0].args, ['scripts/require-authenticated-browser-qa.mjs']);
+  assert.deepEqual(fake.calls[0].args, ['scripts/browser-evidence-label.mjs']);
 });
 
 test('browser routes build all original surfaces in order before proof', () => {
   assert.deepEqual(resolveBrowser(['routes']).map(({ args }) => args), [
-    ['scripts/require-authenticated-browser-qa.mjs'],
+    ['scripts/browser-evidence-label.mjs'],
     ['run', '--cwd', 'packages/client', 'build'], ['run', '--cwd', 'packages/admin', 'build'], ['run', '--cwd', 'docs', 'build'],
     ['scripts/agentic-browser-proof.mjs'],
   ]);

@@ -1,6 +1,7 @@
 import type { Action, Garden } from "../../../types/domain";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import type { UserRole } from "../../gardener/useRole";
+import type { AdminWorkspacePermission } from "../navigation/workspaceViews";
 import { RiSettings3Line, RiUserLine } from "@remixicon/react";
 import type { ComponentType } from "react";
 import type { IntlShape } from "react-intl";
@@ -24,6 +25,8 @@ interface StaticCommandRoute {
   defaultLabel: string;
   href: string;
   roles?: UserRole[];
+  /** The navigation bar permission that shows this workspace. */
+  permission?: AdminWorkspacePermission;
 }
 
 interface AssessmentCommandItem {
@@ -35,6 +38,8 @@ interface AssessmentCommandItem {
 interface BuildCommandPaletteResultsOptions {
   query: string;
   role: UserRole;
+  /** The navigation bar's effective permissions, so the palette offers the same workspaces. */
+  permissions: Record<AdminWorkspacePermission, boolean>;
   formatMessage: IntlShape["formatMessage"];
   staticRoutes: StaticCommandRoute[];
   eligibleGardens: Garden[];
@@ -71,6 +76,7 @@ function fuzzyScore(query: string, text: string): number {
 export function buildCommandPaletteResults({
   query,
   role,
+  permissions,
   formatMessage,
   staticRoutes,
   eligibleGardens,
@@ -155,6 +161,7 @@ export function buildCommandPaletteResults({
 
   for (const route of staticRoutes) {
     if (route.roles && !route.roles.includes(role)) continue;
+    if (route.permission && !permissions[route.permission]) continue;
     const label = formatMessage({ id: route.labelId, defaultMessage: route.defaultLabel });
     pushIfMatches({ id: route.id, label, href: route.href, category: "pages" }, [label]);
   }

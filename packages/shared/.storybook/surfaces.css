@@ -18,7 +18,9 @@
  *   - client:  packages/client/index.html (Inter / Fraunces) and
  *              packages/client/src/styles/typography.css
  * Never import packages/admin/src/index.css wholesale: its document-level
- * shell resets would leak into every story.
+ * shell resets would leak into every story. Its layout and surface classes live
+ * in packages/admin/src/styles/admin-layout.css, which storybook.css imports,
+ * so a class-scoped admin layout rule belongs there rather than here.
  * ============================================================================ */
 
 /* Admin's M3 type aliases (`text-body-*`, `text-title-*`, `text-headline-*`,

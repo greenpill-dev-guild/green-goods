@@ -2,14 +2,22 @@
  * ENS Claim Mutation Hook
  *
  * Standalone mutation for claiming a *.greengoods.eth subdomain via Chainlink CCIP.
- * Detects auth mode: passkey users get sponsored registration (contract pays CCIP fee),
- * wallet users pay their own fee via msg.value.
+ * Every claim is sponsored: the ENS contract pays the CCIP fee from its balance.
+ * Passkey users send the claim through their smart account. Wallet users sign
+ * the same call and pay only Arbitrum gas, which is checked before the wallet opens.
  *
  * @module hooks/ens/useENSClaim
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type Address, decodeEventLog, encodeFunctionData, type Hex, zeroAddress } from "viem";
+import {
+  type Address,
+  decodeEventLog,
+  encodeFunctionData,
+  type Hex,
+  type PublicClient,
+  zeroAddress,
+} from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
@@ -22,6 +30,7 @@ import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../modules/transactions/local-fork-safety";
+import { assertWalletCanFundTransaction } from "../../modules/transactions/wallet-funding";
 import {
   createClients,
   GreenGoodsENSABI,
@@ -41,7 +50,7 @@ const ENS_ERROR_MESSAGES: Record<string, string> = {
   CannotReleaseGardenName: "Garden names are permanent and cannot be released.",
   InsufficientFee: "Not enough ETH to cover the registration fee.",
   InsufficientSponsoredBalance:
-    "The sponsored username fund needs more ETH before passkey users can claim names.",
+    "The sponsored username fund needs more ETH before names can be claimed.",
   NameInCooldown: "This name was recently released and is in a 30-day cooldown.",
 };
 
@@ -55,6 +64,37 @@ function getENSErrorMessage(error: Error, parsedName: string) {
   const directName = error.name in ENS_ERROR_MESSAGES ? error.name : null;
   const directMessage = error.message in ENS_ERROR_MESSAGES ? error.message : null;
   return ENS_ERROR_MESSAGES[directName ?? directMessage ?? parsedName] ?? null;
+}
+
+/** Rejects a claim the sponsored fund cannot pay for, before anything is signed. */
+async function assertSponsoredClaimFunded(params: {
+  publicClient: PublicClient;
+  ensAddress: Address;
+  slug: string;
+  owner: Address;
+}) {
+  const { publicClient, ensAddress, slug, owner } = params;
+  const [fee, balance, totalPendingRefunds] = await Promise.all([
+    publicClient.readContract({
+      address: ensAddress,
+      abi: GreenGoodsENSABI,
+      functionName: "getRegistrationFee",
+      args: [slug, owner, 0], // 0 = Gardener NameType
+    }) as Promise<bigint>,
+    publicClient.getBalance({ address: ensAddress }),
+    publicClient
+      .readContract({
+        address: ensAddress,
+        abi: GreenGoodsENSABI,
+        functionName: "totalPendingRefunds",
+      })
+      .catch(() => 0n) as Promise<bigint>,
+  ]);
+
+  // The contract keeps pending refunds out of what it will spend on fees.
+  if (balance < fee + totalPendingRefunds) {
+    throw createENSError("InsufficientSponsoredBalance");
+  }
 }
 
 export interface ENSClaimResult {
@@ -92,6 +132,12 @@ export function useENSClaim() {
         throw createENSError("NameTaken");
       }
 
+      const data = encodeFunctionData({
+        abi: GreenGoodsENSABI,
+        functionName: "claimNameSponsored",
+        args: [slug],
+      });
+
       if (isPasskeyUser) {
         if (!smartAccountClient?.account) {
           throw new Error("Passkey smart account not ready");
@@ -102,32 +148,11 @@ export function useENSClaim() {
           throw new Error("Passkey smart account not ready");
         }
 
-        const [fee, balance, totalPendingRefunds] = await Promise.all([
-          publicClient.readContract({
-            address: ensAddress,
-            abi: GreenGoodsENSABI,
-            functionName: "getRegistrationFee",
-            args: [slug, sponsoredOwner, 0], // 0 = Gardener NameType
-          }) as Promise<bigint>,
-          publicClient.getBalance({ address: ensAddress }),
-          publicClient
-            .readContract({
-              address: ensAddress,
-              abi: GreenGoodsENSABI,
-              functionName: "totalPendingRefunds",
-            })
-            .catch(() => 0n) as Promise<bigint>,
-        ]);
-
-        if (balance < fee + totalPendingRefunds) {
-          throw createENSError("InsufficientSponsoredBalance");
-        }
-
-        // Passkey user: sponsored registration (CCIP fee from contract balance)
-        const data = encodeFunctionData({
-          abi: GreenGoodsENSABI,
-          functionName: "claimNameSponsored",
-          args: [slug],
+        await assertSponsoredClaimFunded({
+          publicClient,
+          ensAddress,
+          slug,
+          owner: sponsoredOwner,
         });
         assertLocalArbitrumForkSmartAccountsDisabled();
 
@@ -138,23 +163,22 @@ export function useENSClaim() {
           data,
         });
       } else if (walletClient && walletAddress) {
-        // Wallet user: user-funded registration
-        const fee = await publicClient.readContract({
-          address: ensAddress,
-          abi: GreenGoodsENSABI,
-          functionName: "getRegistrationFee",
-          args: [slug, walletAddress, 0], // 0 = Gardener NameType
+        await assertSponsoredClaimFunded({ publicClient, ensAddress, slug, owner: walletAddress });
+        // The wallet pays only gas. A wallet opened for a claim it cannot pay
+        // for shows no request, so the check runs before anything reaches it.
+        await assertWalletCanFundTransaction(publicClient, {
+          account: walletAddress,
+          to: ensAddress,
+          data,
         });
         await ensureAppKitWalletChain(DEFAULT_CHAIN_ID);
         await assertLocalArbitrumForkWallet();
 
-        txHash = await walletClient.writeContract({
-          address: ensAddress,
-          abi: GreenGoodsENSABI,
-          functionName: "claimName",
-          args: [slug],
-          value: fee as bigint,
+        txHash = await walletClient.sendTransaction({
+          account: walletClient.account,
           chain: getChain(DEFAULT_CHAIN_ID),
+          to: ensAddress,
+          data,
         });
       } else {
         throw new Error("No connected account");
@@ -201,8 +225,12 @@ export function useENSClaim() {
     },
     onError: (error) => {
       const parsed = parseContractError(error);
+      // ENS wording first, then the shared wording for wallet errors it recognises
+      // (such as a wallet short of gas).
       const message =
-        getENSErrorMessage(error, parsed.name) || "Registration failed. Please try again.";
+        getENSErrorMessage(error, parsed.name) ||
+        (parsed.isKnown ? parsed.message : null) ||
+        "Registration failed. Please try again.";
       logger.error("ENS claim failed", { error, parsed });
       toastService.error({ title: "Registration failed", description: message });
     },

@@ -72,7 +72,7 @@ test.describe("Work Submission CI Tests", () => {
         buffer: ONE_PIXEL_PNG,
       });
 
-      const detailsButton = page.getByRole("button", { name: "Add Details" });
+      const detailsButton = page.getByRole("button", { name: "Details", exact: true });
       await expect(detailsButton).toBeEnabled({ timeout: 15000 });
       await detailsButton.click();
 

@@ -116,7 +116,8 @@ export function storyPoolConsole(
     expire: noop,
     acceptClaim: noop,
     declineClaim: noop,
-    saveSettings: async () => undefined,
+    retryQueued: async () => undefined,
+    discardQueued: async () => undefined,
   };
   return {
     chainId: DEFAULT_CHAIN_ID,
@@ -149,6 +150,9 @@ export function storyPoolConsole(
     pendingCreates: [],
     queueUnavailable: false,
     acts,
+    claimPhase: () => ({ status: "idle" }),
+    resumePhase: { status: "idle" },
+    queuedPhase: () => ({ status: "idle" }),
     isActing: false,
     isLoading: false,
     isError: false,
@@ -323,6 +327,8 @@ export function storyCommitmentDialog(
       refetch: async () => undefined,
     },
     acts,
+    claimPhase: () => ({ status: "idle" }),
+    sendPhase: { status: "idle" },
     isActing: false,
     isLoading: false,
     isError: false,

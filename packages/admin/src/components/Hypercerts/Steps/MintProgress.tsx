@@ -3,9 +3,9 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
 import type { MintingState } from "@green-goods/shared/stores/useHypercertWizardStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
+import { TxStepMarker } from "@/components/TxStepMarker";
 
 interface MintStep {
   id: string;
@@ -141,32 +141,24 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    {/* Step indicator circle */}
-                    <div
-                      className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-medium transition-all",
-                        isStepComplete && "border-success-base bg-success-base text-white",
-                        isStepActive &&
-                          !isStepFailed &&
-                          "border-primary-base bg-primary-base text-primary-foreground",
-                        isStepFailed &&
-                          (isFailureWarning
-                            ? "border-warning-base bg-warning-base text-white"
-                            : "border-error-base bg-error-base text-white"),
-                        isStepPending && "border-stroke-sub bg-bg-white text-text-sub"
-                      )}
-                    >
-                      {isStepComplete && <RiCheckLine className="h-4 w-4" />}
-                      {isStepActive && !isStepFailed && (
-                        <RiLoader4Line className="h-4 w-4 animate-spin" />
-                      )}
-                      {isStepFailed && <RiCloseLine className="h-4 w-4" />}
-                      {isStepPending && <span>{index + 1}</span>}
-                    </div>
+                    <TxStepMarker
+                      state={
+                        isStepComplete
+                          ? "complete"
+                          : isStepFailed
+                            ? isFailureWarning
+                              ? "warning"
+                              : "failed"
+                            : isStepActive
+                              ? "active"
+                              : "pending"
+                      }
+                      label={index + 1}
+                    />
                     {/* Step label */}
                     <span
                       className={cn(
-                        "text-xs font-medium sm:hidden lg:inline",
+                        "label-xs sm:hidden lg:inline",
                         isStepComplete && "text-success-dark",
                         isStepActive && !isStepFailed && "text-primary-dark",
                         isStepFailed &&
@@ -185,9 +177,9 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
 
         {/* Status message below progress */}
         <div className="mt-4 border-t border-stroke-soft pt-4">
-          <p className="text-sm font-medium text-text-strong">{statusMessage}</p>
+          <p className="body-sm font-medium text-text-strong">{statusMessage}</p>
           {!isComplete && !isFailed && (
-            <p className="mt-1 text-xs text-text-sub">
+            <p className="mt-1 body-xs text-text-sub">
               {formatMessage({ id: "app.hypercerts.mint.status.helper" })}
             </p>
           )}
@@ -195,7 +187,7 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
       </div>
 
       {state.status === "confirmed" && state.hypercertId && (
-        <div className="rounded-lg border border-success-light bg-success-lighter p-4 text-sm text-success-dark">
+        <div className="rounded-lg border border-success-light bg-success-lighter p-4 body-sm text-success-dark">
           {formatMessage({ id: "app.hypercerts.mint.success" }, { hypercertId: state.hypercertId })}
         </div>
       )}
@@ -205,7 +197,7 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
           href={`${explorer}/tx/${state.txHash}`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex text-xs font-medium text-primary-base underline"
+          className="inline-flex label-xs text-primary-base underline"
         >
           {formatMessage({ id: "app.hypercerts.mint.viewTransaction" })}
         </a>
@@ -214,14 +206,14 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
       {state.status === "failed" && (
         <div
           className={cn(
-            "rounded-lg border p-4 text-sm",
+            "rounded-lg border p-4 body-sm",
             txError.view.severity === "warning"
               ? "border-warning-light bg-warning-lighter text-warning-dark"
               : "border-error-light bg-error-lighter text-error-dark"
           )}
         >
           <p>{txError.title}</p>
-          <p className="mt-1 text-xs">{txError.message}</p>
+          <p className="mt-1 body-xs">{txError.message}</p>
         </div>
       )}
     </div>

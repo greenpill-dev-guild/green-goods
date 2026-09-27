@@ -1,4 +1,5 @@
 import type { Address } from "../../types/domain";
+import { isZeroAddress } from "../blockchain/address";
 
 export type AdminWorkspaceId =
   | "home"
@@ -39,6 +40,7 @@ export interface AdminCommunityRouteContext {
   /** @deprecated Use gardenId. Kept so old call sites and bookmarks can normalize safely. */
   gardenAddress?: Address | string;
   item?: string;
+  member?: Address;
 }
 
 export const ADMIN_GARDEN_ID_PARAM = "gardenId";
@@ -119,6 +121,7 @@ function buildCommunityContextSearch(
   return {
     [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     item: context.item,
+    member: context.member,
   };
 }
 
@@ -196,8 +199,12 @@ export const adminRoutes = {
     return this.gardenMode("pool", context);
   },
   /** The seeding console, a route-backed dialog over the pool tab (§6.3). */
-  gardenPoolSeed(context?: AdminGardenRouteContext) {
-    return buildAdminHref("/garden/pool/seed", buildGardenContextSearch(context));
+  /** The seeding wizard; `from` names a commitment in the pool to start it from. */
+  gardenPoolSeed(context?: AdminGardenRouteContext, options?: { from?: string }) {
+    return buildAdminHref("/garden/pool/seed", {
+      ...buildGardenContextSearch(context),
+      from: options?.from,
+    });
   },
   /** One commitment, opened in the pool tab's inspector (§6.7). */
   gardenPoolCommitment(commitmentId: string, context?: AdminGardenRouteContext) {
@@ -302,11 +309,9 @@ export const adminRoutes = {
   actions(search?: Record<string, AdminSearchValue>) {
     return buildAdminHref("/actions", search);
   },
+  /** The alias that lands on the protocol garden's campaign cookie jars. */
   cookies(search?: Record<string, AdminSearchValue>) {
     return buildAdminHref("/cookies", search);
-  },
-  cookiesDeploy(search?: Record<string, AdminSearchValue>) {
-    return buildAdminHref("/cookies/deploy", search);
   },
   profile(search?: Record<string, AdminSearchValue>) {
     return buildAdminHref("/profile", search);
@@ -346,4 +351,24 @@ export function getAdminWorkspaceForPath(pathname: string): AdminWorkspaceId {
 
 export function getAdminWorkspaceRoot(pathname: string): string {
   return ADMIN_WORKSPACE_ROOTS[getAdminWorkspaceForPath(pathname)];
+}
+
+/** Community → Payouts items for the protocol garden's campaign cookie jars (DL-046). */
+export const CAMPAIGN_JARS_ROUTE_ITEM = "campaigns";
+export const CREATE_CAMPAIGN_JAR_ROUTE_ITEM = "create-campaign-jar";
+
+/**
+ * Where the campaign cookie jar URLs land: the protocol garden's Community →
+ * Payouts, on its campaign jars or with Create Cookie Jar open. A chain that
+ * names no root garden lands on Community.
+ */
+export function resolveCampaignCookieJarsRoute(
+  rootGarden: string | null | undefined,
+  options: { create?: boolean } = {}
+): string {
+  if (!rootGarden || isZeroAddress(rootGarden)) return adminRoutes.community();
+  return adminRoutes.communityPayouts({
+    gardenId: rootGarden,
+    item: options.create ? CREATE_CAMPAIGN_JAR_ROUTE_ITEM : CAMPAIGN_JARS_ROUTE_ITEM,
+  });
 }

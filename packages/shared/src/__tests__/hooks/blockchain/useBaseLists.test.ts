@@ -44,6 +44,7 @@ vi.mock("../../../config/appkit", () => ({
 }));
 
 import { useActions, useGardeners, useGardens } from "../../../hooks/blockchain/useBaseLists";
+import { Capital } from "../../../types/domain";
 
 // ============================================
 // Test helpers
@@ -176,6 +177,21 @@ describe("useBaseLists", () => {
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
+    });
+
+    it("parses capital names in a list an older build cached", () => {
+      // Restoring that cache skips the fetch that parses the indexer's names.
+      queryClient.setQueryData(
+        ["greengoods", "actions", 11155111],
+        [createMockAction({ capitals: ["MATERIAL", "UNKNOWN", "SOCIAL"] as unknown as Capital[] })]
+      );
+      mockGetActions.mockReturnValue(new Promise(() => {}));
+
+      const { result } = renderHook(() => useActions(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      expect(result.current.data?.[0].capitals).toEqual([Capital.MATERIAL, Capital.SOCIAL]);
     });
 
     it("sets error state on fetch failure", async () => {

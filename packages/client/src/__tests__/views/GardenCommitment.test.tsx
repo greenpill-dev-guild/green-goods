@@ -43,6 +43,7 @@ const mockReason = vi.fn();
 const mockFlush = vi.fn();
 const mockRetryAndSend = vi.fn();
 const mockDiscardJob = vi.fn();
+const mockJoinGarden = vi.fn();
 const mockActs = {
   claim: vi.fn(),
   claimPersonal: vi.fn(),
@@ -84,6 +85,19 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) 
   return {
     ...(await importOriginal()),
     useOnlineStatus: () => true,
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/garden/useJoinGarden", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useJoinGarden: () => ({
+      joinGarden: mockJoinGarden,
+      isJoining: false,
+      joiningGardenId: null,
+      error: null,
+      checkOpenJoining: vi.fn(),
+    }),
   };
 });
 
@@ -238,6 +252,9 @@ function controller(
         member: [{ address: GARDEN, name: "Rocinha Community Garden" }],
         stewarded: [],
       },
+      claimGardensKnown: true,
+      membershipUnavailable: false,
+      retryMembership: vi.fn(),
     },
     seat: "provider",
     actGarden: GARDEN,
@@ -249,6 +266,7 @@ function controller(
       hasPendingJob: false,
       sendFailed: false,
       failedJob: null,
+      pendingAct: null,
       isUnavailable: false,
       refresh: vi.fn(),
     },
@@ -267,6 +285,7 @@ function render(commitmentId = "9") {
   return renderWithProviders(
     <MemoryRouter initialEntries={[`/home/${GARDEN}/commitments/${commitmentId}`]}>
       <Routes>
+        <Route path="/home/:id/commitments/new" element={<ComposerRoute />} />
         <Route path="/home/:id/commitments/:commitmentId" element={<GardenCommitment />} />
         <Route path="/home/:id/commitments/:commitmentId/proof" element={<p>Proof composer</p>} />
         <Route path="/home/:id/work/:workId" element={<p>Work detail</p>} />
@@ -274,6 +293,11 @@ function render(commitmentId = "9") {
       </Routes>
     </MemoryRouter>
   );
+}
+
+function ComposerRoute() {
+  const location = useLocation();
+  return <output data-testid="composer-route">{`${location.pathname}${location.search}`}</output>;
 }
 
 function WorkSubmissionRoute() {
@@ -343,6 +367,25 @@ describe("GardenCommitment", () => {
     render();
     await userEvent.click(screen.getByRole("button", { name: "Add Proof" }));
     expect(screen.getByText("Proof composer")).toBeInTheDocument();
+  });
+
+  it("opens the composer on the commitment being made again, in the pool it belongs to", async () => {
+    // A protocol commitment is read from the reader's own garden, and the new one
+    // has to be composed into the protocol pool, not into the garden it was opened from.
+    const PROTOCOL_GARDEN = "0x9999999999999999999999999999999999999999";
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: "askAgain",
+        pool: poolFixture({ poolId: 1n, poolType: "PROTOCOL", garden: PROTOCOL_GARDEN }),
+      })
+    );
+    render();
+
+    await userEvent.click(screen.getByRole("button", { name: "Ask Again" }));
+
+    expect(screen.getByTestId("composer-route")).toHaveTextContent(
+      `/home/${PROTOCOL_GARDEN}/commitments/new?direction=request&from=9`
+    );
   });
 
   it("renders the team and delegates joining to the controller", async () => {
@@ -739,5 +782,176 @@ describe("GardenCommitment", () => {
       "aria-describedby",
       status?.id
     );
+  });
+
+  it("shows a non-member how to join instead of an act, and joins from the card", async () => {
+    mockJoinGarden.mockResolvedValue("0xjoin");
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({
+          commitment: {
+            derivedState: "OFFERED",
+            onchainState: "OFFERED",
+            creator: OTHER,
+            leadProvider: OTHER,
+          },
+        }),
+        seat: "bystander",
+        actKind: null,
+        roles: { ...controller().roles, isMemberHere: false },
+        membership: {
+          isMember: false,
+          garden: { address: GARDEN, name: "Rocinha Community Garden", openJoining: true },
+          unavailable: false,
+          retry: vi.fn(),
+        },
+      })
+    );
+    render();
+    expect(screen.queryByRole("button", { name: "Take This Up" })).not.toBeInTheDocument();
+    expect(screen.getByText("Join Rocinha Community Garden to take this up.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Join Garden" }));
+    expect(mockJoinGarden).toHaveBeenCalledWith(GARDEN);
+  });
+
+  it("points a non-member at the garden when a steward lets people in, and says nothing while membership is unknown", () => {
+    const visitor = controller({
+      detail: detail({
+        commitment: {
+          derivedState: "REQUESTED",
+          onchainState: "REQUESTED",
+          creator: OTHER,
+          leadProvider: OTHER,
+        },
+      }),
+      seat: "bystander",
+      actKind: null,
+      membership: {
+        isMember: false,
+        garden: { address: GARDEN, name: "Rocinha Community Garden", openJoining: false },
+        unavailable: false,
+        retry: vi.fn(),
+      },
+    });
+    mockUseController.mockReturnValue(visitor);
+    const view = render();
+    expect(screen.getByRole("button", { name: "Request to Join" })).toBeInTheDocument();
+
+    mockUseController.mockReturnValue(
+      controller({
+        ...visitor,
+        membership: { isMember: null, garden: null, unavailable: false, retry: vi.fn() },
+      })
+    );
+    view.rerender(
+      <MemoryRouter initialEntries={[`/home/${GARDEN}/commitments/9`]}>
+        <Routes>
+          <Route path="/home/:id/commitments/:commitmentId" element={<GardenCommitment />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(screen.queryByText(/to take this up\./i)).not.toBeInTheDocument();
+  });
+
+  it("draws a parked act with why it waits, and sends or drops it from the row", async () => {
+    mockRetryAndSend.mockResolvedValue(undefined);
+    mockDiscardJob.mockResolvedValue(true);
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: "membership-unavailable",
+            discardable: true,
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+    expect(screen.queryByText(/your last act here is waiting/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/your take-up waits for your garden membership/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Send Now" }));
+    expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
+    await userEvent.click(screen.getByRole("button", { name: "Discard" }));
+    expect(mockDiscardJob).toHaveBeenCalledWith("claim-9");
+    expect(mockFlush).not.toHaveBeenCalled();
+  });
+
+  it("locks the parked row while this screen's own send is running", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        isQueueing: true,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: null,
+            discardable: true,
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+    // A discard now could delete the record of a transaction about to broadcast.
+    expect(screen.getByText(/your take-up is being sent from this phone/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send Now" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Discard" })).toBeDisabled();
+  });
+
+  it("says so when Discard is refused, instead of silently redrawing the row", async () => {
+    mockDiscardJob.mockResolvedValue(false);
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: null,
+            discardable: true,
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+    await userEvent.click(screen.getByRole("button", { name: "Discard" }));
+    expect(mockDiscardJob).toHaveBeenCalledWith("claim-9");
+    expect(await screen.findByText(/couldn't be discarded/i)).toBeInTheDocument();
+  });
+
+  it("offers the membership check again when it could not be read", async () => {
+    const retry = vi.fn();
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({
+          commitment: {
+            derivedState: "OFFERED",
+            onchainState: "OFFERED",
+            creator: OTHER,
+            leadProvider: OTHER,
+          },
+        }),
+        seat: "bystander",
+        actKind: null,
+        membership: { isMember: null, garden: null, unavailable: true, retry },
+      })
+    );
+    render();
+    expect(screen.queryByText(/to take this up\./i)).not.toBeInTheDocument();
+    expect(screen.getByText(/couldn't check whether you belong/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(retry).toHaveBeenCalledTimes(1);
   });
 });

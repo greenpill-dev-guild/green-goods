@@ -1,5 +1,6 @@
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useIntl } from "react-intl";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { formatUnixDate, shortAddress } from "../poolPresentation";
 import { eventLabel } from "./commitmentDialogPresentation";
 
@@ -15,25 +16,25 @@ export function CommitmentTimeline({ events }: { events: CommitmentDialogControl
         defaultMessage: "Timeline",
       })}
     >
-      <p className="label-md text-text-strong">
+      <AdminCardTitle as="h4">
         {formatMessage({
           id: "cockpit.garden.pool.commitment.timeline",
           defaultMessage: "Timeline",
         })}
-      </p>
+      </AdminCardTitle>
       {events.length === 0 ? (
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.commitment.timelineEmpty",
             defaultMessage: "Nothing recorded yet.",
           })}
         </p>
       ) : (
-        <ol className="divide-y divide-[rgb(var(--m3-outline-variant))] text-sm">
+        <ol className="divide-y divide-stroke-soft body-sm">
           {events.map((event) => (
             <li key={event.id} className="flex justify-between gap-2 py-1.5">
               <span className="text-text-strong">{eventLabel(event, formatMessage)}</span>
-              <span className="shrink-0 text-xs text-text-soft" title={event.actor ?? undefined}>
+              <span className="shrink-0 body-xs text-text-soft" title={event.actor ?? undefined}>
                 {[
                   event.actor ? shortAddress(event.actor) : null,
                   formatUnixDate(event.timestamp, locale, ""),

@@ -32,8 +32,49 @@ const documents: CommitmentDocumentStore = {
   pinJson,
   readJson: vi.fn(),
 };
+const text = (length: number) => "x".repeat(length);
 
 describe("buildPoolCharter", () => {
+  // The write limit and the read tolerance side by side: a charter pinned
+  // before the limit, longer than a steward can write today, still reads whole.
+  it.each([
+    {
+      label: "writes and reads 420 characters",
+      purpose: text(420),
+      written: text(420),
+      read: text(420),
+    },
+    {
+      label: "refuses 421 but still reads them",
+      purpose: text(421),
+      written: "refused",
+      read: text(421),
+    },
+    {
+      label: "reads a stored 1,500 in full",
+      purpose: text(1500),
+      written: "refused",
+      read: text(1500),
+    },
+    {
+      label: "reads 2,001 cut to 2,000",
+      purpose: text(2001),
+      written: "refused",
+      read: text(2000),
+    },
+    {
+      label: "collapses whitespace before counting",
+      purpose: `  ${text(200)}\n\n  ${text(219)}  `,
+      written: `${text(200)} ${text(219)}`,
+      read: `${text(200)} ${text(219)}`,
+    },
+  ])("$label", ({ purpose, written, read }) => {
+    const write = () => buildPoolCharter({ purpose }).purpose;
+    if (written === "refused") expect(write).toThrow("at most 420 characters");
+    else expect(write()).toBe(written);
+    expect(parsePoolCharter({ version: POOL_CHARTER_VERSION, purpose })?.purpose).toBe(read);
+  });
+
   it("shapes a versioned document from the steward's sentence", () => {
     expect(
       buildPoolCharter({
@@ -109,6 +150,15 @@ describe("cycle metadata write side", () => {
 
   it("refuses an empty name", () => {
     expect(() => buildCycleMetadata({ name: "" })).toThrow();
+  });
+
+  it.each([
+    { label: "writes a 120-character name", name: text(120), written: text(120) },
+    { label: "refuses a 121-character name", name: text(121), written: "refused" },
+  ])("$label", ({ name, written }) => {
+    const write = () => buildCycleMetadata({ name }).name;
+    if (written === "refused") expect(write).toThrow("at most 120 characters");
+    else expect(write()).toBe(written);
   });
 
   it("pins the cycle name and returns its CID", async () => {

@@ -16,3 +16,6 @@ export type ReasonDialog =
 
 /** The blast-radius confirmations, which carry facts rather than a reason. */
 export type ConfirmDialog = "close" | "compost" | "reopen" | null;
+
+/** A cycle's ending: End reconciles an Open cycle, Archive composts a Reconciled one. */
+export type CycleDialog = { kind: "end" | "archive"; cycle: CommitmentCycleRecord } | null;

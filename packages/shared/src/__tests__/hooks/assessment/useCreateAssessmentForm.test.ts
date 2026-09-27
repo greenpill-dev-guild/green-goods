@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { createAssessmentFormSchema } from "../../../hooks/assessment/useCreateAssessmentForm";
+import {
+  createAssessmentFormSchema,
+  createDefaultAssessmentForm,
+} from "../../../hooks/assessment/useCreateAssessmentForm";
 import { CynefinPhase, Domain, type SmartOutcome } from "../../../types/domain";
 
-function createValidFormData(overrides: { smartOutcomes?: SmartOutcome[] } = {}) {
+function createValidFormData(
+  overrides: { smartOutcomes?: SmartOutcome[]; domain?: Domain | null } = {}
+) {
   return {
     title: "Kigali Community Solar",
     description: "Assessment of phase two deployment",
@@ -25,6 +30,15 @@ function createValidFormData(overrides: { smartOutcomes?: SmartOutcome[] } = {})
 }
 
 describe("createAssessmentFormSchema", () => {
+  it("starts with no domain chosen, and still requires one", () => {
+    expect(createDefaultAssessmentForm().domain).toBeNull();
+
+    const result = createAssessmentFormSchema.safeParse(createValidFormData({ domain: null }));
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.path[0])).toEqual(["domain"]);
+  });
+
   it("accepts different metrics within one assessment", () => {
     const result = createAssessmentFormSchema.safeParse(createValidFormData());
 

@@ -71,6 +71,7 @@ const meta: Meta<typeof ImpactTab> = {
     assessments: ASSESSMENTS,
     fetchingAssessments: false,
     assessmentsError: null,
+    hypercertsError: null,
     hypercerts: HYPERCERTS,
     hypercertsLoading: false,
     domainLabels: ["Agroforestry", "Education"],
@@ -90,10 +91,12 @@ export const Loading: Story = {
   },
 };
 
+/** Nothing yet: no View All, and each list points to where its items are made in the Hub. */
 export const Empty: Story = {
   args: {
     assessments: [],
     hypercerts: [],
+    canCertify: true,
   },
 };
 

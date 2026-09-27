@@ -25,10 +25,12 @@ import {
   toAllocationBps,
   toRecognitionBps,
 } from "./AllocationEditor";
+import { PoolTarget, type PoolWriteTarget } from "../PoolTarget";
 import { SetupFlowFooter } from "./SetupFlowFooter";
 import { SetupStepCycle } from "./SetupStepCycle";
 import { SetupStepHow } from "./SetupStepHow";
-import { SetupStepOpen } from "./SetupStepOpen";
+import { type SetupPhase, SetupStepOpen } from "./SetupStepOpen";
+import { previewRows, promptNumbers } from "./setupWrites";
 import {
   buildStepConfigs,
   DEFAULT_CAP,
@@ -50,6 +52,8 @@ export interface PoolSetupFlowProps {
   /** The Seeded cycle an `open-*` intent opens. */
   cycle?: CommitmentCycleRecord | null;
   console: PoolConsoleController;
+  /** The pool these writes land on, named on every step. */
+  target: PoolWriteTarget;
   onClose: () => void;
 }
 
@@ -61,7 +65,14 @@ export interface PoolSetupFlowProps {
  * unlanded call (uiux-spec C.51). The charter and the cycle name are pinned
  * before the chain starts; a pin failure keeps the step open with the words.
  */
-export function PoolSetupFlow({ open, intent, cycle, console: pool, onClose }: PoolSetupFlowProps) {
+export function PoolSetupFlow({
+  open,
+  intent,
+  cycle,
+  console: pool,
+  target,
+  onClose,
+}: PoolSetupFlowProps) {
   const { formatMessage } = useIntl();
   const purposeId = useId();
   const steps = STEPS_BY_INTENT[intent];
@@ -188,23 +199,36 @@ export function PoolSetupFlow({ open, intent, cycle, console: pool, onClose }: P
       return;
     }
     setPinning(false);
+    // A finished run stays on screen as its done state; the steward closes it.
     const outcome = await sequence.run(planned);
-    if (outcome.status === "complete") {
-      await pool.refetch();
-      onClose();
-    }
-  }, [buildSteps, intent, sequence, pool, onClose]);
+    if (outcome.status === "complete") await pool.refetch();
+  }, [buildSteps, intent, sequence, pool]);
 
   const retry = useCallback(async () => {
     const outcome = await sequence.retry();
-    if (outcome.status === "complete") {
-      await pool.refetch();
-      onClose();
-    }
-  }, [sequence, pool, onClose]);
+    if (outcome.status === "complete") await pool.refetch();
+  }, [sequence, pool]);
 
   const failed = sequence.state.status === "failed";
+  const complete = sequence.state.status === "complete";
   const failure = sequence.state.failure;
+  const phase: SetupPhase =
+    sequence.state.status === "complete"
+      ? "done"
+      : sequence.state.status === "failed"
+        ? "stopped"
+        : sequence.state.status === "running"
+          ? "running"
+          : "ready";
+  const rows =
+    sequence.state.steps.length > 0
+      ? sequence.state.steps
+      : previewRows(intent, model.status === "open");
+  // Once stopped, what landed is done: a retry asks only for the rest.
+  const prompts = promptNumbers(rows, sequence.batching === "available", failed);
+  const doneCount = rows.filter(
+    (row) => row.status === "landed" || row.status === "already"
+  ).length;
 
   let body: ReactNode;
   switch (currentStep) {
@@ -247,6 +271,7 @@ export function PoolSetupFlow({ open, intent, cycle, console: pool, onClose }: P
           onAllocationChange={setAllocation}
           recognition={recognition}
           onRecognitionChange={setRecognition}
+          cycleKind={isCampaign ? "campaign" : "season"}
           disabled={submitting}
         />
       );
@@ -267,10 +292,13 @@ export function PoolSetupFlow({ open, intent, cycle, console: pool, onClose }: P
           recognition={recognition}
           poolStatus={model.status}
           pinFailure={pinFailure}
-          failed={failed}
+          phase={phase}
           failure={failure}
-          landed={sequence.state.landed}
-          failedStep={sequence.state.failedStep}
+          rows={rows}
+          promptNumbers={prompts.numbers}
+          promptTotal={prompts.total}
+          gardenName={target.gardenName}
+          chainId={pool.chainId}
           isOnline={pool.isOnline}
         />
       );
@@ -288,6 +316,8 @@ export function PoolSetupFlow({ open, intent, cycle, console: pool, onClose }: P
       submitting={submitting}
       canContinue={canContinue}
       failed={failed}
+      complete={complete}
+      progress={rows.length > 0 ? (doneCount / rows.length) * 100 : undefined}
       retryable={retryable}
       isOnline={pool.isOnline}
       onBack={() =>
@@ -296,6 +326,7 @@ export function PoolSetupFlow({ open, intent, cycle, console: pool, onClose }: P
       onNext={() => setStepIndex((index) => index + 1)}
       onSubmit={() => void submit()}
       onRetry={() => void retry()}
+      onDone={onClose}
     />
   );
 
@@ -327,6 +358,7 @@ export function PoolSetupFlow({ open, intent, cycle, console: pool, onClose }: P
           footer={footer}
         >
           <div ref={stepRef} tabIndex={-1} className="space-y-4 outline-none">
+            <PoolTarget target={target} />
             <FlowStepHeader
               title={stepConfigs[stepIndex]?.title ?? title}
               description={stepConfigs[stepIndex]?.description}

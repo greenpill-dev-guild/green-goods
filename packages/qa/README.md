@@ -47,8 +47,10 @@ Two more details that look like bugs if you get them wrong:
   and a rejected write is a lost verdict.
 - Every keystroke lands in `localStorage` before any network call, so a reload, a crash, a closed
   tab, or a failed save never costs anyone their notes — a pending delta outlives the page session
-  and goes out on the next open, and is dropped only once the server confirms the write. The page
-  says "not saved — kept locally, retrying" rather than claiming success.
+  and goes out on the next open **against the run it was recorded in**, and is dropped only once
+  the server confirms the write. The page says "not saved — kept locally, retrying" rather than
+  claiming success. A queue whose run has closed in the meantime is not sent anywhere on its own;
+  see **Work stranded by a closed run** below.
 
 ## Runs
 
@@ -68,9 +70,11 @@ SHAs) beside the per-run shards, and exactly one run is open at any time:
   nothing is ever deleted. The winner also carries every named tester into the new run as an
   empty shard, so the roster does not fall back to short addresses.
 - `POST /api/state` writes only to the open run. A save that names a closed or unknown run is
-  refused with `409 { reason, openRun }` and no write; the page re-keys its pending queue
-  (`qa-outbox:<address>:<runId>`) at the open run, sends it once more, and says which run
-  received it. A save whose run closes between the server's check and its shard write is caught
+  refused with `409 { reason, openRun }` and no write. What the page does next depends on whose
+  work it is: edits typed in this page session move to the open run and are sent once more, and the
+  page says which run received them, while work recovered from storage is parked rather than
+  re-aimed (**Work stranded by a closed run**). A save whose run closes between the server's check
+  and its shard write is caught
   after the write: the closed shard is put back exactly as it was, the delta is re-applied to
   the run that is open now, and the response names that run with `retargeted: true`, which the
   page follows the same way. A rollover names the run the tester confirmed closing
@@ -82,6 +86,32 @@ SHAs) beside the per-run shards, and exactly one run is open at any time:
   failing or blocked. A verdict on a case retired since that run is read on each active successor
   named by the catalog's `replacedBy` chain (the build ships that reverse map as `replaces`) and
   labelled *inherited*.
+
+### Work stranded by a closed run
+
+A pending queue is keyed by tester and run (`qa-outbox:<address>:<runId>`). When a run closes, what
+happens to it depends on who typed it, because the page cannot tell a verdict recorded a minute ago
+from one recorded on another day:
+
+- **Typed in this page session** — it follows the run boundary and is sent, which is the case the
+  behaviour exists for: a tester mid-save when a teammate rolls over, where losing the work is the
+  worse outcome.
+- **Recovered from storage** — it stays under the run it was recorded in and is offered instead, with
+  how many cases it holds and when the tester last edited them. They send it to the open run or keep
+  it where it is; keeping collapses the offer to a standing line rather than hiding it. Nothing is
+  sent into a run it was never recorded against without somebody choosing that.
+
+This is not hypothetical tidiness. On 2026-09-22 a PWA walk from two days earlier — held locally
+because every save had been refused since the shard passed a kilobyte — was adopted by a rollover
+three seconds after the new run opened, and that run read as already walked while the run the
+verdicts were taken against stayed empty.
+
+`updatedAt` on a stored queue is when the **tester** last changed it, not when the page last wrote
+it; stamping every write would reset the age each time a page re-persisted recovered work. A queue
+an older page left carries no stamp, and the offer omits the age rather than inventing one. Ages
+render through `Intl.RelativeTimeFormat`, so they follow the tester's language without a phrase per
+unit in each locale file.
+
 - N/A means out of scope for this run; a skipped case has no entry. A note starting with
   `[beta]`, `[prod]`, or `[local]` marks a verdict taken outside the run's environment.
 

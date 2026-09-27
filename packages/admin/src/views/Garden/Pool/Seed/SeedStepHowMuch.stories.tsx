@@ -33,7 +33,7 @@ const meta: Meta<typeof SeedStepHowMuch> = {
     docs: {
       description: {
         component:
-          "Step two of the seeding console. What is being counted and how much of it, when it is due, who may contribute, and for garden work the approved actions it is kept by.",
+          "Step two of the seeding console. What is being counted (a unit of at most 24 characters, counted as the steward types) and how much of it, when it is due, who may contribute, and for garden work the approved actions it is kept by.",
       },
     },
   },

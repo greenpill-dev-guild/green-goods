@@ -2,7 +2,8 @@ import { Domain, type Garden } from "../../types/domain";
 import { gardenHasMember } from "../../utils/app/garden";
 import { expandDomainMask } from "../../utils/domain";
 
-export type GardenFilterScope = "all" | "mine";
+/** "open" keeps gardens anyone can join without an invitation, whether or not the viewer belongs. */
+export type GardenFilterScope = "all" | "mine" | "open";
 export type GardenSortOrder = "name" | "recent";
 
 export interface GardenFiltersState {
@@ -28,7 +29,8 @@ export function parseGardenFilters(value: unknown): GardenFiltersState {
       )
     : [];
   return {
-    scope: saved.scope === "mine" ? "mine" : DEFAULT_GARDEN_FILTERS.scope,
+    scope:
+      saved.scope === "mine" || saved.scope === "open" ? saved.scope : DEFAULT_GARDEN_FILTERS.scope,
     sort: saved.sort === "name" ? "name" : DEFAULT_GARDEN_FILTERS.sort,
     ...(domains.length > 0 ? { domains } : {}),
   };
@@ -39,6 +41,8 @@ export interface UseFilteredGardensResult {
   filteredGardens: Garden[];
   /** Count of gardens where the user is a member */
   myGardensCount: number;
+  /** Count of gardens anyone can join, whatever the current scope */
+  openGardensCount: number;
   /** Whether any filter is active (not default) */
   isFilterActive: boolean;
   /** Count of active filters (0-3) */
@@ -80,6 +84,7 @@ export function useFilteredGardens(
         0
       )
     : 0;
+  const openGardens = gardens.filter((garden) => garden.openJoining === true);
 
   // Filter by scope
   let working = gardens;
@@ -91,6 +96,8 @@ export function useFilteredGardens(
         gardenHasMember(userAddress, garden.gardeners, garden.stewards)
       );
     }
+  } else if (scope === "open") {
+    working = openGardens;
   }
 
   // Filter by domain: a garden stays when it carries any of the chosen domains
@@ -122,6 +129,7 @@ export function useFilteredGardens(
   return {
     filteredGardens,
     myGardensCount,
+    openGardensCount: openGardens.length,
     isFilterActive,
     activeFilterCount,
   };

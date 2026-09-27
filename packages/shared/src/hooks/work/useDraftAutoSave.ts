@@ -54,6 +54,17 @@ export function useDraftAutoSave(
   ) {
     latest.current = { formData, images: images ?? [], missing };
   }
+  type DraftSnapshot = (typeof latest)["current"];
+  const savedSnapshot = useRef<{
+    generation: number;
+    snapshot: DraftSnapshot;
+    draftId: string;
+  } | null>(null);
+  const inFlightSave = useRef<{
+    generation: number;
+    snapshot: DraftSnapshot;
+    task: Promise<string | null>;
+  } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const enabled = options.enabled !== false && hydrated && !deleting && !completed && !!userAddress;
 
@@ -74,6 +85,12 @@ export function useDraftAutoSave(
       );
     };
     if (!isCurrent()) return null;
+    const currentSave = inFlightSave.current;
+    if (currentSave?.generation === generation && currentSave.snapshot === snapshot)
+      return currentSave.task;
+    const committed = savedSnapshot.current;
+    if (committed?.generation === generation && committed.snapshot === snapshot)
+      return committed.draftId;
     const { audioNotes = [], ...fields } = snapshot.formData;
     const meaningful =
       snapshot.images.length > 0 ||
@@ -93,7 +110,7 @@ export function useDraftAutoSave(
       draftSaveState: "saving",
       draftError: null,
     });
-    const task = queueDraftWrite(async () => {
+    const task: Promise<string | null> = queueDraftWrite(async () => {
       if (!isCurrent()) return null;
       try {
         const saved = await draftDB.saveSnapshot(
@@ -106,8 +123,10 @@ export function useDraftAutoSave(
           isCurrent,
           snapshot.missing
         );
-        if (isCurrent() && latest.current === snapshot)
+        if (isCurrent() && latest.current === snapshot) {
           useWorkFlowStore.setState({ draftSaveState: "saved" });
+          savedSnapshot.current = { generation, snapshot, draftId };
+        }
         if (isCurrent())
           void queryClient.invalidateQueries({ queryKey: draftsKeys.list(userAddress, chainId) });
         if (saved?.legacySourceId) {
@@ -126,11 +145,17 @@ export function useDraftAutoSave(
         throw error;
       }
     });
+    inFlightSave.current = { generation, snapshot, task };
+    const clearInFlight = () => {
+      if (inFlightSave.current?.task === task) inFlightSave.current = null;
+    };
+    void task.then(clearInFlight, clearInFlight);
     return task;
   }, [enabled, userAddress, chainId, queryClient, epoch]);
 
   useEffect(() => {
     clearTimeout(timer.current);
+    if (savedSnapshot.current?.generation !== epoch) savedSnapshot.current = null;
   }, [epoch]);
 
   const fieldsKey = JSON.stringify({ ...formData, audioNotes: undefined });

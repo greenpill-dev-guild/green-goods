@@ -52,6 +52,11 @@ export interface TransactionSendOptions {
   onBroadcast?: (hash: Hex) => Promise<void>;
 }
 
+export interface AtomicBatchOptions {
+  /** Called once the wallet has accepted the batch. Its receipt is still pending. */
+  onAccepted?: () => Promise<void>;
+}
+
 /**
  * Unified interface for sending contract transactions.
  *
@@ -66,6 +71,20 @@ export interface TransactionSender {
 
   /** Send multiple calls in a batch (optional — check supportsBatching first) */
   sendBatch?(calls: ContractCall[]): Promise<TxResult>;
+
+  /**
+   * Whether the connected wallet can run several calls as one transaction on
+   * this chain (EIP-5792 atomic execution). Asking never prompts the person.
+   */
+  canSendAtomicBatch?(chainId: number): Promise<boolean>;
+
+  /**
+   * Several calls, one approval, one transaction: all of them land or none do.
+   * Only call it after `canSendAtomicBatch` said yes for the chain. Unlike
+   * `sendBatch`, which may send one call after another, a later call here can
+   * rely on an earlier one having run.
+   */
+  sendAtomicBatch?(calls: ContractCall[], options?: AtomicBatchOptions): Promise<TxResult>;
 
   /** Whether this sender supports gas sponsorship (paymaster) */
   readonly supportsSponsorship: boolean;

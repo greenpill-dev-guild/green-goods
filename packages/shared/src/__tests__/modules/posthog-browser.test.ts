@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   dropDevelopmentHostExceptions,
   dropExtensionExceptions,
+  dropSkippedTransitionExceptions,
   initializePostHog,
 } from "../../modules/app/posthog-browser";
 import { restoreExceptionTopLevelProps } from "../../modules/app/posthog";
@@ -164,6 +165,62 @@ describe("dropDevelopmentHostExceptions", () => {
   });
 });
 
+describe("dropSkippedTransitionExceptions", () => {
+  // posthog-js records a DOMException as type "DOMException" and value "<name>: <message>".
+  const makeDomExceptionEvent = (value: string) =>
+    makeEvent({
+      $exception_list: [
+        { type: "DOMException", value, mechanism: { handled: false, synthetic: false } },
+      ],
+    });
+
+  it.each([
+    // Chromium, current and older wording
+    "AbortError: Transition was skipped. New ViewTransition started",
+    "AbortError: Transition was skipped",
+    // WebKit, including Chrome on iOS
+    "AbortError: Old view transition aborted by new view transition.",
+    "AbortError: Skipping view transition because skipTransition() was called.",
+    // Gecko
+    "AbortError: Skipped ViewTransition due to another transition starting",
+  ])("drops the skipped view transition %s", (value) => {
+    expect(dropSkippedTransitionExceptions(makeDomExceptionEvent(value))).toBeNull();
+  });
+
+  it.each([
+    // Other skip reasons stay visible; a duplicate view-transition-name, for one, is a real bug
+    "InvalidStateError: Transition was aborted because of invalid state",
+    "InvalidStateError: Skipping view transition because viewport size changed.",
+    // An aborted request is not a view transition
+    "AbortError: The user aborted a request.",
+  ])("keeps %s", (value) => {
+    const event = makeDomExceptionEvent(value);
+    expect(dropSkippedTransitionExceptions(event)).toBe(event);
+  });
+
+  it("keeps a non-DOMException error that quotes the skip message", () => {
+    const event = makeEvent({
+      $exception_list: [{ type: "Error", value: "Transition was skipped" }],
+    });
+
+    expect(dropSkippedTransitionExceptions(event)).toBe(event);
+  });
+
+  it("passes non-exception events through untouched", () => {
+    const event = makeEvent({ $current_url: "/home" }, "$pageview");
+    expect(dropSkippedTransitionExceptions(event)).toBe(event);
+  });
+
+  it("leaves the event untouched when there is no $exception_list", () => {
+    const event = makeEvent({});
+    expect(dropSkippedTransitionExceptions(event)).toBe(event);
+  });
+
+  it("handles a null event safely", () => {
+    expect(dropSkippedTransitionExceptions(null)).toBeNull();
+  });
+});
+
 describe("initializePostHog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -179,6 +236,7 @@ describe("initializePostHog", () => {
           dropDevelopmentHostExceptions,
           restoreExceptionTopLevelProps,
           dropExtensionExceptions,
+          dropSkippedTransitionExceptions,
         ],
       })
     );

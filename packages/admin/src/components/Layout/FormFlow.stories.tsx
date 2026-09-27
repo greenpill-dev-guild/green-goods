@@ -83,7 +83,7 @@ export const Sheet: Story = {
 export const WithFeedback: Story = {
   args: {
     feedback: (
-      <div className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark">
+      <div className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 body-sm text-warning-dark">
         Check the highlighted fields before submitting.
       </div>
     ),

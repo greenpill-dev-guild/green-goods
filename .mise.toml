@@ -1,4 +1,6 @@
 [tools]
+# scripts/dev/setup.js and scripts/dev/doctor.js fail when the running Node
+# major differs from this pin, because CI installs this version only.
 node = "22.22.1"
 # Keep local setup exactly aligned with packageManager and GitHub Actions.
 bun = "1.4.2"

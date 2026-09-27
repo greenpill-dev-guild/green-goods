@@ -13,7 +13,7 @@ const OPERATOR = "0x04D60647836bcA09c37B379550038BdaaFD82503" as Address;
 const approvalsKey = queryKeys.marketplace.approvals(OPERATOR, DEFAULT_CHAIN_ID);
 
 const CHILDREN = (
-  <div className="rounded-lg border border-dashed border-stroke-soft p-6 text-center text-sm text-text-sub">
+  <div className="rounded-lg border border-dashed border-stroke-soft p-6 text-center body-sm text-text-sub">
     Fully-approved content renders here (e.g., the “List for yield” button or hypercert table).
   </div>
 );

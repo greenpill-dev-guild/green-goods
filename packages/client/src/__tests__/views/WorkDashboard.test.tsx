@@ -133,11 +133,6 @@ vi.mock("@green-goods/shared/utils/time", async (importOriginal) => ({
   filterByTimeRange: (items: unknown[]) => items,
 }));
 
-vi.mock("@green-goods/shared/utils/app/haptics", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@green-goods/shared/utils/app/haptics")>()),
-  hapticLight: vi.fn(),
-}));
-
 vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>();
   return { ...actual, logger: { ...actual.logger, error: vi.fn() } };

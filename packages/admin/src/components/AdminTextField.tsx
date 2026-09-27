@@ -1,69 +1,16 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowDownSLine } from "@remixicon/react";
 import * as React from "react";
-import { type ComponentType, useCallback, useId, useRef, useState } from "react";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-type AdminTextFieldControl = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-
-interface AdminTextFieldCommonProps {
-  label: string;
-  value?: string;
-  defaultValue?: string;
-  error?: string;
-  helperText?: string;
-  required?: boolean;
-  disabled?: boolean;
-  leadingIcon?: ComponentType<{ className?: string }>;
-  trailingIcon?: ComponentType<{ className?: string }>;
-  variant?: "filled" | "outlined";
-  name?: string;
-  id?: string;
-  placeholder?: string;
-  className?: string;
-}
-
-export interface AdminTextFieldProps extends AdminTextFieldCommonProps {
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
-  type?: string;
-  inputProps?: React.ComponentPropsWithoutRef<"input">;
-}
-
-export interface AdminTextAreaProps extends AdminTextFieldCommonProps {
-  onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
-  /** Visible text rows before scrolling; the field is vertically resizable. */
-  rows?: number;
-  textareaProps?: React.ComponentPropsWithoutRef<"textarea"> & {
-    [key: `data-${string}`]: string | undefined;
-  };
-}
-
-export interface AdminSelectProps extends AdminTextFieldCommonProps {
-  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
-  /** The `<option>` elements. An empty-value option acts as the placeholder row. */
-  children: React.ReactNode;
-  selectProps?: React.ComponentPropsWithoutRef<"select"> & {
-    [key: `data-${string}`]: string | undefined;
-  };
-}
-
-// Internal shape the base renders from. The public wrappers narrow the
-// handler/ref types back to their concrete control element.
-interface AdminTextFieldBaseProps extends AdminTextFieldCommonProps {
-  multiline?: boolean;
-  select?: boolean;
-  rows?: number;
-  type?: string;
-  onChange?: (e: React.ChangeEvent<AdminTextFieldControl>) => void;
-  onBlur?: (e: React.FocusEvent<AdminTextFieldControl>) => void;
-  controlProps?: Record<string, unknown>;
-}
+import { useCallback, useId, useRef, useState } from "react";
+import { useIntl } from "react-intl";
+import type {
+  AdminSelectProps,
+  AdminTextAreaProps,
+  AdminTextFieldBaseProps,
+  AdminTextFieldControl,
+  AdminTextFieldProps,
+} from "./AdminTextField.types";
+import { CharacterCounter, countedLength, overLimitMessage } from "./CharacterCounter";
 
 // ============================================================================
 // Base
@@ -78,6 +25,8 @@ interface AdminTextFieldBaseProps extends AdminTextFieldCommonProps {
  * - Active indicator line (filled) or outline ring (outlined) reflecting focus/error state
  * - Leading and trailing icon slots (20dp, on-surface-variant)
  * - Supporting text / error message below with aria-describedby linkage
+ * - Opt-in character counter at the end of that row, toward the control's maxLength,
+ *   with an error past it
  * - forwardRef compatible — wraps the native control for react-hook-form register()
  *
  * Floating label is triggered by: focus OR value is non-empty OR defaultValue exists
@@ -106,15 +55,32 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       placeholder,
       className,
       controlProps,
+      showCount = false,
+      countBytes = false,
     },
     ref
   ) => {
+    const { formatMessage } = useIntl();
     const autoId = useId();
     const inputId = idProp ?? autoId;
     const supportingId = `${inputId}-supporting`;
+    // The counter reads its limit off the control, so the two cannot drift.
+    const maxLength = controlProps?.maxLength;
+    const counter =
+      showCount && typeof maxLength === "number"
+        ? { id: `${inputId}-count`, max: maxLength }
+        : null;
 
     const [focused, setFocused] = useState(false);
-    const [uncontrolledHasValue, setUncontrolledHasValue] = useState(Boolean(defaultValue));
+    // An uncontrolled field (register(), defaultValue) tracks its own length:
+    // it floats the label and feeds the counter.
+    const [uncontrolledLength, setUncontrolledLength] = useState(() =>
+      countedLength(defaultValue ?? "", countBytes)
+    );
+    // Text the steward did not type (loaded, or a controlled value the caller
+    // replaced) is described when the control takes focus, never announced.
+    const [typedText, setTypedText] = useState<string | null>(null);
+    const edited = typedText !== null && (value === undefined || value === typedText);
 
     // Internal ref to read uncontrolled control value for isFloating detection
     const internalRef = useRef<AdminTextFieldControl | null>(null);
@@ -131,16 +97,16 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
           (ref as React.MutableRefObject<AdminTextFieldControl | null>).current = node;
         }
 
-        if (node && value === undefined) {
-          const nextHasValue = node.value.length > 0;
-          setUncontrolledHasValue((current) => (current === nextHasValue ? current : nextHasValue));
-        }
+        if (node && value === undefined)
+          setUncontrolledLength(countedLength(node.value, countBytes));
       },
-      [ref, value]
+      [ref, value, countBytes]
     );
 
-    // Determine if the label should be in floating position
-    const hasValue = value !== undefined ? value.length > 0 : uncontrolledHasValue;
+    // What the control holds: the counter shows its length, any text floats the label.
+    const length = value !== undefined ? countedLength(value, countBytes) : uncontrolledLength;
+    // Raw text floats the label: a trimmed byte count can read 0 over spaces.
+    const hasValue = (value !== undefined ? value.length : uncontrolledLength) > 0;
 
     // A native <select> always shows its selected option's text, and date/time
     // inputs paint intrinsic format text (mm/dd/yyyy) — a resting centered
@@ -148,8 +114,15 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     const intrinsicText = /^(date|time|datetime-local|month|week)$/.test(type);
     const isFloating = select || intrinsicText || focused || hasValue || Boolean(defaultValue);
 
-    const hasError = Boolean(error);
-    const supportingText = error ?? helperText;
+    // Past the limit: text written before it, loaded in, or bytes, which
+    // `maxLength` cannot stop. A caller's own error still comes first.
+    const limitError =
+      counter && length > counter.max
+        ? overLimitMessage(formatMessage, counter.max, countBytes)
+        : undefined;
+    const shownError = error ?? limitError;
+    const hasError = Boolean(shownError);
+    const supportingText = shownError ?? helperText;
 
     // -------------------------------------------------------------------------
     // Shared handlers
@@ -163,7 +136,8 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     };
 
     const handleChange = (e: React.ChangeEvent<AdminTextFieldControl>) => {
-      setUncontrolledHasValue(e.currentTarget.value.length > 0);
+      setUncontrolledLength(countedLength(e.currentTarget.value, countBytes));
+      setTypedText(e.currentTarget.value);
       onChange?.(e);
     };
 
@@ -217,7 +191,11 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
           ? true
           : ((controlProps?.["aria-invalid"] as boolean | undefined) ?? undefined),
       "aria-describedby":
-        [supportingText ? supportingId : null, controlProps?.["aria-describedby"] as string]
+        [
+          supportingText ? supportingId : null,
+          counter?.id,
+          controlProps?.["aria-describedby"] as string,
+        ]
           .filter(Boolean)
           .join(" ") || undefined,
       onChange: handleChange,
@@ -274,19 +252,37 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       </label>
     );
 
-    const supporting = supportingText ? (
-      <p
-        id={supportingId}
-        role={hasError ? "alert" : undefined}
-        className={cn(
-          "mt-1 px-4 text-body-sm",
-          hasError ? "text-[rgb(var(--m3-error))]" : "text-[rgb(var(--m3-on-surface-variant))]",
-          disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
-        )}
-      >
-        {supportingText}
-      </p>
-    ) : null;
+    // Supporting text at the start of the row, the counter at its end (M3).
+    const supporting =
+      supportingText || counter ? (
+        <div className="mt-1 flex gap-4 px-4 text-body-sm">
+          {supportingText ? (
+            <p
+              id={supportingId}
+              role={error || (limitError && edited) ? "alert" : undefined}
+              className={cn(
+                hasError
+                  ? "text-[rgb(var(--m3-error))]"
+                  : "text-[rgb(var(--m3-on-surface-variant))]",
+                disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
+              )}
+            >
+              {supportingText}
+            </p>
+          ) : null}
+          {counter ? (
+            <CharacterCounter
+              id={counter.id}
+              count={length}
+              max={counter.max}
+              error={hasError}
+              disabled={disabled}
+              edited={edited}
+              bytes={countBytes}
+            />
+          ) : null}
+        </div>
+      ) : null;
 
     // -------------------------------------------------------------------------
     // Filled variant

@@ -15,6 +15,11 @@ vi.mock("@/routes/RequireRole", async () => {
   return { default: () => <Outlet /> };
 });
 
+vi.mock("@/routes/RequireCommunityAccess", async () => {
+  const { Outlet } = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return { default: () => <Outlet /> };
+});
+
 describe("/community/pools", () => {
   it("is a retired Community mode: the route redirects into Coordination", () => {
     // The Pools tab folded into Coordination (2026-08-25 AD-5); the W12

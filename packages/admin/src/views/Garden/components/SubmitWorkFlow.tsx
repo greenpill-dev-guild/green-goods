@@ -125,10 +125,10 @@ export function SubmitWorkFlow({
       >
         <div className="flex flex-col items-center gap-3 rounded-lg border border-stroke-soft bg-bg-white p-8 text-center">
           <RiSeedlingLine className="h-10 w-10 text-text-soft" aria-hidden="true" />
-          <p className="text-sm font-semibold text-text-strong">
+          <p className="body-sm font-semibold text-text-strong">
             {formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
           </p>
-          <p className="max-w-sm text-xs text-text-sub">
+          <p className="max-w-sm body-xs text-text-sub">
             {formatMessage({ id: "app.admin.work.submit.noActionsForDomainHint" })}
           </p>
           <AdminButton
@@ -196,7 +196,7 @@ export function SubmitWorkFlow({
           />
         ) : null}
         {progressMessage ? (
-          <p className="truncate text-sm text-text-sub" title={progressMessage}>
+          <p className="truncate body-sm text-text-sub" title={progressMessage}>
             {progressMessage}
           </p>
         ) : null}

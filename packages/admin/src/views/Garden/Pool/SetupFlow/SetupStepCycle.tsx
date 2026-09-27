@@ -1,5 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { CYCLE_NAME_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/cycle-metadata";
 import { useIntl } from "react-intl";
 import { AdminTextField } from "@/components/AdminTextField";
 import { cycleName } from "../poolPresentation";
@@ -44,7 +45,7 @@ export function SetupStepCycle({
             {
               id: "cockpit.garden.pool.setup.secondSeasonBlocked",
               defaultMessage:
-                "One season runs at a time. “{name}” is still running; close it first, or start a campaign beside it.",
+                "One season runs at a time. “{name}” is still running: end it on the pool tab once nothing in it is live, or start a campaign beside it.",
             },
             { name: cycleName(runningSeason, cycleNames, formatMessage) }
           )}
@@ -67,6 +68,8 @@ export function SetupStepCycle({
         }
         disabled={disabled}
         required
+        showCount
+        inputProps={{ maxLength: CYCLE_NAME_MAX_LENGTH }}
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <AdminTextField
@@ -100,7 +103,7 @@ export function SetupStepCycle({
           required
         />
       </div>
-      <p className="text-xs text-text-soft">
+      <p className="body-xs text-text-soft">
         {isCampaign
           ? formatMessage({
               id: "cockpit.garden.pool.setup.campaignNote",

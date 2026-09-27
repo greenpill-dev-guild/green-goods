@@ -32,7 +32,9 @@ interface WorkStatusBadgeProps {
   variant?: "semantic" | "default";
 }
 
-type GenericStatusVariant = "success" | "warning" | "error" | "info" | "neutral";
+const GENERIC_STATUS_VARIANTS = ["success", "warning", "error", "info", "neutral"] as const;
+
+type GenericStatusVariant = (typeof GENERIC_STATUS_VARIANTS)[number];
 
 interface GenericStatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   className?: string;
@@ -209,6 +211,15 @@ function getStatusConfig(status: WorkDisplayStatus, variant: "semantic" | "defau
         borderColor: "border-warning-light",
       };
   }
+}
+
+/**
+ * `variant` is shared with the work-status badge, where it names a token set
+ * ("semantic" | "default") rather than a tone. Only tones reach the generic
+ * config; anything else falls back to neutral.
+ */
+function toGenericVariant(variant: StatusBadgeProps["variant"]): GenericStatusVariant {
+  return GENERIC_STATUS_VARIANTS.find((tone) => tone === variant) ?? "neutral";
 }
 
 function getGenericStatusConfig(variant: GenericStatusVariant): StatusConfig {
@@ -416,8 +427,9 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   }
 
   const genericProps = props as GenericStatusBadgeProps;
-  const genericVariant = genericProps.variant ?? "neutral";
-  const genericConfig = getGenericStatusConfig(genericVariant);
+  // `variant` is destructured out of `props`, so read it from the parameter,
+  // not from the rest object — `spanProps` stays free of it either way.
+  const genericConfig = getGenericStatusConfig(toGenericVariant(variant));
   const { icon, children, ...spanProps } = genericProps;
   const resolvedIcon = icon ?? genericConfig.icon;
 

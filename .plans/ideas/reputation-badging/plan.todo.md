@@ -7,6 +7,7 @@
 **Groundwork Issue**: [#457 — feat(greenwill): async badge issuer service](https://github.com/greenpill-dev-guild/green-goods/issues/457)
 **Linear Issue**: `PRD-455`
 **Linear Source**: `source:plans`
+**Stage**: `ideas`
 **Status**: `BACKLOG`
 **Created**: `2026-04-17`
 **Last Updated**: `2026-05-10`

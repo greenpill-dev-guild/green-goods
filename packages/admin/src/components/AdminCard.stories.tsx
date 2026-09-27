@@ -1,7 +1,7 @@
 import { RiArrowRightSLine, RiLeafLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { AdminCard } from "./AdminCard";
+import { AdminCard, AdminCardTitle } from "./AdminCard";
 
 const meta: Meta<typeof AdminCard> = {
   title: "Admin/Primitives/AdminCard",
@@ -63,6 +63,15 @@ export const Elevated: Story = {
   render: (args) => (
     <AdminCard {...args} className="max-w-sm">
       <SampleContent />
+    </AdminCard>
+  ),
+};
+
+export const CardTitle: Story = {
+  render: () => (
+    <AdminCard className="max-w-sm">
+      <AdminCardTitle>Pool Status</AdminCardTitle>
+      <p className="mt-2 text-body-md text-text-sub">A card title shares one scale across admin.</p>
     </AdminCard>
   ),
 };
@@ -129,7 +138,7 @@ export const WithToneWash: Story = {
     <div className="grid gap-4 md:grid-cols-2">
       {(["hub", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
+          <div className="mb-2 label-xs font-semibold uppercase tracking-[0.06em] text-text-soft">
             [data-tone=&quot;{tone}&quot;]
           </div>
           <AdminCard variant="elevated">

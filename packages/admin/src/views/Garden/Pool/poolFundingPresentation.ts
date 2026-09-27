@@ -1,4 +1,5 @@
 import type {
+  PoolFundingSnapshot,
   PoolFundingState,
   SettlementUnavailableReason,
 } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
@@ -10,6 +11,37 @@ export function formatGdollar(value: bigint | null, locale: string, detailed = f
   return value === null
     ? "—"
     : `${formatTokenAmount(value, 18, detailed ? 18 : 2, locale, true)} G$`;
+}
+
+/**
+ * The one reason the rail names when funding or settlement is unavailable:
+ * the first funding reason, because settlement cannot run without funding,
+ * then the first settlement reason. Null when nothing is in the way.
+ */
+export function primaryUnavailableReason(
+  snapshot: Pick<PoolFundingSnapshot, "fundingUnavailableReasons" | "settlementUnavailableReasons">
+): SettlementUnavailableReason | null {
+  return snapshot.fundingUnavailableReasons[0] ?? snapshot.settlementUnavailableReasons[0] ?? null;
+}
+
+/** A cached snapshot remains visible, but cannot attest current readiness after a failed read. */
+export function fundingReadIssueMessage(
+  funding: { isError: boolean; hasStaleBalance: boolean },
+  intl: IntlShape
+): string | null {
+  if (funding.isError) {
+    return intl.formatMessage({
+      id: "cockpit.garden.pool.funding.refreshFailed",
+      defaultMessage: "The latest funding read failed. Refresh to check current availability.",
+    });
+  }
+  if (funding.hasStaleBalance) {
+    return intl.formatMessage({
+      id: "cockpit.garden.pool.funding.balanceStale",
+      defaultMessage: "The balance read is out of date. Refresh to check current availability.",
+    });
+  }
+  return null;
 }
 
 export function shortAddress(address: Address): string {

@@ -170,6 +170,8 @@ export interface GardenWorkRows {
   rows: OverlayWork[];
   /** Rows whose review status is unknown: approvals unread, and nothing saved or decided here. */
   unknownIds: Set<string>;
+  /** Saved rows the latest read left out: kept on screen, with an earlier read's status. */
+  retainedIds: Set<string>;
 }
 
 /**
@@ -197,18 +199,47 @@ export function resolveGardenWorkRows({
     remote === undefined ? savedRows : reconcileIndexedWorkCollection(indexedRows, savedRows);
 
   const unknownIds = new Set<string>();
+  const retainedIds = new Set(
+    remote === undefined
+      ? []
+      : collection.filter((work) => !remoteById.has(work.id)).map((work) => work.id)
+  );
   const rows = collection.map((work): OverlayWork => {
-    const indexedStatus = indexedStatusOf(remoteById.get(work.id));
+    const remoteRow = remoteById.get(work.id);
+    const indexedStatus = indexedStatusOf(remoteRow);
     const cached = known.get(work.id);
     if (indexedStatus === null && !cached) unknownIds.add(work.id);
     const reference = cached ?? (work as OverlayWork);
+    const status = resolveWorkStatus(indexedStatus, reference, now);
     return {
       ...work,
-      status: resolveWorkStatus(indexedStatus, reference, now),
+      status,
+      ...reviewOf(remoteRow, reference, status),
       ...carryOverlayMarkers(reference, indexedStatus, now),
     };
   });
-  return { rows, unknownIds };
+  return { rows, unknownIds, retainedIds };
+}
+
+/**
+ * The indexed decision a row shows: when it was indexed and the feedback the
+ * gardener reads, else what the row already carried. A decision made on this
+ * device has no indexed time until the indexer reports it, and a row that
+ * shows no decision, such as a local one that lapsed back to pending, carries
+ * no review at all.
+ */
+function reviewOf(
+  row: EASWorkListRow | undefined,
+  reference: OverlayWork,
+  status: WorkDisplayStatus
+): Pick<OverlayWork, "reviewedAt" | "reviewFeedback"> {
+  if (status !== "approved" && status !== "rejected") return {};
+  const reviewedAt = row?.approval ? row.approval.createdAt : reference.reviewedAt;
+  const reviewFeedback = row?.approval ? row.approval.feedback?.trim() : reference.reviewFeedback;
+  return {
+    ...(typeof reviewedAt === "number" && reviewedAt > 0 ? { reviewedAt } : {}),
+    ...(reviewFeedback ? { reviewFeedback } : {}),
+  };
 }
 
 /**

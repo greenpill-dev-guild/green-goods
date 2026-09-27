@@ -13,6 +13,11 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
   configureConnectivityProbe: () => () => {},
 }));
 
+const { ADDRESS } = vi.hoisted(() => ({ ADDRESS: "0xAbCdEf0123456789aBcDeF0123456789AbCdEf01" }));
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => ADDRESS,
+}));
+
 vi.mock("@green-goods/shared/providers/JobQueue", () => ({
   JobQueueProvider: ({ children }: { children: ReactNode }) => children,
 }));
@@ -47,6 +52,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 });
 
 import AppShell from "../../routes/AppShell";
+import { hasArrivalPassed } from "../../views/Home/arrivalToast";
 
 function HomeRoute() {
   return <Link to="/home/garden-1/work/work-1">Open work</Link>;
@@ -77,6 +83,27 @@ describe("AppShell", () => {
     vi.restoreAllMocks();
     useUIStore.getState().closeWorkDashboard();
     document.documentElement.classList.remove("modal-open");
+    sessionStorage.clear();
+  });
+
+  it.each([
+    ["/home", false],
+    ["/home/", false],
+    ["/home/garden", true],
+    ["/home/profile", true],
+    ["/home/garden-1/work/work-1", true],
+  ])("leaves the Home arrival toast open only for a session on Home (%s)", (path, passed) => {
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="*" element={<div>Screen</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(hasArrivalPassed(ADDRESS)).toBe(passed);
   });
 
   it("scrolls content inside #app-scroll so the app bar stays outside any overscroll stretch", () => {

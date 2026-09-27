@@ -75,79 +75,24 @@ import { useGardens } from "../blockchain/useBaseLists";
 import { useGardenPermissions } from "../garden/useGardenPermissions";
 import { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
 import { useCommitmentPools } from "./useCommitmentPooling";
-import type { InboxCommitment } from "./useCommitmentsInbox";
+import type {
+  CommitmentsToConfirm,
+  ToConfirmDisputedRow,
+  ToConfirmFallbackRow,
+  ToConfirmGroup,
+  ToConfirmPoolAuthority,
+  ToConfirmRow,
+} from "./commitments-to-confirm.types";
 import { useProtocolPool } from "./useProtocolPool";
 
-/**
- * Which pool a row belongs to, and what that lets this reader do to it. Both
- * fields are optional so a fixture may leave them out; every row this hook
- * builds states them outright.
- */
-export interface ToConfirmPoolAuthority {
-  /**
-   * The garden that owns the commitment's pool, which is not always the garden
-   * whose authority confirms. Null when the pools read has not answered.
-   */
-  poolGarden?: Address | null;
-  /**
-   * The reader currently stewards that pool's garden, the only authority
-   * `TerminalLib.raiseDispute` and `resolveDispute` accept here.
-   */
-  canDispute?: boolean;
-}
-
-/** One commitment in a garden's group, with the pool it actually lives in. */
-export interface ToConfirmRow extends InboxCommitment, ToConfirmPoolAuthority {}
-
-/** The garden's own read of a commitment, as the party its stewards act for. */
-export interface ToConfirmGroup {
-  garden: Address;
-  gardenName: string;
-  /**
-   * Seated as the garden, so each row's act is the garden's confirm and
-   * `needsYou` means "needs this garden". The row renders with the same
-   * grammar as the personal inbox.
-   */
-  rows: ToConfirmRow[];
-}
-
-/** A commitment only a steward's reasoned fallback can still confirm. */
-export interface ToConfirmFallbackRow extends ToConfirmPoolAuthority {
-  commitment: CommitmentReadModel;
-  path: "POOL_FALLBACK" | "PROTOCOL_FALLBACK";
-  /** The garden whose steward authority the act would use. */
-  garden: Address;
-  gardenName: string;
-  activeContributors: Address[];
-}
-
-/** A frozen record waiting on the pool steward who may resolve the dispute. */
-export interface ToConfirmDisputedRow {
-  commitment: CommitmentReadModel;
-  /** The pool's garden, which is the authority `resolveDispute` requires. */
-  garden: Address;
-  gardenName: string;
-}
-
-export interface CommitmentsToConfirm {
-  groups: ToConfirmGroup[];
-  fallback: ToConfirmFallbackRow[];
-  /**
-   * Disputed records in the reader's own pools. Optional so a fixture may
-   * leave it out; this hook always answers with an array.
-   */
-  disputed?: ToConfirmDisputedRow[];
-  /** Rows across every garden — ordinary, fallback and disputed: the badge. */
-  count: number;
-  /** The reader stewards at least one garden. The tab exists only then. */
-  isSteward: boolean;
-  /** The reader stewards the registered protocol garden. */
-  isProtocolSteward: boolean;
-  availability: ReturnType<typeof useCommitmentPoolingAvailability>;
-  isLoading: boolean;
-  isError: boolean;
-  refetch: () => Promise<unknown>;
-}
+export type {
+  CommitmentsToConfirm,
+  ToConfirmDisputedRow,
+  ToConfirmFallbackRow,
+  ToConfirmGroup,
+  ToConfirmPoolAuthority,
+  ToConfirmRow,
+} from "./commitments-to-confirm.types";
 
 /**
  * Whether the reader is personally a party. Without the roster this answers
@@ -329,6 +274,9 @@ export function useCommitmentsToConfirm({
           : (poolGardens.get(commitment.poolId.toString()) ?? null);
       return {
         poolGarden,
+        poolGardenName: poolGarden
+          ? (gardens.find((garden) => isSameGarden(poolGarden, garden.id as Address))?.name ?? null)
+          : null,
         canDispute: poolGarden !== null && stewardedSet.has(poolGarden.toLowerCase()),
       };
     };
@@ -457,6 +405,7 @@ export function useCommitmentsToConfirm({
     confirmedIds,
     poolGardens,
     stewardedSet,
+    gardens,
   ]);
 
   const queries = [...ordinaryQueries, ...fallbackQueries, ...disputedQueries];

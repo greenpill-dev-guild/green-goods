@@ -19,9 +19,9 @@ export function resolveBrowser(argv) {
   }
   if (command === 'routes') {
     const options = parseOptions(args, { flags: ['--help', '-h'] });
-    if (options['--help'] || options['-h']) return { help: 'Usage: bun run browser routes\nRuns the existing authenticated-browser policy gate, builds client/admin/docs, then runs route proof.' };
+    if (options['--help'] || options['-h']) return { help: 'Usage: bun run browser routes\nPrints the clean-room evidence label, builds client/admin/docs, then runs route proof.' };
     return [
-      { command: 'bun', args: ['scripts/require-authenticated-browser-qa.mjs'] },
+      { command: 'bun', args: ['scripts/browser-evidence-label.mjs'] },
       ...['packages/client', 'packages/admin', 'docs'].map((cwd) => ({ command: 'bun', args: ['run', '--cwd', cwd, 'build'] })),
       { command: 'bun', args: ['scripts/agentic-browser-proof.mjs'] },
     ];

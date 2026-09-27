@@ -1,11 +1,11 @@
 import { configureConnectivityProbe } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useDocumentScrollLockLifecycle } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
 import { WorkProvider } from "@green-goods/shared/providers/Work";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
-import { installPressHaptics } from "@green-goods/shared/utils/app/haptics";
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { OfflineIndicator } from "@/components/Communication/Offline/OfflineIndicator";
@@ -13,6 +13,7 @@ import { InstallNudge } from "@/components/Communication/Offline/InstallNudge";
 import { PwaBadgeCoordinator } from "@/components/Communication/PwaBadgeCoordinator";
 import { AppBar } from "@/components/Layout/AppBar";
 import { APP_ROUTES } from "@/config/pwaRouting";
+import { markArrivalPassed } from "@/views/Home/arrivalToast";
 
 const OfflineContentPreparation = lazy(() =>
   import("@/components/Communication/Offline/OfflineContentPreparation")
@@ -62,12 +63,20 @@ function DeferredEnsClaimReminder() {
 export default function AppShell() {
   const { pathname } = useLocation();
   useEffect(() => configureConnectivityProbe("/connectivity-check.txt"), []);
-  // One listener answers every button, tab, and chip press in the installed app.
-  useEffect(() => installPressHaptics(), []);
   const closeWorkDashboard = useUIStore((state) => state.closeWorkDashboard);
   const previousPathnameRef = useRef(pathname);
+  const primaryAddress = usePrimaryAddress();
 
   useDocumentScrollLockLifecycle(pathname);
+
+  // Home's arrival toast orients a session that opens on Home. Being anywhere else first (the
+  // garden flow restored after the app was closed, a shared garden link, Profile after sign-in,
+  // or a tap away before the toast was ready) means the session has already arrived.
+  useEffect(() => {
+    if (primaryAddress && pathname.replace(/\/$/, "") !== APP_ROUTES.home) {
+      markArrivalPassed(primaryAddress);
+    }
+  }, [pathname, primaryAddress]);
 
   // Route transitions reset the app scroller; submission returns preserve dashboard state.
   useLayoutEffect(() => {

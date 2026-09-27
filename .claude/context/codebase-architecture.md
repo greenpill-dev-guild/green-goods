@@ -2,7 +2,7 @@
 
 This is the canonical agent-facing model for architecture work in Green Goods. The `plan`,
 `review`, `audit`, and `module-seams-review` skills share it. Product and package invariants still
-come from `AGENTS.md`, `CLAUDE.md`, the nearest package guide, and the other files in this directory.
+come from `AGENTS.md`, the nearest package guide, and the other files in this directory.
 
 The model adapts Matt Pocock's
 [`codebase-design`](https://github.com/mattpocock/skills/tree/main/skills/engineering/codebase-design),

@@ -45,10 +45,6 @@ vi.mock("@green-goods/shared/utils/debug", () => ({
   debugError: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared/utils/app/haptics", () => ({
-  hapticLight: vi.fn(),
-}));
-
 vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: {
     success: vi.fn(),

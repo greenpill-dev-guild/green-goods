@@ -22,6 +22,11 @@ vi.mock("../../../utils/blockchain/simulation", () => ({
   simulateTransaction: (...args: unknown[]) => mockSimulateTransaction(...args),
 }));
 
+const mockReadGardenRoleHat = vi.fn();
+vi.mock("../../../utils/blockchain/garden-role-reads", () => ({
+  readGardenRoleHat: (...args: unknown[]) => mockReadGardenRoleHat(...args),
+}));
+
 const mockParseContractError = vi.fn();
 vi.mock("../../../utils/errors/contract-errors", () => ({
   parseContractError: (error: unknown) => mockParseContractError(error),
@@ -45,6 +50,7 @@ vi.mock("../../../utils/blockchain/garden-roles", () => ({
 vi.mock("../../../components/toast", () => ({
   toastService: {
     error: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -61,6 +67,7 @@ vi.mock("../../../modules/app/analytics-events", () => ({
 // Import after mocks
 // ============================================
 
+import { toastService } from "../../../components/toast";
 import {
   createGardenOperation,
   GARDEN_OPERATIONS,
@@ -123,6 +130,7 @@ describe("createGardenOperation", () => {
     vi.clearAllMocks();
     mockFetchHatsModuleAddress.mockResolvedValue(HATS_MODULE);
     mockSimulateTransaction.mockResolvedValue({ success: true });
+    mockReadGardenRoleHat.mockResolvedValue(false);
     mockParseContractError.mockReturnValue({
       name: "ContractError",
       message: "Something went wrong",
@@ -294,6 +302,81 @@ describe("createGardenOperation", () => {
         USER_ADDRESS,
         CHAIN_ID
       );
+      // Only adds can be no-ops worth guarding; removals skip the role read.
+      expect(mockReadGardenRoleHat).not.toHaveBeenCalled();
+    });
+  });
+
+  // ------------------------------------------
+  // Role pre-flight (adds)
+  // ------------------------------------------
+
+  describe("role pre-flight", () => {
+    it("never asks the wallet when the target already holds the role", async () => {
+      mockReadGardenRoleHat.mockResolvedValue(true);
+      const sender = createMockSender();
+      const onOptimisticUpdate = vi.fn();
+      const config = createConfig();
+      config.messages.alreadyHeld = (address) => `${address} is already a Gardener.`;
+
+      const operation = createGardenOperation(
+        GARDEN_ID,
+        config,
+        sender,
+        USER_ADDRESS,
+        CHAIN_ID,
+        createMockExecuteWithToast(),
+        mockSetIsLoading,
+        onOptimisticUpdate
+      );
+
+      const result = await operation(TARGET_ADDRESS);
+
+      expect(result).toEqual({ success: true, alreadyHeld: true });
+      // Exact hat membership, read from the module the grant would call.
+      expect(mockReadGardenRoleHat).toHaveBeenCalledWith(
+        GARDEN_ID,
+        TARGET_ADDRESS,
+        "gardener",
+        CHAIN_ID,
+        HATS_MODULE
+      );
+      expect(mockSimulateTransaction).not.toHaveBeenCalled();
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+      expect(trackAdminMemberAddStarted).not.toHaveBeenCalled();
+      // The cached roster catches up with the chain, and the steward hears why
+      // no wallet prompt appeared.
+      expect(onOptimisticUpdate).toHaveBeenCalledWith({
+        memberType: "gardener",
+        operationType: "add",
+        targetAddress: TARGET_ADDRESS,
+      });
+      expect(toastService.info).toHaveBeenCalledWith({
+        message: `${TARGET_ADDRESS} is already a Gardener.`,
+      });
+      expect(mockSetIsLoading).toHaveBeenLastCalledWith(false);
+    });
+
+    it("fails open to the normal add when the role read errors", async () => {
+      mockReadGardenRoleHat.mockRejectedValue(new Error("RPC unavailable"));
+      const sender = createMockSender();
+
+      const operation = createGardenOperation(
+        GARDEN_ID,
+        createConfig(),
+        sender,
+        USER_ADDRESS,
+        CHAIN_ID,
+        createMockExecuteWithToast(),
+        mockSetIsLoading
+      );
+
+      const result = await operation(TARGET_ADDRESS);
+
+      expect(result.success).toBe(true);
+      expect(result.hash).toBe(TX_HASH);
+      expect(mockSimulateTransaction).toHaveBeenCalled();
+      expect(sender.sendContractCall).toHaveBeenCalled();
     });
   });
 

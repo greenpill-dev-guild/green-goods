@@ -14,12 +14,7 @@ import { useUser } from "../../auth/useUser";
 import type { SendableTokenBalance } from "../../blockchain/useSendableTokens";
 import { useCommitmentMetadata } from "../../commitment-pooling/useCommitmentMetadata";
 
-type CeloWalletReadiness =
-  | "loading"
-  | "ready"
-  | "policy-unavailable"
-  | "address-mismatch"
-  | "unavailable";
+type CeloWalletReadiness = "loading" | "ready" | "address-mismatch" | "unavailable";
 
 export function useCeloWallet() {
   const { primaryAddress, authMode, ready, resolveSmartAccountClient } = useUser();
@@ -48,13 +43,7 @@ export function useCeloWallet() {
       },
       (error: unknown) => {
         const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
-        update(
-          code === "address_mismatch"
-            ? "address-mismatch"
-            : code === "policy_unavailable"
-              ? "policy-unavailable"
-              : "unavailable"
-        );
+        update(code === "address_mismatch" ? "address-mismatch" : "unavailable");
       }
     );
     return () => {

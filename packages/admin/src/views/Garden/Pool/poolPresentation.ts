@@ -271,6 +271,21 @@ export function shortAddress(address: string | null | undefined): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
+/**
+ * The garden whose pool a Confirm queue row's commitment lives in, when that
+ * is not the acting garden's own: its name, or its short address while the
+ * gardens list has not answered. Null when the row is the acting garden's own
+ * pool, which the header (or the section's heading) already declares.
+ */
+export function otherPoolGardenLabel(row: {
+  garden: string;
+  poolGarden?: string | null;
+  poolGardenName?: string | null;
+}): string | null {
+  if (!row.poolGarden || row.poolGarden.toLowerCase() === row.garden.toLowerCase()) return null;
+  return row.poolGardenName || shortAddress(row.poolGarden);
+}
+
 /** Unix seconds → the locale's short date, or the fallback when absent. */
 export function formatUnixDate(
   value: bigint | number | null | undefined,
@@ -299,7 +314,7 @@ export function confirmEligibilityChip(
       variant: "success",
       label: formatMessage({
         id: "cockpit.hub.confirm.eligibility.ordinary",
-        defaultMessage: "ordinary",
+        defaultMessage: "Ready to confirm",
       }),
     };
   }
@@ -308,7 +323,7 @@ export function confirmEligibilityChip(
       variant: "warning",
       label: formatMessage({
         id: "cockpit.hub.confirm.eligibility.garden",
-        defaultMessage: "garden fallback",
+        defaultMessage: "Needs a steward step-in",
       }),
     };
   }
@@ -316,7 +331,7 @@ export function confirmEligibilityChip(
     variant: "warning",
     label: formatMessage({
       id: "cockpit.hub.confirm.eligibility.protocol",
-      defaultMessage: "Green Goods team fallback",
+      defaultMessage: "Needs the Green Goods team",
     }),
   };
 }

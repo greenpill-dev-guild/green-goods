@@ -10,6 +10,8 @@ foundations.
 
 ## UI Contract
 
+Read `.claude/skills/design/implementation.md` before frontend work.
+
 - Read this guide, `packages/admin/DESIGN.md`, the exported admin primitives, and the relevant guard tests before changing routes, layouts, or page structure. The public Builder page is a navigation aid for readers, not an implementation authority.
 - The canonical shell is `CanvasLayout`.
 - The Wave 3 shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`, with every workspace overlay rendering as a centered `AdminDialog` (the `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted). The three global AppBar surfaces (Profile, Settings, Notifications) render in `AdminSideSheet` — right-docked within the canvas chrome bounds on desktop, bottom sheet on mobile.
@@ -22,7 +24,7 @@ foundations.
 - Prefer the primitives below before composing raw `rounded border bg shadow` layouts.
 - Treat `packages/admin/src/components/Admin*.tsx` as the admin wrapper inventory; use those wrappers before local control styling.
 - Use `.surface-section`, `.surface-inset`, `.surface-card`, and `.workspace-canvas` before inventing one-off shell or page surface wrappers.
-- The account/profile/settings/notifications flows route through the right-sheet registry into the `AdminSideSheet` inspector (right-docked within the canvas chrome bounds on desktop; bottom sheet on mobile, where only the bell opens it). `AccountSurface` is the mobile account route with **Account | Settings** tabs ("Account" is the mobile name for the desktop Profile sheet content; there is no notifications tab). Every other overlay uses `AdminDialog` or `AdminConfirmDialog` — side-sheet scope is enforced by `AdminSideSheetStandard.guard.test.ts`.
+- The account/profile/settings/notifications flows route through the right-sheet registry into the `AdminSideSheet` inspector (right-docked within the canvas chrome bounds on desktop; bottom sheet on mobile, where only the bell opens it). `AccountSurface` is the mobile account route with **Profile | Settings** tabs (the page and its first tab read Profile, like the navigation item and the desktop Profile sheet; there is no notifications tab). Every other overlay uses `AdminDialog` or `AdminConfirmDialog` — side-sheet scope is enforced by `AdminSideSheetStandard.guard.test.ts`.
 
 ## Cockpit UI Mode
 
@@ -89,12 +91,13 @@ foundations.
 - The default `bun run test` discovers the full admin Vitest suite, including `src/__tests__/views/**`.
   Use a targeted test for QA Speed Mode; add `bun run build` when route wiring, view imports, or
   production build output could break.
-- In QA Speed Mode, run the targeted view/component/model test when one covers the fix and capture authenticated rendered proof for visible UI. Use `bun run build` when route wiring, view imports, or build output could break; do not run Storybook checks unless shared primitives/stories/tokens moved.
+- In QA Speed Mode, run the targeted view/component/model test when one covers the fix and capture labeled rendered proof for visible UI. Use `bun run build` when route wiring, view imports, or build output could break; do not run Storybook checks unless shared primitives/stories/tokens moved.
 - Permission and role changes often originate in shared code; use the root quick verification
   loop when shared contracts or shared hooks move.
-- Visible changes follow root `AGENTS.md` section “Agentic Modern Web Standard”; if its
-  authenticated Brave path is unavailable, report browser QA as `BLOCKED`.
-- **Tailwind v4 gotcha**: admin's content scan does not reach `packages/shared/src/`, so a shared component that uses utility classes in its JSX may render off-center, missing padding, or wrong width in admin even when it looks fine in Storybook. Before debugging the shared component, check root `AGENTS.md` → "Known Gotchas" — the fix is a fork into `packages/admin/src/components/Shell/` (the Canvas shell pattern) or inline styles inside the shared component, not utility classes in shared JSX.
+- Visible changes follow root [`AGENTS.md` § Browser Evidence](../../AGENTS.md#browser-evidence):
+  label the engine and session behind the proof, and if the authenticated Brave path is
+  unavailable, record that proof as pending and continue with labeled evidence.
+- **Tailwind v4 gotcha**: admin's content scan does not reach `packages/shared/src/`, so a shared component that uses utility classes in its JSX may render off-center, missing padding, or wrong width in admin even when it looks fine in Storybook. Before debugging the shared component, check `packages/shared/AGENTS.md` → "Package Notes" — the fix is a fork into `packages/admin/src/components/Shell/` (the Canvas shell pattern) or inline styles inside the shared component, not utility classes in shared JSX.
 
 ## Validation
 
@@ -103,10 +106,11 @@ foundations.
 - Conditional proof: Storybook checks apply only when shared primitives, stories, or tokens move.
 - Broader impact: run the root Repo Quick Gate when shared hooks, permissions, or public contracts move.
 
-## Authenticated Browser QA
+## Browser Evidence
 
-Local agentic browser QA for this package uses the authenticated Brave QA profile.
-Codex sessions use the Codex browser-extension path and claim the already-open Brave tab/window.
-Claude Code sessions use the Claude Code Chrome/Chromium extension path and select the authenticated Brave profile/tab.
-Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
-If authenticated Brave access is blocked, stop and report QA as blocked.
+Rendered proof for this package follows [AGENTS.md § Browser Evidence](../../AGENTS.md#browser-evidence):
+label the engine and session, use the authenticated Brave profile only for the authenticated surface
+class, and treat the `browser-proof` check as advisory locally.
+Admin views render under mock auth, so labeled mock-auth localhost or Storybook proof covers layout
+and copy; only write flows that reach the shared wallet, auth, or job-queue paths need the
+authenticated Brave profile.

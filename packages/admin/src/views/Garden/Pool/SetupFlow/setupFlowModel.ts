@@ -1,5 +1,7 @@
 /** Step model, date helpers, and stepper copy for the W11 pool setup flow. */
 
+import { POOL_PURPOSE_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/pool-charter";
+
 type FormatMessage = (
   descriptor: { id: string; defaultMessage: string },
   values?: Record<string, string | number>
@@ -65,7 +67,7 @@ export function buildStepConfigs(
           id,
           title: formatMessage({
             id: "cockpit.garden.pool.setup.step.how",
-            defaultMessage: "How it works",
+            defaultMessage: "How It Works",
           }),
           description: formatMessage({
             id: "cockpit.garden.pool.setup.step.howHint",
@@ -78,11 +80,11 @@ export function buildStepConfigs(
           title: isCampaign
             ? formatMessage({
                 id: "cockpit.garden.pool.setup.step.campaign",
-                defaultMessage: "The campaign",
+                defaultMessage: "The Campaign",
               })
             : formatMessage({
                 id: "cockpit.garden.pool.setup.step.season",
-                defaultMessage: "The season",
+                defaultMessage: "The Season",
               }),
           description: formatMessage({
             id: "cockpit.garden.pool.setup.step.cycleHint",
@@ -94,7 +96,7 @@ export function buildStepConfigs(
           id,
           title: formatMessage({
             id: "cockpit.garden.pool.setup.step.split",
-            defaultMessage: "The split",
+            defaultMessage: "The Split",
           }),
           description: formatMessage({
             id: "cockpit.garden.pool.setup.step.splitHint",
@@ -110,7 +112,7 @@ export function buildStepConfigs(
           }),
           description: formatMessage({
             id: "cockpit.garden.pool.setup.step.openHint",
-            defaultMessage: "Check, then write",
+            defaultMessage: "Check, then sign",
           }),
         };
     }
@@ -152,7 +154,14 @@ export interface StepValidity {
 export function isStepValid(id: StepId, input: StepValidity): boolean {
   switch (id) {
     case "how":
-      return input.purpose.trim().length > 0 && input.capValue !== null && input.capValue > 0n;
+      // An agreement written before the limit can load longer than it, and
+      // setup pins it again, so it has to fit before the flow moves on.
+      return (
+        input.purpose.trim().length > 0 &&
+        input.purpose.length <= POOL_PURPOSE_MAX_LENGTH &&
+        input.capValue !== null &&
+        input.capValue > 0n
+      );
     case "cycle":
       return input.name.trim().length > 0 && input.datesValid && !input.secondSeasonBlocked;
     case "split":

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminConfirmDialog, type AdminDialogProps } from "@/components/AdminDialog";
 
@@ -9,6 +10,8 @@ export interface CommitmentExpireDialogProps {
   tone?: AdminDialogProps["tone"];
   isLoading?: boolean;
   onConfirm: () => void | Promise<void>;
+  /** The commitment and its pool, named under the title. */
+  target?: ReactNode;
 }
 
 /**
@@ -26,6 +29,7 @@ export function CommitmentExpireDialog({
   tone,
   isLoading,
   onConfirm,
+  target,
 }: CommitmentExpireDialogProps) {
   const { formatMessage } = useIntl();
   return (
@@ -33,6 +37,7 @@ export function CommitmentExpireDialog({
       isOpen={isOpen}
       onClose={onClose}
       tone={tone}
+      target={target}
       variant="danger"
       title={formatMessage({
         id: "cockpit.garden.pool.expire.title",

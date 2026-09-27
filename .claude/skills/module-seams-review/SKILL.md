@@ -116,8 +116,8 @@ separate pure controllers or view models from rendered reachability; a directly 
 does not prove its view actually uses it.
 
 For critical Shared surfaces, read every touched line and apply the mutation-reliability rules from
-`review`. For visible UI behavior, authenticated Brave proof is required; otherwise record the UI
-claim as `BLOCKED`.
+`review`. For visible UI behavior, label the rendered proof per AGENTS.md § Browser Evidence;
+authenticated-class surfaces need authenticated Brave proof or are recorded as pending.
 
 ### 5. Review validation velocity
 

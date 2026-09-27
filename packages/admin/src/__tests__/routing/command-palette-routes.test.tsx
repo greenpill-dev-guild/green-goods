@@ -79,6 +79,17 @@ vi.mock("@green-goods/shared/hooks/gardener/useRole", () => ({
   useRole: () => ({ role: "deployer" as const }),
 }));
 
+const mockPermissions = vi.hoisted(() => ({
+  showWork: true,
+  showGarden: true,
+  showCommunity: true,
+  showActions: true,
+  isLoading: false,
+}));
+vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
+  useEffectiveToolbarPermissions: () => mockPermissions,
+}));
+
 vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
   useAdminStore: (
     selector: (state: {
@@ -99,6 +110,7 @@ import { CommandPalette } from "@/components/Layout/CommandPalette";
 describe("CommandPalette Routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPermissions.showCommunity = true;
     mockEligibleGardens.current = [
       { id: "garden-1", name: "Chakra Farm", location: "Quito", tokenAddress: "0xAAA" },
       { id: "garden-2", name: "Solar Orchard", location: "Lima", tokenAddress: "0xBBB" },
@@ -130,6 +142,18 @@ describe("CommandPalette Routes", () => {
     expect(screen.getByText("Garden")).toBeInTheDocument();
     expect(screen.getByText("Community")).toBeInTheDocument();
     expect(screen.getByText("Actions")).toBeInTheDocument();
+  });
+
+  it("omits Community when the navigation bar hides it, since its route redirects to Hub", () => {
+    mockPermissions.showCommunity = false;
+    renderWithProviders(
+      <MemoryRouter>
+        <CommandPalette open={true} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Garden")).toBeInTheDocument();
+    expect(screen.queryByText("Community")).not.toBeInTheDocument();
   });
 
   it("typing 'Profile' navigates to /profile on mobile", async () => {

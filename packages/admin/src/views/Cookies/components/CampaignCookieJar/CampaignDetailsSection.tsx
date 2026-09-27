@@ -1,5 +1,6 @@
+import { CAMPAIGN_DESCRIPTION_MAX_LENGTH } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
-import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
+import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
 import { CampaignImageInput } from "./CampaignImageInput";
 
 export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) {
@@ -17,16 +18,7 @@ export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) 
     publicCampaignUrl,
   } = props;
   return (
-    <section className="surface-section overflow-visible">
-      <div className="mb-4">
-        <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">01</p>
-        <h2 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
-          {formatMessage({
-            id: "cockpit.community.cookies.createCampaignSection",
-            defaultMessage: "Campaign",
-          })}
-        </h2>
-      </div>
+    <section>
       <div className="grid gap-4">
         <AdminTextField
           id="campaign-cookie-jar-title"
@@ -45,6 +37,8 @@ export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) 
           })}
           value={campaignDescription}
           onChange={(event) => setCampaignDescription(event.target.value)}
+          showCount
+          textareaProps={{ maxLength: CAMPAIGN_DESCRIPTION_MAX_LENGTH }}
         />
         <CampaignImageInput
           value={campaignImage}
@@ -54,16 +48,14 @@ export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) 
           disabled={createPending}
           source="campaign-cookie-jar-create-image"
         />
-        <div className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface))] p-3">
-          <p className="text-label-md text-[rgb(var(--m3-on-surface))]">
+        <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white-0 p-3">
+          <p className="text-label-md text-text-strong">
             {formatMessage({
               id: "cockpit.community.cookies.generatedCampaignLink",
               defaultMessage: "Campaign page",
             })}
           </p>
-          <p className="mt-1 break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-            {publicCampaignUrl}
-          </p>
+          <p className="mt-1 break-all text-body-sm text-text-sub">{publicCampaignUrl}</p>
         </div>
       </div>
     </section>

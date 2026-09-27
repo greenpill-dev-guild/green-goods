@@ -58,10 +58,6 @@ vi.mock("@green-goods/shared/utils/app/text", () => ({
   capitalize: (s: string) => s.charAt(0).toUpperCase() + s.slice(1),
 }));
 
-vi.mock("@green-goods/shared/utils/app/haptics", () => ({
-  hapticLight: vi.fn(),
-}));
-
 vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => mockAppState,
 }));
@@ -81,6 +77,7 @@ vi.mock("@remixicon/react", () => ({
   RiLoader4Line: (props: any) => createElement("span", props),
   RiRefreshLine: (props: any) => createElement("span", props),
   RiSettings2Line: (props: any) => createElement("span", props),
+  RiVolumeVibrateLine: (props: any) => createElement("span", props),
 }));
 
 // Mock client components
@@ -124,6 +121,7 @@ vi.mock("@/components/Inputs", async () => {
   };
 });
 
+import { resetHapticsState } from "@green-goods/shared/utils/app/haptics";
 import { AppSettings } from "../../views/Profile/AppSettings";
 
 const wrap = (el: React.ReactElement) =>
@@ -366,6 +364,43 @@ describe("AppSettings", () => {
       expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
       expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("vibration row", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    resetHapticsState();
+  });
+
+  afterEach(() => {
+    cleanup();
+    Reflect.deleteProperty(navigator, "vibrate");
+  });
+
+  it("is not offered where the device cannot vibrate", () => {
+    render(wrap(createElement(AppSettings)));
+
+    expect(screen.queryByRole("switch", { name: "Vibration" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the choice to turn taps off, and previews the tap when turned back on", async () => {
+    const vibrate = vi.fn();
+    Object.defineProperty(navigator, "vibrate", { value: vibrate, configurable: true });
+    const user = userEvent.setup();
+    render(wrap(createElement(AppSettings)));
+
+    const toggle = screen.getByRole("switch", { name: "Vibration" });
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    expect(localStorage.getItem("green-goods:haptics-enabled")).toBe("false");
+    expect(vibrate).not.toHaveBeenCalled();
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    expect(vibrate).toHaveBeenCalledWith(5);
   });
 });
 

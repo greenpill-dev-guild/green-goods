@@ -5,22 +5,28 @@ import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment
 import { RiArrowRightSLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
+import { ActPhaseLine } from "@/components/ActPhaseLine";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { CommitmentExpireDialog } from "./CommitmentExpireDialog";
+import { GardenPoolTarget } from "./PoolTarget";
+import {
+  type PoolCommitmentFocus,
+  type PoolCommitmentScope,
+  selectPoolCommitmentRows,
+} from "./poolCommitmentRows";
 import { commitmentStateChip, directionLabel, formatUnixDate } from "./poolPresentation";
 
-export type PoolCommitmentScope = "open" | "confirmed" | "past";
+export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
 
 export interface PoolCommitmentsCardProps {
   console: PoolConsoleController;
   scope: PoolCommitmentScope;
   onScopeChange: (scope: PoolCommitmentScope) => void;
-  /** Only the past-due rows, the W7@due-live cast reached from the summary row. */
-  dueOnly: boolean;
-  onDueOnlyChange: (dueOnly: boolean) => void;
+  focus: PoolCommitmentFocus;
+  onFocusChange: (focus: PoolCommitmentFocus) => void;
   onOpenCommitment: (commitment: CommitmentReadModel) => void;
   onSeed: () => void;
   canSeed: boolean;
@@ -31,8 +37,8 @@ export interface PoolCommitmentsCardProps {
 /**
  * One commitments card for the whole pool (uiux-spec §6.2 section 3, 2026-07-18
  * addendum): search, the Open · Confirmed · Past chips, a Past due chip for
- * the live rows the chain would let anyone expire, and rows that open in the
- * left inspector. The row information contract: kind · lifecycle · at most one
+ * the live rows the chain would let anyone expire, a Needs recovery chip for
+ * those and the disputed ones, and rows that open in the left inspector. The row information contract: kind · lifecycle · at most one
  * attention chip; meta = who · how much · when. Creations still queued on this
  * device render above the indexed rows so a seeded commitment shows up before
  * the indexer has it.
@@ -41,8 +47,8 @@ export function PoolCommitmentsCard({
   console: pool,
   scope,
   onScopeChange,
-  dueOnly,
-  onDueOnlyChange,
+  focus,
+  onFocusChange,
   onOpenCommitment,
   onSeed,
   canSeed,
@@ -52,6 +58,18 @@ export function PoolCommitmentsCard({
   const { model, titles, pendingCreates, isOnline, isActing, acts } = pool;
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
+  const [busyJobId, setBusyJobId] = useState<string | null>(null);
+
+  // Nothing in the admin sends a queued creation on its own, so each row that is
+  // still here offers the send and, where the queue allows it, the way out.
+  const runQueued = async (jobId: string, act: (jobId: string) => Promise<void>) => {
+    setBusyJobId(jobId);
+    try {
+      await act(jobId);
+    } finally {
+      setBusyJobId(null);
+    }
+  };
   const dueIds = useMemo(() => new Set(model.dueLive.map((row) => row.id)), [model.dueLive]);
 
   const titleOf = (commitment: CommitmentReadModel) =>
@@ -61,14 +79,7 @@ export function PoolCommitmentsCard({
       { id: commitment.commitmentId.toString() }
     );
 
-  const rows = useMemo(() => {
-    const base = dueOnly ? model.dueLive : model.groups[scope];
-    const needle = search.trim().toLowerCase();
-    if (!needle) return base;
-    return base.filter((row) => titleOf(row).toLowerCase().includes(needle));
-    // titleOf reads from `titles`, listed below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dueOnly, model.dueLive, model.groups, scope, search, titles]);
+  const rows = selectPoolCommitmentRows({ model, scope, focus, search, titleOf });
 
   const actDisabled = !isOnline || isActing;
   const total = model.groups.open.length + model.groups.confirmed.length + model.groups.past.length;
@@ -83,12 +94,12 @@ export function PoolCommitmentsCard({
         className="space-y-3"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="label-md text-text-strong">
+          <AdminCardTitle>
             {formatMessage({
               id: "cockpit.garden.pool.commitments.title",
               defaultMessage: "Commitments",
             })}
-          </h3>
+          </AdminCardTitle>
           <AdminButton
             type="button"
             variant="outlined"
@@ -125,9 +136,9 @@ export function PoolCommitmentsCard({
                 id: "cockpit.garden.pool.commitments.open",
                 defaultMessage: "Open",
               })}
-              selected={scope === "open" && !dueOnly}
+              selected={scope === "open" && focus === null}
               onToggle={() => {
-                onDueOnlyChange(false);
+                onFocusChange(null);
                 onScopeChange("open");
               }}
             />
@@ -136,9 +147,9 @@ export function PoolCommitmentsCard({
                 id: "cockpit.garden.pool.commitments.confirmed",
                 defaultMessage: "Confirmed",
               })}
-              selected={scope === "confirmed" && !dueOnly}
+              selected={scope === "confirmed" && focus === null}
               onToggle={() => {
-                onDueOnlyChange(false);
+                onFocusChange(null);
                 onScopeChange("confirmed");
               }}
             />
@@ -147,9 +158,9 @@ export function PoolCommitmentsCard({
                 id: "cockpit.garden.pool.commitments.past",
                 defaultMessage: "Past",
               })}
-              selected={scope === "past" && !dueOnly}
+              selected={scope === "past" && focus === null}
               onToggle={() => {
-                onDueOnlyChange(false);
+                onFocusChange(null);
                 onScopeChange("past");
               }}
             />
@@ -162,18 +173,28 @@ export function PoolCommitmentsCard({
                   },
                   { count: model.dueLive.length }
                 )}
-                selected={dueOnly}
-                onToggle={() => onDueOnlyChange(!dueOnly)}
+                selected={focus === "pastDue"}
+                onToggle={() => onFocusChange(focus === "pastDue" ? null : "pastDue")}
+              />
+            ) : null}
+            {model.needsRecovery.length > 0 ? (
+              <AdminFilterChip
+                label={formatMessage(
+                  {
+                    id: "cockpit.garden.pool.commitments.needsRecovery",
+                    defaultMessage: "Needs recovery ({count})",
+                  },
+                  { count: model.needsRecovery.length }
+                )}
+                selected={focus === "recovery"}
+                onToggle={() => onFocusChange(focus === "recovery" ? null : "recovery")}
               />
             ) : null}
           </div>
         </AdminSearchToolbar>
 
-        {pendingCreates.length > 0 && scope === "open" && !dueOnly ? (
-          <ul
-            className="divide-y divide-[rgb(var(--m3-outline-variant))]"
-            data-testid="pool-queued"
-          >
+        {pendingCreates.length > 0 && scope === "open" && focus === null ? (
+          <ul className="divide-y divide-stroke-soft" data-testid="pool-queued">
             {pendingCreates.map((row) => (
               <li key={row.jobId} className="flex flex-wrap items-center gap-2 py-2">
                 <span className="truncate text-body-md text-text-strong" title={row.title ?? ""}>
@@ -199,9 +220,54 @@ export function PoolCommitmentsCard({
                           defaultMessage: "Queued",
                         })}
                 </StatusBadge>
-                <span className="text-xs text-text-soft">
+                <span className="body-xs text-text-soft">
                   {`${row.targetUnits} ${row.unitLabel}`}
                 </span>
+                <span className="ml-auto flex items-center gap-1.5">
+                  {row.discardable ? (
+                    <AdminButton
+                      type="button"
+                      variant="text"
+                      size="sm"
+                      disabled={busyJobId !== null}
+                      onClick={() => void runQueued(row.jobId, acts.discardQueued)}
+                    >
+                      {formatMessage({
+                        id: "cockpit.garden.pool.queued.discard",
+                        defaultMessage: "Discard",
+                      })}
+                    </AdminButton>
+                  ) : null}
+                  <AdminButton
+                    type="button"
+                    variant="outlined"
+                    size="sm"
+                    disabled={!isOnline || busyJobId !== null}
+                    loading={busyJobId === row.jobId}
+                    onClick={() => void runQueued(row.jobId, acts.retryQueued)}
+                  >
+                    {/* A row that never tried has nothing to try again (A24). */}
+                    {row.failed
+                      ? formatMessage({
+                          id: "cockpit.garden.pool.queued.retry",
+                          defaultMessage: "Try Again",
+                        })
+                      : formatMessage({
+                          id: "cockpit.garden.pool.queued.sendNow",
+                          defaultMessage: "Send Now",
+                        })}
+                  </AdminButton>
+                </span>
+                <div className="basis-full">
+                  <ActPhaseLine
+                    phase={pool.queuedPhase(row.jobId)}
+                    chainId={pool.chainId}
+                    confirmed={formatMessage({
+                      id: "cockpit.garden.pool.queued.sent",
+                      defaultMessage: "Sent. This row leaves once the index shows the commitment.",
+                    })}
+                  />
+                </div>
               </li>
             ))}
           </ul>
@@ -210,13 +276,13 @@ export function PoolCommitmentsCard({
         {total === 0 && pendingCreates.length === 0 ? (
           <div className="flex min-h-40 flex-col items-center justify-center gap-2 text-center">
             <RiSeedlingLine className="h-6 w-6 text-text-soft" aria-hidden />
-            <p className="label-md text-text-strong">
+            <AdminCardTitle>
               {formatMessage({
                 id: "cockpit.garden.pool.commitments.emptyTitle",
                 defaultMessage: "No commitments yet",
               })}
-            </p>
-            <p className="max-w-sm text-sm text-text-soft">
+            </AdminCardTitle>
+            <p className="max-w-sm body-sm text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.commitments.emptyBody",
                 defaultMessage:
@@ -225,7 +291,7 @@ export function PoolCommitmentsCard({
             </p>
           </div>
         ) : rows.length === 0 ? (
-          <p className="flex min-h-24 items-center justify-center text-center text-sm text-text-soft">
+          <p className="flex min-h-24 items-center justify-center text-center body-sm text-text-soft">
             {search.trim()
               ? formatMessage({
                   id: "cockpit.garden.pool.commitments.noMatch",
@@ -237,7 +303,7 @@ export function PoolCommitmentsCard({
                 })}
           </p>
         ) : (
-          <ul className="divide-y divide-[rgb(var(--m3-outline-variant))]">
+          <ul className="divide-y divide-stroke-soft">
             {rows.map((commitment) => {
               const chip = commitmentStateChip(commitment, formatMessage);
               const title = titleOf(commitment);
@@ -267,17 +333,17 @@ export function PoolCommitmentsCard({
                 >
                   <button
                     type="button"
-                    className="m3-state-layer flex min-w-0 flex-1 items-center gap-3 rounded-[var(--m3-shape-sm)] py-1 text-left [--state-layer-color:var(--m3-on-surface)]"
+                    className="m3-state-layer flex min-w-0 flex-1 items-center gap-3 rounded-[var(--m3-shape-sm)] py-1 text-left [--state-layer-color:var(--text-strong-950)]"
                     onClick={() => onOpenCommitment(commitment)}
                   >
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
+                        <span className="whitespace-nowrap body-xs text-text-soft">
+                          {directionLabel(commitment.direction, formatMessage)}
+                        </span>
                         <span className="truncate text-body-md text-text-strong" title={title}>
                           {title}
                         </span>
-                        <StatusBadge variant="info" size="sm">
-                          {directionLabel(commitment.direction, formatMessage)}
-                        </StatusBadge>
                         <StatusBadge variant={chip.variant} size="sm">
                           {chip.label}
                         </StatusBadge>
@@ -290,7 +356,7 @@ export function PoolCommitmentsCard({
                           </StatusBadge>
                         ) : null}
                       </span>
-                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-text-soft">
+                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 body-xs text-text-soft">
                         {provider && receiver && provider !== receiver ? (
                           <FormattedMessage
                             id="cockpit.garden.pool.row.people"
@@ -300,14 +366,14 @@ export function PoolCommitmentsCard({
                                 <AddressDisplay
                                   address={provider}
                                   interactive={false}
-                                  className="text-xs"
+                                  className="body-xs"
                                 />
                               ),
                               receiver: (
                                 <AddressDisplay
                                   address={receiver}
                                   interactive={false}
-                                  className="text-xs"
+                                  className="body-xs"
                                 />
                               ),
                             }}
@@ -316,7 +382,7 @@ export function PoolCommitmentsCard({
                           <AddressDisplay
                             address={whoAlone}
                             interactive={false}
-                            className="text-xs"
+                            className="body-xs"
                           />
                         ) : null}
                         <span>· {amount}</span>
@@ -326,16 +392,18 @@ export function PoolCommitmentsCard({
                     <RiArrowRightSLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden />
                   </button>
                   {isDue ? (
+                    // Outlined where it sits: the red is for the confirm inside
+                    // the dialog, which names the blast radius first.
                     <AdminButton
                       type="button"
-                      variant="danger"
+                      variant="outlined"
                       size="sm"
                       onClick={() => setExpireTarget(commitment)}
                       disabled={actDisabled}
                     >
                       {formatMessage({
                         id: "cockpit.garden.pool.row.act.expire",
-                        defaultMessage: "Expire now…",
+                        defaultMessage: "Expire Now…",
                       })}
                     </AdminButton>
                   ) : null}
@@ -345,8 +413,8 @@ export function PoolCommitmentsCard({
           </ul>
         )}
 
-        {dueOnly && rows.length > 0 ? (
-          <p className="text-xs text-text-soft">
+        {focus === "pastDue" && rows.length > 0 ? (
+          <p className="body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.commitments.dueNote",
               defaultMessage:
@@ -360,6 +428,16 @@ export function PoolCommitmentsCard({
         isOpen={expireTarget !== null}
         onClose={() => setExpireTarget(null)}
         title={expireTarget ? titleOf(expireTarget) : ""}
+        target={
+          expireTarget ? (
+            <GardenPoolTarget
+              chainId={pool.chainId}
+              garden={pool.garden}
+              isProtocol={pool.pool?.poolType === "PROTOCOL"}
+              record={titleOf(expireTarget)}
+            />
+          ) : undefined
+        }
         tone={tone}
         isLoading={isActing}
         onConfirm={async () => {

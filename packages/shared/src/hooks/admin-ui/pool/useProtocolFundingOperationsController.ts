@@ -106,6 +106,7 @@ export function useProtocolFundingOperationsController(input: {
         return {
           id: row.id,
           disbursementId: row.disbursementId,
+          garden: row.garden ?? null,
           recipient: row.recipient,
           amount: row.amount,
           state,

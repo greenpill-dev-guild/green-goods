@@ -1,6 +1,6 @@
-import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -14,6 +14,7 @@ import { RiAddLine, RiAlertLine, RiCheckLine, RiGroupLine, RiQuestionLine } from
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminCard } from "../AdminCard";
 
 interface GardenPool {
@@ -80,9 +81,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   <RiGroupLine className="h-5 w-5 text-feature-dark" />
                 </div>
                 <div>
-                  <h3 className="label-md text-text-strong sm:text-title-md">
-                    {formatMessage({ id: "app.community.title" })}
-                  </h3>
+                  <AdminCardTitle>{formatMessage({ id: "app.community.title" })}</AdminCardTitle>
                   <p className="mt-0.5 flex items-center gap-1.5 text-body-md text-text-sub">
                     <span
                       className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? "bg-success-base" : "bg-text-soft"}`}

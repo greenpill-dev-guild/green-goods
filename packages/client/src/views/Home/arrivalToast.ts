@@ -72,3 +72,36 @@ export const ARRIVAL_TOASTS: Record<Exclude<ArrivalKind, "none">, ArrivalToastSp
     action: "openHelp",
   },
 };
+
+/**
+ * The arrival toast belongs to a session that opens on Home. The arrival has passed once the
+ * toast was shown, or once the session was anywhere else first: an app restored into the
+ * garden flow already met its drafts there, so a later Home visit must not repeat the
+ * orientation. Kept per browser session and per address, so another account signing in on the
+ * same tab still arrives fresh.
+ */
+const arrivalPassedKey = (address: string) => `greengoods:arrival-shown:${address.toLowerCase()}`;
+
+/** Arrivals marked on this page load while session storage refused the write. */
+const passedWithoutStorage = new Set<string>();
+
+export function hasArrivalPassed(address: string): boolean {
+  const key = arrivalPassedKey(address);
+  if (passedWithoutStorage.has(key)) return true;
+  try {
+    return sessionStorage.getItem(key) === "true";
+  } catch {
+    // Storage can be unavailable; the arrival toast is a courtesy, not state.
+    return false;
+  }
+}
+
+export function markArrivalPassed(address: string): void {
+  const key = arrivalPassedKey(address);
+  try {
+    sessionStorage.setItem(key, "true");
+  } catch {
+    // Storage can be unavailable; remember the arrival for this page load instead.
+    passedWithoutStorage.add(key);
+  }
+}

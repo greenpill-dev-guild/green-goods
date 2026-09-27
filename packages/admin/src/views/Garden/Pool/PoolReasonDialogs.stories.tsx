@@ -15,6 +15,7 @@ const meta: Meta<typeof PoolReasonDialogs> = {
     },
   },
   args: {
+    target: { gardenName: "Rocinha", isProtocol: false },
     pool: storyPoolConsole(),
     tone: "garden" as const,
     setReasonDialog: () => undefined,

@@ -89,3 +89,25 @@ governs TypeScript/JavaScript only. Solidity retains its Bun/Foundry review and 
 - Guidance overgrowth: shared concepts live once in the architecture context; skills link to it.
 - False direct-test positives: inference corrections require a focused fixture proving the prior
   match was not a subject test.
+## Agent workflow reliability follow-up — 2026-09-26
+
+This separately authorized follow-up preserves the architecture decisions and historical proof
+below. It changes local agent hooks, audit guidance, and development health reporting only.
+
+- Completion and idle hooks consume documented stdin events and remain advisory; task wording
+  never becomes a test result or retry instruction.
+- One dependency-free command matcher serves Claude and Codex. It separates ordinary command
+  syntax from quoted data, checks each command in a chain, and never executes input. Claude keeps
+  production warnings; Codex keeps production blocks and its direct Forge/Fly restrictions.
+  Substitutions and embedded programs remain outside complete analysis; normal permissions apply.
+- Audit findings follow the canonical Linear authorization and issue contract. Unsupported model
+  prescriptions and numerical accuracy claims are removed.
+- Development health reports readable personal engineering skill files through the expected
+  Codex and Claude paths. Missing or unreadable files warn and preserve the repository fallback;
+  availability does not establish loading or compliance.
+- Existing validation checks own the regression fixtures. Working-copy fingerprints and check
+  commands invalidate receipts when implementation, registration, or test inputs change.
+
+No application APIs, dependencies, global configuration, deployment policy, or model versions
+change. No Linear writes, branch changes, publication, or new evaluation service are included.
+Live Desktop Code/Codex hook loading and the five-task pilot stay pending until observed.

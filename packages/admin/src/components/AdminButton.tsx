@@ -30,6 +30,10 @@ const adminButtonVariants = tv({
     // Disabled
     "disabled:pointer-events-none",
     "disabled:bg-[rgb(var(--m3-on-surface)/0.12)] disabled:text-[rgb(var(--m3-on-surface)/0.38)] disabled:shadow-none",
+    // aria-disabled looks the same but keeps focus and hover, so a reason
+    // shown on hover or focus still reaches the steward.
+    "aria-disabled:cursor-not-allowed",
+    "aria-disabled:bg-[rgb(var(--m3-on-surface)/0.12)] aria-disabled:text-[rgb(var(--m3-on-surface)/0.38)] aria-disabled:shadow-none",
   ],
   variants: {
     variant: {
@@ -73,6 +77,14 @@ const adminButtonVariants = tv({
         "bg-[rgb(var(--m3-error))] [color:rgb(var(--m3-on-error))]",
         "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
         "[--state-layer-color:var(--m3-on-error)]",
+      ],
+      // Outlined danger — a destructive action at outlined emphasis, beside a
+      // filled primary (Reject next to Approve). The focus ring stays the tone ring.
+      outlinedDanger: [
+        "bg-transparent [color:rgb(var(--m3-error))]",
+        "border-[rgb(var(--m3-error))]",
+        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
+        "[--state-layer-color:var(--m3-error)]",
       ],
     },
     size: {

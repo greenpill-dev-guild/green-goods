@@ -1,11 +1,13 @@
 import type { Step } from "../../../components/Form/StepIndicator";
 import { toastService } from "../../../components/Toast/toast.service";
 import { useCreateAssessmentStore } from "../../../stores/useCreateAssessmentStore";
-import type {
-  Address,
-  CreateAssessmentForm as WorkflowAssessmentForm,
+import {
+  type Address,
+  Domain,
+  type CreateAssessmentForm as WorkflowAssessmentForm,
 } from "../../../types/domain";
 import { compareAddresses } from "../../../utils/blockchain/address";
+import { expandDomainMask } from "../../../utils/domain";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import {
   assessmentStepFields,
@@ -45,18 +47,18 @@ function useCreateAssessmentStepConfigs(): Step[] {
       id: "strategy",
       title: formatMessage({
         id: "app.admin.assessment.create.stepStrategy.title",
-        defaultMessage: "Strategy Kernel",
+        defaultMessage: "Challenge & Goals",
       }),
       description: formatMessage({
         id: "app.admin.assessment.create.stepStrategy.description",
-        defaultMessage: "Diagnosis, outcomes, and complexity",
+        defaultMessage: "The challenge, what you'll measure, and how predictable the work is",
       }),
     },
     {
       id: "actionsHarvest",
       title: formatMessage({
         id: "app.admin.assessment.create.stepActionsHarvest.title",
-        defaultMessage: "Actions & Harvest",
+        defaultMessage: "Actions & Reporting Period",
       }),
       description: formatMessage({
         id: "app.admin.assessment.create.stepActionsHarvest.description",
@@ -82,6 +84,11 @@ function toInputDate(value: string | number | null | undefined): string {
   if (!Number.isFinite(timestampMs) || timestampMs <= 0) return "";
   return new Date(timestampMs).toISOString().slice(0, 10);
 }
+
+/** Every domain that exists: what a garden may document before its own domains load. */
+const KNOWN_DOMAINS = Object.values(Domain).filter(
+  (value): value is Domain => typeof value === "number"
+);
 
 function toUnixSeconds(value: string): number {
   const timestamp = new Date(value).getTime();
@@ -221,14 +228,16 @@ export function useCreateAssessmentController() {
     };
   }, [loadDraft, setField]);
 
-  const buildWorkflowPayload = useCallback(
+  // The form as the workflow reads it. A draft saves before a domain is chosen;
+  // a submission never goes without one (buildWorkflowPayload).
+  const toAssessmentPayload = useCallback(
     (formData: CreateAssessmentFormData): WorkflowAssessmentForm | null => {
       if (!gardenId || !isAddress(gardenId)) return null;
 
       return {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        assessmentType: `domain-${formData.domain}`,
+        assessmentType: formData.domain === null ? "" : `domain-${formData.domain}`,
         capitals: [],
         metrics: {
           diagnosis: formData.diagnosis,
@@ -251,12 +260,19 @@ export function useCreateAssessmentController() {
     [gardenId]
   );
 
+  const buildWorkflowPayload = useCallback(
+    (formData: CreateAssessmentFormData): WorkflowAssessmentForm | null =>
+      // Validation requires a domain; a missing one is never sent as "domain-null".
+      formData.domain === null ? null : toAssessmentPayload(formData),
+    [toAssessmentPayload]
+  );
+
   const prevFormRef = useRef(form);
   useEffect(() => {
     if (prevFormRef.current === form) return;
     prevFormRef.current = form;
 
-    const payload = buildWorkflowPayload(form);
+    const payload = toAssessmentPayload(form);
     if (!payload) return;
 
     const timeoutId = setTimeout(() => {
@@ -286,7 +302,7 @@ export function useCreateAssessmentController() {
     }, 600);
 
     return () => clearTimeout(timeoutId);
-  }, [form, buildWorkflowPayload, saveDraft, draftKey, formatMessage]);
+  }, [form, toAssessmentPayload, saveDraft, draftKey, formatMessage]);
 
   const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");
@@ -334,17 +350,56 @@ export function useCreateAssessmentController() {
     void clearDraft();
   };
 
+  const showIncompleteForm = () =>
+    toastService.error({
+      title: formatMessage({
+        id: "app.assessment.incompleteForm",
+        defaultMessage: "Incomplete form",
+      }),
+      message: formatMessage({
+        id: "app.assessment.incompleteFormMessage",
+        defaultMessage: "Check the highlighted fields and try again.",
+      }),
+      context: "assessment submission",
+      suppressLogging: true,
+    });
+
   const handleSubmit = async () => {
+    // The domain step clears a domain this garden does not document, or one
+    // that no longer exists, but a restored draft can reopen on a later step
+    // and never show it. Such a domain is cleared first, with its actions and
+    // metrics, and the steward returns to the domain step to choose again;
+    // validation alone would only say the form is incomplete.
+    const allowedDomains =
+      normalizedGardenDomainMask === undefined
+        ? KNOWN_DOMAINS
+        : expandDomainMask(normalizedGardenDomainMask);
+    if (form.domain !== null && !allowedDomains.includes(form.domain)) {
+      setField("domain", null);
+      // "Choose a domain" shows on the step the steward lands on.
+      stepValidation.showValidationOnStep(0);
+      goToStep(0);
+      showIncompleteForm();
+      return;
+    }
+
     const isFormValid = await stepValidation.validateAll();
     if (!isFormValid) {
+      showIncompleteForm();
+      return;
+    }
+
+    // Which domain an assessment may carry is the garden's to say, so Submit
+    // waits while its domains load or after their read failed.
+    if (normalizedGardenDomainMask === undefined) {
       toastService.error({
         title: formatMessage({
-          id: "app.assessment.incompleteForm",
-          defaultMessage: "Incomplete form",
+          id: "app.assessment.domainsUnavailable",
+          defaultMessage: "Couldn't check the domain",
         }),
         message: formatMessage({
-          id: "app.assessment.incompleteFormMessage",
-          defaultMessage: "Check the highlighted fields and try again.",
+          id: "app.assessment.domainsUnavailableMessage",
+          defaultMessage: "This garden's domains have not loaded yet. Try again in a moment.",
         }),
         context: "assessment submission",
         suppressLogging: true,

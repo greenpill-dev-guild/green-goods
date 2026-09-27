@@ -111,25 +111,29 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
     );
     const stewardCount = stewardAddresses.length;
 
-    const classes = gardenCardVariants({ media, height, interactive });
+    // A card with nothing to open is content, not a button: a button that does
+    // nothing would still take focus, announce itself, and answer a press.
+    const isInteractive = interactive && onClick !== undefined;
+    const classes = gardenCardVariants({ media, height, interactive: isInteractive });
     const isMinimalSelection = height === "selection" && !showStats && !showStewards;
     const mediaHeightClasses =
       isMinimalSelection && media === "small" ? "h-24" : "h-26 @[300px]:h-32 @[400px]:h-40";
 
-    const Wrapper = interactive ? "button" : "div";
+    const Wrapper = isInteractive ? "button" : "div";
 
     return (
       <Wrapper
         ref={ref as React.Ref<HTMLButtonElement & HTMLDivElement>}
         data-testid="garden-card"
+        data-pressable={isInteractive ? "card" : undefined}
         className={cn(
           classes,
           isMinimalSelection && "h-[13.25rem]",
           "rounded-2xl border border-border bg-bg-white-0 text-left",
           className
         )}
-        onClick={interactive ? onClick : undefined}
-        type={interactive ? "button" : undefined}
+        onClick={isInteractive ? onClick : undefined}
+        type={isInteractive ? "button" : undefined}
         style={{ textAlign: "left", width: "100%" }}
       >
         {showBanner && (

@@ -29,7 +29,7 @@ vi.mock("../../../config/appkit", () => ({
   getWagmiConfig: () => ({}),
 }));
 
-import { useEnsName } from "../../../hooks/blockchain/useEnsName";
+import { useEnsName, useEnsNames } from "../../../hooks/blockchain/useEnsName";
 
 // ============================================
 // Test helpers
@@ -209,6 +209,43 @@ describe("useEnsName", () => {
       ]);
       expect(cachedData).toBe("vitalik.eth");
     });
+  });
+
+  it("resolves unique roster addresses through the single-name query cache", async () => {
+    mockResolveEnsName.mockResolvedValue("vitalik.eth");
+    const { result } = renderHook(() => useEnsNames([VALID_ADDRESS, VALID_ADDRESS]), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.get(VALID_ADDRESS.toLowerCase())).toBe("vitalik.eth");
+    });
+    expect(mockResolveEnsName).toHaveBeenCalledTimes(1);
+    expect(
+      queryClient.getQueryData(["greengoods", "ens", "name", VALID_ADDRESS.toLowerCase()])
+    ).toBe("vitalik.eth");
+  });
+
+  it("keeps resolved roster names while disabled, and starts no lookup", async () => {
+    mockResolveEnsName.mockResolvedValue("vitalik.eth");
+    const { result, rerender } = renderHook(
+      ({ enabled }) => useEnsNames([VALID_ADDRESS], { enabled }),
+      { wrapper: createWrapper(queryClient), initialProps: { enabled: true } }
+    );
+    await waitFor(() => {
+      expect(result.current.get(VALID_ADDRESS.toLowerCase())).toBe("vitalik.eth");
+    });
+
+    // A closing dialog disables lookups but must keep matching what it showed.
+    rerender({ enabled: false });
+    expect(result.current.get(VALID_ADDRESS.toLowerCase())).toBe("vitalik.eth");
+
+    mockResolveEnsName.mockClear();
+    const unopened = renderHook(() => useEnsNames([ZERO_ADDRESS], { enabled: false }), {
+      wrapper: createWrapper(queryClient),
+    });
+    expect(unopened.result.current.size).toBe(0);
+    expect(mockResolveEnsName).not.toHaveBeenCalled();
   });
 
   // ------------------------------------------

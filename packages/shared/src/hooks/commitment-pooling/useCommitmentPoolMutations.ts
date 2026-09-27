@@ -38,6 +38,7 @@ import {
 } from "../../modules/commitment-pooling/pool-lifecycle";
 import { pinCommitmentReason } from "../../modules/commitment-pooling/reasons";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
+import type { TransactionSendOptions } from "../../modules/transactions/types";
 import { getOntologyChainMaturity } from "../../ontology/query";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
@@ -64,6 +65,15 @@ export {
   DEFAULT_RECOGNITION_POLICY_BPS,
   isValidCycleSplit,
 } from "../../modules/commitment-pooling/pool-lifecycle";
+
+/**
+ * A pool act, plus the send callbacks of the one call that carries it, so the
+ * view that started it can follow it from the wallet to the chain. Optional: an
+ * act sent without them runs exactly as before.
+ */
+export type CommitmentPoolMutationVariables = CommitmentPoolMutationInput & {
+  send?: Pick<TransactionSendOptions, "onBeforeBroadcast" | "onBroadcast">;
+};
 
 /** Only the acts whose ABI takes a `reasonCID`. */
 const CID_REASON_ACTIONS = new Set<CommitmentPoolAction>(["pausePool", "cancelCycle"]);
@@ -125,19 +135,23 @@ export function useCommitmentPoolMutation(options: { chainId?: number } = {}) {
   });
 
   return useMutation({
-    mutationFn: async (input: CommitmentPoolMutationInput) => {
+    mutationFn: async ({ send, ...input }: CommitmentPoolMutationVariables) => {
       if (!sender) throw new Error("Transaction sender is unavailable");
       const moduleAddress = resolveCommitmentPoolingModule(chainId);
-      const call = await resolveCall(input);
+      const call = await resolveCall(input as CommitmentPoolMutationInput);
       // Encoded before the send so a refused split never reaches the wallet.
       const args = commitmentPoolCallArgs(call);
-      const result = await sender.sendContractCall({
+      const contractCall = {
         address: moduleAddress,
         abi: CommitmentPoolingModuleABI,
         functionName: call.action,
         args,
         chainId,
-      });
+      };
+      // Only an act that follows its own send hands the sender callbacks.
+      const result = send
+        ? await sender.sendContractCall(contractCall, send)
+        : await sender.sendContractCall(contractCall);
       return result.hash;
     },
     onSuccess: async (_hash, input) => {

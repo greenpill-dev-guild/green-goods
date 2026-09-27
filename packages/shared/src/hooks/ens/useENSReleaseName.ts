@@ -1,14 +1,24 @@
 /**
  * ENS Release Mutation Hook
  *
- * Releases the caller's current *.greengoods.eth subdomain. Passkey users use
- * the contract-funded release path; wallet users pay the CCIP fee directly.
+ * Releases the caller's current *.greengoods.eth subdomain. Releases are
+ * sponsored where the ENS sender supports it: the contract pays the CCIP fee.
+ * The legacy Arbitrum sender has no sponsored release, so there passkey users
+ * are steward-assisted and wallet users pay the fee themselves. A wallet's
+ * share is checked before the wallet opens.
  *
  * @module hooks/ens/useENSReleaseName
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type Address, decodeEventLog, encodeFunctionData, type Hex, zeroAddress } from "viem";
+import {
+  type Address,
+  decodeEventLog,
+  encodeFunctionData,
+  type Hex,
+  type PublicClient,
+  zeroAddress,
+} from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
@@ -21,6 +31,10 @@ import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../modules/transactions/local-fork-safety";
+import {
+  assertWalletCanFundTransaction,
+  WalletCannotFundTransactionError,
+} from "../../modules/transactions/wallet-funding";
 import {
   createClients,
   GreenGoodsENSABI,
@@ -35,7 +49,7 @@ const ENS_RELEASE_ERROR_MESSAGES: Record<string, string> = {
   CannotReleaseGardenName: "Garden names are permanent and cannot be released.",
   InsufficientFee: "Not enough ETH to cover the release fee.",
   InsufficientSponsoredBalance:
-    "The sponsored username fund needs more ETH before passkey users can release names.",
+    "The sponsored username fund needs more ETH before names can be released.",
   SponsoredReleaseUnavailable:
     "Username changes are temporarily steward-assisted while we migrate the ENS sender.",
   NotOwner: "Only the current name owner can release this name.",
@@ -61,6 +75,44 @@ function getENSReleaseErrorMessage(error: Error, parsedName: string) {
   const directName = error.name in ENS_RELEASE_ERROR_MESSAGES ? error.name : null;
   const directMessage = error.message in ENS_RELEASE_ERROR_MESSAGES ? error.message : null;
   return ENS_RELEASE_ERROR_MESSAGES[directName ?? directMessage ?? parsedName] ?? null;
+}
+
+function readReleaseFee(publicClient: PublicClient, ensAddress: Address, slug: string) {
+  return publicClient.readContract({
+    address: ensAddress,
+    abi: GreenGoodsENSABI,
+    functionName: "getReleaseFee",
+    args: [slug],
+  }) as Promise<bigint>;
+}
+
+/** Rejects a release the sponsored fund cannot pay for, before anything is signed. */
+async function assertSponsoredReleaseFunded(params: {
+  publicClient: PublicClient;
+  ensAddress: Address;
+  slug: string;
+}) {
+  const { publicClient, ensAddress, slug } = params;
+  const [fee, balance, totalPendingRefunds] = await Promise.all([
+    readReleaseFee(publicClient, ensAddress, slug),
+    publicClient.getBalance({ address: ensAddress }),
+    publicClient
+      .readContract({
+        address: ensAddress,
+        abi: GreenGoodsENSABI,
+        functionName: "totalPendingRefunds",
+      })
+      .catch((error: unknown) => {
+        logger.warn("Failed to read totalPendingRefunds; assuming zero for precheck", {
+          error,
+        });
+        return 0n;
+      }) as Promise<bigint>,
+  ]);
+
+  if (balance < fee + totalPendingRefunds) {
+    throw createENSReleaseError("InsufficientSponsoredBalance");
+  }
 }
 
 export interface ENSReleaseResult {
@@ -110,31 +162,7 @@ export function useENSReleaseName() {
         })) as string;
         if (!slug) throw createENSReleaseError("NoNameToRelease");
 
-        const [fee, balance, totalPendingRefunds] = await Promise.all([
-          publicClient.readContract({
-            address: ensAddress,
-            abi: GreenGoodsENSABI,
-            functionName: "getReleaseFee",
-            args: [slug],
-          }) as Promise<bigint>,
-          publicClient.getBalance({ address: ensAddress }),
-          publicClient
-            .readContract({
-              address: ensAddress,
-              abi: GreenGoodsENSABI,
-              functionName: "totalPendingRefunds",
-            })
-            .catch((error: unknown) => {
-              logger.warn("Failed to read totalPendingRefunds; assuming zero for precheck", {
-                error,
-              });
-              return 0n;
-            }) as Promise<bigint>,
-        ]);
-
-        if (balance < fee + totalPendingRefunds) {
-          throw createENSReleaseError("InsufficientSponsoredBalance");
-        }
+        await assertSponsoredReleaseFunded({ publicClient, ensAddress, slug });
 
         const data = encodeFunctionData({
           abi: GreenGoodsENSABI,
@@ -158,21 +186,44 @@ export function useENSReleaseName() {
         })) as string;
         if (!slug) throw createENSReleaseError("NoNameToRelease");
 
-        const fee = await publicClient.readContract({
-          address: ensAddress,
+        // Wallets take the sponsored release where the sender has one and pay
+        // only gas. On the legacy sender they pay the release fee as value.
+        const sponsored = !isSponsoredENSReleaseUnavailable(ensAddress);
+        let value = 0n;
+        if (sponsored) {
+          await assertSponsoredReleaseFunded({ publicClient, ensAddress, slug });
+        } else {
+          value = await readReleaseFee(publicClient, ensAddress, slug);
+        }
+        const data = encodeFunctionData({
           abi: GreenGoodsENSABI,
-          functionName: "getReleaseFee",
-          args: [slug],
+          functionName: sponsored ? "releaseNameSponsored" : "releaseName",
         });
+
+        // A wallet opened for a release it cannot pay for shows no request.
+        try {
+          await assertWalletCanFundTransaction(publicClient, {
+            account: owner,
+            to: ensAddress,
+            data,
+            value,
+          });
+        } catch (error) {
+          // Paying its own fee, the wallet is short mostly of the fee, not gas.
+          if (!sponsored && error instanceof WalletCannotFundTransactionError) {
+            throw createENSReleaseError("InsufficientFee");
+          }
+          throw error;
+        }
         await ensureAppKitWalletChain(DEFAULT_CHAIN_ID);
         await assertLocalArbitrumForkWallet();
 
-        txHash = await walletClient.writeContract({
-          address: ensAddress,
-          abi: GreenGoodsENSABI,
-          functionName: "releaseName",
-          value: fee as bigint,
+        txHash = await walletClient.sendTransaction({
+          account: walletClient.account,
           chain: getChain(DEFAULT_CHAIN_ID),
+          to: ensAddress,
+          data,
+          value,
         });
       } else {
         throw new Error("No connected account");
@@ -213,8 +264,12 @@ export function useENSReleaseName() {
     },
     onError: (error) => {
       const parsed = parseContractError(error);
+      // ENS wording first, then the shared wording for wallet errors it recognises
+      // (such as a wallet short of gas).
       const message =
-        getENSReleaseErrorMessage(error, parsed.name) || "Release failed. Please try again.";
+        getENSReleaseErrorMessage(error, parsed.name) ||
+        (parsed.isKnown ? parsed.message : null) ||
+        "Release failed. Please try again.";
       logger.error("ENS release failed", { error, parsed });
       toastService.error({ title: "Release failed", description: message });
     },

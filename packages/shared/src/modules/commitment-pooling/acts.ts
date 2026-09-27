@@ -28,7 +28,8 @@ export type CommitmentActKind =
   | "addProof"
   | "sendForConfirmation"
   | "confirm"
-  | "offerAgain";
+  | "offerAgain"
+  | "askAgain";
 
 /** Nothing is offered to anyone once a commitment has stopped moving. */
 const TERMINAL = new Set<CommitmentDerivedState>([
@@ -81,10 +82,26 @@ const IN_PROGRESS = new Set<CommitmentDerivedState>(["ACCEPTED", "ACTIVE", "PART
 
 export interface CommitmentActInput {
   commitment: Pick<CommitmentReadModel, "derivedState" | "claimMode"> &
-    Partial<Pick<CommitmentReadModel, "commitmentType">>;
+    Partial<Pick<CommitmentReadModel, "commitmentType" | "direction">>;
   seat: CommitmentSeat | null;
   /** True while an act for this commitment is still waiting to send. */
   hasPendingJob?: boolean;
+  /**
+   * The reader made this commitment (`isCommitmentCreator`). A seat cannot say
+   * so: whoever took a request up sits in the provider seat, and a named
+   * confirmer sits where the asker does. A caller that only counts what is
+   * waiting on the reader may leave it out, because composing again never is.
+   */
+  isCreator?: boolean;
+  /**
+   * The reader holds a role in the garden a personal claim would be made
+   * through. Only a bystander on an untaken record needs it: the chain gates a
+   * personal claim on that role, so offering Take This Up to anyone else is an
+   * act that parks in the queue or reverts. Undefined means not read yet, and
+   * offers nothing, the same as false: a read that has not arrived must not
+   * offer an act it cannot back.
+   */
+  isMember?: boolean;
 }
 
 /**
@@ -106,13 +123,23 @@ export function selectCommitmentActKind(input: CommitmentActInput): CommitmentAc
   // how one commitment becomes two.
   if (hasPendingJob) return null;
 
-  if (phase === "EXPIRED") return seat === "provider" ? "offerAgain" : null;
+  // Once it has settled, the one thing left is to make it again, and that is
+  // offered to whoever made it: the new commitment starts from their words and
+  // their terms. Starting from somebody else's is a different act and is not
+  // offered here. A disputed record is held, not settled, so it waits.
+  if (SETTLED.has(phase)) {
+    if (!input.isCreator) return null;
+    return commitment.direction === "REQUEST" ? "askAgain" : "offerAgain";
+  }
   if (TERMINAL.has(phase)) return null;
 
   if (PRE_ACCEPTANCE.has(phase)) {
     // Direction already names the creator, so they read as provider on an Offer
     // and confirmer on a Request. Either way the act is to take it back.
     if (seat === "provider" || seat === "confirmer") return "withdraw";
+    // Taking up is for the garden's own people. A visitor reads the record and
+    // is offered nothing, rather than an act the chain will refuse.
+    if (input.isMember !== true) return null;
     return commitment.claimMode === "APPROVAL_GATED" ? "askToTakeUp" : "takeUp";
   }
 
@@ -203,12 +230,18 @@ export function canLinkWork(input: {
  * Acts that are the reader's own option rather than something waiting on them.
  *
  * Withdrawing an untaken offer is always available to whoever made it, and
- * offering a lapsed one again is an invitation, not an obligation. Counting
+ * making a settled one again is an invitation, not an obligation. Counting
  * either as "needs you" badges every commitment a member has ever made and
  * sorts it above the ones actually waiting — which is the opposite of what the
  * count is for.
  */
-const ELECTIVE = new Set<CommitmentActKind>(["withdraw", "offerAgain", "takeUp", "askToTakeUp"]);
+const ELECTIVE = new Set<CommitmentActKind>([
+  "withdraw",
+  "offerAgain",
+  "askAgain",
+  "takeUp",
+  "askToTakeUp",
+]);
 
 /**
  * Whether this commitment is waiting on this reader specifically.

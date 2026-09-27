@@ -20,7 +20,7 @@ const meta: Meta<typeof PoolFundingDialogFinancialSections> = {
   decorators: [
     (Story) => (
       <div
-        className="max-w-3xl space-y-6 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-6"
+        className="max-w-3xl space-y-6 rounded-[var(--m3-shape-lg)] bg-bg-weak-50 p-6"
         data-tone="garden"
       >
         <Story />

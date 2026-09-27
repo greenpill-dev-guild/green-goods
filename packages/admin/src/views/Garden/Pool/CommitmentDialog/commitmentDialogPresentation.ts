@@ -14,6 +14,7 @@ export type OpenDialog =
   | "cancel"
   | "mark-ready"
   | "expire"
+  | "confirm-kept"
   | "raise-dispute"
   | "resolve-dispute"
   | "fallback-confirm"

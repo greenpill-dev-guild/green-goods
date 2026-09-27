@@ -3,6 +3,13 @@ import { registerTelemetrySink, restoreExceptionTopLevelProps } from "./posthog"
 
 const POSTHOG_API_HOST = "https://us.i.posthog.com";
 const EXTENSION_TAB_ERROR = /^No tab with id: \d+\.$/;
+// When a navigation interrupts an in-flight view transition, the browser skips it and rejects
+// its `ready` promise with an AbortError. react-router never handles that promise, so it lands
+// as an unhandled rejection even though the route still commits. posthog-js stores the
+// DOMException name as a value prefix ("AbortError: ..."). Anchoring on it keeps other skip
+// reasons visible, such as a duplicate view-transition-name, which engines word almost the same
+// way but raise as InvalidStateError. The alternatives match Chromium, WebKit, and Gecko.
+const SKIPPED_TRANSITION_ERROR = /^AbortError: .*(?:transition was skipped|view ?transition)/i;
 let initializedKey: string | null = null;
 
 type ExceptionEntry = {
@@ -39,6 +46,21 @@ export function dropExtensionExceptions(event: CaptureResult | null): CaptureRes
     );
 
   return isKnownFramelessExtensionError ? null : event;
+}
+
+/** Drop the AbortError raised when a queued view transition is skipped by the next navigation. */
+export function dropSkippedTransitionExceptions(event: CaptureResult | null): CaptureResult | null {
+  if (!event || event.event !== "$exception" || !event.properties) return event;
+
+  const list = event.properties.$exception_list;
+  if (!Array.isArray(list)) return event;
+
+  const entries = list as ExceptionEntry[];
+  const isSkippedTransition = entries.some(
+    (entry) => typeof entry?.value === "string" && SKIPPED_TRANSITION_ERROR.test(entry.value)
+  );
+
+  return isSkippedTransition ? null : event;
 }
 
 /** Development hosts whose exceptions must never reach the shared production project. */
@@ -89,6 +111,7 @@ export function initializePostHog(apiKey: string): void {
       dropDevelopmentHostExceptions,
       restoreExceptionTopLevelProps,
       dropExtensionExceptions,
+      dropSkippedTransitionExceptions,
     ],
     debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
   });

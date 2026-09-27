@@ -23,12 +23,6 @@ export function readQueuedWorkState(metadata: string | undefined): QueuedWorkSta
   }
 }
 
-/** A queued work or decision that Upload all has not sent yet. */
-export const WAITING_TO_UPLOAD_MESSAGE = {
-  id: "app.uploads.state.waiting",
-  defaultMessage: "Waiting to upload",
-} satisfies MessageDescriptor;
-
 /** Chips stay short so a work's title keeps its width at 360px in every language. */
 const TO_UPLOAD_CHIP = {
   id: "app.uploads.chip.toUpload",

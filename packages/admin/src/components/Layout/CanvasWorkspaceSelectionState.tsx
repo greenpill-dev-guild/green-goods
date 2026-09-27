@@ -1,9 +1,9 @@
-import { Alert } from "@green-goods/shared/components/Alert";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightSLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
 import { SeedlingIllustration } from "./SeedlingIllustration";
 
@@ -40,7 +40,7 @@ export function CanvasWorkspaceSelectionState({
                 defaultMessage: "No gardens yet",
               })}
             </h2>
-            <p className="mt-2 max-w-md text-sm text-text-sub">
+            <p className="mt-2 max-w-md body-sm text-text-sub">
               {formatMessage({
                 id: "cockpit.workspace.noGardensDescription",
                 defaultMessage: "Create your first garden to start using the canvas workspaces.",
@@ -65,13 +65,13 @@ export function CanvasWorkspaceSelectionState({
       <AdminCard density="none" className="mx-auto max-w-3xl">
         <AdminCardHeader>
           <div>
-            <h2 className="label-md text-text-strong sm:text-lg">
+            <AdminCardTitle as="h2">
               {formatMessage({
                 id: "cockpit.workspace.chooseGardenTitle",
                 defaultMessage: "Choose a Garden",
               })}
-            </h2>
-            <p className="mt-1 text-sm text-text-sub">
+            </AdminCardTitle>
+            <p className="mt-1 body-sm text-text-sub">
               {formatMessage(
                 {
                   id: "cockpit.workspace.chooseGardenDescription",
@@ -83,20 +83,13 @@ export function CanvasWorkspaceSelectionState({
           </div>
         </AdminCardHeader>
         <AdminCardBody className="space-y-4">
-          <Alert variant="info">
-            {formatMessage({
-              id: "cockpit.workspace.chooseGardenHint",
-              defaultMessage: "Use the Garden Chip in the top context bar or pick a garden below.",
-            })}
-          </Alert>
-
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {gardens.map((garden) => (
               <button
                 key={garden.id}
                 type="button"
                 onClick={() => onSelectGarden(garden)}
-                className="flex items-center justify-between gap-3 rounded-xl border border-stroke-soft bg-bg-white px-4 py-3 text-left transition hover:bg-[rgb(var(--m3-on-surface)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
+                className="flex items-center justify-between gap-3 rounded-xl border border-stroke-soft bg-bg-white px-4 py-3 text-left transition hover:bg-[rgb(var(--text-strong-950)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
                 aria-label={formatMessage(
                   {
                     id: "cockpit.workspace.openGarden",
@@ -108,7 +101,7 @@ export function CanvasWorkspaceSelectionState({
                 <div className="min-w-0">
                   <p className="truncate label-md font-medium text-text-strong">{garden.name}</p>
                   {garden.location ? (
-                    <p className="mt-0.5 truncate text-xs text-text-soft">{garden.location}</p>
+                    <p className="mt-0.5 truncate body-xs text-text-soft">{garden.location}</p>
                   ) : null}
                 </div>
                 <RiArrowRightSLine className="h-4 w-4 flex-shrink-0 text-text-soft" />

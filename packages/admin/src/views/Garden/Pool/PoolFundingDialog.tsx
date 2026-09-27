@@ -31,7 +31,7 @@ export function PoolFundingDialog({
       onOpenChange={onOpenChange}
       title={formatMessage({
         id: "cockpit.garden.pool.funding.dialog.title",
-        defaultMessage: "Pool funding details",
+        defaultMessage: "Pool Funding Details",
       })}
       description={formatMessage({
         id: "cockpit.garden.pool.funding.dialog.description",
@@ -44,7 +44,7 @@ export function PoolFundingDialog({
       finalFocusRef={returnFocusRef}
     >
       {protocolContext ? (
-        <p className="rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container))] p-3 text-sm text-text-sub">
+        <p className="rounded-[var(--m3-shape-sm)] bg-bg-soft p-3 body-sm text-text-sub">
           {formatMessage({
             id: "cockpit.garden.pool.funding.protocolNote",
             defaultMessage:

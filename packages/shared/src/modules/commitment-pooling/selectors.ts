@@ -135,6 +135,19 @@ export function selectCommitmentSeat(input: {
   return "bystander";
 }
 
+/**
+ * Whether the reader made this commitment.
+ *
+ * Kept beside the seat because the seat cannot answer it: the asker of a request
+ * reads as its confirmer, and so does every named confirmer.
+ */
+export function isCommitmentCreator(input: {
+  commitment: Pick<CommitmentReadModel, "creator">;
+  viewer?: Address;
+}): boolean {
+  return input.viewer !== undefined && isSameAccount(input.commitment.creator, input.viewer);
+}
+
 export function deriveCommitmentState(
   commitment: CommitmentReadModel,
   cycleState?: string | null

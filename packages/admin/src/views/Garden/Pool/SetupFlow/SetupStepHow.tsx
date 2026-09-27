@@ -1,3 +1,4 @@
+import { POOL_PURPOSE_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/pool-charter";
 import { useIntl } from "react-intl";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 
@@ -38,7 +39,8 @@ export function SetupStepHow({
           defaultMessage:
             "Neighbours offer help and ask for it: rides, tools, workshops, garden work. Commitments are kept in the open and confirmed by the person they were made to.",
         })}
-        textareaProps={{ maxLength: 2000 }}
+        showCount
+        textareaProps={{ maxLength: POOL_PURPOSE_MAX_LENGTH }}
       />
       <AdminTextField
         label={formatMessage({
@@ -55,13 +57,6 @@ export function SetupStepHow({
         disabled={disabled}
         required
       />
-      <p className="text-xs text-text-soft">
-        {formatMessage({
-          id: "cockpit.garden.pool.setup.baselineNote",
-          defaultMessage:
-            "A starting assessment from the Hub helps the season's report later; nothing here waits on it.",
-        })}
-      </p>
     </div>
   );
 }

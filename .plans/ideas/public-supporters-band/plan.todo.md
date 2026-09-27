@@ -1,7 +1,7 @@
 # Public Supporters / Partnerships Section Plan
 
 **Feature Slug**: `public-supporters-band`
-**Stage**: `backlog`
+**Stage**: `ideas`
 **Status**: `ACTIVE`
 **Created**: `2026-04-29T05:49:32.687Z`
 **Last Updated**: `2026-04-29T05:49:32.687Z`

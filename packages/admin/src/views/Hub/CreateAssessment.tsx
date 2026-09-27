@@ -35,11 +35,12 @@ export default function CreateAssessment() {
     onDiscard: createAssessment.handleDiscard,
   });
 
-  // Dialog title (Title Case) — distinct from the sentence-case submit button
-  // label (app.assessment.submitAssessment) the footer keeps.
+  // The dialog takes the name of the Hub action that opens it (Create
+  // Assessment); the final button still reads Submit Assessment
+  // (app.assessment.submitAssessment), the act it performs.
   const title = formatMessage({
     id: "cockpit.assessment.createTitle",
-    defaultMessage: "Submit Assessment",
+    defaultMessage: "Create Assessment",
   });
 
   const stepRegistry = {
@@ -211,8 +212,7 @@ export default function CreateAssessment() {
         title={title}
         description={formatMessage({
           id: "cockpit.assessment.createDescription",
-          defaultMessage:
-            "Capture the context, strategy kernel, and harvest window for a new assessment.",
+          defaultMessage: "Describe the work, its goals, and the period it covers.",
         })}
         bodyClassName="flex min-h-0 flex-col !overflow-hidden"
       >

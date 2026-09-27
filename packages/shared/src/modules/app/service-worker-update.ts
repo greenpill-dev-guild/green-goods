@@ -70,6 +70,18 @@ function hasController() {
   return Boolean(navigator.serviceWorker?.controller);
 }
 
+/**
+ * The failure cause as flat telemetry. The DOMException/error name tells a
+ * browser failure (SecurityError) apart from a cache/quota one (QuotaExceededError)
+ * on a failed check; the online state already rides on every event via `track`.
+ */
+export function describeUpdateFailure(error: unknown) {
+  if (error instanceof Error) {
+    return { error_name: error.name };
+  }
+  return { error_name: "unknown" };
+}
+
 /** Observe an attempt's exact target without changing activation or reload behavior. */
 export function observeUpdateAttempt(
   worker: ServiceWorker,

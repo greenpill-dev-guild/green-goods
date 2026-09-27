@@ -92,14 +92,28 @@ describe("selectCommitmentAct", () => {
       selectCommitmentAct({
         commitment: { ...base, derivedState: "OFFERED", claimMode: "APPROVAL_GATED" },
         seat: "bystander",
+        isMember: true,
       })?.kind
     ).toBe("askToTakeUp");
     expect(
       selectCommitmentAct({
         commitment: { ...base, derivedState: "OFFERED" },
         seat: "bystander",
+        isMember: true,
       })?.kind
     ).toBe("takeUp");
+  });
+
+  it("offers a visitor nothing to take up, and nothing while membership is still being read", () => {
+    for (const isMember of [false, undefined]) {
+      expect(
+        selectCommitmentAct({
+          commitment: { ...base, derivedState: "OFFERED" },
+          seat: "bystander",
+          isMember,
+        })
+      ).toBeNull();
+    }
   });
 
   it("offers nothing once a commitment has stopped moving", () => {
@@ -110,13 +124,25 @@ describe("selectCommitmentAct", () => {
     }
   });
 
-  it("lets a lapsed commitment be offered again, but only by the person who made it", () => {
+  it("labels making a settled commitment again by its direction, for the person who made it", () => {
+    const expired = { ...base, derivedState: "EXPIRED" as const };
     expect(
-      selectCommitmentAct({ commitment: { ...base, derivedState: "EXPIRED" }, seat: "provider" })
-        ?.kind
-    ).toBe("offerAgain");
+      selectCommitmentAct({
+        commitment: { ...expired, direction: "OFFER" },
+        seat: "provider",
+        isCreator: true,
+      })
+    ).toMatchObject({ kind: "offerAgain", labelId: "app.commitment.act.offerAgain" });
     expect(
-      selectCommitmentAct({ commitment: { ...base, derivedState: "EXPIRED" }, seat: "bystander" })
+      selectCommitmentAct({
+        commitment: { ...expired, direction: "REQUEST" },
+        seat: "confirmer",
+        isCreator: true,
+      })
+    ).toMatchObject({ kind: "askAgain", labelId: "app.commitment.act.askAgain" });
+    // Whoever took a request up holds the provider seat, and the words are not theirs.
+    expect(
+      selectCommitmentAct({ commitment: { ...expired, direction: "REQUEST" }, seat: "provider" })
     ).toBeNull();
   });
 
@@ -262,6 +288,19 @@ describe("selectStatusBand", () => {
   it("falls back to a neutral fact rather than another seat's sentence", () => {
     const band = selectStatusBand({ commitment: { derivedState: "EXPIRED" }, seat: "contributor" });
     expect(band?.titleId).toBe("app.commitment.band.any.expired.t");
+  });
+
+  it("only tells a provider they can offer it again when that act is theirs", () => {
+    const lapsed = { derivedState: "EXPIRED" } as const;
+    // Whoever made the offer may offer it again, and the band says so.
+    expect(
+      selectStatusBand({ commitment: lapsed, seat: "provider", actKind: "offerAgain" })?.bodyId
+    ).toBe("app.commitment.band.provider.expired.b");
+    // Whoever took up someone else's request provided it too, but it is not theirs
+    // to offer again: the band states the fact and promises nothing.
+    expect(selectStatusBand({ commitment: lapsed, seat: "provider", actKind: null })?.bodyId).toBe(
+      "app.commitment.band.any.expired.b"
+    );
   });
 
   it("says nothing to an unauthenticated reader that claims a relationship", () => {

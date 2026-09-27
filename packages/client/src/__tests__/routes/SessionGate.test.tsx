@@ -111,7 +111,7 @@ describe("SessionGate", () => {
     expect(screen.queryByText("Login Page")).not.toBeInTheDocument();
   });
 
-  it("clears the one-shot chunk reload guard after an authenticated route commits", () => {
+  it("preserves the one-shot chunk reload guard after an authenticated route commits", () => {
     markChunkReloadAttempt();
     mockUseAuthState.mockReturnValue({
       isReady: true,
@@ -121,7 +121,7 @@ describe("SessionGate", () => {
     renderWithRouter();
 
     expect(screen.getByText("Protected Content")).toBeInTheDocument();
-    expect(hasChunkReloadAttempt()).toBe(false);
+    expect(hasChunkReloadAttempt()).toBe(true);
   });
 
   it("preserves redirect path in login URL", () => {

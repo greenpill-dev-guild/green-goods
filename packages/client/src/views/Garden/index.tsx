@@ -191,7 +191,7 @@ const Work: React.FC = () => {
       primary: () => changeTab(WorkTab.Details),
       primaryLabel: intl.formatMessage({
         id: "app.garden.submit.tab.media.label",
-        defaultMessage: "Add Details",
+        defaultMessage: "Details",
       }),
       customSecondary: (
         <>

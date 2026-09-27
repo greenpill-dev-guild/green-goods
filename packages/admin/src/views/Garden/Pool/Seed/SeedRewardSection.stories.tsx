@@ -6,10 +6,13 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { userEvent, within } from "storybook/test";
 import { STORY_GARDEN } from "../poolStoryFixtures";
 import { SeedRewardSection, type SeedRewardSectionProps } from "./SeedRewardSection";
+import type { RewardUnits } from "./seedRewardAmount";
 
 // Fixture stand-in for the token a payout is recorded in, in the same shape the
 // pool story cast uses for its addresses.
 const STORY_REWARD_TOKEN = "0x4444444444444444444444444444444444444444";
+/** A six-decimal token, like USDC: 250000000 base units read as 250. */
+const STORY_TOKEN_UNITS: RewardUnits = { status: "ready", decimals: 6, symbol: "USDC" };
 
 /** The section reads and writes the real composer form, exactly as the console does. */
 function SeedRewardSectionWithForm(args: SeedRewardSectionProps) {
@@ -34,6 +37,7 @@ const meta: Meta<typeof SeedRewardSection> = {
     busy: false,
     errorOf: () => undefined,
     settlementActive: false,
+    units: { status: "none" },
   },
   render: (args) => <SeedRewardSectionWithForm {...args} />,
   // The section ships collapsed; every story opens it so the rails are readable.
@@ -63,6 +67,7 @@ export const ExternalPayout: Story = {
       considerationToken: STORY_REWARD_TOKEN,
       considerationAmount: "250000000",
     },
+    units: STORY_TOKEN_UNITS,
   },
 };
 
@@ -74,6 +79,7 @@ export const CeloSettlement: Story = {
       considerationAmount: "50000000000000000000",
     },
     settlementActive: true,
+    units: { status: "ready", decimals: 18, symbol: "G$" },
   },
 };
 
@@ -87,6 +93,21 @@ export const AmountMissing: Story = {
       considerationAmount: "",
     },
     errorOf: (field) =>
-      field === "considerationAmount" ? "Enter a whole amount above zero" : undefined,
+      field === "considerationAmount" ? "Enter an amount above zero." : undefined,
+    units: STORY_TOKEN_UNITS,
+  },
+};
+
+/** The token does not answer decimals(): the amount waits and says why, rather than guess. */
+export const TokenUnreadable: Story = {
+  args: {
+    values: {
+      ...COMMITMENT_COMPOSER_DEFAULTS,
+      considerationRail: "ARBITRUM_EXTERNAL",
+      considerationSource: STORY_GARDEN,
+      considerationToken: STORY_REWARD_TOKEN,
+      considerationAmount: "",
+    },
+    units: { status: "waiting", reason: "unreadable" },
   },
 };

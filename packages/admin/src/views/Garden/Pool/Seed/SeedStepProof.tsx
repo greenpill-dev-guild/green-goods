@@ -7,6 +7,7 @@ import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminSettingRow } from "@/components/AdminSettingRow";
 import { SeedConfirmerList } from "./SeedConfirmerList";
 import { SeedRewardSection } from "./SeedRewardSection";
+import type { RewardUnits } from "./seedRewardAmount";
 import type { SeedFieldError } from "./seedStepModel";
 
 export interface SeedStepProofProps {
@@ -24,6 +25,8 @@ export interface SeedStepProofProps {
   protocolRegistered: boolean;
   /** Celo settlement stays disabled until the garden's account is active. */
   settlementActive: boolean;
+  /** The units the declared reward is typed in. */
+  rewardUnits: RewardUnits;
 }
 
 /**
@@ -41,6 +44,7 @@ export function SeedStepProof({
   onAddConfirmer,
   protocolRegistered,
   settlementActive,
+  rewardUnits,
 }: SeedStepProofProps) {
   const { formatMessage } = useIntl();
 
@@ -143,6 +147,7 @@ export function SeedStepProof({
         busy={busy}
         errorOf={errorOf}
         settlementActive={settlementActive}
+        units={rewardUnits}
       />
     </div>
   );

@@ -2,6 +2,7 @@ import { useRefreshAction } from "../../../components/Canvas/RefreshActionContex
 import { useViewActions } from "../../../components/Canvas/useViewActions";
 import type { SortOption } from "../../../components/ListPrimitives";
 import { useGardenStateStore } from "../../../stores/useGardenStateStore";
+import type { Address } from "../../../types/domain";
 import { type AdminHubRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
 import { useActions } from "../../blockchain/useBaseLists";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
@@ -102,6 +103,8 @@ export function useHubWorkbenchController() {
     canManage,
     canReview,
     works,
+    worksComplete,
+    gardenReviewQueue,
     worksLoading,
     worksFetching,
     worksError,
@@ -115,7 +118,7 @@ export function useHubWorkbenchController() {
     allocations,
     allocationsLoading,
     gardenVaults,
-    vaultNetDeposited,
+    hasEndowment,
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
 
@@ -123,7 +126,12 @@ export function useHubWorkbenchController() {
   const canCertify = canReview;
 
   const { chainId, viewer, toConfirm, handleOpenCommitment, handleCloseCommitment } =
-    useHubConfirmStage({ navigate, hubContext });
+    useHubConfirmStage({
+      navigate,
+      hubContext,
+      garden: (selectedGarden?.id as Address | undefined) ?? null,
+      canManage,
+    });
 
   const { stage, stages, stageCounts } = useMemo(
     () =>
@@ -168,11 +176,13 @@ export function useHubWorkbenchController() {
   const derived = useGardenDerivedState({
     garden: garden ?? { id: selectedGarden?.id ?? "", domainMask: 0, name: "", chainId: 0 },
     works,
+    worksComplete,
+    gardenReviewQueue,
     assessments,
     hypercerts,
     allocations,
     gardenVaults,
-    vaultNetDeposited,
+    hasEndowment,
     roleMembers,
     selectedRange: "30d",
     activityFilter: "all",
@@ -405,8 +415,7 @@ export function useHubWorkbenchController() {
     hypercertsLoading,
     isSubmitRoute,
     normalizedSearch,
-    pendingCriticalCount: derived.pendingCriticalCount,
-    pendingWarningCount: derived.pendingWarningCount,
+    waitingOverWeekCount: derived.reviewQueue.waitingOverWeekCount,
     pendingWorks,
     refreshAgoText,
     resultCount,

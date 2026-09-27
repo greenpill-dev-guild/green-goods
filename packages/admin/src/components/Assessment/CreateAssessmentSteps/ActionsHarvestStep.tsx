@@ -4,11 +4,11 @@ import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainCo
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { fromCalendarDateKey, toCalendarDateKey } from "@green-goods/shared/utils/time";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
-import { resolveDomainLabel, Section } from "./shared";
+import { knownDomain, resolveDomainLabel, Section } from "./shared";
 
 interface ActionsHarvestStepProps {
   showValidation: boolean;
@@ -18,7 +18,7 @@ interface ActionsHarvestStepProps {
 /**
  * Step 3: Actions & Harvest
  * Actions multi-select (filtered by domain from Step 1) + reporting period date range.
- * Clears selected actions when domain changes.
+ * The store clears the selected actions when the domain changes.
  */
 export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarvestStepProps) {
   const intl = useIntl();
@@ -27,24 +27,21 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
   const form = useCreateAssessmentStore((s) => s.form);
   const setField = useCreateAssessmentStore((s) => s.setField);
 
-  const selectedDomain = form.domain;
+  // Null for a restored draft's domain that no longer exists: it lists no
+  // actions, and Submit sends the steward back to choose a domain.
+  const selectedDomain = knownDomain(form.domain);
   const selectedUIDs = form.selectedActionUIDs;
 
   // Fetch all actions from the current chain and filter by selected domain
   const chainId = useCurrentChain();
   const { data: allActions = [] } = useActions(chainId);
   const domainActions = useMemo(
-    () => allActions.filter((action) => action.domain === selectedDomain),
+    () =>
+      selectedDomain === null
+        ? []
+        : allActions.filter((action) => action.domain === selectedDomain),
     [allActions, selectedDomain]
   );
-
-  // Clear selected actions when domain changes
-  const prevDomainRef = useRef(selectedDomain);
-  useEffect(() => {
-    if (prevDomainRef.current === selectedDomain) return;
-    prevDomainRef.current = selectedDomain;
-    setField("selectedActionUIDs", []);
-  }, [selectedDomain, setField]);
 
   const handleToggleAction = (actionId: string) => {
     if (isSubmitting) return;
@@ -95,7 +92,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
       <Section
         title={formatMessage({
           id: "app.admin.assessment.domainAction.actionsTitle",
-          defaultMessage: "Coherent Actions",
+          defaultMessage: "Which Actions Count",
         })}
         description={formatMessage({
           id: "app.admin.assessment.domainAction.actionsDescription",
@@ -104,19 +101,24 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
       >
         {domainActions.length === 0 ? (
           <div className="rounded-md border border-dashed border-stroke-soft p-6 text-center">
-            <p className="text-sm text-text-soft">
-              {formatMessage(
-                {
-                  id: "app.admin.assessment.domainAction.noActions",
-                  defaultMessage: "No actions registered for {domain}.",
-                },
-                { domain: resolveDomainLabel(intl, selectedDomain) }
-              )}
+            <p className="body-sm text-text-soft">
+              {selectedDomain === null
+                ? formatMessage({
+                    id: "app.admin.assessment.domainAction.chooseDomainFirst",
+                    defaultMessage: "Choose a domain on the first step to see its actions.",
+                  })
+                : formatMessage(
+                    {
+                      id: "app.admin.assessment.domainAction.noActions",
+                      defaultMessage: "No actions registered for {domain}.",
+                    },
+                    { domain: resolveDomainLabel(intl, selectedDomain) }
+                  )}
             </p>
           </div>
         ) : (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-text-soft">
+            <div className="flex items-center justify-between body-xs text-text-soft">
               <span>
                 {formatMessage(
                   {
@@ -162,7 +164,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                   <div
                     key={action.id}
                     className={cn(
-                      "flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm transition",
+                      "flex items-start gap-2 rounded-lg border px-3 py-2.5 body-sm transition",
                       isChecked
                         ? "border-primary-base bg-primary-alpha-10 text-primary-dark"
                         : "border-stroke-soft bg-bg-white text-text-sub hover:border-primary-alpha-24 hover:bg-primary-alpha-10",
@@ -190,7 +192,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                         {action.title}
                       </span>
                       {action.slug && (
-                        <span className="block truncate text-xs text-text-soft" title={action.slug}>
+                        <span className="block truncate body-xs text-text-soft" title={action.slug}>
                           {action.slug}
                         </span>
                       )}
@@ -203,7 +205,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
         )}
 
         {/* Always render to reserve space */}
-        <span className="block min-h-[1.25rem] text-xs text-error-dark">{"\u00A0"}</span>
+        <span className="block min-h-[1.25rem] body-xs text-error-dark">{"\u00A0"}</span>
       </Section>
 
       {/* Reporting Period */}

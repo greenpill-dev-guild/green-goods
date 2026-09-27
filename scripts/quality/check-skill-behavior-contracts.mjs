@@ -13,6 +13,7 @@ const REPO_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "../..");
 
 export const SOURCE_PATHS = [
   "AGENTS.md",
+  "packages/contracts/AGENTS.md",
   ".claude/context/codebase-architecture.md",
   ".claude/context/values.md",
   ".claude/skills/audit/SKILL.md",
@@ -306,14 +307,14 @@ const contracts = [
     requirements: [
       {
         file: "AGENTS.md",
-        section: "Global Invariants",
-        pattern: /Never use raw `forge`; use the repo's bun scripts/i,
+        section: "Essential rules",
+        pattern: /Use the Bun contract wrappers, never raw Forge/i,
         marker: "Bun wrapper requirement",
       },
       {
-        file: "AGENTS.md",
-        section: "Contract Deployment Review Phases",
-        pattern: /pending broadcast[\s\S]{0,80}not an automatic P0/i,
+        file: "packages/contracts/AGENTS.md",
+        section: "Phase-Aware Artifact Review",
+        pattern: /Pending broadcast[\s\S]{0,140}Do not turn this into a P0 by itself/i,
         marker: "pre-broadcast phase distinction",
       },
       {
@@ -326,16 +327,15 @@ const contracts = [
     ],
   },
   {
-    id: "visible-ui-needs-authenticated-brave-or-blocked",
+    id: "visible-ui-needs-labeled-rendered-proof",
     summary:
-      "Visible-UI claims require authenticated Brave evidence or an explicit blocked result.",
+      "Visible-UI claims require rendered proof labeled by engine and session per AGENTS.md § Browser Evidence.",
     requirements: [
       {
         file: ".claude/skills/review/SKILL.md",
         section: "Pass 3 — Evidence or Production Quality",
-        pattern:
-          /Visible-UI\s+claims[\s\S]{0,180}authenticated Brave[\s\S]{0,120}reported as blocked/i,
-        marker: "authenticated-Brave-or-blocked rule",
+        pattern: /Visible-UI\s+claims[\s\S]{0,200}Browser Evidence/i,
+        marker: "labeled rendered proof rule",
       },
     ],
   },

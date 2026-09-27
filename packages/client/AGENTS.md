@@ -15,6 +15,9 @@ should come from `@green-goods/shared`.
 
 ## Non-Negotiables
 
+- In `src/`, component filenames use PascalCase; other TypeScript filenames use camelCase,
+  with no hyphens. Framework entry exceptions live in the source-structure checker.
+
 - Do not create local hooks or providers when the logic belongs in `@green-goods/shared`.
 - Work submission must preserve the offline-first queue flow; do not bypass the queue for
   passkey users.
@@ -27,8 +30,8 @@ should come from `@green-goods/shared`.
 
 ## Design Surfaces
 
-- Root `AGENTS.md` and `.claude/skills/design/system-alignment-review.md` own the Warm Earth
-  source map. Do not restate or fork the design spec here.
+- Read `packages/client/DESIGN.md` and `.claude/skills/design/implementation.md` for frontend
+  work. `.claude/skills/design/ARCHITECTURE.md` maps the canonical Warm Earth sources.
 - Public/browser routes should stay on the public shell path (`PublicShell` + `SiteHeader`).
 - Installed/authenticated PWA routes should stay on the protected app shell path (`AppShell` +
   bottom `AppBar`).
@@ -39,12 +42,13 @@ should come from `@green-goods/shared`.
 
 - Client changes commonly depend on shared hooks and providers. If the change reaches into
   `@green-goods/shared`, validate from the repo root, not only from this package.
-- In QA Speed Mode, run targeted view/component tests when relevant and capture authenticated
+- In QA Speed Mode, run targeted view/component tests when relevant and capture labeled
   rendered proof for visible UI. Build only when route wiring, render/build output, or PWA
   packaging behavior moves.
 - Route and rendering contract changes should get a build before PR/ship readiness, not only tests.
-- Visible changes follow root `AGENTS.md` section “Agentic Modern Web Standard”; if its
-  authenticated Brave path is unavailable, report browser QA as `BLOCKED`.
+- Visible changes follow root [`AGENTS.md` § Browser Evidence](../../AGENTS.md#browser-evidence):
+  label the engine and session behind the proof, and if the authenticated Brave path is
+  unavailable, record that proof as pending and continue with labeled evidence.
 
 ## Validation
 
@@ -53,10 +57,11 @@ should come from `@green-goods/shared`.
 - Conditional proof: typecheck/build and browser evidence follow the selector and the root validation pipeline.
 - Broader impact: run the root Repo Quick Gate when shared contracts or cross-package behavior moves.
 
-## Authenticated Browser QA
+## Browser Evidence
 
-Local agentic browser QA for this package uses the authenticated Brave QA profile.
-Codex sessions use the Codex browser-extension path and claim the already-open Brave tab/window.
-Claude Code sessions use the Claude Code Chrome/Chromium extension path and select the authenticated Brave profile/tab.
-Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
-If authenticated Brave access is blocked, stop and report QA as blocked.
+Rendered proof for this package follows [AGENTS.md § Browser Evidence](../../AGENTS.md#browser-evidence):
+label the engine and session, use the authenticated Brave profile only for the authenticated surface
+class, and treat the `browser-proof` check as advisory locally.
+PWA routes, the service worker, the login, profile, and wallet-sheet views, and the PWA config are in
+the authenticated surface class; `?mockAuth=<role>&presentation=pwa` on localhost covers the rest
+as labeled evidence.

@@ -140,6 +140,41 @@ describe("AdminConfirmDialog", () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
+  it("names what the act writes to under the title, before the description", () => {
+    renderWithProviders(
+      <AdminConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        title="Close This Pool"
+        target={<p>Writing to Rocinha’s pool</p>}
+        description="Closing ends participation for every member."
+        confirmLabel="Close Pool"
+      />
+    );
+
+    const title = screen.getByRole("heading", { name: "Close This Pool" });
+    const target = screen.getByText("Writing to Rocinha’s pool");
+    const description = screen.getByText("Closing ends participation for every member.");
+    const follows = (a: Element, b: Element) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(title, target)).toBe(true);
+    expect(follows(target, description)).toBe(true);
+  });
+
+  it("keeps the header as it was when a dialog names no target", () => {
+    renderWithProviders(
+      <AdminConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        title="Emergency pause"
+        description="Pause this vault?"
+      />
+    );
+    expect(document.querySelector('[data-slot="target"]')).toBeNull();
+  });
+
   it("keeps confirm dialogs on the compact mobile geometry", () => {
     renderWithProviders(
       <AdminConfirmDialog

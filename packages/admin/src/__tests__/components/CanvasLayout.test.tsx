@@ -17,6 +17,7 @@ const {
   mockUseGardenUrlSync,
   mockUseStaleGardenGuard,
   mockEnsureBaseLists,
+  mockCommitmentCompletionRefresh,
   mockSetUrlGarden,
   mockSetSelectedGarden,
   mockGardenChipProps,
@@ -30,6 +31,7 @@ const {
   mockUseGardenUrlSync: vi.fn(),
   mockUseStaleGardenGuard: vi.fn(),
   mockEnsureBaseLists: vi.fn(),
+  mockCommitmentCompletionRefresh: vi.fn(),
   mockSetUrlGarden: vi.fn(),
   mockSetSelectedGarden: vi.fn(),
   mockGardenChipProps: vi.fn(),
@@ -308,6 +310,10 @@ vi.mock("@green-goods/shared/hooks/blockchain/prefetch", () => ({
   ensureBaseLists: mockEnsureBaseLists,
 }));
 
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentCompletionRefresh", () => ({
+  useCommitmentCompletionRefresh: mockCommitmentCompletionRefresh,
+}));
+
 vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
   useAdminGardenWorkspaceSelection: () => ({
     eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
@@ -370,7 +376,8 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenDetailData", () => ({
     },
     gardenVaults: [],
     vaultsLoading: false,
-    vaultNetDeposited: 0n,
+    endowmentByAsset: [],
+    hasEndowment: false,
     allocations: [],
     allocationsLoading: false,
     works: [],
@@ -914,6 +921,15 @@ describe("CanvasShell access states", () => {
 
     expect(screen.getByTestId("canvas-indexer-error")).toBeInTheDocument();
     expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
+  });
+
+  it("carries the refresh that follows a sent commitment act, because the admin has no queue provider", () => {
+    // The act is sent from a dialog that closes as soon as it lands, so anything
+    // mounted there is gone before the indexer catches up. The shell outlives it.
+    // What the refresh does is proven in shared's commitment-completion-refresh test.
+    renderCanvasShell("/hub/work");
+
+    expect(mockCommitmentCompletionRefresh).toHaveBeenCalled();
   });
 
   it("keeps CanvasLayout as the ready shell for direct canvas bookmarks", () => {

@@ -4,8 +4,9 @@ import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/p
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import type { RefObject } from "react";
 import { useIntl } from "react-intl";
+import { ActPhaseLine } from "@/components/ActPhaseLine";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { PoolFundingSection } from "./PoolFundingSection";
 import { poolStatusChip } from "./poolPresentation";
 
@@ -25,12 +26,12 @@ export interface PoolStatusCardProps {
 function Checkline({ done, label }: { done: boolean; label: string }) {
   const Icon = done ? RiCheckLine : RiCloseLine;
   return (
-    <li className="flex items-center gap-2 text-body-md text-[rgb(var(--m3-on-surface))]">
+    <li className="flex items-center gap-2 text-body-md text-text-strong">
       <Icon
         className={
           done
             ? "h-4 w-4 shrink-0 text-[rgb(var(--tone-on-surface-accent))]"
-            : "h-4 w-4 shrink-0 text-[rgb(var(--m3-on-surface-variant))]"
+            : "h-4 w-4 shrink-0 text-text-sub"
         }
         aria-hidden
       />
@@ -74,27 +75,38 @@ export function PoolStatusCard({
     defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
   });
   const actDisabled = offline || isActing;
+  // Resume stays closed from the wallet until the pool reads open again.
+  const resumeHeld =
+    pool.resumePhase.status === "signing" ||
+    pool.resumePhase.status === "confirming" ||
+    pool.resumePhase.status === "confirmed";
 
   return (
     <AdminCard variant="elevated" data-component="PoolStatusCard" className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="label-md text-text-strong">
+          <AdminCardTitle>
             {formatMessage({
               id: "cockpit.garden.pool.status.title",
-              defaultMessage: "Pool status",
+              defaultMessage: "Pool Status",
             })}
-          </h3>
-          <p className="mt-1 text-xs text-text-soft">
-            {formatMessage({
-              id: "cockpit.garden.pool.status.description",
-              defaultMessage: "The container your seasons and campaigns run in.",
-            })}
-          </p>
+          </AdminCardTitle>
         </div>
-        <StatusBadge variant={chip.variant} size="sm">
-          {chip.label}
-        </StatusBadge>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          {/* The protocol pool is managed from its garden like any pool; the
+              chip says so before any dialog does (A14). */}
+          {protocolContext ? (
+            <StatusBadge variant="neutral" size="sm">
+              {formatMessage({
+                id: "cockpit.garden.pool.status.protocol",
+                defaultMessage: "Protocol pool",
+              })}
+            </StatusBadge>
+          ) : null}
+          <StatusBadge variant={chip.variant} size="sm">
+            {chip.label}
+          </StatusBadge>
+        </div>
       </div>
 
       {model.status === "not-ready" ? (
@@ -185,11 +197,11 @@ export function PoolStatusCard({
       )}
 
       {model.status === "not-ready" ? (
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.setup.note",
             defaultMessage:
-              "Setting up writes how this pool works and opens its first season. One pass, four short steps.",
+              "Setting up writes how this pool works and opens its first season, in four short steps. Your wallet will ask up to six times, fewer when it can take several changes at once.",
           })}
         </p>
       ) : null}
@@ -221,7 +233,7 @@ export function PoolStatusCard({
       />
 
       {running && !model.closure.allowed ? (
-        <p className="text-xs text-text-soft" data-slot="close-blocked">
+        <p className="body-xs text-text-soft" data-slot="close-blocked">
           {formatMessage(
             {
               id: "cockpit.garden.pool.close.blocked",
@@ -245,13 +257,13 @@ export function PoolStatusCard({
       ) : null}
 
       {offline && !inSetup ? (
-        <p className="text-xs text-warning-dark" role="status">
+        <p className="body-xs text-warning-dark" role="status">
           {offlineNote}
         </p>
       ) : null}
 
       {!inSetup && model.status !== "closed" && model.status !== "composted" ? (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <AdminButton
             type="button"
             variant="outlined"
@@ -266,8 +278,8 @@ export function PoolStatusCard({
               type="button"
               variant="filled"
               size="sm"
-              onClick={() => void acts.resume()}
-              disabled={actDisabled}
+              onClick={() => void acts.resume().catch(() => undefined)}
+              disabled={actDisabled || resumeHeld}
             >
               {formatMessage({
                 id: "cockpit.garden.pool.act.resume",
@@ -287,19 +299,31 @@ export function PoolStatusCard({
           ) : null}
         </div>
       ) : null}
+      {model.status === "paused" ? (
+        <ActPhaseLine
+          phase={pool.resumePhase}
+          chainId={pool.chainId}
+          confirmed={formatMessage({
+            id: "cockpit.garden.pool.act.resumed",
+            defaultMessage: "Resumed. The pool reads open once the index shows it.",
+          })}
+        />
+      ) : null}
 
       {running && model.closure.allowed ? (
-        <div className="flex flex-wrap items-center gap-2">
+        // Its own row, outlined where it sits: the red is for the confirm
+        // inside the dialog, which names what closing affects.
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <AdminButton
             type="button"
-            variant="danger"
+            variant="outlined"
             size="sm"
             onClick={onClosePool}
             disabled={actDisabled}
           >
             {formatMessage({
               id: "cockpit.garden.pool.act.closePool",
-              defaultMessage: "Close pool…",
+              defaultMessage: "Close Pool…",
             })}
           </AdminButton>
         </div>
@@ -314,7 +338,7 @@ export function PoolStatusCard({
                 "The pool is closed. Its history stays with the garden. Archiving it keeps that history; reopening starts the next era.",
             })}
           </p>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <AdminButton
               type="button"
               variant="outlined"
@@ -324,7 +348,7 @@ export function PoolStatusCard({
             >
               {formatMessage({
                 id: "cockpit.garden.pool.act.compostPool",
-                defaultMessage: "Archive pool…",
+                defaultMessage: "Archive Pool…",
               })}
             </AdminButton>
           </div>
@@ -340,7 +364,7 @@ export function PoolStatusCard({
                 "This pool is archived. Reopening preserves its history; members can't take part again until a season opens.",
             })}
           </p>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <AdminButton
               type="button"
               variant="filled"
@@ -350,7 +374,7 @@ export function PoolStatusCard({
             >
               {formatMessage({
                 id: "cockpit.garden.pool.act.reopenPool",
-                defaultMessage: "Reopen pool…",
+                defaultMessage: "Reopen Pool…",
               })}
             </AdminButton>
           </div>

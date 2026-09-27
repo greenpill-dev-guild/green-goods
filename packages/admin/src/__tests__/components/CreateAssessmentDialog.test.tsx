@@ -251,7 +251,7 @@ describe("CreateAssessment dialog", () => {
 
     expect(await idbGet(DRAFT_KEY)).toMatchObject({ title: "Should not survive discard" });
 
-    const dialog = screen.getByRole("dialog", { name: "Submit Assessment" });
+    const dialog = screen.getByRole("dialog", { name: "Create Assessment" });
     fireEvent.keyDown(dialog, { key: "Escape" });
 
     const discardButton = await screen.findByRole("button", { name: "Discard" });
@@ -322,7 +322,7 @@ describe("CreateAssessment dialog", () => {
       await Promise.resolve();
     });
 
-    const dialog = await screen.findByRole("dialog", { name: "Submit Assessment" });
+    const dialog = await screen.findByRole("dialog", { name: "Create Assessment" });
     expect(screen.getByLabelText(/close/i)).toBeDisabled();
 
     fireEvent.keyDown(dialog, { key: "Escape" });
@@ -380,7 +380,7 @@ describe("CreateAssessment dialog", () => {
       await Promise.resolve();
     });
 
-    const dialog = await screen.findByRole("dialog", { name: "Submit Assessment" });
+    const dialog = await screen.findByRole("dialog", { name: "Create Assessment" });
     await act(async () => {
       fireEvent.keyDown(dialog, { key: "Escape" });
       await Promise.resolve();
@@ -391,7 +391,7 @@ describe("CreateAssessment dialog", () => {
     // handleCancel → adminRoutes.hub → the default /hub/work stage).
     await waitFor(() => {
       expect(router?.state.location.pathname).toBe("/hub/work");
-      expect(screen.queryByRole("dialog", { name: "Submit Assessment" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "Create Assessment" })).not.toBeInTheDocument();
     });
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
   });

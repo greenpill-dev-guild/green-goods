@@ -27,7 +27,8 @@ export interface CreateAssessmentFormState {
   diagnosis: string;
   smartOutcomes: SmartOutcome[];
   cynefinPhase: CynefinPhase;
-  domain: Domain;
+  /** Null until the steward chooses one. */
+  domain: Domain | null;
   selectedActionUIDs: string[];
   sdgTargets: number[];
   reportingPeriodStart: string;

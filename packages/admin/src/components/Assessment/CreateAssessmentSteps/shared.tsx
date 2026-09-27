@@ -62,20 +62,42 @@ export function domainKey(base: string, domain: Domain): string {
   return `${base}.${DOMAIN_SLUGS[domain]}`;
 }
 
+/**
+ * A domain the guidance knows, or null: nothing is preselected (DL-047), and a
+ * restored draft can carry a stale value. Either way the steps show neutral
+ * text instead of falling back to one domain's examples.
+ */
+export function knownDomain(domain: Domain | null | undefined): Domain | null {
+  return domain !== null && domain !== undefined && domain in DOMAIN_SLUGS ? domain : null;
+}
+
+/** A domain's placeholder or example text; undefined until a known domain is chosen. */
+export function formatDomainGuidance(
+  intl: IntlShape,
+  base: string,
+  domain: Domain | null,
+  pick: (guidance: DomainGuidance) => string
+): string | undefined {
+  const known = knownDomain(domain);
+  if (known === null) return undefined;
+  return intl.formatMessage({
+    id: domainKey(base, known),
+    defaultMessage: pick(DOMAIN_GUIDANCE[known]),
+  });
+}
+
+interface DomainGuidance {
+  titlePlaceholder: string;
+  locationPlaceholder: string;
+  descriptionPlaceholder: string;
+  descriptionHelp: string;
+  diagnosisPlaceholder: string;
+  smartOutcomeExample: string;
+  cynefinExamples: Record<CynefinPhase, string>;
+}
+
 /** Domain-specific guidance for wizard fields — placeholders and help text adapt to the selected domain */
-export const DOMAIN_GUIDANCE: Record<
-  Domain,
-  {
-    titlePlaceholder: string;
-    locationPlaceholder: string;
-    descriptionPlaceholder: string;
-    descriptionHelp: string;
-    diagnosisPlaceholder: string;
-    diagnosisHelp: string;
-    smartOutcomeExample: string;
-    cynefinExamples: Record<CynefinPhase, string>;
-  }
-> = {
+export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
   [Domain.SOLAR]: {
     titlePlaceholder: "e.g., Kigali Community Solar — Phase 2 Deployment",
     locationPlaceholder: "e.g., Kigali, Rwanda — Sector 5 hub network",
@@ -85,8 +107,6 @@ export const DOMAIN_GUIDANCE: Record<
       "Describe the energy access situation, infrastructure being deployed, and target community.",
     diagnosisPlaceholder:
       "e.g., Rural households in Sector 5 rely on diesel generators averaging 4 hours daily. High fuel cost ($12/week) limits productive electricity use and creates indoor health risks...",
-    diagnosisHelp:
-      "What energy access gap or infrastructure challenge are you addressing? What are the root causes?",
     smartOutcomeExample: "e.g., Generate 500 kWh/month from newly installed panels",
     cynefinExamples: {
       [CynefinPhase.CLEAR]:
@@ -107,8 +127,6 @@ export const DOMAIN_GUIDANCE: Record<
       "Describe the site conditions, species mix, and restoration or production goals.",
     diagnosisPlaceholder:
       "e.g., Degraded pastureland from cattle overgrazing has reduced soil organic matter to <1%. Native species corridors are fragmented, limiting pollinator pathways...",
-    diagnosisHelp:
-      "What land degradation, biodiversity loss, or agricultural challenge are you addressing?",
     smartOutcomeExample: "e.g., Plant 200 native species seedlings across 5 hectares",
     cynefinExamples: {
       [CynefinPhase.CLEAR]:
@@ -128,8 +146,6 @@ export const DOMAIN_GUIDANCE: Record<
     descriptionHelp: "Describe the training program, target audience, and learning objectives.",
     diagnosisPlaceholder:
       "e.g., Field operators lack standardized training on solar panel maintenance, leading to 35% system degradation in year 1. Knowledge transfer relies on informal peer learning...",
-    diagnosisHelp:
-      "What knowledge or skills gap exists? What are the consequences of not addressing it?",
     smartOutcomeExample: "e.g., Train 30 field operators to maintenance certification level",
     cynefinExamples: {
       [CynefinPhase.CLEAR]:
@@ -150,8 +166,6 @@ export const DOMAIN_GUIDANCE: Record<
     descriptionHelp: "Describe the waste stream, collection infrastructure, and target outcomes.",
     diagnosisPlaceholder:
       "e.g., Unmanaged plastic waste accumulates along 2km of riverbank at 500kg/week. No formal collection infrastructure exists. Local informal recyclers recover <10% of recyclables...",
-    diagnosisHelp:
-      "What waste accumulation or management gap are you addressing? What are the root causes?",
     smartOutcomeExample: "e.g., Divert 2 tonnes of recyclable waste from landfill per month",
     cynefinExamples: {
       [CynefinPhase.CLEAR]:
@@ -182,8 +196,8 @@ export function Section({
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-base font-semibold text-text-strong">{title}</h3>
-        <p className="mt-0.5 text-sm text-text-soft">{description}</p>
+        <h3 className="text-title-md font-semibold text-text-strong">{title}</h3>
+        <p className="mt-0.5 body-sm text-text-soft">{description}</p>
       </div>
       {children}
     </section>
@@ -202,10 +216,10 @@ export function ReviewRow({
   const intl = useIntl();
   return (
     <div>
-      <p className="text-xs font-semibold uppercase text-text-soft">{label}</p>
+      <p className="body-xs font-semibold uppercase text-text-soft">{label}</p>
       <p
         className={cn(
-          "mt-1 text-sm text-text-sub",
+          "mt-1 body-sm text-text-sub",
           multiline ? "whitespace-pre-wrap break-words" : "truncate"
         )}
       >

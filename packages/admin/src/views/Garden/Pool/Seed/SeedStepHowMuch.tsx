@@ -1,9 +1,11 @@
-import type { Action } from "@green-goods/shared/types/domain";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import { COMMITMENT_UNIT_LABEL_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/metadata";
+import type { Action } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { Controller, type UseFieldArrayReturn, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
 import { actionUIDOf, type SeedFieldError } from "./seedStepModel";
@@ -57,6 +59,8 @@ export function SeedStepHowMuch({
           })}
           disabled={busy}
           required
+          showCount
+          inputProps={{ maxLength: COMMITMENT_UNIT_LABEL_MAX_LENGTH }}
         />
         <AdminTextField
           label={formatMessage({
@@ -136,13 +140,13 @@ export function SeedStepHowMuch({
       />
       {values.kind === "GARDEN_WORK" ? (
         <div className="space-y-2" data-testid="seed-requirements">
-          <p className="label-md text-text-strong">
+          <AdminCardTitle as="h4">
             {formatMessage({
               id: "cockpit.garden.pool.seed.requirements",
               defaultMessage: "Actions this needs",
             })}
-          </p>
-          <p className="text-xs text-text-soft">
+          </AdminCardTitle>
+          <p className="body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.seed.requirementsHint",
               defaultMessage:
@@ -227,13 +231,13 @@ export function SeedStepHowMuch({
             })}
           </AdminButton>
           {form.formState.errors.requirements?.message ? (
-            <p className="text-xs text-[rgb(var(--m3-error))]">
+            <p className="body-xs text-error-dark">
               {String(form.formState.errors.requirements.message)}
             </p>
           ) : null}
         </div>
       ) : (
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.seed.proofOnly",
             defaultMessage:

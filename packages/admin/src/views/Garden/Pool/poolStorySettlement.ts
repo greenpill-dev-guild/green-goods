@@ -228,6 +228,9 @@ export function storySettlementOperations(
   };
 }
 
+/** The garden a protocol funding transfer is for, as the operations stories list it. */
+export const STORY_FUNDED_GARDEN = "0xf7b892886998dae960d64a9db488336684f137a0" as Address;
+
 export function storyProtocolFundingOperations(
   overrides: Partial<ProtocolFundingOperationsController> = {}
 ): ProtocolFundingOperationsController {
@@ -258,6 +261,8 @@ export function storyProtocolFundingOperations(
       {
         id: `${DEFAULT_CHAIN_ID}-40`,
         disbursementId: 40n,
+        // The garden receiving it; the stories list it by name.
+        garden: STORY_FUNDED_GARDEN,
         recipient: STORY_BENEFICIARY_SAFE,
         amount: 2n * G,
         state: "queued",

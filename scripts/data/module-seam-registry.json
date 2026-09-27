@@ -17,8 +17,8 @@
         "conformance": ["packages/shared/src/__tests__/modules/job-queue.db.test.ts"],
         "integration": ["packages/shared/src/__tests__/modules/job-queue.imports.test.ts"]
       },
-      "reviewedAt": "2026-09-21",
-      "evidenceFingerprint": "sha256:864573adc767c922bb4e14a73dfade787e854fc3b6825d5761982a9665bfb53a"
+      "reviewedAt": "2026-09-26",
+      "evidenceFingerprint": "sha256:8a7d0dc2a96745d22379418419909f36e687b5fe0550aecf01c7bf165f6d536b"
     },
     {
       "id": "shared-auth-session",
@@ -36,8 +36,8 @@
         "conformance": ["packages/shared/src/__tests__/workflows/authServices.test.ts"],
         "integration": ["packages/shared/src/__tests__/providers/Auth.wallet-login.test.tsx"]
       },
-      "reviewedAt": "2026-09-21",
-      "evidenceFingerprint": "sha256:de25eb1dcfa4555ef0c94352cf4ac2cc10cce29d960b1d5aabcdd0337c2e49ec"
+      "reviewedAt": "2026-09-24",
+      "evidenceFingerprint": "sha256:6d9e144f5083f47a36c6b3cdcf218397f7b94cf16419c56e43c50185e96e7169"
     },
     {
       "id": "shared-work-provider-command",
@@ -57,8 +57,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-09-21",
-      "evidenceFingerprint": "sha256:97614df2a88967ee6f6bf2d4c3d967945c5df42e05afcac1098da18854aa10e0"
+      "reviewedAt": "2026-09-24",
+      "evidenceFingerprint": "sha256:a3224bc19f5c17c3a50eb10a1994d88e6e6eb1e60008f017c6e596b30c099242"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -76,8 +76,8 @@
         "conformance": ["packages/shared/src/__tests__/commitment-pooling-read-repository.test.ts"],
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
-      "reviewedAt": "2026-09-21",
-      "evidenceFingerprint": "sha256:722e38e749bdc4b01b9cad61333ded0cd9252a7bd1051901dc13751589c09733"
+      "reviewedAt": "2026-09-24",
+      "evidenceFingerprint": "sha256:372d63d71b183af10cf75743448c92a059e8c493257583675cb1b331adf26708"
     }
   ]
 }

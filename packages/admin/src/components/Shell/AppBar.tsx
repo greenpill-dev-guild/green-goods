@@ -136,7 +136,7 @@ export function AppBar({
       data-state={sheetContext ? "sheet-context" : "default"}
     >
       <div
-        className="mx-auto flex h-14 w-full items-center justify-between"
+        className="mx-auto flex h-14 w-full items-center justify-between gap-2"
         style={{
           maxWidth: "var(--admin-main-max-width, 1400px)",
           paddingInline: "var(--admin-main-inline-gutter, 20px)",
@@ -144,8 +144,10 @@ export function AppBar({
         data-slot="row"
       >
         {/* Left side */}
+        {/* The chip truncates inside this slot instead of running under the
+            actions on a phone (D16). */}
         <div
-          className="flex min-w-0 items-center gap-2"
+          className="flex min-w-0 flex-1 items-center gap-2"
           data-slot="leading"
           data-state={sheetContext ? "sheet-context" : "garden-context"}
         >
@@ -171,7 +173,7 @@ export function AppBar({
         </div>
 
         {/* Right side — all icons share ICON_BTN styling via TopBarIconButton */}
-        <div className="flex items-center gap-1" data-slot="actions">
+        <div className="flex shrink-0 items-center gap-1" data-slot="actions">
           {/* Refresh — mobile/tablet only, registered via useRefreshAction by the
             active view. Desktop uses inline header actions instead. */}
           {showRefresh && refreshAction ? (

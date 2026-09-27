@@ -7,7 +7,8 @@ import { commitmentFixture, poolFixture, renderHookWithProviders } from "../../t
 
 const mocks = vi.hoisted(() => ({
   commitments: [] as ReturnType<typeof commitmentFixture>[],
-  cycles: [] as Array<{ cycleId: bigint }>,
+  cycles: [] as Array<{ cycleId: bigint; state: string }>,
+  commitmentsInput: null as { cycleId?: bigint } | null,
   pendingCreates: [] as Array<{ jobId: string; poolId: string }>,
   metadata: new Map<string, { title: string }>(),
   hasRole: false,
@@ -42,13 +43,16 @@ vi.mock("../../../commitment-pooling", async (importOriginal) => ({
     pendingCreates: mocks.pendingCreates,
     refresh: mocks.refresh,
   }),
-  useCommitments: () => ({
-    commitments: mocks.commitments,
-    availability: { status: "available", capability: {} },
-    isLoading: false,
-    isError: false,
-    refetch: mocks.refetch,
-  }),
+  useCommitments: (input: { cycleId?: bigint }) => {
+    mocks.commitmentsInput = input;
+    return {
+      commitments: mocks.commitments,
+      availability: { status: "available", capability: {} },
+      isLoading: false,
+      isError: false,
+      refetch: mocks.refetch,
+    };
+  },
   useCommitmentMetadata: () => ({ byCID: mocks.metadata }),
 }));
 
@@ -59,7 +63,7 @@ describe("useGardenPoolController", () => {
       commitmentFixture({ commitmentId: 1n, direction: "OFFER", metadataCID: "offer-cid" }),
       commitmentFixture({ commitmentId: 2n, direction: "REQUEST", metadataCID: "request-cid" }),
     ];
-    mocks.cycles = [{ cycleId: 8n }];
+    mocks.cycles = [{ cycleId: 8n, state: "OPEN" }];
     mocks.pendingCreates = [
       { jobId: "job-7", poolId: "7" },
       { jobId: "job-9", poolId: "9" },
@@ -80,11 +84,39 @@ describe("useGardenPoolController", () => {
     expect(result.current.rows).toHaveLength(2);
     expect(result.current.ownCreations).toEqual([{ jobId: "job-7", poolId: "7" }]);
     expect(result.current.titleOf("request-cid")).toBe("Water the orchard");
-    expect(result.current.cycles).toEqual([{ cycleId: 8n }]);
+    expect(result.current.cycles).toEqual([{ cycleId: 8n, state: "OPEN" }]);
     expect(result.current.canCreate).toBe(true);
 
     act(() => result.current.setDirection("REQUEST"));
     expect(result.current.rows.map((row) => row.commitment.direction)).toEqual(["REQUEST"]);
+  });
+
+  it("leaves cancelled seasons out of the rail, as the public page does", () => {
+    mocks.cycles = [
+      { cycleId: 8n, state: "OPEN" },
+      { cycleId: 9n, state: "CANCELLED" },
+      { cycleId: 10n, state: "SEEDED" },
+    ];
+    const { result } = renderHookWithProviders(() =>
+      useGardenPoolController(poolFixture({ poolId: 7n, state: "OPEN" }))
+    );
+    expect(result.current.cycles.map((cycle) => cycle.cycleId)).toEqual([8n, 10n]);
+    // Their commitments are not filtered out: All still reads the whole pool.
+    expect(mocks.commitmentsInput?.cycleId).toBeUndefined();
+  });
+
+  it("falls back to All when the chosen season is cancelled", () => {
+    const { result, rerender } = renderHookWithProviders(() =>
+      useGardenPoolController(poolFixture({ poolId: 7n, state: "OPEN" }))
+    );
+    act(() => result.current.setSelectedCycleId(8n));
+    expect(result.current.selectedCycleId).toBe(8n);
+    expect(mocks.commitmentsInput?.cycleId).toBe(8n);
+
+    mocks.cycles = [{ cycleId: 8n, state: "CANCELLED" }];
+    rerender();
+    expect(result.current.selectedCycleId).toBeNull();
+    expect(mocks.commitmentsInput?.cycleId).toBeUndefined();
   });
 
   it("owns retry, flush, discard, and queue refresh outcomes", async () => {

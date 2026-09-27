@@ -15,18 +15,28 @@ export type CycleMetadataNameResolution =
   | { status: "resolved"; name: string }
   | { status: "unavailable"; name: null };
 
-const MAX_CYCLE_NAME_LENGTH = 120;
+/**
+ * The longest name a season or campaign can be given, in characters. The
+ * admin field stops there and counts toward it; `buildCycleMetadata` refuses
+ * anything longer rather than cutting it.
+ */
+export const CYCLE_NAME_MAX_LENGTH = 120;
 
-function cleanCycleName(value: unknown): string | null {
+/** Whitespace collapsed to single spaces, then trimmed; null when nothing is left. */
+function collapseCycleName(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const name = value.replace(/\s+/g, " ").trim();
-  return name.length > 0 ? name.slice(0, MAX_CYCLE_NAME_LENGTH) : null;
+  return name.length > 0 ? name : null;
 }
 
+/**
+ * Read a cycle's name document. A name past the limit, written by something
+ * other than `buildCycleMetadata`, reads cut to it rather than not at all.
+ */
 export function parseCycleMetadata(raw: unknown): CycleMetadataV1 | null {
   if (!raw || typeof raw !== "object") return null;
   const record = raw as Record<string, unknown>;
-  const name = cleanCycleName(record.name);
+  const name = collapseCycleName(record.name)?.slice(0, CYCLE_NAME_MAX_LENGTH);
   return record.version === CYCLE_METADATA_VERSION && name
     ? { version: CYCLE_METADATA_VERSION, name }
     : null;
@@ -38,8 +48,13 @@ export function parseCycleMetadata(raw: unknown): CycleMetadataV1 | null {
  * the rail cannot drift.
  */
 export function buildCycleMetadata(input: { name: string }): CycleMetadataV1 {
-  const name = cleanCycleName(input.name);
+  const name = collapseCycleName(input.name);
   if (!name) throw new Error("A cycle needs a name");
+  if (name.length > CYCLE_NAME_MAX_LENGTH) {
+    throw new Error(
+      `A cycle's name can be at most ${CYCLE_NAME_MAX_LENGTH} characters; this one has ${name.length}`
+    );
+  }
   return { version: CYCLE_METADATA_VERSION, name };
 }
 

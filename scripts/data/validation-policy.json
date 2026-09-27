@@ -102,6 +102,26 @@
   ],
   "conditionalRules": [
     {
+      "check": "review-guardrails-test",
+      "runInQa": true,
+      "runInEvidence": true,
+      "exact": [
+        ".claude/scripts/task-completion-gate.sh",
+        ".claude/scripts/teammate-idle-gate.sh",
+        ".codex/hooks/pre_tool_policy.sh",
+        ".claude/settings.json",
+        ".codex/hooks.json",
+        "scripts/harness/command-policy.mjs",
+        "scripts/harness/agent-hooks.test.mjs"
+      ]
+    },
+    {
+      "check": "validation-system-test",
+      "runInQa": true,
+      "runInEvidence": true,
+      "exact": ["scripts/dev/doctor.js", "scripts/lib/dev-shared.js"]
+    },
+    {
       "check": "source-structure",
       "match": "all",
       "prefixes": ["packages/"],
@@ -328,8 +348,34 @@
     {
       "check": "browser-proof",
       "match": "all",
-      "prefixes": ["packages/client/src/", "packages/admin/src/"],
-      "extensions": [".jsx", ".tsx", ".css", ".scss"]
+      "prefixes": [
+        "packages/shared/src/providers/",
+        "packages/shared/src/modules/auth/",
+        "packages/shared/src/modules/wallet/",
+        "packages/shared/src/modules/transactions/",
+        "packages/shared/src/modules/job-queue/",
+        "packages/shared/src/modules/work/",
+        "packages/shared/src/modules/offline-content/",
+        "packages/shared/src/modules/profile-avatar/",
+        "packages/shared/src/hooks/auth/",
+        "packages/shared/src/hooks/offline/",
+        "packages/shared/src/hooks/profile/",
+        "packages/shared/src/hooks/app/useOffline",
+        "packages/shared/src/workflows/",
+        "packages/client/src/routes/",
+        "packages/client/src/sw/",
+        "packages/client/src/components/Pwa/",
+        "packages/client/src/views/Login/",
+        "packages/client/src/views/Profile/",
+        "packages/client/src/views/Home/WalletSheet/",
+        "packages/client/src/config/pwa",
+        "packages/client/src/PwaApp.tsx",
+        "packages/client/src/bootstrapPwa.tsx",
+        "packages/client/src/main.tsx",
+        "packages/client/src/router.tsx",
+        "packages/client/src/App.tsx"
+      ],
+      "extensions": [".ts", ".tsx", ".jsx", ".css", ".scss"]
     },
     {
       "check": "agent-tools-test",
@@ -716,7 +762,7 @@
       "id": "source-structure",
       "command": "node scripts/quality/check-source-structure.js",
       "risk": "changed package source violates repository structure policy",
-      "expectedSignal": "changed source structure is accepted",
+      "expectedSignal": "package source changed since the comparison base, committed or not, passes structure policy",
       "freshness": "exact-inputs",
       "budgetSeconds": 20,
       "stopRule": "stop-dependent-checks",
@@ -775,13 +821,14 @@
     {
       "id": "browser-proof",
       "command": null,
-      "risk": "visible UI behavior differs from unit and build evidence",
-      "expectedSignal": "authenticated Brave rendered proof is recorded",
+      "risk": "authenticated-session UI behavior (wallet, passkey, session, installed PWA, service worker, job queue, profile identity, QA app) differs from unit, story, and mock-auth evidence",
+      "expectedSignal": "rendered proof is recorded and labeled in the PR body; authenticated Brave for the authenticated surface class",
       "freshness": "exact-inputs-toolchain-and-authenticated-session",
       "budgetSeconds": 90,
-      "stopRule": "block-readiness",
+      "stopRule": "advisory",
       "capabilities": ["authenticatedBrave"],
-      "manual": true
+      "manual": true,
+      "attestation": { "engines": ["authenticated Brave"] }
     },
     {
       "id": "story-quality",
@@ -988,7 +1035,7 @@
     },
     {
       "id": "review-guardrails-test",
-      "command": "node scripts/dev/node-cli.js node --test scripts/quality/check-codex-docs.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/task-routing-contract.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs scripts/quality/lint-linear-issue.test.mjs scripts/design/check-guidance-examples.test.mjs scripts/contracts/check-foundry-version.test.mjs scripts/contracts/check-solidity-test-names.test.mjs",
+      "command": "node scripts/dev/node-cli.js node --test scripts/harness/agent-hooks.test.mjs scripts/quality/check-codex-docs.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/task-routing-contract.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs scripts/quality/lint-linear-issue.test.mjs scripts/design/check-guidance-examples.test.mjs scripts/contracts/check-foundry-version.test.mjs scripts/contracts/check-solidity-test-names.test.mjs",
       "risk": "Independently selectable repository verification must retain its behavior.",
       "expectedSignal": "review-guardrails-test completes successfully",
       "freshness": "exact-inputs-and-toolchain",

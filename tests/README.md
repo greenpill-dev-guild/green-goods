@@ -73,8 +73,9 @@ failure, and local failure video.
   coverage and virtual WebAuthn for the `passkey-mock` project.
 - Admin cockpit specs use deterministic `sessionStorage` mock auth plus GraphQL route interception.
   Mock both `**/api/graphql` and `**/v1/graphql` when the test can traverse the Vite proxy.
-- Browser automation here is clean-room test evidence. It does not replace the authenticated Brave
-  path required by root `AGENTS.md` for local profile-, wallet-, passkey-, or session-dependent QA.
+- Browser automation here is clean-room test evidence. Label it as such; root
+  `AGENTS.md § Browser Evidence` names the wallet, passkey, session, and installed-PWA surfaces that
+  still need the authenticated Brave path.
 
 ## Servers and environment
 

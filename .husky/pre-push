@@ -29,4 +29,7 @@ if ! command -v bun >/dev/null 2>&1; then
   echo "Error: Bun is required. Install bun: https://bun.sh"
   exit 1
 fi
-node scripts/dev/ci-local.js --intent push --reuse-passing-receipts
+# Run the gate through the repo's Node wrapper so a Bun or wrong-Node shell still reaches real
+# Node. The gate then re-execs itself under the exact pinned Node, because a plan that reads
+# "blocked:toolchain.node" on every check only teaches people to reach for --no-verify.
+node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts

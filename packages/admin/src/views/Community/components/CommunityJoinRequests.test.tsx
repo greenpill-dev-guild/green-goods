@@ -1,8 +1,8 @@
+import { GardenJoinRequestTransportError } from "@green-goods/shared/modules/garden-join-requests";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GardenJoinRequestTransportError } from "@green-goods/shared/modules/garden-join-requests";
 
 const loadQueue = vi.fn(async () => ({ ok: true, items: [] }));
 const resolveRequest = vi.fn(async () => ({ ok: true, pendingOnchainMembership: false }));

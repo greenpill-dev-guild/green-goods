@@ -6,7 +6,12 @@ import {
 } from "@tanstack/react-query";
 import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, type MemoryRouterProps } from "react-router-dom";
+import {
+  createMemoryRouter,
+  MemoryRouter,
+  type MemoryRouterProps,
+  RouterProvider,
+} from "react-router-dom";
 import { useGlobals } from "storybook/preview-api";
 import { custom } from "viem";
 import { WagmiProvider, createConfig, mock } from "wagmi";
@@ -197,6 +202,19 @@ export function withRouter(initialEntries: MemoryRouterProps["initialEntries"] =
     <MemoryRouter initialEntries={initialEntries}>
       <Story />
     </MemoryRouter>
+  );
+}
+
+/**
+ * A data router around the story, mounted at `path`. Components with a
+ * dirty-close guard block navigation through `useBlocker`, which only a data
+ * router provides; `withRouter`'s `MemoryRouter` makes them throw.
+ */
+export function withDataRouter(path = "/"): Decorator {
+  return (Story) => (
+    <RouterProvider
+      router={createMemoryRouter([{ path, element: <Story /> }], { initialEntries: [path] })}
+    />
   );
 }
 

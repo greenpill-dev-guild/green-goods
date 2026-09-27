@@ -1,6 +1,6 @@
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { FIXTURE_IMAGE_AGROFORESTRY, daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { withAdminIdentity } from "../../../../../shared/.storybook/decorators";
 import { ReviewForm } from "./ReviewForm";
@@ -23,9 +23,10 @@ const BASE_WORK: Work = {
 
 const APPROVED_WORK: Work = { ...BASE_WORK, status: "approved" };
 
-// Far-future `actionEndTime` keeps the action considered "active". Stories
-// that need the expired state override this explicitly.
-const ACTIVE_ACTION_END = 4_102_444_800; // 2100-01-01
+// Far-future `actionEndTime` keeps the action considered "active". It is in
+// milliseconds, like the indexer's action end time and the clock the form
+// compares it with. Stories that need the expired state override this.
+const ACTIVE_ACTION_END = 4_102_444_800_000; // 2100-01-01
 
 const meta: Meta<typeof ReviewForm> = {
   title: "Admin/Workflows/Hub/ReviewForm",
@@ -81,7 +82,7 @@ export const RoleBlocked: Story = {
 
 export const ActionExpired: Story = {
   args: {
-    actionEndTime: 1_577_836_800, // 2020-01-01
+    actionEndTime: 1_577_836_800_000, // 2020-01-01
   },
 };
 
@@ -89,5 +90,18 @@ export const AlreadyReviewed: Story = {
   args: {
     work: APPROVED_WORK,
     isReviewed: true,
+  },
+};
+
+/** Reject never sends in one click: it asks why, and the reason becomes the gardener's feedback. */
+export const RejectAsksForAReason: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole("button", { name: "Reject" }));
+    const page = within(document.body);
+    const confirm = await page.findByRole("button", { name: "Reject Work" });
+    await expect(confirm).toBeDisabled();
+    await userEvent.click(await page.findByRole("button", { name: "Details are missing" }));
+    await expect(confirm).toBeEnabled();
   },
 };

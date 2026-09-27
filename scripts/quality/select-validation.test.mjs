@@ -27,6 +27,25 @@ function turboTestCommand(surface) {
   return `node ${binary} run test --filter=@green-goods/${surface} --output-logs=new-only`;
 }
 
+test("hook and doctor edits select their behavioral proof", () => {
+  const cases = [
+    ["review-guardrails-test", [
+      ".claude/scripts/task-completion-gate.sh", ".claude/scripts/teammate-idle-gate.sh",
+      ".codex/hooks/pre_tool_policy.sh", ".claude/settings.json", ".codex/hooks.json",
+      "scripts/harness/command-policy.mjs", "scripts/harness/agent-hooks.test.mjs",
+    ]],
+    ["validation-system-test", ["scripts/dev/doctor.js", "scripts/lib/dev-shared.js"]],
+  ];
+  for (const intent of ["qa", "review", "push"]) {
+    for (const [checkId, paths] of cases) {
+      for (const changedPath of paths) {
+        const plan = selectValidation({ intent, changedPaths: [changedPath] });
+        assert.ok(ids(plan).includes(checkId), `${intent}: ${changedPath}`);
+      }
+    }
+  }
+});
+
 // A hook's GIT_DIR outranks `cwd`, so without this the selector under test reads the repository
 // being pushed instead of the fixture a test just built.
 clearRepositoryLocalGitVariables();
@@ -432,7 +451,6 @@ test("isolated client behavior accepts focused proof without forcing a package b
     "client-test",
     "staged-modules",
     "ontology",
-    "browser-proof",
   ]);
   assert.equal(
     plan.checks.find((check) => check.id === "client-test").command,
@@ -461,21 +479,21 @@ test("QA app UI changes require rendered browser proof for readiness", () => {
   assert.equal(plan.budget.manualSeconds, 90);
 });
 
-test("ordinary push keeps browser proof pending for readiness without blocking automated publication", () => {
-  const changedPath = "packages/client/src/components/Panel.tsx";
+test("browser proof is advisory in every intent and never blocks a plan", () => {
+  const changedPath = "packages/client/src/routes/SessionGate.tsx";
   const input = {
     changedPaths: [changedPath],
-    testPaths: { client: ["src/components/Panel.test.tsx"] },
+    testPaths: { client: ["src/__tests__/routes/SessionGate.test.tsx"] },
     environment: { capabilities: { dependencies: true, authenticatedBrave: false } },
   };
   const push = selectValidation({ intent: "push", ...input });
   const browserProof = push.checks.find((check) => check.id === "browser-proof");
 
   assert.equal(push.status, "ready");
-  assert.equal(browserProof?.state, "blocked");
+  assert.equal(browserProof?.state, "advisory");
+  assert.equal(browserProof?.advisory, true);
   assert.deepEqual(browserProof?.blockedBy, ["authenticatedBrave"]);
   assert.equal(browserProof?.mandatory, true);
-  assert.equal(browserProof?.deferredForReadiness, true);
   assert.ok(browserProof?.selectedBy.includes("conditional:browser-proof"));
 
   const missingAutomatedCapability = selectValidation({
@@ -485,16 +503,20 @@ test("ordinary push keeps browser proof pending for readiness without blocking a
   });
   assert.equal(missingAutomatedCapability.status, "blocked");
   assert.equal(missingAutomatedCapability.checks.find((check) => check.id === "format")?.state, "blocked");
+  assert.equal(
+    missingAutomatedCapability.checks.find((check) => check.id === "browser-proof")?.state,
+    "advisory",
+  );
 
   for (const intent of ["readiness", "ship", "merge", "release"]) {
     const strict = selectValidation({ intent, ...input });
-    assert.equal(strict.status, "blocked", intent);
-    assert.equal(strict.checks.find((check) => check.id === "browser-proof")?.deferredForReadiness, false, intent);
+    assert.equal(strict.status, "ready", intent);
+    assert.equal(strict.checks.find((check) => check.id === "browser-proof")?.state, "advisory", intent);
   }
 
   const ciPush = selectValidation({ intent: "push", ci: true, ...input });
-  assert.equal(ciPush.status, "blocked");
-  assert.equal(ciPush.checks.find((check) => check.id === "browser-proof")?.deferredForReadiness, false);
+  assert.equal(ciPush.status, "ready");
+  assert.equal(ciPush.checks.find((check) => check.id === "browser-proof")?.advisory, true);
 
   const critical = selectValidation({
     intent: "push",
@@ -502,8 +524,112 @@ test("ordinary push keeps browser proof pending for readiness without blocking a
     changedPaths: [changedPath, "packages/shared/src/providers/Work.tsx"],
   });
   assert.equal(critical.risk, "critical");
-  assert.equal(critical.status, "blocked");
-  assert.equal(critical.checks.find((check) => check.id === "browser-proof")?.deferredForReadiness, false);
+  assert.equal(critical.status, "ready");
+  assert.equal(critical.checks.find((check) => check.id === "browser-proof")?.advisory, true);
+
+  const toolchainMismatch = selectValidation({
+    intent: "push",
+    ...input,
+    environment: {
+      toolchain: { node: "24.20.0" },
+      capabilities: { dependencies: true, authenticatedBrave: false },
+    },
+  });
+  assert.equal(toolchainMismatch.status, "blocked");
+  assert.equal(toolchainMismatch.checks.find((check) => check.id === "format")?.state, "blocked");
+  assert.equal(toolchainMismatch.checks.find((check) => check.id === "browser-proof")?.state, "advisory");
+});
+
+test("browser proof is selected for the authenticated surface class only", () => {
+  for (const ordinaryUiPath of [
+    "packages/client/src/components/Panel.tsx",
+    "packages/client/src/views/Home/Garden/Work.tsx",
+    "packages/client/src/index.css",
+    "packages/admin/src/views/Garden/SubmitWork.tsx",
+    "packages/shared/src/components/Button/Button.tsx",
+  ]) {
+    const plan = selectValidation({ intent: "readiness", changedPaths: [ordinaryUiPath] });
+    assert.ok(
+      !ids(plan).includes("browser-proof"),
+      `${ordinaryUiPath} renders under mock auth or Storybook and must not select browser proof`,
+    );
+  }
+  // One path per class named in AGENTS.md § Browser Evidence rule 2. A release that changes
+  // any of these must attest the proof, so a gap here is a gap in the release gate.
+  for (const authenticatedPath of [
+    "packages/shared/src/providers/Auth.tsx",
+    "packages/shared/src/modules/auth/session.ts",
+    "packages/shared/src/modules/wallet/send-flow.ts",
+    "packages/shared/src/modules/transactions/passkey-sender.ts",
+    "packages/shared/src/modules/job-queue/index.ts",
+    "packages/shared/src/modules/work/passkey-submission.ts",
+    "packages/shared/src/modules/work/wallet-submission/submit-work.ts",
+    "packages/shared/src/modules/offline-content/index.ts",
+    "packages/shared/src/modules/profile-avatar/index.ts",
+    "packages/shared/src/hooks/auth/index.ts",
+    "packages/shared/src/hooks/offline/index.ts",
+    "packages/shared/src/hooks/profile/index.ts",
+    "packages/shared/src/hooks/app/useOffline.ts",
+    "packages/shared/src/workflows/auth-passkey-adapters.ts",
+    "packages/client/src/routes/WalletRuntimeProviders.tsx",
+    "packages/client/src/sw/sw.ts",
+    "packages/client/src/views/Login/Login.tsx",
+    "packages/client/src/views/Profile/InstallCta.tsx",
+    "packages/client/src/views/Home/WalletSheet/index.tsx",
+    "packages/client/src/components/Pwa/sheetStyles.ts",
+    "packages/client/src/config/pwaManifest.ts",
+    "packages/client/src/PwaApp.tsx",
+    "packages/client/src/bootstrapPwa.tsx",
+    "packages/client/src/main.tsx",
+    "packages/client/src/router.tsx",
+    "packages/client/src/App.tsx",
+  ]) {
+    const plan = selectValidation({ intent: "readiness", changedPaths: [authenticatedPath] });
+    const browserProof = plan.checks.find((check) => check.id === "browser-proof");
+    assert.ok(browserProof, `${authenticatedPath} needs authenticated proof`);
+    assert.ok(browserProof.selectedBy.includes("conditional:browser-proof"));
+    assert.equal(browserProof.state, "advisory");
+  }
+  for (const validationOnlyPath of [
+    "packages/client/src/__tests__/routes/SessionGate.test.tsx",
+    "packages/shared/src/modules/work/__tests__/submit.test.ts",
+    "packages/client/src/views/Profile/Profile.stories.tsx",
+  ]) {
+    const plan = selectValidation({ intent: "readiness", changedPaths: [validationOnlyPath] });
+    assert.ok(!ids(plan).includes("browser-proof"), validationOnlyPath);
+  }
+});
+
+test("a focused push plan runs even when its static estimate exceeds the budget", () => {
+  const changedPaths = [
+    "packages/client/src/components/Panel.tsx",
+    "packages/shared/src/components/Button/Button.tsx",
+  ];
+  const focused = selectValidation({
+    intent: "push",
+    changedPaths,
+    testPaths: {
+      client: ["src/components/Panel.test.tsx"],
+      shared: ["src/components/Button/Button.test.tsx"],
+    },
+  });
+  assert.equal(focused.budget.enforced, true);
+  assert.ok(
+    focused.budget.estimatedWallSeconds > focused.budget.hardLimitSeconds,
+    "fixture must exceed the routine limit",
+  );
+  assert.equal(focused.status, "ready");
+  assert.equal(focused.stopReason, null);
+
+  const unfocused = selectValidation({
+    intent: "push",
+    changedPaths,
+    testPaths: { client: ["src/components/Panel.test.tsx"] },
+    checkIds: ["shared-test"],
+  });
+  assert.ok(unfocused.budget.estimatedWallSeconds > unfocused.budget.hardLimitSeconds);
+  assert.equal(unfocused.status, "needs-focus");
+  assert.equal(unfocused.stopReason, "local-budget-exceeded");
 });
 
 test("QA locale changes require catalog tests and rendered browser proof", () => {
@@ -584,6 +710,20 @@ test("routine push uses focused owner proof inside the hard 90-second limit", ()
   ]) {
     assert.ok(!ids(plan).includes(broadCheck), broadCheck);
   }
+});
+
+test("push judges source structure against the plan's comparison base", () => {
+  const plan = selectValidation({
+    intent: "push",
+    base: "base-sha",
+    changedPaths: ["packages/shared/src/utils/calendar-date.ts"],
+    testPaths: { shared: ["src/__tests__/utils/calendar-date.test.ts"] },
+  });
+
+  assert.equal(
+    plan.checks.find((check) => check.id === "source-structure").command,
+    "node scripts/quality/check-source-structure.js --base 'base-sha'",
+  );
 });
 
 test("routine push without focused behavior proof stops before execution", () => {
@@ -1063,7 +1203,6 @@ test("push requires focused client proof while ship retains the full local surfa
     "lint",
     "staged-modules",
     "source-structure",
-    "browser-proof",
   ]);
 
   const focusedPush = selectValidation({
@@ -1078,7 +1217,6 @@ test("push requires focused client proof while ship retains the full local surfa
     "client-test",
     "staged-modules",
     "source-structure",
-    "browser-proof",
   ]);
 
   const ship = selectValidation({
@@ -1095,7 +1233,6 @@ test("push requires focused client proof while ship retains the full local surfa
     "staged-modules",
     "source-structure",
     "design-guardrails",
-    "browser-proof",
   ];
   assert.deepEqual(ids(ship), shipExpected);
   assert.equal(
@@ -1150,7 +1287,7 @@ test("push keeps test-only proof focused while strict intents preserve owning ga
   }
 });
 
-test("scoped admin ship selects exactly the accepted eight checks", () => {
+test("scoped admin ship selects exactly the accepted seven checks", () => {
   const plan = selectValidation({
     intent: "ship",
     changedPaths: ["packages/admin/src/views/Garden/SubmitWork.tsx"],
@@ -1165,7 +1302,6 @@ test("scoped admin ship selects exactly the accepted eight checks", () => {
     "admin-build",
     "source-structure",
     "design-guardrails",
-    "browser-proof",
   ]);
   assert.ok(plan.checks.every((check) => check.mandatory));
 });
@@ -1183,6 +1319,13 @@ test("critical Work path packages/shared/src/modules/work/submit.ts retains its 
 
     assert.equal(plan.risk, "critical", changedPath);
     assert.deepEqual(plan.surfaces, ["shared", "client", "admin", "agent"], changedPath);
+    // Providers shape the authenticated session and work submission is the offline upload
+    // path, so both carry the advisory browser-proof reminder; the work hook does not.
+    const advisoryProof = ["packages/shared/src/providers/", "packages/shared/src/modules/work/"].some(
+      (prefix) => changedPath.startsWith(prefix),
+    )
+      ? ["browser-proof"]
+      : [];
     assert.deepEqual(
       ids(plan),
       [
@@ -1203,6 +1346,7 @@ test("critical Work path packages/shared/src/modules/work/submit.ts retains its 
         "agent-test",
         "agent-build",
         "source-structure",
+        ...advisoryProof,
       ],
       changedPath,
     );
@@ -1274,7 +1418,6 @@ test("local merge and merge --ci select identical checks while preserving CI pac
     "admin-build",
     "source-structure",
     "design-guardrails",
-    "browser-proof",
   ];
 
   assert.deepEqual(ids(local), expected);
@@ -1515,6 +1658,38 @@ test("git inputs include dirty and untracked paths and fingerprint their content
     changedTrailingWhitespace.workingCopyFingerprint,
     trailingWhitespace.workingCopyFingerprint,
   );
+});
+
+test("hook and readiness receipts expire when implementations or registrations change", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "hook-receipts-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const git = fixtureGit(directory);
+  git("init");
+  const paths = [
+    ".claude/settings.json", ".codex/hooks.json", ".codex/hooks/pre_tool_policy.sh",
+    ".claude/scripts/task-completion-gate.sh", ".claude/scripts/teammate-idle-gate.sh",
+    "scripts/harness/command-policy.mjs", "scripts/harness/agent-hooks.test.mjs",
+    "scripts/dev/doctor.js", "scripts/lib/dev-shared.js", "scripts/lib/dev-shared.test.mjs",
+    "scripts/data/validation-policy.json",
+  ];
+  for (const file of paths) {
+    mkdirSync(join(directory, file, ".."), { recursive: true });
+    writeFileSync(join(directory, file), "initial\n");
+  }
+  git("add", ".");
+  git("commit", "-m", "test: seed hook receipt fixture");
+  const receipt = (checkId, file) => {
+    const inputs = resolveGitInputs({ base: "HEAD", head: "HEAD", changedPaths: [file] }, { cwd: directory });
+    const plan = selectValidation({ intent: "qa", ...inputs });
+    return buildReceiptInputs(plan, plan.checks.find((check) => check.id === checkId)).fingerprint;
+  };
+  for (const [checkId, file] of [["review-guardrails-test", paths[0]], ["validation-system-test", "scripts/dev/doctor.js"]]) {
+    for (const dependency of paths) {
+      const before = receipt(checkId, file);
+      writeFileSync(join(directory, dependency), `changed for ${checkId}\n`);
+      assert.notEqual(receipt(checkId, file), before, dependency);
+    }
+  }
 });
 
 test("git inputs fingerprint committed patches larger than Node's default buffer", (t) => {

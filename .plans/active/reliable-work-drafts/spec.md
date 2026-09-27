@@ -1,6 +1,6 @@
 # Accepted behavior
 
-Copy picker bytes before processing; persist serialized attachments with stable IDs and hashes. One account/chain-scoped active draft owns all fields, audio, tags, approximate location, revision and submission identity. Atomic serialized saves, immediate attachments/selections, 500 ms text debounce, explicit failure state and protected exits. Preserve 20 drafts and require explicit deletion at the cap. Migrate readable legacy data only with explicit recovery for the unscoped image key.
+Copy picker bytes before processing; persist serialized attachments with stable IDs and hashes. One account/chain-scoped active draft owns all fields, audio, tags, approximate location, revision and submission identity. Atomic serialized saves, immediate attachments/selections, 500 ms text debounce, and explicit failure state. Leaving the composer navigates immediately while its latest draft save continues in the shared lifecycle; a failed background save surfaces a persistent retry action outside the composer. Preserve 20 drafts and require explicit deletion at the cap. Migrate readable legacy data only with explicit recovery for the unscoped image key.
 
 Upload at submit with durable per-file and metadata CIDs, reuse across wallet/queue/reload, retain transaction reconciliation. Videos: MP4/WebM, 30 seconds, 20 MiB each; photos 10 MiB, 10 visual attachments; all attachments 50 MiB. Location opt-in rounded to 3 decimals before persistence; clear on opt-out, publish via metadata. Draft and flow confirmation sheets use PwaSheet.
 

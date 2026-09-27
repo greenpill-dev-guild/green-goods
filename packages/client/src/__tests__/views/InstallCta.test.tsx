@@ -34,10 +34,6 @@ vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
   copyToClipboard: vi.fn().mockResolvedValue(true),
 }));
 
-vi.mock("@green-goods/shared/utils/app/haptics", () => ({
-  hapticLight: vi.fn(),
-}));
-
 vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));

@@ -104,7 +104,8 @@ export const Prefilled: Story = {
   ],
 };
 
-export const SingleDomainAutoSelect: Story = {
+/** One domain on offer, still unchosen until the steward picks it (DL-047). */
+export const SingleDomain: Story = {
   args: {
     gardenDomainMask: 1 << Domain.SOLAR,
   },

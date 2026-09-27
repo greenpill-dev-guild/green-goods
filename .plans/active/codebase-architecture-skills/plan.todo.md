@@ -5,7 +5,7 @@
 **Status**: `ACTIVE`
 **Created**: `2026-08-24`
 **Last Updated**: `2026-08-24`
-**Historical predecessor**: [`../../archive/module-seams-and-velocity/`](../../archive/module-seams-and-velocity/)
+**Historical predecessor**: `module-seams-and-velocity`, closed `completed` on 2026-08-24 — see the [archive ledger](../../ARCHIVE.md); the hub itself lives only in Git history.
 **Coordination boundary**: `../client-structure-and-agent-guides/` owns AGENTS/CLAUDE consolidation.
 
 ## Decision Log
@@ -116,3 +116,16 @@
   - Client: `64.87 / 57.69 / 63.62 / 66.56` against floors `63 / 56 / 62 / 64`.
 - The implementation is certified for its current scope. The Plan Hub and PRD-835 stay active only
   for the separate `2026-09-22` two-point coverage-ratchet checkpoint.
+## Agent workflow reliability follow-up — 2026-09-26
+
+Authorized by the user's implementation request; original architecture decisions and certification
+below remain historical. Execution and proof: [follow-up handoff](handoffs/agent-workflow-reliability.md).
+
+- [x] Correct advisory completion and idle events, with negative fixtures.
+- [x] Share command matching; retain the agreed per-harness enforcement behavior.
+- [x] Reconcile audit guidance and add the short worktree isolation clarification.
+- [x] Add warning-only personal skill availability to the existing doctor.
+- [x] Wire focused regression selection, verify receipt freshness, and run required checks;
+  the pre-existing Git-environment test failure is recorded in the handoff.
+- [ ] Observe hook loading in a normal Claude Desktop Code and Codex session (pending).
+- [ ] Observe the five next authorized task scenarios in the evaluation rubric (pending).

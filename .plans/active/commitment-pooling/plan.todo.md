@@ -2,9 +2,9 @@
 
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
-**Status**: `ACTIVE: Pooling contracts and the complete pooling indexer read model are merged to develop. PRD-723 source implementation and local proof are complete. The hosted indexer still requires a manual Envio deploy, fresh full sync, and read-back before pooling queries become available. The client D1 slice is on PR #749 and the editorial UI on PR #748; the admin console has a narrowed dispatch prepared (`prompt-admin-console.md`) in a worktree stacked on PR #749; settlement/Celo selectors and the Operations workspace remain gated. Celo Safe authority is frozen in the manifest and both fee reserves are funded; the ceremony is re-scoped to paused-safe-owned, so ownership transfer comes first, then the Safe-sent route, ping, and canary. Value release, audit, and external evidence remain separately blocked.`
+**Status**: `ACTIVE: Pooling contracts and the complete pooling indexer read model are merged to develop. PRD-723 source implementation and local proof are complete. The hosted indexer still requires a manual Envio deploy, fresh full sync, and read-back before pooling queries become available. The client D1 slice (PR #749) and the editorial UI (PR #748) both merged on 2026-08-22, and the admin Pool console shipped; settlement/Celo selectors and the Operations workspace remain gated. Celo GardenAccount ownership completed on 2026-09-10 — all 18 GardenAccounts and their 2-of-3 Garden Safes are live, and both fee reserves are funded. Value release, audit, and external evidence remain separately blocked. **The current front is the release QA walk** — read [`qa-readiness-plan.md`](qa-readiness-plan.md) (2026-09-20) and the gardener-Celo section below, not this paragraph, for what is in flight.`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-08-21`
+**Last Updated**: `2026-09-21`
 
 Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354). Native phases: **Scope and Design** (2026-07-22), **Build** (2026-07-31), **Release** (2026-08-12), and **Follow On / Hardening** (2026-09-30). Operational checkpoints are separate: July dry run (2026-07-31) and Community plus settlement-evidence delivery (2026-09-30). **The full document map is the next section.** Community-specific diagrams, wireframes, journeys, and research operations live in `.plans/active/community-interface/`. The 2026-07-10/11 reconciliation, PRD-686/RESR-57 predicate, and null PRD-651/697 dates were live-verified historical state; current Linear convergence must be reread before any write. **Fourth-garden policy (Decision Log #29, 2026-07-18 — supersedes Decision Log #25 and Decision Log #27): no fourth garden is selected.** The slot is open, candidates are under consideration, and **no artifact names one**. The three named gardens cover all four action domains on their own. The earlier Decision Log #25→Decision Log #26→Decision Log #27 naming sequence is closed history; do not re-apply it.
 
@@ -30,16 +30,20 @@ automated passes at `ea193295f`; authenticated Brave proof and production action
 
 ## Document map
 
-Every file in this hub, by role — **192 files**: 42 at the hub root, 42 under `artifacts/`,
-25 under `handoffs/`, 22 under `hifi/`, 20 under `operations/`, 40 under `reports/` (including
-`reports/linear/`), and 1 under `evidence/`. Counts re-taken 2026-08-24 when the two QA
-dispatch prompts landed; the previous 182 predated the commitment-walk
-generator/caption/curation files and the 2026-08-22 report wave.
+Every file in this hub, by role — **370 files**: 48 at the hub root, 42 under `artifacts/`,
+27 under `handoffs/`, 22 under `hifi/`, 20 under `operations/`, 209 under `reports/` (45 at its
+own root, plus `reports/evidence/` at 162 and `reports/linear/` at 2), and 2 under `evidence/`.
+Counts re-taken 2026-09-21 against `git ls-files`; the previous 192 was taken 2026-08-24 and
+predated `reports/evidence/`, the September QA-readiness wave, and the gardener-Celo files.
 **This list is the index — if you add a document here, add its row.** Root files each get their own
 row; the six subtrees get one row apiece naming their own in-tree index, because the row for a
 subtree is only honest if that index actually enumerates the tree (this failed review on
 2026-08-05: five root files had no row, three subtrees had no inventory at all, and the
 `handoffs/` row pointed at a README that described source order rather than listing the files).
+**The rows have not caught up with the 2026-09-21 re-count.** Five root files still have no row —
+`gardener-celo-launch.md`, `gardener-celo-setup.mjs`, `gardener-celo-setup.test.mjs`,
+`prompt-qa-experience-fixes.md`, `qa-readiness-plan.md` — and `reports/evidence/` has no subtree
+row. Write those before treating the table below as a complete index.
 
 | Document | Role | Authority |
 |---|---|---|

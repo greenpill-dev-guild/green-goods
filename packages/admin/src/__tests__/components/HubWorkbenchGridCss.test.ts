@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 describe("Hub workbench grid CSS", () => {
   it("uses flexible full-width tracks that keep column width for sparse results", () => {
-    const css = readFileSync(resolve(__dirname, "../../index.css"), "utf-8");
+    const css = readFileSync(resolve(__dirname, "../../styles/admin-layout.css"), "utf-8");
     const gridRule = css.match(/\.hub-workbench-grid\s*{[^}]*}/s)?.[0] ?? "";
 
     expect(gridRule).toContain("width: 100%");

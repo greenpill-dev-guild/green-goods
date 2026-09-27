@@ -42,6 +42,22 @@ const SELECTED_GARDEN: Garden = {
   createdAt: 1,
 };
 
+// The wizard's attestations: loaded and empty unless a test says otherwise.
+const attestationsState = vi.hoisted(() => ({
+  isLoading: false,
+  hasError: false,
+  attestations: [] as unknown[],
+}));
+vi.mock("@green-goods/shared/hooks/hypercerts/useAttestations", () => ({
+  useAttestations: () => ({
+    attestations: attestationsState.attestations,
+    isLoading: attestationsState.isLoading,
+    error: null,
+    hasError: attestationsState.hasError,
+    refetch: async () => [],
+  }),
+}));
+
 vi.mock("wagmi", () => ({
   useAccount: () => ({ address: OPERATOR, isConnected: true, isConnecting: false }),
   useReadContract: () => ({ data: 1 }),
@@ -121,6 +137,7 @@ function renderCreateHypercert({ seedGarden = true }: { seedGarden?: boolean } =
 
 describe("CreateHypercert dialog", () => {
   beforeEach(() => {
+    Object.assign(attestationsState, { isLoading: false, hasError: false, attestations: [] });
     useAdminStore.setState({
       selectedChainId: DEFAULT_CHAIN_ID,
       selectedGarden: null,
@@ -158,6 +175,82 @@ describe("CreateHypercert dialog", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Role-Proven Garden")).toBeInTheDocument();
     expect(screen.queryByText("app.hypercerts.create.notFound")).not.toBeInTheDocument();
+  });
+
+  it("asks for an attestation only after Next is pressed with none selected", async () => {
+    await act(async () => {
+      renderCreateHypercert();
+      await Promise.resolve();
+    });
+
+    const next = await screen.findByRole("button", { name: "Next" });
+    expect(
+      screen.queryByText("app.hypercerts.wizard.validation.selectAttestation")
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(next);
+
+    expect(
+      await screen.findByText("app.hypercerts.wizard.validation.selectAttestation")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "app.hypercerts.wizard.step.attestations.title" })
+    ).toBeInTheDocument();
+  });
+
+  it("keeps Next waiting while attestations load or fail to load", async () => {
+    for (const state of [
+      { isLoading: true, hasError: false },
+      { isLoading: false, hasError: true },
+    ]) {
+      Object.assign(attestationsState, state);
+      await act(async () => {
+        renderCreateHypercert();
+        await Promise.resolve();
+      });
+      // Nothing to pick yet, so Next cannot claim nothing was picked.
+      expect(await screen.findByRole("button", { name: "Next" })).toBeDisabled();
+      cleanup();
+    }
+  });
+
+  it("lets Next go on from loaded attestations when a later refresh fails", async () => {
+    const attestation = {
+      id: "0xattestation-1",
+      workUid: "0xwork-1",
+      gardenId: "0xgarden",
+      title: "Planting day",
+      workScope: ["planting"],
+      gardenerAddress: OPERATOR,
+      mediaUrls: [],
+      createdAt: 1,
+      approvedAt: 2,
+    };
+    Object.assign(attestationsState, { hasError: true, attestations: [attestation] });
+    await act(async () => {
+      renderCreateHypercert();
+      await Promise.resolve();
+    });
+    act(() => useHypercertWizardStore.setState({ selectedAttestationIds: [attestation.id] }));
+
+    expect(await screen.findByRole("button", { name: "Next" })).toBeEnabled();
+  });
+
+  it("asks for an attestation when a restored draft's picks no longer exist", async () => {
+    await act(async () => {
+      renderCreateHypercert();
+      await Promise.resolve();
+    });
+    const next = await screen.findByRole("button", { name: "Next" });
+    // A restored draft loads its picks after the wizard resets; picks that match
+    // no loaded attestation select nothing.
+    act(() => useHypercertWizardStore.setState({ selectedAttestationIds: ["0xattestation-gone"] }));
+
+    fireEvent.click(next);
+
+    expect(
+      await screen.findByText("app.hypercerts.wizard.validation.selectAttestation")
+    ).toBeInTheDocument();
   });
 
   it("closes straight back to the Hub while the hypercert wizard is pristine", async () => {

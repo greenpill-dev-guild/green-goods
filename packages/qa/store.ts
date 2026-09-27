@@ -143,6 +143,28 @@ export function shardShapeError(address: string, parsed: unknown): string | null
 }
 
 /**
+ * The strong form of an ETag, which is the only form a conditional write takes.
+ *
+ * Blob serves an object past roughly a kilobyte compressed, and a compressed
+ * representation carries a WEAK validator: `W/"<hex>"` around the same hex the
+ * small object reports bare. `put({ ifMatch })` compares strongly, so handing
+ * it the weak form states a precondition that can never hold — and it fails
+ * that way permanently, not transiently, because the object's size does not
+ * change back. Measured against the live store on 2026-09-22: a 900-byte
+ * object reads back `"<hex>"` and its conditional overwrite lands, a
+ * 1000-byte one reads back `W/"<hex>"` and every overwrite is refused with
+ * `Precondition failed: ETag mismatch`.
+ *
+ * That is not a corner case here. A tester's shard passes a kilobyte after
+ * four to eight recorded cases, and from then on every save failed: the page
+ * kept each verdict in its outbox and said so, and a whole PWA walk sat in
+ * localStorage until the next rollover flushed it into the wrong run.
+ */
+export function strongETag(etag: string): string {
+  return etag.startsWith("W/") ? etag.slice(2) : etag;
+}
+
+/**
  * Read one private JSON object with the ETag needed to write it back safely.
  *
  * The distinction between ABSENT and UNREADABLE is load-bearing, not
@@ -169,7 +191,10 @@ export async function readText(pathname: string, unreadable: string): Promise<{ 
   // into an unconditional one, which is the failure the ETag exists to stop.
   const etag = (result as { blob?: { etag?: string }; etag?: string }).blob?.etag ?? (result as { etag?: string }).etag;
   if (!etag) throw new StoreError(unreadable, "the store returned no ETag");
-  return { text: await new Response(result.stream).text(), etag };
+  // Normalized here rather than at each `put`, because this is where an ETag
+  // enters the store module and every caller wants it for exactly one purpose:
+  // writing this object back conditionally. See `strongETag`.
+  return { text: await new Response(result.stream).text(), etag: strongETag(etag) };
 }
 
 /**

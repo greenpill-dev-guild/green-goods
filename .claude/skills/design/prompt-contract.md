@@ -34,7 +34,7 @@ The canonical admin overlay is the centered **`AdminDialog`** (M3 basic dialog: 
 **`AdminSideSheet`** is the M3 modal side sheet for the **three global AppBar surfaces only** — Profile, Settings, Notifications. It is AdminDialog's sibling (same scrim, hairline header, absolute close button, tone prop, instant-exit handling), with side-sheet geometry:
 
 - **≥640px**: right-docked, full height, rounded inner (left) corners at 16px, slides in from the right edge; one shared width (`--canvas-right-sheet-width`, clamp 380–560px). Solid `--admin-surface-0` at elevation 2 (`--m3-elevation-2`) over the scrim — never glass.
-- **<640px**: identical presentation to AdminDialog's mobile bottom sheet. On mobile only the notification bell opens it — Profile and Settings live in the Profile tab (`/profile`, tabs **Account | Settings**; "Account" is the mobile name for the desktop Profile sheet content).
+- **<640px**: identical presentation to AdminDialog's mobile bottom sheet. On mobile only the notification bell opens it — Profile and Settings live in the Profile tab (`/profile`, tabs **Profile | Settings**; the page reads Profile like the desktop sheet).
 - **Global chrome tone**: these surfaces are account chrome, not workspace content — they pass `tone="hub"` (neutral steward accent), never the active garden's tint.
 - **Content contract**: panels own their body — compose `SheetBody` (scrolling middle) and optionally `SheetFooter` (pinned bar) inside the sheet; the shell adds no padding, so panel and shell padding never stack.
 - **Scope is enforced**: only `CanvasLayout` may render `<AdminSideSheet`, and the right-sheet registry is locked to the three content ids — `packages/admin/src/__tests__/components/AdminSideSheetStandard.guard.test.ts`. Adding a fourth side-sheet surface is a design decision, not a code edit.
@@ -89,7 +89,7 @@ Use these terms when describing admin UI:
 | `single-mode operations surface` | Community — single dominant workflow |
 | `AdminDialog inspector` | Centered overlay for config & alerts (notifications, settings, account) **and** every detail/inspection flow; full-viewport scrim, bottom-sheet on mobile |
 | `ActionFlowShell` | Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert, Create/Edit Action) — inner chrome of a centered `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`); bottom-sheet on mobile |
-| `workspace tint` | Subtle atmospheric color — Hub=blue, Garden=green, Community=orange, Actions=red |
+| `workspace tint` | Subtle atmospheric color — Hub=blue, Garden=green, Community=orange, Actions=purple |
 | `workbench list` | Primary data surface inside MainSheet |
 | `stage rail` | Inline secondary actions/filters adjacent to the workspace |
 | `view rail` | Collapsible navigation rail when the AppBar is tight |
@@ -124,7 +124,7 @@ changes, FAB menus, dialogs, and interaction state ride the admin motion role al
 
 ### Workspace Tone
 
-Each workspace carries an accent hue — Hub=blue, Garden=green, Community=orange, Actions=red —
+Each workspace carries an accent hue — Hub=blue, Garden=green, Community=orange, Actions=purple —
 but the canvas itself never tints: it stays constant linen (`--m3-surface-container-low`) in
 light and m3 surface in dark. Tone spends a **4-use budget**: (1) the active tab underline/label
 and active nav pill (`--tone-primary-container` / `--tone-on-primary-container`), (2) the single

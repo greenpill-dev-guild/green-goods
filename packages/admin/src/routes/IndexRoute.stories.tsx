@@ -252,7 +252,7 @@ function HomeShellHarness({ children }: { children: ReactNode }) {
       <div className="canvas-area-top">
         <AppBar
           gardenChip={
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-strong">
+            <span className="inline-flex items-center gap-1.5 body-sm font-semibold text-text-strong">
               <SeedlingIllustration className="h-5 w-5" />
               Green Goods
             </span>

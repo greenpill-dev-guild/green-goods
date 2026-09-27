@@ -121,10 +121,10 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
       {/* Stats */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="surface-inset">
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {formatMessage({ id: "app.conviction.strategies" })}
           </p>
-          <p className="mt-1 text-xl font-semibold text-text-strong">{strategies.length}</p>
+          <p className="mt-1 text-title-md font-semibold text-text-strong">{strategies.length}</p>
         </div>
       </section>
 
@@ -140,21 +140,21 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
       {/* Strategy list */}
       <section className="surface-inset p-0">
         <div className="border-b border-stroke-soft p-4 sm:p-6">
-          <h3 className="text-base font-medium text-text-strong sm:text-lg">
+          <h3 className="text-title-md font-semibold text-text-strong">
             {formatMessage({ id: "app.conviction.strategies" })}
           </h3>
-          <p className="mt-1 text-sm text-text-sub">
+          <p className="mt-1 body-sm text-text-sub">
             {formatMessage({ id: "app.conviction.strategiesDescription" })}
           </p>
         </div>
 
         <div className="p-4 sm:p-6">
           {strategiesLoading ? (
-            <p className="py-4 text-center text-sm text-text-soft">
+            <p className="py-4 text-center body-sm text-text-soft">
               {formatMessage({ id: "app.conviction.loadingStrategies" })}
             </p>
           ) : strategies.length === 0 ? (
-            <p className="py-4 text-center text-sm text-text-soft">
+            <p className="py-4 text-center body-sm text-text-soft">
               {formatMessage({ id: "app.conviction.noStrategies" })}
             </p>
           ) : (

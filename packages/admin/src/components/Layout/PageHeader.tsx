@@ -119,7 +119,7 @@ export function PageHeader({
             <p
               className={cn(
                 "line-clamp-2 font-normal text-text-sub",
-                isCanvas ? "text-body-md leading-5" : "text-xs sm:text-sm"
+                isCanvas ? "text-body-md leading-5" : "body-xs sm:body-sm"
               )}
               title={typeof description === "string" ? description : undefined}
             >
@@ -130,7 +130,7 @@ export function PageHeader({
             <div
               className={cn(
                 "text-text-soft",
-                isCanvas ? "pt-1 text-body-sm" : "text-xs sm:text-sm"
+                isCanvas ? "pt-1 text-body-sm" : "body-xs sm:body-sm"
               )}
             >
               {metadata}

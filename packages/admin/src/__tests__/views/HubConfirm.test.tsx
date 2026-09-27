@@ -17,6 +17,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const GARDEN_A = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
+const GARDEN_B = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
 const ROOT = "0xcccccccccccccccccccccccccccccccccccccccc" as const;
 const MARIA = "0x1111111111111111111111111111111111111111" as const;
 
@@ -26,6 +27,25 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@green-goods/shared/hooks/admin-ui/pool/useHubConfirmQueueController", () => ({
   useHubConfirmQueueController: () => mocks.queue!,
+}));
+
+// The review dialog names the pool through the gardens list and the protocol
+// registration; neither is read from the network here.
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => ({
+    data: [
+      { id: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", name: "Rocinha" },
+      { id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", name: "Aiyeloja" },
+    ],
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", () => ({
+  useProtocolPool: () => ({ rootGarden: "0xcccccccccccccccccccccccccccccccccccccccc" }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: null, isLoading: false }),
 }));
 
 vi.mock("@/views/Garden/Pool/CommitmentDialog", () => ({
@@ -163,19 +183,94 @@ describe("HubConfirmQueue (W13)", () => {
     expect(screen.getByText(/nothing to confirm/i)).toBeInTheDocument();
   });
 
-  it("shows who committed, the title, the garden, the progress and the eligibility, and confirms an ordinary row through the queue", async () => {
+  it("shows who committed, the title, the progress and the eligibility, and confirms an ordinary row only from its review", async () => {
     mocks.queue = queue({ rows: [row()] });
     renderQueue();
     const item = screen.getByTestId("hub-confirm-9");
     expect(within(item).getByText("Prune the north beds")).toBeInTheDocument();
-    expect(within(item).getByText(/rocinha/i)).toBeInTheDocument();
     expect(within(item).getByText(/1 of 2 confirmed/i)).toBeInTheDocument();
-    expect(within(item).getByText(/^ordinary$/i)).toBeInTheDocument();
-    fireEvent.click(within(item).getByRole("button", { name: /^confirm kept$/i }));
+    expect(within(item).getByText(/^ready to confirm$/i)).toBeInTheDocument();
+    // The header names the acting garden, so the row does not restate it.
+    expect(within(item).queryByText(/rocinha/i)).not.toBeInTheDocument();
+
+    fireEvent.click(within(item).getByRole("button", { name: /^confirm kept…$/i }));
     const acts = mocks.queue!.acts;
+    expect(acts.confirm).not.toHaveBeenCalled();
+    const review = screen.getByRole("dialog", { name: /confirm this commitment kept/i });
+    expect(review).toHaveTextContent(/“Prune the north beds” in Rocinha’s pool/);
+    expect(review).toHaveTextContent(/kept by/i);
+    // One of two already landed, so this one closes it for everyone.
+    expect(review).toHaveTextContent(/closes the commitment as kept, for everyone/i);
+
+    fireEvent.click(within(review).getByRole("button", { name: /^confirm kept$/i }));
     await waitFor(() =>
       expect(acts.confirm).toHaveBeenCalledWith(expect.objectContaining({ garden: GARDEN_A }))
     );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: /confirm this commitment kept/i })
+      ).not.toBeInTheDocument()
+    );
+  });
+
+  it("says a confirmation that does not close the commitment still cannot be taken back, and sends nothing on Not Now", async () => {
+    mocks.queue = queue({
+      rows: [row({ commitment: commitment({ confirmationThreshold: 3, confirmationCount: 0 }) })],
+    });
+    renderQueue();
+    fireEvent.click(
+      within(screen.getByTestId("hub-confirm-9")).getByRole("button", { name: /^confirm kept…$/i })
+    );
+    const review = screen.getByRole("dialog", { name: /confirm this commitment kept/i });
+    expect(review).toHaveTextContent(
+      /confirmation 1 of the 3 needed, and it cannot be taken back/i
+    );
+    fireEvent.click(within(review).getByRole("button", { name: /^not now$/i }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: /confirm this commitment kept/i })
+      ).not.toBeInTheDocument()
+    );
+    expect(mocks.queue!.acts.confirm).not.toHaveBeenCalled();
+  });
+
+  it("names the pool a commitment lives in when it is not the acting garden's own", () => {
+    // Community → Coordination confirms as the Green Goods team; every row there
+    // must say whose pool the commitment is in, never the team's own name.
+    mocks.queue = queue({
+      rows: [
+        row({
+          eligibility: "PROTOCOL_FALLBACK",
+          garden: ROOT,
+          gardenName: "Green Goods",
+          poolGarden: GARDEN_A,
+          poolGardenName: "Rocinha",
+        }),
+        row({
+          commitment: commitment({ id: "42161-11", commitmentId: 11n }),
+          poolGarden: GARDEN_B,
+          poolGardenName: null,
+          title: "Survey the wetland",
+        }),
+        row({
+          commitment: commitment({ id: "42161-12", commitmentId: 12n }),
+          poolGarden: GARDEN_A,
+          poolGardenName: "Rocinha",
+          title: "Mulch the orchard",
+        }),
+      ],
+    });
+    renderQueue();
+    const protocolRow = screen.getByTestId("hub-confirm-9");
+    const where = within(protocolRow).getByText(/in Rocinha’s pool/);
+    expect(where).not.toHaveTextContent(/green goods/i);
+    // Before the gardens list answers, the pool is still named, by address.
+    expect(
+      within(screen.getByTestId("hub-confirm-11")).getByText(/in 0xbbbb…bbbb’s pool/)
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("hub-confirm-12")).queryByText(/’s pool/)
+    ).not.toBeInTheDocument();
   });
 
   it("labels a garden fallback row and a Green Goods team fallback row, and opens the dialog instead of confirming in place", () => {
@@ -197,16 +292,19 @@ describe("HubConfirmQueue (W13)", () => {
     });
     const { onOpen } = renderQueue();
     expect(
-      within(screen.getByTestId("hub-confirm-9")).getByText(/garden fallback/i)
+      within(screen.getByTestId("hub-confirm-9")).getByText(/^needs a steward step-in$/i)
     ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId("hub-confirm-11")).getByText(/green goods team fallback/i)
+      within(screen.getByTestId("hub-confirm-11")).getByText(/^needs the green goods team$/i)
     ).toBeInTheDocument();
     fireEvent.click(
       within(screen.getByTestId("hub-confirm-9")).getByRole("button", { name: /^confirm kept…$/i })
     );
     expect(onOpen).toHaveBeenCalledWith("9");
-    expect(screen.queryByRole("button", { name: /^confirm kept$/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("dialog", { name: /confirm this commitment kept/i })
+    ).not.toBeInTheDocument();
+    expect(mocks.queue!.acts.confirm).not.toHaveBeenCalled();
   });
 
   it("raises a reasoned dispute from Not yet", async () => {
@@ -243,6 +341,8 @@ describe("HubConfirmQueue (W13)", () => {
     });
     const { onOpen } = renderQueue();
     const item = screen.getByTestId("hub-confirm-9");
+    // Under review is a state to act on, not a failure.
+    expect(within(item).getByText(/^under review$/i)).toBeInTheDocument();
     expect(within(item).queryByRole("button", { name: /^confirm/i })).not.toBeInTheDocument();
     fireEvent.click(within(item).getByRole("button", { name: /resolve/i }));
     expect(onOpen).toHaveBeenCalledWith("9");

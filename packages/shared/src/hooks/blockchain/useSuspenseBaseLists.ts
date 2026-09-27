@@ -2,6 +2,7 @@ import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { getActions, getGardeners, getGardens } from "../../modules/data/greengoods";
+import { withKnownCapitals } from "../../modules/data/indexer-capitals";
 import type { Action, Garden, GardenerCard } from "../../types/domain";
 import { actionsKeys, gardensKeys } from "../../config/query-keys/garden";
 import { gardenersKeys } from "../../config/query-keys/identity";
@@ -88,6 +89,7 @@ export function useSuspenseActions(chainId: number = DEFAULT_CHAIN_ID) {
     queryFn: () => getActions(),
     staleTime: STALE_TIMES.actions,
     gcTime: GC_TIMES.baseLists,
+    select: withKnownCapitals,
     initialData: () => queryClient.getQueryData<Action[]>(queryKey),
     initialDataUpdatedAt: () => queryClient.getQueryState(queryKey)?.dataUpdatedAt,
   });

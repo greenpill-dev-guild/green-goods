@@ -1,4 +1,4 @@
-import type { TransactionSender } from "../transactions/types";
+import type { TransactionSender, TransactionSendOptions } from "../transactions/types";
 import {
   acquireWorkJobs,
   retainedWorkBroadcast,
@@ -15,10 +15,12 @@ import type {
   JobExecutorRegistry,
   JobQueueLogger,
   JobQueueStore,
+  JobSendPhase,
   ProcessJobContext,
   ProcessJobResult,
 } from "./ports";
 import { createOfflineTxHash, hasRecordedSend, isWaitingReprobeThrottled } from "./queue-policy";
+import { holdWorkClaims } from "./work-claims";
 
 interface ProcessJobDependencies {
   store: JobQueueStore;
@@ -79,6 +81,43 @@ async function completeJob(
   deps.events.emit("job:completed", { jobId, job: completedJob, txHash: completedTxHash });
   deps.analytics.jobProcessed(job.kind, deps.clock.now() - startedAt, job.attempts + 1);
   return { success: true, txHash: completedTxHash };
+}
+
+/**
+ * The send options with the context's phase reports added, when it asked for
+ * them. The executor's own callbacks run first and keep their say: a checkpoint
+ * that fails to save still stops the send. The report runs after and can never
+ * stop it. Without `onPhase` the options pass through untouched.
+ */
+function withPhaseReports(
+  options: TransactionSendOptions,
+  jobId: string,
+  context: ProcessJobContext,
+  logger: JobQueueLogger
+): TransactionSendOptions {
+  const onPhase = context.onPhase;
+  if (!onPhase) return options;
+  const report = (phase: JobSendPhase) => {
+    try {
+      onPhase(phase);
+    } catch (error) {
+      logger.warn("[JobQueue] a send phase report threw", {
+        jobId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+  return {
+    ...options,
+    onBeforeBroadcast: async (reference) => {
+      await options.onBeforeBroadcast?.(reference);
+      report({ stage: "wallet" });
+    },
+    onBroadcast: async (hash) => {
+      await options.onBroadcast?.(hash);
+      report({ stage: "confirming", txHash: hash });
+    },
+  };
 }
 
 export function createJobProcessor(deps: ProcessJobDependencies) {
@@ -158,7 +197,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       };
       guardedSender.sendContractCall = (call, options = {}) =>
         sender.sendContractCall(call, {
-          ...options,
+          ...withPhaseReports(options, jobId, context, deps.logger),
           assertOwnership: async () => {
             await context.assertOwnership?.();
             await sender.assertOwnership?.(job.userAddress, chainId);
@@ -257,6 +296,10 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
   return async (jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> => {
     const claim = await acquireWorkJobs([jobId]);
     if (!claim) return { success: false, skipped: true, error: "already-processing" };
+    // Keep the claim alive for the whole send. A wallet or passkey prompt can
+    // stay open past the claim's lifetime, and a claim that lapsed there would
+    // let another tab discard or resend a job whose transaction may still go out.
+    const stopHolding = holdWorkClaims([claim]);
     try {
       return await processJob(jobId, {
         ...context,
@@ -266,6 +309,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         },
       });
     } finally {
+      stopHolding();
       await claim.release();
     }
   };

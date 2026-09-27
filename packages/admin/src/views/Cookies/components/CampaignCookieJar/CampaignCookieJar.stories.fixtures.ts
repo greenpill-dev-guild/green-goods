@@ -18,7 +18,7 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../../../shared/.storybook/decorators";
-import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
+import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
 import type { CampaignCookieJarPanelViewProps } from "./CampaignCookieJarPanelView.types";
 
 export const STORYBOOK_CAMPAIGN_JAR = "0x7777777777777777777777777777777777777777" as Address;
@@ -30,7 +30,7 @@ export const campaignCookieJarStoryDecorators = [
   withCanvasFrame({
     className: "p-0",
     heightClassName: "h-[760px]",
-    workspace: "hub",
+    workspace: "community",
   }),
 ];
 
@@ -43,7 +43,7 @@ const panelViewFormatMessage = ((
 ) => {
   if (descriptor.id === "cockpit.community.cookies.listDescription") {
     const count = typeof values?.count === "number" ? values.count : 0;
-    return `${count} trusted campaign ${count === 1 ? "jar" : "jars"} indexed for this network.`;
+    return `${count} campaign ${count === 1 ? "jar" : "jars"} on this network.`;
   }
 
   return formatMessage(descriptor);
@@ -106,8 +106,6 @@ export const campaignCookieJarCreateFormProps: CampaignCookieJarCreateFormProps 
   setExtraAddresses: () => undefined,
   payoutLabel: `5 ${payoutAssets[0]?.symbol ?? "USDC"}`,
   canCreate: true,
-  onCreate: () => undefined,
-  onCancel: () => undefined,
 };
 
 export const storybookCampaign: CampaignCookieJarCampaign = {

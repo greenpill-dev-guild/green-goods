@@ -38,7 +38,7 @@ const meta: Meta<typeof SetupStepCycle> = {
     docs: {
       description: {
         component:
-          "The cycle step: what this season or campaign is called and when it runs. One season runs at a time, so a second one is refused here rather than at the write, with the running season named.",
+          "The cycle step: what this season or campaign is called and when it runs. The name stops at 120 characters, counted as the steward types. One season runs at a time, so a second one is refused here rather than at the write, with the running season named.",
       },
     },
   },

@@ -13,7 +13,10 @@
 import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useCommitmentJobs } from "../hooks/commitment-pooling/useCommitmentJobs";
+import {
+  retryQueuedCommitmentJob,
+  useCommitmentJobs,
+} from "../hooks/commitment-pooling/useCommitmentJobs";
 import type { Address } from "../types/domain";
 import { renderHookWithProviders } from "./test-utils";
 
@@ -23,13 +26,19 @@ const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address;
 // Hoisted factories run before the consts above them, so the address is inline.
 const mocks = vi.hoisted(() => ({
   addJob: vi.fn(),
+  processJob: vi.fn(),
+  retryJob: vi.fn(),
   viewer: "0x1111111111111111111111111111111111111111" as string | null,
+  sender: null as { authMode: "wallet" | "passkey" | "embedded" } | null,
 }));
 
 vi.mock("../modules/job-queue/default-instance", () => ({
-  jobQueue: { addJob: mocks.addJob },
+  jobQueue: { addJob: mocks.addJob, processJob: mocks.processJob, retryJob: mocks.retryJob },
 }));
 vi.mock("../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => mocks.viewer }));
+vi.mock("../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => mocks.sender,
+}));
 vi.mock("../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => 42161 }));
 
 function jobs() {
@@ -40,7 +49,9 @@ describe("useCommitmentJobs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.viewer = VIEWER;
+    mocks.sender = null;
     mocks.addJob.mockResolvedValue("job-1");
+    mocks.processJob.mockResolvedValue({ success: true, txHash: "0xabc" });
   });
 
   it("sends a claim as its own job kind", async () => {
@@ -124,5 +135,91 @@ describe("useCommitmentJobs", () => {
       result.current.enqueue({ act: "confirm", commitmentId: 9n, gardenAddress: GARDEN })
     ).rejects.toThrow(/identity_conflict/);
     await waitFor(() => expect(result.current.error).toBeTruthy());
+  });
+
+  // What the queue then does with a sent, waiting, or failed act is proven
+  // against the real queue in `commitment-jobs-hook.composed.test.tsx`.
+  describe("sending", () => {
+    const confirm = { act: "confirm", commitmentId: 9n, gardenAddress: GARDEN } as const;
+
+    it("sends a wallet reader's act from their own tap, because nothing else will", async () => {
+      // The background flush only runs for passkey and embedded sign-in, and the
+      // admin mounts no queue provider at all. Without this send a steward's
+      // seeded commitment stays Queued forever and no wallet prompt ever opens.
+      mocks.sender = { authMode: "wallet" };
+
+      await expect(jobs().current.enqueue(confirm)).resolves.toBe("job-1");
+
+      expect(mocks.processJob).toHaveBeenCalledWith("job-1", {
+        transactionSender: mocks.sender,
+        explicit: true,
+      });
+    });
+
+    it.each([
+      { authMode: "passkey" },
+      { authMode: "embedded" },
+      null,
+    ] as const)("leaves the send to the background flush for %o", async (sender) => {
+      mocks.sender = sender;
+
+      await expect(jobs().current.enqueue(confirm)).resolves.toBe("job-1");
+
+      expect(mocks.processJob).not.toHaveBeenCalled();
+    });
+
+    it("tells whoever asked where the send stands, then how it ended", async () => {
+      mocks.sender = { authMode: "wallet" };
+      mocks.processJob.mockImplementation(async (_jobId, context) => {
+        context.onPhase?.({ stage: "wallet" });
+        context.onPhase?.({ stage: "confirming", txHash: "0xabc" });
+        return { success: true, txHash: "0xabc" };
+      });
+      const report = vi.fn();
+
+      await jobs().current.enqueue({ ...confirm, report });
+
+      expect(report.mock.calls.map(([event]) => event)).toEqual([
+        { stage: "wallet" },
+        { stage: "confirming", txHash: "0xabc" },
+        { stage: "landed", txHash: "0xabc" },
+      ]);
+    });
+
+    it.each([
+      ["a sign-in the wallet never asks", { authMode: "passkey" }, null],
+      ["a send that has to wait", { authMode: "wallet" }, { success: false, skipped: true }],
+    ] as const)("reports %s as queued to send later", async (_case, sender, result) => {
+      mocks.sender = sender;
+      if (result) mocks.processJob.mockResolvedValue(result);
+      const report = vi.fn();
+
+      await expect(jobs().current.enqueue({ ...confirm, report })).resolves.toBe("job-1");
+
+      expect(report).toHaveBeenLastCalledWith({ stage: "queued" });
+    });
+
+    it.each([
+      ["landed", { success: true, txHash: "0xabc" }, { stage: "landed", txHash: "0xabc" }],
+      ["has to wait", { success: false, skipped: true }, { stage: "queued" }],
+    ] as const)("says how a queued row sent again ended when it %s", async (_case, result, last) => {
+      mocks.processJob.mockResolvedValue(result);
+      const report = vi.fn();
+
+      await retryQueuedCommitmentJob("job-1", { authMode: "wallet" } as never, report);
+
+      expect(mocks.retryJob).toHaveBeenCalledWith("job-1");
+      expect(report).toHaveBeenLastCalledWith(last);
+    });
+
+    it("never lets a report that throws turn an act that landed into a failure", async () => {
+      mocks.sender = { authMode: "wallet" };
+      const report = vi.fn(() => {
+        throw new Error("the view is gone");
+      });
+
+      await expect(jobs().current.enqueue({ ...confirm, report })).resolves.toBe("job-1");
+      expect(report).toHaveBeenCalledWith({ stage: "landed", txHash: "0xabc" });
+    });
   });
 });

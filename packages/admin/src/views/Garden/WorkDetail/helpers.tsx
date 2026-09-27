@@ -53,7 +53,7 @@ export function DetailRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <p className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-text-soft">
+      <p className="flex shrink-0 items-center gap-1.5 label-xs text-text-soft">
         {icon ? (
           <span aria-hidden className="self-center [&>svg]:h-3.5 [&>svg]:w-3.5">
             {icon}
@@ -61,7 +61,7 @@ export function DetailRow({
         ) : null}
         {label}
       </p>
-      <div className="min-w-0 text-right text-sm text-text-strong">{value}</div>
+      <div className="min-w-0 text-right body-sm text-text-strong">{value}</div>
     </div>
   );
 }
@@ -71,16 +71,29 @@ export function ReviewSummary({ work }: { work: Work }) {
   return (
     <div className="mt-4 space-y-3">
       <div className="rounded-md bg-bg-weak p-3">
-        <p className="text-xs font-medium text-text-soft">
+        <p className="label-xs text-text-soft">
           {formatMessage({ id: "app.work.detail.statusLabel" })}
         </p>
-        <p className="mt-0.5 text-sm font-medium text-text-strong">
+        <p className="mt-0.5 body-sm font-medium text-text-strong">
           {work.status === "approved"
             ? formatMessage({ id: "app.work.status.approved" })
             : formatMessage({ id: "app.work.status.rejected" })}
         </p>
       </div>
-      <p className="text-xs text-text-soft">
+      {work.reviewFeedback ? (
+        <div className="rounded-md bg-bg-weak p-3">
+          <p className="label-xs text-text-soft">
+            {formatMessage({
+              id: "app.work.detail.reviewFeedback",
+              defaultMessage: "Feedback to the gardener",
+            })}
+          </p>
+          <p className="mt-0.5 whitespace-pre-line break-words body-sm text-text-strong">
+            {work.reviewFeedback}
+          </p>
+        </div>
+      ) : null}
+      <p className="body-xs text-text-soft">
         {formatMessage({ id: "app.work.detail.alreadyReviewed" })}
       </p>
     </div>

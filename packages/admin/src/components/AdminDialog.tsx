@@ -22,6 +22,13 @@ export interface AdminDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: ReactNode;
+  /**
+   * What the dialog's act writes to, named under the title and before the
+   * description: the chrome cannot prove which record a write changes, so a
+   * consequential act says so first (DESIGN.md § Interface Principles 4, 9).
+   * Rendered only in the structured header; flows name it in their own body.
+   */
+  target?: ReactNode;
   description?: ReactNode;
   icon?: ComponentType<{ className?: string }> | ReactNode;
   children: ReactNode;
@@ -68,6 +75,8 @@ export interface AdminConfirmDialogProps {
   icon?: ReactNode;
   /** Workspace tone, forwarded to the portaled surface (see AdminDialogProps.tone). */
   tone?: AdminDialogProps["tone"];
+  /** What the act writes to, named under the title (see AdminDialogProps.target). */
+  target?: ReactNode;
   /** The facts the confirmation rests on (what changes, from what to what), under the description. */
   children?: ReactNode;
 }
@@ -124,7 +133,7 @@ const fullWidthMobileSheetClasses = cn(
 );
 
 const closeButtonClasses = cn(
-  // Centered on the compact header title row (py-3 + text-lg leading-7).
+  // Centered on the compact header title row (py-3 + the 28px title-large line).
   "absolute right-3 top-1.5 z-10",
   "flex h-10 w-10 items-center justify-center",
   "rounded-full",
@@ -148,7 +157,7 @@ const closeButtonClasses = cn(
  * - Shape: page-container radius (16dp) via --m3-shape-lg; surface-container-high;
  *   elevation 2 over the scrim (the ladder tops out at level 2)
  * - Header: hairline-bottom bar (px-4 py-3 sm:px-6, border-stroke-soft) with
- *   an optional inline icon, text-lg semibold title, text-sm description
+ *   an optional inline icon, title-large title, body-sm description
  * - Body: the scrollable region between header and footer (px-4 py-4 sm:px-6)
  * - Actions: pinned footer bar — hairline top border on --surface-raised
  *   (the SheetFooter anatomy the flows use), buttons right-aligned
@@ -160,6 +169,7 @@ export function AdminDialog({
   open,
   onOpenChange,
   title,
+  target,
   description,
   icon: Icon,
   children,
@@ -309,12 +319,17 @@ export function AdminDialog({
                   </span>
                 ) : null}
                 <div className="min-w-0">
-                  <Dialog.Title className="text-lg font-semibold leading-7 text-[rgb(var(--m3-on-surface))]">
+                  <Dialog.Title className="text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-[rgb(var(--m3-on-surface))]">
                     {title}
                   </Dialog.Title>
+                  {target ? (
+                    <div data-slot="target" className="mt-2">
+                      {target}
+                    </div>
+                  ) : null}
                   <Dialog.Description
                     className={cn(
-                      description ? "mt-0.5 text-sm" : "sr-only",
+                      description ? "mt-0.5 body-sm" : "sr-only",
                       "text-[rgb(var(--m3-on-surface-variant))]"
                     )}
                   >
@@ -385,6 +400,7 @@ export function AdminConfirmDialog({
   confirmDisabled = false,
   icon,
   tone,
+  target,
   children,
 }: AdminConfirmDialogProps) {
   const { formatMessage } = useIntl();
@@ -434,6 +450,7 @@ export function AdminConfirmDialog({
         if (!open) onClose();
       }}
       title={title}
+      target={target}
       description={description}
       icon={iconNode}
       variant="confirm"

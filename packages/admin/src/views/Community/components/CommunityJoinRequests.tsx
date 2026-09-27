@@ -15,7 +15,7 @@ import { RiCheckLine, RiCloseLine, RiInbox2Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
@@ -101,10 +101,10 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
       <AdminCard variant="elevated" className="space-y-4" data-testid="community-join-requests">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
+            <AdminCardTitle>
               {formatMessage({ id: "cockpit.community.joinRequests.title" })}
-            </h3>
-            <p className="mt-1 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+            </AdminCardTitle>
+            <p className="mt-1 text-body-sm text-text-sub">
               {formatMessage({ id: "cockpit.community.joinRequests.description" })}
             </p>
           </div>
@@ -135,7 +135,7 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
         </div>
 
         {loaded && join.queue.length === 0 && !join.queueState.isLoading ? (
-          <div className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container))] p-4 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+          <div className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft p-4 text-body-sm text-text-sub">
             <RiInbox2Line className="h-5 w-5" />
             {formatMessage({ id: "cockpit.community.joinRequests.empty" })}
           </div>
@@ -149,13 +149,11 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
             >
               <div className="min-w-0 space-y-2">
                 <div>
-                  <h4 className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
-                    {request.displayName}
-                  </h4>
+                  <AdminCardTitle as="h4">{request.displayName}</AdminCardTitle>
                   <EnsAddressText address={request.accountAddress} />
                   <time
                     dateTime={request.requestedAt}
-                    className="mt-1 block text-body-sm text-[rgb(var(--m3-on-surface-variant))]"
+                    className="mt-1 block text-body-sm text-text-sub"
                   >
                     {formatMessage(
                       { id: "cockpit.community.joinRequests.requestedAt" },
@@ -169,7 +167,7 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
                   </time>
                 </div>
                 {request.note ? (
-                  <p className="max-w-2xl whitespace-pre-wrap text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+                  <p className="max-w-2xl whitespace-pre-wrap text-body-sm text-text-sub">
                     {request.note}
                   </p>
                 ) : null}

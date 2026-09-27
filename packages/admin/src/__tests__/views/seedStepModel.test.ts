@@ -1,13 +1,22 @@
 import { cycleFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import { COMMITMENT_COMPOSER_ERROR_IDS } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import { createIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
+import {
+  formatRewardAmount,
+  rewardAmountFromBaseUnits,
+  rewardAmountToBaseUnits,
+  rewardUnitsFor,
+  seedRowRewardReady,
+} from "@/views/Garden/Pool/Seed/seedRewardAmount";
 import {
   actionUIDOf,
   buildSeedCycleOptions,
   buildSeedStepConfigs,
   CONFIRMER_ADDRESS_PATTERN,
-  SEED_ERROR_DESCRIPTOR_BY_ID,
   STEP_FIELDS,
   STEPS,
+  seedErrorText,
   withConfirmer,
 } from "@/views/Garden/Pool/Seed/seedStepModel";
 
@@ -73,9 +82,89 @@ describe("seedStepModel", () => {
     ).toEqual([{ value: "0", label: "No cycle (runs on its own)" }]);
   });
 
-  it("maps composer message ids to operator-facing descriptors", () => {
+  it("says what the composer said in the steward's words, naming limits from their constants", () => {
+    const { formatMessage: format } = createIntl({ locale: "en", messages: {}, onError: () => {} });
+    expect(seedErrorText(COMMITMENT_COMPOSER_ERROR_IDS.considerationAmount, format)).toBe(
+      "Enter an amount above zero."
+    );
+    expect(seedErrorText(COMMITMENT_COMPOSER_ERROR_IDS.titleTooLong, format)).toBe(
+      "Shorten the title to 60 characters or fewer."
+    );
+    // The composer's remaining messages are English prose, shown as they are.
+    expect(seedErrorText("How many?", format)).toBe("How many?");
+  });
+});
+
+describe("declared reward units", () => {
+  const usdc = { status: "ready", decimals: 6, symbol: "USDC" } as const;
+
+  it.each([
+    { text: "10", decimals: 18, baseUnits: "10000000000000000000", errorId: null },
+    { text: "2.5", decimals: 6, baseUnits: "2500000", errorId: null },
+    { text: ".5", decimals: 6, baseUnits: "500000", errorId: null },
+    { text: "  ", decimals: 18, baseUnits: "", errorId: null },
+    { text: "1.1234567", decimals: 6, baseUnits: "", errorId: "app.treasury.tooManyDecimals" },
+    { text: "1,5", decimals: 6, baseUnits: "", errorId: "app.treasury.invalidAmount" },
+  ])("stores $text as $baseUnits in $decimals-decimal units", ({ text, decimals, ...stored }) => {
+    expect(rewardAmountToBaseUnits(text, decimals)).toEqual(stored);
+  });
+
+  it.each([
+    { baseUnits: "10000000000000000000", decimals: 18, text: "10" },
+    { baseUnits: "2500000", decimals: 6, text: "2.5" },
+    { baseUnits: "", decimals: 18, text: "" },
+  ])("reads $baseUnits back as '$text'", ({ baseUnits, decimals, text }) => {
+    expect(rewardAmountFromBaseUnits(baseUnits, decimals)).toBe(text);
+  });
+
+  it("takes Celo settlement in G$ and waits on an external token until it answers", () => {
+    expect(rewardUnitsFor("CELO_SETTLEMENT", { status: "idle" })).toEqual({
+      status: "ready",
+      decimals: 18,
+      symbol: "G$",
+    });
+    expect(rewardUnitsFor("NONE", { status: "idle" })).toEqual({ status: "none" });
+    expect(rewardUnitsFor("ARBITRUM_EXTERNAL", { status: "idle" })).toEqual({
+      status: "waiting",
+      reason: "noToken",
+    });
+    expect(rewardUnitsFor("ARBITRUM_EXTERNAL", { status: "unreadable" })).toEqual({
+      status: "waiting",
+      reason: "unreadable",
+    });
     expect(
-      SEED_ERROR_DESCRIPTOR_BY_ID.get("cockpit.garden.pool.seed.error.considerationAmount")
-    ).toMatchObject({ defaultMessage: "Enter a whole amount above zero." });
+      rewardUnitsFor("ARBITRUM_EXTERNAL", {
+        status: "ready",
+        metadata: { decimals: 6, symbol: "USDC" },
+      })
+    ).toEqual(usdc);
+  });
+
+  it.each([
+    { rail: "NONE", token: "", status: "idle", ready: true },
+    { rail: "CELO_SETTLEMENT", token: "", status: "idle", ready: true },
+    { rail: "ARBITRUM_EXTERNAL", token: ADDRESS, status: "idle", ready: false },
+    { rail: "ARBITRUM_EXTERNAL", token: ADDRESS, status: "loading", ready: false },
+    { rail: "ARBITRUM_EXTERNAL", token: ADDRESS, status: "unreadable", ready: false },
+    { rail: "ARBITRUM_EXTERNAL", token: ADDRESS, status: "ready", ready: true },
+  ] as const)("allows $rail with $status token units: $ready", ({ rail, token, status, ready }) => {
+    const metadata =
+      status === "ready"
+        ? ({ status, metadata: { decimals: 6, symbol: "USDC" } } as const)
+        : ({ status } as const);
+    expect(
+      seedRowRewardReady(
+        { considerationRail: rail, considerationToken: token.toUpperCase() },
+        new Map([[token.toLowerCase(), metadata]])
+      )
+    ).toBe(ready);
+  });
+
+  it("reviews an amount in token units, and never in units it does not know", () => {
+    expect(formatRewardAmount("2500000", usdc, "en")).toBe("2.5 USDC");
+    expect(
+      formatRewardAmount("12345678901", { status: "ready", decimals: 18, symbol: "G$" }, "en")
+    ).toBe("0.000000012345678901 G$");
+    expect(formatRewardAmount("2500000", { status: "waiting", reason: "loading" }, "en")).toBe("—");
   });
 });

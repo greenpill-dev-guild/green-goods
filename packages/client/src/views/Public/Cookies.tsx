@@ -5,7 +5,7 @@ import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
-const CookiesWalletSurface = lazy(() => import("./CookiesWalletSurface"));
+const CampaignJarSurface = lazy(() => import("./CampaignJarSurface"));
 
 function CookiesLoadingPage() {
   const { formatMessage } = useIntl();
@@ -59,7 +59,7 @@ function CookiesLoadingPage() {
 export default function CookiesPage() {
   return (
     <Suspense fallback={<CookiesLoadingPage />}>
-      <CookiesWalletSurface />
+      <CampaignJarSurface />
     </Suspense>
   );
 }

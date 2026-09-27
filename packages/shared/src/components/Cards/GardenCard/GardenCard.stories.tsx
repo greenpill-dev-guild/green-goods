@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "storybook/test";
 import { GardenCard, type GardenCardData } from "./GardenCard";
 
 const mockGarden: GardenCardData = {
@@ -16,6 +17,8 @@ const meta: Meta<typeof GardenCard> = {
   title: "Shared/Cards/GardenCard",
   component: GardenCard,
   tags: ["autodocs"],
+  // A card is a button only when it has something to open.
+  args: { onClick: fn() },
   argTypes: {
     media: {
       control: "select",

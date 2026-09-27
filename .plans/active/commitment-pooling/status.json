@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-05T22:45:56.684Z"
+    "updated_at": "2026-09-26T22:57:07.090Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -25,6 +25,7 @@
     "diagrams": "diagrams.md",
     "wireframes": "wireframes.md",
     "acceptance_matrix": "acceptance-matrix.md",
+    "qa_readiness_plan": "qa-readiness-plan.md",
     "erd_simplification_proposals": "reports/erd-simplification-proposals.md",
     "exchange_wave_gdoc_checklist": "reports/exchange-wave-gdoc-checklist.md",
     "standing_commitments_gdoc_checklist": "reports/standing-commitments-gdoc-checklist.md",
@@ -192,7 +193,8 @@
     "2026-08-14 mainnet activation policy (register #109, corrected by register #111): release gates now follow three activation-risk tiers rather than one all-or-nothing checklist. The current pooling activation is accepted only as non-custodial, non-transferable tier 2 under explicit temporary-owner risk acceptance, exact current/rollback-owner verification, emergency pause, committed-range review, receipt/post-state, and tested-rollback evidence. Passive retention of the deployment-sender owner key is the bounded accepted risk; using upgrade or administrative authority for anything other than emergency pause is tier 3. SettlementModule and CeloSettlementExecutor remain paused, but the executor's already-initialized nonzero source peer is a completed tier-3 configuration boundary, not pending peer wiring. Safe/Zodiac value authority and value movement remain disabled and require separate tier-3 gates. Historical register #78 remains verbatim.",
     "2026-08-14 same-address GardenAccount ownership (register #112, Afo authorized): the active ../celo-garden-account-safe-ownership/ plan supersedes the temporary 1-of-2 deployment-EOA Garden Safe bootstrap before any Garden Safe deployment. The accepted target reproduces the exact Arbitrum GardenAccount implementation and immutable dependencies on Celo, atomically creates accounts from the (42161, Arbitrum GardenToken, tokenId) tuple, uses a dedicated authenticated Garden-bound relay that cannot satisfy threshold two alone, and deploys each Safe directly with GardenAccount plus the protocol and Dev Guild recovery Safes at threshold two. This plan authorizes no deployment, guardian mutation, Safe creation, role/allowance/peer configuration, value movement, canary, or other broadcast.",
     "Zodiac Roles v2 is pinned for Celo. The 2.1.0 Roles mastercopy 0x9646fDAD06d3e24444381f44362a3B0eB343D337 and its Integrity, Packer, and MultiSendUnwrapper dependencies are live on Celo, byte-identical to the same addresses on Ethereum mainnet, and every function in src/interfaces/IZodiacRoles.sol is dispatchable in the deployed runtime. The ERC-2470 singleton factory and the Zodiac module proxy factory are both present, so the per-Safe modifier clones have a deterministic deployment path. No modifier instance exists yet and this record grants no authority.",
-    "2026-08-21 Celo Safe authority recorded and ceremony re-scoped (Afo authorized, PRs #743/#744): the completed 2026-08-20 Safe/Zodiac/route ceremony is frozen in the release manifest with safeAuthority.enabled true and all 18 Garden boundaries carrying their permission hashes; release:verify recomputes every hash so a substituted Safe fails on its own row. Both fee reserves were funded above their floors. Codex review of #744 found that wiring the Arbitrum route from the deployment EOA violates the tier-3 rule (peer wiring requires protocol ownership on the approved multisig), so the ceremony is re-scoped to paused-safe-owned with ownershipTransferIncluded and peerWiringIncluded both true; pool backfill and unpause stay excluded. The ownership tooling now reads the destination Safe live per chain and fails closed below the floor: Arbitrum's 2-of-6 passes, Celo's 1-of-4 is blocked until raised. setCcipRoute is sent by the protocol Safe and proven by settlement-peer-verify from the mined receipt. Registers #106, #109, and #111 remain verbatim; this record supersedes only their deferral of ownership transfer. No broadcast, ownership transfer, peer wiring, value movement, or canary occurred."
+    "2026-08-21 Celo Safe authority recorded and ceremony re-scoped (Afo authorized, PRs #743/#744): the completed 2026-08-20 Safe/Zodiac/route ceremony is frozen in the release manifest with safeAuthority.enabled true and all 18 Garden boundaries carrying their permission hashes; release:verify recomputes every hash so a substituted Safe fails on its own row. Both fee reserves were funded above their floors. Codex review of #744 found that wiring the Arbitrum route from the deployment EOA violates the tier-3 rule (peer wiring requires protocol ownership on the approved multisig), so the ceremony is re-scoped to paused-safe-owned with ownershipTransferIncluded and peerWiringIncluded both true; pool backfill and unpause stay excluded. The ownership tooling now reads the destination Safe live per chain and fails closed below the floor: Arbitrum's 2-of-6 passes, Celo's 1-of-4 is blocked until raised. setCcipRoute is sent by the protocol Safe and proven by settlement-peer-verify from the mined receipt. Registers #106, #109, and #111 remain verbatim; this record supersedes only their deferral of ownership transfer. No broadcast, ownership transfer, peer wiring, value movement, or canary occurred.",
+    "Rehearsal review follow-ups (2026-09-26): the six W3 sub-lanes are Linear children of PRD-989, which sits under the canonical parent PRD-650; W4 items after 2.0.0 have no lanes yet (qa-readiness-plan § 4c)."
   ],
   "lanes": {
     "contracts": {
@@ -233,14 +235,14 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/blockchain/useSendToken.test.ts",
-          "evidence": "2026-09-05: 9 failed, 5 passed before implementation; Celo chain routing, fee/gate checks and receipt/invalidation behavior were absent. Resolver and wallet/embedded regression RED/GREEN details are in handoffs/codex-gardener-celo-wallets.md."
+          "command": "packages/shared: bun run test -- src/__tests__/commitment-pooling-pool-funding-data.test.ts (pre-fix freshness rule restored)",
+          "evidence": "3 failed | 16 passed: with the caught-up timestamp 14 days old and blocks current, the fresh-ledger cases read stale (W1-1, A18)"
         },
         "green": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/blockchain/useSendToken.test.ts src/__tests__/hooks/client-ui/wallet/useSendFlowController.test.tsx",
-          "evidence": "2026-09-05 22:02:06Z: 23 passed across 2 files. Separate transaction module proof: 105 passed, 5 existing skips; auth regression: 192 passed, 5 existing skips. Final release receipt and tested commit are recorded in handoffs/codex-gardener-celo-wallets.md. Final fresh release receipt: ea193295f9ce1f6ebac415481c320c5d7a61baae, 35 automated checks passed; browser-proof BLOCKED. See evidence/gardener-celo-wallet-validation-2026-09-05.json."
+          "command": "packages/shared: bun run test -- src/__tests__/commitment-pooling-pool-funding-data.test.ts src/__tests__/pool-funding.test.ts",
+          "evidence": "2 files, 48 passed at fd5060697: freshness from processed-block timestamps, ledgerAgeSeconds table, stale after 121s"
         },
-        "note": "Gardener Celo wallet RED/GREEN proof recorded; earlier lane proof remains historical."
+        "note": ""
       },
       "skill_tags": ["indexer", "react", "tanstack-query", "data-layer"]
     },
@@ -259,14 +261,14 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/client test -- src/__tests__/views/SendTab.test.tsx",
-          "evidence": "2026-09-05 21:48:58Z: 9 failed, 14 passed; all new Celo cases failed because the G$ · Celo card, controls and state copy were absent. Representative failure: missing accessible heading G$ · Celo."
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/commitment-acts.test.ts (membership guard removed from acts.ts)",
+          "evidence": "W3-A: 'offers taking up only to a member of the garden, once membership is known' fails with expected 'takeUp' to be null (1 failed, 10 passed)"
         },
         "green": {
-          "command": "bun run --filter @green-goods/client test -- src/__tests__/views/SendTab.test.tsx src/__tests__/views/CeloWalletCard.test.tsx src/__tests__/views/WalletDrawer.test.tsx",
-          "evidence": "2026-09-05: 53 passed across 3 files, including exact fee precision and real dialog focus restoration. Authenticated Brave proof remains BLOCKED; final release receipt and tested commit are recorded in handoffs/codex-gardener-celo-wallets.md. Final fresh release receipt: ea193295f9ce1f6ebac415481c320c5d7a61baae, 35 automated checks passed; browser-proof BLOCKED. See evidence/gardener-celo-wallet-validation-2026-09-05.json."
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/commitment-acts.test.ts src/__tests__/commitment-queue-state.test.tsx src/__tests__/hooks/client-ui/useGardenCommitmentController.test.tsx src/__tests__/hooks/commitment-pooling/useCommitmentViewerRoles.test.tsx src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx; bun run --filter @green-goods/client test -- src/__tests__/views/GardenCommitment.test.tsx src/__tests__/views/commitmentActions.test.ts",
+          "evidence": "W3-A: shared 37 passed (5 files), client 52 passed (2 files); shared and client typecheck exit 0"
         },
-        "note": "Gardener Celo WalletDrawer RED/GREEN proof recorded. Authenticated Brave proof is blocked; this does not close other UI sub-lanes."
+        "note": ""
       },
       "skill_tags": ["ui", "react", "design"]
     },
@@ -629,6 +631,124 @@
       },
       "linear_issues": ["PRD-837", "PRD-650", "PRD-723", "PRD-724", "PRD-725", "PRD-729"],
       "acceptance": "Gardeners can link historical Work or select an eligible commitment while submitting new Work; deferred links preserve one clientWorkId across direct and queued submission; approved historical Work is classified honestly and can be reconciled only by a steward through syncWorkDecisions; sequence-zero decisions require fresh review; client and admin surfaces expose awaiting-approval, awaiting-reconciliation, counted, fresh-review, and unavailable states; focused contracts/shared/client/admin tests, design and Storybook checks, and authenticated Brave proof pass. No ABI, storage, indexer-schema, hosted deployment, broadcast, or environment change is included."
+    },
+    "w3a_members_act": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "passed",
+      "branch": "fix/commitment-take-up-membership",
+      "depends_on": [],
+      "handoff": "handoffs/w3a-members-act-everyone-reads.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-990",
+        "parentIssue": "PRD-650"
+      },
+      "linear_issues": ["PRD-990", "PRD-650"]
+    },
+    "w3b_commitment_screen_chrome": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["w3h_host_claim_context"],
+      "handoff": "handoffs/w3b-commitment-screen-chrome.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-991",
+        "parentIssue": "PRD-650"
+      },
+      "linear_issues": ["PRD-991", "PRD-650"],
+      "blocked_reason": "Waits for W3-H (w3h_host_claim_context) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 rows 47 and 49)"
+    },
+    "w3c_seed_wizard_questions": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["w3b_commitment_screen_chrome"],
+      "handoff": "handoffs/w3c-seed-wizard-questions.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-992",
+        "parentIssue": "PRD-650"
+      },
+      "linear_issues": ["PRD-992", "PRD-650"],
+      "blocked_reason": "Waits for W3-B (w3b_commitment_screen_chrome) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+    },
+    "w3d_unlisted_gardens_reachable": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["w3c_seed_wizard_questions"],
+      "handoff": "handoffs/w3d-unlisted-gardens-reachable.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-993",
+        "parentIssue": "PRD-650"
+      },
+      "linear_issues": ["PRD-993", "PRD-650"],
+      "blocked_reason": "Waits for W3-C (w3c_seed_wizard_questions) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+    },
+    "w3e_account_sessions": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["w3d_unlisted_gardens_reachable"],
+      "handoff": "handoffs/w3e-account-sessions.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-994",
+        "parentIssue": "PRD-650"
+      },
+      "linear_issues": ["PRD-994", "PRD-650"],
+      "blocked_reason": "Waits for W3-D (w3d_unlisted_gardens_reachable) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+    },
+    "w3f_inspector_story_and_names": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["w3e_account_sessions"],
+      "handoff": "handoffs/w3f-inspector-story-and-names.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-995",
+        "parentIssue": "PRD-650"
+      },
+      "linear_issues": ["PRD-995", "PRD-650"],
+      "blocked_reason": "Waits for W3-E (w3e_account_sessions) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+    },
+    "w3g_commitment_send_record": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "fix/commitment-send-record",
+      "depends_on": ["w3a_members_act"],
+      "handoff": "handoffs/w3g-commitment-acts-record-their-sends.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-996",
+        "parentIssue": "PRD-650"
+      },
+      "linear_issues": ["PRD-996", "PRD-650"]
+    },
+    "w3h_host_claim_context": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["w3g_commitment_send_record"],
+      "handoff": "handoffs/w3h-host-garden-personal-claims.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-997",
+        "parentIssue": "PRD-650"
+      },
+      "linear_issues": ["PRD-997", "PRD-650"],
+      "blocked_reason": "Waits for W3-G (w3g_commitment_send_record) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 rows 47 and 49)"
     }
   },
   "follow_on": {
@@ -1317,6 +1437,142 @@
       "status": "deferred",
       "branch": null,
       "note": "Resolved the duplicate Community tracker. The Community PWA is a hackathon build that was deferred on 2026-09-07 in favor of QA, so PRD-682 was canceled as superseded and the work is tracked solely by PRD-691 in the community-interface hub. Cleared this lane's stale PRD-758 gate, its 2026-09-30 due date, and its Linear sync. COM-11 now waits on PRD-691 instead of PRD-682."
+    },
+    {
+      "timestamp": "2026-09-20T00:00:00Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "blocked",
+      "branch": null,
+      "note": "QA readiness plan recorded in qa-readiness-plan.md after four decision rounds with Afo. Before the walk: refresh after queued acts, prefilled Offer It Again, an admin batch tray, and one full catalog PR. The walk runs on recorded two-person calls against staging on live Arbitrum, staged from a cancelled rehearsal cycle to a real cycle, then the protocol pool relay, then the partner garden. Afo decided the D2 close-the-season call as finish: ending a season and recording an external payout are built in the fix window and walked in re-QA. The lane's manual gate is unchanged and remains Afo's to clear. Live read at Arbitrum block 507310713: all 18 pools NotReady."
+    },
+    {
+      "timestamp": "2026-09-23T01:56:46.309Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-api-modules",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T02:14:54.435Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T03:48:01.927Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T04:28:49.445Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T05:21:09.660Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T05:46:13.803Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T06:20:35.940Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T07:07:15.509Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T07:54:11.581Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T08:29:37.938Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-24T09:52:26.642Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "develop",
+      "note": "Recorded post-stack RED/GREEN TDD proof on local develop"
+    },
+    {
+      "timestamp": "2026-09-24T16:18:36.754Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-26T22:40:39.898Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/commitment-take-up-membership",
+      "note": "Rehearsal review follow-ups accepted (qa-readiness-plan § 1 rows 36–47, § 4c accepted queue): six W3 sub-lanes added with handoffs and Linear children PRD-990 to PRD-995 under PRD-989; W3-A in progress"
+    },
+    {
+      "timestamp": "2026-09-26T22:57:07.090Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-27T01:22:06.000Z",
+      "actor": "claude",
+      "lane": "w3a_members_act",
+      "status": "passed",
+      "branch": "fix/commitment-take-up-membership",
+      "note": "W3-A merged in #921 as 4615608d9 (tree identical to the tested head dfc08fa85; critical push gate and CI Gate green); authenticated wallet walk pending. W3-B ready. W3-G added for N41 with Linear child PRD-996 (§ 1 row 48); N42 and N43 recorded in § 4c"
+    },
+    {
+      "timestamp": "2026-09-27T01:30:52.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "in_progress",
+      "branch": "fix/commitment-send-record",
+      "note": "Afo set the order after W3-A (§ 1 row 49): W3-G now, then W3-H for N42 (Linear child PRD-997), then W3-B to W3-F; N43 not scheduled before the cut"
     }
   ]
 }

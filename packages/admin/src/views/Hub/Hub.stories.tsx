@@ -117,7 +117,7 @@ export const CreateAssessmentRoute: Story = {
     await expect(
       await canvas.findByRole(
         "heading",
-        { name: "Submit Assessment" },
+        { name: "Create Assessment" },
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     ).toBeVisible();

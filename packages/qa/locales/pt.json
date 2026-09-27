@@ -2,21 +2,29 @@
   "locale": "pt",
   "name": "Português",
   "ui": {
-    "journey": "Jornada",
-    "part": "Parte",
+    "act": "Agir",
     "allParts": "Todas as partes",
     "allSurfaces": "Todas as superfícies",
-    "act": "Agir",
-    "verify": "Verificar",
-    "surface": "Superfície",
+    "carryKeep": "Manter para depois",
+    "carryLabel": "Veredictos não enviados de uma rodada fechada",
+    "carryReview": "Rever",
+    "carrySend": "Enviar para {target}",
+    "carrySummaryMany": "{count} veredictos registados em {runs} nunca chegaram ao servidor",
+    "carrySummaryOne": "1 veredicto registado em {runs} nunca chegou ao servidor",
+    "carryWhen": ", editado pela última vez {age}",
+    "carryWhere": "Já não é possível escrever nada em {runs}. Envie-os para {target}, que os regista como parte dessa rodada, ou mantenha-os aqui e decida mais tarde.",
     "caseRole": "Papel necessário",
-    "preconditions": "Antes de começar",
     "handoff": "Passagem",
-    "knownGate": "Limitação conhecida",
+    "journey": "Jornada",
     "journeyRoles": "Papéis da jornada",
-    "roleRequirements": "Responsabilidades do papel",
+    "knownGate": "Limitação conhecida",
     "language": "Idioma da jornada",
-    "orderJourney": "Jornada"
+    "orderJourney": "Jornada",
+    "part": "Parte",
+    "preconditions": "Antes de começar",
+    "roleRequirements": "Responsabilidades do papel",
+    "surface": "Superfície",
+    "verify": "Verificar"
   },
   "cases": {
     "ADM-012": {
@@ -26,25 +34,27 @@
         "Abra /hub/work",
         "Abra uma entrega pendente",
         "Confira as evidências em mídia",
-        "Escolha o nível de confiança e escreva o feedback",
+        "Escolha o nível de confiança (nenhum vem escolhido) e escreva o feedback",
         "Confirme que Aprovar e Rejeitar aparecem na área fixa de ações do diálogo sem rolar a página",
-        "Rejeite ou aprove",
+        "Aprove, ou toque em Rejeitar e escreva um motivo no diálogo Rejeitar trabalho",
         "Confirme que a fila foi atualizada"
       ],
       "expected": "O fluxo completo de decisão funciona e as ações de confirmar ou cancelar nunca ficam ocultas em uma área de rolagem cortada",
       "role": "Steward"
     },
-    "ADM-013": {
-      "scenario": "A confirmação do compromisso informa quem e o que será afetado antes da confirmação",
-      "preconditions": ["Sessão de Steward; pelo menos uma confirmação de compromisso pendente"],
-      "steps": [
-        "Abra /hub/confirm",
-        "Abra um compromisso",
-        "Confirme que quem e o que será afetado estão informados",
-        "Confirme ou recuse",
-        "Abra novamente depois de uma mudança externa para testar dados desatualizados"
+    "ADM-145": {
+      "scenario": "Confirmar cumprido… revisa o compromisso antes de confirmá-lo",
+      "preconditions": [
+        "Steward com o Garden que confirma o compromisso selecionado no cabeçalho",
+        "Um compromisso que aguarda a confirmação desse Garden e marcado como Pronto para confirmar; a conta que confirma não contribuiu"
       ],
-      "expected": "As consequências são apresentadas antes da ação, os dados desatualizados são tratados com clareza e o estado resultante fica visível",
+      "steps": [
+        "Abra Hub → Confirmar e pressione Confirmar cumprido… na linha do compromisso",
+        "Leia a revisão",
+        "Pressione Confirmar cumprido e confirme na wallet",
+        "Leia Hub → Confirmar e o compromisso depois"
+      ],
+      "expected": "Antes de qualquer envio, a revisão nomeia o compromisso, o pool do Garden em que ele está e quem o cumpriu, e diz se esta confirmação o encerra como cumprido para todos ou qual confirmação de quantas ela é, e que não pode ser desfeita; confirmar é uma única transação; depois o compromisso aparece como Cumprido e sai da fila, ou a linha mostra mais uma confirmação",
       "role": "Steward"
     },
     "ADM-014": {
@@ -60,15 +70,17 @@
       "expected": "Os estados são claros, ações destrutivas ou onchain exigem revisão e o cancelamento preserva o estado",
       "role": "Steward"
     },
-    "ADM-026": {
-      "scenario": "Crie um compromisso: assistente de 4 etapas, confirmadores identificados, revisão e criação na fila",
-      "preconditions": ["O pool do Garden está aberto"],
+    "ADM-140": {
+      "scenario": "Crie um compromisso: assistente de 4 etapas, confirmadores identificados e revisão antes de enviar",
+      "preconditions": [
+        "O pool do Garden está aberto; o compromisso local do Garden indica um steward ou avaliador independente como confirmador, nunca quem contribuiu"
+      ],
       "steps": [
         "Conclua o assistente de criação de 4 etapas",
         "Adicione confirmadores identificados, incluindo um endereço incorreto",
-        "Revise, coloque na fila e acompanhe a linha em espera"
+        "Revise, pressione Semear este compromisso e confirme na wallet; depois pressione Concluir e verifique se o assistente fecha"
       ],
-      "expected": "As etapas validam; um endereço de confirmador incorreto ou duplicado é rejeitado de forma visível; a revisão vem antes da fila e a linha aparece antes da atualização do indexador",
+      "expected": "Cada etapa valida antes de Próximo; um endereço de confirmador incorreto ou duplicado é rejeitado de forma visível; a revisão mostra todas as respostas antes de qualquer envio; ao semear, a wallet pede para confirmar uma única criação, e o assistente a mostra como Criado até que Concluir o feche",
       "role": "Steward"
     },
     "ADM-037": {
@@ -118,8 +130,8 @@
       "expected": "A Temporada e a Campanha abrem mesmo que a avaliação inicial ainda não tenha terminado de ser indexada; a avaliação continua sendo contextual",
       "role": "Steward"
     },
-    "ADM-039": {
-      "scenario": "Crie no protocolo uma Solicitação de serviço concreto que exija aprovação",
+    "ADM-139": {
+      "scenario": "Crie no protocolo uma Solicitação de trabalho de jardim sujeita a aprovação que o Garden de teste possa entregar",
       "preconditions": [
         "Sessão iniciada com a wallet autorizada de Tester A",
         "Tester A é Steward do protocolo",
@@ -127,12 +139,12 @@
       ],
       "steps": [
         "Abra o pool do protocolo Green Goods",
-        "Crie uma Solicitação que indique um serviço concreto e evidências claras",
-        "Exija aprovação antes de aceitar quem a reivindicar",
-        "Revise e envie a Solicitação",
+        "Crie uma Solicitação do tipo Trabalho de jardim (impacto) com uma linha de ação para a qual o Garden de teste possa enviar Trabalho",
+        "Mantenha o modo de reivindicação em Revisto por responsáveis para que quem a reivindicar precise ser aceito",
+        "Revise e crie a Solicitação, confirmando na wallet",
         "Espere a Solicitação aparecer no pool do protocolo"
       ],
-      "expected": "Uma Solicitação sujeita a aprovação aparece no pool do protocolo com o serviço, as evidências e as expectativas de confirmação intactos",
+      "expected": "Uma Solicitação revista por responsáveis aparece no pool do protocolo com sua linha de ação, sua meta e suas expectativas de confirmação intactas. É do tipo trabalho de jardim, então fica pronta por meio de Trabalho vinculado e aprovado, não por evidências e Enviar para confirmação",
       "role": "Steward"
     },
     "PWA-047": {
@@ -140,7 +152,7 @@
       "preconditions": [
         "Sessão iniciada com a wallet autorizada de Tester B",
         "Tester B é Steward do Garden de teste",
-        "ADM-039 está concluído"
+        "ADM-139 está concluído"
       ],
       "steps": [
         "Abra a Solicitação do protocolo",
@@ -238,7 +250,7 @@
       "preconditions": [
         "Sessão iniciada com a wallet autorizada de Tester B",
         "Tester B é uma pessoa integrante do Garden de teste",
-        "ADM-026 está concluído"
+        "ADM-140 está concluído"
       ],
       "steps": [
         "Abra a Campanha atual do Garden de teste",
@@ -283,7 +295,7 @@
       "role": "Steward"
     },
     "ADM-045": {
-      "scenario": "Coloque na fila uma recarga discricionária da tesouraria ProtocolToGarden",
+      "scenario": "Coloque na fila uma recarga discricionária da tesouraria do protocolo para um Garden",
       "preconditions": [
         "Sessão iniciada com a wallet autorizada de Tester A",
         "ADM-014 confirmou que o financiamento está pronto",
@@ -291,9 +303,9 @@
       ],
       "steps": [
         "Abra a ação de financiamento da tesouraria do protocolo",
-        "Escolha ProtocolToGarden e identifique o Garden de destino",
-        "Confirme que nenhum ID de compromisso é solicitado ou anexado",
-        "Se houver autorização para movimentar valor, revise e coloque a recarga na fila",
+        "Escolha o Garden de destino em Jardim destinatário e informe o valor",
+        "Confirme que nenhum compromisso é solicitado ou anexado",
+        "Se houver autorização para movimentar valor, pressione Revisar aporte…, leia a confirmação e pressione Enfileirar aporte",
         "Caso contrário, pare na limitação visível e registre Bloqueado",
         "Peça a Tester B para verificar o saldo ou o estado de preparação do Garden"
       ],
@@ -304,7 +316,7 @@
   "journeys": {
     "service-relay": {
       "label": "Revezamento de serviços: Green Goods → Garden → membros",
-      "summary": "Duas pessoas acompanham uma Solicitação do pool da Green Goods durante a entrega pelo Garden e depois usam um compromisso separado do Garden para reconhecer o trabalho da pessoa integrante.",
+      "summary": "Duas pessoas acompanham uma Solicitação do pool da Green Goods durante a entrega pelo Garden e depois usam um compromisso separado do Garden para reconhecer o trabalho da pessoa integrante. Os dois compromissos são do tipo trabalho de jardim: cada um fica pronto por meio de Trabalho vinculado e aprovado, não por evidências e Enviar para confirmação.",
       "lanes": {
         "protocol-review": {
           "label": "Protocolo e revisão",
@@ -330,7 +342,7 @@
         "ADM-038": {
           "handoff": "As duas pessoas confirmam que veem o mesmo Garden e o ciclo aberto; a avaliação oferece contexto, mas não é um pré-requisito."
         },
-        "ADM-039": {
+        "ADM-139": {
           "handoff": "Espere até que a Solicitação apareça no pool do protocolo para a pessoa integrante do Garden."
         },
         "PWA-047": {
@@ -349,13 +361,13 @@
           "handoff": "A pessoa integrante do Garden verifica o Safe de destino do Garden ou seu estado de preparação.",
           "knownGate": "A liquidação de G$ do protocolo para o Garden exige uma interface de liquidação habilitada e autorização para movimentar valor. Se uma delas não estiver disponível, registre Bloqueado e continue com as etapas que não movimentam valor."
         },
-        "ADM-026": {
-          "handoff": "Espere até que o compromisso local separado apareça na Campanha aberta do Garden."
+        "ADM-140": {
+          "handoff": "Crie-o como Trabalho de jardim com uma linha de ação, para que o Trabalho da pessoa integrante possa ser vinculado. Espere até que o compromisso local separado apareça na Campanha aberta do Garden."
         },
         "PWA-050": {
           "handoff": "A pessoa revisora espera o Trabalho local e as evidências antes de abrir a revisão."
         },
-        "ADM-013": {
+        "ADM-145": {
           "handoff": "As duas pessoas verificam que o compromisso local está concluído e continua distinto da Solicitação do protocolo."
         },
         "ADM-044": {

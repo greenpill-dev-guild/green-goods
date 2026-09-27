@@ -28,7 +28,7 @@ const meta: Meta<typeof SeedStepWhat> = {
     docs: {
       description: {
         component:
-          "Step one of the seeding console. The steward says what kind of commitment this is, which way it runs, which season or campaign holds it, and the words a member will read on it.",
+          "Step one of the seeding console. The steward says what kind of commitment this is, which way it runs, which season or campaign holds it, and the words a member will read on it. The title stops at 60 characters and the note at 280, both counted as the steward types.",
       },
     },
   },

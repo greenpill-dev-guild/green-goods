@@ -21,6 +21,8 @@ export interface EnhancedWorkApproval extends WorkApproval {
   title: string;
   description: string;
   gardenId?: Address;
+  /** The reviewed work's photos, when its attestation could be read. */
+  media?: string[];
 }
 
 // Function to get work approvals by attester address.
@@ -29,7 +31,7 @@ export interface EnhancedWorkApproval extends WorkApproval {
 async function getWorkApprovalsByAttester(
   attesterAddress: Address,
   chainId: number
-): Promise<Array<WorkApproval & { gardenId?: Address; title?: string }>> {
+): Promise<Array<WorkApproval & { gardenId?: Address; title?: string; media?: string[] }>> {
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
       attestations(where: $where) {
@@ -79,8 +81,9 @@ async function getWorkApprovalsByAttester(
   });
   if (approvals.length === 0) return approvals;
 
-  // An approval attestation has the work UID but no garden. Resolve the linked
-  // work in one read so history cards can open their detail route.
+  // An approval attestation has the work UID but no garden or photos. Resolve the
+  // linked work in one read so history cards can open their detail route and show
+  // what was reviewed.
   try {
     const works = await getWorksByUIDs(
       [...new Set(approvals.map((approval) => approval.workUID))],
@@ -89,7 +92,9 @@ async function getWorkApprovalsByAttester(
     const byId = new Map(works.map((work) => [work.id.toLowerCase(), work]));
     return approvals.map((approval) => {
       const work = byId.get(approval.workUID.toLowerCase());
-      return work ? { ...approval, gardenId: work.gardenAddress, title: work.title } : approval;
+      return work
+        ? { ...approval, gardenId: work.gardenAddress, title: work.title, media: work.media }
+        : approval;
     });
   } catch (error) {
     logger.warn("Could not resolve gardens for reviewed work", { error, count: approvals.length });

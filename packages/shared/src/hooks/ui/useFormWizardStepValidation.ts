@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type FormWizardValidationStep<TStepId extends string = string> = {
   id: TStepId;
@@ -33,6 +33,12 @@ export interface UseFormWizardStepValidationResult {
   setShowValidation: (showValidation: boolean) => void;
   validateCurrentStep: () => Promise<boolean>;
   validateAll: () => Promise<boolean>;
+  /**
+   * Show validation on a step the flow is about to move to, such as Submit
+   * sending the person back to a step with a bad value. Every other step
+   * change hides validation.
+   */
+  showValidationOnStep: (stepIndex: number) => void;
   handleNext: () => Promise<void>;
   handleBack: () => void;
   handleStepClick: (stepIndex: number) => void;
@@ -52,10 +58,24 @@ export function useFormWizardStepValidation<
   clearValidationAfterValidNext = false,
 }: UseFormWizardStepValidationOptions<TStepId, TFieldName>): UseFormWizardStepValidationResult {
   const [showValidation, setShowValidation] = useState(false);
+  const revealOnStepRef = useRef<number | null>(null);
 
   useEffect(() => {
-    setShowValidation(false);
+    const reveal = revealOnStepRef.current === currentStep;
+    revealOnStepRef.current = null;
+    setShowValidation(reveal);
   }, [currentStep]);
+
+  const showValidationOnStep = useCallback(
+    (stepIndex: number) => {
+      if (stepIndex === currentStep) {
+        setShowValidation(true);
+        return;
+      }
+      revealOnStepRef.current = stepIndex;
+    },
+    [currentStep]
+  );
 
   const validateCurrentStep = useCallback(async () => {
     setShowValidation(true);
@@ -104,6 +124,7 @@ export function useFormWizardStepValidation<
     setShowValidation,
     validateCurrentStep,
     validateAll,
+    showValidationOnStep,
     handleNext,
     handleBack,
     handleStepClick,

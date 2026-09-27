@@ -18,7 +18,9 @@ import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
 import { FailedActAlert } from "./FailedActAlert";
+import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
+import { QueuedActNotice } from "./QueuedActRow";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
 
@@ -78,7 +80,21 @@ export function GardenCommitment() {
 
   const { commitment, contributors, requirements } = controller.detail;
   const act = commitmentActForKind(controller.actKind);
-  const band = selectStatusBand({ commitment, seat: controller.seat });
+  // A signed-in reader who does not belong to the garden gets no act; the card
+  // under the status band says how to join instead. Nothing shows while
+  // membership is still being read, or while an act is already on its way.
+  const untaken = commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED";
+  const showJoinToAct =
+    !act && !controller.queue.hasPendingJob && controller.membership.isMember === false && untaken;
+  // A read the answer depends on failed: say so and offer it again, rather than
+  // an empty bar or a join card for someone who may already belong.
+  const showMembershipRetry =
+    !act && !controller.queue.hasPendingJob && controller.membership.unavailable && untaken;
+  const band = selectStatusBand({
+    commitment,
+    seat: controller.seat,
+    actKind: controller.actKind,
+  });
   const isPending = controller.isQueueing || controller.isSending;
   const units = commitment.unitLabel
     ? formatCommitmentUnits(intl, commitment.targetUnits, commitment.unitLabel)
@@ -130,7 +146,18 @@ export function GardenCommitment() {
         navigate("proof", { relative: "path" });
         return;
       case "offerAgain":
-        navigate("../..", { relative: "path" });
+      case "askAgain": {
+        // Into the pool the commitment belongs to, which on the protocol pool is
+        // not the garden this screen was opened from. Without that read there is
+        // no honest destination: the route's garden would open a composer that
+        // refuses this source as belonging to another pool.
+        const poolGarden = controller.pool?.garden;
+        if (!poolGarden) return;
+        const door = act.kind === "askAgain" ? "request" : "offer";
+        navigate(
+          `/home/${poolGarden}/commitments/new?direction=${door}&from=${commitment.commitmentId.toString()}`
+        );
+      }
     }
   };
 
@@ -155,7 +182,7 @@ export function GardenCommitment() {
               }
               onRun={runAct}
             />
-          ) : controller.queue.hasPendingJob ? (
+          ) : controller.queue.hasPendingJob && !controller.queue.pendingAct ? (
             <p
               className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-sm text-text-sub-600"
               role="status"
@@ -170,6 +197,13 @@ export function GardenCommitment() {
             failed={controller.queue.failedJob}
             onChanged={controller.queue.refresh}
           />
+        ) : controller.queue.pendingAct ? (
+          <QueuedActNotice
+            key={controller.queue.pendingAct.jobId}
+            act={controller.queue.pendingAct}
+            inFlight={isPending}
+            onChanged={controller.queue.refresh}
+          />
         ) : null}
         <CommitmentIdentity
           commitment={commitment}
@@ -180,6 +214,12 @@ export function GardenCommitment() {
           units={units}
           joinable={controller.joinable}
         />
+        {showJoinToAct ? (
+          <JoinToAct garden={controller.membership.garden} isOnline={controller.isOnline} />
+        ) : null}
+        {showMembershipRetry ? (
+          <MembershipCheckFailed onRetry={controller.membership.retry} />
+        ) : null}
         <CommitmentTeam
           commitment={commitment}
           contributors={contributors}

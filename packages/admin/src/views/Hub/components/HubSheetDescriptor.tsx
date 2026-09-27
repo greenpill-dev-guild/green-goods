@@ -6,6 +6,7 @@ import {
   type AdminHubRouteContext,
   adminRoutes,
 } from "@green-goods/shared/utils/navigation/admin-routes";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -107,11 +108,13 @@ export function HubSheetDescriptor({
     // read/review inspectors (work detail, certification).
     if (sheetSelection?.kind === "work") {
       return {
-        title:
-          (selectedWork?.title
-            ? localizeCanonicalActionTitle(selectedWork.title, formatMessage)
-            : undefined) ??
-          formatMessage({ id: "app.work.detail.reviewTitle", defaultMessage: "Review Work" }),
+        title: localizeCanonicalActionTitle(
+          toWorkDisplayTitle(
+            selectedWork?.title,
+            formatMessage({ id: "app.work.detail.reviewTitle", defaultMessage: "Review Work" })
+          ),
+          formatMessage
+        ),
         content: (
           <WorkDetailPanel workId={sheetSelection.id} layout="sheet" onSuccess={handlePanelClose} />
         ),

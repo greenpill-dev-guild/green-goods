@@ -1,5 +1,6 @@
 import { Button } from "@green-goods/shared/components/Button";
 import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
@@ -138,12 +139,14 @@ function FieldNoteTile({
 }) {
   const intl = useIntl();
   const { formatMessage } = intl;
-  const title =
-    note.title ||
+  // A stored title can end in timestamps older submissions appended; readers see the title alone.
+  const title = toWorkDisplayTitle(
+    note.title,
     formatMessage({
       id: "public.gardenDetail.notes.untitled",
       defaultMessage: "Untitled entry",
-    });
+    })
+  );
   const cover = note.media[0];
 
   return (

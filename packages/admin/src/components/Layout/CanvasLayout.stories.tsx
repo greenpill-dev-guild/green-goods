@@ -137,7 +137,7 @@ function CanvasLayoutVisualHarness({ empty = false, activePath }: MockCanvasLayo
         tone="hub"
         size="lg"
       >
-        <div className="p-5 text-sm text-text-sub">Account settings and network details.</div>
+        <div className="p-5 body-sm text-text-sub">Account settings and network details.</div>
       </AdminDialog>
     </>
   );

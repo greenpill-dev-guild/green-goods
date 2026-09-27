@@ -4,7 +4,6 @@ import { consumeAppLaunchFallback } from "@green-goods/shared/utils/app/browser"
 import { useIntl } from "react-intl";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigationType } from "react-router-dom";
-import { clearChunkReloadAttempt } from "@/components/Errors/errorClassification";
 import { SiteHeader } from "@/components/Navigation/SiteHeader";
 import { publicCuration } from "@/content/publicCuration";
 
@@ -257,12 +256,6 @@ function useWarmPublicHeroImages() {
  * Used for the public-facing website experience (browser mode).
  */
 export default function PublicShell() {
-  // The router resolves every matched lazy route before this shell mounts, so
-  // reaching here proves the one-shot chunk reload worked and the guard can
-  // re-arm for the next stale deploy.
-  useEffect(() => {
-    clearChunkReloadAttempt();
-  }, []);
   usePublicRouteScrollReset();
   useWarmPublicHeroImages();
   const { formatMessage } = useIntl();

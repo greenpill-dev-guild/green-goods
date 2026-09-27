@@ -17,6 +17,7 @@ import type { CommitmentPoolMutationCall } from "./pool-lifecycle";
 import type {
   PoolChainCycleRead,
   PoolChainReader,
+  PoolSetupAction,
   PoolSetupFailure,
   PoolSetupRunContext,
   PoolSetupStep,
@@ -147,6 +148,34 @@ export async function judgeStep(
       return { landed: false };
     }
   }
+}
+
+/**
+ * Which wallet prompt each write rides in, for the writes a run will send, in
+ * order. One at a time, every write is its own prompt. When the wallet can run
+ * several calls as one transaction, the writes before a cycle opening share one
+ * prompt: the opening needs the cycle id, and only the seeding receipt names
+ * it. A lone write is never a batch. Returns 1-based prompt numbers, so the
+ * last entry is how many times the wallet will ask.
+ */
+export function walletPrompts(actions: readonly PoolSetupAction[], batching: boolean): number[] {
+  const prompts: number[] = [];
+  let prompt = 0;
+  let groupOpen = false;
+  for (let index = 0; index < actions.length; index += 1) {
+    const action = actions[index]!;
+    const next = actions[index + 1];
+    const joinsGroup = batching && action !== "openCycle";
+    if (joinsGroup && groupOpen) {
+      prompts.push(prompt);
+      continue;
+    }
+    prompt += 1;
+    prompts.push(prompt);
+    // A group starts only when the write after this one can share the prompt.
+    groupOpen = joinsGroup && next !== undefined && next !== "openCycle";
+  }
+  return prompts;
 }
 
 /** The contract call a step sends, once its cycle id is known. */

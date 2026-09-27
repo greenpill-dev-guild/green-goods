@@ -2,6 +2,7 @@ import type {
   CommitmentDialogController,
   DisputeResolutionKey,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
@@ -21,6 +22,7 @@ export function CommitmentResolveDialog({
   resolution,
   onResolutionChange,
   blockedReason,
+  target,
 }: {
   open: OpenDialog;
   onClose: () => void;
@@ -30,6 +32,8 @@ export function CommitmentResolveDialog({
   resolution: DisputeResolutionKey;
   onResolutionChange: (resolution: DisputeResolutionKey) => void;
   blockedReason: string | undefined;
+  /** The commitment and its pool, named under the title. */
+  target?: ReactNode;
 }) {
   const { formatMessage } = useIntl();
 
@@ -38,6 +42,7 @@ export function CommitmentResolveDialog({
       isOpen={open === "resolve-dispute"}
       onClose={onClose}
       tone={tone}
+      target={target}
       title={formatMessage({
         id: "cockpit.garden.pool.commitment.resolve.title",
         defaultMessage: "Resolve the Dispute",
