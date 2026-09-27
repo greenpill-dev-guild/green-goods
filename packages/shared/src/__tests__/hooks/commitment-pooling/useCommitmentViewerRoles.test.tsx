@@ -11,23 +11,30 @@ const HOST = "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa" as Address;
 const OTHER = "0xBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBb" as Address;
 const PENDING_JOINS_KEY = "greengoods:pending-joins";
 
+type RosterGarden = {
+  id: string;
+  name: string;
+  gardeners: string[];
+  stewards: string[];
+  funders?: string[];
+  communities?: string[];
+};
+
 const mocks = vi.hoisted(() => ({
-  roleAnswers: new Map<string, boolean>(),
-  loadingRoles: new Set<string>(),
-  gardens: [] as Array<{ id: string; name: string; gardeners: string[]; stewards: string[] }>,
+  gardens: [] as RosterGarden[],
   gardensLoading: false,
   gardensError: false,
-  refetch: vi.fn(),
+  refetchGardens: vi.fn(),
+  membership: { isMember: false as boolean | null, isLoading: false, isError: false },
+  refetchMembership: vi.fn(),
 }));
 
 vi.mock("../../../hooks/roles/useHasRole", () => ({
-  useHasRole: (garden: string | undefined, _viewer: string | undefined, role: string) => {
-    const key = garden ? `${garden.toLowerCase()}:${role}` : "";
-    return {
-      hasRole: key ? (mocks.roleAnswers.get(key) ?? false) : false,
-      isLoading: key ? mocks.loadingRoles.has(key) : false,
-    };
-  },
+  useHasRole: () => ({ hasRole: false, isLoading: false }),
+}));
+
+vi.mock("../../../hooks/roles/useGardenMembership", () => ({
+  useGardenMembership: () => ({ ...mocks.membership, refetch: mocks.refetchMembership }),
 }));
 
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
@@ -36,7 +43,7 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
     isLoading: mocks.gardensLoading,
     isSuccess: !mocks.gardensLoading && !mocks.gardensError,
     isError: mocks.gardensError,
-    refetch: mocks.refetch,
+    refetch: mocks.refetchGardens,
   }),
 }));
 
@@ -59,19 +66,19 @@ function roles(routeGarden: string = HOST, poolGarden: string = HOST) {
 describe("useCommitmentViewerRoles", () => {
   beforeEach(() => {
     window.localStorage.clear();
-    mocks.roleAnswers = new Map();
-    mocks.loadingRoles = new Set();
     mocks.gardensLoading = false;
     mocks.gardensError = false;
-    mocks.refetch = vi.fn();
+    mocks.refetchGardens = vi.fn();
+    mocks.refetchMembership = vi.fn();
+    mocks.membership = { isMember: false, isLoading: false, isError: false };
     mocks.gardens = [
       { id: HOST, name: "Host Garden", gardeners: [], stewards: [] },
       { id: OTHER, name: "Other Garden", gardeners: [], stewards: [] },
     ];
   });
 
-  it("counts a member by the chain's gardener role when the indexer roster is behind", () => {
-    mocks.roleAnswers.set(`${HOST.toLowerCase()}:gardener`, true);
+  it("counts a member by the chain's role read when the indexer roster is behind", () => {
+    mocks.membership = { isMember: true, isLoading: false, isError: false };
     expect(roles().result.current.isMemberHere).toBe(true);
   });
 
@@ -81,8 +88,7 @@ describe("useCommitmentViewerRoles", () => {
       PENDING_JOINS_KEY,
       JSON.stringify({ [HOST]: { address: VIEWER, timestamp: Date.now() } })
     );
-    const { result } = roles();
-    expect(result.current.isMemberHere).toBe(true);
+    expect(roles().result.current.isMemberHere).toBe(true);
     // The overlay also opens a garden as a claim context on the protocol pool.
     window.localStorage.setItem(
       PENDING_JOINS_KEY,
@@ -93,10 +99,20 @@ describe("useCommitmentViewerRoles", () => {
     ]);
   });
 
-  it("answers null while the gardener read is on its way, and false once it has answered", () => {
-    mocks.loadingRoles.add(`${HOST.toLowerCase()}:gardener`);
+  it("counts every role the contract accepts, funders and community members included", () => {
+    mocks.gardens = [
+      { id: HOST, name: "Host Garden", gardeners: [], stewards: [], funders: [VIEWER] },
+      { id: OTHER, name: "Other Garden", gardeners: [], stewards: [], communities: [VIEWER] },
+    ];
+    const { result } = roles();
+    expect(result.current.isMemberHere).toBe(true);
+    expect(result.current.claimGardens.member).toEqual([{ address: OTHER, name: "Other Garden" }]);
+  });
+
+  it("answers null while the chain read is on its way, and false once it has answered", () => {
+    mocks.membership = { isMember: null, isLoading: true, isError: false };
     expect(roles().result.current.isMemberHere).toBeNull();
-    mocks.loadingRoles.clear();
+    mocks.membership = { isMember: false, isLoading: false, isError: false };
     expect(roles().result.current.isMemberHere).toBe(false);
   });
 
@@ -110,17 +126,28 @@ describe("useCommitmentViewerRoles", () => {
     expect(result.current.claimGardens.member).toEqual([]);
   });
 
-  it("keeps membership unknown when the garden list fails, and offers the read again", () => {
+  it("keeps membership unknown when the garden list fails, and reads both again on retry", () => {
     // A failed query stops loading and returns no list; that is not "a member of none".
     mocks.gardensError = true;
     const { result } = roles();
     expect(result.current.isMemberHere).toBeNull();
     expect(result.current.claimGardensKnown).toBe(false);
-    expect(result.current.gardensUnavailable).toBe(true);
-    result.current.retryGardens();
-    expect(mocks.refetch).toHaveBeenCalledTimes(1);
-    // The chain's answer still counts when it is yes.
-    mocks.roleAnswers.set(`${HOST.toLowerCase()}:gardener`, true);
-    expect(roles().result.current.isMemberHere).toBe(true);
+    expect(result.current.membershipUnavailable).toBe(true);
+    result.current.retryMembership();
+    expect(mocks.refetchGardens).toHaveBeenCalledTimes(1);
+    expect(mocks.refetchMembership).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps membership unknown when the chain's role read fails and the roster says no", () => {
+    // The hierarchical useHasRole would have answered no; a failed read is not no.
+    mocks.membership = { isMember: null, isLoading: false, isError: true };
+    const { result } = roles();
+    expect(result.current.isMemberHere).toBeNull();
+    expect(result.current.membershipUnavailable).toBe(true);
+    // The roster's yes still counts when the chain cannot answer.
+    mocks.gardens = [{ id: HOST, name: "Host Garden", gardeners: [VIEWER], stewards: [] }];
+    const again = roles();
+    expect(again.result.current.isMemberHere).toBe(true);
+    expect(again.result.current.membershipUnavailable).toBe(false);
   });
 });

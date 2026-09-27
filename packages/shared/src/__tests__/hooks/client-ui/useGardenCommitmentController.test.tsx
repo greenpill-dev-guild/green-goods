@@ -123,6 +123,21 @@ vi.mock("../../../hooks/roles/useHasRole", () => ({
   }),
 }));
 
+vi.mock("../../../hooks/roles/useGardenMembership", () => ({
+  // Mirrors the chain read from the same role answers the useHasRole mock uses:
+  // any role held in a garden is membership there.
+  useGardenMembership: (garden: string | undefined) => ({
+    isMember: garden
+      ? [...mocks.roleAnswers.entries()].some(
+          ([key, held]) => held && key.startsWith(`${garden.toLowerCase()}:`)
+        )
+      : null,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+}));
+
 vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
   useGardenPermissions: () => ({
     canManageGarden: (garden: { id: string }) => mocks.managedGardens.has(garden.id.toLowerCase()),

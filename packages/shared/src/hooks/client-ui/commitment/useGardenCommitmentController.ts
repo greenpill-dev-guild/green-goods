@@ -154,9 +154,9 @@ export function useGardenCommitmentController(input: {
             openJoining: Boolean(roles.garden.openJoining),
           }
         : null,
-    unavailable: canClaimHere === null && (roles.gardensUnavailable || poolQuery.isError),
+    unavailable: canClaimHere === null && (roles.membershipUnavailable || poolQuery.isError),
     retry: () => {
-      roles.retryGardens();
+      roles.retryMembership();
       if (poolQuery.isError) void poolQuery.refetch();
     },
   };
