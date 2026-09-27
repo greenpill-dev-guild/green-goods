@@ -63,6 +63,8 @@ export default meta;
 type Story = StoryObj<typeof CommitmentDialogPanel>;
 
 export const Detail: Story = {
+  // In the story gate, so the cast that closes a commitment for good stays reviewable.
+  tags: ["storybook-ci"],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByText("Proof added")).toBeVisible();

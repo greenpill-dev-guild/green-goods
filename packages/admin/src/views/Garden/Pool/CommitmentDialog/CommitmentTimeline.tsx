@@ -1,7 +1,8 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useIntl } from "react-intl";
 import { AdminCardTitle } from "@/components/AdminCard";
-import { formatUnixDate, shortAddress } from "../poolPresentation";
+import { formatUnixDate } from "../poolPresentation";
 import { eventLabel } from "./commitmentDialogPresentation";
 
 /** Everything that has happened to the record, newest first, in member words. */
@@ -34,13 +35,13 @@ export function CommitmentTimeline({ events }: { events: CommitmentDialogControl
           {events.map((event) => (
             <li key={event.id} className="flex justify-between gap-2 py-1.5">
               <span className="text-text-strong">{eventLabel(event, formatMessage)}</span>
-              <span className="shrink-0 body-xs text-text-soft" title={event.actor ?? undefined}>
-                {[
-                  event.actor ? shortAddress(event.actor) : null,
-                  formatUnixDate(event.timestamp, locale, ""),
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
+              {/* Who acted, by name, then when. */}
+              <span className="flex shrink-0 items-center gap-1.5 body-xs text-text-soft">
+                {event.actor ? (
+                  <AddressDisplay address={event.actor} interactive={false} className="body-xs" />
+                ) : null}
+                {event.actor ? <span aria-hidden="true">·</span> : null}
+                <span>{formatUnixDate(event.timestamp, locale, "")}</span>
               </span>
             </li>
           ))}
