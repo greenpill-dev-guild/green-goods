@@ -61,7 +61,7 @@ export function CommitmentClaims({
               data-testid={`commitment-claim-${claim.claimant.toLowerCase()}`}
             >
               <div className="min-w-0 space-y-0.5">
-                <span className="text-sm text-text-strong">
+                <span className="body-sm text-text-strong">
                   <ClaimantName claim={claim} chainId={chainId} /> ·{" "}
                   {claim.claimType === "GARDEN"
                     ? formatMessage({
@@ -140,7 +140,7 @@ export function CommitmentRoster({
       <AdminCardTitle as="h4">
         {formatMessage({ id: "cockpit.garden.pool.commitment.team", defaultMessage: "Team" })}
       </AdminCardTitle>
-      <ul className="text-sm text-text-sub">
+      <ul className="body-sm text-text-sub">
         {contributors.map((row) => (
           <li key={row.id} className="flex justify-between gap-2">
             <AddressDisplay address={row.contributor} showCopyButton={false} />

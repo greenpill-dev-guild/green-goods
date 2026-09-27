@@ -34,6 +34,11 @@
  * titles and labels exactly as the product does. */
 @import "../../admin/src/styles/admin-type.css";
 
+/* The admin's layout and surface classes (route frame, workspace tab layouts,
+ * stat rows, Hub workbench grid and cards, surface primitives), the same file
+ * admin/src/index.css imports, so admin stories lay out as the product does. */
+@import "../../admin/src/styles/admin-layout.css";
+
 /* Per-surface tokens (admin type scale + font + colour aliases, client button
  * corner scopes), keyed to the `data-surface` root attribute the `withSurface`
  * decorator sets. See surfaces.css for the parity contract. */

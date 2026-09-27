@@ -49,11 +49,13 @@ function GardenSupportersHarness({
     <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-heading text-lg font-semibold text-text-strong">Garden supporters</h2>
-          <p className="text-sm text-text-sub">Ordered by yield generated for this garden.</p>
+          <h2 className="font-heading text-title-md font-semibold text-text-strong">
+            Garden supporters
+          </h2>
+          <p className="body-sm text-text-sub">Ordered by yield generated for this garden.</p>
         </div>
         {totalProtocolYield > 0n && (
-          <span className="shrink-0 rounded-full bg-success-lighter px-2.5 py-1 text-xs font-semibold text-success-dark">
+          <span className="shrink-0 rounded-full bg-success-lighter px-2.5 py-1 body-xs font-semibold text-success-dark">
             {formatTokenAmount(totalProtocolYield)} generated
           </span>
         )}

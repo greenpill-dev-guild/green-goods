@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminRoutes } from "../../utils/navigation/admin-routes";
+import { adminRoutes, resolveCampaignCookieJarsRoute } from "../../utils/navigation/admin-routes";
 
 describe("adminRoutes", () => {
   it("builds route-backed Hub work detail links with garden and sort context", () => {
@@ -47,10 +47,23 @@ describe("adminRoutes", () => {
     );
   });
 
-  it("builds team campaign cookie jar routes", () => {
+  it("keeps /cookies as the alias for the protocol garden's campaign cookie jars", () => {
     expect(adminRoutes.cookies()).toBe("/cookies");
-    expect(adminRoutes.cookiesDeploy({ source: "campaign" })).toBe(
-      "/cookies/deploy?source=campaign"
+  });
+
+  it("lands campaign cookie jar URLs on the protocol garden's Payouts (DL-046)", () => {
+    const root = "0xf401f34378384713222d1d21f63359cc4E8a858a";
+
+    expect(resolveCampaignCookieJarsRoute(root)).toBe(
+      `/community/payouts?gardenId=${root}&item=campaigns`
+    );
+    expect(resolveCampaignCookieJarsRoute(root, { create: true })).toBe(
+      `/community/payouts?gardenId=${root}&item=create-campaign-jar`
+    );
+    // A chain that names no root garden lands on Community.
+    expect(resolveCampaignCookieJarsRoute(undefined)).toBe("/community/members");
+    expect(resolveCampaignCookieJarsRoute("0x0000000000000000000000000000000000000000")).toBe(
+      "/community/members"
     );
   });
 

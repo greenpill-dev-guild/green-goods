@@ -12,6 +12,7 @@ const meta = {
   args: {
     garden: storyGarden,
     allocations: storyAllocations,
+    allocationsAtLimit: false,
     selectedItem: null,
   },
 } satisfies Meta<typeof CommunityPayoutsTab>;

@@ -28,7 +28,7 @@ export interface AdminSideSheetProps {
 }
 
 const closeButtonClasses = cn(
-  // Centered on the compact header title row (py-3 + text-lg leading-7) —
+  // Centered on the compact header title row (py-3 + the 28px title-large line) —
   // identical anatomy to the AdminDialog close button.
   "absolute right-3 top-1.5 z-10",
   "flex h-10 w-10 items-center justify-center",
@@ -166,12 +166,12 @@ export function AdminSideSheet({
             className="shrink-0 border-b border-stroke-soft px-4 py-3 pr-14 sm:px-6 sm:pr-14"
           >
             <div className="min-w-0">
-              <Dialog.Title className="text-lg font-semibold leading-7 text-[rgb(var(--m3-on-surface))]">
+              <Dialog.Title className="text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-[rgb(var(--m3-on-surface))]">
                 {title}
               </Dialog.Title>
               <Dialog.Description
                 className={cn(
-                  description ? "mt-0.5 text-sm" : "sr-only",
+                  description ? "mt-0.5 body-sm" : "sr-only",
                   "text-[rgb(var(--m3-on-surface-variant))]"
                 )}
               >

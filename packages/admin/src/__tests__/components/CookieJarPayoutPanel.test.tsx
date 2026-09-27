@@ -37,8 +37,17 @@ const oneCentDaiJar: CookieJar = {
   withdrawalInterval: 86_400n,
 };
 
+/** A finished read that found jars; each test overrides what it needs. */
+const FINISHED_READ = {
+  isLoading: false,
+  isPaused: false,
+  error: null as Error | null,
+  hasNoJar: false,
+};
+
 const mocks = vi.hoisted(() => ({
   jars: [] as unknown[],
+  read: {} as Record<string, unknown>,
   useGardenCookieJars: vi.fn(),
   signer: { canSign: true, isResolved: true, owner: undefined as Address | undefined },
   updateLimit: vi.fn(),
@@ -51,7 +60,7 @@ vi.mock(
     ...(await importOriginal()),
     useGardenCookieJars: ((...args: unknown[]) => {
       mocks.useGardenCookieJars(...args);
-      return { jars: mocks.jars, isLoading: false, moduleConfigured: true };
+      return { jars: mocks.jars, moduleConfigured: true, ...mocks.read };
     }) as never,
   })
 );
@@ -90,6 +99,7 @@ describe("CookieJarPayoutPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.jars = [plainJar];
+    mocks.read = { ...FINISHED_READ };
     mocks.signer = { canSign: true, isResolved: true, owner: undefined };
   });
 
@@ -109,6 +119,71 @@ describe("CookieJarPayoutPanel", () => {
   });
 
   // Jars are funded from the PWA and other wallets; no mutation in this app can announce that.
+  it("says the garden has no jars once its jar list was read empty", () => {
+    mocks.jars = [];
+    mocks.read = { ...FINISHED_READ, hasNoJar: true };
+    renderPanel();
+
+    expect(screen.getByText("No cookie jars found for this garden")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["is paused offline", { isPaused: true }, "Cookie jars need a connection"],
+    ["failed", { error: new Error("RPC timeout") }, "Couldn't read this garden's cookie jars"],
+    [
+      "failed for every jar",
+      { hasDetailReadFailure: true },
+      "Couldn't read this garden's cookie jars",
+    ],
+    // An earlier read's empty list stays cached while a later one is paused or fails.
+    [
+      "is paused beside a cached empty list",
+      { isPaused: true, hasNoJar: true },
+      "Cookie jars need a connection",
+    ],
+    [
+      "failed beside a cached empty list",
+      { error: new Error("RPC timeout"), hasNoJar: true },
+      "Couldn't read this garden's cookie jars",
+    ],
+  ])("does not claim the garden has no jars when its jar read %s", (_state, read, title) => {
+    mocks.jars = [];
+    mocks.read = { ...FINISHED_READ, ...read };
+    renderPanel();
+
+    expect(screen.queryByText("No cookie jars found for this garden")).not.toBeInTheDocument();
+    expect(screen.getByText(title)).toBeInTheDocument();
+  });
+
+  // Until then each jar's amounts use an 18-decimal fallback: this six-decimal jar would misread.
+  it("holds the cards until each jar currency's decimals are read", () => {
+    mocks.read = { ...FINISHED_READ, hasUnreadDecimals: true };
+    const reading = renderPanel();
+
+    expect(screen.queryByText("Jar Balance")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Checking which cookie jars you can access"
+    );
+    reading.unmount();
+
+    mocks.read = { ...FINISHED_READ, hasUnreadDecimals: true, isPaused: true };
+    renderPanel();
+
+    expect(screen.queryByText("Jar Balance")).not.toBeInTheDocument();
+    expect(screen.getByText("Cookie jars need a connection")).toBeInTheDocument();
+  });
+
+  it("stays loading while a jar read is pending but not yet fetching", () => {
+    // TanStack Query reports isLoading false until the fetch starts.
+    mocks.jars = [];
+    renderPanel();
+
+    expect(screen.queryByText("No cookie jars found for this garden")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Checking which cookie jars you can access"
+    );
+  });
+
   it("keeps re-reading the jars while it is open", () => {
     renderPanel();
 

@@ -38,7 +38,7 @@ const meta: Meta<typeof ManageMembersDialog> = {
     docs: {
       description: {
         component:
-          "The single membership surface — one flat roster across all roles with role filter chips, per-member remove, and the Add Members action. Community-owned: opens over /community/members.",
+          "The single membership surface — one row per person across all roles, a chip for each role they hold with its own remove, role filter chips, and the Add Members action. The count is people, never role seats (DL-049). Community-owned: opens over /community/members.",
       },
     },
   },
@@ -58,6 +58,17 @@ export default meta;
 type Story = StoryObj<typeof ManageMembersDialog>;
 
 export const Default: Story = {};
+
+/** The owner also stewards and gardens: one row, three roles, each removable on its own. */
+export const PersonWithSeveralRoles: Story = {
+  args: {
+    roleMembers: {
+      ...roleMembers,
+      steward: [OWNER, OPERATOR_A, OPERATOR_B],
+      gardener: [GARDENER_A, OWNER, GARDENER_B],
+    },
+  },
+};
 
 export const MemberPrefilled: Story = {
   args: { initialSearch: GARDENER_A },

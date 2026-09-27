@@ -53,6 +53,7 @@ import {
   getGardens,
   parseIndexerDomain,
 } from "../../modules/data/greengoods";
+import { getGarden } from "../../modules/data/indexer-garden";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
 import { parseIndexerCapital } from "../../modules/data/indexer-capitals";
 import { Capital, Domain } from "../../types/domain";
@@ -233,6 +234,64 @@ describe("modules/data/greengoods", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].domainMask).toBe(5);
+    });
+  });
+
+  describe("getGarden", () => {
+    const ROOT = "0xF401F34378384713222D1D21F63359CC4E8A858A";
+
+    it("reads one garden by id on the current chain and maps it as the list does", async () => {
+      mockQuery.mockResolvedValue({
+        data: {
+          Garden: [
+            {
+              id: ROOT,
+              chainId: 11155111,
+              tokenAddress: "0xGardenToken",
+              tokenID: "0",
+              name: "Green Goods Community Garden",
+              description: "The protocol garden",
+              location: "",
+              bannerImage: "",
+              gardeners: [],
+              operators: ["0xSteward1"],
+              evaluators: [],
+              owners: [],
+              funders: [],
+              communities: [],
+              openJoining: true,
+              createdAt: 1700000000,
+            },
+          ],
+          GardenDomains: [{ garden: ROOT.toLowerCase(), domainMask: 3 }],
+        },
+      });
+
+      const garden = await getGarden(ROOT, reader);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.anything(),
+        { chainId: 11155111, id: ROOT },
+        "getGarden"
+      );
+      expect(garden).toMatchObject({
+        id: ROOT,
+        name: "Green Goods Community Garden",
+        stewards: ["0xSteward1"],
+        domainMask: 3,
+      });
+    });
+
+    it("returns null when the indexer holds no such garden", async () => {
+      mockQuery.mockResolvedValue({ data: { Garden: [], GardenDomains: [] } });
+
+      await expect(getGarden(ROOT, reader)).resolves.toBeNull();
+    });
+
+    it("rejects an indexer error rather than reporting no garden", async () => {
+      mockQuery.mockResolvedValue({ error: { message: "Indexer unavailable" } });
+
+      await expect(getGarden(ROOT, reader)).rejects.toThrow("Indexer unavailable");
     });
   });
 

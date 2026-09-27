@@ -36,7 +36,7 @@ function validateDecodedDataJson(decodedDataJson: string): void {
   }
 }
 
-function parseEasCreationTime(value: unknown): number {
+export function parseEasCreationTime(value: unknown): number {
   if (typeof value !== "number" && typeof value !== "string") {
     throw new TypeError("EAS attestation has an invalid creation time");
   }

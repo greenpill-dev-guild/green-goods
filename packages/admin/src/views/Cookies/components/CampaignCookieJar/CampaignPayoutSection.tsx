@@ -1,7 +1,6 @@
-import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminTextField } from "@/components/AdminTextField";
 import { CampaignCookieJarAssetPicker } from "./CampaignCookieJarAssetPicker";
-import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
+import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
 
 export function CampaignPayoutSection(props: CampaignCookieJarCreateFormProps) {
   const {
@@ -14,16 +13,7 @@ export function CampaignPayoutSection(props: CampaignCookieJarCreateFormProps) {
     tokenSymbol,
   } = props;
   return (
-    <section className="surface-section overflow-visible">
-      <div className="mb-4">
-        <p className="text-label-sm text-text-sub">02</p>
-        <AdminCardTitle as="h2">
-          {formatMessage({
-            id: "cockpit.community.cookies.createPayoutSection",
-            defaultMessage: "Payout",
-          })}
-        </AdminCardTitle>
-      </div>
+    <section>
       <div className="space-y-4">
         <CampaignCookieJarAssetPicker
           assets={payoutAssets}

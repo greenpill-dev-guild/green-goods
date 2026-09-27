@@ -197,7 +197,7 @@ export function PoolStatusCard({
       )}
 
       {model.status === "not-ready" ? (
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.setup.note",
             defaultMessage:
@@ -233,7 +233,7 @@ export function PoolStatusCard({
       />
 
       {running && !model.closure.allowed ? (
-        <p className="text-xs text-text-soft" data-slot="close-blocked">
+        <p className="body-xs text-text-soft" data-slot="close-blocked">
           {formatMessage(
             {
               id: "cockpit.garden.pool.close.blocked",
@@ -257,7 +257,7 @@ export function PoolStatusCard({
       ) : null}
 
       {offline && !inSetup ? (
-        <p className="text-xs text-warning-dark" role="status">
+        <p className="body-xs text-warning-dark" role="status">
           {offlineNote}
         </p>
       ) : null}

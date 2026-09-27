@@ -17,7 +17,7 @@ import {
 } from "../../utils/action/translations";
 import { defaultTemplate, instructionTemplates } from "../../utils/action/templates";
 import { logger } from "../app/logger";
-import { greenGoodsGraphQL } from "./graphql";
+import { greenGoodsGraphQL, type ResultOf } from "./graphql";
 import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
 import { parseIndexerCapital } from "./indexer-capitals";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs/resolve";
@@ -323,38 +323,76 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
   }
 }
 
+const GARDENS_QUERY = greenGoodsGraphQL(/* GraphQL */ `
+  query Gardens($chainId: Int!) {
+    Garden(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 50) {
+      id
+      chainId
+      tokenAddress
+      tokenID
+      name
+      description
+      location
+      bannerImage
+      gardeners
+      operators
+      evaluators
+      owners
+      funders
+      communities
+      openJoining
+      createdAt
+    }
+    GardenDomains(where: {chainId: {_eq: $chainId}}) {
+      garden
+      domainMask
+    }
+  }
+`);
+
+type IndexerGardenRow = ResultOf<typeof GARDENS_QUERY>["Garden"][number];
+
+/** A garden row as the app uses it. Any read that selects the list's fields maps through here. */
+export function gardenFromRow(garden: IndexerGardenRow, domainMask: number): Garden {
+  // DIRTY FIX: Override Octant Community Garden banner until indexer is updated
+  const OCTANT_BANNER_OVERRIDE = "bafkreihslrqy363mkr4kn5skr56zcazyvikldosy433p6e5okxyxxjdyuy";
+  const isOctantGarden = garden.name === "Octant Community Garden";
+
+  const bannerImage = isOctantGarden
+    ? resolveIPFSUrl(OCTANT_BANNER_OVERRIDE)
+    : garden.bannerImage
+      ? resolveIPFSUrl(garden.bannerImage)
+      : "";
+
+  return {
+    id: garden.id,
+    chainId: garden.chainId,
+    tokenAddress: garden.tokenAddress as Address,
+    tokenID: BigInt(garden.tokenID),
+    name: garden.name || "Unnamed Garden",
+    description: garden.description || "",
+    location: garden.location || "Unknown Location",
+    bannerImage,
+    gardeners: (garden.gardeners || []) as Address[],
+    // The indexer field keeps the deployed `operators` wire name.
+    stewards: (garden.operators || []) as Address[],
+    evaluators: (garden.evaluators || []) as Address[],
+    owners: (garden.owners || []) as Address[],
+    funders: (garden.funders || []) as Address[],
+    communities: (garden.communities || []) as Address[],
+    openJoining: Boolean(garden.openJoining),
+    domainMask,
+    assessments: [],
+    works: [],
+    createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
+  };
+}
+
 /** Returns gardens with resolved banner assets for the current chain. */
 export async function getGardens(reader: GraphQLReader = greenGoodsIndexer): Promise<Garden[]> {
   try {
     const chainId = DEFAULT_CHAIN_ID;
-    const QUERY = greenGoodsGraphQL(/* GraphQL */ `
-      query Gardens($chainId: Int!) {
-        Garden(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 50) {
-          id
-          chainId
-          tokenAddress
-          tokenID
-          name
-          description
-          location
-          bannerImage
-          gardeners
-          operators
-          evaluators
-          owners
-          funders
-          communities
-          openJoining
-          createdAt
-        }
-        GardenDomains(where: {chainId: {_eq: $chainId}}) {
-          garden
-          domainMask
-        }
-      }
-    `);
-
-    const { data, error } = await reader.query(QUERY, { chainId }, "getGardens");
+    const { data, error } = await reader.query(GARDENS_QUERY, { chainId }, "getGardens");
 
     if (error) throw error;
 
@@ -376,40 +414,9 @@ export async function getGardens(reader: GraphQLReader = greenGoodsIndexer): Pro
     // website for gardens that should not exist anywhere in Green Goods.
     const visibleGardens = data.Garden.filter((garden) => !isGardenHiddenEverywhere(garden.id));
 
-    return visibleGardens.map((garden) => {
-      // DIRTY FIX: Override Octant Community Garden banner until indexer is updated
-      const OCTANT_BANNER_OVERRIDE = "bafkreihslrqy363mkr4kn5skr56zcazyvikldosy433p6e5okxyxxjdyuy";
-      const isOctantGarden = garden.name === "Octant Community Garden";
-
-      const bannerImage = isOctantGarden
-        ? resolveIPFSUrl(OCTANT_BANNER_OVERRIDE)
-        : garden.bannerImage
-          ? resolveIPFSUrl(garden.bannerImage)
-          : "";
-
-      return {
-        id: garden.id,
-        chainId: garden.chainId,
-        tokenAddress: garden.tokenAddress as Address,
-        tokenID: BigInt(garden.tokenID),
-        name: garden.name || "Unnamed Garden",
-        description: garden.description || "",
-        location: garden.location || "Unknown Location",
-        bannerImage,
-        gardeners: (garden.gardeners || []) as Address[],
-        // The indexer field keeps the deployed `operators` wire name.
-        stewards: (garden.operators || []) as Address[],
-        evaluators: (garden.evaluators || []) as Address[],
-        owners: (garden.owners || []) as Address[],
-        funders: (garden.funders || []) as Address[],
-        communities: (garden.communities || []) as Address[],
-        openJoining: Boolean(garden.openJoining),
-        domainMask: domainMap.get(garden.id.toLowerCase()) ?? 0,
-        assessments: [],
-        works: [],
-        createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
-      };
-    });
+    return visibleGardens.map((garden) =>
+      gardenFromRow(garden, domainMap.get(garden.id.toLowerCase()) ?? 0)
+    );
   } catch (error) {
     logger.error("[getGardens] Failed to fetch gardens", { error });
     throw error;

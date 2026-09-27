@@ -56,6 +56,7 @@ const baseWorkspace = {
   community: {},
   communityLoading: false,
   createPools: noop,
+  endowmentByAsset: [],
   error: null,
   fetching: false,
   garden: {
@@ -68,6 +69,7 @@ const baseWorkspace = {
   handleSelectGarden: noop,
   hasVaults: false,
   isCreatingPools: false,
+  memberCount: 0,
   memberSearch: "",
   mode: "members",
   pools: [],
@@ -85,7 +87,6 @@ const baseWorkspace = {
   selectedItem: null,
   setMemberSearch: noop,
   treasurySeverity: "none",
-  vaultNetDeposited: 0n,
   vaultsLoading: false,
   visibleDirectory: [],
 } as unknown as CommunityWorkspace;

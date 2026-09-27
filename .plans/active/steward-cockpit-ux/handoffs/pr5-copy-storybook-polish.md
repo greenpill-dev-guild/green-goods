@@ -90,30 +90,103 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path 
 
 Build Storybook (`bun run --cwd packages/shared build-storybook`) when the selector does not.
 
+## Implementation Notes
+
+- The branch was cut from PR4's head before PR4 merged, so the migration covers the final
+  campaign jar code; it is rebased onto `develop` once PR4 (#908) merges, and gated again there.
+- Step 1 moved more than the garden and workbench blocks: the route frame (`.canvas-route-card`),
+  the Hub card's media tiles, the account avatar tile, the surface primitives, the spacing rhythm,
+  and the Hub shells, since the Garden Overview story renders the real canvas route. Rules nothing
+  rendered were deleted instead of moved (the garden tab bar, tab list, trigger, and tab content,
+  and the hub-history feed, card, and copy); the compiled admin CSS differs from before only by
+  those selectors, with no order change among overlapping rules. The gate's stylesheet
+  allowlists name `admin-layout.css`.
+- Step 2 needed the named classes to compose: they were plain rules at specificity (0,3,0)
+  after Tailwind's generated utilities, so `body-sm font-medium` rendered 400. They are
+  `@utility` definitions now, and `cn()` registers them in tailwind-merge's font-size group.
+  Raw 12, 14, and 16px sizes map to `body-xs`, `label-xs`, `body-sm`, and `body-md` with their
+  modifiers; headings and metrics map by role to title-large (22/28/600: dialog, sheet, and flow
+  titles, full-page state headings, hero amounts) or title-medium (16/24/600: card, section, and
+  step titles, metric values). `GardenHeroBanner` had no consumer and was deleted with its CSS.
+- Step 3's surfaces take the nearest Warm Earth step; text, stroke, and ink layers are exact.
+  Reject's outlined-error recipe became `AdminButton variant="outlinedDanger"`.
+  `AdminToneGallery`'s themed sample frames keep the M3 surface, recorded as the one baseline
+  exception (`storybook-theme`, admin, expires 2027-03-31).
+- Step 5's nesting target, `views/Actions/ActionDetail.tsx`, was not routed (`/actions/:id`
+  mounts the Actions view, whose dialog is the already flat `ActionDetailPanel`), so it was
+  deleted with the four keys only it used.
+- Step 6 added Loading to the notification panel (its empty state is the shared
+  `NotificationPanel` EmptyState story; a container-level no-garden story would need `useRole`
+  mocked too), three join-queue states, and two campaign Review states and the garden picker's
+  no-match state. The image input's upload error is internal state, so it has no story yet.
+
 ## Rendered Proof
 
-Storybook captures of the Garden Overview and Hub queue stories; the type census before and
-after; mock-auth localhost captures of any view whose census moved.
+- Engine: headless Chromium through Playwright, and the Storybook dev server on this branch.
+  Session: mock-auth localhost (`?mockAuth=deployer`) on the admin dev server reading the hosted
+  indexer, Green Goods Community Garden. Nothing was saved or sent.
+- Storybook "Admin/Workspaces/Garden → Overview" and the Hub queue story, 1280 and 375, light and
+  dark, before and after step 1: the Overview now shows the route padding, the two-column rail,
+  and label/value stat rows; the Hub queue shows the card grid with its media tiles instead of
+  one full-width column.
+- Type census (computed size, line height, weight, tracking, and case of every visible text
+  element): 16 routes at 1280 and 375 plus the work detail (34 targets) and 376 stories of the
+  112 story files beside the migrated files. Two runs on unchanged code matched all 2494 route
+  elements. After the migration: 114 story and 36 route elements changed size or line
+  height, all in the title roles above (47 dialog titles 18→22, 38 section and step titles 18→16, 17 state headings
+  20→22, metric values 18 and 20→16, the deposit amount 24→22, a metric's line 22.9→24); the
+  only systematic difference is the named scale's tracking on 14px and 16px text (-0.006em and
+  -0.011em). Three drifts it found were fixed before commit (see the TDD notes).
+- Colour census (colour, background, and border colours of every element) of 72 stories and 3
+  routes, light and dark: text, strokes, and ink layers unchanged; the surface steps above; the
+  RightSheetRegistry story trigger now renders as an AdminButton.
+- Mock-auth captures before (PR4's head) and after at 1280, and 375 where the layout differs:
+  the Create Cookie Jar flow title, Garden Health's metrics, and the Endowment totals. The contact
+  sheets went to Afo in the session.
 
 ## TDD Proof
 
-- RED: not applicable for the styling moves; seed one raw type-size violation and one view-level
-  `--m3-*` colour violation, and record that each collector reports its own violation
-- GREEN: pending
-- Proof limit: record the census as the fallback evidence for the migration
+- RED: with a probe file seeding `className="text-sm"` and
+  `text-[rgb(var(--m3-on-surface-variant))]` in `packages/admin/src/views`, `bash
+  scripts/design/check-tokens.sh` exited 1 naming both lines; before the migration the two
+  collectors reported 465 raw type-size and 38 view-level M3 colour lines. `cn` failed its new
+  case: `cn("font-mono text-sm", "body-xs")` kept both classes.
+- GREEN: with the probe removed the gate passed with both collectors at zero; `cn` 7 of 7 passed.
+  The census drifts fixed on the way: a shared `text-sm` default beat a `body-xs` override
+  (fixed in `cn`), a metric under a `body-sm` parent inherited its 20px line (now the 24px
+  title-medium line), and a listing id lost the 500 it inherited (now `label-xs`).
+- Local review (2026-09-26 00:04Z–00:08Z; the hosted CodeRabbit skips PRs over 150 files and
+  Codex had no credits, so CodeRabbit's reviewer ran locally, and Afo chose to merge on CI and that
+  review): a `text-[13px]` probe passed the design-token gate (RED, exit 0). With the raw-size
+  collector extended to arbitrary px, rem, and em sizes and `length:` values, the probe fails it
+  (GREEN, exit 1), and the gate passes once the five story eyebrows take `label-xs`. In Chromium
+  the capital tiles' labels measured 12/24 with the revived `label-md` variant and 16/24 without
+  it, as on develop. The review form's hints measured 12/16 at weight 400 and 12/16 at 500 with
+  `label-xs`, as on develop. Its Actionable story had rendered "Action expired", because its
+  fixture passed seconds where the form compares milliseconds; it now renders the form.
+- Proof limit: the migration itself is styling; the type and colour census is its evidence.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `ac4dca30e0f093d7cc003fb8a9eafd6eecd4a58d` (on `develop` after PR4 merged, with the local review's fixes; the receipt on `70421844e` is superseded)
+- Run at (UTC): full suites `2026-09-26T00:13:18Z` to `2026-09-26T00:18:05Z`; push gate `2026-09-26T00:18:05Z` to `2026-09-26T00:19:08Z`; admin Playwright `2026-09-26T00:19:08Z` to `2026-09-26T00:19:45Z`
+- Exact command(s): `for pkg in admin shared client; do bun run --filter @green-goods/$pkg test; done` (each exit code recorded); `bun run --filter @green-goods/shared test:stories:ci`; `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --check ontology --check docs-generated --check design-guardrails --test-path shared:src/__tests__/utils/styles/cn.test.ts`; `CI=true PLAYWRIGHT_APP=admin PATH="$PWD/node_modules/.bin:$PATH" playwright test --project=admin-ci --reporter=line --retries=0`; `(cd packages/admin && bun run typecheck --scope tests && bun run typecheck --scope full)`; `(cd packages/shared && bun run typecheck --scope tests && bun run typecheck --scope full)`
+- Result: admin 1054, shared 5826 (17 skipped), and client 1399 tests passed, each package exiting 0; the storybook-ci story suite passed (99 files, 347 tests); the push gate exited 0 on the sensitive plan it chose for PR5's own diff, with 11 automated checks passed: format, lint, shared-test, admin-test, admin-build, source-structure, design-guardrails, ontology, story-quality, storybook-build, and docs-generated; that plan runs no typecheck, so `bun run typecheck --scope tests` and `--scope full` ran for admin and shared (`2026-09-26T00:20:08Z` to `00:20:33Z`), all with no errors; the admin-ci Playwright project passed 11 of 11 in CI mode. The gate failed once on `37db93521`: story-quality's frozen-clock guard read a clock call named in a story comment, which `ac4dca30e` rewords. An earlier full story run on `1c986f6fe` failed one story (the Actions sheet's Route Backed Create Mobile, which waits 5s for its dialog, under load); that file passed twice alone and in every full run since. The type and colour census are the rendered evidence (see Rendered Proof)
+- Validated paths: `packages/admin/src` `packages/shared/src` `packages/shared/.storybook` `packages/admin/DESIGN.md` `scripts/design` `scripts/data` `scripts/quality` `.claude/rules` `.claude/context`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/design scripts/data scripts/quality .claude/rules .claude/context` → empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code ac4dca30e0f093d7cc003fb8a9eafd6eecd4a58d..HEAD -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/design scripts/data scripts/quality .claude/rules .claude/context` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md scripts/design scripts/data scripts/quality .claude/rules .claude/context` → empty
 
 ## Risks / Blockers
 
+- The named type classes are Tailwind utilities now, so they exist only where Tailwind scans. Admin
+  has no `@source` for `packages/shared/src`, so a shared component that adopts a named class
+  renders unstyled in admin. Today that is only StatCard's `subheading-xs`, which admin does not
+  render.
+- `cn()` treats the named classes as font sizes, so tailwind-merge drops a `leading-*` that comes
+  before one (`cn("leading-5", "body-sm")` gives `body-sm`). Put line-height adjusters after the
+  named class.
+- The avatar editor's initials moved from `text-lg` (18px, off the scale) to title-large's 22px,
+  kept deliberately as the nearer display size for an 80px tile.
 - A mechanical size mapping can shift weight or line height; trust the census over the mapping.
 - Moving CSS into an import changes its cascade position; check for later overrides first.

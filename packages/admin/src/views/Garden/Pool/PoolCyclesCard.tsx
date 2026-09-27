@@ -136,7 +136,7 @@ export function PoolCyclesCard({
               {chip.label}
             </StatusBadge>
           </div>
-          <p className="text-xs text-text-soft">{cycleMeta(cycle)}</p>
+          <p className="body-xs text-text-soft">{cycleMeta(cycle)}</p>
           {endBlockedNote(cycle)}
         </div>
         <div className="flex items-center gap-2">
@@ -199,7 +199,7 @@ export function PoolCyclesCard({
                 {cycleStateChip(season, model.isPaused, formatMessage).label}
               </StatusBadge>
             </div>
-            <p className="mt-1 text-xs text-text-soft">
+            <p className="mt-1 body-xs text-text-soft">
               {season.state === "SEEDED"
                 ? formatMessage(
                     {
@@ -266,7 +266,7 @@ export function PoolCyclesCard({
                 })}
               </StatusBadge>
             </div>
-            <p className="mt-1 text-xs text-text-soft">
+            <p className="mt-1 body-xs text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.cycle.noSeasonMeta",
                 defaultMessage:
@@ -290,7 +290,7 @@ export function PoolCyclesCard({
       )}
 
       {season?.state === "SEEDED" ? (
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.cycle.seededNote",
             defaultMessage:
@@ -334,7 +334,7 @@ export function PoolCyclesCard({
         {model.campaigns.length > 0 ? (
           <ul className="mt-1 divide-y divide-stroke-soft">{model.campaigns.map(cycleRow)}</ul>
         ) : (
-          <p className="mt-1 text-xs text-text-soft">
+          <p className="mt-1 body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.cycle.campaignsNote",
               defaultMessage:

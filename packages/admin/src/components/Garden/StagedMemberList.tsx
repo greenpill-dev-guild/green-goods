@@ -42,7 +42,7 @@ export function StagedMemberList({
       })}
     >
       {members.length === 0 ? (
-        <p className="flex h-full items-center justify-center px-4 text-center text-xs text-text-soft">
+        <p className="flex h-full items-center justify-center px-4 text-center body-xs text-text-soft">
           {formatMessage({
             id: "admin.addMember.stagedEmpty",
             defaultMessage: "Resolved addresses appear here before they are added.",
@@ -69,7 +69,7 @@ export function StagedMemberList({
             return (
               <li
                 key={address}
-                className="flex items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container))] px-3 py-2"
+                className="flex items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2"
               >
                 <div className="min-w-0 flex-1">
                   <span className="block truncate text-body-md text-text-strong" title={address}>

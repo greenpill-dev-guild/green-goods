@@ -62,7 +62,7 @@ export function SeedStepDone({
           )}
         </p>
         {counts.later > 0 ? (
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {formatMessage(
               {
                 id: "cockpit.garden.pool.seed.done.later",
@@ -74,7 +74,7 @@ export function SeedStepDone({
           </p>
         ) : null}
         {counts.notSent > 0 ? (
-          <p className="text-xs text-error-dark">
+          <p className="body-xs text-error-dark">
             {formatMessage(
               {
                 id: "cockpit.garden.pool.seed.done.notSent",

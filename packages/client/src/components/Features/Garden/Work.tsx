@@ -64,7 +64,6 @@ const WorkListItem = memo(function WorkListItem({
 }: WorkListItemProps) {
   const work = sorted[index];
   const action = actionById.get(String(work.actionUID));
-  const title = action?.title ?? `Action ${work.actionUID}`;
   const onOpen = useCallback(
     () =>
       navigate(`/home/${work.gardenAddress}/work/${work.id}`, {
@@ -80,7 +79,7 @@ const WorkListItem = memo(function WorkListItem({
       <MinimalWorkCard
         onClick={onOpen}
         work={work as unknown as Work}
-        actionTitle={title}
+        actionTitle={action?.title}
         variant="detailed"
       />
     </li>

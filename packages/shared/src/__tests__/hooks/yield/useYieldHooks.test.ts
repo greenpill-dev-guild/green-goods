@@ -385,6 +385,32 @@ describe("useYieldAllocations", () => {
     expect(result.current.allocations[1].timestamp).toBe(1700000000);
   });
 
+  it("says when the list fills its limit, so a count can read as at least that many", async () => {
+    const row = {
+      garden: TEST_GARDEN,
+      asset: TEST_ASSET,
+      cookieJarAmount: "1",
+      fractionsAmount: "1",
+      juiceboxAmount: "1",
+      totalAmount: "3",
+      timestamp: 1700000000,
+      txHash: "0xabc123",
+    };
+    mockQuery.mockResolvedValueOnce({ data: { YieldAllocation: [row, row] } });
+    const full = renderHook(() => useYieldAllocations(TEST_GARDEN as Address, { limit: 2 }), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => expect(full.result.current.allocations).toHaveLength(2));
+    expect(full.result.current.atLimit).toBe(true);
+
+    mockQuery.mockResolvedValueOnce({ data: { YieldAllocation: [row] } });
+    const partial = renderHook(() => useYieldAllocations(TEST_GARDEN as Address, { limit: 3 }), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => expect(partial.result.current.allocations).toHaveLength(1));
+    expect(partial.result.current.atLimit).toBe(false);
+  });
+
   it("passes custom limit to the query", async () => {
     mockQuery.mockResolvedValueOnce({
       data: { YieldAllocation: [] },

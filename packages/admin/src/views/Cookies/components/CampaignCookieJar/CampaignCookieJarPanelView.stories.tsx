@@ -6,7 +6,7 @@ import {
 import { CampaignCookieJarPanelView } from "./CampaignCookieJarPanelView";
 
 const meta: Meta<typeof CampaignCookieJarPanelView> = {
-  title: "Admin/Workspaces/Cookies/CampaignCookieJar/PanelView",
+  title: "Admin/Workflows/Community/Payouts/CampaignCookieJar/PanelView",
   component: CampaignCookieJarPanelView,
   tags: ["autodocs"],
   decorators: campaignCookieJarStoryDecorators,

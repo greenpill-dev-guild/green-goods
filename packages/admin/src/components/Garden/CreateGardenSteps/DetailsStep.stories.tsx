@@ -138,7 +138,7 @@ export const StateCatalog: Story = {
   render: () => (
     <div className="space-y-8">
       <div>
-        <h3 className="text-sm font-medium text-text-sub mb-2">Empty (no validation)</h3>
+        <h3 className="body-sm font-medium text-text-sub mb-2">Empty (no validation)</h3>
         <div className="rounded-lg border border-stroke-soft p-4">
           <WithStoreState>
             <DetailsStep showValidation={false} />
@@ -147,7 +147,7 @@ export const StateCatalog: Story = {
       </div>
 
       <div>
-        <h3 className="text-sm font-medium text-text-sub mb-2">Empty (with validation errors)</h3>
+        <h3 className="body-sm font-medium text-text-sub mb-2">Empty (with validation errors)</h3>
         <div className="rounded-lg border border-stroke-soft p-4">
           <WithStoreState>
             <DetailsStep showValidation={true} />
@@ -156,7 +156,7 @@ export const StateCatalog: Story = {
       </div>
 
       <div>
-        <h3 className="text-sm font-medium text-text-sub mb-2">Fully filled</h3>
+        <h3 className="body-sm font-medium text-text-sub mb-2">Fully filled</h3>
         <div className="rounded-lg border border-stroke-soft p-4">
           <WithStoreState
             overrides={{

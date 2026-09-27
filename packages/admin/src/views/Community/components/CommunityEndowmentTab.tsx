@@ -1,7 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import type { Address } from "@green-goods/shared/types/domain";
-import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { formatTokenAmount, shownAssetAmounts } from "@green-goods/shared/utils/blockchain/vaults";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { VaultContractDetails } from "@/components/Vault";
@@ -9,7 +9,7 @@ import GardenVaultView from "@/views/Garden/Vault";
 
 export type CommunityEndowmentTabProps = Pick<
   CommunityWorkspace,
-  "hasVaults" | "treasurySeverity" | "vaultNetDeposited"
+  "hasVaults" | "treasurySeverity" | "endowmentByAsset"
 > & {
   garden: NonNullable<CommunityWorkspace["garden"]>;
 };
@@ -18,9 +18,10 @@ export function CommunityEndowmentTab({
   garden,
   hasVaults,
   treasurySeverity,
-  vaultNetDeposited,
+  endowmentByAsset,
 }: CommunityEndowmentTabProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
+  const shownAssets = shownAssetAmounts(endowmentByAsset);
 
   return (
     <div className="garden-tab-shell">
@@ -34,16 +35,31 @@ export function CommunityEndowmentTab({
               <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.endowment.status" })}
               </AdminCardTitle>
-              <AdminCard variant="outlined" density="compact">
+              {/* A plain label and value, one line per asset held: amounts of
+                  different assets never add up (D14). */}
+              <div>
                 <p className="text-label-sm text-text-sub">
                   {formatMessage({ id: "app.treasury.totalValueLocked" })}
                 </p>
-                <p className="mt-1 text-title-sm font-semibold text-text-strong">
-                  {hasVaults
-                    ? formatTokenAmount(vaultNetDeposited)
-                    : formatMessage({ id: "app.garden.detail.community.noVault" })}
-                </p>
-              </AdminCard>
+                {!hasVaults ? (
+                  <p className="mt-1 text-title-sm font-semibold text-text-strong">
+                    {formatMessage({ id: "app.garden.detail.community.noVault" })}
+                  </p>
+                ) : shownAssets.length === 0 ? (
+                  <p className="mt-1 text-title-sm font-semibold text-text-strong">0</p>
+                ) : (
+                  <ul className="mt-1 space-y-0.5">
+                    {shownAssets.map((entry) => (
+                      <li
+                        key={entry.asset}
+                        className="text-title-sm font-semibold tabular-nums text-text-strong"
+                      >
+                        {formatTokenAmount(entry.amount, entry.decimals, 4, locale)} {entry.symbol}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               {treasurySeverity !== "none" ? (
                 <Alert
                   variant={treasurySeverity === "critical" ? "error" : "warning"}

@@ -3,7 +3,7 @@ import { campaignCookieJarStoryDecorators } from "./CampaignCookieJar.stories.fi
 import { CampaignImageInput } from "./CampaignImageInput";
 
 const meta: Meta<typeof CampaignImageInput> = {
-  title: "Admin/Workspaces/Cookies/CampaignCookieJar/ImageInput",
+  title: "Admin/Workflows/Community/Payouts/CampaignCookieJar/ImageInput",
   component: CampaignImageInput,
   tags: ["autodocs"],
   decorators: campaignCookieJarStoryDecorators,

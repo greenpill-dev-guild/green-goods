@@ -9,6 +9,9 @@ export const gardensKeys = {
     ["greengoods", "gardens", "karma", "version", gardenId, chainId] as const,
   karmaSlug: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "karma", "slug", gardenId, chainId] as const,
+  /** The account's gardener cap, a chain read; under `all`, so a saved cap refetches it. */
+  maxGardeners: (gardenId: string, chainId: number) =>
+    ["greengoods", "gardens", "maxGardeners", gardenId, chainId] as const,
 } as const;
 
 export const actionsKeys = {

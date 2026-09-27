@@ -9,9 +9,8 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { OCTANT_MODULE_ABI } from "@green-goods/shared/utils/blockchain/abis/octant";
 import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
 import {
-  formatTokenAmount,
-  getNetDeposited,
-  getVaultAssetSymbol,
+  formatAssetAmounts,
+  summarizeNetDepositsByAsset,
 } from "@green-goods/shared/utils/blockchain/vaults";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo } from "react";
@@ -44,7 +43,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const routeState = (location.state as VaultRouteState | null) ?? null;
   const resolvedGardenId = id ?? selectedGarden?.id;
@@ -81,34 +80,20 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
     enabled: Boolean(garden?.id ?? resolvedGardenId),
   });
 
-  const { totalNetDeposited, totalHarvestCount, totalDepositorCount } = useMemo(() => {
-    let netDeposited = 0n;
+  const { endowmentByAsset, totalHarvestCount, totalDepositorCount } = useMemo(() => {
     let harvestCount = 0;
     let depositorCount = 0;
     for (const vault of vaults) {
-      netDeposited += getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
       harvestCount += vault.totalHarvestCount;
       depositorCount += vault.depositorCount;
     }
     return {
-      totalNetDeposited: netDeposited,
+      // Per asset: WETH and DAI base units never add up (D14).
+      endowmentByAsset: summarizeNetDepositsByAsset(vaults, vaults[0]?.chainId),
       totalHarvestCount: harvestCount,
       totalDepositorCount: depositorCount,
     };
   }, [vaults]);
-
-  const tvlDenomination = useMemo(() => {
-    const symbols = new Set(
-      vaults.map((vault) => getVaultAssetSymbol(vault.asset, vault.chainId)).filter(Boolean)
-    );
-
-    if (symbols.size === 1) return Array.from(symbols)[0];
-    if (symbols.size > 1) {
-      return formatMessage({ id: "app.treasury.multiAssetDenomination" }, { count: symbols.size });
-    }
-
-    return formatMessage({ id: "app.treasury.tokenDenominationFallback" });
-  }, [formatMessage, vaults]);
 
   const contextualBackLink = useMemo(() => {
     if (!routeState?.returnTo) return null;
@@ -181,21 +166,21 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
           <p className="body-xs text-text-soft">
             {formatMessage({ id: "app.treasury.totalValueLocked" })}
           </p>
-          <p className="mt-1 text-xl font-semibold text-text-strong">
-            {formatTokenAmount(totalNetDeposited)} {tvlDenomination}
+          <p className="mt-1 text-title-md font-semibold text-text-strong">
+            {formatAssetAmounts(endowmentByAsset, locale)}
           </p>
         </div>
         <div className="surface-inset">
           <p className="body-xs text-text-soft">
             {formatMessage({ id: "app.treasury.totalHarvests" })}
           </p>
-          <p className="mt-1 text-xl font-semibold text-text-strong">{totalHarvestCount}</p>
+          <p className="mt-1 text-title-md font-semibold text-text-strong">{totalHarvestCount}</p>
         </div>
         <div className="surface-inset">
           <p className="body-xs text-text-soft">
             {formatMessage({ id: "app.treasury.depositorCount" })}
           </p>
-          <p className="mt-1 text-xl font-semibold text-text-strong">{totalDepositorCount}</p>
+          <p className="mt-1 text-title-md font-semibold text-text-strong">{totalDepositorCount}</p>
         </div>
       </section>
 
@@ -231,6 +216,13 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       {!vaultsLoading && !vaultsHasError && vaults.length === 0 && (
         <p className="rounded-md border border-stroke-soft bg-bg-white px-4 py-3 body-sm text-text-soft">
           {formatMessage({ id: "app.treasury.noVault" })}
+        </p>
+      )}
+
+      {!vaultsLoading && vaults.length > 0 && (
+        // Said once for every vault, not repeated on each card (D27).
+        <p className="body-sm text-text-sub">
+          {formatMessage({ id: "app.treasury.impactYieldHelper" })}
         </p>
       )}
 

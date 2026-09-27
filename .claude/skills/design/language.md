@@ -371,14 +371,14 @@ Admin dark mode is a **deliberate palette, not a light inversion**. Three rules 
 | hub (blue) | `blue-200`/`blue-900` · 7.81:1 (hover `blue-100` · 8.88) | `blue-200` · 11.7:1 | `blue-900` / `blue-100` |
 | garden (green) | `green-200`/`green-900` · 5.95:1 (hover 6.39) | `green-200` · 14.4:1 | `green-900` / `green-100` |
 | community (amber/gold) | `yellow-200`/`yellow-900` · 4.58:1 (tightest; hover 4.70) | `yellow-200` · 14.9:1 | `yellow-900` / `yellow-100` |
-| actions (red) | `red-200`/`red-900` · 6.04:1 (hover 7.00) | `red-200` · 12.0:1 | `red-900` / `red-100` |
+| actions (purple, DL-045) | `purple-200`/`purple-900` · 7.27:1 (hover `purple-100` · 8.73) | `purple-200` · 10.3:1 | `purple-900` / `purple-100` |
 | home (stone) | `neutral-300`/`neutral-900` · 11.74:1 (hover `neutral-200` · 13.93) | `neutral-300` · 11.7:1 | `neutral-700` / `neutral-100` |
 
-**Contrast invariant:** dark filled actions carry `-900` ink on `-200` tonal fills and MUST clear AA (≥4.5:1) — measured 4.58–11.74 above. The light-mode invariant is unchanged: deep fills with white text, ≥4.5. Accent-text `-200` steps clear AA on the `surface-container` card (≥11.7:1). A `check:design-tokens` dark-parity guard enforces light/dark tone-block parity and the single 2-level `--m3-elevation-0/1/2` ladder.
+**Contrast invariant:** dark filled actions carry `-900` ink on `-200` tonal fills and MUST clear AA (≥4.5:1) — measured 4.58–11.74 above. The light-mode invariant is unchanged: deep fills with white text, ≥4.5. Accent-text `-200` steps clear AA on the `surface-container` card (≥10.3:1). A `check:design-tokens` dark-parity guard enforces light/dark tone-block parity and the single 2-level `--m3-elevation-0/1/2` ladder.
 
 **Light mode follows the same discipline** (applied 2026-07-03 after a 190-pair audit):
 
-- **Dual-safe light tones** — light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `red-700` (6.4), light home `neutral-600`. Hub and community light already passed and are unchanged.
+- **Dual-safe light tones** — light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `purple-700` (7.93; DL-045 moved Actions off the error red), light home `neutral-600`. Hub and community light already passed and are unchanged.
 - **Light surfaces are the linen ladder** — the M3 containers ride a warm linen family (constant hue ~85, chroma .005–.012, in `admin-m3-tokens.css`), not gray Tailwind neutrals; cards and sheets stay white. This mirrors dark's hue-65 ladder so both modes carry Warm Earth.
 - **`--tone-focus-ring`** is the only token for focus indicators: = `--tone-action` in light, = `--tone-on-surface-accent` in dark (deep fills measure 2.3–2.7 against dark surfaces — below the 3:1 non-text minimum). Never ring with `--tone-action` directly.
 - **State roles:** `-dark` steps for text/icons (they flip per mode: `-950` in light, `-400` in dark), `-lighter`+`-dark` for badges, `-base` for **fills only**. Admin-scope class backstops re-point stray `text-*-base` usages, but new code writes `text-*-dark`. The brand green `#1FC16B` (`--primary-base`) is a fill-only accent — never text, and never behind text: any green fill that carries text, a number, or a glyph (count badges, step markers, selected chips, pills) uses `--primary-action` with `--primary-action-foreground` (DL-017); links use `--primary-dark`.

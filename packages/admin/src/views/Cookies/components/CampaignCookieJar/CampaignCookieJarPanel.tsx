@@ -16,7 +16,7 @@ import {
   CAMPAIGN_DESCRIPTION_MAX_LENGTH,
   diffCampaignCookieJarAllowlist,
 } from "@green-goods/shared/utils/cookie-jar-campaign";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
   canSyncCampaignCookieJarAllowlist,
@@ -33,7 +33,13 @@ import {
   PUBLIC_COOKIE_BASE_URL,
 } from "./helpers";
 
-export function CampaignCookieJarPanel() {
+export interface CampaignCookieJarPanelProps {
+  /** An action for the list's header, such as Create Cookie Jar. */
+  headerAction?: ReactNode;
+}
+
+/** The campaign cookie jars list and its manage dialog. */
+export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelProps) {
   const { formatMessage } = useIntl();
   const chainId = useCurrentChain();
   const { isDeployer, loading: roleLoading } = useRole();
@@ -301,6 +307,7 @@ export function CampaignCookieJarPanel() {
         syncDiff,
         selectedJarAddress: selectedJarAddress ?? null,
         syncJar,
+        headerAction,
       }}
     />
   );

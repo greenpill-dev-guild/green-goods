@@ -163,7 +163,7 @@ export function AdminChoiceGroup({
             <span className="min-w-0 flex-1">
               <span
                 className={cn(
-                  "block truncate text-sm font-semibold leading-5",
+                  "block truncate body-sm font-semibold leading-5",
                   selected
                     ? "text-[rgb(var(--m3-on-secondary-container))]"
                     : "text-[rgb(var(--m3-on-surface))]"
@@ -175,7 +175,7 @@ export function AdminChoiceGroup({
               {option.description ? (
                 <span
                   className={cn(
-                    "mt-0.5 block line-clamp-2 text-xs leading-5",
+                    "mt-0.5 block line-clamp-2 body-xs leading-5",
                     selected
                       ? "text-[rgb(var(--m3-on-secondary-container)/0.78)]"
                       : "text-[rgb(var(--m3-on-surface-variant))]",

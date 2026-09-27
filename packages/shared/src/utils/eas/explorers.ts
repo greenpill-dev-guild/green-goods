@@ -20,6 +20,14 @@ export function isValidAttestationId(attestationId: string): boolean {
   return /^0x[a-fA-F0-9]{64}$/.test(attestationId);
 }
 
+/**
+ * A transaction hash a block explorer can open. Safe-style wallets hand back a
+ * proposal identifier of another shape until the Safe executes the call.
+ */
+export function isTransactionHash(value: string): value is `0x${string}` {
+  return /^0x[a-fA-F0-9]{64}$/.test(value);
+}
+
 export function getBlockExplorerTxUrl(chainId: number, txHash: string): string {
   const baseUrl = getBlockExplorer(chainId);
   return `${baseUrl}/tx/${txHash}`;

@@ -55,7 +55,7 @@ const SAMPLE_ROWS = (
     {Array.from({ length: 12 }, (_, i) => (
       <li
         key={i}
-        className="rounded-md border border-stroke-soft bg-bg-white-0 p-3 text-sm text-text-sub"
+        className="rounded-md border border-stroke-soft bg-bg-white-0 p-3 body-sm text-text-sub"
       >
         {`Row ${i + 1} — the panel content owns scrolling via SheetBody.`}
       </li>
@@ -198,7 +198,7 @@ function SideSheetPreview() {
       </AdminButton>
       <AdminSideSheet open={open} onOpenChange={setOpen} title="Settings" tone="hub">
         <SheetBody padded>
-          <p className="text-sm text-text-sub">
+          <p className="body-sm text-text-sub">
             Escape, the scrim, and the close button all close the sheet.
           </p>
         </SheetBody>

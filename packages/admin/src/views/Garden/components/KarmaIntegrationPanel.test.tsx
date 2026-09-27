@@ -115,11 +115,12 @@ describe("KarmaIntegrationPanel", () => {
     expect(screen.queryByRole("button", { name: "Retry Karma Sync" })).not.toBeInTheDocument();
   });
 
-  it("reports legacy GardenAccounts as migration-blocked without offering an unsafe action", () => {
+  it("reports legacy GardenAccounts as migration-blocked and names who can migrate them", () => {
     renderPanel({ status: "upgrade-needed", canReconcile: true });
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    expect(screen.getByText(/reviewed compatibility migration/i)).toBeVisible();
+    // The steward cannot clear it alone, so the warning says who can (D31).
+    expect(screen.getByText(/Ask the Green Goods team to migrate this garden\./)).toBeVisible();
   });
 
   it("prevents duplicate submissions while a repair is pending", () => {

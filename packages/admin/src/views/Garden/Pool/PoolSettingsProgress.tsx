@@ -105,7 +105,7 @@ export function PoolSettingsProgress({
         </Alert>
       ) : null}
       {stopped && isRetriablePoolSetupFailure(failure) ? (
-        <p className="flex items-center gap-1.5 text-xs text-text-soft">
+        <p className="flex items-center gap-1.5 body-xs text-text-soft">
           <RiShieldCheckLine className="h-3.5 w-3.5" aria-hidden />
           {retryPromptCount(total, formatMessage)}
         </p>

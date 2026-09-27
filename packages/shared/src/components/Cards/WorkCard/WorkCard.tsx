@@ -4,6 +4,7 @@ import { tv, type VariantProps } from "tailwind-variants";
 import type { Address, WorkDisplayStatus } from "../../../types/domain";
 import { cn } from "../../../utils/styles/cn";
 import { formatRelativeTime } from "../../../utils/relativeTime";
+import { toWorkDisplayTitle } from "../../../utils/work/workTitles";
 import { ImageWithFallback } from "../../Display/ImageWithFallback";
 import { getStatusColors } from "../../StatusBadge";
 
@@ -47,7 +48,7 @@ export interface WorkCardData {
 
 /** Translatable labels for the WorkCard component */
 export interface WorkCardLabels {
-  /** Default title when work.title is empty */
+  /** Title for a work with none of its own: empty, or only a generated name or timestamps */
   untitledWork?: string;
   /** Label for error badge */
   error?: string;
@@ -160,6 +161,8 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   const [isPreviewOpen, setIsPreviewOpen] = React.useState(false);
 
   const timeAgo = formatRelativeTime(work.createdAt);
+  // Hosted titles can end in the timestamps older submissions appended; the card never shows them.
+  const displayTitle = toWorkDisplayTitle(work.title, "");
   const thumbUrl = work.mediaPreview?.[0];
   const displayStatus = statusLabel ?? labels.status[work.status] ?? work.status;
   const statusColors = getStatusColors(statusTone ?? work.status).combined;
@@ -247,9 +250,9 @@ export const WorkCard: React.FC<WorkCardProps> = ({
           <div className="flex items-start justify-between gap-2">
             <h4
               className="min-w-0 flex-1 truncate text-label-md font-medium text-text-strong-950"
-              title={work.title || labels.untitledWork}
+              title={displayTitle || labels.untitledWork}
             >
-              {work.title || labels.untitledWork}
+              {displayTitle || labels.untitledWork}
             </h4>
             <span
               className={cn(
@@ -365,7 +368,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
           </button>
           <img
             src={thumbUrl}
-            alt={work.title || labels.mediaPreviewAlt}
+            alt={displayTitle || labels.mediaPreviewAlt}
             className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
           />
         </div>

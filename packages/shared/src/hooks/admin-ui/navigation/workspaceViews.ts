@@ -61,7 +61,7 @@ const ADMIN_TEAM_COMMAND_ROUTES = [
   {
     id: "page-cookies",
     labelId: "cockpit.community.cookies.title",
-    defaultLabel: "Campaign cookie jars",
+    defaultLabel: "Campaign Cookie Jars",
     href: adminRoutes.cookies(),
     roles: ["deployer"] as UserRole[],
   },

@@ -284,23 +284,22 @@ export function PositionCard({
         </a>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 text-body-md">
-        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-label-sm text-text-soft">
+      {/* Plain label and value rows: the card is the one container (D33). */}
+      <dl className="divide-y divide-stroke-soft text-body-md">
+        <div className="flex items-baseline justify-between gap-3 py-2">
+          <dt className="text-label-sm text-text-soft">
             {formatMessage({ id: "app.treasury.netDeposited" })}
-          </p>
-          <p className="mt-1 font-semibold text-text-strong">
+          </dt>
+          <dd className="font-semibold tabular-nums text-text-strong">
             {formatTokenAmount(netDeposited, assetDecimals)} {assetSymbol}
-          </p>
+          </dd>
         </div>
-        <div
-          className={`rounded-md border p-3 ${unharvestedImpactYield > 0n ? "border-success-light bg-success-lighter" : "border-stroke-soft bg-bg-weak"}`}
-        >
-          <p className="text-label-sm text-text-soft">
+        <div className="flex items-baseline justify-between gap-3 py-2">
+          <dt className="text-label-sm text-text-soft">
             {formatMessage({ id: "app.treasury.currentYield" })}
-          </p>
-          <p
-            className={`mt-1 font-semibold ${unharvestedImpactYield > 0n ? "text-success-dark" : "text-text-strong"}`}
+          </dt>
+          <dd
+            className={`font-semibold tabular-nums ${unharvestedImpactYield > 0n ? "text-success-dark" : "text-text-strong"}`}
           >
             {formatTokenAmount(unharvestedImpactYield, assetDecimals)} {assetSymbol}
             {unharvestedImpactYield > 0n && (
@@ -308,25 +307,21 @@ export function PositionCard({
                 {formatMessage({ id: "app.yield.accruing" })}
               </span>
             )}
-          </p>
+          </dd>
         </div>
-        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-label-sm text-text-soft">
+        <div className="flex items-baseline justify-between gap-3 py-2">
+          <dt className="text-label-sm text-text-soft">
             {formatMessage({ id: "app.treasury.depositorCount" })}
-          </p>
-          <p className="mt-1 font-semibold text-text-strong">{vault.depositorCount}</p>
+          </dt>
+          <dd className="font-semibold tabular-nums text-text-strong">{vault.depositorCount}</dd>
         </div>
-        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-label-sm text-text-soft">
+        <div className="flex items-baseline justify-between gap-3 py-2">
+          <dt className="text-label-sm text-text-soft">
             {formatMessage({ id: "app.treasury.harvestCount" })}
-          </p>
-          <p className="mt-1 font-semibold text-text-strong">{vault.totalHarvestCount}</p>
+          </dt>
+          <dd className="font-semibold tabular-nums text-text-strong">{vault.totalHarvestCount}</dd>
         </div>
-      </div>
-
-      <p className="mt-3 text-body-sm text-text-sub">
-        {formatMessage({ id: "app.treasury.impactYieldHelper" })}
-      </p>
+      </dl>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <AdminButton
@@ -394,7 +389,7 @@ export function PositionCard({
 
           {!hasWorkflowOutcome && yieldStatus.status === "loading" && (
             <div className="flex justify-end">
-              <AdminButton variant="filled" size="sm" disabled loading>
+              <AdminButton variant="tonal" size="sm" disabled loading>
                 {formatMessage({ id: "app.yield.harvestDistribution.action.harvest" })}
               </AdminButton>
             </div>
@@ -412,8 +407,9 @@ export function PositionCard({
 
           {!hasWorkflowOutcome && canOpenDistribution && (
             <div className="flex justify-end">
+              {/* Tonal: Deposit is the card's one filled action (D9). */}
               <AdminButton
-                variant="filled"
+                variant="tonal"
                 size="sm"
                 onClick={() => openDistributionConfirm("auto")}
                 disabled={harvestDistribution.isPending}

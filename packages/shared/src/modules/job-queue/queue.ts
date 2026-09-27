@@ -10,7 +10,7 @@ import { createJobRecovery } from "./job-recovery";
 
 export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
   const readers = createQueueReaders(deps.store, deps.events);
-  const recovery = createJobRecovery(deps.store, deps.events);
+  const recovery = createJobRecovery(deps.store, deps.events, deps.executionClaims);
   const maintenance = new JobMaintenance(deps.store, deps.analytics, deps.logger);
   const processJob = createJobProcessor({ ...deps, maintenance });
   let flushPromise: Promise<FlushResult> | null = null;

@@ -6,7 +6,7 @@ import {
 import { CampaignPayoutSection } from "./CampaignPayoutSection";
 
 const meta: Meta<typeof CampaignPayoutSection> = {
-  title: "Admin/Workspaces/Cookies/CampaignCookieJar/PayoutSection",
+  title: "Admin/Workflows/Community/Payouts/CampaignCookieJar/PayoutSection",
   component: CampaignPayoutSection,
   tags: ["autodocs"],
   decorators: campaignCookieJarStoryDecorators,

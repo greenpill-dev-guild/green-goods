@@ -72,6 +72,45 @@ function renderOverview({
 }
 
 describe("OverviewTab", () => {
+  it("leads with the alerts card on a phone, above the health card (DL-051)", () => {
+    const matchMedia = vi.mocked(window.matchMedia);
+    const original = matchMedia.getMockImplementation();
+    matchMedia.mockImplementation(
+      (query: string) =>
+        ({
+          matches: query === "(max-width: 767px)",
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        }) as unknown as MediaQueryList
+    );
+    try {
+      renderOverview({});
+      const alerts = screen.getAllByText("Atenção necessária");
+      expect(alerts).toHaveLength(1);
+      const health = screen.getByText("Saúde do jardim");
+      expect(
+        alerts[0].compareDocumentPosition(health) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    } finally {
+      if (original) matchMedia.mockImplementation(original);
+    }
+  });
+
+  it("keeps the alerts card in the rail, after the health card, above phone width", () => {
+    renderOverview({});
+    const alerts = screen.getAllByText("Atenção necessária");
+    expect(alerts).toHaveLength(1);
+    const health = screen.getByText("Saúde do jardim");
+    expect(
+      alerts[0].compareDocumentPosition(health) & Node.DOCUMENT_POSITION_PRECEDING
+    ).toBeTruthy();
+  });
+
   it("localizes canonical work titles and relative times in Portuguese", () => {
     const activity: GardenActivityEvent[] = [
       {

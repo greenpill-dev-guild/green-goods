@@ -212,7 +212,7 @@ export function ReviewForm({
       <div className={layout === "page" ? "lg:sticky lg:top-24" : undefined}>
         <ErrorBoundary context="WorkDetail.ReviewForm">
           <section className="surface-inset sm:p-6">
-            <h3 className="text-base font-semibold text-text-strong">
+            <h3 className="text-title-md font-semibold text-text-strong">
               {blockedState === "reviewed"
                 ? formatMessage({ id: "app.work.detail.reviewSummary" })
                 : formatMessage({ id: "app.work.detail.stewardReview" })}
@@ -222,13 +222,13 @@ export function ReviewForm({
               <ReviewSummary work={work} />
             ) : blockedState === "self-review" ? (
               <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
-                <p className="text-sm font-medium text-information-dark">
+                <p className="body-sm font-medium text-information-dark">
                   {formatMessage({
                     id: "app.work.detail.reviewBlocked.selfReviewTitle",
                     defaultMessage: "Independent review required",
                   })}
                 </p>
-                <p className="mt-1 text-sm text-information-dark">
+                <p className="mt-1 body-sm text-information-dark">
                   {formatMessage({
                     id: "app.work.detail.reviewBlocked.selfReviewMessage",
                     defaultMessage:
@@ -238,13 +238,13 @@ export function ReviewForm({
               </div>
             ) : blockedState === "expired" ? (
               <div className="mt-4 rounded-xl border border-warning-light bg-warning-lighter/70 p-4">
-                <p className="text-sm font-medium text-warning-dark">
+                <p className="body-sm font-medium text-warning-dark">
                   {formatMessage({
                     id: "app.work.detail.reviewBlocked.expiredTitle",
                     defaultMessage: "Action expired",
                   })}
                 </p>
-                <p className="mt-1 text-sm text-warning-dark">
+                <p className="mt-1 body-sm text-warning-dark">
                   {formatMessage({
                     id: "app.work.detail.reviewBlocked.expiredMessage",
                     defaultMessage:
@@ -254,13 +254,13 @@ export function ReviewForm({
               </div>
             ) : blockedState === "role-blocked" ? (
               <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
-                <p className="text-sm font-medium text-information-dark">
+                <p className="body-sm font-medium text-information-dark">
                   {formatMessage({
                     id: "app.work.detail.reviewBlocked.stewardTitle",
                     defaultMessage: "Owner or steward access required",
                   })}
                 </p>
-                <p className="mt-1 text-sm text-information-dark">
+                <p className="mt-1 body-sm text-information-dark">
                   {formatMessage({
                     id: "app.work.detail.reviewBlocked.stewardMessage",
                     defaultMessage:
@@ -273,11 +273,11 @@ export function ReviewForm({
                 {/* Confidence Selector */}
                 <div>
                   <span
-                    className="mb-1.5 block text-sm font-medium text-text-strong"
+                    className="mb-1.5 block body-sm font-medium text-text-strong"
                     id="confidence-label"
                   >
                     {formatMessage({ id: "app.work.detail.confidenceLevel" })}
-                    <span className="ml-1 text-xs text-text-soft">
+                    <span className="ml-1 label-xs text-text-soft">
                       ({formatMessage({ id: "app.work.detail.requiredForApproval" })})
                     </span>
                   </span>
@@ -294,7 +294,7 @@ export function ReviewForm({
                     )}
                   />
                   {needsConfidence ? (
-                    <p className="mt-1.5 text-xs text-text-soft" data-slot="approval-hint">
+                    <p className="mt-1.5 body-xs text-text-soft" data-slot="approval-hint">
                       {formatMessage({ id: "app.work.detail.hint.lowConfidence" })}
                     </p>
                   ) : null}
@@ -304,10 +304,10 @@ export function ReviewForm({
                 <div>
                   <label
                     htmlFor="feedback"
-                    className="mb-1.5 block text-sm font-medium text-text-strong"
+                    className="mb-1.5 block body-sm font-medium text-text-strong"
                   >
                     {formatMessage({ id: "app.work.detail.feedback" })}
-                    <span className="ml-1 text-xs text-text-soft">
+                    <span className="ml-1 label-xs text-text-soft">
                       ({formatMessage({ id: "app.common.optional" })})
                     </span>
                   </label>
@@ -330,16 +330,16 @@ export function ReviewForm({
 
                 {/* Audio Recorder */}
                 <div>
-                  <span className="mb-1.5 block text-sm font-medium text-text-strong">
+                  <span className="mb-1.5 block body-sm font-medium text-text-strong">
                     {formatMessage({ id: "app.work.detail.audioReviewNote" })}
-                    <span className="ml-1 text-xs text-text-soft">
+                    <span className="ml-1 label-xs text-text-soft">
                       ({formatMessage({ id: "app.common.optional" })})
                     </span>
                   </span>
                   {reviewAudioFile ? (
                     <div className="flex items-center gap-2">
                       <span
-                        className="flex-1 truncate text-sm text-text-sub"
+                        className="flex-1 truncate body-sm text-text-sub"
                         title={reviewAudioFile.name}
                       >
                         {reviewAudioFile.name}
@@ -347,7 +347,7 @@ export function ReviewForm({
                       <button
                         type="button"
                         onClick={() => setReviewAudioFile(null)}
-                        className="text-xs text-error-base hover:text-error-dark"
+                        className="body-xs text-error-base hover:text-error-dark"
                       >
                         {formatMessage({ id: "app.common.remove" })}
                       </button>
@@ -359,7 +359,7 @@ export function ReviewForm({
 
                 {/* Cascade awareness — who this decision affects */}
                 <div className="rounded-md border border-information-light bg-information-lighter p-3">
-                  <p className="text-xs text-information-dark">
+                  <p className="body-xs text-information-dark">
                     <span className="font-medium">
                       {formatMessage({
                         id: "app.work.detail.cascade.heading",
@@ -387,11 +387,10 @@ export function ReviewForm({
                 <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
                   <AdminButton
                     type="button"
-                    variant="outlined"
+                    variant="outlinedDanger"
                     onClick={() => setRejectDialogOpen(true)}
                     disabled={isSubmitting}
                     loading={isSubmitting && submittingAction === "reject"}
-                    className="border-[rgb(var(--m3-error))] [color:rgb(var(--m3-error))] [--state-layer-color:var(--m3-error)] focus-visible:ring-[rgb(var(--m3-error))]"
                     data-action="reject"
                   >
                     {formatMessage({ id: "app.work.detail.reject" })}
@@ -432,7 +431,7 @@ export function ReviewForm({
                 />
               </form>
             ) : (
-              <p className="mt-4 text-sm text-text-soft">
+              <p className="mt-4 body-sm text-text-soft">
                 {formatMessage({ id: "app.work.detail.noPermission" })}
               </p>
             )}

@@ -93,7 +93,7 @@ Run before the user starts walking. Print the checklist results compactly; stop 
    a full reload just ate the flow (optimizeDeps drift); note it as an env event, fix the
    `optimizeDeps.include` list after the session.
 4. **Identity plan.** Authenticated Brave QA profile via the Chrome-extension path for
-   authenticated proof (per `CLAUDE.md § Claude Tool Routing`). Probe reachability with a
+   authenticated proof (per [the Claude harness notes](../../context/claude-code.md#authenticated-browser-tools)). Probe reachability with a
    tab-context call, NOT the connected-browsers listing — the listing lags registration and
    reads empty while the extension works; declare the lane Blocked (no substitute browser)
    only after the tab-context probe itself fails. **Use `?mockAuth=deployer` for read-only production
@@ -187,7 +187,7 @@ surface) — their choice, per item or standing.
 **Branch decision (first accepted fix only):** if the current branch is `develop` or `main`, ask
 the user once for the branch action and proceed only on their explicit yes — never create or
 switch branches without that ask. Propose a name describing the WORK, derived from the first
-accepted fix per `AGENTS.md § Branch + PR` (`fix/<work-description>`, e.g.
+accepted fix per `.claude/context/linear-routing-rules.md § Branch and PR naming` (`fix/<work-description>`, e.g.
 `fix/pin-review-dialog-actions`) — never a session/date/orchestration name like
 `fix/qa-session-…`. Session traceability lives in the commit messages (`OBS-NN` refs), not the
 branch name. On an existing work branch, commit there.

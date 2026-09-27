@@ -19,6 +19,7 @@ import type {
   GardenActivityEvent,
   GardenDetailTab,
   GardenRange,
+  GardenReviewQueue,
   RoleDirectoryEntry,
   TabBadgeSeverity,
   TabBadgeState,
@@ -50,6 +51,8 @@ interface DerivedStateInput {
   }>;
   /** False when `works` may miss a true status: only the newest page, or unread approvals. */
   worksComplete?: boolean;
+  /** The garden's whole review queue, when `works` is only the newest page of current rows. */
+  gardenReviewQueue?: GardenReviewQueue;
   assessments: Array<{
     id: string;
     title?: string | null;
@@ -69,7 +72,8 @@ interface DerivedStateInput {
     juiceboxAmount: bigint;
   }>;
   gardenVaults: Array<unknown>;
-  vaultNetDeposited: bigint;
+  /** Whether any vault holds a net deposit, in any asset. */
+  hasEndowment: boolean;
   /** The garden's cookie jars. Omit where the surface shows no alerts. */
   cookieJars?: CookieJar[];
   roleMembers: Record<GardenRole, Address[]>;
@@ -86,11 +90,12 @@ export function useGardenDerivedState({
   garden,
   works,
   worksComplete = true,
+  gardenReviewQueue,
   assessments,
   hypercerts,
   allocations,
   gardenVaults,
-  vaultNetDeposited,
+  hasEndowment,
   cookieJars = [],
   roleMembers,
   selectedRange,
@@ -109,7 +114,10 @@ export function useGardenDerivedState({
   const approvedWorks = works.filter((work) => work.status === "approved");
   // Work age is metadata, not an alarm: the queue warns once work has waited a
   // week, and turns critical only when review has stalled (DL-044).
-  const reviewQueue = summarizeReviewQueue(works, now, { complete: worksComplete });
+  const reviewQueue = summarizeReviewQueue(works, now, {
+    complete: worksComplete,
+    garden: gardenReviewQueue,
+  });
 
   const approvedInRangeCount = approvedWorks.filter(
     (work) => toMs(work.createdAt) >= rangeStart
@@ -129,7 +137,7 @@ export function useGardenDerivedState({
   const hasVaults = gardenVaults.length > 0;
   const treasurySeverity: TabBadgeSeverity = !hasVaults
     ? "warn"
-    : vaultNetDeposited === 0n
+    : !hasEndowment
       ? "critical"
       : "none";
   // The treasury's alert opens Community, so a viewer without Community access
@@ -339,18 +347,20 @@ export function useGardenDerivedState({
     firstMember: roleMembers[role][0],
   }));
 
+  // One entry per person, whatever the casing each role list uses (DL-049).
   const directoryEntries: RoleDirectoryEntry[] = useMemo(() => {
-    const map = new Map<Address, RoleDirectoryEntry>();
+    const map = new Map<string, RoleDirectoryEntry>();
 
     for (const role of GARDEN_ROLE_ORDER) {
       for (const memberAddress of roleMembers[role]) {
-        const existing = map.get(memberAddress);
+        const key = memberAddress.toLowerCase();
+        const existing = map.get(key);
         if (existing) {
           existing.roles.push(role);
           continue;
         }
 
-        map.set(memberAddress, { address: memberAddress, roles: [role] });
+        map.set(key, { address: memberAddress, roles: [role] });
       }
     }
 
@@ -400,6 +410,8 @@ export function useGardenDerivedState({
     filteredActivityEvents,
     roleSummary,
     directoryEntries,
+    /** Distinct people across every role; a role seat is not a member (DL-049). */
+    memberCount: directoryEntries.length,
     filteredDirectory,
     visibleDirectory,
   };

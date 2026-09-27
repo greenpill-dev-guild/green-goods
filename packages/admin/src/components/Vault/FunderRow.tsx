@@ -24,15 +24,15 @@ export function FunderRow({ funder, maxYield }: FunderRowProps) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2.5">
       {/* Avatar placeholder */}
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-lighter text-xs font-semibold text-primary-dark">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-lighter body-xs font-semibold text-primary-dark">
         {displayName.charAt(0).toUpperCase()}
       </div>
 
       {/* Name + yield bar */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="truncate text-sm font-medium text-text-strong">{displayName}</p>
-          <span className="shrink-0 text-sm font-semibold text-success-dark">
+          <p className="truncate body-sm font-medium text-text-strong">{displayName}</p>
+          <span className="shrink-0 body-sm font-semibold text-success-dark">
             {hasYield ? `+${formatTokenAmount(funder.totalYieldGenerated)}` : formatTokenAmount(0n)}
           </span>
         </div>
@@ -48,7 +48,7 @@ export function FunderRow({ funder, maxYield }: FunderRowProps) {
         )}
 
         {/* Garden count */}
-        <div className="mt-1 flex items-center gap-1 text-xs text-text-sub">
+        <div className="mt-1 flex items-center gap-1 body-xs text-text-sub">
           <RiLeafLine className="h-3 w-3" />
           <span>
             {formatMessage({ id: "app.funders.gardensSupported" }, { count: funder.gardenCount })}

@@ -209,8 +209,8 @@ export const MobileSpeedDial: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // Collapsed FAB is a neutral "+" opener — it must NOT surface the primary
-    // action's label (the bug: "Submit Work" showed on the button AND in the dial).
+    // The collapsed FAB shows the primary action's icon but never its label
+    // (the bug: "Submit Work" showed on the button AND in the dial).
     const opener = canvas.getByRole("button", { name: /open actions/i });
     await expect(opener).toHaveAttribute("aria-haspopup", "menu");
     await expect(opener).not.toHaveTextContent(/submit work/i);

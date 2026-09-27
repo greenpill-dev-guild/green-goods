@@ -6,6 +6,7 @@ import { useId } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { EditorialKicker } from "./atoms";
 import { EVIDENCE_KIND_LABELS } from "./evidenceKinds";
+import { evidenceRecordTitle } from "./evidenceTitle";
 import { PublicRecordDrawer } from "./PublicRecordDrawer";
 
 const DOMAIN_INK: Record<"solar" | "agro" | "education" | "waste", string> = {
@@ -206,7 +207,7 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
         id={titleId}
         className="font-serif text-2xl font-normal leading-[1.1] tracking-[-0.018em] text-text-strong-950 md:text-3xl"
       >
-        {record.title}
+        {evidenceRecordTitle(record, formatMessage)}
       </h2>
 
       {record.summary ? (

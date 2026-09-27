@@ -133,7 +133,7 @@ const fullWidthMobileSheetClasses = cn(
 );
 
 const closeButtonClasses = cn(
-  // Centered on the compact header title row (py-3 + text-lg leading-7).
+  // Centered on the compact header title row (py-3 + the 28px title-large line).
   "absolute right-3 top-1.5 z-10",
   "flex h-10 w-10 items-center justify-center",
   "rounded-full",
@@ -157,7 +157,7 @@ const closeButtonClasses = cn(
  * - Shape: page-container radius (16dp) via --m3-shape-lg; surface-container-high;
  *   elevation 2 over the scrim (the ladder tops out at level 2)
  * - Header: hairline-bottom bar (px-4 py-3 sm:px-6, border-stroke-soft) with
- *   an optional inline icon, text-lg semibold title, text-sm description
+ *   an optional inline icon, title-large title, body-sm description
  * - Body: the scrollable region between header and footer (px-4 py-4 sm:px-6)
  * - Actions: pinned footer bar — hairline top border on --surface-raised
  *   (the SheetFooter anatomy the flows use), buttons right-aligned
@@ -319,7 +319,7 @@ export function AdminDialog({
                   </span>
                 ) : null}
                 <div className="min-w-0">
-                  <Dialog.Title className="text-lg font-semibold leading-7 text-[rgb(var(--m3-on-surface))]">
+                  <Dialog.Title className="text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-[rgb(var(--m3-on-surface))]">
                     {title}
                   </Dialog.Title>
                   {target ? (
@@ -329,7 +329,7 @@ export function AdminDialog({
                   ) : null}
                   <Dialog.Description
                     className={cn(
-                      description ? "mt-0.5 text-sm" : "sr-only",
+                      description ? "mt-0.5 body-sm" : "sr-only",
                       "text-[rgb(var(--m3-on-surface-variant))]"
                     )}
                   >

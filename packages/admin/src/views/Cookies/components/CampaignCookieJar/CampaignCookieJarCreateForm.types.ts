@@ -4,12 +4,8 @@ import type {
   CampaignCookieJarPayoutAssetId,
 } from "@green-goods/shared/utils/cookie-jar-campaign";
 import type { IntlShape } from "react-intl";
-import { CampaignAdvancedSection } from "./CampaignAdvancedSection";
-import { CampaignCreateReview } from "./CampaignCreateReview";
-import { CampaignDetailsSection } from "./CampaignDetailsSection";
-import { CampaignGardenSection } from "./CampaignGardenSection";
-import { CampaignPayoutSection } from "./CampaignPayoutSection";
 
+/** What each step of the Create Cookie Jar flow reads and edits. */
 export interface CampaignCookieJarCreateFormProps {
   formatMessage: IntlShape["formatMessage"];
   moduleConfigured: boolean;
@@ -65,49 +61,4 @@ export interface CampaignCookieJarCreateFormProps {
   setExtraAddresses: (value: string) => void;
   payoutLabel: string;
   canCreate: boolean;
-  onCreate: () => void;
-  onCancel: () => void;
-}
-
-export function CampaignCookieJarCreateForm(props: CampaignCookieJarCreateFormProps) {
-  const { formatMessage, moduleConfigured, isDeployer, roleLoading, createError } = props;
-  return (
-    <div className="relative pb-32 lg:pb-0">
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-        <div className="space-y-5">
-          {!moduleConfigured ? (
-            <div className="surface-section text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-              {formatMessage({
-                id: "cockpit.community.cookies.factoryMissing",
-                defaultMessage:
-                  "Cookie Jar factory discovery is not configured on this network yet.",
-              })}
-            </div>
-          ) : null}
-          {!isDeployer && !roleLoading ? (
-            <div className="surface-section text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-              {formatMessage({
-                id: "cockpit.community.cookies.deployerOnly",
-                defaultMessage:
-                  "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create jars, or the jar owner to sync an existing jar.",
-              })}
-            </div>
-          ) : null}
-          {createError ? (
-            <div
-              className="surface-section border-[rgb(var(--m3-error))] text-body-sm text-[rgb(var(--m3-error))]"
-              role="alert"
-            >
-              {createError.message}
-            </div>
-          ) : null}
-          <CampaignDetailsSection {...props} />
-          <CampaignPayoutSection {...props} />
-          <CampaignGardenSection {...props} />
-          <CampaignAdvancedSection {...props} />
-        </div>
-        <CampaignCreateReview {...props} />
-      </div>
-    </div>
-  );
 }

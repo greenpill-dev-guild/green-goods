@@ -4,7 +4,7 @@ import type {
 } from "@green-goods/shared/components/Canvas/NavigationBar";
 import { useCanvasMobileChromeHidden } from "@green-goods/shared/components/Canvas/useCanvasMobileChromeHidden";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { FabButton } from "./FabButton";
 
@@ -51,8 +51,12 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
       onClick={() => onNavigate(slot.path)}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "flex min-w-0 cursor-pointer flex-col items-center justify-center rounded-full bg-transparent",
-        mobile ? "flex-1 gap-1 px-0 py-1" : "gap-0.5 px-2.5 pb-1 pt-0.5",
+        "flex cursor-pointer flex-col items-center justify-center rounded-full bg-transparent",
+        // On a phone each tab takes its label's width, then all grow equally, so
+        // a long localized label (Comunidade) shows whole in its own tab (D16).
+        // At large text sizes the tabs shrink instead and their labels wrap, so
+        // the last tabs never leave the screen.
+        mobile ? "min-w-0 flex-auto gap-1 px-0 py-1" : "min-w-0 gap-0.5 px-2.5 pb-1 pt-0.5",
         !isActive && "hover:opacity-75",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
       )}
@@ -75,8 +79,8 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
       </span>
       <span
         className={cn(
-          "text-label-md leading-4 tracking-[0.03125rem]",
-          mobile && "max-w-full truncate",
+          "text-label-md leading-4",
+          mobile ? "max-w-full text-center break-words" : "tracking-[0.03125rem]",
           isActive
             ? "font-semibold text-[rgb(var(--m3-on-surface))]"
             : "font-medium text-[rgb(var(--m3-on-surface-variant))]"
@@ -123,6 +127,26 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
     [visibleSlots]
   );
   const hideMobileChrome = useCanvasMobileChromeHidden();
+  const showMobileNav = !isDesktop && mobileSlots.length > 1 && !hideMobileChrome;
+
+  // A large text size can wrap the phone bar's labels and make the bar taller
+  // than its 80px, so the floating FAB sits above the bar's measured height
+  // rather than a fixed offset.
+  const mobileNavRef = useRef<HTMLElement>(null);
+  const [mobileNavHeight, setMobileNavHeight] = useState(0);
+  useLayoutEffect(() => {
+    const nav = mobileNavRef.current;
+    if (!showMobileNav || !nav) {
+      setMobileNavHeight(0);
+      return;
+    }
+    const measure = () => setMobileNavHeight(nav.getBoundingClientRect().height);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [showMobileNav]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -176,7 +200,12 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
         // desktop puts inline header actions in the page header instead.
         <div
           className="pointer-events-none fixed inset-x-0 z-nav px-4"
-          style={{ bottom: "calc(env(safe-area-inset-bottom) + 5.5rem)" }}
+          style={{
+            bottom:
+              mobileNavHeight > 0
+                ? `calc(${mobileNavHeight}px + 0.375rem)`
+                : "calc(env(safe-area-inset-bottom) + 5.5rem)",
+          }}
           data-component="NavigationBar"
           data-slot="mobile-fab-layer"
         >
@@ -213,13 +242,14 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
         </nav>
       )}
 
-      {!isDesktop && mobileSlots.length > 1 && !hideMobileChrome && (
+      {showMobileNav && (
         <nav
+          ref={mobileNavRef}
           aria-label={navLabel}
           data-component="NavigationBar"
           data-slot="mobile"
           data-state="visible"
-          className="canvas-navigation-bar fixed inset-x-0 bottom-0 z-nav flex min-h-20 items-start rounded-none px-2 pt-3"
+          className="canvas-navigation-bar fixed inset-x-0 bottom-0 z-nav flex min-h-20 items-start rounded-none px-1 pt-3"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.5rem)" }}
         >
           {mobileSlots.map((slot) => (

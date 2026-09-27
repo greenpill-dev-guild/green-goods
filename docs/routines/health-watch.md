@@ -106,7 +106,7 @@ If indexer is 🟢 OR 🟡, proceed:
 
 **Vault and yield-split state** — query vault contract balances and yield-split state via Arbitrum RPC using addresses from `deployments/<chainId>-latest.json` (chainId = 42161 for Arbitrum One). If any vault balance changed by >30% in 24h OR any yield-split parameter drifted from its expected value → 🔴 accepted anomaly. This feeds a single Linear contracts Issue — one open at a time.
 
-> **No garden-dormancy check.** Gardening activity (EAS work attestations) is out of indexer scope by design — see CLAUDE.md → "Indexer Boundary"; the indexed `Action` entity is global templates with no per-garden link. Vault/yield-split drift is the only contracts signal. Do not re-add a per-garden dormancy check sourced from the indexer.
+> **No garden-dormancy check.** Gardening activity (EAS work attestations) is out of indexer scope by design — see `packages/indexer/AGENTS.md`; the indexed `Action` entity is global templates with no per-garden link. Vault/yield-split drift is the only contracts signal. Do not re-add a per-garden dormancy check sourced from the indexer.
 
 ### 4. Agent uptime
 

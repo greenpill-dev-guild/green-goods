@@ -143,7 +143,7 @@ export function CampaignCookieJarCreatedState({
               <ReviewLine
                 label={formatMessage({
                   id: "cockpit.community.cookies.generatedStewards",
-                  defaultMessage: "Generated stewards",
+                  defaultMessage: "Stewards who can claim",
                 })}
                 value={jar.allowlist.length}
               />

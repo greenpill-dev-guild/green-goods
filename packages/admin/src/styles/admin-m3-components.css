@@ -228,3 +228,41 @@
     transition: none !important;
   }
 }
+
+/* AdminTabRail overflow cue (D18). A rail wider than its box has no scrollbar
+ * chrome, so the edge that clips tabs fades out, and tabs snap as the rail
+ * scrolls. AdminTabRail sets data-overflow from its scroll position. The
+ * scroll padding reserves the fades, so a tab snaps, and a selected tab
+ * lands, clear of them; AdminTabRail reads it to place the selected tab. */
+[data-component="AdminTabRail"] {
+  --tab-rail-fade: 2.5rem;
+  scroll-padding-inline: var(--tab-rail-fade);
+  scroll-snap-type: x proximity;
+}
+[data-component="AdminTabRail"] > [role="tab"] {
+  scroll-snap-align: start;
+}
+[data-component="AdminTabRail"][data-overflow="end"] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--tab-rail-fade)), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--tab-rail-fade)), transparent);
+}
+[data-component="AdminTabRail"][data-overflow="start"] {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - var(--tab-rail-fade)), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - var(--tab-rail-fade)), transparent);
+}
+[data-component="AdminTabRail"][data-overflow="both"] {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--tab-rail-fade),
+    #000 calc(100% - var(--tab-rail-fade)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--tab-rail-fade),
+    #000 calc(100% - var(--tab-rail-fade)),
+    transparent
+  );
+}

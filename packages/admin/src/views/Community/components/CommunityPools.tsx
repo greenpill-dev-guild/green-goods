@@ -1,11 +1,13 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { useCommitmentPools } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import {
   type CommitmentsToConfirm,
   useCommitmentsToConfirm,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
-import { useProtocolPool } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
+import {
+  useIsProtocolGarden,
+  type useProtocolPool,
+} from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightLine, RiRefreshLine } from "@remixicon/react";
@@ -36,15 +38,10 @@ export interface CommunityPoolsProps {
  * isn't it.
  */
 export function CommunityPools({ chainId, garden, canManage }: CommunityPoolsProps) {
-  const protocolPool = useProtocolPool({ chainId });
-  const ownPools = useCommitmentPools({ chainId, garden: garden.id });
-  const ownPool = ownPools.pools[0] ?? null;
-  // The chain names the root garden; the index names the pool's type. Either
-  // is enough to know this garden is the protocol's, so a failed chain read
-  // does not hide the protocol's panels from the one garden that owns them.
-  const isProtocolGarden =
-    (protocolPool.rootGarden !== null && protocolPool.rootGarden === garden.id.toLowerCase()) ||
-    ownPool?.poolType === "PROTOCOL";
+  const { isProtocolGarden, protocolPool, ownPool, ownPoolsLoading } = useIsProtocolGarden({
+    chainId,
+    gardenId: garden.id,
+  });
 
   return (
     <div
@@ -56,7 +53,7 @@ export function CommunityPools({ chainId, garden, canManage }: CommunityPoolsPro
       <GardenPoolCard
         garden={garden}
         canManage={canManage}
-        isLoading={ownPools.isLoading}
+        isLoading={ownPoolsLoading}
         pool={ownPool}
       />
       {isProtocolGarden ? (
@@ -91,7 +88,7 @@ function GardenPoolCard({
           <AdminCardTitle className="truncate" title={garden.name}>
             {garden.name}
           </AdminCardTitle>
-          <p className="mt-1 text-xs text-text-soft">
+          <p className="mt-1 body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.community.pools.currentGardenHint",
               defaultMessage:
@@ -123,7 +120,7 @@ function GardenPoolCard({
         })}
       </AdminButton>
       {!canManage ? (
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.community.pools.stewardOnly",
             defaultMessage: "The pool console is for this garden's stewards.",
@@ -191,7 +188,7 @@ function ProtocolOperations({
             defaultMessage: "Couldn’t read the protocol pool",
           })}
         </AdminCardTitle>
-        <p className="max-w-md text-sm text-text-soft">
+        <p className="max-w-md body-sm text-text-soft">
           {formatMessage({
             id: "cockpit.community.pools.readError.body",
             defaultMessage:
@@ -221,7 +218,7 @@ function ProtocolOperations({
             defaultMessage: "No protocol pool is registered yet",
           })}
         </AdminCardTitle>
-        <p className="text-sm text-text-soft">
+        <p className="body-sm text-text-soft">
           {formatMessage({
             id: "cockpit.community.pools.unregistered.body",
             defaultMessage:
@@ -249,7 +246,7 @@ function ProtocolOperations({
               defaultMessage: "Protocol Confirmations",
             })}
           </AdminCardTitle>
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.community.pools.confirmationsHint",
               defaultMessage:

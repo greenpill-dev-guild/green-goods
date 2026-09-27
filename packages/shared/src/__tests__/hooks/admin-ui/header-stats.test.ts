@@ -87,7 +87,7 @@ describe("buildCommunityHeaderStats", () => {
   it("returns an empty array when no garden is selected", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: false,
-      vaultNetDeposited: 0n,
+      endowmentByAsset: [],
       distributedAmounts: [0n],
       formatMessage: makeFormatMessage(),
     });
@@ -97,17 +97,17 @@ describe("buildCommunityHeaderStats", () => {
   it("emits treasury / distributed items in that order (people + pools live on the tabs)", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      vaultNetDeposited: 0n,
+      endowmentByAsset: [],
       distributedAmounts: [0n],
       formatMessage: makeFormatMessage(),
     });
     expect(items.map((item) => item.id)).toEqual(["treasury", "distributed"]);
   });
 
-  it("formats both token amounts via formatTokenAmount (zero renders as '0')", () => {
+  it("renders an empty endowment and no distributions as '0'", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      vaultNetDeposited: 0n,
+      endowmentByAsset: [],
       distributedAmounts: [0n],
       formatMessage: makeFormatMessage(),
     });
@@ -115,15 +115,28 @@ describe("buildCommunityHeaderStats", () => {
     expect(items[1]?.value).toBe("0");
   });
 
-  it("formats non-zero balances with the token's 18 decimal precision (default)", () => {
+  it("names each endowment asset beside its amount", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      vaultNetDeposited: 1_500_000_000_000_000_000n, // 1.5 * 10^18
+      endowmentByAsset: [
+        {
+          asset: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+          symbol: "WETH",
+          decimals: 18,
+          amount: 1_500_000_000_000_000_000n, // 1.5 * 10^18
+        },
+        {
+          asset: "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
+          symbol: "DAI",
+          decimals: 18,
+          amount: 12_000_000_000_000_000_000n,
+        },
+      ],
       distributedAmounts: [500_000_000_000_000_000n], // 0.5 * 10^18
       formatMessage: makeFormatMessage(),
     });
     // formatTokenAmount uses the active locale; assert digit + decimal-separator + digit
-    expect(items[0]?.value).toMatch(/^1[.,]5$/);
+    expect(items[0]?.value).toMatch(/^1[.,]5 WETH · 12 DAI$/);
     expect(items[1]?.value).toMatch(/^0[.,]5$/);
   });
 
@@ -131,7 +144,7 @@ describe("buildCommunityHeaderStats", () => {
     const formatMessage = makeFormatMessage();
     buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      vaultNetDeposited: 0n,
+      endowmentByAsset: [],
       distributedAmounts: [0n],
       formatMessage,
     });
@@ -145,7 +158,7 @@ describe("buildCommunityHeaderStats", () => {
   it("omits distributed totals when allocations span multiple assets", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      vaultNetDeposited: 0n,
+      endowmentByAsset: [],
       distributedAmounts: [500_000_000_000_000_000n, 1_000_000n],
       formatMessage: makeFormatMessage(),
     });
@@ -155,7 +168,7 @@ describe("buildCommunityHeaderStats", () => {
   it("omits distributed totals while allocations are still loading", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      vaultNetDeposited: 0n,
+      endowmentByAsset: [],
       distributedAmounts: null,
       formatMessage: makeFormatMessage(),
     });

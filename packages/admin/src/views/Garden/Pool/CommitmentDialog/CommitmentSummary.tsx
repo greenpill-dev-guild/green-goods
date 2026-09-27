@@ -38,7 +38,7 @@ export function CommitmentSummary({
     <>
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="whitespace-nowrap text-xs text-text-soft">
+          <span className="whitespace-nowrap body-xs text-text-soft">
             {directionLabel(commitment.direction, formatMessage)}
           </span>
           <StatusBadge variant={chip.variant} size="sm">
@@ -58,10 +58,10 @@ export function CommitmentSummary({
             </StatusBadge>
           ) : null}
         </div>
-        <h3 className="text-base font-semibold text-text-strong" title={title}>
+        <h3 className="text-title-md font-semibold text-text-strong" title={title}>
           {title}
         </h3>
-        <p className="text-sm text-text-soft">
+        <p className="body-sm text-text-soft">
           {[
             commitment.counterparty
               ? `${shortAddress(commitment.creator)} → ${shortAddress(commitment.counterparty)}`
@@ -77,12 +77,12 @@ export function CommitmentSummary({
             .filter(Boolean)
             .join(" · ")}
         </p>
-        {note ? <p className="text-sm text-text-sub">{note}</p> : null}
+        {note ? <p className="body-sm text-text-sub">{note}</p> : null}
       </header>
 
       {stage >= 0 ? (
         <ol
-          className="flex flex-wrap gap-1 text-xs"
+          className="flex flex-wrap gap-1 body-xs"
           aria-label={formatMessage({
             id: "cockpit.garden.pool.commitment.stages",
             defaultMessage: "Lifecycle",

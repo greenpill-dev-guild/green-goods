@@ -1,2 +1,5 @@
-export { CampaignCookieJarCreateWorkspace } from "./CampaignCookieJarCreateWorkspace";
+export {
+  CampaignCookieJarCreateDialog,
+  CampaignCookieJarCreateWorkspace,
+} from "./CampaignCookieJarCreateWorkspace";
 export { CampaignCookieJarPanel } from "./CampaignCookieJarPanel";

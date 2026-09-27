@@ -248,7 +248,7 @@ export function CreateListingDialog({
                 id: "app.listing.sellLeftover",
                 defaultMessage: "Sell leftover fraction",
               })}
-              className="[&>span:nth-child(2)>span]:text-sm [&>span:nth-child(2)>span]:text-text-sub"
+              className="[&>span:nth-child(2)>span]:body-sm [&>span:nth-child(2)>span]:text-text-sub"
             />
           </form>
         ) : (
@@ -305,7 +305,7 @@ function ListingProgress({ step }: { step: ListingStep }) {
               )}
             </div>
             <span
-              className={`text-sm ${
+              className={`body-sm ${
                 isDone
                   ? "text-text-soft"
                   : isActive

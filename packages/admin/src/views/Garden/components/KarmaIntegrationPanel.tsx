@@ -30,7 +30,7 @@ const STATUS_PRESENTATION = {
     badgeDefault: "Migration needed",
     bodyId: "cockpit.garden.karma.body.upgradeNeeded",
     bodyDefault:
-      "This legacy Garden account needs a reviewed compatibility migration before Karma can be repaired.",
+      "This garden was created before Karma support and needs a one-time migration. Ask the Green Goods team to migrate this garden.",
     variant: "warning",
   },
   "no-project": {
@@ -135,10 +135,10 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
           <AdminCardTitle id={titleId}>
             {formatMessage({
               id: "cockpit.garden.karma.title",
-              defaultMessage: "Karma integration",
+              defaultMessage: "Karma Integration",
             })}
           </AdminCardTitle>
-          <p className="mt-1 text-xs text-text-soft">
+          <p className="mt-1 body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.karma.description",
               defaultMessage:
@@ -158,7 +158,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
         </StatusBadge>
       </div>
 
-      <p className="text-sm text-text-sub">
+      <p className="body-sm text-text-sub">
         {formatMessage({
           id: presentation.bodyId,
           defaultMessage: presentation.bodyDefault,

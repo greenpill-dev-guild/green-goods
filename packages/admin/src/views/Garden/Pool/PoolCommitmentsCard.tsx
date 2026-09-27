@@ -220,7 +220,7 @@ export function PoolCommitmentsCard({
                           defaultMessage: "Queued",
                         })}
                 </StatusBadge>
-                <span className="text-xs text-text-soft">
+                <span className="body-xs text-text-soft">
                   {`${row.targetUnits} ${row.unitLabel}`}
                 </span>
                 <span className="ml-auto flex items-center gap-1.5">
@@ -282,7 +282,7 @@ export function PoolCommitmentsCard({
                 defaultMessage: "No commitments yet",
               })}
             </AdminCardTitle>
-            <p className="max-w-sm text-sm text-text-soft">
+            <p className="max-w-sm body-sm text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.commitments.emptyBody",
                 defaultMessage:
@@ -291,7 +291,7 @@ export function PoolCommitmentsCard({
             </p>
           </div>
         ) : rows.length === 0 ? (
-          <p className="flex min-h-24 items-center justify-center text-center text-sm text-text-soft">
+          <p className="flex min-h-24 items-center justify-center text-center body-sm text-text-soft">
             {search.trim()
               ? formatMessage({
                   id: "cockpit.garden.pool.commitments.noMatch",
@@ -338,7 +338,7 @@ export function PoolCommitmentsCard({
                   >
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="whitespace-nowrap text-xs text-text-soft">
+                        <span className="whitespace-nowrap body-xs text-text-soft">
                           {directionLabel(commitment.direction, formatMessage)}
                         </span>
                         <span className="truncate text-body-md text-text-strong" title={title}>
@@ -356,7 +356,7 @@ export function PoolCommitmentsCard({
                           </StatusBadge>
                         ) : null}
                       </span>
-                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-text-soft">
+                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 body-xs text-text-soft">
                         {provider && receiver && provider !== receiver ? (
                           <FormattedMessage
                             id="cockpit.garden.pool.row.people"
@@ -366,14 +366,14 @@ export function PoolCommitmentsCard({
                                 <AddressDisplay
                                   address={provider}
                                   interactive={false}
-                                  className="text-xs"
+                                  className="body-xs"
                                 />
                               ),
                               receiver: (
                                 <AddressDisplay
                                   address={receiver}
                                   interactive={false}
-                                  className="text-xs"
+                                  className="body-xs"
                                 />
                               ),
                             }}
@@ -382,7 +382,7 @@ export function PoolCommitmentsCard({
                           <AddressDisplay
                             address={whoAlone}
                             interactive={false}
-                            className="text-xs"
+                            className="body-xs"
                           />
                         ) : null}
                         <span>· {amount}</span>
@@ -414,7 +414,7 @@ export function PoolCommitmentsCard({
         )}
 
         {focus === "pastDue" && rows.length > 0 ? (
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.commitments.dueNote",
               defaultMessage:

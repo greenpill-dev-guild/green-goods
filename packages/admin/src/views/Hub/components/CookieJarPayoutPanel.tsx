@@ -4,7 +4,7 @@ import { useGardenAccountSigner } from "@green-goods/shared/hooks/garden/useGard
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import type { Address } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
-import { RiCupLine } from "@remixicon/react";
+import { RiCupLine, RiErrorWarningLine, RiWifiOffLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
@@ -23,6 +23,8 @@ interface CookieJarPayoutPanelProps {
   /** Open this jar's per-claim limit editor on arrival (the low-limit alert links here). */
   routeEditLimitJar?: string | null;
   allocationCount?: number;
+  /** The payout history filled its list, so the count is a lower bound. */
+  allocationCountAtLeast?: boolean;
 }
 
 export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
@@ -31,12 +33,17 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   routeAction,
   routeEditLimitJar,
   allocationCount = 0,
+  allocationCountAtLeast = false,
 }) => {
   const { formatMessage } = useIntl();
 
   const {
     jars,
-    isLoading: jarsLoading,
+    hasNoJar,
+    isPaused: jarsPaused,
+    error: jarsError,
+    hasDetailReadFailure,
+    hasUnreadDecimals,
     moduleConfigured: jarsModuleConfigured,
   } = useGardenCookieJars(gardenAddress, {
     enabled: Boolean(gardenAddress),
@@ -106,7 +113,48 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
     );
   }
 
-  if (jarsLoading) {
+  // A card shows amounts, and a jar's amounts need its currency's decimals: until those are
+  // read they use a fallback, so the cards wait like any other unfinished read.
+  const awaitingAmounts = jars.length > 0 && hasUnreadDecimals;
+  if (jars.length === 0 || awaitingAmounts) {
+    // A read paused offline or failed proves nothing, even beside an empty list the cache still
+    // holds, so it speaks first; only a finished read that came back empty shows the garden has
+    // no jar. TanStack Query reports a paused or not-yet-fetching read as not loading.
+    const failed = !awaitingAmounts && (jarsError || hasDetailReadFailure);
+    if (jarsPaused || failed) {
+      const state = jarsPaused ? "jarsOffline" : "jarsReadFailed";
+      return (
+        <AdminCard density="none">
+          <AdminCardBody>
+            <EmptyState
+              icon={
+                jarsPaused ? (
+                  <RiWifiOffLine className="h-6 w-6" />
+                ) : (
+                  <RiErrorWarningLine className="h-6 w-6" />
+                )
+              }
+              title={formatMessage({ id: `cockpit.community.payouts.${state}.title` })}
+              description={formatMessage({ id: `cockpit.community.payouts.${state}.body` })}
+            />
+          </AdminCardBody>
+        </AdminCard>
+      );
+    }
+    if (hasNoJar) {
+      return (
+        <AdminCard density="none">
+          <AdminCardBody>
+            <EmptyState
+              icon={<RiCupLine className="h-6 w-6" />}
+              title={formatMessage({ id: "app.cookieJar.noJars" })}
+              // Says how a jar appears, since funding one is impossible without it (D10).
+              description={formatMessage({ id: "cockpit.community.payouts.noJarHow" })}
+            />
+          </AdminCardBody>
+        </AdminCard>
+      );
+    }
     return (
       <div className="space-y-3" role="status" aria-live="polite">
         <span className="sr-only">{formatMessage({ id: "app.cookieJar.loading" })}</span>
@@ -118,20 +166,6 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
           />
         ))}
       </div>
-    );
-  }
-
-  if (jars.length === 0) {
-    return (
-      <AdminCard density="none">
-        <AdminCardBody>
-          <EmptyState
-            icon={<RiCupLine className="h-6 w-6" />}
-            title={formatMessage({ id: "app.cookieJar.noJars" })}
-            description={formatMessage({ id: "app.cookieJar.noJarsDescription" })}
-          />
-        </AdminCardBody>
-      </AdminCard>
     );
   }
 
@@ -164,6 +198,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                 gardenAddress={gardenAddress}
                 gardenName={gardenName}
                 allocationCount={allocationCount}
+                allocationCountAtLeast={allocationCountAtLeast}
                 signer={signer}
                 editingField={editing?.jarAddress === jar.jarAddress ? editing.field : null}
                 onEdit={(field) => setEditing(field ? { jarAddress: jar.jarAddress, field } : null)}

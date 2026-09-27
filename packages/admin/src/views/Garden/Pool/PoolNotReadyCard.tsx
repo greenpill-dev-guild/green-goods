@@ -29,7 +29,7 @@ export function PoolNotReadyCard({
           defaultMessage: "This garden isn’t taking commitments yet",
         })}
       </AdminCardTitle>
-      <p className="max-w-md text-sm text-text-soft">
+      <p className="max-w-md body-sm text-text-soft">
         {formatMessage({
           id: "cockpit.garden.pool.notReady.body",
           defaultMessage:
@@ -43,7 +43,7 @@ export function PoolNotReadyCard({
         })}
       </AdminButton>
       {isOnline ? null : (
-        <p className="text-xs text-warning-dark" role="status">
+        <p className="body-xs text-warning-dark" role="status">
           {formatMessage({
             id: "cockpit.garden.pool.offline",
             defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",

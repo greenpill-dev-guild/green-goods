@@ -44,7 +44,7 @@ export function PoolClaimsCard({ console: pool, onDecline }: PoolClaimsCardProps
         <AdminCardTitle>
           {formatMessage({ id: "cockpit.garden.pool.claims.title", defaultMessage: "Claims" })}
         </AdminCardTitle>
-        <p className="mt-1 text-xs text-text-soft">
+        <p className="mt-1 body-xs text-text-soft">
           {model.isPaused
             ? formatMessage({
                 id: "cockpit.garden.pool.claims.paused",
@@ -77,7 +77,7 @@ export function PoolClaimsCard({ console: pool, onDecline }: PoolClaimsCardProps
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="whitespace-nowrap text-xs text-text-soft">
+                  <span className="whitespace-nowrap body-xs text-text-soft">
                     {directionLabel(row.commitment.direction, formatMessage)}
                   </span>
                   <span className="truncate text-body-md text-text-strong" title={title}>
@@ -90,7 +90,7 @@ export function PoolClaimsCard({ console: pool, onDecline }: PoolClaimsCardProps
                     })}
                   </StatusBadge>
                 </div>
-                <p className="text-xs text-text-soft">
+                <p className="body-xs text-text-soft">
                   {formatMessage(
                     {
                       id: "cockpit.garden.pool.claims.meta",

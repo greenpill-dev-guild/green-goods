@@ -2,59 +2,85 @@
  * The admin's named type classes (label, body, subheading). They live apart
  * from index.css so Storybook renders them exactly as the product does:
  * one source, imported by both (DESIGN.md § Interface Principles 16, 17).
+ *
+ * Each is a Tailwind utility, so a weight, leading, or tracking utility on the
+ * same element adjusts it (`body-sm font-medium`) and responsive variants work
+ * (`body-xs sm:body-sm`). Storybook shares this stylesheet with client
+ * stories: the :where() scope keeps the classes off the app and website
+ * surfaces without raising their specificity. The admin app has no
+ * data-surface attribute.
  */
-@layer utilities {
-  /* Storybook shares this stylesheet with client stories. The admin app has no data-surface attribute. */
-  :root:not([data-surface="app"], [data-surface="website"]) {
-    .label-md {
-      font-size: var(--text-label-md);
-      line-height: var(--text-label-md--line-height);
-      letter-spacing: var(--text-label-md--letter-spacing);
-      font-weight: var(--text-label-md--font-weight);
-    }
-    .label-sm {
-      font-size: var(--text-label-sm);
-      line-height: var(--text-label-sm--line-height);
-      letter-spacing: var(--text-label-sm--letter-spacing);
-      font-weight: var(--text-label-sm--font-weight);
-    }
-    .label-xs {
-      font-size: var(--text-label-xs);
-      line-height: var(--text-label-xs--line-height);
-      letter-spacing: var(--text-label-xs--letter-spacing);
-      font-weight: var(--text-label-xs--font-weight);
-    }
-    .body-md {
-      font-size: var(--text-paragraph-md);
-      line-height: var(--text-paragraph-md--line-height);
-      letter-spacing: var(--text-paragraph-md--letter-spacing);
-      font-weight: var(--text-paragraph-md--font-weight);
-    }
-    .body-sm {
-      font-size: var(--text-paragraph-sm);
-      line-height: var(--text-paragraph-sm--line-height);
-      letter-spacing: var(--text-paragraph-sm--letter-spacing);
-      font-weight: var(--text-paragraph-sm--font-weight);
-    }
-    .body-xs {
-      font-size: var(--text-paragraph-xs);
-      line-height: var(--text-paragraph-xs--line-height);
-      letter-spacing: var(--text-paragraph-xs--letter-spacing);
-      font-weight: var(--text-paragraph-xs--font-weight);
-    }
-    .subheading-sm {
-      font-size: var(--text-subheading-sm);
-      line-height: var(--text-subheading-sm--line-height);
-      letter-spacing: var(--text-subheading-sm--letter-spacing);
-      font-weight: var(--text-subheading-sm--font-weight);
-      text-transform: uppercase;
-    }
-    .subheading-xs {
-      font-size: var(--text-subheading-xs);
-      line-height: var(--text-subheading-xs--line-height);
-      letter-spacing: var(--text-subheading-xs--letter-spacing);
-      font-weight: var(--text-subheading-xs--font-weight);
-      text-transform: uppercase;
-    }
+
+@utility label-md {
+  :where(:root:not([data-surface="app"], [data-surface="website"])) & {
+    font-size: var(--text-label-md);
+    line-height: var(--text-label-md--line-height);
+    letter-spacing: var(--text-label-md--letter-spacing);
+    font-weight: var(--text-label-md--font-weight);
+  }
+}
+
+@utility label-sm {
+  :where(:root:not([data-surface="app"], [data-surface="website"])) & {
+    font-size: var(--text-label-sm);
+    line-height: var(--text-label-sm--line-height);
+    letter-spacing: var(--text-label-sm--letter-spacing);
+    font-weight: var(--text-label-sm--font-weight);
+  }
+}
+
+@utility label-xs {
+  :where(:root:not([data-surface="app"], [data-surface="website"])) & {
+    font-size: var(--text-label-xs);
+    line-height: var(--text-label-xs--line-height);
+    letter-spacing: var(--text-label-xs--letter-spacing);
+    font-weight: var(--text-label-xs--font-weight);
+  }
+}
+
+@utility body-md {
+  :where(:root:not([data-surface="app"], [data-surface="website"])) & {
+    font-size: var(--text-paragraph-md);
+    line-height: var(--text-paragraph-md--line-height);
+    letter-spacing: var(--text-paragraph-md--letter-spacing);
+    font-weight: var(--text-paragraph-md--font-weight);
+  }
+}
+
+@utility body-sm {
+  :where(:root:not([data-surface="app"], [data-surface="website"])) & {
+    font-size: var(--text-paragraph-sm);
+    line-height: var(--text-paragraph-sm--line-height);
+    letter-spacing: var(--text-paragraph-sm--letter-spacing);
+    font-weight: var(--text-paragraph-sm--font-weight);
+  }
+}
+
+@utility body-xs {
+  :where(:root:not([data-surface="app"], [data-surface="website"])) & {
+    font-size: var(--text-paragraph-xs);
+    line-height: var(--text-paragraph-xs--line-height);
+    letter-spacing: var(--text-paragraph-xs--letter-spacing);
+    font-weight: var(--text-paragraph-xs--font-weight);
+  }
+}
+
+@utility subheading-sm {
+  :where(:root:not([data-surface="app"], [data-surface="website"])) & {
+    font-size: var(--text-subheading-sm);
+    line-height: var(--text-subheading-sm--line-height);
+    letter-spacing: var(--text-subheading-sm--letter-spacing);
+    font-weight: var(--text-subheading-sm--font-weight);
+    text-transform: uppercase;
+  }
+}
+
+@utility subheading-xs {
+  :where(:root:not([data-surface="app"], [data-surface="website"])) & {
+    font-size: var(--text-subheading-xs);
+    line-height: var(--text-subheading-xs--line-height);
+    letter-spacing: var(--text-subheading-xs--letter-spacing);
+    font-weight: var(--text-subheading-xs--font-weight);
+    text-transform: uppercase;
   }
 }

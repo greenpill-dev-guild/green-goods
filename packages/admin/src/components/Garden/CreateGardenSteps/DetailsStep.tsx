@@ -326,7 +326,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         }
         helperText={" "}
       />
-      <div className="space-y-1.5 text-sm">
+      <div className="space-y-1.5 body-sm">
         <FileUploadField
           surface="admin"
           label={formatMessage({
@@ -347,7 +347,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           onRemoveFile={handleRemoveBanner}
         />
         {isUploadingBanner && (
-          <div className="flex items-center gap-2 text-xs text-text-sub">
+          <div className="flex items-center gap-2 body-xs text-text-sub">
             <RiLoader4Line className="h-4 w-4 animate-spin" />
             <span>
               {formatMessage(
@@ -421,5 +421,5 @@ function SlugAvailableIcon({ className }: { className?: string }) {
   return <RiCheckLine className={cn(className, "text-success-dark")} />;
 }
 function SlugTakenIcon({ className }: { className?: string }) {
-  return <RiCloseLine className={cn(className, "[color:rgb(var(--m3-error))]")} />;
+  return <RiCloseLine className={cn(className, "text-error-dark")} />;
 }

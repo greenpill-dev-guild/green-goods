@@ -209,6 +209,7 @@
     "./hooks/greenwill/useGreenWillBadgeDefinitions": "./src/hooks/greenwill/useGreenWillBadgeDefinitions.ts",
     "./hooks/greenwill/useGreenWillBadges": "./src/hooks/greenwill/useGreenWillBadges.ts",
     "./hooks/greenwill/useGreenWillRecentGrants": "./src/hooks/greenwill/useGreenWillRecentGrants.ts",
+    "./hooks/hypercerts/useAttestations": "./src/hooks/hypercerts/useAttestations.ts",
     "./hooks/hypercerts/useCancelListing": "./src/hooks/hypercerts/useCancelListing.ts",
     "./hooks/hypercerts/useCreateListing": "./src/hooks/hypercerts/useCreateListing.ts",
     "./hooks/hypercerts/useHypercertListings": "./src/hooks/hypercerts/useHypercertListings.ts",

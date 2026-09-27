@@ -61,6 +61,17 @@ describe("public shared work", () => {
       `/home/${garden}/work/${work}`
     );
   });
+  it("titles the field note without the timestamps its stored title carries", () => {
+    show({
+      garden: { name: "Community Garden" },
+      fieldNotes: [
+        { ...note, title: "Planting trees - 2026-03-04T22:38:24.283Z - 2026-03-04T22:38:24.331Z" },
+      ],
+      unavailableSources: { works: false },
+    });
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Planting trees$/);
+    expect(screen.getByRole("img")).toHaveAttribute("alt", "Photo logged with Planting trees");
+  });
   it("does not expose note data without a public garden", () => {
     show({ garden: null, fieldNotes: [note], unavailableSources: { works: false } });
     expect(screen.queryByText("We planted three trees.")).not.toBeInTheDocument();

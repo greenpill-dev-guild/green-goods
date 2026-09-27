@@ -50,11 +50,11 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
       </AdminCardHeader>
       <AdminCardBody>
         {isLoading ? (
-          <p className="py-4 text-center text-sm text-text-soft">
+          <p className="py-4 text-center body-sm text-text-soft">
             {formatMessage({ id: "app.garden.admin.loadingAssessments" })}
           </p>
         ) : error ? (
-          <p className="py-4 text-center text-sm text-error-dark" role="alert">
+          <p className="py-4 text-center body-sm text-error-dark" role="alert">
             {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}:{" "}
             {error instanceof Error ? error.message : ""}
           </p>
@@ -76,21 +76,21 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
                   </div>
                   <div className="min-w-0 flex-1">
                     <p
-                      className="truncate text-sm font-medium text-text-strong"
+                      className="truncate body-sm font-medium text-text-strong"
                       title={assessment.title || assessment.assessmentType || undefined}
                     >
                       {assessment.title ||
                         assessment.assessmentType ||
                         formatMessage({ id: "app.garden.admin.assessmentFallback" })}
                     </p>
-                    <p className="text-xs text-text-soft">{formatDate(assessment.createdAt)}</p>
+                    <p className="body-xs text-text-soft">{formatDate(assessment.createdAt)}</p>
                   </div>
                 </div>
                 <a
                   href={getEASExplorerUrl(chainId, assessment.id)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
+                  className="inline-flex items-center rounded body-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
                   aria-label={formatMessage({
                     id: "app.admin.assessments.viewOnEas",
                     defaultMessage: "View Assessment on EAS Explorer",

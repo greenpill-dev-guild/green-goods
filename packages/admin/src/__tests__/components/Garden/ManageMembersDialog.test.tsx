@@ -59,11 +59,32 @@ describe("components/Garden/ManageMembersDialog", () => {
     );
   });
 
-  it("renders one flat roster across all roles with the member count", () => {
+  it("renders one roster across all roles with the member count", () => {
     render(createElement(ManageMembersDialog, defaultProps));
 
-    expect(screen.getByText("3 members across all roles")).toBeInTheDocument();
+    expect(screen.getByText("3 members")).toBeInTheDocument();
     expect(screen.getAllByTestId("address-display")).toHaveLength(3);
+  });
+
+  it("lists a person with several roles once, with a remove for each role", async () => {
+    const user = userEvent.setup();
+    render(
+      createElement(ManageMembersDialog, {
+        ...defaultProps,
+        // The owner also gardens: four role seats, three people (DL-049).
+        roleMembers: { ...roleMembers, gardener: [GARDENER_A, OWNER, GARDENER_B] },
+      })
+    );
+
+    expect(screen.getByText("3 members")).toBeInTheDocument();
+    expect(screen.getAllByTestId("address-display")).toHaveLength(3);
+
+    const ownerRow = screen.getByText(OWNER.slice(0, 10)).closest("li") as HTMLElement;
+    expect(within(ownerRow).getByRole("button", { name: "Remove Owner" })).toBeInTheDocument();
+    await user.click(within(ownerRow).getByRole("button", { name: "Remove Gardener" }));
+    await user.click(await screen.findByRole("button", { name: "Remove Member" }));
+
+    expect(defaultProps.onRemoveMember).toHaveBeenCalledWith(OWNER, "gardener");
   });
 
   it("filters the roster by role via the filter chips", async () => {

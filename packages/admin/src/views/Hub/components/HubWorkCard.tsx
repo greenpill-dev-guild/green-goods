@@ -42,7 +42,7 @@ export interface HubWorkCardProps {
 // Status chip — 1a spec: pill, 3px 10px, 11px/600, semantic lighter bg + dark
 // fg pair; the neutral state is the warm stone chip.
 const STATUS_CHIP_TONE_CLASSES: Record<HubWorkCardStatusTone, string> = {
-  neutral: "bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface-variant))]",
+  neutral: "bg-bg-sub text-text-sub",
   success: "bg-success-lighter text-success-dark",
   warning: "bg-warning-lighter text-warning-dark",
   error: "bg-error-lighter text-error-dark",
@@ -247,7 +247,7 @@ export function HubWorkCard({
         {/* Domain chip — 1a spec: white/90 pill bottom-left, 11px/600 neutral ink
             (never domain- or tone-colored on the card surface). */}
         {domainConfig && (
-          <span className="absolute bottom-2 left-2 inline-flex items-center rounded-full bg-[rgb(var(--admin-surface-0)/0.9)] px-2.5 py-[3px] text-label-sm font-semibold text-[rgb(var(--m3-on-surface-variant))]">
+          <span className="absolute bottom-2 left-2 inline-flex items-center rounded-full bg-[rgb(var(--admin-surface-0)/0.9)] px-2.5 py-[3px] text-label-sm font-semibold text-text-sub">
             {formatMessage({ id: domainConfig.labelId })}
           </span>
         )}

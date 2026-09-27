@@ -15,7 +15,7 @@ export function RoleChip({ role }: { role: GardenRole }) {
   const colors = getRoleColorClasses(role);
   return (
     <span
-      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${colors.iconBg} ${colors.iconText}`}
+      className={`shrink-0 rounded-full px-2 py-0.5 label-xs ${colors.iconBg} ${colors.iconText}`}
     >
       {getRoleLabel(role, formatMessage).singular}
     </span>

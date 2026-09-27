@@ -159,7 +159,7 @@ export function HubConfirmQueue({
                     {title}
                   </span>
                   <span
-                    className="block text-xs text-text-soft"
+                    className="block body-xs text-text-soft"
                     title={commitment.leadProvider ?? undefined}
                   >
                     {[
@@ -195,7 +195,7 @@ export function HubConfirmQueue({
                   ariaLabel={progressLabel}
                   className="flex-1"
                 />
-                <span className="text-xs text-text-soft">{progressLabel}</span>
+                <span className="body-xs text-text-soft">{progressLabel}</span>
               </div>
               <div className="mt-2 flex flex-wrap justify-end gap-2">
                 {disputed ? (
@@ -268,7 +268,7 @@ export function HubConfirmQueue({
   return (
     <div data-component="HubConfirmQueue" data-region="hub-confirm">
       {!queue.isOnline && queue.rows.length > 0 ? (
-        <p className="mb-2 text-xs text-warning-dark" role="status">
+        <p className="mb-2 body-xs text-warning-dark" role="status">
           {formatMessage({
             id: "cockpit.hub.confirm.offline",
             defaultMessage:
@@ -373,7 +373,7 @@ export function HubConfirmQueue({
               tone="hub"
             />
           ) : (
-            <p className="p-4 text-sm text-text-soft">
+            <p className="p-4 body-sm text-text-soft">
               {formatMessage({
                 id: "cockpit.hub.confirm.notInQueue",
                 defaultMessage: "This commitment is not in your confirmation queue any more.",

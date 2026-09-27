@@ -33,6 +33,27 @@ export async function readGardenRole(
 }
 
 /**
+ * Whether `account` holds any of the six garden roles: the contract's own test
+ * for a personal claim (`GuardLib.isGardenMember` accepts every hat), read from
+ * the garden account's permission views, as the queue's send gate reads it.
+ * True as soon as one read says so; null when none does and at least one read
+ * failed, because an unknown answer is not "no".
+ */
+export async function readGardenMembership(
+  gardenAddress: Address,
+  account: Address,
+  chainId: number,
+  readRole: typeof readGardenRole = readGardenRole
+): Promise<boolean | null> {
+  const roles = Object.keys(GARDEN_ROLE_FUNCTIONS) as GardenRole[];
+  const results = await Promise.allSettled(
+    roles.map((role) => readRole(gardenAddress, account, role, chainId))
+  );
+  if (results.some((result) => result.status === "fulfilled" && result.value)) return true;
+  return results.some((result) => result.status === "rejected") ? null : false;
+}
+
+/**
  * Read whether `account` wears the exact hat for `role` in a garden, from the
  * garden's HatsModule. This is the membership `grantRole` checks before it
  * mints, so it answers "would granting this role change anything". It is the

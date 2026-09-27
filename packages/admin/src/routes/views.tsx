@@ -1,10 +1,13 @@
 import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
+import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
 import { SkeletonGrid } from "@green-goods/shared/components/Skeleton";
 import {
   type AdminIndexRedirectKind,
   resolveAdminIndexRedirect,
 } from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import type { UserRole } from "@green-goods/shared/hooks/gardener/useRole";
+import { resolveCampaignCookieJarsRoute } from "@green-goods/shared/utils/navigation/admin-routes";
 import type { ComponentType } from "react";
 import { Navigate, type RouteObject, useLocation } from "react-router-dom";
 import RequireRole from "@/routes/RequireRole";
@@ -19,7 +22,6 @@ function lazyView(loader: () => Promise<{ default: ComponentType }>): LazyRoute 
 const hubView = lazyView(() => import("@/views/Hub"));
 const gardenView = lazyView(() => import("@/views/Garden"));
 const communityView = lazyView(() => import("@/views/Community"));
-const cookiesView = lazyView(() => import("@/views/Cookies"));
 const actionsView = lazyView(() => import("@/views/Actions"));
 const profileView = lazyView(() => import("@/views/Profile"));
 const createGardenView = lazyView(() => import("@/views/Garden/CreateGarden"));
@@ -58,6 +60,17 @@ function IndexRedirect({ kind }: { kind: AdminIndexRedirectKind }) {
 function PreserveSearchRedirect({ pathname }: { pathname: string }) {
   const location = useLocation();
   return <Navigate to={{ pathname, search: location.search }} replace />;
+}
+
+/**
+ * Campaign cookie jars live on the protocol garden's Community → Payouts
+ * (DL-046); these URLs keep working. The chain config names the root garden
+ * before any read.
+ */
+function CampaignCookieJarsRedirect({ create = false }: { create?: boolean }) {
+  const chainId = useCurrentChain();
+  const rootGarden = getNetworkConfig(chainId).rootGarden?.address;
+  return <Navigate to={resolveCampaignCookieJarsRoute(rootGarden, { create })} replace />;
 }
 
 const governanceRoute: Pick<RouteObject, "lazy" | "element"> = GOVERNANCE_ENABLED
@@ -356,8 +369,8 @@ export const adminCanvasRoutes: RouteObject[] = [
     ...roleGatedBranch(
       ["deployer"],
       [
-        { index: true, lazy: cookiesView },
-        { path: "deploy", lazy: cookiesView },
+        { index: true, element: <CampaignCookieJarsRedirect /> },
+        { path: "deploy", element: <CampaignCookieJarsRedirect create /> },
       ]
     ),
   },

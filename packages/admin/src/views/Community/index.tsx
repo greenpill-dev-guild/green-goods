@@ -12,7 +12,7 @@ import { CommunityWorkspaceContent } from "./components/CommunityWorkspaceConten
 import { useIntl } from "react-intl";
 
 export default function CommunityView() {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const community = useCommunityWorkspaceController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -42,15 +42,17 @@ export default function CommunityView() {
     () =>
       buildCommunityHeaderStats({
         hasSelectedGarden: Boolean(community.selectedGarden),
-        vaultNetDeposited: community.vaultNetDeposited,
+        endowmentByAsset: community.endowmentByAsset,
         distributedAmounts: community.allocationsLoading ? null : distributedAmountsByAsset,
+        locale,
         formatMessage,
       }),
     [
       community.selectedGarden,
       community.allocationsLoading,
-      community.vaultNetDeposited,
+      community.endowmentByAsset,
       distributedAmountsByAsset,
+      locale,
       formatMessage,
     ]
   );
@@ -71,10 +73,6 @@ export default function CommunityView() {
 
       <CanvasRouteHeader
         title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
-        description={formatMessage({
-          id: "cockpit.community.description",
-          defaultMessage: "Members, coordination, endowment, and payouts for the garden community.",
-        })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }

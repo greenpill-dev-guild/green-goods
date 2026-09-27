@@ -4,7 +4,6 @@ import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainCo
 import { useCreateCampaignCookieJar } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
 import { useCookieJarFactoryAddress } from "@green-goods/shared/hooks/cookie-jar/useCookieJarFactoryAddress";
 import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
-import type { Address } from "@green-goods/shared/types/domain";
 import {
   ERC20_DECIMALS_ABI,
   ERC20_SYMBOL_ABI,
@@ -17,6 +16,9 @@ import {
   getDefaultCampaignCookieJarPayoutAsset,
   normalizeCampaignAddress,
 } from "@green-goods/shared/utils/cookie-jar-campaign";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
+import type { Address } from "@green-goods/shared/types/domain";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
@@ -28,16 +30,44 @@ import {
   isValidCampaignCookieJarMetadataUrl,
   resolveCampaignCookieJarCreateFollowUp,
 } from "../../campaignCookieJarPanel.model";
-import { CampaignCookieJarCreateForm } from "./CampaignCookieJarCreateForm";
+import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
+import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
+import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
+import { isCampaignCookieJarDraftDirty } from "./campaignCookieJarDraft";
 import {
   CampaignCookieJarCreatedState,
   CampaignCookieJarSubmittedState,
 } from "./CampaignCookieJarCreateStates";
-import type { CampaignCookieJarCreateWorkspaceProps } from "./CampaignCookieJarCreateWorkspace.types";
+import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
+import type {
+  CampaignCookieJarCreateDialogProps,
+  CampaignCookieJarCreateWorkspaceProps,
+} from "./CampaignCookieJarCreateWorkspace.types";
+import {
+  CampaignCreateFooter,
+  CampaignCreateStepBody,
+  campaignCreateSteps,
+} from "./CampaignCookieJarCreateSteps";
 import { gardensForAggregation, parseAmountInput } from "./helpers";
 
+/**
+ * Create Cookie Jar: a flow dialog like every other create (DL-046), opened
+ * from the Campaign Cookie Jars card on the protocol garden's Payouts. Steps:
+ * Campaign, Payout, Eligible gardens, Review (Advanced is a detour there); the
+ * created and submitted states are its final state. Each opening starts a new
+ * draft.
+ */
+export function CampaignCookieJarCreateDialog({
+  open,
+  ...workspace
+}: CampaignCookieJarCreateDialogProps) {
+  return open ? <CampaignCookieJarCreateWorkspace {...workspace} /> : null;
+}
+
+/** The flow's draft, its steps, and its final states, inside the dialog. */
 export function CampaignCookieJarCreateWorkspace({
-  onCancel,
+  onClose,
+  initialStep = 0,
   initialCreatedJarAddress,
   initialSubmittedHash,
 }: CampaignCookieJarCreateWorkspaceProps) {
@@ -266,87 +296,170 @@ export function CampaignCookieJarCreateWorkspace({
       }
     );
   };
-  if (createdJarAddress) {
-    return (
-      <div ref={completionRef}>
-        <CampaignCookieJarCreatedState
-          jarAddress={createdJarAddress}
-          onBackToList={onCancel}
-          onCreateAnother={resetCreateForm}
-        />
-      </div>
+  const steps = campaignCreateSteps(formatMessage);
+  const [stepIndex, setStepIndex] = useState(Math.min(initialStep, steps.length - 1));
+  const stepRef = useStepFocus<HTMLDivElement>(stepIndex);
+  const done = Boolean(createdJarAddress || createdJarPendingHash);
+  const isDirty =
+    !done &&
+    isCampaignCookieJarDraftDirty(
+      {
+        campaignTitle,
+        campaignDescription,
+        campaignImage,
+        hasImageFile: Boolean(campaignImageFile),
+        selectedAssetId,
+        customTokenAddress,
+        claimAmount,
+        withdrawalIntervalDays,
+        jarOwner,
+        selectedGardenIds,
+        extraAddresses,
+      },
+      { selectedAssetId: defaultPayoutAsset?.id ?? "usdc", jarOwner: primaryAddress ?? "" }
     );
-  }
-  if (createdJarPendingHash) {
-    return (
-      <div ref={completionRef}>
-        <CampaignCookieJarSubmittedState
-          hash={createdJarPendingHash}
-          manualInput={createdJarManualInput}
-          manualAddress={createdJarManualAddress}
-          onManualInputChange={setCreatedJarManualInput}
-          onUseManualAddress={() => {
-            if (!createdJarManualAddress) return;
-            applyCreatedJarAddress(createdJarManualAddress);
-          }}
-          onBackToList={onCancel}
-        />
-      </div>
-    );
-  }
+  // Route mode: the flow closes by navigating, so the blocker is the one
+  // confirm, and a pending create keeps the flow open.
+  const dirtyClose = useDirtyClose({
+    isDirty,
+    onClose,
+    blockRouteChange: true,
+    preventRouteChange: createJar.isPending,
+  });
+  const title = formatMessage({
+    id: "cockpit.community.cookies.dialogTitle",
+    defaultMessage: "Create Cookie Jar",
+  });
+  const form: CampaignCookieJarCreateFormProps = {
+    formatMessage,
+    moduleConfigured,
+    isDeployer,
+    roleLoading,
+    createError: createJar.error,
+    createPending: createJar.isPending,
+    gardensLoading,
+    factoryLoading,
+    payoutAssets,
+    defaultPayoutAsset: defaultPayoutAsset ?? undefined,
+    selectedAssetId,
+    setSelectedAssetId,
+    campaignTitle,
+    setCampaignTitle,
+    campaignDescription,
+    setCampaignDescription,
+    campaignImage,
+    setCampaignImage,
+    campaignImageFile,
+    setCampaignImageFile,
+    publicCampaignUrl,
+    claimAmount,
+    setClaimAmount,
+    tokenSymbol,
+    gardens,
+    selectedGardenIds,
+    toggleGarden,
+    selectGardens,
+    clearGardens: () => setSelectedGardenIds([]),
+    gardenSearch,
+    setGardenSearch,
+    aggregation,
+    advancedOpen,
+    setAdvancedOpen,
+    customTokenAddress,
+    setCustomTokenAddress,
+    normalizedCustomTokenAddress,
+    customTokenLoading,
+    customTokenError,
+    tokenDecimals,
+    jarOwner,
+    setJarOwner,
+    normalizedJarOwner,
+    withdrawalIntervalDays,
+    setWithdrawalIntervalDays,
+    extraAddresses,
+    setExtraAddresses,
+    payoutLabel,
+    canCreate: canCreate && !gardensLoading && !factoryLoading,
+  };
+  const activeStep = steps[stepIndex];
+
+  const body = createdJarAddress ? (
+    <div ref={completionRef}>
+      <CampaignCookieJarCreatedState
+        jarAddress={createdJarAddress}
+        onBackToList={onClose}
+        onCreateAnother={() => {
+          resetCreateForm();
+          setStepIndex(0);
+        }}
+      />
+    </div>
+  ) : createdJarPendingHash ? (
+    <div ref={completionRef}>
+      <CampaignCookieJarSubmittedState
+        hash={createdJarPendingHash}
+        manualInput={createdJarManualInput}
+        manualAddress={createdJarManualAddress}
+        onManualInputChange={setCreatedJarManualInput}
+        onUseManualAddress={() => {
+          if (!createdJarManualAddress) return;
+          applyCreatedJarAddress(createdJarManualAddress);
+        }}
+        onBackToList={onClose}
+      />
+    </div>
+  ) : activeStep ? (
+    <div ref={stepRef} tabIndex={-1} className="outline-none">
+      <CampaignCreateStepBody step={activeStep} form={form} />
+    </div>
+  ) : null;
+
   return (
-    <CampaignCookieJarCreateForm
-      formatMessage={formatMessage}
-      moduleConfigured={moduleConfigured}
-      isDeployer={isDeployer}
-      roleLoading={roleLoading}
-      createError={createJar.error}
-      createPending={createJar.isPending}
-      gardensLoading={gardensLoading}
-      factoryLoading={factoryLoading}
-      payoutAssets={payoutAssets}
-      defaultPayoutAsset={defaultPayoutAsset ?? undefined}
-      selectedAssetId={selectedAssetId}
-      setSelectedAssetId={setSelectedAssetId}
-      campaignTitle={campaignTitle}
-      setCampaignTitle={setCampaignTitle}
-      campaignDescription={campaignDescription}
-      setCampaignDescription={setCampaignDescription}
-      campaignImage={campaignImage}
-      setCampaignImage={setCampaignImage}
-      campaignImageFile={campaignImageFile}
-      setCampaignImageFile={setCampaignImageFile}
-      publicCampaignUrl={publicCampaignUrl}
-      claimAmount={claimAmount}
-      setClaimAmount={setClaimAmount}
-      tokenSymbol={tokenSymbol}
-      gardens={gardens}
-      selectedGardenIds={selectedGardenIds}
-      toggleGarden={toggleGarden}
-      selectGardens={selectGardens}
-      clearGardens={() => setSelectedGardenIds([])}
-      gardenSearch={gardenSearch}
-      setGardenSearch={setGardenSearch}
-      aggregation={aggregation}
-      advancedOpen={advancedOpen}
-      setAdvancedOpen={setAdvancedOpen}
-      customTokenAddress={customTokenAddress}
-      setCustomTokenAddress={setCustomTokenAddress}
-      normalizedCustomTokenAddress={normalizedCustomTokenAddress}
-      customTokenLoading={customTokenLoading}
-      customTokenError={customTokenError}
-      tokenDecimals={tokenDecimals}
-      jarOwner={jarOwner}
-      setJarOwner={setJarOwner}
-      normalizedJarOwner={normalizedJarOwner}
-      withdrawalIntervalDays={withdrawalIntervalDays}
-      setWithdrawalIntervalDays={setWithdrawalIntervalDays}
-      extraAddresses={extraAddresses}
-      setExtraAddresses={setExtraAddresses}
-      payoutLabel={payoutLabel}
-      canCreate={canCreate}
-      onCreate={handleCreate}
-      onCancel={onCancel}
-    />
+    <>
+      <AdminDialog
+        open
+        size="lg"
+        variant="flow"
+        tone="community"
+        className={ADMIN_FLOW_DIALOG_CLASS}
+        onOpenChange={dirtyClose.onOpenChange}
+        preventClose={createJar.isPending}
+        title={title}
+        bodyClassName="flex min-h-0 flex-col !overflow-hidden"
+      >
+        <ActionFlowShell
+          layout="dialog"
+          title={title}
+          steps={done ? undefined : steps}
+          currentStep={stepIndex + 1}
+          onStepClick={(step) => {
+            if (!createJar.isPending) setStepIndex(step - 1);
+          }}
+          footer={
+            done ? undefined : (
+              <CampaignCreateFooter
+                formatMessage={formatMessage}
+                isFirstStep={stepIndex === 0}
+                isLastStep={stepIndex === steps.length - 1}
+                pending={createJar.isPending}
+                canCreate={form.canCreate}
+                onCancel={() => dirtyClose.onOpenChange(false)}
+                onBack={() => setStepIndex((index) => Math.max(0, index - 1))}
+                onNext={() => setStepIndex((index) => Math.min(steps.length - 1, index + 1))}
+                onCreate={handleCreate}
+              />
+            )
+          }
+        >
+          {body}
+        </ActionFlowShell>
+      </AdminDialog>
+      <DiscardChangesDialog
+        open={dirtyClose.confirmOpen}
+        onKeepEditing={dirtyClose.cancelClose}
+        onDiscard={dirtyClose.confirmClose}
+        tone="community"
+      />
+    </>
   );
 }
