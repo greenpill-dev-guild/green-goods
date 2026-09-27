@@ -292,6 +292,7 @@ export function useGardenDerivedState({
       href: adminRoutes.hubWorkDetail(work.id, { gardenId: gardenAddress }),
       itemId: work.id,
       actionUID: work.actionUID,
+      hasGeneratedTitle: !toWorkDisplayTitle(work.title, ""),
     })),
     ...assessments.map((assessment) => ({
       id: `assessment-${assessment.id}`,

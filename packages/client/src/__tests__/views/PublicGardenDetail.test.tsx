@@ -678,11 +678,16 @@ describe("GardenDetail", () => {
         ]
       )
     ).toBeInTheDocument();
-    if (!("isPending" in query)) {
+    if ("isError" in query) {
       fireEvent.click(
         within(dialog).getByRole("button", { name: pt["public.gardenDetail.retry"] })
       );
       expect(refetch).toHaveBeenCalledOnce();
+    } else {
+      expect(
+        within(dialog).queryByRole("button", { name: pt["public.gardenDetail.retry"] })
+      ).not.toBeInTheDocument();
+      expect(refetch).not.toHaveBeenCalled();
     }
   });
 

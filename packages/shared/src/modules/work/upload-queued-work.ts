@@ -53,7 +53,7 @@ export type UploadOutcome =
 
 export interface UploadQueuedWorkPorts {
   confirmOnline(): Promise<boolean>;
-  suspendPreparation(): () => void;
+  suspendPreparation(): Promise<() => void>;
   listJobs(userAddress: Address): Promise<Job[]>;
   getJob(id: string): Promise<Job | undefined>;
   acquire(ids: string[]): Promise<Map<string, WorkClaim>>;
@@ -101,7 +101,7 @@ export async function uploadQueuedWork(
   ports: UploadQueuedWorkPorts
 ): Promise<UploadOutcome> {
   if (!(await ports.confirmOnline())) return { status: "connection-unconfirmed" };
-  const resumePreparation = ports.suspendPreparation();
+  const resumePreparation = await ports.suspendPreparation();
   let sent = 0;
   let flagged = 0;
   const { chainId, sender } = input;

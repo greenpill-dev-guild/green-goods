@@ -122,6 +122,24 @@ export const SelectedGardenUpdatesPortuguese: Story = {
 
 type GardensQuery = ReturnType<typeof useGardens>;
 
+export const GeneratedActionTitlePortuguese: Story = {
+  decorators: [
+    withSeededQueryClient([
+      ...panelSeeds,
+      [
+        queryKeys.works.merged(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID),
+        [{ ...WAITING_WORK, title: "Action 1" }],
+      ],
+      [
+        queryKeys.works.online(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID),
+        [{ ...WAITING_WORK_READ[0], title: "Action 1" }],
+      ],
+    ]),
+  ],
+  render: SelectedGardenUpdatesPortuguese.render,
+  play: SelectedGardenUpdatesPortuguese.play,
+};
+
 /** While the garden list is still loading, the panel holds a loading status, not an empty one. */
 export const Loading: Story = {
   beforeEach: () => {

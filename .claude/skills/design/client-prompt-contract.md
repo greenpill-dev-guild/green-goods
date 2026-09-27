@@ -91,7 +91,6 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | `PwaRuntime` / `AppShell` | Installed/authenticated PWA runtime — providers, update notifier, scroll root, bottom `AppBar` |
 | `SiteHeader` | Browser mode — hamburger (mobile) + horizontal links (desktop), fixed transparent header that fades out on scroll; no backdrop blur |
 | `AppBar` | Installed PWA — bottom nav (Home / Garden / Profile), hides on `/home/garden` and `/home/:id/work/:workId` |
-| `SyncStatusBar` | Positioned above `AppBar`, reflects offline queue state |
 
 **Shared primitives** (import from `@green-goods/shared`):
 
@@ -101,7 +100,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Cards / status | `Card`, `StatCard`, `StatusBadge`, `Alert` |
 | Feedback | `Skeleton`, `Spinner`, `HydrationFallback` |
 | Input | `FileUploadField`, `ListPrimitives`, `DatePicker`, form components |
-| Surfaces | `Surface`, `SyncStatusBar` |
+| Surfaces | `Surface` |
 | Identity | `AddressDisplay`, `DomainBadge` |
 | Audio | `Audio/*` (voice capture primitives) |
 

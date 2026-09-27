@@ -83,6 +83,12 @@ describe("Work activity identity", () => {
     expect(localizeWorkActivityTitle(canonical.title, custom, intl)).toBe(canonical.title);
     expect(localizeWorkActivityTitle(canonical.title, undefined, intl)).toBe(canonical.title);
     expect(localizeWorkActivityTitle("Our own report", canonical, intl)).toBe("Our own report");
+    const placeholder = ptMessages["app.admin.work.untitledWork"];
+    expect(localizeWorkActivityTitle(placeholder, canonical, intl, true)).toBe(
+      "Registro de colheita"
+    );
+    expect(localizeWorkActivityTitle(placeholder, canonical, intl, false)).toBe(placeholder);
+    expect(localizeWorkActivityTitle(placeholder, undefined, intl, true)).toBe(placeholder);
     const reviewed: Action = {
       ...custom,
       translations: { pt: { status: "reviewed", data: { title: "Nossa colheita" } } },

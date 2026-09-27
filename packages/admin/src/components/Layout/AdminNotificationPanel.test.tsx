@@ -107,7 +107,12 @@ describe("AdminNotificationPanel", () => {
     expect(screen.getByRole("button", { name: /Yield allocated/ })).toBeInTheDocument();
   });
 
-  it("shows canonical work activity names in Portuguese", () => {
+  it.each([
+    approvedWork.title,
+    "Action 7",
+    "Unknown Action - 2026-07-08T12:34:00.000Z",
+  ])("resolves Portuguese activity names from %s", (title) => {
+    mockWorks.works = [{ ...approvedWork, title }];
     renderWithProviders(
       <IntlProvider locale="pt" messages={pt}>
         <MemoryRouter>

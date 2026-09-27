@@ -73,7 +73,7 @@ export const SBS: SB[] = [
   { f: "W3@step-details", hot: { h: "w3.continue-details" }, st: "3 · Details", ev: "a real numbered step now, drawn from the shipped Submit Work media step: the dashed capture surface, the item list, and the camera / gallery / mic bar" },
   { f: "W3@step-review", hot: { h: "w3.read-to-end", l: "Read to the end" }, st: "4 · Review", ev: "the act is disabled on arrival: a review you can send from the top is not a review" },
   { f: "W3@step-review-read", hot: { h: "w3.submit", l: "Make this offer" }, alts: [{ h: "w3.advanced", to: "screen:W3@step-advanced" }], st: "4 · Review", ev: "the shipped Review Work anatomy exactly — FormInfo over one flat card of rows, the back arrow as the edit path, and a single hot row for the Advanced detour · commitment job queued", cite: "UX:212" },
-  { f: "W1@queued", hot: null, marks: ["w1.queued-card"], st: "Queued", ev: "offline truth on the pool tab: the optimistic card names its queue state and the sync bar counts it — Maria's sitting ends here, with the offer live for a neighbour to take up", br: [{ l: "Take up an offer", to: "sb55:0" }, { l: "Offline lanes — send failed & membership wait", to: "screen:W1@sync-failed" }] },
+  { f: "W1@queued", hot: null, marks: ["w1.queued-card"], st: "Queued", ev: "offline truth on the pool tab: the optimistic card names its queue state — Maria's sitting ends here, with the offer live for a neighbour to take up", br: [{ l: "Take up an offer", to: "sb55:0" }, { l: "Offline lanes — send failed & membership wait", to: "screen:W1@sync-failed" }] },
 ]},
 // The other half of the old sb1: the neighbour's act, and the mirror the
 // "Take up a commitment" chapter was missing — it held the request side only.

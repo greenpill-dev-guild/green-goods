@@ -328,13 +328,13 @@ export function FieldNoteDialog({
             <div className="mt-4 text-sm text-text-sub-600">
               <p>{formatMessage({ id: "public.gardenDetail.notes.detailsUnavailable" })}</p>
               {metadataStatus === "error" ||
-              (actionUnavailable && actionQuery.fetchStatus !== "paused") ? (
+              (actionUnavailable && actionQuery.isError && actionQuery.fetchStatus !== "paused") ? (
                 <Button
                   type="button"
                   emphasis="tertiary"
                   onClick={() => {
                     if (metadataStatus === "error") retryFetch();
-                    if (actionUnavailable) void actionQuery.refetch();
+                    if (actionUnavailable && actionQuery.isError) void actionQuery.refetch();
                   }}
                 >
                   {formatMessage({ id: "public.gardenDetail.retry" })}

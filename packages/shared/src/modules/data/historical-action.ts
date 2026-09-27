@@ -1,10 +1,11 @@
-import { isHash, type PublicClient } from "viem";
+import { isHash, parseEventLogs, type PublicClient } from "viem";
 import { getEASConfig } from "../../config/blockchain";
 import type { Action } from "../../types/domain";
 import { markStaleActionTranslations } from "../../utils/action/translations";
 import {
   ActionRegistryABI,
   createClients,
+  EASABI,
   getNetworkContracts,
 } from "../../utils/blockchain/contracts";
 import { parseDataToWork, parseEasAttestationRecord } from "./eas-parse";
@@ -13,9 +14,9 @@ import { createEasClient, type GraphQLReader } from "./graphql-client";
 import { getActionInstructionFallback, parseInstructionMetadata } from "./greengoods";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs/resolve";
 
-type HistoricalClient = Pick<PublicClient, "getTransactionReceipt" | "readContract">;
+type HistoricalClient = Pick<PublicClient, "getTransactionReceipt" | "readContract" | "getLogs">;
 
-/** Read the immutable instruction CID at the Work's submission block, never the current row. */
+/** Replay the submission block only up to the Work's attestation, including intra-tx ordering. */
 export async function getActionAtWork(
   actionUID: number,
   workUID: string,
@@ -71,17 +72,55 @@ export async function getActionAtWork(
   }
   const receipt = await client.getTransactionReceipt({ hash: row.txid });
   if (receipt.status !== "success") throw new Error("Work transaction did not succeed");
+  const eas = getEASConfig(chainId);
+  const attestation = parseEventLogs({
+    abi: EASABI,
+    eventName: "Attested",
+    logs: receipt.logs,
+  }).find((log) => {
+    const args = log.args as { uid?: string; schemaUID?: string };
+    return (
+      log.address.toLowerCase() === eas.EAS.address.toLowerCase() &&
+      args.uid?.toLowerCase() === workUID.toLowerCase() &&
+      args.schemaUID?.toLowerCase() === eas.WORK.uid.toLowerCase()
+    );
+  });
+  if (!attestation || attestation.logIndex === null || receipt.blockNumber === 0n) {
+    throw new Error("Work attestation position is unavailable");
+  }
+  const registry = getNetworkContracts(chainId).actionRegistry;
   const action = (await client.readContract({
-    address: getNetworkContracts(chainId).actionRegistry,
+    address: registry,
     abi: ActionRegistryABI,
     functionName: "getAction",
     args: [BigInt(actionUID)],
-    blockNumber: receipt.blockNumber,
+    blockNumber: receipt.blockNumber - 1n,
   })) as {
     title: string;
     slug: string;
     instructions: string;
   };
+  const logs = await client.getLogs({ address: registry, blockHash: receipt.blockHash });
+  const events = parseEventLogs({
+    abi: ActionRegistryABI,
+    eventName: ["ActionRegistered", "ActionTitleUpdated", "ActionInstructionsUpdated"],
+    logs,
+  }).sort((a, b) => (a.logIndex ?? 0) - (b.logIndex ?? 0));
+  for (const event of events) {
+    if (event.logIndex === null) throw new Error("Action history position is unavailable");
+    if (event.logIndex >= attestation.logIndex) continue;
+    const args = event.args as Record<string, unknown>;
+    if (args.actionUID !== BigInt(actionUID)) continue;
+    if (event.eventName === "ActionRegistered") {
+      action.title = args.title as string;
+      action.slug = args.slug as string;
+      action.instructions = args.instructions as string;
+    } else if (event.eventName === "ActionTitleUpdated") {
+      action.title = args.title as string;
+    } else {
+      action.instructions = args.instructions as string;
+    }
+  }
   if (!action.instructions) return null;
   const file = await getFileByHash(action.instructions, { timeoutMs: 5_000 });
   const { config, defaultLocale, translations } = await parseInstructionMetadata(

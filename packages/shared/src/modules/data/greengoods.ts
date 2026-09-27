@@ -16,6 +16,7 @@ import {
   normalizeActionTranslations,
 } from "../../utils/action/translations";
 import { defaultTemplate, instructionTemplates } from "../../utils/action/templates";
+import { assertRecordedInputDefinitions } from "../../utils/action/input-validation";
 import { logger } from "../app/logger";
 import { greenGoodsGraphQL, type ResultOf } from "./graphql";
 import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
@@ -181,9 +182,7 @@ export async function parseInstructionMetadata(
   const text = typeof data === "string" ? data : data instanceof Blob ? await data.text() : null;
   if (text !== null) {
     const candidate = JSON.parse(text);
-    if (requireInputs && !Array.isArray(candidate?.uiConfig?.details?.inputs)) {
-      throw new Error("Action instructions have no recorded input definitions");
-    }
+    if (requireInputs) assertRecordedInputDefinitions(candidate);
     return parseActionInstructionCandidate(candidate, fallbackConfig);
   }
   if (requireInputs) throw new Error("Action instructions are unavailable");

@@ -34,7 +34,7 @@ import { getPwaSheetCloseDelayMs } from "@/components/Pwa/sheetStyles";
 import { CompletedTab } from "./CompletedTab";
 import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./PendingTab";
-import { buildUploadActions } from "./uploadActions";
+import { buildUploadAction } from "./uploadActions";
 import { WorkDashboardShell } from "./WorkDashboardShell";
 import {
   approvalsToCompletedWorks,
@@ -89,9 +89,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Get draft count for badge
   const { draftCount } = useDrafts();
 
-  // Queued work and decisions go out together from the Pending toolbar.
+  // Queued work and decisions go out together from the Pending header.
   const uploads = useWorkUploads();
-  const uploadActions = buildUploadActions(
+  const uploadAction = buildUploadAction(
     uploads,
     {
       onUpload: () => {
@@ -459,7 +459,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             waitingUploadIds={uploads.waitingDecisionWorkIds}
             checkingUploadIds={checkingDecisionIds}
             isUserAddress={isUserAddress}
-            uploadActions={uploadActions}
+            uploadAction={uploadAction}
           />
         );
       case "completed":

@@ -110,7 +110,8 @@ export function OverviewTab({
       ? localizeWorkActivityTitle(
           event.title,
           findActionByUID(actions, event.actionUID ?? null),
-          intl
+          intl,
+          event.hasGeneratedTitle
         )
       : event.title;
 

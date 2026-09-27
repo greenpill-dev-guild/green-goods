@@ -187,8 +187,11 @@ export function localizeActionForDisplay(
 export function localizeWorkActivityTitle(
   title: string,
   action: Action | null | undefined,
-  intl: Pick<IntlShape, "formatMessage" | "locale">
+  intl: Pick<IntlShape, "formatMessage" | "locale">,
+  hasGeneratedTitle = false
 ): string {
-  if (!action || !matchesCanonicalTitle(title, action.title)) return title;
+  if (!action) return title;
+  if (hasGeneratedTitle) return localizeActionForDisplay(action, intl).title;
+  if (!matchesCanonicalTitle(title, action.title)) return title;
   return localizeActionForDisplay(action, intl).title + title.slice(action.title.length);
 }

@@ -137,8 +137,8 @@ export const UnavailableInstructions: Story = {
     await expect(dialog.getByText("1h 30m")).toBeVisible();
     await expect(dialog.queryByText("Separação por categoria")).not.toBeInTheDocument();
     await expect(
-      dialog.getByRole("button", { name: pt["public.gardenDetail.retry"] })
-    ).toBeVisible();
+      dialog.queryByRole("button", { name: pt["public.gardenDetail.retry"] })
+    ).not.toBeInTheDocument();
   },
 };
 
@@ -163,5 +163,8 @@ export const IncompleteTranslation: Story = {
     ).toBeVisible();
     await expect(dialog.getByText("1h 30m")).toBeVisible();
     await expect(dialog.queryByText(/Category: Plastic/)).not.toBeInTheDocument();
+    await expect(
+      dialog.queryByRole("button", { name: pt["public.gardenDetail.retry"] })
+    ).not.toBeInTheDocument();
   },
 };

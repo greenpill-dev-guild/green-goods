@@ -107,7 +107,8 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
               ? localizeWorkActivityTitle(
                   event.title,
                   findActionByUID(actions, event.actionUID ?? null),
-                  intl
+                  intl,
+                  event.hasGeneratedTitle
                 )
               : event.title,
           description: event.description,
