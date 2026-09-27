@@ -118,8 +118,8 @@ every run, and `process-job.ts` would never end it on attempts.
   with two minutes of tolerance, so a request from an earlier ask does not count. A proof is
   matched by its CID, a confirmation by its confirmer, a submission by the ready-for-confirmation
   event. A work link landed when the module's record of its operation key holds this link's own
-  payload (a deferred link resolves its work first), and its transaction comes from the chain's
-  WorkLinked log in the block the indexer gives, matched by the operation key the event carries.
+  payload (a deferred link resolves its work first), and its transaction comes from the caller's
+  WorkLinked row in the activity log whose receipt carries the operation key.
   The log is read a page at a time, up to ten pages of 200 rows, and a busier window answers
   unknown. An absence answers absent only once the indexer's processed block, timed on chain, is
   past the send's grace window.
@@ -131,8 +131,8 @@ every run, and `process-job.ts` would never end it on attempts.
   while a tab still holds the act's send.
 - `commitment-chain-reads.ts`: `simulateSend`. The wallet and embedded senders record the intent
   before `writeContract`, which estimates inside, so each act is simulated first and a refusal
-  fails before any intent. `readWorkLinkTransaction` reads one block's WorkLinked events and
-  returns the transaction of the one this caller's operation key made.
+  fails before any intent. `transactionMadeWorkLink` decodes one transaction's receipt and says
+  whether it holds the module's WorkLinked event for this caller's operation key.
 - `useCommitmentQueueState`: a pending act's reason is `awaiting-confirmation` whenever a send is
   on record, and a stale stored `awaiting-confirmation` never outlives its record.
 - Client: `QueuedActRow` says `confirming` and `notSent`, and a send on record offers Check Again
@@ -231,6 +231,16 @@ develop's own Docs run fails since `f9bbeb9dd`, whose new `scripts/harness/agent
 names the retired `deploy:mainnet` command, and PR CI builds the branch merged with develop. The
 fix belongs to that lane; #923's CI Gate cannot pass until develop's does.
 
+## Review round 5 on #923 (2026-09-27)
+
+Codex reviewed `994f9839b` and found one more (P2). The indexer's work attribution keeps only each
+work's latest link, so a work unlinked and relinked under another key before its lost first send
+settled could no longer be found by the original key, and the act would wait forever: the gap
+round 2 recorded. `695c1b638` drops the attribution read and the block-scoped log read of round 3.
+The lookup walks the caller's WorkLinked rows in the append-only activity log and confirms each by
+its transaction receipt (`transactionMadeWorkLink`), whose event carries the operation key. A
+relinked work is still found, and another link at the same time or position still never stands in.
+
 ## RED and GREEN evidence
 
 RED at `4615608d9` plus the new tests, `bun run test -- src/__tests__/modules/job-executors.test.ts src/__tests__/modules/job-queue.seam.test.ts src/__tests__/commitment-queue-state.test.tsx` in `packages/shared`: six failed, each as the gap predicts (`offline_job_identity_conflict` on a re-tap; `receipt timeout` and `connection lost` rejected instead of waiting; a stranded act completed by sending again; a refused act resolved `complete`; `discardable: true` on a recorded send). The declined-prompt guard passed, as it should.
@@ -252,6 +262,10 @@ at `6781a51b2`.
 Review round 2 was RED against `e43476bef`: the work-link case returned the other link's
 transaction, and it passes at `15476ac0a`. The no-locks case was RED against `c8fc57412` (a lost
 act with no Web Locks was offered again, `send-intent-expired`) and passes at `826b65352`.
+
+Review round 5 was RED against `994f9839b`: with the work's attribution moved on to another key,
+a landed link read unknown instead of found. It passes at `695c1b638`, with the chain-read test now
+decoding real WorkLinked logs from a receipt.
 
 Review round 3 was RED against `88879c2aa`: three tests failed. A work link whose key held another
 payload read unknown instead of absent, the replaced send carried no mark, and a replaced
@@ -301,11 +315,11 @@ holds W1-1's proof and belongs to Codex's lane, so `record-tdd` is not run over 
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `a8ed6dba8` (on `fix/commitment-send-record`, PR #923)
-- Run at (UTC): `2026-09-27T04:35:53Z` to `2026-09-27T04:38:40Z`, with the shared full typecheck just before
+- Tested implementation commit SHA: `695c1b638` (on `fix/commitment-send-record`, PR #923)
+- Run at (UTC): `2026-09-27T04:49:13Z` to `2026-09-27T04:52:15Z`, with the shared full typecheck just before
 - Exact command(s): in `packages/shared`, `bun run typecheck -- --scope full` and `bun run test`; in `packages/client` and `packages/admin`, `bun run typecheck`; in `packages/client`, `bun run test`; at the root, `bash scripts/quality/check-test-quality.sh`, `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings` and `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`. The catalog checks, `bun run --cwd packages/qa build`, `node scripts/quality/check-qa-id-ledger.mjs --base origin/develop` and `bun --bun x vitest run --dir scripts/agents`, last ran at `6781a51b2`; no catalog, ledger or agent-tool file has changed since.
-- Result: shared, client and admin typechecks exit 0; shared 5,918 passed in 543 files; client 1,413 passed in 143 files; test quality passed; oxlint exit 0; source structure passed against `origin/develop`. At `6781a51b2`: QA build 354 active cases; ledger 420 ids, none removed; agent tools 260 passed. The previous head `8293fbe82` passed the critical pre-push plan, all 30 checks.
-- Validated paths: every non-plan path the branch changes, `git diff --name-only $(git merge-base origin/develop a8ed6dba8) a8ed6dba8 -- . ':!.plans'` (30 paths)
+- Result: shared, client and admin typechecks exit 0; shared 5,918 passed in 543 files; client 1,413 passed in 143 files; test quality passed; oxlint exit 0; source structure passed against `origin/develop`. At `6781a51b2`: QA build 354 active cases; ledger 420 ids, none removed; agent tools 260 passed. The previous head `994f9839b` passed the critical pre-push plan, all 30 checks.
+- Validated paths: every non-plan path the branch changes, `git diff --name-only $(git merge-base origin/develop 695c1b638) 695c1b638 -- . ':!.plans'` (29 paths)
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code a8ed6dba8 -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
-- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, captured at `6bf248187`: `client-commitments-queuedactrow--proof-already-broadcast` in light and dark ("Your proof has left this phone and is waiting for the network to confirm it", Check Again, no Discard) and `--never-reached-the-network` in light ("Your take-up never reached the network", Discard and Send Now). `git diff --exit-code 6bf248187 a8ed6dba8` over the row, its stories and the shared i18n files exits 0. Labelled Storybook; the authenticated walk, PWA-126 with Rabby, stays pending for the recorded call.
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 695c1b638 -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
+- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, captured at `6bf248187`: `client-commitments-queuedactrow--proof-already-broadcast` in light and dark ("Your proof has left this phone and is waiting for the network to confirm it", Check Again, no Discard) and `--never-reached-the-network` in light ("Your take-up never reached the network", Discard and Send Now). `git diff --exit-code 6bf248187 695c1b638` over the row, its stories and the shared i18n files exits 0. Labelled Storybook; the authenticated walk, PWA-126 with Rabby, stays pending for the recorded call.
