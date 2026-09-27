@@ -106,7 +106,8 @@ every run, and `process-job.ts` would never end it on attempts.
   registry entries do, while a declined prompt still throws so `sendFromTap` discards it. Each
   send holds a Web Lock named for its job (`green-goods:queue-send:<job id>`) from just before its
   intent until its answer. A lock held elsewhere leaves the act to that tab, and the settle reads
-  the same lock before it reopens anything.
+  the same lock before it reopens anything. A browser without Web Locks never reopens a lost act:
+  it completes when the chain shows it landed.
 - `commitment-landed-lookup.ts` (new): the stranded lookup. A take-up landed when the indexer's
   record of its claimant's request matches it whole (claimant, requester, kind and garden context)
   and follows the send's intent, or when the log holds the claimant's acceptance after the intent,
@@ -169,7 +170,7 @@ Residuals, recorded rather than fixed:
 
 ## Review round 2 on #923 (2026-09-27)
 
-CodeRabbit reviewed `e43476bef` and requested one change. The lookup matched a work link's row by
+Both bots reviewed `e43476bef`. CodeRabbit requested one change. The lookup matched a work link's row by
 its caller alone, so a second work the same person linked to the commitment in the window could
 lend the job its transaction. `15476ac0a` reads the indexer's work attribution by operation key
 (`getWorkLinkByOperation`) and takes only the row at that link's block time and log index. The
@@ -177,6 +178,16 @@ module's operation record still decides whether the link landed. Until the index
 a row, the lookup answers unknown. CodeRabbit's suggested patch, never matching a row, would have
 left every recovered link waiting for good, so it was not applied as written. A work relinked under
 another key within the window also waits, since the attribution keeps only the latest link.
+
+Codex found two more, both fixed:
+
+1. P1, no Web Locks. A browser without Web Locks read as one where no tab held the send, so the
+   frozen-tab double could still happen there. `826b65352` makes it fail closed, like a failed lock
+   read: the act waits and completes when the chain shows it landed. The executor's settle now
+   takes an injectable lookup (`lookUpLanded`), so a test drives the real settle through all three
+   lock states.
+2. P2, this handoff. "Unblock evidence" listed the closing conditions without saying which were
+   still open, so it read as a completion record. It now marks each one.
 
 ## RED and GREEN evidence
 
@@ -197,7 +208,8 @@ in the resolver. The send ran without its lock, and a held lock did not stop the
 at `6781a51b2`.
 
 Review round 2 was RED against `e43476bef`: the work-link case returned the other link's
-transaction, and it passes at `15476ac0a`.
+transaction, and it passes at `15476ac0a`. The no-locks case was RED against `c8fc57412` (a lost
+act with no Web Locks was offered again, `send-intent-expired`) and passes at `826b65352`.
 
 ## Rendered proof
 
@@ -225,19 +237,25 @@ transaction that is never executed, which waits as work and decisions do.
 
 ## Unblock evidence
 
-RED and GREEN recorded; PR merged; PWA-126 walked on the recorded call; sub-lane `completed`;
-Linear child Done.
+The lane closes when all of these hold. As of 2026-09-27:
+
+- RED and GREEN recorded: done, under RED and GREEN evidence.
+- PR #923 merged: not yet.
+- PWA-126 walked on the recorded call: pending.
+- Then the sub-lane moves to `completed` and the Linear child to Done; until then it stays open.
+
+W3-H starts once #923 merges (§ 1 row 49); it does not wait for the walk.
 
 The proof is recorded here, under RED and GREEN evidence. The `state_api` machine lane's TDD record
 holds W1-1's proof and belongs to Codex's lane, so `record-tdd` is not run over it.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `15476ac0a` (on `fix/commitment-send-record`, PR #923)
-- Run at (UTC): `2026-09-27T03:57:14Z` to `2026-09-27T03:59:53Z`
+- Tested implementation commit SHA: `826b65352` (on `fix/commitment-send-record`, PR #923)
+- Run at (UTC): `2026-09-27T04:07:44Z` to `2026-09-27T04:11:39Z`
 - Exact command(s): in `packages/shared`, `bun run typecheck -- --scope full` and `bun run test`; in `packages/client`, `bun run typecheck` and `bun run test`; at the root, `bash scripts/quality/check-test-quality.sh`, `bun --bun run oxlint packages/client/src packages/shared/src --deny-warnings` and `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`. The catalog checks, `bun run --cwd packages/qa build`, `node scripts/quality/check-qa-id-ledger.mjs --base origin/develop` and `bun --bun x vitest run --dir scripts/agents`, last ran at `6781a51b2`; no catalog, ledger or agent-tool file has changed since.
-- Result: shared typecheck exit 0; shared 5,914 passed in 543 files; client typecheck exit 0; client 1,413 passed in 143 files; test quality passed; oxlint exit 0; source structure passed against `origin/develop`. At `6781a51b2`: QA build 354 active cases; ledger 420 ids, none removed; agent tools 260 passed. The previous head `e43476bef` passed the critical pre-push plan, all 30 checks over 31 paths, and its CI passed.
-- Validated paths: every non-plan path the branch changes, `git diff --name-only origin/develop 15476ac0a -- . ':!.plans'` (27 paths)
+- Result: shared typecheck exit 0; shared 5,915 passed in 543 files; client typecheck exit 0; client 1,413 passed in 143 files; test quality passed; oxlint exit 0; source structure passed against `origin/develop`. At `6781a51b2`: QA build 354 active cases; ledger 420 ids, none removed; agent tools 260 passed. The previous head `c8fc57412` passed the critical pre-push plan, all 30 checks over 32 paths.
+- Validated paths: every non-plan path the branch changes, `git diff --name-only origin/develop 826b65352 -- . ':!.plans'` (27 paths)
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 15476ac0a -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
-- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, captured at `6bf248187`: `client-commitments-queuedactrow--proof-already-broadcast` in light and dark ("Your proof has left this phone and is waiting for the network to confirm it", Check Again, no Discard) and `--never-reached-the-network` in light ("Your take-up never reached the network", Discard and Send Now). `git diff --exit-code 6bf248187 15476ac0a` over the row, its stories and the shared i18n files exits 0. Labelled Storybook; the authenticated walk, PWA-126 with Rabby, stays pending for the recorded call.
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 826b65352 -- <the validated paths>` → exit 0 before this handoff commit, which changes only `.plans`
+- Rendered proof: Storybook on this checkout, desktop app Browser pane, 375 emulation, captured at `6bf248187`: `client-commitments-queuedactrow--proof-already-broadcast` in light and dark ("Your proof has left this phone and is waiting for the network to confirm it", Check Again, no Discard) and `--never-reached-the-network` in light ("Your take-up never reached the network", Discard and Send Now). `git diff --exit-code 6bf248187 826b65352` over the row, its stories and the shared i18n files exits 0. Labelled Storybook; the authenticated walk, PWA-126 with Rabby, stays pending for the recorded call.
