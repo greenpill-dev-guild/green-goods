@@ -27,6 +27,8 @@ import {
   pollQueriesAfterTransaction,
   TX_RECEIPT_TIMEOUT_MS,
 } from "../../../utils/blockchain/polling";
+import { classifySendFailure } from "../send-outcome";
+import { restartedWindow } from "../send-with-checkpoint";
 import { simulateWorkSubmission } from "../simulate";
 import { WorkSubmissionError, type WalletSubmissionOptions } from "./types";
 import { TransactionRevertedError, waitForReceiptWithTimeout } from "./receipt";
@@ -189,6 +191,25 @@ export async function submitWorkDirectly(
     debugLog("[WalletSubmission] Transaction sent", { hash });
   } catch (err: unknown) {
     debugError("[WalletSubmission] Transaction phase failed", err);
+    // The wallet asks only after the intent is recorded, so an answer lost after
+    // it may hide a send that went out at any point until now.
+    const intent = draft.uploadCheckpoint;
+    if (
+      intent?.broadcastPending &&
+      classifySendFailure(err, {
+        intentRecorded: true,
+        broadcastKnown: Boolean(intent.transactionHash),
+      }).kind === "may-have-sent"
+    ) {
+      const lostAt = Date.now();
+      const lost = await intentHead(createSendChainReads({ chainId }).readChainHead);
+      draft.uploadCheckpoint = restartedWindow(intent, lostAt, lost);
+      try {
+        await options.onCheckpoint?.(draft.uploadCheckpoint);
+      } catch (error) {
+        logger.warn("[WalletSubmission] Could not restart a lost send's window", { error });
+      }
+    }
     throw new WorkSubmissionError(extractErrorMessage(err), "transaction", uploadBatchId, err);
   }
 

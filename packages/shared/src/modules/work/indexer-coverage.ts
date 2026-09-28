@@ -38,7 +38,10 @@ export async function indexedPastGraceWindow(input: {
   indexedBlock: bigint;
   /** When the send's intent was recorded, on the device's clock. */
   sentAtMs: number;
-  /** The chain's time at the intent, when it was kept with the intent. */
+  /**
+   * The chain's time the send's window counts from, when kept: its intent, or
+   * later when its answer was lost.
+   */
   intentChainTime?: number;
   readBlockTime: ReadBlockTime;
   now: () => number;

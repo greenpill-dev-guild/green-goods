@@ -32,12 +32,7 @@ import {
 import { jobQueueDB } from "./db";
 import { convertQueuedHeicMedia } from "./job-media-conversion";
 import { sendCheckpointOf, writeSendCheckpoint } from "./queue-policy";
-import {
-  chainTimeOf,
-  createSendChainReads,
-  intentHead,
-  type SendChainReads,
-} from "./send-chain-reads";
+import { chainTimeOf, createSendChainReads, type SendChainReads } from "./send-chain-reads";
 import {
   holdingSend,
   observeTransactionNonce,
@@ -196,9 +191,9 @@ export async function executeWorkJob(
       sender,
       call: { ...contractCall, chainId },
       jobIds: [jobId],
-      // Read just before the intent, after any prompt: a lost send is then
-      // timed on the chain's clock.
-      intent: () => intentHead(reads.readChainHead),
+      // Read just before the intent, after any prompt, and again if the answer
+      // is lost: a lost send is then timed on the chain's clock.
+      readChainHead: reads.readChainHead,
       assertOwnership: async () => {
         await sender.assertOwnership?.(job.userAddress, chainId);
       },

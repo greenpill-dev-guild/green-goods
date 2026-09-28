@@ -302,17 +302,20 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
     );
     if (log.row) return { status: "found", transactionHash: log.row.txHash as Hex };
     if (!log.complete || indexed === null) return { status: "unknown" };
+    // Its window counts from the intent, or from when its answer was lost; the
+    // log above still reaches back to the intent.
+    const windowChainTime = sendCheckpointOf(job)?.windowChainTime ?? recordedChainTime;
     // Timed on the chain's clock when the send kept it, since the device's clock
     // may since have moved either way, and on the device's clock otherwise.
-    if (recordedChainTime === undefined && checkedAt - sentAt < STRANDED_INTENT_GRACE_MS)
+    if (windowChainTime === undefined && checkedAt - sentAt < STRANDED_INTENT_GRACE_MS)
       return { status: "unknown" };
-    // The intent on the chain's clock: kept with the intent, or, for a record
-    // kept without it, the device clock set against the latest block as read.
+    // For a record kept without the chain's time, the device clock is set
+    // against the latest block as read.
     const covered = await indexedPastGraceWindow({
       chainId,
       indexedBlock: indexed,
       sentAtMs: sentAt,
-      intentChainTime: recordedChainTime,
+      intentChainTime: windowChainTime,
       readBlockTime: blockTime,
       now,
     });

@@ -16,9 +16,13 @@
  */
 
 import type { Hex } from "viem";
-import type { Job, SendCheckpoint } from "../../types/job-queue";
+import type { Job } from "../../types/job-queue";
 import type { ContractCall, TransactionSender } from "../transactions/types";
-import { sendWithCheckpoint, settleRecordedSend } from "../work/send-with-checkpoint";
+import {
+  type CheckpointedSend,
+  sendWithCheckpoint,
+  settleRecordedSend,
+} from "../work/send-with-checkpoint";
 import { settleStrandedCommitmentIntent, StrandedSendReopened } from "../work/stranded-intent";
 import {
   AwaitingWorkConfirmation,
@@ -70,15 +74,15 @@ export async function sendRecordedAct(
   call: ContractCall,
   sender: TransactionSender,
   store: CommitmentExecutorStore,
-  /** Reads the chain's head to keep with the intent, just before the send can reach the network. */
-  intent?: () => Promise<Pick<SendCheckpoint, "intentBlock" | "intentChainTime"> | undefined>
+  /** Where the send reads the chain's head, and one read before the send to keep when it cannot. */
+  chain?: Pick<CheckpointedSend, "readChainHead" | "headBeforeSend">
 ): Promise<Hex> {
   const result = await holdingSend(jobId, () =>
     sendWithCheckpoint({
       sender,
       call,
       jobIds: [jobId],
-      intent,
+      ...chain,
       record: async (next) => {
         writeSendCheckpoint(job, next(sendCheckpointOf(job) ?? {}));
         await store.updateJob(job);

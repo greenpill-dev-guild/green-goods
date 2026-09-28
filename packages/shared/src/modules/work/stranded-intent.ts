@@ -57,8 +57,11 @@ export type StrandedLookupResult = LookupResult;
 interface LookupWindow {
   sinceMs: number;
   sentAtMs: number;
-  /** The chain's time at the intent, in seconds, when the send kept it. */
-  intentChainTime?: number;
+  /**
+   * The chain's time the send's window counts from, in seconds, when the send
+   * kept it: its intent, or later when its answer was lost.
+   */
+  windowChainTime?: number;
 }
 
 export type StrandedWorkLookup = (
@@ -180,13 +183,12 @@ async function resolveStrandedSend(send: {
   const age = now - recordedAt;
   // A send that kept the chain's time waits out its window on that clock when
   // it can be read, since the device's clock may since have moved either way.
-  // Any other send is timed by the device's clock.
+  // The window counts from its intent, or from when its answer was lost. Any
+  // other send is timed by the device's clock.
+  const windowChainTime = checkpoint.windowChainTime ?? checkpoint.intentChainTime;
   const chainClock =
-    checkpoint.intentChainTime !== undefined && send.chainTime
-      ? {
-          read: send.chainTime,
-          windowEndsAt: checkpoint.intentChainTime + STRANDED_INTENT_GRACE_MS / 1000,
-        }
+    windowChainTime !== undefined && send.chainTime
+      ? { read: send.chainTime, windowEndsAt: windowChainTime + STRANDED_INTENT_GRACE_MS / 1000 }
       : undefined;
   if (!chainClock && age < LOOKUP_AFTER_MS) return { status: "waiting" };
   // A device clock set back since the last lookup never holds the next one.
@@ -205,7 +207,7 @@ async function resolveStrandedSend(send: {
           ? checkpoint.intentChainTime * 1000
           : Math.min(recordedAt, send.createdAt)) - CLOCK_DRIFT_MS,
       sentAtMs: recordedAt,
-      intentChainTime: checkpoint.intentChainTime,
+      windowChainTime,
     });
   } catch (error) {
     logger.warn("[StrandedIntent] Could not check whether a queued send landed", {

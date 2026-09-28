@@ -27,7 +27,6 @@ import { logger } from "../app/logger";
 import { createCommitmentChainReads, type CommitmentChainReads } from "./commitment-chain-reads";
 import { buildCommitmentContractCall } from "./commitment-call-builder";
 import { sendRecordedAct, settleActSend, waitingForRecordedSend } from "./commitment-send-record";
-import { intentHead } from "./send-chain-reads";
 import { observeTransactionNonce } from "./send-guards";
 import type { Address } from "../../types/domain";
 
@@ -239,14 +238,10 @@ export async function executeCommitmentQueueJob(
         const head = await chainReads.readChainHead?.();
         const firstHead = head && { intentBlock: head.number, intentChainTime: head.timestamp };
         try {
-          return await sendRecordedAct(
-            jobId,
-            job,
-            call,
-            sender,
-            store,
-            async () => (await intentHead(chainReads.readChainHead)) ?? firstHead
-          );
+          return await sendRecordedAct(jobId, job, call, sender, store, {
+            readChainHead: chainReads.readChainHead,
+            headBeforeSend: firstHead,
+          });
         } catch (error) {
           // Its receipt did not come in time: keep the nonce the transaction
           // used while the network still holds it.

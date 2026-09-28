@@ -20,6 +20,12 @@ export interface WorkUploadCheckpoint {
    */
   intentBlock?: bigint;
   /**
+   * The chain's time a lost send's window counts from, in seconds, when later
+   * than its intent: a lost answer restarts the window, since the send may
+   * have gone out at any point until then.
+   */
+  windowChainTime?: number;
+  /**
    * The nonce the recorded transaction used, read off the transaction while the
    * network held it, with the hash it was read for. Only this can show that
    * another transaction took its nonce: the account's next nonce read before

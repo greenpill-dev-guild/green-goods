@@ -399,4 +399,40 @@ describe("timing a lost send by the chain's time it kept", () => {
 
     await expect(settle(eas)).resolves.toEqual({ status: "landed", transactionHash: TX });
   });
+
+  it.each([
+    "work",
+    "decision",
+  ] as const)("waits on a lost %s until the window restarted when its answer was lost has passed", async (kind) => {
+    // Its answer was lost forty minutes after the intent, the prompt having stayed
+    // open: the send may have gone out at any point until then.
+    const lostAtS = SENT_S + 40 * 60;
+    const record = lostRecord({
+      intentChainTime: SENT_S,
+      windowChainTime: lostAtS,
+      broadcastPendingAt: new Date(lostAtS * 1000).toISOString(),
+    });
+    const settle = (eas: ReturnType<typeof easAt>) =>
+      kind === "work"
+        ? resolveStrandedWorkIntent(lostWork(record), 42161, deps(eas, eas.lookup.work))
+        : resolveStrandedDecisionIntent(
+            lostDecision({ sendCheckpoint: { ...record } }),
+            42161,
+            deps(eas, eas.lookup.decision)
+          );
+
+    // Ten minutes after the answer was lost: past the intent's window, not the restarted one.
+    const early = easAt({
+      clockAheadS: -(lostAtS + 600 - NOW_MS / 1000),
+      indexedThroughS: lostAtS + 540,
+    });
+    await expect(settle(early)).resolves.toEqual({ status: "waiting" });
+
+    // Once EAS has processed past the restarted window, the send is missing.
+    const caughtUp = easAt({
+      clockAheadS: -(lostAtS + GRACE_S + 120 - NOW_MS / 1000),
+      indexedThroughS: lostAtS + GRACE_S + 60,
+    });
+    await expect(settle(caughtUp)).resolves.toEqual({ status: "reopened" });
+  });
 });

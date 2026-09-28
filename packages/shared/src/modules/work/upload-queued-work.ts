@@ -29,7 +29,6 @@ import {
 import { logger } from "../app/logger";
 import type { ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
 import { sendCheckpointOf, writeSendCheckpoint } from "../job-queue/queue-policy";
-import { intentHead } from "../job-queue/send-chain-reads";
 import { holdingSends } from "../job-queue/send-guards";
 import type { saveUnderClaim, WorkClaim } from "../job-queue/work-claims";
 import type { ContractCall, TransactionSender } from "../transactions/types";
@@ -264,9 +263,9 @@ export async function uploadQueuedWork(
         sender,
         call: { ...callOf(items), chainId },
         jobIds: items.map(({ job }) => job.id),
-        // Read once, just before the intent, after any prompt: every item the
-        // call carries is then timed on the chain's clock if the answer is lost.
-        intent: () => intentHead(readChainHead && (() => readChainHead(chainId))),
+        // Read just before the intent, after any prompt, and again if the answer
+        // is lost: every item the call carries is then timed on the chain's clock.
+        readChainHead: readChainHead && (() => readChainHead(chainId)),
         record: (next) => recordAll(items, next),
         now: ports.now,
       });

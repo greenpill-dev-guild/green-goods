@@ -108,9 +108,9 @@ describe("sending one call while recording how far it got", () => {
     });
     // Nothing this send does can land before that head, so a lost send is timed from it.
     const head = { intentBlock: 100n, intentChainTime: 1_234 };
-    const intent = vi.fn(async () => {
+    const readChainHead = vi.fn(async () => {
       steps.push("head read");
-      return head;
+      return { number: 100n, timestamp: 1_234 };
     });
 
     await sendWithCheckpoint({
@@ -119,11 +119,11 @@ describe("sending one call while recording how far it got", () => {
       jobIds: JOBS,
       record: record as never,
       now: () => AT,
-      intent,
+      readChainHead,
     });
 
     expect(steps).toEqual(["signed", "head read"]);
-    expect(intent).toHaveBeenCalledOnce();
+    expect(readChainHead).toHaveBeenCalledOnce();
     expect(history).toEqual([
       {
         broadcastPending: true,
@@ -150,10 +150,61 @@ describe("sending one call while recording how far it got", () => {
       jobIds: JOBS,
       record: record as never,
       now: () => AT,
-      intent: async () => head,
+      readChainHead: async () => ({ number: 100n, timestamp: 1_234 }),
     });
 
     expect(current()).toMatchObject({ transactionHash: TX, ...head });
+  });
+
+  it("restarts a lost send's window from when its answer was lost, and keeps its intent", async () => {
+    // A wallet asks only after the intent is recorded. Its prompt stayed open
+    // forty minutes before the answer was lost, so the send may have gone out at
+    // any point until then.
+    const LOST_AT = AT + 40 * 60_000;
+    const lose = async (readChainHead: () => Promise<{ number: bigint; timestamp: number }>) => {
+      let clock = AT;
+      const { record, current } = recorder();
+      const sender = createMockTransactionSender({ authMode: "wallet" });
+      vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+        await options?.onBeforeBroadcast?.();
+        clock = LOST_AT;
+        throw new Error("Connection closed");
+      });
+      await expect(
+        sendWithCheckpoint({
+          sender,
+          call: createMockContractCall(),
+          jobIds: JOBS,
+          record: record as never,
+          now: () => clock,
+          readChainHead,
+        })
+      ).resolves.toMatchObject({ status: "may-have-sent" });
+      return current();
+    };
+
+    const heads = vi
+      .fn()
+      .mockResolvedValueOnce({ number: 100n, timestamp: 1_234 })
+      .mockResolvedValueOnce({ number: 300n, timestamp: 3_700 });
+    await expect(lose(heads)).resolves.toEqual({
+      broadcastPending: true,
+      broadcastPendingAt: new Date(LOST_AT).toISOString(),
+      intentBlock: 100n,
+      intentChainTime: 1_234,
+      windowChainTime: 3_700,
+    });
+
+    // A chain that cannot say when the answer was lost is timed by how long the
+    // prompt stayed open.
+    const unread = vi
+      .fn()
+      .mockResolvedValueOnce({ number: 100n, timestamp: 1_234 })
+      .mockRejectedValue(new Error("rpc unavailable"));
+    await expect(lose(unread)).resolves.toMatchObject({
+      intentChainTime: 1_234,
+      windowChainTime: 1_234 + 40 * 60,
+    });
   });
 
   it("clears the intent when the estimate reverts after it, since nothing was signed", async () => {
