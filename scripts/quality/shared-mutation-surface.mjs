@@ -8,6 +8,11 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export const SHARED_SOURCE_ROOT = "packages/shared/src";
+const SHARED_PACKAGE = "@green-goods/shared";
+const SHARED_MANIFEST = "packages/shared/package.json";
+// Data and asset imports hold no code, so an unresolved one cannot hide a primitive.
+const DATA_SPECIFIER =
+  /\.(?:json|css|scss|sass|less|svg|png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf|txt|md|mdx|html)(?:\?.*)?$|\?(?:raw|url|inline|worker)$/;
 
 const SOURCE_EXTENSIONS = [".ts", ".tsx"];
 const RESOLVE_SUFFIXES = ["", ".ts", ".tsx", "/index.ts", "/index.tsx"];
@@ -24,6 +29,13 @@ export function isSharedSourcePath(relativePath) {
     !/(^|\/)(__tests__|__mocks__)\//.test(relativePath) &&
     !/\.(test|spec|stories)\.tsx?$/.test(relativePath)
   );
+}
+
+function readSharedExports(root) {
+  const manifest = path.join(root, SHARED_MANIFEST);
+  if (!existsSync(manifest)) return {};
+  const { exports } = JSON.parse(readFileSync(manifest, "utf8"));
+  return exports && typeof exports === "object" ? exports : {};
 }
 
 function listSharedSource(root) {
@@ -250,7 +262,14 @@ function analyzeStatement(statement) {
 
 export function parseModule(source) {
   const code = blankNonCode(source);
-  const module = { imports: new Map(), exports: new Map(), stars: [], declarations: new Map(), dynamic: [] };
+  const module = {
+    imports: new Map(),
+    exports: new Map(),
+    stars: [],
+    declarations: new Map(),
+    dynamic: [],
+    computedDynamic: false,
+  };
   let anonymous = 0;
   for (const statement of splitStatements(code)) {
     const importMatch = statement.match(/^import\s+([\s\S]*?)\s+from\s+["']([^"']+)["']/);
@@ -295,6 +314,8 @@ export function parseModule(source) {
     else if (/^export\s/.test(statement)) for (const name of names) module.exports.set(name, { kind: "local", local: name });
   }
   for (const match of code.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)) module.dynamic.push(match[1]);
+  // `import(name)` or a template specifier cannot be resolved, so the file counts as invoking.
+  module.computedDynamic = /\bimport\s*\(\s*(?!["'])/.test(code);
   return module;
 }
 
@@ -306,6 +327,12 @@ export function parseModule(source) {
  * invokes. A member forwarded under its own name (`signOut: auth.signOut`) keeps its own file
  * critical but does not propagate to callers, so a hub like `useAuth()` does not make every reader
  * critical: a caller that uses the member names it and is caught itself.
+ *
+ * Imports resolve through relative paths, the `@/` and `@shared/` aliases, and Shared's own package
+ * exports. What the analyzer cannot read counts as invoking: an internal import that resolves to no
+ * source file (data files excepted), an unexported Shared subpath, or a computed dynamic import. An
+ * unlisted entry point of a package that has primitives, such as `wagmi/actions`, is judged by the
+ * imported name.
  */
 export function analyzeSharedMutationSurface({ root, primitives, files }) {
   const external = new Map(Object.entries(primitives.external).map(([name, list]) => [name, new Set(list)]));
@@ -313,6 +340,11 @@ export function analyzeSharedMutationSurface({ root, primitives, files }) {
     Object.entries(primitives.internal).map(([file, list]) => [`${SHARED_SOURCE_ROOT}/${file}`, new Set(list)]),
   );
   const members = new Set(primitives.members);
+  // Another entry point of a package that has primitives, such as wagmi/actions, is judged by name.
+  const packageRoot = (specifier) => specifier.split("/").slice(0, specifier.startsWith("@") ? 2 : 1).join("/");
+  const primitiveRoots = new Set([...external.keys()].map(packageRoot));
+  const primitiveNames = new Set([...external.values()].flatMap((names) => [...names]));
+  const sharedExports = readSharedExports(root);
   // Modules are parsed on first use, so a caller that asks about a few files reads only their
   // import closure.
   const parsed = new Map();
@@ -329,7 +361,13 @@ export function analyzeSharedMutationSurface({ root, primitives, files }) {
     let base;
     if (specifier.startsWith(".")) base = path.posix.normalize(path.posix.join(path.posix.dirname(fromFile), specifier));
     else if (specifier.startsWith("@/")) base = `${SHARED_SOURCE_ROOT}/${specifier.slice(2)}`;
-    else return { external: specifier };
+    else if (specifier.startsWith("@shared/")) base = `${SHARED_SOURCE_ROOT}/${specifier.slice("@shared/".length)}`;
+    else if (specifier === SHARED_PACKAGE || specifier.startsWith(`${SHARED_PACKAGE}/`)) {
+      // Shared importing itself by package name goes through its declared exports.
+      const target = sharedExports[specifier === SHARED_PACKAGE ? "." : `./${specifier.slice(SHARED_PACKAGE.length + 1)}`];
+      if (typeof target !== "string") return { unresolved: specifier };
+      base = path.posix.normalize(path.posix.join(path.posix.dirname(SHARED_MANIFEST), target));
+    } else return { external: specifier };
     for (const suffix of RESOLVE_SUFFIXES) {
       const candidate = `${base}${suffix}`;
       if (moduleAt(candidate)) return { file: candidate };
@@ -343,10 +381,13 @@ export function analyzeSharedMutationSurface({ root, primitives, files }) {
     const target = resolve(specifier, fromFile);
     if (target.external) {
       const names = external.get(target.external);
-      if (!names) return false;
-      return imported === "*" ? names.size > 0 : names.has(imported);
+      // A namespace or default import of a primitive package may carry any of its primitives.
+      if (names) return imported === "*" || imported === "default" ? names.size > 0 : names.has(imported);
+      return primitiveRoots.has(packageRoot(target.external)) && primitiveNames.has(imported);
     }
-    return target.file ? exportInvokes(target.file, imported, stack) : false;
+    if (target.file) return exportInvokes(target.file, imported, stack);
+    // An import that resolves to no Shared source file cannot be read, so it counts unless it is data.
+    return !DATA_SPECIFIER.test(specifier);
   };
   function exportInvokes(file, name, stack = new Set()) {
     const key = `${file}#${name}`;
@@ -371,6 +412,9 @@ export function analyzeSharedMutationSurface({ root, primitives, files }) {
     exportMemo.set(key, result);
     return result;
   }
+  // A namespace import, or a default import of an external package, is read member by member.
+  const namespaceLike = (entry) =>
+    entry?.imported === "*" || (entry?.imported === "default" && resolve(entry.source, "").external !== undefined);
   const importInvokes = (file, local, stack) => {
     const entry = modules.get(file).imports.get(local);
     return entry ? sourceInvokes(entry.source, file, entry.imported, stack) : false;
@@ -396,7 +440,7 @@ export function analyzeSharedMutationSurface({ root, primitives, files }) {
       for (const [namespace, property] of [...info.namespaceAccess, ...info.namespaceDestructures]) {
         if (result) break;
         const entry = module.imports.get(namespace);
-        if (entry?.imported === "*") result = sourceInvokes(entry.source, file, property, stack);
+        if (namespaceLike(entry)) result = sourceInvokes(entry.source, file, property, stack);
       }
       for (const reference of info.references) {
         if (result) break;
@@ -439,17 +483,15 @@ export function analyzeSharedMutationSurface({ root, primitives, files }) {
         ...[...info.namespaceAccess, ...info.namespaceDestructures]
           .filter(([namespace, property]) => {
             const entry = module.imports.get(namespace);
-            return entry?.imported === "*" && sourceInvokes(entry.source, file, property, new Set());
+            return namespaceLike(entry) && sourceInvokes(entry.source, file, property, new Set());
           })
           .map(([namespace, property]) => `${namespace}.${property}`),
       ];
       reasons.push(`${name}: ${[...new Set(evidence)].join(", ") || "uses a local declaration that invokes"}`);
     }
+    if (module.computedDynamic) reasons.push("dynamic import of a computed specifier");
     for (const specifier of module.dynamic) {
-      const target = resolve(specifier, file);
-      if ((target.external && external.has(target.external)) || (target.file && exportInvokes(target.file, "*"))) {
-        reasons.push(`dynamic import of ${specifier}`);
-      }
+      if (sourceInvokes(specifier, file, "*", new Set())) reasons.push(`dynamic import of ${specifier}`);
     }
     if (reasons.length > 0) invoking.set(file, reasons);
   }

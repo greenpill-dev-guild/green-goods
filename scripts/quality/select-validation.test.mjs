@@ -2237,6 +2237,110 @@ test("mutation capability that travels by reference keeps a new file critical, i
   }
 });
 
+test("an import the analyzer cannot read keeps a new file critical instead of hiding its primitive", (t) => {
+  const { sharedMutationPrimitives: primitives } = loadPolicy();
+  const root = mutationFixture(t, {
+    "hooks/blockchain/useSender.ts": [
+      'import { useWriteContract } from "wagmi";',
+      "export function useSender() {",
+      "  const { writeContractAsync } = useWriteContract();",
+      "  return writeContractAsync;",
+      "}",
+    ].join("\n"),
+    "hooks/blockchain/index.ts": 'export { useSender } from "./useSender";\n',
+    "index.ts": 'export { useSender } from "./hooks/blockchain";\n',
+    "utils/time.ts": "export const formatTime = (value: number) => new Date(value).toISOString();\n",
+    "i18n/en.json": '{ "title": "Tips" }\n',
+    // Shared reached through its own package exports, its @shared/ alias, or an export it lacks.
+    "hooks/tips/useSelfImport.ts": [
+      'import { useSender } from "@green-goods/shared/hooks/blockchain";',
+      "export const useSelfImport = () => useSender();",
+    ].join("\n"),
+    "hooks/tips/useSelfRoot.ts": [
+      'import { useSender } from "@green-goods/shared";',
+      "export const useSelfRoot = () => useSender();",
+    ].join("\n"),
+    "hooks/tips/useUnexported.ts": [
+      'import { useSender } from "@green-goods/shared/hooks/secret";',
+      "export const useUnexported = () => useSender();",
+    ].join("\n"),
+    "hooks/tips/useAliasImport.ts": [
+      'import { useSender } from "@shared/hooks/blockchain";',
+      "export const useAliasImport = () => useSender();",
+    ].join("\n"),
+    // An entry point the primitive list does not name, a file that is not there, a computed import.
+    "modules/tips/actions.ts": [
+      'import { writeContract } from "wagmi/actions";',
+      "export const run = () => writeContract({} as never, {} as never);",
+    ].join("\n"),
+    "modules/tips/missing.ts": [
+      'import { mystery } from "./not-here";',
+      "export const run = () => mystery();",
+    ].join("\n"),
+    "modules/tips/lazy.ts": "export const load = (name: string) => import(`./plugins/${name}`);\n",
+    // A primitive module whose namespace escapes whole or is read by a computed key, and a default
+    // import of one.
+    "utils/tips/escape.ts": [
+      'import * as core from "@wagmi/core";',
+      "export const library = core;",
+    ].join("\n"),
+    "utils/tips/computed.ts": [
+      'import * as core from "@wagmi/core";',
+      "export const pick = (name: string) => (core as Record<string, unknown>)[name];",
+    ].join("\n"),
+    "utils/tips/defaultCore.ts": [
+      'import wagmiCore from "@wagmi/core";',
+      "export const send = () => wagmiCore.writeContract({} as never, {} as never);",
+    ].join("\n"),
+    // Readers stay routine: data, a chain constant, a read-only Shared leaf, a namespace read.
+    "modules/tips/copy.ts": [
+      'import messages from "../../i18n/en.json";',
+      "export const label = () => messages.title;",
+    ].join("\n"),
+    "modules/tips/chains.ts": [
+      'import { sepolia } from "viem/chains";',
+      "export const chain = () => sepolia;",
+    ].join("\n"),
+    "modules/tips/readSelf.ts": [
+      'import { formatTime } from "@green-goods/shared/utils/time";',
+      "export const stamp = () => formatTime(0);",
+    ].join("\n"),
+    "utils/tips/readCore.ts": [
+      'import * as core from "@wagmi/core";',
+      "export const read = (config: never) => core.readContract(config, {} as never);",
+    ].join("\n"),
+  });
+  writeFileSync(
+    join(root, "packages/shared/package.json"),
+    JSON.stringify({
+      exports: {
+        ".": "./src/index.ts",
+        "./hooks/blockchain": "./src/hooks/blockchain/index.ts",
+        "./utils/time": "./src/utils/time.ts",
+      },
+    }),
+  );
+  const critical = [
+    "packages/shared/src/hooks/tips/useSelfImport.ts",
+    "packages/shared/src/hooks/tips/useSelfRoot.ts",
+    "packages/shared/src/hooks/tips/useUnexported.ts",
+    "packages/shared/src/hooks/tips/useAliasImport.ts",
+    "packages/shared/src/modules/tips/actions.ts",
+    "packages/shared/src/modules/tips/missing.ts",
+    "packages/shared/src/modules/tips/lazy.ts",
+    "packages/shared/src/utils/tips/escape.ts",
+    "packages/shared/src/utils/tips/computed.ts",
+    "packages/shared/src/utils/tips/defaultCore.ts",
+  ];
+  const readers = [
+    "packages/shared/src/modules/tips/copy.ts",
+    "packages/shared/src/modules/tips/chains.ts",
+    "packages/shared/src/modules/tips/readSelf.ts",
+    "packages/shared/src/utils/tips/readCore.ts",
+  ];
+  assert.deepEqual(mutationPathsAmong([...critical, ...readers], { root, primitives }), [...critical].sort());
+});
+
 test("every Shared file that signs, sends, moves funds or changes auth, session or queue state is critical by policy", () => {
   const policy = loadPolicy();
   const { invoking } = analyzeSharedMutationSurface({
