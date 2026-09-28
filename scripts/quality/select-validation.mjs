@@ -206,6 +206,14 @@ function checkpointScopes(requestedScope, intent, changedPaths, cancelled) {
   return { requested, effective };
 }
 
+// The surfaces whose tests import this Shared test-support path, which for them is test
+// infrastructure rather than Shared's own tests.
+function consumersOfSharedTestSupport(policy, path) {
+  const support = policy.sharedConsumerTestSupport;
+  if (!support || !groupMatches(path, { exact: support.exact, prefixes: support.prefixes })) return [];
+  return support.surfaces;
+}
+
 function groupMatches(path, rule) {
   const exactMatch = rule.exact?.includes(path) ?? false;
   const excluded =
@@ -256,6 +264,7 @@ function impactedSurfaces(policy, paths, fullRepository) {
       allSurfaces.forEach((surface) => surfaces.add(surface));
       continue;
     }
+    const testSupportConsumers = consumersOfSharedTestSupport(policy, path);
     for (const rule of policy.surfaceRules ?? []) {
       if (!groupMatches(path, rule)) continue;
       const owner = owningSurface(path);
@@ -263,7 +272,8 @@ function impactedSurfaces(policy, paths, fullRepository) {
         isValidationOnlyPath(path) &&
         owner &&
         rule.surface !== "all" &&
-        rule.surface !== owner
+        rule.surface !== owner &&
+        !testSupportConsumers.includes(rule.surface)
       ) {
         continue;
       }
@@ -560,7 +570,12 @@ export function selectValidation(input = {}, options = {}) {
     }
   } else {
     for (const surface of surfaces) {
-      const surfacePaths = changedPaths.filter((path) => owningSurface(path) === surface);
+      // Shared test support a consumer's tests import counts as that consumer's own test files.
+      const surfacePaths = changedPaths.filter(
+        (path) =>
+          owningSurface(path) === surface ||
+          consumersOfSharedTestSupport(policy, path).includes(surface),
+      );
       const validationOnly =
         surfacePaths.length > 0 && surfacePaths.every((path) => isValidationOnlyPath(path));
       if (includeBuilds) {
@@ -919,6 +934,7 @@ export function selectExpectedWorkflows(input = {}, options = {}) {
   return Object.entries(policy.workflowRules ?? {})
     .filter(([name, rule]) =>
       paths.some((path) => {
+        if (consumersOfSharedTestSupport(policy, path).includes(name.toLowerCase())) return true;
         if (!groupMatches(path, rule)) return false;
         if (rule.exact?.includes(path)) return true;
         if (!isValidationOnlyPath(path)) return true;

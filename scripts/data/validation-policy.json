@@ -1574,6 +1574,15 @@
       "retryAndSend"
     ]
   },
+  "sharedConsumerTestSupport": {
+    "note": "Shared test support that Client and Admin tests import: @green-goods/shared/testing and the base test setup. For those consumers it is test infrastructure rather than Shared's own tests, so a change reaches their suites and workflows as Shared source does.",
+    "surfaces": ["client", "admin"],
+    "exact": [
+      "packages/shared/src/__tests__/setupTests.base.ts",
+      "packages/shared/src/__tests__/setupTests.core.ts"
+    ],
+    "prefixes": ["packages/shared/src/__tests__/test-utils/"]
+  },
   "workflowRules": {
     "Admin": {
       "exact": [

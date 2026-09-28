@@ -18,6 +18,10 @@ on:
       - "!packages/shared/**/*.spec.*"
       - "!packages/shared/**/*.stories.*"
       - "!packages/shared/.storybook/**"
+      # Test support these tests import: @green-goods/shared/testing and the base setup.
+      - "packages/shared/src/__tests__/test-utils/**"
+      - "packages/shared/src/__tests__/setupTests.base.ts"
+      - "packages/shared/src/__tests__/setupTests.core.ts"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
       - "scripts/ops/upload-sourcemaps.js"
@@ -48,6 +52,10 @@ on:
       - "!packages/shared/**/*.spec.*"
       - "!packages/shared/**/*.stories.*"
       - "!packages/shared/.storybook/**"
+      # Test support these tests import: @green-goods/shared/testing and the base setup.
+      - "packages/shared/src/__tests__/test-utils/**"
+      - "packages/shared/src/__tests__/setupTests.base.ts"
+      - "packages/shared/src/__tests__/setupTests.core.ts"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
       - "scripts/ops/upload-sourcemaps.js"

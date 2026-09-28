@@ -1945,10 +1945,16 @@ test("CI Gate expects exactly the workflows whose path filters start", () => {
         : pullRequest.find((entry) => !entry.startsWith("!") && entry.startsWith(prefix));
       return shared ? probeFor(shared) : `${prefix}probe.ts`;
     };
+    // Shared test support that a consumer's tests import reaches that consumer's workflow too.
+    const support = policy.sharedConsumerTestSupport;
+    const supportProbes = support?.surfaces.includes(name.toLowerCase())
+      ? [...support.exact, ...support.prefixes.map((prefix) => `${prefix}probe.ts`)]
+      : [];
     for (const probe of [
       ...(rule.exact ?? []),
       ...(rule.prefixes ?? []).map(prefixProbe),
       ...(rule.extensions ?? []).map((extension) => `probe/probe${extension}`),
+      ...supportProbes,
     ]) {
       if (expects(probe) && !filterRuns(pullRequest, probe)) {
         problems.push(`${file}: CI Gate expects ${name} for ${probe}, which does not start it`);
@@ -1968,6 +1974,35 @@ test("CI Gate expects exactly the workflows whose path filters start", () => {
     }
   }
   assert.deepEqual(problems, []);
+});
+
+test("Shared test support that Client and Admin tests import reaches their suites and workflows", () => {
+  const consumerWorkflows = (changedPath) =>
+    selectExpectedWorkflows({ changedPaths: [changedPath], intent: "merge", ci: true }).filter((name) =>
+      ["Admin", "Agent", "Client"].includes(name),
+    );
+  for (const changedPath of [
+    "packages/shared/src/__tests__/test-utils/render-helpers.tsx",
+    "packages/shared/src/__tests__/setupTests.base.ts",
+    "packages/shared/src/__tests__/setupTests.core.ts",
+  ]) {
+    const checkpoint = ids(selectValidation({ intent: "checkpoint", changedPaths: [changedPath] }));
+    for (const checkId of [
+      "shared-test",
+      "client-test-typecheck",
+      "client-test",
+      "admin-test-typecheck",
+      "admin-test",
+    ]) {
+      assert.ok(checkpoint.includes(checkId), `${changedPath}: ${checkId}`);
+    }
+    assert.ok(!checkpoint.includes("agent-test"), changedPath);
+    assert.deepEqual(consumerWorkflows(changedPath), ["Admin", "Client"], changedPath);
+  }
+  // Shared's own tests stay Shared's.
+  const ownTest = "packages/shared/src/__tests__/hooks/app/useTheme.test.ts";
+  assert.ok(!ids(selectValidation({ intent: "checkpoint", changedPaths: [ownTest] })).includes("client-test"));
+  assert.deepEqual(consumerWorkflows(ownTest), []);
 });
 
 test("local ontology routing stays in parity with the Ontology workflow matcher", () => {
