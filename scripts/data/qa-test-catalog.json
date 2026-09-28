@@ -3244,6 +3244,224 @@
       "source": "prd-996"
     },
     {
+      "id": "PWA-127",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Work",
+      "scenario": "A wallet Work prompt held open past one minute cannot be sent or discarded from another tab",
+      "preconditions": ["Two tabs signed in to the same wallet account", "A valid Work draft"],
+      "steps": [
+        "Start Upload Work in the first tab and leave its wallet prompt open for more than one minute",
+        "In the second tab open the queued Work and inspect Upload, Discard and Try Again",
+        "Answer the first prompt, then check the Work from both tabs"
+      ],
+      "expected": "The second tab never offers a second send or Discard while the first prompt can still broadcast; after the first answer the one Work is reconciled once",
+      "evidence": "Screenshots of the queued row in both tabs and the final Work state",
+      "role": "gardener",
+      "tags": ["work-submission", "queue", "wallet", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-128",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Work",
+      "scenario": "A lost Work confirmation that was approved is found without another send",
+      "preconditions": [
+        "Wallet account with a valid Work draft",
+        "A paired tester controls the wallet prompt"
+      ],
+      "steps": [
+        "Start Upload Work and approve in the wallet while the app tab is closed",
+        "Reopen the app and inspect the queued row",
+        "Press Check Again after the indexer catches up"
+      ],
+      "expected": "The row remains held until the Work is found; it clears as submitted with no second wallet prompt or duplicate Work",
+      "evidence": "Screenshots of the held row and final Work detail",
+      "role": "gardener",
+      "tags": ["work-submission", "queue", "recovery", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-129",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Work",
+      "scenario": "A lost Work send rejected after tab close reopens only after the chain-clock wait and a later look",
+      "preconditions": [
+        "Wallet account with a valid Work draft",
+        "A paired tester controls the wallet prompt"
+      ],
+      "steps": [
+        "Start Upload Work, close the app tab, then reject in the wallet",
+        "Reopen the app and check before the 30-minute window ends",
+        "After the window and indexer catch-up, Check Again once, then on a later look inspect Try Again",
+        "Press Try Again and answer one wallet prompt"
+      ],
+      "expected": "The Work stays held through the wait and first absence look; only the later look offers retry, and one retry sends one Work",
+      "evidence": "Timestamped screenshots of the held, retryable and final states",
+      "role": "gardener",
+      "tags": ["work-submission", "queue", "recovery", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-130",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "A lost approval decision that was sent is found without another send",
+      "preconditions": [
+        "A service commitment ready for an eligible confirmer",
+        "Wallet account and paired wallet-prompt control"
+      ],
+      "steps": [
+        "Approve the decision in the wallet while the app tab is closed",
+        "Reopen the commitment and inspect the queued act row",
+        "Press Check Again after the indexer catches up"
+      ],
+      "expected": "The decision stays held until the chain result is found; it settles once and never asks for another signature",
+      "evidence": "Screenshots of the held row and settled commitment",
+      "role": "steward",
+      "tags": ["commitments", "queue", "recovery", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-131",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "A lost approval decision rejected after tab close reopens only after the chain-clock wait and a later look",
+      "preconditions": [
+        "A service commitment ready for an eligible confirmer",
+        "Wallet account and paired wallet-prompt control"
+      ],
+      "steps": [
+        "Begin the decision, close the app tab, then reject the wallet prompt",
+        "Reopen and Check Again before 30 minutes have passed",
+        "After the chain-clock window and indexer catch-up, Check Again, then look once more",
+        "Use Send Now and answer one wallet prompt"
+      ],
+      "expected": "The decision stays held through the wait and first absence look; only the later look offers Send Now, and it sends exactly once",
+      "evidence": "Timestamped screenshots of the held, retryable and settled states",
+      "role": "steward",
+      "tags": ["commitments", "queue", "recovery", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-132",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Account",
+      "scenario": "Changing accounts on one device isolates queued Work, commitment acts and send records",
+      "preconditions": [
+        "Two test accounts with separate queued drafts or acts on one browser device"
+      ],
+      "steps": [
+        "With account A, park Work and a commitment act, and leave any send record unresolved",
+        "Sign out and sign in as account B; inspect Home filters, the same gardens, Work and commitment queues",
+        "Reload B, then sign out and return to A; reload A"
+      ],
+      "expected": "B starts with default filters and fresh garden state and cannot see, send or discard A’s queued items; each same-account reload retains its own state and A’s work returns only for A",
+      "evidence": "Private session notes without account names or addresses",
+      "role": "gardener",
+      "tags": ["auth", "queue", "account"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-133",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Commitments",
+      "scenario": "A named confirmer who did not create an untaken offer cannot withdraw it",
+      "preconditions": ["Untaken offer with a named confirmer distinct from its creator"],
+      "steps": [
+        "Open the offer as the named confirmer and inspect the action bar",
+        "Open it as the creator and inspect the action bar"
+      ],
+      "expected": "The named confirmer can read the offer but has no Withdraw This action; only the creator is offered withdrawal",
+      "evidence": "Screenshots of the two action bars without account identifiers",
+      "role": "gardener",
+      "tags": ["commitments", "permissions"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-134",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Work",
+      "scenario": "A locally queued linked Work is described as saved until it is sent",
+      "preconditions": [
+        "A garden-work commitment with a matching requirement",
+        "A Work draft linked to that requirement"
+      ],
+      "steps": [
+        "Make the connection unconfirmed and press Upload Work",
+        "Read the message after the Work and link enter their queues",
+        "If link queueing fails, read the error and press Retry Link"
+      ],
+      "expected": "Success and error text say the Work is saved on this device, not submitted; the link can be retried without submitting Work twice, and the commitment reads it as submitted only after Work sends",
+      "evidence": "Screenshots of the saved message, retry message and eventual submitted state",
+      "role": "gardener",
+      "tags": ["work-submission", "commitments", "offline", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-135",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Commitments",
+      "scenario": "A chosen action that expires while the composer is open stops placement",
+      "preconditions": [
+        "Garden-work composer with a required action near the end of its Work window"
+      ],
+      "steps": [
+        "Choose the action while it is still open and leave the composer on How Much or Review",
+        "After the action window ends, read the requirement and placement control",
+        "Try to place the commitment"
+      ],
+      "expected": "The action is named as closed, placement is blocked before a create job is queued, and the draft remains editable so another action can be chosen",
+      "evidence": "Screenshots before and after the action closes",
+      "role": "gardener",
+      "tags": ["commitments", "actions", "time"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
       "id": "PWA-103",
       "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
@@ -6299,6 +6517,32 @@
       "source": "steward-cockpit-ux-2026-09-25"
     },
     {
+      "id": "ADM-189",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden · Pool",
+      "scenario": "Seed rows with closed actions stay out of the queue, including tray retries",
+      "preconditions": [
+        "Steward with manage rights",
+        "A garden action whose Work window is ending"
+      ],
+      "steps": [
+        "Open Seed a Commitment and choose Garden work",
+        "Inspect the Action chooser after the action closes",
+        "Prepare a tray row while an action is open, then let it close before Create All or a retry",
+        "Review the result and edit the unsent row"
+      ],
+      "expected": "Closed actions are absent from new choices and a selected one is named as closed; the closed row is never queued, while other valid rows may continue, and the unsent row remains editable",
+      "evidence": "Screenshots of the closed choice and unsent row",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment", "actions", "time"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
       "id": "ADM-057",
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
@@ -6641,7 +6885,7 @@
         "Steward with manage rights on a garden whose settlement account is active, so Celo G$ settlement can be chosen"
       ],
       "steps": [
-        "Run the seed wizard to its Proof & Confirmation step and open Advanced: declared reward",
+        "Run the seed wizard to its Proof & Confirmation step and answer Yes to Declare a reward",
         "Choose Celo G$ settlement and type 10 in Amount (G$)",
         "Try an amount with more than 18 decimal places, then type 10 again and go on to the review",
         "Read the reward on the review and cancel out"
@@ -6667,7 +6911,7 @@
         "The address of a 6-decimal ERC-20 token on the pool's chain, such as USDC, and an address it is paid from"
       ],
       "steps": [
-        "Run the seed wizard to its Proof & Confirmation step, open Advanced: declared reward, and choose External payout record",
+        "Run the seed wizard to its Proof & Confirmation step, answer Yes to Declare a reward, and choose External payout record",
         "Read the amount field, then enter the token address and the Paid from address and read it again",
         "Type 2.5, go on to the review, and read the reward",
         "Cancel out"

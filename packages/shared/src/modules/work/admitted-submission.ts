@@ -3,6 +3,8 @@ import type { WorkUploadCheckpoint } from "../../types/domain";
 import type { TransactionSender } from "../transactions/types";
 import { logger } from "../app/logger";
 import { jobQueueDB } from "../job-queue/db";
+import { holdWorkClaims } from "../job-queue/work-claims";
+import { holdingSend } from "../job-queue/send-guards";
 import { MAX_RETRIES } from "../job-queue/queue-policy";
 import { jobQueueEventBus } from "../job-queue/event-bus";
 import { convertQueuedHeicMedia } from "../job-queue/job-media-conversion";
@@ -148,6 +150,7 @@ async function admitAndSend(
   }
   const claim = await acquireWorkJobs([queued.jobId]);
   if (!claim) return heldElsewhere(queued, ports);
+  const stopHolding = holdWorkClaims([claim]);
   try {
     const job = await jobQueueDB.getJob(queued.jobId);
     if (!job || job.synced) {
@@ -202,26 +205,28 @@ async function admitAndSend(
       await input.onCheckpoint?.(value).catch(() => undefined);
     };
     try {
-      const txHash = await ports.direct.submitWork(
-        {
-          ...input,
-          images,
-          assertOwnership,
-          onCheckpoint: persist,
-          onBroadcast: async (hash) => {
-            rememberWorkBroadcast(job.id, hash);
-            await persist({
-              submittedAt: new Date().toISOString(),
-              files: {},
-              ...payload.uploadCheckpoint,
-              transactionHash: hash,
-              broadcast: { kind: "transaction", hash },
-              broadcastPending: false,
-            });
-            await input.onBroadcast?.(hash).catch(() => undefined);
+      const txHash = await holdingSend(job.id, () =>
+        ports.direct.submitWork(
+          {
+            ...input,
+            images,
+            assertOwnership,
+            onCheckpoint: persist,
+            onBroadcast: async (hash) => {
+              rememberWorkBroadcast(job.id, hash);
+              await persist({
+                submittedAt: new Date().toISOString(),
+                files: {},
+                ...payload.uploadCheckpoint,
+                transactionHash: hash,
+                broadcast: { kind: "transaction", hash },
+                broadcastPending: false,
+              });
+              await input.onBroadcast?.(hash).catch(() => undefined);
+            },
           },
-        },
-        ports.onWalletStage
+          ports.onWalletStage
+        )
       );
       await jobQueueDB.storeClientWorkIdMapping(input.clientWorkId, txHash, job.id);
       await jobQueueDB.markJobSynced(job.id, txHash);
@@ -277,6 +282,7 @@ async function admitAndSend(
       throw error;
     }
   } finally {
+    stopHolding();
     await claim.release();
   }
 }

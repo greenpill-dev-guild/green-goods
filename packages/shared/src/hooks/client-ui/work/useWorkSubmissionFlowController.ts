@@ -128,6 +128,7 @@ export function useWorkSubmissionFlowController({
   const [isSchedulingDependentLink, setIsSchedulingDependentLink] = useState(false);
   const [isQueueingDependentLink, setIsQueueingDependentLink] = useState(false);
   const [linkSchedulingSucceeded, setLinkSchedulingSucceeded] = useState(false);
+  const [linkSchedulingWorkSent, setLinkSchedulingWorkSent] = useState<boolean | null>(null);
   const linkChoices = useWorkLinkChoices({
     chainId: DEFAULT_CHAIN_ID,
     account: primaryAddress as `0x${string}` | null,
@@ -282,6 +283,7 @@ export function useWorkSubmissionFlowController({
     if (!gardenAddress || actionUID === null || !findActionByUID(actions, actionUID)) return false;
     if (hasLinkIntentParams && linkIntentStatus !== "valid") return false;
     setLinkSchedulingSucceeded(false);
+    setLinkSchedulingWorkSent(null);
     if (linkIntent) setIsSchedulingDependentLink(true);
     try {
       await saveOnExit();
@@ -294,7 +296,8 @@ export function useWorkSubmissionFlowController({
         return false;
       }
       if (linkIntent && outcome) {
-        const workSent = outcome.kind !== "queued";
+        const workSent = outcome.kind === "direct" || outcome.kind === "processed";
+        setLinkSchedulingWorkSent(workSent);
         setIsQueueingDependentLink(workSent);
         const payload: PendingLinkRecovery["payload"] = {
           clientOperationId: `work-link:${outcome.clientWorkId}:${linkIntent.commitmentId}:${linkIntent.requirementIndex}`,
@@ -462,6 +465,7 @@ export function useWorkSubmissionFlowController({
     isQueueingDependentLink,
     linkSchedulingError: pendingLinkRecovery?.error ?? null,
     linkSchedulingSucceeded,
+    linkSchedulingWorkSent,
     hasPendingLinkRecovery: pendingLinkRecovery !== null,
     retryLinkOnly,
     submissionOutcome: workMutation.lastSubmissionOutcome,

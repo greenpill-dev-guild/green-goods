@@ -125,6 +125,7 @@ const Work: React.FC = () => {
     isQueueingDependentLink,
     linkSchedulingError,
     linkSchedulingSucceeded,
+    linkSchedulingWorkSent,
     hasPendingLinkRecovery,
     retryLinkOnly,
     clearLinkIntent,
@@ -426,10 +427,15 @@ const Work: React.FC = () => {
             ) : null}
             {linkSchedulingSucceeded ? (
               <p className="text-xs text-success-dark px-1" role="status" aria-live="polite">
-                {intl.formatMessage({
-                  id: "app.garden.commitment.linkScheduled",
-                  defaultMessage: "Work submitted. Its commitment link is queued.",
-                })}
+                {linkSchedulingWorkSent
+                  ? intl.formatMessage({
+                      id: "app.garden.commitment.linkScheduled",
+                      defaultMessage: "Work submitted. Its commitment link is queued.",
+                    })
+                  : intl.formatMessage({
+                      id: "app.garden.commitment.linkSavedQueued",
+                      defaultMessage: "Work saved on this device. Its commitment link is queued.",
+                    })}
               </p>
             ) : null}
             {hasPendingLinkRecovery && linkSchedulingError ? (
@@ -439,11 +445,17 @@ const Work: React.FC = () => {
               >
                 <span className="flex items-center gap-2">
                   <RiErrorWarningLine className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  {intl.formatMessage({
-                    id: "app.garden.commitment.linkSchedulingError",
-                    defaultMessage:
-                      "Your work was submitted, but its commitment link could not be queued.",
-                  })}
+                  {linkSchedulingWorkSent
+                    ? intl.formatMessage({
+                        id: "app.garden.commitment.linkSchedulingError",
+                        defaultMessage:
+                          "Your work was submitted, but its commitment link could not be queued.",
+                      })
+                    : intl.formatMessage({
+                        id: "app.garden.commitment.linkSavedQueueError",
+                        defaultMessage:
+                          "Your work is saved on this device, but its commitment link could not be queued.",
+                      })}
                 </span>
                 <Button
                   type="button"

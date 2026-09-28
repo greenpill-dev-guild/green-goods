@@ -10,7 +10,9 @@ import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose"
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useErc20MetadataMany } from "@green-goods/shared/hooks/blockchain/useErc20Metadata";
 import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import type { Address } from "@green-goods/shared/types/domain";
+import { msUntilActionWindowChange } from "@green-goods/shared/utils";
 import {
   buildCommitmentCreationPayload,
   useCommitmentComposerForm,
@@ -23,7 +25,7 @@ import {
 import { useComposeAgainValues } from "@green-goods/shared/hooks/commitment-pooling/useComposeAgainValues";
 import { useProtocolPool } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
 import { useSettlementAccount } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
-import { type ReactNode, useCallback, useId, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useFieldArray } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { ADMIN_FLOW_DIALOG_CLASS, AdminDialog } from "@/components/AdminDialog";
@@ -38,9 +40,11 @@ import { SeedStepHowMuch } from "./SeedStepHowMuch";
 import { SeedStepProof } from "./SeedStepProof";
 import { SeedStepReview } from "./SeedStepReview";
 import { SeedStepWhat } from "./SeedStepWhat";
-import { rewardUnitsFor, seedRowRewardReady } from "./seedRewardAmount";
+import { seedRowRewardReady, seedTrayRewardState } from "./seedRewardAmount";
 import {
   buildSeedCycleOptions,
+  closedSeedActionMessage,
+  closedSeedActions,
   buildSeedStepConfigs,
   type SeedFieldError,
   seedErrorText,
@@ -59,21 +63,7 @@ export interface SeedCommitmentDialogProps {
   fromCommitmentId?: bigint | null;
 }
 
-/**
- * W8, the steward's seeding console (uiux-spec §6.3): a cast of the member
- * composer over the same shared form, with the steward's extras. What → how
- * much → proof & confirmation → sectioned review, then one queued creation
- * through useCommitmentJobs; the queued row appears on the pool tab before
- * the indexer has it. Add Another Like This keeps the reviewed commitment in a
- * tray and starts the next from the same answers, and the whole tray is then
- * sent one creation after another. The cycle selector groups the one season,
- * then the campaigns, then cycle-less; claim mode is prefilled by context; the
- * consideration rail defaults to none, names the external rail's fields,
- * and shows Celo settlement disabled with its readiness explanation unless
- * the garden's settlement account is active; the Green Goods team fallback is
- * on by default and disabled with a repair path when no protocol pool is
- * registered.
- */
+/** The steward's seeding flow: review one or more rows, then queue each creation once. */
 export function SeedCommitmentDialog({
   open,
   chainId,
@@ -91,6 +81,15 @@ export function SeedCommitmentDialog({
   const protocolPool = useProtocolPool({ chainId });
   const settlement = useSettlementAccount({ chainId, garden });
   const { data: actions = [] } = useActions(chainId);
+  const [windowNow, setWindowNow] = useState(() => Date.now());
+  const now = Math.max(windowNow, Date.now());
+  const { set: setWindowTimer, clear: clearWindowTimer } = useTimeout();
+  useEffect(() => {
+    if (!open) return clearWindowTimer;
+    const delay = msUntilActionWindowChange(actions, Date.now());
+    if (delay !== null) setWindowTimer(() => setWindowNow(Date.now()), delay);
+    return clearWindowTimer;
+  }, [open, actions, windowNow, setWindowTimer, clearWindowTimer]);
   const jobs = useCommitmentJobs({ chainId });
   const [stepIndex, setStepIndex] = useState(0);
   const [confirmerDraft, setConfirmerDraft] = useState("");
@@ -140,6 +139,8 @@ export function SeedCommitmentDialog({
     if (pool.poolId === undefined || !jobs.viewer) throw new Error("No pool or viewer to seed as");
     if (!seedRowRewardReady(row.values, tokenMetadata))
       throw new Error("Reward token units are not known for this seed row");
+    if (closedSeedActions(row.values, actions, chainId, Date.now()).length > 0)
+      throw new Error("A required action has closed before this seed row could be queued");
     const payload = buildCommitmentCreationPayload({
       // The fallback choice cannot stand without a registered protocol pool.
       values: protocolRegistered ? row.values : { ...row.values, protocolFallbackEnabled: false },
@@ -153,6 +154,13 @@ export function SeedCommitmentDialog({
     await jobs.enqueue({ act: "create", payload, report });
   };
   const tray = useSeedTray({ form, createRow });
+  const closedActionMessage = closedSeedActionMessage({
+    rows: [values, ...tray.others.map((row) => row.values)],
+    actions,
+    chainId,
+    now,
+    formatMessage,
+  });
   // Keep the metadata query scoped to every parked row and the current form.
   // A retry has the same guard as its first pass, even after the form changes.
   const tokenMetadata = useErc20MetadataMany(
@@ -161,17 +169,12 @@ export function SeedCommitmentDialog({
       .filter((row) => row.considerationRail === "ARBITRUM_EXTERNAL")
       .map((row) => row.considerationToken)
   );
-  const rewardUnits = rewardUnitsFor(
-    values.considerationRail,
-    tokenMetadata.get(values.considerationToken.trim().toLowerCase()) ?? { status: "idle" }
-  );
-  const rewardUnitsUnknown = !seedRowRewardReady(values, tokenMetadata);
-  const unreadableParkedRow = tray.others.find(
-    (row) => !seedRowRewardReady(row.values, tokenMetadata)
-  );
-  const trayRewardUnknown = rewardUnitsUnknown || Boolean(unreadableParkedRow);
-  const blockedRewardTitle =
-    unreadableParkedRow?.values.title ?? (rewardUnitsUnknown ? values.title : null);
+  const { rewardUnits, rewardUnitsUnknown, trayRewardUnknown, blockedRewardTitle } =
+    seedTrayRewardState(
+      values,
+      tray.others.map((row) => row.values),
+      tokenMetadata
+    );
   const room = useSeedTrayRoom({
     chainId,
     poolId: pool.poolId,
@@ -234,8 +237,9 @@ export function SeedCommitmentDialog({
 
   const goNext = useCallback(async () => {
     const valid = await form.trigger(stepFieldsFor(currentStep, form.getValues("kind")));
-    if (valid) setStepIndex((index) => index + 1);
-  }, [form, currentStep]);
+    if (valid && !closedSeedActions(form.getValues(), actions, chainId, Date.now()).length)
+      setStepIndex((index) => index + 1);
+  }, [form, currentStep, actions, chainId]);
 
   const seed = async () => {
     setSubmitError(null);
@@ -299,6 +303,7 @@ export function SeedCommitmentDialog({
           requirements={requirements}
           actions={actions}
           chainId={chainId}
+          now={now}
         />
       );
       break;
@@ -330,6 +335,7 @@ export function SeedCommitmentDialog({
           rewardUnits={rewardUnits}
           submitError={
             submitError ??
+            closedActionMessage ??
             (blockedRewardTitle
               ? formatMessage(
                   {
@@ -398,9 +404,10 @@ export function SeedCommitmentDialog({
         pool.poolId === undefined ||
         pool.model.status !== "open" ||
         capacity.over ||
-        trayRewardUnknown
+        trayRewardUnknown ||
+        Boolean(closedActionMessage)
       }
-      blockedReason={seedBlocked ? formatMessage(seedBlocked) : null}
+      blockedReason={seedBlocked ? formatMessage(seedBlocked) : closedActionMessage}
       count={tray.size}
       addAnotherDisabled={
         poolDefaultsPending || rewardUnitsUnknown || (capacity.full && values.direction === "OFFER")

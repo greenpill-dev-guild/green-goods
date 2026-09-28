@@ -61,6 +61,26 @@ export function seedRowRewardReady(
   return rewardUnitsFor(values.considerationRail, token).status !== "waiting";
 }
 
+/** Reward readiness for the current draft and every parked row. */
+export function seedTrayRewardState(
+  current: CommitmentComposerValues,
+  parked: readonly CommitmentComposerValues[],
+  externalTokens: ReadonlyMap<string, Erc20MetadataRead>
+) {
+  const rewardUnits = rewardUnitsFor(
+    current.considerationRail,
+    externalTokens.get(current.considerationToken.trim().toLowerCase()) ?? { status: "idle" }
+  );
+  const rewardUnitsUnknown = !seedRowRewardReady(current, externalTokens);
+  const unreadableParkedRow = parked.find((row) => !seedRowRewardReady(row, externalTokens));
+  return {
+    rewardUnits,
+    rewardUnitsUnknown,
+    trayRewardUnknown: rewardUnitsUnknown || Boolean(unreadableParkedRow),
+    blockedRewardTitle: unreadableParkedRow?.title ?? (rewardUnitsUnknown ? current.title : null),
+  };
+}
+
 /** What the steward typed, as the base units the form stores; an i18n id when it cannot be. */
 export function rewardAmountToBaseUnits(
   text: string,

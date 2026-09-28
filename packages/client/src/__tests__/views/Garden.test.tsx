@@ -70,6 +70,7 @@ const mockRefetchCommitmentLinkChoices = vi.fn();
 const mockRetryLinkOnly = vi.fn();
 let mockHasPendingLinkRecovery = false;
 let mockLinkSchedulingSucceeded = false;
+let mockLinkSchedulingWorkSent: boolean | null = null;
 let mockIsSchedulingDependentLink = false;
 let mockIsQueueingDependentLink = false;
 const mockActions = [
@@ -154,6 +155,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     isQueueingDependentLink: mockIsQueueingDependentLink,
     linkSchedulingError: mockHasPendingLinkRecovery ? new Error("queue unavailable") : null,
     linkSchedulingSucceeded: mockLinkSchedulingSucceeded,
+    linkSchedulingWorkSent: mockLinkSchedulingWorkSent,
     hasPendingLinkRecovery: mockHasPendingLinkRecovery,
     retryLinkOnly: mockRetryLinkOnly,
     clearLinkIntent: mockClearLinkIntent,
@@ -287,6 +289,7 @@ describe("Garden (Work) View", () => {
     mockCommitmentLinkChoices = [];
     mockHasPendingLinkRecovery = false;
     mockLinkSchedulingSucceeded = false;
+    mockLinkSchedulingWorkSent = null;
     mockIsSchedulingDependentLink = false;
     mockIsQueueingDependentLink = false;
   });
@@ -428,6 +431,7 @@ describe("Garden (Work) View", () => {
     mockSelection.actionUID = 1;
     mockSelection.gardenAddress = "garden-1";
     mockHasPendingLinkRecovery = true;
+    mockLinkSchedulingWorkSent = true;
 
     renderWithProviders();
 
@@ -457,8 +461,28 @@ describe("Garden (Work) View", () => {
     }
   });
 
-  it("announces when the dependent commitment link is safely queued", () => {
+  it("keeps queued Work and a failed link truthful", () => {
+    mockHasPendingLinkRecovery = true;
+    mockLinkSchedulingWorkSent = false;
+    renderWithProviders();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Your work is saved on this device, but its commitment link could not be queued."
+    );
+    expect(screen.queryByText(/Your work was submitted/)).toBeNull();
+  });
+
+  it("keeps queued Work truthful after its dependent link is queued", () => {
     mockLinkSchedulingSucceeded = true;
+    mockLinkSchedulingWorkSent = false;
+    renderWithProviders();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Work saved on this device. Its commitment link is queued."
+    );
+  });
+
+  it("announces when the dependent commitment link is safely queued after Work was sent", () => {
+    mockLinkSchedulingSucceeded = true;
+    mockLinkSchedulingWorkSent = true;
 
     renderWithProviders();
 

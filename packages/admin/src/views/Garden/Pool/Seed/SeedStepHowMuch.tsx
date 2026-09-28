@@ -7,6 +7,7 @@ import {
   COMMITMENT_UNIT_LABEL_MAX_LENGTH,
 } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { Action } from "@green-goods/shared/types/domain";
+import { hasActionEnded } from "@green-goods/shared/utils";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { Controller, type UseFieldArrayReturn, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -15,7 +16,7 @@ import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
-import { actionUIDOf, type SeedFieldError } from "./seedStepModel";
+import { actionUIDOf, closedSeedActions, type SeedFieldError } from "./seedStepModel";
 
 export interface SeedStepHowMuchProps {
   form: UseFormReturn<CommitmentComposerValues>;
@@ -29,6 +30,7 @@ export interface SeedStepHowMuchProps {
   /** The garden's registered actions, for garden work. */
   actions: Action[];
   chainId: number;
+  now: number;
 }
 
 /**
@@ -46,6 +48,7 @@ export function SeedStepHowMuch({
   requirements,
   actions,
   chainId,
+  now,
 }: SeedStepHowMuchProps) {
   const { formatMessage } = useIntl();
   const isGardenWork = values.kind === "GARDEN_WORK";
@@ -268,8 +271,10 @@ export function SeedStepHowMuch({
                 </option>
                 {actions.map((action) => {
                   const uid = actionUIDOf(action.id, chainId);
-                  return uid === null ? null : (
-                    <option key={action.id} value={uid}>
+                  const ended = hasActionEnded(action, now);
+                  return uid === null ||
+                    (ended && uid !== values.requirements[index]?.actionUID) ? null : (
+                    <option key={action.id} value={uid} disabled={ended}>
                       {action.title}
                     </option>
                   );
@@ -319,6 +324,18 @@ export function SeedStepHowMuch({
               defaultMessage: "Add Action",
             })}
           </AdminButton>
+          {closedSeedActions(values, actions, chainId, now).map((action) => (
+            <p key={action.id} className="body-xs text-error-dark" role="alert">
+              {formatMessage(
+                {
+                  id: "app.compose.blocked.closedAction",
+                  defaultMessage:
+                    "{action} has closed and can't take work any more. Remove it to continue.",
+                },
+                { action: action.title }
+              )}
+            </p>
+          ))}
           {form.formState.errors.requirements?.message ? (
             <p className="body-xs text-error-dark">
               {String(form.formState.errors.requirements.message)}

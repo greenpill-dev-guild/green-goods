@@ -1939,6 +1939,8 @@
   "app.garden.commitment.retry": "Tentar novamente",
   "app.garden.commitment.empty": "Nenhum compromisso elegível corresponde a este jardim e a esta ação.",
   "app.garden.commitment.linkScheduling": "Trabalho enviado. Enfileirando o vínculo com o compromisso…",
+  "app.garden.commitment.linkSavedQueued": "Trabalho salvo neste dispositivo. O vínculo com o compromisso está na fila.",
+  "app.garden.commitment.linkSavedQueueError": "Seu trabalho está salvo neste dispositivo, mas o vínculo com o compromisso não pôde ser enfileirado.",
   "app.garden.commitment.linkScheduled": "Trabalho enviado. O vínculo com o compromisso está na fila.",
   "app.garden.commitment.linkSchedulingError": "Seu trabalho foi enviado, mas o vínculo com o compromisso não pôde ser enfileirado.",
   "app.garden.commitment.retryLink": "Tentar vincular novamente",

@@ -19,7 +19,7 @@ function action(id: string, title: string): Action {
     id,
     slug: title.toLowerCase().replaceAll(" ", "-"),
     startTime: 0,
-    endTime: 0,
+    endTime: Date.now() + 60_000,
     title,
     description: "",
     capitals: [],
@@ -36,10 +36,14 @@ function Harness({
   kind = "GARDEN_WORK",
   busy = false,
   unitLabel = "",
+  availableActions = actions,
+  chosenActionUID,
 }: {
   kind?: CommitmentComposerValues["kind"];
   busy?: boolean;
   unitLabel?: string;
+  availableActions?: Action[];
+  chosenActionUID?: string;
 }) {
   const form = useCommitmentComposerForm({
     ...COMMITMENT_COMPOSER_DEFAULTS,
@@ -48,6 +52,7 @@ function Harness({
     unitLabel,
     targetUnits: 0,
     dueInDays: 0,
+    requirements: chosenActionUID ? [{ actionUID: chosenActionUID, requiredCount: 1 }] : [],
   });
   const requirements = useFieldArray({ control: form.control, name: "requirements" });
   const values = form.watch();
@@ -66,8 +71,9 @@ function Harness({
           return message === undefined ? undefined : seedErrorText(message, formatMessage);
         }}
         requirements={requirements}
-        actions={actions}
+        actions={availableActions}
         chainId={42161}
+        now={Date.now()}
       />
       <button
         type="button"
@@ -138,6 +144,31 @@ describe("SeedStepHowMuch", () => {
     fireEvent.click(screen.getByRole("button", { name: "Validate" }));
 
     await waitFor(() => expect(screen.getByTestId("validation-result")).toHaveTextContent("valid"));
+  });
+
+  it("does not offer an action whose inclusive Work window ended", () => {
+    renderWithProviders(
+      <Harness
+        availableActions={[action("42161-1", "Closed action")].map((entry) => ({
+          ...entry,
+          endTime: Date.now() - 1,
+        }))}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add Action" }));
+    expect(screen.queryByRole("option", { name: "Closed action" })).toBeNull();
+  });
+
+  it("keeps a chosen action visible but disabled when its window closes", () => {
+    renderWithProviders(
+      <Harness
+        chosenActionUID="1"
+        availableActions={[{ ...action("42161-1", "Closed action"), endTime: Date.now() - 1 }]}
+      />
+    );
+
+    expect(screen.getByRole("option", { name: "Closed action" })).toBeDisabled();
+    expect(screen.getByText(/Closed action has closed/)).toBeInTheDocument();
   });
 
   it("adds and removes requirement rows and switches contributor policy", async () => {

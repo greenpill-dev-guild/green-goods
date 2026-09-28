@@ -1939,6 +1939,8 @@
   "app.garden.commitment.retry": "Intentar de nuevo",
   "app.garden.commitment.empty": "Ningún compromiso elegible coincide con este jardín y esta acción.",
   "app.garden.commitment.linkScheduling": "Trabajo enviado. Añadiendo a la cola su vínculo de compromiso…",
+  "app.garden.commitment.linkSavedQueued": "Trabajo guardado en este dispositivo. Su vínculo con el compromiso está en cola.",
+  "app.garden.commitment.linkSavedQueueError": "Tu trabajo está guardado en este dispositivo, pero su vínculo con el compromiso no pudo añadirse a la cola.",
   "app.garden.commitment.linkScheduled": "Trabajo enviado. Su vínculo con el compromiso está en cola.",
   "app.garden.commitment.linkSchedulingError": "Tu trabajo se envió, pero su vínculo de compromiso no pudo añadirse a la cola.",
   "app.garden.commitment.retryLink": "Reintentar vínculo",

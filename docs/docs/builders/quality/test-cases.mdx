@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:81651ffa4d8158e0fedc4caef00e2577d4944ba08d93d5795c8afa847d1cbd4c"
+source_digest: "sha256:c933766813b0eae1f32e7a93a46d6837c2c303e77b910dca26abb5a5a62af81a"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -261,7 +261,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-ROLE-002` | Transaction | Work | Reject pending work with reason on iOS | Screen recording plus account role |
 | `PWA-ROLE-003` | Journey | Work | Insufficient-role user cannot approve or reject on iOS | Screenshot plus account role |
 
-### P1 (66) {#pwa-p1}
+### P1 (75) {#pwa-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -319,6 +319,15 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-123` | Journey | Commitments | A signed-in visitor reads a commitment and is shown how to join, not an act | Screenshot of the card |
 | `PWA-125` | Transaction | Commitments | A parked act says why it waits and can be sent or dropped from the commitment | Screenshot of the row and of the screen after Send Now |
 | `PWA-126` | Transaction | Commitments | A take-up whose confirmation is lost waits as sent, and is never dropped or sent twice | Screenshot of the row while offline and of the screen after Check Again |
+| `PWA-127` | Transaction | Work | A wallet Work prompt held open past one minute cannot be sent or discarded from another tab | Screenshots of the queued row in both tabs and the final Work state |
+| `PWA-128` | Transaction | Work | A lost Work confirmation that was approved is found without another send | Screenshots of the held row and final Work detail |
+| `PWA-129` | Transaction | Work | A lost Work send rejected after tab close reopens only after the chain-clock wait and a later look | Timestamped screenshots of the held, retryable and final states |
+| `PWA-130` | Transaction | Commitments | A lost approval decision that was sent is found without another send | Screenshots of the held row and settled commitment |
+| `PWA-131` | Transaction | Commitments | A lost approval decision rejected after tab close reopens only after the chain-clock wait and a later look | Timestamped screenshots of the held, retryable and settled states |
+| `PWA-132` | Data integrity | Account | Changing accounts on one device isolates queued Work, commitment acts and send records | Private session notes without account names or addresses |
+| `PWA-133` | Journey | Commitments | A named confirmer who did not create an untaken offer cannot withdraw it | Screenshots of the two action bars without account identifiers |
+| `PWA-134` | Resilience | Work | A locally queued linked Work is described as saved until it is sent | Screenshots of the saved message, retry message and eventual submitted state |
+| `PWA-135` | Journey | Commitments | A chosen action that expires while the composer is open stops placement | Screenshots before and after the action closes |
 | `PWA-AND-005` | Accessibility | App-wide | Keyboard and drawer layout remain usable on Android | Screenshots |
 | `PWA-AND-008` | Data integrity | Work | [Android] Gallery image survives the submission draft and replacement | Screenshot before and after reopen |
 | `PWA-IOS-005` | Data integrity | Work | [iOS] HEIC or library image survives submission draft | Screenshot before and after reopen |
@@ -398,7 +407,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-145` | Transaction | Hub · Confirm | Confirm Kept… reviews the commitment before confirming it | Screenshots of the review and of the commitment afterwards |
 | `ADM-157` | Journey | Garden · Pool | A declared G$ reward is typed and reviewed in G$ | Screenshots of the field and of the review |
 
-### P1 (86) {#admin-dashboard-p1}
+### P1 (87) {#admin-dashboard-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -488,6 +497,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-178` | Data integrity | Hub · Work | Waiting work reads as its age, and a garden reads Critical only when review has stalled | Screenshots of the Hub queue and Garden Health |
 | `ADM-179` | Transaction | Garden · Settings | Edit Garden says how many wallet confirmations a save takes and shows each one landing | Screenshots of the footer before saving and of the rows after the save |
 | `ADM-180` | Data integrity | Community · Endowment | Endowment amounts name their asset and never add different assets together | Screenshots of each amount |
+| `ADM-189` | Journey | Garden · Pool | Seed rows with closed actions stay out of the queue, including tray retries | Screenshots of the closed choice and unsent row |
 
 ### P2 (35) {#admin-dashboard-p2}
 

@@ -80,11 +80,29 @@ describe("selectCommitmentAct", () => {
 
   it("offers withdrawal to whoever made it, on either direction", () => {
     expect(
-      selectCommitmentAct({ commitment: { ...base, derivedState: "OFFERED" }, seat: "provider" })
+      selectCommitmentAct({
+        commitment: { ...base, derivedState: "OFFERED" },
+        seat: "provider",
+        isCreator: true,
+      })
     ).toMatchObject({ kind: "withdraw", destructive: true });
     expect(
-      selectCommitmentAct({ commitment: { ...base, derivedState: "REQUESTED" }, seat: "confirmer" })
+      selectCommitmentAct({
+        commitment: { ...base, derivedState: "REQUESTED" },
+        seat: "confirmer",
+        isCreator: true,
+      })
     ).toMatchObject({ kind: "withdraw", destructive: true });
+  });
+
+  it("does not offer withdrawal to a named confirmer who did not create it", () => {
+    expect(
+      selectCommitmentAct({
+        commitment: { ...base, derivedState: "OFFERED" },
+        seat: "confirmer",
+        isCreator: false,
+      })
+    ).toBeNull();
   });
 
   it("asks rather than takes when the garden reviews who takes things up", () => {

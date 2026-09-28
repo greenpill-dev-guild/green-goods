@@ -1939,6 +1939,8 @@
   "app.garden.commitment.retry": "Try Again",
   "app.garden.commitment.empty": "No eligible commitments match this garden and action.",
   "app.garden.commitment.linkScheduling": "Work submitted. Queueing its commitment link…",
+  "app.garden.commitment.linkSavedQueued": "Work saved on this device. Its commitment link is queued.",
+  "app.garden.commitment.linkSavedQueueError": "Your work is saved on this device, but its commitment link could not be queued.",
   "app.garden.commitment.linkScheduled": "Work submitted. Its commitment link is queued.",
   "app.garden.commitment.linkSchedulingError": "Your work was submitted, but its commitment link could not be queued.",
   "app.garden.commitment.retryLink": "Retry Link",

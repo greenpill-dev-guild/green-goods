@@ -8,6 +8,8 @@ import {
   COMMITMENT_TITLE_MAX_LENGTH,
   COMMITMENT_UNIT_LABEL_MAX_LENGTH,
 } from "@green-goods/shared/modules/commitment-pooling/metadata";
+import type { Action } from "@green-goods/shared/types/domain";
+import { hasActionEnded } from "@green-goods/shared/utils";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
 import { cycleName } from "../poolPresentation";
@@ -242,6 +244,42 @@ export function buildSeedCycleOptions(input: {
       }),
     },
   ];
+}
+
+/** Chosen garden actions whose inclusive Work window has already ended. */
+export function closedSeedActions(
+  values: CommitmentComposerValues,
+  actions: readonly Action[],
+  chainId: number,
+  now: number
+): Action[] {
+  if (values.kind !== "GARDEN_WORK") return [];
+  return values.requirements.flatMap(({ actionUID }) => {
+    const action = actions.find((candidate) => actionUIDOf(candidate.id, chainId) === actionUID);
+    return action && hasActionEnded(action, now) ? [action] : [];
+  });
+}
+
+/** The first closed chosen action across the current draft and parked tray. */
+export function closedSeedActionMessage(input: {
+  rows: readonly CommitmentComposerValues[];
+  actions: readonly Action[];
+  chainId: number;
+  now: number;
+  formatMessage: FormatMessage;
+}): string | null {
+  const { rows, actions, chainId, now, formatMessage } = input;
+  const closed = rows.flatMap((row) => closedSeedActions(row, actions, chainId, now))[0];
+  return closed
+    ? formatMessage(
+        {
+          id: "app.compose.blocked.closedAction",
+          defaultMessage:
+            "{action} has closed and can't take work any more. Remove it to continue.",
+        },
+        { action: closed.title }
+      )
+    : null;
 }
 
 export function actionUIDOf(actionId: string, chainId: number): string | null {

@@ -607,6 +607,7 @@ describe("useWorkSubmissionFlowController", () => {
     });
     expect(retried).toBe(true);
     expect(view.result.current.linkSchedulingSucceeded).toBe(true);
+    expect(view.result.current.linkSchedulingWorkSent).toBe(_kind !== "queued");
     expect(mocks.uploadWork).toHaveBeenCalledTimes(1);
     expect(mocks.enqueue.mock.calls[1][0].payload).toEqual(firstPayload);
     expect(firstPayload.clientWorkId).toBe("client-1");
@@ -784,5 +785,6 @@ describe("useWorkSubmissionFlowController", () => {
     expect(view.result.current.isQueueingDependentLink).toBe(false);
     expect(view.result.current.isSchedulingDependentLink).toBe(false);
     expect(view.result.current.linkSchedulingSucceeded).toBe(true);
+    expect(view.result.current.linkSchedulingWorkSent).toBe(queueing);
   });
 });

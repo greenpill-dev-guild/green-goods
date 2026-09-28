@@ -116,6 +116,88 @@ describe("PWA durable submission boundary", () => {
     expect((kept?.payload as WorkJobPayload).uploadCheckpoint?.intentChainTime).toBeUndefined();
   });
 
+  it("holds the send lock through an open wallet prompt", async () => {
+    const { command, ports } = fixture();
+    let entered!: () => void;
+    let answer!: () => void;
+    const promptOpened = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const walletAnswer = new Promise<typeof hash>((resolve) => {
+      answer = () => resolve(hash);
+    });
+    ports.direct.submitWork = vi.fn(async () => {
+      entered();
+      return walletAnswer;
+    });
+    const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+    let held = false;
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: {
+        locks: {
+          request: async (
+            _name: string,
+            _options: unknown,
+            callback: (lock: object) => Promise<unknown>
+          ) => {
+            held = true;
+            try {
+              return await callback({ name: _name });
+            } finally {
+              held = false;
+            }
+          },
+        },
+      },
+    });
+    try {
+      const submission = submitWork(command, ports);
+      await promptOpened;
+      expect(held).toBe(true);
+      answer();
+      await expect(submission).resolves.toMatchObject({ kind: "direct" });
+      expect(held).toBe(false);
+    } finally {
+      answer();
+      if (originalNavigator) Object.defineProperty(globalThis, "navigator", originalNavigator);
+      else Reflect.deleteProperty(globalThis, "navigator");
+    }
+  });
+
+  it("renews the durable claim while a wallet prompt remains open past its lifetime", async () => {
+    const { command, ports } = fixture();
+    let entered!: () => void;
+    let answer!: () => void;
+    const promptOpened = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const walletAnswer = new Promise<typeof hash>((resolve) => {
+      answer = () => resolve(hash);
+    });
+    ports.direct.submitWork = vi.fn(async () => {
+      entered();
+      return walletAnswer;
+    });
+    vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+    try {
+      const submission = submitWork(command, ports);
+      await promptOpened;
+      const jobs = await jobQueueDB.getJobs({ userAddress: command.userAddress! });
+      const job = jobs.find(
+        (row) => (row.payload as WorkJobPayload).clientWorkId === command.clientWorkId
+      )!;
+      await vi.advanceTimersByTimeAsync(61_000);
+      // A second tab must still be unable to claim this Work after the original 60-second lease.
+      expect(await jobQueueDB.acquireExecutionClaim([job.id], "second-tab")).toBe(false);
+      answer();
+      await expect(submission).resolves.toMatchObject({ kind: "direct" });
+    } finally {
+      answer();
+      vi.useRealTimers();
+    }
+  });
+
   it("sends a wallet work's photo as the JPEG it converts to, not the HEIC it was picked as", async () => {
     const { command, ports, send } = fixture();
     const picked = new File(["heic-bytes"], "garden.heic", { type: "image/heic" });

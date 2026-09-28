@@ -56,7 +56,9 @@ describe("one act table for every surface", () => {
     // The bar offers everything available; the badge counts only what somebody
     // else is held up by. Withdrawing your own untaken offer is neither.
     const offered = { ...base, derivedState: "OFFERED" as CommitmentDerivedState };
-    expect(selectCommitmentActKind({ commitment: offered, seat: "provider" })).toBe("withdraw");
+    expect(
+      selectCommitmentActKind({ commitment: offered, seat: "provider", isCreator: true })
+    ).toBe("withdraw");
     expect(commitmentNeedsSeat({ commitment: offered, seat: "provider" })).toBe(false);
 
     const expired = { ...base, derivedState: "EXPIRED" as CommitmentDerivedState };
@@ -84,6 +86,23 @@ describe("one act table for every surface", () => {
     }
   });
 
+  it("does not offer withdrawal to a named confirmer who did not create an untaken offer", () => {
+    const offered = { ...base, derivedState: "OFFERED" as CommitmentDerivedState };
+    expect(
+      selectCommitmentActKind({ commitment: offered, seat: "confirmer", isMember: false })
+    ).toBeNull();
+    expect(
+      selectCommitmentActKind({ commitment: offered, seat: "provider", isCreator: true })
+    ).toBe("withdraw");
+    expect(
+      selectCommitmentActKind({
+        commitment: { ...offered, derivedState: "REQUESTED" },
+        seat: "confirmer",
+        isCreator: true,
+      })
+    ).toBe("withdraw");
+  });
+
   it("offers taking up only to a member of the garden, once membership is known", () => {
     // The chain gates a personal claim on a garden role, so a visitor's tap
     // could only park in the queue. Not read yet offers nothing, like no.
@@ -109,7 +128,12 @@ describe("one act table for every surface", () => {
     }
     // Whoever made it takes it back whether or not the roster has caught up.
     expect(
-      selectCommitmentActKind({ commitment: offered, seat: "provider", isMember: false })
+      selectCommitmentActKind({
+        commitment: offered,
+        seat: "provider",
+        isMember: false,
+        isCreator: true,
+      })
     ).toBe("withdraw");
   });
 });

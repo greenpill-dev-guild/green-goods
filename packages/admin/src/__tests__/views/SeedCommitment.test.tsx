@@ -39,6 +39,7 @@ const mocks = vi.hoisted(() => ({
   room: null as number | null,
   /** Whether the external reward token answers decimals(); it reads as six-decimal USDC. */
   rewardTokenReadable: true,
+  actions: [{ id: "42161-44", title: "Prune trees", startTime: 0, endTime: Date.now() + 60_000 }],
 }));
 
 // The reward token is read on chain; here it answers as a six-decimal token,
@@ -79,7 +80,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", () =
 
 vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useActions: (() => ({
-    data: [{ id: "42161-44", title: "Prune trees" }],
+    data: mocks.actions,
   })) as unknown as ActionsModule["useActions"],
   // The wizard names the pool it seeds into from the gardens list.
   useGardens: (() => ({
@@ -367,6 +368,9 @@ describe("SeedCommitmentDialog (W8)", () => {
     mocks.again = null;
     mocks.room = null;
     mocks.rewardTokenReadable = true;
+    mocks.actions = [
+      { id: "42161-44", title: "Prune trees", startTime: 0, endTime: Date.now() + 60_000 },
+    ];
     mocks.console = consoleFor();
     mocks.enqueue.mockResolvedValue("job-1");
   });
@@ -402,6 +406,26 @@ describe("SeedCommitmentDialog (W8)", () => {
     );
     // The season is this pool's own, never the earlier commitment's.
     expect((within(dialog()).getByLabelText(/^cycle/i) as HTMLSelectElement).value).toBe("12");
+  });
+
+  it("keeps an expired garden-work row out of the queue after it was reviewed", async () => {
+    renderSeed();
+    fireEvent.click(within(dialog()).getByRole("radio", { name: /garden work/i }));
+    fillWhat("Prune the trees");
+    next();
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^target/i)).toBeInTheDocument());
+    fireEvent.change(within(dialog()).getByLabelText(/^target/i), { target: { value: "2" } });
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Add Action" }));
+    fireEvent.change(within(dialog()).getByLabelText("Action"), { target: { value: "44" } });
+    next();
+    await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
+    next();
+    await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
+    mocks.actions[0].endTime = Date.now() - 1;
+    fireEvent.click(within(dialog()).getByRole("button", { name: /seed this commitment/i }));
+    await waitFor(() => expect(screen.getByTestId("seed-done")).toBeInTheDocument());
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+    expect(screen.getByTestId("seed-done")).toHaveTextContent(/not sent/i);
   });
 
   it("queues a season commitment with the steward's extras in the payload", async () => {
