@@ -383,3 +383,30 @@ Proof:
 | GREEN | `select-validation.test.mjs`, `ci-local.test.mjs`, `package-commands.test.mjs` | 151/151; five exact-list push tests now include the routed checks |
 | Selected | `validation-system-test` | 331/332; the pre-existing parity failure only |
 | Selected | `test-quality`, `docs-authority`, `docs-build`, `agent-guidance`, `docs-generated --check` | all exit 0 |
+
+## Slice 5 — DetailsGate at one worker (D5)
+
+The table refactor D5 approved had already landed: `ee5c8a147` (September 27, "keep each work
+template within its own test timeout") turned the 23-template loop into `it.each`. It kept the same
+assertions, added a count case, and left the 10 s timeout alone. This slice verified it and found
+why the earlier one- and two-worker diagnosis misled.
+
+Finding: `--maxWorkers N` never took effect. The Shared, Client and Admin Vitest configs compute
+`maxWorkers`, and with projects that value wins over the CLI flag. On the Client views directory
+(59 files), `--maxWorkers 1` and `--maxWorkers 4` both ran at full width (15 s wall, about 130 s of
+worker time). `VITEST_MAX_WORKERS=1` ran at one worker (56 s wall, about 55 s of worker time), because
+Vitest applies the variable after the config. So the hub's September 27 "times out at one and two
+workers" runs were full-width runs on a loaded machine. `package-commands.mjs` now passes an
+explicit `--maxWorkers` to Vitest as `VITEST_MAX_WORKERS`, which also keeps the lease from
+overriding it. No other caller passed the flag.
+
+Proof:
+
+| Step | Command | Result |
+|---|---|---|
+| RED | `node scripts/dev/node-cli.js node --test --test-name-pattern "explicit worker count\|keeps an explicit worker choice" scripts/dev/package-commands.test.mjs` | 0/2 (flag forwarded, no variable) |
+| GREEN | `node scripts/dev/node-cli.js node --test scripts/dev/package-commands.test.mjs` | 26/26 |
+| Before the fix | `bun run --cwd packages/client test --maxWorkers 1` | exit 0 in 27 s wall with about 220 s of worker time, so not one worker |
+| Outcome 8 | `bun run --cwd packages/client test --maxWorkers 1` (quiet, 02:50) | **exit 0**: 144 files, 1,481 tests, 104 s wall, about 100 s of worker time; each `DetailsGate` template 5–65 ms |
+| Selected | `validation-system-test` | 332/333; the pre-existing parity failure only |
+| Docs | `node scripts/docs/generate.mjs` | `commands.mdx` digest restaled by the `package-commands.mjs` edit; regenerated |

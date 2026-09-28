@@ -192,10 +192,15 @@ export function resolvePackageCommand(pkg, action, args = []) {
       if (values.coverage && pkg === "agent" && scope !== "unit") throw new Error("Agent coverage requires --scope unit");
       if (pkg === "agent" && (values.watch || values.ui) && scope !== "unit") throw new Error("Agent watch/UI requires --scope unit");
       if (scope === "live" && (paths.length || values.watch || values.ui || values.coverage)) throw new Error("Live scope selects its two RPC tests and supports run mode only");
-      const flags = Object.keys(TEST_OPTIONS).filter((name) => ![...Object.keys(COMMON), "scope", "suite", "coverage", "watch", "ui", "grep"].includes(name))
+      // Vitest lets VITEST_MAX_WORKERS override a config's maxWorkers, but a --maxWorkers flag loses
+      // to the value these package configs compute, so an explicit worker count travels in the env.
+      const flags = Object.keys(TEST_OPTIONS).filter((name) => ![...Object.keys(COMMON), "scope", "suite", "coverage", "watch", "ui", "grep", "maxWorkers"].includes(name))
         .flatMap((name) => values[name] === undefined ? [] : (Array.isArray(values[name]) ? values[name] : [values[name]]).flatMap((value) => [`--${name}`, value]));
       const selected = values.suite ? ADMIN_HUB_TESTS : scope === "live" ? SHARED_LIVE_TESTS : paths;
-      const env = pkg === "shared" ? (scope === "live" ? { RUN_LIVE_RPC_TESTS: "true" } : {}) : { APP_ENV: "test" };
+      const env = {
+        ...(pkg === "shared" ? (scope === "live" ? { RUN_LIVE_RPC_TESTS: "true" } : {}) : { APP_ENV: "test" }),
+        ...(values.maxWorkers === undefined ? {} : { VITEST_MAX_WORKERS: values.maxWorkers }),
+      };
       if (pkg === "agent") {
         const sqlitePaths = paths.filter((path) => path.includes("storage.sqlite.test"));
         const unitPaths = paths.filter((path) => !path.includes("storage.sqlite.test"));
@@ -207,7 +212,7 @@ export function resolvePackageCommand(pkg, action, args = []) {
             node(["vitest", ...(values.watch ? [] : values.ui ? ["--ui"] : ["run"]), ...unitPaths, ...flags], env);
           }
           if (scope !== "unit" && (paths.length === 0 || sqlitePaths.length > 0)) {
-            if (flags.length || values.watch || values.ui) throw new Error("SQLite selection does not accept Vitest options; choose --scope unit for those options");
+            if (flags.length || values.maxWorkers || values.watch || values.ui) throw new Error("SQLite selection does not accept Vitest options; choose --scope unit for those options");
             add("bun", ["--bun", "run", "vitest", "run"], { ...env, AGENT_SQLITE_INTEGRATION: "true" });
           }
         }

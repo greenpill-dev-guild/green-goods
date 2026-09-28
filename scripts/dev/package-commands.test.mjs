@@ -297,7 +297,7 @@ test("a leased run holds the slot for every step, gives Vitest the machine share
 
 test("a leased run keeps an explicit worker choice", async (t) => {
   const { directory } = leaseFixture(t);
-  for (const [args, environment, expected] of [[[], { VITEST_MAX_WORKERS: "3" }, "3"], [["--maxWorkers", "2"], {}, undefined]]) {
+  for (const [args, environment, expected] of [[[], { VITEST_MAX_WORKERS: "3" }, "3"], [["--maxWorkers", "2"], {}, "2"]]) {
     const calls = [];
     await executePackageCommand(resolve("shared", "test", args), { signals: new EventEmitter(), environment, leaseDirectory: directory, resources: machine, report: () => {}, spawnImpl: recordingSpawn(calls) });
     assert.equal(calls[0].options.env.VITEST_MAX_WORKERS, expected, JSON.stringify(args));
@@ -396,4 +396,14 @@ test("Turbo passes lease overrides, the local-gate marker and an explicit worker
   for (const variable of ["GREEN_GOODS_TEST_LEASE_SLOTS", "GREEN_GOODS_TEST_LEASE_TIMEOUT_SECONDS", "GREEN_GOODS_LOCAL_GATE", "VITEST_MAX_WORKERS"]) {
     assert.ok(passThrough.some((entry) => entry === variable || (entry.endsWith("*") && variable.startsWith(entry.slice(0, -1)))), variable);
   }
+});
+
+test("an explicit worker count reaches Vitest through VITEST_MAX_WORKERS, which project configs cannot override", () => {
+  for (const pkg of ["shared", "client", "admin"]) {
+    const step = resolve(pkg, "test", ["--maxWorkers", "1"]).steps[0];
+    assert.equal(step.env.VITEST_MAX_WORKERS, "1", pkg);
+    assert.equal(step.args.includes("--maxWorkers"), false, pkg);
+  }
+  assert.equal(resolve("agent", "test", ["--scope", "unit", "--maxWorkers", "2"]).steps[0].env.VITEST_MAX_WORKERS, "2");
+  assert.throws(() => resolve("agent", "test", ["--scope", "sqlite", "--maxWorkers", "2"]));
 });
