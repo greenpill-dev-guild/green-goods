@@ -1,16 +1,31 @@
 /** @vitest-environment node */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PreparationResult } from "../../../modules/work/prepare-queued-work";
-import {
-  createUploadPreparation,
-  setActiveUploadPreparation,
-  suspendUploadPreparation,
-  uploadPreparationStore,
-  type UploadPreparation,
-  type UploadPreparationPorts,
+import type {
+  UploadPreparation,
+  UploadPreparationPorts,
 } from "../../../modules/work/upload-preparation";
 import type { Job } from "../../../types/job-queue";
 import { queuedWorkJob } from "../../test-utils/queued-jobs";
+
+type UploadPreparationModule = typeof import("../../../modules/work/upload-preparation");
+
+// The module keeps one snapshot for the page, including the Data Saver override that lasts the
+// session once someone asks, and the active preparation and open holds beside it. Each test loads a
+// fresh copy, so none inherits what an earlier one set.
+let createUploadPreparation: UploadPreparationModule["createUploadPreparation"];
+let setActiveUploadPreparation: UploadPreparationModule["setActiveUploadPreparation"];
+let suspendUploadPreparation: UploadPreparationModule["suspendUploadPreparation"];
+let uploadPreparationStore: UploadPreparationModule["uploadPreparationStore"];
+beforeEach(async () => {
+  vi.resetModules();
+  ({
+    createUploadPreparation,
+    setActiveUploadPreparation,
+    suspendUploadPreparation,
+    uploadPreparationStore,
+  } = await import("../../../modules/work/upload-preparation"));
+});
 
 const queued = (id: string, meta: Job["meta"] = {}): Job => queuedWorkJob({ id, meta });
 

@@ -9,6 +9,7 @@
 import { type QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import { WorkTab } from "../../../stores/workFlowTypes";
 import type { WorkDraftRecord } from "../../../types/job-queue";
 import { createMockFile, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
@@ -90,6 +91,9 @@ describe("useDrafts", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // The active draft lives in the work-flow store, a module singleton: start each test without
+    // the draft an earlier test made active.
+    useWorkFlowStore.getState().reset();
     queryClient = createTestQueryClient();
     mockUserAddress = MOCK_ADDRESSES.user;
 
@@ -547,8 +551,6 @@ describe("useDrafts", () => {
     });
   });
 });
-
-import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 
 it("deleting active work clears its evidence and invalidates saves", async () => {
   mockDraftDB.getDraftsForUser.mockResolvedValue([]);

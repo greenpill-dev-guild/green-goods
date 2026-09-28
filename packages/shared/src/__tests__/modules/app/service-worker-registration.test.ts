@@ -3,14 +3,30 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  createServiceWorkerRegistrationConfig,
-  isLegacyServiceWorkerRegistration,
-  registerServiceWorkerFromEnv,
-  schedulePwaTailPreparation,
-} from "../../../modules/app/service-worker-registration";
-import { serviceWorkerManager } from "../../../modules/app/service-worker";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+type Registration = typeof import("../../../modules/app/service-worker-registration");
+type ServiceWorkerModule = typeof import("../../../modules/app/service-worker");
+
+// The module remembers tier requests, its listeners and whether the legacy cleanup ran, for the
+// life of the page. Each test loads fresh copies, so none depends on which tests ran before it, and
+// every fake container is an EventTarget, as a real ServiceWorkerContainer is.
+let createServiceWorkerRegistrationConfig: Registration["createServiceWorkerRegistrationConfig"];
+let isLegacyServiceWorkerRegistration: Registration["isLegacyServiceWorkerRegistration"];
+let registerServiceWorkerFromEnv: Registration["registerServiceWorkerFromEnv"];
+let schedulePwaTailPreparation: Registration["schedulePwaTailPreparation"];
+let serviceWorkerManager: ServiceWorkerModule["serviceWorkerManager"];
+
+beforeEach(async () => {
+  vi.resetModules();
+  ({
+    createServiceWorkerRegistrationConfig,
+    isLegacyServiceWorkerRegistration,
+    registerServiceWorkerFromEnv,
+    schedulePwaTailPreparation,
+  } = await import("../../../modules/app/service-worker-registration"));
+  ({ serviceWorkerManager } = await import("../../../modules/app/service-worker"));
+});
 
 const originalServiceWorker = Object.getOwnPropertyDescriptor(navigator, "serviceWorker");
 const originalConnection = Object.getOwnPropertyDescriptor(navigator, "connection");
@@ -289,10 +305,10 @@ describe("service worker registration config", () => {
     const register = vi.fn().mockResolvedValue(registration);
     Object.defineProperty(navigator, "serviceWorker", {
       configurable: true,
-      value: {
+      value: Object.assign(new EventTarget(), {
         register,
         ready: Promise.resolve(registration),
-      },
+      }),
     });
     vi.spyOn(serviceWorkerManager, "canRegister").mockReturnValue(true);
     vi.spyOn(serviceWorkerManager, "attachRegistration").mockImplementation(() => undefined);
@@ -336,11 +352,11 @@ describe("service worker registration config", () => {
     const register = vi.fn().mockResolvedValue(registration);
     Object.defineProperty(navigator, "serviceWorker", {
       configurable: true,
-      value: {
+      value: Object.assign(new EventTarget(), {
         register,
         getRegistrations: vi.fn().mockResolvedValue([legacyRegistration]),
         ready: Promise.resolve(registration),
-      },
+      }),
     });
     vi.spyOn(serviceWorkerManager, "canRegister").mockReturnValue(true);
     vi.spyOn(serviceWorkerManager, "attachRegistration").mockImplementation(() => undefined);
@@ -372,11 +388,11 @@ describe("service worker registration config", () => {
     const register = vi.fn().mockResolvedValue(currentRegistration);
     Object.defineProperty(navigator, "serviceWorker", {
       configurable: true,
-      value: {
+      value: Object.assign(new EventTarget(), {
         register,
         getRegistrations,
         ready: Promise.resolve(currentRegistration),
-      },
+      }),
     });
     vi.spyOn(serviceWorkerManager, "canRegister").mockReturnValue(true);
     vi.spyOn(serviceWorkerManager, "attachRegistration").mockImplementation(() => undefined);
