@@ -40,6 +40,7 @@ export function ENSProgressTimeline({
     if (!data.ccipMessageId) return;
     const copiedOk = await copyToClipboard(data.ccipMessageId);
     if (!copiedOk) {
+      setCopied(false);
       toastService.error({
         title: intl.formatMessage({ id: "app.toast.copyFailed", defaultMessage: "Copy failed" }),
       });

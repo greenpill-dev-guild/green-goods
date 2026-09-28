@@ -12,6 +12,11 @@ const resetTimer = vi.hoisted(() => vi.fn());
 
 vi.mock("../../utils/app/clipboard", () => ({ copyToClipboard: vi.fn() }));
 vi.mock("../../components/toast", () => ({ toastService: { error: vi.fn() } }));
+vi.mock("@remixicon/react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@remixicon/react")>()),
+  RiCheckLine: () => <span data-testid="copied-icon" />,
+  RiFileCopyLine: () => <span data-testid="copy-icon" />,
+}));
 vi.mock("../../hooks/utils/useTimeout", () => ({
   useTimeout: () => ({ set: resetTimer }),
 }));
@@ -48,5 +53,21 @@ describe("ENSProgressTimeline", () => {
 
     await waitFor(() => expect(resetTimer).toHaveBeenCalledWith(expect.any(Function), 2000));
     expect(toastService.error).not.toHaveBeenCalled();
+  });
+
+  it("clears the copied icon when a retry fails", async () => {
+    vi.mocked(copyToClipboard).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    renderTimeline();
+    const user = userEvent.setup();
+    const button = screen.getByRole("button", { name: "Copy CCIP message ID" });
+
+    await user.click(button);
+    expect(await screen.findByTestId("copied-icon")).toBeInTheDocument();
+    await user.click(button);
+
+    await waitFor(() => expect(toastService.error).toHaveBeenCalledWith({ title: "Copy failed" }));
+    expect(screen.queryByTestId("copied-icon")).not.toBeInTheDocument();
+    expect(screen.getByTestId("copy-icon")).toBeInTheDocument();
+    expect(resetTimer).toHaveBeenCalledTimes(1);
   });
 });

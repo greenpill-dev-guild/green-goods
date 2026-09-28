@@ -41,6 +41,7 @@ export function AddressCopy({
   const handleCopy = async () => {
     const copiedOk = await copyToClipboard(address);
     if (!copiedOk) {
+      setCopied(false);
       toastService.error({
         title: intl.formatMessage({ id: "app.toast.copyFailed", defaultMessage: "Copy failed" }),
       });

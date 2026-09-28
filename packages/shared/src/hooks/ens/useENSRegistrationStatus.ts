@@ -122,10 +122,12 @@ export function useENSRegistrationStatus(slug: string | undefined) {
               previousData?.status === "available" &&
               (l2Owner !== zeroAddress ||
                 (registration.owner !== zeroAddress &&
-                  registration.owner.toLowerCase() !== release.owner.toLowerCase()))
+                  (registration.owner.toLowerCase() !== release.owner.toLowerCase() ||
+                    (submittedAt !== undefined &&
+                      registration.registeredAt > BigInt(Math.floor(submittedAt / 1000))))))
             ) {
-              // A completed release must not mask a later reservation made on
-              // another device or by the next owner of this slug.
+              // A completed release must not mask a later reservation or a
+              // receiver-only recovery for the same owner.
               release = undefined;
               submittedAt = undefined;
               ccipMessageId = undefined;
@@ -133,10 +135,17 @@ export function useENSRegistrationStatus(slug: string | undefined) {
             if (release) {
               const owner = release.owner.toLowerCase();
               // A receiver-only name normally indicates a migrated record. An
-              // explicit outgoing release instead waits for both chains to clear.
+              // explicit outgoing release waits for both chains and the ENS
+              // forward record to clear. Receiver cleanup can succeed even
+              // when its separate ENS record cleanup fails.
+              const chainsCleared =
+                l2Owner.toLowerCase() !== owner && registration.owner.toLowerCase() !== owner;
+              const shouldCheckForward = previousData?.status === "available" || chainsCleared;
+              const forwardOwner = shouldCheckForward
+                ? await l1Client.getEnsAddress({ name: `${slug}.greengoods.eth` })
+                : null;
               const completed =
-                previousData?.status === "available" ||
-                (l2Owner.toLowerCase() !== owner && registration.owner.toLowerCase() !== owner);
+                shouldCheckForward && (!forwardOwner || forwardOwner.toLowerCase() !== owner);
               const delayed = submittedAt !== undefined && Date.now() - submittedAt > TIMEOUT_MS;
               return {
                 status: completed ? "available" : delayed ? "timed_out" : "pending",

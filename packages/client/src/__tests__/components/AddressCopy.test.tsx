@@ -70,6 +70,21 @@ describe("AddressCopy", () => {
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 
+  it("clears copied feedback when a later copy fails", async () => {
+    mocks.copy.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    renderWithProviders(<AddressCopy address={ADDRESS} />);
+    const button = screen.getByRole("button", { name: /copy/i });
+
+    fireEvent.click(button);
+    await screen.findByText("Copied");
+    fireEvent.click(button);
+
+    await waitFor(() => expect(mocks.error).toHaveBeenCalled());
+    expect(screen.getByText("Copy")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(mocks.success).toHaveBeenCalledTimes(1);
+  });
+
   it("renders nothing without an address", () => {
     const { container } = renderWithProviders(<AddressCopy />);
     expect(container).toBeEmptyDOMElement();
