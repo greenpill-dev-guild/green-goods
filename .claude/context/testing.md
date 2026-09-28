@@ -64,8 +64,9 @@ Three habits keep the suite from spreading into small files:
 
 - Add cases to the file that already covers the subject. Open a new test file only for a new
   subject or a different environment, and give it at least four cases or a
-  `// TEST-QUALITY: allow-small-test-file - <reason>` comment saying why. `test-quality` fails a
-  new file below four cases without one.
+  `// TEST-QUALITY: allow-small-test-file - <reason>` comment saying why, in words on the same
+  line. `test-quality` fails a new file below four cases without one, and treats an empty reason, a
+  template or a TODO as none.
 - When a change adds more test lines than source lines, say so in one line of the pull request body
   or commit message, with the reason.
 - Run the focused file while you work (`bun run test <path>` in the package). Package-wide runs take

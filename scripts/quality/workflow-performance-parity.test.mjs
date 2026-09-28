@@ -738,6 +738,27 @@ test("test quality fails a new small test file unless it gives a reason", () => 
     { file: "packages/shared/src/__tests__/tiny.test.ts", cases: 2 },
   ]);
   assert.equal(hasSmallTestFileAllowance("// TEST-QUALITY: allow-small-test-file - "), false);
+  // The reason is the rest of the marker's own comment line, in words; code on the next line, a
+  // template, a lone word or a marker inside a string gives none.
+  for (const source of [
+    '// TEST-QUALITY: allow-small-test-file -\nit("one", f);',
+    '// TEST-QUALITY: allow-small-test-file - \nit("one", f);',
+    "// TEST-QUALITY: allow-small-test-file - <reason>",
+    "// TEST-QUALITY: allow-small-test-file - <why it cannot join its subject>",
+    "// TEST-QUALITY: allow-small-test-file - TODO",
+    "// TEST-QUALITY: allow-small-test-file - TODO explain later",
+    "// TEST-QUALITY: allow-small-test-file - reason",
+    'const note = "TEST-QUALITY: allow-small-test-file - the reason lives in a string";',
+  ]) {
+    assert.equal(hasSmallTestFileAllowance(source), false, source);
+  }
+  for (const source of [
+    "/* TEST-QUALITY: allow-small-test-file - the subject needs the jsdom File constructor */",
+    "/**\n * TEST-QUALITY: allow-small-test-file - runs in its own worker environment\n */",
+    "  // TEST-QUALITY: allow-small-test-file - one table row per supported locale",
+  ]) {
+    assert.equal(hasSmallTestFileAllowance(source), true, source);
+  }
 });
 
 test("test quality flags Shared test files that leak through the shared graph or run twice", () => {

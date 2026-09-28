@@ -12,7 +12,13 @@ import { blankNonCode } from "./shared-mutation-surface.mjs";
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), "../..");
 const testPath = /\.test\.[cm]?[jt]sx?$/;
-const allowance = /TEST-QUALITY:\s*allow-small-test-file\s+-\s+\S/;
+// The marker opens a comment line, and its reason is the rest of that line.
+const ALLOWANCE =
+  /^[ \t]*(?:\/\/+|\/\*+|\*)[ \t]*TEST-QUALITY:[ \t]*allow-small-test-file[ \t]+-[ \t]+(.*?)[ \t]*(?:\*\/)?[ \t]*$/gm;
+// A reason says why in words: a template such as <reason>, a lone word, or a TODO is not one.
+const TEMPLATE_REASON = /^<[^>]*>$/;
+const DEFERRED_REASON = /^(?:todo|tbd|fixme)\b/i;
+const TWO_WORDS = /[A-Za-z]{2,}[^A-Za-z]+[A-Za-z]{2,}/;
 export const MINIMUM_NEW_FILE_CASES = 4;
 
 // `it(`/`test(` with modifiers, but not a method such as `pattern.test(`.
@@ -70,7 +76,10 @@ export function countTestCases(source) {
 }
 
 export function hasSmallTestFileAllowance(source) {
-  return allowance.test(source);
+  return [...source.matchAll(ALLOWANCE)].some(([, reason]) => {
+    const text = reason.trim();
+    return !TEMPLATE_REASON.test(text) && !DEFERRED_REASON.test(text) && TWO_WORDS.test(text);
+  });
 }
 
 /** The new test files among `files` that declare too few cases and give no reason. */
