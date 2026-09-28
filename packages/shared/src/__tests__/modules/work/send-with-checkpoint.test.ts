@@ -7,6 +7,7 @@ import {
 import { sendWithCheckpoint } from "../../../modules/work/send-with-checkpoint";
 import {
   forgetWorkBroadcast,
+  retainedTransactionReplaced,
   retainedWorkBroadcastReference,
 } from "../../../modules/work/work-confirmation";
 import type { SendCheckpoint } from "../../../types/job-queue";
@@ -93,6 +94,97 @@ describe("sending one call while recording how far it got", () => {
     });
   });
 
+  it("reads the chain's head just before the intent, after any prompt, and keeps it on every record", async () => {
+    const { record, history } = recorder();
+    const steps: string[] = [];
+    const sender = createMockTransactionSender();
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      // A passkey signs before its intent: a prompt left open must not age the head.
+      steps.push("signed");
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: OPERATION });
+      await options?.onBroadcastReference?.({ kind: "user-operation", hash: OPERATION });
+      await options?.onBroadcast?.(TX);
+      return { hash: TX, sponsored: true };
+    });
+    // Nothing this send does can land before that head, so a lost send is timed from it.
+    const head = { intentBlock: 100n, intentChainTime: 1_234 };
+    const readChainHead = vi.fn(async () => {
+      steps.push("head read");
+      return { number: 100n, timestamp: 1_234 };
+    });
+
+    await sendWithCheckpoint({
+      sender,
+      call: createMockContractCall(),
+      jobIds: JOBS,
+      record: record as never,
+      now: () => AT,
+      readChainHead,
+    });
+
+    expect(steps).toEqual(["signed", "head read"]);
+    expect(readChainHead).toHaveBeenCalledOnce();
+    expect(history).toEqual([
+      {
+        broadcastPending: true,
+        broadcastPendingAt: "2026-09-18T10:00:00.000Z",
+        broadcast: { kind: "user-operation", hash: OPERATION },
+        ...head,
+      },
+      expect.objectContaining(head),
+      expect.objectContaining({ transactionHash: TX, ...head }),
+    ]);
+  });
+
+  it("keeps the head read before the send on a hash a sender only returns", async () => {
+    // An older or custom sender reports nothing before it returns, so nothing
+    // marks the point before it went out: a head read once it returned could
+    // follow its own block, so the head read before the send is kept.
+    const { record, current } = recorder();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockResolvedValue({ hash: TX, sponsored: false });
+    const readChainHead = vi.fn(async () => ({ number: 105n, timestamp: 1_300 }));
+    const head = { intentBlock: 100n, intentChainTime: 1_234 };
+
+    await sendWithCheckpoint({
+      sender,
+      call: createMockContractCall(),
+      jobIds: JOBS,
+      record: record as never,
+      now: () => AT,
+      readChainHead,
+      headBeforeSend: head,
+    });
+
+    expect(current()).toMatchObject({ transactionHash: TX, ...head });
+    expect(readChainHead).not.toHaveBeenCalled();
+  });
+
+  it("clears the intent when the estimate reverts after it, since nothing was signed", async () => {
+    // The chain moved between the preflight and the wallet's own estimate.
+    const refusals = [
+      Object.assign(new Error("Execution reverted for an unknown reason."), {
+        name: "EstimateGasExecutionError",
+      }),
+      Object.assign(new Error("request failed"), {
+        cause: Object.assign(new Error("execution reverted"), { code: 3 }),
+      }),
+    ];
+    for (const refusal of refusals) {
+      const { record, current } = recorder();
+      const sender = createMockTransactionSender({ authMode: "wallet" });
+      vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+        await options?.onBeforeBroadcast?.();
+        throw refusal;
+      });
+      await expect(send(sender, record as never)).resolves.toMatchObject({
+        status: "not-sent",
+        cancelled: false,
+      });
+      expect(current()).toBeUndefined();
+    }
+  });
+
   it("clears a cancelled wallet transaction checkpoint so a deliberate retry is safe", async () => {
     const { record, current } = recorder();
     const sender = createMockTransactionSender({ authMode: "wallet" });
@@ -119,7 +211,28 @@ describe("sending one call while recording how far it got", () => {
       throw new TransactionReplacementError("replaced");
     });
     await expect(send(sender, record as never)).resolves.toMatchObject({ status: "may-have-sent" });
-    expect(current()).toMatchObject({ broadcast: { kind: "transaction", hash: TX } });
+    // The record says so: this transaction can never be included, whatever took its place.
+    expect(current()).toMatchObject({
+      broadcast: { kind: "transaction", hash: TX },
+      transactionReplaced: true,
+    });
+  });
+
+  it("keeps the replaced mark in memory when storage refuses it", async () => {
+    const { record: write } = recorder();
+    // Storage takes the intent and the transaction, then refuses the mark.
+    const record = vi.fn(async (next: Parameters<typeof write>[0]) => {
+      if (write.mock.calls.length >= 2) throw new Error("storage unavailable");
+      await write(next);
+    });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcastReference?.({ kind: "transaction", hash: TX });
+      throw new TransactionReplacementError("replaced");
+    });
+    await expect(send(sender, record as never)).resolves.toMatchObject({ status: "may-have-sent" });
+    for (const id of JOBS) expect(retainedTransactionReplaced(id)).toBe(true);
   });
 
   it("records the hash a sender only returns", async () => {

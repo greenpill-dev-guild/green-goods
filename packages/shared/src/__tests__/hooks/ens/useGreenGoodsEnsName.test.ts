@@ -6,7 +6,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -66,6 +66,7 @@ function createWrapper() {
 describe("useGreenGoodsEnsName", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockReadContract.mockReset();
   });
 
   it("returns the protocol subdomain when ownerToSlug exists", async () => {
@@ -131,5 +132,34 @@ describe("useGreenGoodsEnsName", () => {
         queryClient.getQueryData(queryKeys.ens.protocolName(VALID_ADDRESS.toLowerCase()))
       ).toBe("river.greengoods.eth");
     });
+  });
+
+  it("retains a receiver-only name when refreshing fails, then recovers", async () => {
+    const { queryClient, wrapper } = createWrapper();
+    queryClient.setQueryData(
+      queryKeys.ens.protocolName(VALID_ADDRESS.toLowerCase()),
+      "river.greengoods.eth"
+    );
+    let unavailable = true;
+    mockReadContract.mockImplementation(async ({ address, functionName }) => {
+      if (functionName === "l1Receiver") return L1_RECEIVER_ADDRESS;
+      if (address === ENS_ADDRESS) return "";
+      if (unavailable) throw new Error("RPC unavailable");
+      return "river";
+    });
+    const { result } = renderHook(() => useGreenGoodsEnsName(VALID_ADDRESS), { wrapper });
+    expect(result.current.isError).toBe(false);
+    expect(result.current.data).toBe("river.greengoods.eth");
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.data).toBe("river.greengoods.eth");
+    unavailable = false;
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.isError).toBe(false));
+    expect(result.current.data).toBe("river.greengoods.eth");
   });
 });

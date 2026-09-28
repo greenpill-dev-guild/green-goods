@@ -227,6 +227,16 @@ function StrictShareWrapper({ children }: { children: ReactNode }) {
   );
 }
 
+const commitmentLinkIntent = {
+  commitmentId: 9n,
+  requirementIndex: 0,
+  actionUID: 1,
+  garden: "0x1111111111111111111111111111111111111111" as const,
+  commitmentTitle: "Trees",
+  requirementLabel: "1",
+  returnTo: "/home/0x1111111111111111111111111111111111111111/commitments/9",
+};
+
 let navigateShareRoute: ((path: string) => void) | null = null;
 let exitPath = "";
 
@@ -564,15 +574,7 @@ describe("useWorkSubmissionFlowController", () => {
       },
     ],
   ] as const)("recovers a failed %s dependent link without resubmitting Work", async (_kind, outcome) => {
-    const intent = {
-      commitmentId: 9n,
-      requirementIndex: 0,
-      actionUID: 1,
-      garden: "0x1111111111111111111111111111111111111111" as const,
-      commitmentTitle: "Trees",
-      requirementLabel: "1",
-      returnTo: "/home/0x1111111111111111111111111111111111111111/commitments/9",
-    };
+    const intent = commitmentLinkIntent;
     mocks.actionUID = 1;
     mocks.gardenAddress = intent.garden;
     mocks.choices = [intent];
@@ -685,5 +687,102 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.joinState = { isJoining: true, joiningGardenId };
 
     expect(renderFlow().result.current.isJoiningCommunityGarden).toBe(joining);
+  });
+
+  it("releases dependent-link scheduling when validation stops the Work submission", async () => {
+    const intent = commitmentLinkIntent;
+    mocks.actionUID = 1;
+    mocks.gardenAddress = intent.garden;
+    mocks.choices = [intent];
+    mocks.outcome = null;
+    mocks.uploadWork.mockResolvedValue(undefined);
+    const view = renderFlow();
+
+    act(() => view.result.current.selectLinkIntent(intent));
+    await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+    let submitted = true;
+    await act(async () => {
+      submitted = await view.result.current.submit();
+    });
+    expect(submitted).toBe(false);
+    expect(view.result.current.isSchedulingDependentLink).toBe(false);
+    expect(view.result.current.linkSchedulingSucceeded).toBe(false);
+    expect(view.result.current.hasPendingLinkRecovery).toBe(false);
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+
+    mocks.outcome = { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false };
+    await act(async () => {
+      submitted = await view.result.current.submit();
+    });
+    expect(submitted).toBe(true);
+    expect(mocks.uploadWork).toHaveBeenCalledTimes(2);
+    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+    expect(mocks.enqueue.mock.calls[0][0].payload.clientOperationId).toBe("work-link:client-1:9:0");
+    expect(view.result.current.isSchedulingDependentLink).toBe(false);
+    expect(view.result.current.linkSchedulingSucceeded).toBe(true);
+  });
+
+  it.each([
+    ["sent", { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false }, true],
+    [
+      "saved only on this device",
+      {
+        kind: "queued",
+        clientWorkId: "client-1",
+        jobId: "work-job-1",
+        txHash: "0x2",
+        sponsored: false,
+        reason: "connection-unconfirmed",
+      },
+      false,
+    ],
+  ] as const)("reports the link as queueing only when the Work was sent: %s", async (_kind, outcome, queueing) => {
+    const intent = commitmentLinkIntent;
+    mocks.actionUID = 1;
+    mocks.gardenAddress = intent.garden;
+    mocks.choices = [intent];
+    mocks.outcome = null;
+    let finishUpload!: () => void;
+    mocks.uploadWork.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishUpload = () => resolve();
+      })
+    );
+    let finishLink!: (jobId: string) => void;
+    mocks.enqueue.mockReturnValueOnce(
+      new Promise<string>((resolve) => {
+        finishLink = resolve;
+      })
+    );
+    const view = renderFlow();
+
+    act(() => view.result.current.selectLinkIntent(intent));
+    await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+    let submission!: Promise<boolean>;
+    act(() => {
+      submission = view.result.current.submit();
+    });
+    await waitFor(() => expect(mocks.uploadWork).toHaveBeenCalledTimes(1));
+    expect(view.result.current.isSchedulingDependentLink).toBe(true);
+    expect(view.result.current.isQueueingDependentLink).toBe(false);
+
+    mocks.outcome = { ...outcome };
+    await act(async () => {
+      finishUpload();
+    });
+    await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+    expect(view.result.current.isSchedulingDependentLink).toBe(true);
+    expect(view.result.current.isQueueingDependentLink).toBe(queueing);
+
+    let submitted = false;
+    await act(async () => {
+      finishLink("link-job");
+      submitted = await submission;
+    });
+    expect(submitted).toBe(true);
+    expect(view.result.current.isQueueingDependentLink).toBe(false);
+    expect(view.result.current.isSchedulingDependentLink).toBe(false);
+    expect(view.result.current.linkSchedulingSucceeded).toBe(true);
   });
 });

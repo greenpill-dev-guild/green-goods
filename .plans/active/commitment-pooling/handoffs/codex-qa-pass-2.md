@@ -137,3 +137,16 @@ called complete.
 
 The reviewed tree is the commit containing this section. Resolve its exact SHA with
 `git rev-parse HEAD`; the working tree is expected to be clean after that commit.
+
+## 2026-09-27 observations moved from the rehearsal follow-ups
+
+Three rendered checks that two rehearsal fixes could not take before they merged move to this pass.
+Walk each on staging with real accounts, and label it with the engine and session that produced it.
+
+- The commitment, proof and compose screens keep the top bar and the action bar fixed at phone
+  width on a real scroll (#926, PRD-991).
+- On a pool that is not ready, a member reads one sentence naming who acts next, and a steward reads
+  the setup checklist (#926, PRD-991).
+- After signing out of one account and into another on the same device, Home opens with default
+  filters and each garden opens fresh, while a reload of the same account keeps them (#929,
+  PRD-994).

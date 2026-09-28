@@ -280,8 +280,8 @@ export interface AssessmentDraft {
 export interface ActionCard {
   id: string;
   slug: string;
-  startTime: number;
-  endTime: number;
+  startTime: number; // epoch milliseconds; getActions converts the indexer's seconds
+  endTime: number; // epoch milliseconds
   title: string;
   instructions?: string;
   capitals: Capital[];
@@ -562,14 +562,13 @@ export interface ActionInstructionConfigV2 extends ActionInstructionConfig {
 // ENS Registration Types
 // ============================================
 
-/**
- * ENS registration status data tracked through CCIP delivery.
- * Fully serializable for the IndexedDB reading cache (QueryPersistenceProvider).
- */
+/** Serializable CCIP claim/release status for the persisted query cache. */
 export interface ENSRegistrationData {
   status: "available" | "pending" | "active" | "timed_out";
   ccipMessageId?: string;
   submittedAt?: number;
+  /** Sender-confirmed release intent; retained until this owner's receiver record clears. */
+  release?: { owner: Address };
   registration?: {
     owner: Address;
     nameType: number;

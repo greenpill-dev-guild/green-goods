@@ -32,6 +32,61 @@ export const STEP_FIELDS: Record<StepId, Array<keyof CommitmentComposerValues>> 
 };
 
 /**
+ * The fields a step checks before the wizard moves on. Garden work is counted
+ * in hours, set when the kind is chosen, so its How Much step asks no unit.
+ */
+export function stepFieldsFor(
+  step: StepId,
+  kind: CommitmentComposerValues["kind"]
+): Array<keyof CommitmentComposerValues> {
+  const fields = STEP_FIELDS[step];
+  return step === "howMuch" && kind === "GARDEN_WORK"
+    ? fields.filter((field) => field !== "unitLabel")
+    : fields;
+}
+
+export type RewardAnswer = "no" | "yes";
+type RewardRail = CommitmentComposerValues["considerationRail"];
+
+/** The Proof step's reward question, read from the rail the draft holds. */
+export function rewardAnswerOf(rail: RewardRail): RewardAnswer {
+  return rail === "NONE" ? "no" : "yes";
+}
+
+/**
+ * The rail an answer leaves the draft on. No means none. Yes keeps a rail
+ * already chosen, or starts on the external one, which every garden can use.
+ */
+export function railForRewardAnswer(answer: RewardAnswer, current: RewardRail): RewardRail {
+  if (answer === "no") return "NONE";
+  return current === "NONE" ? "ARBITRUM_EXTERNAL" : current;
+}
+
+/** Why seeding is off, the first reason first, or null when it may go ahead. */
+export function seedBlockedReason(input: {
+  poolOpen: boolean;
+  capacityOver: boolean;
+  rewardUnknown: boolean;
+}): { id: string; defaultMessage: string } | null {
+  if (!input.poolOpen)
+    return {
+      id: "cockpit.garden.pool.seed.blocked.poolClosed",
+      defaultMessage: "Open the pool before seeding into it.",
+    };
+  if (input.capacityOver)
+    return {
+      id: "cockpit.garden.pool.seed.blocked.capacity",
+      defaultMessage: "That is more offers than this pool has room for.",
+    };
+  if (input.rewardUnknown)
+    return {
+      id: "cockpit.garden.pool.seed.blocked.reward",
+      defaultMessage: "A reward in the tray cannot be read yet.",
+    };
+  return null;
+}
+
+/**
  * A confirmer entry is only addable once it is a well-formed 20-byte address,
  * and never the zero address: `CreditLib.eligibleNamedConfirmerCount` skips
  * that one while counting who may confirm, so naming it leaves the threshold

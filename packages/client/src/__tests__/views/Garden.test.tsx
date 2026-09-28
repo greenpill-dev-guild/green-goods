@@ -70,6 +70,8 @@ const mockRefetchCommitmentLinkChoices = vi.fn();
 const mockRetryLinkOnly = vi.fn();
 let mockHasPendingLinkRecovery = false;
 let mockLinkSchedulingSucceeded = false;
+let mockIsSchedulingDependentLink = false;
+let mockIsQueueingDependentLink = false;
 const mockActions = [
   {
     id: "action-1",
@@ -148,7 +150,8 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     commitmentLinkChoicesLoading: false,
     commitmentLinkChoicesError: null,
     refetchCommitmentLinkChoices: mockRefetchCommitmentLinkChoices,
-    isSchedulingDependentLink: false,
+    isSchedulingDependentLink: mockIsSchedulingDependentLink,
+    isQueueingDependentLink: mockIsQueueingDependentLink,
     linkSchedulingError: mockHasPendingLinkRecovery ? new Error("queue unavailable") : null,
     linkSchedulingSucceeded: mockLinkSchedulingSucceeded,
     hasPendingLinkRecovery: mockHasPendingLinkRecovery,
@@ -249,6 +252,7 @@ const messages = {
   "app.action.selected": "Selected Action",
   "app.garden.commitment.linkSchedulingError":
     "Your work was submitted, but its commitment link could not be queued.",
+  "app.garden.commitment.linkScheduling": "Work submitted. Queueing its commitment link…",
   "app.garden.commitment.linkScheduled": "Work submitted. Its commitment link is queued.",
   "app.garden.commitment.retryLink": "Retry Link",
 };
@@ -283,6 +287,8 @@ describe("Garden (Work) View", () => {
     mockCommitmentLinkChoices = [];
     mockHasPendingLinkRecovery = false;
     mockLinkSchedulingSucceeded = false;
+    mockIsSchedulingDependentLink = false;
+    mockIsQueueingDependentLink = false;
   });
 
   afterEach(() => {
@@ -429,6 +435,26 @@ describe("Garden (Work) View", () => {
     expect(screen.getByRole("button", { name: "Upload Work" })).toBeDisabled();
     screen.getByRole("button", { name: "Retry Link" }).click();
     expect(mockRetryLinkOnly).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["while the Work is still being sent", false],
+    ["once the Work was sent", true],
+  ] as const)("says the Work was submitted only %s", (_phase, queueing) => {
+    mockActiveTab = "Review";
+    mockSelection.actionUID = 1;
+    mockSelection.gardenAddress = "garden-1";
+    mockIsSchedulingDependentLink = true;
+    mockIsQueueingDependentLink = queueing;
+
+    renderWithProviders();
+
+    expect(screen.getByRole("button", { name: "Upload Work" })).toBeDisabled();
+    if (queueing) {
+      expect(screen.getByText(/Queueing its commitment link/)).toBeInTheDocument();
+    } else {
+      expect(screen.queryByText(/Work submitted/)).toBeNull();
+    }
   });
 
   it("announces when the dependent commitment link is safely queued", () => {

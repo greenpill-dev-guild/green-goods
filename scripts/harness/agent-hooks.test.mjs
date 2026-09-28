@@ -112,7 +112,8 @@ for (const command of [
 }
 
 test("deployment and direct Forge enforcement retain the harness differences", () => {
-  for (const command of ["vercel --prod", "bun run deploy:mainnet", "bun run contracts upgrade --network mainnet"]) {
+  // The contracts package retired its deploy scripts, so the direct script stands in for one.
+  for (const command of ["vercel --prod", "bun script/deploy.ts core --network mainnet --broadcast", "bun run contracts upgrade --network mainnet"]) {
     const warning = commandHooks("claude", command);
     assert.ok(warning.every((result) => result.code === 0));
     assert.ok(warning.some((result) => /PRODUCTION DEPLOYMENT/.test(result.output)));

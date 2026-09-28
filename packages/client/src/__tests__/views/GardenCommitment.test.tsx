@@ -931,6 +931,32 @@ describe("GardenCommitment", () => {
     expect(await screen.findByText(/couldn't be discarded/i)).toBeInTheDocument();
   });
 
+  it("checks a send on record instead of sending it again, and offers no way to drop it", async () => {
+    // The transaction may still land; the row asks the chain rather than resend.
+    mockRetryAndSend.mockResolvedValue(undefined);
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: "awaiting-confirmation",
+            discardable: false,
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+    expect(screen.getByText(/your take-up has left this phone/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Check Again" }));
+    expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
+  });
+
   it("offers the membership check again when it could not be read", async () => {
     const retry = vi.fn();
     mockUseController.mockReturnValue(

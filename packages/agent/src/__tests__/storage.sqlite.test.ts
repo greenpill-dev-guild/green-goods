@@ -95,9 +95,7 @@ describe("agent storage with real bun:sqlite", () => {
 
     await closeDB();
     initDB(databasePath);
-    // Read at a time inside the fixture's window: getMine drops expired rows
-    // against the real clock when it is not handed one, and this fixture
-    // expires at noon UTC on 2026-09-26.
+    // Read inside the request's lifetime; getMine defaults to the wall clock.
     await expect(store.getMine(garden, account, "2026-08-28T12:00:00.000Z")).resolves.toMatchObject(
       {
         displayName: "Private gardener",

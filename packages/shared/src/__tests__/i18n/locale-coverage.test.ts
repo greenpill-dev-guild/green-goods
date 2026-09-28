@@ -94,6 +94,8 @@ const sourceMessageTriggerTokens = [
   ...descriptorIdPropNames,
 ];
 const allowedIdenticalLocalizedKeys = new Set([
+  // The account identifier intentionally uses the same compact abbreviation in en/es/pt.
+  "app.account.id",
   "app.admin.nav.cookieJars",
   // Token symbol and network proper name have no words to translate.
   "app.celoWallet.asset",

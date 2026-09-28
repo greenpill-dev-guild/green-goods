@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-26T22:57:07.090Z"
+    "updated_at": "2026-09-28T00:40:57.004Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -53,6 +53,9 @@
   },
   "linear": {
     "parentIssue": "PRD-650",
+    "trackers": {
+      "rehearsal_follow_ups": "PRD-989"
+    },
     "architectureRecord": "PRD-649",
     "project": "Commitment Pooling",
     "projectId": "fa1b7a04-6eee-4f43-a861-07d8205aa0bf",
@@ -390,7 +393,7 @@
     "state_api": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "in_progress",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "blocked_reason": null,
@@ -414,10 +417,10 @@
     "ui_client": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "blocked_reason": "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment",
+      "blocked_reason": null,
       "branch": "feature/commitment-pooling-client-loop",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-client.md",
@@ -435,10 +438,10 @@
     "ui_admin": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "blocked_reason": "Narrowed admin dispatch: Phase 0 + D1 + D2 of prompt-admin-console.md, stacked on the client-loop branch (PR #749) and built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment; settlement, Operations, and the Hypercert ceremony stay gated",
+      "blocked_reason": null,
       "branch": "feature/commitment-pooling-admin-console",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-admin.md",
@@ -455,10 +458,10 @@
     "editorial": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": true,
-      "manual_blocked": true,
-      "blocked_reason": "The public copy freeze and /gardens/:id page conversion are complete. The address-free garden reader, lifetime distinct-provider counter, public rate gate, confirmed-only selector, cycle-name metadata resolver, and protocol-wide /impact aggregate reader are locally GREEN on feature/commitment-pooling-editorial. UI implementation still waits for that branch to merge, the hosted Envio schema deployment plus full reindex/live read-back, the shared UI foundation cleanup, and the PublicEvidencePipeline i18n/five-node prerequisite.",
+      "manual_blocked": false,
+      "blocked_reason": null,
       "branch": "feature/commitment-pooling-editorial",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-editorial.md",
@@ -617,7 +620,7 @@
     "work_linking_closure": {
       "machine_lane": null,
       "owner": "codex",
-      "status": "in_progress",
+      "status": "completed",
       "manual_blocked": false,
       "ready_when_dependencies_met": true,
       "branch": "feat/editorial-record-and-cycle",
@@ -635,91 +638,86 @@
     "w3a_members_act": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "passed",
+      "status": "in_progress",
       "branch": "fix/commitment-take-up-membership",
       "depends_on": [],
       "handoff": "handoffs/w3a-members-act-everyone-reads.md",
       "linear": {
         "sync": true,
         "issue": "PRD-990",
-        "parentIssue": "PRD-650"
+        "parentIssue": "PRD-989"
       },
-      "linear_issues": ["PRD-990", "PRD-650"]
+      "linear_issues": ["PRD-990", "PRD-989"]
     },
     "w3b_commitment_screen_chrome": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "completed",
+      "branch": "fix/commitment-screen-chrome",
       "depends_on": ["w3h_host_claim_context"],
       "handoff": "handoffs/w3b-commitment-screen-chrome.md",
       "linear": {
         "sync": true,
         "issue": "PRD-991",
-        "parentIssue": "PRD-650"
+        "parentIssue": "PRD-989"
       },
-      "linear_issues": ["PRD-991", "PRD-650"],
-      "blocked_reason": "Waits for W3-H (w3h_host_claim_context) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 rows 47 and 49)"
+      "linear_issues": ["PRD-991", "PRD-989"]
     },
     "w3c_seed_wizard_questions": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "completed",
+      "branch": "fix/seed-wizard-questions",
       "depends_on": ["w3b_commitment_screen_chrome"],
       "handoff": "handoffs/w3c-seed-wizard-questions.md",
       "linear": {
         "sync": true,
         "issue": "PRD-992",
-        "parentIssue": "PRD-650"
+        "parentIssue": "PRD-989"
       },
-      "linear_issues": ["PRD-992", "PRD-650"],
-      "blocked_reason": "Waits for W3-B (w3b_commitment_screen_chrome) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+      "linear_issues": ["PRD-992", "PRD-989"]
     },
     "w3d_unlisted_gardens_reachable": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "completed",
+      "branch": "fix/unlisted-gardens-reachable",
       "depends_on": ["w3c_seed_wizard_questions"],
       "handoff": "handoffs/w3d-unlisted-gardens-reachable.md",
       "linear": {
         "sync": true,
         "issue": "PRD-993",
-        "parentIssue": "PRD-650"
+        "parentIssue": "PRD-989"
       },
-      "linear_issues": ["PRD-993", "PRD-650"],
-      "blocked_reason": "Waits for W3-C (w3c_seed_wizard_questions) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+      "linear_issues": ["PRD-993", "PRD-989"]
     },
     "w3e_account_sessions": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "completed",
+      "branch": "fix/account-switch-state-reset",
       "depends_on": ["w3d_unlisted_gardens_reachable"],
       "handoff": "handoffs/w3e-account-sessions.md",
       "linear": {
         "sync": true,
         "issue": "PRD-994",
-        "parentIssue": "PRD-650"
+        "parentIssue": "PRD-989"
       },
-      "linear_issues": ["PRD-994", "PRD-650"],
-      "blocked_reason": "Waits for W3-D (w3d_unlisted_gardens_reachable) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+      "linear_issues": ["PRD-994", "PRD-989"]
     },
     "w3f_inspector_story_and_names": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "completed",
+      "branch": "fix/inspector-story-and-names",
       "depends_on": ["w3e_account_sessions"],
       "handoff": "handoffs/w3f-inspector-story-and-names.md",
       "linear": {
         "sync": true,
         "issue": "PRD-995",
-        "parentIssue": "PRD-650"
+        "parentIssue": "PRD-989"
       },
-      "linear_issues": ["PRD-995", "PRD-650"],
-      "blocked_reason": "Waits for W3-E (w3e_account_sessions) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 row 47)"
+      "linear_issues": ["PRD-995", "PRD-989"]
     },
     "w3g_commitment_send_record": {
       "machine_lane": "state_api",
@@ -731,24 +729,32 @@
       "linear": {
         "sync": true,
         "issue": "PRD-996",
-        "parentIssue": "PRD-650"
+        "parentIssue": "PRD-989"
       },
-      "linear_issues": ["PRD-996", "PRD-650"]
+      "linear_issues": ["PRD-996", "PRD-989"]
     },
     "w3h_host_claim_context": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "blocked",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "fix/host-garden-personal-claims",
       "depends_on": ["w3g_commitment_send_record"],
       "handoff": "handoffs/w3h-host-garden-personal-claims.md",
       "linear": {
         "sync": true,
         "issue": "PRD-997",
-        "parentIssue": "PRD-650"
+        "parentIssue": "PRD-989"
       },
-      "linear_issues": ["PRD-997", "PRD-650"],
-      "blocked_reason": "Waits for W3-G (w3g_commitment_send_record) to merge; each W3 PR is cut from a fresh origin/develop after the one before it (qa-readiness-plan § 1 rows 47 and 49)"
+      "linear_issues": ["PRD-997", "PRD-989"]
+    },
+    "ui_deferred_scope": {
+      "machine_lane": "ui",
+      "owner": "human",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/ui-deferred-scope.md",
+      "acceptance": "Every item that ui_client, ui_admin and editorial left unbuilt is marked built since, moved to a named issue or lane, or dropped before the hub closes."
     }
   },
   "follow_on": {
@@ -1573,6 +1579,174 @@
       "status": "in_progress",
       "branch": "fix/commitment-send-record",
       "note": "Afo set the order after W3-A (§ 1 row 49): W3-G now, then W3-H for N42 (Linear child PRD-997), then W3-B to W3-F; N43 not scheduled before the cut"
+    },
+    {
+      "timestamp": "2026-09-27T03:37:24.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "in_progress",
+      "branch": "fix/commitment-send-record",
+      "note": "Codex's first review of #923: six findings fixed in 6781a51b2 (indexer coverage before an absence, paging, full claim identity, chain-clock floor, Safe ids settled by landing, per-job send lock); receipt at 6781a51b2; authenticated walk PWA-126 pending"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3b_commitment_screen_chrome",
+      "status": "completed",
+      "branch": "fix/commitment-screen-chrome",
+      "note": "Merged in #926 as 48aa97fd5 after Afo approved the Storybook pairs; Linear PRD-991 Done; mock-auth capture of the notice and fixed bars pending"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3c_seed_wizard_questions",
+      "status": "completed",
+      "branch": "fix/seed-wizard-questions",
+      "note": "Merged in #927 as 127ae1376 after Afo approved the Storybook pairs; focused field measured at 1280 (41 to 42px before, 40 to 40px after); Linear PRD-992 Done"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3d_unlisted_gardens_reachable",
+      "status": "completed",
+      "branch": "fix/unlisted-gardens-reachable",
+      "note": "Merged in #928 as 303d114fd; both rehearsal gardens open by their own links on staging (clean-room headless Chromium), unlisted line and noindex present, archive lists neither; Linear PRD-993 Done"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3e_account_sessions",
+      "status": "completed",
+      "branch": "fix/account-switch-state-reset",
+      "note": "Merged in #929 as 544ba639d; step 4 not taken (solo reproduction not run); mock-auth capture pending; reading-cache copies tracked in PRD-1000; Linear PRD-994 Done"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3f_inspector_story_and_names",
+      "status": "completed",
+      "branch": "fix/inspector-story-and-names",
+      "note": "Merged in #930 as df63a1580; Detail story seeds its cycle and runs in the story gate; composite stories moved to W4-3; Linear PRD-995 Done"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "passed",
+      "branch": "fix/commitment-send-record",
+      "note": "Merged in #923 as 7fdc87f78; late review comments fixed in #931 (merged as 2aca5c59a); PWA-126 walk on the recorded call pending; Linear PRD-996 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3h_host_claim_context",
+      "status": "passed",
+      "branch": "fix/host-garden-personal-claims",
+      "note": "Merged in #925 as c17a03b46; the claim landing on chain rides the protocol-pool walk; Linear PRD-997 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3a_members_act",
+      "status": "in_progress",
+      "branch": "fix/commitment-take-up-membership",
+      "note": "Back to in_progress: the harness counts passed as done, and the authenticated wallet walk (PWA-123 to PWA-125) is still pending; Linear PRD-990 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3b_commitment_screen_chrome",
+      "status": "completed",
+      "branch": "fix/commitment-screen-chrome",
+      "note": "Afo's approval covered the row and cycle-rail pairs; the commitment screen, the readiness notice as member and steward, and the fixed bars on a real scroll were never captured and moved to QA Pass 2 (PRD-730); PRD-991 Done, since its Done when asks for pairs only for the row edge"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3e_account_sessions",
+      "status": "completed",
+      "branch": "fix/account-switch-state-reset",
+      "note": "The sign-out reproduction, and any restore-path change, moved to PRD-1001; the mock-auth Home capture moved to QA Pass 2 (PRD-730); PRD-994 Done, since its Done when holds"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "in_progress",
+      "branch": "fix/commitment-send-record",
+      "note": "Back to in_progress: the harness counts passed as done, and the PWA-126 walk on the recorded call is still pending; Linear PRD-996 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3h_host_claim_context",
+      "status": "in_progress",
+      "branch": "fix/host-garden-personal-claims",
+      "note": "Back to in_progress: the harness counts passed as done, and the claim landing on chain rides the protocol-pool walk; Linear PRD-997 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T22:51:01.463Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded PRD-989 in linear.trackers and set it as the W3 lanes' parentIssue, which matches their parent in Linear"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "feature/commitment-pooling-api-modules",
+      "note": "Closed in the hub reconcile to match PRD-723 (Done 2026-09-06): the handoff records the source lane complete; its receipt's tested SHA, 8fd331198, is on no branch, so its evidence-only diff cannot be rerun. The lane's source is on develop from 260de8d9b, the seat amendment landed in d1b8ea042, and the hosted indexer has read back live since 2026-08-27. Live Gardener Celo wallet evidence stays with its own handoff and release ops"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "ui_client",
+      "status": "completed",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Closed in the hub reconcile to match PRD-724 (Done 2026-09-06): D1 merged in #749 (921654805) with its Ship Gate in reports/client-loop-2026-08-21.md; the handoff's receipt records a fresh client-suite run at 72da88ca7. Scope it left unbuilt moves to ui_deferred_scope, and D2 close-the-season stays with the readiness plan's fix window and re-QA run"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "ui_admin",
+      "status": "completed",
+      "branch": "feature/commitment-pooling-admin-console",
+      "note": "Closed in the hub reconcile to match PRD-725 (Done 2026-08-25): D1 merged in #752 (2cd115a1d) with the handoff's validation receipt at 42116ecd1 and f36e222de (2026-08-22). Scope it left unbuilt moves to ui_deferred_scope, and D2 close-the-season stays with the readiness plan's fix window and re-QA run"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "editorial",
+      "status": "completed",
+      "branch": "feature/commitment-pooling-editorial",
+      "note": "Closed in the hub reconcile to match PRD-726 (Done 2026-08-25): the public record shipped in #748 (4fca120e9) and its follow-up PRD-838, and the hosted indexer has read back live since 2026-08-27; the handoff's receipt records a fresh client-suite run at 72da88ca7. Its open NOT MET rows move to ui_deferred_scope, and the public pages are walked on the recorded call"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "work_linking_closure",
+      "status": "completed",
+      "branch": "feat/editorial-record-and-cycle",
+      "note": "Closed in the hub reconcile to match PRD-837 (Done 2026-08-28): the handoff's receipt at 29c935fb6 (2026-08-25) records the test suites, typechecks, builds and an authenticated Brave render passing, with format, design-generated and agentic checks blocked by pre-existing drift; the full gate was not repeated after the targeted re-review"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "blocked",
+      "branch": "test/commitment-pooling-qa-pass-1",
+      "note": "Hub reconcile: Linear closed PRD-729 on 2026-08-31, but QA Pass 1 stays blocked for Wave 2, the recorded call, and clearing its manual gate stays with Afo. QA Pass 2 stays blocked behind it"
+    },
+    {
+      "timestamp": "2026-09-28T00:40:57.004Z",
+      "actor": "claude",
+      "lane": "ui_deferred_scope",
+      "status": "todo",
+      "branch": null,
+      "note": "Opened in the hub reconcile to hold the scope that ui_client, ui_admin and editorial left unbuilt, for triage before closeout"
     }
   ]
 }

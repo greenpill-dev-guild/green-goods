@@ -18,7 +18,7 @@ import {
 } from "@remixicon/react";
 import { forwardRef, memo, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { List, type RowComponentProps } from "react-window";
+import { List, type RowComponentProps, useDynamicRowHeight } from "react-window";
 import { Badge, EmptyState } from "@/components/Communication";
 import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
@@ -141,7 +141,7 @@ function GardenMemberRow({
   if (!member) return null;
 
   return (
-    <div {...ariaAttributes} style={style} className="px-0.5">
+    <div {...ariaAttributes} style={style} className="px-0.5 pb-4">
       <GardenMemberItem member={member} garden={garden} onClick={() => onSelect(member)} />
     </div>
   );
@@ -151,6 +151,8 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
   ({ members, garden, canManageRequests = false }, ref) => {
     const intl = useIntl();
     const shouldVirtualize = members.length > 40;
+    // Include the card's natural height and its gap, including wrapped translations.
+    const rowHeight = useDynamicRowHeight({ defaultRowHeight: 90 });
     const [selected, setSelected] = useState<GardenMember | null>(null);
     const { data: selectedGreenGoodsEnsName } = useGreenGoodsEnsName(selected?.account);
     const { data: selectedEnsName } = useEnsName(selected?.account);
@@ -169,19 +171,19 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
 
     const copy = async (val?: string) => {
       if (!val) return;
-      try {
-        await copyToClipboard(val);
-        toastService.success({
-          title: intl.formatMessage({ id: "app.toast.copied", defaultMessage: "Copied" }),
-        });
-      } catch {
+      const copiedOk = await copyToClipboard(val);
+      if (!copiedOk) {
         toastService.error({
           title: intl.formatMessage({
             id: "app.toast.copyFailed",
             defaultMessage: "Copy failed",
           }),
         });
+        return;
       }
+      toastService.success({
+        title: intl.formatMessage({ id: "app.toast.copied", defaultMessage: "Copied" }),
+      });
     };
 
     return (
@@ -197,7 +199,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
               defaultHeight={600}
               rowComponent={GardenMemberRow}
               rowCount={members.length}
-              rowHeight={64}
+              rowHeight={rowHeight}
               rowProps={{ members, garden, onSelect: setSelected }}
               style={{ height: 600, width: "100%" }}
             />

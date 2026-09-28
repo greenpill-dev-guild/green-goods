@@ -267,7 +267,7 @@ collect_usage_hits() {
 #
 # Four invariants the raw-literal pattern cannot see because they ride semantic
 # aliases or bare utilities, found broken at scale by the 2026-08-29 admin
-# audit (.plans/backlog/design-system-alignment-review/reports/):
+# audit (design-system-alignment-review hub, closed 2026-09-27; see .plans/ARCHIVE.md):
 #   1. Shadows — the single elevation ladder (--m3-elevation-0/1/2 plus
 #      --admin-chrome-shadow) is the only depth source; bare Tailwind
 #      shadow-xs..2xl / shadow-regular-* utilities are off-ladder.
@@ -305,7 +305,7 @@ collect_admin_invariant_hits() {
 #
 # The cockpit control surface is the 21-wrapper Admin* family. Three bypass
 # classes were found at scale by the post-DL-011/012 adoption audit
-# (.plans/backlog/design-system-alignment-review/reports/) and burn down
+# (design-system-alignment-review hub; see .plans/ARCHIVE.md) and burn down
 # through the same audited baseline as the raw sweep:
 #   1. Shared field primitives rendered directly (TextInput/Textarea/
 #      NativeSelect/FormField and local FormInput/FormTextarea re-wraps) —

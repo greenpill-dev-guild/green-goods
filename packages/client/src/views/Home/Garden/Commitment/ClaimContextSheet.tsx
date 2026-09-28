@@ -7,9 +7,9 @@ import { useIntl } from "react-intl";
 /**
  * What a claim is scoped to: the person, through a garden they belong to, or
  * a garden they steward. The garden travels with the choice because on the
- * protocol pool it is never the route's garden — that is the host, which the
- * contract refuses as a garden-claim context (GardenClaimMustBeExternal) and
- * which most claimants hold no hat in.
+ * protocol pool it need not be the route's garden. The host may carry a
+ * personal claim from someone who holds a role there, but the contract refuses
+ * it as a garden claim's context (GardenClaimMustBeExternal).
  */
 export type ClaimContext =
   | { kind: "personal"; garden: Address }
@@ -42,6 +42,8 @@ export interface ClaimContextSheetProps {
  * afterwards: a garden claim stores the garden as claimant and the steward as
  * the one who asked.
  */
+const same = (left: Address, right: Address) => left.toLowerCase() === right.toLowerCase();
+
 export function ClaimContextSheet({
   open,
   onOpenChange,
@@ -55,20 +57,29 @@ export function ClaimContextSheet({
   const first = memberGardens[0] ?? stewardedGardens[0];
   const [context, setContext] = useState<ClaimContext | null>(null);
 
-  // Each opening starts from the first personal option; back and retry keep
-  // whatever was chosen until the sheet closes, and nothing is submitted between.
+  // Each opening starts from the first personal option. While the sheet is
+  // open a choice stands, even as the lists refresh behind it (the host's own
+  // read landing adds an option), unless its garden has left them. Nothing is
+  // submitted between.
   useEffect(() => {
-    if (!open) return;
-    setContext(
-      memberGardens[0]
+    if (!open) {
+      setContext(null);
+      return;
+    }
+    setContext((current) => {
+      const offered =
+        current &&
+        (current.kind === "personal" ? memberGardens : stewardedGardens).some((garden) =>
+          same(garden.address, current.garden)
+        );
+      if (current && offered) return current;
+      return memberGardens[0]
         ? { kind: "personal", garden: memberGardens[0].address }
         : first
           ? { kind: "garden", garden: first.address }
-          : null
-    );
-  }, [open, memberGardens, first]);
-
-  const same = (left: Address, right: Address) => left.toLowerCase() === right.toLowerCase();
+          : null;
+    });
+  }, [open, memberGardens, stewardedGardens, first]);
 
   return (
     <DialogShell

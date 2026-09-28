@@ -6,9 +6,10 @@
 - Machine lane: ui
 - Owner: Claude
 - Branch signal: feature/commitment-pooling-admin-ui
-- Current state: prototype/journey review may continue; feature implementation waits for core
-  state_api, verified non-value deployment/indexer output, and completion of the scoped existing
-  admin-console fixes and polish led by PRD-737; settlement controls wait for settlement selectors
+- Current state: complete. The hub closed this lane on 2026-09-27 to match PRD-725 (Done on
+  2026-08-25). D1 merged in #752 (`2cd115a1d`); its validation receipt is under D1 built / not
+  built below. What that table marks not built moves to `ui_deferred_scope`, and D2 close-the-season stays
+  with the readiness plan's fix window and re-QA run.
 - Linear context: PRD-725 (admin UI lane) under parent PRD-650; PRD-682 is Community context
 
 Concurrent agents share this repository. Stay inside the admin lane's named paths, preserve

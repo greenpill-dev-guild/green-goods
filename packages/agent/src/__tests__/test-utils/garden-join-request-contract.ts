@@ -8,6 +8,8 @@ const garden = "0x1111111111111111111111111111111111111111" as const;
 const account = "0x2222222222222222222222222222222222222222" as const;
 const requestedAt = "2026-08-27T12:00:00.000Z";
 const expiresAt = "2026-09-26T12:00:00.000Z";
+// Read inside the request's lifetime even when this suite runs after expiry.
+const readAt = "2026-08-28T12:00:00.000Z";
 
 // Both adapters expose persisted records so the same privacy/deletion contract
 // checks storage, not just the records returned by the public API.
@@ -56,7 +58,7 @@ export function gardenJoinRequestStoreContract(label: string, createStore: () =>
         throw new Error("Expected an existing garden join request");
       }
       expect(duplicate.request.id).toBe(first.request.id);
-      expect(await store.getMine(garden, account)).toMatchObject({
+      expect(await store.getMine(garden, account, readAt)).toMatchObject({
         displayName: "Maya",
         note: "Weekly compost pickup",
         state: "pending",
@@ -100,7 +102,7 @@ export function gardenJoinRequestStoreContract(label: string, createStore: () =>
           resolvedAt: requestedAt,
         })
       ).toMatchObject({ ok: true, request: { state: "declined", revision: 1 } });
-      expect(await store.getMine(garden, account)).toMatchObject({
+      expect(await store.getMine(garden, account, readAt)).toMatchObject({
         reason: "Please attend one garden gathering first.",
         canAskAgain: true,
       });
@@ -227,7 +229,7 @@ export function gardenJoinRequestStoreContract(label: string, createStore: () =>
         throw new Error("Expected replacement request to be created");
 
       expect(await store.withdraw(firstIdentity)).toBe(false);
-      expect(await store.getMine(garden, account)).toMatchObject({
+      expect(await store.getMine(garden, account, readAt)).toMatchObject({
         id: replacement.request.id,
         state: "pending",
       });

@@ -12,6 +12,8 @@ export interface SetupFlowFooterProps {
   isLast: boolean;
   submitting: boolean;
   canContinue: boolean;
+  /** Why the way on is off, said the way the app composer's bar does. */
+  blockedReason?: string | null;
   failed: boolean;
   /** The run finished: the only way on is Done. */
   complete: boolean;
@@ -36,6 +38,7 @@ export function SetupFlowFooter({
   isLast,
   submitting,
   canContinue,
+  blockedReason = null,
   failed,
   complete,
   progress,
@@ -51,7 +54,13 @@ export function SetupFlowFooter({
   return (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
       <div className="min-w-0 sm:flex-1" aria-live="polite">
-        {submitting ? <AdminLinearProgress ariaLabel={title} value={progress} /> : null}
+        {submitting ? (
+          <AdminLinearProgress ariaLabel={title} value={progress} />
+        ) : !complete && !canContinue && blockedReason ? (
+          <p role="status" className="body-xs text-text-soft">
+            {blockedReason}
+          </p>
+        ) : null}
       </div>
       {complete ? (
         <AdminButton type="button" variant="filled" onClick={onDone} className="w-full sm:w-auto">

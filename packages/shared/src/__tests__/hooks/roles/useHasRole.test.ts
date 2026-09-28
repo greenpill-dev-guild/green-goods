@@ -209,7 +209,7 @@ describe("useHasRole", () => {
   });
 
   describe("error handling", () => {
-    it("returns false when contract call fails", async () => {
+    it("returns false and reports the failure when the contract call fails", async () => {
       mockReadContract.mockRejectedValue(new Error("Reverted"));
 
       const { result } = renderHookWithQueryClient(
@@ -223,8 +223,9 @@ describe("useHasRole", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // fetchHasRole catches errors and returns false
+      // A failed read is not a "no": callers that must tell them apart read `error`.
       expect(result.current.hasRole).toBe(false);
+      expect(result.current.error).toBeInstanceOf(Error);
     });
   });
 });

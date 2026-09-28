@@ -669,6 +669,31 @@
       "source": "qa-readiness-catalog-2026-09-21"
     },
     {
+      "id": "PUB-060",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "content",
+      "area": "Gardens",
+      "scenario": "An unlisted garden opens by its own link and says it is unlisted",
+      "preconditions": [
+        "The public link of a garden kept off the public lists, such as Green Goods Community Garden"
+      ],
+      "steps": [
+        "Open the garden's public page by its own link",
+        "Read the foot of the hero card and the actions at the foot of the page",
+        "In the browser's developer tools, find the robots meta tag in the page head",
+        "Open the Gardens archive and the Fund page, and look for the garden in each"
+      ],
+      "expected": "The page opens with the garden's record and one quiet line, This Garden is not in the public lists, and offers no Support This Garden link; the page head carries a robots meta tag with content noindex; the archive and the Fund page's list still leave the garden out",
+      "evidence": "Screenshots of the page with the line, of the robots tag in the page head, and of the archive and the Fund list without the garden",
+      "role": "none",
+      "tags": ["garden-records"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-rehearsal-followups-2026-09-27"
+    },
+    {
       "id": "PUB-028",
       "tab": "Public Website",
       "platform": "Desktop Browser",
@@ -3191,6 +3216,32 @@
       "requiresProduction": false,
       "status": "active",
       "source": "prd-990"
+    },
+    {
+      "id": "PWA-126",
+      "priority": "P1",
+      "kind": "transaction",
+      "scenario": "A take-up whose confirmation is lost waits as sent, and is never dropped or sent twice",
+      "preconditions": [
+        "Signed in with a wallet",
+        "A member of the garden, on an offered commitment"
+      ],
+      "steps": [
+        "Press Take This Up",
+        "While the wallet asks, set the page offline in DevTools, then approve in the wallet",
+        "Read the row above the status band",
+        "Go back online, reload, and press Check Again"
+      ],
+      "expected": "Offline, the row says the take-up has left this phone and is waiting for the network to confirm it, with Check Again and no Discard; after the reload it says the same; Check Again confirms it without a second wallet prompt, the band moves to the accepted state and the row clears",
+      "evidence": "Screenshot of the row while offline and of the screen after Check Again",
+      "role": "gardener",
+      "tags": ["commitments", "queue", "tx"],
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "area": "Commitments",
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-996"
     },
     {
       "id": "PWA-103",

@@ -101,6 +101,52 @@ describe("usePublicGardenDetail", () => {
 
     expect(result.current.data?.garden?.id).toBe(garden.id);
     expect(result.current.data?.garden?.name).toBe("Riparian Restoration");
+    expect(result.current.data?.unlisted).toBe(false);
+  });
+
+  it("resolves a slug a listed garden shares to the listed garden, whichever comes first", async () => {
+    const communityGarden = "0xf401f34378384713222d1d21f63359cc4E8a858a";
+    const listed = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Shared Name" });
+    mockGetGardens.mockResolvedValue([
+      createMockGarden({ id: communityGarden, name: "Shared Name" }),
+      listed,
+    ]);
+
+    const { result } = renderHook(() => usePublicGardenDetail("shared-name"), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+    expect(result.current.data?.garden?.id).toBe(listed.id);
+    expect(result.current.data?.unlisted).toBe(false);
+  });
+
+  it("opens an unlisted garden by its own link, and never one hidden everywhere", async () => {
+    // Curated addresses from config/garden-visibility: the editorial tier, then the other.
+    const communityGarden = "0xf401f34378384713222d1d21f63359cc4E8a858a";
+    const liveGardenCoop = "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8";
+    mockGetGardens.mockResolvedValue([
+      createMockGarden({ id: communityGarden, name: "Green Goods Community Garden" }),
+      createMockGarden({ id: liveGardenCoop, name: "Live Garden Coop" }),
+    ]);
+
+    const { result } = renderHook(() => usePublicGardenDetail(communityGarden.toLowerCase()), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+    expect(result.current.data?.garden?.id).toBe(communityGarden);
+    expect(result.current.data?.unlisted).toBe(true);
+
+    const { result: hidden } = renderHook(() => usePublicGardenDetail(liveGardenCoop), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => {
+      expect(hidden.current.isSuccess).toBe(true);
+    });
+    expect(hidden.current.data?.garden).toBeNull();
   });
 
   it("resolves a garden by slug derived from name", async () => {
@@ -162,6 +208,7 @@ describe("usePublicGardenDetail", () => {
       gardenAddress: garden.id as `0x${string}`,
       gardenerAddress: MOCK_ADDRESSES.user as `0x${string}`,
       createdAt: 1_700_001_000,
+      metadata: '{"details":{"seedlingsPlanted":12}}',
     });
     const offGardenWork = createMockWork({
       id: "work-other",
@@ -205,6 +252,7 @@ describe("usePublicGardenDetail", () => {
     expect(data?.fieldNotes).toHaveLength(2);
     // Most recent first
     expect(data?.fieldNotes[0]?.id).toBe("work-2");
+    expect(data?.fieldNotes[0]?.metadata).toBe(work2.metadata);
     expect(data?.contributors).toHaveLength(2);
     expect(data?.assessmentCount).toBe(1);
   });

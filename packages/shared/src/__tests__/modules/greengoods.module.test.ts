@@ -296,6 +296,59 @@ describe("modules/data/greengoods", () => {
   });
 
   describe("getActions", () => {
+    it("fetches selected actions before applying the recent-catalog limit", async () => {
+      const rows = Array.from({ length: 101 }, (_, index) => ({
+        id: `42161-${101 - index}`,
+        chainId: 42161,
+        title: `Action ${101 - index}`,
+        slug: "agro.planting_event",
+        instructions: null,
+        capitals: [],
+        media: [],
+        domain: "AGRO",
+        createdAt: String(101 - index),
+      }));
+      mockQuery.mockImplementationOnce(async (query, variables) => {
+        expect(query).toContain("Action(where: $where");
+        expect(variables.where).toEqual({ chainId: { _eq: 42161 } });
+        return { data: { Action: rows.slice(0, 100) } };
+      });
+      const recent = await getActions(reader, { chainId: 42161 });
+      expect(recent).toHaveLength(100);
+      expect(recent.some((action) => action.id === "42161-1")).toBe(false);
+
+      mockQuery.mockImplementationOnce(async (query, variables) => {
+        expect(query).toContain("Action(where: $where");
+        expect(variables.where).toEqual({
+          chainId: { _eq: 42161 },
+          id: { _in: ["42161-1"] },
+        });
+        return {
+          data: {
+            Action: rows.filter((row) => variables.where.id._in.includes(row.id)).slice(0, 100),
+          },
+        };
+      });
+      const result = await getActions(reader, { chainId: 42161, actionIds: ["42161-1"] });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ id: "42161-1", title: "Action 1" });
+      expect(result[0].inputs).toEqual(
+        instructionTemplates["agro.planting_event"].uiConfig.details.inputs
+      );
+
+      const actionIds = ["42161-1", "42161-2"];
+      mockQuery.mockImplementationOnce(async (_query, variables) => {
+        expect(variables.where).toEqual({
+          chainId: { _eq: 42161 },
+          id: { _in: actionIds },
+        });
+        return { data: { Action: rows.filter((row) => actionIds.includes(row.id)) } };
+      });
+      const selected = await getActions(reader, { chainId: 42161, actionIds });
+      expect(selected.map((action) => action.id)).toEqual(["42161-2", "42161-1"]);
+      expect(mockQuery).toHaveBeenCalledTimes(3);
+    });
+
     it("surfaces missing or unknown indexer domains instead of coercing them to solar", () => {
       expect(parseIndexerDomain("SOLAR")).toBe(Domain.SOLAR);
       expect(parseIndexerDomain("UNKNOWN")).toBeNull();
@@ -367,6 +420,8 @@ describe("modules/data/greengoods", () => {
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(1);
       expect(result[0].title).toBe("Planting Trees");
+      // Consumers compare the window with Date.now(), so it comes back in milliseconds.
+      expect(result[0]).toMatchObject({ startTime: 1_700_000_000_000, endTime: 1_800_000_000_000 });
     });
 
     it("surfaces unrecognized indexer domains as null instead of coercing to SOLAR", async () => {

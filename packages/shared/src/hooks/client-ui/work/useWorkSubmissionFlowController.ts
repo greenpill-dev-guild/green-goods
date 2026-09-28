@@ -54,6 +54,8 @@ interface PendingLinkRecovery {
     gardenAddress: `0x${string}`;
   };
   error: unknown;
+  /** False when the Work was only saved on this device (a queued outcome) and nothing was sent. */
+  workSent: boolean;
 }
 
 function sameLinkIdentity(left: WorkLinkIntent, right: WorkLinkIntent): boolean {
@@ -119,7 +121,12 @@ export function useWorkSubmissionFlowController({
   const parsedLinkIntent = useMemo(() => parseWorkLinkIntent(searchParams), [searchParams]);
   const hasLinkIntentParams = useMemo(() => hasWorkLinkIntentParams(searchParams), [searchParams]);
   const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
+  // The scheduling gate holds from submit until the link settles: it keeps Upload Work disabled
+  // and pauses draft retirement, which useWorkMutation starts before submit sees the outcome.
+  // Queueing is narrower: the Work has been sent, not only saved on this device, and only its link
+  // is still being queued.
   const [isSchedulingDependentLink, setIsSchedulingDependentLink] = useState(false);
+  const [isQueueingDependentLink, setIsQueueingDependentLink] = useState(false);
   const [linkSchedulingSucceeded, setLinkSchedulingSucceeded] = useState(false);
   const linkChoices = useWorkLinkChoices({
     chainId: DEFAULT_CHAIN_ID,
@@ -281,8 +288,14 @@ export function useWorkSubmissionFlowController({
       workMutation.clearLastSubmissionOutcome();
       await form.uploadWork();
       const outcome = workMutation.getLastSubmissionOutcome();
-      if (!outcome) return false;
+      if (!outcome) {
+        // uploadWork resolves without an outcome when validation stops it: no link to schedule.
+        setIsSchedulingDependentLink(false);
+        return false;
+      }
       if (linkIntent && outcome) {
+        const workSent = outcome.kind !== "queued";
+        setIsQueueingDependentLink(workSent);
         const payload: PendingLinkRecovery["payload"] = {
           clientOperationId: `work-link:${outcome.clientWorkId}:${linkIntent.commitmentId}:${linkIntent.requirementIndex}`,
           commitmentId: linkIntent.commitmentId,
@@ -296,13 +309,14 @@ export function useWorkSubmissionFlowController({
           setPendingLinkRecovery(null);
           setLinkSchedulingSucceeded(true);
         } catch (error) {
-          setPendingLinkRecovery({ intent: linkIntent, payload, error });
+          setPendingLinkRecovery({ intent: linkIntent, payload, error, workSent });
           logger.error("Work submitted but dependent commitment link could not be queued", {
             error,
             source: "GardenFlow",
             clientWorkId: outcome.clientWorkId,
           });
         } finally {
+          setIsQueueingDependentLink(false);
           setIsSchedulingDependentLink(false);
         }
       }
@@ -317,6 +331,7 @@ export function useWorkSubmissionFlowController({
     if (!pendingLinkRecovery) return false;
     setLinkSchedulingSucceeded(false);
     setIsSchedulingDependentLink(true);
+    setIsQueueingDependentLink(pendingLinkRecovery.workSent);
     try {
       await commitmentJobs.enqueue({ act: "workLink", payload: pendingLinkRecovery.payload });
       setPendingLinkRecovery(null);
@@ -326,6 +341,7 @@ export function useWorkSubmissionFlowController({
       setPendingLinkRecovery((current) => (current ? { ...current, error } : current));
       return false;
     } finally {
+      setIsQueueingDependentLink(false);
       setIsSchedulingDependentLink(false);
     }
   }, [commitmentJobs, pendingLinkRecovery]);
@@ -443,6 +459,7 @@ export function useWorkSubmissionFlowController({
     clearLinkIntent,
     selectLinkIntent,
     isSchedulingDependentLink,
+    isQueueingDependentLink,
     linkSchedulingError: pendingLinkRecovery?.error ?? null,
     linkSchedulingSucceeded,
     hasPendingLinkRecovery: pendingLinkRecovery !== null,

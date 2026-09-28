@@ -44,6 +44,11 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", () =
   usePoolConsoleController: () => mocks.controller!,
 }));
 
+// This view proves pool actions; ENS resolution has its own coverage.
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: null }),
+}));
+
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
   useMediaQuery: () => true,
 }));
@@ -573,7 +578,7 @@ describe("GardenPoolTab (W7)", () => {
     mocks.controller = controller({
       pendingCreates: [
         { ...queued, jobId: "job-a", title: "Compost workshop" },
-        { ...queued, jobId: "job-b", title: "Seed swap" },
+        { ...queued, jobId: "job-b", title: "Seed swap", direction: "REQUEST" as const },
       ],
       queuedPhase: (jobId: string) =>
         jobId === "job-b" ? { status: "signing", key: "job-b" } : { status: "idle" },
@@ -582,6 +587,9 @@ describe("GardenPoolTab (W7)", () => {
     const rows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
     expect(within(rows[0]).queryByText("Confirm in your wallet.")).not.toBeInTheDocument();
     expect(within(rows[1]).getByText("Confirm in your wallet.")).toBeInTheDocument();
+    // A queued row wears its direction's edge before the index has it.
+    expect(rows[0]).toHaveClass("border-s-primary-base");
+    expect(rows[1]).toHaveClass("border-s-information-base");
   });
 
   it("accepts a claim directly and declines one with a reason, keyed to the stored claimant", async () => {

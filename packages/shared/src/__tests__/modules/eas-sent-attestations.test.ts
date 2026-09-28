@@ -13,6 +13,7 @@ vi.mock("../../config/blockchain", async (importOriginal) => ({
 vi.mock("../../modules/data/graphql", () => ({ easGraphQL: vi.fn((query) => query) }));
 
 import {
+  getEasIndexedBlock,
   getWorkDecisionsSince,
   getWorkSubmissionsSince,
 } from "../../modules/data/eas-sent-attestations";
@@ -161,5 +162,32 @@ describe("reading a gardener's recent work in one garden", () => {
     expect(decisions).toHaveLength(1);
     expect(decisions[0].decision.workUID).toBe(workUID);
     expect(decisions[0].transactionHash).toBe(TX);
+  });
+});
+
+describe("reading how far EAS has indexed", () => {
+  it("reads the last block whose attestations EAS has written", async () => {
+    query.mockResolvedValue({
+      data: { serviceStats: [{ name: "latestAttestationBlockNum", value: "509484162" }] },
+    });
+
+    await expect(getEasIndexedBlock(42161, reader)).resolves.toBe(509_484_162n);
+    expect(query).toHaveBeenCalledWith(expect.anything(), {}, "getEasIndexedBlock");
+  });
+
+  it("says nothing when EAS keeps no such mark, or keeps one that is not a block", async () => {
+    query.mockResolvedValueOnce({ data: { serviceStats: [] } });
+    await expect(getEasIndexedBlock(42161, reader)).resolves.toBeNull();
+
+    query.mockResolvedValueOnce({
+      data: { serviceStats: [{ name: "latestAttestationBlockNum", value: "soon" }] },
+    });
+    await expect(getEasIndexedBlock(42161, reader)).resolves.toBeNull();
+  });
+
+  it("fails loudly when EAS cannot be read, so no absence rests on an error", async () => {
+    query.mockResolvedValue({ error: new Error("indexer unavailable") });
+
+    await expect(getEasIndexedBlock(42161, reader)).rejects.toBeInstanceOf(EASFetchError);
   });
 });

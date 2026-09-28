@@ -266,6 +266,17 @@ export function directionLabel(
     : formatMessage({ id: "cockpit.garden.pool.row.offer", defaultMessage: "Offer" });
 }
 
+/**
+ * The 3px edge on a commitment row's inline start that tells its direction,
+ * the same edge the app's commitment row draws: offers in the primary tone,
+ * requests in the information tone. The state chips are unchanged.
+ */
+export function directionEdgeClass(direction: CommitmentReadModel["direction"]): string {
+  return direction === "REQUEST"
+    ? "border-s-[3px] border-s-information-base"
+    : "border-s-[3px] border-s-primary-base";
+}
+
 export function shortAddress(address: string | null | undefined): string {
   if (!address) return "";
   return `${address.slice(0, 6)}…${address.slice(-4)}`;

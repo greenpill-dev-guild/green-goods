@@ -9,7 +9,7 @@ import {
   commitmentComposerDraftKey,
   useCommitmentComposerDraftStore,
 } from "../../../stores/useCommitmentComposerDraftStore";
-import type { Address } from "../../../types/domain";
+import type { Action, Address } from "../../../types/domain";
 import {
   DEMO_CHAIN_ID,
   DEMO_GARDEN,
@@ -17,10 +17,12 @@ import {
   TUNDE,
 } from "../../../modules/commitment-pooling/demo/demo-builders";
 import { cycleFixture, poolFixture } from "../../test-utils/commitment-pooling-fixtures";
+import { createMockAction } from "../../test-utils/mock-factories";
 
 type Enqueue = (input: CommitmentJobInput) => Promise<string>;
 
 const mocks = vi.hoisted(() => ({
+  actions: [] as Action[],
   viewer: null as Address | null,
   isOnline: true,
   pools: [] as ReturnType<typeof poolFixture>[],
@@ -63,7 +65,7 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
 }));
 
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
-  useActions: () => ({ data: [] }),
+  useActions: () => ({ data: mocks.actions }),
   useGardens: () => ({ data: [{ id: DEMO_GARDEN, name: "Green Goods Garden" }] }),
 }));
 
@@ -93,6 +95,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
   useCommitmentComposerDraftStore.setState({ drafts: {} });
+  mocks.actions = [];
   mocks.viewer = TUNDE;
   mocks.isOnline = true;
   mocks.pools = [poolFixture()];
@@ -220,6 +223,41 @@ describe("useCommitmentComposerController", () => {
       )
     ).toEqual([clientId, clientId]);
     expect(result.current.placed).toBe(true);
+  });
+
+  it("flags a chosen action once its window ends, and places it only while open", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      const prune = createMockAction({ id: `${DEMO_CHAIN_ID}-44`, endTime: Date.now() + 60_000 });
+      mocks.actions = [prune];
+      const { result, rerender } = renderController();
+      act(() => {
+        result.current.form.setValue("title", "Prune the north beds", { shouldDirty: true });
+        result.current.form.setValue("requirements", [{ actionUID: "44", requiredCount: 1 }], {
+          shouldDirty: true,
+        });
+      });
+      expect(result.current.openActions).toEqual([prune]);
+      expect(result.current.closedActionUIDs).toEqual([]);
+
+      // Nothing re-renders the composer here: the clock ticks at the window's end.
+      act(() => {
+        vi.advanceTimersByTime(60_001);
+      });
+      expect(result.current.openActions).toEqual([]);
+      expect(result.current.closedActionUIDs).toEqual(["44"]);
+      await act(async () => expect(result.current.place()).resolves.toBe(false));
+      expect(mocks.enqueue).not.toHaveBeenCalled();
+
+      // The stewards extend the window, and the same commitment places.
+      mocks.actions = [{ ...prune, endTime: Date.now() + 60_000 }];
+      rerender();
+      expect(result.current.closedActionUIDs).toEqual([]);
+      await act(async () => expect(result.current.place()).resolves.toBe(true));
+      expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it.each([

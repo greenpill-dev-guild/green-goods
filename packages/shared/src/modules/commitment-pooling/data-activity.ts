@@ -50,6 +50,12 @@ export async function getCommitmentActivity(
     commitmentId?: bigint;
     limit?: number;
     offset?: number;
+    /**
+     * Read on from after this row in the log's order (newest first, then by id):
+     * a cursor keeps its place when rows are added or rolled back between
+     * pages, where an offset shifts.
+     */
+    before?: { timestamp: number; id: string };
   },
   reader: GraphQLReader = greenGoodsIndexer
 ): Promise<CommitmentEventRecord[]> {
@@ -70,6 +76,14 @@ export async function getCommitmentActivity(
       clauses.push(`${field}: { _eq: $${field} }`);
       variables[field] = value.toString();
     }
+  }
+  if (input.before) {
+    declarations.push("$beforeTimestamp: Int!", "$beforeId: String!");
+    clauses.push(
+      "_or: [{ timestamp: { _lt: $beforeTimestamp } }, { timestamp: { _eq: $beforeTimestamp }, id: { _lt: $beforeId } }]"
+    );
+    variables.beforeTimestamp = input.before.timestamp;
+    variables.beforeId = input.before.id;
   }
   const query = `query CommitmentActivity(${declarations.join(", ")}) { CommitmentEvent(where: { ${clauses.join(", ")} }, order_by: [{ timestamp: desc }, { id: desc }], limit: $limit, offset: $offset) { ${EVENT_FIELDS} } }`;
   return (

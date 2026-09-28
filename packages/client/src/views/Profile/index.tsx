@@ -2,6 +2,8 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { formatEnsNameForDisplay, chosenPasskeyUsername } from "@green-goods/shared/utils/app/text";
 import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useENSRegistrationStatus } from "@green-goods/shared/hooks/ens/useENSRegistrationStatus";
 import { useGardenerProfile } from "@green-goods/shared/hooks/gardener/useGardenerProfile";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useElementHeight } from "@green-goods/shared/hooks/utils/useElementHeight";
@@ -40,7 +42,16 @@ const Profile: React.FC = () => {
 
   // ENS resolution - called directly here since we're inside QueryClientProvider
   const { data: ensName } = useEnsName(primaryAddress);
-  const displayEnsName = formatEnsNameForDisplay(ensName);
+  const { data: greenGoodsName } = useGreenGoodsEnsName(primaryAddress);
+  const { data: registration } = useENSRegistrationStatus(
+    greenGoodsName?.replace(/\.greengoods\.eth$/, "")
+  );
+  const confirmedGreenGoodsName =
+    registration?.status === "active" &&
+    registration.registration?.owner.toLowerCase() === primaryAddress?.toLowerCase()
+      ? greenGoodsName
+      : null;
+  const displayEnsName = formatEnsNameForDisplay(confirmedGreenGoodsName || ensName);
 
   const fallbackDisplayName = intl.formatMessage({
     id: "app.profile.displayNameFallback",

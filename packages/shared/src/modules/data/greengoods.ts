@@ -16,6 +16,7 @@ import {
   normalizeActionTranslations,
 } from "../../utils/action/translations";
 import { defaultTemplate, instructionTemplates } from "../../utils/action/templates";
+import { assertRecordedInputDefinitions } from "../../utils/action/input-validation";
 import { logger } from "../app/logger";
 import { greenGoodsGraphQL, type ResultOf } from "./graphql";
 import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
@@ -142,7 +143,7 @@ function normalizeInstructionConfig(
   };
 }
 
-function getActionInstructionFallback(slug: string): ActionInstructionConfig {
+export function getActionInstructionFallback(slug: string): ActionInstructionConfig {
   const template = instructionTemplates[slug] ?? defaultTemplate;
   return cloneInstructionConfig(template);
 }
@@ -173,27 +174,30 @@ function parseActionInstructionCandidate(
   };
 }
 
-async function parseInstructionMetadata(
+export async function parseInstructionMetadata(
   data: Blob | string,
-  fallbackConfig: ActionInstructionConfig
+  fallbackConfig: ActionInstructionConfig,
+  requireInputs = false
 ): Promise<ParsedActionInstructionMetadata> {
-  if (typeof data === "string") {
-    return parseActionInstructionCandidate(JSON.parse(data), fallbackConfig);
+  const text = typeof data === "string" ? data : data instanceof Blob ? await data.text() : null;
+  if (text !== null) {
+    const candidate = JSON.parse(text);
+    if (requireInputs) assertRecordedInputDefinitions(candidate);
+    return parseActionInstructionCandidate(candidate, fallbackConfig);
   }
-  if (data instanceof Blob) {
-    const text = await data.text();
-    return parseActionInstructionCandidate(JSON.parse(text), fallbackConfig);
-  }
+  if (requireInputs) throw new Error("Action instructions are unavailable");
   return { config: cloneInstructionConfig(fallbackConfig) };
 }
 
 /** Fetches action definitions from the indexer and enriches media + UI config. */
-export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Promise<Action[]> {
+export async function getActions(
+  reader: GraphQLReader = greenGoodsIndexer,
+  { chainId = DEFAULT_CHAIN_ID, actionIds }: { chainId?: number; actionIds?: string[] } = {}
+): Promise<Action[]> {
   try {
-    const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
-      query Actions($chainId: Int!) {
-        Action(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 100) {
+      query Actions($where: Action_bool_exp!) {
+        Action(where: $where, order_by: {createdAt: desc}, limit: 100) {
           id
           chainId
           startTime
@@ -209,7 +213,11 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
       }
     `);
 
-    const { data, error } = await reader.query(QUERY, { chainId }, "getActions");
+    const { data, error } = await reader.query(
+      QUERY,
+      { where: { chainId: { _eq: chainId }, ...(actionIds ? { id: { _in: actionIds } } : {}) } },
+      "getActions"
+    );
 
     if (error) throw error;
 
