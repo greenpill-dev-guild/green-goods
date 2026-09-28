@@ -12,7 +12,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { createConnection } from "node:net";
-import { dirname, resolve } from "node:path";
+import { delimiter, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
@@ -557,9 +557,21 @@ const RECEIPT_IGNORED_VARIABLES = new Set([
 ]);
 const RECEIPT_IGNORED_PATTERN = /^(?:NVM_\w+|GREEN_GOODS_\w+_REEXEC)$/;
 
-/** The exact environment a check's process receives. */
+/**
+ * The exact environment a check's process receives. Check commands call package binaries by name
+ * (`design.md`, `vitest`), as package scripts do, so the check's own node_modules/.bin and the
+ * repository's lead PATH: `bun run` and Husky's shim do the same, and a manual run of the gate must
+ * resolve them like the hook does.
+ */
 export function checkEnvironment(check, baseEnvironment = process.env) {
-  return { ...baseEnvironment, ...envForCheck(check) };
+  const packageBinaries = [
+    ...new Set([
+      resolve(projectRoot, check.cwd ?? ".", "node_modules/.bin"),
+      resolve(projectRoot, "node_modules/.bin"),
+    ]),
+  ];
+  const path = [...packageBinaries, baseEnvironment.PATH].filter(Boolean).join(delimiter);
+  return { ...baseEnvironment, ...envForCheck(check), PATH: path };
 }
 
 /** A digest of the variables that can change a check's result; values never leave the hash. */

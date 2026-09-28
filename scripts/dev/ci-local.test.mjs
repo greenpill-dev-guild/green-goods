@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import test from "node:test";
 
 import { clearRepositoryLocalGitVariables, fixtureGitEnvironment } from "../lib/dev-shared.js";
@@ -13,6 +13,7 @@ import {
   arbitrumForkAvailable,
   buildLocalValidationPlan,
   capabilityRecoveryHint,
+  checkEnvironment,
   executePlan,
   ignoredConfigurationFingerprint,
   isPinnedCiNodeVersion,
@@ -784,6 +785,30 @@ test("a changed variable reruns a real command instead of replaying its pass", a
   const changed = await execute("9");
   assert.equal(changed.status, "failed");
   assert.equal(changed.results[0].exitCode, 42);
+});
+
+test("a check finds package binaries without the caller putting node_modules/.bin on PATH", async (t) => {
+  // design-guardrails calls `design.md` and fork-fixtures-test calls `vitest` by name, as package
+  // scripts do. Husky's shim puts node_modules/.bin on PATH, so they passed in the hook and failed
+  // with exit 127 in a manual run of the same gate.
+  const packageDirectory = mkdtempSync(join(tmpdir(), "validation-package-bin-"));
+  t.after(() => rmSync(packageDirectory, { recursive: true, force: true }));
+  mkdirSync(join(packageDirectory, "node_modules/.bin"), { recursive: true });
+  const probe = join(packageDirectory, "node_modules/.bin/gg-package-probe");
+  writeFileSync(probe, "#!/bin/sh\nexit 0\n");
+  chmodSync(probe, 0o755);
+  const shellPath = (process.env.PATH ?? "")
+    .split(delimiter)
+    .filter((entry) => !entry.includes("node_modules/.bin"))
+    .join(delimiter);
+  const check = { id: "package-probe", command: "gg-package-probe", cwd: packageDirectory };
+  const environment = checkEnvironment(check, { ...process.env, PATH: shellPath });
+  const result = await runCommandCheck(check, { captureOutput: true, environment });
+  assert.equal(result.exitCode, 0);
+  // Hoisted binaries live at the repository root, and the check's own directory comes first.
+  const entries = environment.PATH.split(delimiter);
+  assert.equal(entries[0], join(packageDirectory, "node_modules/.bin"));
+  assert.ok(entries.includes(join(dirname(dirname(import.meta.dirname)), "node_modules/.bin")));
 });
 
 test("legacy and selector arguments remain parseable", () => {
