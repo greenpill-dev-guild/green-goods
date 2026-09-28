@@ -2,9 +2,9 @@
 
 **Feature Slug**: `design-system-alignment-review`
 **Stage**: `backlog`
-**Status**: `BACKLOG`
+**Status**: `CLOSED — every PRD-644 done-when item shipped by 2026-08-30; PR #910 finished the admin type scale and colours`
 **Created**: `2026-04-25`
-**Last Updated**: `2026-08-29`
+**Last Updated**: `2026-09-27`
 **Linear Issue**: PRD-644
 **Linear Source**: source:plans
 
@@ -160,3 +160,26 @@ Afo accepted the full audit menu. Executed on develop, commits `f4ac05a33`…`08
 - [x] Close report: `reports/2026-08-30-adoption-remediation-close.md` — **95/100**
 
 Validation receipt (close, commit `0855bea9a` + sync working set): admin 817/817 · client 974/974 · shared 4450/18skip · typecheck:source+tests clean · design-tokens/design-md/guidance-links/skill-behavior/source-structure green · play suite 193/193 on clean rerun (first run dropped 3 in the known load-flake class).
+
+## Closeout (2026-09-27)
+
+Closed as `closed`. The review's four done-when items in PRD-644 all shipped on `develop` between
+2026-08-29 and 2026-08-30: the parallel shadow ladder is retired, `check:design-tokens` guards the
+four blind spots, every primitive has a visible keyboard-focus state on `--tone-focus-ring`, and
+the component canon matches the shipped library (the adoption close report scored 95/100). The
+client PWA, public site, docs, Storybook and agent-guidance rounds ran too; their boxes are ticked
+above, which supersedes the older notes in the research gate that still list those surfaces and
+`lint:vocab` as open. PR #910 (merged 2026-09-26, from the `steward-cockpit-ux` hub) then retired
+named-debt item 1: every raw admin type size and view-level M3 colour moved onto the scale and the
+Warm Earth aliases, with a ratchet holding both at zero.
+
+This closes as `closed` rather than `completed` because the `ui` lane never wrote its handoff or a
+clean-commit receipt, and the QA lane never ran; the round reports under `reports/` are the record.
+
+Still open, from the close report's remaining named debt:
+- The row and card-as-button sites waiting on an interactive-row primitive → the
+  `check:design-tokens` baseline, which can only shrink and fails when an entry goes stale.
+- The shared `Textarea` and text-link button in `WorkDetail/ReviewForm.tsx` → folded in by the next
+  change to that file, under the as-touched policy.
+- Two multiline defaultMessage divergences → dropped as cosmetic.
+- The Cynefin radio cards' three-line anatomy → not debt; kept deliberately.

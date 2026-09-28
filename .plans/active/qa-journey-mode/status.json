@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-03T08:26:11Z",
-    "updated_at": "2026-09-03T23:21:34Z"
+    "updated_at": "2026-09-28T02:47:41.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -165,6 +165,14 @@
       "status": "ready",
       "branch": "feature/qa-journey-mode",
       "note": "Marked the QA pass ready after its UI, state API, and contract dependencies reached terminal states. Redeployment and the two-wallet smoke remain this lane's release proof."
+    },
+    {
+      "timestamp": "2026-09-28T02:47:41.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "Closed as closed: Journey Mode shipped in PR #796 (2026-09-04) and has been in every QA-app deploy since. Neither QA lane ran; the two-wallet walk moves to the QA catalog and the pinned readiness gate is dropped."
     }
   ]
 }

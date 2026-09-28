@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-09T01:57:56.995Z",
-    "updated_at": "2026-09-14T10:30:00.000Z"
+    "updated_at": "2026-09-28T02:49:28.770Z"
   },
   "links": {
     "brief": "brief.md",
@@ -23,7 +23,7 @@
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": null,
+    "lastSyncedAt": "2026-09-28T02:49:28.770Z",
     "lanes": {},
     "laneSyncMode": "parent_only"
   },
@@ -143,6 +143,22 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-09-28T02:47:41.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "Closed as closed: shipped in 7bb26ff86 and PR #827 (merged 2026-09-16), confirmed complete by Afo. Lanes lack clean-commit receipts; installed-device acceptance moves to the QA catalog."
+    },
+    {
+      "timestamp": "2026-09-28T02:49:28.770Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
     }
   ]
 }

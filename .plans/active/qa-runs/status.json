@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-05T04:08:09.130Z",
-    "updated_at": "2026-09-07T22:19:25.272Z"
+    "updated_at": "2026-09-28T02:49:28.364Z"
   },
   "links": {
     "brief": "brief.md",
@@ -23,7 +23,7 @@
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": null,
+    "lastSyncedAt": "2026-09-28T02:49:28.364Z",
     "lanes": {},
     "laneSyncMode": "parent_only"
   },
@@ -211,6 +211,22 @@
       "status": "passed",
       "branch": "feature/qa-runs",
       "note": "Run select, compare, Re-QA, rollover, and queue re-targeting implemented with JSDOM proof and a local rehearsal; deployed rendered proof is qa_pass_1"
+    },
+    {
+      "timestamp": "2026-09-28T02:47:41.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "Closed as closed: shipped in PRs #805-#808 and #810 (merged 2026-09-08); runs have been the team's QA record since. QA lanes never recorded receipts; two unrequested fast-follows are dropped."
+    },
+    {
+      "timestamp": "2026-09-28T02:49:28.364Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
     }
   ]
 }

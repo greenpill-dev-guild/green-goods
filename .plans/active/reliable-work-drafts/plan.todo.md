@@ -2,10 +2,10 @@
 
 **Feature Slug**: `reliable-work-drafts`
 **Stage**: `active`
-**Status**: ACTIVE — implementation complete; installed-device acceptance remains
+**Status**: `CLOSED — shipped in 7bb26ff86 and PR #827; installed-device acceptance moves to the QA catalog`
 **Linear Issue**: PRD-920
 **Created**: 2026-09-09
-**Last Updated**: 2026-09-21
+**Last Updated**: 2026-09-27
 
 The dated acceptance section below (`## Reliable offline submission and browsing — accepted
 2026-09-12`) records what the user approved on that date and keeps its own date.
@@ -79,3 +79,28 @@ in [spec.md](spec.md#revised-offline-preparation-accepted-2026-09-14).
 - [x] Move offline status to the Settings row with one-line title and two status lines; keep only offline and refresh-failure lines in gardens; render 50 works with "Show older work"; en/es/pt copy.
 - [ ] Measure on an installed Android phone before and after: time to first work photo, long tasks, gateway requests by initiator, cache entry counts, banner text during a run.
 - [ ] Confirm the photo cache contract on the installed app: prepared photos open offline, the legacy cache retires after a complete run, Data Saver holds photos.
+
+## Closeout (2026-09-27)
+
+Closed as `closed`. All three accepted scopes shipped to `develop`: durable drafts and resumable
+uploads in `7bb26ff86` (2026-09-09), then reliable offline submission, background preparation and
+the online browsing repair in PR #827 (merged 2026-09-16). PR #898 (2026-09-24) later stopped a
+stalled IndexedDB from holding every query. Afo confirmed the work complete, and PRD-920 went Done
+on 2026-09-17.
+
+Several implementation boxes above were never ticked although their work shipped:
+`handoffs/codex-state-api.md` records atomic draft snapshots with stable attachment identities and
+legacy recovery, persisted upload checkpoints, and wallet retries that keep the original submission
+ID. This closes as `closed` rather than `completed` because the `ui` and `state_api` lanes never
+recorded clean-commit validation receipts (the handoff says its automated evidence predates the
+commit), and neither QA lane ran.
+
+Still open:
+- Installed Android and iOS acceptance: airplane mode, close and reopen, reconnect → the QA
+  catalog rows PWA-AND-004, PWA-AND-007, PWA-AND-008, PWA-IOS-004, PWA-IOS-005 and PWA-IOS-006,
+  walked in the next open run with an installed app.
+- The photo cache contract (prepared photos open offline, the legacy cache retires, Data Saver
+  holds photos) → no catalog row covers it yet; recorded on PRD-920 so the next QA call adds one.
+- Authenticated Brave recovery proof → covered by the same catalog walk, which uses real sessions.
+- Before-and-after measurements on an installed Android phone → dropped: every install has
+  upgraded past #827, so the "before" build no longer exists to measure.

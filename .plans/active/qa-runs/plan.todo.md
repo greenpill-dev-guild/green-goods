@@ -2,9 +2,9 @@
 
 **Feature Slug**: `qa-runs`
 **Stage**: `active`
-**Status**: IN PROGRESS (all lanes serial in one Claude session on `feature/qa-runs`)
+**Status**: `CLOSED — shipped in PRs #805–#808 and #810 (merged 2026-09-08); runs have been the team's QA record since`
 **Created**: 2026-09-05
-**Last Updated**: 2026-09-07 (implementation complete on `feature/qa-runs`; PWA catalog second pass on `feature/qa-runs-pwa-split`; admin, public, and docs third pass on `feature/qa-runs-catalog-third-pass`; C19 area re-cut on `feature/qa-runs-area-recut`; Tuesday smoke pending)
+**Last Updated**: 2026-09-27
 
 ## Requirements Coverage
 
@@ -71,3 +71,27 @@
 
 - `bun run test:agent-tools`, `bun run test:review-guardrails`, `bun run check:docs-generated`
 - `bun run validation:plan -- --intent push` before the push gate
+
+## Closeout (2026-09-27)
+
+Closed as `closed`. Shipped in PRs #805, #806, #807 and #808 plus the review-fix PR #810, merged
+top-down into `develop` on 2026-09-08 (merge `6fbbc8592`); PRD-878 went Done the same day. The
+run-versioned store has been the team's QA record since: Run 1 is the baseline, Run 2 is the
+2026-09-08 re-QA (closed), and Run 3 is open for Commitment Pooling. Two production repairs landed
+on this store afterwards: #869 accepts the store's weak ETag so a grown shard can still be written,
+and #870 asks before sending stranded work into a run it was never recorded in.
+
+This closes as `closed` rather than `completed` because `qa_pass_1` and `qa_pass_2` never recorded
+receipts. The two-tester re-QA that step 6 describes did happen, as Run 2, but nobody wrote it into
+`handoffs/claude-qa-pass-1.md`, so the lane stays uncertified instead of being certified after the
+fact. `ui` and `state_api` keep their receipts. Of the three fast-follow candidates in
+`handoffs/claude-state-api.md`, the de-listed-tester roster shipped in the #805 review round
+(`listShardAddresses` unions each run's shard prefix with the allowlist).
+
+Still open:
+- `qa:status --run` → dropped: a fast-follow candidate from 2026-09-07 that nothing has asked for
+  since. Reopen as a Linear issue if a QA call needs it.
+- A `--previous <run id>` shorthand for `qa:report` → dropped for the same reason; `--previous`
+  keeps taking the pulled `qa-state.json` path.
+- Ownership of the next catalog change → the plan hub of the feature whose behaviour the cases
+  test; `qa-triage` now says so instead of naming this hub.

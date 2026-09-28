@@ -2,9 +2,9 @@
 
 **Feature Slug**: `qa-journey-mode`
 **Stage**: `active`
-**Status**: `ACTIVE`
+**Status**: `CLOSED — shipped in PR #796 (merged 2026-09-04); the two-wallet smoke was never recorded`
 **Created**: 2026-09-03
-**Last Updated**: 2026-09-03
+**Last Updated**: 2026-09-27
 
 ## Requirements Coverage
 
@@ -36,3 +36,22 @@
 - Contract, settlement, indexer, Admin, and Client behavior changes.
 - Changes to QA wallet identity or Blob persistence.
 - Product fixes found during the human rehearsal.
+
+## Closeout (2026-09-27)
+
+Closed as `closed`. Journey Mode shipped in PR #796 (merged 2026-09-04, `3f735bc7f`). The QA app
+deploys from `develop` whenever `packages/qa` changes, and it has changed thirteen times since, so
+the deployed app has carried Journey Mode for over three weeks; the redeploy step above happened
+without being recorded here.
+
+This closes as `closed` rather than `completed` because neither QA lane ran. The `qa_pass_1` status
+note made this hub's smoke depend on the `qa-runs` hub recording its 2026-09-08 smoke, and that
+record was never written, so this lane stayed `ready` with nothing left to trigger it. `ui` keeps
+its receipt.
+
+Still open:
+- The two-wallet service-relay walk → the QA catalog: walk it as a journey in the next open run
+  instead of as a lane of this hub.
+- The production-readiness gate after the review fixes (`qa_pass_2`) → dropped: a gate pinned to
+  the 2026-09-03 review fixes no longer describes the deployed code, which thirteen later changes
+  have moved on; each QA-app change is judged by its own push gate and CI.
