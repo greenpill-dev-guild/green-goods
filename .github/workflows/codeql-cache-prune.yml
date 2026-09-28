@@ -4,9 +4,9 @@ name: CodeQL Cache Prune
 # each analysis of develop, keyed by commit. Pull requests restore one by key prefix, which returns
 # the newest match, so the older databases are never read again. Left alone they filled the
 # repository's 10 GB cache and pushed out the Foundry caches the contracts jobs rely on. Every hour
-# this deletes all overlay-base databases except the newest per branch and restore key. The rule
-# and its tests live in scripts/ops/prune-codeql-caches.mjs; the tests run first, so a broken rule
-# fails the job before anything is deleted.
+# this deletes all overlay-base databases except the newest per branch, restore key and cache
+# version. The rule and its tests live in scripts/ops/prune-codeql-caches.mjs; the tests run first,
+# so a broken rule fails the job before anything is deleted.
 
 on:
   schedule:

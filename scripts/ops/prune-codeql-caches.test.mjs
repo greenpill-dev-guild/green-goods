@@ -3,10 +3,11 @@ import test from "node:test";
 
 import { pruneOverlayDatabases, unreachableOverlayDatabases } from "./prune-codeql-caches.mjs";
 
-const overlay = ({ id, created, ref = "refs/heads/develop", language = "javascript", cli = "2.27.1" }) => ({
+const overlay = ({ id, created, ref = "refs/heads/develop", language = "javascript", cli = "2.27.1", version = "3d4b1a2c" }) => ({
   id,
   ref,
   key: `codeql-overlay-base-database-1-c801913f1ee29663-${language}-${cli}-${String(id).padStart(40, "a")}-${36486988000 + id}-1`,
+  version,
   created_at: created,
   size_in_bytes: 450 * 1048576,
 });
@@ -24,14 +25,18 @@ test("keeps only the newest database per branch and restore key", () => {
   assert.deepEqual(ids(unreachableOverlayDatabases(caches)), [1, 2, 4]);
 });
 
-test("each language and CLI version is its own restore key", () => {
+test("each language set, CLI version and cache version keeps its own newest", () => {
   const caches = [
     overlay({ id: 1, created: "2026-09-27T10:00:00Z" }),
     overlay({ id: 2, created: "2026-09-28T10:00:00Z" }),
     overlay({ id: 3, created: "2026-09-27T11:00:00Z", cli: "2.28.0" }),
     overlay({ id: 4, created: "2026-09-27T12:00:00Z", language: "python" }),
+    overlay({ id: 6, created: "2026-09-26T12:00:00Z", language: "javascript_python" }),
+    // A restore only matches a cache of its own version, so the newest of each version stays.
+    overlay({ id: 5, created: "2026-09-26T09:00:00Z", version: "9e8f7a6b" }),
+    overlay({ id: 7, created: "2026-09-27T09:00:00Z", version: "9e8f7a6b" }),
   ];
-  assert.deepEqual(ids(unreachableOverlayDatabases(caches)), [1]);
+  assert.deepEqual(ids(unreachableOverlayDatabases(caches)), [1, 5]);
 });
 
 test("never selects a cache whose key it does not recognise", () => {
@@ -41,6 +46,13 @@ test("never selects a cache whose key it does not recognise", () => {
     { id: 12, ref: "refs/heads/develop", key: "codeql-trap-1-2.27.1-javascript-0123abcd", created_at: "2026-09-20T00:00:00Z" },
     // An overlay key without the commit, run and attempt this expects.
     { id: 13, ref: "refs/heads/develop", key: "codeql-overlay-base-database-2-javascript-2.27.1", created_at: "2026-09-20T00:00:00Z" },
+    // Nightly CLI versions share a prefix but are not a stable x.y.z, so neither is pruned.
+    ...[14, 15].map((id) => ({
+      id,
+      ref: "refs/heads/develop",
+      key: `codeql-overlay-base-database-1-c801913f1ee29663-javascript-2.27.2+202609201548-${String(id).padStart(40, "b")}-${36486988000 + id}-1`,
+      created_at: `2026-09-2${id - 10}T00:00:00Z`,
+    })),
   ];
   const caches = [...unrecognised, overlay({ id: 1, created: "2026-09-28T21:40:00Z" })];
   assert.deepEqual(unreachableOverlayDatabases(caches), []);
