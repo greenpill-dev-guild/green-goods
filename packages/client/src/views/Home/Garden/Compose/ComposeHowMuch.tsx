@@ -21,6 +21,10 @@ export interface ComposeHowMuchProps {
   chainId: number;
   /** The garden's registered actions, for garden work. */
   actions: Action[];
+  /** The actions that can take work now, which are the ones offered. */
+  openActions: Action[];
+  /** Chosen actions whose window has ended since they were chosen. */
+  closedActionUIDs: readonly string[];
 }
 
 /**
@@ -36,7 +40,13 @@ export interface ComposeHowMuchProps {
  * An asker also says who may take it up: anyone here, or only someone the
  * stewards review. An offer is open to be taken by definition.
  */
-export function ComposeHowMuch({ form, chainId, actions }: ComposeHowMuchProps) {
+export function ComposeHowMuch({
+  form,
+  chainId,
+  actions,
+  openActions,
+  closedActionUIDs,
+}: ComposeHowMuchProps) {
   const { formatMessage } = useIntl();
   const direction = useWatch({ control: form.control, name: "direction" });
   const kind = useWatch({ control: form.control, name: "kind" });
@@ -160,7 +170,15 @@ export function ComposeHowMuch({ form, chainId, actions }: ComposeHowMuchProps) 
         </p>
       </fieldset>
 
-      {isGardenWork ? <ComposeActionRail form={form} chainId={chainId} actions={actions} /> : null}
+      {isGardenWork ? (
+        <ComposeActionRail
+          form={form}
+          chainId={chainId}
+          actions={actions}
+          openActions={openActions}
+          closedActionUIDs={closedActionUIDs}
+        />
+      ) : null}
 
       {isRequest ? (
         <fieldset>

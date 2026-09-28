@@ -9,7 +9,6 @@ import {
   MAX_COMMITMENT_REQUIREMENTS,
 } from "@green-goods/shared/commitment-pooling";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
-import { useMemo } from "react";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
 
@@ -20,8 +19,16 @@ const ROW_COUNT_CHOICES = [1, 2, 4] as const;
 export interface ComposeActionRailProps {
   form: UseFormReturn<CommitmentComposerValues>;
   chainId: number;
-  /** The garden's registered actions, for garden work. */
+  /** The garden's registered actions, which name the chosen rows. */
   actions: Action[];
+  /**
+   * The actions that can take work now, which are the ones offered: Work is
+   * refused outside an action's window, so a commitment kept by one outside it
+   * could not be kept.
+   */
+  openActions: Action[];
+  /** Chosen actions whose window has ended; each stays listed, marked closed, until removed. */
+  closedActionUIDs: readonly string[];
 }
 
 /**
@@ -31,14 +38,13 @@ export interface ComposeActionRailProps {
  * module's ceiling is a validation limit, never a number a member is shown
  * as a plan.
  */
-export function ComposeActionRail({ form, chainId, actions: allActions }: ComposeActionRailProps) {
-  // Work is refused outside an action's window, so a commitment kept by an
-  // expired or not-yet-open action could never be kept. The same filter the
-  // Work composer applies.
-  const actions = useMemo(() => {
-    const now = Date.now();
-    return allActions.filter((action) => now >= action.startTime && now <= action.endTime);
-  }, [allActions]);
+export function ComposeActionRail({
+  form,
+  chainId,
+  actions,
+  openActions,
+  closedActionUIDs,
+}: ComposeActionRailProps) {
   const { formatMessage } = useIntl();
   const requirements = useWatch({ control: form.control, name: "requirements" });
   const isRequest = useWatch({ control: form.control, name: "direction" }) === "REQUEST";
@@ -93,13 +99,13 @@ export function ComposeActionRail({ form, chainId, actions: allActions }: Compos
         </p>
       ) : null}
 
-      {actions.length === 0 ? (
+      {openActions.length === 0 ? (
         <p className="mt-3 text-sm text-text-sub-600">
           {formatMessage({ id: "app.compose.proof.noActions" })}
         </p>
       ) : (
         <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1">
-          {actions.map((action) => {
+          {openActions.map((action) => {
             const row = rowFor(action);
             const selected = Boolean(row);
             return (
@@ -163,6 +169,11 @@ export function ComposeActionRail({ form, chainId, actions: allActions }: Compos
                   icon={<RiCloseLine aria-hidden="true" />}
                 />
               </div>
+              {closedActionUIDs.includes(row.actionUID) ? (
+                <p className="mt-1 text-xs text-error-base">
+                  {formatMessage({ id: "app.compose.proof.closed" })}
+                </p>
+              ) : null}
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 {ROW_COUNT_CHOICES.map((count) => (
                   <Chip
