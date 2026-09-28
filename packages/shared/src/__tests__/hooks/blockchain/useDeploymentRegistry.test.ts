@@ -1,6 +1,6 @@
 /**
  * useDeploymentRegistry Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the deployment registry permission-checking hook. This hook creates a
  * viem PublicClient and reads on-chain state (owner, isInAllowlist) to determine

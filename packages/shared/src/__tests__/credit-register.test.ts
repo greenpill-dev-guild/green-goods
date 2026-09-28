@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";

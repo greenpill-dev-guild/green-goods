@@ -4,7 +4,7 @@ vi.mock("../../modules/job-queue/draft-db", () => ({
   draftDB: { getDraft: vi.fn(), updateDraft: vi.fn() },
 }));
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * useWorkMutation Hook Tests
  *

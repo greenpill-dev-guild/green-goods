@@ -1,6 +1,6 @@
 /**
  * useGardenUrlSync Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests URL <-> store synchronization for the canvas garden navigation.
  */

@@ -1,6 +1,6 @@
 /**
  * useBatchListForYield Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests batch listing creation: progress tracking, validation,
  * and interface contract.

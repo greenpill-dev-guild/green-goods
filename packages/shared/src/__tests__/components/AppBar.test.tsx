@@ -5,7 +5,7 @@
  * sheet context mode with back arrow, renders action buttons with
  * correct aria labels, and conditionally renders the profile icon button.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen } from "@testing-library/react";

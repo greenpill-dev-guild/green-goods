@@ -1,3 +1,4 @@
+// jsdom pin (happy-dom A/B): asserts size 13, the length of "[object Blob]" that jsdom's File makes from Node's Blob; happy-dom keeps the 14 real bytes.
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const media = vi.hoisted(() => ({

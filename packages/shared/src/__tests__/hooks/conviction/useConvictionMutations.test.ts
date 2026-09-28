@@ -1,6 +1,6 @@
 /**
  * Conviction Voting Mutation Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests mutation hooks (write operations) and error paths for query hooks.
  * Covers: useSetConvictionStrategies, useAllocateHypercertSupport,

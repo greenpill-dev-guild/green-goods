@@ -1,6 +1,6 @@
 /**
  * useMyWorks Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the user works query hook including online fetching,
  * offline merging, deduplication, time filtering, and pagination.

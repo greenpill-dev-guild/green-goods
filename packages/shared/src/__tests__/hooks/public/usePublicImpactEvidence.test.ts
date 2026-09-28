@@ -1,6 +1,6 @@
 /**
  * usePublicImpactEvidence Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { waitFor } from "@testing-library/react";

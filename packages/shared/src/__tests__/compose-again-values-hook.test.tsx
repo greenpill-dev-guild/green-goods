@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 /**
  * useComposeAgainValues — who may start from which commitment.

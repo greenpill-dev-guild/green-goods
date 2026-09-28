@@ -1,6 +1,6 @@
 /**
  * useEnsQuery Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the generic ENS query hook that underpins useEnsName, useEnsAddress, etc.
  * Validates input normalization, validator-based enabling, and caching behavior.

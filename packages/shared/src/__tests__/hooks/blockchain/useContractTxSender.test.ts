@@ -1,6 +1,6 @@
 /**
  * useContractTxSender Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the contract transaction sender that branches between
  * passkey (smart account) and wallet (wagmi) auth modes.

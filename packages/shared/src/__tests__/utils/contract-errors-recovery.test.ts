@@ -1,7 +1,7 @@
 /**
  * Tests for contract error recovery fields
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, expect, it } from "vitest";

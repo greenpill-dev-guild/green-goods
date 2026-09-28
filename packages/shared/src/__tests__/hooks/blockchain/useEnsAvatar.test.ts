@@ -1,6 +1,6 @@
 /**
  * useEnsAvatar Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests ENS avatar resolution with local caching. Unlike useEnsName/useEnsAddress,
  * this hook uses useQuery directly (not useEnsQuery) because it integrates with

@@ -1,6 +1,6 @@
 /**
  * Garden Community & Pools Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests useGardenCommunity and useGardenPools hooks after the subgraph refactor.
  * These hooks use a dual-path pattern:

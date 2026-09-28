@@ -1,6 +1,6 @@
 /**
  * Yield Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests useAllocateYield mutation and useYieldAllocations query hooks.
  */

@@ -1,6 +1,6 @@
 /**
  * useGardenerProfile Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the on-chain gardener profile management hook:
  * query state, full profile update, and individual field mutations.

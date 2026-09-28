@@ -1,6 +1,6 @@
 /**
  * useUserCookieJars Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the aggregation of cookie jars across all gardens where the user is a steward.
  * This hook layers on top of useGardenCookieJars' multicall chain, adding:

@@ -1,6 +1,6 @@
 /**
  * useGardenYieldSummary Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the garden-scoped yield summary hook that fetches ALL yield allocations
  * (no limit) and aggregates them client-side. Verifies the bug fix for

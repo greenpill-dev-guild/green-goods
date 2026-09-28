@@ -542,3 +542,67 @@ Open items from this slice:
     so CI Gate does not expect Shared for that path;
   - the parity job still does not run for Client or Admin Vitest config changes, although the
     parity suite locks their shapes; this slice routed only the Shared config.
+
+## Slice 7 — happy-dom for the Shared DOM project (D2)
+
+Adopted: happy-dom met all three criteria, so the Shared DOM project now runs in happy-dom. Five
+files stay pinned to jsdom.
+
+- **Version:** happy-dom 20.14.5, published 2026-09-12, 16 days before this slice, so it clears the
+  `minimumReleaseAge = 259200` gate. It is pinned exactly in the root `devDependencies`, like jsdom.
+- **Method:** measured in a scratch worktree at `b27b85a21` with its own install. A was jsdom as
+  checked in. B was one patch: happy-dom as the root and DOM-project environment, with every
+  `@vitest-environment jsdom` docblock in Shared (264 files) switched to happy-dom.
+- **First B run:** 8 tests failed in 5 files. Each failure is a real difference between the two DOMs,
+  so those files are pinned to jsdom with a comment naming the behaviour:
+
+| File | Why it stays on jsdom |
+|---|---|
+| `components/NavigationBar.test.tsx` | Asserts authored inline values (`0.75rem`, `calc(100vw - 2rem)`, `column-reverse`); happy-dom's computed style converts `rem` to px and drops `calc()` and some flex values |
+| `components/Toast/toast.service.test.tsx` | Asserts an inline `rgb(var(--tone-action, …))` colour; happy-dom resolves the custom property to empty |
+| `modules/app/service-worker-registration.test.ts` | Expects `expect.any(MessagePort)`; happy-dom's `MessageChannel` returns ports that are not the global `MessagePort` |
+| `hooks/useWorkApproval.test.ts` | Spies on `Storage.prototype.setItem`; happy-dom's `localStorage` does not call the spied method |
+| `utils/work/offlineDownloads.test.ts` | Asserts `size` 13, which is the length of `"[object Blob]"`: jsdom's `File` does not recognise Node's `Blob` from `response.blob()` and stringifies it. happy-dom keeps the 14 real bytes |
+
+The last row is a test defect, not a happy-dom gap. The test passes under jsdom although the
+"downloaded original" holds the text `[object Blob]`, so it does not prove the bytes survive. It
+goes to Afo; nothing here changes the assertion.
+
+Criteria:
+
+| Criterion | Evidence | Result |
+|---|---|---|
+| Passes with no assertion changes apart from a short, reasoned jsdom list | Full suite with the five pins, three runs | 6,056 passed, 17 skipped each time; identical names and results to the jsdom baseline |
+| DOM-project wall time at least 10% lower in each of three A B B A pairs | `--project dom` in the scratch worktree (A 85/90, 86/87, 86/85 s; B 71/68, 62/63, 63/63 s) | −21%, −28%, −26% |
+| No new flaky tests in three full runs | The three full runs above, plus six DOM-only B runs | no failures |
+
+Summed environment time for the DOM project fell from 302–321 s to 114–133 s. Summed import time
+changed by −4% to +9% across the pairs.
+
+The dependency change is the root `package.json` line and `bun.lock`. The lockfile:
+
+- adds happy-dom and its dependencies (12 packages);
+- re-hoists `ws`, `whatwg-mimetype` and `entities`, so their root entries change and nested entries
+  appear. Resolving every dependency edge in both lockfiles shows that all 11,194 existing edges
+  keep their version. The 8 new edges belong to happy-dom and `buffer-image-size`.
+
+`git diff -- package.json packages/*/package.json` shows only the happy-dom line.
+
+Four certified seams (`shared-job-queue-construction`, `shared-auth-session`,
+`shared-work-provider-command`, `shared-commitment-pooling-public`) had proof files among the
+switched docblocks. Their 13 proof files pass under the new config (250 passed, 4 skipped), and
+their fingerprints are re-certified in `module-seam-registry.json`.
+
+Client and Admin stay on jsdom. D2 approves happy-dom for the Shared DOM project, and Shared's 21–28%
+is the evidence for a separate Client and Admin A/B if Afo wants one.
+
+Proof:
+
+| Step | Command | Result |
+|---|---|---|
+| Release-age gate | `npm view happy-dom time` | 20.14.5 published 2026-09-12, 16 days old |
+| Dependency diff | `git diff -- bun.lock package.json` in the checkout and the scratch worktree | identical; only the happy-dom manifest line |
+| Lock resolution | every dependency edge in `HEAD`'s lockfile against the new one | 11,194 unchanged, 8 new edges from happy-dom |
+| Seam proofs | the 13 proof files of the four re-certified seams | 250 passed, 4 skipped; `check-direct-tested-seams` reports no drift |
+| Selected | `format`, `lint`, `shared-typecheck`, `shared-test-typecheck`, `shared-test`, `client-test`, `admin-test`, `agent-typecheck`, `agent-test`, `indexer-test`, `contracts-build`, `contracts-test` (90.9 s), `docs-authority`, `docs-build`, `agent-guidance` | all pass |
+| Extra | `supply-chain`, `test-quality`, `docs-generated` | pass after the fingerprint re-certification (before it, `supply-chain` failed on the four stale fingerprints) |

@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Upload all, composed: the real queue, IndexedDB, claims, preparation, Upload
  * all with its default ports, and the queue's own processJob. Only the network

@@ -1,6 +1,6 @@
 /**
  * useDrafts Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the draft CRUD operations hook including create, read, update, delete,
  * image management, resume, sync, and query invalidation.

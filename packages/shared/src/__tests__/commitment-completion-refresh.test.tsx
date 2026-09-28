@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 /**
  * useCommitmentCompletionRefresh — what a reader sees after their act lands.

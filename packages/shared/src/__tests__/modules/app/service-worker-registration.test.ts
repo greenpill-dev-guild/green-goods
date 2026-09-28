@@ -1,3 +1,4 @@
+// jsdom pin (happy-dom A/B): expects expect.any(MessagePort); happy-dom's MessageChannel returns ports that are not the global MessagePort.
 /**
  * @vitest-environment jsdom
  */

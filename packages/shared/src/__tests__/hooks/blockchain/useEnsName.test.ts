@@ -1,6 +1,6 @@
 /**
  * useEnsName Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests address -> ENS name reverse resolution. This hook delegates to useEnsQuery
  * with a validator (viem's isAddress) and resolveEnsName as the resolver.

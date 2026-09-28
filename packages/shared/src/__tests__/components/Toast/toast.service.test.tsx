@@ -1,3 +1,5 @@
+/** @vitest-environment jsdom */
+// jsdom pin (happy-dom A/B): asserts an inline rgb(var(--tone-action, ...)) colour; happy-dom resolves the custom property to empty.
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { act } from "react";
 import toast, { Toaster } from "react-hot-toast";

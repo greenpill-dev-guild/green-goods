@@ -1,6 +1,6 @@
 /**
  * EmbeddedSender Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the embedded wallet transaction sender that targets EIP-5792
  * sendCalls with paymaster capability. Since wagmi experimental APIs

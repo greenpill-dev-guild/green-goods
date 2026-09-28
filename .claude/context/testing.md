@@ -17,8 +17,11 @@ Alias → `packages/shared/src/__tests__/test-utils/`. Import test helpers from 
 ## Repo-tuned Vitest config (per-package `vitest.config.ts`)
 
 - Shared, client, and admin use inherited `node` and `dom` projects: DOM-free `.test.ts`
-  suites run in Node, while `.test.tsx` and documented DOM exceptions run in jsdom. Keep
-  coverage at the root config, never inside a project.
+  suites run in Node, while `.test.tsx` and documented DOM exceptions run in a DOM: happy-dom
+  in Shared, jsdom in client and admin. Keep coverage at the root config, never inside a project.
+- A Shared DOM test that depends on jsdom behaviour pins it with `@vitest-environment jsdom` and a
+  comment saying which behaviour, such as authored inline style values, `Storage.prototype` spies,
+  or `MessagePort` identity.
 - Shared's Node tests that mock and stub nothing share one module graph in
   `node-shared-graph` (`isolate: false`; mocks, globals and env restored after each test).
   A file that mocks, stubs, assigns globals directly, resets modules, uses IndexedDB, or
@@ -32,12 +35,12 @@ Alias → `packages/shared/src/__tests__/test-utils/`. Import test helpers from 
 - Setup files: shared/client `setupTests.ts`, admin/agent `setup.ts` — all extend `packages/shared/src/__tests__/setupTests.base.ts`. Shared's Node projects load only its Node-safe core (`setupTests.node.ts`), without Testing Library or jest-dom.
 - `agent` package differs: `node` env, `fileParallelism: false`, much lower thresholds (10/20/20/20).
 
-## GG mock / jsdom conventions (`setupTests.base.ts` + per-package setup)
+## GG mock / DOM conventions (`setupTests.base.ts` + per-package setup)
 
 - Strict `fetch`: any unmocked call throws ("Mock this endpoint explicitly") — mock via MSW or `mockFetch`.
 - MSW GraphQL server from `@green-goods/shared/mocks` (`src/__mocks__/server/`); admin runs `server.listen({ onUnhandledRequest: "error" })` and resets per test.
 - Reown AppKit module-mocked (no network/403); `react-hot-toast` mocked in admin.
-- jsdom polyfills so Radix / floating-ui primitives render: `HTMLDialogElement.showModal/close`, `matchMedia`, `ResizeObserver`, `IntersectionObserver`, `scrollIntoView` (admin); `fake-indexeddb/auto` for IndexedDB. Drive dialogs/menus with `fireEvent` (jsdom has no real pointer events). These live in setup — don't re-stub per test.
+- DOM polyfills so Radix / floating-ui primitives render: `HTMLDialogElement.showModal/close`, `matchMedia`, `ResizeObserver`, `IntersectionObserver`, `scrollIntoView` (admin); `fake-indexeddb/auto` for IndexedDB. Drive dialogs/menus with `fireEvent` (neither test DOM does layout or pointer hit-testing). These live in setup — don't re-stub per test.
 
 ## Coverage
 

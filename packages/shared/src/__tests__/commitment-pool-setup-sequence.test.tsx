@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 /**
  * A chain of pool writes needs per-step failure, and the retry must repeat

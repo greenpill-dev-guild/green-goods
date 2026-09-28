@@ -1,6 +1,6 @@
 /**
  * useHypercerts Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests multi-source fallback fetching, optimistic data handling,
  * sync status transitions, and list/detail query modes.

@@ -1,6 +1,6 @@
 /**
  * useHasRole Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests single role check for a user + garden combination.
  * Validates enabled/disabled states, role function mapping,

@@ -1,6 +1,6 @@
 /**
  * useHypercertListings Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests marketplace order fetching, query key construction,
  * and loading/error state handling.

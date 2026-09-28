@@ -1,6 +1,6 @@
 /**
  * useTradeHistory Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests FractionPurchased event fetching for trade history display.
  */

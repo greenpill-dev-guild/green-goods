@@ -5,7 +5,7 @@
  * ordering, the pre-flight balance gate, and the post-approval slippage guard
  * (which must fail closed when the fresh preview reads zero).
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

@@ -1,6 +1,6 @@
 /**
  * useWorks Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the work fetching hook in online-only mode plus the jobToWork pure function.
  * Offline mode tests are lighter since the merge logic (useMerged) is tested separately.

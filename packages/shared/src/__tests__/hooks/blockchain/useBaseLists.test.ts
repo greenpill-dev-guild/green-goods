@@ -1,6 +1,6 @@
 /**
  * useBaseLists Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the factory-generated hooks: useActions, useGardens, useGardeners.
  * These are created by createBaseListHook, which wires up TanStack Query

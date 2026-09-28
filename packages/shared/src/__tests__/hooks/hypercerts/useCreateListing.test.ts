@@ -1,6 +1,6 @@
 /**
  * useCreateListing Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the two-phase listing creation flow:
  * 1. Build + sign EIP-712 maker ask

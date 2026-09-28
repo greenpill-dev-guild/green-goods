@@ -1,6 +1,6 @@
 /**
  * useGreenGoodsEnsName Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests protocol subdomain resolution via GreenGoodsENS.ownerToSlug.
  */

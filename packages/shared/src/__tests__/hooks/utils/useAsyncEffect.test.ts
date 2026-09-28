@@ -1,6 +1,6 @@
 /**
  * useAsyncEffect & useAsyncSetup Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests async effect execution, isMounted guards, AbortSignal,
  * error handling callbacks, and cleanup on unmount.

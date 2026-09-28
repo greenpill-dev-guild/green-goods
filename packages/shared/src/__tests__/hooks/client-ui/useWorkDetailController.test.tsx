@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";

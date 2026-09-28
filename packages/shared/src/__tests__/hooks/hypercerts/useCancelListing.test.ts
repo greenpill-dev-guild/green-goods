@@ -1,6 +1,6 @@
 /**
  * useCancelListing Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the listing cancellation flow via HypercertsModule.delistFromYield().
  */

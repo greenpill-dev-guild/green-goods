@@ -43,7 +43,7 @@ export default defineConfig({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   plugins: [react()],
   test: {
-    environment: "jsdom",
+    environment: "happy-dom",
     globals: true,
     testTimeout: 10000,
     pool: "threads",
@@ -176,7 +176,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: "dom",
-          environment: "jsdom",
+          environment: "happy-dom",
           include: [allTestFiles],
           exclude: [
             "node_modules/",

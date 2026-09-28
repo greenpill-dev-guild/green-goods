@@ -1,3 +1,4 @@
+// jsdom pin (happy-dom A/B): spies on Storage.prototype.setItem; happy-dom's localStorage does not call the spied prototype method.
 /**
  * @vitest-environment jsdom
  *

@@ -1,3 +1,4 @@
+// jsdom pin (happy-dom A/B): asserts authored inline values (rem, calc(), column-reverse); happy-dom's computed style converts rem to px and drops calc() and some flex values.
 /**
  * NavigationBar Tests
  *

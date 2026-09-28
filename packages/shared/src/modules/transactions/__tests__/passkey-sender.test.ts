@@ -1,6 +1,6 @@
 /**
  * PasskeySender Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the passkey transaction sender that uses a SmartAccountClient
  * to send UserOperations via a bundler.

@@ -1,6 +1,6 @@
 /**
  * useWorkMutationWithProgress Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the combined work mutation + progress tracking hook.
  * Covers progress state management during submission, error handling,

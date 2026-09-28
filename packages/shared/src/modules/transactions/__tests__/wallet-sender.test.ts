@@ -1,6 +1,6 @@
 /**
  * WalletSender Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the external wallet transaction sender that uses wagmi's
  * writeContractAsync, with Safe wallet non-canonical hash handling.

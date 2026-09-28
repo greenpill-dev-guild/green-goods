@@ -4,7 +4,7 @@
  * Record, Stop, Use, or Discard would submit the parent form (the admin review
  * form renders the recorder inside one).
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";

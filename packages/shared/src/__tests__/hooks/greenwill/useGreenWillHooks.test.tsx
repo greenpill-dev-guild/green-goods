@@ -1,6 +1,6 @@
 /**
  * GreenWill hook tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

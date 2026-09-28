@@ -1,6 +1,6 @@
 /**
  * useWorkApprovals Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the work approvals query hook including memoization stability,
  * type correctness, and query key usage.

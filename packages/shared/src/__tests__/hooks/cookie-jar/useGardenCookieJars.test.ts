@@ -1,6 +1,6 @@
 /**
  * useGardenCookieJars Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the 3-step multicall chain:
  *   1. Fetch jar addresses from CookieJarModule

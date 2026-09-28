@@ -1,6 +1,6 @@
 /**
  * useCrossGardenQueue Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the cross-garden work queue that merges, deduplicates,
  * and sorts work items from multiple gardens by status tier.

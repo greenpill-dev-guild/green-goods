@@ -1,6 +1,6 @@
 /**
  * useAccessibleCookieJars Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Verifies cookie-jar visibility is based on onchain garden-account access
  * checks and fails closed when eligibility cannot be confirmed.

@@ -1,6 +1,6 @@
 /**
  * useEnsAddress Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests ENS name -> address resolution. This hook delegates to useEnsQuery
  * with resolveEnsAddress as the resolver, so we mock the resolver and

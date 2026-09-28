@@ -1,6 +1,6 @@
 /**
  * useBatchWorkApproval Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the batch work approval mutation hook including auth mode branching,
  * optimistic updates, error rollback, and query invalidation.

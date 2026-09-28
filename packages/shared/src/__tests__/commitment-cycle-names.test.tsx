@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 /**
  * useCommitmentCycleNames — the words behind a cycle's metadata CID.

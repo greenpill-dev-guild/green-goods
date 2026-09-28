@@ -4,7 +4,7 @@
  * Verifies that the shared boundary reports component crashes through the
  * centralized error funnel before running optional fallback side effects.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";

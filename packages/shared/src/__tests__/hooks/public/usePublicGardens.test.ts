@@ -1,6 +1,6 @@
 /**
  * usePublicGardens Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { type QueryClient } from "@tanstack/react-query";

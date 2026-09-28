@@ -1,6 +1,6 @@
 /**
  * Cookie Jar Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * A garden jar only accepts setting changes from the garden account, so the per-claim limit
  * and cooldown hooks must send `GardenAccount.execute(jar, 0, calldata, 0)`, never a call

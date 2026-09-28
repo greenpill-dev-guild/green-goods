@@ -1,6 +1,6 @@
 /**
  * useStrategyRate Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Validates the Aave V3 APY fetching pipeline:
  * - Chain support detection (unsupported flag)

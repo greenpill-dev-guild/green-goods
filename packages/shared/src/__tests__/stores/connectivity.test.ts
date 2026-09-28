@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 let connectivityStore: typeof import("../../stores/connectivity")["connectivityStore"];
 beforeAll(async () => {

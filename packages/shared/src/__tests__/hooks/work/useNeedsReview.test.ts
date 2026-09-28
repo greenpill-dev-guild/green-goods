@@ -1,6 +1,6 @@
 /**
  * useNeedsReview Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Pins how the review list is built from each garden's paged read: others'
  * pending work only, unknown statuses kept out, decisions made on this device

@@ -1,6 +1,6 @@
 /**
  * useEffectiveToolbarPermissions Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * RED phase — these tests define the evaluation contract for Phase 1b
  * route consolidation. They assert role-scoped toolbar visibility that

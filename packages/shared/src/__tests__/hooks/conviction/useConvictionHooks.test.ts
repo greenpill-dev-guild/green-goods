@@ -1,6 +1,6 @@
 /**
  * Conviction Voting Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests subgraph data mapping, query key construction, and address normalization
  * in the conviction voting query hooks.

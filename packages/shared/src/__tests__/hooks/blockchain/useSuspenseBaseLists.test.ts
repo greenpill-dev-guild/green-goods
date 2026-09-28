@@ -1,6 +1,6 @@
 /**
  * useSuspenseBaseLists Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the Suspense-enabled variants: useSuspenseGardens, useSuspenseActions,
  * useSuspenseGardeners. These hooks throw a promise while loading (caught by

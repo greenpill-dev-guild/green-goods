@@ -3,7 +3,7 @@
  * label, and a surface with its own button family (admin) passes a ready
  * element, so the shared Button never renders there (Rule 18).
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
