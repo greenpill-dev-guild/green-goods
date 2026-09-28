@@ -54,7 +54,7 @@ export function useComposeAgainValues(input: {
   const metadata = useCommitmentMetadataFor(detail?.commitment);
   const { data: actions = [] } = useActions(chainId);
   const usableActionUIDs = useMemo(() => {
-    const now = Date.now() / 1000;
+    const now = Date.now();
     const prefix = `${chainId}-`;
     return new Set(
       actions

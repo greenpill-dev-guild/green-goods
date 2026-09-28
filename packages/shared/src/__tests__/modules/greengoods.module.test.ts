@@ -420,6 +420,8 @@ describe("modules/data/greengoods", () => {
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(1);
       expect(result[0].title).toBe("Planting Trees");
+      // Consumers compare the window with Date.now(), so it comes back in milliseconds.
+      expect(result[0]).toMatchObject({ startTime: 1_700_000_000_000, endTime: 1_800_000_000_000 });
     });
 
     it("surfaces unrecognized indexer domains as null instead of coercing to SOLAR", async () => {

@@ -27,8 +27,10 @@ const mockUseCommitment = vi.fn();
 
 // Live now: the rail hides actions outside their window, because Work is
 // refused there and a commitment kept by such an action could never be kept.
-const NOW = Math.floor(Date.now() / 1000);
-const LIVE = { startTime: NOW - 86_400, endTime: NOW + 86_400 };
+// Action times are milliseconds, as getActions stores them.
+const NOW = Date.now();
+const DAY_MS = 24 * 60 * 60 * 1000;
+const LIVE = { startTime: NOW - DAY_MS, endTime: NOW + DAY_MS };
 const ACTIONS = [
   { id: "42161-44", title: "Prune", domain: "AGRO", media: [], description: "", ...LIVE },
   { id: "42161-45", title: "Plant", domain: "AGRO", media: [], description: "", ...LIVE },
@@ -40,8 +42,8 @@ const ACTIONS = [
     domain: "AGRO",
     media: [],
     description: "",
-    startTime: NOW - 172_800,
-    endTime: NOW - 86_400,
+    startTime: NOW - 2 * DAY_MS,
+    endTime: NOW - DAY_MS,
   },
 ];
 
