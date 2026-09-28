@@ -74,8 +74,9 @@ Receipt reuse is opt-in and off by default. Pass `--reuse-passing-receipts` to
 lives in `.cache/validation`, holds passes only, and any change to the command, policy, toolchain,
 validated paths, environment profile, root `.env` files, or a variable the check inherits
 invalidates the fingerprint. The store keeps only a digest of the environment. `PATH`, `NODE`,
-git's exec path, the re-exec markers and shell bookkeeping are left out, because the hook changes
-them without changing a check, and the toolchain versions already cover what `PATH` resolves.
+git's exec path, nvm's variables and `MANPATH`, the re-exec markers and shell bookkeeping are left
+out, because the hook and Husky's `~/.config/husky/init.sh` change them without changing a check,
+and the toolchain versions already cover what `PATH` resolves.
 Turbo hashes an explicit `VITEST_MAX_WORKERS` too. A tampered store is rejected
 rather than trusted. A critical push may reuse exact passes too, so a pre-push hook right after a
 passing manual run finishes in seconds. Readiness, ship, merge, and release run every check fresh

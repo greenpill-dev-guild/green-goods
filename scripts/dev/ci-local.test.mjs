@@ -702,18 +702,31 @@ test("a receipt covers the environment a check runs with, not only the plan", as
   await run({ ...shell, NODE_OPTIONS: "--max-old-space-size=512" });
   assert.equal(runs, 3);
 
-  // The pre-push hook prepends git's exec path and tool directories to PATH, counts one more
-  // shell, and reaches the gate through a different re-exec wrapper; none of that changes a check.
+  // A real `git push` through Husky's shim: git prepends its exec path, the shim sources
+  // ~/.config/husky/init.sh (which commonly exports NVM_DIR) and prepends node_modules/.bin, the
+  // hook prepends tool directories, two more shells count themselves, and the gate arrives through
+  // a different re-exec wrapper. None of that changes a check.
   const hook = {
     ...shell,
-    PATH: "/opt/homebrew/opt/git/libexec/git-core:/Users/dev/.bun/bin:/usr/bin",
+    PATH: "node_modules/.bin:/opt/homebrew/opt/git/libexec/git-core:/Users/dev/.bun/bin:/usr/bin",
     GIT_EXEC_PATH: "/opt/homebrew/opt/git/libexec/git-core",
-    SHLVL: "2",
+    NVM_DIR: "/Users/dev/.nvm",
+    SHLVL: "3",
     GREEN_GOODS_NODE_CLI_COMPAT_REEXEC: "1",
     NODE: "/Users/dev/.local/share/mise/installs/node/22.22.1/bin/node",
     npm_node_execpath: "/Users/dev/.local/share/mise/installs/node/22.22.1/bin/node",
   };
   assert.equal((await run(hook)).results[0].reused, true);
+  // The hook loads nvm itself under bash when a .nvmrc exists; `nvm use` then sets its own
+  // variables and moves MANPATH. The pinned Node is fingerprinted as the toolchain.
+  const nvmLoaded = {
+    ...hook,
+    NVM_BIN: "/Users/dev/.nvm/versions/node/v22.22.1/bin",
+    NVM_INC: "/Users/dev/.nvm/versions/node/v22.22.1/include/node",
+    NVM_CD_FLAGS: "-q",
+    MANPATH: "/Users/dev/.nvm/versions/node/v22.22.1/share/man:/usr/share/man",
+  };
+  assert.equal((await run(nvmLoaded)).results[0].reused, true);
   assert.equal(runs, 3);
 
   // The store keeps a digest of the environment, never its values.

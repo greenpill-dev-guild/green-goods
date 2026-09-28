@@ -540,19 +540,22 @@ export function buildLocalValidationPlan(options, gitInputs, environment) {
 // A receipt covers every variable a check inherits except these, which differ between a manual
 // run and the same run from the pre-push hook without changing what a check does. Git prepends its
 // exec path and the hook prepends tool directories to PATH, and NODE names the interpreter; the
-// node, bun and forge versions those resolve to are fingerprinted as the toolchain. Shells count
-// and track themselves, and each re-exec wrapper marks that it ran.
+// node, bun and forge versions those resolve to are fingerprinted as the toolchain. Husky's shim
+// sources ~/.config/husky/init.sh, which commonly exports NVM_DIR, and the hook loads nvm when a
+// .nvmrc exists: nvm's own variables configure only nvm, and `nvm use` also moves MANPATH, which
+// only `man` reads. Shells count and track themselves, and each re-exec wrapper marks that it ran.
 const RECEIPT_IGNORED_VARIABLES = new Set([
   "PATH",
   "GIT_EXEC_PATH",
   "NODE",
   "npm_node_execpath",
+  "MANPATH",
   "SHLVL",
   "_",
   "OLDPWD",
   "PWD",
 ]);
-const REEXEC_SENTINEL = /^GREEN_GOODS_\w+_REEXEC$/;
+const RECEIPT_IGNORED_PATTERN = /^(?:NVM_\w+|GREEN_GOODS_\w+_REEXEC)$/;
 
 /** The exact environment a check's process receives. */
 export function checkEnvironment(check, baseEnvironment = process.env) {
@@ -564,7 +567,7 @@ export function environmentFingerprint(environment) {
   const hash = createHash("sha256");
   hash.update("validation-environment-v1\0");
   for (const name of Object.keys(environment).sort()) {
-    if (RECEIPT_IGNORED_VARIABLES.has(name) || REEXEC_SENTINEL.test(name)) continue;
+    if (RECEIPT_IGNORED_VARIABLES.has(name) || RECEIPT_IGNORED_PATTERN.test(name)) continue;
     hash.update(`${name}\0${environment[name]}\0`);
   }
   return `sha256:${hash.digest("hex")}`;
