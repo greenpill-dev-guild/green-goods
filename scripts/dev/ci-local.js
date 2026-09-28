@@ -520,6 +520,7 @@ export function buildLocalValidationPlan(options, gitInputs, environment) {
     // this the scoped format and lint commands hand Biome a file that no
     // longer exists and the whole plan fails at its first check.
     deletedPaths: gitInputs.deletedPaths ?? [],
+    mutationPaths: gitInputs.mutationPaths ?? [],
     risk: options.risk,
     cancelled: options.cancelled,
     testPaths: options.testPaths,

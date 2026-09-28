@@ -177,3 +177,75 @@ at once finished the pair sooner (265 s split, 273 s competing, against 337 s se
 lease returned the first result at 175 s instead of 265–273 s. Outcome 3's behaviour holds; its
 timing bound stays open. The default stays at one slot as decided; `GREEN_GOODS_TEST_LEASE_SLOTS=2`
 is the measured alternative if throughput matters more than the first result.
+
+## Slice 2 — critical scope matches D1
+
+The old Shared override was both too broad and too narrow. Measured against the code at `d1bc5d86e`:
+52 read-only hooks were critical only because of their directory (garden search, ENS and ENS-name
+lookups, conviction reads, assessment and GreenWill reads, chain configuration). Meanwhile 60 of the
+130 Shared files that sign, send, move funds or change auth, session or queue state were not
+critical. Those included the transaction senders themselves (`modules/transactions/*`), cookie-jar
+deposit and withdraw, hypercert listing and minting, commitment-pooling mutations, yield allocation,
+profile-avatar signing, and the admin and client controllers that trigger them.
+
+What changed:
+
+- `criticalOverrides` entry `shared-signing-money-queue-auth` keeps ten prefixes critical as a whole
+  (the three providers; the auth, job-queue and work modules; `workflows/`; `hooks/auth`,
+  `hooks/work`, `hooks/vault`) and lists the 88 other Shared files whose code reaches a primitive.
+  `sharedMutationPrimitives` in the policy names the primitives, read from the code: wagmi and
+  `@wagmi/core` write, send, sign, connect/disconnect and switch-chain calls, `useWalletClient`
+  and `getWalletClient`; account-abstraction and smart-account constructors; the passkey server
+  client; EAS and the hypercert exchange client; the transaction-sender factory and classes;
+  `useAuthActions`; and member calls such as `.sendContractCall()`, `.sendUserOperation()`,
+  `.signMessageAsync()`, `.addJob()`, `.retryAndSend()` or a destructured `signOut`.
+- `scripts/quality/shared-mutation-surface.mjs` finds those files. It follows named imports,
+  aliases, re-export chains, `export *`, namespace imports, optional calls and dynamic imports, and
+  does not propagate through hubs that only forward an action (`useAuth()` returns `signOut`
+  without calling it, so its readers stay non-critical). Barrels that only re-export do not
+  need the critical plan themselves. It is dependency-free because CI Gate runs the selector tests
+  with Node alone. A scratch Babel analysis gave the same 130 files; comparing the two found two
+  lexical bugs (optional calls and spread calls), both fixed before the policy was written.
+- The selector reads the code of each changed Shared file that no path rule covers and escalates
+  any that reaches a primitive (`selectedBy: critical-content`), so a new mutation hook is critical
+  before anyone lists it. `resolveGitInputs` parses only those files' import closure: rendering a
+  push plan took 2.5–2.8 s with or without a Shared path.
+- The 52 read-only hooks are now sensitive (`riskRules[1]`). A push of one still needs direct proof
+  (`needs-focus`), and conditional rules add `shared-typecheck` plus two new checks,
+  `client-typecheck` and `admin-typecheck` (source typechecks, measured 1.0–1.3 s and 0.7 s warm).
+  In the six former directories those two also run inside a critical plan, where the builds'
+  `tsc -b` already covers them (about 2 s of redundancy).
+- Guard: a selector test fails when any file the analyzer finds is not critical by policy, and
+  when the exact list names a file that no longer reaches a primitive. It runs in CI Gate on every
+  pull request.
+- `AGENTS.md § Change Criticality` and `validation-pipeline.md` now state D1.
+
+Routing gap found on the way: changing the selector, `ci-local.js`, the policy, `ci-gate.mjs` or
+any other implementation behind `validation-system-test` selected only format and lint in a push.
+All 19 such files now select their suite in QA, review and push. The diagnose fixture for
+`ci-local.js` now expects that direct suite instead of an empty plan.
+
+Plans after this slice (`--plan-json --intent push`):
+
+| Changed path | Before | After |
+|---|---|---|
+| `hooks/work/useWorkApprovals.ts` | critical, 18 checks | critical, 18 checks (unchanged) |
+| `hooks/garden/useFilteredGardens.ts` | critical, 17 checks | sensitive, `needs-focus`; with its focused test: 7 checks (format, lint, `shared-typecheck`, focused `shared-test`, `client-typecheck`, `admin-typecheck`, `source-structure`), estimate 124 s of the 180 s limit |
+| `hooks/app/useLoadingWithMinDuration.ts` | routine, 3 checks, `needs-focus` | unchanged |
+
+Proof:
+
+| Step | Command | Result |
+|---|---|---|
+| RED | the four new selector tests run in a worktree at `d1bc5d86e` (the pre-change selector and policy), with the candidate primitives | 0/4: `useFilteredGardens` critical; `useCookieJarDeposit` routine; a new sending hook routine; 60 unclassified files |
+| GREEN | `node scripts/dev/node-cli.js node --test scripts/quality/select-validation.test.mjs` | 85/85 |
+| RED/GREEN | routing fixture over the 19 tooling files | failed on `qa: scripts/data/validation-policy.json`, then passed |
+| Selected | `validation-system-test` | 335/336; the pre-existing parity failure only |
+| Selected | `agent-guidance`, `docs-authority`, `docs-build` | all exit 0 |
+| Docs | `node scripts/docs/generate.mjs --check` | current after regenerating three digests and one check count |
+
+Limits: the analyzer relies on Biome formatting (top-level statements start at column 0). It
+cannot see signing inside an external library unless that library's entry is listed, so a new
+signing API needs a line in `sharedMutationPrimitives`. Forwarding an action without calling it
+(`onClick: auth.signOut`) is not detected. Client, Admin and Agent source are outside this
+analysis.

@@ -7,10 +7,14 @@ import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { inspectPinnedSubmodules } from "../lib/dev-shared.js";
+import { isSharedSourcePath, mutationPathsAmong } from "./shared-mutation-surface.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDirectory, "../..");
 const defaultPolicyPath = resolve(projectRoot, "scripts/data/validation-policy.json");
+// The critical override for Shared code that signs, sends, moves funds, or changes auth, session
+// or queue state. Its exact list is kept in step with the code by select-validation.test.mjs.
+export const SHARED_CRITICAL_RULE_ID = "shared-signing-money-queue-auth";
 // Documentation and asset migrations can legitimately produce binary patches larger than
 // Node's default child-process buffer. Keep enough headroom for a full working-copy
 // fingerprint without weakening the selector's path or content checks.
@@ -41,6 +45,20 @@ function validatePolicy(policy) {
     }
     if (!Number.isFinite(check.budgetSeconds) || check.budgetSeconds <= 0) {
       throw new Error(`Validation check ${check.id} must have a positive budgetSeconds`);
+    }
+  }
+
+  if (policy.sharedMutationPrimitives !== undefined) {
+    const { external, internal, members } = policy.sharedMutationPrimitives;
+    const namedLists = (value) =>
+      value && typeof value === "object" && Object.values(value).every(
+        (names) => Array.isArray(names) && names.every((name) => typeof name === "string" && name),
+      );
+    if (!namedLists(external) || !namedLists(internal) || !Array.isArray(members) || !members.every((name) => typeof name === "string" && name)) {
+      throw new Error("Validation policy sharedMutationPrimitives needs external, internal and members name lists");
+    }
+    if (!(policy.criticalOverrides ?? []).some((rule) => rule.id === SHARED_CRITICAL_RULE_ID)) {
+      throw new Error(`Validation policy sharedMutationPrimitives needs the ${SHARED_CRITICAL_RULE_ID} critical override`);
     }
   }
 
@@ -355,6 +373,9 @@ export function selectValidation(input = {}, options = {}) {
   const intent = effectiveIntent(policy, requestedIntent, ci);
   const changedPaths = normalizePaths(input.changedPaths);
   const deletedPaths = normalizePaths(input.deletedPaths);
+  // Changed Shared files whose current code reaches a signing, sending, queue or session
+  // primitive (resolveGitInputs reads them); the policy's path lists cannot know a new file.
+  const mutationPaths = normalizePaths(input.mutationPaths).filter((path) => changedPaths.includes(path));
   const checkpointScope = checkpointScopes(
     input.checkpointScope,
     intent,
@@ -387,6 +408,7 @@ export function selectValidation(input = {}, options = {}) {
     })),
     testPaths,
     requestedChecks,
+    mutationPaths,
   };
 
   if (input.cancelled === true) {
@@ -410,6 +432,10 @@ export function selectValidation(input = {}, options = {}) {
   }
 
   const hardRules = (policy.criticalOverrides ?? []).filter((rule) => ruleMatches(changedPaths, rule));
+  const sharedCriticalRule = (policy.criticalOverrides ?? []).find((rule) => rule.id === SHARED_CRITICAL_RULE_ID);
+  const contentCriticalPaths = sharedCriticalRule
+    ? mutationPaths.filter((path) => !groupMatches(path, sharedCriticalRule))
+    : [];
   const pathRiskRules = (policy.riskRules ?? []).filter((rule) => ruleMatches(changedPaths, rule));
   const risk = maxRisk(policy, [
     baseRisk,
@@ -421,6 +447,7 @@ export function selectValidation(input = {}, options = {}) {
       : "routine",
     ...pathRiskRules.map((rule) => rule.risk),
     ...hardRules.map((rule) => rule.risk),
+    ...(contentCriticalPaths.length > 0 ? [sharedCriticalRule.risk] : []),
   ]);
   const fastPush = intent === "push" && risk !== "critical";
   const localMerge = intent === "merge" && !ci;
@@ -598,6 +625,12 @@ export function selectValidation(input = {}, options = {}) {
   for (const rule of evidenceOnly ? [] : hardRules) {
     for (const id of rule.checks) {
       select(id, "critical-override");
+      mandatory.add(id);
+    }
+  }
+  if (!evidenceOnly && contentCriticalPaths.length > 0) {
+    for (const id of sharedCriticalRule.checks) {
+      select(id, "critical-content");
       mandatory.add(id);
     }
   }
@@ -1112,6 +1145,18 @@ export function resolveComparisonBase(options = {}, dependencies = {}) {
   return "origin/develop";
 }
 
+// Shared files among `changedPaths` whose code on disk reaches a mutation primitive and that no
+// path rule already makes critical. Only their import closure is read.
+export function resolveMutationPaths(changedPaths, { cwd = projectRoot, policy = loadPolicy() } = {}) {
+  const rule = (policy.criticalOverrides ?? []).find((entry) => entry.id === SHARED_CRITICAL_RULE_ID);
+  if (!rule || !policy.sharedMutationPrimitives) return [];
+  const candidates = changedPaths.filter(
+    (path) => isSharedSourcePath(path) && !groupMatches(path, rule) && existsSync(resolve(cwd, path)),
+  );
+  if (candidates.length === 0) return [];
+  return mutationPathsAmong(candidates, { root: cwd, primitives: policy.sharedMutationPrimitives });
+}
+
 export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
   const base = resolveComparisonBase(options, { cwd });
   const head = options.head ?? "HEAD";
@@ -1164,6 +1209,7 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
     head: resolvedHead,
     changedPaths,
     deletedPaths,
+    mutationPaths: resolveMutationPaths(changedPaths, { cwd }),
     workingCopyFingerprint: workingCopyFingerprint(
       cwd,
       committedPatch,

@@ -27,7 +27,10 @@ bun run check --plan -- --intent <intent>
 ```
 
 The selector combines intent, changed paths, dependency impact, and criticality. Agents execute the
-returned plan instead of inventing a broader command set. If the selector command is unavailable or
+returned plan instead of inventing a broader command set. Shared criticality follows
+`AGENTS.md § Change Criticality`: the policy lists the critical Shared paths, the selector also
+escalates any changed Shared file whose code reaches a signing, sending, queue or session primitive,
+and CI Gate fails when that list and the code disagree. If the selector command is unavailable or
 fails, fall back to the intent ladder and commands below and report the selector problem. A missing
 or failed selector never authorizes omitting a required check or critical override.
 
@@ -75,8 +78,9 @@ loop; keep the exact uncached `bun run test` for gates that name it.
 Never reuse failures. User cancellation is terminal: stop active validation, schedule nothing else,
 and report only evidence already collected. An unavailable browser, RPC, secret, service, or other
 capability produces `BLOCKED`, not passing; do not retry the identical check until that capability
-changes. Enforced push budgets never skip contract, deployment/release, authentication, JobQueue,
-Work-provider, mutation-hook, security, ontology, supply-chain, or release gates. Contracts use Bun
+changes. Enforced push budgets never skip contract, deployment/release, signing, sending,
+money-moving, authentication, session, JobQueue, Work-provider, security, ontology, supply-chain,
+or release gates. Contracts use Bun
 wrappers only, never raw Forge.
 
 ## Diagnosis and evidence review (non-mutating)

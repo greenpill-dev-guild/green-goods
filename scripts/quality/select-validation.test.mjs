@@ -16,7 +16,9 @@ import {
   resolveGitInputs,
   selectExpectedWorkflows,
   selectValidation,
+  SHARED_CRITICAL_RULE_ID,
 } from "./select-validation.mjs";
+import { analyzeSharedMutationSurface, mutationPathsAmong } from "./shared-mutation-surface.mjs";
 
 function ids(plan) {
   return plan.checks.map((check) => check.id);
@@ -37,6 +39,14 @@ test("hook and doctor edits select their behavioral proof", () => {
     ["validation-system-test", [
       "scripts/dev/doctor.js", "scripts/lib/dev-shared.js", "scripts/dev/package-commands.mjs",
       "scripts/dev/package-commands.test.mjs", "scripts/dev/test-lease.mjs", "turbo.json",
+      // Each implementation file behind a validation-system-test suite selects that suite.
+      "scripts/data/validation-policy.json", "scripts/quality/select-validation.mjs",
+      "scripts/quality/shared-mutation-surface.mjs", "scripts/dev/ci-local.js",
+      "scripts/quality/ci-gate.mjs", "scripts/quality/check-source-structure.js",
+      "scripts/quality/check-staged-modules.mjs", "scripts/quality/check-commit-identity.mjs",
+      "scripts/dev/surface-leases.mjs", "scripts/dev/stack.js", "scripts/dev/smoke-full.js",
+      "scripts/lib/dev-modes.mjs", "scripts/lib/setup-env.mjs", "scripts/lib/command-runner.mjs",
+      "scripts/dev/test.js", "scripts/dev/test-e2e.js", "scripts/dev/browser.js",
     ]],
   ];
   for (const intent of ["qa", "review", "push"]) {
@@ -438,7 +448,8 @@ test("validation tooling paths escalate to sensitive risk", () => {
     changedPaths: ["scripts/dev/ci-local.js"],
   });
   assert.equal(plan.risk, "sensitive");
-  assert.deepEqual(plan.checks, []);
+  // Evidence intents select only the direct suite for the changed tooling, nothing broader.
+  assert.deepEqual(ids(plan), ["validation-system-test"]);
 });
 
 test("isolated client behavior accepts focused proof without forcing a package build", () => {
@@ -856,8 +867,8 @@ test("multiple focused Solidity tests invoke the contracts wrapper once per path
 
 test("mutation-rich shared hooks retain the critical override", () => {
   for (const changedPath of [
-    "packages/shared/src/hooks/garden/useCreateGarden.ts",
-    "packages/shared/src/hooks/assessment/useAssessment.ts",
+    "packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts",
+    "packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts",
     "packages/shared/src/modules/work/submit.ts",
     "packages/shared/src/workflows/approve.ts",
   ]) {
@@ -1016,13 +1027,14 @@ test("diagnose and review classify critical risk without inventing broad proof",
 
     const requested = selectValidation({
       intent,
-      changedPaths: ["packages/shared/src/hooks/garden/useCreateGarden.ts"],
-      testPaths: { shared: ["src/hooks/garden/useCreateGarden.test.ts"] },
+      changedPaths: ["packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts"],
+      testPaths: { shared: ["src/hooks/garden/useCreateGardenWorkflow.test.ts"] },
     });
+    assert.equal(requested.risk, "critical");
     assert.deepEqual(ids(requested), ["shared-test"]);
     assert.equal(
       requested.checks[0].command,
-      "bun run test src/hooks/garden/useCreateGarden.test.ts",
+      "bun run test src/hooks/garden/useCreateGardenWorkflow.test.ts",
     );
   }
 });
@@ -1961,4 +1973,149 @@ test("contract script changes retain the full critical test gate despite inferre
   assert.equal(check.mandatory, true);
   assert.equal(check.command, "bun run test");
   assert.deepEqual(check.focusedPaths, []);
+});
+
+const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
+
+test("read-only Shared hooks are sensitive and keep direct proof, Shared types and consumer types", () => {
+  for (const changedPath of [
+    "packages/shared/src/hooks/garden/useFilteredGardens.ts",
+    "packages/shared/src/hooks/blockchain/useEnsName.ts",
+    "packages/shared/src/hooks/conviction/useConvictionProposalsForPool.ts",
+  ]) {
+    const unfocused = selectValidation({ intent: "push", changedPaths: [changedPath] });
+    assert.equal(unfocused.risk, "sensitive", changedPath);
+    assert.equal(unfocused.status, "needs-focus", changedPath);
+    assert.equal(unfocused.stopReason, "focused-proof-required", changedPath);
+
+    const focused = selectValidation({
+      intent: "push",
+      changedPaths: [changedPath],
+      testPaths: { shared: ["src/__tests__/hooks/placeholder.test.ts"] },
+    });
+    assert.equal(focused.status, "ready", changedPath);
+    for (const id of ["shared-test", "shared-typecheck", "client-typecheck", "admin-typecheck"]) {
+      assert.ok(ids(focused).includes(id), `${changedPath}: ${id}`);
+    }
+    assert.ok(!ids(focused).includes("client-test"), changedPath);
+  }
+});
+
+test("signing, sending, queue and session hooks stay critical", () => {
+  for (const changedPath of [
+    "packages/shared/src/hooks/work/useWorkApprovals.ts",
+    "packages/shared/src/hooks/blockchain/useTransactionSender.ts",
+    "packages/shared/src/hooks/blockchain/useContractTxSender.ts",
+    "packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts",
+    "packages/shared/src/hooks/garden/useJoinGarden.ts",
+    "packages/shared/src/modules/transactions/wallet-sender.ts",
+    "packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts",
+  ]) {
+    const plan = selectValidation({ intent: "push", changedPaths: [changedPath] });
+    assert.equal(plan.risk, "critical", changedPath);
+    assert.ok(plan.checks.find((check) => check.id === "shared-test")?.mandatory, changedPath);
+  }
+  const routine = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/src/hooks/app/useLoadingWithMinDuration.ts"],
+  });
+  assert.equal(routine.risk, "routine");
+  assert.equal(routine.status, "needs-focus");
+});
+
+function mutationFixture(t, files) {
+  const root = mkdtempSync(join(tmpdir(), "shared-mutation-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const [path, source] of Object.entries(files)) {
+    const absolute = join(root, "packages/shared/src", path);
+    mkdirSync(join(absolute, ".."), { recursive: true });
+    writeFileSync(absolute, source);
+  }
+  return root;
+}
+
+test("a new hook that reaches a signing or sending primitive defaults to critical", (t) => {
+  const { sharedMutationPrimitives: primitives } = loadPolicy();
+  const root = mutationFixture(t, {
+    "hooks/blockchain/useTransactionSender.ts": [
+      'import { useWriteContract } from "wagmi";',
+      "export function useTransactionSender() {",
+      "  const { writeContractAsync } = useWriteContract();",
+      "  return writeContractAsync;",
+      "}",
+    ].join("\n"),
+    "hooks/blockchain/index.ts": 'export { useTransactionSender as useSender } from "./useTransactionSender";\n',
+    "hooks/tips/useSendTip.ts": [
+      'import { useSender } from "../blockchain";',
+      "export function useSendTip() {",
+      "  const send = useSender();",
+      "  return (amount: bigint) => send({ amount });",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useTipReceipt.ts": [
+      'import * as core from "@wagmi/core";',
+      "export async function sendTipReceipt(config: unknown) {",
+      "  return core.sendTransaction(config as never, { to: \"0x0\" } as never);",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useLazyTip.ts": [
+      "export async function sendLazyTip(sender: { sendContractCall?: (call: unknown) => Promise<void> }) {",
+      "  await sender.sendContractCall?.({});",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useLeaveTips.ts": [
+      'import { useAuth } from "../auth";',
+      "export function useLeaveTips() {",
+      "  const { signOut } = useAuth();",
+      "  return signOut;",
+      "}",
+    ].join("\n"),
+    "hooks/auth/index.ts": "export function useAuth() { return {} as { signOut: () => void }; }\n",
+    "hooks/tips/useTipTotals.ts": [
+      'import { useReadContract } from "wagmi";',
+      "// Reads only: a comment saying writeContract( or sendTransaction( is not a call.",
+      "export function useTipTotals() {",
+      '  const label = "sendContractCall(";',
+      "  return useReadContract({ functionName: label });",
+      "}",
+    ].join("\n"),
+  });
+  const newHooks = [
+    "packages/shared/src/hooks/tips/useSendTip.ts",
+    "packages/shared/src/hooks/tips/useTipReceipt.ts",
+    "packages/shared/src/hooks/tips/useLazyTip.ts",
+    "packages/shared/src/hooks/tips/useLeaveTips.ts",
+  ];
+  const readOnly = "packages/shared/src/hooks/tips/useTipTotals.ts";
+  const mutationPaths = mutationPathsAmong([...newHooks, readOnly], { root, primitives });
+  assert.deepEqual(mutationPaths, [...newHooks].sort());
+
+  for (const changedPath of newHooks) {
+    const plan = selectValidation({ intent: "push", changedPaths: [changedPath], mutationPaths });
+    assert.equal(plan.risk, "critical", changedPath);
+    const sharedTest = plan.checks.find((check) => check.id === "shared-test");
+    assert.ok(sharedTest?.mandatory, changedPath);
+    assert.ok(sharedTest.selectedBy.includes("critical-content"), changedPath);
+  }
+  const readPlan = selectValidation({ intent: "push", changedPaths: [readOnly], mutationPaths });
+  assert.notEqual(readPlan.risk, "critical");
+});
+
+test("every Shared file that signs, sends, moves funds or changes auth, session or queue state is critical by policy", () => {
+  const policy = loadPolicy();
+  const { invoking } = analyzeSharedMutationSurface({
+    root: repositoryRoot,
+    primitives: policy.sharedMutationPrimitives,
+  });
+  const unclassified = [...invoking]
+    .filter(([file]) => selectValidation({ intent: "push", changedPaths: [file] }, { policy }).risk !== "critical")
+    .map(([file, reasons]) => `${file} (${reasons.join("; ")})`);
+  assert.deepEqual(
+    unclassified,
+    [],
+    "Add each file to the shared critical override's exact list in scripts/data/validation-policy.json",
+  );
+  const listed = policy.criticalOverrides.find((rule) => rule.id === SHARED_CRITICAL_RULE_ID);
+  const stale = listed.exact.filter((file) => !invoking.has(file));
+  assert.deepEqual(stale, [], "Remove exact entries that no longer sign, send or change auth, session or queue state");
 });

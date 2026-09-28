@@ -36,6 +36,18 @@
         "packages/agent/src/",
         "packages/indexer/src/"
       ]
+    },
+    {
+      "risk": "sensitive",
+      "note": "Shared hooks that left the critical tier because they only read (D1). They keep direct proof through needs-focus, and conditionalRules add the Shared and consumer typechecks.",
+      "prefixes": [
+        "packages/shared/src/hooks/assessment/",
+        "packages/shared/src/hooks/blockchain/",
+        "packages/shared/src/hooks/conviction/",
+        "packages/shared/src/hooks/ens/",
+        "packages/shared/src/hooks/garden/",
+        "packages/shared/src/hooks/greenwill/"
+      ]
     }
   ],
   "surfaceRules": [
@@ -125,7 +137,24 @@
         "scripts/dev/package-commands.mjs",
         "scripts/dev/package-commands.test.mjs",
         "scripts/dev/test-lease.mjs",
-        "turbo.json"
+        "turbo.json",
+        "scripts/data/validation-policy.json",
+        "scripts/quality/select-validation.mjs",
+        "scripts/quality/shared-mutation-surface.mjs",
+        "scripts/dev/ci-local.js",
+        "scripts/quality/ci-gate.mjs",
+        "scripts/quality/check-source-structure.js",
+        "scripts/quality/check-staged-modules.mjs",
+        "scripts/quality/check-commit-identity.mjs",
+        "scripts/dev/surface-leases.mjs",
+        "scripts/dev/stack.js",
+        "scripts/dev/smoke-full.js",
+        "scripts/lib/dev-modes.mjs",
+        "scripts/lib/setup-env.mjs",
+        "scripts/lib/command-runner.mjs",
+        "scripts/dev/test.js",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/browser.js"
       ]
     },
     {
@@ -416,6 +445,39 @@
         "packages/qa/auth.ts",
         "packages/qa/api/auth.ts"
       ]
+    },
+    {
+      "check": "shared-typecheck",
+      "prefixes": [
+        "packages/shared/src/hooks/assessment/",
+        "packages/shared/src/hooks/blockchain/",
+        "packages/shared/src/hooks/conviction/",
+        "packages/shared/src/hooks/ens/",
+        "packages/shared/src/hooks/garden/",
+        "packages/shared/src/hooks/greenwill/"
+      ]
+    },
+    {
+      "check": "client-typecheck",
+      "prefixes": [
+        "packages/shared/src/hooks/assessment/",
+        "packages/shared/src/hooks/blockchain/",
+        "packages/shared/src/hooks/conviction/",
+        "packages/shared/src/hooks/ens/",
+        "packages/shared/src/hooks/garden/",
+        "packages/shared/src/hooks/greenwill/"
+      ]
+    },
+    {
+      "check": "admin-typecheck",
+      "prefixes": [
+        "packages/shared/src/hooks/assessment/",
+        "packages/shared/src/hooks/blockchain/",
+        "packages/shared/src/hooks/conviction/",
+        "packages/shared/src/hooks/ens/",
+        "packages/shared/src/hooks/garden/",
+        "packages/shared/src/hooks/greenwill/"
+      ]
     }
   ],
   "checks": [
@@ -526,6 +588,17 @@
       "capabilities": ["dependencies"]
     },
     {
+      "id": "client-typecheck",
+      "command": "bun run typecheck",
+      "cwd": "packages/client",
+      "risk": "client source no longer compiles against the Shared contracts it consumes",
+      "expectedSignal": "client source TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 2,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
       "id": "client-test-typecheck",
       "command": "bun run typecheck --scope tests",
       "cwd": "packages/client",
@@ -556,6 +629,17 @@
       "expectedSignal": "client production bundle succeeds",
       "freshness": "exact-inputs-toolchain-and-environment",
       "budgetSeconds": 75,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "admin-typecheck",
+      "command": "bun run typecheck",
+      "cwd": "packages/admin",
+      "risk": "admin source no longer compiles against the Shared contracts it consumes",
+      "expectedSignal": "admin source TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -1138,6 +1222,8 @@
       "checks": ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]
     },
     {
+      "id": "shared-signing-money-queue-auth",
+      "note": "Critical means signing, money, queue and auth (D1, 2026-09-28). The prefixes are critical as a whole. exact lists every other Shared source file whose code reaches a primitive in sharedMutationPrimitives. The selector also escalates any changed Shared file that reaches one, and select-validation.test.mjs fails when exact drifts from the code.",
       "prefixes": [
         "packages/shared/src/providers/Auth.tsx",
         "packages/shared/src/providers/JobQueue.tsx",
@@ -1146,15 +1232,99 @@
         "packages/shared/src/modules/job-queue/",
         "packages/shared/src/modules/work/",
         "packages/shared/src/workflows/",
-        "packages/shared/src/hooks/assessment/",
         "packages/shared/src/hooks/auth/",
-        "packages/shared/src/hooks/conviction/",
-        "packages/shared/src/hooks/ens/",
-        "packages/shared/src/hooks/garden/",
-        "packages/shared/src/hooks/greenwill/",
         "packages/shared/src/hooks/work/",
-        "packages/shared/src/hooks/vault/",
-        "packages/shared/src/hooks/blockchain/"
+        "packages/shared/src/hooks/vault/"
+      ],
+      "exact": [
+        "packages/shared/src/config/passkeyServer.ts",
+        "packages/shared/src/hooks/action/useActionOperations.ts",
+        "packages/shared/src/hooks/admin-ui/actions/useActionEditorController.ts",
+        "packages/shared/src/hooks/admin-ui/actions/useCreateActionController.ts",
+        "packages/shared/src/hooks/admin-ui/community/useCommunityWorkspaceController.ts",
+        "packages/shared/src/hooks/admin-ui/garden/useCreateGardenController.ts",
+        "packages/shared/src/hooks/admin-ui/garden/useGardenWorkspaceController.ts",
+        "packages/shared/src/hooks/admin-ui/garden/useManageMembersController.ts",
+        "packages/shared/src/hooks/admin-ui/garden/useSubmitWorkController.ts",
+        "packages/shared/src/hooks/admin-ui/hub/useCreateAssessmentController.ts",
+        "packages/shared/src/hooks/admin-ui/hub/useHubWorkbenchController.ts",
+        "packages/shared/src/hooks/admin-ui/hypercerts/useWizardData.ts",
+        "packages/shared/src/hooks/admin-ui/layout/useAccountProfileController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useCommitmentDialogController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useCommitmentSettlementController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useHubConfirmQueueController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useSettlementOperationsController.ts",
+        "packages/shared/src/hooks/admin-ui/useAdminAccessState.ts",
+        "packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts",
+        "packages/shared/src/hooks/blockchain/useContractTxSender.ts",
+        "packages/shared/src/hooks/blockchain/useSendToken.ts",
+        "packages/shared/src/hooks/blockchain/useTransactionSender.ts",
+        "packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts",
+        "packages/shared/src/hooks/client-ui/commitment/useCommitmentComposerController.ts",
+        "packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts",
+        "packages/shared/src/hooks/client-ui/commitment/useProofComposerController.ts",
+        "packages/shared/src/hooks/client-ui/pool/useGardenPoolController.ts",
+        "packages/shared/src/hooks/client-ui/work/useCommunityGardenOnramp.ts",
+        "packages/shared/src/hooks/client-ui/work/useWorkDetailController.ts",
+        "packages/shared/src/hooks/client-ui/work/useWorkSubmissionFlowController.ts",
+        "packages/shared/src/hooks/commitment-pooling/useCommitmentJobs.ts",
+        "packages/shared/src/hooks/commitment-pooling/useCommitmentMutations.ts",
+        "packages/shared/src/hooks/commitment-pooling/useCommitmentPoolMutations.ts",
+        "packages/shared/src/hooks/commitment-pooling/useCommitmentPoolSetupSequence.ts",
+        "packages/shared/src/hooks/commitment-pooling/useCredit.ts",
+        "packages/shared/src/hooks/commitment-pooling/useSettlement.ts",
+        "packages/shared/src/hooks/conviction/useAllocateHypercertSupport.ts",
+        "packages/shared/src/hooks/conviction/useConvictionWeightAllocator.ts",
+        "packages/shared/src/hooks/conviction/useCreateGardenPools.ts",
+        "packages/shared/src/hooks/conviction/useDeregisterHypercert.ts",
+        "packages/shared/src/hooks/conviction/useRegisterHypercert.ts",
+        "packages/shared/src/hooks/conviction/useSetConvictionStrategies.ts",
+        "packages/shared/src/hooks/conviction/useSetDecay.ts",
+        "packages/shared/src/hooks/conviction/useSetPointsPerVoter.ts",
+        "packages/shared/src/hooks/conviction/useSetRoleHatIds.ts",
+        "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts",
+        "packages/shared/src/hooks/cookie-jar/useCookieJarAdmin.ts",
+        "packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts",
+        "packages/shared/src/hooks/cookie-jar/useCookieJarWithdraw.ts",
+        "packages/shared/src/hooks/ens/useENSClaim.ts",
+        "packages/shared/src/hooks/ens/useENSReleaseName.ts",
+        "packages/shared/src/hooks/garden/createGardenOperation.ts",
+        "packages/shared/src/hooks/garden/useAutoJoinRootGarden.ts",
+        "packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts",
+        "packages/shared/src/hooks/garden/useGardenDetailData.ts",
+        "packages/shared/src/hooks/garden/useGardenInvites.ts",
+        "packages/shared/src/hooks/garden/useGardenJoinRequests.ts",
+        "packages/shared/src/hooks/garden/useGardenOperations.ts",
+        "packages/shared/src/hooks/garden/useJoinGarden.ts",
+        "packages/shared/src/hooks/garden/useKarmaIntegration.ts",
+        "packages/shared/src/hooks/garden/useOpenMinting.ts",
+        "packages/shared/src/hooks/garden/useSetGardenDomains.ts",
+        "packages/shared/src/hooks/garden/useUpdateGarden.ts",
+        "packages/shared/src/hooks/gardener/useGardenerProfile.ts",
+        "packages/shared/src/hooks/greenwill/useClaimGreenWillBadge.ts",
+        "packages/shared/src/hooks/hypercerts/services/build-and-sign.ts",
+        "packages/shared/src/hooks/hypercerts/services/register-in-signal-pool.ts",
+        "packages/shared/src/hooks/hypercerts/useBatchListForYield.ts",
+        "packages/shared/src/hooks/hypercerts/useCancelListing.ts",
+        "packages/shared/src/hooks/hypercerts/useCreateListing.ts",
+        "packages/shared/src/hooks/hypercerts/useMarketplaceApprovals.ts",
+        "packages/shared/src/hooks/hypercerts/useMintHypercert.ts",
+        "packages/shared/src/hooks/profile/useProfileAvatar.ts",
+        "packages/shared/src/hooks/yield/useAllocateYield.ts",
+        "packages/shared/src/hooks/yield/useHarvestDistribution.ts",
+        "packages/shared/src/modules/action/action-operation-command.ts",
+        "packages/shared/src/modules/assessment/create-assessment-command.ts",
+        "packages/shared/src/modules/garden/create-garden-command.ts",
+        "packages/shared/src/modules/garden/join-garden-command.ts",
+        "packages/shared/src/modules/marketplace/client.ts",
+        "packages/shared/src/modules/marketplace/signing.ts",
+        "packages/shared/src/modules/transactions/chain-guard.ts",
+        "packages/shared/src/modules/transactions/embedded-sender.ts",
+        "packages/shared/src/modules/transactions/factory.ts",
+        "packages/shared/src/modules/transactions/passkey-sender.ts",
+        "packages/shared/src/modules/transactions/wallet-sender.ts"
       ],
       "risk": "critical",
       "checks": ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]
@@ -1167,6 +1337,106 @@
       "checks": ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]
     }
   ],
+  "sharedMutationPrimitives": {
+    "note": "Calls that sign, send a transaction, move funds, or change auth, session or queue state, read from the Shared code (scripts/quality/shared-mutation-surface.mjs). external and internal name the functions, hooks and classes whose call is the act; members name methods whose call or destructuring is the act, such as sender.sendContractCall() or const { signOut } = useAuth().",
+    "external": {
+      "wagmi": [
+        "useWriteContract",
+        "useWriteContracts",
+        "useSendTransaction",
+        "useSendCalls",
+        "useSignMessage",
+        "useSignTypedData",
+        "useDeployContract",
+        "useWalletClient",
+        "useConnect",
+        "useDisconnect",
+        "useReconnect",
+        "useSwitchChain",
+        "useSwitchAccount"
+      ],
+      "@wagmi/core": [
+        "writeContract",
+        "sendTransaction",
+        "sendCalls",
+        "signMessage",
+        "signTypedData",
+        "deployContract",
+        "getWalletClient",
+        "connect",
+        "disconnect",
+        "reconnect",
+        "switchChain",
+        "switchAccount"
+      ],
+      "viem": ["createWalletClient"],
+      "viem/actions": [
+        "writeContract",
+        "sendTransaction",
+        "sendRawTransaction",
+        "signMessage",
+        "signTypedData",
+        "signTransaction",
+        "deployContract",
+        "sendCalls"
+      ],
+      "viem/account-abstraction": [
+        "createWebAuthnCredential",
+        "toWebAuthnAccount",
+        "createBundlerClient",
+        "sendUserOperation"
+      ],
+      "permissionless": ["createSmartAccountClient"],
+      "permissionless/accounts": [
+        "toKernelSmartAccount",
+        "toSafeSmartAccount",
+        "toSimpleSmartAccount"
+      ],
+      "permissionless/clients/passkeyServer": ["createPasskeyServerClient"],
+      "@reown/appkit/react": ["useAppKit", "useDisconnect"],
+      "@ethereum-attestation-service/eas-sdk": ["EAS"],
+      "@hypercerts-org/marketplace-sdk": ["HypercertExchangeClient"],
+      "@hypercerts-org/sdk": ["HypercertClient"]
+    },
+    "internal": {
+      "modules/transactions/factory.ts": ["createTransactionSender"],
+      "modules/transactions/wallet-sender.ts": ["WalletSender"],
+      "modules/transactions/passkey-sender.ts": ["PasskeySender"],
+      "modules/transactions/embedded-sender.ts": ["EmbeddedSender"],
+      "providers/Auth.tsx": ["useAuthActions"]
+    },
+    "members": [
+      "sendTransaction",
+      "sendUserOperation",
+      "writeContract",
+      "writeContractAsync",
+      "signMessage",
+      "signMessageAsync",
+      "signTypedData",
+      "signTransaction",
+      "sendCalls",
+      "sendRawTransaction",
+      "sendContractCall",
+      "sendBatch",
+      "sendAtomicBatch",
+      "deployContract",
+      "createAccount",
+      "loginWithPasskey",
+      "loginWithWallet",
+      "loginWithEmbedded",
+      "signOut",
+      "switchToWallet",
+      "switchToPasskey",
+      "clearPasskey",
+      "disconnectWallet",
+      "addJob",
+      "processJob",
+      "flush",
+      "retryJob",
+      "discardJob",
+      "retryAndSend"
+    ]
+  },
   "workflowRules": {
     "Admin": {
       "exact": [
