@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, mkdtempSync, mkdirSync, statSync, writeFileSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import test from "node:test";
 
 import { resolvePackageCommand } from "../dev/package-commands.mjs";
@@ -170,6 +170,31 @@ test("Supply Chain classifies format, guidance, audit, and parity work independe
   assert.match(source, /if: needs\.changes\.outputs\.supply == 'true'/);
   assert.match(source, /if: needs\.changes\.outputs\.parity == 'true'/);
   assert.match(source, /node scripts\/quality\/classify-supply-chain-changes\.mjs/);
+});
+
+test("the parity job runs for every file its suites read or import", () => {
+  const suite = read("scripts/quality/workflow-performance-parity.test.mjs");
+  const job = read(".github/workflows/supply-chain-guardrails.yml").match(
+    /- name: Run workflow performance parity tests\n\s+run: node --test ([^\n]+)/,
+  );
+  assert.ok(job, "missing the parity test step");
+  const testFiles = job[1].trim().split(/\s+/);
+  const inputs = new Set([
+    ...testFiles,
+    // A test file's subject sits beside it.
+    ...testFiles.map((file) => file.replace(/\.test\.mjs$/, ".mjs")).filter((file) => existsSync(join(root, file))),
+    // Modules the suite imports.
+    ...[...suite.matchAll(/^import [^;]*? from "(\.{1,2}\/[^"]+)";$/gm)].map(([, specifier]) =>
+      relative(root, resolve(root, "scripts/quality", specifier)).split(sep).join("/"),
+    ),
+    // Files it reads by a literal path; a directory it walks is source, not configuration.
+    ...[...suite.matchAll(/\bread\("([^"]+)"\)/g)].map(([, path]) => path).filter((path) => statSync(join(root, path)).isFile()),
+    // Files it reads in a loop over packages.
+    ...["admin", "agent", "client", "shared"].map((name) => `packages/${name}/vitest.config.ts`),
+    ...["admin", "client"].flatMap((name) => [`packages/${name}/package.json`, `packages/${name}/tsconfig.json`]),
+  ]);
+  const missing = [...inputs].filter((path) => !classifySupplyChainChanges([path]).parity).sort();
+  assert.deepEqual(missing, [], "add these to parityExact in classify-supply-chain-changes.mjs");
 });
 
 test("Supply Chain classifier routes each change class without broad fallthrough", () => {

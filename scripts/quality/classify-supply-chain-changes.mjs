@@ -40,23 +40,42 @@ const supplyExact = new Set([
   ".mise.toml",
 ]);
 
+// Every file the parity job's suites read or import, so a change to one runs them. The parity
+// suite's tests guard this list against what it reads.
 const parityExact = new Set([
   ".github/actions/setup-js/action.yml",
+  ".husky/pre-commit",
   ".husky/pre-push",
   ".claude/settings.json",
   ".claude/scripts/task-completion-gate.sh",
+  "package.json",
   "scripts/data/validation-policy.json",
   "scripts/dev/ci-local.js",
   "scripts/dev/ci-local.test.mjs",
+  "scripts/dev/package-commands.mjs",
+  "scripts/quality/check-test-quality.sh",
   "scripts/quality/classify-supply-chain-changes.mjs",
   "scripts/quality/select-validation.mjs",
   "scripts/quality/select-validation.test.mjs",
+  "scripts/quality/summarize-test-churn.mjs",
+  "scripts/quality/summarize-test-churn.test.mjs",
   "scripts/quality/workflow-performance-parity.test.mjs",
-  // The parity suite holds the tests for these test-quality inputs.
+  // The package configurations whose shapes the parity suite locks.
+  "packages/admin/package.json",
+  "packages/admin/tsconfig.json",
+  "packages/admin/vitest.config.ts",
+  "packages/agent/vitest.config.ts",
+  "packages/client/package.json",
+  "packages/client/tsconfig.json",
+  "packages/client/vitest.config.ts",
+  "packages/indexer/.c8rc.json",
+  "packages/shared/package.json",
   "packages/shared/vitest.config.ts",
+  // The parity suite holds the tests for these test-quality inputs.
   "scripts/lib/vitest-shared-graph.mjs",
   "scripts/quality/check-shared-graph-tests.mjs",
   "scripts/quality/check-small-test-files.mjs",
+  "scripts/quality/check-test-query-setup.mjs",
   "scripts/quality/check-test-utils-barrel.mjs",
 ]);
 
