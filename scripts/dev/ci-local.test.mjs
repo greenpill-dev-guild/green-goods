@@ -130,6 +130,7 @@ function plan(checks, status = "ready") {
     testPaths: {},
     requestedChecks: [],
     environment: { profile: "test", toolchain: {}, capabilities: {} },
+    receiptPolicy: { reuseAllowed: true },
     checks: checks.map((id) => ({
       id,
       command: `run ${id}`,
@@ -595,56 +596,85 @@ test("persisted receipt store rejects tampered receipt inputs", async (t) => {
   assert.equal(loadPassingReceiptStore(path).size, 0);
 });
 
-test("critical plans reuse exact passing receipts in push intent only", async () => {
-  const criticalPlan = (intent) => {
-    const critical = plan(["shared-test"]);
-    critical.risk = "critical";
-    critical.requestedIntent = intent;
-    critical.effectiveIntent = intent;
-    critical.checks[0].mandatory = true;
-    critical.receiptPolicy = { criticalReuseAllowed: intent === "push" };
-    return critical;
+test("receipts are reused in push and never by the strict gates, at every risk", async () => {
+  const runTwice = async (input) => {
+    const receiptStore = new Map();
+    const runs = [];
+    const execute = async () => {
+      let count = 0;
+      const result = await executePlan(input, {
+        reusePassingReceipts: true,
+        receiptStore,
+        runCheck: async () => {
+          count += 1;
+          return { ok: true, exitCode: 0 };
+        },
+      });
+      runs.push(count);
+      return result;
+    };
+    await execute();
+    const second = await execute();
+    return { runs, second, receiptStore };
   };
-  const run = (input, receiptStore, onRun) =>
+  const byRisk = [
+    ["routine", "docs/docs/builders/quality/test-cases.mdx", {}],
+    ["sensitive", "packages/agent/src/services/analytics.ts", { agent: ["src/__tests__/analytics.test.ts"] }],
+    ["critical", "packages/shared/src/hooks/work/useWorkMutation.ts", { shared: ["src/hooks/work/useWorkMutation.test.ts"] }],
+  ];
+  for (const [risk, changedPath, testPaths] of byRisk) {
+    for (const intent of ["readiness", "ship", "merge", "release"]) {
+      const strict = selectValidation({ intent, changedPaths: [changedPath] });
+      assert.equal(strict.risk, risk, `${intent}: ${changedPath}`);
+      const { runs, second, receiptStore } = await runTwice(strict);
+      assert.ok(runs[0] > 0, `${intent}: ${changedPath} ran nothing`);
+      assert.deepEqual(runs, [runs[0], runs[0]], `${intent}: ${changedPath} reused a receipt`);
+      assert.equal(second.results.some((result) => result.reused), false, `${intent}: ${changedPath}`);
+      assert.equal(receiptStore.size, 0, `${intent}: ${changedPath}`);
+    }
+
+    const push = selectValidation({ intent: "push", changedPaths: [changedPath], testPaths });
+    assert.equal(push.status, "ready", changedPath);
+    const { runs, second } = await runTwice(push);
+    assert.ok(runs[0] > 0, `push: ${changedPath} ran nothing`);
+    assert.equal(runs[1], 0, `push: ${changedPath} reran an exact pass`);
+    assert.ok(second.results.every((result) => result.reused), `push: ${changedPath}`);
+  }
+
+  // Any input, toolchain or command change is a new fingerprint and runs the check again.
+  const push = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/src/hooks/work/useWorkMutation.ts"],
+    testPaths: { shared: ["src/hooks/work/useWorkMutation.test.ts"] },
+  });
+  const store = new Map();
+  let reruns = 0;
+  const run = (input) =>
     executePlan(input, {
       reusePassingReceipts: true,
-      receiptStore,
+      receiptStore: store,
       runCheck: async () => {
-        onRun();
+        reruns += 1;
         return { ok: true, exitCode: 0 };
       },
     });
-
-  const pushStore = new Map();
-  let pushRuns = 0;
-  const push = criticalPlan("push");
-  await run(push, pushStore, () => (pushRuns += 1));
-  const rerun = await run(push, pushStore, () => (pushRuns += 1));
-  assert.equal(pushRuns, 1);
-  assert.equal(rerun.results[0].reused, true);
-
-  // Any input, toolchain or command change is a new fingerprint and runs the check again.
+  await run(push);
   for (const drifted of [
     { ...push, head: "head-2" },
     { ...push, workingCopyFingerprint: "working-copy-2" },
-    { ...push, policyVersion: 2 },
+    { ...push, policyVersion: push.policyVersion + 1 },
     { ...push, environment: { ...push.environment, toolchain: { node: "22.22.2" } } },
     { ...push, checks: push.checks.map((check) => ({ ...check, command: `${check.command} --x` })) },
   ]) {
-    const before = pushRuns;
-    await run(drifted, pushStore, () => (pushRuns += 1));
-    assert.equal(pushRuns, before + 1);
+    const before = reruns;
+    await run(drifted);
+    assert.ok(reruns > before, `a drifted plan must rerun its checks: ${JSON.stringify(Object.keys(drifted))}`);
   }
 
-  for (const intent of ["readiness", "ship", "merge", "release"]) {
-    const store = new Map();
-    let runs = 0;
-    const strict = criticalPlan(intent);
-    await run(strict, store, () => (runs += 1));
-    await run(strict, store, () => (runs += 1));
-    assert.equal(runs, 2, intent);
-    assert.equal(store.size, 0, intent);
-  }
+  // A plan that does not say reuse is allowed runs everything fresh.
+  const unstated = { ...plan(["first"]), receiptPolicy: undefined };
+  const { runs } = await runTwice(unstated);
+  assert.deepEqual(runs, [1, 1]);
 });
 
 test("legacy and selector arguments remain parseable", () => {

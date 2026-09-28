@@ -706,9 +706,8 @@ export async function executePlan(plan, options = {}) {
     return result;
   };
 
-  // The selector decides whether a critical plan may reuse receipts: push only, never the
-  // readiness, ship, merge or release gates.
-  const receiptsAllowed = plan.risk !== "critical" || plan.receiptPolicy?.criticalReuseAllowed === true;
+  // The selector owns receipt policy; a plan that does not allow reuse runs every check fresh.
+  const receiptsAllowed = plan.receiptPolicy?.reuseAllowed === true;
   const recordPass = (receiptInputs) => {
     if (!reusePassingReceipts || !receiptsAllowed) return;
     receiptStore.set(receiptInputs.fingerprint, {
@@ -973,6 +972,11 @@ async function main() {
   const abortController = new AbortController();
   const cancel = () => abortController.abort("user-cancelled");
   process.once("SIGINT", cancel);
+  if (options.reusePassingReceipts && plan.receiptPolicy?.reuseAllowed !== true) {
+    console.log(
+      `${colors.yellow}--reuse-passing-receipts is ignored:${colors.reset} ${plan.receiptPolicy?.note ?? "this plan runs every check fresh."}`,
+    );
+  }
   const receiptStore = options.reusePassingReceipts ? loadPassingReceiptStore() : new Map();
   const execution = await executePlan(plan, {
     failFast: options.failFast,

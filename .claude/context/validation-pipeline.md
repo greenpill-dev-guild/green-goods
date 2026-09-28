@@ -73,8 +73,8 @@ Receipt reuse is opt-in and off by default. Pass `--reuse-passing-receipts` to
 lives in `.cache/validation`, holds passes only, and any change to the command, policy, toolchain,
 validated paths, or environment profile invalidates the fingerprint. A tampered store is rejected
 rather than trusted. A critical push may reuse exact passes too, so a pre-push hook right after a
-passing manual run finishes in seconds; readiness, ship, merge, and release run critical checks
-fresh.
+passing manual run finishes in seconds. Readiness, ship, merge, and release run every check fresh
+at any risk: they reuse no receipt, and their package suites run with Turbo's `--force`.
 
 `node scripts/dev/ci-local.js` renders and executes Ship intent by default. Prefer an explicit
 intent in agent workflows: `--intent push` for the ready-for-CI contract and `--intent ship` only
@@ -106,8 +106,8 @@ readiness without editing tracked files:
 bun run format --check && bun run lint && bun run test && VITE_CHAIN_ID=11155111 bun run build
 ```
 
-Run every selected stage fresh unless an exact matching receipt satisfies the freshness contract
-above. A required failure means `REQUEST_CHANGES`. A required check that cannot run means
+Run every selected stage fresh; the readiness gate reuses no receipt and no Turbo cache entry. A
+required failure means `REQUEST_CHANGES`. A required check that cannot run means
 `COMMENT_ONLY`; do not downgrade or replace the proof silently.
 
 For a PR readiness verdict, local evidence is necessary but not sufficient. Required GitHub CI

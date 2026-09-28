@@ -343,6 +343,24 @@ function needsOwnerCompileProof(paths, surface) {
 // A fast push budgets a focused package suite at this many seconds.
 const FOCUSED_PUSH_SUITE_SECONDS = 30;
 
+// The gates that certify readiness, a full local ship, a merge or a release run every check fresh,
+// whatever the plan's risk: they reuse no receipt, and their package suites skip Turbo's cache.
+// Lighter intents may reuse an exact pass, but a critical plan only in push, where the pre-push
+// hook would otherwise repeat the manual run it follows.
+const FRESH_RUN_INTENTS = new Set(["readiness", "ship", "merge", "release"]);
+
+export function receiptPolicyFor(intent, risk) {
+  const reuseAllowed = !FRESH_RUN_INTENTS.has(intent) && (risk !== "critical" || intent === "push");
+  return {
+    reuseAllowed,
+    optInRequired: true,
+    failuresCacheable: false,
+    note: reuseAllowed
+      ? "Opt-in exact-fingerprint passing receipts may be reused."
+      : "Every check runs fresh: readiness, ship, merge and release never reuse receipts, and a critical plan reuses them only in push.",
+  };
+}
+
 function focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy) {
   if (requestedChecks.length > 0) return [];
   const missing = new Set();
@@ -435,12 +453,7 @@ export function selectValidation(input = {}, options = {}) {
       environment: normalizeEnvironment(input.environment),
       environmentBlockers: [],
       budget: summarizeBudget(intent, []),
-      receiptPolicy: {
-        cacheReuseAllowed: true,
-        optInRequired: true,
-        failuresCacheable: false,
-        note: "Only opt-in exact-fingerprint passing receipts may be reused.",
-      },
+      receiptPolicy: receiptPolicyFor(intent, maxRisk(policy, [baseRisk])),
     };
   }
 
@@ -734,13 +747,7 @@ export function selectValidation(input = {}, options = {}) {
     environmentBlockers: toolchainBlockers,
     checks,
     budget,
-    receiptPolicy: {
-      cacheReuseAllowed: true,
-      optInRequired: true,
-      failuresCacheable: false,
-      criticalReuseAllowed: intent === "push",
-      note: "Only opt-in exact-fingerprint passing receipts may be reused. A critical push may reuse them; readiness, ship, merge and release run critical checks fresh.",
-    },
+    receiptPolicy: receiptPolicyFor(intent, risk),
   };
 }
 
@@ -791,7 +798,8 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     TURBO_TEST_INTENTS.has(context.intent) &&
     turboPackage
   ) {
-    command = `node ${turboPackage.binary} run test --filter=${turboPackage.packageName} --output-logs=new-only`;
+    const force = FRESH_RUN_INTENTS.has(context.intent) ? " --force" : "";
+    command = `node ${turboPackage.binary} run test --filter=${turboPackage.packageName} --output-logs=new-only${force}`;
   } else if (focusedPaths.length > 0) {
     command =
       check.id === "contracts-test"

@@ -24,9 +24,11 @@ function ids(plan) {
   return plan.checks.map((check) => check.id);
 }
 
-function turboTestCommand(surface) {
+function turboTestCommand(surface, intent = "push") {
   const binary = surface === "docs" ? "../node_modules/.bin/turbo" : "../../node_modules/.bin/turbo";
-  return `node ${binary} run test --filter=@green-goods/${surface} --output-logs=new-only`;
+  // The strict gates skip Turbo's cache, so a package suite there always runs.
+  const force = ["readiness", "ship", "merge"].includes(intent) ? " --force" : "";
+  return `node ${binary} run test --filter=@green-goods/${surface} --output-logs=new-only${force}`;
 }
 
 test("hook and doctor edits select their behavioral proof", () => {
@@ -797,14 +799,7 @@ test("critical push keeps mandatory checks uncapped", () => {
   assert.equal(plan.budget.hardLimitSeconds, null);
   assert.equal(plan.budget.enforced, false);
   // A rerun of the same critical push may reuse exact passes; the strict gates never do.
-  assert.equal(plan.receiptPolicy.criticalReuseAllowed, true);
-  for (const intent of ["readiness", "ship", "merge", "release"]) {
-    const strict = selectValidation({
-      intent,
-      changedPaths: ["packages/shared/src/hooks/work/useWorkMutation.ts"],
-    });
-    assert.equal(strict.receiptPolicy.criticalReuseAllowed, false, intent);
-  }
+  assert.equal(plan.receiptPolicy.reuseAllowed, true);
   for (const checkId of [
     "shared-typecheck",
     "shared-test",
@@ -960,7 +955,7 @@ test("eligible local package tests route through Turbo with package-relative bin
     for (const surface of expectedSurfaces) {
       assert.equal(
         plan.checks.find((check) => check.id === `${surface}-test`)?.command,
-        turboTestCommand(surface),
+        turboTestCommand(surface, intent),
         `${intent}:${surface}`,
       );
     }
@@ -1322,7 +1317,7 @@ test("push keeps test-only proof focused while strict intents preserve owning ga
       const packageTest = plan.checks.find((check) => check.id === `${surface}-test`);
       assert.equal(
         packageTest.command,
-        turboTestCommand(surface),
+        turboTestCommand(surface, intent),
         `${intent} must run the full ${surface} suite`,
       );
       assert.deepEqual(
@@ -1478,7 +1473,7 @@ test("local merge and merge --ci select identical checks while preserving CI pac
   assert.equal(ci.checks.find((check) => check.id === "format").command, "bunx @biomejs/biome format .");
   assert.equal(
     local.checks.find((check) => check.id === "admin-test").command,
-    turboTestCommand("admin"),
+    turboTestCommand("admin", "merge"),
   );
   assert.equal(ci.checks.find((check) => check.id === "admin-test").command, "bun run test");
   assert.deepEqual(
@@ -1553,7 +1548,7 @@ test("readiness and release remain full scope while empty ship falls back to ful
     for (const surface of ["shared", "client", "admin", "agent", "indexer", "contracts", "docs"]) {
       const expected =
         intent === "readiness" && surface !== "contracts"
-          ? turboTestCommand(surface)
+          ? turboTestCommand(surface, intent)
           : "bun run test";
       assert.equal(
         plan.checks.find((check) => check.id === `${surface}-test`)?.command,
@@ -1579,7 +1574,7 @@ test("readiness and release remain full scope while empty ship falls back to ful
     for (const surface of ["shared", "client", "admin", "agent", "indexer", "docs"]) {
       assert.equal(
         plan.checks.find((check) => check.id === `${surface}-test`)?.command,
-        turboTestCommand(surface),
+        turboTestCommand(surface, intent),
         `${intent}:${surface}`,
       );
     }
@@ -2154,6 +2149,30 @@ test("every Shared file that signs, sends, moves funds or changes auth, session 
   const listed = policy.criticalOverrides.find((rule) => rule.id === SHARED_CRITICAL_RULE_ID);
   const stale = listed.exact.filter((file) => !invoking.has(file));
   assert.deepEqual(stale, [], "Remove exact entries that no longer sign, send or change auth, session or queue state");
+});
+
+test("receipt reuse follows the intent: readiness, ship, merge and release never reuse at any risk", () => {
+  const byRisk = {
+    routine: "docs/docs/builders/quality/test-cases.mdx",
+    sensitive: "packages/agent/src/services/analytics.ts",
+    critical: "packages/shared/src/hooks/work/useWorkMutation.ts",
+  };
+  const reuse = (intent, changedPath) => {
+    const plan = selectValidation({ intent, changedPaths: [changedPath] });
+    return [plan.risk, plan.receiptPolicy.reuseAllowed];
+  };
+  for (const [risk, changedPath] of Object.entries(byRisk)) {
+    for (const intent of ["readiness", "ship", "merge", "release"]) {
+      assert.deepEqual(reuse(intent, changedPath), [risk, false], `${intent}: ${changedPath}`);
+    }
+    // An ordinary push may reuse an exact pass at every risk, which is what keeps the pre-push
+    // hook after a passing manual run to seconds.
+    assert.deepEqual(reuse("push", changedPath), [risk, true], `push: ${changedPath}`);
+  }
+  // Lighter intents reuse too, except that a critical plan reuses only in push.
+  assert.deepEqual(reuse("checkpoint", byRisk.routine), ["routine", true]);
+  assert.deepEqual(reuse("checkpoint", byRisk.critical), ["critical", false]);
+  assert.equal(selectValidation({ intent: "release", cancelled: true }).receiptPolicy.reuseAllowed, false);
 });
 
 test("measured budgets keep routine and sensitive push decisions", () => {
