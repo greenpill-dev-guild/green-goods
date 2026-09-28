@@ -293,6 +293,7 @@
     "./utils/action/parsers": "./src/utils/action/parsers.ts",
     "./utils/action/templates": "./src/utils/action/templates.ts",
     "./utils/action/translations": "./src/utils/action/translations.ts",
+    "./utils/action/window": "./src/utils/action/window.ts",
     "./utils/app/clipboard": "./src/utils/app/clipboard.ts",
     "./utils/app/text": "./src/utils/app/text.ts",
     "./utils/blockchain/abis/erc20": "./src/utils/blockchain/abis/erc20.ts",

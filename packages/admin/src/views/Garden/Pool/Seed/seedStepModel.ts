@@ -9,7 +9,7 @@ import {
   COMMITMENT_UNIT_LABEL_MAX_LENGTH,
 } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { Action } from "@green-goods/shared/types/domain";
-import { hasActionEnded } from "@green-goods/shared/utils";
+import { hasActionEnded } from "@green-goods/shared/utils/action/window";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
 import { cycleName } from "../poolPresentation";

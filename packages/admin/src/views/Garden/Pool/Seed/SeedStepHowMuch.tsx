@@ -7,7 +7,7 @@ import {
   COMMITMENT_UNIT_LABEL_MAX_LENGTH,
 } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { Action } from "@green-goods/shared/types/domain";
-import { hasActionEnded } from "@green-goods/shared/utils";
+import { hasActionEnded } from "@green-goods/shared/utils/action/window";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { Controller, type UseFieldArrayReturn, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";

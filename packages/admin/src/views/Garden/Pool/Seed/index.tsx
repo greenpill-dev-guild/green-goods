@@ -12,7 +12,7 @@ import { useErc20MetadataMany } from "@green-goods/shared/hooks/blockchain/useEr
 import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import type { Address } from "@green-goods/shared/types/domain";
-import { msUntilActionWindowChange } from "@green-goods/shared/utils";
+import { msUntilActionWindowChange } from "@green-goods/shared/utils/action/window";
 import {
   buildCommitmentCreationPayload,
   useCommitmentComposerForm,
