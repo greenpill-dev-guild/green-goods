@@ -67,7 +67,7 @@ the [follow-through report](reports/2026-09-28-velocity-follow-through.md).
 | [x] | 0 | Preflight and baseline: critical push 263 s cold / 57 s warm (`useWorkApprovals.ts`); read-only `useFilteredGardens.ts` 360 s cold (contended) / 73 s warm | Report § Slice 0 |
 | [x] | 1 | Machine-wide test lease in the package test path: the second full run waits, names the holder and never times out; timing bound (both within twice one quiet run) not met in contended samples | Report § Slice 1 |
 | [x] | 2 | Critical scope matches D1: 52 read-only hooks left the tier, 60 uncovered mutation files entered it; the selector escalates new ones from their code; CI Gate guards the list | Report § Slice 2 |
-| [ ] | 3 | Critical push: receipts, sequential suites, measured budgets | |
+| [x] | 3 | Critical push 274 s cold (twice) and 3 s on a rerun; read-only hook 6–8 s cold; estimate 267 s instead of 965 s | Report § Slice 3 |
 | [ ] | 4 | Route `test-quality`, `docs-generated` and `docs-authority` in the push gate | |
 | [ ] | 5 | DetailsGate table (D5); Client passes at one worker | |
 | [ ] | 6 | Shared Node project split: shared-graph files and a lean setup | |

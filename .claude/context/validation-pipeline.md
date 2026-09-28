@@ -49,14 +49,18 @@ Every selected check states:
 - **Stop** — which dependent checks stop after a deterministic failure and which explicitly
   independent diagnostics may continue.
 
-Push plans also report a concurrency-aware `budget.estimatedWallSeconds`,
-`budget.hardLimitSeconds`, and `budget.enforced`. Routine pushes have a 90-second hard limit;
-sensitive pushes have 180 seconds. Critical checks are uncapped and cannot be suppressed by a
-budget, receipt, or compatibility flag. The manual `browser-proof` check is advisory: it is
-reported separately, never blocks a local plan, and is not part of the automated deadline.
+Push plans also report `budget.estimatedWallSeconds`, `budget.hardLimitSeconds`, and
+`budget.enforced`. Checks run one at a time, so the estimate is the sum of their budgets, which are
+cold measurements on a quiet machine; package suites get the whole machine through the test lease.
+Routine pushes have a 90-second hard limit; sensitive pushes have 180 seconds. Critical checks are
+uncapped and cannot be suppressed by a budget or compatibility flag. The manual `browser-proof`
+check is advisory: it is reported separately, never blocks a local plan, and is not part of the
+automated deadline.
 
 If a push plan lacks direct behavior proof, or its estimate exceeds the limit while a package
-suite is still unfocused, the selector returns `needs-focus` and executes nothing. A plan whose
+suite is still unfocused, the selector returns `needs-focus` and executes nothing. A deleted package
+test counts as missing proof unless its whole suite costs no more than a focused run; name the test
+that still proves the same failure. A plan whose
 selected suites are all focused runs even when its static estimate exceeds the limit; the hard
 deadline then decides. Supply a focused test with
 `--test-path <surface>:<path>`, narrow the change, or select an existing explicit acceptance check.
@@ -68,7 +72,9 @@ Receipt reuse is opt-in and off by default. Pass `--reuse-passing-receipts` to
 `node scripts/dev/ci-local.js` to skip checks whose exact fingerprint already passed. The store
 lives in `.cache/validation`, holds passes only, and any change to the command, policy, toolchain,
 validated paths, or environment profile invalidates the fingerprint. A tampered store is rejected
-rather than trusted.
+rather than trusted. A critical push may reuse exact passes too, so a pre-push hook right after a
+passing manual run finishes in seconds; readiness, ship, merge, and release run critical checks
+fresh.
 
 `node scripts/dev/ci-local.js` renders and executes Ship intent by default. Prefer an explicit
 intent in agent workflows: `--intent push` for the ready-for-CI contract and `--intent ship` only

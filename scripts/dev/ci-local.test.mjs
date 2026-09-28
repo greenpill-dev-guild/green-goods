@@ -7,7 +7,7 @@ import test from "node:test";
 
 import { clearRepositoryLocalGitVariables, fixtureGitEnvironment } from "../lib/dev-shared.js";
 import { FROZEN_ALLOWLIST } from "../quality/check-source-structure.js";
-import { resolveGitInputs } from "../quality/select-validation.mjs";
+import { resolveGitInputs, selectValidation } from "../quality/select-validation.mjs";
 import {
   applyCompatibilityFilters,
   arbitrumForkAvailable,
@@ -18,7 +18,6 @@ import {
   isSupportedCiNodeVersion,
   loadPassingReceiptStore,
   parseArguments,
-  resolveVitestBatchEnvironment,
   runCommandCheck,
   savePassingReceiptStore,
   validateAttestation,
@@ -596,27 +595,56 @@ test("persisted receipt store rejects tampered receipt inputs", async (t) => {
   assert.equal(loadPassingReceiptStore(path).size, 0);
 });
 
-test("critical plans never store or reuse passing receipts", async () => {
-  const receiptStore = new Map();
-  const critical = plan(["contracts-test"]);
-  critical.risk = "critical";
-  critical.checks[0].mandatory = true;
-  let calls = 0;
-
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const result = await executePlan(critical, {
+test("critical plans reuse exact passing receipts in push intent only", async () => {
+  const criticalPlan = (intent) => {
+    const critical = plan(["shared-test"]);
+    critical.risk = "critical";
+    critical.requestedIntent = intent;
+    critical.effectiveIntent = intent;
+    critical.checks[0].mandatory = true;
+    critical.receiptPolicy = { criticalReuseAllowed: intent === "push" };
+    return critical;
+  };
+  const run = (input, receiptStore, onRun) =>
+    executePlan(input, {
       reusePassingReceipts: true,
       receiptStore,
       runCheck: async () => {
-        calls += 1;
+        onRun();
         return { ok: true, exitCode: 0 };
       },
     });
-    assert.equal(result.status, "passed");
+
+  const pushStore = new Map();
+  let pushRuns = 0;
+  const push = criticalPlan("push");
+  await run(push, pushStore, () => (pushRuns += 1));
+  const rerun = await run(push, pushStore, () => (pushRuns += 1));
+  assert.equal(pushRuns, 1);
+  assert.equal(rerun.results[0].reused, true);
+
+  // Any input, toolchain or command change is a new fingerprint and runs the check again.
+  for (const drifted of [
+    { ...push, head: "head-2" },
+    { ...push, workingCopyFingerprint: "working-copy-2" },
+    { ...push, policyVersion: 2 },
+    { ...push, environment: { ...push.environment, toolchain: { node: "22.22.2" } } },
+    { ...push, checks: push.checks.map((check) => ({ ...check, command: `${check.command} --x` })) },
+  ]) {
+    const before = pushRuns;
+    await run(drifted, pushStore, () => (pushRuns += 1));
+    assert.equal(pushRuns, before + 1);
   }
 
-  assert.equal(calls, 2);
-  assert.equal(receiptStore.size, 0);
+  for (const intent of ["readiness", "ship", "merge", "release"]) {
+    const store = new Map();
+    let runs = 0;
+    const strict = criticalPlan(intent);
+    await run(strict, store, () => (runs += 1));
+    await run(strict, store, () => (runs += 1));
+    assert.equal(runs, 2, intent);
+    assert.equal(store.size, 0, intent);
+  }
 });
 
 test("legacy and selector arguments remain parseable", () => {
@@ -812,200 +840,31 @@ test("the push gate judges a moved file at its new path as a modified file", asy
   assert.doesNotMatch(result.output, /settled\.ts/);
 });
 
-// Independent package suites declare a concurrency group in the policy. Only
-// checks adjacent in plan order may batch, so printed order and the stop rule
-// survive untouched.
-function groupedPlan(specs) {
-  const base = plan(specs.map((spec) => spec.id));
-  base.checks = base.checks.map((check, index) => ({
-    ...check,
-    ...(specs[index].group ? { concurrencyGroup: specs[index].group } : {}),
-    ...(specs[index].blocked ? { state: "blocked", blockedBy: ["toolchain.node"] } : {}),
-  }));
-  return base;
-}
-
-function overlapTracker() {
-  const state = {
-    active: 0,
-    peak: 0,
-    captured: new Map(),
-    environments: new Map(),
-    order: [],
-  };
-  const runCheck = async (check, options = {}) => {
-    state.order.push(check.id);
-    state.captured.set(check.id, options.captureOutput === true);
-    state.environments.set(check.id, options.environment);
-    state.active += 1;
-    state.peak = Math.max(state.peak, state.active);
-    await new Promise((resolve) => setTimeout(resolve, 15));
-    state.active -= 1;
-    return { ok: true, exitCode: 0, durationSeconds: 0.01 };
-  };
-  return { state, runCheck };
-}
-
-test("adjacent checks sharing a concurrency group run together", async () => {
-  const { state, runCheck } = overlapTracker();
-  const result = await executePlan(
-    groupedPlan([
-      { id: "client-test", group: "package-tests-surface" },
-      { id: "admin-test", group: "package-tests-surface" },
-    ]),
-    { runCheck },
-  );
-
-  assert.equal(result.status, "passed");
-  assert.equal(state.peak, 2);
-  assert.equal(state.captured.get("client-test"), true);
-  assert.equal(state.captured.get("admin-test"), true);
-});
-
-test("batched package tests receive a worker cap divided by batch size", () => {
-  const environment = resolveVitestBatchEnvironment(
-    [
-      { id: "client-test" },
-      { id: "admin-test" },
-    ],
-    {
-      cpus: 10,
-      totalMemoryBytes: 16 * GIBIBYTE,
-      ci: false,
-    },
-  );
-
-  assert.deepEqual(environment, { VITEST_MAX_WORKERS: "4" });
-});
-
-test("batched worker environment leaves CI unchanged and preserves explicit overrides", () => {
-  const batch = [{ id: "client-test" }, { id: "admin-test" }];
-  const resources = {
-    cpus: 10,
-    totalMemoryBytes: 16 * GIBIBYTE,
-    ci: true,
-  };
-
-  assert.deepEqual(resolveVitestBatchEnvironment(batch, resources), {});
-  assert.deepEqual(
-    resolveVitestBatchEnvironment(batch, {
-      ...resources,
-      explicitMaxWorkers: "3",
-    }),
-    { VITEST_MAX_WORKERS: "3" },
-  );
-});
-
-test("every member of a concurrent test batch receives the resolved worker environment", async () => {
-  const { state, runCheck } = overlapTracker();
-  await executePlan(
-    groupedPlan([
-      { id: "client-test", group: "package-tests-surface" },
-      { id: "admin-test", group: "package-tests-surface" },
-    ]),
-    {
-      runCheck,
-      resolveBatchEnvironment: () => ({ VITEST_MAX_WORKERS: "2" }),
-    },
-  );
-
-  assert.deepEqual(state.environments.get("client-test"), {
-    VITEST_MAX_WORKERS: "2",
+test("package suites in a real plan run one at a time, leaving worker sizing to the test lease", async () => {
+  // A checkpoint on a Shared utility selects Shared, Client, Admin and Agent suites back to back.
+  const input = selectValidation({
+    intent: "checkpoint",
+    changedPaths: ["packages/shared/src/utils/time.ts"],
   });
-  assert.deepEqual(state.environments.get("admin-test"), {
-    VITEST_MAX_WORKERS: "2",
-  });
-});
+  const suites = input.checks.filter((check) => check.id.endsWith("-test")).map((check) => check.id);
+  assert.deepEqual(suites, ["shared-test", "client-test", "admin-test", "agent-test"]);
 
-test("different groups, ungrouped checks, and blocked members never batch", async () => {
-  for (const specs of [
-    [
-      { id: "shared-test", group: "package-tests-core" },
-      { id: "client-test", group: "package-tests-surface" },
-    ],
-    [{ id: "format" }, { id: "client-test", group: "package-tests-surface" }],
-    [
-      { id: "client-test", group: "package-tests-surface" },
-      { id: "admin-test", group: "package-tests-surface", blocked: true },
-    ],
-  ]) {
-    const { state, runCheck } = overlapTracker();
-    await executePlan(groupedPlan(specs), { runCheck });
-    assert.equal(state.peak, 1, JSON.stringify(specs));
-  }
-});
-
-test("a check running alone still streams instead of capturing", async () => {
-  const { state, runCheck } = overlapTracker();
-  await executePlan(groupedPlan([{ id: "format" }]), { runCheck });
-  assert.equal(state.captured.get("format"), false);
-});
-
-test("a failing batch reports every member and stops the checks after it", async () => {
-  const started = [];
-  const result = await executePlan(
-    groupedPlan([
-      { id: "client-test", group: "package-tests-surface" },
-      { id: "admin-test", group: "package-tests-surface" },
-      { id: "docs-build" },
-    ]),
-    {
-      runCheck: async (check) => {
-        started.push(check.id);
-        const ok = check.id !== "client-test";
-        return { ok, exitCode: ok ? 0 : 3, durationSeconds: 0.01 };
-      },
+  const state = { active: 0, peak: 0, order: [], options: [] };
+  const result = await executePlan(input, {
+    runCheck: async (check, options = {}) => {
+      state.order.push(check.id);
+      state.options.push(options);
+      state.active += 1;
+      state.peak = Math.max(state.peak, state.active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      state.active -= 1;
+      return { ok: true, exitCode: 0, durationSeconds: 0.01 };
     },
-  );
-
-  assert.equal(result.status, "failed");
-  assert.equal(result.exitCode, 3);
-  // both in-flight members report, and nothing after the batch starts
-  assert.deepEqual([...started].sort(), ["admin-test", "client-test"]);
-  assert.deepEqual(
-    result.results.map((entry) => entry.id),
-    ["client-test", "admin-test"],
-  );
-});
-
-test("concurrency can be turned off without changing results", async () => {
-  const { state, runCheck } = overlapTracker();
-  const result = await executePlan(
-    groupedPlan([
-      { id: "client-test", group: "package-tests-surface" },
-      { id: "admin-test", group: "package-tests-surface" },
-    ]),
-    { runCheck, concurrency: false },
-  );
-
+  });
   assert.equal(result.status, "passed");
   assert.equal(state.peak, 1);
-  assert.deepEqual(state.order, ["client-test", "admin-test"]);
-});
-
-test("a reusable receipt keeps its member out of the batch", async () => {
-  const receiptStore = new Map();
-  const grouped = groupedPlan([
-    { id: "client-test", group: "package-tests-surface" },
-    { id: "admin-test", group: "package-tests-surface" },
-  ]);
-
-  await executePlan(grouped, {
-    reusePassingReceipts: true,
-    receiptStore,
-    runCheck: async () => ({ ok: true, exitCode: 0, durationSeconds: 0.01 }),
-  });
-
-  const { state, runCheck } = overlapTracker();
-  const second = await executePlan(grouped, {
-    reusePassingReceipts: true,
-    receiptStore,
-    runCheck,
-  });
-
-  assert.equal(second.status, "passed");
-  assert.equal(state.peak, 0);
-  assert.ok(second.results.every((entry) => entry.reused === true));
+  assert.deepEqual(state.order, input.checks.map((check) => check.id));
+  assert.ok(state.options.every((options) => !("environment" in options) && !options.captureOutput));
 });
 
 // Regression: the plan inherited its blocked status even after the compatibility

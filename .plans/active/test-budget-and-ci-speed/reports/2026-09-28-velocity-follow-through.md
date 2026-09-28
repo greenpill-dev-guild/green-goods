@@ -249,3 +249,82 @@ cannot see signing inside an external library unless that library's entry is lis
 signing API needs a line in `sharedMutationPrimitives`. Forwarding an action without calling it
 (`onClick: auth.signOut`) is not detected. Client, Admin and Agent source are outside this
 analysis.
+
+## Slice 3 — critical push in 5–7 minutes
+
+Slice 0 showed that the cold critical push already took 263 s on a quiet machine. The costs were
+the rerun (57 s, every check again) and an estimate that read 965 s. Changes:
+
+- **Receipts.** A critical plan may reuse exact-fingerprint passing receipts in push intent only.
+  The selector owns the rule (`receiptPolicy.criticalReuseAllowed`, true for push only), and
+  `ci-local` reads it. Readiness, ship, merge and release never reuse. A new fixture shows that a
+  changed head, working copy, policy version, toolchain or command each forces a fresh run.
+- **One check at a time.** The package suites lose their concurrency groups, and the batching code
+  goes: the batch branch in `executePlan`, `resolveVitestBatchEnvironment`, the concurrency option,
+  the grouped estimate and nine batching tests. A new test drives a real checkpoint plan (Shared,
+  Client, Admin, Agent suites back to back) and sees at most one check running. The test lease
+  gives each suite the whole machine, and `turbo.json` now passes an explicit
+  `VITEST_MAX_WORKERS` through to it.
+- **Measured budgets.** Each check the critical plan runs, plus the two new typechecks, carries its
+  slice 0 cold measurement rounded up to whole seconds. The critical estimate reads 267 s.
+
+The smallest-change rule stopped there. Both cold runs below are under five minutes, so no build
+or typecheck parallelism and no Agent skip were added.
+
+Decision check: across 5,857 single-path push scenarios (every tracked file, plus deletion of every
+package test), compared between `56ed7f6ac` and this change:
+
+- **Critical plans:** 624 before and after.
+- **Deleted tests:** lower suite budgets would have let 277 pushes that delete a Client or Admin
+  test run the whole suite instead of stopping for focus. A deleted package test now counts as
+  missing focused proof unless its whole suite costs no more than a focused run (30 s). That keeps
+  those plans at `needs-focus`, now with the stop reason `focused-proof-required`.
+- **The one intended change:** deleting `packages/agent/src/__tests__/config.test.ts` used to stop
+  only because static budgets summed to 220 s. It now runs its 16 s plan: the Agent typecheck, the
+  4 s Agent suite, and the Agent build.
+- **Tests updated:** two tests whose assertions were derived from the old budgets now check the
+  same intent against the measured ones (a QA plan that now fits its target, and a focused push
+  fixture with a third surface so it still exceeds the routine limit).
+
+Measured after (quiet-gated single runs, 02:10–02:34, receipt store cleared before each cold run):
+
+| Check | Approvals cold 1 | Approvals cold 2 | Approvals warm |
+|---|---:|---:|---:|
+| `format` | 0.8 | 1.0 | reused |
+| `lint` | 5.1 | 4.9 | reused |
+| `shared-typecheck` | 1.6 | 2.3 | reused |
+| `shared-test-typecheck` | 0.6 | 0.8 | reused |
+| `shared-test` | 89.3 | 124.4 | reused |
+| `shared-build` | 0.0 | 0.0 | reused |
+| `client-test-typecheck` | 1.2 | 1.1 | reused |
+| `client-test` | 58.8 | 48.4 | reused |
+| `client-build` | 21.8 | 15.8 | reused |
+| `admin-test-typecheck` | 1.0 | 0.8 | reused |
+| `admin-test` | 63.5 | 49.9 | reused |
+| `admin-build` | 17.3 | 13.8 | reused |
+| `agent-typecheck` | 1.9 | 1.5 | reused |
+| `agent-test-typecheck` | 1.6 | 1.3 | reused |
+| `agent-test` | 3.7 | 2.9 | reused |
+| `agent-build` | 1.6 | 1.2 | reused |
+| `source-structure` | 1.1 | 0.9 | reused |
+| `ontology` | 0.3 | 0.2 | reused |
+| **Gate wall time** | **274 s** | **274 s** | **3 s** |
+
+`useFilteredGardens.ts` is now sensitive; with its focused test the push plan ran seven checks:
+format, lint, `shared-typecheck`, the focused `shared-test`, `client-typecheck`, `admin-typecheck`
+and `source-structure`. It took 8 s and 6 s cold and 2 s warm (all seven reused), against 360 s
+cold and 73 s warm at START.
+
+The first attempt at these runs stopped at `format` in under a second: this slice's `turbo.json`
+line needed wrapping. It was fixed with Biome and all six runs repeated.
+
+Proof:
+
+| Step | Command | Result |
+|---|---|---|
+| RED | `node scripts/dev/node-cli.js node --test --test-name-pattern "critical plans reuse exact passing receipts" scripts/dev/ci-local.test.mjs` | a critical push ran twice (`expected 1, actual 2`) |
+| RED | `--test-name-pattern "package suites in a real plan"` over `ci-local.test.mjs` | two suites ran at once (`expected 1, actual 2`) |
+| RED | `--test-name-pattern "Turbo passes lease"` over `package-commands.test.mjs` | `VITEST_MAX_WORKERS` missing from the pass-through list |
+| GREEN | the three suites together | 148/148 |
+| Selected | `validation-system-test` | 328/329; the pre-existing parity failure only |
+| Selected | `docs-authority` (2 s), `docs-build` (4 s), `agent-guidance` | all exit 0 |

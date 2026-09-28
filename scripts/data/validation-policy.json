@@ -487,7 +487,7 @@
       "risk": "unformatted tracked files produce misleading package failures",
       "expectedSignal": "repository formatting is unchanged",
       "freshness": "exact-inputs",
-      "budgetSeconds": 15,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -497,7 +497,7 @@
       "risk": "static defects cross package boundaries",
       "expectedSignal": "repository lint rules pass",
       "freshness": "exact-inputs",
-      "budgetSeconds": 20,
+      "budgetSeconds": 5,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -549,7 +549,7 @@
       "risk": "shared type contracts no longer compile",
       "expectedSignal": "shared TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 45,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -560,7 +560,7 @@
       "risk": "shared tests and stories no longer satisfy their strict TypeScript contract",
       "expectedSignal": "shared test and story TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 20,
+      "budgetSeconds": 1,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -571,9 +571,8 @@
       "risk": "shared behavior regresses direct consumers",
       "expectedSignal": "shared unit and integration tests pass",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 90,
+      "budgetSeconds": 84,
       "stopRule": "stop-dependent-checks",
-      "concurrencyGroup": "package-tests-core",
       "capabilities": ["dependencies"]
     },
     {
@@ -583,7 +582,7 @@
       "risk": "shared exports or emitted declarations are invalid",
       "expectedSignal": "shared package builds successfully",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 60,
+      "budgetSeconds": 1,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -605,7 +604,7 @@
       "risk": "client tests and stories no longer satisfy their strict TypeScript contract",
       "expectedSignal": "client test and story TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 20,
+      "budgetSeconds": 1,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -616,9 +615,8 @@
       "risk": "client behavior regresses",
       "expectedSignal": "client tests pass",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 90,
+      "budgetSeconds": 46,
       "stopRule": "stop-dependent-checks",
-      "concurrencyGroup": "package-tests-surface",
       "capabilities": ["dependencies"]
     },
     {
@@ -628,7 +626,7 @@
       "risk": "client routing, exports, or runtime wiring do not bundle",
       "expectedSignal": "client production bundle succeeds",
       "freshness": "exact-inputs-toolchain-and-environment",
-      "budgetSeconds": 75,
+      "budgetSeconds": 21,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -639,7 +637,7 @@
       "risk": "admin source no longer compiles against the Shared contracts it consumes",
       "expectedSignal": "admin source TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 2,
+      "budgetSeconds": 1,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -650,7 +648,7 @@
       "risk": "admin tests and stories no longer satisfy their strict TypeScript contract",
       "expectedSignal": "admin test and story TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 20,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -661,9 +659,8 @@
       "risk": "admin behavior regresses",
       "expectedSignal": "admin tests pass",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 180,
+      "budgetSeconds": 73,
       "stopRule": "stop-dependent-checks",
-      "concurrencyGroup": "package-tests-surface",
       "capabilities": ["dependencies"]
     },
     {
@@ -675,7 +672,6 @@
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 90,
       "stopRule": "stop-dependent-checks",
-      "concurrencyGroup": "package-tests-surface",
       "capabilities": ["dependencies"]
     },
     {
@@ -685,7 +681,7 @@
       "risk": "admin routing, exports, or runtime wiring do not bundle",
       "expectedSignal": "admin production bundle succeeds",
       "freshness": "exact-inputs-toolchain-and-environment",
-      "budgetSeconds": 75,
+      "budgetSeconds": 15,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -696,7 +692,7 @@
       "risk": "agent runtime types no longer compile",
       "expectedSignal": "agent TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 45,
+      "budgetSeconds": 3,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -707,7 +703,7 @@
       "risk": "agent tests no longer satisfy their strict TypeScript contract",
       "expectedSignal": "agent test TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 20,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -718,9 +714,8 @@
       "risk": "agent or SQLite behavior regresses",
       "expectedSignal": "agent test lanes pass",
       "freshness": "exact-inputs-toolchain-and-environment",
-      "budgetSeconds": 90,
+      "budgetSeconds": 4,
       "stopRule": "stop-dependent-checks",
-      "concurrencyGroup": "package-tests-surface",
       "capabilities": ["dependencies"]
     },
     {
@@ -730,7 +725,7 @@
       "risk": "agent runtime does not build",
       "expectedSignal": "agent production build succeeds",
       "freshness": "exact-inputs-toolchain-and-environment",
-      "budgetSeconds": 60,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -825,7 +820,6 @@
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 45,
       "stopRule": "stop-dependent-checks",
-      "concurrencyGroup": "package-tests-core",
       "capabilities": ["dependencies"]
     },
     {
@@ -855,7 +849,7 @@
       "risk": "changed package source violates repository structure policy",
       "expectedSignal": "package source changed since the comparison base, committed or not, passes structure policy",
       "freshness": "exact-inputs",
-      "budgetSeconds": 20,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -875,7 +869,7 @@
       "risk": "domain ontology and generated references diverge",
       "expectedSignal": "ontology source and projections agree",
       "freshness": "exact-inputs",
-      "budgetSeconds": 20,
+      "budgetSeconds": 1,
       "stopRule": "stop-dependent-checks",
       "capabilities": []
     },

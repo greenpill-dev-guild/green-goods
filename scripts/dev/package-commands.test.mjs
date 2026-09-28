@@ -390,10 +390,10 @@ test("an interrupt releases the lease while the suite runs and while it waits", 
   holder.release();
 });
 
-test("Turbo passes lease overrides and the local-gate marker through to package suites", () => {
+test("Turbo passes lease overrides, the local-gate marker and an explicit worker choice to package suites", () => {
   const turbo = JSON.parse(readFileSync(new URL("../../turbo.json", import.meta.url), "utf8"));
   const passThrough = turbo.globalPassThroughEnv ?? [];
-  for (const variable of ["GREEN_GOODS_TEST_LEASE_SLOTS", "GREEN_GOODS_TEST_LEASE_TIMEOUT_SECONDS", "GREEN_GOODS_LOCAL_GATE"]) {
+  for (const variable of ["GREEN_GOODS_TEST_LEASE_SLOTS", "GREEN_GOODS_TEST_LEASE_TIMEOUT_SECONDS", "GREEN_GOODS_LOCAL_GATE", "VITEST_MAX_WORKERS"]) {
     assert.ok(passThrough.some((entry) => entry === variable || (entry.endsWith("*") && variable.startsWith(entry.slice(0, -1)))), variable);
   }
 });

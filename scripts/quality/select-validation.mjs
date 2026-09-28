@@ -340,7 +340,10 @@ function needsOwnerCompileProof(paths, surface) {
   });
 }
 
-function focusedProofMissing(changedPaths, testPaths, requestedChecks) {
+// A fast push budgets a focused package suite at this many seconds.
+const FOCUSED_PUSH_SUITE_SECONDS = 30;
+
+function focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy) {
   if (requestedChecks.length > 0) return [];
   const missing = new Set();
   for (const path of changedPaths) {
@@ -348,6 +351,16 @@ function focusedProofMissing(changedPaths, testPaths, requestedChecks) {
     const surface = owningSurface(path);
     if (!surface || testPaths[surface]?.length > 0) continue;
     if (needsOwnerCompileProof(changedPaths, surface)) continue;
+    missing.add(surface);
+  }
+  // A deleted package test leaves its suite with nothing to focus on. Only the author can name the
+  // test that still proves the same failure, so ask for it, unless the whole suite costs no more
+  // than a focused run would. Docs tests have no focused mode and always run whole.
+  for (const path of deletedPaths) {
+    const surface = owningSurface(path);
+    if (!isTestPath(path) || !surface || surface === "docs" || testPaths[surface]?.length > 0) continue;
+    const suite = policy.checks.find((check) => check.id === `${surface}-test`);
+    if (suite && suite.budgetSeconds <= FOCUSED_PUSH_SUITE_SECONDS) continue;
     missing.add(surface);
   }
   return [...missing].sort();
@@ -682,7 +695,7 @@ export function selectValidation(input = {}, options = {}) {
   );
   const budget = summarizeBudget(intent, checks, risk);
   const missingFocus = fastPush
-    ? focusedProofMissing(changedPaths, testPaths, requestedChecks)
+    ? focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy)
     : [];
   // Static budgets are ceilings, not measurements. A plan whose package suites are all
   // focused is not over-broad, so it runs and the hard deadline decides; only an
@@ -725,8 +738,8 @@ export function selectValidation(input = {}, options = {}) {
       cacheReuseAllowed: true,
       optInRequired: true,
       failuresCacheable: false,
-      criticalReuseAllowed: false,
-      note: "Only opt-in exact-fingerprint passing receipts may be reused; critical plans always run fresh.",
+      criticalReuseAllowed: intent === "push",
+      note: "Only opt-in exact-fingerprint passing receipts may be reused. A critical push may reuse them; readiness, ship, merge and release run critical checks fresh.",
     },
   };
 }
@@ -838,7 +851,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   }
   let budgetSeconds =
     focusedPaths.length > 0
-      ? Math.min(check.budgetSeconds, fastPush ? 30 : 60)
+      ? Math.min(check.budgetSeconds, fastPush ? FOCUSED_PUSH_SUITE_SECONDS : 60)
       : check.budgetSeconds;
   if (
     check.id === "format" &&
@@ -860,27 +873,6 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   };
 }
 
-function estimatedWallSeconds(checks) {
-  const automated = checks.filter((check) => !check.manual);
-  let total = 0;
-  for (let index = 0; index < automated.length; ) {
-    const check = automated[index];
-    if (!check.concurrencyGroup) {
-      total += check.budgetSeconds;
-      index += 1;
-      continue;
-    }
-    const batch = [check];
-    for (let look = index + 1; look < automated.length; look += 1) {
-      if (automated[look].concurrencyGroup !== check.concurrencyGroup) break;
-      batch.push(automated[look]);
-    }
-    total += Math.max(...batch.map((member) => member.budgetSeconds));
-    index += batch.length;
-  }
-  return total;
-}
-
 export function summarizeBudget(intent, checks, risk = "routine") {
   const hardLimitSeconds =
     intent === "push" && risk !== "critical" ? (risk === "sensitive" ? 180 : 90) : null;
@@ -891,7 +883,8 @@ export function summarizeBudget(intent, checks, risk = "routine") {
   const manualSeconds = checks
     .filter((check) => check.manual)
     .reduce((total, check) => total + check.budgetSeconds, 0);
-  const wallSeconds = estimatedWallSeconds(checks);
+  // Checks run one at a time, so the wall estimate is the sum of their measured budgets.
+  const wallSeconds = automatedSeconds;
   return {
     targetSeconds,
     estimatedWallSeconds: wallSeconds,

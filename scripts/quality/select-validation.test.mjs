@@ -475,7 +475,9 @@ test("isolated client behavior accepts focused proof without forcing a package b
     "bun --bun run oxlint 'packages/client/src/views/Home/Garden/Work.tsx' --deny-warnings",
   );
   assert.equal(plan.budget.targetSeconds, 90);
-  assert.equal(plan.budget.withinTarget, false);
+  // Measured budgets: the focused client suite and its hygiene fit the QA target.
+  assert.equal(plan.budget.withinTarget, true);
+  assert.ok(plan.budget.estimatedWallSeconds <= plan.budget.targetSeconds);
   assert.equal(plan.budget.rule, "Budgets warn and profile; they never skip selected or mandatory checks.");
   assert.equal(plan.checks.at(-1).state, "pending");
 });
@@ -618,6 +620,7 @@ test("a focused push plan runs even when its static estimate exceeds the budget"
   const changedPaths = [
     "packages/client/src/components/Panel.tsx",
     "packages/shared/src/components/Button/Button.tsx",
+    "packages/admin/src/components/AdminCard.tsx",
   ];
   const focused = selectValidation({
     intent: "push",
@@ -625,6 +628,7 @@ test("a focused push plan runs even when its static estimate exceeds the budget"
     testPaths: {
       client: ["src/components/Panel.test.tsx"],
       shared: ["src/components/Button/Button.test.tsx"],
+      admin: ["src/components/AdminCard.test.tsx"],
     },
   });
   assert.equal(focused.budget.enforced, true);
@@ -638,7 +642,10 @@ test("a focused push plan runs even when its static estimate exceeds the budget"
   const unfocused = selectValidation({
     intent: "push",
     changedPaths,
-    testPaths: { client: ["src/components/Panel.test.tsx"] },
+    testPaths: {
+      client: ["src/components/Panel.test.tsx"],
+      admin: ["src/components/AdminCard.test.tsx"],
+    },
     checkIds: ["shared-test"],
   });
   assert.ok(unfocused.budget.estimatedWallSeconds > unfocused.budget.hardLimitSeconds);
@@ -776,7 +783,15 @@ test("critical push keeps mandatory checks uncapped", () => {
   assert.equal(plan.status, "ready");
   assert.equal(plan.budget.hardLimitSeconds, null);
   assert.equal(plan.budget.enforced, false);
-  assert.equal(plan.receiptPolicy.criticalReuseAllowed, false);
+  // A rerun of the same critical push may reuse exact passes; the strict gates never do.
+  assert.equal(plan.receiptPolicy.criticalReuseAllowed, true);
+  for (const intent of ["readiness", "ship", "merge", "release"]) {
+    const strict = selectValidation({
+      intent,
+      changedPaths: ["packages/shared/src/hooks/work/useWorkMutation.ts"],
+    });
+    assert.equal(strict.receiptPolicy.criticalReuseAllowed, false, intent);
+  }
   for (const checkId of [
     "shared-typecheck",
     "shared-test",
@@ -2118,4 +2133,38 @@ test("every Shared file that signs, sends, moves funds or changes auth, session 
   const listed = policy.criticalOverrides.find((rule) => rule.id === SHARED_CRITICAL_RULE_ID);
   const stale = listed.exact.filter((file) => !invoking.has(file));
   assert.deepEqual(stale, [], "Remove exact entries that no longer sign, send or change auth, session or queue state");
+});
+
+test("measured budgets keep routine and sensitive push decisions", () => {
+  const cases = [
+    [{ changedPaths: ["packages/shared/src/hooks/app/useLoadingWithMinDuration.ts"] }, "routine", "needs-focus"],
+    [
+      {
+        changedPaths: ["packages/shared/src/hooks/app/useLoadingWithMinDuration.ts"],
+        testPaths: { shared: ["src/__tests__/hooks/app/useLoadingWithMinDuration.test.ts"] },
+      },
+      "routine",
+      "ready",
+    ],
+    // A deleted test leaves its suite unfocused: name the surviving proof, unless the whole suite
+    // is cheaper than a focused run.
+    [{ changedPaths: ["packages/admin/src/__tests__/components/AdminDialog.test.tsx"], deletedPaths: ["packages/admin/src/__tests__/components/AdminDialog.test.tsx"] }, "routine", "needs-focus"],
+    [{ changedPaths: ["packages/agent/src/__tests__/analytics.test.ts"], deletedPaths: ["packages/agent/src/__tests__/analytics.test.ts"] }, "sensitive", "ready"],
+    [{ changedPaths: ["docs/scripts/docs-audit.test.mjs"] }, "routine", "ready"],
+    [{ changedPaths: ["packages/agent/src/services/analytics.ts"] }, "sensitive", "needs-focus"],
+  ];
+  for (const [input, risk, status] of cases) {
+    const plan = selectValidation({ intent: "push", ...input });
+    assert.equal(plan.risk, risk, input.changedPaths[0]);
+    assert.equal(plan.status, status, input.changedPaths[0]);
+    if (status === "needs-focus") assert.equal(plan.stopReason, "focused-proof-required", input.changedPaths[0]);
+  }
+
+  const critical = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/src/hooks/work/useWorkApprovals.ts"],
+  });
+  const summed = critical.checks.reduce((total, check) => total + check.budgetSeconds, 0);
+  assert.equal(critical.budget.estimatedWallSeconds, summed);
+  assert.ok(summed < 300, `the critical estimate follows measured budgets, got ${summed}s`);
 });

@@ -3,7 +3,6 @@
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { createConnection } from "node:net";
-import { availableParallelism, totalmem } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -16,7 +15,6 @@ import {
   readSharedGitSettings,
   reexecUnderCompatibleNodeIfNeeded,
   reexecUnderSystemNodeIfNeeded,
-  resolveVitestMaxWorkers,
 } from "../lib/dev-shared.js";
 import { LOCAL_GATE_VARIABLE } from "./test-lease.mjs";
 import {
@@ -546,27 +544,6 @@ function envForCheck(check) {
   return common;
 }
 
-export function resolveVitestBatchEnvironment(
-  batch,
-  {
-    cpus = availableParallelism(),
-    totalMemoryBytes = totalmem(),
-    ci = Boolean(process.env.CI),
-    explicitMaxWorkers = process.env.VITEST_MAX_WORKERS,
-  } = {},
-) {
-  if (batch.length < 2 || !batch.every((check) => check.id.endsWith("-test"))) return {};
-  if (explicitMaxWorkers) return { VITEST_MAX_WORKERS: explicitMaxWorkers };
-
-  const maxWorkers = resolveVitestMaxWorkers({
-    cpus,
-    totalMemoryBytes,
-    ci,
-    share: batch.length,
-  });
-  return maxWorkers === undefined ? {} : { VITEST_MAX_WORKERS: String(maxWorkers) };
-}
-
 function elapsedSeconds(start) {
   return Number(((Date.now() - start) / 1000).toFixed(3));
 }
@@ -606,10 +583,7 @@ async function runAbiArtifactCheck() {
   return { ok: problems.length === 0, exitCode: problems.length === 0 ? 0 : 1, details: problems };
 }
 
-export async function runCommandCheck(
-  check,
-  { signal, captureOutput = false, environment = {} } = {},
-) {
+export async function runCommandCheck(check, { signal, captureOutput = false } = {}) {
   const start = Date.now();
   if (check.builtin === "abiArtifacts") {
     const result = await runAbiArtifactCheck();
@@ -637,7 +611,7 @@ export async function runCommandCheck(
       // capture instead, so their logs replay in plan order rather than
       // interleaving into noise.
       stdio: captureOutput ? ["ignore", "pipe", "pipe"] : "inherit",
-      env: { ...process.env, ...envForCheck(check), ...environment },
+      env: { ...process.env, ...envForCheck(check) },
       detached: process.platform !== "win32",
     });
     let output = "";
@@ -706,9 +680,6 @@ export async function executePlan(plan, options = {}) {
   const attestations = options.attestations ?? {};
   const receiptStore = options.receiptStore ?? new Map();
   const reusePassingReceipts = options.reusePassingReceipts === true;
-  const concurrency = options.concurrency !== false;
-  const resolveBatchEnvironment =
-    options.resolveBatchEnvironment ?? resolveVitestBatchEnvironment;
 
   if (plan.status === "cancelled" || externalSignal?.aborted) {
     return { status: "cancelled", exitCode: 130, results, blocked };
@@ -735,8 +706,11 @@ export async function executePlan(plan, options = {}) {
     return result;
   };
 
+  // The selector decides whether a critical plan may reuse receipts: push only, never the
+  // readiness, ship, merge or release gates.
+  const receiptsAllowed = plan.risk !== "critical" || plan.receiptPolicy?.criticalReuseAllowed === true;
   const recordPass = (receiptInputs) => {
-    if (!reusePassingReceipts || plan.risk === "critical") return;
+    if (!reusePassingReceipts || !receiptsAllowed) return;
     receiptStore.set(receiptInputs.fingerprint, {
       status: "passed",
       passedAt: new Date().toISOString(),
@@ -747,14 +721,11 @@ export async function executePlan(plan, options = {}) {
     const receiptInputs = buildReceiptInputs(plan, check);
     const cached = reusePassingReceipts ? receiptStore.get(receiptInputs.fingerprint) : null;
     const reusable =
-      plan.risk !== "critical" &&
+      receiptsAllowed &&
       cached?.status === "passed" &&
       cached.receiptInputs?.fingerprint === receiptInputs.fingerprint;
     return { receiptInputs, reusable };
   };
-  const runnableNow = (check) =>
-    check.state !== "blocked" && !(check.manual && !check.command) && !reusableReceipt(check).reusable;
-
   let index = 0;
   while (index < plan.checks.length) {
     if (signal?.aborted) {
@@ -832,76 +803,26 @@ export async function executePlan(plan, options = {}) {
       continue;
     }
 
-    // Independent package suites declare a concurrency group in the policy and
-    // run together, mirroring the grouping the root `test` script already uses.
-    // Only checks adjacent in plan order join a batch, so execution order and
-    // the stop rule stay exactly as the plan printed them.
-    const batch = [check];
-    if (concurrency && check.concurrencyGroup) {
-      for (let look = index + 1; look < plan.checks.length; look += 1) {
-        const next = plan.checks[look];
-        if (next.concurrencyGroup !== check.concurrencyGroup) break;
-        if (!runnableNow(next)) break;
-        batch.push(next);
-      }
-    }
+    // Checks run one at a time in plan order. Package suites get the whole machine: the
+    // machine-wide test lease in package-commands.mjs sizes their workers.
+    options.onCheckStart?.(check);
+    const result = await runCheck(check, { signal });
+    const evidence = { id: check.id, ...result, receiptInputs };
+    results.push(evidence);
+    options.onCheckComplete?.(check, evidence);
 
-    if (batch.length === 1) {
-      options.onCheckStart?.(check);
-      const result = await runCheck(check, { signal });
-      const evidence = { id: check.id, ...result, receiptInputs };
-      results.push(evidence);
-      options.onCheckComplete?.(check, evidence);
-
-      if (result.cancelled || signal?.aborted) {
-        return finish(
-          budgetExpired
-            ? { status: "budget-exceeded", exitCode: 124, results, blocked }
-            : { status: "cancelled", exitCode: 130, results, blocked },
-        );
-      }
-      if (!result.ok && failFast) {
-        return finish({ status: "failed", exitCode: result.exitCode || 1, results, blocked });
-      }
-      if (result.ok) recordPass(receiptInputs);
-      index += 1;
-      continue;
-    }
-
-    options.onBatchStart?.(batch);
-    const environment = resolveBatchEnvironment(batch);
-    const settled = await Promise.all(
-      batch.map((member) =>
-        runCheck(member, { signal, captureOutput: true, environment }),
-      ),
-    );
-    for (const [position, member] of batch.entries()) {
-      const evidence = {
-        id: member.id,
-        ...settled[position],
-        receiptInputs: buildReceiptInputs(plan, member),
-      };
-      results.push(evidence);
-      options.onCheckComplete?.(member, evidence);
-    }
-
-    // The whole batch is already in flight, so let every member report before
-    // stopping. Fail-fast still prevents anything after the batch from starting.
-    if (settled.some((result) => result.cancelled) || signal?.aborted) {
+    if (result.cancelled || signal?.aborted) {
       return finish(
         budgetExpired
           ? { status: "budget-exceeded", exitCode: 124, results, blocked }
           : { status: "cancelled", exitCode: 130, results, blocked },
       );
     }
-    const failure = settled.find((result) => !result.ok);
-    if (failure && failFast) {
-      return finish({ status: "failed", exitCode: failure.exitCode || 1, results, blocked });
+    if (!result.ok && failFast) {
+      return finish({ status: "failed", exitCode: result.exitCode || 1, results, blocked });
     }
-    for (const [position, member] of batch.entries()) {
-      if (settled[position].ok) recordPass(buildReceiptInputs(plan, member));
-    }
-    index += batch.length;
+    if (result.ok) recordPass(receiptInputs);
+    index += 1;
   }
 
   if (results.some((result) => !result.ok)) {
@@ -1061,14 +982,6 @@ async function main() {
     attestations: options.attestations,
     onCheckStart(check) {
       console.log(`\n${colors.blue}Running ${check.id}:${colors.reset} ${check.command ?? check.builtin}`);
-    },
-    onBatchStart(batch) {
-      console.log(
-        `\n${colors.blue}Running ${batch.length} checks concurrently:${colors.reset} ${batch
-          .map((check) => check.id)
-          .join(", ")}`,
-      );
-      for (const check of batch) console.log(`  ${check.id}: ${check.command ?? check.builtin}`);
     },
     onCheckComplete(check, result) {
       const color = result.ok ? colors.green : colors.red;
