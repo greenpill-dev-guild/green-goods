@@ -210,6 +210,10 @@ describe("providers/WorkProvider", () => {
       images: [],
       setImages: vi.fn(),
     });
+
+    // Default: the context validates. clearAllMocks keeps a test's mockReturnValue, so a test
+    // that made validation fail would otherwise block the next test's submission.
+    vi.mocked(validateWorkSubmissionContext).mockReturnValue([]);
   });
 
   afterEach(() => {

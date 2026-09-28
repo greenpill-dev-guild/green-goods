@@ -55,6 +55,8 @@ describe("useGardenDomains", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseReadContract.mockReturnValue({ data: undefined, isLoading: false });
+    // clearAllMocks keeps return values, so a test that switches chains must not leak its chain.
+    mockUseCurrentChain.mockReturnValue(11155111);
   });
 
   it("passes correct contract address and ABI", () => {
