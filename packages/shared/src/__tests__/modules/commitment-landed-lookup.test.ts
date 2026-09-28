@@ -336,27 +336,13 @@ describe("createCommitmentLandedLookup", () => {
     });
   });
 
-  it("counts an act's window from when its answer was lost, and still finds a landing before then", async () => {
-    // Its answer was lost forty minutes after the intent, the prompt having stayed open.
-    const confirmed = act("confirmation", {
-      action: "confirm",
-      sendCheckpoint: {
-        broadcastPending: true,
-        broadcastPendingAt: new Date(CREATED_MS + 40 * 60_000).toISOString(),
-        intentChainTime: CREATED_MS / 1000,
-        windowChainTime: CREATED_MS / 1000 + 40 * 60,
-      },
-    });
-    const hourLater = CREATED_MS + 60 * 60_000;
-    // Past the intent's window, but not the one restarted when the answer was lost.
-    await expect(lookUp(confirmed, [], { nowMs: hourLater, indexerBehindS: 60 })).resolves.toEqual({
-      status: "unknown",
-    });
-    // A landing while the prompt was open is still found: the log reaches back to the intent.
-    const duringPrompt = { timestamp: CREATED_MS / 1000 + 20 * 60 };
-    await expect(
-      lookUp(confirmed, [row("CONFIRMATION_RECORDED", CALLER, duringPrompt)], { nowMs: hourLater })
-    ).resolves.toEqual({ status: "found", transactionHash: TX });
+  it("reads an act absent only once the indexer has passed the block where nothing still held it", async () => {
+    // Found idle at a block: anything the send did before then landed by it or
+    // was still pending. The indexer here has processed through block 99.
+    const idleAt = (idleBlock: bigint) =>
+      act("confirmation", { action: "confirm", sendCheckpoint: { ...intent, idleBlock } });
+    await expect(lookUp(idleAt(100n), [])).resolves.toEqual({ status: "unknown" });
+    await expect(lookUp(idleAt(99n), [])).resolves.toEqual({ status: "absent" });
   });
 
   it("reads how far the indexer has processed before it reads the log", async () => {

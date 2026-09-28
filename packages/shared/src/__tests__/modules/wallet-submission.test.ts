@@ -263,43 +263,14 @@ describe("wallet-submission", () => {
           files: {},
           intentBlock: 7n,
           intentChainTime: 1,
+          idleBlock: 5n,
         },
       });
       const intent = onCheckpoint.mock.calls[0]?.[0];
       expect(intent).toMatchObject({ broadcastPending: true });
       expect(intent).not.toHaveProperty("intentChainTime");
       expect(intent).not.toHaveProperty("intentBlock");
-    });
-
-    it("restarts the window from when the wallet's answer was lost", async () => {
-      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
-      mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
-      // The prompt stayed open past the window, and the answer never came back.
-      mock(mockWalletClient.sendTransaction!).mockRejectedValue(new Error("Connection closed"));
-      vi.mocked(wagmiCore.getBlock)
-        .mockResolvedValueOnce({ number: 100n, timestamp: 1_234n } as any)
-        .mockResolvedValueOnce({ number: 300n, timestamp: 3_700n } as any);
-      const onCheckpoint = vi.fn(async (_checkpoint: object) => undefined);
-
-      await expect(
-        submitWorkDirectly(
-          { ...mockWorkDraft, uploadCheckpoint: undefined },
-          "0xGardenAddress",
-          123,
-          "Test Action",
-          mockChainId,
-          mockImages,
-          { onCheckpoint }
-        )
-      ).rejects.toBeInstanceOf(WorkSubmissionError);
-      expect(onCheckpoint).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          broadcastPending: true,
-          intentBlock: 100n,
-          intentChainTime: 1_234,
-          windowChainTime: 3_700,
-        })
-      );
+      expect(intent).not.toHaveProperty("idleBlock");
     });
 
     it("should throw error when wallet is not connected", async () => {

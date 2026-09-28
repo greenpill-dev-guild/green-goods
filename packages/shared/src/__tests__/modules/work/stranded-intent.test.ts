@@ -237,28 +237,77 @@ describe("settling a send no receipt can", () => {
     // A lookup may answer absent on a module's word alone, as a work link's
     // does, so the window holds the send until the chain's clock passes it.
     const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
-    const at = (chainTime: () => Promise<number>) => ({ ...deps(lookUp), chainTime });
+    const at = (chainTime: number, nowMs = NOW) => ({
+      ...deps(lookUp),
+      now: () => nowMs,
+      chainHead: async () => ({ number: 120n, timestamp: chainTime }),
+    });
     await expect(
-      resolveStrandedWorkIntent(
-        strandedWork(record),
-        42161,
-        at(async () => intentAt + 10 * 60)
-      )
+      resolveStrandedWorkIntent(strandedWork(record), 42161, at(intentAt + 10 * 60))
     ).resolves.toEqual({ status: "waiting" });
+    // Past the window on the chain's clock, with nothing holding it, the head is
+    // kept, and a later look offers it again.
+    const passed = strandedWork(record);
+    await expect(resolveStrandedWorkIntent(passed, 42161, at(intentAt + 31 * 60))).resolves.toEqual(
+      {
+        status: "waiting",
+      }
+    );
     await expect(
-      resolveStrandedWorkIntent(
-        strandedWork(record),
-        42161,
-        at(async () => intentAt + 31 * 60)
-      )
+      resolveStrandedWorkIntent(passed, 42161, at(intentAt + 36 * 60, NOW + 5 * 60_000))
     ).resolves.toEqual({ status: "reopened" });
     // A chain that cannot be read keeps the window open.
-    const unread = at(async () => {
-      throw new Error("rpc unavailable");
-    });
+    const unread = {
+      ...deps(lookUp),
+      chainHead: async (): Promise<{ number: bigint; timestamp: number }> => {
+        throw new Error("rpc unavailable");
+      },
+    };
     await expect(resolveStrandedWorkIntent(strandedWork(record), 42161, unread)).resolves.toEqual({
       status: "waiting",
     });
+  });
+
+  it("offers a lost send again only a look after nothing held it, and forgets that look when something does", async () => {
+    // Nothing held it then: anything it sent before landed by the chain's head
+    // or was still pending, so its lookup reads absent only past that block.
+    const intentAt = NOW / 1000 - 45 * 60;
+    const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
+    let busy = false;
+    const at = (nowMs: number) => ({
+      ...deps(lookUp),
+      now: () => nowMs,
+      stillSending: async () => busy,
+      chainHead: async () => ({ number: 120n, timestamp: nowMs / 1000 }),
+    });
+    const work = strandedWork({
+      broadcastPending: true,
+      broadcastPendingAt: minutesAgo(45),
+      intentChainTime: intentAt,
+    });
+
+    await expect(resolveStrandedWorkIntent(work, 42161, at(NOW))).resolves.toEqual({
+      status: "waiting",
+    });
+    expect(work.payload.uploadCheckpoint?.idleBlock).toBe(120n);
+    expect(lookUp).toHaveBeenLastCalledWith(expect.objectContaining({ idleBlock: undefined }));
+
+    // Something holds it again, perhaps the wallet sending it at last: the mark goes.
+    busy = true;
+    await expect(resolveStrandedWorkIntent(work, 42161, at(NOW + 5 * 60_000))).resolves.toEqual({
+      status: "waiting",
+    });
+    expect(work.payload.uploadCheckpoint?.idleBlock).toBeUndefined();
+
+    // Idle again, it is kept anew, and only the look after reopens it.
+    busy = false;
+    await expect(resolveStrandedWorkIntent(work, 42161, at(NOW + 10 * 60_000))).resolves.toEqual({
+      status: "waiting",
+    });
+    await expect(resolveStrandedWorkIntent(work, 42161, at(NOW + 15 * 60_000))).resolves.toEqual({
+      status: "reopened",
+    });
+    expect(lookUp).toHaveBeenLastCalledWith(expect.objectContaining({ idleBlock: 120n }));
   });
 
   it("tells the executor what to do next", async () => {

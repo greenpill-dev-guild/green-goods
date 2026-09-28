@@ -49,9 +49,8 @@ export interface CheckpointedSend {
   /** Must reject when a write fails: nothing may be sent without its intent on record. */
   record: RecordSend;
   /**
-   * The chain's head. The send keeps it with its intent, read at the last point
-   * before the send can reach the network, and reads the time again if the
-   * answer is lost, since the send may have gone out at any point until then.
+   * The chain's head, kept with the intent: read at the last point before the
+   * send can reach the network, so a prompt left open never ages it.
    */
   readChainHead?: () => Promise<{ number: bigint; timestamp: number }>;
   /** A head read before the send, kept when the one at the intent cannot be read. */
@@ -68,33 +67,6 @@ export type CheckpointedSendResult =
   | { status: "not-sent"; cancelled: boolean; error: unknown }
   /** The answer was lost. The record is kept, so the send is confirmed and never repeated. */
   | { status: "may-have-sent"; error: unknown };
-
-/**
- * A lost send's record with its window restarted at `lostAt`. A wallet asks
- * only after the intent is recorded, and its prompt can stay open past the
- * whole window, so a lost answer means the send may have gone out at any point
- * until then. The window counts from the chain's time when the answer was
- * lost, or, when the chain could not say, from the intent's by how long the
- * send took. The intent's block and time stay: nothing the send did can land
- * before them.
- */
-export function restartedWindow<T extends SendCheckpoint>(
-  current: T,
-  lostAt: number,
-  lost: Pick<SendCheckpoint, "intentChainTime"> | undefined
-): T {
-  if (!current.broadcastPending) return current;
-  const recordedAt = Date.parse(current.broadcastPendingAt ?? "");
-  const tookS = Number.isFinite(recordedAt) ? Math.max(0, (lostAt - recordedAt) / 1000) : 0;
-  const windowChainTime =
-    lost?.intentChainTime ??
-    (current.intentChainTime === undefined ? undefined : current.intentChainTime + tookS);
-  return {
-    ...current,
-    broadcastPendingAt: new Date(lostAt).toISOString(),
-    ...(windowChainTime === undefined ? {} : { windowChainTime }),
-  };
-}
 
 export async function sendWithCheckpoint({
   sender,
@@ -120,15 +92,6 @@ export async function sendWithCheckpoint({
     if (headRead) return;
     headRead = true;
     head = (await intentHead(readChainHead)) ?? headBeforeSend;
-  };
-  const restartWindow = async () => {
-    const lostAt = now();
-    const lost = await intentHead(readChainHead);
-    try {
-      await record((current) => restartedWindow(current, lostAt, lost));
-    } catch (error) {
-      logger.warn("[SendCheckpoint] Could not restart a lost send's window", { jobIds, error });
-    }
   };
   const write: RecordSend = (next) =>
     record((current) => {
@@ -177,9 +140,14 @@ export async function sendWithCheckpoint({
       onBroadcastReference,
       onBroadcast,
     });
-    // Older and custom senders only expose the hash on return.
+    // Older and custom senders only expose the hash on return. Nothing marked the
+    // point before it went out, and a head read now could follow its own block,
+    // so only the head read before the send is kept.
     if (!transactionRecorded) {
-      await readHead();
+      if (!headRead) {
+        headRead = true;
+        head = headBeforeSend;
+      }
       await onBroadcast(result.hash);
     }
     return { status: "sent", hash: result.hash, confirmation: result.confirmation };
@@ -209,11 +177,7 @@ export async function sendWithCheckpoint({
       return { status: "may-have-sent", error };
     }
     const failure = classifySendFailure(error, { intentRecorded, broadcastKnown });
-    if (failure.kind === "may-have-sent") {
-      // Its answer was lost, so the send may have gone out at any point until now.
-      if (!broadcastKnown) await restartWindow();
-      return { status: "may-have-sent", error };
-    }
+    if (failure.kind === "may-have-sent") return { status: "may-have-sent", error };
     // Cleared even when the intent only half landed: a call that carries several
     // jobs may have written some of them before one write failed.
     if (intentAttempted) await write(() => undefined);

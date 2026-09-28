@@ -1067,12 +1067,15 @@ describe("commitment acts record their sends", () => {
         status: "waiting",
         reason: "awaiting-confirmation",
       });
-      // Past the window on the chain's clock, it is offered again.
-      readChainHead.mockResolvedValueOnce({ number: 200n, timestamp: intentAt + 31 * 60 });
-      await expect(settle(lost("claim-window-passed"))).resolves.toEqual({
+      // Past the window on the chain's clock, with nothing holding it, the head is
+      // kept: the act is offered again once the indexer has passed that block.
+      readChainHead.mockResolvedValue({ number: 200n, timestamp: intentAt + 31 * 60 });
+      const passed = lost("claim-window-passed");
+      await expect(settle(passed)).resolves.toEqual({
         status: "waiting",
-        reason: "send-intent-expired",
+        reason: "awaiting-confirmation",
       });
+      expect(sendCheckpointOf(passed)?.idleBlock).toBe(200n);
       expect(sender.sendContractCall).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
@@ -2201,11 +2204,12 @@ describe("work and decisions keep the send rules commitment acts follow", () => 
       await expect(run(lost("window-open"), sender, deps)).rejects.toBeInstanceOf(
         AwaitingWorkConfirmation
       );
-      // Past the window on the chain's clock, it is offered again.
-      readChainHead.mockResolvedValueOnce({ number: 200n, timestamp: intentAt + 31 * 60 });
-      await expect(run(lost("window-passed"), sender, deps)).rejects.toBeInstanceOf(
-        StrandedSendReopened
-      );
+      // Past the window on the chain's clock, with nothing holding it, the head is
+      // kept: the send is offered again once the indexer has passed that block.
+      readChainHead.mockResolvedValue({ number: 200n, timestamp: intentAt + 31 * 60 });
+      const passed = lost("window-passed");
+      await expect(run(passed, sender, deps)).rejects.toBeInstanceOf(AwaitingWorkConfirmation);
+      expect(sendCheckpointOf(passed)?.idleBlock).toBe(200n);
       expect(sender.sendContractCall).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();

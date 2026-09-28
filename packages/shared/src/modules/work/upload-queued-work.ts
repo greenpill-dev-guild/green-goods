@@ -263,8 +263,8 @@ export async function uploadQueuedWork(
         sender,
         call: { ...callOf(items), chainId },
         jobIds: items.map(({ job }) => job.id),
-        // Read just before the intent, after any prompt, and again if the answer
-        // is lost: every item the call carries is then timed on the chain's clock.
+        // Read just before the intent, after any prompt: every item the call
+        // carries is then timed on the chain's clock if the answer is lost.
         readChainHead: readChainHead && (() => readChainHead(chainId)),
         record: (next) => recordAll(items, next),
         now: ports.now,

@@ -107,7 +107,7 @@ export type SendCheckpoint = Pick<
   | "broadcastPendingAt"
   | "intentBlock"
   | "intentChainTime"
-  | "windowChainTime"
+  | "idleBlock"
   | "transactionNonce"
   | "transactionHash"
   | "transactionReplaced"

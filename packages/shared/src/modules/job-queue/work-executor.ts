@@ -32,7 +32,7 @@ import {
 import { jobQueueDB } from "./db";
 import { convertQueuedHeicMedia } from "./job-media-conversion";
 import { sendCheckpointOf, writeSendCheckpoint } from "./queue-policy";
-import { chainTimeOf, createSendChainReads, type SendChainReads } from "./send-chain-reads";
+import { createSendChainReads, type SendChainReads } from "./send-chain-reads";
 import {
   holdingSend,
   observeTransactionNonce,
@@ -89,7 +89,7 @@ export async function executeWorkJob(
         lookUp: deps.lookUpLanded ?? createEasLandedLookup().work,
         stillSending: () => sendMayStillLand(stranded, reads),
         transactionSuperseded: () => recordedTransactionSuperseded(stranded, reads),
-        chainTime: chainTimeOf(reads),
+        chainHead: reads.readChainHead,
       });
     });
   const checkpoint = payload.uploadCheckpoint;
@@ -191,8 +191,8 @@ export async function executeWorkJob(
       sender,
       call: { ...contractCall, chainId },
       jobIds: [jobId],
-      // Read just before the intent, after any prompt, and again if the answer
-      // is lost: a lost send is then timed on the chain's clock.
+      // Read just before the intent, after any prompt: a lost send is then
+      // timed on the chain's clock.
       readChainHead: reads.readChainHead,
       assertOwnership: async () => {
         await sender.assertOwnership?.(job.userAddress, chainId);
