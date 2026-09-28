@@ -112,8 +112,8 @@ describe("usePublicGardenDetail", () => {
       listed,
     ]);
 
-    const { result } = renderHook(() => usePublicGardenDetail("shared-name"), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail("shared-name"), {
+      queryClient,
     });
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -131,18 +131,22 @@ describe("usePublicGardenDetail", () => {
       createMockGarden({ id: liveGardenCoop, name: "Live Garden Coop" }),
     ]);
 
-    const { result } = renderHook(() => usePublicGardenDetail(communityGarden.toLowerCase()), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => usePublicGardenDetail(communityGarden.toLowerCase()),
+      { queryClient }
+    );
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
     expect(result.current.data?.garden?.id).toBe(communityGarden);
     expect(result.current.data?.unlisted).toBe(true);
 
-    const { result: hidden } = renderHook(() => usePublicGardenDetail(liveGardenCoop), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result: hidden } = renderHookWithQueryClient(
+      () => usePublicGardenDetail(liveGardenCoop),
+      {
+        queryClient,
+      }
+    );
     await waitFor(() => {
       expect(hidden.current.isSuccess).toBe(true);
     });
