@@ -119,7 +119,14 @@
       "check": "validation-system-test",
       "runInQa": true,
       "runInEvidence": true,
-      "exact": ["scripts/dev/doctor.js", "scripts/lib/dev-shared.js"]
+      "exact": [
+        "scripts/dev/doctor.js",
+        "scripts/lib/dev-shared.js",
+        "scripts/dev/package-commands.mjs",
+        "scripts/dev/package-commands.test.mjs",
+        "scripts/dev/test-lease.mjs",
+        "turbo.json"
+      ]
     },
     {
       "check": "source-structure",

@@ -34,7 +34,10 @@ test("hook and doctor edits select their behavioral proof", () => {
       ".codex/hooks/pre_tool_policy.sh", ".claude/settings.json", ".codex/hooks.json",
       "scripts/harness/command-policy.mjs", "scripts/harness/agent-hooks.test.mjs",
     ]],
-    ["validation-system-test", ["scripts/dev/doctor.js", "scripts/lib/dev-shared.js"]],
+    ["validation-system-test", [
+      "scripts/dev/doctor.js", "scripts/lib/dev-shared.js", "scripts/dev/package-commands.mjs",
+      "scripts/dev/package-commands.test.mjs", "scripts/dev/test-lease.mjs", "turbo.json",
+    ]],
   ];
   for (const intent of ["qa", "review", "push"]) {
     for (const [checkId, paths] of cases) {

@@ -1138,3 +1138,16 @@ test("a toolchain blocker a surviving check still needs keeps the plan blocked",
   assert.equal(filtered.checks[0].state, "blocked");
   assert.equal(filtered.status, "blocked");
 });
+
+test("local gate checks mark themselves so package suites still take the machine test lease", async () => {
+  const result = await runCommandCheck(
+    {
+      id: "shared-test",
+      command: `node -e "process.stdout.write([process.env.CI, process.env.GREEN_GOODS_LOCAL_GATE].join(' '))"`,
+      cwd: ".",
+    },
+    { captureOutput: true },
+  );
+  assert.equal(result.ok, true);
+  assert.equal(result.output, "true 1");
+});

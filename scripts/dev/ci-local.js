@@ -18,6 +18,7 @@ import {
   reexecUnderSystemNodeIfNeeded,
   resolveVitestMaxWorkers,
 } from "../lib/dev-shared.js";
+import { LOCAL_GATE_VARIABLE } from "./test-lease.mjs";
 import {
   buildReceiptInputs,
   fingerprintReceiptInputs,
@@ -529,7 +530,9 @@ export function buildLocalValidationPlan(options, gitInputs, environment) {
 }
 
 function envForCheck(check) {
-  const common = { CI: ciEnv.CI };
+  // CI=true reproduces CI's test environment; the marker keeps local package suites on the
+  // machine test lease, which real CI skips.
+  const common = { CI: ciEnv.CI, [LOCAL_GATE_VARIABLE]: "1" };
   if (check.id.startsWith("agent-")) {
     return {
       ...common,

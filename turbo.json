@@ -11,6 +11,7 @@
     "bun.lock"
   ],
   "globalEnv": ["NODE_ENV", "APP_ENV", "CI"],
+  "globalPassThroughEnv": ["GREEN_GOODS_TEST_LEASE_*", "GREEN_GOODS_LOCAL_GATE"],
   "tasks": {
     "test": {
       "outputs": [],

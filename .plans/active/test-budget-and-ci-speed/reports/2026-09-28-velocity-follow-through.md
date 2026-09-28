@@ -89,3 +89,91 @@ Observations:
   second. The critical plan stores no receipt, so a rerun after a pass repeats every check.
 - Both fixtures select the same checks except `ontology` (`useWorkApprovals.ts` is an ontology
   source). The read-only search hook pays the whole critical plan.
+
+## Slice 1 — machine-wide test lease
+
+Reuse check: the closest implementation is [`scripts/dev/surface-leases.mjs`](../../../../scripts/dev/surface-leases.mjs)
+(per-checkout port claims for dev servers). It has no counted slots, no blocking wait, no timeout
+and no machine-wide scope, so the lease is a new dev-tooling module,
+[`scripts/dev/test-lease.mjs`](../../../../scripts/dev/test-lease.mjs), that reuses its
+`isProcessAlive`. The package test path owns it: `scripts/dev/package-commands.mjs` takes the lease
+for every package-wide `test` run, so `bun run test` and the local gate's Turbo-routed suites both
+pass through it.
+
+Behaviour:
+
+- A package-wide run claims `slot-<n>.json` under `$(git rev-parse --git-common-dir)/green-goods-test-lease/`,
+  which every worktree shares. One slot by default; `GREEN_GOODS_TEST_LEASE_SLOTS` overrides it.
+  The claim is published with `link()`, so a slot appears with its whole record (token, pid, cwd,
+  package, start time) or not at all.
+- A waiter prints a status line naming the holder at once and every 30 s, and gives up after
+  `GREEN_GOODS_TEST_LEASE_TIMEOUT_SECONDS` (900 by default) with exit 75 and a message naming the
+  holder and both overrides. The suite never starts after a timeout.
+- A slot whose holder pid is gone is recovered. Only a waiter holding a short recovery lock may
+  delete a slot, and it re-reads the slot first, so it cannot delete a claim made after its check.
+- The slot is released in `finally`, on SIGINT (130) and SIGTERM (143) while the suite runs or
+  while it waits, and from an `exit` handler.
+- Real CI skips it. The local gate exports `CI=true`, so `ci-local` now marks its checks with
+  `GREEN_GOODS_LOCAL_GATE=1`. Focused paths, `--suite`, the live RPC pair, watch and UI modes skip it.
+- When `VITEST_MAX_WORKERS` is unset and `--maxWorkers` was not passed, the holder sets it from its
+  share: `resolveVitestMaxWorkers({ share: slots })`. Vitest lets the variable override the flag,
+  so it is never set over an explicit flag.
+- An unwritable directory (a sandbox) warns once and runs with half the machine.
+
+Finding: Turbo runs tasks in strict environment mode (`turbo run test --dry=json` reports
+`envMode: strict`, `passThroughEnv: null`), so `ci-local`'s batch `VITEST_MAX_WORKERS` never reached a
+Turbo-routed suite, and a lease override would not either. `turbo.json` now passes
+`GREEN_GOODS_TEST_LEASE_*` and `GREEN_GOODS_LOCAL_GATE` through without adding them to the cache key
+(the same dry run lists both under `passthrough`). `VITEST_MAX_WORKERS` stays out of the list until
+slice 3 removes the batch split; passing it now would shrink batched suites that the lease already
+runs one at a time.
+
+Selector gap fixed: a change to `package-commands.mjs`, its test, `test-lease.mjs` or `turbo.json`
+selected only format and lint, so nothing ran their tests. They now select `validation-system-test`
+in QA, review and push (policy `conditionalRules[1]`). The policy edit and the `package-commands.mjs`
+edit restale two generated pages; `node scripts/docs/generate.mjs` rewrote only their digests.
+
+Proof:
+
+| Step | Command | Result |
+|---|---|---|
+| RED | `node scripts/dev/node-cli.js node --test scripts/dev/package-commands.test.mjs` | `ERR_MODULE_NOT_FOUND: scripts/dev/test-lease.mjs` |
+| RED | same runner, `--test-name-pattern "local gate checks mark\|Turbo passes lease"` over `ci-local.test.mjs` and `package-commands.test.mjs` | 0/2: marker missing (`'true '`), pass-through missing |
+| RED | `--test-name-pattern "hook and doctor edits"` over `select-validation.test.mjs` | failed on `review: scripts/dev/package-commands.test.mjs` |
+| GREEN | `node scripts/dev/node-cli.js node --test scripts/dev/ci-local.test.mjs scripts/dev/package-commands.test.mjs` | 70/70 (15 new lease cases) |
+| Selected | `validation-system-test` (the policy command) | 331/332; the one failure is pre-existing, see below |
+| Docs | `node scripts/docs/generate.mjs --check` | 20 projections current after regeneration |
+
+`validation-system-test` fails one case on unmodified `develop`:
+`workflow-performance-parity.test.mjs` reports "`packages/admin/src/views/Garden/Pool/Seed/SeedStepHowMuch.tsx`
+must not restore a broad Shared barrel". `967499ff4` (September 27, in START) added
+`import { hasActionEnded } from "@green-goods/shared/utils"`. It reproduces in a clean worktree at
+`fbccab4ed` with none of this pass's files. `classify-supply-chain-changes.mjs` sets `parity=true`
+for this slice, so CI will run that test when this pass is pushed. Fixing it needs a declared Shared
+leaf export (a manifest change), so it is outside this pass; a separate task is queued for Afo.
+
+Two-worktree proof: two disposable detached worktrees at `fbccab4ed` with this slice's files copied
+in and `node_modules` symlinked from the main checkout; each runs `bun run test` in
+`packages/shared` (full default scope, 547 files, 6,056 tests). Every run below passed; no test and
+no lease timed out.
+
+| Run | Mode | Result |
+|---|---|---|
+| 1 | single (quiet) | 86 s |
+| 1 | pair, one slot | first 129 s; second waited 129 s, total 285 s (antivirus scanner at 100% CPU mid-run: contended) |
+| 2 | single | 130 s |
+| 2 | pair, one slot | first 220 s; second waited 221 s, total 403 s (started at load 31, rose to 60: contended) |
+| 3 | single, pair, single bracket | 103 s; first 175 s, second waited 176 s and ran 161 s, total 337 s; 120 s |
+| 4 | pair, two slots (4 workers each, both at once) | both 265 s; single afterwards 136 s |
+| 5 | pair, two slots at full width (9 workers each: the pre-lease behaviour) | both 273 s; single afterwards 120 s |
+
+The second run waited every time, with a status line every 30 s naming the holder's pid, package
+and worktree, and started within a second of the release. The timing bound (both done within twice
+one quiet run) was not met: in the bracketed attempt the two serialized runs took 175 s and 161 s
+although they never overlapped, against 103 s and 120 s for the single runs around them. The
+machine has about 10 GB in the memory compressor and a scanner that wakes during test runs; these
+samples cannot separate those causes from sustained-load slowdown. In single samples, running both
+at once finished the pair sooner (265 s split, 273 s competing, against 337 s serialized), while the
+lease returned the first result at 175 s instead of 265–273 s. Outcome 3's behaviour holds; its
+timing bound stays open. The default stays at one slot as decided; `GREEN_GOODS_TEST_LEASE_SLOTS=2`
+is the measured alternative if throughput matters more than the first result.

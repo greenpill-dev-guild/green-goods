@@ -1,9 +1,20 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
+import { availableParallelism, totalmem } from "node:os";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
+
+import { resolveVitestMaxWorkers } from "../lib/dev-shared.js";
+import {
+  TEST_LEASE_TIMEOUT_EXIT_CODE,
+  TestLeaseTimeoutError,
+  acquireTestLease,
+  resolveTestLeaseDirectory,
+  resolveTestLeaseSettings,
+  runsInContinuousIntegration,
+} from "./test-lease.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const PACKAGES = ["root", "admin", "client", "shared", "agent", "indexer"];
@@ -107,6 +118,7 @@ export function resolvePackageCommand(pkg, action, args = []) {
   const { values, positionals: paths } = parse(args, options);
   const cwd = pkg === "root" ? ROOT : resolve(ROOT, "packages", pkg);
   const steps = [];
+  let lease = null;
   const add = (executable, argv, env = {}, stepCwd = cwd) => steps.push({ executable, args: argv, env, cwd: stepCwd });
   const node = (argv, env = {}, stepCwd = cwd) => add("node", [NODE_CLI, ...argv], env, stepCwd);
   if (action === "dev") {
@@ -149,6 +161,10 @@ export function resolvePackageCommand(pkg, action, args = []) {
     for (const name of ["maxWorkers", "testTimeout"]) {
       if (values[name] !== undefined && !/^[1-9]\d*$/.test(values[name])) throw new Error(`--${name} requires a positive integer`);
     }
+    // A package-wide run competes for the whole machine, so it takes the machine test lease.
+    // Focused paths, named selections, the live RPC pair and interactive modes stay free.
+    const focused = paths.length > 0 || Boolean(values.suite) || values.scope === "live" || Boolean(values.watch || values.ui);
+    lease = { required: !focused, pinnedWorkers: values.maxWorkers !== undefined };
     if (pkg === "indexer") {
       const scope = oneOf(values.scope ?? "full", ["full", "handlers", "contract-events"], "test scope");
       for (const key of ["watch", "ui", "testNamePattern", "project", "maxWorkers", "testTimeout", "exclude", "shard"]) {
@@ -205,25 +221,77 @@ export function resolvePackageCommand(pkg, action, args = []) {
       }
     }
   }
-  return { package: pkg, action, steps, help: Boolean(values.help), explain: Boolean(values.explain), json: Boolean(values.json) };
+  return { package: pkg, action, steps, lease, help: Boolean(values.help), explain: Boolean(values.explain), json: Boolean(values.json) };
 }
 
-export async function executePackageCommand(plan, { spawnImpl = spawn, signals = process } = {}) {
+// Without the lease another session may be running a suite, so take half the machine.
+const UNLEASED_WORKER_SHARE = 2;
+
+async function takeTestLease(plan, { environment, leaseDirectory, acquire, resources, report, signal }) {
+  if (!plan.lease?.required || runsInContinuousIntegration(environment)) return { env: {} };
+  const settings = resolveTestLeaseSettings(environment);
+  let directory = leaseDirectory;
+  let outcome;
+  try {
+    directory ??= resolveTestLeaseDirectory({ cwd: ROOT });
+  } catch {
+    outcome = { status: "unavailable", reason: "no git common directory" };
+  }
+  outcome ??= await acquire({
+    directory,
+    slots: settings.slots,
+    timeoutMs: settings.timeoutSeconds * 1000,
+    holder: { pid: process.pid, cwd: ROOT, package: plan.package },
+    report,
+    signal,
+  });
+  if (outcome.status === "cancelled") return { cancelled: true, env: {} };
+  if (outcome.status !== "acquired") {
+    report(`test lease: ${outcome.reason}; running without a machine slot and with a conservative worker cap.`);
+  }
+  const share = outcome.status === "acquired" ? settings.slots : UNLEASED_WORKER_SHARE;
+  const env = environment.VITEST_MAX_WORKERS || plan.lease.pinnedWorkers ? {} : {
+    VITEST_MAX_WORKERS: String(resolveVitestMaxWorkers({ ...resources, ci: false, share })),
+  };
+  return { release: outcome.release, env };
+}
+
+export async function executePackageCommand(plan, {
+  spawnImpl = spawn,
+  signals = process,
+  environment = process.env,
+  leaseDirectory,
+  acquire = acquireTestLease,
+  resources = { cpus: availableParallelism(), totalMemoryBytes: totalmem() },
+  report = (line) => process.stderr.write(`${line}\n`),
+} = {}) {
   let child;
   let cancelled;
+  let lease = { env: {} };
+  const interrupt = new AbortController();
   const stop = (signal) => {
     cancelled ??= signal;
+    interrupt.abort();
     if (child) child.kill(signal);
   };
   const onInt = () => stop("SIGINT");
   const onTerm = () => stop("SIGTERM");
+  const onExit = () => lease.release?.();
   signals.on("SIGINT", onInt);
   signals.on("SIGTERM", onTerm);
+  signals.on("exit", onExit);
   try {
+    try {
+      lease = await takeTestLease(plan, { environment, leaseDirectory, acquire, resources, report, signal: interrupt.signal });
+    } catch (error) {
+      if (!(error instanceof TestLeaseTimeoutError)) throw error;
+      report(error.message);
+      return TEST_LEASE_TIMEOUT_EXIT_CODE;
+    }
     for (const step of plan.steps) {
       if (cancelled) break;
       const result = await new Promise((resolveResult, reject) => {
-        child = spawnImpl(step.executable, step.args, { cwd: step.cwd, env: { ...process.env, ...step.env }, stdio: "inherit", shell: false });
+        child = spawnImpl(step.executable, step.args, { cwd: step.cwd, env: { ...environment, ...lease.env, ...step.env }, stdio: "inherit", shell: false });
         child.once("error", reject);
         child.once("close", (code, signal) => resolveResult({ code, signal }));
       });
@@ -234,8 +302,10 @@ export async function executePackageCommand(plan, { spawnImpl = spawn, signals =
     }
     return cancelled === "SIGINT" ? 130 : cancelled ? 143 : 0;
   } finally {
+    lease.release?.();
     signals.removeListener("SIGINT", onInt);
     signals.removeListener("SIGTERM", onTerm);
+    signals.removeListener("exit", onExit);
   }
 }
 
