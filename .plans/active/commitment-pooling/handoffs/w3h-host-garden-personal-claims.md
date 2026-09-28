@@ -111,9 +111,11 @@ left the list unknown with no retry. It passes at `57d5fc4f6`.
 
 The lane closes when RED and GREEN are recorded, the PR merges, the sub-lane is `completed`, and
 the Linear child is Done. As of 2026-09-27, #925 merged as `c17a03b46`. PRD-997's Done when also asks
-to see the claim land on chain, which rides the protocol-pool stage of the rehearsal walk, so the
-sub-lane stays `in_progress`, since the harness counts `passed` as done, and PRD-997 stays In
-Progress until that walk.
+to see the claim land on chain, which rides the protocol-pool stage of the rehearsal walk. Since
+2026-09-28 the sub-lane reads `passed`, which the Linear sync maps to In Review, so PRD-997 stays
+In Review until that walk. The harness counts `passed` as done, so the walk stays pending here and
+in the readiness plan's W3 table; only the walk moves the sub-lane to `completed` and PRD-997 to
+Done.
 
 ## Validation Receipt
 
