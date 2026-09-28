@@ -7,7 +7,7 @@
 - Owner: Codex
 - Branch signal: feature/commitment-pooling-api-modules
 - Current state: source-ready after the 2026-08-16 pre-deploy gap-closure pass. PR #706 is merged
-  at `b2c427025`; the hosted Envio indexer has not deployed or synced the pooling schema. The
+  at `b2c427025`; the hosted Envio indexer has served the pooling schema on both chains since 2026-08-27. The
   frozen event inventory remains 58 events. The 28-record consumer/query contract is unchanged;
   one additional `CommitmentCycleCommitmentIndex` is handler-internal scale machinery and is not
   queryable through shared.
