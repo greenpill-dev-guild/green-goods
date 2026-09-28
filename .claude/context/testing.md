@@ -58,6 +58,17 @@ For each new or retained test, name the failure it would catch and assert an obs
 
 When maintenance cost grows, review duplicate layers, repeated setup, class-only assertions, uncalled exports, and unexplained test/source growth. Counts and ratios identify candidates for inspection, not deletion targets. Before removing a test, identify surviving proof for the same failure or establish that its subject has no callers. Move tests with the code they protect, and remove exclusive tests only after verified-unused code is removed.
 
+Three habits keep the suite from spreading into small files:
+
+- Add cases to the file that already covers the subject. Open a new test file only for a new
+  subject or a different environment, and give it at least four cases or a
+  `// TEST-QUALITY: allow-small-test-file - <reason>` comment saying why. `test-quality` fails a
+  new file below four cases without one.
+- When a change adds more test lines than source lines, say so in one line of the pull request body
+  or commit message, with the reason.
+- Run the focused file while you work (`bun run test <path>` in the package). Package-wide runs take
+  the machine-wide test lease, so a second one waits for the first.
+
 ## Critical paths (deepest coverage in `packages/shared/src/`)
 
 Auth / work / job-queue / vault / blockchain surfaces are the `critical` tier in **AGENTS.md § Change Criticality** — follow it, don't restate. Coverage-specific additions:

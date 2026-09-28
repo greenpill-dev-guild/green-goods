@@ -11,6 +11,12 @@ import { partitionNodeTests } from "../lib/vitest-shared-graph.mjs";
 import { classifySupplyChainChanges } from "./classify-supply-chain-changes.mjs";
 import { sharedGraphProblems } from "./check-shared-graph-tests.mjs";
 import {
+  countTestCases,
+  hasSmallTestFileAllowance,
+  MINIMUM_NEW_FILE_CASES,
+  smallNewTestFiles,
+} from "./check-small-test-files.mjs";
+import {
   addedQuerySetupFromDiff,
   hasQuerySetupAllowance,
   newQuerySetupFromSource,
@@ -206,11 +212,12 @@ test("Supply Chain classifier routes each change class without broad fallthrough
       parity: false,
     });
   }
-  // The parity suite holds the Shared test-project tests, so the files that decide membership run it.
+  // The parity suite holds the tests for these test-quality inputs, so a change to one runs it.
   for (const membershipPath of [
     "packages/shared/vitest.config.ts",
     "scripts/lib/vitest-shared-graph.mjs",
     "scripts/quality/check-shared-graph-tests.mjs",
+    "scripts/quality/check-small-test-files.mjs",
   ]) {
     assert.deepEqual(classifySupplyChainChanges([membershipPath]), {
       format: true,
@@ -681,6 +688,37 @@ test("test quality Check 5 enforces direct-tested seams", () => {
   assert.match(source, /scripts\/quality\/check-test-query-setup\.mjs/);
   assert.match(source, /Check 7: Shared-graph membership/);
   assert.match(source, /scripts\/quality\/check-shared-graph-tests\.mjs/);
+  assert.match(source, /Check 8: New small test files/);
+  assert.match(source, /scripts\/quality\/check-small-test-files\.mjs/);
+});
+
+test("test quality counts the cases a test file declares, tables by their rows", () => {
+  const cases = [
+    ['it("a", f); it("b", f); test.todo("c");', 3],
+    ['it.each([[1, 2], [3, 4]])("x %s", f);', 2],
+    // A table whose rows are not written inline counts as the minimum.
+    ['it.each(rows)("x", f);', MINIMUM_NEW_FILE_CASES],
+    ['describe.each([{ a: 1 }, { a: 2 }, { a: 3 }])("x", () => { it("y", f); });', 4],
+    ["it.each`\n  a | b\n  ${1} | ${2}\n  ${3} | ${4}\n`(\"sum\", f);", 2],
+    ['it.skipIf(ci)("name", f); it.concurrent.each([[1], [2]])("c", f);', 3],
+    // Methods, comments and strings are not cases.
+    ['expect(pattern.test(value)).toBe(true); // it("commented", f)\nconst s = "it(\'x\')";', 0],
+  ];
+  for (const [source, expected] of cases) assert.equal(countTestCases(source), expected, source);
+});
+
+test("test quality fails a new small test file unless it gives a reason", () => {
+  const sources = {
+    "packages/shared/src/__tests__/tiny.test.ts": 'it("one", f); it("two", f);',
+    "packages/shared/src/__tests__/reasoned.test.ts":
+      '// TEST-QUALITY: allow-small-test-file - the only DOM-free proof of this contract\nit("one", f);',
+    "packages/admin/src/__tests__/four.test.tsx": 'it.each([1, 2, 3, 4])("n", f);',
+    "packages/shared/src/__tests__/helper.ts": 'it("not a test file", f);',
+  };
+  assert.deepEqual(smallNewTestFiles(Object.keys(sources), (file) => sources[file]), [
+    { file: "packages/shared/src/__tests__/tiny.test.ts", cases: 2 },
+  ]);
+  assert.equal(hasSmallTestFileAllowance("// TEST-QUALITY: allow-small-test-file - "), false);
 });
 
 test("test quality flags Shared test files that leak through the shared graph or run twice", () => {

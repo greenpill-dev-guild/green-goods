@@ -9,6 +9,7 @@
 #   5. Direct-tested seams import their subject and never mock that subject
 #   6. New local query setup uses a shared helper or records why it cannot
 #   7. Shared tests in the shared module graph mock and stub nothing, and none runs twice
+#   8. A new test file holds at least four cases or says why it needs its own file
 
 set -euo pipefail
 
@@ -185,6 +186,18 @@ if [ "$SHARED_GRAPH_STATUS" -eq 1 ]; then
 elif [ "$SHARED_GRAPH_STATUS" -ne 0 ]; then
   echo "ERROR: Shared-graph membership checker could not run (exit $SHARED_GRAPH_STATUS)."
   exit "$SHARED_GRAPH_STATUS"
+fi
+echo ""
+
+# ── Check 8: New small test files ───────────────────────────────
+echo "--- Check 8: New small test files ---"
+SMALL_FILE_STATUS=0
+node "$REPO_ROOT/scripts/quality/check-small-test-files.mjs" || SMALL_FILE_STATUS=$?
+if [ "$SMALL_FILE_STATUS" -eq 1 ]; then
+  VIOLATIONS=$((VIOLATIONS + 1))
+elif [ "$SMALL_FILE_STATUS" -ne 0 ]; then
+  echo "ERROR: Small test file checker could not run (exit $SMALL_FILE_STATUS)."
+  exit "$SMALL_FILE_STATUS"
 fi
 echo ""
 

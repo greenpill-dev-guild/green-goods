@@ -410,3 +410,26 @@ describe("queryInvalidation", () => {
     );
   });
 });
+
+// The marketplace approvals hook runs only with a steward (`enabled: Boolean(steward)`), but its
+// key must stay stable and type-safe without one: it takes an empty-string sentinel instead.
+describe("marketplace approvals query key safety", () => {
+  it("produces a stable key with a valid steward", () => {
+    const key = queryKeys.marketplace.approvals("0xAbC123", 11155111);
+    expect(key).toEqual(["greengoods", "marketplace", "approvals", "0xAbC123", 11155111]);
+  });
+
+  it("produces a key with sentinel when steward is undefined", () => {
+    // After fix: passing empty string sentinel instead of steward!
+    const sentinel = "";
+    const key = queryKeys.marketplace.approvals(sentinel, 11155111);
+    expect(key).toEqual(["greengoods", "marketplace", "approvals", "", 11155111]);
+    // The key is stable and type-safe -- no non-null assertion needed
+  });
+
+  it("sentinel key differs from valid steward key", () => {
+    const validKey = queryKeys.marketplace.approvals("0xAbC", 1);
+    const sentinelKey = queryKeys.marketplace.approvals("", 1);
+    expect(validKey).not.toEqual(sentinelKey);
+  });
+});

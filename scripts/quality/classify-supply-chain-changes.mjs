@@ -52,10 +52,11 @@ const parityExact = new Set([
   "scripts/quality/select-validation.mjs",
   "scripts/quality/select-validation.test.mjs",
   "scripts/quality/workflow-performance-parity.test.mjs",
-  // The parity suite tests which Shared test project each file lands in.
+  // The parity suite holds the tests for these test-quality inputs.
   "packages/shared/vitest.config.ts",
   "scripts/lib/vitest-shared-graph.mjs",
   "scripts/quality/check-shared-graph-tests.mjs",
+  "scripts/quality/check-small-test-files.mjs",
 ]);
 
 function startsWithAny(path, prefixes) {
