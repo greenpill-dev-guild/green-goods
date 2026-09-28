@@ -1460,7 +1460,8 @@
         "packages/shared/src/modules/transactions/embedded-sender.ts",
         "packages/shared/src/modules/transactions/factory.ts",
         "packages/shared/src/modules/transactions/passkey-sender.ts",
-        "packages/shared/src/modules/transactions/wallet-sender.ts"
+        "packages/shared/src/modules/transactions/wallet-sender.ts",
+        "packages/shared/src/providers/AuthGate.tsx"
       ],
       "risk": "critical",
       "checks": ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]
@@ -1474,7 +1475,7 @@
     }
   ],
   "sharedMutationPrimitives": {
-    "note": "Calls that sign, send a transaction, move funds, or change auth, session or queue state, read from the Shared code (scripts/quality/shared-mutation-surface.mjs). external and internal name the functions, hooks and classes whose call is the act; members name methods whose call or destructuring is the act, such as sender.sendContractCall() or const { signOut } = useAuth().",
+    "note": "Calls that sign, send a transaction, move funds, or change auth, session or queue state, read from the Shared code (scripts/quality/shared-mutation-surface.mjs). external and internal name the functions, hooks and classes whose call is the act, and passing one on as a value carries it; members name methods whose call, read or destructuring is the act, such as sender.sendContractCall(), onClick={auth.signOut} or const { signOut } = useAuth(). A member forwarded under its own name, as useAuth() does, keeps only its own file critical.",
     "external": {
       "wagmi": [
         "useWriteContract",

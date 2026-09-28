@@ -188,28 +188,64 @@ function declaredNames(statement) {
 
 const CALL_OPEN = String.raw`\s*(?:<[^<>()]*(?:<[^<>()]*>[^<>()]*)*>)?\s*(?:\?\.)?\s*\(`;
 const CALL = new RegExp(String.raw`(^|[^.\w$])(?:new\s+)?([A-Za-z_$][\w$]*)${CALL_OPEN}`, "g");
-const NAMESPACE_CALL = new RegExp(String.raw`\b([A-Za-z_$][\w$]*)\s*\??\.\s*([A-Za-z_$][\w$]*)${CALL_OPEN}`, "g");
+const NAMESPACE_ACCESS = new RegExp(String.raw`(?<![.\w$])([A-Za-z_$][\w$]*)\s*\??\.\s*([A-Za-z_$][\w$]*)`, "g");
 const MEMBER_CALL = new RegExp(String.raw`\.\s*([A-Za-z_$][\w$]*)${CALL_OPEN}`, "g");
+// A member read without a call: `onClick={auth.signOut}`, `{ onLeave: auth.signOut }`.
+const MEMBER_REFERENCE = new RegExp(String.raw`\.\s*([A-Za-z_$][\w$]*)(?![\w$])(?!${CALL_OPEN})`, "g");
+// A member forwarded under its own name, `signOut: auth.signOut`, as a hub such as useAuth() does.
+const NAMED_FORWARD = new RegExp(
+  String.raw`(?<![.\w$])([A-Za-z_$][\w$]*)\s*:\s*[A-Za-z_$][\w$]*(?:\s*\??\.\s*[A-Za-z_$][\w$]*)*\s*\??\.\s*([A-Za-z_$][\w$]*)(?![\w$])(?!${CALL_OPEN})(?!\s*\??\.)`,
+  "g",
+);
 
 function analyzeStatement(statement) {
   // Spread and rest dots are not member access: `...createReads(` is a call of createReads.
   const text = statement.replaceAll("...", "   ");
   const calls = new Set();
   const memberCalls = new Set();
-  const namespaceCalls = [];
+  const memberReferences = new Set();
+  const forwardedMembers = new Set();
+  const namespaceAccess = [];
   const destructured = new Set();
+  const namespaceDestructures = [];
   const references = new Set();
   for (const match of text.matchAll(CALL)) if (!NOT_CALLS.has(match[2])) calls.add(match[2]);
-  for (const match of text.matchAll(NAMESPACE_CALL)) namespaceCalls.push([match[1], match[2]]);
+  for (const match of text.matchAll(NAMESPACE_ACCESS)) namespaceAccess.push([match[1], match[2]]);
   for (const match of text.matchAll(MEMBER_CALL)) memberCalls.add(match[1]);
-  for (const match of text.matchAll(/\{([^{}]*)\}\s*=[^=>]/g)) {
+  const namedForwards = new Set();
+  for (const match of text.matchAll(NAMED_FORWARD)) {
+    if (match[1] !== match[2]) continue;
+    namedForwards.add(match.index + match[0].length - match[2].length);
+    forwardedMembers.add(match[2]);
+  }
+  for (const match of text.matchAll(MEMBER_REFERENCE)) {
+    if (!namedForwards.has(match.index + match[0].length - match[1].length)) memberReferences.add(match[1]);
+  }
+  for (const match of text.matchAll(/\{([^{}]*)\}\s*=(?![=>])\s*([A-Za-z_$][\w$]*)?/g)) {
     for (const entry of match[1].split(",")) {
       const key = entry.trim().split(/\s*[:=]\s*/)[0].replace(/^\.\.\./, "");
-      if (/^[A-Za-z_$][\w$]*$/.test(key)) destructured.add(key);
+      if (!/^[A-Za-z_$][\w$]*$/.test(key)) continue;
+      destructured.add(key);
+      if (match[2]) namespaceDestructures.push([match[2], key]);
     }
   }
   for (const match of text.matchAll(/(^|[^.\w$])([A-Za-z_$][\w$]*)/g)) references.add(match[2]);
-  return { calls, memberCalls, namespaceCalls, destructured, references };
+  // A value used whole rather than through a member: `mutationFn: writeContract`, `<AuthProvider>`.
+  const bareReferences = new Set();
+  for (const match of text.matchAll(/(^|[^.\w$])([A-Za-z_$][\w$]*)(?![\w$])(?!\s*\??\.\s*[A-Za-z_$])/g)) {
+    bareReferences.add(match[2]);
+  }
+  return {
+    bareReferences,
+    calls,
+    memberCalls,
+    memberReferences,
+    forwardedMembers,
+    namespaceAccess,
+    destructured,
+    namespaceDestructures,
+    references,
+  };
 }
 
 export function parseModule(source) {
@@ -263,11 +299,13 @@ export function parseModule(source) {
 }
 
 /**
- * Analyzes every Shared source file under `root`. A declaration invokes a primitive when it calls
- * or constructs one (imported directly, through re-exports, under an alias, or from a namespace
- * import), calls a primitive member such as `.sendContractCall(`, destructures a primitive member
- * name, or calls a declaration that invokes. Forwarding a member without calling it does not
- * propagate, so hubs like `useAuth()` do not make every reader critical.
+ * Analyzes every Shared source file under `root`. A declaration invokes a primitive when it calls,
+ * constructs or passes one on as a value (imported directly, through re-exports, under an alias,
+ * or from a namespace import), calls or reads a primitive member such as `.sendContractCall(` or
+ * `onClick={auth.signOut}`, destructures a primitive member name, or uses a declaration that
+ * invokes. A member forwarded under its own name (`signOut: auth.signOut`) keeps its own file
+ * critical but does not propagate to callers, so a hub like `useAuth()` does not make every reader
+ * critical: a caller that uses the member names it and is caught itself.
  */
 export function analyzeSharedMutationSurface({ root, primitives, files }) {
   const external = new Map(Object.entries(primitives.external).map(([name, list]) => [name, new Set(list)]));
@@ -346,14 +384,16 @@ export function analyzeSharedMutationSurface({ root, primitives, files }) {
     const info = module?.declarations.get(name);
     let result = internal.get(file)?.has(name) ?? false;
     if (!result && info) {
-      result = [...info.memberCalls, ...info.destructured].some((member) => members.has(member));
+      result = [...info.memberCalls, ...info.memberReferences, ...info.destructured].some((member) =>
+        members.has(member),
+      );
       for (const callee of info.calls) {
         if (result) break;
         if (callee === name) continue;
         if (module.imports.has(callee)) result = importInvokes(file, callee, stack);
         else if (module.declarations.has(callee)) result = declarationInvokes(file, callee, stack);
       }
-      for (const [namespace, property] of info.namespaceCalls) {
+      for (const [namespace, property] of [...info.namespaceAccess, ...info.namespaceDestructures]) {
         if (result) break;
         const entry = module.imports.get(namespace);
         if (entry?.imported === "*") result = sourceInvokes(entry.source, file, property, stack);
@@ -361,6 +401,13 @@ export function analyzeSharedMutationSurface({ root, primitives, files }) {
       for (const reference of info.references) {
         if (result) break;
         if (reference !== name && module.declarations.has(reference)) result = declarationInvokes(file, reference, stack);
+      }
+      // An imported capability passed on whole, `const submit = writeContract` or
+      // `{ mutationFn: writeContract }`, invokes wherever it is called. Used through a member,
+      // as in `jobQueue.getJobs()`, the member's own name decides instead.
+      for (const reference of info.bareReferences) {
+        if (result) break;
+        if (reference !== name && module.imports.has(reference)) result = importInvokes(file, reference, stack);
       }
     } else if (!result && module?.imports.has(name)) {
       result = importInvokes(file, name, stack);
@@ -377,20 +424,26 @@ export function analyzeSharedMutationSurface({ root, primitives, files }) {
     if (!module) continue;
     const reasons = [];
     for (const [name, info] of module.declarations) {
-      if (!declarationInvokes(file, name)) continue;
+      // Forwarding a member under its own name keeps the file critical without making every
+      // caller critical: each caller that uses the member names it, and is caught there.
+      const forwards = [...info.forwardedMembers].filter((member) => members.has(member));
+      if (!declarationInvokes(file, name) && forwards.length === 0) continue;
       const evidence = [
         ...[...info.memberCalls].filter((member) => members.has(member)).map((member) => `.${member}()`),
+        ...[...info.memberReferences].filter((member) => members.has(member)).map((member) => `.${member}`),
+        ...forwards.map((member) => `forwards .${member}`),
         ...[...info.destructured].filter((member) => members.has(member)).map((member) => `{ ${member} }`),
-        ...[...info.calls].filter((callee) => module.imports.has(callee) && importInvokes(file, callee, new Set()))
-          .map((callee) => `${callee}() from ${module.imports.get(callee).source}`),
-        ...info.namespaceCalls
+        ...[...new Set([...info.calls, ...info.bareReferences])]
+          .filter((reference) => module.imports.has(reference) && importInvokes(file, reference, new Set()))
+          .map((reference) => `${reference}${info.calls.has(reference) ? "()" : ""} from ${module.imports.get(reference).source}`),
+        ...[...info.namespaceAccess, ...info.namespaceDestructures]
           .filter(([namespace, property]) => {
             const entry = module.imports.get(namespace);
             return entry?.imported === "*" && sourceInvokes(entry.source, file, property, new Set());
           })
-          .map(([namespace, property]) => `${namespace}.${property}()`),
+          .map(([namespace, property]) => `${namespace}.${property}`),
       ];
-      reasons.push(`${name}: ${evidence.join(", ") || "calls a local declaration that invokes"}`);
+      reasons.push(`${name}: ${[...new Set(evidence)].join(", ") || "uses a local declaration that invokes"}`);
     }
     for (const specifier of module.dynamic) {
       const target = resolve(specifier, file);

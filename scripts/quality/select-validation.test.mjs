@@ -2132,6 +2132,111 @@ test("a new hook that reaches a signing or sending primitive defaults to critica
   assert.notEqual(readPlan.risk, "critical");
 });
 
+test("mutation capability that travels by reference keeps a new file critical, in hooks and beyond", (t) => {
+  const { sharedMutationPrimitives: primitives } = loadPolicy();
+  const root = mutationFixture(t, {
+    // The auth hub forwards its actions under their own names, so a reader that never touches one
+    // stays out of the critical tier.
+    "hooks/auth/index.ts": [
+      'import { useAuthContext } from "./context";',
+      "export function useAuth() {",
+      "  const auth = useAuthContext();",
+      "  return { isAuthenticated: auth.isAuthenticated, signOut: auth.signOut };",
+      "}",
+    ].join("\n"),
+    "hooks/auth/context.ts": "export function useAuthContext() { return {} as { isAuthenticated: boolean; signOut: () => void }; }\n",
+    "hooks/tips/useAliasedSend.ts": [
+      'import { writeContract } from "@wagmi/core";',
+      "const submit = writeContract;",
+      "export const send = () => submit({} as never, {} as never);",
+    ].join("\n"),
+    "hooks/tips/useCallbackSend.ts": [
+      'import { writeContract } from "@wagmi/core";',
+      "export const useCallbackSend = () => ({ mutationFn: writeContract });",
+    ].join("\n"),
+    "hooks/tips/useTipButton.ts": [
+      'import { useCallbackSend } from "./useCallbackSend";',
+      "export function useTipButton() {",
+      "  const { mutationFn } = useCallbackSend();",
+      "  return () => mutationFn({} as never, {} as never);",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useForwardedSignOut.ts": [
+      'import { useAuth } from "../auth";',
+      "export function useForwardedSignOut() {",
+      "  const auth = useAuth();",
+      "  return { onLeave: auth.signOut };",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useLeaveButton.ts": [
+      'import { useForwardedSignOut } from "./useForwardedSignOut";',
+      "export function useLeaveButton() {",
+      "  const { onLeave } = useForwardedSignOut();",
+      "  return onLeave;",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useNamespaceCallback.ts": [
+      'import * as core from "@wagmi/core";',
+      "export const useNamespaceCallback = () => ({ run: core.sendTransaction });",
+    ].join("\n"),
+    "hooks/tips/useNamespaceAlias.ts": [
+      'import * as core from "@wagmi/core";',
+      "const { writeContract: write } = core;",
+      "export const useNamespaceAlias = () => write;",
+    ].join("\n"),
+    "modules/tips/send.ts": [
+      'import { sendTransaction as transfer } from "@wagmi/core";',
+      "const go = transfer;",
+      "export async function sendTip() {",
+      "  return go({} as never, {} as never);",
+      "}",
+    ].join("\n"),
+    "utils/tips/leave.ts": [
+      "export function leaveHandler(auth: { signOut: () => void }) {",
+      "  return auth.signOut;",
+      "}",
+    ].join("\n"),
+    "components/tips/SignOutButton.tsx": [
+      "export function SignOutButton({ auth }: { auth: { signOut: () => void } }) {",
+      "  return <button type=\"button\" onClick={auth.signOut} />;",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useReadsAuth.ts": [
+      'import { useAuth } from "../auth";',
+      "export function useReadsAuth() {",
+      "  const auth = useAuth();",
+      "  return auth.isAuthenticated;",
+      "}",
+    ].join("\n"),
+    "modules/tips/format.ts": [
+      'import { formatEther } from "viem";',
+      "const format = formatEther;",
+      "export const formatTip = (value: bigint) => format(value);",
+    ].join("\n"),
+  });
+  const escaping = [
+    "packages/shared/src/hooks/tips/useAliasedSend.ts",
+    "packages/shared/src/hooks/tips/useCallbackSend.ts",
+    "packages/shared/src/hooks/tips/useTipButton.ts",
+    "packages/shared/src/hooks/tips/useForwardedSignOut.ts",
+    "packages/shared/src/hooks/tips/useLeaveButton.ts",
+    "packages/shared/src/hooks/tips/useNamespaceCallback.ts",
+    "packages/shared/src/hooks/tips/useNamespaceAlias.ts",
+    "packages/shared/src/modules/tips/send.ts",
+    "packages/shared/src/utils/tips/leave.ts",
+    "packages/shared/src/components/tips/SignOutButton.tsx",
+  ];
+  const readers = [
+    "packages/shared/src/hooks/tips/useReadsAuth.ts",
+    "packages/shared/src/modules/tips/format.ts",
+  ];
+  assert.deepEqual(mutationPathsAmong([...escaping, ...readers], { root, primitives }), [...escaping].sort());
+  for (const changedPath of escaping) {
+    const plan = selectValidation({ intent: "push", changedPaths: [changedPath], mutationPaths: escaping });
+    assert.equal(plan.risk, "critical", changedPath);
+  }
+});
+
 test("every Shared file that signs, sends, moves funds or changes auth, session or queue state is critical by policy", () => {
   const policy = loadPolicy();
   const { invoking } = analyzeSharedMutationSurface({
