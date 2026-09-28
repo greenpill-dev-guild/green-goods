@@ -2,9 +2,9 @@
 
 **Feature Slug**: `test-budget-and-ci-speed`
 **Stage**: active
-**Status**: Local consolidation implemented; Shared coverage green; Client gate blocked by DetailsGate timeouts; publication acceptance remains open
+**Status**: Velocity follow-through in progress on local `develop` commits (September 28, D1–D5); publication acceptance remains open
 **Created**: 2026-09-19
-**Last Updated**: 2026-09-27
+**Last Updated**: 2026-09-28
 
 The user selected local implementation beginning with step 1 and later authorized a commit of completed slices. Item numbers below refer to the supplied twelve-item test-audit prompt. Branch changes, push, PR, and Linear writes remain unauthorized.
 
@@ -30,6 +30,11 @@ Three recent published Shared runs have both shards green. They provide observat
 | Consolidate by subject and prove deletions | Required boundary | Similar setup does not establish equivalent fault detection |
 | Work serially in bounded slices | Selected procedure | Avoid overlapping guidance, workflow, and test rewrites |
 | Existing hubs retain architecture and onboarding ownership | Required coordination | Avoid duplicate sources of execution truth |
+| D1 (2026-09-28): critical means signing, money, queue and auth | Decided by Afo | Read-only hooks become sensitive; target the critical push at 5–7 minutes |
+| D2 (2026-09-28): happy-dom for the Shared DOM project only if the A/B wins | Decided by Afo | Approves this one dev dependency and nothing else |
+| D3 (2026-09-28): the 11 measured critical-path floors replace the September 22 ratchet | Decided by Afo | Global floors and parity arrays stay unchanged |
+| D4 (2026-09-28): work on `develop`, commit each slice locally | Decided by Afo | No push, PR, merge, deploy or Linear write in the follow-through pass |
+| D5 (2026-09-28): the DetailsGate table refactor is approved | Decided by Afo | Resolves the Client validation blocker's scope question |
 
 ## Ordered work
 
@@ -50,6 +55,29 @@ Each row is a reviewable slice or a series of independently reviewed slices, not
 | [x] | 10 | 9, 10, 6b | Removed five stale WithdrawModal mocks and consolidated the PostHog throttle file without deleting its case. Retained named layout/CSS guards: current browser checks do not detect the same faults. No speculative broad file merge. |
 | [ ] | 11 | 12 | Local Snapshot 06 saved with inventory, recent shard timing/worker buckets and one defined fault check. Shared coverage and local proof recorded; Client whole-suite timeouts remain blocked. Post-merge publication, controlled timings and the unrecovered original fault panel remain explicit limits. |
 | [ ] | Deferred | 6a | Consider isolate:false only if setup/import costs still justify it: three comparable CI runs each way, no new failures, explicit adoption decision. |
+
+## Velocity follow-through (2026-09-28)
+
+Afo approved these slices and decisions D1–D5 on September 28 as follow-through on Velocity
+Scorecard snapshot 06. Each slice is a local commit on `develop` from `d7cf681ec`; evidence lives in
+the [follow-through report](reports/2026-09-28-velocity-follow-through.md).
+
+| Done | Slice | Work | Evidence |
+|---|---|---|---|
+| [x] | 0 | Preflight and baseline: critical push 263 s cold / 57 s warm (`useWorkApprovals.ts`); read-only `useFilteredGardens.ts` 360 s cold (contended) / 73 s warm | Report § Slice 0 |
+| [ ] | 1 | Machine-wide test lease in the package test path | |
+| [ ] | 2 | Critical scope matches D1, with a mutation-primitive guard | |
+| [ ] | 3 | Critical push: receipts, sequential suites, measured budgets | |
+| [ ] | 4 | Route `test-quality`, `docs-generated` and `docs-authority` in the push gate | |
+| [ ] | 5 | DetailsGate table (D5); Client passes at one worker | |
+| [ ] | 6 | Shared Node project split: shared-graph files and a lean setup | |
+| [ ] | 7 | happy-dom A/B for the Shared DOM project (D2) | |
+| [ ] | 8 | Small-file rules, diff-aware check, first fold batch | |
+| [ ] | 9 | Contracts gas gate: no from-scratch rebuild on pull requests | |
+| [ ] | 10 | Test-utils barrel: measure, then move only if it pays | |
+| [ ] | 11 | Behavior proof for six near-zero live files | |
+| [ ] | 12 | Close the ratchet (D3) | |
+| [ ] | 13 | Hub closeout for this pass and Astra's handoff | |
 
 ## Current handoff
 
