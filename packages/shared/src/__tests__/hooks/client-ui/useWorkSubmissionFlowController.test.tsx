@@ -722,7 +722,21 @@ describe("useWorkSubmissionFlowController", () => {
     expect(view.result.current.linkSchedulingSucceeded).toBe(true);
   });
 
-  it("reports the dependent link as queueing only after the Work was sent", async () => {
+  it.each([
+    ["sent", { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false }, true],
+    [
+      "saved only on this device",
+      {
+        kind: "queued",
+        clientWorkId: "client-1",
+        jobId: "work-job-1",
+        txHash: "0x2",
+        sponsored: false,
+        reason: "connection-unconfirmed",
+      },
+      false,
+    ],
+  ] as const)("reports the link as queueing only when the Work was sent: %s", async (_kind, outcome, queueing) => {
     const intent = commitmentLinkIntent;
     mocks.actionUID = 1;
     mocks.gardenAddress = intent.garden;
@@ -752,12 +766,14 @@ describe("useWorkSubmissionFlowController", () => {
     expect(view.result.current.isSchedulingDependentLink).toBe(true);
     expect(view.result.current.isQueueingDependentLink).toBe(false);
 
-    mocks.outcome = { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false };
+    mocks.outcome = { ...outcome };
     await act(async () => {
       finishUpload();
     });
-    await waitFor(() => expect(view.result.current.isQueueingDependentLink).toBe(true));
-    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+    expect(view.result.current.isSchedulingDependentLink).toBe(true);
+    expect(view.result.current.isQueueingDependentLink).toBe(queueing);
 
     let submitted = false;
     await act(async () => {
