@@ -117,17 +117,20 @@ export function useENSRegistrationStatus(slug: string | undefined) {
             };
 
             receiverChecked = true;
+            const receiverRegisteredAfterRelease =
+              submittedAt !== undefined &&
+              registration.owner !== zeroAddress &&
+              registration.registeredAt > BigInt(Math.floor(submittedAt / 1000));
             if (
               release &&
-              previousData?.status === "available" &&
-              (l2Owner !== zeroAddress ||
-                (registration.owner !== zeroAddress &&
-                  (registration.owner.toLowerCase() !== release.owner.toLowerCase() ||
-                    (submittedAt !== undefined &&
-                      registration.registeredAt > BigInt(Math.floor(submittedAt / 1000))))))
+              (receiverRegisteredAfterRelease ||
+                (previousData?.status === "available" &&
+                  (l2Owner !== zeroAddress ||
+                    (registration.owner !== zeroAddress &&
+                      registration.owner.toLowerCase() !== release.owner.toLowerCase()))))
             ) {
-              // A completed release must not mask a later reservation or a
-              // receiver-only recovery for the same owner.
+              // A later receiver registration is authoritative even if this
+              // client missed the release's available state.
               release = undefined;
               submittedAt = undefined;
               ccipMessageId = undefined;

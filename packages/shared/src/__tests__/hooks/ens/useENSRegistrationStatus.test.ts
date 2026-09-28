@@ -342,6 +342,32 @@ describe("useENSRegistrationStatus", () => {
     expect(mockGetEnsAddress).toHaveBeenCalledWith({ name: "carol.greengoods.eth" });
   });
 
+  it.each([
+    "pending",
+    "timed_out",
+  ])("recognizes receiver-only recovery while a release is still %s", async (status) => {
+    const { wrapper, queryClient } = createTestWrapper();
+    const submittedAt = Date.now() - 26 * 60_000;
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+      status,
+      release: { owner: MOCK_OWNER },
+      submittedAt,
+    });
+    mockReadContract
+      .mockResolvedValueOnce(ZERO_ADDRESS)
+      .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
+      .mockResolvedValueOnce({
+        owner: MOCK_OWNER,
+        nameType: 0,
+        registeredAt: BigInt(Math.floor(submittedAt / 1000) + 30),
+      });
+
+    const { result } = renderHook(() => useENSRegistrationStatus("carol"), { wrapper });
+    await waitFor(() => expect(result.current.data?.status).toBe("active"));
+    expect(result.current.data?.release).toBeUndefined();
+    expect(mockGetEnsAddress).toHaveBeenCalledWith({ name: "carol.greengoods.eth" });
+  });
+
   it("waits for the forward record after the receiver clears a release", async () => {
     const { wrapper, queryClient } = createTestWrapper();
     const release = { owner: MOCK_OWNER };
