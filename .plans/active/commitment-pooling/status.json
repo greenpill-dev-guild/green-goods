@@ -1762,7 +1762,7 @@
       "lane": "w3g_commitment_send_record",
       "status": "passed",
       "branch": "fix/commitment-send-record",
-      "note": "Merged in #923 and #931. Reads passed so the Linear sync keeps PRD-996 In Review; the PWA-126 walk stays pending for the recorded call, in the handoff and the readiness plan's W3 table, and only that walk moves the lane to completed and PRD-996 to Done"
+      "note": "Merged in #923 and #931, with a fresh validation receipt at 6a1f0d78a covering both. Reads passed so the Linear sync keeps PRD-996 In Review; the PWA-126 walk stays pending for the recorded call, in the handoff and the readiness plan's W3 table, and only that walk moves the lane to completed and PRD-996 to Done"
     },
     {
       "timestamp": "2026-09-28T18:26:56.000Z",
