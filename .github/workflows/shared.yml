@@ -12,6 +12,7 @@ on:
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/shared.yml"
       - "scripts/quality/check-source-structure.js"
+      - "scripts/lib/vitest-shared-graph.mjs"
       - "packages/shared/**"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
@@ -25,6 +26,7 @@ on:
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/shared.yml"
       - "scripts/quality/check-source-structure.js"
+      - "scripts/lib/vitest-shared-graph.mjs"
       - "packages/shared/**"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
@@ -61,6 +63,7 @@ jobs:
               ".github/workflows/shared.yml",
               "scripts/dev/package-commands.mjs",
               "scripts/quality/check-source-structure.js",
+              "scripts/lib/vitest-shared-graph.mjs",
             ]);
             const prefixes = [
               "packages/contracts/abis/",

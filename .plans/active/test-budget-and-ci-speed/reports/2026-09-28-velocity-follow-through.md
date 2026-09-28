@@ -410,3 +410,135 @@ Proof:
 | Outcome 8 | `bun run --cwd packages/client test --maxWorkers 1` (quiet, 02:50) | **exit 0**: 144 files, 1,481 tests, 104 s wall, about 100 s of worker time; each `DetailsGate` template 5–65 ms |
 | Selected | `validation-system-test` | 332/333; the pre-existing parity failure only |
 | Docs | `node scripts/docs/generate.mjs` | `commands.mdx` digest restaled by the `package-commands.mjs` edit; regenerated |
+
+## Slice 6 — Shared Node tests share one module graph
+
+The Shared config now has three projects:
+
+- **`node-shared-graph`** (145 files): Node files that mock and stub nothing, `isolate: false`, with
+  mocks, stubbed globals and stubbed env restored after each test.
+- **`node`** (67 files): isolated Node files.
+- **`dom`** (337 files): unchanged apart from 44 `.test.ts` files that declare a DOM environment in
+  their docblock. Those used to run in the Node project with the full DOM setup and now run here.
+
+`scripts/lib/vitest-shared-graph.mjs` decides membership from each file's code when the config
+loads (15 ms). A file stays isolated in any of these cases:
+
+- it calls `vi.mock`, `vi.doMock`, `vi.hoisted`, `vi.stubGlobal`, `vi.stubEnv`, `vi.resetModules`,
+  `vi.isolateModules`, `vi.unmock` or `vi.doUnmock`;
+- it uses IndexedDB;
+- it assigns a global directly or through `Object.defineProperty`;
+- it carries a `// @shared-graph isolate: <reason>` marker.
+
+The Node projects load a lean setup (`setupTests.node.ts`): the Node-safe core without Testing
+Library, jest-dom or React DOM. `setupTests.base.ts` keeps its behaviour for Client and Admin, with
+the same hook order.
+
+Running the shared graph found four leaks, and each is now a rule:
+
+- **Module-registry resets and IndexedDB.** `job-queue-blocked-open` and `draft-migration` broke
+  later files.
+- **A dependency that patches a built-in.** `job-queue.commitment-policy` "canonicalizes bigint
+  payloads" received `{"commitmentId":"9"}` after certain other files. The first bisect blamed
+  `chain-guard.test.ts`, but it was confounded: removing a file from a file-order shuffle
+  re-permutes the rest. A logging trap in the shared-graph setup found the cause.
+  `@hypercerts-org/sdk` 2.9.1 sets `BigInt.prototype.toJSON` when it loads
+  (`dist/esm/index.mjs:4954`), and three Node files import it through `lib/hypercerts/*`. They now
+  carry the marker.
+- **A global assigned directly.** Once in six Node-only B runs, Vitest reported three unhandled
+  `TypeError: markResourceTiming is not a function` errors in `gql-client.test.ts`, although every
+  test passed. `ipfs.module.test.ts` captures `globalThis.fetch` while Vitest collects it, and
+  restores that value after each test. When the file runs first in its worker, the captured value
+  is the native `fetch`. A later request then reaches the network, and its response trips Node's
+  fetch timing hook on the setup's mocked `performance` object in whichever file is running. With
+  `ipfs.module` first in a one-worker shared graph, this reproduced 3/3. With the file isolated, it
+  did not recur (0/3 on the same two files, and 0/6 B runs on the 212 Node files). Four other files
+  mutate globals the same way (`session`, `browser`, `pwa`, `authMachine`) and are isolated too.
+
+The shared-graph setup (`setupTests.shared-graph.ts`) fails the file that causes a leak:
+
+- fake timers left installed;
+- a changed built-in. It compares the own properties of fourteen built-in prototypes and `JSON`
+  with a snapshot taken before the file's imports, restores them, and names what changed.
+
+With the markers removed, the guard failed `metadata.test.ts` ("BigInt.prototype.toJSON added")
+and every other shared-graph test passed.
+
+`scripts/quality/check-shared-graph-tests.mjs` is Check 7 in `test-quality`, which CI runs in the
+Client, Admin and guidance jobs. It asks `vitest list --filesOnly --json` which project each
+Shared test file runs in. It fails when a file runs in two projects, or when a `node-shared-graph`
+file needs its own graph under the helper's rule.
+
+Routing:
+
+- **Locally:** `validation-system-test` covers the helper and the check (their tests are in the
+  parity suite), `shared-test` covers the helper in qa and push, and push-intent `test-quality`
+  covers the Shared config, the helper and the check. Before this slice, the helper alone selected
+  format and lint only.
+- **In CI:** `shared.yml` (outer paths and internal detector) and the policy's `workflowRules.Shared`
+  now include the helper, so a helper-only PR runs the Shared suite and CI Gate expects it. The
+  Supply Chain classifier sends the Shared config, the helper and the check to the parity job, which
+  runs their tests.
+
+Measurement. A = the `HEAD` config in a scratch worktree, B = this slice, in A B B A pairs. Before
+each run the machine had no other Vitest process and a 1-minute load under 30. It was under memory
+pressure throughout: about 11.7 GB of 13.3 GB swap in use, and a 1-minute load of 12–15 during runs.
+
+| Scope | Pair | A (s) | B (s) | Wall | Summed worker-seconds |
+|---|---|---|---|---|---|
+| The 212 Node files, four workers | 1 | 21, 25 | 10, 12 | −52% | −42% |
+| | 2 | 28, 31 | 13, 14 | −54% | −43% |
+| | 3 | 29, 30 | 15, 14 | −51% | −43% |
+| Full Shared suite, default workers | 1 | 99, 110 | 97, 96 | −8% | −5% |
+| | 2 | 108, 104 | 93, 91 | −13% | −11% |
+| | 3 | 105, 104 | 94, 95 | −10% | −7% |
+
+On the Node files, summed setup fell from 18–27 s to 1.3–1.9 s and summed import by about 36%.
+Summed transform rose from 5–8 s to 9–12 s. The full suite gains less because the DOM project's
+jsdom environments (about 280 s summed) and imports dominate it. An earlier three-pair run with the
+first partition (150 shared-graph files) gave −4%, −17% and −9% full-suite wall.
+
+CI's two shards split the same files on both configs (275 and 274) with identical results. Shard 2
+is slower than shard 1 on both (A 63 s against 37 s, B 60 s against 42 s, one run each), so the
+imbalance predates this slice and it does not widen it.
+
+Proof:
+
+| Step | Command | Result |
+|---|---|---|
+| RED | parity tests `consumer Vitest projects…` and `Shared Node tests share…`, run against the `HEAD` config in a scratch worktree | 0/2 (two projects; no `node-shared-graph`) |
+| RED | `select-validation.test.mjs` routing tests for the helper, the check and CI Gate's expected workflows | failed before the policy edits |
+| RED | parity tests `Supply Chain classifier routes…` and `Shared outer routing…` | 0/2 before the workflow and classifier edits |
+| GREEN | `node --test scripts/quality/select-validation.test.mjs` | 89/89 |
+| Selected | `validation-system-test` | 334/335; the pre-existing `SeedStepHowMuch` barrel failure only |
+| Selected | `format`, `lint`, `shared-typecheck`, `shared-test-typecheck`, `shared-test` (the three changed files), `client-test` (1,481), `admin-test` (1,093), `agent-typecheck`, `agent-test`, `docs-authority`, `docs-build` | all pass |
+| Push checks | `test-quality` (Check 7 included, 1.8 s), `docs-generated` | pass; three projection digests regenerated |
+| Guard | shared graph, one worker, file shuffle seed 1, markers removed | `metadata.test.ts` fails with the guard message; the other 2,172 tests pass |
+| Check 7 fault | `ipfs.module.test.ts` added to the shared-graph include | exit 1: "runs in node and node-shared-graph" and "needs its own"; exit 0 after restoring |
+| Fetch leak | `ipfs.module` first in a one-worker shared graph, then `gql-client` | 3/3 runs report `markResourceTiming` unhandled errors; 0/3 with the final config |
+| Identical results | full Shared suite JSON against the pre-change baseline | 6,056 passed, 17 skipped; no name added, removed or changed |
+| File-order shuffles | shared graph at one worker, seeds 1–3 | 1,898 passed each |
+| File-order shuffles | full suite, seeds 11–13 (first partition) | identical to the baseline each time |
+| Full shuffles | `--sequence.shuffle` (tests within files too), seeds 21–23, on both configs | the same failures on both configs for every seed, so they predate this slice (open items) |
+
+Open items from this slice:
+
+- **Tests that depend on their order within a file.** Five files fail under `--sequence.shuffle`
+  identically on the `HEAD` config:
+  - `service-worker-registration`, seeds 21 and 22;
+  - `useActionOperations`, seed 21;
+  - `useGardenDomains` and `useDrafts`, seed 22;
+  - `stores/connectivity`, seed 23.
+
+  `upload-preparation` also depends on the order of its tests: its module-level `snapshot`, `active`
+  and `openHolds` state is never reset. The brief's "three runs with `--sequence.shuffle` and no
+  failures" therefore holds only for file order.
+- **`@hypercerts-org/sdk` 2.9.1 patches `BigInt.prototype.toJSON` when it loads.** Any app session
+  that loads it changes how `JSON.stringify` treats bigints from then on. That includes
+  `canonicalJobPayload`'s `__bigint` tagging, so `{ commitmentId: 9n }` and `{ commitmentId: "9" }`
+  would canonicalize alike. This is a product question for Afo; nothing here changes it.
+- **Two CI routing gaps predate this slice:**
+  - `shared.yml` runs for `scripts/dev/package-commands.mjs`, but `workflowRules.Shared` omits it,
+    so CI Gate does not expect Shared for that path;
+  - the parity job still does not run for Client or Admin Vitest config changes, although the
+    parity suite locks their shapes; this slice routed only the Shared config.

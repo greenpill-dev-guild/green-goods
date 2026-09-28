@@ -125,8 +125,9 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 | `check-source-structure.test.mjs` | `bun run check --only validation-system-test` | Fixture coverage for placement, naming, layering, dead-export exclusions, staged modules, and exact baseline shrinkage |
 | `check-staged-modules.mjs` | `bun run check --only staged-modules`, validation selector | Keep deferred Card Endow modules marked and isolated from live Client imports |
 | `check-staged-modules.test.mjs` | `bun run check --only validation-system-test` | Positive and fail-closed fixtures for the staged-module boundary |
-| `check-test-quality.sh` | `bun run check --only test-quality` | Detect tautological assertions, ungoverned skips, `@ts-nocheck`, malformed new Solidity test names, direct-test seam drift, and unjustified new local query setup |
+| `check-test-quality.sh` | `bun run check --only test-quality` | Detect tautological assertions, ungoverned skips, `@ts-nocheck`, malformed new Solidity test names, direct-test seam drift, unjustified new local query setup, and Shared tests in the wrong project |
 | `check-test-query-setup.mjs` | `bun run check --only test-quality` | Diff-aware guard for new package-test query clients and wrappers, with reasoned local exceptions |
+| `check-shared-graph-tests.mjs` | `bun run check --only test-quality` | Asks Vitest which project each Shared test file runs in, and fails when a file runs twice or a `node-shared-graph` file needs its own graph under `lib/vitest-shared-graph.mjs`. Covered by `workflow-performance-parity.test.mjs` |
 | `check-direct-tested-seams.mjs` | `bun run check --only test-quality` | Resolve real package exports, require direct non-self-mocking subject proof, and validate selected/certified seam registry paths, composition, consumers, proof categories, and evidence fingerprints |
 | `check-direct-tested-seams.test.mjs` | `bun run check --only validation-system-test` | Fixture proof for export-map resolution, self-mocking rejection, missing/duplicate registry evidence, lifecycle gates, fingerprint freshness, and exact-baseline shrinkage |
 | `check-story-coverage.ts` | `design.yml` (via `packages/shared` script) | Storybook coverage policy per package |
@@ -240,6 +241,7 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 - `env-schema.mjs` — dotenv/schema parser and profile-required-key helpers used by `dev/env-check.js` and env-parity checks.
 - `env-parity.mjs` — Vercel build-time environment-parity and Sentry-DSN assertions used by the client and admin Vite configs.
 - `git-guardrails.mjs` — shared Git/base-ref resolution for diff-aware quality and contracts checks, including invalid CI base fallback.
+- `vitest-shared-graph.mjs` — splits the Shared Vitest config's Node test files into those that share one module graph and those that keep their own: files that mock, stub, assign globals directly, reset modules, use IndexedDB, or carry a `// @shared-graph isolate: <reason>` marker stay isolated; `quality/check-shared-graph-tests.mjs` checks the result. Covered by `quality/workflow-performance-parity.test.mjs`.
 
 ### `data/`
 - `validation-policy.json` — versioned check catalog, hard overrides, timing budgets, surface impact, and workflow routing consumed by the shared validation selector.

@@ -5,6 +5,7 @@ import path from "path";
 import { defineConfig } from "vitest/config";
 
 import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
+import { partitionNodeTests } from "../../scripts/lib/vitest-shared-graph.mjs";
 
 const workspaceRoot = path.resolve(__dirname, "../..");
 const workspaceNodeModules = path.join(workspaceRoot, "node_modules");
@@ -16,6 +17,11 @@ const nodeTestFiles = [
   "src/__tests__/{utils,modules,config,workflows,lib,types,i18n,public-contracts,ontology,styles}/**/*.test.ts",
   "src/{modules,utils}/**/*.test.ts",
 ];
+// Node files that mock or stub nothing share one module graph; the rest stay isolated, and files
+// that declare a DOM environment run with the DOM project. Membership follows each file's code
+// (scripts/lib/vitest-shared-graph.mjs), and setupTests.shared-graph.ts fails a shared-graph file
+// that leaks fake timers or a changed built-in.
+const nodeTests = partitionNodeTests({ root: __dirname, include: nodeTestFiles });
 
 function escapeRegex(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -38,7 +44,6 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
-    setupFiles: ["./src/__tests__/setupTests.ts"],
     globals: true,
     testTimeout: 10000,
     pool: "threads",
@@ -150,7 +155,21 @@ export default defineConfig({
         test: {
           name: "node",
           environment: "node",
-          include: nodeTestFiles,
+          include: nodeTests.isolated,
+          setupFiles: ["./src/__tests__/setupTests.node.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "node-shared-graph",
+          environment: "node",
+          include: nodeTests.sharedGraph,
+          setupFiles: ["./src/__tests__/setupTests.shared-graph.ts"],
+          isolate: false,
+          restoreMocks: true,
+          unstubGlobals: true,
+          unstubEnvs: true,
         },
       },
       {
@@ -159,7 +178,14 @@ export default defineConfig({
           name: "dom",
           environment: "jsdom",
           include: [allTestFiles],
-          exclude: ["node_modules/", "dist/", "**/*.d.ts", ...nodeTestFiles],
+          exclude: [
+            "node_modules/",
+            "dist/",
+            "**/*.d.ts",
+            ...nodeTests.isolated,
+            ...nodeTests.sharedGraph,
+          ],
+          setupFiles: ["./src/__tests__/setupTests.ts"],
         },
       },
     ],

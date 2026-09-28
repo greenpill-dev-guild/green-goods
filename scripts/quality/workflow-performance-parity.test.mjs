@@ -6,8 +6,10 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 
 import { resolvePackageCommand } from "../dev/package-commands.mjs";
+import { partitionNodeTests } from "../lib/vitest-shared-graph.mjs";
 
 import { classifySupplyChainChanges } from "./classify-supply-chain-changes.mjs";
+import { sharedGraphProblems } from "./check-shared-graph-tests.mjs";
 import {
   addedQuerySetupFromDiff,
   hasQuerySetupAllowance,
@@ -204,6 +206,19 @@ test("Supply Chain classifier routes each change class without broad fallthrough
       parity: false,
     });
   }
+  // The parity suite holds the Shared test-project tests, so the files that decide membership run it.
+  for (const membershipPath of [
+    "packages/shared/vitest.config.ts",
+    "scripts/lib/vitest-shared-graph.mjs",
+    "scripts/quality/check-shared-graph-tests.mjs",
+  ]) {
+    assert.deepEqual(classifySupplyChainChanges([membershipPath]), {
+      format: true,
+      guidance: false,
+      supply: false,
+      parity: true,
+    });
+  }
 });
 
 test("local hooks keep commit light and reuse the focused push contract", () => {
@@ -353,6 +368,7 @@ test("Shared outer routing matches the internal shared-impact detector", () => {
     ".github/actions/setup-js/action.yml",
     ".github/workflows/shared.yml",
     "scripts/quality/check-source-structure.js",
+    "scripts/lib/vitest-shared-graph.mjs",
     "packages/shared/**",
     "packages/contracts/abis/**",
     "packages/contracts/deployments/**",
@@ -364,6 +380,8 @@ test("Shared outer routing matches the internal shared-impact detector", () => {
       `Shared push and pull_request routing must include ${required}`,
     );
   }
+  // The Shared config reads the membership helper, so the internal detector must see it too.
+  assert.match(source, /"scripts\/lib\/vitest-shared-graph\.mjs",\n\s+\]\);/);
 
   for (const forbidden of [
     ".github/workflows/**",
@@ -482,10 +500,10 @@ test("consumer Vitest configs share the local resource-aware worker policy", () 
 });
 
 test("consumer Vitest projects separate Node and DOM without project coverage", () => {
-  for (const file of [
-    "packages/shared/vitest.config.ts",
-    "packages/client/vitest.config.ts",
-    "packages/admin/vitest.config.ts",
+  for (const [file, projectCount] of [
+    ["packages/shared/vitest.config.ts", 3],
+    ["packages/client/vitest.config.ts", 2],
+    ["packages/admin/vitest.config.ts", 2],
   ]) {
     const source = read(file);
     assert.equal(source.match(/\bprojects\s*:/g)?.length, 1, `${file} must declare projects once`);
@@ -496,11 +514,75 @@ test("consumer Vitest projects separate Node and DOM without project coverage", 
     );
     assert.equal(
       source.match(/extends:\s*true/g)?.length,
-      2,
+      projectCount,
       `${file} projects must inherit the root config`,
     );
     assert.match(source, /name:\s*["']node["']/);
     assert.match(source, /name:\s*["']dom["']/);
+  }
+});
+
+test("Shared Node tests share one module graph unless they mock, stub, assign globals, or declare a leak", () => {
+  const source = read("packages/shared/vitest.config.ts");
+  const project = (name) => {
+    const start = source.search(new RegExp(`name:\\s*["']${name}["']`));
+    assert.ok(start >= 0, `Shared must declare the ${name} project`);
+    const end = source.indexOf("\n      },\n", start);
+    return source.slice(start, end);
+  };
+  const sharedGraph = project("node-shared-graph");
+  for (const option of [
+    /include:\s*nodeTests\.sharedGraph\b/,
+    /setupFiles:\s*\[["']\.\/src\/__tests__\/setupTests\.shared-graph\.ts["']\]/,
+    /isolate:\s*false/,
+    /restoreMocks:\s*true/,
+    /unstubGlobals:\s*true/,
+    /unstubEnvs:\s*true/,
+  ]) {
+    assert.match(sharedGraph, option, `the shared graph must keep ${option}`);
+  }
+  assert.match(project("node"), /include:\s*nodeTests\.isolated\b/);
+  assert.match(project("node"), /setupTests\.node\.ts/);
+  assert.doesNotMatch(project("node"), /isolate:\s*false/);
+  assert.match(project("dom"), /\.\.\.nodeTests\.isolated,\s*\.\.\.nodeTests\.sharedGraph/);
+  assert.match(source, /partitionNodeTests\(\{\s*root:\s*__dirname,\s*include:\s*nodeTestFiles\s*\}\)/);
+
+  const fixture = mkdtempSync(join(tmpdir(), "shared-graph-partition-"));
+  try {
+    const files = {
+      "plain.test.ts": 'import { expect, it } from "vitest";\nit("adds", () => expect(1 + 1).toBe(2));\n',
+      "mocks.test.ts": 'vi.mock("../config/appkit");\n',
+      "hoisted.test.ts": "const state = vi.hoisted(() => ({}));\n",
+      "stubs-global.test.ts": 'vi.stubGlobal("fetch", vi.fn());\n',
+      "stubs-env.test.ts": 'vi.stubEnv("VITE_CHAIN_ID", "1");\n',
+      "resets.test.ts": "vi.resetModules();\n",
+      "indexeddb.test.ts": 'const request = indexedDB.open("jobs");\n',
+      "assigns-global.test.ts": "const originalFetch = globalThis.fetch;\nglobalThis.fetch = vi.fn();\n",
+      "defines-global.test.ts": 'Object.defineProperty(global, "navigator", { value: {} });\n',
+      "reads-global.test.ts": 'it("reads", () => expect(globalThis.fetch === undefined).toBe(false));\n',
+      "marked.test.ts": "// @shared-graph isolate: a dependency patches a built-in when it loads.\n",
+      "mentions.test.ts": '// Unlike its siblings, this file needs no vi.mock call.\nit("names", () => "vi.mock");\n',
+      "dom.test.ts": "/** @vitest-environment jsdom */\nvi.mock(\"../x\");\n",
+    };
+    mkdirSync(join(fixture, "src"));
+    for (const [name, text] of Object.entries(files)) writeFileSync(join(fixture, "src", name), text);
+    assert.deepEqual(partitionNodeTests({ root: fixture, include: ["src/*.test.ts"] }), {
+      sharedGraph: ["src/mentions.test.ts", "src/plain.test.ts", "src/reads-global.test.ts"],
+      isolated: [
+        "src/assigns-global.test.ts",
+        "src/defines-global.test.ts",
+        "src/hoisted.test.ts",
+        "src/indexeddb.test.ts",
+        "src/marked.test.ts",
+        "src/mocks.test.ts",
+        "src/resets.test.ts",
+        "src/stubs-env.test.ts",
+        "src/stubs-global.test.ts",
+      ],
+      dom: ["src/dom.test.ts"],
+    });
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
   }
 });
 
@@ -597,6 +679,37 @@ test("test quality Check 5 enforces direct-tested seams", () => {
   assert.match(source, /scripts\/quality\/check-direct-tested-seams\.mjs/);
   assert.match(source, /Check 6: Diff-aware query setup/);
   assert.match(source, /scripts\/quality\/check-test-query-setup\.mjs/);
+  assert.match(source, /Check 7: Shared-graph membership/);
+  assert.match(source, /scripts\/quality\/check-shared-graph-tests\.mjs/);
+});
+
+test("test quality flags Shared test files that leak through the shared graph or run twice", () => {
+  const sources = {
+    "src/plain.test.ts": 'it("adds", () => expect(1 + 1).toBe(2));',
+    "src/mocks.test.ts": 'vi.mock("../config/appkit");',
+    "src/marked.test.ts": "// @shared-graph isolate: a dependency patches a built-in when it loads.",
+    "src/twice.test.ts": 'it("adds", () => expect(1 + 1).toBe(2));',
+  };
+  const entries = [
+    { file: "src/plain.test.ts", projectName: "node-shared-graph" },
+    { file: "src/mocks.test.ts", projectName: "node-shared-graph" },
+    { file: "src/marked.test.ts", projectName: "node-shared-graph" },
+    { file: "src/twice.test.ts", projectName: "node-shared-graph" },
+    { file: "src/twice.test.ts", projectName: "dom" },
+  ];
+  assert.deepEqual(sharedGraphProblems(entries, (file) => sources[file]), [
+    "src/marked.test.ts: shares the module graph but needs its own (scripts/lib/vitest-shared-graph.mjs)",
+    "src/mocks.test.ts: shares the module graph but needs its own (scripts/lib/vitest-shared-graph.mjs)",
+    "src/twice.test.ts: runs in node-shared-graph and dom",
+  ]);
+  // The same files in the isolated project are fine.
+  assert.deepEqual(
+    sharedGraphProblems(
+      entries.slice(1, 3).map((entry) => ({ ...entry, projectName: "node" })),
+      (file) => sources[file],
+    ),
+    [],
+  );
 });
 
 test("test quality only flags added local query setup in package tests", () => {

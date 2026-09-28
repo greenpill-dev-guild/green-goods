@@ -154,8 +154,16 @@
         "scripts/lib/command-runner.mjs",
         "scripts/dev/test.js",
         "scripts/dev/test-e2e.js",
-        "scripts/dev/browser.js"
+        "scripts/dev/browser.js",
+        "scripts/lib/vitest-shared-graph.mjs",
+        "scripts/quality/check-shared-graph-tests.mjs"
       ]
+    },
+    {
+      "check": "shared-test",
+      "runInQa": true,
+      "note": "The Shared Vitest config reads this helper to decide which Node tests share a module graph.",
+      "exact": ["scripts/lib/vitest-shared-graph.mjs"]
     },
     {
       "check": "source-structure",
@@ -482,7 +490,7 @@
     {
       "check": "test-quality",
       "intents": ["push"],
-      "note": "Test files, test helpers and mocks, and every non-test file a certified seam fingerprints (scripts/data/module-seam-registry.json). CI runs test-quality on every pull request.",
+      "note": "Test files, test helpers and mocks, every non-test file a certified seam fingerprints (scripts/data/module-seam-registry.json), the checks it runs, and the files that decide which Shared test project each test file lands in. CI runs test-quality on every pull request.",
       "prefixes": ["tests/"],
       "contains": ["/__tests__/", "/__mocks__/", "/test/", "/tests/", ".test.", ".spec."],
       "exact": [
@@ -500,7 +508,10 @@
         "packages/shared/src/providers/Auth.tsx",
         "scripts/quality/check-test-quality.sh",
         "scripts/quality/check-test-query-setup.mjs",
-        "scripts/contracts/check-solidity-test-names.mjs"
+        "scripts/contracts/check-solidity-test-names.mjs",
+        "packages/shared/vitest.config.ts",
+        "scripts/lib/vitest-shared-graph.mjs",
+        "scripts/quality/check-shared-graph-tests.mjs"
       ]
     },
     {
@@ -1863,6 +1874,7 @@
         "biome.json",
         ".env.schema",
         "scripts/quality/check-source-structure.js",
+        "scripts/lib/vitest-shared-graph.mjs",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/shared.yml"
       ],

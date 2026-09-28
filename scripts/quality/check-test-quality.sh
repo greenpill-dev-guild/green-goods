@@ -8,6 +8,7 @@
 #   4. Newly added or renamed Solidity tests use the canonical naming format
 #   5. Direct-tested seams import their subject and never mock that subject
 #   6. New local query setup uses a shared helper or records why it cannot
+#   7. Shared tests in the shared module graph mock and stub nothing, and none runs twice
 
 set -euo pipefail
 
@@ -163,7 +164,7 @@ elif [ "$DIRECT_SEAM_STATUS" -ne 0 ]; then
 fi
 echo ""
 
-# ── Summary ─────────────────────────────────────────────────────
+# ── Check 6: Diff-aware query setup ─────────────────────────────
 echo "--- Check 6: Diff-aware query setup ---"
 QUERY_SETUP_STATUS=0
 node "$REPO_ROOT/scripts/quality/check-test-query-setup.mjs" || QUERY_SETUP_STATUS=$?
@@ -172,6 +173,18 @@ if [ "$QUERY_SETUP_STATUS" -eq 1 ]; then
 elif [ "$QUERY_SETUP_STATUS" -ne 0 ]; then
   echo "ERROR: Test query-setup checker could not run (exit $QUERY_SETUP_STATUS)."
   exit "$QUERY_SETUP_STATUS"
+fi
+echo ""
+
+# ── Check 7: Shared-graph membership ────────────────────────────
+echo "--- Check 7: Shared-graph membership ---"
+SHARED_GRAPH_STATUS=0
+node "$REPO_ROOT/scripts/quality/check-shared-graph-tests.mjs" || SHARED_GRAPH_STATUS=$?
+if [ "$SHARED_GRAPH_STATUS" -eq 1 ]; then
+  VIOLATIONS=$((VIOLATIONS + 1))
+elif [ "$SHARED_GRAPH_STATUS" -ne 0 ]; then
+  echo "ERROR: Shared-graph membership checker could not run (exit $SHARED_GRAPH_STATUS)."
+  exit "$SHARED_GRAPH_STATUS"
 fi
 echo ""
 

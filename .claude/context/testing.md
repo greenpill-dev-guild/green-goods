@@ -19,10 +19,17 @@ Alias → `packages/shared/src/__tests__/test-utils/`. Import test helpers from 
 - Shared, client, and admin use inherited `node` and `dom` projects: DOM-free `.test.ts`
   suites run in Node, while `.test.tsx` and documented DOM exceptions run in jsdom. Keep
   coverage at the root config, never inside a project.
-- `globals: true`, `pool: "threads"`, `isolate: true`, `testTimeout: 10000`.
+- Shared's Node tests that mock and stub nothing share one module graph in
+  `node-shared-graph` (`isolate: false`; mocks, globals and env restored after each test).
+  A file that mocks, stubs, assigns globals directly, resets modules, uses IndexedDB, or
+  carries a `// @shared-graph isolate: <reason>` marker stays isolated in `node`
+  (`scripts/lib/vitest-shared-graph.mjs` decides; `test-quality` checks the result). In the
+  shared graph, leaked fake timers or a changed built-in fail the file that caused them. Mark
+  a file whose dependency patches a built-in when it loads.
+- `globals: true`, `pool: "threads"`, `isolate: true` (except Shared's shared graph), `testTimeout: 10000`.
 - React deduped + aliased to the workspace-root runtime so hooks share one dispatcher — never add a second React instance.
 - Heavy SDKs alias-mocked to skip dep chains: EAS SDK → `src/__mocks__/eas-sdk.ts`, WalletConnect utils → `src/__mocks__/walletconnect-utils.ts`; `zod`/`viem`/`wagmi`/`multiformats` force-inlined via `server.deps.inline`.
-- Setup files: shared/client `setupTests.ts`, admin/agent `setup.ts` — all extend `packages/shared/src/__tests__/setupTests.base.ts`.
+- Setup files: shared/client `setupTests.ts`, admin/agent `setup.ts` — all extend `packages/shared/src/__tests__/setupTests.base.ts`. Shared's Node projects load only its Node-safe core (`setupTests.node.ts`), without Testing Library or jest-dom.
 - `agent` package differs: `node` env, `fileParallelism: false`, much lower thresholds (10/20/20/20).
 
 ## GG mock / jsdom conventions (`setupTests.base.ts` + per-package setup)

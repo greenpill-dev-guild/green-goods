@@ -47,6 +47,7 @@ test("hook and doctor edits select their behavioral proof", () => {
       "scripts/dev/surface-leases.mjs", "scripts/dev/stack.js", "scripts/dev/smoke-full.js",
       "scripts/lib/dev-modes.mjs", "scripts/lib/setup-env.mjs", "scripts/lib/command-runner.mjs",
       "scripts/dev/test.js", "scripts/dev/test-e2e.js", "scripts/dev/browser.js",
+      "scripts/lib/vitest-shared-graph.mjs", "scripts/quality/check-shared-graph-tests.mjs",
     ]],
   ];
   for (const intent of ["qa", "review", "push"]) {
@@ -57,6 +58,17 @@ test("hook and doctor edits select their behavioral proof", () => {
       }
     }
   }
+  // The Shared Vitest config reads this helper to decide which tests share a module graph. Review
+  // selects no package suite, so the Shared suite runs for it in qa and push.
+  for (const intent of ["qa", "push"]) {
+    const plan = selectValidation({ intent, changedPaths: ["scripts/lib/vitest-shared-graph.mjs"] });
+    assert.ok(ids(plan).includes("shared-test"), `${intent}: scripts/lib/vitest-shared-graph.mjs`);
+  }
+  // shared.yml runs for it too, so CI Gate must expect that workflow.
+  assert.deepEqual(
+    selectExpectedWorkflows({ changedPaths: ["scripts/lib/vitest-shared-graph.mjs"], intent: "merge", ci: true }),
+    ["Shared", "Supply Chain Guardrails"],
+  );
 });
 
 // A hook's GIT_DIR outranks `cwd`, so without this the selector under test reads the repository
@@ -2187,6 +2199,10 @@ test("the push gate routes test quality and generated or audited docs to the pat
     "packages/indexer/test/credit-registry.test.ts",
     "scripts/quality/select-validation.test.mjs",
     "tests/specs/admin.smoke.spec.ts",
+    // test-quality checks which project each Shared test file lands in.
+    "packages/shared/vitest.config.ts",
+    "scripts/lib/vitest-shared-graph.mjs",
+    "scripts/quality/check-shared-graph-tests.mjs",
   ]) {
     assert.ok(push(changedPath).includes("test-quality"), changedPath);
   }
