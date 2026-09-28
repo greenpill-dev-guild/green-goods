@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolvePackageCommand } from "./package-commands.mjs";
 import { CONTRACTS_ROOT, loadReleaseManifest } from "./release-manifest";
+import { RELEASE_GAS_BUILD_MODE_VARIABLE, releaseGasBuildMode } from "./release-gas-build-mode";
 
 /**
  * Drift guardrail for the release gas gate routing.
@@ -64,6 +65,19 @@ describe("release gas gate routing", () => {
     expect(runner).toContain('"--force"');
     expect(runner).toContain("--isolate");
     expect(runner).toContain("--list");
+    // The only way past the from-scratch build is the mode CI sets on an exact-input cache hit.
+    expect(runner).toContain("releaseGasBuildMode(");
+  });
+
+  it("rebuilds the production tree from scratch unless CI restored it for these exact inputs", () => {
+    expect(releaseGasBuildMode({})).toBe("fresh");
+    expect(releaseGasBuildMode({ [RELEASE_GAS_BUILD_MODE_VARIABLE]: "" })).toBe("fresh");
+    expect(releaseGasBuildMode({ [RELEASE_GAS_BUILD_MODE_VARIABLE]: "fresh" })).toBe("fresh");
+    expect(releaseGasBuildMode({ [RELEASE_GAS_BUILD_MODE_VARIABLE]: "cached" })).toBe("cached");
+    // A typo must not skip the rebuild.
+    expect(() => releaseGasBuildMode({ [RELEASE_GAS_BUILD_MODE_VARIABLE]: "cache" })).toThrow(
+      /must be "fresh" or "cached"/,
+    );
   });
 
   it("routes the live Safe/Zodiac destination proof with per-call isolation", () => {

@@ -827,6 +827,44 @@ test("PR Test jobs run plain tests; thresholds are enforced nightly and on main"
   assert.match(source, /CI:\s*true/);
 });
 
+test("contract PRs reuse only an exact-input production tree; pushes, releases and the nightly rebuild it", () => {
+  const source = read(".github/workflows/contracts.yml");
+  const unit = source.slice(source.indexOf("  unit:"), source.indexOf("  lint-build:"));
+  const releaseCache = unit.slice(unit.indexOf("id: release-build"), unit.indexOf("- name:", unit.indexOf("id: release-build")));
+  assert.ok(releaseCache.length > 0, "the unit job caches the production tree in its own step");
+  assert.match(releaseCache, /packages\/contracts\/\.generated\/foundry\/out\/production/);
+  assert.match(releaseCache, /packages\/contracts\/\.generated\/foundry\/cache\/production/);
+  // An exact key over every build input, and no partial restore: a miss rebuilds from scratch.
+  assert.doesNotMatch(releaseCache, /restore-keys/);
+  for (const input of [
+    "packages/contracts/foundry.toml",
+    "packages/contracts/foundry.lock",
+    "packages/contracts/remappings.txt",
+    "packages/contracts/src/**",
+    "packages/contracts/test/**",
+    "packages/contracts/script/**/*.sol",
+    "packages/contracts/lib/**",
+    "packages/contracts/config/commitment-pooling-release.json",
+    "bun.lock",
+  ]) {
+    assert.ok(releaseCache.includes(`'${input}'`), `the production cache key must hash ${input}`);
+  }
+  assert.match(releaseCache, /forge-v1\.7\.1/);
+  // The general Foundry cache holds only the test profile, so it cannot restore a production tree.
+  const general = unit.slice(unit.indexOf("name: Cache Foundry build"), unit.indexOf("id: release-build"));
+  assert.match(general, /\.generated\/foundry\/out\/test/);
+  assert.doesNotMatch(general, /\.generated\/foundry\/out\n|foundry\/out\/production|foundry\/out$/m);
+  // Only a pull request into develop with an exact hit reuses the tree.
+  assert.match(
+    unit,
+    /GG_RELEASE_GAS_GATE_BUILD: \$\{\{ github\.event_name == 'pull_request' && github\.base_ref == 'develop' && steps\.release-build\.outputs\.cache-hit == 'true' && 'cached' \|\| 'fresh' \}\}/,
+  );
+
+  const nightly = read(".github/workflows/contracts-nightly.yml");
+  assert.match(nightly, /run: bun run test --suite release-gas\n/);
+  assert.doesNotMatch(nightly, /GG_RELEASE_GAS_GATE_BUILD/);
+});
+
 test("contracts realism remains equivalent without unrelated tool setup", () => {
   const source = read(".github/workflows/contracts.yml");
   const realism = source.slice(

@@ -721,3 +721,60 @@ Proof:
 | Renames | `git diff --cached -M --name-status` | `pimlico.test.ts` and `contracts.test.ts` count as renames (59% and 53%), so Check 8 does not treat them as new |
 | Selected | `format`, `lint`, `validation-system-test` (336/337, same failure), `shared-test-typecheck`, `shared-test` | pass |
 | Push checks | `test-quality` (2.1 s), `docs-generated`, `docs-authority` | pass. A fixture string containing `test.skip(` first tripped Check 2's ungoverned-skip scan and became `test.todo(` |
+
+## Slice 9 — contracts gas gate reuses an exact-input production tree on develop PRs
+
+Release tooling, so critical: every touched line was read, and the selector's full critical
+override ran.
+
+Before, `run-release-gas-gate.ts` ran `forge build --force` for the production profile on every
+`bun run test`, including every pull request's unit-test job. The brief measured that rebuild at
+about 84 s of the job's 243 s median.
+
+Now:
+
+- **The mode.** `script/utils/release-gas-build-mode.ts` owns the decision:
+  - `GG_RELEASE_GAS_GATE_BUILD` unset, empty or `fresh` rebuilds from scratch;
+  - `cached` skips only the rebuild; the fixture listing and the three `--isolate` boundary
+    proofs still run;
+  - any other value fails the gate, so a typo cannot skip the rebuild.
+- **`contracts.yml` unit job:**
+  - The general Foundry cache holds only the test profile, so it can no longer restore a production
+    tree from another commit.
+  - A new step caches `.generated/foundry/{cache,out}/production` with no restore-keys. Its exact
+    key is the Foundry version plus a hash of `foundry.toml`, `foundry.lock`, `remappings.txt`,
+    `src/**`, `test/**`, `script/**/*.sol`, `lib/**`, the release config and `bun.lock`. Only
+    this gate's from-scratch build fills it.
+  - The test step passes `cached` only for a pull request into develop with an exact hit. Pushes,
+    release pull requests into main, and every miss pass `fresh`.
+- **Release gate.** The local release gate is unchanged: `contracts-test` runs `bun run test` with
+  no mode, which rebuilds from scratch.
+- **Nightly.** It did not run the gate before. It now adds
+  `bun run test --suite release-gas` from scratch after the deep fuzz suite.
+
+Local wall time of the unit job's command (`bun run test` in `packages/contracts`), A B B A on a quiet
+machine (1-minute load 3–8):
+
+| Run | Mode | Wall |
+|---|---|---|
+| 1 | fresh | 71 s |
+| 2 | cached | 18 s |
+| 3 | cached | 18 s |
+| 4 | fresh | 72 s |
+
+The fresh rebuild costs about 54 s locally. In CI, a develop pull request whose contract inputs are
+already cached should skip the rebuild. The first run for a new input set misses, rebuilds and saves
+the entry. This is unverified until CI runs it; the closeout pass should check the second run of a
+contracts PR for `reusing the production tree`.
+
+Proof:
+
+| Step | Command | Result |
+|---|---|---|
+| RED | `vitest run --dir script script/utils/release-gas-gate.test.ts` | the new mode module is missing |
+| RED | parity test `contract PRs reuse only an exact-input production tree…` | fails: no production cache step |
+| GREEN | `release-gas-gate.test.ts` | 6/6: the mode defaults to fresh, `cached` is explicit, a typo throws, and the runner keeps `--force` and consults the mode |
+| GREEN | `workflow-performance-parity.test.mjs` | 38/39; the pre-existing `SeedStepHowMuch` failure only |
+| Critical override | `abi-artifacts`, `contracts-build`, `contracts-test` (71 s, fresh), `contracts-verify-fast` | all pass |
+| Selected | `format`, `lint`, `validation-system-test` (337/338, same failure), `static-lint`, `foundry-version` | pass |
+| Push checks | `test-quality`, `docs-generated` (`gh-actions.mdx` digest regenerated), `docs-authority` | pass |

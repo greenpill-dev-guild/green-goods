@@ -59,21 +59,32 @@ jobs:
       - name: Setup JavaScript toolchain and dependencies
         uses: ./.github/actions/setup-js
 
-      # Restore the newest Foundry build for this compiler config, then save a
-      # fresh entry per commit; forge recompiles only what changed since the
-      # restored snapshot. Per-job key prefixes keep each job's profile
-      # artifacts in their own cache lineage. Only out/test benefits here: the
-      # release gas gate below rebuilds out/production from scratch, so the
-      # release checks never read bytecode restored from an earlier run.
+      # Restore the newest test-profile build for this compiler config, then save
+      # a fresh entry per commit; forge recompiles only what changed since the
+      # restored snapshot. It holds only the test profile, so it can never
+      # restore a production tree from an earlier run.
       - name: Cache Foundry build
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: |
-            packages/contracts/.generated/foundry/cache
-            packages/contracts/.generated/foundry/out
-          key: foundry-unit-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-${{ github.sha }}
+            packages/contracts/.generated/foundry/cache/test
+            packages/contracts/.generated/foundry/out/test
+          key: foundry-unit-test-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-${{ github.sha }}
           restore-keys: |
-            foundry-unit-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-
+            foundry-unit-test-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-
+
+      # The release gas gate rebuilds out/production from scratch. This cache keeps that
+      # from-scratch tree under an exact key over every input the build and the three
+      # boundary fixtures read, with no restore-keys, so a hit is the same artifact set and a
+      # miss rebuilds. Only a pull request into develop reuses it (see the test step).
+      - name: Cache the release production tree
+        id: release-build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            packages/contracts/.generated/foundry/cache/production
+            packages/contracts/.generated/foundry/out/production
+          key: foundry-release-production-${{ runner.os }}-forge-v1.7.1-${{ hashFiles('packages/contracts/foundry.toml', 'packages/contracts/foundry.lock', 'packages/contracts/remappings.txt', 'packages/contracts/src/**', 'packages/contracts/test/**', 'packages/contracts/script/**/*.sol', 'packages/contracts/lib/**', 'packages/contracts/config/commitment-pooling-release.json', 'bun.lock') }}
 
       # `bun run test` is the required PR gate and chains, in order:
       #   1. TypeScript typecheck
@@ -83,7 +94,9 @@ jobs:
       #   3. `test:gas:release` — the production-profile (via_ir, optimizer_runs = 1)
       #      cold-path proof of the frozen batch-size boundary, run with per-call
       #      transaction isolation; this is release gas evidence, the nightly deep
-      #      lane's optimizer-200 numbers are not
+      #      lane's optimizer-200 numbers are not. A pull request into develop
+      #      with an exact production-tree hit skips only the from-scratch
+      #      rebuild; pushes and release pull requests always rebuild.
       #   4. script tests (vitest), including the release-lock derivation and the
       #      gas-gate routing guardrail
       - name: Run contract unit tests
@@ -91,6 +104,7 @@ jobs:
         run: bun run test
         env:
           CI: true
+          GG_RELEASE_GAS_GATE_BUILD: ${{ github.event_name == 'pull_request' && github.base_ref == 'develop' && steps.release-build.outputs.cache-hit == 'true' && 'cached' || 'fresh' }}
 
   lint-build:
     name: Lint And Build
