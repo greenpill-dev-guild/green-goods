@@ -8,8 +8,8 @@
 - Branch signal: feature/commitment-pooling-admin-ui
 - Current state: complete. The hub closed this lane on 2026-09-27 to match PRD-725 (Done on
   2026-08-25). D1 merged in #752 (`2cd115a1d`); its validation receipt is under D1 built / not
-  built below. What that table marks not built moves to `ui_deferred_scope`, and the D2 close-the-season walk
-  belongs to the readiness plan's re-QA run.
+  built below. What that table marks not built moves to `ui_deferred_scope`, and D2 close-the-season stays
+  with the readiness plan's fix window and re-QA run.
 - Linear context: PRD-725 (admin UI lane) under parent PRD-650; PRD-682 is Community context
 
 Concurrent agents share this repository. Stay inside the admin lane's named paths, preserve

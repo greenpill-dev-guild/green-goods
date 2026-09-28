@@ -1706,7 +1706,7 @@
       "lane": "ui_client",
       "status": "completed",
       "branch": "feature/commitment-pooling-client-loop",
-      "note": "Closed in the hub reconcile to match PRD-724 (Done 2026-09-06): D1 merged in #749 (921654805) with its Ship Gate in reports/client-loop-2026-08-21.md; the handoff has no Validation Receipt. Scope it left unbuilt moves to ui_deferred_scope, and the D2 close-the-season walk belongs to the readiness plan's re-QA run"
+      "note": "Closed in the hub reconcile to match PRD-724 (Done 2026-09-06): D1 merged in #749 (921654805) with its Ship Gate in reports/client-loop-2026-08-21.md; the handoff's receipt records a fresh client-suite run at 72da88ca7. Scope it left unbuilt moves to ui_deferred_scope, and D2 close-the-season stays with the readiness plan's fix window and re-QA run"
     },
     {
       "timestamp": "2026-09-28T00:17:07.742Z",
@@ -1714,7 +1714,7 @@
       "lane": "ui_admin",
       "status": "completed",
       "branch": "feature/commitment-pooling-admin-console",
-      "note": "Closed in the hub reconcile to match PRD-725 (Done 2026-08-25): D1 merged in #752 (2cd115a1d) with the handoff's validation receipt at 42116ecd1 and f36e222de (2026-08-22). Scope it left unbuilt moves to ui_deferred_scope, and the D2 close-the-season walk belongs to the readiness plan's re-QA run"
+      "note": "Closed in the hub reconcile to match PRD-725 (Done 2026-08-25): D1 merged in #752 (2cd115a1d) with the handoff's validation receipt at 42116ecd1 and f36e222de (2026-08-22). Scope it left unbuilt moves to ui_deferred_scope, and D2 close-the-season stays with the readiness plan's fix window and re-QA run"
     },
     {
       "timestamp": "2026-09-28T00:17:07.742Z",
@@ -1722,7 +1722,7 @@
       "lane": "editorial",
       "status": "completed",
       "branch": "feature/commitment-pooling-editorial",
-      "note": "Closed in the hub reconcile to match PRD-726 (Done 2026-08-25): the public record shipped in #748 (4fca120e9) and its follow-up PRD-838, and the hosted indexer has read back live since 2026-08-27; the handoff has no Validation Receipt. Its open NOT MET rows move to ui_deferred_scope, and the public pages are walked on the recorded call"
+      "note": "Closed in the hub reconcile to match PRD-726 (Done 2026-08-25): the public record shipped in #748 (4fca120e9) and its follow-up PRD-838, and the hosted indexer has read back live since 2026-08-27; the handoff's receipt records a fresh client-suite run at 72da88ca7. Its open NOT MET rows move to ui_deferred_scope, and the public pages are walked on the recorded call"
     },
     {
       "timestamp": "2026-09-28T00:17:07.742Z",

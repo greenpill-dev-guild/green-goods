@@ -7,10 +7,11 @@
 - Owner: Claude
 - Branch signal: feature/commitment-pooling-client-ui
 - Current state: complete. The hub closed this lane on 2026-09-27 to match PRD-724 (Done on
-  2026-09-06). D1 merged in #749 (`921654805`), and its Ship Gate is in
-  `reports/client-loop-2026-08-21.md`; this handoff has no Validation Receipt. Scope the D1 table
-  marks not built moves to `ui_deferred_scope`. The D2 close-the-season walk belongs to the
-  readiness plan's re-QA run, and live wallet evidence to `codex-gardener-celo-wallets.md`.
+  2026-09-06). D1 merged in #749 (`921654805`); its August Ship Gate is in
+  `reports/client-loop-2026-08-21.md`, and the Validation Receipt below records a fresh
+  client-suite run. Scope the D1 table marks not built moves to `ui_deferred_scope`, D2
+  close-the-season stays with the readiness plan's fix window and re-QA run, and live wallet
+  evidence stays with `codex-gardener-celo-wallets.md`.
 - Linear context: PRD-724 (client UI lane) under parent PRD-650
 
 Concurrent agents share this repository. Stay inside the client lane's named paths, preserve
@@ -238,3 +239,16 @@ the claim/confirm garden is the same code D2's ongoing-Offer path will build on.
 ## Gardener Celo wallets — reopened 2026-09-05
 
 The approved W23 wallet extension and its fresh proof live in [the wallet handoff](codex-gardener-celo-wallets.md). Earlier dated evidence remains historical.
+
+## Validation Receipt
+
+- Tested implementation commit SHA: `72da88ca7315882de67c559941fe35714abd7059` (PR #941's head; its `packages/client` and
+  `packages/shared` trees match `develop` at `c2c7c0570`)
+- Run at (UTC): `2026-09-28T00:53:09Z`
+- Exact command(s): `bun run --cwd packages/client test`
+- Result: 144 test files and 1463 tests passed; no failures.
+- Validated paths: `packages/client/src`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
+  packages/client packages/shared` → empty (clean) before and after the run
+- Evidence-only diff command and result (if applicable): not applicable
+- Evidence-only worktree-status command and result (if applicable): not applicable

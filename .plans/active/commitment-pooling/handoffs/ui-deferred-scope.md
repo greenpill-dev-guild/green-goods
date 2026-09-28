@@ -16,14 +16,15 @@ moved to a named issue or lane, or dropped.
   bullets under that table.
 - Admin: the "not built" rows of "D1 built / not built" in [claude-ui-admin.md](claude-ui-admin.md),
   including the D2 capture and assessment screens and the hypercert allocation step.
-- Editorial: the NOT MET rows of "Unblock evidence" in [claude-editorial.md](claude-editorial.md),
-  except the hosted indexer, which has read back live since 2026-08-27.
+- Editorial: the NOT MET rows of "Unblock evidence" in [claude-editorial.md](claude-editorial.md).
 - Plan: the workstream rows in [plan.todo.md](../plan.todo.md) that point to `ui_deferred_scope`.
 
 ## Already routed
 
 - Exchange-pair screens (W28–W31): the follow-on `exchange_architecture` entry in `status.json`.
-- D2 close-the-season, ending a season and recording an external payout: built in the readiness
-  fix window and walked in the re-QA run ([qa-readiness-plan.md](../qa-readiness-plan.md)).
+- D2 close-the-season: assigned to the readiness plan's fix window and re-QA run
+  ([qa-readiness-plan.md](../qa-readiness-plan.md)). Ending a season (End and Archive) has merged;
+  recording an external payout is still a gap there (§ 6.6, § 7) and stays pending until it is
+  built and walked.
 - Live Gardener Celo wallet evidence: [codex-gardener-celo-wallets.md](codex-gardener-celo-wallets.md)
   and release ops.

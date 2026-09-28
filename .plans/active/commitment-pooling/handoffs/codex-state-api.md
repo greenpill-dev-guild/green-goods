@@ -324,8 +324,9 @@ state, not optional follow-up coverage.
 - The five `usePoolMemberHistory` disclosure cases and client/admin raw-entity boundary test pass.
 - RED provenance and the final targeted/typecheck/critical-surface GREEN receipt are recorded above
   and in `status.json`; the source lane is complete.
-- Shared reads and mutations remain deliberately disabled by the chain-scoped capability ledger
-  until the human-owned hosted Envio deploy, fresh full sync, and live query read-back succeed.
+- Shared reads and mutations stayed disabled by the chain-scoped capability ledger until the hosted
+  Envio deploy, full sync, and live query read-back succeeded; the ledger has marked Arbitrum One
+  available since the read-back on 2026-08-27.
 - Composite Garden live cutover, production Saved Offer root-environment configuration, and live
   AA/Celo evidence remain owned by `human-release-ops.md`; none is implied by source GREEN.
 

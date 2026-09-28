@@ -4,7 +4,7 @@ These files are the lane-level dispatch surfaces for .plans/active/commitment-po
 
 ## File index
 
-All 33 files in this directory. The plan hub's document map points here for the enumeration, so
+All 36 files in this directory. The plan hub's document map points here for the enumeration, so
 **a new handoff must get a row below in the same change** — this file previously described source
 order only, and a reader following the map could miss an active dispatch surface entirely.
 
@@ -12,10 +12,10 @@ order only, and a reader following the map could miss an active dispatch surface
 |---|---|---|---|
 | `README.md` | This index, the required handoff contract, the Linear boundary, and the shared safety rules that bind every lane | — | Always in force |
 | `codex-contracts.md` | Pooling module + register + resolver/schema contract work (PRD-721) | Codex | Backend lane 1 — the other two wait on it |
-| `codex-indexer.md` | Envio entities, handlers, replay/reverse-delivery fixtures (PRD-722) | Codex | Source GREEN; hosted deployment/read-back remains human-owned |
-| `codex-state-api.md` | Shared domain types, selectors, hooks, mutations, six offline job kinds (PRD-723) | Codex | Source GREEN; runtime capability remains fail-closed pending hosted read-back. **One open seat amendment (2026-08-18)** |
+| `codex-indexer.md` | Envio entities, handlers, replay/reverse-delivery fixtures (PRD-722) | Codex | Source GREEN; hosted deployment and read-back done, live since 2026-08-27 |
+| `codex-state-api.md` | Shared domain types, selectors, hooks, mutations, six offline job kinds (PRD-723) | Codex | Complete (closed 2026-09-27); Arbitrum One available since the hosted read-back, and the seat amendment landed in `d1b8ea042` |
 | `codex-gardener-celo-wallets.md` | Celo gardener wallet implementation and validation handoff | Codex | Active; live transfer proof remains pending |
-| `codex-work-linking.md` | Work linking implementation handoff | Codex | Consult lane status before dispatch |
+| `codex-work-linking.md` | Work linking implementation handoff | Codex | Complete (closed 2026-09-27) |
 | `commitment-view-state-reference.md` | Generated implementation contract for the commitment detail screen: every state's cast, seat, phase and act. Regenerate with `hifi/state-reference.gen.ts` | Claude (UI) | Generated — never hand-edit |
 | `commitment-pooling-query-contract.md` | PRD-723 entity/query contract, selector inventory, availability gate, and settlement extension | Codex | Accepted and implemented in source |
 | `codex-settlement.md` | G$ split-state settlement: CCIP command module, Celo executor, acknowledgment | Codex | Separate later slice; not a core-pooling dependency |
@@ -23,9 +23,10 @@ order only, and a reader following the map could miss an active dispatch surface
 | `fable-phase-a-release-review.md` | Final combined Phase A committed-range adversarial review | Fable 5 | Dispatched against `de7863391`; refresh required after candidate changes |
 | `claude-contracts-hardening.md` | Resolver wiring, cross-chain approach, and contract hardening follow-ups (PRD-799) | Claude | Runs alongside the contracts lane |
 | `claude-ui.md` | Shared UI lane framing that `claude-ui-client.md` and `claude-ui-admin.md` narrow | Claude | Machine lane `in_progress` since the client gate commit (`a549877d1`, PR #749); each sub-lane dispatches narrowly |
-| `claude-ui-client.md` | Client PWA surfaces (PRD-724) | Claude | Narrowed D1 on PR #749 (`../prompt-client-loop.md`); D2 after it merges |
-| `claude-ui-admin.md` | Admin cockpit surfaces (PRD-725) | Claude | Narrowed dispatch prepared 2026-08-21 (`../prompt-admin-console.md`, § Narrowed dispatch option) in a worktree stacked on PR #749; the session records the gate in `status.json` as its first commit |
-| `claude-editorial.md` | Editorial / public website surfaces (PRD-726) | Claude | Backend readers merged (PR #745 / #746); UI on PR #748 |
+| `claude-ui-client.md` | Client PWA surfaces (PRD-724) | Claude | Complete (closed 2026-09-27); unbuilt scope in `ui-deferred-scope.md` |
+| `claude-ui-admin.md` | Admin cockpit surfaces (PRD-725) | Claude | Complete (closed 2026-09-27); unbuilt scope in `ui-deferred-scope.md` |
+| `claude-editorial.md` | Editorial / public website surfaces (PRD-726) | Claude | Complete (closed 2026-09-27); open NOT MET rows in `ui-deferred-scope.md` |
+| `ui-deferred-scope.md` | Scope the closed `ui_client`, `ui_admin` and `editorial` lanes left unbuilt, for triage before closeout | Afo | todo |
 | `claude-community.md` | September Community interface work (PRD-682 track) | Claude | Follow-on wave |
 | `claude-docs.md` | Post-QA documentation polish (PRD-727) | Claude | Blocked until QA1 |
 | `claude-walkthrough-videos.md` | Post-certification walkthrough videos (PRD-728) | Claude | Blocked until QA2 |

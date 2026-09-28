@@ -8,9 +8,10 @@
 - Branch signal: feature/commitment-pooling-editorial
 - Current state: complete. The hub closed this lane on 2026-09-27 to match PRD-726 (Done on
   2026-08-25). The public record shipped in #748 (`4fca120e9`, merged to `develop` with #749) and
-  its follow-up PRD-838, and the hosted indexer has read back live since 2026-08-27. This handoff
-  has no Validation Receipt, and its open NOT MET rows move to `ui_deferred_scope`. The section's scope is a record across seasons and campaigns, not one
-  live cycle, and its public pages are walked on the recorded call.
+  its follow-up PRD-838, and the hosted indexer has read back live since 2026-08-27. The
+  Validation Receipt below records a fresh client-suite run, which covers the public views, and
+  the open NOT MET rows move to `ui_deferred_scope`. The section's scope is a record across
+  seasons and campaigns, not one live cycle, and its public pages are walked on the recorded call.
 - Linear context: PRD-726 (editorial lane) under parent PRD-650
 
 ## Inputs
@@ -76,9 +77,8 @@
   the `/impact` band can ship. It is not yet: its node titles and descriptions are literal English
   (only the closing caption goes through `formatMessage`) and it is `md:grid-cols-3` with three
   hardcoded domain tones.
-- NOT MET — the configured hosted Envio endpoint still serves the older schema without
-  `CommitmentPool`. Merge, deployment, full reindex, cutover, and live schema/data read-back are
-  required before runtime availability can be claimed.
+- MET since 2026-08-27 — the hosted Envio endpoint serves the pooling schema, including
+  `CommitmentPool`, on both chains, and the live read-back is recorded on PRD-729.
 - NOT MET — the scoped shared admin/UI foundation cleanup remains a UI-entry dependency.
 - `acceptance-matrix.md` §3 is approved and every public claim maps to its required evidence class.
 - GREEN includes targeted tests, client build, and rendered public-browser proof for readiness, live, queued, dispatched, confirming, confirmed, empty, and error states.
@@ -96,3 +96,16 @@
   reliability language, cross-pool identity, rate, rank, or score.
 - “Kept N times across M cycles” is permitted only when exact linked Fulfilled instances and
   unique cycle IDs support it; “verified impact” requires its own evidence authority.
+
+## Validation Receipt
+
+- Tested implementation commit SHA: `72da88ca7315882de67c559941fe35714abd7059` (PR #941's head; its `packages/client` and
+  `packages/shared` trees match `develop` at `c2c7c0570`)
+- Run at (UTC): `2026-09-28T00:53:09Z`
+- Exact command(s): `bun run --cwd packages/client test`
+- Result: the full client suite passed, including the public views: 144 test files and 1463 tests passed; no failures.
+- Validated paths: `packages/client/src/views/Public`, `packages/client/src/components/Public`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
+  packages/client packages/shared` → empty (clean) before and after the run
+- Evidence-only diff command and result (if applicable): not applicable
+- Evidence-only worktree-status command and result (if applicable): not applicable
