@@ -6,7 +6,7 @@
 - Execution sub-lane: state_api
 - Owner: Codex
 - Branch signal: feature/commitment-pooling-api-modules
-- Current state: complete. The hub closed this lane on 2026-09-27 to match PRD-723 (Done on 2026-09-06). The Validation Receipt below (`8fd331198`, 2026-08-23) is its proof; the seat amendment shipped in `d1b8ea042`, and the hosted indexer has read back live since 2026-08-27. Production Saved Offer configuration and live wallet evidence stay with `human-release-ops.md` and `codex-gardener-celo-wallets.md`.
+- Current state: complete. The hub closed this lane on 2026-09-27 to match PRD-723 (Done on 2026-09-06). The Validation Receipt below records a 2026-08-23 run at `8fd331198`, a commit no branch reaches, so its evidence-only diff cannot be rerun. The lane's source is on `develop` from `260de8d9b`, the seat amendment landed in `d1b8ea042`, and the hosted indexer has read back live since 2026-08-27. Production Saved Offer configuration and live wallet evidence stay with `human-release-ops.md` and `codex-gardener-celo-wallets.md`.
 - Linear context: PRD-723 (state/API lane) under parent PRD-650
 
 Concurrent agents share this repository. Stay inside this lane's named shared/state paths,

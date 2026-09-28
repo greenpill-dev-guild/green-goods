@@ -9,7 +9,7 @@
 - Current state: complete. The hub closed this lane on 2026-09-27 to match PRD-726 (Done on
   2026-08-25). The public record shipped in #748 (`4fca120e9`, merged to `develop` with #749) and
   its follow-up PRD-838, and the hosted indexer has read back live since 2026-08-27. This handoff
-  has no Validation Receipt. The section's scope is a record across seasons and campaigns, not one
+  has no Validation Receipt, and its open NOT MET rows move to `ui_deferred_scope`. The section's scope is a record across seasons and campaigns, not one
   live cycle, and its public pages are walked on the recorded call.
 - Linear context: PRD-726 (editorial lane) under parent PRD-650
 

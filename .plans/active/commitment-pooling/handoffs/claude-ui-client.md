@@ -8,9 +8,9 @@
 - Branch signal: feature/commitment-pooling-client-ui
 - Current state: complete. The hub closed this lane on 2026-09-27 to match PRD-724 (Done on
   2026-09-06). D1 merged in #749 (`921654805`), and its Ship Gate is in
-  `reports/client-loop-2026-08-21.md`; this handoff has no Validation Receipt. The D2
-  close-the-season walk belongs to the readiness plan's re-QA run, and live wallet evidence to
-  `codex-gardener-celo-wallets.md`.
+  `reports/client-loop-2026-08-21.md`; this handoff has no Validation Receipt. Scope the D1 table
+  marks not built moves to `ui_deferred_scope`. The D2 close-the-season walk belongs to the
+  readiness plan's re-QA run, and live wallet evidence to `codex-gardener-celo-wallets.md`.
 - Linear context: PRD-724 (client UI lane) under parent PRD-650
 
 Concurrent agents share this repository. Stay inside the client lane's named paths, preserve

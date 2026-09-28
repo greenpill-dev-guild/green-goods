@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-28T00:17:07.742Z"
+    "updated_at": "2026-09-28T00:40:57.004Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -746,6 +746,15 @@
         "parentIssue": "PRD-989"
       },
       "linear_issues": ["PRD-997", "PRD-989"]
+    },
+    "ui_deferred_scope": {
+      "machine_lane": "ui",
+      "owner": "human",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/ui-deferred-scope.md",
+      "acceptance": "Every item that ui_client, ui_admin and editorial left unbuilt is marked built since, moved to a named issue or lane, or dropped before the hub closes."
     }
   },
   "follow_on": {
@@ -1689,7 +1698,7 @@
       "lane": "state_api",
       "status": "completed",
       "branch": "feature/commitment-pooling-api-modules",
-      "note": "Closed in the hub reconcile to match PRD-723 (Done 2026-09-06): the handoff's receipt at 8fd331198 (2026-08-23) records the source lane complete, the seat amendment shipped in d1b8ea042, and the hosted indexer has read back live since 2026-08-27. Live Gardener Celo wallet evidence stays with its own handoff and release ops"
+      "note": "Closed in the hub reconcile to match PRD-723 (Done 2026-09-06): the handoff records the source lane complete; its receipt's tested SHA, 8fd331198, is on no branch, so its evidence-only diff cannot be rerun. The lane's source is on develop from 260de8d9b, the seat amendment landed in d1b8ea042, and the hosted indexer has read back live since 2026-08-27. Live Gardener Celo wallet evidence stays with its own handoff and release ops"
     },
     {
       "timestamp": "2026-09-28T00:17:07.742Z",
@@ -1697,7 +1706,7 @@
       "lane": "ui_client",
       "status": "completed",
       "branch": "feature/commitment-pooling-client-loop",
-      "note": "Closed in the hub reconcile to match PRD-724 (Done 2026-09-06): D1 merged in #749 (921654805) with its Ship Gate in reports/client-loop-2026-08-21.md; the handoff has no Validation Receipt. The D2 close-the-season walk belongs to the readiness plan's re-QA run"
+      "note": "Closed in the hub reconcile to match PRD-724 (Done 2026-09-06): D1 merged in #749 (921654805) with its Ship Gate in reports/client-loop-2026-08-21.md; the handoff has no Validation Receipt. Scope it left unbuilt moves to ui_deferred_scope, and the D2 close-the-season walk belongs to the readiness plan's re-QA run"
     },
     {
       "timestamp": "2026-09-28T00:17:07.742Z",
@@ -1705,7 +1714,7 @@
       "lane": "ui_admin",
       "status": "completed",
       "branch": "feature/commitment-pooling-admin-console",
-      "note": "Closed in the hub reconcile to match PRD-725 (Done 2026-08-25): D1 merged in #752 (2cd115a1d) with the handoff's validation receipt at 42116ecd1 and f36e222de (2026-08-22). The D2 close-the-season walk belongs to the readiness plan's re-QA run"
+      "note": "Closed in the hub reconcile to match PRD-725 (Done 2026-08-25): D1 merged in #752 (2cd115a1d) with the handoff's validation receipt at 42116ecd1 and f36e222de (2026-08-22). Scope it left unbuilt moves to ui_deferred_scope, and the D2 close-the-season walk belongs to the readiness plan's re-QA run"
     },
     {
       "timestamp": "2026-09-28T00:17:07.742Z",
@@ -1713,7 +1722,7 @@
       "lane": "editorial",
       "status": "completed",
       "branch": "feature/commitment-pooling-editorial",
-      "note": "Closed in the hub reconcile to match PRD-726 (Done 2026-08-25): the public record shipped in #748 (4fca120e9) and its follow-up PRD-838, and the hosted indexer has read back live since 2026-08-27; the handoff has no Validation Receipt. The public pages are walked on the recorded call"
+      "note": "Closed in the hub reconcile to match PRD-726 (Done 2026-08-25): the public record shipped in #748 (4fca120e9) and its follow-up PRD-838, and the hosted indexer has read back live since 2026-08-27; the handoff has no Validation Receipt. Its open NOT MET rows move to ui_deferred_scope, and the public pages are walked on the recorded call"
     },
     {
       "timestamp": "2026-09-28T00:17:07.742Z",
@@ -1721,7 +1730,7 @@
       "lane": "work_linking_closure",
       "status": "completed",
       "branch": "feat/editorial-record-and-cycle",
-      "note": "Closed in the hub reconcile to match PRD-837 (Done 2026-08-28): the handoff's receipt at 29c935fb6 (2026-08-25) covers the full Ship Gate and authenticated Brave"
+      "note": "Closed in the hub reconcile to match PRD-837 (Done 2026-08-28): the handoff's receipt at 29c935fb6 (2026-08-25) records the test suites, typechecks, builds and an authenticated Brave render passing, with format, design-generated and agentic checks blocked by pre-existing drift; the full gate was not repeated after the targeted re-review"
     },
     {
       "timestamp": "2026-09-28T00:17:07.742Z",
@@ -1730,6 +1739,14 @@
       "status": "blocked",
       "branch": "test/commitment-pooling-qa-pass-1",
       "note": "Hub reconcile: Linear closed PRD-729 on 2026-08-31, but QA Pass 1 stays blocked for Wave 2, the recorded call, and clearing its manual gate stays with Afo. QA Pass 2 stays blocked behind it"
+    },
+    {
+      "timestamp": "2026-09-28T00:40:57.004Z",
+      "actor": "claude",
+      "lane": "ui_deferred_scope",
+      "status": "todo",
+      "branch": null,
+      "note": "Opened in the hub reconcile to hold the scope that ui_client, ui_admin and editorial left unbuilt, for triage before closeout"
     }
   ]
 }
