@@ -105,10 +105,10 @@ import { Confidence, VerificationMethod } from "../../types/domain";
 import {
   createMockWork,
   createMockWorkApprovalDraft,
-  createMockTransactionSender,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
-} from "../test-utils";
+} from "../test-utils/mock-factories";
+import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 
 const MOCK_CONFIRMED_APPROVAL_RESULT = {
   hash: MOCK_TX_HASH,

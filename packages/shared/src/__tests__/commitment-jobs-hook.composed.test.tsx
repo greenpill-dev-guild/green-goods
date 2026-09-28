@@ -20,7 +20,7 @@ import {
 import type { JobExecution, JobQueueHandle } from "../modules/job-queue/ports";
 import { createJobQueue } from "../modules/job-queue/queue";
 import type { Address } from "../types/domain";
-import { renderHookWithProviders } from "./test-utils";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 import {
   createInMemoryJobQueueStore,
   createJobQueueDependencies,

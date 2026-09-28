@@ -3,7 +3,8 @@
  */
 
 import { QueryClient } from "@tanstack/react-query";
-import { act, createTestWrapper, renderHook, waitFor } from "@green-goods/shared/testing";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AssessmentWorkflowParams } from "../../../types/domain";

@@ -8,7 +8,8 @@ import {
   type CommitmentPoolMutationInput,
   useCommitmentPoolMutation,
 } from "../hooks/commitment-pooling/useCommitmentPoolMutations";
-import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
+import { createTestQueryClient } from "./test-utils/query-client";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const MODULE = "0x6bb5b0fd70b6771b0e955fef37f8bd2ce911470a";
 
@@ -23,7 +24,7 @@ const mocks = await vi.hoisted(async () => ({
   } as unknown,
   moduleAddress: "0x6bb5b0fd70b6771b0e955fef37f8bd2ce911470a",
   senderAvailable: true,
-  sender: (await import("@green-goods/shared/testing")).createMockTransactionSender(),
+  sender: (await import("./test-utils/transaction-fakes")).createMockTransactionSender(),
   mutationErrorHandler: vi.fn(),
   pinCommitmentReason: vi.fn(),
 }));

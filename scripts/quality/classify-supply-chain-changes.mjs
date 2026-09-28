@@ -57,6 +57,7 @@ const parityExact = new Set([
   "scripts/lib/vitest-shared-graph.mjs",
   "scripts/quality/check-shared-graph-tests.mjs",
   "scripts/quality/check-small-test-files.mjs",
+  "scripts/quality/check-test-utils-barrel.mjs",
 ]);
 
 function startsWithAny(path, prefixes) {

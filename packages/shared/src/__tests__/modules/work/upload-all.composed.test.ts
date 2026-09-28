@@ -62,7 +62,7 @@ import { createDefaultUploadQueuedWorkPorts } from "../../../modules/work/upload
 import { queuedUploadStatus } from "../../../modules/work/upload-state";
 import type { Address } from "../../../types/domain";
 import type { ApprovalJobPayload, WorkJobPayload } from "../../../types/job-queue";
-import { createMockTransactionSender } from "../../test-utils";
+import { createMockTransactionSender } from "../../test-utils/transaction-fakes";
 
 const USER = "0x1111111111111111111111111111111111111111" as Address;
 const GARDEN = "0x2222222222222222222222222222222222222222" as Address;

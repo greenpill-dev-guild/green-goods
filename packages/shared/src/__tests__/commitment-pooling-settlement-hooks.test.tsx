@@ -15,7 +15,8 @@ import {
   useSettlementConfigurations,
   useSettlementSubject,
 } from "../hooks/commitment-pooling/useSettlementQueries";
-import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
+import { createTestQueryClient } from "./test-utils/query-client";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111";
 const OTHER = "0x2222222222222222222222222222222222222222";
@@ -33,7 +34,7 @@ const mocks = await vi.hoisted(async () => ({
   } as unknown,
   settlementAddress: "0x15c8f6cf25aba2161cc04719b4c4a93c4146935d",
   senderAvailable: true,
-  sender: (await import("@green-goods/shared/testing")).createMockTransactionSender(),
+  sender: (await import("./test-utils/transaction-fakes")).createMockTransactionSender(),
   mutationErrorHandler: vi.fn(),
   roles: vi.fn(),
   useReadContract: vi.fn(),

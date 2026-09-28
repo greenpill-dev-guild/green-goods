@@ -120,10 +120,10 @@ import {
 import { trackContractError } from "../../modules/app/error-tracking";
 import {
   createMockSmartAccountClient,
-  createTestWrapper,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
-} from "../test-utils";
+} from "../test-utils/mock-factories";
+import { createTestWrapper } from "../test-utils/render-helpers";
 
 describe("hooks/garden/useJoinGarden", () => {
   let queryClient: QueryClient;

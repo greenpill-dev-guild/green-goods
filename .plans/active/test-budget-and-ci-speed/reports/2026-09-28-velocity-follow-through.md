@@ -778,3 +778,57 @@ Proof:
 | Critical override | `abi-artifacts`, `contracts-build`, `contracts-test` (71 s, fresh), `contracts-verify-fast` | all pass |
 | Selected | `format`, `lint`, `validation-system-test` (337/338, same failure), `static-lint`, `foundry-version` | pass |
 | Push checks | `test-quality`, `docs-generated` (`gh-actions.mdx` digest regenerated), `docs-authority` | pass |
+
+## Slice 10 — Shared tests import test-utils leaves
+
+Measured first, in the scratch worktree. 55 Shared test files imported the barrel statically;
+the brief's 45 was an earlier count. A was the barrel as checked in. B was a codemod:
+
+- the barrel's own definitions move to a leaf module, which the barrel re-exports;
+- 54 files point at the leaves. The 55th is `test-utils/controller-fixtures.test.ts`, which tests
+  the barrel itself.
+
+Three A B B A pairs over those 55 files, four workers, identical results every run (710 passed,
+4 skipped):
+
+| Pair | Duration, A | Duration, B | Change | Summed import | Summed transform |
+|---|---|---|---|---|---|
+| 1 | 16.2, 17.2 s | 14.0, 14.3 s | −16% | −27% | −41% |
+| 2 | 16.8, 18.3 s | 14.3, 14.5 s | −18% | −29% | −43% |
+| 3 | 21.4, 21.7 s | 17.7, 17.6 s | −18% | −29% | −43% |
+
+That gain is real, so the migration went ahead. It is modest for the whole suite: about 12
+worker-seconds of a full Shared run.
+
+- **`test-utils/render-helpers.tsx`** holds what `index.ts` used to define itself: the Query and Intl
+  wrappers, `renderHookWithProviders`, `renderWithQuery` and `renderWithProviders`, the navigator
+  and async helpers, and `mock()`. It keeps all imports at the top.
+- **`index.ts`** re-exports every leaf and Testing Library, so `@green-goods/shared/testing` works
+  unchanged for Admin and Client.
+- **Shared test files:** 54 import leaf modules. Six more reached the barrel through
+  `await import("@green-goods/shared/testing")` inside `vi.mock` factories, which the first scan
+  missed; they now import `test-utils/transaction-fakes`.
+- **Check 9 in `test-quality`** (`scripts/quality/check-test-utils-barrel.mjs`) fails a Shared test
+  that imports the barrel by path or alias, statically or dynamically. The barrel's own tests in
+  `test-utils/` are exempt. It is routed like Check 8.
+- **Seam fingerprints:** two certified seams had proof files among the rewritten imports:
+  - `shared-commitment-pooling-public`: `commitment-pooling-hooks.test.tsx`;
+  - `shared-work-provider-command`: `WorkProvider.test.tsx` and `sender-conformance.test.ts`.
+
+  Their proof files pass, and their fingerprints are re-certified.
+
+Proof:
+
+| Step | Command | Result |
+|---|---|---|
+| RED | parity tests for Check 9 and the classifier; selector routing tests | failed before the check and the policy edits |
+| GREEN | `select-validation.test.mjs`; `workflow-performance-parity.test.mjs` | 89/89; 39/40 (the pre-existing `SeedStepHowMuch` failure) |
+| Full suite | Shared JSON after the fold batch against after the migration, by full test name and status | 540 files; 6,056 passed, 17 skipped; 0 differences |
+| Consumers | `client-test`, `admin-test` | 1,481 and 1,093 passed; both import `@green-goods/shared/testing` |
+| Seams | the two seams' six proof files, then `check-direct-tested-seams` | 153 passed, 4 skipped; no drift |
+| Selected | `format`, `lint`, `validation-system-test`, `shared-test-typecheck`, `shared-test`, `docs-authority`, `docs-build`, `agent-guidance` | pass. `format` first failed on four unformatted transaction tests; formatting them changed `sender-conformance`'s fingerprint again, and it was re-certified |
+| Push checks | `test-quality` (Checks 1–9), `docs-generated` | pass |
+
+Open item: the selector treats `packages/shared/src/__tests__/**` as Shared-only. So a change to
+`test-utils`, which Client and Admin import as `@green-goods/shared/testing`, selects neither
+suite. They ran here by hand.

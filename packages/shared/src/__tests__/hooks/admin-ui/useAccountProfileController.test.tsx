@@ -4,7 +4,7 @@ import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address, Garden } from "../../../types/domain";
 import { useAccountProfileController } from "../../../hooks/admin-ui/layout/useAccountProfileController";
-import { renderHookWithProviders } from "../../test-utils";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const gardenOne = {
   id: "0x1111111111111111111111111111111111111111",

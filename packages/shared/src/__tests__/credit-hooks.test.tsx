@@ -16,7 +16,7 @@ import {
   LoanState,
   type LoanPrincipalRelationship,
 } from "../modules/commitment-pooling";
-import { renderHookWithProviders } from "./test-utils";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const BORROWER = "0x1111111111111111111111111111111111111111";
 const VIEWER = "0x2222222222222222222222222222222222222222";

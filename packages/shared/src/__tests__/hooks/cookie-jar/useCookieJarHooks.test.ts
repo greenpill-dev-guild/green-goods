@@ -26,7 +26,7 @@ const TEST_TX_HASH = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef12
 
 const mocks = await vi.hoisted(async () => ({
   senderAvailable: true,
-  sender: (await import("@green-goods/shared/testing")).createMockTransactionSender({
+  sender: (await import("../../test-utils/transaction-fakes")).createMockTransactionSender({
     result: {
       hash: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
       sponsored: true,

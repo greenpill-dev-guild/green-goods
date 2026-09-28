@@ -114,7 +114,7 @@ import {
   createMockGarden,
   createMockUserContext,
   MOCK_ADDRESSES,
-} from "../test-utils";
+} from "../test-utils/mock-factories";
 
 // ============================================
 // Test Utilities

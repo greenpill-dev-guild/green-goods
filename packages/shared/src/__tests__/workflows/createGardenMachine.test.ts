@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createActor, fromPromise } from "xstate";
 
 import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
-import { flushPromises } from "../test-utils";
+import { flushPromises } from "../test-utils/render-helpers";
 
 // ============================================
 // Test Helpers

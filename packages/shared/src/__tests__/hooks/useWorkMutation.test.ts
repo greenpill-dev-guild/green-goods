@@ -201,12 +201,12 @@ import { connectivityStore } from "../../stores/connectivity";
 import {
   createMockAction,
   createMockFiles,
-  createMockTransactionSender,
   createMockWorkDraft,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
-  mock,
-} from "../test-utils";
+} from "../test-utils/mock-factories";
+import { createMockTransactionSender } from "../test-utils/transaction-fakes";
+import { mock } from "../test-utils/render-helpers";
 
 describe("hooks/work/useWorkMutation", () => {
   let queryClient: QueryClient;

@@ -16,6 +16,7 @@ import {
   MINIMUM_NEW_FILE_CASES,
   smallNewTestFiles,
 } from "./check-small-test-files.mjs";
+import { testUtilsBarrelImports } from "./check-test-utils-barrel.mjs";
 import {
   addedQuerySetupFromDiff,
   hasQuerySetupAllowance,
@@ -218,6 +219,7 @@ test("Supply Chain classifier routes each change class without broad fallthrough
     "scripts/lib/vitest-shared-graph.mjs",
     "scripts/quality/check-shared-graph-tests.mjs",
     "scripts/quality/check-small-test-files.mjs",
+    "scripts/quality/check-test-utils-barrel.mjs",
   ]) {
     assert.deepEqual(classifySupplyChainChanges([membershipPath]), {
       format: true,
@@ -690,6 +692,23 @@ test("test quality Check 5 enforces direct-tested seams", () => {
   assert.match(source, /scripts\/quality\/check-shared-graph-tests\.mjs/);
   assert.match(source, /Check 8: New small test files/);
   assert.match(source, /scripts\/quality\/check-small-test-files\.mjs/);
+  assert.match(source, /Check 9: Shared tests import test-utils leaves/);
+  assert.match(source, /scripts\/quality\/check-test-utils-barrel\.mjs/);
+});
+
+test("test quality rejects the test-utils barrel in Shared tests but keeps its own tests", () => {
+  const sources = {
+    "packages/shared/src/__tests__/hooks/leaf.test.ts": 'import { renderHookWithProviders } from "../test-utils/render-helpers";\n',
+    "packages/shared/src/__tests__/hooks/barrel.test.ts": 'import { createMockGarden } from "../test-utils";\n',
+    "packages/shared/src/__tests__/deep/alias.test.tsx": 'import {\n  render,\n} from "@green-goods/shared/testing";\n',
+    "packages/shared/src/__tests__/test-utils/controller-fixtures.test.ts": 'import { fixtures } from "./index";\n',
+    "packages/shared/src/modules/work/work.test.ts": 'import { flushPromises } from "../../__tests__/test-utils/index";\n',
+  };
+  assert.deepEqual(testUtilsBarrelImports(Object.keys(sources), (file) => sources[file]), [
+    { file: "packages/shared/src/__tests__/deep/alias.test.tsx", specifier: "@green-goods/shared/testing" },
+    { file: "packages/shared/src/__tests__/hooks/barrel.test.ts", specifier: "../test-utils" },
+    { file: "packages/shared/src/modules/work/work.test.ts", specifier: "../../__tests__/test-utils/index" },
+  ]);
 });
 
 test("test quality counts the cases a test file declares, tables by their rows", () => {

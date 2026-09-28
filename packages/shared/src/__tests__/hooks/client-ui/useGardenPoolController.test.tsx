@@ -3,7 +3,8 @@
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGardenPoolController } from "../../../hooks/client-ui/pool/useGardenPoolController";
-import { commitmentFixture, poolFixture, renderHookWithProviders } from "../../test-utils";
+import { commitmentFixture, poolFixture } from "../../test-utils/commitment-pooling-fixtures";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const mocks = vi.hoisted(() => ({
   commitments: [] as ReturnType<typeof commitmentFixture>[],

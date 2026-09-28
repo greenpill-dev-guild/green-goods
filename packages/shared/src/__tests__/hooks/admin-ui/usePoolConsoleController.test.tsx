@@ -30,7 +30,7 @@ import {
   poolClaimRowFixture,
   poolFixture,
 } from "../../test-utils/commitment-pooling-fixtures";
-import { createTestWrapper } from "../../test-utils";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 
 type PoolMutate = (input: CommitmentPoolMutationInput) => Promise<HexString>;
 type CommitmentMutate = (input: CommitmentMutationInput) => Promise<HexString>;

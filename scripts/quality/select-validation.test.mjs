@@ -48,7 +48,7 @@ test("hook and doctor edits select their behavioral proof", () => {
       "scripts/lib/dev-modes.mjs", "scripts/lib/setup-env.mjs", "scripts/lib/command-runner.mjs",
       "scripts/dev/test.js", "scripts/dev/test-e2e.js", "scripts/dev/browser.js",
       "scripts/lib/vitest-shared-graph.mjs", "scripts/quality/check-shared-graph-tests.mjs",
-      "scripts/quality/check-small-test-files.mjs",
+      "scripts/quality/check-small-test-files.mjs", "scripts/quality/check-test-utils-barrel.mjs",
     ]],
   ];
   for (const intent of ["qa", "review", "push"]) {
@@ -2205,6 +2205,7 @@ test("the push gate routes test quality and generated or audited docs to the pat
     "scripts/lib/vitest-shared-graph.mjs",
     "scripts/quality/check-shared-graph-tests.mjs",
     "scripts/quality/check-small-test-files.mjs",
+    "scripts/quality/check-test-utils-barrel.mjs",
   ]) {
     assert.ok(push(changedPath).includes("test-quality"), changedPath);
   }

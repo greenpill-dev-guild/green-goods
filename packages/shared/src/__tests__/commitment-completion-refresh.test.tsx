@@ -18,7 +18,7 @@ import { INDEXER_LAG_SCHEDULE_MS } from "../config/query-keys/constants";
 import { useCommitmentCompletionRefresh } from "../hooks/commitment-pooling/useCommitmentCompletionRefresh";
 import { jobQueueEventBus } from "../modules/job-queue/event-bus";
 import type { Job } from "../types/job-queue";
-import { createTestWrapper } from "./test-utils";
+import { createTestWrapper } from "./test-utils/render-helpers";
 import { createTestQueryClient } from "./test-utils/query-client";
 
 const CHAIN = 42161;

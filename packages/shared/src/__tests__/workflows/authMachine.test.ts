@@ -15,7 +15,8 @@ import {
   type AuthInput,
   type PasskeySessionResult,
 } from "../../workflows/authMachine";
-import { createMockP256Credential, flushPromises, MOCK_ADDRESSES } from "../test-utils";
+import { createMockP256Credential, MOCK_ADDRESSES } from "../test-utils/mock-factories";
+import { flushPromises } from "../test-utils/render-helpers";
 
 // ============================================================================
 // MOCK SETUP (before imports that use localStorage)

@@ -21,7 +21,8 @@ import {
   settingsSteps,
   walletPrompts,
 } from "../modules/commitment-pooling/pool-setup";
-import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
+import { createTestQueryClient } from "./test-utils/query-client";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const POOL_ID = 7n;
 
@@ -38,7 +39,7 @@ const mocks = await vi.hoisted(async () => ({
     evidence: [],
     verified_at: "2026-08-16",
   } as unknown,
-  sender: (await import("@green-goods/shared/testing")).createMockTransactionSender(),
+  sender: (await import("./test-utils/transaction-fakes")).createMockTransactionSender(),
   mutationErrorHandler: vi.fn(),
 }));
 

@@ -5,7 +5,7 @@ import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Confidence } from "../../../types/domain";
-import { createMockWork } from "../../test-utils";
+import { createMockWork } from "../../test-utils/mock-factories";
 
 const mocks = vi.hoisted(() => ({
   approvalDependencies: null as null | {

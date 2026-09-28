@@ -8,7 +8,7 @@
 
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createMockGarden, createMockWork } from "../../test-utils";
+import { createMockGarden, createMockWork } from "../../test-utils/mock-factories";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 

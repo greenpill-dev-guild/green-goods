@@ -7,7 +7,7 @@ import { useCommitmentQueueState } from "../hooks/commitment-pooling/useCommitme
 import { jobQueueEventBus } from "../modules/job-queue/event-bus";
 import type { Job } from "../types/job-queue";
 import type { Address } from "../types/domain";
-import { renderHookWithProviders } from "./test-utils";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as Address;
 

@@ -11,7 +11,10 @@ import {
   retainedWorkBroadcastReference,
 } from "../../../modules/work/work-confirmation";
 import type { SendCheckpoint } from "../../../types/job-queue";
-import { createMockContractCall, createMockTransactionSender } from "../../test-utils";
+import {
+  createMockContractCall,
+  createMockTransactionSender,
+} from "../../test-utils/transaction-fakes";
 
 const OPERATION = `0x${"cd".repeat(32)}` as const;
 const TX = `0x${"ab".repeat(32)}` as const;

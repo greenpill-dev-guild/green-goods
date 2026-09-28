@@ -3,7 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMockTransactionSender } from "@green-goods/shared/testing";
+import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import type { ApprovalJobPayload, WorkJobPayload } from "../../types/job-queue";
 import { forgetWorkBroadcast } from "../../modules/work/work-confirmation";
 import { addWebLocks } from "../test-utils/web-locks";

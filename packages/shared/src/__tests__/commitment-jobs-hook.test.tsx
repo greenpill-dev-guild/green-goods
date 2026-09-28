@@ -18,7 +18,7 @@ import {
   useCommitmentJobs,
 } from "../hooks/commitment-pooling/useCommitmentJobs";
 import type { Address } from "../types/domain";
-import { renderHookWithProviders } from "./test-utils";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as Address;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address;

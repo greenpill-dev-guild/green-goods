@@ -100,7 +100,11 @@ vi.mock("../../components/toast", () => ({
 
 import { readContract } from "@wagmi/core";
 import { checkMembership, useAutoJoinRootGarden } from "../../hooks/garden/useAutoJoinRootGarden";
-import { createMockGarden, createMockSmartAccountClient, MOCK_ADDRESSES } from "../test-utils";
+import {
+  createMockGarden,
+  createMockSmartAccountClient,
+  MOCK_ADDRESSES,
+} from "../test-utils/mock-factories";
 
 describe("hooks/garden/useAutoJoinRootGarden", () => {
   let queryClient: QueryClient;

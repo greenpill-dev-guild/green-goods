@@ -4,9 +4,13 @@ Loaded when writing, wiring, or diagnosing tests (Vitest unit/integration; Playw
 
 ## Test-utils barrel — `@green-goods/shared/testing`
 
-Alias → `packages/shared/src/__tests__/test-utils/`. Import test helpers from here, not deep paths.
+Alias → `packages/shared/src/__tests__/test-utils/`. Admin and Client import test helpers from
+`@green-goods/shared/testing`, not deep paths. Shared tests import the leaf module instead
+(`test-utils/render-helpers`, `query-client`, `query-client-render`, `mock-factories`,
+`offline-helpers`, `transaction-fakes`, …). The barrel loads every fixture into each file that
+imports it, so `test-quality` rejects it in Shared tests.
 
-- `renderHookWithProviders` / `renderWithProviders` (= `renderWithQuery`) — wrap in QueryClient + `IntlProvider` (react-intl `MISSING_TRANSLATION` silenced).
+- `renderHookWithProviders` / `renderWithProviders` (= `renderWithQuery`) in `render-helpers.tsx` — wrap in QueryClient + `IntlProvider` (react-intl `MISSING_TRANSLATION` silenced).
 - `createTestQueryClient` (retry off, `gcTime`/`staleTime` 0); call `resetTestQueryClient()` in `afterEach`.
 - Mock factories (`mock-factories.ts`): `createMockGarden`, `createMockWork`, `createMockAction`, `createMockAuthContext`, `createMockSmartAccountClient`, `createMockFile`, … (18 factories).
 - Offline helpers (`offline-helpers.ts`): `createMockOfflineWork`/`Conflict`, `mockFetch`/`mockFetchSequence`/`mockFetchError`, `simulateNetworkConditions.{offline,online,slow}`.

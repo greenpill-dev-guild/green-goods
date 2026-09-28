@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSettlementOperationsController } from "../hooks/admin-ui/pool/useSettlementOperationsController";
 import type { Address } from "../types/domain";
-import { renderHookWithProviders } from "./test-utils";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const OWNER = "0x1111111111111111111111111111111111111111" as Address;
 const SETTLEMENT = "0x2222222222222222222222222222222222222222" as Address;

@@ -122,7 +122,7 @@ import {
 } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import * as encoders from "../../utils/eas/encoders";
-import { mock } from "../test-utils";
+import { mock } from "../test-utils/render-helpers";
 
 describe("wallet-submission", () => {
   const mockWalletClient: Partial<WalletClient> = {
