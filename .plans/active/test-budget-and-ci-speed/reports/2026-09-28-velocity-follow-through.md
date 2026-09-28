@@ -865,3 +865,28 @@ string in one file and throws if the string is missing. Each fault ran through
 Selected checks: `format`, `lint`, `shared-test-typecheck`, `shared-test` (3 files, 19 tests),
 `admin-test-typecheck`, `admin-test` (3 files, 15 tests) and `test-quality` (Check 8: six new
 files, none too small) all pass.
+
+## Slice 12 — close the ratchet (D3)
+
+- **`testing.md` § Coverage:** the September 22 ratchet paragraphs are replaced by the decision. The
+  global floors stay. Eleven measured critical-path floors replace the ratchet: Shared's
+  `modules/work`, `modules/job-queue`, `hooks/auth` and `hooks/vault` plus three exact files, two
+  Client and two Admin globs, all pinned by `workflow-performance-parity.test.mjs`. A floor rises
+  only from measured coverage, with its parity array in the same change.
+- **`codebase-architecture-skills`:**
+  - decision 11 records D3;
+  - the ratchet requirement row and step 10 are closed;
+  - `eval.md` records the closure under the scheduled checkpoint;
+  - `status.json` drops `coverage_ratchet` from `linear.operationalCheckpoints` and restates the
+    note;
+  - `plan-hub set-lane` appends a `state_api` history entry.
+
+  The lane stays `in_progress` for the agent workflow reliability follow-up, and lane `branch`
+  fields stay null.
+- **Unchanged:** no Vitest config and no parity array changed.
+- **PRD-835:** its Linear mirror still shows the checkpoint until the next `linear-sync`, which
+  belongs to the closeout pass; this pass makes no Linear writes.
+
+Proof: `node scripts/harness/plan-hub.mjs validate` validated 24 feature hubs after the status write and
+Biome format. `git diff -- packages/*/vitest.config.ts scripts/quality/workflow-performance-parity.test.mjs`
+is empty for this slice.

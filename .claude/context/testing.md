@@ -50,9 +50,7 @@ imports it, so `test-quality` rejects it in Shared tests.
 
 Enforced global thresholds live in each `vitest.config.ts` (branches/functions/lines/statements): **shared** 52/59/62/61 · **client** 56/62/64/63 · **admin** 47/44/53/51. Pull request Test jobs run plain `bun run test`; `.github/workflows/coverage-nightly.yml` enforces these floors nightly and after every push to `main`. Local coverage commands still generate `coverage/index.html`; CI omits HTML.
 
-The first ratchet review is 2026-09-22. Once coverage supports it, raise every configured metric by two percentage points and update the matching arrays in `scripts/quality/workflow-performance-parity.test.mjs` in the same change. Policy targets remain critical paths ≥80% and auth/crypto 100%. Contracts use Foundry, not Vitest — see `.claude/context/contracts.md` and `docs/docs/builders/testing/forge.mdx`.
-
-The active [architecture hub](../../.plans/active/codebase-architecture-skills/plan.todo.md) owns that September 22 checkpoint. The test-budget guidance below does not change its obligation or any numerical floor. Reconsidering the ratchet requires measured coverage and a separate decision at that checkpoint, with parity expectations updated alongside any approved threshold change.
+The September 22 two-point ratchet is closed (Afo, 2026-09-28): the global floors above stay as they are, and eleven measured critical-path floors replace the ratchet. Seven are in Shared (`modules/work`, `modules/job-queue`, `hooks/auth`, `hooks/vault`, and three exact files), two in Client, two in Admin; `scripts/quality/workflow-performance-parity.test.mjs` pins them with the global floors. Raise a floor only from measured coverage, with the matching parity array in the same change. Policy targets remain critical paths ≥80% and auth/crypto 100%. Contracts use Foundry, not Vitest — see `.claude/context/contracts.md` and `docs/docs/builders/testing/forge.mdx`.
 
 ## Test budget
 
