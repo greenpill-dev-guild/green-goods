@@ -17,10 +17,11 @@ const nodeTestFiles = [
   "src/__tests__/{utils,modules,config,workflows,lib,types,i18n,public-contracts,ontology,styles}/**/*.test.ts",
   "src/{modules,utils}/**/*.test.ts",
 ];
-// Node files that mock or stub nothing share one module graph; the rest stay isolated, and files
-// that declare a DOM environment run with the DOM project. Membership follows each file's code
-// (scripts/lib/vitest-shared-graph.mjs), and setupTests.shared-graph.ts fails a shared-graph file
-// that leaks fake timers or a changed built-in.
+// Node files that mock or stub nothing, directly or through a test helper, share one module graph;
+// the rest stay isolated, and files that declare a DOM environment run with the DOM project.
+// Membership follows each file's code and its helpers (scripts/lib/vitest-shared-graph.mjs).
+// setupTests.shared-graph.ts gives each file fresh copies of its modules and fails a file that
+// leaves fake timers, a changed built-in, or a changed global or navigator property behind.
 const nodeTests = partitionNodeTests({ root: __dirname, include: nodeTestFiles });
 
 function escapeRegex(input: string): string {

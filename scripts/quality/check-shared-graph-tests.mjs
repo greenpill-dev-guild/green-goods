@@ -1,22 +1,25 @@
 #!/usr/bin/env node
 // Shared Node tests that share one module graph must not need their own. Vitest reports each test
 // file's project; a shared-graph file that needs its own graph under scripts/lib/vitest-shared-graph.mjs
-// (it mocks, stubs, assigns globals, resets modules, uses IndexedDB, or carries an isolation marker)
-// would leak into every later file in its worker, and a file listed by two projects would run twice.
+// (it, or a test helper it imports, mocks, stubs, assigns globals, resets modules, uses IndexedDB, or
+// carries an isolation marker) would leak into every later file in its worker, and a file listed by
+// two projects would run twice.
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { needsOwnGraph } from "../lib/vitest-shared-graph.mjs";
+import { ownGraphReason } from "../lib/vitest-shared-graph.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), "../..");
 const sharedRoot = path.join(repoRoot, "packages/shared");
 export const SHARED_GRAPH_PROJECT = "node-shared-graph";
 
-/** Membership problems in Vitest's `list --filesOnly --json` entries, as `file: reason` lines. */
-export function sharedGraphProblems(entries, readSource) {
+/**
+ * Membership problems in Vitest's `list --filesOnly --json` entries, as `file: reason` lines.
+ * `reasonFor(file)` says why a file needs its own graph, or returns null.
+ */
+export function sharedGraphProblems(entries, reasonFor) {
   const projectsByFile = new Map();
   for (const { file, projectName } of entries) {
     projectsByFile.set(file, [...(projectsByFile.get(file) ?? []), projectName]);
@@ -24,8 +27,9 @@ export function sharedGraphProblems(entries, readSource) {
   const problems = [];
   for (const [file, projects] of [...projectsByFile].sort(([a], [b]) => a.localeCompare(b))) {
     if (projects.length > 1) problems.push(`${file}: runs in ${projects.join(" and ")}`);
-    if (projects.includes(SHARED_GRAPH_PROJECT) && needsOwnGraph(readSource(file))) {
-      problems.push(`${file}: shares the module graph but needs its own (scripts/lib/vitest-shared-graph.mjs)`);
+    const reason = projects.includes(SHARED_GRAPH_PROJECT) ? reasonFor(file) : null;
+    if (reason) {
+      problems.push(`${file}: shares the module graph but needs its own, because ${reason} (scripts/lib/vitest-shared-graph.mjs)`);
     }
   }
   return problems;
@@ -48,7 +52,9 @@ function listSharedTests() {
 function main() {
   try {
     const entries = listSharedTests();
-    const problems = sharedGraphProblems(entries, (file) => readFileSync(path.join(repoRoot, file), "utf8"));
+    const problems = sharedGraphProblems(entries, (file) =>
+      ownGraphReason(path.relative(sharedRoot, path.join(repoRoot, file)), { root: sharedRoot }),
+    );
     if (problems.length > 0) {
       console.error("Shared test project membership is wrong:");
       for (const problem of problems) console.error(`- ${problem}`);

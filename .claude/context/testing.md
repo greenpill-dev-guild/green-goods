@@ -29,10 +29,13 @@ imports it, so `test-quality` rejects it in Shared tests.
 - Shared's Node tests that mock and stub nothing share one module graph in
   `node-shared-graph` (`isolate: false`; mocks, globals and env restored after each test).
   A file that mocks, stubs, assigns globals directly, resets modules, uses IndexedDB, or
-  carries a `// @shared-graph isolate: <reason>` marker stays isolated in `node`
+  carries a `// @shared-graph isolate: <reason>` marker stays isolated in `node`, and so does
+  a file whose test helpers under `__tests__/` or `__mocks__/` do any of that
   (`scripts/lib/vitest-shared-graph.mjs` decides; `test-quality` checks the result). In the
-  shared graph, leaked fake timers or a changed built-in fail the file that caused them. Mark
-  a file whose dependency patches a built-in when it loads.
+  shared graph each file loads fresh copies of the Shared and test modules it imports, and
+  leaked fake timers, a changed built-in, or a global or `navigator` property a test left
+  changed fail the file that caused them. Mark a file whose dependency patches a built-in when
+  it loads.
 - `globals: true`, `pool: "threads"`, `isolate: true` (except Shared's shared graph), `testTimeout: 10000`.
 - React deduped + aliased to the workspace-root runtime so hooks share one dispatcher — never add a second React instance.
 - Heavy SDKs alias-mocked to skip dep chains: EAS SDK → `src/__mocks__/eas-sdk.ts`, WalletConnect utils → `src/__mocks__/walletconnect-utils.ts`; `zod`/`viem`/`wagmi`/`multiformats` force-inlined via `server.deps.inline`.

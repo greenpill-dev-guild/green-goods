@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 
 import { resolvePackageCommand } from "../dev/package-commands.mjs";
-import { partitionNodeTests } from "../lib/vitest-shared-graph.mjs";
+import { needsOwnGraph, ownGraphReason, partitionNodeTests } from "../lib/vitest-shared-graph.mjs";
 
 import { classifySupplyChainChanges } from "./classify-supply-chain-changes.mjs";
 import { sharedGraphProblems } from "./check-shared-graph-tests.mjs";
@@ -572,14 +572,36 @@ test("Shared Node tests share one module graph unless they mock, stub, assign gl
       "marked.test.ts": "// @shared-graph isolate: a dependency patches a built-in when it loads.\n",
       "mentions.test.ts": '// Unlike its siblings, this file needs no vi.mock call.\nit("names", () => "vi.mock");\n',
       "dom.test.ts": "/** @vitest-environment jsdom */\nvi.mock(\"../x\");\n",
+      "casts-global.test.ts": '(globalThis as Record<string, unknown>).flag = "set";\n',
+      // A test helper runs inside its importer, directly or through another helper; a production
+      // module does not count, because the shared-graph setup gives each file fresh copies of it.
+      "helper-stubs.test.ts": 'import { stubLocks } from "./__tests__/stubs";\nit("locks", () => stubLocks());\n',
+      "helper-chain.test.ts": 'import { openStore } from "@/__tests__/chain";\nit("opens", () => openStore());\n',
+      "helper-clean.test.ts": 'import { makeGarden } from "./__tests__/factories";\nit("makes", () => makeGarden());\n',
+      "production-db.test.ts": 'import { readJobs } from "./modules/db";\nit("reads", () => readJobs());\n',
     };
-    mkdirSync(join(fixture, "src"));
+    mkdirSync(join(fixture, "src/__tests__"), { recursive: true });
+    mkdirSync(join(fixture, "src/modules"));
     for (const [name, text] of Object.entries(files)) writeFileSync(join(fixture, "src", name), text);
+    writeFileSync(join(fixture, "src/__tests__/stubs.ts"), 'export const stubLocks = () => vi.stubGlobal("navigator", {});\n');
+    writeFileSync(join(fixture, "src/__tests__/chain.ts"), 'export { openStore } from "./idb";\n');
+    writeFileSync(join(fixture, "src/__tests__/idb.ts"), 'export const openStore = () => indexedDB.open("jobs");\n');
+    writeFileSync(join(fixture, "src/__tests__/factories.ts"), "export const makeGarden = () => ({ name: \"garden\" });\n");
+    writeFileSync(join(fixture, "src/modules/db.ts"), 'export const readJobs = () => indexedDB.open("jobs");\n');
     assert.deepEqual(partitionNodeTests({ root: fixture, include: ["src/*.test.ts"] }), {
-      sharedGraph: ["src/mentions.test.ts", "src/plain.test.ts", "src/reads-global.test.ts"],
+      sharedGraph: [
+        "src/helper-clean.test.ts",
+        "src/mentions.test.ts",
+        "src/plain.test.ts",
+        "src/production-db.test.ts",
+        "src/reads-global.test.ts",
+      ],
       isolated: [
         "src/assigns-global.test.ts",
+        "src/casts-global.test.ts",
         "src/defines-global.test.ts",
+        "src/helper-chain.test.ts",
+        "src/helper-stubs.test.ts",
         "src/hoisted.test.ts",
         "src/indexeddb.test.ts",
         "src/marked.test.ts",
@@ -590,6 +612,10 @@ test("Shared Node tests share one module graph unless they mock, stub, assign gl
       ],
       dom: ["src/dom.test.ts"],
     });
+    assert.equal(
+      ownGraphReason("src/helper-chain.test.ts", { root: fixture }),
+      "it imports src/__tests__/idb.ts, which does",
+    );
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }
@@ -775,9 +801,10 @@ test("test quality flags Shared test files that leak through the shared graph or
     { file: "src/twice.test.ts", projectName: "node-shared-graph" },
     { file: "src/twice.test.ts", projectName: "dom" },
   ];
-  assert.deepEqual(sharedGraphProblems(entries, (file) => sources[file]), [
-    "src/marked.test.ts: shares the module graph but needs its own (scripts/lib/vitest-shared-graph.mjs)",
-    "src/mocks.test.ts: shares the module graph but needs its own (scripts/lib/vitest-shared-graph.mjs)",
+  const reasonFor = (file) => (needsOwnGraph(sources[file]) ? "its own code does" : null);
+  assert.deepEqual(sharedGraphProblems(entries, reasonFor), [
+    "src/marked.test.ts: shares the module graph but needs its own, because its own code does (scripts/lib/vitest-shared-graph.mjs)",
+    "src/mocks.test.ts: shares the module graph but needs its own, because its own code does (scripts/lib/vitest-shared-graph.mjs)",
     "src/twice.test.ts: runs in node-shared-graph and dom",
   ]);
   // The same files in the isolated project are fine.

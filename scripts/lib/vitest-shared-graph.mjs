@@ -1,4 +1,4 @@
-import { globSync, readFileSync } from "node:fs";
+import { existsSync, globSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 // A test file that uses one of these changes module or global state for whatever runs after it in
@@ -16,6 +16,7 @@ const ISOLATION_CALL = new RegExp(
     String.raw`\bvi\s*\.\s*(?:mock|doMock|hoisted|stubGlobal|stubEnv|resetModules|isolateModules|unmock|doUnmock)\s*\(`,
     String.raw`\b(?:indexedDB|IDBFactory)\b|fake-indexeddb`,
     String.raw`\b(?:globalThis|global|window|self)\s*(?:\.\s*[A-Za-z_$][\w$]*|\[[^\]]+\])\s*=(?!=)`,
+    String.raw`\(\s*(?:globalThis|global|window|self)\s+as\s+[^()]*(?:\([^()]*\)[^()]*)*\)\s*(?:\.\s*[A-Za-z_$][\w$]*|\[[^\]]+\])\s*=(?!=)`,
     String.raw`\bObject\s*\.\s*defineProperty\s*\(\s*(?:globalThis|global|window|self|navigator)\b`,
   ].join("|"),
 );
@@ -27,9 +28,57 @@ const ISOLATE_MARKER = /@shared-graph\s+isolate\b/;
 // DOM setup, whatever its path.
 const DOM_ENVIRONMENT = /@vitest-environment\s+(jsdom|happy-dom)\b/;
 
+// A helper that a test imports runs inside that test's file, so its mocks, stubs, IndexedDB use and
+// global writes count as the test's own. Helpers live under __tests__/ or __mocks__/; production
+// modules are not scanned here, because the shared-graph setup gives every file fresh copies of them.
+const TEST_SUPPORT = /(^|\/)(__tests__|__mocks__)\//;
+const LOCAL_IMPORT =
+  /(?:^|[\s;])(?:import|export)\s+(?:type\s+)?(?:[^"'`;]*?\sfrom\s+)?["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)|\bvi\s*\.\s*importActual\s*\(\s*["']([^"']+)["']/g;
+const RESOLVE_SUFFIXES = ["", ".ts", ".tsx", ".mts", ".js", ".mjs", "/index.ts", "/index.tsx"];
+
 /** Whether a test file's source asks for its own module graph under the rules above. */
 export function needsOwnGraph(source) {
   return ISOLATE_MARKER.test(source) || ISOLATION_CALL.test(source);
+}
+
+function resolveLocal(specifier, fromFile, root) {
+  let base;
+  if (specifier.startsWith(".")) base = path.join(path.dirname(fromFile), specifier);
+  else if (specifier.startsWith("@/")) base = path.join(root, "src", specifier.slice(2));
+  else return null;
+  for (const suffix of RESOLVE_SUFFIXES) {
+    const candidate = `${base}${suffix}`;
+    if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Why a test file (a path relative to `root`) needs its own module graph, or null when it can share
+ * one: its own source, or a test-support module it imports directly or through other helpers, uses
+ * one of the rules above.
+ */
+export function ownGraphReason(file, { root, readSource = (absolute) => readFileSync(absolute, "utf8") }) {
+  const start = path.resolve(root, file);
+  const seen = new Set([start]);
+  const queue = [start];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const source = readSource(current);
+    if (needsOwnGraph(source)) {
+      return current === start
+        ? "its own code mocks, stubs, resets modules, uses IndexedDB, writes a global or carries an isolation marker"
+        : `it imports ${path.relative(root, current).split(path.sep).join("/")}, which does`;
+    }
+    for (const match of source.matchAll(LOCAL_IMPORT)) {
+      const resolved = resolveLocal(match[1] ?? match[2] ?? match[3], current, root);
+      const relative = resolved && path.relative(root, resolved).split(path.sep).join("/");
+      if (!resolved || seen.has(resolved) || !TEST_SUPPORT.test(relative)) continue;
+      seen.add(resolved);
+      queue.push(resolved);
+    }
+  }
+  return null;
 }
 
 /**
@@ -47,7 +96,7 @@ export function partitionNodeTests({ root, include }) {
   for (const file of files) {
     const source = readFileSync(path.join(root, file), "utf8");
     if (DOM_ENVIRONMENT.test(source)) dom.push(file);
-    else (needsOwnGraph(source) ? isolated : sharedGraph).push(file);
+    else (ownGraphReason(file, { root }) ? isolated : sharedGraph).push(file);
   }
   return { sharedGraph, isolated, dom };
 }
