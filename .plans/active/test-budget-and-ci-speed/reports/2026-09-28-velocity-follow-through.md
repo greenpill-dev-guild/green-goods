@@ -832,3 +832,36 @@ Proof:
 Open item: the selector treats `packages/shared/src/__tests__/**` as Shared-only. So a change to
 `test-utils`, which Client and Admin import as `@green-goods/shared/testing`, selects neither
 suite. They ran here by hand.
+
+## Slice 11 — behaviour proof for six near-zero files
+
+Each file got the smallest behaviour test at its own layer. Pure logic uses tables; setup uses
+the existing helpers (`render-helpers` in Shared, `renderWithProviders` in Admin); nothing asserts a
+class name. Each new file holds at least four cases, so Check 8 passes without a reason comment.
+
+| File | Decision it owns | New test | Coverage (lines), before → after, from the new test alone |
+|---|---|---|---|
+| `shared/hooks/client-ui/auth/useLoginScreenController.ts` | A display name under three characters never starts a passkey ceremony; a recovery that signs in to a different account says which one; the post-login redirect (`?redirectTo`, home, never back after sign-out) | `__tests__/hooks/client-ui/useLoginScreenController.test.tsx` (7 cases) | 0% → 60% |
+| `shared/components/FileUploadField.tsx` | Only images over the size limit are compressed and the rest pass as chosen; a failed compression reports briefly and sends nothing; staged names render without markup or control characters | `__tests__/components/FileUploadField.test.tsx` (4) | 1.4% → 85% |
+| `shared/components/Toast/presets/wallet.ts` | Every stage replaces the one `wallet-submission` toast; only signing waits indefinitely; the retry hint appears only on a recoverable failure; upload progress replaces the default text | `__tests__/components/Toast/wallet-presets.test.ts` (8) | 17% → 65%; the rest is the older non-i18n object |
+| `admin/components/Vault/VaultEventHistory.tsx` | One page of events at a time until all show; transactions link to the chain's explorer; empty and no-amount states | `__tests__/components/VaultEventHistory.test.tsx` (4) | 0% → 100% |
+| `admin/views/Garden/SignalPool.tsx` | Which item IDs may be registered; registration hidden while the registered list cannot be read; each item's share of conviction; removal only after confirmation | `__tests__/views/GardenSignalPool.test.tsx` (7) | 0% → 80% |
+| `admin/views/Cookies/.../CampaignCookieJarCreateWorkspace.tsx` | How the flow ends: a submitted create takes the jar address by hand, only a valid address completes it, "Create Another" starts a clean first step, and the flow returns to the list | colocated `CampaignCookieJarCreateWorkspace.test.tsx` (4) | 0% → 77% |
+
+Fault injection used a scratch config under `.cache/fault/` (git-ignored). It imports the package's
+`vitest.config.ts` by absolute path, sets `root`, and adds an `enforce: "pre"` plugin that swaps one
+string in one file and throws if the string is missing. Each fault ran through
+`vitest related <file> --run` after an unchanged baseline:
+
+| File | Injected fault | Result |
+|---|---|---|
+| `wallet.ts` | the i18n signing stage loses `persistent: true` | the `confirming` case fails (1 of 841 related tests) |
+| `FileUploadField.tsx` | the keep filter keeps oversized images too | "compresses only the images over the size limit…" fails (1 of 13) |
+| `useLoginScreenController.ts` | the recovery attempt is not recorded | "tells the user when recovery signed in to a different account…" fails (1 of 7) |
+| `VaultEventHistory.tsx` | "Load More" adds one row instead of a page | the paging case fails (1 of 54) |
+| `SignalPool.tsx` | the register form ignores read failures | "hides registration while the registered items cannot be read" fails (1 of 45) |
+| `CampaignCookieJarCreateWorkspace.tsx` | the address typed by hand is not applied | the submitted-transaction case fails (1 of 57) |
+
+Selected checks: `format`, `lint`, `shared-test-typecheck`, `shared-test` (3 files, 19 tests),
+`admin-test-typecheck`, `admin-test` (3 files, 15 tests) and `test-quality` (Check 8: six new
+files, none too small) all pass.
