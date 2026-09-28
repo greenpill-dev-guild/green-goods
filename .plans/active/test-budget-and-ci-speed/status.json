@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-19T22:46:56.155Z",
-    "updated_at": "2026-09-28T13:25:52.358Z"
+    "updated_at": "2026-09-28T20:34:25.151Z"
   },
   "links": {
     "brief": "brief.md",
@@ -37,12 +37,13 @@
   "notes": [
     "User selected local implementation on 2026-09-19, beginning with step 1 guidance, and later authorized a commit of completed slices. Branch changes, publication, and Linear writes remain unauthorized.",
     "Preparation complete at 459ca0b904a46511e31293ef921dfc8c3af70496. See reports/2026-09-19-preparation.md for evidence and limitations.",
-    "September 27 local steps 8\u201310 implemented: 29 Shared/two Admin helper conversions, six unused settlement exports removed, eight memory/SQLite conformance cases, five stale mocks removed and one same-subject file merge. Shared full coverage passed (5,876 tests, all floors); focused Admin/Agent and selected types/build/quality checks passed. Full Client validation is blocked by 10-second DetailsGate timeouts; focused baseline-source and restored-source runs both passed. See reports/2026-09-26-snapshot-06.md. Validation was collected before commit; independent QA/current-SHA CI remain pending.",
+    "September 27 local steps 8–10 implemented: 29 Shared/two Admin helper conversions, six unused settlement exports removed, eight memory/SQLite conformance cases, five stale mocks removed and one same-subject file merge. Shared full coverage passed (5,876 tests, all floors); focused Admin/Agent and selected types/build/quality checks passed. Full Client validation is blocked by 10-second DetailsGate timeouts; focused baseline-source and restored-source runs both passed. See reports/2026-09-26-snapshot-06.md. Validation was collected before commit; independent QA/current-SHA CI remain pending.",
     "Selected order: original items 1, 4, 3, 11, 2+7, 5+8+9+10+6b, 12. Item 6a deferred.",
     "Historical September 19 preparation: the architecture hub owned the September 22 checkpoint, and PRs #795/#802 were open then. Fresh September 27 reads: #802 merged on September 20; #795 remains open at efd85dcebab17ceb9da87cb78fce8d3fd6aef714. Existing floors and architecture checkpoint ownership are unchanged by this slice.",
     "The linear-sync start manifest proposed a missing parent with parent_only visibility. No Linear write is authorized or recorded.",
-    "User authorized remaining local work on September 26\u201327. Publication, branch changes and Linear writes remain outside scope. Named layout guards and the batch-approval cache fixture are retained after inspection; isolate:false remains deferred.",
-    "2026-09-28 velocity follow-through (D1-D5): slices 0-13 committed locally on develop from d7cf681ec; evidence in reports/2026-09-28-velocity-follow-through.md; Astra's review handoff in handoffs/astra-review.md. Push, current-head CI, Linear sync and publication belong to the closeout pass."
+    "User authorized remaining local work on September 26–27. Publication, branch changes and Linear writes remain outside scope. Named layout guards and the batch-approval cache fixture are retained after inspection; isolate:false remains deferred.",
+    "2026-09-28 velocity follow-through (D1-D5): slices 0-13 committed locally on develop from d7cf681ec; evidence in reports/2026-09-28-velocity-follow-through.md; Astra's review handoff in handoffs/astra-review.md. Push, current-head CI, Linear sync and publication belong to the closeout pass.",
+    "2026-09-28 Astra review (reports/2026-09-28-astra-review.md): REQUEST_CHANGES with five Must-Fix and one Should-Fix, all fixed in fourteen commits after 01ba4e2cd together with Afo's D6-D8 call-out decisions; see reports/2026-09-28-astra-review-resolution.md. The closeout pass pushes to origin/develop and records current-head CI for steps 3 and 5."
   ],
   "lanes": {
     "ui": {
@@ -450,6 +451,14 @@
       "status": "in_progress",
       "branch": null,
       "note": "Velocity follow-through (D1-D5) committed locally on develop from d7cf681ec, one commit per slice 0-13; Client validation blocker resolved (slice 5). Evidence: reports/2026-09-28-velocity-follow-through.md; review handoff: handoffs/astra-review.md. Nothing pushed; current-head CI and publication come with the closeout pass."
+    },
+    {
+      "timestamp": "2026-09-28T20:34:25.151Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Resolved Astra's review: receipts, strict-intent reuse, mutation analyzer, shared-graph admission, Seed leaf imports, small-file reason; then D6 (seven order-dependent test files), D7 (offlineDownloads bytes; SDK patch deferred) and D8 (three CI routing gaps). Evidence: reports/2026-09-28-astra-review-resolution.md. Push and current-head CI follow."
     }
   ]
 }

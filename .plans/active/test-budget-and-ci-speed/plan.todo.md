@@ -2,13 +2,22 @@
 
 **Feature Slug**: `test-budget-and-ci-speed`
 **Stage**: active
-**Status**: Velocity follow-through committed locally on `develop` (slices 0–13, D1–D5); awaiting Astra's review, then the closeout pass's push and current-head CI
+**Status**: Velocity follow-through (slices 0–13, D1–D5) and the resolution of Astra's review (D6–D8) committed on `develop`; the closeout pass pushes them and records current-head CI for steps 3 and 5
 **Created**: 2026-09-19
 **Last Updated**: 2026-09-28
 
-The user selected local implementation beginning with step 1 and later authorized a commit of completed slices. Item numbers below refer to the supplied twelve-item test-audit prompt. Branch changes, push, PR, and Linear writes remain unauthorized.
+The user selected local implementation beginning with step 1 and later authorized a commit of completed slices. Item numbers below refer to the supplied twelve-item test-audit prompt. The closeout pass may push to `origin/develop` (D4); a PR, a merge to `main`, a deploy and Linear writes remain unauthorized.
 
 ## Current execution truth (2026-09-28)
+
+Astra reviewed the follow-through and returned REQUEST_CHANGES: five Must-Fix findings and one
+Should-Fix ([review](reports/2026-09-28-astra-review.md)). All six are fixed, and so are the three
+Human Call-Outs that Afo decided (D6–D8), in fourteen commits after `01ba4e2cd`. The
+[resolution report](reports/2026-09-28-astra-review-resolution.md) maps each finding to its
+commit and proof, and lists the open items with their destinations. Next, the closeout pass
+pushes to `origin/develop` and records current-head CI for steps 3 and 5.
+
+### Before the review (2026-09-28)
 
 The velocity follow-through is committed locally on `develop` from `d7cf681ec`, one commit per slice.
 The [follow-through report](reports/2026-09-28-velocity-follow-through.md) holds the evidence;
@@ -48,6 +57,9 @@ Three recent published Shared runs have both shards green. They provide observat
 | D3 (2026-09-28): the 11 measured critical-path floors replace the September 22 ratchet | Decided by Afo | Global floors and parity arrays stay unchanged |
 | D4 (2026-09-28): work on `develop`, commit each slice locally | Decided by Afo | No push, PR, merge, deploy or Linear write in the follow-through pass |
 | D5 (2026-09-28): the DetailsGate table refactor is approved | Decided by Afo | Resolves the Client validation blocker's scope question |
+| D6 (2026-09-28): fix the seven order-dependent Shared test files before the push | Decided by Afo (Astra's Human Call-Out) | Done in `282747338` and `407d4459b`; each file passes 25 in-file shuffle seeds, and the full suite passed shuffled |
+| D7 (2026-09-28): fix the `offlineDownloads` byte assertion now; the SDK's `BigInt.prototype.toJSON` patch is a follow-up | Decided by Afo | Test fixed in `7f1c0b7c7`; the SDK patch is a product question in the resolution report's open items |
+| D8 (2026-09-28): fix the three CI routing gaps now | Decided by Afo | Done in `ba6feb9b2`, `77cf70b55` and `268bb138f`, each with a guard against drift |
 
 ## Ordered work
 
@@ -91,13 +103,14 @@ the [follow-through report](reports/2026-09-28-velocity-follow-through.md).
 | [x] | 11 | Behaviour tests for the six near-zero files (lines now 60%, 85%, 65%, 100%, 80%, 77% from the new tests alone); each caught one injected fault | Report § Slice 11 |
 | [x] | 12 | Ratchet closed (D3): `testing.md` states the decision; the architecture hub records decision 11 and closes `coverage_ratchet`; global floors and parity arrays unchanged | Report § Slice 12 |
 | [x] | 13 | Hub updated for this pass; Astra's review handoff written | [handoffs/astra-review.md](handoffs/astra-review.md) |
+| [x] | 14 | Astra's review resolved: receipts fingerprint the effective environment and never serve the strict gates, the mutation analyzer follows references and fails closed on unreadable imports, shared-graph admission follows helpers under a fresh-module and globals guard, the Seed leaf imports, a real small-file reason; then D6–D8 | [Resolution report](reports/2026-09-28-astra-review-resolution.md) |
 
 ## Current handoff
 
-Astra reviews the velocity follow-through from [the handoff](handoffs/astra-review.md). After that
-review, the closeout pass pushes, reads current-head CI for steps 3 and 5, runs `linear-sync` for
-PRD-835 (architecture hub), and takes the open items to Afo. The earlier instructions below are
-historical.
+The closeout pass pushes the range to `origin/develop`, reads current-head CI for steps 3 and 5,
+records the push-gate and CI timings, and publishes Velocity Scorecard snapshot 07. `linear-sync`
+for PRD-835 (architecture hub) and the resolution report's open items wait for a pass that may
+write to Linear. The earlier instructions below are historical.
 
 Resolve or explicitly disposition the Client validation blocker after scope approval; exact local results are in Snapshot 06 and eval.md. Preserve the serial scope and current branch. Do not repeat completed September 19–20 slices or treat their historical local failures as live findings. Subsequent publication, current-SHA CI acceptance and any external scorecard/Linear update require their own authorization. Existing architecture and onboarding ownership stays with the hubs below.
 
