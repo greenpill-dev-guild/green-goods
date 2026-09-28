@@ -31,6 +31,7 @@ import {
 } from "../../modules/commitment-pooling/compose-again";
 import { isCommitmentCreator } from "../../modules/commitment-pooling/selectors";
 import type { Address } from "../../types/domain";
+import { isActionOpen } from "../../utils/action/window";
 import { useActions } from "../blockchain/useBaseLists";
 import type { CommitmentComposerValues } from "./useCommitmentComposerForm";
 import { useCommitmentMetadataFor } from "./useCommitmentMetadata";
@@ -58,7 +59,7 @@ export function useComposeAgainValues(input: {
     const prefix = `${chainId}-`;
     return new Set(
       actions
-        .filter((action) => now >= action.startTime && now <= action.endTime)
+        .filter((action) => isActionOpen(action, now))
         .map((action) =>
           action.id.startsWith(prefix) ? action.id.slice(prefix.length) : action.id
         )

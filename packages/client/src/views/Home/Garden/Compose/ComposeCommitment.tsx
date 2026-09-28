@@ -35,6 +35,7 @@ const BLOCKED_REASON_IDS: Record<BlockedReason, string> = {
   count: "app.compose.blocked.count",
   action: "app.compose.blocked.action",
   rowCount: "app.compose.blocked.rowCount",
+  closedAction: "app.compose.blocked.closedAction",
   noteTooLong: "app.compose.blocked.noteTooLong",
 };
 
@@ -94,9 +95,10 @@ function ComposeCommitmentForm({
 
   const beatIndex = COMPOSER_BEATS.indexOf(beat);
   const isReview = beat === "review";
-  const validity = selectBeatValidity(beat, controller.values);
+  const validity = selectBeatValidity(beat, controller.values, controller.closedActionUIDs);
   const blockingReasonId = validity.reason ? BLOCKED_REASON_IDS[validity.reason] : null;
   const blockingLimit = validity.reason ? BLOCKED_REASON_LIMITS[validity.reason] : undefined;
+  const closedActionUID = controller.closedActionUIDs[0];
   const actTitle = formatMessage({
     id: direction === "REQUEST" ? "app.compose.title.request" : "app.compose.title.offer",
   });
@@ -165,7 +167,13 @@ function ComposeCommitmentForm({
           <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {!validity.canAdvance && blockingReasonId ? (
               <p className="mb-2 text-xs text-text-sub-600" id="compose-blocked" role="status">
-                {formatMessage({ id: blockingReasonId }, { max: blockingLimit })}
+                {formatMessage(
+                  { id: blockingReasonId },
+                  {
+                    max: blockingLimit,
+                    action: closedActionUID ? actionTitle(closedActionUID) : undefined,
+                  }
+                )}
               </p>
             ) : null}
             {isReview && !readToEnd ? (
@@ -213,6 +221,8 @@ function ComposeCommitmentForm({
             form={controller.form}
             chainId={DEFAULT_CHAIN_ID}
             actions={controller.actions}
+            openActions={controller.openActions}
+            closedActionUIDs={controller.closedActionUIDs}
           />
         ) : null}
         {beat === "details" ? <ComposeDetails form={controller.form} /> : null}
