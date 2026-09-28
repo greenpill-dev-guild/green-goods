@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-19T22:46:56.155Z",
-    "updated_at": "2026-09-28T21:19:42.729Z"
+    "updated_at": "2026-09-28T22:11:59.338Z"
   },
   "links": {
     "brief": "brief.md",
@@ -467,6 +467,14 @@
       "status": "in_progress",
       "branch": null,
       "note": "Closeout push: d7cf681ec..fca76d585 on origin/develop in three pushes; two gate fixes fixed forward (627149a4d NVM_DIR receipts, fca76d585 package binaries); critical plan 461 s cold, 2.1 s warm; every workflow green per head; Coverage Nightly 36483127896 passed at 627149a4d; steps 3 and 5 closed. Evidence: reports/2026-09-28-closeout-push.md. Seven-day CI metrics pending."
+    },
+    {
+      "timestamp": "2026-09-28T22:11:59.338Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "D9: Afo chose to prune unreachable CodeQL overlay-base databases hourly and keep overlay analysis on. 21 unreachable databases deleted by hand on 2026-09-28 (Actions cache 9.8 GB to 583 MB); the prune workflow is PR #945. Corrected: the Unit Tests cold compile on 8e05497f6 came from slice 9's cache-key rename; Lint And Build is the clean eviction case."
     }
   ]
 }
