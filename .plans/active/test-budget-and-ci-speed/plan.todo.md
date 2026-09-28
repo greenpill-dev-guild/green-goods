@@ -2,13 +2,25 @@
 
 **Feature Slug**: `test-budget-and-ci-speed`
 **Stage**: active
-**Status**: Velocity follow-through (slices 0–13, D1–D5) and the resolution of Astra's review (D6–D8) committed on `develop`; the closeout pass pushes them and records current-head CI for steps 3 and 5
+**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshot 07 is published
 **Created**: 2026-09-19
 **Last Updated**: 2026-09-28
 
 The user selected local implementation beginning with step 1 and later authorized a commit of completed slices. Item numbers below refer to the supplied twelve-item test-audit prompt. The closeout pass may push to `origin/develop` (D4); a PR, a merge to `main`, a deploy and Linear writes remain unauthorized.
 
 ## Current execution truth (2026-09-28)
+
+The closeout pass pushed the range to `origin/develop` in three pushes (`d7cf681ec..fca76d585`,
+31 commits). The [closeout report](reports/2026-09-28-closeout-push.md) holds the timings, the run
+links and the evidence for steps 3 and 5. Measuring the push found two gate defects, fixed forward:
+the hook could not reuse a manual pass because Husky's shim exports `NVM_DIR` (`627149a4d`), and a
+manual run could not find package binaries such as `design.md` (`fca76d585`). The critical plan
+for the range took 461 s cold and 2.1 s warm. Every workflow for each pushed head is green, and a
+dispatched Coverage Nightly passed every floor at `627149a4d`. Snapshot 07 is on the
+[Velocity Scorecard](https://claude.ai/artifact/9TkZM1T9niiwja34G9K2Mg). Metrics that need a
+seven-day CI window are pending from 2026-09-28.
+
+### After the review (2026-09-28)
 
 Astra reviewed the follow-through and returned REQUEST_CHANGES: five Must-Fix findings and one
 Should-Fix ([review](reports/2026-09-28-astra-review.md)). All six are fixed, and so are the three
@@ -70,9 +82,9 @@ Each row is a reviewable slice or a series of independently reviewed slices, not
 | [x] | 0 | Preparation | Refresh targets, local branch/PR overlap, inventory, recent Shared timing, nightly coverage, and representative push plan. See the dated report; no current-head full-suite claim. |
 | [x] | 1 | 1 | Add test budget to testing.md, excess-proof review lens, and one root agent-guide pointer. Coordinate September 22 checkpoint and PRs #795/#802. Guidance checks pass; semantic evaluation only if trigger wording changes. |
 | [x] | 2 | 4 | Presented both designs; user selected ordinary automated push with manual browser proof pending for readiness. Implemented exact browser-only deferral and negative proof for automated failure, missing automated capability, and critical/readiness requirements. Actual hook passed in a disposable checkout; see eval.md. |
-| [ ] | 3 | 3 | Two Shared shards implemented. Three recent successful published runs measured in Snapshot 06. Open only for current-head CI, which the closeout pass provides. |
+| [x] | 3 | 3 | Two Shared shards implemented. Current-head CI at `8e05497f6`: Test (1/2) 168 s and Test (2/2) 146 s, Vitest 128.9 s and 116.7 s, 730.7 worker-seconds against 1,039.8 in Snapshot 06. One run; the job median waits for the seven-day window. See the closeout report. |
 | [x] | 4 | 11 | Added informational source/test changed-line and file-count summary to the existing Supply Chain Guardrails change-detection job. The step is explicitly non-blocking, adds no required check or threshold, and handles zero-source changes. |
-| [ ] | 5 | 2 | Shared, Client and Admin sub-slices implemented: eight measured aggregate glob floors and three measured exact-file floors (Cookie Jar and image compression), parity proof, deliberate below-floor failure, and full coverage enforcement. Global floors unchanged (D3 closed the ratchet). Open only for current-head CI, which the closeout pass provides. |
+| [ ] | 5 | 2 | Shared, Client and Admin sub-slices implemented: eight measured aggregate glob floors and three measured exact-file floors (Cookie Jar and image compression), parity proof, deliberate below-floor failure, and full coverage enforcement. Global floors unchanged (D3 closed the ratchet). Coverage Nightly, dispatched at `627149a4d`, passed every floor: statements Shared 74.05%, Client 72.6%, Admin 69.06%. See the closeout report. |
 | [x] | 6 | 7 | Added direct proof for Cookie Jar hooks, connectivity background work, queued-upload chain/cancellation, image compression, login messaging and timeframe boundaries; paired Cookie Jar and image compression with measured file floors. Preserved the flagged-upload toast proof. All focused/selected local checks passed; current-SHA CI remains in step 5. |
 | [x] | 7 | 7 | Admin excessive-withdrawal rejection, Client claim confirmation and garden-join argument/failure proof passed. Cached #802 head showed no claim test; fresh PR status/head remains network-unverified. No runtime defect was exposed. |
 | [x] | 8 | 5 | Expanded helpers to 29 Shared and two Admin files. All 301 Shared test names/results match baseline; 30 focused Admin tests pass. Batch-approval cache behavior, Client persistence and custom-provider/cache/network fixtures retain their necessary setup. Existing guard passes. |
@@ -104,13 +116,20 @@ the [follow-through report](reports/2026-09-28-velocity-follow-through.md).
 | [x] | 12 | Ratchet closed (D3): `testing.md` states the decision; the architecture hub records decision 11 and closes `coverage_ratchet`; global floors and parity arrays unchanged | Report § Slice 12 |
 | [x] | 13 | Hub updated for this pass; Astra's review handoff written | [handoffs/astra-review.md](handoffs/astra-review.md) |
 | [x] | 14 | Astra's review resolved: receipts fingerprint the effective environment and never serve the strict gates, the mutation analyzer follows references and fails closed on unreadable imports, shared-graph admission follows helpers under a fresh-module and globals guard, the Seed leaf imports, a real small-file reason; then D6–D8 | [Resolution report](reports/2026-09-28-astra-review-resolution.md) |
+| [x] | 15 | Closeout push: three pushes; two gate fixes found while measuring (`627149a4d` lets the hook reuse a manual pass under Husky's `NVM_DIR`; `fca76d585` gives manual runs the package binaries the hook has); critical plan 461 s cold and 2.1 s warm; every workflow green; Coverage Nightly passed; lease sample on a quiet machine; snapshot 07 | [Closeout report](reports/2026-09-28-closeout-push.md) |
 
 ## Current handoff
 
-The closeout pass pushes the range to `origin/develop`, reads current-head CI for steps 3 and 5,
-records the push-gate and CI timings, and publishes Velocity Scorecard snapshot 07. `linear-sync`
-for PRD-835 (architecture hub) and the resolution report's open items wait for a pass that may
-write to Linear. The earlier instructions below are historical.
+The closeout pass is done. Next:
+
+- the seven-day CI window from 2026-09-28, for the job medians, the CI Gate median and the red
+  rates that snapshot 07 leaves pending;
+- the open items in the [closeout report](reports/2026-09-28-closeout-push.md) and the
+  [resolution report](reports/2026-09-28-astra-review-resolution.md), including Afo's decision on
+  CodeQL's overlay databases filling the Actions cache;
+- `linear-sync` for PRD-835 (architecture hub), in a pass that may write to Linear.
+
+The earlier instructions below are historical.
 
 Resolve or explicitly disposition the Client validation blocker after scope approval; exact local results are in Snapshot 06 and eval.md. Preserve the serial scope and current branch. Do not repeat completed September 19–20 slices or treat their historical local failures as live findings. Subsequent publication, current-SHA CI acceptance and any external scorecard/Linear update require their own authorization. Existing architecture and onboarding ownership stays with the hubs below.
 
