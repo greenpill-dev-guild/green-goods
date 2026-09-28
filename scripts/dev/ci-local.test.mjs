@@ -14,6 +14,7 @@ import {
   buildLocalValidationPlan,
   capabilityRecoveryHint,
   executePlan,
+  ignoredConfigurationFingerprint,
   isPinnedCiNodeVersion,
   isSupportedCiNodeVersion,
   loadPassingReceiptStore,
@@ -677,6 +678,101 @@ test("receipts are reused in push and never by the strict gates, at every risk",
   assert.deepEqual(runs, [1, 1]);
 });
 
+test("a receipt covers the environment a check runs with, not only the plan", async () => {
+  const receiptStore = new Map();
+  let runs = 0;
+  const run = (environment) =>
+    executePlan(plan(["shared-test"]), {
+      reusePassingReceipts: true,
+      receiptStore,
+      environment,
+      ignoredConfiguration: "sha256:config-1",
+      runCheck: async () => {
+        runs += 1;
+        return { ok: true, exitCode: 0 };
+      },
+    });
+  const shell = { HOME: "/home/dev", VITEST_MAX_WORKERS: "1", PATH: "/usr/bin", SHLVL: "1" };
+  await run(shell);
+  assert.equal((await run(shell)).results[0].reused, true);
+  assert.equal(runs, 1);
+
+  // Changing an inherited variable reruns the check, and so does a new one.
+  await run({ ...shell, VITEST_MAX_WORKERS: "9" });
+  await run({ ...shell, NODE_OPTIONS: "--max-old-space-size=512" });
+  assert.equal(runs, 3);
+
+  // The pre-push hook prepends git's exec path and tool directories to PATH, counts one more
+  // shell, and reaches the gate through a different re-exec wrapper; none of that changes a check.
+  const hook = {
+    ...shell,
+    PATH: "/opt/homebrew/opt/git/libexec/git-core:/Users/dev/.bun/bin:/usr/bin",
+    GIT_EXEC_PATH: "/opt/homebrew/opt/git/libexec/git-core",
+    SHLVL: "2",
+    GREEN_GOODS_NODE_CLI_COMPAT_REEXEC: "1",
+    NODE: "/Users/dev/.local/share/mise/installs/node/22.22.1/bin/node",
+    npm_node_execpath: "/Users/dev/.local/share/mise/installs/node/22.22.1/bin/node",
+  };
+  assert.equal((await run(hook)).results[0].reused, true);
+  assert.equal(runs, 3);
+
+  // The store keeps a digest of the environment, never its values.
+  await run({ ...shell, SECRET_TOKEN: "do-not-store-me" });
+  assert.equal(JSON.stringify([...receiptStore.values()]).includes("do-not-store-me"), false);
+});
+
+test("a receipt covers the git-ignored root .env files that builds and tests read", async (t) => {
+  const root = mkdtempSync(join(tmpdir(), "validation-ignored-config-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(join(root, "README.md"), "not configuration\n");
+  const empty = ignoredConfigurationFingerprint(root);
+  writeFileSync(join(root, ".env"), "VITE_CHAIN_ID=11155111\n");
+  const first = ignoredConfigurationFingerprint(root);
+  writeFileSync(join(root, "README.md"), "still not configuration\n");
+  assert.equal(ignoredConfigurationFingerprint(root), first);
+  writeFileSync(join(root, ".env"), "VITE_CHAIN_ID=42161\n");
+  const edited = ignoredConfigurationFingerprint(root);
+  writeFileSync(join(root, ".env.local"), "VITE_USE_HASH_ROUTER=true\n");
+  const local = ignoredConfigurationFingerprint(root);
+  assert.equal(new Set([empty, first, edited, local]).size, 4);
+
+  const receiptStore = new Map();
+  let runs = 0;
+  const run = (ignoredConfiguration) =>
+    executePlan(plan(["client-build"]), {
+      reusePassingReceipts: true,
+      receiptStore,
+      environment: {},
+      ignoredConfiguration,
+      runCheck: async () => {
+        runs += 1;
+        return { ok: true, exitCode: 0 };
+      },
+    });
+  await run(first);
+  await run(first);
+  await run(edited);
+  assert.equal(runs, 2);
+});
+
+test("a changed variable reruns a real command instead of replaying its pass", async () => {
+  // The probe fails only with PROBE=9. A receipt made with PROBE=1 must not stand in for it.
+  const probe = plan(["probe"]);
+  probe.checks[0].command = `node -e "process.exit(process.env.PROBE === '9' ? 42 : 0)"`;
+  const receiptStore = new Map();
+  const execute = (PROBE) =>
+    executePlan(probe, {
+      reusePassingReceipts: true,
+      receiptStore,
+      environment: { ...process.env, PROBE },
+      ignoredConfiguration: "sha256:config-1",
+    });
+  assert.equal((await execute("1")).status, "passed");
+  const changed = await execute("9");
+  assert.equal(changed.status, "failed");
+  assert.equal(changed.results[0].exitCode, 42);
+});
+
 test("legacy and selector arguments remain parseable", () => {
   const parsed = parseArguments([
     "--quick",
@@ -894,7 +990,13 @@ test("package suites in a real plan run one at a time, leaving worker sizing to 
   assert.equal(result.status, "passed");
   assert.equal(state.peak, 1);
   assert.deepEqual(state.order, input.checks.map((check) => check.id));
-  assert.ok(state.options.every((options) => !("environment" in options) && !options.captureOutput));
+  // Each suite gets the environment its receipt fingerprints, and the runner sizes no workers.
+  assert.ok(
+    state.options.every(
+      (options) =>
+        options.environment.VITEST_MAX_WORKERS === process.env.VITEST_MAX_WORKERS && !options.captureOutput,
+    ),
+  );
 });
 
 // Regression: the plan inherited its blocked status even after the compatibility

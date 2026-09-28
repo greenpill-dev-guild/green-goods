@@ -1,7 +1,16 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { createConnection } from "node:net";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -528,6 +537,57 @@ export function buildLocalValidationPlan(options, gitInputs, environment) {
   return applyCompatibilityFilters(plan, options);
 }
 
+// A receipt covers every variable a check inherits except these, which differ between a manual
+// run and the same run from the pre-push hook without changing what a check does. Git prepends its
+// exec path and the hook prepends tool directories to PATH, and NODE names the interpreter; the
+// node, bun and forge versions those resolve to are fingerprinted as the toolchain. Shells count
+// and track themselves, and each re-exec wrapper marks that it ran.
+const RECEIPT_IGNORED_VARIABLES = new Set([
+  "PATH",
+  "GIT_EXEC_PATH",
+  "NODE",
+  "npm_node_execpath",
+  "SHLVL",
+  "_",
+  "OLDPWD",
+  "PWD",
+]);
+const REEXEC_SENTINEL = /^GREEN_GOODS_\w+_REEXEC$/;
+
+/** The exact environment a check's process receives. */
+export function checkEnvironment(check, baseEnvironment = process.env) {
+  return { ...baseEnvironment, ...envForCheck(check) };
+}
+
+/** A digest of the variables that can change a check's result; values never leave the hash. */
+export function environmentFingerprint(environment) {
+  const hash = createHash("sha256");
+  hash.update("validation-environment-v1\0");
+  for (const name of Object.keys(environment).sort()) {
+    if (RECEIPT_IGNORED_VARIABLES.has(name) || REEXEC_SENTINEL.test(name)) continue;
+    hash.update(`${name}\0${environment[name]}\0`);
+  }
+  return `sha256:${hash.digest("hex")}`;
+}
+
+// Builds and tests read the root .env family (Vite's loadEnv, `bun --env-file`). Git ignores those
+// files, so the working-copy fingerprint cannot see a change to them.
+export function ignoredConfigurationFingerprint(root = projectRoot) {
+  const hash = createHash("sha256");
+  hash.update("validation-ignored-configuration-v1\0");
+  const names = readdirSync(root)
+    .filter((name) => name.startsWith(".env"))
+    .sort();
+  for (const name of names) {
+    const path = resolve(root, name);
+    if (!statSync(path).isFile()) continue;
+    hash.update(`${name}\0`);
+    hash.update(readFileSync(path));
+    hash.update("\0");
+  }
+  return `sha256:${hash.digest("hex")}`;
+}
+
 function envForCheck(check) {
   // CI=true reproduces CI's test environment; the marker keeps local package suites on the
   // machine test lease, which real CI skips.
@@ -583,7 +643,10 @@ async function runAbiArtifactCheck() {
   return { ok: problems.length === 0, exitCode: problems.length === 0 ? 0 : 1, details: problems };
 }
 
-export async function runCommandCheck(check, { signal, captureOutput = false } = {}) {
+export async function runCommandCheck(
+  check,
+  { signal, captureOutput = false, environment = checkEnvironment(check) } = {},
+) {
   const start = Date.now();
   if (check.builtin === "abiArtifacts") {
     const result = await runAbiArtifactCheck();
@@ -611,7 +674,7 @@ export async function runCommandCheck(check, { signal, captureOutput = false } =
       // capture instead, so their logs replay in plan order rather than
       // interleaving into noise.
       stdio: captureOutput ? ["ignore", "pipe", "pipe"] : "inherit",
-      env: { ...process.env, ...envForCheck(check) },
+      env: environment,
       detached: process.platform !== "win32",
     });
     let output = "";
@@ -680,6 +743,8 @@ export async function executePlan(plan, options = {}) {
   const attestations = options.attestations ?? {};
   const receiptStore = options.receiptStore ?? new Map();
   const reusePassingReceipts = options.reusePassingReceipts === true;
+  const baseEnvironment = options.environment ?? process.env;
+  const ignoredConfiguration = options.ignoredConfiguration ?? ignoredConfigurationFingerprint();
 
   if (plan.status === "cancelled" || externalSignal?.aborted) {
     return { status: "cancelled", exitCode: 130, results, blocked };
@@ -716,14 +781,19 @@ export async function executePlan(plan, options = {}) {
       receiptInputs,
     });
   };
+  // The receipt fingerprints the same environment the check then runs with.
   const reusableReceipt = (check) => {
-    const receiptInputs = buildReceiptInputs(plan, check);
+    const environment = checkEnvironment(check, baseEnvironment);
+    const receiptInputs = buildReceiptInputs(plan, check, {
+      environment: environmentFingerprint(environment),
+      ignoredConfiguration,
+    });
     const cached = reusePassingReceipts ? receiptStore.get(receiptInputs.fingerprint) : null;
     const reusable =
       receiptsAllowed &&
       cached?.status === "passed" &&
       cached.receiptInputs?.fingerprint === receiptInputs.fingerprint;
-    return { receiptInputs, reusable };
+    return { environment, receiptInputs, reusable };
   };
   let index = 0;
   while (index < plan.checks.length) {
@@ -786,7 +856,7 @@ export async function executePlan(plan, options = {}) {
       continue;
     }
 
-    const { receiptInputs, reusable } = reusableReceipt(check);
+    const { environment, receiptInputs, reusable } = reusableReceipt(check);
     if (reusable) {
       const evidence = {
         id: check.id,
@@ -805,7 +875,7 @@ export async function executePlan(plan, options = {}) {
     // Checks run one at a time in plan order. Package suites get the whole machine: the
     // machine-wide test lease in package-commands.mjs sizes their workers.
     options.onCheckStart?.(check);
-    const result = await runCheck(check, { signal });
+    const result = await runCheck(check, { signal, environment });
     const evidence = { id: check.id, ...result, receiptInputs };
     results.push(evidence);
     options.onCheckComplete?.(check, evidence);

@@ -390,12 +390,17 @@ test("an interrupt releases the lease while the suite runs and while it waits", 
   holder.release();
 });
 
-test("Turbo passes lease overrides, the local-gate marker and an explicit worker choice to package suites", () => {
+test("Turbo passes lease overrides and the local-gate marker through, and hashes an explicit worker choice", () => {
   const turbo = JSON.parse(readFileSync(new URL("../../turbo.json", import.meta.url), "utf8"));
-  const passThrough = turbo.globalPassThroughEnv ?? [];
-  for (const variable of ["GREEN_GOODS_TEST_LEASE_SLOTS", "GREEN_GOODS_TEST_LEASE_TIMEOUT_SECONDS", "GREEN_GOODS_LOCAL_GATE", "VITEST_MAX_WORKERS"]) {
-    assert.ok(passThrough.some((entry) => entry === variable || (entry.endsWith("*") && variable.startsWith(entry.slice(0, -1)))), variable);
+  const matches = (entries, variable) =>
+    (entries ?? []).some((entry) => entry === variable || (entry.endsWith("*") && variable.startsWith(entry.slice(0, -1))));
+  for (const variable of ["GREEN_GOODS_TEST_LEASE_SLOTS", "GREEN_GOODS_TEST_LEASE_TIMEOUT_SECONDS", "GREEN_GOODS_LOCAL_GATE"]) {
+    assert.ok(matches(turbo.globalPassThroughEnv, variable), variable);
   }
+  // A worker count can change a suite's result, so Turbo's cache must not replay a pass made
+  // under another one: the variable is hashed, not merely passed through.
+  assert.ok(matches(turbo.globalEnv, "VITEST_MAX_WORKERS"));
+  assert.ok(!matches(turbo.globalPassThroughEnv, "VITEST_MAX_WORKERS"));
 });
 
 test("an explicit worker count reaches Vitest through VITEST_MAX_WORKERS, which project configs cannot override", () => {

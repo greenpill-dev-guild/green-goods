@@ -943,7 +943,9 @@ function stableValue(value) {
   return value;
 }
 
-export function buildReceiptInputs(plan, check) {
+// `execution` carries digests of the environment the check runs with and of the git-ignored
+// configuration it reads, which the plan alone cannot see.
+export function buildReceiptInputs(plan, check, execution = {}) {
   const inputs = {
     policyVersion: plan.policyVersion,
     requestedIntent: plan.requestedIntent,
@@ -961,6 +963,10 @@ export function buildReceiptInputs(plan, check) {
     command: check.command,
     cwd: check.cwd ?? ".",
     environment: plan.environment,
+    execution: {
+      environment: execution.environment ?? null,
+      ignoredConfiguration: execution.ignoredConfiguration ?? null,
+    },
     freshness: check.freshness,
     cacheReuse: {
       allowed: true,
