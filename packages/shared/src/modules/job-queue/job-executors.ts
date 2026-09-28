@@ -231,19 +231,17 @@ export async function executeCommitmentQueueJob(
           account: job.userAddress as Address,
           chainId: targetChain,
         });
-        // Read after the simulation, just before the intent: nothing this send
-        // does can land in that block or before, so an earlier ask never passes
-        // for this one.
+        // Read after the simulation, and again just before the intent, after any
+        // prompt: nothing this send does can land in that block or before, so an
+        // earlier ask never passes for this one. The first read must succeed; a
+        // second that cannot keeps the first.
         const head = await chainReads.readChainHead?.();
+        const firstHead = head && { intentBlock: head.number, intentChainTime: head.timestamp };
         try {
-          return await sendRecordedAct(
-            jobId,
-            job,
-            call,
-            sender,
-            store,
-            head && { intentBlock: head.number, intentChainTime: head.timestamp }
-          );
+          return await sendRecordedAct(jobId, job, call, sender, store, {
+            readChainHead: chainReads.readChainHead,
+            headBeforeSend: firstHead,
+          });
         } catch (error) {
           // Its receipt did not come in time: keep the nonce the transaction
           // used while the network still holds it.

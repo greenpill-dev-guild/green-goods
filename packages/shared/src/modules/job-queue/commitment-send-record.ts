@@ -16,9 +16,13 @@
  */
 
 import type { Hex } from "viem";
-import type { Job, SendCheckpoint } from "../../types/job-queue";
+import type { Job } from "../../types/job-queue";
 import type { ContractCall, TransactionSender } from "../transactions/types";
-import { sendWithCheckpoint, settleRecordedSend } from "../work/send-with-checkpoint";
+import {
+  type CheckpointedSend,
+  sendWithCheckpoint,
+  settleRecordedSend,
+} from "../work/send-with-checkpoint";
 import { settleStrandedCommitmentIntent, StrandedSendReopened } from "../work/stranded-intent";
 import {
   AwaitingWorkConfirmation,
@@ -69,17 +73,17 @@ export async function sendRecordedAct(
   call: ContractCall,
   sender: TransactionSender,
   store: CommitmentExecutorStore,
-  /** The chain's head just before the send, kept with its intent. */
-  intent?: Pick<SendCheckpoint, "intentBlock" | "intentChainTime">
+  /** Where the send reads the chain's head, and one read before the send to keep when it cannot. */
+  chain?: Pick<CheckpointedSend, "readChainHead" | "headBeforeSend">
 ): Promise<Hex> {
   const result = await holdingSend(jobId, () =>
     sendWithCheckpoint({
       sender,
       call,
       jobIds: [jobId],
+      ...chain,
       record: async (next) => {
-        const send = next(sendCheckpointOf(job) ?? {});
-        writeSendCheckpoint(job, send && intent ? { ...send, ...intent } : send);
+        writeSendCheckpoint(job, next(sendCheckpointOf(job) ?? {}));
         await store.updateJob(job);
       },
     })
@@ -144,6 +148,7 @@ export async function settleActSend(
           }),
         stillSending: () => sendMayStillLand(stranded, chainReads),
         transactionSuperseded: () => recordedTransactionSuperseded(stranded, chainReads),
+        chainHead: chainReads.readChainHead,
         persist: (updated) => store.updateJob(updated),
       });
     });

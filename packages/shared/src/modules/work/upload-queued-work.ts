@@ -74,6 +74,8 @@ export interface UploadQueuedWorkPorts {
   now(): number;
   /** The nonce a transaction used, read off it while the network holds it; null once it does not. */
   readTransactionNonce?(hash: Hex, chainId: number): Promise<number | null>;
+  /** The chain's latest block and its time, in seconds. */
+  readChainHead?(chainId: number): Promise<{ number: bigint; timestamp: number }>;
 }
 
 interface ChunkItem {
@@ -256,10 +258,14 @@ export async function uploadQueuedWork(
         if (items.length === 0) return {};
       }
 
+      const { readChainHead } = ports;
       const result = await sendWithCheckpoint({
         sender,
         call: { ...callOf(items), chainId },
         jobIds: items.map(({ job }) => job.id),
+        // Read just before the intent, after any prompt: every item the call
+        // carries is then timed on the chain's clock if the answer is lost.
+        readChainHead: readChainHead && (() => readChainHead(chainId)),
         record: (next) => recordAll(items, next),
         now: ports.now,
       });

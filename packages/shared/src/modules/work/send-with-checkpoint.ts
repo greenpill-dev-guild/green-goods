@@ -25,6 +25,7 @@ import {
   type TransactionSender,
   type TxResult,
 } from "../transactions/types";
+import { intentHead } from "../job-queue/send-chain-reads";
 import { classifySendFailure } from "./send-outcome";
 import {
   AwaitingWorkConfirmation,
@@ -47,6 +48,13 @@ export interface CheckpointedSend {
   jobIds: readonly string[];
   /** Must reject when a write fails: nothing may be sent without its intent on record. */
   record: RecordSend;
+  /**
+   * The chain's head, kept with the intent: read at the last point before the
+   * send can reach the network, so a prompt left open never ages it.
+   */
+  readChainHead?: () => Promise<{ number: bigint; timestamp: number }>;
+  /** A head read before the send, kept when the one at the intent cannot be read. */
+  headBeforeSend?: Pick<SendCheckpoint, "intentBlock" | "intentChainTime">;
   assertOwnership?: () => void | Promise<void>;
   now?: () => number;
 }
@@ -65,6 +73,8 @@ export async function sendWithCheckpoint({
   call,
   jobIds,
   record,
+  readChainHead,
+  headBeforeSend,
   assertOwnership,
   now = Date.now,
 }: CheckpointedSend): Promise<CheckpointedSendResult> {
@@ -73,6 +83,21 @@ export async function sendWithCheckpoint({
   let broadcastKnown = false;
   let transactionRecorded = false;
   let carriedByOperation = false;
+  // The chain's head is read once, at the last point before the send can reach
+  // the network: after a passkey's prompt, so a prompt left open never ages it.
+  // Every record carries it, even the hash a sender only returns.
+  let head: Pick<SendCheckpoint, "intentBlock" | "intentChainTime"> | undefined;
+  let headRead = false;
+  const readHead = async () => {
+    if (headRead) return;
+    headRead = true;
+    head = (await intentHead(readChainHead)) ?? headBeforeSend;
+  };
+  const write: RecordSend = (next) =>
+    record((current) => {
+      const send = next(current);
+      return send && head ? { ...send, ...head } : send;
+    });
 
   // Every reference is kept in memory before it is written, so a failed write
   // never turns a retry into a second send.
@@ -81,7 +106,7 @@ export async function sendWithCheckpoint({
     carriedByOperation ||= reference.kind === "user-operation";
     transactionRecorded ||= reference.kind === "transaction";
     for (const id of jobIds) rememberWorkBroadcast(id, reference);
-    await record((current) => ({
+    await write((current) => ({
       ...current,
       broadcast: reference,
       broadcastPending: false,
@@ -93,7 +118,7 @@ export async function sendWithCheckpoint({
     if (!carriedByOperation) return onBroadcastReference({ kind: "transaction", hash });
     broadcastKnown = true;
     transactionRecorded = true;
-    await record((current) => ({ ...current, transactionHash: hash, broadcastPending: false }));
+    await write((current) => ({ ...current, transactionHash: hash, broadcastPending: false }));
   };
 
   try {
@@ -102,9 +127,10 @@ export async function sendWithCheckpoint({
       onBeforeBroadcast: async (reference) => {
         await assertOwnership?.();
         carriedByOperation ||= reference?.kind === "user-operation";
+        await readHead();
         const at = new Date(now()).toISOString();
         intentAttempted = true;
-        await record(() => ({
+        await write(() => ({
           broadcastPending: true,
           broadcastPendingAt: at,
           ...(reference ? { broadcast: reference } : {}),
@@ -114,15 +140,23 @@ export async function sendWithCheckpoint({
       onBroadcastReference,
       onBroadcast,
     });
-    // Older and custom senders only expose the hash on return.
-    if (!transactionRecorded) await onBroadcast(result.hash);
+    // Older and custom senders only expose the hash on return. Nothing marked the
+    // point before it went out, and a head read now could follow its own block,
+    // so only the head read before the send is kept.
+    if (!transactionRecorded) {
+      if (!headRead) {
+        headRead = true;
+        head = headBeforeSend;
+      }
+      await onBroadcast(result.hash);
+    }
     return { status: "sent", hash: result.hash, confirmation: result.confirmation };
   } catch (error) {
     if (error instanceof TransactionRevertedError) return { status: "reverted", error };
     if (error instanceof TransactionReplacementError && error.code === "transaction_cancelled") {
       // The wallet confirmed replacement by a cancellation transaction. The
       // original call cannot be included, so its checkpoint may be retried.
-      await record(() => undefined);
+      await write(() => undefined);
       for (const id of jobIds) forgetWorkBroadcast(id);
       return { status: "not-sent", cancelled: true, error };
     }
@@ -133,7 +167,7 @@ export async function sendWithCheckpoint({
       // is remembered first: storage that refuses it only loses it on reload.
       for (const id of jobIds) rememberTransactionReplaced(id);
       try {
-        await record((current) => ({ ...current, transactionReplaced: true }));
+        await write((current) => ({ ...current, transactionReplaced: true }));
       } catch (markError) {
         logger.warn("[SendCheckpoint] Could not mark a replaced transaction", {
           jobIds,
@@ -146,7 +180,7 @@ export async function sendWithCheckpoint({
     if (failure.kind === "may-have-sent") return { status: "may-have-sent", error };
     // Cleared even when the intent only half landed: a call that carries several
     // jobs may have written some of them before one write failed.
-    if (intentAttempted) await record(() => undefined);
+    if (intentAttempted) await write(() => undefined);
     for (const id of jobIds) forgetWorkBroadcast(id);
     return { status: "not-sent", cancelled: failure.cancelled, error };
   }

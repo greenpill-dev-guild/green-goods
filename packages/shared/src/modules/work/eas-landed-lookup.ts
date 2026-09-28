@@ -82,25 +82,41 @@ export function createEasLandedLookup(deps: EasLookupDependencies = {}): EasLand
     }
   }
 
-  /** An empty answer proves absence only once EAS has processed past the grace window. */
+  /**
+   * An empty answer proves absence only once EAS has processed past the grace
+   * window, and past the block where the send was last found idle.
+   */
   async function absentOnceCovered(
     chainId: number,
     indexed: bigint | null,
-    sentAtMs: number
+    send: { sentAtMs: number; intentChainTime?: number; idleBlock?: bigint }
   ): Promise<StrandedLookupResult> {
-    if (indexed === null || now() - sentAtMs < STRANDED_INTENT_GRACE_MS)
+    const { sentAtMs, intentChainTime, idleBlock } = send;
+    if (indexed === null) return { status: "unknown" };
+    // Anything the send did before it was found idle landed by that block.
+    if (idleBlock !== undefined && indexed < idleBlock) return { status: "unknown" };
+    // Timed on the chain's clock when the send kept it, since the device's clock
+    // may since have moved either way, and on the device's clock otherwise.
+    if (intentChainTime === undefined && now() - sentAtMs < STRANDED_INTENT_GRACE_MS)
       return { status: "unknown" };
     const covered = await indexedPastGraceWindow({
       chainId,
       indexedBlock: indexed,
       sentAtMs,
+      intentChainTime,
       readBlockTime,
       now,
     });
     return covered ? { status: "absent" } : { status: "unknown" };
   }
 
-  const work: StrandedWorkLookup = async ({ sinceMs, sentAtMs, ...input }) => {
+  const work: StrandedWorkLookup = async ({
+    sinceMs,
+    sentAtMs,
+    intentChainTime,
+    idleBlock,
+    ...input
+  }) => {
     const indexed = await indexedBlock(input.chainId);
     const transactionHashes = new Map<string, Hex | undefined>();
     const identity = await resolveDeferredWorkIdentity({
@@ -119,14 +135,22 @@ export function createEasLandedLookup(deps: EasLookupDependencies = {}): EasLand
         },
       },
     });
-    if (identity.status === "waiting") return absentOnceCovered(input.chainId, indexed, sentAtMs);
+    if (identity.status === "waiting")
+      return absentOnceCovered(input.chainId, indexed, { sentAtMs, intentChainTime, idleBlock });
     // A failed metadata read or a duplicate identity proves nothing either way.
     if (identity.status !== "resolved") return { status: "unknown" };
     const transactionHash = transactionHashes.get(identity.workUID.toLowerCase());
     return transactionHash ? { status: "found", transactionHash } : { status: "unknown" };
   };
 
-  const decision: StrandedDecisionLookup = async ({ sinceMs, sentAtMs, steward, ...input }) => {
+  const decision: StrandedDecisionLookup = async ({
+    sinceMs,
+    sentAtMs,
+    intentChainTime,
+    idleBlock,
+    steward,
+    ...input
+  }) => {
     const indexed = await indexedBlock(input.chainId);
     const sent = await decisions({
       attester: steward,
@@ -139,7 +163,8 @@ export function createEasLandedLookup(deps: EasLookupDependencies = {}): EasLand
     // sending twice. One that differs in any field, such as its feedback or review
     // notes, is another decision, and never settles this send.
     const landed = sent.find(({ decision: made }) => sameDecision(made, input.decision));
-    if (!landed) return absentOnceCovered(input.chainId, indexed, sentAtMs);
+    if (!landed)
+      return absentOnceCovered(input.chainId, indexed, { sentAtMs, intentChainTime, idleBlock });
     return landed.transactionHash
       ? { status: "found", transactionHash: landed.transactionHash }
       : { status: "unknown" };

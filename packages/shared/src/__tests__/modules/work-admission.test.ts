@@ -94,6 +94,9 @@ describe("PWA durable submission boundary", () => {
         submittedAt: new Date().toISOString(),
         files: {},
         broadcastPending: true,
+        broadcastPendingAt: new Date().toISOString(),
+        intentBlock: 100n,
+        intentChainTime: 1_234,
       });
       throw new Error("Transaction failed", {
         cause: Object.assign(new Error("User rejected the request."), { code: 4001 }),
@@ -109,6 +112,8 @@ describe("PWA durable submission boundary", () => {
     expect(kept?.attempts).toBe(0);
     expect(kept?.meta?.requiresExplicitSend).toBe(true);
     expect((kept?.payload as WorkJobPayload).uploadCheckpoint?.broadcastPending).toBeFalsy();
+    // A refusal clears the whole intent, its chain head too.
+    expect((kept?.payload as WorkJobPayload).uploadCheckpoint?.intentChainTime).toBeUndefined();
   });
 
   it("sends a wallet work's photo as the JPEG it converts to, not the HEIC it was picked as", async () => {

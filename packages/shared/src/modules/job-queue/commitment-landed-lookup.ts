@@ -301,7 +301,13 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
       matches
     );
     if (log.row) return { status: "found", transactionHash: log.row.txHash as Hex };
-    if (!log.complete || checkedAt - sentAt < STRANDED_INTENT_GRACE_MS || indexed === null)
+    if (!log.complete || indexed === null) return { status: "unknown" };
+    // Anything the send did before it was last found idle landed by that block.
+    const idleBlock = sendCheckpointOf(job)?.idleBlock;
+    if (idleBlock !== undefined && indexed < idleBlock) return { status: "unknown" };
+    // Timed on the chain's clock when the send kept it, since the device's clock
+    // may since have moved either way, and on the device's clock otherwise.
+    if (recordedChainTime === undefined && checkedAt - sentAt < STRANDED_INTENT_GRACE_MS)
       return { status: "unknown" };
     // The intent on the chain's clock: kept with the intent, or, for a record
     // kept without it, the device clock set against the latest block as read.

@@ -38,11 +38,16 @@ import {
 
 /** How long a send may go unfound on-chain before its job is offered to send again. */
 export const STRANDED_INTENT_GRACE_MS = 30 * 60_000;
-/** The indexer trails the chain, so a younger send is not looked up yet. */
+/** The indexer trails the chain, so a younger send timed by the device is not looked up yet. */
 const LOOKUP_AFTER_MS = 2 * 60_000;
 /** One job is looked up at most this often. */
 const LOOKUP_INTERVAL_MS = 5 * 60_000;
-/** Device clocks drift, so the lookup reaches back this far before the recorded send. */
+/**
+ * The lookup reaches back this far before the send: from the chain's time
+ * when the send kept it, and from the device's otherwise, since a device's
+ * clock can drift. EAS stamps an attestation as it indexes it, so the chain's
+ * time gets the same margin.
+ */
 const CLOCK_DRIFT_MS = 24 * 60 * 60_000;
 
 type LookupResult = { status: "found"; transactionHash: Hex } | { status: "absent" | "unknown" };
@@ -52,6 +57,13 @@ export type StrandedLookupResult = LookupResult;
 interface LookupWindow {
   sinceMs: number;
   sentAtMs: number;
+  /** The chain's time at the intent, in seconds, when the send kept it. */
+  intentChainTime?: number;
+  /**
+   * The chain's head block when the send was last found idle: its lookup reads
+   * absent only once its indexer has passed it.
+   */
+  idleBlock?: bigint;
 }
 
 export type StrandedWorkLookup = (
@@ -84,6 +96,14 @@ export interface StrandedIntentDependencies<Lookup, Payload> {
    * saw it replaced.
    */
   transactionSuperseded: () => Promise<boolean>;
+  /**
+   * The chain's head: its block, and its time in seconds. A send that kept the
+   * chain's time waits out its window on that clock, since the device's may
+   * since have moved either way, and a lost send is reopened only a look after
+   * one that found nothing holding it. Without it, the device's clock times
+   * the send.
+   */
+  chainHead: () => Promise<{ number: bigint; timestamp: number }>;
 }
 
 /** A lookup is always supplied; the clock, the store and the guards may be. */
@@ -106,6 +126,41 @@ export class StrandedSendReopened extends Error {
 
 const lastLookupAt = new Map<string, number>();
 const persistJob = (job: Job) => jobQueueDB.updateJob(job);
+
+/**
+ * Whether the chain's clock has passed a send's grace window. A chain that
+ * cannot be read keeps the window open.
+ */
+async function chainPastWindow(
+  clock: { read: () => Promise<{ timestamp: number }>; windowEndsAt: number },
+  jobId: string
+): Promise<boolean> {
+  try {
+    return (await clock.read()).timestamp >= clock.windowEndsAt;
+  } catch (error) {
+    logger.warn("[StrandedIntent] Could not read the chain's time for a lost send", {
+      jobId,
+      error,
+    });
+    return false;
+  }
+}
+
+/** The chain's head block, or nothing when the chain cannot say. */
+async function chainHeadBlock(
+  read: () => Promise<{ number: bigint }>,
+  jobId: string
+): Promise<bigint | undefined> {
+  try {
+    return (await read()).number;
+  } catch (error) {
+    logger.warn("[StrandedIntent] Could not read the chain's head for a lost send", {
+      jobId,
+      error,
+    });
+    return undefined;
+  }
+}
 
 /**
  * Whether no receipt can settle this intent. A transaction hash never is:
@@ -132,6 +187,8 @@ async function resolveStrandedSend(send: {
   reopen?: () => void;
   /** Whether the send may still land, so a wallet prompt or the network may yet send it. */
   stillSending?: () => Promise<boolean>;
+  /** The chain's head: a send that kept the chain's time is timed on it. */
+  chainHead?: () => Promise<{ number: bigint; timestamp: number }>;
   persist: () => Promise<void>;
 }): Promise<StrandedIntentResolution> {
   const { checkpoint, jobId, now } = send;
@@ -143,16 +200,35 @@ async function resolveStrandedSend(send: {
     return { status: "waiting" };
   }
   const age = now - recordedAt;
-  if (age < LOOKUP_AFTER_MS) return { status: "waiting" };
-  if (now - (lastLookupAt.get(jobId) ?? Number.NEGATIVE_INFINITY) < LOOKUP_INTERVAL_MS)
+  // A send that kept the chain's time waits out its window on that clock when
+  // it can be read, since the device's clock may since have moved either way.
+  // Any other send is timed by the device's clock.
+  const chainClock =
+    checkpoint.intentChainTime !== undefined && send.chainHead
+      ? {
+          read: send.chainHead,
+          windowEndsAt: checkpoint.intentChainTime + STRANDED_INTENT_GRACE_MS / 1000,
+        }
+      : undefined;
+  if (!chainClock && age < LOOKUP_AFTER_MS) return { status: "waiting" };
+  // A device clock set back since the last lookup never holds the next one.
+  const lastLookup = lastLookupAt.get(jobId);
+  if (lastLookup !== undefined && now >= lastLookup && now - lastLookup < LOOKUP_INTERVAL_MS)
     return { status: "waiting" };
   lastLookupAt.set(jobId, now);
 
   let lookup: LookupResult;
   try {
     lookup = await send.lookUp({
-      sinceMs: Math.min(recordedAt, send.createdAt) - CLOCK_DRIFT_MS,
+      // A window read off a device's clock running days fast would open after
+      // the send's own attestation, and its absence would reopen a landed send.
+      sinceMs:
+        (checkpoint.intentChainTime !== undefined
+          ? checkpoint.intentChainTime * 1000
+          : Math.min(recordedAt, send.createdAt)) - CLOCK_DRIFT_MS,
       sentAtMs: recordedAt,
+      intentChainTime: checkpoint.intentChainTime,
+      idleBlock: checkpoint.idleBlock,
     });
   } catch (error) {
     logger.warn("[StrandedIntent] Could not check whether a queued send landed", {
@@ -165,9 +241,34 @@ async function resolveStrandedSend(send: {
     lastLookupAt.delete(jobId);
     return { status: "landed", transactionHash: lookup.transactionHash };
   }
-  if (lookup.status === "unknown" || age < STRANDED_INTENT_GRACE_MS) return { status: "waiting" };
-  // A prompt still open in a tab the OS froze can send after any window.
-  if (!send.reopen || (await send.stillSending?.())) return { status: "waiting" };
+  if (lookup.status === "unknown") return { status: "waiting" };
+  // The window holds even a lookup's absence: one may answer on a module's word
+  // alone, as a work link's does, while the send is still on its way.
+  const windowPassed = chainClock
+    ? await chainPastWindow(chainClock, jobId)
+    : age >= STRANDED_INTENT_GRACE_MS;
+  if (!windowPassed || !send.reopen) return { status: "waiting" };
+  // A prompt still open in a tab the OS froze can send after any window, and
+  // whatever holds the send now may be sending it: a head kept before goes.
+  if (await send.stillSending?.()) {
+    if (checkpoint.idleBlock !== undefined) {
+      delete checkpoint.idleBlock;
+      await send.persist();
+    }
+    return { status: "waiting" };
+  }
+  // Nothing holds it now, so anything it sent landed by the chain's head or
+  // would still be pending. That head is kept, and the send is reopened on a
+  // later look, once its lookup's indexer has passed it. A tab closed after
+  // its wallet answered needs this, since its window counts from before the prompt.
+  if (send.chainHead && checkpoint.idleBlock === undefined) {
+    const idleBlock = await chainHeadBlock(send.chainHead, jobId);
+    if (idleBlock !== undefined) {
+      checkpoint.idleBlock = idleBlock;
+      await send.persist();
+    }
+    return { status: "waiting" };
+  }
 
   // Still absent well after the send: nothing landed, so the job may be sent again.
   send.reopen();
@@ -222,6 +323,7 @@ async function resolveRecordedSend<Payload>(input: {
     // A transaction on record may still land until another takes its nonce.
     stillSending: async () =>
       Boolean(await deps.stillSending?.()) || (onRecord && !(await superseded?.())),
+    chainHead: deps.chainHead,
     persist: () => persist(job),
   });
 }

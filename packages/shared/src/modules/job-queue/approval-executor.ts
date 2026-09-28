@@ -69,6 +69,7 @@ export async function executeApprovalJob(
         lookUp: deps.lookUpLanded ?? createEasLandedLookup().decision,
         stillSending: () => sendMayStillLand(stranded, reads),
         transactionSuperseded: () => recordedTransactionSuperseded(stranded, reads),
+        chainHead: reads.readChainHead,
         persist,
       });
     });
@@ -112,6 +113,9 @@ export async function executeApprovalJob(
       sender,
       call: contractCall,
       jobIds: [job.id],
+      // Read just before the intent, after any prompt: a lost send is then
+      // timed on the chain's clock.
+      readChainHead: reads.readChainHead,
       record: async (next) => {
         writeSendCheckpoint(job, next(payload.sendCheckpoint ?? {}));
         await persist(job);

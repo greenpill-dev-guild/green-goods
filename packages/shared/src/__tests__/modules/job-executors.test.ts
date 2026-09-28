@@ -29,6 +29,7 @@ import { PendingHeicConversionError } from "../../modules/work/work-attachments"
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { hasRecordedSend, sendCheckpointOf } from "../../modules/job-queue/queue-policy";
 import { WorkSendCancelledError } from "../../modules/work/send-outcome";
+import { intentHead } from "../../modules/job-queue/send-chain-reads";
 import { StrandedSendReopened } from "../../modules/work/stranded-intent";
 import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
 
@@ -764,7 +765,12 @@ describe("commitment acts record their sends", () => {
     const jobStore = store();
     const reconcile = vi.fn().mockResolvedValue("unresolved");
     // The chain's head goes with the intent: nothing this send did can predate it.
-    const readChainHead = vi.fn().mockResolvedValue({ number: 100n, timestamp: 1_234 });
+    // It is read again just before the intent, after any prompt, so a prompt left
+    // open never ages it.
+    const readChainHead = vi
+      .fn()
+      .mockResolvedValueOnce({ number: 100n, timestamp: 1_234 })
+      .mockResolvedValue({ number: 101n, timestamp: 1_240 });
     // The nonce comes off the transaction itself once it is out: the wallet
     // may know sends this network does not, so a count read before the prompt
     // is only a floor.
@@ -783,8 +789,8 @@ describe("commitment acts record their sends", () => {
     // The stored job says the send is out, so no screen offers to drop it.
     expect(sendCheckpointOf(claim)).toMatchObject({
       transactionHash: HASH,
-      intentChainTime: 1_234,
-      intentBlock: 100n,
+      intentChainTime: 1_240,
+      intentBlock: 101n,
       transactionNonce: { hash: HASH, nonce: 7 },
     });
     expect(readTransactionNonce).toHaveBeenCalledWith(HASH);
@@ -1020,6 +1026,62 @@ describe("commitment acts record their sends", () => {
     }
   });
 
+  it("waits out a lost act that kept the chain's time on the chain's clock, whichever way the device's clock moved", async () => {
+    // The device's clock ran two hours fast when the send was recorded and has
+    // since been set right, so by the device the send has not happened yet.
+    const intentAt = Math.floor(Date.now() / 1000) - 45 * 60;
+    const lost = (id: string) => {
+      const act = takeUp(id);
+      act.payload = {
+        ...act.payload,
+        sendCheckpoint: {
+          broadcastPending: true,
+          broadcastPendingAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(),
+          intentChainTime: intentAt,
+          intentBlock: 100n,
+        },
+      } as typeof act.payload;
+      return act;
+    };
+    const readChainHead = vi.fn();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const deps = {
+      demoActive: () => false,
+      reads: {
+        ...reads(),
+        readChainHead,
+        hasPendingTransaction: vi.fn().mockResolvedValue(false),
+        userOperationMayLand: vi.fn().mockResolvedValue(false),
+      },
+      store: store(),
+      lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
+    };
+    const settle = (act: ReturnType<typeof lost>) =>
+      executeCommitmentQueueJob(act.id, act, 42161, sender, deps);
+    stubWebLocks(new Set());
+
+    try {
+      // Ten minutes after the send on the chain's clock, its window holds it.
+      readChainHead.mockResolvedValueOnce({ number: 100n, timestamp: intentAt + 10 * 60 });
+      await expect(settle(lost("claim-window-open"))).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+      // Past the window on the chain's clock, with nothing holding it, the head is
+      // kept: the act is offered again once the indexer has passed that block.
+      readChainHead.mockResolvedValue({ number: 200n, timestamp: intentAt + 31 * 60 });
+      const passed = lost("claim-window-passed");
+      await expect(settle(passed)).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+      expect(sendCheckpointOf(passed)?.idleBlock).toBe(200n);
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("offers a transaction on record again only once another took its nonce", async () => {
     // Long past the grace window, no receipt, and the chain holds no sign of the act.
     const unanswered = (id: string, nonce?: number, extra: Record<string, unknown> = {}) => {
@@ -1150,6 +1212,13 @@ describe("commitment acts record their sends", () => {
     );
     expect(sender.sendContractCall).not.toHaveBeenCalled();
     expect(hasRecordedSend(claim)).toBe(false);
+  });
+});
+
+describe("the chain's head a send keeps", () => {
+  it("gives up on a chain slow to say, so a signed send never waits on it", async () => {
+    const never = () => new Promise<{ number: bigint; timestamp: number }>(() => undefined);
+    await expect(intentHead(never, 5)).resolves.toBeUndefined();
   });
 });
 
@@ -2013,6 +2082,40 @@ describe("work and decisions keep the send rules commitment acts follow", () => 
 
   it.each(
     kinds
+  )("keeps the chain's head with a $kind's intent, and sends without it when the chain cannot say", async ({
+    kind,
+    make,
+    run,
+  }) => {
+    const steps: string[] = [];
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      // A passkey signs before its intent: a prompt left open must not age the head.
+      steps.push("signed");
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(HASH);
+      return { hash: HASH, sponsored: false };
+    });
+    // A lost send is then timed on the chain's clock, whatever the device's clock does.
+    const kept = make(`${kind}-keeps-head`);
+    const readChainHead = vi.fn(async () => {
+      steps.push("head read");
+      return { number: 100n, timestamp: 1_234 };
+    });
+    await expect(run(kept, sender, { reads: { readChainHead } })).resolves.toBe(HASH);
+    expect(sendCheckpointOf(kept)).toMatchObject({ intentBlock: 100n, intentChainTime: 1_234 });
+    expect(steps).toEqual(["signed", "head read"]);
+
+    // The lookup falls back to the device's clock, so a failed read never stops the send.
+    const unread = make(`${kind}-head-unread`);
+    const failing = vi.fn().mockRejectedValue(new Error("rpc unavailable"));
+    await expect(run(unread, sender, { reads: { readChainHead: failing } })).resolves.toBe(HASH);
+    expect(sendCheckpointOf(unread)).toMatchObject({ transactionHash: HASH });
+    expect(sendCheckpointOf(unread)?.intentChainTime).toBeUndefined();
+  });
+
+  it.each(
+    kinds
   )("offers a lost $kind again only when no tab holds it, its account has nothing waiting and its bundler cannot land it", async ({
     kind,
     make,
@@ -2061,6 +2164,52 @@ describe("work and decisions keep the send rules commitment acts follow", () => 
       const released = lost("released");
       await expect(run(released, sender, deps)).rejects.toBeInstanceOf(StrandedSendReopened);
       expect(hasRecordedSend(released)).toBe(false);
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it.each(
+    kinds
+  )("waits out a lost $kind that kept the chain's time on the chain's clock, whichever way the device's clock moved", async ({
+    kind,
+    make,
+    run,
+  }) => {
+    // The device's clock ran two hours fast when the send was recorded and has
+    // since been set right, so by the device the send has not happened yet.
+    const intentAt = Math.floor(Date.now() / 1000) - 45 * 60;
+    const lost = (id: string) =>
+      make(`${kind}-${id}`, {
+        broadcastPending: true,
+        broadcastPendingAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(),
+        intentChainTime: intentAt,
+      });
+    const readChainHead = vi.fn();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const deps = {
+      reads: {
+        readChainHead,
+        hasPendingTransaction: vi.fn().mockResolvedValue(false),
+        userOperationMayLand: vi.fn().mockResolvedValue(false),
+      },
+      lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
+    };
+    stubWebLocks(new Set());
+
+    try {
+      // Ten minutes after the send on the chain's clock, its window holds it.
+      readChainHead.mockResolvedValueOnce({ number: 100n, timestamp: intentAt + 10 * 60 });
+      await expect(run(lost("window-open"), sender, deps)).rejects.toBeInstanceOf(
+        AwaitingWorkConfirmation
+      );
+      // Past the window on the chain's clock, with nothing holding it, the head is
+      // kept: the send is offered again once the indexer has passed that block.
+      readChainHead.mockResolvedValue({ number: 200n, timestamp: intentAt + 31 * 60 });
+      const passed = lost("window-passed");
+      await expect(run(passed, sender, deps)).rejects.toBeInstanceOf(AwaitingWorkConfirmation);
+      expect(sendCheckpointOf(passed)?.idleBlock).toBe(200n);
       expect(sender.sendContractCall).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();

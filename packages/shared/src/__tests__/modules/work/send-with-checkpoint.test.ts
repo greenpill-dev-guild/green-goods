@@ -94,6 +94,72 @@ describe("sending one call while recording how far it got", () => {
     });
   });
 
+  it("reads the chain's head just before the intent, after any prompt, and keeps it on every record", async () => {
+    const { record, history } = recorder();
+    const steps: string[] = [];
+    const sender = createMockTransactionSender();
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      // A passkey signs before its intent: a prompt left open must not age the head.
+      steps.push("signed");
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: OPERATION });
+      await options?.onBroadcastReference?.({ kind: "user-operation", hash: OPERATION });
+      await options?.onBroadcast?.(TX);
+      return { hash: TX, sponsored: true };
+    });
+    // Nothing this send does can land before that head, so a lost send is timed from it.
+    const head = { intentBlock: 100n, intentChainTime: 1_234 };
+    const readChainHead = vi.fn(async () => {
+      steps.push("head read");
+      return { number: 100n, timestamp: 1_234 };
+    });
+
+    await sendWithCheckpoint({
+      sender,
+      call: createMockContractCall(),
+      jobIds: JOBS,
+      record: record as never,
+      now: () => AT,
+      readChainHead,
+    });
+
+    expect(steps).toEqual(["signed", "head read"]);
+    expect(readChainHead).toHaveBeenCalledOnce();
+    expect(history).toEqual([
+      {
+        broadcastPending: true,
+        broadcastPendingAt: "2026-09-18T10:00:00.000Z",
+        broadcast: { kind: "user-operation", hash: OPERATION },
+        ...head,
+      },
+      expect.objectContaining(head),
+      expect.objectContaining({ transactionHash: TX, ...head }),
+    ]);
+  });
+
+  it("keeps the head read before the send on a hash a sender only returns", async () => {
+    // An older or custom sender reports nothing before it returns, so nothing
+    // marks the point before it went out: a head read once it returned could
+    // follow its own block, so the head read before the send is kept.
+    const { record, current } = recorder();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockResolvedValue({ hash: TX, sponsored: false });
+    const readChainHead = vi.fn(async () => ({ number: 105n, timestamp: 1_300 }));
+    const head = { intentBlock: 100n, intentChainTime: 1_234 };
+
+    await sendWithCheckpoint({
+      sender,
+      call: createMockContractCall(),
+      jobIds: JOBS,
+      record: record as never,
+      now: () => AT,
+      readChainHead,
+      headBeforeSend: head,
+    });
+
+    expect(current()).toMatchObject({ transactionHash: TX, ...head });
+    expect(readChainHead).not.toHaveBeenCalled();
+  });
+
   it("clears the intent when the estimate reverts after it, since nothing was signed", async () => {
     // The chain moved between the preflight and the wallet's own estimate.
     const refusals = [

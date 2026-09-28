@@ -657,4 +657,41 @@ describe("Upload all", () => {
     expect(readTransactionNonce).toHaveBeenCalledOnce();
     expect(readTransactionNonce).toHaveBeenCalledWith(TX, 42161);
   });
+
+  it("keeps the chain's head with every item's intent, and sends without it when the chain cannot say", async () => {
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(TX);
+      throw new Error("receipt timeout");
+    });
+    // Read once for the call, just before it goes out: a lost call is then
+    // timed on the chain's clock.
+    const kept = [work(), decision()];
+    const readChainHead = vi.fn(async () => ({ number: 100n, timestamp: 1_234 }));
+    const keeping = harness(kept, { readChainHead });
+    await expect(upload(keeping.ports, sender)).resolves.toMatchObject({
+      status: "send-unconfirmed",
+    });
+    for (const { id } of kept)
+      expect(sendOf(keeping.store, id)).toMatchObject({
+        intentBlock: 100n,
+        intentChainTime: 1_234,
+      });
+    expect(readChainHead).toHaveBeenCalledOnce();
+    expect(readChainHead).toHaveBeenCalledWith(42161);
+
+    // The lookup falls back to the device's clock, so a failed read never stops the call.
+    const unread = work();
+    const failing = harness([unread], {
+      readChainHead: vi.fn(async () => {
+        throw new Error("rpc unavailable");
+      }),
+    });
+    await expect(upload(failing.ports, sender)).resolves.toMatchObject({
+      status: "send-unconfirmed",
+    });
+    expect(sendOf(failing.store, unread.id)).toMatchObject({ transactionHash: TX });
+    expect(sendOf(failing.store, unread.id)?.intentChainTime).toBeUndefined();
+  });
 });

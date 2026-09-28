@@ -376,8 +376,15 @@ describe("modules/job-queue", () => {
     let removeLocks: () => void;
     beforeEach(() => {
       removeLocks = addWebLocks();
+      // A lost send is looked up at most every five minutes, so time moves on
+      // between the looks these tests take.
+      vi.useFakeTimers({ toFake: ["Date"], now: Date.now() });
     });
-    afterEach(() => removeLocks());
+    afterEach(() => {
+      removeLocks();
+      vi.useRealTimers();
+    });
+    const nextLook = () => vi.setSystemTime(Date.now() + 6 * 60_000);
 
     const strandedWork = async () => {
       const jobId = await jobQueue.addJob(
@@ -407,6 +414,14 @@ describe("modules/job-queue", () => {
       const jobId = await strandedWork();
       const sender = createMockTransactionSender();
 
+      // The first look finds nothing holding it and keeps the chain's head.
+      await expect(jobQueue.processJob(jobId, { transactionSender: sender })).resolves.toEqual({
+        success: false,
+        error: "awaiting-confirmation",
+        skipped: true,
+      });
+      // The next, with the indexers past that head, reopens it.
+      nextLook();
       await expect(jobQueue.processJob(jobId, { transactionSender: sender })).resolves.toEqual({
         success: false,
         error: "send-intent-expired",
@@ -474,6 +489,9 @@ describe("modules/job-queue", () => {
     it("sends in the same tap when the tap is what finds the send never landed", async () => {
       const jobId = await strandedWork();
       const sender = createMockTransactionSender();
+      // A look before found nothing holding it.
+      await jobQueue.processJob(jobId, { transactionSender: sender });
+      nextLook();
 
       await expect(
         jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })

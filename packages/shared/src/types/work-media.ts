@@ -20,6 +20,14 @@ export interface WorkUploadCheckpoint {
    */
   intentBlock?: bigint;
   /**
+   * The chain's head block when a lost send was last found idle, its window
+   * past: no tab held it, its account had nothing pending and its bundler
+   * could not land it. Anything it sent before then landed by this block or
+   * would still be pending, so it reads absent only once an indexer has
+   * passed this block.
+   */
+  idleBlock?: bigint;
+  /**
    * The nonce the recorded transaction used, read off the transaction while the
    * network held it, with the hash it was read for. Only this can show that
    * another transaction took its nonce: the account's next nonce read before

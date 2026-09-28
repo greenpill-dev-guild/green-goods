@@ -43,5 +43,6 @@ export async function createDefaultUploadQueuedWorkPorts(): Promise<UploadQueued
     now: () => Date.now(),
     readTransactionNonce: (hash, chainId) =>
       createSendChainReads({ chainId }).readTransactionNonce(hash),
+    readChainHead: (chainId) => createSendChainReads({ chainId }).readChainHead(),
   };
 }

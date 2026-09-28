@@ -89,6 +89,7 @@ export async function executeWorkJob(
         lookUp: deps.lookUpLanded ?? createEasLandedLookup().work,
         stillSending: () => sendMayStillLand(stranded, reads),
         transactionSuperseded: () => recordedTransactionSuperseded(stranded, reads),
+        chainHead: reads.readChainHead,
       });
     });
   const checkpoint = payload.uploadCheckpoint;
@@ -190,6 +191,9 @@ export async function executeWorkJob(
       sender,
       call: { ...contractCall, chainId },
       jobIds: [jobId],
+      // Read just before the intent, after any prompt: a lost send is then
+      // timed on the chain's clock.
+      readChainHead: reads.readChainHead,
       assertOwnership: async () => {
         await sender.assertOwnership?.(job.userAddress, chainId);
       },
