@@ -25,6 +25,7 @@ const mockGetEnsAddress = vi.fn();
 const ENS_ADDRESS = "0xENSContract000000000000000000000000000001";
 const L1_RECEIVER_ADDRESS = "0xL1Receiver0000000000000000000000000000001";
 const MOCK_OWNER = "0x1234567890123456789012345678901234567890";
+const OTHER_OWNER = "0x2345678901234567890123456789012345678901";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 vi.mock("../../../utils/blockchain/contracts", () => ({
@@ -304,19 +305,73 @@ describe("useENSRegistrationStatus", () => {
 
   it("does not apply an earlier completed release to a later reservation", async () => {
     const { wrapper, queryClient } = createTestWrapper();
+    const submittedAt = Date.now() - 24 * 60 * 60_000;
     queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
       status: "available",
       release: { owner: MOCK_OWNER },
-      submittedAt: Date.now() - 24 * 60 * 60_000,
+      submittedAt,
     });
     mockReadContract
       .mockResolvedValueOnce(MOCK_OWNER)
       .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
-      .mockResolvedValueOnce({ owner: MOCK_OWNER, nameType: 0, registeredAt: 1700000000n });
+      .mockResolvedValueOnce({
+        owner: MOCK_OWNER,
+        nameType: 0,
+        registeredAt: BigInt(Math.floor(submittedAt / 1000) + 30),
+      });
     const { result } = renderHook(() => useENSRegistrationStatus("carol"), { wrapper });
     await waitFor(() => expect(result.current.data?.status).toBe("active"));
     expect(result.current.data?.release).toBeUndefined();
     expect(result.current.data?.submittedAt).toBeUndefined();
+  });
+
+  it("keeps a completed release available when the sender still reports its former owner", async () => {
+    const { wrapper, queryClient } = createTestWrapper();
+    const release = { owner: MOCK_OWNER };
+    const submittedAt = Date.now() - 60_000;
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+      status: "available",
+      release,
+      submittedAt,
+    });
+    mockReadContract
+      .mockResolvedValueOnce(MOCK_OWNER)
+      .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
+      .mockResolvedValueOnce({ owner: ZERO_ADDRESS, nameType: 0, registeredAt: 0n });
+    mockGetEnsAddress.mockResolvedValue(null);
+
+    const { result } = renderHook(() => useENSRegistrationStatus("carol"), { wrapper });
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(result.current.data).toMatchObject({ status: "available", release, submittedAt });
+  });
+
+  it("clears the former owner's cached name after a receiver takeover", async () => {
+    const { wrapper, queryClient } = createTestWrapper();
+    const submittedAt = Date.now() - 60_000;
+    const oldOwnerNameKey = ensKeys.protocolName(MOCK_OWNER.toLowerCase());
+    queryClient.setQueryDefaults(oldOwnerNameKey, { gcTime: Infinity });
+    queryClient.setQueryData(oldOwnerNameKey, "carol.greengoods.eth");
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+      status: "pending",
+      release: { owner: MOCK_OWNER },
+      submittedAt,
+    });
+    mockReadContract
+      .mockResolvedValueOnce(ZERO_ADDRESS)
+      .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
+      .mockResolvedValueOnce({
+        owner: OTHER_OWNER,
+        nameType: 0,
+        registeredAt: BigInt(Math.floor(submittedAt / 1000) + 30),
+      });
+    mockGetEnsAddress.mockResolvedValue(OTHER_OWNER);
+
+    const { result } = renderHook(() => useENSRegistrationStatus("carol"), { wrapper });
+    await waitFor(() => expect(result.current.data?.status).toBe("active"));
+    expect(result.current.data?.registration?.owner).toBe(OTHER_OWNER);
+    expect(queryClient.getQueryData(oldOwnerNameKey)).toBeNull();
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: oldOwnerNameKey });
   });
 
   it("recognizes a receiver-only registration for the same owner after a completed release", async () => {

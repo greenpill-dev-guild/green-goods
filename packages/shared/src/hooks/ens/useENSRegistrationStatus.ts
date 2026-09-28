@@ -121,16 +121,22 @@ export function useENSRegistrationStatus(slug: string | undefined) {
               submittedAt !== undefined &&
               registration.owner !== zeroAddress &&
               registration.registeredAt > BigInt(Math.floor(submittedAt / 1000));
+            const receiverHasDifferentOwner =
+              release &&
+              registration.owner !== zeroAddress &&
+              registration.owner.toLowerCase() !== release.owner.toLowerCase();
             if (
               release &&
               (receiverRegisteredAfterRelease ||
-                (previousData?.status === "available" &&
-                  (l2Owner !== zeroAddress ||
-                    (registration.owner !== zeroAddress &&
-                      registration.owner.toLowerCase() !== release.owner.toLowerCase()))))
+                (previousData?.status === "available" && receiverHasDifferentOwner))
             ) {
-              // A later receiver registration is authoritative even if this
-              // client missed the release's available state.
+              // A stale sender read cannot undo a confirmed release. Only the
+              // receiver can prove that a later registration replaced it.
+              if (receiverHasDifferentOwner) {
+                const oldOwnerNameKey = ensKeys.protocolName(release.owner.toLowerCase());
+                queryClient.setQueryData(oldOwnerNameKey, null);
+                void queryClient.invalidateQueries({ queryKey: oldOwnerNameKey });
+              }
               release = undefined;
               submittedAt = undefined;
               ccipMessageId = undefined;

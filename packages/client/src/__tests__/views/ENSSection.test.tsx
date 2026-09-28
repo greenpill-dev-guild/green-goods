@@ -368,6 +368,20 @@ describe("Profile ENSSection", () => {
     expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
   });
 
+  it("hides release when a stale reverse lookup points to another owner's active name", () => {
+    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
+    mockSlugValue = "canopy";
+    mockRegistrationData = {
+      status: "active",
+      registration: { owner: "0x2345678901234567890123456789012345678901" },
+    };
+
+    renderENSSection();
+
+    expect(screen.queryByRole("button", { name: "Release Username" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Claim Name" })).toBeEnabled();
+  });
+
   it.each([
     "pending",
     "available",

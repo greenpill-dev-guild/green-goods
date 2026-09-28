@@ -82,13 +82,18 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
     registrationData?.status === "available" &&
     registrationData.release?.owner.toLowerCase() === primaryAddress?.toLowerCase();
   const isReleasing = Boolean(registrationData?.release && !isReleased);
-  const showClaimForm = !isSubmitting && (isReleased || (!activeSlug && !isNameLoading));
+  const nameOwnedByAnotherAccount =
+    registrationData?.status === "active" &&
+    Boolean(registrationData.registration) &&
+    registrationData.registration?.owner.toLowerCase() !== primaryAddress?.toLowerCase();
+  const showClaimForm =
+    !isSubmitting && (isReleased || nameOwnedByAnotherAccount || (!activeSlug && !isNameLoading));
   const { data: isSlugAvailable, isFetching: isCheckingSlug } = useSlugAvailability(
     showClaimForm ? slugValue || undefined : undefined
   );
   const showENSSection = primaryAddress && !isMembershipLoading;
-  const isReady = registrationData?.status === "active";
-  const showRelease = existingSlug && !isSubmitting && !isReleased;
+  const isReady = registrationData?.status === "active" && !nameOwnedByAnotherAccount;
+  const showRelease = existingSlug && !isSubmitting && !isReleased && !nameOwnedByAnotherAccount;
 
   const isReleaseUnavailable = ensRelease.isSponsoredReleaseUnavailable;
 
