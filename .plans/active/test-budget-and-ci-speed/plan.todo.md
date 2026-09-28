@@ -68,7 +68,7 @@ the [follow-through report](reports/2026-09-28-velocity-follow-through.md).
 | [x] | 1 | Machine-wide test lease in the package test path: the second full run waits, names the holder and never times out; timing bound (both within twice one quiet run) not met in contended samples | Report § Slice 1 |
 | [x] | 2 | Critical scope matches D1: 52 read-only hooks left the tier, 60 uncovered mutation files entered it; the selector escalates new ones from their code; CI Gate guards the list | Report § Slice 2 |
 | [x] | 3 | Critical push 274 s cold (twice) and 3 s on a rerun; read-only hook 6–8 s cold; estimate 267 s instead of 965 s | Report § Slice 3 |
-| [ ] | 4 | Route `test-quality`, `docs-generated` and `docs-authority` in the push gate | |
+| [x] | 4 | Push gate routes `test-quality`, `docs-generated`, `docs-authority`: 37 of 39 CI red pairs now select their check (19 own paths, 18 branch diff); 2 were base drift whose introducer now selects it | Report § Slice 4 |
 | [ ] | 5 | DetailsGate table (D5); Client passes at one worker | |
 | [ ] | 6 | Shared Node project split: shared-graph files and a lean setup | |
 | [ ] | 7 | happy-dom A/B for the Shared DOM project (D2) | |

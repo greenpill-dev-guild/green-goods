@@ -328,3 +328,58 @@ Proof:
 | GREEN | the three suites together | 148/148 |
 | Selected | `validation-system-test` | 328/329; the pre-existing parity failure only |
 | Selected | `docs-authority` (2 s), `docs-build` (4 s), `agent-guidance` | all exit 0 |
+
+## Slice 4 — route the checks the push gate missed
+
+New push-intent rules, read from the tools themselves:
+
+- **`test-quality`:** `scripts/quality/check-test-quality.sh` scans every tracked test or spec file
+  (including `.t.sol`), checks new local query setups in tests, and fingerprints each certified
+  seam's module, composition roots, consumers, proof files and owning manifest. The rule matches
+  test, helper and mock paths, the 12 non-test seam files, and the check's own scripts. Measured
+  1–2 s.
+- **`docs-generated`:** the 90 sources `projectionSourcePaths()` reports, as 69 exact paths plus
+  `.github/workflows/`, `docs/`, `packages/contracts/deployments/` and the generator in
+  `scripts/docs/`. Measured under 1 s.
+- **`docs-authority`:** `docs/scripts/docs-audit.mjs` reads `docs/`, the root and package guides,
+  `.claude/context` and skills, workflows and the command ledgers. Its retired-caller scan opens
+  every tracked script, config and guide outside Plan Hubs. The rule matches those extensions
+  outside `.plans/`, so most pushes now run it. Measured 2 s.
+- **Drift tests:** two selector tests fail when `projectionSourcePaths()` and the rule drift apart
+  (in either direction), or when a seam-fingerprinted file stops selecting `test-quality`.
+- **Scope:** the rules apply to push intent only, so checkpoint, ship, merge, readiness and release
+  plans are unchanged. Across 5,857 single-path push scenarios no risk or status changed; the
+  plans only gained these checks.
+
+Replay of the Actions API reds (failed runs created 2026-09-19..28; step names "Check test quality",
+"Check generated documentation", "Audit documentation authority"). The API returned 38 commits,
+two more than the brief's 36; runs after it was written account for the difference. That is 39
+commit/check pairs: 10 `test-quality`, 19 `docs-generated`, 10 `docs-authority`. Before this slice
+the push plan for each commit's own paths selected none of them.
+
+| Now | Pairs | Evidence |
+|---|---:|---|
+| Selected by the commit's own paths | 19 | replay of `git diff <parent> <sha>` |
+| Selected by the branch diff the push gate evaluates | 18 | 16 against the PR's fork point; two direct pushes against their `develop` merge base |
+| Base drift, not the commit's own change | 2 | `baa29c0135` (#856) and `459ca0b904` (direct develop push) |
+
+The causes, from the failing step logs:
+
+- **`test-quality`:** new local query clients in tests (4) and stale seam fingerprints (6), four
+  of them after a `packages/shared/package.json` edit that the fingerprint covers.
+- **`docs-authority`:** all 10 failed on one line: `scripts/harness/agent-hooks.test.mjs: Retired
+  command caller deploy:mainnet at line 115`. `f9bbeb9dd` (September 26) added that line, and its
+  paths now select `docs-authority`.
+- **The two base-drift pairs:** both were already stale at their base (`574918cb5`, `35baa35d6`),
+  with exactly the pages CI named. First-parent search places the introducer at `35baa35d6`
+  (September 19, "refuse commits made under an address reserved for tests"). It edited
+  `ci-gate.yml` and the validation policy without regenerating, and now selects `docs-generated`.
+
+Proof:
+
+| Step | Command | Result |
+|---|---|---|
+| RED | `node scripts/dev/node-cli.js node --test --test-name-pattern "push gate routes test quality\|every docs generator input\|every file a certified seam" scripts/quality/select-validation.test.mjs` | 0/3 |
+| GREEN | `select-validation.test.mjs`, `ci-local.test.mjs`, `package-commands.test.mjs` | 151/151; five exact-list push tests now include the routed checks |
+| Selected | `validation-system-test` | 331/332; the pre-existing parity failure only |
+| Selected | `test-quality`, `docs-authority`, `docs-build`, `agent-guidance`, `docs-generated --check` | all exit 0 |

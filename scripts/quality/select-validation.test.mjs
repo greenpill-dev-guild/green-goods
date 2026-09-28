@@ -705,7 +705,7 @@ test("routine push uses focused owner proof inside the hard 90-second limit", ()
   });
 
   assert.equal(plan.status, "ready");
-  assert.deepEqual(ids(plan), ["format", "lint", "shared-test", "source-structure"]);
+  assert.deepEqual(ids(plan), ["format", "lint", "shared-test", "docs-authority", "source-structure"]);
   assert.equal(
     plan.checks.find((check) => check.id === "format").command,
     `bunx @biomejs/biome format --no-errors-on-unmatched '${changedPath}'`,
@@ -1231,6 +1231,7 @@ test("push requires focused client proof while ship retains the full local surfa
   assert.deepEqual(ids(push), [
     "format",
     "lint",
+    "docs-authority",
     "staged-modules",
     "source-structure",
   ]);
@@ -1245,6 +1246,7 @@ test("push requires focused client proof while ship retains the full local surfa
     "format",
     "lint",
     "client-test",
+    "docs-authority",
     "staged-modules",
     "source-structure",
   ]);
@@ -1281,7 +1283,9 @@ test("push keeps test-only proof focused while strict intents preserve owning ga
     assert.deepEqual(ids(push), [
       "format",
       "lint",
+      "test-quality",
       `${surface}-test`,
+      "docs-authority",
     ]);
     assert.equal(
       push.checks.find((check) => check.id === `${surface}-test`)?.command,
@@ -1356,11 +1360,14 @@ test("critical Work path packages/shared/src/modules/work/submit.ts retains its 
     )
       ? ["browser-proof"]
       : [];
+    // useWorkMutation is fingerprinted by a certified seam, so test-quality guards the registry.
+    const seamProof = changedPath.endsWith("hooks/work/useWorkMutation.ts") ? ["test-quality"] : [];
     assert.deepEqual(
       ids(plan),
       [
         "format",
         "lint",
+        ...seamProof,
         "shared-typecheck",
         "shared-test-typecheck",
         "shared-test",
@@ -1375,6 +1382,7 @@ test("critical Work path packages/shared/src/modules/work/submit.ts retains its 
         "agent-test-typecheck",
         "agent-test",
         "agent-build",
+        "docs-authority",
         "source-structure",
         ...advisoryProof,
       ],
@@ -2167,4 +2175,61 @@ test("measured budgets keep routine and sensitive push decisions", () => {
   const summed = critical.checks.reduce((total, check) => total + check.budgetSeconds, 0);
   assert.equal(critical.budget.estimatedWallSeconds, summed);
   assert.ok(summed < 300, `the critical estimate follows measured budgets, got ${summed}s`);
+});
+
+test("the push gate routes test quality and generated or audited docs to the paths that break them", () => {
+  const push = (changedPath) => ids(selectValidation({ intent: "push", changedPaths: [changedPath] }));
+  for (const changedPath of [
+    "packages/shared/src/__tests__/hooks/garden/useFilteredGardens.test.ts",
+    "packages/shared/src/__tests__/test-utils/query-client.ts",
+    "packages/shared/src/__mocks__/eas-sdk.ts",
+    "packages/contracts/test/unit/CreditRegistry.t.sol",
+    "packages/indexer/test/credit-registry.test.ts",
+    "scripts/quality/select-validation.test.mjs",
+    "tests/specs/admin.smoke.spec.ts",
+  ]) {
+    assert.ok(push(changedPath).includes("test-quality"), changedPath);
+  }
+  assert.ok(!push("packages/shared/src/hooks/app/useLoadingWithMinDuration.ts").includes("test-quality"));
+
+  for (const changedPath of ["docs/docs/community/green-goods-claims.generated.mdx", "scripts/docs/renderers.mjs", ".github/workflows/shared.yml"]) {
+    const selected = push(changedPath);
+    assert.ok(selected.includes("docs-generated"), changedPath);
+    assert.ok(selected.includes("docs-authority"), changedPath);
+  }
+  // The authority audit scans every script, config and guide outside Plan Hubs for retired
+  // command callers, so ordinary tooling selects it; plan history never does.
+  assert.ok(push("scripts/lib/dev-shared.js").includes("docs-authority"));
+  assert.ok(!push(".plans/active/test-budget-and-ci-speed/plan.todo.md").includes("docs-authority"));
+});
+
+test("every docs generator input selects docs-generated, and the policy lists nothing else", async () => {
+  const { projectionSourcePaths } = await import("../docs/generate.mjs");
+  const sources = projectionSourcePaths(repositoryRoot);
+  const unrouted = sources.filter(
+    (source) => !ids(selectValidation({ intent: "push", changedPaths: [source] })).includes("docs-generated"),
+  );
+  assert.deepEqual(unrouted, [], "Add each generator source to the docs-generated rule in scripts/data/validation-policy.json");
+
+  const rule = loadPolicy().conditionalRules.find(
+    (entry) => entry.check === "docs-generated" && entry.exact?.includes("scripts/data/validation-policy.json"),
+  );
+  assert.deepEqual(rule.exact.filter((path) => !sources.includes(path)), [], "Remove exact entries the generator no longer reads");
+});
+
+test("every file a certified seam fingerprints selects test-quality", () => {
+  const registry = JSON.parse(readFileSync(new URL("../data/module-seam-registry.json", import.meta.url), "utf8"));
+  const fingerprinted = new Set();
+  for (const entry of registry.entries) {
+    const proof = entry.proof ?? {};
+    for (const path of [entry.modulePath, ...(entry.compositionRoots ?? []), ...(entry.directConsumers ?? []), ...(proof.direct ?? []), ...(proof.conformance ?? []), ...(proof.integration ?? [])]) {
+      if (path) fingerprinted.add(path);
+    }
+    // The fingerprint also covers the manifest that declares the seam's public export.
+    fingerprinted.add(`packages/${entry.owner}/package.json`);
+  }
+  const unrouted = [...fingerprinted].filter(
+    (path) => !ids(selectValidation({ intent: "push", changedPaths: [path] })).includes("test-quality"),
+  );
+  assert.deepEqual(unrouted, [], "Add each fingerprinted seam file to the test-quality rule in scripts/data/validation-policy.json");
 });

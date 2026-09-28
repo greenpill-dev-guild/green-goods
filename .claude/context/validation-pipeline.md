@@ -156,7 +156,10 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts \
 
 The focused path may be inferred when the changed file is itself a direct test. The push selector
 chooses changed-path format/lint, direct behavior proof, and owner-package typecheck/build only when
-an interface, route, generated artifact, or runtime composition moved. Ordinary Shared
+an interface, route, generated artifact, or runtime composition moved. It also runs the repository
+checks CI applies to those paths: `test-quality` for tests, test helpers and files a certified seam
+fingerprints; `docs-generated` for every input of `scripts/docs/generate.mjs` and `docs/`; and
+`docs-authority` for any script, configuration or guide outside Plan Hubs. Ordinary Shared
 implementation changes do not run complete Client, Admin, or Agent suites locally; those remain CI
 responsibilities.
 
