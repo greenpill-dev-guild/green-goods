@@ -721,4 +721,52 @@ describe("useWorkSubmissionFlowController", () => {
     expect(view.result.current.isSchedulingDependentLink).toBe(false);
     expect(view.result.current.linkSchedulingSucceeded).toBe(true);
   });
+
+  it("reports the dependent link as queueing only after the Work was sent", async () => {
+    const intent = commitmentLinkIntent;
+    mocks.actionUID = 1;
+    mocks.gardenAddress = intent.garden;
+    mocks.choices = [intent];
+    mocks.outcome = null;
+    let finishUpload!: () => void;
+    mocks.uploadWork.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishUpload = () => resolve();
+      })
+    );
+    let finishLink!: (jobId: string) => void;
+    mocks.enqueue.mockReturnValueOnce(
+      new Promise<string>((resolve) => {
+        finishLink = resolve;
+      })
+    );
+    const view = renderFlow();
+
+    act(() => view.result.current.selectLinkIntent(intent));
+    await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+    let submission!: Promise<boolean>;
+    act(() => {
+      submission = view.result.current.submit();
+    });
+    await waitFor(() => expect(mocks.uploadWork).toHaveBeenCalledTimes(1));
+    expect(view.result.current.isSchedulingDependentLink).toBe(true);
+    expect(view.result.current.isQueueingDependentLink).toBe(false);
+
+    mocks.outcome = { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false };
+    await act(async () => {
+      finishUpload();
+    });
+    await waitFor(() => expect(view.result.current.isQueueingDependentLink).toBe(true));
+    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+
+    let submitted = false;
+    await act(async () => {
+      finishLink("link-job");
+      submitted = await submission;
+    });
+    expect(submitted).toBe(true);
+    expect(view.result.current.isQueueingDependentLink).toBe(false);
+    expect(view.result.current.isSchedulingDependentLink).toBe(false);
+    expect(view.result.current.linkSchedulingSucceeded).toBe(true);
+  });
 });

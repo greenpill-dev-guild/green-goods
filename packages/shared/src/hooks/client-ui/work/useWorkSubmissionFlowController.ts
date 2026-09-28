@@ -119,7 +119,11 @@ export function useWorkSubmissionFlowController({
   const parsedLinkIntent = useMemo(() => parseWorkLinkIntent(searchParams), [searchParams]);
   const hasLinkIntentParams = useMemo(() => hasWorkLinkIntentParams(searchParams), [searchParams]);
   const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
+  // The scheduling gate holds from submit until the link settles: it keeps Upload Work disabled
+  // and pauses draft retirement, which useWorkMutation starts before submit sees the outcome.
+  // Queueing is narrower: the Work has been sent and only its link is still being queued.
   const [isSchedulingDependentLink, setIsSchedulingDependentLink] = useState(false);
+  const [isQueueingDependentLink, setIsQueueingDependentLink] = useState(false);
   const [linkSchedulingSucceeded, setLinkSchedulingSucceeded] = useState(false);
   const linkChoices = useWorkLinkChoices({
     chainId: DEFAULT_CHAIN_ID,
@@ -287,6 +291,7 @@ export function useWorkSubmissionFlowController({
         return false;
       }
       if (linkIntent && outcome) {
+        setIsQueueingDependentLink(true);
         const payload: PendingLinkRecovery["payload"] = {
           clientOperationId: `work-link:${outcome.clientWorkId}:${linkIntent.commitmentId}:${linkIntent.requirementIndex}`,
           commitmentId: linkIntent.commitmentId,
@@ -307,6 +312,7 @@ export function useWorkSubmissionFlowController({
             clientWorkId: outcome.clientWorkId,
           });
         } finally {
+          setIsQueueingDependentLink(false);
           setIsSchedulingDependentLink(false);
         }
       }
@@ -321,6 +327,7 @@ export function useWorkSubmissionFlowController({
     if (!pendingLinkRecovery) return false;
     setLinkSchedulingSucceeded(false);
     setIsSchedulingDependentLink(true);
+    setIsQueueingDependentLink(true);
     try {
       await commitmentJobs.enqueue({ act: "workLink", payload: pendingLinkRecovery.payload });
       setPendingLinkRecovery(null);
@@ -330,6 +337,7 @@ export function useWorkSubmissionFlowController({
       setPendingLinkRecovery((current) => (current ? { ...current, error } : current));
       return false;
     } finally {
+      setIsQueueingDependentLink(false);
       setIsSchedulingDependentLink(false);
     }
   }, [commitmentJobs, pendingLinkRecovery]);
@@ -447,6 +455,7 @@ export function useWorkSubmissionFlowController({
     clearLinkIntent,
     selectLinkIntent,
     isSchedulingDependentLink,
+    isQueueingDependentLink,
     linkSchedulingError: pendingLinkRecovery?.error ?? null,
     linkSchedulingSucceeded,
     hasPendingLinkRecovery: pendingLinkRecovery !== null,
