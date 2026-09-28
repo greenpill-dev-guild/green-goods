@@ -433,8 +433,10 @@ The lane closes when all of these hold. As of 2026-09-27:
 - PR #923 merged: done, as `7fdc87f78`. Two review comments posted minutes before the merge are
   fixed in the follow-up below, which merged in #931 as `2aca5c59a`.
 - PWA-126 walked on the recorded call: pending.
-- Then the sub-lane moves to `completed` and the Linear child to Done. Until then the sub-lane is
-  `in_progress`, since the harness counts `passed` as done, and PRD-996 stays In Progress.
+- Then the sub-lane moves to `completed` and the Linear child to Done. Until then the sub-lane
+  reads `passed`, which the Linear sync maps to In Review, so PRD-996 stays In Review (since
+  2026-09-28). The harness counts `passed` as done, so the walk stays pending here and in the
+  readiness plan's W3 table, and nothing else closes the lane.
 
 W3-H starts once #923 merges (§ 1 row 49); it does not wait for the walk.
 
