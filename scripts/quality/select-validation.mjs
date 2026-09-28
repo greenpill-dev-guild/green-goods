@@ -924,7 +924,10 @@ export function selectExpectedWorkflows(input = {}, options = {}) {
         if (!isValidationOnlyPath(path)) return true;
         if (name === "Supply Chain Guardrails") return true;
         if (name === "Design" && isStoryPath(path)) return true;
-        return name.toLowerCase() === owningSurface(path);
+        // A package's own tests expect only its workflow. A test no package owns, such as a root
+        // Playwright spec under tests/, is run by every workflow whose rule lists it.
+        const owner = owningSurface(path);
+        return owner === null || name.toLowerCase() === owner;
       }),
     )
     .map(([name]) => name)

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -1866,6 +1866,108 @@ test("workflow mapping follows observable contract artifacts", () => {
       "Supply Chain Guardrails",
     ],
   );
+});
+
+// The `paths` a workflow's push or pull_request trigger lists, in order, negations included.
+function workflowTriggerPaths(text, event) {
+  const paths = [];
+  let inOn = false;
+  let inEvent = false;
+  let inPaths = false;
+  for (const line of text.split("\n")) {
+    if (/^\S/.test(line)) inOn = /^on:\s*$/.test(line);
+    if (!inOn) continue;
+    const trigger = line.match(/^ {2}([a-z_]+):/);
+    if (trigger) {
+      inEvent = trigger[1] === event;
+      inPaths = false;
+    } else if (inEvent && /^ {4}paths:\s*$/.test(line)) {
+      inPaths = true;
+    } else if (inEvent && inPaths) {
+      const entry = line.match(/^ {6}- ["']?([^"']+?)["']?\s*$/);
+      if (entry) paths.push(entry[1]);
+      else if (/^ {4}\S/.test(line)) inPaths = false;
+    }
+  }
+  return paths;
+}
+
+// GitHub path filters: `**` crosses directories, `*` does not, and a later `!` pattern excludes.
+function filterGlob(pattern) {
+  const source = pattern
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*\//g, "\u0000")
+    .replace(/\*\*/g, "\u0001")
+    .replace(/\*/g, "[^/]*")
+    .replace(/\?/g, "[^/]")
+    .replace(/\u0000/g, "(?:.*/)?")
+    .replace(/\u0001/g, ".*");
+  return new RegExp(`^${source}$`);
+}
+
+function filterRuns(patterns, path) {
+  let runs = false;
+  for (const pattern of patterns) {
+    if (pattern.startsWith("!")) {
+      if (filterGlob(pattern.slice(1)).test(path)) runs = false;
+    } else if (filterGlob(pattern).test(path)) runs = true;
+  }
+  return runs;
+}
+
+test("CI Gate expects exactly the workflows whose path filters start", () => {
+  const policy = loadPolicy();
+  const workflowsDirectory = join(repositoryRoot, ".github/workflows");
+  const problems = [];
+  const probeFor = (pattern) => pattern.replace(/\*\*/g, "probe/probe").replace(/\*/g, "probe");
+  for (const file of readdirSync(workflowsDirectory).filter((name) => name.endsWith(".yml")).sort()) {
+    const text = readFileSync(join(workflowsDirectory, file), "utf8");
+    const name = text.match(/^name:\s*["']?(.+?)["']?\s*$/m)?.[1];
+    const rule = policy.workflowRules[name];
+    if (!rule) continue;
+    const push = workflowTriggerPaths(text, "push");
+    const pullRequest = workflowTriggerPaths(text, "pull_request");
+    assert.deepEqual(push, pullRequest, `${file}: push and pull_request paths differ`);
+    const expects = (path) =>
+      selectExpectedWorkflows({ changedPaths: [path], intent: "merge", ci: true }).includes(name);
+    // A path that starts the workflow but that CI Gate does not expect is a failure nothing blocks.
+    for (const pattern of pullRequest.filter((entry) => !entry.startsWith("!"))) {
+      const probe = probeFor(pattern);
+      if (filterRuns(pullRequest, probe) && !expects(probe)) {
+        problems.push(`${file}: ${pattern} starts ${name}, but CI Gate does not expect it`);
+      }
+    }
+    // A path CI Gate expects that does not start the workflow leaves the gate waiting until it times out.
+    // A prefix that names a file stem (packages/client/DESIGN) is probed like the filter that shares it.
+    const prefixProbe = (prefix) => {
+      const shared = prefix.endsWith("/")
+        ? undefined
+        : pullRequest.find((entry) => !entry.startsWith("!") && entry.startsWith(prefix));
+      return shared ? probeFor(shared) : `${prefix}probe.ts`;
+    };
+    for (const probe of [
+      ...(rule.exact ?? []),
+      ...(rule.prefixes ?? []).map(prefixProbe),
+      ...(rule.extensions ?? []).map((extension) => `probe/probe${extension}`),
+    ]) {
+      if (expects(probe) && !filterRuns(pullRequest, probe)) {
+        problems.push(`${file}: CI Gate expects ${name} for ${probe}, which does not start it`);
+      }
+    }
+    // Shared also decides inside the run which jobs to start; that detector lists the same paths.
+    const detector = text.match(/const exact = new Set\(\[([\s\S]*?)\]\);[\s\S]*?const prefixes = \[([\s\S]*?)\];/);
+    if (detector) {
+      const quoted = (block) => [...block.matchAll(/"([^"]+)"/g)].map((match) => match[1]).sort();
+      const [exact, prefixes] = [quoted(detector[1]), quoted(detector[2])];
+      if (JSON.stringify(exact) !== JSON.stringify([...(rule.exact ?? [])].sort())) {
+        problems.push(`${file}: its detector's exact paths differ from workflowRules.${name}`);
+      }
+      if (JSON.stringify(prefixes) !== JSON.stringify([...(rule.prefixes ?? [])].sort())) {
+        problems.push(`${file}: its detector's prefixes differ from workflowRules.${name}`);
+      }
+    }
+  }
+  assert.deepEqual(problems, []);
 });
 
 test("local ontology routing stays in parity with the Ontology workflow matcher", () => {
