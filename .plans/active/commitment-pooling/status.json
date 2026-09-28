@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-27T22:51:01.463Z"
+    "updated_at": "2026-09-28T00:17:07.742Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -393,7 +393,7 @@
     "state_api": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "in_progress",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "blocked_reason": null,
@@ -417,10 +417,10 @@
     "ui_client": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "blocked_reason": "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment",
+      "blocked_reason": null,
       "branch": "feature/commitment-pooling-client-loop",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-client.md",
@@ -438,10 +438,10 @@
     "ui_admin": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "blocked_reason": "Narrowed admin dispatch: Phase 0 + D1 + D2 of prompt-admin-console.md, stacked on the client-loop branch (PR #749) and built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment; settlement, Operations, and the Hypercert ceremony stay gated",
+      "blocked_reason": null,
       "branch": "feature/commitment-pooling-admin-console",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-admin.md",
@@ -458,10 +458,10 @@
     "editorial": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": true,
-      "manual_blocked": true,
-      "blocked_reason": "The public copy freeze and /gardens/:id page conversion are complete. The address-free garden reader, lifetime distinct-provider counter, public rate gate, confirmed-only selector, cycle-name metadata resolver, and protocol-wide /impact aggregate reader are locally GREEN on feature/commitment-pooling-editorial. UI implementation still waits for that branch to merge, the hosted Envio schema deployment plus full reindex/live read-back, the shared UI foundation cleanup, and the PublicEvidencePipeline i18n/five-node prerequisite.",
+      "manual_blocked": false,
+      "blocked_reason": null,
       "branch": "feature/commitment-pooling-editorial",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-editorial.md",
@@ -620,7 +620,7 @@
     "work_linking_closure": {
       "machine_lane": null,
       "owner": "codex",
-      "status": "in_progress",
+      "status": "completed",
       "manual_blocked": false,
       "ready_when_dependencies_met": true,
       "branch": "feat/editorial-record-and-cycle",
@@ -1682,6 +1682,54 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded PRD-989 in linear.trackers and set it as the W3 lanes' parentIssue, which matches their parent in Linear"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "feature/commitment-pooling-api-modules",
+      "note": "Closed in the hub reconcile to match PRD-723 (Done 2026-09-06): the handoff's receipt at 8fd331198 (2026-08-23) records the source lane complete, the seat amendment shipped in d1b8ea042, and the hosted indexer has read back live since 2026-08-27. Live Gardener Celo wallet evidence stays with its own handoff and release ops"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "ui_client",
+      "status": "completed",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Closed in the hub reconcile to match PRD-724 (Done 2026-09-06): D1 merged in #749 (921654805) with its Ship Gate in reports/client-loop-2026-08-21.md; the handoff has no Validation Receipt. The D2 close-the-season walk belongs to the readiness plan's re-QA run"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "ui_admin",
+      "status": "completed",
+      "branch": "feature/commitment-pooling-admin-console",
+      "note": "Closed in the hub reconcile to match PRD-725 (Done 2026-08-25): D1 merged in #752 (2cd115a1d) with the handoff's validation receipt at 42116ecd1 and f36e222de (2026-08-22). The D2 close-the-season walk belongs to the readiness plan's re-QA run"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "editorial",
+      "status": "completed",
+      "branch": "feature/commitment-pooling-editorial",
+      "note": "Closed in the hub reconcile to match PRD-726 (Done 2026-08-25): the public record shipped in #748 (4fca120e9) and its follow-up PRD-838, and the hosted indexer has read back live since 2026-08-27; the handoff has no Validation Receipt. The public pages are walked on the recorded call"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "work_linking_closure",
+      "status": "completed",
+      "branch": "feat/editorial-record-and-cycle",
+      "note": "Closed in the hub reconcile to match PRD-837 (Done 2026-08-28): the handoff's receipt at 29c935fb6 (2026-08-25) covers the full Ship Gate and authenticated Brave"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "blocked",
+      "branch": "test/commitment-pooling-qa-pass-1",
+      "note": "Hub reconcile: Linear closed PRD-729 on 2026-08-31, but QA Pass 1 stays blocked for Wave 2, the recorded call, and clearing its manual gate stays with Afo. QA Pass 2 stays blocked behind it"
     }
   ]
 }

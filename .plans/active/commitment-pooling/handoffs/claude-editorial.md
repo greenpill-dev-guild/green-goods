@@ -6,11 +6,11 @@
 - Machine lane: ui
 - Owner: Claude
 - Branch signal: feature/commitment-pooling-editorial
-- Current state: the `/gardens/:id` page conversion and every editorial backend source contract are
-  complete on `feature/commitment-pooling-editorial`. The section's scope is a record across seasons
-  and campaigns, not one live cycle. UI implementation still waits for merge, hosted Envio
-  deployment/full reindex/live read-back, the shared admin/UI foundation cleanup, and the
-  `PublicEvidencePipeline` i18n/five-node prerequisite
+- Current state: complete. The hub closed this lane on 2026-09-27 to match PRD-726 (Done on
+  2026-08-25). The public record shipped in #748 (`4fca120e9`, merged to `develop` with #749) and
+  its follow-up PRD-838, and the hosted indexer has read back live since 2026-08-27. This handoff
+  has no Validation Receipt. The section's scope is a record across seasons and campaigns, not one
+  live cycle, and its public pages are walked on the recorded call.
 - Linear context: PRD-726 (editorial lane) under parent PRD-650
 
 ## Inputs
