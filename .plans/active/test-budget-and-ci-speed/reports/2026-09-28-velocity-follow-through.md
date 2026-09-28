@@ -890,3 +890,21 @@ files, none too small) all pass.
 Proof: `node scripts/harness/plan-hub.mjs validate` validated 24 feature hubs after the status write and
 Biome format. `git diff -- packages/*/vitest.config.ts scripts/quality/workflow-performance-parity.test.mjs`
 is empty for this slice.
+
+## Slice 13 — hub and handoff
+
+`plan.todo.md`:
+
+- carries D1–D5 in the decision log, with the ratchet row now decided;
+- has the slice table with evidence links and a dated "Current execution truth";
+- keeps steps 3 and 5 open only for the current-head CI that the closeout pass provides;
+- closes step 11 now that the Client blocker is resolved, and the deferred isolation row, which
+  slice 6 adopted.
+
+`status.json` moves `state_api` from `blocked` to `in_progress` with a history entry and a note.
+[`handoffs/astra-review.md`](../handoffs/astra-review.md) holds the range from `d7cf681ec`, each
+slice's claim and evidence, the known limits, and what could not be verified locally.
+
+Proof: `node scripts/harness/plan-hub.mjs validate` and
+`bun run check -- --intent qa --only agent-guidance --only docs-generated --only docs-authority`,
+recorded in the commit that adds this section. The immutable-report check runs after the commit.

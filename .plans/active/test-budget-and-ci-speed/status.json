@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-19T22:46:56.155Z",
-    "updated_at": "2026-09-27T08:09:58.924683Z"
+    "updated_at": "2026-09-28T13:25:52.358Z"
   },
   "links": {
     "brief": "brief.md",
@@ -41,7 +41,8 @@
     "Selected order: original items 1, 4, 3, 11, 2+7, 5+8+9+10+6b, 12. Item 6a deferred.",
     "Historical September 19 preparation: the architecture hub owned the September 22 checkpoint, and PRs #795/#802 were open then. Fresh September 27 reads: #802 merged on September 20; #795 remains open at efd85dcebab17ceb9da87cb78fce8d3fd6aef714. Existing floors and architecture checkpoint ownership are unchanged by this slice.",
     "The linear-sync start manifest proposed a missing parent with parent_only visibility. No Linear write is authorized or recorded.",
-    "User authorized remaining local work on September 26\u201327. Publication, branch changes and Linear writes remain outside scope. Named layout guards and the batch-approval cache fixture are retained after inspection; isolate:false remains deferred."
+    "User authorized remaining local work on September 26\u201327. Publication, branch changes and Linear writes remain outside scope. Named layout guards and the batch-approval cache fixture are retained after inspection; isolate:false remains deferred.",
+    "2026-09-28 velocity follow-through (D1-D5): slices 0-13 committed locally on develop from d7cf681ec; evidence in reports/2026-09-28-velocity-follow-through.md; Astra's review handoff in handoffs/astra-review.md. Push, current-head CI, Linear sync and publication belong to the closeout pass."
   ],
   "lanes": {
     "ui": {
@@ -67,7 +68,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "in_progress",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
@@ -85,7 +86,7 @@
         "note": "Historical tooling RED/GREEN retained. The September 27 slice preserves runtime behavior; mechanical-refactor proof, adapter conformance and a caught/restored revision fault are in Snapshot 06. Client whole-suite timeouts remain an explicit validation blocker."
       },
       "skill_tags": ["planning", "testing", "tooling"],
-      "manual_blocked": true
+      "manual_blocked": false
     },
     "contracts": {
       "owner": "codex",
@@ -441,6 +442,14 @@
       "status": "blocked",
       "branch": null,
       "note": "User authorized a local commit of the completed changes and hub records. Client timeout repair remains outside scope; no branch change, push, PR or external write is authorized. Verification evidence was collected before commit."
+    },
+    {
+      "timestamp": "2026-09-28T13:25:52.359Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Velocity follow-through (D1-D5) committed locally on develop from d7cf681ec, one commit per slice 0-13; Client validation blocker resolved (slice 5). Evidence: reports/2026-09-28-velocity-follow-through.md; review handoff: handoffs/astra-review.md. Nothing pushed; current-head CI and publication come with the closeout pass."
     }
   ]
 }

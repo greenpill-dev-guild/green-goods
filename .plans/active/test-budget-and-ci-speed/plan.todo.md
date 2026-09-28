@@ -2,13 +2,26 @@
 
 **Feature Slug**: `test-budget-and-ci-speed`
 **Stage**: active
-**Status**: Velocity follow-through in progress on local `develop` commits (September 28, D1–D5); publication acceptance remains open
+**Status**: Velocity follow-through committed locally on `develop` (slices 0–13, D1–D5); awaiting Astra's review, then the closeout pass's push and current-head CI
 **Created**: 2026-09-19
 **Last Updated**: 2026-09-28
 
 The user selected local implementation beginning with step 1 and later authorized a commit of completed slices. Item numbers below refer to the supplied twelve-item test-audit prompt. Branch changes, push, PR, and Linear writes remain unauthorized.
 
-## Current execution truth (2026-09-27)
+## Current execution truth (2026-09-28)
+
+The velocity follow-through is committed locally on `develop` from `d7cf681ec`, one commit per slice.
+The [follow-through report](reports/2026-09-28-velocity-follow-through.md) holds the evidence;
+[Astra's review handoff](handoffs/astra-review.md) holds the range, the claims and the limits.
+Nothing is pushed. Astra reviews first, then the closeout pass pushes and supplies the current-head
+CI that steps 3 and 5 below wait for. The Client validation blocker is resolved (slice 5). Open
+items for Afo are listed in the handoff:
+- five files whose tests depend on their order within the file;
+- the hypercerts SDK's `BigInt.prototype.toJSON` patch;
+- the `offlineDownloads` size assertion;
+- three CI routing gaps.
+
+### Previous record (2026-09-27)
 
 The user authorized the remaining local work. The September 19–20 implementation is already committed in `9a0a5ac18960730f00d4dff0125286c41f23cb98`; the current cleanup was verified before commit on `develop`, based on `87938a7308d3933f61eebd9e02d27e921df60f5b`. The user authorized a local commit on September 27; the Client repair remains outside scope. Historical evidence is linked at the bottom; this file owns the current checklist.
 
@@ -25,7 +38,7 @@ Three recent published Shared runs have both shards green. They provide observat
 | Refresh the audit and save a dedicated backlog hub | Authorized; preparation complete | Current code and PRs differ from the audit snapshot |
 | Guidance → manual evidence → CI speed → critical proof → consolidation → measurement | Selected execution order | Establish the rules and protection before removing tests |
 | Browser evidence policy | Superseded by current AGENTS.md / validation pipeline | Advisory for local intents; release attestation remains required. Historical decision evidence below is retained. |
-| Measured coverage floors replace the calendar-based two-point ratchet | Proposed; coordinate with architecture hub | Protect useful coverage without arbitrary percentage growth |
+| Measured coverage floors replace the calendar-based two-point ratchet | Decided (D3, 2026-09-28); the architecture hub closed `coverage_ratchet` | Protect useful coverage without arbitrary percentage growth |
 | Keep test isolation enabled | Default for this plan | Item 6a requires a separate measured adoption decision |
 | Consolidate by subject and prove deletions | Required boundary | Similar setup does not establish equivalent fault detection |
 | Work serially in bounded slices | Selected procedure | Avoid overlapping guidance, workflow, and test rewrites |
@@ -45,16 +58,16 @@ Each row is a reviewable slice or a series of independently reviewed slices, not
 | [x] | 0 | Preparation | Refresh targets, local branch/PR overlap, inventory, recent Shared timing, nightly coverage, and representative push plan. See the dated report; no current-head full-suite claim. |
 | [x] | 1 | 1 | Add test budget to testing.md, excess-proof review lens, and one root agent-guide pointer. Coordinate September 22 checkpoint and PRs #795/#802. Guidance checks pass; semantic evaluation only if trigger wording changes. |
 | [x] | 2 | 4 | Presented both designs; user selected ordinary automated push with manual browser proof pending for readiness. Implemented exact browser-only deferral and negative proof for automated failure, missing automated capability, and critical/readiness requirements. Actual hook passed in a disposable checkout; see eval.md. |
-| [ ] | 3 | 3 | Two Shared shards implemented. Three recent successful published runs measured in Snapshot 06; current-slice published CI and controlled same-SHA comparison remain pending. |
+| [ ] | 3 | 3 | Two Shared shards implemented. Three recent successful published runs measured in Snapshot 06. Open only for current-head CI, which the closeout pass provides. |
 | [x] | 4 | 11 | Added informational source/test changed-line and file-count summary to the existing Supply Chain Guardrails change-detection job. The step is explicitly non-blocking, adds no required check or threshold, and handles zero-source changes. |
-| [ ] | 5 | 2 | Shared, Client and Admin sub-slices implemented: eight measured aggregate glob floors and three measured exact-file floors (Cookie Jar and image compression), parity proof, deliberate below-floor failure, and full coverage enforcement. Global floors unchanged; current-SHA CI acceptance remains open. |
+| [ ] | 5 | 2 | Shared, Client and Admin sub-slices implemented: eight measured aggregate glob floors and three measured exact-file floors (Cookie Jar and image compression), parity proof, deliberate below-floor failure, and full coverage enforcement. Global floors unchanged (D3 closed the ratchet). Open only for current-head CI, which the closeout pass provides. |
 | [x] | 6 | 7 | Added direct proof for Cookie Jar hooks, connectivity background work, queued-upload chain/cancellation, image compression, login messaging and timeframe boundaries; paired Cookie Jar and image compression with measured file floors. Preserved the flagged-upload toast proof. All focused/selected local checks passed; current-SHA CI remains in step 5. |
 | [x] | 7 | 7 | Admin excessive-withdrawal rejection, Client claim confirmation and garden-join argument/failure proof passed. Cached #802 head showed no claim test; fresh PR status/head remains network-unverified. No runtime defect was exposed. |
 | [x] | 8 | 5 | Expanded helpers to 29 Shared and two Admin files. All 301 Shared test names/results match baseline; 30 focused Admin tests pass. Batch-approval cache behavior, Client persistence and custom-provider/cache/network fixtures retain their necessary setup. Existing guard passes. |
 | [x] | 9 | 8 | Removed six caller-free settlement exports and their exclusive tests; retained live recognition/delivery/authority code. Eight common Agent cases run on memory and SQLite, including cap, withdrawal, sweep and revision boundaries; adapter encryption/restart proof remains. |
 | [x] | 10 | 9, 10, 6b | Removed five stale WithdrawModal mocks and consolidated the PostHog throttle file without deleting its case. Retained named layout/CSS guards: current browser checks do not detect the same faults. No speculative broad file merge. |
-| [ ] | 11 | 12 | Local Snapshot 06 saved with inventory, recent shard timing/worker buckets and one defined fault check. Shared coverage and local proof recorded; Client whole-suite timeouts remain blocked. Post-merge publication, controlled timings and the unrecovered original fault panel remain explicit limits. |
-| [ ] | Deferred | 6a | Consider isolate:false only if setup/import costs still justify it: three comparable CI runs each way, no new failures, explicit adoption decision. |
+| [x] | 11 | 12 | Local Snapshot 06 saved with inventory, recent shard timing/worker buckets and one defined fault check. Shared coverage and local proof recorded; the Client whole-suite timeouts are resolved (velocity slice 5). Post-merge publication, controlled timings and the unrecovered original fault panel remain explicit limits. |
+| [x] | Deferred | 6a | Adopted for mock-free Shared Node files in velocity slice 6, which Afo approved, on three local A B B A pairs with identical results; comparable CI timing comes with current-head CI. |
 
 ## Velocity follow-through (2026-09-28)
 
@@ -77,9 +90,14 @@ the [follow-through report](reports/2026-09-28-velocity-follow-through.md).
 | [x] | 10 | Test-utils barrel: three A B B A pairs over its 55 importers showed −16% to −18% duration and −27% to −29% import, so Shared tests now import leaves (`render-helpers.tsx` split out; 60 files moved); Check 9 rejects the barrel in Shared tests; Admin and Client keep `@green-goods/shared/testing` | Report § Slice 10 |
 | [x] | 11 | Behaviour tests for the six near-zero files (lines now 60%, 85%, 65%, 100%, 80%, 77% from the new tests alone); each caught one injected fault | Report § Slice 11 |
 | [x] | 12 | Ratchet closed (D3): `testing.md` states the decision; the architecture hub records decision 11 and closes `coverage_ratchet`; global floors and parity arrays unchanged | Report § Slice 12 |
-| [ ] | 13 | Hub closeout for this pass and Astra's handoff | |
+| [x] | 13 | Hub updated for this pass; Astra's review handoff written | [handoffs/astra-review.md](handoffs/astra-review.md) |
 
 ## Current handoff
+
+Astra reviews the velocity follow-through from [the handoff](handoffs/astra-review.md). After that
+review, the closeout pass pushes, reads current-head CI for steps 3 and 5, runs `linear-sync` for
+PRD-835 (architecture hub), and takes the open items to Afo. The earlier instructions below are
+historical.
 
 Resolve or explicitly disposition the Client validation blocker after scope approval; exact local results are in Snapshot 06 and eval.md. Preserve the serial scope and current branch. Do not repeat completed September 19–20 slices or treat their historical local failures as live findings. Subsequent publication, current-SHA CI acceptance and any external scorecard/Linear update require their own authorization. Existing architecture and onboarding ownership stays with the hubs below.
 
