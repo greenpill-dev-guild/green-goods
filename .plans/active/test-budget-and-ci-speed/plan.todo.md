@@ -20,6 +20,14 @@ dispatched Coverage Nightly passed every floor at `627149a4d`. Snapshot 07 is on
 [Velocity Scorecard](https://claude.ai/artifact/9TkZM1T9niiwja34G9K2Mg). Metrics that need a
 seven-day CI window are pending from 2026-09-28.
 
+Correction to the closeout report, which stays as written: the 250 s cold compile in Contracts ·
+Unit Tests on `8e05497f6` happened because slice 9 renamed that job's cache key (`a4b0e98d6`); the
+`develop` cache it would otherwise have used had also been evicted. Lint And Build is the clean
+eviction case: its key is unchanged, its Sep 25 cache was gone by Sep 28, and it rebuilt in 238 s
+against a 90 s median. Afo chose to prune the unreachable CodeQL databases (D9): the 21 already
+unreachable were deleted on 2026-09-28, taking the cache from 9.8 GB to 583 MB, and the hourly
+prune workflow is in PR #945.
+
 ### After the review (2026-09-28)
 
 Astra reviewed the follow-through and returned REQUEST_CHANGES: five Must-Fix findings and one
@@ -72,6 +80,7 @@ Three recent published Shared runs have both shards green. They provide observat
 | D6 (2026-09-28): fix the seven order-dependent Shared test files before the push | Decided by Afo (Astra's Human Call-Out) | Done in `282747338` and `407d4459b`; each file passes 25 in-file shuffle seeds, and the full suite passed shuffled |
 | D7 (2026-09-28): fix the `offlineDownloads` byte assertion now; the SDK's `BigInt.prototype.toJSON` patch is a follow-up | Decided by Afo | Test fixed in `7f1c0b7c7`; the SDK patch is a product question in the resolution report's open items |
 | D8 (2026-09-28): fix the three CI routing gaps now | Decided by Afo | Done in `ba6feb9b2`, `77cf70b55` and `268bb138f`, each with a guard against drift |
+| D9 (2026-09-28): prune CodeQL's unreachable overlay-base databases hourly; keep overlay analysis on | Decided by Afo, from three options | Pull-request analyses restore only the newest database, and overlay keeps them near 2 minutes instead of 7 while the rulesets wait for CodeQL. The free org plan cannot buy more cache. The 21 unreachable databases were deleted by hand; the workflow is PR #945 |
 
 ## Ordered work
 
@@ -125,8 +134,8 @@ The closeout pass is done. Next:
 - the seven-day CI window from 2026-09-28, for the job medians, the CI Gate median and the red
   rates that snapshot 07 leaves pending;
 - the open items in the [closeout report](reports/2026-09-28-closeout-push.md) and the
-  [resolution report](reports/2026-09-28-astra-review-resolution.md), including Afo's decision on
-  CodeQL's overlay databases filling the Actions cache;
+  [resolution report](reports/2026-09-28-astra-review-resolution.md); the CodeQL cache item is
+  decided (D9) and merges with PR #945;
 - `linear-sync` for PRD-835 (architecture hub), in a pass that may write to Linear.
 
 The earlier instructions below are historical.

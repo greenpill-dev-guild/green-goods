@@ -11,7 +11,7 @@ scripts/
 ├── quality/        CI gates / consistency checks
 ├── design/         design system enforcement
 ├── contracts/      contract audits + deploy verification
-├── ops/            chain ops + release artifact uploads
+├── ops/            chain ops, release artifact uploads, Actions cache upkeep
 ├── agents/         durable agent query surfaces used by routines / skills
 ├── harness/        skill + planning helpers
 ├── postinstall/    bun/npm postinstall shims
@@ -197,6 +197,8 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 | `upload-sourcemaps.js` | `APP_ENV=production node scripts/ops/upload-sourcemaps.js --env production`, `client.yml`, `admin.yml` | Build sourcemap-enabled bundles in GitHub Actions, upload maps to PostHog, then remove local map files |
 | `bump-version.mjs` | `node scripts/ops/bump-version.mjs <x.y.z> [--dry-run]`, `node scripts/ops/bump-version.mjs --check <x.y.z>` | Keep root + 6 package versions and the supported release in `SECURITY.md` aligned; release CI uses check mode to block stale release metadata |
 | `month-metrics.mjs` | `node scripts/ops/month-metrics.mjs -- --month YYYY-MM [--json]` | Manual, read-only month-in-review aggregates for reviewed PRs, E2E static skips, active plans, and alias-folded contributor counts; no schedule or CI caller |
+| `prune-codeql-caches.mjs` | `codeql-cache-prune.yml` (hourly and on demand); `node scripts/ops/prune-codeql-caches.mjs --dry-run` locally | Delete the CodeQL overlay-base databases no analysis can restore: every one but the newest per branch, restore key and cache version, since a restore key returns the newest match of its own version. Keys in any other shape than codeql-action writes are left alone, and a cache GitHub evicted meanwhile is skipped |
+| `prune-codeql-caches.test.mjs` | CI Gate, `codeql-cache-prune.yml` before each prune | Fixture coverage for the newest per branch, restore key and cache version; language sets and CLI versions; unrecognised and nightly keys; a cache evicted before its delete; a refused delete; and the dry run |
 | `vercel-ignore.mjs` | `ignoreCommand` in `docs/vercel.json` and `packages/{admin,client,qa,shared}/vercel.json` | Vercel Ignored Build Step: skip a site's deployment when nothing it is built from changed since its last deployment on the branch. Holds each site's input list; add a path there when a build starts reading a new file outside its own directory. Builds on any doubt, and always on `main` |
 
 ### `agents/` — agent query surfaces
