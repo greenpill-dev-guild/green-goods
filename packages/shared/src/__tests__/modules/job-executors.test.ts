@@ -29,6 +29,7 @@ import { PendingHeicConversionError } from "../../modules/work/work-attachments"
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { hasRecordedSend, sendCheckpointOf } from "../../modules/job-queue/queue-policy";
 import { WorkSendCancelledError } from "../../modules/work/send-outcome";
+import { intentHead } from "../../modules/job-queue/send-chain-reads";
 import { StrandedSendReopened } from "../../modules/work/stranded-intent";
 import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
 
@@ -764,7 +765,12 @@ describe("commitment acts record their sends", () => {
     const jobStore = store();
     const reconcile = vi.fn().mockResolvedValue("unresolved");
     // The chain's head goes with the intent: nothing this send did can predate it.
-    const readChainHead = vi.fn().mockResolvedValue({ number: 100n, timestamp: 1_234 });
+    // It is read again just before the intent, after any prompt, so a prompt left
+    // open never ages it.
+    const readChainHead = vi
+      .fn()
+      .mockResolvedValueOnce({ number: 100n, timestamp: 1_234 })
+      .mockResolvedValue({ number: 101n, timestamp: 1_240 });
     // The nonce comes off the transaction itself once it is out: the wallet
     // may know sends this network does not, so a count read before the prompt
     // is only a floor.
@@ -783,8 +789,8 @@ describe("commitment acts record their sends", () => {
     // The stored job says the send is out, so no screen offers to drop it.
     expect(sendCheckpointOf(claim)).toMatchObject({
       transactionHash: HASH,
-      intentChainTime: 1_234,
-      intentBlock: 100n,
+      intentChainTime: 1_240,
+      intentBlock: 101n,
       transactionNonce: { hash: HASH, nonce: 7 },
     });
     expect(readTransactionNonce).toHaveBeenCalledWith(HASH);
@@ -1203,6 +1209,13 @@ describe("commitment acts record their sends", () => {
     );
     expect(sender.sendContractCall).not.toHaveBeenCalled();
     expect(hasRecordedSend(claim)).toBe(false);
+  });
+});
+
+describe("the chain's head a send keeps", () => {
+  it("gives up on a chain slow to say, so a signed send never waits on it", async () => {
+    const never = () => new Promise<{ number: bigint; timestamp: number }>(() => undefined);
+    await expect(intentHead(never, 5)).resolves.toBeUndefined();
   });
 });
 
@@ -2071,17 +2084,24 @@ describe("work and decisions keep the send rules commitment acts follow", () => 
     make,
     run,
   }) => {
+    const steps: string[] = [];
     const sender = createMockTransactionSender({ authMode: "wallet" });
     vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      // A passkey signs before its intent: a prompt left open must not age the head.
+      steps.push("signed");
       await options?.onBeforeBroadcast?.();
       await options?.onBroadcast?.(HASH);
       return { hash: HASH, sponsored: false };
     });
     // A lost send is then timed on the chain's clock, whatever the device's clock does.
     const kept = make(`${kind}-keeps-head`);
-    const readChainHead = vi.fn().mockResolvedValue({ number: 100n, timestamp: 1_234 });
+    const readChainHead = vi.fn(async () => {
+      steps.push("head read");
+      return { number: 100n, timestamp: 1_234 };
+    });
     await expect(run(kept, sender, { reads: { readChainHead } })).resolves.toBe(HASH);
     expect(sendCheckpointOf(kept)).toMatchObject({ intentBlock: 100n, intentChainTime: 1_234 });
+    expect(steps).toEqual(["signed", "head read"]);
 
     // The lookup falls back to the device's clock, so a failed read never stops the send.
     const unread = make(`${kind}-head-unread`);

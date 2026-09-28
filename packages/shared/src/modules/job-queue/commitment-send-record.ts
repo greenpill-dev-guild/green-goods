@@ -70,8 +70,8 @@ export async function sendRecordedAct(
   call: ContractCall,
   sender: TransactionSender,
   store: CommitmentExecutorStore,
-  /** The chain's head just before the send, kept with its intent. */
-  intent?: Pick<SendCheckpoint, "intentBlock" | "intentChainTime">
+  /** Reads the chain's head to keep with the intent, just before the send can reach the network. */
+  intent?: () => Promise<Pick<SendCheckpoint, "intentBlock" | "intentChainTime"> | undefined>
 ): Promise<Hex> {
   const result = await holdingSend(jobId, () =>
     sendWithCheckpoint({

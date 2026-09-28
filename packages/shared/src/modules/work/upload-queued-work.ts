@@ -259,15 +259,14 @@ export async function uploadQueuedWork(
         if (items.length === 0) return {};
       }
 
-      // Read once, just before the call goes out: every item it carries is
-      // then timed on the chain's clock if the answer is lost.
       const { readChainHead } = ports;
-      const intent = await intentHead(readChainHead && (() => readChainHead(chainId)));
       const result = await sendWithCheckpoint({
         sender,
         call: { ...callOf(items), chainId },
         jobIds: items.map(({ job }) => job.id),
-        intent,
+        // Read once, just before the intent, after any prompt: every item the
+        // call carries is then timed on the chain's clock if the answer is lost.
+        intent: () => intentHead(readChainHead && (() => readChainHead(chainId))),
         record: (next) => recordAll(items, next),
         now: ports.now,
       });

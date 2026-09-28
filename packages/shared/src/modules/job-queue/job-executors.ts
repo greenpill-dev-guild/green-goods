@@ -27,6 +27,7 @@ import { logger } from "../app/logger";
 import { createCommitmentChainReads, type CommitmentChainReads } from "./commitment-chain-reads";
 import { buildCommitmentContractCall } from "./commitment-call-builder";
 import { sendRecordedAct, settleActSend, waitingForRecordedSend } from "./commitment-send-record";
+import { intentHead } from "./send-chain-reads";
 import { observeTransactionNonce } from "./send-guards";
 import type { Address } from "../../types/domain";
 
@@ -231,10 +232,12 @@ export async function executeCommitmentQueueJob(
           account: job.userAddress as Address,
           chainId: targetChain,
         });
-        // Read after the simulation, just before the intent: nothing this send
-        // does can land in that block or before, so an earlier ask never passes
-        // for this one.
+        // Read after the simulation, and again just before the intent, after any
+        // prompt: nothing this send does can land in that block or before, so an
+        // earlier ask never passes for this one. The first read must succeed; a
+        // second that cannot keeps the first.
         const head = await chainReads.readChainHead?.();
+        const firstHead = head && { intentBlock: head.number, intentChainTime: head.timestamp };
         try {
           return await sendRecordedAct(
             jobId,
@@ -242,7 +245,7 @@ export async function executeCommitmentQueueJob(
             call,
             sender,
             store,
-            head && { intentBlock: head.number, intentChainTime: head.timestamp }
+            async () => (await intentHead(chainReads.readChainHead)) ?? firstHead
           );
         } catch (error) {
           // Its receipt did not come in time: keep the nonce the transaction

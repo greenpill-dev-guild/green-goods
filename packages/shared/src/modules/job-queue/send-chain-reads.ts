@@ -65,23 +65,41 @@ export interface SendChainReadOptions {
   config?: Config;
 }
 
+/** How long a send waits for the chain's head before it goes out without it. */
+const INTENT_HEAD_TIMEOUT_MS = 3_000;
+
 /**
- * The chain's head just before a work or decision send, to keep with its
- * intent. A read that fails keeps nothing and never stops the send: a lost
- * send is then timed by the device's clock set against the chain's. A
- * commitment act reads its head without this fallback, since it needs the
- * block to tell its own claim from an earlier one.
+ * The chain's head just before a send, to keep with its intent. A read that
+ * fails, or is slower than a signed send should wait, keeps nothing and never
+ * stops the send: a lost send is then timed by the device's clock set against
+ * the chain's. A commitment act first reads its head without this fallback,
+ * since it needs the block to tell its own claim from an earlier one.
  */
 export async function intentHead(
-  readChainHead: SendChainReads["readChainHead"]
+  readChainHead: SendChainReads["readChainHead"],
+  timeoutMs = INTENT_HEAD_TIMEOUT_MS
 ): Promise<Pick<SendCheckpoint, "intentBlock" | "intentChainTime"> | undefined> {
   if (!readChainHead) return undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const head = await readChainHead();
+    const head = await Promise.race([
+      readChainHead(),
+      new Promise<undefined>((resolve) => {
+        timer = setTimeout(() => resolve(undefined), timeoutMs);
+      }),
+    ]);
+    if (!head) {
+      logger.warn(
+        "[JobQueue] The chain's head was too slow for a queued send, which goes without it"
+      );
+      return undefined;
+    }
     return { intentBlock: head.number, intentChainTime: head.timestamp };
   } catch (error) {
     logger.warn("[JobQueue] Could not read the chain's head before a queued send", { error });
     return undefined;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

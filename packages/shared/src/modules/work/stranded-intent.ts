@@ -42,7 +42,12 @@ export const STRANDED_INTENT_GRACE_MS = 30 * 60_000;
 const LOOKUP_AFTER_MS = 2 * 60_000;
 /** One job is looked up at most this often. */
 const LOOKUP_INTERVAL_MS = 5 * 60_000;
-/** Device clocks drift, so the lookup reaches back this far before the recorded send. */
+/**
+ * The lookup reaches back this far before the send: from the chain's time
+ * when the send kept it, and from the device's otherwise, since a device's
+ * clock can drift. EAS stamps an attestation as it indexes it, so the chain's
+ * time gets the same margin.
+ */
 const CLOCK_DRIFT_MS = 24 * 60 * 60_000;
 
 type LookupResult = { status: "found"; transactionHash: Hex } | { status: "absent" | "unknown" };
@@ -193,7 +198,12 @@ async function resolveStrandedSend(send: {
   let lookup: LookupResult;
   try {
     lookup = await send.lookUp({
-      sinceMs: Math.min(recordedAt, send.createdAt) - CLOCK_DRIFT_MS,
+      // A window read off a device's clock running days fast would open after
+      // the send's own attestation, and its absence would reopen a landed send.
+      sinceMs:
+        (checkpoint.intentChainTime !== undefined
+          ? checkpoint.intentChainTime * 1000
+          : Math.min(recordedAt, send.createdAt)) - CLOCK_DRIFT_MS,
       sentAtMs: recordedAt,
       intentChainTime: checkpoint.intentChainTime,
     });

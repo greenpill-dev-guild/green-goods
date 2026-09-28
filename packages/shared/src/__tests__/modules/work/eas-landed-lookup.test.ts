@@ -78,15 +78,19 @@ function easAt(chain: {
   indexedFails?: boolean;
   clockAheadS?: number;
   calls?: string[];
+  /** Answer only with attestations made since the window asked from, as EAS does. */
+  honorsWindow?: boolean;
 }) {
   const chainNowS = NOW_MS / 1000 - (chain.clockAheadS ?? 0);
-  const submissions = vi.fn(async () => {
+  const since = <Row>(rows: Row[], madeAt: (row: Row) => number, sinceSeconds: number) =>
+    chain.honorsWindow ? rows.filter((row) => madeAt(row) >= sinceSeconds) : rows;
+  const submissions = vi.fn(async ({ sinceSeconds }: { sinceSeconds: number }) => {
     chain.calls?.push("attestations");
-    return chain.submissions ?? [];
+    return since(chain.submissions ?? [], ({ work }) => work.createdAt, sinceSeconds);
   });
-  const decisions = vi.fn(async () => {
+  const decisions = vi.fn(async ({ sinceSeconds }: { sinceSeconds: number }) => {
     chain.calls?.push("attestations");
-    return chain.decisions ?? [];
+    return since(chain.decisions ?? [], ({ decision }) => decision.createdAt, sinceSeconds);
   });
   const lookup = createEasLandedLookup({
     submissions,
@@ -358,5 +362,41 @@ describe("timing a lost send by the chain's time it kept", () => {
     await expect(settle(caughtUp, SENT_MS + 2 * 60 * 60_000)).resolves.toEqual({
       status: "reopened",
     });
+  });
+
+  /** Two days fast when the job was made and when it was sent. */
+  const FAST_MS = 2 * 24 * 60 * 60_000;
+
+  it.each([
+    [
+      "work",
+      (eas: ReturnType<typeof easAt>) => {
+        const lost = lostWork(kept(SENT_MS + FAST_MS));
+        lost.createdAt = SENT_MS + FAST_MS;
+        return resolveStrandedWorkIntent(lost, 42161, deps(eas, eas.lookup.work));
+      },
+    ],
+    [
+      "decision",
+      (eas: ReturnType<typeof easAt>) => {
+        const lost = lostDecision({ sendCheckpoint: lostRecord(kept(SENT_MS + FAST_MS)) });
+        lost.createdAt = SENT_MS + FAST_MS;
+        return resolveStrandedDecisionIntent(lost, 42161, deps(eas, eas.lookup.decision));
+      },
+    ],
+  ] as const)("finds a lost %s that landed, even when the device's clock ran days fast", async (kind, settle) => {
+    // A window read off the device's clock would open after the send's own
+    // attestation, and its absence would reopen a send that already landed.
+    const landedWork = indexedWork("client-1");
+    landedWork.work.createdAt = SENT_S + 60;
+    const eas = easAt({
+      honorsWindow: true,
+      indexedThroughS: SENT_S + GRACE_S + 60,
+      ...(kind === "work"
+        ? { submissions: [landedWork] }
+        : { decisions: [indexedDecision(true, { createdAt: SENT_S + 60 })] }),
+    });
+
+    await expect(settle(eas)).resolves.toEqual({ status: "landed", transactionHash: TX });
   });
 });

@@ -247,8 +247,11 @@ async function admitAndSend(
         broadcastKnown: Boolean(checkpoint?.transactionHash || checkpoint?.broadcast),
       });
       if (failure.kind === "not-sent" && checkpoint?.broadcastPending) {
+        // Nothing was sent: the intent goes, with the chain's head kept for it.
         delete checkpoint.broadcastPending;
         delete checkpoint.broadcastPendingAt;
+        delete checkpoint.intentBlock;
+        delete checkpoint.intentChainTime;
         await jobQueueDB.updateJob(job);
       }
       if (failure.kind === "not-sent" && failure.cancelled) {

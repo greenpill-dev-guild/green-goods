@@ -94,15 +94,54 @@ describe("sending one call while recording how far it got", () => {
     });
   });
 
-  it("keeps the chain's head with the intent, and on every record after it", async () => {
+  it("reads the chain's head just before the intent, after any prompt, and keeps it on every record", async () => {
     const { record, history } = recorder();
-    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const steps: string[] = [];
+    const sender = createMockTransactionSender();
     vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
-      await options?.onBeforeBroadcast?.();
+      // A passkey signs before its intent: a prompt left open must not age the head.
+      steps.push("signed");
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: OPERATION });
+      await options?.onBroadcastReference?.({ kind: "user-operation", hash: OPERATION });
       await options?.onBroadcast?.(TX);
-      return { hash: TX, sponsored: false };
+      return { hash: TX, sponsored: true };
     });
     // Nothing this send does can land before that head, so a lost send is timed from it.
+    const head = { intentBlock: 100n, intentChainTime: 1_234 };
+    const intent = vi.fn(async () => {
+      steps.push("head read");
+      return head;
+    });
+
+    await sendWithCheckpoint({
+      sender,
+      call: createMockContractCall(),
+      jobIds: JOBS,
+      record: record as never,
+      now: () => AT,
+      intent,
+    });
+
+    expect(steps).toEqual(["signed", "head read"]);
+    expect(intent).toHaveBeenCalledOnce();
+    expect(history).toEqual([
+      {
+        broadcastPending: true,
+        broadcastPendingAt: "2026-09-18T10:00:00.000Z",
+        broadcast: { kind: "user-operation", hash: OPERATION },
+        ...head,
+      },
+      expect.objectContaining(head),
+      expect.objectContaining({ transactionHash: TX, ...head }),
+    ]);
+  });
+
+  it("keeps the head on a hash a sender only returns", async () => {
+    // An older or custom sender reports nothing before it returns, so no intent
+    // is written; the hash it returns still carries the head.
+    const { record, current } = recorder();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockResolvedValue({ hash: TX, sponsored: false });
     const head = { intentBlock: 100n, intentChainTime: 1_234 };
 
     await sendWithCheckpoint({
@@ -111,13 +150,10 @@ describe("sending one call while recording how far it got", () => {
       jobIds: JOBS,
       record: record as never,
       now: () => AT,
-      intent: head,
+      intent: async () => head,
     });
 
-    expect(history).toEqual([
-      { broadcastPending: true, broadcastPendingAt: "2026-09-18T10:00:00.000Z", ...head },
-      expect.objectContaining({ transactionHash: TX, ...head }),
-    ]);
+    expect(current()).toMatchObject({ transactionHash: TX, ...head });
   });
 
   it("clears the intent when the estimate reverts after it, since nothing was signed", async () => {

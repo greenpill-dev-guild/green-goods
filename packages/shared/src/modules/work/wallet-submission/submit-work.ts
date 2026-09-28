@@ -15,6 +15,8 @@ import { worksKeys } from "../../../config/query-keys/work";
 import { trackWalletSubmissionTiming } from "../../../modules/app/analytics-events";
 import { ensureWagmiWalletChain } from "../../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/local-fork-safety";
+import type { WorkUploadCheckpoint } from "../../../types/work-media";
+import { createSendChainReads, intentHead } from "../../job-queue/send-chain-reads";
 import { logger } from "../../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
 import { encodeWorkData } from "../../../utils/eas/encoders";
@@ -153,12 +155,21 @@ export async function submitWorkDirectly(
     await assertLocalArbitrumForkWallet();
 
     const currentWallet = await assertOwnership();
+    // Kept with the intent, so a lost answer is timed on the chain's clock. A
+    // head from an earlier try never stands in for one the chain cannot give now.
+    const head = await intentHead(createSendChainReads({ chainId }).readChainHead);
+    const {
+      intentBlock: _block,
+      intentChainTime: _chainTime,
+      ...earlier
+    }: Partial<WorkUploadCheckpoint> = draft.uploadCheckpoint ?? {};
     draft.uploadCheckpoint = {
       submittedAt: new Date().toISOString(),
       files: {},
-      ...draft.uploadCheckpoint,
+      ...earlier,
       broadcastPending: true,
       broadcastPendingAt: new Date().toISOString(),
+      ...head,
     };
     await options.onCheckpoint?.(draft.uploadCheckpoint);
     await options.assertOwnership?.();
