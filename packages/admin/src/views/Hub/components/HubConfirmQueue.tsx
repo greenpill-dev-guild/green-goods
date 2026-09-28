@@ -1,3 +1,4 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -19,11 +20,7 @@ import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { CommitmentDialogPanel } from "@/views/Garden/Pool/CommitmentDialog";
 import { ConfirmKeptDialog } from "@/views/Garden/Pool/CommitmentDialog/ConfirmKeptDialog";
 import { GardenPoolTarget } from "@/views/Garden/Pool/PoolTarget";
-import {
-  confirmEligibilityChip,
-  otherPoolGardenLabel,
-  shortAddress,
-} from "@/views/Garden/Pool/poolPresentation";
+import { confirmEligibilityChip, otherPoolGardenLabel } from "@/views/Garden/Pool/poolPresentation";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 export interface HubConfirmQueueProps {
@@ -131,6 +128,7 @@ export function HubConfirmQueue({
           const disputed = commitment.onchainState === "DISPUTED";
           const eligibility = disputed ? null : badge(row.eligibility);
           const otherPool = otherPoolGardenLabel(row);
+          const committedBy = commitment.leadProvider ?? commitment.creator;
           const id = commitment.commitmentId.toString();
           const selectedRow = selectedCommitmentId === id;
           const progressLabel = formatMessage(
@@ -158,27 +156,33 @@ export function HubConfirmQueue({
                   >
                     {title}
                   </span>
-                  <span
-                    className="block body-xs text-text-soft"
-                    title={commitment.leadProvider ?? undefined}
-                  >
-                    {[
-                      shortAddress(commitment.leadProvider ?? commitment.creator),
-                      // The acting garden is the one in the header; a commitment that
-                      // lives in another garden's pool says whose.
-                      otherPool
-                        ? formatMessage(
-                            {
-                              id: "cockpit.hub.confirm.inPool",
-                              defaultMessage: "in {garden}’s pool",
-                            },
-                            { garden: otherPool }
-                          )
-                        : null,
-                      `${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim(),
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
+                  {/* Who committed, by name, then where and how much. */}
+                  <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 body-xs text-text-soft">
+                    {committedBy ? (
+                      <AddressDisplay
+                        address={committedBy}
+                        interactive={false}
+                        className="body-xs"
+                      />
+                    ) : null}
+                    {/* The acting garden is the one in the header; a commitment that
+                        lives in another garden's pool says whose. */}
+                    {otherPool ? (
+                      <span>
+                        ·{" "}
+                        {formatMessage(
+                          {
+                            id: "cockpit.hub.confirm.inPool",
+                            defaultMessage: "in {garden}’s pool",
+                          },
+                          { garden: otherPool }
+                        )}
+                      </span>
+                    ) : null}
+                    <span>
+                      ·{" "}
+                      {`${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim()}
+                    </span>
                   </span>
                 </button>
                 <StatusBadge variant={eligibility?.variant ?? "warning"} size="sm">

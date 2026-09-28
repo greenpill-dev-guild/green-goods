@@ -38,9 +38,8 @@ dialect: installed-pwa
 - Filter Gardens is a `full` sheet: membership scope and sort each use one full-width choice per row; domains use two equal-width choices per row, with an odd final choice spanning the full row. Sorting offers Name (A-Z) or Newest first; the sheet opens on and resets to Newest first (DL-040). The body scrolls above the pinned Reset Filters bar when more options or longer labels need room (DL-037); Profile Photo is a `half` sheet with four fixed regions (title-only header, an 80px preview of the current photo, the fallback, or the unpublished draft, a two-line status slot that shows the privacy notice by default, and at most two bar actions), the draft's discard control beside its pill, and removal confirmed through the shared confirmation stacked on top
 - Sheet actions (DL-016): every sheet and dialog pins its actions in the shared action bar (`SheetActions`, through the `actions` prop of `PwaSheet`, `DialogShell`, `ConfirmDialog`, and `AppSheet`), under a body that scrolls above it; no sheet renders its own action buttons. Below 640px the actions stack full width with the primary on top: a filled primary (the error fill when destructive), then an outlined second action, Cancel included, and a text action only for a rare third choice. Step navigation (Back / Continue, as in wallet send) keeps one row. From 640px the same bar is one right-aligned row with the primary rightmost. Labels wrap rather than cut off, and a loading action stays focusable. Page-level bars (Submit Work, work approval, commitment detail) are not sheets and keep their own layout
 - Garden header (DL-020): page actions (notifications, endowment, share) are 32px icon buttons stacked in the banner's top right, with Share last so the others keep their places. The title row carries at most one text action, Join Garden or Request to Join, at the `compact` button size (32px tall, 14px label, no icon, 48px tap area), and its location and founded lines truncate instead of running under the button
-- SyncStatusBar sits above AppBar
 - Scrolling: content scrolls inside `#app-scroll`, within a full-height `main` that clips and is positioned, so the document itself never scrolls. Android stretches every fixed element when the document overscrolls; with no document scroll, the AppBar and page headers hold still while native pull-to-refresh still reaches the document
-- Persistent chrome (AppBar, SyncStatusBar, offline banner) has its own view-transition name and never animates, so tab cross-fades pass beneath it
+- Persistent chrome (AppBar, offline banner) has its own view-transition name and never animates, so tab cross-fades pass beneath it
 - Safe areas: `env(safe-area-inset-bottom)` for notched devices
 
 **Typography:**
@@ -56,7 +55,7 @@ dialect: installed-pwa
 
 **Offline behavior:**
 - Warm, reassuring offline indicators — not error-red
-- SyncStatusBar shows sync state above AppBar
+- Queued work shows as a count on the Home tab and waits in Your Work › Pending for Upload all
 - Draft persistence is invisible — you never lose work
 
 **Window Controls Overlay:** CSS is ready for desktop PWA titlebar integration (`.app-titlebar` with `app-region: drag`). Currently prepared but not active in components.

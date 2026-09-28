@@ -89,7 +89,7 @@ const meta: Meta<typeof CycleRail> = {
       </div>
     ),
   ],
-  args: { cycles: [season, campaign], selectedCycleId: null, onSelect: fn() },
+  args: { cycles: [season, campaign], selectedCycleId: null, onSelect: fn(), onShowCharter: fn() },
 };
 
 export default meta;
@@ -100,6 +100,16 @@ export const SeasonAndCampaign: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Spring 2026")).toBeVisible();
     await expect(canvas.getByText("Community work day")).toBeVisible();
+  },
+};
+
+/** One season is one card at full width, with no rail to scroll. */
+export const OneSeason: Story = {
+  args: { cycles: [season] },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.queryByRole("group", { name: "Seasons and campaigns" })).toBeNull();
+    await expect(canvas.getByRole("button", { name: "What this pool is for" })).toBeVisible();
   },
 };
 

@@ -44,8 +44,13 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", () => ({
   useProtocolPool: () => ({ rootGarden: "0xcccccccccccccccccccccccccccccccccccccccc" }),
 }));
 
+// Only the lead provider has a name, so the row can be seen naming the person.
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
-  useEnsName: () => ({ data: null, isLoading: false }),
+  useEnsName: (address?: string) => ({
+    data:
+      address?.toLowerCase() === "0x1111111111111111111111111111111111111111" ? "maria.eth" : null,
+    isLoading: false,
+  }),
 }));
 
 vi.mock("@/views/Garden/Pool/CommitmentDialog", () => ({
@@ -188,6 +193,7 @@ describe("HubConfirmQueue (W13)", () => {
     renderQueue();
     const item = screen.getByTestId("hub-confirm-9");
     expect(within(item).getByText("Prune the north beds")).toBeInTheDocument();
+    expect(within(item).getByText("maria.eth")).toBeInTheDocument();
     expect(within(item).getByText(/1 of 2 confirmed/i)).toBeInTheDocument();
     expect(within(item).getByText(/^ready to confirm$/i)).toBeInTheDocument();
     // The header names the acting garden, so the row does not restate it.

@@ -17,6 +17,10 @@ export interface CommitmentComposerController {
   form: UseFormReturn<CommitmentComposerValues>;
   values: CommitmentComposerValues;
   actions: Action[];
+  /** The actions that can take Work now, which are the ones offered. */
+  openActions: Action[];
+  /** Chosen actions whose window has ended; placement waits until they are removed. */
+  closedActionUIDs: string[];
   openCycles: CommitmentCycleRecord[];
   cycleNames: CommitmentCycleNameMap["byCycleId"];
   gardenName: string | null;

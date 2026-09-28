@@ -171,19 +171,19 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
 
     const copy = async (val?: string) => {
       if (!val) return;
-      try {
-        await copyToClipboard(val);
-        toastService.success({
-          title: intl.formatMessage({ id: "app.toast.copied", defaultMessage: "Copied" }),
-        });
-      } catch {
+      const copiedOk = await copyToClipboard(val);
+      if (!copiedOk) {
         toastService.error({
           title: intl.formatMessage({
             id: "app.toast.copyFailed",
             defaultMessage: "Copy failed",
           }),
         });
+        return;
       }
+      toastService.success({
+        title: intl.formatMessage({ id: "app.toast.copied", defaultMessage: "Copied" }),
+      });
     };
 
     return (

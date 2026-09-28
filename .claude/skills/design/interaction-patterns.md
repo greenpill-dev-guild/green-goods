@@ -175,6 +175,12 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   [useGardenDerivedState.ts](../../../packages/shared/src/hooks/garden/useGardenDerivedState.ts)
   and the rows of `ManageMembersDialog`. Three counts that disagree teach stewards to trust none
   of them.
+- **A commitment row's edge tells its direction (DL-052).** A 3px edge on the row's inline start
+  marks offers in the primary tone and requests in the information tone. The state chip is
+  unchanged, and the direction word stays where the chip does not already say it, so direction
+  never rests on colour alone. Markers such as "Needs you" sit at the 12px label size in sentence
+  case. Proof: `CommitmentRow` in
+  [CommitmentRow.tsx](../../../packages/client/src/components/Features/Commitments/CommitmentRow.tsx).
 - **Banners teach once; chips carry state.** Repeating per-row conditions (past due, expired,
   lapsed) as info banners is a defect — encode them in chips + meta. Reserve banners for one-time
   context the user genuinely lacks. (Refactoring UI: emphasis is a budget.)

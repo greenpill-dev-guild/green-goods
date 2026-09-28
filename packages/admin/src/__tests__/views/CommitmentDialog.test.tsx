@@ -29,6 +29,11 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/useCommitmentDialogController",
   useCommitmentDialogController: () => mocks.controller!,
 }));
 
+// This view proves the confirmation flow; ENS resolution has its own coverage.
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: null }),
+}));
+
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
   return { ...actual, useNavigate: () => mocks.navigate };

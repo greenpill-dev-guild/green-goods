@@ -1,5 +1,11 @@
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
-import { COMMITMENT_UNIT_LABEL_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/metadata";
+import {
+  COMMITMENT_COUNT_CHOICES,
+  COMMITMENT_DAY_CHOICES,
+  COMMITMENT_HOUR_CHOICES,
+  COMMITMENT_UNIT_CHOICES,
+  COMMITMENT_UNIT_LABEL_MAX_LENGTH,
+} from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { Action } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { Controller, type UseFieldArrayReturn, type UseFormReturn } from "react-hook-form";
@@ -7,6 +13,7 @@ import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
 import { actionUIDOf, type SeedFieldError } from "./seedStepModel";
 
@@ -27,6 +34,8 @@ export interface SeedStepHowMuchProps {
 /**
  * Step two of the seeding console: the unit and target, when it is due, who may
  * contribute, and — for garden work — the approved actions it is kept by.
+ * Each field keeps its free entry under the member composer's suggestions, and
+ * garden work is counted in hours, so it states the unit instead of asking.
  */
 export function SeedStepHowMuch({
   form,
@@ -39,63 +48,143 @@ export function SeedStepHowMuch({
   chainId,
 }: SeedStepHowMuchProps) {
   const { formatMessage } = useIntl();
+  const isGardenWork = values.kind === "GARDEN_WORK";
+  const set = (field: "unitLabel" | "targetUnits" | "dueInDays", value: string | number) =>
+    form.setValue(field, value as never, { shouldDirty: true, shouldValidate: true });
+  const unitLabelText = formatMessage({
+    id: "cockpit.garden.pool.seed.unit",
+    defaultMessage: "Unit",
+  });
+  const targetText = formatMessage({
+    id: "cockpit.garden.pool.seed.target",
+    defaultMessage: "Target",
+  });
+  const suggestionsFor = (field: string) =>
+    formatMessage(
+      { id: "cockpit.garden.pool.seed.suggestionsFor", defaultMessage: "Suggestions for {field}" },
+      { field }
+    );
+  const dueText = formatMessage({
+    id: "cockpit.garden.pool.seed.dueInDays",
+    defaultMessage: "Due in (days)",
+  });
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <AdminTextField
-          label={formatMessage({ id: "cockpit.garden.pool.seed.unit", defaultMessage: "Unit" })}
-          value={values.unitLabel}
-          onChange={(event) =>
-            form.setValue("unitLabel", event.target.value, {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-          }
-          error={errorOf("unitLabel")}
-          placeholder={formatMessage({
-            id: "cockpit.garden.pool.seed.unitPlaceholder",
-            defaultMessage: "rides",
+      {isGardenWork ? (
+        <p className="body-sm text-text-sub">
+          {formatMessage({
+            id: "cockpit.garden.pool.seed.countedInHours",
+            defaultMessage: "Counted in hours",
           })}
-          disabled={busy}
-          required
-          showCount
-          inputProps={{ maxLength: COMMITMENT_UNIT_LABEL_MAX_LENGTH }}
-        />
-        <AdminTextField
-          label={formatMessage({
-            id: "cockpit.garden.pool.seed.target",
-            defaultMessage: "Target",
-          })}
-          value={String(values.targetUnits)}
-          onChange={(event) =>
-            form.setValue("targetUnits", Number(event.target.value), {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-          }
-          error={errorOf("targetUnits")}
-          inputProps={{ inputMode: "numeric" }}
-          disabled={busy}
-          required
-        />
-        <AdminTextField
-          label={formatMessage({
-            id: "cockpit.garden.pool.seed.dueInDays",
-            defaultMessage: "Due in (days)",
-          })}
-          value={String(values.dueInDays)}
-          onChange={(event) =>
-            form.setValue("dueInDays", Number(event.target.value), {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-          }
-          error={errorOf("dueInDays")}
-          inputProps={{ inputMode: "numeric" }}
-          disabled={busy}
-          required
-        />
+        </p>
+      ) : (
+        <div className="space-y-2">
+          <div
+            className="flex flex-wrap gap-2"
+            role="group"
+            aria-label={suggestionsFor(unitLabelText)}
+          >
+            {COMMITMENT_UNIT_CHOICES.map((unit) => {
+              // The chip stores the words it shows, as the member composer's does.
+              const label = formatMessage({ id: `app.compose.unit.${unit}`, defaultMessage: unit });
+              return (
+                <AdminFilterChip
+                  key={unit}
+                  label={label}
+                  selected={values.unitLabel === label}
+                  onToggle={() => set("unitLabel", label)}
+                  disabled={busy}
+                />
+              );
+            })}
+          </div>
+          <AdminTextField
+            label={unitLabelText}
+            value={values.unitLabel}
+            onChange={(event) =>
+              form.setValue("unitLabel", event.target.value, {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+            error={errorOf("unitLabel")}
+            placeholder={formatMessage({
+              id: "cockpit.garden.pool.seed.unitPlaceholder",
+              defaultMessage: "rides",
+            })}
+            disabled={busy}
+            required
+            showCount
+            inputProps={{ maxLength: COMMITMENT_UNIT_LABEL_MAX_LENGTH }}
+          />
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-2">
+          <div
+            className="flex flex-wrap gap-2"
+            role="group"
+            aria-label={suggestionsFor(targetText)}
+          >
+            {(isGardenWork ? COMMITMENT_HOUR_CHOICES : COMMITMENT_COUNT_CHOICES).map((count) => (
+              <AdminFilterChip
+                key={count}
+                label={String(count)}
+                selected={values.targetUnits === count}
+                onToggle={() => set("targetUnits", count)}
+                disabled={busy}
+              />
+            ))}
+          </div>
+          <AdminTextField
+            label={targetText}
+            value={String(values.targetUnits)}
+            onChange={(event) =>
+              form.setValue("targetUnits", Number(event.target.value), {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+            error={errorOf("targetUnits")}
+            inputProps={{ inputMode: "numeric" }}
+            disabled={busy}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label={suggestionsFor(dueText)}>
+            {COMMITMENT_DAY_CHOICES.map((days) => (
+              <AdminFilterChip
+                key={days}
+                label={formatMessage(
+                  {
+                    id: "app.compose.terms.days",
+                    defaultMessage: "{count, plural, one {# day} other {# days}}",
+                  },
+                  { count: days }
+                )}
+                selected={values.dueInDays === days}
+                onToggle={() => set("dueInDays", days)}
+                disabled={busy}
+              />
+            ))}
+          </div>
+          <AdminTextField
+            label={dueText}
+            value={String(values.dueInDays)}
+            onChange={(event) =>
+              form.setValue("dueInDays", Number(event.target.value), {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+            error={errorOf("dueInDays")}
+            inputProps={{ inputMode: "numeric" }}
+            disabled={busy}
+            required
+          />
+        </div>
       </div>
       <Controller
         control={form.control}

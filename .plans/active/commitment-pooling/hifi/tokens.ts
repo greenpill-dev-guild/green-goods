@@ -159,8 +159,6 @@ export const HIFI_CSS = `
 .hf .abar .atab .ic{width:24px;height:24px}
 .hf .abar .badge{position:absolute;top:-2px;right:8px;min-width:16px;height:16px;border-radius:99px;
   background:var(--gr);color:var(--on-accent);font-weight:700;font-size:10px;line-height:16px;text-align:center;padding:0 4px}
-.hf .syncbar{margin:0 16px 8px;border:1px dashed var(--ln2);background:var(--stone-bg);color:var(--stone);
-  border-radius:12px;padding:7px 12px;font-size:12.5px;display:flex;gap:8px;align-items:center}
 
 /* icons */
 .hf .ic{width:20px;height:20px;fill:currentColor;flex:none}

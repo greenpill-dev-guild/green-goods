@@ -8,11 +8,13 @@ import {
 import { useHypercerts } from "@green-goods/shared/hooks/hypercerts/useHypercerts";
 import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useEffect, useMemo } from "react";
+import { Helmet } from "react-helmet-async";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import {
   EditorialGhostButton,
   EditorialGhostLink,
+  EditorialHeading,
   EditorialPrimaryLink,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
@@ -99,7 +101,6 @@ export default function GardenDetail() {
     }
     return null;
   }, [garden, summary]);
-
   // Hand the archive a focus target for the reader's way back.
   useEffect(() => {
     rememberGardenReturn(identity?.slug);
@@ -116,36 +117,70 @@ export default function GardenDetail() {
   const assessmentsUnavailable = detail?.unavailableSources.assessments ?? false;
   const fundHref = identity ? `/fund?garden=${encodeURIComponent(identity.slug)}` : "/fund";
 
+  const unlisted = detail?.unlisted ?? false;
+  // The detail decides; until it arrives, only the archive's own card proves a Garden listed.
+  const listed = detail ? !detail.unlisted : Boolean(summary);
+
   return (
     <>
+      {/* Unlisted means unlisted to crawlers too. */}
+      {unlisted ? (
+        <Helmet>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+      ) : null}
       <PublicEditorialHero
         variant="banner"
         imageSrc={identity?.bannerImage || getPublicHeroImage("gardens")}
         imageFallbackSrc={getPublicHeroImage("gardens")}
         imageAlt=""
         titleId="public-garden-detail-title"
-        kicker={identity?.location || undefined}
         title={identity?.name || " "}
         lede={
-          identity?.description ||
-          formatMessage({
-            id: "public.gardenDetail.place.empty",
-            defaultMessage: "Garden narrative will appear here as it is published.",
-          })
+          identity?.location ? (
+            <span className="block min-h-[2lh] break-words">{identity.location}</span>
+          ) : undefined
         }
-        actions={
-          <EditorialGhostLink to="/gardens" size="lg">
-            <span aria-hidden="true">←</span>
-            {formatMessage({
-              id: "public.gardenDetail.backToArchive",
-              defaultMessage: "All Gardens",
-            })}
-          </EditorialGhostLink>
+        publicationMark={
+          unlisted
+            ? formatMessage({
+                id: "public.gardenDetail.unlisted",
+                defaultMessage: "This Garden is not in the public lists.",
+              })
+            : undefined
         }
       />
 
-      <div className="bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-24">
+      <div className="bg-bg-weak-50 px-6 pt-16 pb-16 sm:px-10 sm:pt-20 md:pb-24">
         <div className="mx-auto flex max-w-7xl flex-col gap-20">
+          <div className="space-y-8">
+            <Link
+              to="/gardens"
+              viewTransition
+              className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-primary-action underline underline-offset-4 transition-colors hover:text-primary-action-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-action"
+            >
+              <span aria-hidden="true">←</span>
+              {formatMessage({
+                id: "public.gardenDetail.backToArchive",
+                defaultMessage: "All Gardens",
+              })}
+            </Link>
+            <section aria-labelledby="public-garden-description-title" className="max-w-3xl">
+              <EditorialHeading id="public-garden-description-title" size="sub">
+                {formatMessage({
+                  id: "public.gardenDetail.description.heading",
+                  defaultMessage: "About this garden",
+                })}
+              </EditorialHeading>
+              <p className="mt-4 whitespace-pre-line break-words text-base leading-relaxed text-text-sub-600 sm:text-lg">
+                {identity?.description ||
+                  formatMessage({
+                    id: "public.gardenDetail.place.empty",
+                    defaultMessage: "Garden narrative will appear here as it is published.",
+                  })}
+              </p>
+            </section>
+          </div>
           <dl className="grid grid-cols-2 gap-x-8 gap-y-6 border-y border-stroke-soft-200 py-8 sm:grid-cols-4">
             <StatCell
               label={formatMessage({
@@ -210,12 +245,15 @@ export default function GardenDetail() {
           <StewardsSection stewards={identity?.stewards ?? []} loading={detailLoading} />
 
           <div className="flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-10">
-            <EditorialPrimaryLink to={fundHref}>
-              {formatMessage({
-                id: "public.gardenDetail.support",
-                defaultMessage: "Support This Garden",
-              })}
-            </EditorialPrimaryLink>
+            {/* The funding list leaves an unlisted Garden out, so its link would find nothing. */}
+            {listed ? (
+              <EditorialPrimaryLink to={fundHref}>
+                {formatMessage({
+                  id: "public.gardenDetail.support",
+                  defaultMessage: "Support This Garden",
+                })}
+              </EditorialPrimaryLink>
+            ) : null}
             <EditorialGhostLink to="/impact">
               {formatMessage({
                 id: "public.gardenDetail.evidence.cta",

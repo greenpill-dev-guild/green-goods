@@ -2,7 +2,9 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
@@ -77,6 +79,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 describe("GardenGardeners", () => {
   it("virtualizes large member lists while preserving selection and list semantics", async () => {
     const user = userEvent.setup();
@@ -113,5 +119,23 @@ describe("GardenGardeners", () => {
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveAttribute("data-component", "DialogShell");
     expect(within(dialog).getByText("Member 0")).toBeInTheDocument();
+  });
+
+  it("reports a failed member-detail copy without claiming success", async () => {
+    vi.mocked(copyToClipboard).mockResolvedValue(false);
+    const user = userEvent.setup();
+    render(
+      <TestIntl>
+        <GardenGardeners members={[{ ...members[0], email: "member@example.com" }]} />
+      </TestIntl>
+    );
+
+    await user.click(screen.getByRole("button", { name: /Member 0/i }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Copy" }));
+
+    await waitFor(() => expect(toastService.error).toHaveBeenCalled());
+    expect(copyToClipboard).toHaveBeenCalledWith("member@example.com");
+    expect(toastService.success).not.toHaveBeenCalled();
   });
 });

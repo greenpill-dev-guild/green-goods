@@ -43,7 +43,7 @@ describe("AddressCopy", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.reset = null;
-    mocks.copy.mockResolvedValue(undefined);
+    mocks.copy.mockResolvedValue(true);
   });
 
   it("copies, announces success, and resets its status", async () => {
@@ -59,11 +59,13 @@ describe("AddressCopy", () => {
   });
 
   it("keeps copy available and reports a clipboard failure", async () => {
-    mocks.copy.mockRejectedValue(new Error("Clipboard denied"));
+    mocks.copy.mockResolvedValue(false);
     renderWithProviders(<AddressCopy address={ADDRESS} />);
     fireEvent.click(screen.getByRole("button", { name: /copy/i }));
 
     await waitFor(() => expect(mocks.error).toHaveBeenCalled());
+    expect(mocks.success).not.toHaveBeenCalled();
+    expect(mocks.reset).toBeNull();
     expect(screen.getByText("Copy")).toBeInTheDocument();
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });

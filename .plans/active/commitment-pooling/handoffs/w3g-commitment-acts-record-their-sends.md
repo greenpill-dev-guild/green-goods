@@ -421,19 +421,46 @@ The creations' `submittedTxHash` path; the claim-context findings N42 and N43; d
 transaction that is never executed, which waits as work and decisions do; and a work or decision
 transaction that is dropped or cancelled while no tab watches, which waits for good, as on develop.
 
+Work and decisions take up these rules in #936 (PRD-1002): a Safe's id settles by the work's or
+decision's landing on EAS, a transaction that can never be included reopens, an absence counts only
+once EAS has processed past the grace window, and every send holds its lock behind the same guards.
+
 ## Unblock evidence
 
 The lane closes when all of these hold. As of 2026-09-27:
 
 - RED and GREEN recorded: done, under RED and GREEN evidence.
-- PR #923 merged: not yet.
+- PR #923 merged: done, as `7fdc87f78`. Two review comments posted minutes before the merge are
+  fixed in the follow-up below, which merged in #931 as `2aca5c59a`.
 - PWA-126 walked on the recorded call: pending.
-- Then the sub-lane moves to `completed` and the Linear child to Done; until then it stays open.
+- Then the sub-lane moves to `completed` and the Linear child to Done. Until then the sub-lane is
+  `in_progress`, since the harness counts `passed` as done, and PRD-996 stays In Progress.
 
 W3-H starts once #923 merges (§ 1 row 49); it does not wait for the walk.
 
 The proof is recorded here, under RED and GREEN evidence. The `state_api` machine lane's TDD record
 holds W1-1's proof and belongs to Codex's lane, so `record-tdd` is not run over it.
+
+## Follow-up after the merge (2026-09-27)
+
+Two Codex comments on #923 arrived minutes before it merged, and both held. The follow-up branch
+`fix/commitment-send-nonce-cursor` fixes them:
+
+- **The nonce the transaction used.** The account's pending nonce read before the wallet prompt is
+  only a floor: the wallet may know sends this network does not, or another send may go out while
+  the prompt is open. A transaction with a later nonce could then read as superseded and be offered
+  again. The send record now keeps `transactionNonce`, the nonce read off the transaction itself
+  with the hash it was read for. It is read when a send stops waiting for its receipt, and on each
+  settle pass while the network holds the transaction. "Superseded" reads only that nonce. A
+  transaction the network never showed keeps waiting, since nothing can prove another took its
+  nonce. `readNextNonce` and `intentNonce` are gone; a record an earlier build kept drops its
+  `intentNonce` on its next write.
+- **Paging by cursor.** The landed lookup read the commitment's log by offset. A row the indexer
+  rolls back between pages shifts the rest up, so the send's own row could fall between two pages
+  and read as absent. The lookup now pages from after the oldest row it read, on the log's own
+  order (`timestamp` then `id`). `getCommitmentActivity` takes that cursor as `before`. The query
+  was checked read-only against the hosted indexer: the page after a cursor equals the rows after
+  it, ties on timestamp included.
 
 ## Validation Receipt
 

@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   pendingCreates: [] as Array<{ jobId: string; poolId: string }>,
   metadata: new Map<string, { title: string }>(),
   hasRole: false,
+  roleRead: { isLoading: false, error: null as Error | null },
   isOnline: true,
   refresh: vi.fn(),
   flush: vi.fn(),
@@ -28,7 +29,7 @@ vi.mock("../../../hooks/app/useOnlineStatus", () => ({
   useOnlineStatus: () => mocks.isOnline,
 }));
 vi.mock("../../../hooks/roles/useHasRole", () => ({
-  useHasRole: () => ({ hasRole: mocks.hasRole, isLoading: false }),
+  useHasRole: () => ({ hasRole: mocks.hasRole, ...mocks.roleRead }),
 }));
 vi.mock("../../../providers/JobQueue", () => ({
   useJobQueue: () => ({ flush: mocks.flush, retryAndSend: mocks.retryAndSend }),
@@ -70,6 +71,7 @@ describe("useGardenPoolController", () => {
     ];
     mocks.metadata = new Map([["request-cid", { title: "Water the orchard" }]]);
     mocks.hasRole = false;
+    mocks.roleRead = { isLoading: false, error: null };
     mocks.isOnline = true;
     mocks.flush.mockResolvedValue(undefined);
     mocks.retryAndSend.mockResolvedValue(undefined);
@@ -155,5 +157,23 @@ describe("useGardenPoolController", () => {
     mocks.hasRole = true;
     rerender({ targetPool: poolFixture({ state: "OPEN", poolType: "PROTOCOL" }) });
     expect(result.current.canCreate).toBe(true);
+  });
+
+  it("knows whether the reader stewards the pool only once the role reads answer", () => {
+    const targetPool = poolFixture({ state: "NOT_READY", poolType: "GARDEN" });
+    const { result, rerender } = renderHookWithProviders(() => useGardenPoolController(targetPool));
+    expect(result.current.stewardsPool).toBe(false);
+
+    mocks.roleRead = { isLoading: true, error: null };
+    rerender();
+    expect(result.current.stewardsPool).toBeNull();
+
+    mocks.roleRead = { isLoading: false, error: new Error("RPC unavailable") };
+    rerender();
+    expect(result.current.stewardsPool).toBeNull();
+
+    mocks.hasRole = true;
+    rerender();
+    expect(result.current.stewardsPool).toBe(true);
   });
 });

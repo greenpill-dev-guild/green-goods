@@ -29,10 +29,6 @@ export interface WorkDashboardReturnState {
 }
 
 export type UIState = {
-  // Global offline/queue indicators
-  isOfflineBannerVisible: boolean;
-  setOfflineBannerVisible: (visible: boolean) => void;
-
   // Work dashboard/modal controls
   isWorkDashboardOpen: boolean;
   /** Tab the dashboard should open to (consumed once on mount); undefined = default tab. */
@@ -57,6 +53,13 @@ export type UIState = {
   gardenFilters: GardenFiltersState;
   setGardenFilters: (update: (current: GardenFiltersState) => GardenFiltersState) => void;
   resetGardenFilters: () => void;
+
+  /**
+   * Forget what one account left when another signs in on this device: Home's
+   * filters, every sheet flag, and the Work Dashboard's return point. Device
+   * state (debug mode, the admin sidebar, the offline banner) stays.
+   */
+  resetForAccountChange: () => void;
 
   // Endowment/treasury sheet controls (client)
   isEndowmentSheetOpen: boolean;
@@ -99,9 +102,6 @@ export type UIState = {
 export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
-      isOfflineBannerVisible: false,
-      setOfflineBannerVisible: (visible) => set({ isOfflineBannerVisible: visible }),
-
       isWorkDashboardOpen: false,
       workDashboardInitialTab: undefined,
       workDashboardInitialPendingFilter: undefined,
@@ -132,6 +132,18 @@ export const useUIStore = create<UIState>()(
       setGardenFilters: (update) =>
         set((state) => ({ gardenFilters: update(state.gardenFilters) })),
       resetGardenFilters: () => set({ gardenFilters: DEFAULT_GARDEN_FILTERS }),
+      resetForAccountChange: () =>
+        set({
+          gardenFilters: DEFAULT_GARDEN_FILTERS,
+          isGardenFilterOpen: false,
+          isEndowmentSheetOpen: false,
+          isWalletSheetOpen: false,
+          isCommitmentsSheetOpen: false,
+          isWorkDashboardOpen: false,
+          workDashboardInitialTab: undefined,
+          workDashboardInitialPendingFilter: undefined,
+          workDashboardReturnState: undefined,
+        }),
 
       isEndowmentSheetOpen: false,
       openEndowmentSheet: () => set({ isEndowmentSheetOpen: true }),

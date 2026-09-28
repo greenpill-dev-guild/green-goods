@@ -404,7 +404,7 @@ describe("WorkDashboard", () => {
     renderDashboard();
 
     const uploadAll = screen.getByTestId("upload-all");
-    expect(uploadAll).toHaveTextContent("Upload all (2)");
+    expect(uploadAll).toHaveTextContent("Upload all");
     const actions = screen.getByTestId("work-list-actions");
     expect(within(actions).getByRole("button", { name: "Refresh" })).toBeInTheDocument();
     expect(within(actions).getByTestId("upload-all")).toBe(uploadAll);
@@ -417,7 +417,7 @@ describe("WorkDashboard", () => {
     fireEvent.click(screen.getByTestId("tab-drafts"));
     expect(screen.queryByTestId("upload-all")).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId("tab-pending"));
-    expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all (2)");
+    expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all");
 
     fireEvent.change(screen.getByRole("combobox", { name: "Pending work filter" }), {
       target: { value: "mySubmissions" },
@@ -426,7 +426,7 @@ describe("WorkDashboard", () => {
     fireEvent.change(screen.getByRole("combobox", { name: "Pending work filter" }), {
       target: { value: "all" },
     });
-    expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all (2)");
+    expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all");
   });
 
   it("does not offer an upload control while offline", () => {

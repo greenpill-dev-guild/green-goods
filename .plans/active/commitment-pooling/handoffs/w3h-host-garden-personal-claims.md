@@ -110,7 +110,10 @@ left the list unknown with no retry. It passes at `57d5fc4f6`.
 ## Unblock evidence
 
 The lane closes when RED and GREEN are recorded, the PR merges, the sub-lane is `completed`, and
-the Linear child is Done. As of 2026-09-27, RED and GREEN are recorded above; the PR is open.
+the Linear child is Done. As of 2026-09-27, #925 merged as `c17a03b46`. PRD-997's Done when also asks
+to see the claim land on chain, which rides the protocol-pool stage of the rehearsal walk, so the
+sub-lane stays `in_progress`, since the harness counts `passed` as done, and PRD-997 stays In
+Progress until that walk.
 
 ## Validation Receipt
 

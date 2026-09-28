@@ -280,8 +280,8 @@ export interface AssessmentDraft {
 export interface ActionCard {
   id: string;
   slug: string;
-  startTime: number;
-  endTime: number;
+  startTime: number; // epoch milliseconds; getActions converts the indexer's seconds
+  endTime: number; // epoch milliseconds
   title: string;
   instructions?: string;
   capitals: Capital[];

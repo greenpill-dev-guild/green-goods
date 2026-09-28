@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockTransactionSender } from "@green-goods/shared/testing";
 import type { ApprovalJobPayload, WorkJobPayload } from "../../types/job-queue";
 import { forgetWorkBroadcast } from "../../modules/work/work-confirmation";
+import { addWebLocks } from "../test-utils/web-locks";
 
 // Ensure fake-indexeddb is loaded before job-queue module
 import "fake-indexeddb/auto";
@@ -20,6 +21,13 @@ vi.mock("@wagmi/core", () => ({
   getPublicClient: vi.fn(() => ({
     readContract: vi.fn(),
   })),
+  // A lost send reopens only when the chain allows it: its clock, which the
+  // indexers have reached, and an account with nothing waiting.
+  getBlock: vi.fn(async () => ({
+    number: 100n,
+    timestamp: BigInt(Math.floor(Date.now() / 1000)),
+  })),
+  getTransactionCount: vi.fn(async () => 0),
 }));
 
 vi.mock("../../modules/app/posthog", () => ({
@@ -30,6 +38,7 @@ vi.mock("../../modules/app/posthog", () => ({
 // No stranded send in these tests ever landed on-chain.
 vi.mock("../../modules/data/eas-sent-attestations", () => ({
   getWorkSubmissionsSince: vi.fn(async () => []),
+  getEasIndexedBlock: vi.fn(async () => 100n),
 }));
 vi.mock("../../modules/work/simulate", () => ({
   simulateWorkSubmission: vi.fn(async () => undefined),
@@ -363,6 +372,20 @@ describe("modules/job-queue", () => {
   });
 
   describe("a send whose answer was lost", () => {
+    // A lost send reopens only where Web Locks can say no tab still holds it.
+    let removeLocks: () => void;
+    beforeEach(() => {
+      removeLocks = addWebLocks();
+      // A lost send is looked up at most every five minutes, so time moves on
+      // between the looks these tests take.
+      vi.useFakeTimers({ toFake: ["Date"], now: Date.now() });
+    });
+    afterEach(() => {
+      removeLocks();
+      vi.useRealTimers();
+    });
+    const nextLook = () => vi.setSystemTime(Date.now() + 6 * 60_000);
+
     const strandedWork = async () => {
       const jobId = await jobQueue.addJob(
         "work",
@@ -391,6 +414,14 @@ describe("modules/job-queue", () => {
       const jobId = await strandedWork();
       const sender = createMockTransactionSender();
 
+      // The first look finds nothing holding it and keeps the chain's head.
+      await expect(jobQueue.processJob(jobId, { transactionSender: sender })).resolves.toEqual({
+        success: false,
+        error: "awaiting-confirmation",
+        skipped: true,
+      });
+      // The next, with the indexers past that head, reopens it.
+      nextLook();
       await expect(jobQueue.processJob(jobId, { transactionSender: sender })).resolves.toEqual({
         success: false,
         error: "send-intent-expired",
@@ -458,6 +489,9 @@ describe("modules/job-queue", () => {
     it("sends in the same tap when the tap is what finds the send never landed", async () => {
       const jobId = await strandedWork();
       const sender = createMockTransactionSender();
+      // A look before found nothing holding it.
+      await jobQueue.processJob(jobId, { transactionSender: sender });
+      nextLook();
 
       await expect(
         jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })

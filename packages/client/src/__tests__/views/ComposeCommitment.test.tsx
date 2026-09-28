@@ -27,8 +27,10 @@ const mockUseCommitment = vi.fn();
 
 // Live now: the rail hides actions outside their window, because Work is
 // refused there and a commitment kept by such an action could never be kept.
-const NOW = Math.floor(Date.now() / 1000);
-const LIVE = { startTime: NOW - 86_400, endTime: NOW + 86_400 };
+// Action times are milliseconds, as getActions stores them.
+const NOW = Date.now();
+const DAY_MS = 24 * 60 * 60 * 1000;
+const LIVE = { startTime: NOW - DAY_MS, endTime: NOW + DAY_MS };
 const ACTIONS = [
   { id: "42161-44", title: "Prune", domain: "AGRO", media: [], description: "", ...LIVE },
   { id: "42161-45", title: "Plant", domain: "AGRO", media: [], description: "", ...LIVE },
@@ -40,8 +42,8 @@ const ACTIONS = [
     domain: "AGRO",
     media: [],
     description: "",
-    startTime: NOW - 172_800,
-    endTime: NOW - 86_400,
+    startTime: NOW - 2 * DAY_MS,
+    endTime: NOW - DAY_MS,
   },
 ];
 
@@ -101,7 +103,7 @@ vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
 }));
 
 const { ComposeCommitment } = await import("../../views/Home/Garden/Compose");
-const { useCommitmentComposerDraftStore } = await import(
+const { commitmentComposerDraftKey, useCommitmentComposerDraftStore } = await import(
   "@green-goods/shared/stores/useCommitmentComposerDraftStore"
 );
 
@@ -602,6 +604,42 @@ describe("ComposeCommitment", () => {
     await user.click(screen.getByRole("button", { name: "Start Fresh" }));
     expect(screen.getByLabelText("Name it")).toHaveValue("");
     expect(Object.keys(useCommitmentComposerDraftStore.getState().drafts)).toHaveLength(0);
+  });
+
+  it("keeps a resumed action that has closed on the list, and holds the step until it goes", async () => {
+    // Saved while Harvest could still take work; its window has since ended.
+    useCommitmentComposerDraftStore.getState().saveDraft(
+      commitmentComposerDraftKey({
+        chainId: 42161,
+        viewer: VIEWER,
+        garden: GARDEN,
+        direction: "OFFER",
+      }),
+      {
+        values: {
+          title: "Harvest the north beds",
+          kind: "GARDEN_WORK",
+          requirements: [{ actionUID: "99", requiredCount: 1 }],
+        },
+        clientCommitmentId: "draft-harvest",
+      },
+      NOW - 2 * DAY_MS
+    );
+    const user = userEvent.setup();
+    render("offer");
+    await user.click(screen.getByRole("button", { name: "Resume Draft" }));
+    await user.click(next());
+
+    const rows = screen.getByRole("list", { name: "Chosen actions" });
+    expect(within(rows).getByText("Closed")).toBeInTheDocument();
+    expect(
+      screen.getByText("Harvest has closed and can't take work any more. Remove it to continue.")
+    ).toBeInTheDocument();
+    expect(next()).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Remove Harvest" }));
+    await user.click(screen.getByRole("button", { name: /Prune/ }));
+    expect(next()).toBeEnabled();
   });
 
   it("forgets the draft once the commitment is placed", async () => {

@@ -38,15 +38,15 @@ export function ENSProgressTimeline({
   const copyResetTimer = useTimeout();
   const copyMessageId = async () => {
     if (!data.ccipMessageId) return;
-    try {
-      await copyToClipboard(data.ccipMessageId);
-      setCopied(true);
-      copyResetTimer.set(() => setCopied(false), 2000);
-    } catch {
+    const copiedOk = await copyToClipboard(data.ccipMessageId);
+    if (!copiedOk) {
       toastService.error({
         title: intl.formatMessage({ id: "app.toast.copyFailed", defaultMessage: "Copy failed" }),
       });
+      return;
     }
+    setCopied(true);
+    copyResetTimer.set(() => setCopied(false), 2000);
   };
   const status = phase ?? data.status;
   if (status === "available") return null;

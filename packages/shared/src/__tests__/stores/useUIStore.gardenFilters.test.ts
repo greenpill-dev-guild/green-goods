@@ -49,4 +49,32 @@ describe("Home garden filters in the UI store", () => {
       parseGardenFilters({ scope: "everyone", sort: "name", domains: [Domain.AGRO, 9, "SOLAR"] })
     ).toEqual({ scope: "all", sort: "name", domains: [Domain.AGRO] });
   });
+
+  it("forgets one account's filters, sheets and dashboard place, and keeps the device's debug flag", () => {
+    const store = useUIStore.getState();
+    store.setDebugMode(true);
+    store.setGardenFilters(() => ({ scope: "mine", sort: "name" }));
+    store.openGardenFilter();
+    store.openWalletSheet();
+    store.openWorkDashboard("completed");
+    store.rememberWorkDashboard({
+      tab: "completed",
+      pendingFilter: "all",
+      completedFilter: "myWorkReviewed",
+      timeFilter: "week",
+      scrollTop: 240,
+    });
+
+    useUIStore.getState().resetForAccountChange();
+
+    const after = useUIStore.getState();
+    expect(after.gardenFilters).toEqual(DEFAULT_GARDEN_FILTERS);
+    expect(after.isGardenFilterOpen).toBe(false);
+    expect(after.isWalletSheetOpen).toBe(false);
+    expect(after.isWorkDashboardOpen).toBe(false);
+    expect(after.workDashboardInitialTab).toBeUndefined();
+    expect(after.workDashboardReturnState).toBeUndefined();
+    expect(after.debugMode).toBe(true);
+    after.setDebugMode(false);
+  });
 });

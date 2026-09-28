@@ -15,16 +15,15 @@
  *
  * "Found" needs the landed row. "Absent" needs the log read back to the start
  * of the window, and the indexer's processed block, timed on the chain itself,
- * past the send's grace window: an indexer that trails or stalls holds no row
- * for a send it has not reached. Short of that the answer is "unknown", which
- * keeps the act waiting.
+ * past the send's grace window (`indexer-coverage`): an indexer that trails or
+ * stalls holds no row for a send it has not reached. That block is read before
+ * the log, so it covers every row the log read can miss. Short of that the
+ * answer is "unknown", which keeps the act waiting.
  *
  * @module modules/job-queue/commitment-landed-lookup
  */
 
-import { getBlock } from "@wagmi/core";
 import { zeroHash, type Hex } from "viem";
-import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import type { Job } from "../../types/job-queue";
 import { logger } from "../app/logger";
@@ -34,6 +33,11 @@ import { hashWorkLinkPayload } from "../commitment-pooling/job-identity";
 import type { CommitmentEventRecord } from "../commitment-pooling/types";
 import { resolveDeferredWorkIdentity } from "../commitment-pooling/work-identity";
 import { greenGoodsIndexer } from "../data/graphql-client";
+import {
+  chainBlockTime,
+  indexedPastGraceWindow,
+  type ReadBlockTime,
+} from "../work/indexer-coverage";
 import {
   STRANDED_INTENT_GRACE_MS,
   type StrandedCommitmentLookup,
@@ -58,8 +62,7 @@ interface LookupDependencies {
   /** The executor's check of a take-up's receipt, giving its block. */
   transactionMadeClaim?: CommitmentChainReads["transactionMadeClaim"];
   resolveWorkIdentity?: CommitmentQueueExecutorDeps["resolveWorkIdentity"];
-  /** The chain's time at a block, in seconds: the latest block when none is named. */
-  readBlockTime?: (chainId: number, blockNumber?: bigint) => Promise<number>;
+  readBlockTime?: ReadBlockTime;
   /** The last block the indexer processed on a chain, or null when it cannot say. */
   readIndexedBlock?: (chainId: number) => Promise<bigint | null>;
   now?: () => number;
@@ -84,14 +87,6 @@ async function checked(read: () => Promise<boolean>): Promise<boolean | "unverif
 
 const same = (left: string | null | undefined, right: string | null | undefined) =>
   Boolean(left && right && left.toLowerCase() === right.toLowerCase());
-
-async function chainBlockTime(chainId: number, blockNumber?: bigint): Promise<number> {
-  const block = await getBlock(getWagmiConfig(), {
-    chainId,
-    ...(blockNumber === undefined ? {} : { blockNumber }),
-  });
-  return Number(block.timestamp);
-}
 
 async function indexedBlock(chainId: number): Promise<bigint | null> {
   return (await queryProcessedBlocks(greenGoodsIndexer, [chainId]))?.[0]?.block ?? null;
@@ -236,12 +231,15 @@ async function findInLog(
 ): Promise<{ row?: CommitmentEventRecord; complete: boolean }> {
   // A row whose receipt could not be read leaves the read incomplete: it may be the one.
   let unverified = false;
+  // Each page starts after the oldest row read, not at a count: a row the
+  // indexer adds or rolls back between pages shifts a count, never a cursor.
+  let before: { timestamp: number; id: string } | undefined;
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const rows = await activity({
       chainId,
       commitmentId,
       limit: PAGE_SIZE,
-      offset: page * PAGE_SIZE,
+      ...(before && { before }),
     });
     for (const row of rows) {
       if (row.timestamp < sinceS) continue;
@@ -252,6 +250,7 @@ async function findInLog(
     const oldest = rows.at(-1);
     if (rows.length < PAGE_SIZE || !oldest || oldest.timestamp < sinceS)
       return { complete: !unverified };
+    before = { timestamp: oldest.timestamp, id: oldest.id };
   }
   return { complete: false };
 }
@@ -261,6 +260,18 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
   const blockTime = deps.readBlockTime ?? chainBlockTime;
   const readIndexedBlock = deps.readIndexedBlock ?? indexedBlock;
   const now = deps.now ?? Date.now;
+  /** How far the indexer has processed; null when it cannot say, which proves no absence. */
+  const processedBlock = async (chainId: number): Promise<bigint | null> => {
+    try {
+      return await readIndexedBlock(chainId);
+    } catch (error) {
+      logger.warn("[StrandedIntent] Could not read how far the indexer has processed", {
+        chainId,
+        error,
+      });
+      return null;
+    }
+  };
   return async ({ job, chainId, sinceMs }) => {
     const payload = job.payload as Record<string, unknown>;
     const recordedChainTime = sendCheckpointOf(job)?.intentChainTime;
@@ -272,14 +283,6 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
     const checkedAt = now();
     const sentAt = intentAtMs(job);
     const intentBlock = sendCheckpointOf(job)?.intentBlock;
-    // The intent on the chain's clock: kept with the intent, or, for a record
-    // kept without it, the device clock set against the latest block as read.
-    let onChain: Promise<number> | undefined;
-    const intentOnChainS = () =>
-      (onChain ??=
-        recordedChainTime !== undefined
-          ? Promise.resolve(recordedChainTime)
-          : blockTime(chainId).then((chainNowS) => sentAt / 1000 - (now() / 1000 - chainNowS)));
     // A take-up kept without its head block cannot be ordered against an earlier
     // ask, so the log never settles it. Every send since the head was kept has one.
     if (job.kind === "claim" && (intentBlock === undefined || !deps.transactionMadeClaim))
@@ -288,6 +291,8 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
       job.kind === "claim" && intentBlock !== undefined && deps.transactionMadeClaim
         ? takeUpByReceipt(job, payload, intentBlock, deps.transactionMadeClaim)
         : actMatch(job, payload);
+    // Read before the log, so it covers every row the log read can miss.
+    const indexed = await processedBlock(chainId);
     const log = await findInLog(
       activity,
       chainId,
@@ -296,13 +301,24 @@ export function createCommitmentLandedLookup(deps: LookupDependencies): Stranded
       matches
     );
     if (log.row) return { status: "found", transactionHash: log.row.txHash as Hex };
-    if (!log.complete || checkedAt - sentAt < STRANDED_INTENT_GRACE_MS)
+    if (!log.complete || indexed === null) return { status: "unknown" };
+    // Anything the send did before it was last found idle landed by that block.
+    const idleBlock = sendCheckpointOf(job)?.idleBlock;
+    if (idleBlock !== undefined && indexed < idleBlock) return { status: "unknown" };
+    // Timed on the chain's clock when the send kept it, since the device's clock
+    // may since have moved either way, and on the device's clock otherwise.
+    if (recordedChainTime === undefined && checkedAt - sentAt < STRANDED_INTENT_GRACE_MS)
       return { status: "unknown" };
-    const indexed = await readIndexedBlock(chainId);
-    if (indexed === null) return { status: "unknown" };
-    const indexedThroughS = await blockTime(chainId, indexed);
-    return indexedThroughS >= (await intentOnChainS()) + STRANDED_INTENT_GRACE_MS / 1000
-      ? { status: "absent" }
-      : { status: "unknown" };
+    // The intent on the chain's clock: kept with the intent, or, for a record
+    // kept without it, the device clock set against the latest block as read.
+    const covered = await indexedPastGraceWindow({
+      chainId,
+      indexedBlock: indexed,
+      sentAtMs: sentAt,
+      intentChainTime: recordedChainTime,
+      readBlockTime: blockTime,
+      now,
+    });
+    return covered ? { status: "absent" } : { status: "unknown" };
   };
 }

@@ -31,11 +31,6 @@ vi.mock("@green-goods/shared/hooks/app/useTunnelUrl", () => ({
   useTunnelUrl: () => null,
 }));
 
-vi.mock("@green-goods/shared/components/SyncStatusBar", () => ({
-  SyncStatusBar: ({ className }: { className?: string }) =>
-    createElement("div", { "data-testid": "sync-status-bar", className }),
-}));
-
 vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => mockUseApp(),
 }));
@@ -145,10 +140,6 @@ describe("Display mode — AppBar visibility", () => {
     expect(nav.className).not.toMatch(/translate-y-full/);
     expect(nav.className).toContain("rounded-t-[var(--radius-lg)]");
     expect(nav.className).toContain("overflow-hidden");
-
-    const syncStatusBar = screen.getByTestId("sync-status-bar");
-    expect(syncStatusBar.className).toContain("rounded-t-[var(--radius-lg)]");
-    expect(syncStatusBar.className).toContain("overflow-hidden");
   });
 
   it("localhost PWA preview: AppBar visible even when not installed", () => {

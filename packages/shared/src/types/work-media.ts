@@ -20,10 +20,20 @@ export interface WorkUploadCheckpoint {
    */
   intentBlock?: bigint;
   /**
-   * The account's next nonce when the intent was recorded, counting what the
-   * network held: the one this send's own transaction was due to use.
+   * The chain's head block when a lost send was last found idle, its window
+   * past: no tab held it, its account had nothing pending and its bundler
+   * could not land it. Anything it sent before then landed by this block or
+   * would still be pending, so it reads absent only once an indexer has
+   * passed this block.
    */
-  intentNonce?: number;
+  idleBlock?: bigint;
+  /**
+   * The nonce the recorded transaction used, read off the transaction while the
+   * network held it, with the hash it was read for. Only this can show that
+   * another transaction took its nonce: the account's next nonce read before
+   * the prompt is a floor, since the wallet may know sends this network does not.
+   */
+  transactionNonce?: { hash: `0x${string}`; nonce: number };
   transactionReverted?: boolean;
   /**
    * The wallet saw this transaction replaced by a different call, so it can

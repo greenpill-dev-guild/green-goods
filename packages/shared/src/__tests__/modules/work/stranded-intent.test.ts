@@ -1,13 +1,8 @@
 /** @vitest-environment node */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../../types/job-queue";
 import type { WorkUploadCheckpoint } from "../../../types/work-media";
 
-const indexer = vi.hoisted(() => ({
-  getWorkSubmissionsSince: vi.fn(),
-  getWorkDecisionsSince: vi.fn(),
-}));
-vi.mock("../../../modules/data/eas-sent-attestations", () => indexer);
 vi.mock("../../../modules/job-queue/db", () => ({ jobQueueDB: { updateJob: vi.fn() } }));
 
 import {
@@ -57,32 +52,14 @@ function strandedWork(checkpoint: Partial<WorkUploadCheckpoint>): Job<WorkJobPay
   } as Job<WorkJobPayload>;
 }
 
-function indexedWork(clientWorkId: string, id = `0x${"44".repeat(32)}`) {
-  return {
-    work: {
-      id,
-      gardenerAddress: GARDENER,
-      gardenAddress: GARDEN,
-      actionUID: 1,
-      title: "Weeding",
-      feedback: "",
-      metadata: JSON.stringify({ clientWorkId }),
-      media: [],
-      createdAt: 1,
-    },
-    transactionHash: TX,
-  };
-}
-
 const deps = (lookUp = vi.fn()) => ({ now: () => NOW, lookUp, persist: vi.fn() });
 
-beforeEach(() => {
-  indexer.getWorkSubmissionsSince.mockReset();
-  indexer.getWorkDecisionsSince.mockReset();
-});
-
 const WORK_UID = `0x${"44".repeat(32)}`;
-function strandedDecision(approved: boolean, broadcastPendingAt: string): Job<ApprovalJobPayload> {
+function strandedDecision(
+  approved: boolean,
+  broadcastPendingAt: string,
+  record: Partial<WorkUploadCheckpoint> = {}
+): Job<ApprovalJobPayload> {
   sequence += 1;
   return {
     id: `decision-${sequence}`,
@@ -100,28 +77,9 @@ function strandedDecision(approved: boolean, broadcastPendingAt: string): Job<Ap
       approved,
       confidence: 2,
       verificationMethod: 1,
-      sendCheckpoint: { broadcastPending: true, broadcastPendingAt },
+      sendCheckpoint: { broadcastPending: true, broadcastPendingAt, ...record },
     },
   } as Job<ApprovalJobPayload>;
-}
-
-function indexedDecision(approved: boolean) {
-  return {
-    decision: {
-      id: `0x${"77".repeat(32)}`,
-      stewardAddress: GARDENER,
-      gardenerAddress: GARDENER,
-      actionUID: 1,
-      workUID: WORK_UID,
-      approved,
-      feedback: "",
-      confidence: 2,
-      verificationMethod: 1,
-      reviewNotesCID: "",
-      createdAt: 1,
-    },
-    transactionHash: TX,
-  };
 }
 
 describe("settling a send no receipt can", () => {
@@ -193,6 +151,7 @@ describe("settling a send no receipt can", () => {
       garden: GARDEN,
       caller: GARDENER,
       sinceMs: NOW - 45 * 60_000 - 24 * 60 * 60_000,
+      sentAtMs: NOW - 10 * 60_000,
     });
     expect(dependencies.persist).not.toHaveBeenCalled();
   });
@@ -260,42 +219,95 @@ describe("settling a send no receipt can", () => {
 
     await resolveStrandedWorkIntent(work, 42161, at(5 * 60_000));
     expect(lookUp).toHaveBeenCalledTimes(2);
+
+    // A device clock set back never holds the next lookup for as long as it moved.
+    await resolveStrandedWorkIntent(work, 42161, at(-5 * 60_000));
+    expect(lookUp).toHaveBeenCalledTimes(3);
   });
 
-  it("finds the gardener's own attestation by its client work id", async () => {
-    indexer.getWorkSubmissionsSince.mockResolvedValue([
-      indexedWork("another-client", `0x${"55".repeat(32)}`),
-      indexedWork("client-1"),
-    ]);
-    const work = strandedWork({ broadcastPending: true, broadcastPendingAt: minutesAgo(10) });
-
+  it("waits out a send that kept the chain's time on the chain's clock, whichever way the device's clock moved", async () => {
+    // The device's clock ran an hour fast when the send was recorded and has
+    // since been set right, so by the device the send has not happened yet.
+    const intentAt = NOW / 1000 - 10 * 60;
+    const record = {
+      broadcastPending: true,
+      broadcastPendingAt: new Date(NOW + 50 * 60_000).toISOString(),
+      intentChainTime: intentAt,
+    };
+    // A lookup may answer absent on a module's word alone, as a work link's
+    // does, so the window holds the send until the chain's clock passes it.
+    const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
+    const at = (chainTime: number, nowMs = NOW) => ({
+      ...deps(lookUp),
+      now: () => nowMs,
+      chainHead: async () => ({ number: 120n, timestamp: chainTime }),
+    });
     await expect(
-      resolveStrandedWorkIntent(work, 42161, { now: () => NOW, persist: vi.fn() })
-    ).resolves.toEqual({ status: "landed", transactionHash: TX });
-    expect(indexer.getWorkSubmissionsSince).toHaveBeenCalledWith({
-      attester: GARDENER,
-      garden: GARDEN,
-      chainId: 42161,
-      sinceSeconds: (NOW - 45 * 60_000 - 24 * 60 * 60_000) / 1000,
+      resolveStrandedWorkIntent(strandedWork(record), 42161, at(intentAt + 10 * 60))
+    ).resolves.toEqual({ status: "waiting" });
+    // Past the window on the chain's clock, with nothing holding it, the head is
+    // kept, and a later look offers it again.
+    const passed = strandedWork(record);
+    await expect(resolveStrandedWorkIntent(passed, 42161, at(intentAt + 31 * 60))).resolves.toEqual(
+      {
+        status: "waiting",
+      }
+    );
+    await expect(
+      resolveStrandedWorkIntent(passed, 42161, at(intentAt + 36 * 60, NOW + 5 * 60_000))
+    ).resolves.toEqual({ status: "reopened" });
+    // A chain that cannot be read keeps the window open.
+    const unread = {
+      ...deps(lookUp),
+      chainHead: async (): Promise<{ number: bigint; timestamp: number }> => {
+        throw new Error("rpc unavailable");
+      },
+    };
+    await expect(resolveStrandedWorkIntent(strandedWork(record), 42161, unread)).resolves.toEqual({
+      status: "waiting",
     });
   });
 
-  it("reopens only when the indexer shows no attestation with that client work id", async () => {
-    indexer.getWorkSubmissionsSince.mockResolvedValue([indexedWork("another-client")]);
-    const absent = strandedWork({ broadcastPending: true, broadcastPendingAt: minutesAgo(45) });
-    await expect(
-      resolveStrandedWorkIntent(absent, 42161, { now: () => NOW, persist: vi.fn() })
-    ).resolves.toEqual({ status: "reopened" });
+  it("offers a lost send again only a look after nothing held it, and forgets that look when something does", async () => {
+    // Nothing held it then: anything it sent before landed by the chain's head
+    // or was still pending, so its lookup reads absent only past that block.
+    const intentAt = NOW / 1000 - 45 * 60;
+    const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
+    let busy = false;
+    const at = (nowMs: number) => ({
+      ...deps(lookUp),
+      now: () => nowMs,
+      stillSending: async () => busy,
+      chainHead: async () => ({ number: 120n, timestamp: nowMs / 1000 }),
+    });
+    const work = strandedWork({
+      broadcastPending: true,
+      broadcastPendingAt: minutesAgo(45),
+      intentChainTime: intentAt,
+    });
 
-    // Two attestations claiming one client work id prove the work landed, not that it is absent.
-    indexer.getWorkSubmissionsSince.mockResolvedValue([
-      indexedWork("client-1"),
-      indexedWork("client-1", `0x${"55".repeat(32)}`),
-    ]);
-    const duplicated = strandedWork({ broadcastPending: true, broadcastPendingAt: minutesAgo(45) });
-    await expect(
-      resolveStrandedWorkIntent(duplicated, 42161, { now: () => NOW, persist: vi.fn() })
-    ).resolves.toEqual({ status: "waiting" });
+    await expect(resolveStrandedWorkIntent(work, 42161, at(NOW))).resolves.toEqual({
+      status: "waiting",
+    });
+    expect(work.payload.uploadCheckpoint?.idleBlock).toBe(120n);
+    expect(lookUp).toHaveBeenLastCalledWith(expect.objectContaining({ idleBlock: undefined }));
+
+    // Something holds it again, perhaps the wallet sending it at last: the mark goes.
+    busy = true;
+    await expect(resolveStrandedWorkIntent(work, 42161, at(NOW + 5 * 60_000))).resolves.toEqual({
+      status: "waiting",
+    });
+    expect(work.payload.uploadCheckpoint?.idleBlock).toBeUndefined();
+
+    // Idle again, it is kept anew, and only the look after reopens it.
+    busy = false;
+    await expect(resolveStrandedWorkIntent(work, 42161, at(NOW + 10 * 60_000))).resolves.toEqual({
+      status: "waiting",
+    });
+    await expect(resolveStrandedWorkIntent(work, 42161, at(NOW + 15 * 60_000))).resolves.toEqual({
+      status: "reopened",
+    });
+    expect(lookUp).toHaveBeenLastCalledWith(expect.objectContaining({ idleBlock: 120n }));
   });
 
   it("tells the executor what to do next", async () => {
@@ -328,37 +340,125 @@ describe("settling a send no receipt can", () => {
     await expect(waiting).rejects.toMatchObject({ hash: OPERATION });
   });
 
-  it("finds the steward's own decision on that work", async () => {
-    indexer.getWorkDecisionsSince.mockResolvedValue([
-      indexedDecision(false),
-      indexedDecision(true),
-    ]);
-    const approval = strandedDecision(true, minutesAgo(10));
-
-    await expect(
-      resolveStrandedDecisionIntent(approval, 42161, { now: () => NOW, persist: vi.fn() })
-    ).resolves.toEqual({ status: "landed", transactionHash: TX });
-    expect(indexer.getWorkDecisionsSince).toHaveBeenCalledWith({
-      attester: GARDENER,
-      workUID: WORK_UID,
-      chainId: 42161,
-      sinceSeconds: (NOW - 45 * 60_000 - 24 * 60 * 60_000) / 1000,
-    });
-  });
-
-  it("reopens a decision still absent after the grace window, for the next pass to send", async () => {
-    // Only the opposite decision landed, so this one did not.
-    indexer.getWorkDecisionsSince.mockResolvedValue([indexedDecision(false)]);
+  it("asks about the steward's own decision on that work, and reopens it once still absent", async () => {
     const approval = strandedDecision(true, minutesAgo(45));
+    const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
     const persist = vi.fn();
 
     await expect(
-      resolveStrandedDecisionIntent(approval, 42161, { now: () => NOW, persist })
+      resolveStrandedDecisionIntent(approval, 42161, { now: () => NOW, lookUp, persist })
     ).resolves.toEqual({ status: "reopened" });
+    expect(lookUp).toHaveBeenCalledWith({
+      decision: {
+        actionUID: 1,
+        workUID: WORK_UID,
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+      },
+      chainId: 42161,
+      steward: GARDENER,
+      sinceMs: NOW - 45 * 60_000 - 24 * 60 * 60_000,
+      sentAtMs: NOW - 45 * 60_000,
+    });
     expect(approval.payload.sendCheckpoint).toBeUndefined();
     // Decisions have no send control of their own yet, so nothing holds it for a tap.
     expect(approval.meta?.requiresExplicitSend).toBeUndefined();
     expect(persist).toHaveBeenCalledWith(approval);
+  });
+});
+
+describe("settling a work or decision transaction no receipt answers", () => {
+  // A Safe's own transaction id: no receipt ever answers it.
+  const SAFE_ID = `0x${"5a".repeat(20)}` as const;
+  const pastGrace = () => minutesAgo(STRANDED_INTENT_GRACE_MS / 60_000 + 1);
+  const onRecord = (hash: `0x${string}`, extra: Partial<WorkUploadCheckpoint> = {}) => ({
+    broadcastPending: false,
+    broadcast: { kind: "transaction" as const, hash },
+    transactionHash: hash,
+    ...extra,
+  });
+
+  it("completes it once its work or decision lands", async () => {
+    const lookUp = vi.fn().mockResolvedValue({ status: "found", transactionHash: TX });
+    const work = strandedWork({ broadcastPendingAt: minutesAgo(10), ...onRecord(SAFE_ID) });
+    const approval = strandedDecision(true, minutesAgo(10), onRecord(SAFE_ID));
+
+    await expect(resolveStrandedWorkIntent(work, 42161, deps(lookUp))).resolves.toEqual({
+      status: "landed",
+      transactionHash: TX,
+    });
+    await expect(resolveStrandedDecisionIntent(approval, 42161, deps(lookUp))).resolves.toEqual({
+      status: "landed",
+      transactionHash: TX,
+    });
+  });
+
+  it("never reopens it on absence alone, since a Safe may still be collecting signatures", async () => {
+    const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
+    const work = strandedWork({ broadcastPendingAt: pastGrace(), ...onRecord(SAFE_ID) });
+    const approval = strandedDecision(true, pastGrace(), onRecord(SAFE_ID));
+
+    await expect(resolveStrandedWorkIntent(work, 42161, deps(lookUp))).resolves.toEqual({
+      status: "waiting",
+    });
+    await expect(resolveStrandedDecisionIntent(approval, 42161, deps(lookUp))).resolves.toEqual({
+      status: "waiting",
+    });
+    expect(lookUp).toHaveBeenCalledTimes(2);
+    expect(hasRecordedSend(work)).toBe(true);
+    expect(hasRecordedSend(approval)).toBe(true);
+  });
+
+  it("reopens one the wallet saw replaced once nothing landed in its place, keeping the work's uploads", async () => {
+    const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
+    const files = {
+      "photo-1": { attachmentId: "photo-1", contentHash: "hash", cid: "bafy-photo" },
+    };
+    const work = strandedWork({
+      broadcastPendingAt: pastGrace(),
+      files,
+      ...onRecord(TX, { transactionReplaced: true }),
+    });
+
+    await expect(resolveStrandedWorkIntent(work, 42161, deps(lookUp))).resolves.toEqual({
+      status: "reopened",
+    });
+    expect(hasRecordedSend(work)).toBe(false);
+    expect(work.payload.uploadCheckpoint?.files).toEqual(files);
+    expect(work.meta?.requiresExplicitSend).toBe(true);
+
+    // A mark storage refused is read from memory.
+    const approval = strandedDecision(true, pastGrace(), onRecord(TX));
+    rememberTransactionReplaced(approval.id);
+    await expect(resolveStrandedDecisionIntent(approval, 42161, deps(lookUp))).resolves.toEqual({
+      status: "reopened",
+    });
+    expect(approval.payload.sendCheckpoint).toBeUndefined();
+  });
+
+  it("reopens one whose nonce another transaction took, unless a tab may still send it", async () => {
+    const lookUp = vi.fn().mockResolvedValue({ status: "absent" });
+    const transactionSuperseded = vi.fn().mockResolvedValue(false);
+    const guarded = { ...deps(lookUp), transactionSuperseded };
+
+    const unspent = strandedWork({ broadcastPendingAt: pastGrace(), ...onRecord(TX) });
+    await expect(resolveStrandedWorkIntent(unspent, 42161, guarded)).resolves.toEqual({
+      status: "waiting",
+    });
+
+    transactionSuperseded.mockResolvedValue(true);
+    const stillSending = vi.fn().mockResolvedValue(true);
+    const held = strandedDecision(true, pastGrace(), onRecord(TX));
+    await expect(
+      resolveStrandedDecisionIntent(held, 42161, { ...guarded, stillSending })
+    ).resolves.toEqual({ status: "waiting" });
+
+    const spent = strandedWork({ broadcastPendingAt: pastGrace(), ...onRecord(TX) });
+    await expect(resolveStrandedWorkIntent(spent, 42161, guarded)).resolves.toEqual({
+      status: "reopened",
+    });
+    expect(hasRecordedSend(spent)).toBe(false);
   });
 });
 
@@ -453,7 +553,11 @@ describe("settling a commitment act no receipt can", () => {
     // A transaction its account signed can never be included once that nonce
     // is spent: the wallet cancelled or replaced it while no tab was watching.
     const absent = vi.fn().mockResolvedValue({ status: "absent" });
-    const record = { broadcastPending: false, transactionHash: TX, intentNonce: 5 };
+    const record = {
+      broadcastPending: false,
+      transactionHash: TX,
+      transactionNonce: { hash: TX, nonce: 5 },
+    };
     const superseded = strandedTakeUp(pastGrace(), record);
     await expect(
       resolveStrandedCommitmentIntent(superseded, 42161, {

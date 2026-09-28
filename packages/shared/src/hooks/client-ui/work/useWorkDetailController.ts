@@ -268,7 +268,7 @@ export function useWorkDetailController() {
     workLoading: !listedWork && (workByUID.isLoading || worksLoading || queuedLoading),
     workLoadError: !listedWork && workByUID.isError,
     retryWorkLoad: workByUID.refetch,
-    isActionExpired: matchedAction ? matchedAction.endTime <= Date.now() / 1000 : false,
+    isActionExpired: matchedAction ? matchedAction.endTime <= Date.now() : false,
     isOfflineWork,
     isOnline,
     isRetrying,

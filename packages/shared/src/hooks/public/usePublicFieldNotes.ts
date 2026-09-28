@@ -67,6 +67,7 @@ function adapt(work: EASWork): PublicFieldNote {
     id: work.id,
     title: work.title,
     feedback: work.feedback,
+    metadata: work.metadata,
     media: work.media,
     gardenerAddress: work.gardenerAddress,
     gardenAddress: work.gardenAddress,

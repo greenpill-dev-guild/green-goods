@@ -143,7 +143,7 @@ Each line was checked against the source or the chain in this session.
 | A QA plan Afo can run on a call | § 6 | Written; authenticated rehearsal pending |
 | Issues come back to an AI session and get fixed | § 6.5, § 6.6 | Process written; first run pending |
 | Payouts can be recorded; a season can end | § 6.6 fix-window builds | End and Archive merged; external-payout recording remains a gap (§ 7) |
-| Fix what the rehearsal found | § 4c accepted queue W3-A to W3-G; W4 after 2.0.0 | Decisions taken 2026-09-26 (§ 1 rows 36–48); W3-A merged in #921; W3-G in progress, then W3-H and W3-B to W3-F (row 49); N1 and the wallet sign-out reproduce in the solo Stage A gate |
+| Fix what the rehearsal found | § 4c accepted queue W3-A to W3-G; W4 after 2.0.0 | Decisions taken 2026-09-26 (§ 1 rows 36–48); W3-A to W3-H merged by 2026-09-27 (#921, #923, #925 to #931), D to F run alongside each other with Afo's approval; N1 and the wallet sign-out reproduce in the solo Stage A gate |
 
 ### Rehearsal ledger (Afo-owned; no wallet result recorded here)
 
@@ -1298,24 +1298,23 @@ name the files, steps, tests and commands.
 | PR | Covers | Handoff | Class | Status |
 |---|---|---|---|---|
 | W3-A Members act, everyone reads | N37, N38, N35 (queue half) | [handoff](handoffs/w3a-members-act-everyone-reads.md) | Critical | Merged in #921 (`4615608d9`); the authenticated wallet walk stays pending for the recorded call |
-| W3-B The commitment screen keeps its chrome | N39, N40, N9, N10, N5 (app row), N23 | [handoff](handoffs/w3b-commitment-screen-chrome.md) | Sensitive; pairs before merge | Queued |
-| W3-C The seed wizard asks what a steward can answer | N8, N4, N12, N6, N11, N5 (admin row and tray), N30 | [handoff](handoffs/w3c-seed-wizard-questions.md) | Sensitive; pairs before merge | Queued |
-| W3-D Unlisted, not unreachable | N2 | [handoff](handoffs/w3d-unlisted-gardens-reachable.md) | Sensitive | Queued |
-| W3-E Sessions: one account at a time | N36; N35 (sign-out half) only if reproduced | [handoff](handoffs/w3e-account-sessions.md) | Critical | Queued |
-| W3-F The inspector renders; people have names | N26, N17; the client composite stories if time allows | [handoff](handoffs/w3f-inspector-story-and-names.md) | Routine | Queued |
-| W3-G Commitment acts record their sends | N41 | [handoff](handoffs/w3g-commitment-acts-record-their-sends.md) | Critical | In progress on `fix/commitment-send-record`; runs before W3-B (row 49) |
-| W3-H The host garden counts for a personal claim | N42 | [handoff](handoffs/w3h-host-garden-personal-claims.md) | Sensitive | Queued after W3-G |
+| W3-B The commitment screen keeps its chrome | N39, N40, N9, N10, N5 (app row), N23 | [handoff](handoffs/w3b-commitment-screen-chrome.md) | Sensitive; pairs before merge | Merged in #926 (`48aa97fd5`) after Afo approved the row and rail pairs; the notice and fixed-bar checks moved to QA Pass 2 (PRD-730) |
+| W3-C The seed wizard asks what a steward can answer | N8, N4, N12, N6, N11, N5 (admin row and tray), N30 | [handoff](handoffs/w3c-seed-wizard-questions.md) | Sensitive; pairs before merge | Merged in #927 (`127ae1376`) after Afo approved the pairs |
+| W3-D Unlisted, not unreachable | N2 | [handoff](handoffs/w3d-unlisted-gardens-reachable.md) | Sensitive | Merged in #928 (`303d114fd`); both rehearsal gardens open on staging |
+| W3-E Sessions: one account at a time | N36; N35 (sign-out half) only if reproduced | [handoff](handoffs/w3e-account-sessions.md) | Critical | Merged in #929 (`544ba639d`); the sign-out reproduction moved to PRD-1001, the Home capture to QA Pass 2 (PRD-730) |
+| W3-F The inspector renders; people have names | N26, N17; the client composite stories if time allows | [handoff](handoffs/w3f-inspector-story-and-names.md) | Routine | Merged in #930 (`df63a1580`); composite stories moved to W4-3 |
+| W3-G Commitment acts record their sends | N41 | [handoff](handoffs/w3g-commitment-acts-record-their-sends.md) | Critical | Merged in #923 (`7fdc87f78`) and #931 (`2aca5c59a`); PWA-126 walk pending |
+| W3-H The host garden counts for a personal claim | N42 | [handoff](handoffs/w3h-host-garden-personal-claims.md) | Sensitive | Merged in #925 (`c17a03b46`); the on-chain claim rides the protocol-pool walk |
 
 N42 and N43, found in W3-A's review, predate W3-A on develop. N42 is W3-H; N43 is not scheduled before the cut (row 49).
-
-The W3 children sit under PRD-989 in Linear, but the hub schema cannot say so: `plan-hub.mjs validate` requires each sub-lane's `linear.parentIssue` to equal the hub's parent, PRD-650, and the Linear manifest copies that field into `parentId`. Do not apply manifest parent fields to the W3 lanes until the harness can record a nested parent.
 
 Two reproductions ride the solo Stage A gate before the recorded call, not the call itself
 (§ 6.2): N1 (which dialog, whether Tab moves focus, the body's computed `pointer-events`, a second
 mounted `AdminDialog` surface, an open wallet modal) and N35's sign-out (Rabby extension or Rabby
 Mobile over WalletConnect, whether the wallet showed a connection request or a transaction, whether
-the app reloaded on return, the auth breadcrumbs). Their results go to the Linear children of W3-E
-and of the cockpit's dialog work, not to this file.
+the app reloaded on return, the auth breadcrumbs). N35's result goes to PRD-1001, which took it over
+from W3-E's Linear child on 2026-09-27, and N1's to the cockpit's dialog work; neither goes to this
+file.
 
 | After 2.0.0 | Covers | Waits on |
 |---|---|---|
@@ -1577,7 +1576,7 @@ Every reachable act against its cases. Nothing in § 7 has a case.
 | Payout plan; prepare; dispatch, retry, requeue; rejected prompt; read again; cancel | ADM-118 · ADM-119 · ADM-084 · ADM-109 · ADM-120 · ADM-121 · ADM-122 · ADM-123 · ADM-124 · ADM-086 |
 | Relay settlement; gardener delivery; treasury top-up | ADM-043 · ADM-044 · ADM-087 · ADM-045 |
 | Reading in the app | PWA-100 · PWA-101 · PWA-102 · PWA-105 |
-| Reading on the public page | PUB-056 · PUB-057 · PUB-045 · PUB-058 · PUB-059 · PUB-028 |
+| Reading on the public page | PUB-056 · PUB-057 · PUB-045 · PUB-058 · PUB-059 · PUB-060 · PUB-028 |
 
 ### Validation receipt, catalog
 
@@ -1688,7 +1687,8 @@ group first, because they cannot be edited after the cycle opens. Record payout 
   with `[prod]` or `[local]`.
 - One symptom per note where possible. Say "catalog" when the problem is the case, not the product.
 - Do not fix anything live. Do not retry an irreversible write whose outcome is unknown.
-- Keep wording on real records realistic. The protocol pool is on the public site.
+- Keep wording on real records realistic. The protocol pool is on the public site, reachable by
+  its own link and not listed.
 - Never show a seed phrase, private key, or the allowlist on the recording.
 
 ### 6.4 Exit criteria for the first run

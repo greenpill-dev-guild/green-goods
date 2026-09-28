@@ -122,6 +122,7 @@ const Work: React.FC = () => {
     commitmentLinkChoicesError,
     refetchCommitmentLinkChoices,
     isSchedulingDependentLink,
+    isQueueingDependentLink,
     linkSchedulingError,
     linkSchedulingSucceeded,
     hasPendingLinkRecovery,
@@ -415,7 +416,7 @@ const Work: React.FC = () => {
                 {queueStatusMessage}
               </p>
             ) : null}
-            {isSchedulingDependentLink ? (
+            {isQueueingDependentLink ? (
               <p className="text-xs text-text-sub-600 px-1" role="status" aria-live="polite">
                 {intl.formatMessage({
                   id: "app.garden.commitment.linkScheduling",

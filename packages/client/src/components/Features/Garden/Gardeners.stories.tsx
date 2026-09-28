@@ -50,7 +50,7 @@ const meta: Meta<typeof GardenGardeners> = {
       expect(next.top - first.bottom).toBe(16);
     });
     await userEvent.click(canvas.getAllByRole("button", { name: /Gardener \d+/ })[0]);
-    await expect(within(document.body).getByRole("dialog")).toBeVisible();
+    await waitFor(() => expect(within(document.body).getByRole("dialog")).toBeVisible());
   },
 };
 

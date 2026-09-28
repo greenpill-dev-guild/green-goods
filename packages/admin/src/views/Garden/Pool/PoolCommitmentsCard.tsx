@@ -1,15 +1,15 @@
-import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { RiArrowRightSLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
+import { CommitmentPeople } from "./CommitmentPeople";
 import { CommitmentExpireDialog } from "./CommitmentExpireDialog";
 import { GardenPoolTarget } from "./PoolTarget";
 import {
@@ -17,7 +17,12 @@ import {
   type PoolCommitmentScope,
   selectPoolCommitmentRows,
 } from "./poolCommitmentRows";
-import { commitmentStateChip, directionLabel, formatUnixDate } from "./poolPresentation";
+import {
+  commitmentStateChip,
+  directionEdgeClass,
+  directionLabel,
+  formatUnixDate,
+} from "./poolPresentation";
 
 export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
 
@@ -196,7 +201,10 @@ export function PoolCommitmentsCard({
         {pendingCreates.length > 0 && scope === "open" && focus === null ? (
           <ul className="divide-y divide-stroke-soft" data-testid="pool-queued">
             {pendingCreates.map((row) => (
-              <li key={row.jobId} className="flex flex-wrap items-center gap-2 py-2">
+              <li
+                key={row.jobId}
+                className={`flex flex-wrap items-center gap-2 py-2 ps-3 ${directionEdgeClass(row.direction)}`}
+              >
                 <span className="truncate text-body-md text-text-strong" title={row.title ?? ""}>
                   {row.title ??
                     formatMessage({
@@ -308,15 +316,6 @@ export function PoolCommitmentsCard({
               const chip = commitmentStateChip(commitment, formatMessage);
               const title = titleOf(commitment);
               const isDue = dueIds.has(commitment.id);
-              // The "who" leg reads as people, not infrastructure: resolved
-              // names via AddressDisplay and a worded relationship. The
-              // provider does the thing for the receiver, whichever side
-              // created the record; the direction chip tells the rest.
-              const provider =
-                commitment.direction === "REQUEST" ? commitment.counterparty : commitment.creator;
-              const receiver =
-                commitment.direction === "REQUEST" ? commitment.creator : commitment.counterparty;
-              const whoAlone = provider ?? receiver;
               const amount =
                 `${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim();
               const due = commitment.dueDate
@@ -328,7 +327,7 @@ export function PoolCommitmentsCard({
               return (
                 <li
                   key={commitment.id}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2"
+                  className={`flex flex-wrap items-center justify-between gap-2 py-2 ps-3 ${directionEdgeClass(commitment.direction)}`}
                   data-testid={`pool-commitment-${commitment.commitmentId.toString()}`}
                 >
                   <button
@@ -357,34 +356,8 @@ export function PoolCommitmentsCard({
                         ) : null}
                       </span>
                       <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 body-xs text-text-soft">
-                        {provider && receiver && provider !== receiver ? (
-                          <FormattedMessage
-                            id="cockpit.garden.pool.row.people"
-                            defaultMessage="{provider} for {receiver}"
-                            values={{
-                              provider: (
-                                <AddressDisplay
-                                  address={provider}
-                                  interactive={false}
-                                  className="body-xs"
-                                />
-                              ),
-                              receiver: (
-                                <AddressDisplay
-                                  address={receiver}
-                                  interactive={false}
-                                  className="body-xs"
-                                />
-                              ),
-                            }}
-                          />
-                        ) : whoAlone ? (
-                          <AddressDisplay
-                            address={whoAlone}
-                            interactive={false}
-                            className="body-xs"
-                          />
-                        ) : null}
+                        {/* The "who" leg reads as people, not infrastructure. */}
+                        <CommitmentPeople commitment={commitment} />
                         <span>· {amount}</span>
                         {due ? <span>· {due}</span> : null}
                       </span>
