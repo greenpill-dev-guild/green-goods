@@ -43,7 +43,7 @@ describe("AddressCopy", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.reset = null;
-    mocks.copy.mockResolvedValue(undefined);
+    mocks.copy.mockResolvedValue(true);
   });
 
   it("copies, announces success, and resets its status", async () => {
@@ -59,13 +59,30 @@ describe("AddressCopy", () => {
   });
 
   it("keeps copy available and reports a clipboard failure", async () => {
-    mocks.copy.mockRejectedValue(new Error("Clipboard denied"));
+    mocks.copy.mockResolvedValue(false);
     renderWithProviders(<AddressCopy address={ADDRESS} />);
     fireEvent.click(screen.getByRole("button", { name: /copy/i }));
 
     await waitFor(() => expect(mocks.error).toHaveBeenCalled());
+    expect(mocks.success).not.toHaveBeenCalled();
+    expect(mocks.reset).toBeNull();
     expect(screen.getByText("Copy")).toBeInTheDocument();
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
+  it("clears copied feedback when a later copy fails", async () => {
+    mocks.copy.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    renderWithProviders(<AddressCopy address={ADDRESS} />);
+    const button = screen.getByRole("button", { name: /copy/i });
+
+    fireEvent.click(button);
+    await screen.findByText("Copied");
+    fireEvent.click(button);
+
+    await waitFor(() => expect(mocks.error).toHaveBeenCalled());
+    expect(screen.getByText("Copy")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(mocks.success).toHaveBeenCalledTimes(1);
   });
 
   it("renders nothing without an address", () => {

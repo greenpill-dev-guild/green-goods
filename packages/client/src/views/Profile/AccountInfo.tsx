@@ -3,7 +3,6 @@ import { toastService } from "@green-goods/shared/components/Toast/toast.service
 import { isPasskeyServerEnabled } from "@green-goods/shared/config/passkeyServer";
 import { useAuthActions, useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import type { Address } from "@green-goods/shared/types/domain";
 import { debugError } from "@green-goods/shared/utils/debug";
 import { RiKeyLine, RiLogoutBoxRLine, RiUserLine, RiWalletLine } from "@remixicon/react";
@@ -21,7 +20,6 @@ export const AccountInfo: React.FC = () => {
   const passkeyServerEnabled = isPasskeyServerEnabled();
   const { signOut } = useAuthActions();
   const primaryAddress = usePrimaryAddress();
-  const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
   const intl = useIntl();
 
@@ -117,19 +115,14 @@ export const AccountInfo: React.FC = () => {
               </div>
             </Avatar>
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <div className="truncate text-label-md font-medium">
+              <div className="text-label-md font-medium">
                 {intl.formatMessage({
-                  id: "app.account.address",
-                  defaultMessage: "Address",
+                  id: "app.account.id",
+                  defaultMessage: "ID",
                 })}
               </div>
+              <AddressCopy address={primaryAddress as Address} size="compact" />
             </div>
-            <AddressCopy
-              address={primaryAddress as Address}
-              ensName={primaryEnsName}
-              size="compact"
-              className="w-auto shrink-0"
-            />
           </div>
         </Card>
       )}

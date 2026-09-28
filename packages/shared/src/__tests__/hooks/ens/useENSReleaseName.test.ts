@@ -6,7 +6,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -163,7 +163,7 @@ describe("useENSReleaseName", () => {
     );
     mockEstimateGas.mockResolvedValue(300000n);
     mockEstimateFeesPerGas.mockResolvedValue({ maxFeePerGas: 25000000n });
-    mockWaitForTransactionReceipt.mockResolvedValue({ logs: [] });
+    mockWaitForTransactionReceipt.mockResolvedValue({ status: "success", logs: [] });
     mockDefaultReadContract();
   });
 
@@ -335,29 +335,68 @@ describe("useENSReleaseName", () => {
   });
 
   describe("onSuccess", () => {
-    it("clears cached protocol name and shows a success toast", async () => {
+    it("replaces a stale active read with durable release progress and retains the name for polling", async () => {
       mockAuthMode = "passkey";
       mockSendTransaction.mockResolvedValue(MOCK_TX_HASH);
 
       const { queryClient, wrapper } = createTestWrapper();
-      queryClient.setQueryData(
-        queryKeys.ens.protocolName(mockSmartAccountClient.account.address),
-        "alice"
+      const nameKey = queryKeys.ens.protocolName(
+        mockSmartAccountClient.account.address.toLowerCase()
       );
+      const statusKey = queryKeys.ens.registrationStatus("alice");
+      queryClient.setQueryData(nameKey, "alice.greengoods.eth");
+      queryClient.setQueryData(statusKey, { status: "active" });
+      let finishOldRead!: (value: { status: string }) => void;
+      const oldRead = queryClient
+        .fetchQuery({
+          queryKey: statusKey,
+          queryFn: () =>
+            new Promise((resolve) => {
+              finishOldRead = resolve;
+            }),
+        })
+        .catch(() => undefined);
       const { result } = renderHook(() => useENSReleaseName(), { wrapper });
 
       result.current.mutate();
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(
-        queryClient.getQueryData(queryKeys.ens.protocolName(mockSmartAccountClient.account.address))
-      ).toBeNull();
+      await act(async () => {
+        finishOldRead({ status: "active" });
+        await oldRead;
+      });
+      expect(queryClient.getQueryData(nameKey)).toBe("alice.greengoods.eth");
+      expect(queryClient.getQueryData(statusKey)).toMatchObject({
+        status: "pending",
+        release: { owner: mockSmartAccountClient.account.address },
+        submittedAt: expect.any(Number),
+      });
       expect(toastService.success).toHaveBeenCalledWith(
         expect.objectContaining({
           title: "Name release started",
         })
       );
+    });
+
+    it("does not mark a reverted receipt as a release or report success", async () => {
+      mockAuthMode = "passkey";
+      mockSendTransaction.mockResolvedValue(MOCK_TX_HASH);
+      mockWaitForTransactionReceipt.mockResolvedValueOnce({ status: "reverted", logs: [] });
+      const { queryClient, wrapper } = createTestWrapper();
+      queryClient.setQueryData(queryKeys.ens.registrationStatus("alice"), { status: "active" });
+      const { result } = renderHook(() => useENSReleaseName(), { wrapper });
+      result.current.mutate();
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(queryClient.getQueryData(queryKeys.ens.registrationStatus("alice"))).toEqual({
+        status: "active",
+      });
+      expect(toastService.success).not.toHaveBeenCalled();
+      expect(toastService.error).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Release failed" })
+      );
+      const { logger } = await import("../../../modules/app/logger");
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 });
