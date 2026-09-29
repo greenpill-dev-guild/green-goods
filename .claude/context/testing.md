@@ -41,7 +41,8 @@ policy).
   it loads.
 - `globals: true`, `pool: "threads"`, `isolate: true` (except Shared's shared graph), `testTimeout: 10000`.
 - React deduped + aliased to the workspace-root runtime so hooks share one dispatcher — never add a second React instance.
-- Heavy SDKs alias-mocked to skip dep chains: EAS SDK → `src/__mocks__/eas-sdk.ts`, WalletConnect utils → `src/__mocks__/walletconnect-utils.ts`; `zod`/`wagmi`/`multiformats` force-inlined via `server.deps.inline`, and `viem` too except in Admin, where external viem measured faster (the reason is in its config).
+- Heavy SDKs alias-mocked to skip dep chains: EAS SDK → `src/__mocks__/eas-sdk.ts`, WalletConnect utils → `src/__mocks__/walletconnect-utils.ts`, and Reown AppKit's React entry and wagmi adapter → `src/__mocks__/reown-appkit-*.ts` in Shared, Client and Admin, because Shared's `config/appkit` imports both at load. Stand in a dependency that Shared imports with an alias, not a setup-file `vi.mock`: only Shared resolves the AppKit adapter, so a Client or Admin setup's mock of it never matched.
+- `server.deps.inline`: Shared and Admin inline `zod`, `wagmi` and `multiformats`; Client inlines `zod` and leaves the web3 libraries to Node. Keep `viem` external everywhere: inlining it measured slower in all three packages (the numbers are in each config).
 - Setup files: shared/client `setupTests.ts`, admin/agent `setup.ts` — all extend `packages/shared/src/__tests__/setupTests.base.ts`. Shared's Node projects load only its Node-safe core (`setupTests.node.ts`), without Testing Library or jest-dom.
 - `agent` package differs: `node` env, `fileParallelism: false`, much lower thresholds (10/20/20/20).
 
@@ -49,7 +50,7 @@ policy).
 
 - Strict `fetch`: any unmocked call throws ("Mock this endpoint explicitly") — mock via `mockFetch` or the test's own module mock.
 - The MSW GraphQL server in `@green-goods/shared/mocks` (`src/__mocks__/server/`) is not started by any package setup; no test needed its handlers, and loading it cost every Admin file about 0.25 s.
-- Reown AppKit's React entry and wagmi adapter are module-mocked in admin (no network/403, and no AppKit load wherever the Auth provider is imported); `react-hot-toast` mocked in admin.
+- Reown AppKit is aliased to stubs in every package (see above), so no test loads or contacts it; a test that needs its behaviour mocks `config/appkit` or `AppKitProvider`. `react-hot-toast` mocked in admin.
 - DOM polyfills so Radix / floating-ui primitives render: `HTMLDialogElement.showModal/close`, `matchMedia`, `ResizeObserver`, `IntersectionObserver`, `scrollIntoView` (admin); `fake-indexeddb/auto` for IndexedDB. Drive dialogs/menus with `fireEvent` (neither test DOM does layout or pointer hit-testing). These live in setup — don't re-stub per test.
 
 ## Coverage
