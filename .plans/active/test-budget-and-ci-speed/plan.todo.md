@@ -2,9 +2,9 @@
 
 **Feature Slug**: `test-budget-and-ci-speed`
 **Stage**: active
-**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshots 07 and 08 are published. The snapshot 08 follow-up (D10) is committed locally on `develop`, not pushed
+**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshots 07 and 08 are published. The snapshot 08 follow-up (D10, through `23a8d1ffb`) and D11 (Admin happy-dom and the MSW removal) are on `origin/develop`
 **Created**: 2026-09-19
-**Last Updated**: 2026-09-28
+**Last Updated**: 2026-09-29
 
 The user selected local implementation beginning with step 1 and later authorized a commit of completed slices. Item numbers below refer to the supplied twelve-item test-audit prompt. The closeout pass may push to `origin/develop` (D4); a PR, a merge to `main`, a deploy and Linear writes remain unauthorized.
 
@@ -13,8 +13,8 @@ The user selected local implementation beginning with step 1 and later authorize
 ### Snapshot 08 follow-up (2026-09-28, later)
 
 Scorecard snapshot 08, an independent re-audit at `1a3afcb52`, listed eight open items. Afo chose
-items 2, 3, 5, 6 and 7 with the page's recommendations (D10). They are done and committed locally
-on `develop`, one commit per root cause; nothing is pushed. The
+items 2, 3, 5, 6 and 7 with the page's recommendations (D10). They are done and on `develop`
+through `23a8d1ffb`, one commit per root cause. The
 [follow-up report](reports/2026-09-28-snapshot-08-follow-up.md) holds the evidence.
 
 
@@ -90,6 +90,7 @@ Three recent published Shared runs have both shards green. They provide observat
 | D8 (2026-09-28): fix the three CI routing gaps now | Decided by Afo | Done in `ba6feb9b2`, `77cf70b55` and `268bb138f`, each with a guard against drift |
 | D9 (2026-09-28): prune CodeQL's unreachable overlay-base databases hourly; keep overlay analysis on | Decided by Afo, from three options | Pull-request analyses restore only the newest database, and overlay keeps them near 2 minutes instead of 7 while the rulesets wait for CodeQL. The free org plan cannot buy more cache. The 21 unreachable databases were deleted by hand; the workflow is PR #945 |
 | D10 (2026-09-28): address snapshot 08's items 2, 3, 5, 6 and 7 with the page's recommendations | Decided by Afo | Dispatch the CodeQL prune by hand; speed up what Admin's tests import rather than add a Shared shard; add the vault history's exactly-full page; finish the helper codemod; fix `canonicalJobPayload` instead of the SDK, end the Data Saver override with its session, and move the import-seam case into `check-source-structure.js` |
+| D11 (2026-09-29): happy-dom for Admin, and remove MSW | Decided by Afo | Admin's DOM project moves to happy-dom, already a root dev dependency, with the same bar as D2; the unused MSW server, its Shared export and the root `msw` pin go, which changes the lockfile |
 
 ## Ordered work
 
@@ -150,18 +151,28 @@ evidence lives in the [follow-up report](reports/2026-09-28-snapshot-08-follow-u
 | [x] | 6 | Helper codemod: 45 Shared test files converted with identical names and results, 18 kept with reasons | Report § Item 6 |
 | [x] | 7 | `canonicalJobPayload` reads raw values; the Data Saver override ends with its session; import seams checked by `check-source-structure.js` | Report § Item 7 |
 
+## Admin happy-dom and MSW removal (2026-09-29)
+
+Afo chose both follow-ups on September 29 (D11). Two commits on `develop` after `3fc9f132f`;
+evidence in the [follow-up report](reports/2026-09-28-snapshot-08-follow-up.md) § happy-dom for
+Admin and MSW removal.
+
+| Done | Work | Evidence |
+|---|---|---|
+| [x] | Admin's DOM project runs in happy-dom (`9703b5402`); two files that assert authored inline styles stay on jsdom. Instructions −29% and Vitest time −29% in A B B A, identical names and results in all six runs, coverage unchanged | Report § happy-dom for Admin |
+| [x] | MSW removed (`1c6948d50`): the unused GraphQL mock server and its Shared export, unused imports in the Playwright Pimlico mocks, and the root `msw` pin. Every other lockfile edge keeps its version; four seam fingerprints re-certified because they hash Shared's manifest | Report § MSW removal |
+
 ## Current handoff
 
-The snapshot 08 follow-up is committed locally. Next:
+The snapshot 08 follow-up reached `develop` at `23a8d1ffb`, and D11 in `9703b5402` and
+`1c6948d50`. Next:
 
-- push it once Afo says so, with the push gate run first; other sessions' uncommitted edits in
-  this checkout currently fail `test-quality` Checks 5 and 8, and the gate judges the working tree;
-- confirm the CodeQL prune's hourly schedule starts on its own;
+- the CodeQL prune's hourly schedule (`37 * * * *`) fired once, at 02:42 UTC on September 29, in
+  the nine and a half hours after it merged; its push trigger ran on each `develop` push and
+  passed. Check the schedule again with snapshot 09;
 - the seven-day CI window from 2026-09-28 (snapshot 09, Oct 5), for the job medians, the CI Gate
-  median and the red rates that snapshots 07 and 08 leave pending;
-- the follow-ups the [follow-up report](reports/2026-09-28-snapshot-08-follow-up.md) lists:
-  happy-dom for Admin (a new dev dependency, so Afo's call), and removing the now-unstarted MSW
-  server with its dependency;
+  median and the red rates that snapshots 07 and 08 leave pending; Admin · Test runs happy-dom
+  from D11's push on;
 - `linear-sync` for PRD-835 (architecture hub), in a pass that may write to Linear.
 
 The earlier instructions below are historical.

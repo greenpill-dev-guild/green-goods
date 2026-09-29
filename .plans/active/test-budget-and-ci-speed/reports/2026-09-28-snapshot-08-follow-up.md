@@ -132,7 +132,7 @@ convert.
 - Push, once Afo says so.
 - The CodeQL prune on the first develop push after these commits: expect one or two databases.
 - The MSW server and the `msw` dev dependency are unused now; removing the dependency changes the
-  lockfile, so it waits for Afo.
+  lockfile, so it waits for Afo. (Removed on 2026-09-29; see the last section.)
 
 ## Client and Shared imports (later on 2026-09-28)
 
@@ -185,3 +185,87 @@ order.
 - A push gate running in `.claude/worktrees/beautiful-mcclintock-768d91` ran the Shared suite
   while the lease directory was empty, so a gate there does not take the lease, or that worktree
   predates it.
+
+## happy-dom for Admin and MSW removal (2026-09-29)
+
+Afo approved both follow-ups on September 29 (D11). Commits: `9703b5402` (happy-dom) and
+`1c6948d50` (MSW).
+
+### happy-dom for Admin
+
+happy-dom 20.14.5 was already a root dev dependency (D2), so the change is Admin's Vitest config
+and its test files; no manifest or lockfile changes. The root and DOM-project environment is
+happy-dom, and 70 of its 72 `@vitest-environment jsdom` docblocks say happy-dom; the
+other two are the pins below.
+
+The first happy-dom run failed 3 tests in 2 files. Both assert authored inline style strings with
+`toHaveStyle`, which reads the computed style. A direct probe of both DOMs showed the difference:
+happy-dom computes `calc(116px + 0.375rem)` as `calc(116px + 6px)`, substitutes the fallback in
+`minmax(var(--admin-nav-item-width-desktop, 5.875rem), max-content)`, and turns
+`calc(var(--z-modal) + 1)` into `calc( + 1)`; jsdom returns the authored text. Both files stay on
+jsdom with a comment naming the behaviour, as Shared's pins do:
+
+| File | Why it stays on jsdom |
+|---|---|
+| `src/components/Shell/NavigationBar.test.tsx` | Asserts a `var()` grid template and `calc()` with `rem` |
+| `src/__tests__/components/CreateAssessmentDialog.test.tsx` | Asserts the inline z-index `calc(var(--z-modal) + 1)` |
+
+Method: Vitest reads environment docblocks from disk, so a scratch config cannot switch them. A was
+`HEAD` exactly and B the patch, toggled with `git apply` between runs. Each run took the machine
+test lease, waited for a one-minute load under 12 and no other Vitest process, and ran the
+package's command (`APP_ENV=test vitest run`) under `/usr/bin/time -l`.
+
+| Run | Arm | Instructions | Vitest time | Environment, summed | Tests, summed | Results |
+|---|---|---|---|---|---|---|
+| A0 | jsdom | 1.590T | 26.2 s | 61.8 s | 54.7 s | 1,112 passed |
+| B0b | happy-dom | 1.134T | 21.3 s | 27.3 s | 34.8 s | identical |
+| A1 | jsdom | 1.597T | 28.9 s | 68.7 s | 59.4 s | identical |
+| B1 | happy-dom | 1.126T | 20.8 s | 24.4 s | 35.3 s | identical |
+| B2 | happy-dom | 1.135T | 23.4 s | 28.3 s | 40.4 s | identical |
+| A2 | jsdom | 1.598T | 33.3 s | 82.6 s | 71.9 s | identical |
+
+A1 B1 B2 A2: instructions −29.3%, CPU −31%, Vitest time −29%. Import and transform time did not
+move (−2% and −3.5%); the saving is DOM setup and DOM work inside tests. All six runs hold the same
+1,112 test names and results in 135 files, and the three happy-dom runs had no failures. Other
+sessions raised the load to 16 during the block; instructions agreed within 1% per arm.
+
+Coverage, run as the nightly does (`CI=true bun run test --coverage`): 69.08 / 65.17 / 62.05 /
+70.67 (statements, branches, functions, lines) against 69.06 / 65.15 / 62.05 / 70.65 in the last
+jsdom nightly (`627149a4d`); every floor passes.
+
+### MSW removal
+
+Removed: `packages/shared/src/__mocks__/server/server.ts`, the GraphQL handlers no setup has
+started since `7a15afe76`, with its `./__mocks__/server/server` export and the mocks barrels'
+re-exports; the `msw` import in `tests/mocks/pimlico-handlers.ts`, whose `http` and `HttpResponse`
+were never used (the passkey spec serves `handlePimlicoRpc` through Playwright route
+interception), and its unused `PIMLICO_RPC_PATTERN`; the root `msw` pin. `knip.ts` now says
+`graphql` arrives through gql.tada, and the docs, `MODULES.md` and `testing.md` stop naming MSW.
+The demo-data-injection backlog plan no longer assumes msw is installed.
+
+Lockfile (`bun install --lockfile-only`, then `bun install`): resolving every dependency edge in
+`HEAD`'s lockfile against the new one, 12,971 edges are unchanged. The one changed edge is
+`@vitest/mocker`'s optional `msw` peer, which no longer resolves. msw and 24 other versions only it
+used go (41 package keys). Bun re-hoists `cookie`, `path-to-regexp` and `set-cookie-parser` to the
+versions Express and React Router already used and adds `react-router/cookie`; no version appears
+that was not there before. Bun left the old `node_modules/msw` links in place, so they were removed
+by hand to prove nothing resolves msw.
+
+Vitest's browser mode names msw only as an optimizer exclusion and for the preview provider's
+worker. The Playwright provider that Storybook's interaction tests use intercepts modules with
+Playwright routes, so it does not need msw.
+
+The four certified seam fingerprints hash `packages/shared/package.json`, so removing the export
+made them stale (`test-quality` Check 5). None of their own files changed; their 13 proof files
+pass (250 passed, 4 skipped), and the four fingerprints are re-certified.
+
+### Verification
+
+| Step | Command | Result |
+|---|---|---|
+| Push gate on the working tree | `node scripts/dev/ci-local.js --intent push` | format, lint, validation-system-test, test-quality, shared-typecheck, shared-build, admin-test, docs-authority, source-structure, agent-guidance and docs-generated pass |
+| Supply chain | `--only supply-chain` | pass |
+| knip | `--only dead-code` | fails on findings outside these commits (11 files, 5 dependencies, 5 dev dependencies, 219 exports); none name MSW, graphql, the mocks or the Pimlico file |
+| Lockfile consistency | `bun install --frozen-lockfile --dry-run` | no changes |
+| E2E spec loads | `playwright test --list tests/specs/client.passkey.spec.ts` | 14 tests listed |
+| Admin coverage | `CI=true bun run test --coverage` in `packages/admin` | 1,112 passed; floors met |
