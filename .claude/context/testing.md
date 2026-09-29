@@ -41,15 +41,15 @@ policy).
   it loads.
 - `globals: true`, `pool: "threads"`, `isolate: true` (except Shared's shared graph), `testTimeout: 10000`.
 - React deduped + aliased to the workspace-root runtime so hooks share one dispatcher — never add a second React instance.
-- Heavy SDKs alias-mocked to skip dep chains: EAS SDK → `src/__mocks__/eas-sdk.ts`, WalletConnect utils → `src/__mocks__/walletconnect-utils.ts`; `zod`/`viem`/`wagmi`/`multiformats` force-inlined via `server.deps.inline`.
+- Heavy SDKs alias-mocked to skip dep chains: EAS SDK → `src/__mocks__/eas-sdk.ts`, WalletConnect utils → `src/__mocks__/walletconnect-utils.ts`; `zod`/`wagmi`/`multiformats` force-inlined via `server.deps.inline`, and `viem` too except in Admin, where external viem measured faster (the reason is in its config).
 - Setup files: shared/client `setupTests.ts`, admin/agent `setup.ts` — all extend `packages/shared/src/__tests__/setupTests.base.ts`. Shared's Node projects load only its Node-safe core (`setupTests.node.ts`), without Testing Library or jest-dom.
 - `agent` package differs: `node` env, `fileParallelism: false`, much lower thresholds (10/20/20/20).
 
 ## GG mock / DOM conventions (`setupTests.base.ts` + per-package setup)
 
-- Strict `fetch`: any unmocked call throws ("Mock this endpoint explicitly") — mock via MSW or `mockFetch`.
-- MSW GraphQL server from `@green-goods/shared/mocks` (`src/__mocks__/server/`); admin runs `server.listen({ onUnhandledRequest: "error" })` and resets per test.
-- Reown AppKit module-mocked (no network/403); `react-hot-toast` mocked in admin.
+- Strict `fetch`: any unmocked call throws ("Mock this endpoint explicitly") — mock via `mockFetch` or the test's own module mock.
+- The MSW GraphQL server in `@green-goods/shared/mocks` (`src/__mocks__/server/`) is not started by any package setup; no test needed its handlers, and loading it cost every Admin file about 0.25 s.
+- Reown AppKit's React entry and wagmi adapter are module-mocked in admin (no network/403, and no AppKit load wherever the Auth provider is imported); `react-hot-toast` mocked in admin.
 - DOM polyfills so Radix / floating-ui primitives render: `HTMLDialogElement.showModal/close`, `matchMedia`, `ResizeObserver`, `IntersectionObserver`, `scrollIntoView` (admin); `fake-indexeddb/auto` for IndexedDB. Drive dialogs/menus with `fireEvent` (neither test DOM does layout or pointer hit-testing). These live in setup — don't re-stub per test.
 
 ## Coverage

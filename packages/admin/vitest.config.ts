@@ -176,7 +176,10 @@ export default defineConfig({
           "@testing-library/react",
           "@tanstack/react-query",
           "zustand",
-          "viem",
+          // viem stays external: Node loads it faster than the module runner does. On 2026-09-28
+          // four alternating full runs took 53.2 and 53.6 s external against 60.4 and 56.9 s
+          // inlined, with import time down 28% and identical results. Its chains barrel alone cost
+          // up to 4 s a file inlined.
           "wagmi",
           "@walletconnect/utils",
           "@walletconnect/types",

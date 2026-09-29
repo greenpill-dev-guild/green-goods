@@ -4,7 +4,7 @@
  * Extends base test setup with admin-specific mocks.
  */
 
-import { afterAll, afterEach, beforeAll, vi } from "vitest";
+import { afterEach, vi } from "vitest";
 import { resetTestQueryClient } from "@green-goods/shared/testing/query-client";
 
 // Mock window.matchMedia for components and libraries that rely on it in tests
@@ -31,21 +31,8 @@ if (typeof Element !== "undefined") Element.prototype.scrollIntoView = vi.fn();
 // Import base setup from shared (includes common mocks)
 import "@green-goods/shared/__tests__/setupTests.base";
 
-// Import MSW server for GraphQL mocking
-import { server } from "@green-goods/shared/__mocks__/server/server";
-
-// Admin-specific: Start MSW server for API mocking
-beforeAll(() => {
-  server.listen({ onUnhandledRequest: "error" });
-});
-
 afterEach(() => {
-  server.resetHandlers();
   resetTestQueryClient();
-});
-
-afterAll(() => {
-  server.close();
 });
 
 // Admin-specific: Mock environment variables
@@ -71,12 +58,17 @@ vi.mock("react-hot-toast", () => ({
   Toaster: () => null,
 }));
 
-// Admin-specific: Mock Reown AppKit to prevent network calls and 403 errors
-vi.mock("@reown/appkit", () => ({
-  AppKit: class {
-    initialize() {
-      return Promise.resolve();
-    }
-    destroy() {}
+// Admin-specific: stub Reown AppKit, to prevent network calls and 403 errors and because
+// Shared's config/appkit loads AppKit's React entry and its wagmi adapter as soon as the Auth
+// provider or the chain guard is imported: about 1.9 s of import in each of 26 files. No test here
+// creates AppKit. One that reached ensureAppKit would get an adapter without a wagmi config, and
+// getWagmiConfig() would say so.
+vi.mock("@reown/appkit/react", () => ({
+  createAppKit: vi.fn(() => ({ open: vi.fn(), close: vi.fn(), setThemeMode: vi.fn() })),
+  useAppKit: vi.fn(() => ({ open: vi.fn(), close: vi.fn() })),
+}));
+vi.mock("@reown/appkit-adapter-wagmi", () => ({
+  WagmiAdapter: class {
+    wagmiConfig = undefined;
   },
 }));
