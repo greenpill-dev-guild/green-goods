@@ -78,8 +78,8 @@ agent-test). The contracts checks need the contract submodules, initialized in t
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `5005199ea54f327f70e63a71d183d6a4eb288821`
-- Run at (UTC): 2026-09-29T00:15:14Z
+- Tested implementation commit SHA: `6615a909ea1cf39e2f72c837bd454c3a80f296d7`
+- Run at (UTC): 2026-09-29T04:07:03Z
 - Exact command(s): the pre-push hook's
   `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts`
   (critical push plan against the PR base, `chore/whatsapp-prototype-scope-lock`)
@@ -87,18 +87,18 @@ agent-test). The contracts checks need the contract submodules, initialized in t
   abi-artifacts, the Shared, Client, Admin, Agent and Indexer typecheck, test and build legs,
   contracts-build, contracts-test, contracts-verify-fast, docs-authority, docs-test, docs-build,
   staged-modules, source-structure, design-guardrails, agent-guidance, supply-chain and
-  story-quality. The Agent test legs ran in full: 347 passed and 1 skipped, and the SQLite lane 85.
-  Turbo replayed the Shared, Client and Admin test legs, whose inputs are unchanged since `53e4dc7`,
-  where they ran in full (Shared 6005 passed and 17 skipped, Client 1415, Admin 1069).
-  `browser-proof` stays pending (manual).
-- Validated paths: `.github bun.lock docs packages scripts` (everything the branch changes outside this hub)
-- Worktree identity command and result:
-  `git status --porcelain=v1 --untracked-files=all -- .github bun.lock docs packages scripts` → empty
-- Evidence-only diff command and result (if applicable):
-  `git diff --exit-code 5005199ea54f327f70e63a71d183d6a4eb288821..HEAD -- .github bun.lock docs packages scripts`
-  → empty; the receipt commit changes only `.plans/`
+  story-quality. Every test leg ran in full on this commit: Shared 6005 passed and 17 skipped,
+  Client 1415, Admin 1069, Agent 347 passed and 1 skipped, and the Agent SQLite lane 85. Those runs
+  came from the same gate started directly, which then stopped at design-guardrails only because a
+  direct start does not put `node_modules/.bin` on PATH; the hook run replayed them and passed
+  every check. `browser-proof` stays pending (manual).
+- Validated paths: everything outside `.plans/`, including the root `.env.schema`. The commands
+  below check the whole repository, because agent commands that name `.env*` files are denied.
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all` → empty
+- Evidence-only diff command and result (if applicable): `git diff --stat 6615a909e..HEAD` → only
+  the two lane handoffs under `.plans/`
 - Evidence-only worktree-status command and result (if applicable):
-  `git status --porcelain=v1 --untracked-files=all -- .github bun.lock docs packages scripts` → empty
+  `git status --porcelain=v1 --untracked-files=all` → empty after the receipt commit
 
 ## Risks / Blockers
 
