@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Focus-ring role guard — Cockpit M3 1a (PRD-644 round 2).
  *

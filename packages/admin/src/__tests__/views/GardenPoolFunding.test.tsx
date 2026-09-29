@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import type { PoolFundingControllerView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type {

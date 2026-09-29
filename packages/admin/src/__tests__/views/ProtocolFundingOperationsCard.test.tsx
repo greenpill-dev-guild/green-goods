@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import type { ProtocolFundingOperationsController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { HexString } from "@green-goods/shared/modules/commitment-pooling/types-core";

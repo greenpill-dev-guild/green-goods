@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { GardenActivityEvent } from "@green-goods/shared/types/garden-detail";

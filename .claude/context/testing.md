@@ -25,10 +25,10 @@ policy).
 
 - Shared, client, and admin use inherited `node` and `dom` projects: DOM-free `.test.ts`
   suites run in Node, while `.test.tsx` and documented DOM exceptions run in a DOM: happy-dom
-  in Shared, jsdom in client and admin. Keep coverage at the root config, never inside a project.
-- A Shared DOM test that depends on jsdom behaviour pins it with `@vitest-environment jsdom` and a
-  comment saying which behaviour, such as authored inline style values, `Storage.prototype` spies,
-  or `MessagePort` identity.
+  in Shared and admin, jsdom in client. Keep coverage at the root config, never inside a project.
+- A Shared or admin DOM test that depends on jsdom behaviour pins it with
+  `@vitest-environment jsdom` and a comment saying which behaviour, such as authored inline style
+  values, `Storage.prototype` spies, or `MessagePort` identity.
 - Shared's Node tests that mock and stub nothing share one module graph in
   `node-shared-graph` (`isolate: false`; mocks, globals and env restored after each test).
   A file that mocks, stubs, assigns globals directly, resets modules, uses IndexedDB, or

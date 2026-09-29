@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { Address, Work } from "@green-goods/shared/types/domain";

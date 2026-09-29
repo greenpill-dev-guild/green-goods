@@ -1,3 +1,4 @@
+// jsdom pin (happy-dom A/B): asserts authored inline values (a var() grid template, calc() with rem); happy-dom's computed style substitutes var() and converts rem to px.
 /**
  * @vitest-environment jsdom
  */

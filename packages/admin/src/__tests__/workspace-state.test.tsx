@@ -1,6 +1,6 @@
 /**
  * Workspace State Integration Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests URL sync + garden state persistence integration.
  * These test the integration between useGardenUrlSync and useGardenStateStore

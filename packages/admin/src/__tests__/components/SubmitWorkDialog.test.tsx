@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Submit Work flow-dialog close contract (parity with CreateAssessmentDialog):
  * a pristine dialog closes straight back to the Hub with no discard prompt.

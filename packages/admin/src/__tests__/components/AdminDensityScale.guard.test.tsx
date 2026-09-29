@@ -10,7 +10,7 @@
  * Heights are class-level contracts (h-* / min-h-*) because jsdom cannot
  * measure layout; the classes ARE the shipped geometry.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { readFileSync } from "node:fs";

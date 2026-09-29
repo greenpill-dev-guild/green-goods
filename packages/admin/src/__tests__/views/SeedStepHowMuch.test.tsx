@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import type { Action } from "@green-goods/shared/types/domain";
 import {

@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { AdminSelect, AdminTextArea, AdminTextField } from "@/components/AdminTextField";

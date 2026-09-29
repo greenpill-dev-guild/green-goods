@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { FabConfig } from "@green-goods/shared/components/Canvas/NavigationBar";

@@ -133,7 +133,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: "jsdom",
+    environment: "happy-dom",
     setupFiles: ["./src/__tests__/setup.ts"],
     exclude: ["**/node_modules/**"],
     coverage: {
@@ -216,7 +216,11 @@ export default defineConfig({
         extends: true,
         test: {
           name: "dom",
-          environment: "jsdom",
+          // happy-dom sets up and drives a test DOM faster than jsdom. On 2026-09-29 four
+          // alternating full runs retired 1.126T and 1.135T instructions against 1.597T and 1.598T
+          // with jsdom (-29%) and took 20.8 and 23.4 s against 28.9 and 33.3 s, with identical
+          // results. Files that assert authored inline styles pin jsdom with a docblock.
+          environment: "happy-dom",
           include: [domTestFiles],
         },
       },

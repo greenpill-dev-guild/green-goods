@@ -1,3 +1,4 @@
+// jsdom pin (happy-dom A/B): asserts the authored inline z-index calc(var(--z-modal) + 1); happy-dom's computed style substitutes the undefined custom property with nothing.
 /**
  * @vitest-environment jsdom
  */
