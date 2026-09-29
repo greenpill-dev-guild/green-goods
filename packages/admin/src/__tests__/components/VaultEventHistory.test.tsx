@@ -55,15 +55,22 @@ beforeEach(() => {
 });
 
 describe("VaultEventHistory", () => {
-  it("shows one page of events at a time and drops the control once every event is shown", () => {
-    vaultEvents.current.events = Array.from({ length: 5 }, (_, index) => vaultEvent(index));
+  // Four events fill the last page exactly, which is where an off-by-one keeps the control.
+  it.each([
+    { total: 5, shownAfterEachPage: [2, 4, 5] },
+    { total: 4, shownAfterEachPage: [2, 4] },
+  ])("shows one page of $total events at a time and drops the control once every event is shown", ({
+    total,
+    shownAfterEachPage: [firstPage, ...laterPages],
+  }) => {
+    vaultEvents.current.events = Array.from({ length: total }, (_, index) => vaultEvent(index));
     renderWithProviders(<VaultEventHistory gardenAddress={GARDEN} initialVisibleCount={2} />);
 
-    expect(tableRows()).toHaveLength(2);
-    fireEvent.click(screen.getByRole("button", { name: "Load More" }));
-    expect(tableRows()).toHaveLength(4);
-    fireEvent.click(screen.getByRole("button", { name: "Load More" }));
-    expect(tableRows()).toHaveLength(5);
+    expect(tableRows()).toHaveLength(firstPage);
+    for (const shown of laterPages) {
+      fireEvent.click(screen.getByRole("button", { name: "Load More" }));
+      expect(tableRows()).toHaveLength(shown);
+    }
     expect(screen.queryByRole("button", { name: "Load More" })).toBeNull();
   });
 
