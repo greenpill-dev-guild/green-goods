@@ -8,7 +8,7 @@
  * The AppBar component checks `isPwaPresentation` from `useApp()` and hides
  * itself in browser mode via `shouldHideBar = !isPwaPresentation || ...`.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";

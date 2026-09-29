@@ -1,7 +1,7 @@
 /**
  * Campaign Cookie Jar public page tests.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { MemoryRouter } from "react-router-dom";

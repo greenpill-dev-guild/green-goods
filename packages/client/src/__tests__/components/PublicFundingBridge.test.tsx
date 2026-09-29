@@ -6,7 +6,7 @@
  * - Endow maps to Garden Vault support over time.
  * - The only action routes to /fund.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";

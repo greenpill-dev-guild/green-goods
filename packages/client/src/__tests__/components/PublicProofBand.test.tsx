@@ -6,7 +6,7 @@
  * a broken state. When any stat is non-zero or loading, the four numerals
  * render as before.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen } from "@testing-library/react";

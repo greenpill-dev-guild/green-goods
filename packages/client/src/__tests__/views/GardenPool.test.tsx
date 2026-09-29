@@ -6,7 +6,7 @@
  * differs between them: whether anything resumes, and whether a steward can
  * bring it back.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import userEvent from "@testing-library/user-event";

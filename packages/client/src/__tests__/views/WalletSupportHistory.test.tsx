@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 import type { ComponentProps } from "react";
 import en from "@green-goods/shared/i18n/en.json";
 import es from "@green-goods/shared/i18n/es.json";

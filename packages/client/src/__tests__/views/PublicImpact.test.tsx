@@ -8,7 +8,7 @@
  * - Honest states: loading, empty, EAS error, partialData,
  *   sourceLimitReached.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { fireEvent, render, screen, within } from "@testing-library/react";

@@ -3,7 +3,7 @@
  *
  * Locks the homepage loop heading's intentional two-line composition.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen, within } from "@testing-library/react";

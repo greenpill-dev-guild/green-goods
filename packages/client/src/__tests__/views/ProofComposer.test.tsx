@@ -3,7 +3,7 @@
  * commitment authority, payload shaping, and queue failure behavior are
  * covered by the controller suite; this file owns the client journey and copy.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { ProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";

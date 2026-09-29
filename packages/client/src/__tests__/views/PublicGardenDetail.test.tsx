@@ -13,7 +13,7 @@
  * - Support CTA links to `/fund?garden=<slug>`.
  * - Localized not-found state.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import pt from "@green-goods/shared/i18n/pt";

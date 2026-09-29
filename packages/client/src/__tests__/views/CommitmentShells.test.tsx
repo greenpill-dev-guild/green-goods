@@ -3,7 +3,7 @@
  * their top nav and bar to the viewport, as the work view does, so neither
  * depends on a height the garden route hands down.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 import type { ReactElement, ReactNode } from "react";
 import { describe, expect, it } from "vitest";

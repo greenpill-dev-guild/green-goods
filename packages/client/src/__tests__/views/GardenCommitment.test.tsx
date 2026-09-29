@@ -4,7 +4,7 @@
  * controller itself; this suite keeps the client-owned copy, navigation, and
  * dialog behavior honest.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { Action, Work } from "@green-goods/shared/types/domain";

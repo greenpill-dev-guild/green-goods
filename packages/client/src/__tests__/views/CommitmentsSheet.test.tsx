@@ -6,7 +6,7 @@
  * Telling someone they have no commitments when the app cannot see any is the
  * defect this file exists to prevent.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import userEvent from "@testing-library/user-event";
