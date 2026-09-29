@@ -3,7 +3,7 @@
   "ui": "stream",
   "globalDependencies": [
     ".env",
-    ".env.schema",
+    "env.schema",
     "biome.json",
     "tsconfig.base.json",
     "tsconfig.json",

@@ -75,9 +75,9 @@ policy. Release sessions still use the existing release operator.
 | `setup.js` | `npm run setup -- --profile host`, `npm run setup -- --profile isolated`, `npm run setup -- --profile cloud` | First-clone and workspace setup; checks deps, bootstraps Bun when allowed, installs dependencies, and handles host/isolated/cloud env posture |
 | `clean.js` | `bun run dev:clean`, `bun run dev:clean -- --dry-run` | Remove disposable build/test/cache artifacts from the current checkout only; never stops services, removes dependencies, touches env files, or inspects sibling worktrees |
 | `doctor.js` | `bun run dev:health -- <mode>` | Non-mutating readiness check (ports, tools, env, profiles), including warning-only personal engineering skill availability for Codex and Claude |
-| `env-template-init.js` | `node scripts/dev/env-template-init.js` | Generate `.env.template` skeleton from `.env.schema` (one-shot) |
-| `env-sync.js` | `bun run env:sync` | Run `op inject` against `.env.template` to materialize `.env` |
-| `env-check.js` | `bun run env:check`, called from `doctor.js` | Validate `.env` has all required `.env.schema` keys non-empty |
+| `env-template-init.js` | `node scripts/dev/env-template-init.js` | Generate `env.template` skeleton from `env.schema` (one-shot) |
+| `env-sync.js` | `bun run env:sync` | Run `op inject` against `env.template` to materialize `.env` |
+| `env-check.js` | `bun run env:check`, called from `doctor.js` | Validate `.env` has all required `env.schema` keys non-empty |
 | `node-cli.js` | `packages/client dev`, `packages/admin dev`, `packages/shared storybook`, `docs dev` | Run local JS dev CLIs under real system Node instead of Bun's injected `node` shim |
 | `remove-public-sourcemaps.js` | `packages/client build`, `packages/admin build` | Remove emitted `.map` files after Sentry upload so Vercel does not publish browser source maps |
 | `stack.js` | `bun run dev -- <mode>`, `bun run dev -- stop` | Start/stop PM2 groups; default local services against live Arbitrum, explicit fork mode, optional full browser tools, Docker preflight, early exit detection, automatic QA smoke, and polling-backed client HMR (`VITE_USE_POLLING=false` opts out) |

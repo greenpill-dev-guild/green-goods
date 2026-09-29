@@ -51,7 +51,7 @@ export function parseEnvText(text) {
 }
 
 /**
- * Parse the key contract in .env.schema. A @required-in annotation may appear
+ * Parse the key contract in env.schema. A @required-in annotation may appear
  * on its own comment line immediately before a key or inline with that key.
  */
 export function parseSchemaText(text) {

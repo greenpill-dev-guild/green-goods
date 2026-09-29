@@ -394,7 +394,7 @@ test("Shared outer routing matches the internal shared-impact detector", () => {
     "package.json",
     "bun.lock",
     "biome.json",
-    ".env.schema",
+    "env.schema",
     ".github/actions/setup-js/action.yml",
     ".github/workflows/shared.yml",
     "scripts/quality/check-source-structure.js",
