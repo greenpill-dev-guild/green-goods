@@ -1,8 +1,9 @@
 /**
- * MSW Handlers for Pimlico Bundler/Paymaster
+ * Pimlico Bundler/Paymaster mock responses
  *
- * Mocks the Pimlico API endpoints used for smart account gas sponsorship.
- * These handlers enable E2E testing without real API calls.
+ * Answers the Pimlico JSON-RPC methods used for smart account gas sponsorship.
+ * The passkey E2E spec serves them through Playwright route interception, so
+ * E2E tests make no real API calls.
  *
  * Pimlico endpoints mocked:
  * - eth_estimateUserOperationGas
@@ -13,8 +14,6 @@
  *
  * @see https://docs.pimlico.io/reference/bundler/endpoints
  */
-
-import { type DefaultBodyType, HttpResponse, http, type PathParams } from "msw";
 
 // ============================================================================
 // TYPES
@@ -292,20 +291,10 @@ function handlePimlicoRpc(body: JsonRpcRequest): JsonRpcResponse {
     // ============================
 
     default:
-      console.warn(`[MSW] Unknown Pimlico RPC method: ${method}`);
+      console.warn(`[Mock] Unknown Pimlico RPC method: ${method}`);
       return errorResponse(id, -32601, `Method not found: ${method}`);
   }
 }
-
-// ============================================================================
-// MSW HANDLERS
-// ============================================================================
-
-/**
- * Pimlico API endpoint pattern
- * Matches: https://api.pimlico.io/v2/{chainId}/rpc?apikey={key}
- */
-const PIMLICO_RPC_PATTERN = /https:\/\/api\.pimlico\.io\/v2\/\d+\/rpc/;
 
 // ============================================================================
 // EXPORTS

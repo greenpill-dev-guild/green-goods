@@ -321,7 +321,6 @@
     "./utils/work/image-compression": "./src/utils/work/image-compression.ts",
     "./utils/work/workTitles": "./src/utils/work/workTitles.ts",
     "./workflows/createGarden": "./src/workflows/createGarden.ts",
-    "./__mocks__/server/server": "./src/__mocks__/server/server.ts",
     "./__tests__/test-utils": "./src/__tests__/test-utils/index.ts",
     "./__tests__/test-utils/commitment-pooling-fixtures": "./src/__tests__/test-utils/commitment-pooling-fixtures.ts",
     "./__tests__/test-utils/controller-fixtures": "./src/__tests__/test-utils/controller-fixtures.ts",

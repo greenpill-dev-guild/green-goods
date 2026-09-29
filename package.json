@@ -110,7 +110,6 @@
     "lighthouse": "13.2.0",
     "lint-staged": "16.1.5",
     "modern-web-guidance": "^0.0.169",
-    "msw": "2.14.6",
     "oxlint": "1.66.0",
     "pm2": "6.0.14",
     "sharp": "^0.35.3",

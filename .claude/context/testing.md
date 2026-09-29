@@ -49,7 +49,6 @@ policy).
 ## GG mock / DOM conventions (`setupTests.base.ts` + per-package setup)
 
 - Strict `fetch`: any unmocked call throws ("Mock this endpoint explicitly") — mock via `mockFetch` or the test's own module mock.
-- The MSW GraphQL server in `@green-goods/shared/mocks` (`src/__mocks__/server/`) is not started by any package setup; no test needed its handlers, and loading it cost every Admin file about 0.25 s.
 - Reown AppKit is aliased to stubs in every package (see above), so no test loads or contacts it; a test that needs its behaviour mocks `config/appkit` or `AppKitProvider`. `react-hot-toast` mocked in admin.
 - DOM polyfills so Radix / floating-ui primitives render: `HTMLDialogElement.showModal/close`, `matchMedia`, `ResizeObserver`, `IntersectionObserver`, `scrollIntoView` (admin); `fake-indexeddb/auto` for IndexedDB. Drive dialogs/menus with `fireEvent` (neither test DOM does layout or pointer hit-testing). These live in setup — don't re-stub per test.
 
