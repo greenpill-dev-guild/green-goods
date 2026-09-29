@@ -2,7 +2,7 @@
 
 **Feature Slug**: `test-budget-and-ci-speed`
 **Stage**: active
-**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshots 07 and 08 are published. The snapshot 08 follow-up (D10, through `23a8d1ffb`) and D11 (Admin happy-dom and the MSW removal) are on `origin/develop`
+**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshots 07 and 08 are published. The snapshot 08 follow-up (D10, through `23a8d1ffb`), D11 (Admin happy-dom and the MSW removal) and D12 (Client happy-dom) are on `origin/develop`
 **Created**: 2026-09-19
 **Last Updated**: 2026-09-29
 
@@ -91,6 +91,7 @@ Three recent published Shared runs have both shards green. They provide observat
 | D9 (2026-09-28): prune CodeQL's unreachable overlay-base databases hourly; keep overlay analysis on | Decided by Afo, from three options | Pull-request analyses restore only the newest database, and overlay keeps them near 2 minutes instead of 7 while the rulesets wait for CodeQL. The free org plan cannot buy more cache. The 21 unreachable databases were deleted by hand; the workflow is PR #945 |
 | D10 (2026-09-28): address snapshot 08's items 2, 3, 5, 6 and 7 with the page's recommendations | Decided by Afo | Dispatch the CodeQL prune by hand; speed up what Admin's tests import rather than add a Shared shard; add the vault history's exactly-full page; finish the helper codemod; fix `canonicalJobPayload` instead of the SDK, end the Data Saver override with its session, and move the import-seam case into `check-source-structure.js` |
 | D11 (2026-09-29): happy-dom for Admin, and remove MSW | Decided by Afo | Admin's DOM project moves to happy-dom, already a root dev dependency, with the same bar as D2; the unused MSW server, its Shared export and the root `msw` pin go, which changes the lockfile |
+| D12 (2026-09-29): happy-dom for Client | Decided by Afo | Client, the last package on jsdom, moves to happy-dom with the same bar as D2 and D11; happy-dom is already a root dev dependency |
 
 ## Ordered work
 
@@ -167,17 +168,26 @@ rule that dated reports are immutable, and CI's Guidance integrity job failed on
 stays there: restoring the report would be a second edit, which the same check rejects on the next
 push. The local push gate did not select `immutable-plan-reports` for the edit.
 
+## Client happy-dom (2026-09-29)
+
+Afo chose it after D11 (D12). One commit on `develop`; evidence in
+[its report](reports/2026-09-29-client-happy-dom.md).
+
+| Done | Work | Evidence |
+|---|---|---|
+| [x] | Client's DOM project runs in happy-dom (`46be0573a`); three files stay on jsdom, one for a `Storage.prototype` spy and two for accessible names joined from adjacent inline elements. Instructions −31% and Vitest time −28% in A B B A, identical names and results in all six runs, coverage unchanged | Report |
+
 ## Current handoff
 
 The snapshot 08 follow-up reached `develop` at `23a8d1ffb`, and D11 in `9703b5402` and
-`1c6948d50`. Next:
+`1c6948d50`, and D12 in `46be0573a`. Next:
 
-- the CodeQL prune's hourly schedule (`37 * * * *`) fired once, at 02:42 UTC on September 29, in
-  the nine and a half hours after it merged; its push trigger ran on each `develop` push and
-  passed. Check the schedule again with snapshot 09;
+- the CodeQL prune's hourly schedule (`37 * * * *`) fires about every seven hours (02:42, 10:06
+  and 16:36 UTC on September 29); its push trigger runs on each `develop` push and passes, so a
+  database saved after a push's prune waits for the next one. Check it again with snapshot 09;
 - the seven-day CI window from 2026-09-28 (snapshot 09, Oct 5), for the job medians, the CI Gate
   median and the red rates that snapshots 07 and 08 leave pending; Admin · Test runs happy-dom
-  from D11's push on;
+  from D11's push on, and Client · Test from D12's;
 - `linear-sync` for PRD-835 (architecture hub), in a pass that may write to Linear.
 
 The earlier instructions below are historical.
