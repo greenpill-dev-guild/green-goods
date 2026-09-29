@@ -1,8 +1,8 @@
 /** @vitest-environment happy-dom */
-import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, renderHook, waitFor } from "@testing-library/react";
-import { createElement } from "react";
+import { onlineManager, QueryClient } from "@tanstack/react-query";
+import { cleanup, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const seams = vi.hoisted(() => ({
   list: vi.fn(),
@@ -86,8 +86,8 @@ const queuedJob = {
 };
 let client: QueryClient;
 function mount() {
-  return renderHook(() => useWorks(garden, { offline: true }), {
-    wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children),
+  return renderHookWithQueryClient(() => useWorks(garden, { offline: true }), {
+    queryClient: client,
   });
 }
 beforeEach(() => {
@@ -221,8 +221,8 @@ it("opens personal work offline from downloaded garden lists scoped to the accou
   client.setQueryData(worksKeys.mine(queuedJob.userAddress, 11155111, true, undefined, 50), [
     { ...own, id: "legacy-local", media: ["blob:expired"] },
   ]);
-  const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
-    wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children),
+  const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+    queryClient: client,
   });
   expect(result.current.data).toMatchObject([{ id: own.id, status: "approved" }]);
   expect(result.current.lastSuccessfulRefresh).toBe(1000);
@@ -236,8 +236,8 @@ it("keeps a legacy reviewed status when the downloaded row predates embedded app
     { ...own, status: "rejected" as const, _txHash: "0xdecision" },
   ]);
 
-  const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
-    wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children),
+  const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+    queryClient: client,
   });
 
   expect(result.current.data).toMatchObject([{ id: own.id, status: "rejected" }]);
@@ -252,8 +252,8 @@ it("renders queued personal work before media finishes and recreates previews fr
         finishImages = resolve;
       })
   );
-  const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
-    wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children),
+  const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+    queryClient: client,
   });
   await waitFor(() => expect(result.current.data[0]?.id).toBe(queuedJob.id));
   expect(result.current.data[0].media).toEqual([]);

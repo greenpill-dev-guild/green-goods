@@ -3,12 +3,11 @@
  * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "../../../types/domain";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,
@@ -62,28 +61,7 @@ vi.mock("../../../utils/errors/mutation-error-handler", () => ({
   createMutationErrorHandler: () => mockErrorHandler,
 }));
 
-const messages = {
-  "public.vaults.manage.redeem.toastTitle": "Redeem vault shares",
-  "public.vaults.manage.redeem.toastSuccess": "Share redemption submitted.",
-} as const;
-
 const { useOctantVaultRedeem } = await import("../../../hooks/vault/useOctantVaultWithdraw");
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      createElement(IntlProvider, { locale: "en", messages }, children)
-    );
-  };
-}
-
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-}
 
 describe("hooks/vault/useOctantVaultRedeem", () => {
   beforeEach(() => {
@@ -96,12 +74,10 @@ describe("hooks/vault/useOctantVaultRedeem", () => {
 
   it("pre-checks maxRedeem with chainId, then sends redeem and invalidates positions", async () => {
     mockReadContract.mockResolvedValueOnce(1_000n); // maxRedeem
-    const queryClient = makeQueryClient();
+    const queryClient = createTestQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useOctantVaultRedeem(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useOctantVaultRedeem(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -138,11 +114,7 @@ describe("hooks/vault/useOctantVaultRedeem", () => {
   it("falls back to the TokenizedStrategy redeem overload when multistrategy maxRedeem is unavailable", async () => {
     mockReadContract.mockRejectedValueOnce(new Error("selector unavailable"));
     mockReadContract.mockResolvedValueOnce(1_000n);
-    const queryClient = makeQueryClient();
-
-    const { result } = renderHook(() => useOctantVaultRedeem(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useOctantVaultRedeem());
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -185,9 +157,7 @@ describe("hooks/vault/useOctantVaultRedeem", () => {
     mockReadContract.mockRejectedValueOnce(new Error("tokenized selector unavailable"));
     mockReadContract.mockResolvedValueOnce(1_000n);
 
-    const { result } = renderHook(() => useOctantVaultRedeem(), {
-      wrapper: createWrapper(makeQueryClient()),
-    });
+    const { result } = renderHookWithProviders(() => useOctantVaultRedeem());
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -218,9 +188,7 @@ describe("hooks/vault/useOctantVaultRedeem", () => {
 
   it("rejects when shares exceed maxRedeem and never signs", async () => {
     mockReadContract.mockResolvedValueOnce(100n); // maxRedeem below requested shares
-    const { result } = renderHook(() => useOctantVaultRedeem(), {
-      wrapper: createWrapper(makeQueryClient()),
-    });
+    const { result } = renderHookWithProviders(() => useOctantVaultRedeem());
 
     await act(async () => {
       await expect(
@@ -231,9 +199,7 @@ describe("hooks/vault/useOctantVaultRedeem", () => {
   });
 
   it("rejects a non-mainnet chain before any read", async () => {
-    const { result } = renderHook(() => useOctantVaultRedeem(), {
-      wrapper: createWrapper(makeQueryClient()),
-    });
+    const { result } = renderHookWithProviders(() => useOctantVaultRedeem());
 
     await act(async () => {
       await expect(
@@ -247,9 +213,7 @@ describe("hooks/vault/useOctantVaultRedeem", () => {
   it("rejects when the session is not a connected wallet", async () => {
     mockUser.authMode = "passkey";
     mockTransactionSender = { sendContractCall: mockSendContractCall, authMode: "passkey" };
-    const { result } = renderHook(() => useOctantVaultRedeem(), {
-      wrapper: createWrapper(makeQueryClient()),
-    });
+    const { result } = renderHookWithProviders(() => useOctantVaultRedeem());
 
     await act(async () => {
       await expect(
@@ -260,9 +224,7 @@ describe("hooks/vault/useOctantVaultRedeem", () => {
   });
 
   it("rejects when the owner is not the connected wallet", async () => {
-    const { result } = renderHook(() => useOctantVaultRedeem(), {
-      wrapper: createWrapper(makeQueryClient()),
-    });
+    const { result } = renderHookWithProviders(() => useOctantVaultRedeem());
 
     await act(async () => {
       await expect(

@@ -6,7 +6,6 @@
  * across package boundaries. Avoid mirroring every literal array shape.
  */
 
-import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 import { readContractQueryKey, readContractsQueryKey } from "wagmi/query";
 import {
@@ -24,6 +23,7 @@ import {
 import type { Address } from "../../types/domain";
 import type { AttestationFilters } from "../../types/hypercerts";
 import { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI } from "../../utils/blockchain/abis/cookie-jar";
+import { createTestQueryClient } from "../test-utils/query-client";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
@@ -347,7 +347,7 @@ describe("queryInvalidation", () => {
       () => queryInvalidation.onCampaignCookieJarChanged(TEST_JAR, TEST_USER, TEST_CHAIN_ID),
     ],
   ])("refreshes the jar's onchain state after a %s", (_action, buildKeys) => {
-    const client = new QueryClient();
+    const client = createTestQueryClient();
     const jarStateKey = readContractsQueryKey({
       contracts: [
         {
@@ -369,7 +369,7 @@ describe("queryInvalidation", () => {
   // A campaign jar's title and description are a single read of the factory, which wagmi keys
   // under a different root than the jar's own multicall.
   it("refreshes a campaign jar's metadata after it is updated", () => {
-    const client = new QueryClient();
+    const client = createTestQueryClient();
     const metadataKey = readContractQueryKey({
       address: TEST_FACTORY,
       abi: COOKIE_JAR_FACTORY_ABI,

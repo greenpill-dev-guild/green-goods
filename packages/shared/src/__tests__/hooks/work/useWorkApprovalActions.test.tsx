@@ -1,11 +1,12 @@
 /** @vitest-environment happy-dom */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import type { QueryClient } from "@tanstack/react-query";
+import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Confidence } from "../../../types/domain";
 import { createMockWork } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mocks = vi.hoisted(() => ({
   approvalDependencies: null as null | {
@@ -54,14 +55,8 @@ import { useWorkApprovalActions } from "../../../hooks/work/useWorkApprovalActio
 describe("hooks/work/useWorkApprovalActions", () => {
   let queryClient: QueryClient;
 
-  function wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  }
-
   beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
     mocks.approvalDependencies = null;
     mocks.jobListener = null;
     mocks.timeoutCallbacks = [];
@@ -70,7 +65,7 @@ describe("hooks/work/useWorkApprovalActions", () => {
 
   it("uses the same completion behavior for direct-wallet and queued success", async () => {
     const work = createMockWork({ id: "work-1", status: "pending" });
-    const direct = renderHook(
+    const direct = renderHookWithQueryClient(
       () =>
         useWorkApprovalActions({
           chainId: 11155111,
@@ -79,7 +74,7 @@ describe("hooks/work/useWorkApprovalActions", () => {
           viewingMode: "steward",
           work,
         }),
-      { wrapper }
+      { queryClient }
     );
 
     let directCompletion: void | Promise<void> | undefined;
@@ -100,7 +95,7 @@ describe("hooks/work/useWorkApprovalActions", () => {
     direct.unmount();
 
     mocks.onApprovalComplete.mockClear();
-    const queued = renderHook(
+    const queued = renderHookWithQueryClient(
       () =>
         useWorkApprovalActions({
           chainId: 11155111,
@@ -109,7 +104,7 @@ describe("hooks/work/useWorkApprovalActions", () => {
           viewingMode: "steward",
           work,
         }),
-      { wrapper }
+      { queryClient }
     );
 
     await act(async () => {
@@ -125,7 +120,7 @@ describe("hooks/work/useWorkApprovalActions", () => {
 
   it("keeps rejected feedback available after wallet cancellation so it can be retried", () => {
     const work = createMockWork({ id: "work-1", status: "pending" });
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useWorkApprovalActions({
           chainId: 11155111,
@@ -134,7 +129,7 @@ describe("hooks/work/useWorkApprovalActions", () => {
           viewingMode: "steward",
           work,
         }),
-      { wrapper }
+      { queryClient }
     );
 
     act(() => {

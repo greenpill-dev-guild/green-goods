@@ -7,11 +7,12 @@
  * React.Suspense) and guarantee data is available when the component renders.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode, Suspense } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockAction, createMockGarden } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
 
 // ============================================
 // Mocks
@@ -53,14 +54,6 @@ import {
 // Test helpers
 // ============================================
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0, staleTime: 0 },
-    },
-  });
-}
-
 function createSuspenseWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return createElement(
@@ -79,7 +72,7 @@ describe("useSuspenseBaseLists", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     vi.clearAllMocks();
   });
 

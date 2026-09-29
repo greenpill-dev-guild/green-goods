@@ -2,9 +2,10 @@
  * @vitest-environment happy-dom
  */
 
-import { QueryClient } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createTestWrapper } from "../../test-utils/render-helpers";
+import type { QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AssessmentWorkflowParams } from "../../../types/domain";
@@ -197,18 +198,9 @@ function createParams(overrides: Partial<AssessmentWorkflowParams> = {}): Assess
   };
 }
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-}
-
 function renderWorkflow(queryClient: QueryClient) {
-  return renderHook(() => useCreateAssessmentWorkflow({ gardenId: GARDEN_ID }), {
-    wrapper: createTestWrapper(queryClient),
+  return renderHookWithProviders(() => useCreateAssessmentWorkflow({ gardenId: GARDEN_ID }), {
+    queryClient,
   });
 }
 
@@ -265,7 +257,7 @@ describe("useCreateAssessmentWorkflow", () => {
 
   it("refuses to start when upload storage is unavailable", () => {
     mocks.ipfsStatus = "skipped_no_config";
-    const queryClient = createQueryClient();
+    const queryClient = createTestQueryClient();
     const { result } = renderWorkflow(queryClient);
 
     let accepted = true;
@@ -300,7 +292,7 @@ describe("useCreateAssessmentWorkflow", () => {
     },
   ])("surfaces a missing $name prerequisite", async ({ prepare, error }) => {
     prepare();
-    const queryClient = createQueryClient();
+    const queryClient = createTestQueryClient();
     const { result } = renderWorkflow(queryClient);
 
     await startReady(result);
@@ -315,7 +307,7 @@ describe("useCreateAssessmentWorkflow", () => {
 
   it("rejects submission when the assessment schema identifier is not deployed", async () => {
     mocks.assessmentUid = `0x${"00".repeat(32)}`;
-    const queryClient = createQueryClient();
+    const queryClient = createTestQueryClient();
     const { result } = renderWorkflow(queryClient);
 
     await startReady(result);
@@ -341,7 +333,7 @@ describe("useCreateAssessmentWorkflow", () => {
       return { cid: "bafy-good-evidence" };
     });
     const params = createParams({ evidenceMedia: [goodFile, failedFile] });
-    const queryClient = createQueryClient();
+    const queryClient = createTestQueryClient();
     const invalidateQueries = vi
       .spyOn(queryClient, "invalidateQueries")
       .mockResolvedValue(undefined);
@@ -425,7 +417,7 @@ describe("useCreateAssessmentWorkflow", () => {
     const uploadError = new Error("metrics upload unavailable");
     mocks.uploadJson.mockReset();
     mocks.uploadJson.mockRejectedValueOnce(uploadError);
-    const queryClient = createQueryClient();
+    const queryClient = createTestQueryClient();
     const invalidateQueries = vi
       .spyOn(queryClient, "invalidateQueries")
       .mockResolvedValue(undefined);
@@ -456,7 +448,7 @@ describe("useCreateAssessmentWorkflow", () => {
     mocks.uploadJson
       .mockResolvedValueOnce({ cid: "bafy-retry-metrics" })
       .mockResolvedValueOnce({ cid: "bafy-retry-config" });
-    const queryClient = createQueryClient();
+    const queryClient = createTestQueryClient();
     const { result } = renderWorkflow(queryClient);
 
     await startReady(result);

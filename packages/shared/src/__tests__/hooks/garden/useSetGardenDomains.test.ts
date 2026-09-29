@@ -3,12 +3,11 @@
  * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type Address, Domain } from "../../../types/domain";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_ACTION_REGISTRY = "0x1111111111111111111111111111111111111111";
@@ -52,21 +51,6 @@ vi.mock("../../../utils/errors/mutation-error-handler", () => ({
   },
 }));
 
-const messages = {
-  "app.garden.domains.updating": "Updating domains...",
-  "app.garden.domains.updateSuccess": "Domains updated",
-} as const;
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      createElement(IntlProvider, { locale: "en", messages }, children)
-    );
-  };
-}
-
 const { useSetGardenDomains } = await import("../../../hooks/garden/useSetGardenDomains");
 
 describe("useSetGardenDomains", () => {
@@ -78,14 +62,10 @@ describe("useSetGardenDomains", () => {
   it("sends setGardenDomains transaction with computed domain mask", async () => {
     mockSendContractTx.mockResolvedValueOnce(MOCK_TX_HASH);
 
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    const queryClient = createTestQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useSetGardenDomains(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetGardenDomains(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -113,13 +93,7 @@ describe("useSetGardenDomains", () => {
   });
 
   it("rejects empty domain updates", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
-
-    const { result } = renderHook(() => useSetGardenDomains(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetGardenDomains());
 
     await expect(
       result.current.mutateAsync({

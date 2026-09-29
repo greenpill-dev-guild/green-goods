@@ -1,10 +1,8 @@
 /** @vitest-environment happy-dom */
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Job } from "../../../types/job-queue";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const mocks = vi.hoisted(() => ({
   jobs: [] as unknown[],
@@ -76,15 +74,6 @@ function queued(kind: string, meta: Job["meta"], payload: Record<string, unknown
   } as Job;
 }
 
-function wrapper({ children }: { children: ReactNode }) {
-  const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-  return createElement(
-    IntlProvider,
-    { locale: "en", messages: en },
-    createElement(QueryClientProvider, { client }, children)
-  );
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.sender = { authMode: "passkey" };
@@ -116,7 +105,7 @@ describe("useWorkUploads", () => {
       queued("claim", {}),
     ];
 
-    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+    const { result } = renderHookWithProviders(() => useWorkUploads());
 
     await waitFor(() => expect(result.current.queuedCount).toBe(5));
     expect(result.current.readyCount).toBe(2);
@@ -129,7 +118,7 @@ describe("useWorkUploads", () => {
     mocks.jobs = [queued("work", {})];
     const render = (paused: string | null) => {
       mocks.preparation = { activeJobId: null, paused, dataSaverOverride: false };
-      return renderHook(() => useWorkUploads(), { wrapper }).result;
+      return renderHookWithProviders(() => useWorkUploads()).result;
     };
 
     const running = render(null);
@@ -153,7 +142,7 @@ describe("useWorkUploads", () => {
       const snapshot = { state };
       const status = vi.spyOn(connectivityStore, "getStatusSnapshot").mockReturnValue(snapshot);
       try {
-        const { result, unmount } = renderHook(() => useWorkUploads(), { wrapper });
+        const { result, unmount } = renderHookWithProviders(() => useWorkUploads());
         await waitFor(() => expect(result.current.preparingCount).toBe(1));
         expect(result.current.isPreparing).toBe(false);
         unmount();
@@ -165,20 +154,20 @@ describe("useWorkUploads", () => {
 
   it("says nothing is preparing when every item is ready", async () => {
     mocks.jobs = [queued("work", { preparation: { status: "ready", checkedAt: CHECKED } })];
-    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+    const { result } = renderHookWithProviders(() => useWorkUploads());
     await waitFor(() => expect(result.current.readyCount).toBe(1));
     expect(result.current.isPreparing).toBe(false);
   });
 
   it("wakes background preparation when the dashboard opens", () => {
-    renderHook(() => useWorkUploads(), { wrapper });
+    renderHookWithProviders(() => useWorkUploads());
     expect(mocks.schedule).toHaveBeenCalledOnce();
   });
 
   it("only starts manual preparation on a confirmed connection", async () => {
     const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
     try {
-      const { result } = renderHook(() => useWorkUploads(), { wrapper });
+      const { result } = renderHookWithProviders(() => useWorkUploads());
       act(() => result.current.prepareNow());
       await waitFor(() => expect(mocks.toast.info).toHaveBeenCalledOnce());
       expect(mocks.prepareNow).not.toHaveBeenCalled();
@@ -193,7 +182,7 @@ describe("useWorkUploads", () => {
 
   it("uploads with the person's sender and says how many items went", async () => {
     mocks.uploadQueuedWork.mockResolvedValue({ status: "uploaded", sent: 2, flagged: 0 });
-    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+    const { result } = renderHookWithProviders(() => useWorkUploads());
 
     await act(async () => {
       await result.current.upload();
@@ -216,7 +205,7 @@ describe("useWorkUploads", () => {
   it("reports an upload that stopped unexpectedly instead of swallowing it", async () => {
     const stopped = new Error("submission-ownership-changed");
     mocks.uploadQueuedWork.mockRejectedValue(stopped);
-    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+    const { result } = renderHookWithProviders(() => useWorkUploads());
 
     await act(async () => {
       await result.current.upload().catch(() => undefined);
@@ -232,7 +221,7 @@ describe("useWorkUploads", () => {
   it("checks the connection before loading the upload modules, which may not be on the device", async () => {
     const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
     try {
-      const { result } = renderHook(() => useWorkUploads(), { wrapper });
+      const { result } = renderHookWithProviders(() => useWorkUploads());
 
       let outcome: unknown;
       await act(async () => {
@@ -252,7 +241,7 @@ describe("useWorkUploads", () => {
 
   it("asks the person to sign in when nothing can sign, and sends nothing", async () => {
     mocks.sender = null;
-    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+    const { result } = renderHookWithProviders(() => useWorkUploads());
 
     await act(async () => {
       await result.current.upload();

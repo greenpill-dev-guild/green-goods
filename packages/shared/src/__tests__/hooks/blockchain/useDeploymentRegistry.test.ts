@@ -7,11 +7,10 @@
  * if the connected user has deploy permissions.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -104,19 +103,6 @@ vi.mock("../../../config/appkit", () => ({
 import { useDeploymentRegistry } from "../../../hooks/blockchain/useDeploymentRegistry";
 
 // ============================================
-// Test helpers
-// ============================================
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-// ============================================
 // Tests
 // ============================================
 
@@ -144,9 +130,7 @@ describe("useDeploymentRegistry", () => {
     it("starts in loading state", () => {
       mockReadContract.mockResolvedValue(MOCK_ADDRESSES.deployer);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       expect(result.current.loading).toBe(true);
     });
@@ -160,9 +144,7 @@ describe("useDeploymentRegistry", () => {
         walletAddress: null,
       };
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       // Should remain loading since no address is available
       await waitFor(() => {
@@ -182,9 +164,7 @@ describe("useDeploymentRegistry", () => {
       // Second call: isInAllowlist() returns false
       mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -199,9 +179,7 @@ describe("useDeploymentRegistry", () => {
         .mockResolvedValueOnce("0xSomeOtherOwner123456789012345678901234")
         .mockResolvedValueOnce(false);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -222,9 +200,7 @@ describe("useDeploymentRegistry", () => {
         .mockResolvedValueOnce("0xSomeOtherOwner123456789012345678901234")
         .mockResolvedValueOnce(true);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -238,9 +214,7 @@ describe("useDeploymentRegistry", () => {
     it("canDeploy is true when user is both owner AND in allowlist", async () => {
       mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(true);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -260,9 +234,7 @@ describe("useDeploymentRegistry", () => {
     it("sets error state and returns all-false on RPC failure", async () => {
       mockReadContract.mockRejectedValue(new Error("RPC connection failed"));
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -277,9 +249,7 @@ describe("useDeploymentRegistry", () => {
     it("handles non-Error exceptions gracefully", async () => {
       mockReadContract.mockRejectedValue("string error");
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -304,9 +274,7 @@ describe("useDeploymentRegistry", () => {
 
       mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -327,9 +295,7 @@ describe("useDeploymentRegistry", () => {
 
       mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.steward).mockResolvedValueOnce(false);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -351,9 +317,7 @@ describe("useDeploymentRegistry", () => {
         deploymentRegistry: "0x0000000000000000000000000000000000000000",
       } as ReturnType<typeof contractsMock.getNetworkContracts>);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);

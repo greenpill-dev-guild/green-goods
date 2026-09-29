@@ -3,11 +3,10 @@
  * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "../../../types/domain";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mockReadContract = vi.fn();
 
@@ -22,15 +21,6 @@ const { useOctantVaultProjectSupportMetric } = await import(
   "../../../hooks/vault/useOctantVaultProjectSupportMetric"
 );
 
-function wrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 describe("hooks/vault/useOctantVaultProjectSupportMetric", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -39,9 +29,8 @@ describe("hooks/vault/useOctantVaultProjectSupportMetric", () => {
   it("returns unavailable when the dragon router source is missing", async () => {
     mockReadContract.mockResolvedValueOnce("0x0000000000000000000000000000000000000000");
 
-    const { result } = renderHook(
-      () => useOctantVaultProjectSupportMetric({ vaultAddress: VAULT, chainId: 1 }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultProjectSupportMetric({ vaultAddress: VAULT, chainId: 1 })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -60,9 +49,8 @@ describe("hooks/vault/useOctantVaultProjectSupportMetric", () => {
       return Promise.resolve(0n);
     });
 
-    const { result } = renderHook(
-      () => useOctantVaultProjectSupportMetric({ vaultAddress: VAULT, chainId: 1 }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultProjectSupportMetric({ vaultAddress: VAULT, chainId: 1 })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -85,9 +73,8 @@ describe("hooks/vault/useOctantVaultProjectSupportMetric", () => {
       return Promise.resolve(0n);
     });
 
-    const { result } = renderHook(
-      () => useOctantVaultProjectSupportMetric({ vaultAddress: VAULT, chainId: 1 }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultProjectSupportMetric({ vaultAddress: VAULT, chainId: 1 })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -111,9 +98,8 @@ describe("hooks/vault/useOctantVaultProjectSupportMetric", () => {
       return Promise.resolve(0n);
     });
 
-    const { result } = renderHook(
-      () => useOctantVaultProjectSupportMetric({ vaultAddress: VAULT, chainId: 1 }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultProjectSupportMetric({ vaultAddress: VAULT, chainId: 1 })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));

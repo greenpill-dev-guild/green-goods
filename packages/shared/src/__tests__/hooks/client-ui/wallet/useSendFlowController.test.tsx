@@ -1,10 +1,9 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { type ReactNode } from "react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CELO_G_DOLLAR_TOKEN } from "../../../../config/tokens";
 import type { SendableTokenBalance } from "../../../../hooks/blockchain/useSendableTokens";
 import { useSendFlowController } from "../../../../hooks/client-ui/wallet/useSendFlowController";
+import { renderHookWithQueryClient } from "../../../test-utils/query-client-render";
 
 const mocks = vi.hoisted(() => ({ quote: vi.fn(), mutate: vi.fn() }));
 vi.mock("../../../../modules/wallet/good-dollar-fees", () => ({
@@ -36,20 +35,14 @@ const quote = {
 function setup(
   eligibleCeloRecipients: ReadonlySet<string> = new Set([recipient.address.toLowerCase()])
 ) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return renderHook(
+  return renderHookWithQueryClient(
     (props: { isOnline: boolean; canSendCelo: boolean; tokens: SendableTokenBalance[] }) =>
       useSendFlowController({
         ...props,
         eligibleCeloRecipients,
         sendMutation: { isPending: false, mutate: mocks.mutate },
       }),
-    {
-      initialProps: { isOnline: true, canSendCelo: true, tokens: [token] },
-      wrapper: ({ children }: { children: ReactNode }) => (
-        <QueryClientProvider client={client}>{children}</QueryClientProvider>
-      ),
-    }
+    { initialProps: { isOnline: true, canSendCelo: true, tokens: [token] } }
   );
 }
 async function fill(result: ReturnType<typeof setup>["result"]) {

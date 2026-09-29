@@ -5,10 +5,9 @@
  * Protocol membership is required for claiming a personal *.greengoods.eth name.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================================================
 // MOCKS
@@ -60,21 +59,6 @@ vi.mock("../../../config/default-chain", () => ({
 import { useProtocolMemberStatus } from "../../../hooks/ens/useProtocolMemberStatus";
 
 // ============================================================================
-// TEST HELPERS
-// ============================================================================
-
-function createTestWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
-  });
-  return {
-    queryClient,
-    wrapper: ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children),
-  };
-}
-
-// ============================================================================
 // TESTS
 // ============================================================================
 
@@ -93,10 +77,7 @@ describe("useProtocolMemberStatus", () => {
 
   describe("disabled conditions", () => {
     it("does not fetch when address is undefined", () => {
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useProtocolMemberStatus(undefined), {
-        wrapper,
-      });
+      const { result } = renderHookWithQueryClient(() => useProtocolMemberStatus(undefined));
 
       expect(result.current.data).toBeUndefined();
       expect(result.current.fetchStatus).toBe("idle");
@@ -108,10 +89,9 @@ describe("useProtocolMemberStatus", () => {
         greenGoodsENS: ZERO_ADDRESS,
       });
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useProtocolMemberStatus(USER_ADDRESS as `0x${string}`), {
-        wrapper,
-      });
+      const { result } = renderHookWithQueryClient(() =>
+        useProtocolMemberStatus(USER_ADDRESS as `0x${string}`)
+      );
 
       expect(result.current.fetchStatus).toBe("idle");
 
@@ -137,10 +117,9 @@ describe("useProtocolMemberStatus", () => {
         .mockResolvedValueOnce(PROTOCOL_HAT_ID) // protocolHatId
         .mockResolvedValueOnce(true); // isWearerOfHat
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useProtocolMemberStatus(USER_ADDRESS as `0x${string}`), {
-        wrapper,
-      });
+      const { result } = renderHookWithQueryClient(() =>
+        useProtocolMemberStatus(USER_ADDRESS as `0x${string}`)
+      );
 
       await waitFor(() => expect(result.current.data).toBe(true));
     });
@@ -151,10 +130,9 @@ describe("useProtocolMemberStatus", () => {
         .mockResolvedValueOnce(PROTOCOL_HAT_ID)
         .mockResolvedValueOnce(false); // isWearerOfHat => false
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useProtocolMemberStatus(USER_ADDRESS as `0x${string}`), {
-        wrapper,
-      });
+      const { result } = renderHookWithQueryClient(() =>
+        useProtocolMemberStatus(USER_ADDRESS as `0x${string}`)
+      );
 
       await waitFor(() => expect(result.current.data).toBe(false));
     });
@@ -164,10 +142,9 @@ describe("useProtocolMemberStatus", () => {
         .mockResolvedValueOnce(ZERO_ADDRESS) // HATS => zero
         .mockResolvedValueOnce(PROTOCOL_HAT_ID);
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useProtocolMemberStatus(USER_ADDRESS as `0x${string}`), {
-        wrapper,
-      });
+      const { result } = renderHookWithQueryClient(() =>
+        useProtocolMemberStatus(USER_ADDRESS as `0x${string}`)
+      );
 
       await waitFor(() => expect(result.current.data).toBe(false));
     });
@@ -175,10 +152,9 @@ describe("useProtocolMemberStatus", () => {
     it("returns false when protocolHatId is zero", async () => {
       mockReadContract.mockResolvedValueOnce(HATS_ADDRESS).mockResolvedValueOnce(0n); // protocolHatId => 0
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useProtocolMemberStatus(USER_ADDRESS as `0x${string}`), {
-        wrapper,
-      });
+      const { result } = renderHookWithQueryClient(() =>
+        useProtocolMemberStatus(USER_ADDRESS as `0x${string}`)
+      );
 
       await waitFor(() => expect(result.current.data).toBe(false));
     });
