@@ -64,6 +64,8 @@ import { useCommitmentReason } from "../../commitment-pooling/useCommitmentReaso
 import { useProtocolPool } from "../../commitment-pooling/useProtocolPool";
 import { useGardenRoles } from "../../roles/useGardenRoles";
 import { useProgressiveInvalidation } from "../../utils/useTimeout";
+import { reviewRefreshOptions } from "../../commitment-pooling/review-refresh";
+import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
 
 /** `ICommitmentPoolingModule.DisputeResolution`, by code. */
 const DISPUTE_RESOLUTION_CODE = {
@@ -83,17 +85,20 @@ export function useCommitmentDialogController(input: {
   const viewer = usePrimaryAddress() ?? undefined;
   const isOnline = useOnlineStatus();
 
-  const detailQuery = useCommitment({ chainId, commitmentId });
+  const detailQuery = useCommitment({ chainId, commitmentId }, { refreshWhileOpen: true });
   const commitment = detailQuery.commitment;
   const detail = detailQuery.detail;
-  const activity = useCommitmentActivity({ chainId, commitmentId, limit: 50 });
+  const activity = useCommitmentActivity(
+    { chainId, commitmentId, limit: 50 },
+    { refreshWhileOpen: true }
+  );
   const metadata = useCommitmentMetadataFor(commitment ?? undefined);
-  const poolsQuery = useCommitmentPools({ chainId, garden });
+  const poolsQuery = useCommitmentPools({ chainId, garden }, { refreshWhileOpen: true });
   // .at(0) keeps the null honest in the type; [0] would claim a pool always exists.
   const pool = poolsQuery.pools.at(0) ?? null;
   const cycleQuery = useCommitmentCycle(
     { chainId, cycleId: commitment?.cycleId ?? 0n },
-    { enabled: Boolean(commitment?.cycleId && commitment.cycleId !== 0n) }
+    { enabled: Boolean(commitment?.cycleId && commitment.cycleId !== 0n), refreshWhileOpen: true }
   );
   const protocolPool = useProtocolPool({ chainId });
   const localRoles = useGardenRoles(garden, viewer, chainId);
@@ -136,6 +141,7 @@ export function useCommitmentDialogController(input: {
     queryFn: () => getViewerConfirmedCommitmentIds({ chainId, viewer: viewer as Address }),
     enabled: Boolean(viewer) && commitment?.onchainState === "READY_FOR_CONFIRMATION",
     staleTime: STALE_TIME_MEDIUM,
+    ...reviewRefreshOptions(true),
   });
 
   const activeContributors = useMemo<Address[]>(
@@ -201,15 +207,17 @@ export function useCommitmentDialogController(input: {
     ]
   );
 
-  const now = useMemo(() => BigInt(Math.floor(Date.now() / 1000)), []);
+  const cycleEndTimes = useMemo(() => {
+    const times = new Map<string, bigint | null>();
+    if (cycleQuery.cycle) times.set(cycleQuery.cycle.cycleId.toString(), cycleQuery.cycle.endTime);
+    return times;
+  }, [cycleQuery.cycle]);
+  const dueCommitments = useMemo(() => (commitment ? [commitment] : []), [commitment]);
+  const now = useExpiryClock({ commitments: dueCommitments, cycleEndTimes });
   const isDue = useMemo(() => {
     if (!commitment) return false;
-    const cycleEndTimes = new Map<string, bigint | null>();
-    if (cycleQuery.cycle) {
-      cycleEndTimes.set(cycleQuery.cycle.cycleId.toString(), cycleQuery.cycle.endTime);
-    }
     return selectDueLiveCommitments({ commitments: [commitment], cycleEndTimes, now }).length > 0;
-  }, [commitment, cycleQuery.cycle, now]);
+  }, [commitment, cycleEndTimes, now]);
 
   const hasPendingJob = commitment
     ? queue.pendingCommitmentIds.has(commitment.commitmentId.toString())

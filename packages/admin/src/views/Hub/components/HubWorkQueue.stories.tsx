@@ -1,8 +1,11 @@
 import type { HubActionSummary } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import { type Address, Domain, type Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
-import { FIXTURE_WORK_MEDIA, daysAgo } from "../../../../../shared/.storybook/fixtures";
+import { expect, fn, mocked, within } from "storybook/test";
+import { daysAgo, FIXTURE_WORK_MEDIA } from "../../../../../shared/.storybook/fixtures";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { HubWorkQueue } from "./HubWorkQueue";
 
 const GARDENER = "0x1111111111111111111111111111111111111111" as Address;
@@ -74,6 +77,24 @@ export const WithData: Story = {
     items: PENDING_WORK,
     worksLoading: false,
     hasDataError: false,
+  },
+};
+
+export const PublishedSubmitterName: Story = {
+  args: {
+    items: [PENDING_WORK[0]],
+    worksLoading: false,
+    hasDataError: false,
+  },
+  beforeEach: () => {
+    mocked(useEnsName).mockReturnValue({ data: "ordinary.eth" } as ReturnType<typeof useEnsName>);
+    mocked(useGreenGoodsEnsName).mockReturnValue({ data: "river.greengoods.eth" } as ReturnType<
+      typeof useGreenGoodsEnsName
+    >);
+    return resetHookMocks(useEnsName, useGreenGoodsEnsName);
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("river")).toBeVisible();
   },
 };
 

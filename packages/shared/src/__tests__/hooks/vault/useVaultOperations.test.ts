@@ -67,6 +67,8 @@ vi.mock("@wagmi/core", () => ({
   waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
 }));
 
+vi.mock("../../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
+
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => TEST_CHAIN_ID,
 }));

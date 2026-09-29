@@ -78,7 +78,7 @@ export async function handleCreateGardenJoinRequest(
   const store = ctx.store;
   if (!chain || !store) {
     void trackCreateRejected("service_unavailable", authenticated.proof.factory !== undefined);
-    return gardenJoinRequestsUnavailable(c, ctx);
+    return gardenJoinRequestsUnavailable(c, ctx, true);
   }
   let gardenRateLimitReserved = false;
   // Which dependency the request was waiting on, so a 503 names its cause.
@@ -179,7 +179,9 @@ export async function handleCreateGardenJoinRequest(
       authenticated.proof.factory !== undefined,
       stage
     );
-    return gardenJoinRequestsUnavailable(c, ctx);
+    // Before store.create no join request can have been written by this attempt.
+    // A store failure may happen after commit; only a signed status read can reconcile it.
+    return gardenJoinRequestsUnavailable(c, ctx, stage !== "store_create");
   }
 }
 

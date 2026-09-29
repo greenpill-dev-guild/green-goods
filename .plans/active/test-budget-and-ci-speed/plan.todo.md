@@ -145,6 +145,7 @@ evidence lives in the [follow-up report](reports/2026-09-28-snapshot-08-follow-u
 |---|---|---|---|
 | [x] | 2 | CodeQL prune dispatched by hand: 3 unreachable databases (1,364 MB) deleted, one left; the hourly schedule is still to be confirmed | Report § Item 2 |
 | [x] | 3 | Admin tests: viem external, AppKit's React entry and wagmi adapter mocked, MSW no longer started, FormWizard off the Shared hooks barrel | Report § Item 3 |
+| [x] | 3, later | Client and Shared: AppKit aliased to stubs in all three packages, which also makes Admin's adapter stand-in take effect; Shared leaves viem external; Client's viem stays external. Instructions: Shared −19%, Client −8.2%, Admin −3.2%, identical results | Report § Client and Shared imports |
 | [x] | 5 | Vault history paging covers an exactly-full last page; fault f3 now fails 1 of 55 related tests | Report § Item 5 |
 | [x] | 6 | Helper codemod: 45 Shared test files converted with identical names and results, 18 kept with reasons | Report § Item 6 |
 | [x] | 7 | `canonicalJobPayload` reads raw values; the Data Saver override ends with its session; import seams checked by `check-source-structure.js` | Report § Item 7 |
@@ -158,9 +159,9 @@ The snapshot 08 follow-up is committed locally. Next:
 - confirm the CodeQL prune's hourly schedule starts on its own;
 - the seven-day CI window from 2026-09-28 (snapshot 09, Oct 5), for the job medians, the CI Gate
   median and the red rates that snapshots 07 and 08 leave pending;
-- the follow-ups the [follow-up report](reports/2026-09-28-snapshot-08-follow-up.md) lists: the
-  same viem and AppKit measurements for Client and Shared, happy-dom for Admin (a new dev
-  dependency, so Afo's call), and removing the now-unstarted MSW server with its dependency;
+- the follow-ups the [follow-up report](reports/2026-09-28-snapshot-08-follow-up.md) lists:
+  happy-dom for Admin (a new dev dependency, so Afo's call), and removing the now-unstarted MSW
+  server with its dependency;
 - `linear-sync` for PRD-835 (architecture hub), in a pass that may write to Linear.
 
 The earlier instructions below are historical.

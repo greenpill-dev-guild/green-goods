@@ -690,6 +690,52 @@ describe("useWorkSubmissionFlowController", () => {
     expect(renderFlow().result.current.isJoiningCommunityGarden).toBe(joining);
   });
 
+  it("links the original work when the current flow selection changes during upload", async () => {
+    const intent = commitmentLinkIntent;
+    mocks.actionUID = intent.actionUID;
+    mocks.gardenAddress = intent.garden;
+    mocks.choices = [intent];
+    let finishUpload!: () => void;
+    mocks.uploadWork.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishUpload = resolve;
+      })
+    );
+    const view = renderFlow();
+    act(() => view.result.current.selectLinkIntent(intent));
+    await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+    let submission!: Promise<boolean>;
+    act(() => {
+      submission = view.result.current.submit();
+    });
+    await waitFor(() => expect(mocks.uploadWork).toHaveBeenCalledOnce());
+    act(() => view.result.current.selectLinkIntent(null));
+    mocks.actionUID = 2;
+    view.rerender();
+    // useWorkMutation's draft-ownership regression protects this retained result.
+    mocks.outcome = {
+      kind: "direct",
+      clientWorkId: "original-work",
+      txHash: "0x1",
+      sponsored: false,
+    };
+    await act(async () => {
+      finishUpload();
+      await expect(submission).resolves.toBe(true);
+    });
+    expect(mocks.enqueue).toHaveBeenCalledWith({
+      act: "workLink",
+      payload: {
+        clientOperationId: "work-link:original-work:9:0",
+        commitmentId: 9n,
+        clientWorkId: "original-work",
+        requirementIndex: 0,
+        gardenAddress: intent.garden,
+      },
+    });
+    expect(mocks.uploadWork).toHaveBeenCalledOnce();
+  });
+
   it("releases dependent-link scheduling when validation stops the Work submission", async () => {
     const intent = commitmentLinkIntent;
     mocks.actionUID = 1;

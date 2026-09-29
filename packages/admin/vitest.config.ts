@@ -48,6 +48,19 @@ export default defineConfig({
         find: "@walletconnect/utils",
         replacement: resolve(__dirname, "../shared/src/__mocks__/walletconnect-utils.ts"),
       },
+      // Stand in for Reown AppKit, which Shared's config/appkit loads at import. An alias reaches
+      // Shared's own import of the adapter, which only Shared can resolve; a setup-file vi.mock
+      // of it never matched. On 2026-09-28 four alternating full runs retired 1.603T and 1.599T
+      // instructions with these against 1.655T and 1.651T with the setup-file mocks (-3.2%),
+      // identical results.
+      {
+        find: "@reown/appkit/react",
+        replacement: resolve(__dirname, "../shared/src/__mocks__/reown-appkit-react.ts"),
+      },
+      {
+        find: "@reown/appkit-adapter-wagmi",
+        replacement: resolve(__dirname, "../shared/src/__mocks__/reown-appkit-adapter-wagmi.ts"),
+      },
       // Shared package aliases
       // Mirrors vite.config.ts: the boot sequence loads Sentry through the
       // declared `./sentry` subpath, which the generic prefix alias below

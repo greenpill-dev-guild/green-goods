@@ -4,7 +4,7 @@ import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import type { ClaimContext } from "./ClaimContextSheet";
 import { CommitmentActionBar } from "./CommitmentActionBar";
@@ -43,6 +43,7 @@ export function GardenCommitment() {
   const intl = useIntl();
   const { formatMessage } = intl;
   const navigate = useNavigate();
+  const location = useLocation();
   const { commitmentId: commitmentIdParam, id: gardenAddress } = useParams<{
     commitmentId: string;
     id: string;
@@ -60,7 +61,10 @@ export function GardenCommitment() {
   const [linkOpen, setLinkOpen] = useState<
     { workUID: string; requirementIndex: number | null } | true | null
   >(null);
-  const back = () => navigate(-1);
+  const back = () =>
+    location.state?.proofDirectEntry
+      ? navigate("../..", { relative: "path", replace: true })
+      : navigate(-1);
 
   if (controller.status !== "ready") {
     if (controller.status === "error") {
@@ -143,7 +147,7 @@ export function GardenCommitment() {
         setConfirmOpen(true);
         return;
       case "addProof":
-        navigate("proof", { relative: "path" });
+        navigate("proof", { relative: "path", state: { proofOrigin: location.pathname } });
         return;
       case "offerAgain":
       case "askAgain": {

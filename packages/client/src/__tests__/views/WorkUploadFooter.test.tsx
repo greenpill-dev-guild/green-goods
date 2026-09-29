@@ -76,7 +76,7 @@ describe("WorkUploadFooter", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Upload now" }));
     expect(props.onRetry).toHaveBeenCalledOnce();
-    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Discard" })).toBeInTheDocument();
     expect(screen.queryByText(/You're offline/)).not.toBeInTheDocument();
   });
 
@@ -98,9 +98,15 @@ describe("WorkUploadFooter", () => {
     renderFooter(queuedWork("ready"), { isOnline: false });
 
     expect(screen.getByRole("button", { name: "Upload now" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Discard" })).toBeEnabled();
     expect(
       screen.getByText("You're offline. Upload this work once you're connected.")
     ).toBeInTheDocument();
+  });
+
+  it("holds discard while an explicit send is active", () => {
+    renderFooter(queuedWork("ready"), { isRetrying: true });
+    expect(screen.getByRole("button", { name: "Discard" })).toBeDisabled();
   });
 
   it("does not offer signing while a photo is still preparing", () => {

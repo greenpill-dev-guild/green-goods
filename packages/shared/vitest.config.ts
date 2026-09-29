@@ -68,7 +68,10 @@ export default defineConfig({
           "@testing-library/react",
           "@tanstack/react-query",
           "zustand",
-          "viem",
+          // viem stays external: Node loads it faster than the module runner does, and in the
+          // shared graph it now stays loaded across files. On 2026-09-28 four alternating full
+          // runs retired 2.089T and 2.090T instructions external against 2.255T and 2.264T
+          // inlined (-7.5%), import -50%, identical results; shuffled shared-graph runs passed.
           "wagmi",
           "@walletconnect/utils",
           "@walletconnect/types",
@@ -216,6 +219,19 @@ export default defineConfig({
       {
         find: "@walletconnect/utils",
         replacement: path.resolve(__dirname, "./src/__mocks__/walletconnect-utils.ts"),
+      },
+      // Stand in for Reown AppKit, which config/appkit loads at import in every test that
+      // reaches the Auth provider, the chain guard or a commitment-pooling chain reader: 140 s
+      // of import across 172 files on 2026-09-28. Four alternating full runs retired 2.257T and
+      // 2.256T instructions with these against 2.593T and 2.580T without (-12.8%), identical
+      // results.
+      {
+        find: "@reown/appkit/react",
+        replacement: path.resolve(__dirname, "./src/__mocks__/reown-appkit-react.ts"),
+      },
+      {
+        find: "@reown/appkit-adapter-wagmi",
+        replacement: path.resolve(__dirname, "./src/__mocks__/reown-appkit-adapter-wagmi.ts"),
       },
     ],
   },

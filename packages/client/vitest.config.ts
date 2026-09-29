@@ -197,6 +197,22 @@ export default defineConfig({
         find: "@walletconnect/utils",
         replacement: path.resolve(__dirname, "../shared/src/__mocks__/walletconnect-utils.ts"),
       },
+      // Stand in for Reown AppKit, which Shared's config/appkit loads at import: 34 s of import
+      // across 28 files on 2026-09-28. An alias reaches Shared's own import of the adapter, which
+      // only Shared can resolve. Four alternating full runs retired 1.542T and 1.536T
+      // instructions with these against 1.660T and 1.694T without (-8.2%), identical results.
+      // viem stays external here: inlining it cost 5.8% more instructions in the same test.
+      {
+        find: "@reown/appkit/react",
+        replacement: path.resolve(__dirname, "../shared/src/__mocks__/reown-appkit-react.ts"),
+      },
+      {
+        find: "@reown/appkit-adapter-wagmi",
+        replacement: path.resolve(
+          __dirname,
+          "../shared/src/__mocks__/reown-appkit-adapter-wagmi.ts"
+        ),
+      },
     ],
   },
 });

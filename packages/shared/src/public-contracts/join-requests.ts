@@ -30,6 +30,7 @@ export type GardenJoinRequestApiErrorCode =
   | "signature_expired"
   | "garden_role_required"
   | "request_not_found"
+  | "request_not_saved"
   | "already_member"
   | "open_joining_enabled"
   | "idempotency_conflict"

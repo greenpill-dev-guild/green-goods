@@ -1,5 +1,7 @@
 import type { ApproximateWorkLocation, WorkUploadCheckpoint } from "./work-media";
+
 export type { ApproximateWorkLocation, WorkUploadCheckpoint } from "./work-media";
+
 /**
  * Green Goods Domain Types
  *
@@ -115,16 +117,15 @@ export enum VerificationMethod {
 /** User profile information for display in cards and lists */
 export interface GardenerCard {
   id: string; // Indexer gardener ID
-  /**
-   * Smart Account Ethereum address.
-   */
+  /** Smart account Ethereum address. */
   account?: Address;
   username?: string | null; // Unique username
   email?: string;
   phone?: string;
   location?: string;
   avatar?: string | null;
-  registeredAt: number;
+  /** First indexed gardener-role assignment in milliseconds; unknown for steward-only members. */
+  registeredAt: number | null;
 }
 
 // ============================================

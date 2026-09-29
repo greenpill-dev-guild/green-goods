@@ -57,18 +57,3 @@ vi.mock("react-hot-toast", () => ({
   },
   Toaster: () => null,
 }));
-
-// Admin-specific: stub Reown AppKit, to prevent network calls and 403 errors and because
-// Shared's config/appkit loads AppKit's React entry and its wagmi adapter as soon as the Auth
-// provider or the chain guard is imported: about 1.9 s of import in each of 26 files. No test here
-// creates AppKit. One that reached ensureAppKit would get an adapter without a wagmi config, and
-// getWagmiConfig() would say so.
-vi.mock("@reown/appkit/react", () => ({
-  createAppKit: vi.fn(() => ({ open: vi.fn(), close: vi.fn(), setThemeMode: vi.fn() })),
-  useAppKit: vi.fn(() => ({ open: vi.fn(), close: vi.fn() })),
-}));
-vi.mock("@reown/appkit-adapter-wagmi", () => ({
-  WagmiAdapter: class {
-    wagmiConfig = undefined;
-  },
-}));

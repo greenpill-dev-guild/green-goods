@@ -42,7 +42,15 @@ export function ProofShell({ children, onBack, progress, bar }: ProofShellProps)
   );
 }
 
-export type ProofStateKind = "unavailable" | "loading" | "notYours" | "queued" | "error" | "closed";
+export type ProofStateKind =
+  | "unavailable"
+  | "loading"
+  | "notYours"
+  | "queued"
+  | "confirmed"
+  | "failed"
+  | "error"
+  | "closed";
 
 /**
  * Every screen the composer shows that is not the form. Proof belongs to the
@@ -104,12 +112,26 @@ export function ProofState({
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <h1 className="text-lg font-medium text-text-strong-950">
             {formatMessage({
-              id: isOnline ? "app.proof.queued.title" : "app.proof.queued.offlineTitle",
+              id:
+                kind === "confirmed"
+                  ? "app.proof.confirmed.title"
+                  : kind === "failed"
+                    ? "app.proof.failed.title"
+                    : isOnline
+                      ? "app.proof.queued.title"
+                      : "app.proof.queued.offlineTitle",
             })}
           </h1>
           <p className="max-w-sm text-sm text-text-sub-600">
             {formatMessage({
-              id: isOnline ? "app.proof.queued.body" : "app.proof.queued.offlineBody",
+              id:
+                kind === "confirmed"
+                  ? "app.proof.confirmed.body"
+                  : kind === "failed"
+                    ? "app.proof.failed.body"
+                    : isOnline
+                      ? "app.proof.queued.body"
+                      : "app.proof.queued.offlineBody",
             })}
           </p>
           <Button type="button" onClick={onBack} className="mt-2">

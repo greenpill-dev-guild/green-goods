@@ -131,7 +131,57 @@ convert.
 
 - Push, once Afo says so.
 - The CodeQL prune on the first develop push after these commits: expect one or two databases.
-- The same viem and AppKit measurements for Client and Shared, which inline viem and mock the
-  unused `@reown/appkit` root too.
 - The MSW server and the `msw` dev dependency are unused now; removing the dependency changes the
   lockfile, so it waits for Afo.
+
+## Client and Shared imports (later on 2026-09-28)
+
+The Admin findings, applied to Client and Shared, with a correction to Admin.
+
+**Correction to `7a15afe76`.** Its setup-file `vi.mock("@reown/appkit-adapter-wagmi")` never took
+effect. Only Shared depends on the adapter, so the specifier does not resolve from Client or Admin,
+and the mock never matched Shared's import of it. Client's profile showed this: with the same two
+mocks, AppKit's React entry disappeared and the adapter still loaded in all 28 files. The Admin
+numbers above came from the React-entry mock, inlining, MSW and FormWizard, not from the adapter.
+
+**Profiles.** Client: AppKit 34 s of import in 28 files, behind a setup mock of the `@reown/appkit`
+root that nothing imports; viem already external. Shared: inlined viem 250 s in 278 files and
+AppKit 140 s in 172 files, of 693 s summed; no AppKit mock in any of its three setups.
+
+**Changes.**
+- `@reown/appkit/react` and `@reown/appkit-adapter-wagmi` are aliased to two stubs in
+  `shared/src/__mocks__/` in the Shared, Client and Admin Vitest configs, the way the EAS SDK and
+  WalletConnect utils already are. The setup-file mocks in Client and Admin go.
+- Shared leaves viem external, as Admin does. Client already did, and inlining it there measured
+  worse, so it stays.
+
+**Method.** A harness took the machine test lease for each run and waited until no other Vitest
+process was running and the one-minute load was under 10. It ran the pinned Node on the Vitest CLI
+under `/usr/bin/time -l` with each package's own test arguments and environment, and wrote a JSON
+report per run. Each question got a discarded warm-up run and then A B B A. The primary measure is
+instructions retired by the Vitest process, all worker threads included: identical runs agreed to
+within 1%. Wall time did not: in two early series the middle runs of A B B A were fastest whatever
+they measured, one run took 438 s with nine timeouts because another session's push gate ran a full
+suite without the lease, and identical configurations varied up to twofold. Wall and CPU below are
+for context.
+
+| Change | Instructions (A → B) | CPU | Wall | Import | Results |
+|---|---|---|---|---|---|
+| Client: AppKit aliases | 1.677T → 1.539T (−8.2%) | −16% | −37% | −44% | identical, 5 runs |
+| Client: inline viem (rejected) | 1.549T → 1.639T (+5.8%) | +16% | +77% | +96% | identical, 5 runs |
+| Admin: aliases instead of the setup mocks | 1.653T → 1.601T (−3.2%) | noisy | noisy | −5.5% | identical, 5 runs |
+| Shared: AppKit aliases | 2.586T → 2.256T (−12.8%) | −7.9% | −7.1% | −17.5% | identical, 5 runs |
+| Shared: viem external (after the aliases) | 2.259T → 2.089T (−7.5%) | −14.3% | −26.4% | −50% | identical, 5 runs |
+
+Together Shared's two changes cut its instructions by 19% (2.586T → 2.089T). The node-shared-graph
+project, where external viem now stays loaded across files, also passed four runs in shuffled file
+order.
+
+**Found on the way.**
+- Another session's uncommitted test, `proof-draft-repository.test.ts` › "round-trips
+  photo/audio without a Work record…", failed in 3 of 6 full Shared runs, with either viem
+  setting: it expects restored attachments in save order. The Shared blocks above exclude that
+  file; it is that session's to fix.
+- A push gate running in `.claude/worktrees/beautiful-mcclintock-768d91` ran the Shared suite
+  while the lease directory was empty, so a gate there does not take the lease, or that worktree
+  predates it.

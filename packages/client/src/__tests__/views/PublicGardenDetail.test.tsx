@@ -16,8 +16,8 @@
  * @vitest-environment jsdom
  */
 
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import pt from "@green-goods/shared/i18n/pt";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -114,8 +114,13 @@ vi.mock("@green-goods/shared/providers/App", async (importOriginal) => {
 vi.mock("@green-goods/shared/components/AddressDisplay", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    AddressDisplay: ({ address }: { address: Address }) =>
-      createElement("button", { type: "button", "data-testid": "address" }, address),
+    AddressDisplay: ({
+      address,
+      interactive = true,
+    }: {
+      address: Address;
+      interactive?: boolean;
+    }) => createElement(interactive ? "button" : "span", { "data-testid": "address" }, address),
   };
 });
 
@@ -762,7 +767,7 @@ describe("GardenDetail", () => {
 
   it("never nests an interactive element inside a note tile", () => {
     const { container } = renderView();
-    // The tile is itself a button. AddressDisplay is not usable inside it.
+    // The tile is itself a button. Its author uses AddressDisplay's plain variant.
     expect(container.querySelectorAll("button button")).toHaveLength(0);
     expect(container.querySelectorAll("a button, button a")).toHaveLength(0);
   });

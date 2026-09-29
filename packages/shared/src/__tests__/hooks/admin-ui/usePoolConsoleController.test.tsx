@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 
-import { QueryClient } from "@tanstack/react-query";
+import { focusManager, onlineManager, QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -268,6 +268,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
+  focusManager.setFocused(true);
+  onlineManager.setOnline(true);
 });
 
 describe("usePoolConsoleController", () => {
@@ -347,7 +349,7 @@ describe("usePoolConsoleController", () => {
     expect(mocks.queueState).toHaveBeenCalledWith(TUNDE);
   });
 
-  it("arms one due timer, reveals the row after 30 seconds, and does not re-arm", async () => {
+  it("keeps the due timer through re-renders and offers expiry after the due second", async () => {
     vi.useFakeTimers();
     const dateNow = vi.spyOn(Date, "now").mockReturnValue(NOW * 1000);
     const due = commitmentFixture({
@@ -361,16 +363,97 @@ describe("usePoolConsoleController", () => {
     seedControllerQueries(queryClient, { commitments: [due] });
     const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
 
-    const { result } = renderController(queryClient);
+    const { result, rerender } = renderController(queryClient);
 
     expect(result.current.model.dueLive).toEqual([]);
-    expect(setTimeoutSpy.mock.calls.filter(([, delay]) => delay === 30_000)).toHaveLength(1);
+    expect(setTimeoutSpy.mock.calls.filter(([, delay]) => delay === 31_000)).toHaveLength(1);
+
+    dateNow.mockReturnValue((NOW + 10) * 1000);
+    act(() => vi.advanceTimersByTime(10_000));
+    rerender();
+    dateNow.mockReturnValue((NOW + 20) * 1000);
+    act(() => vi.advanceTimersByTime(10_000));
+    rerender();
+    expect(result.current.model.dueLive).toEqual([]);
 
     dateNow.mockReturnValue((NOW + 31) * 1000);
-    act(() => vi.advanceTimersByTime(30_000));
+    act(() => vi.advanceTimersByTime(11_000));
 
     expect(result.current.model.dueLive).toEqual([due]);
-    expect(setTimeoutSpy.mock.calls.filter(([, delay]) => delay === 30_000)).toHaveLength(1);
+    expect(setTimeoutSpy.mock.calls.filter(([, delay]) => delay === 31_000)).toHaveLength(1);
+  });
+
+  it("caps a far-future wait and re-arms until the due moment", () => {
+    vi.useFakeTimers();
+    const dateNow = vi.spyOn(Date, "now").mockReturnValue(NOW * 1000);
+    const farDue = NOW + 30 * 24 * 60 * 60;
+    const due = commitmentFixture({
+      commitmentId: 1002n,
+      poolId: POOL_ID,
+      cycleId: CYCLE_ID,
+      dueDate: BigInt(farDue),
+      onchainState: "ACCEPTED",
+    });
+    const queryClient = testQueryClient();
+    seedControllerQueries(queryClient, { commitments: [due] });
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+
+    const { result } = renderController(queryClient);
+    expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === 2_147_483_647)).toBe(true);
+    expect(result.current.model.dueLive).toEqual([]);
+
+    dateNow.mockReturnValue(NOW * 1000 + 2_147_483_647);
+    act(() => vi.runOnlyPendingTimers());
+    expect(result.current.model.dueLive).toEqual([]);
+    const remaining = (farDue + 1) * 1000 - (NOW * 1000 + 2_147_483_647);
+    expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === remaining)).toBe(true);
+
+    dateNow.mockReturnValue((farDue + 1) * 1000);
+    act(() => vi.runOnlyPendingTimers());
+    expect(result.current.model.dueLive).toEqual([due]);
+  });
+
+  it("reads an external commitment change while the console stays mounted", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW * 1000);
+    const updated = commitmentFixture({
+      ...COMMITMENT,
+      onchainState: "EXPIRED",
+    });
+    const queryClient = testQueryClient();
+    seedControllerQueries(queryClient);
+    mocks.getCommitments.mockResolvedValue([updated]);
+
+    const { result, unmount } = renderController(queryClient);
+    expect(result.current.commitments[0]?.onchainState).toBe(COMMITMENT.onchainState);
+    expect(mocks.getCommitments).not.toHaveBeenCalled();
+
+    await act(async () => vi.advanceTimersByTimeAsync(20_000));
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+
+    expect(mocks.getCommitments).toHaveBeenCalledTimes(1);
+    expect(result.current.commitments[0]?.onchainState).toBe("EXPIRED");
+
+    mocks.getCommitments.mockResolvedValue([COMMITMENT]);
+    await act(async () => {
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(result.current.commitments[0]?.onchainState).toBe(COMMITMENT.onchainState);
+
+    mocks.getCommitments.mockResolvedValue([updated]);
+    await act(async () => {
+      onlineManager.setOnline(false);
+      onlineManager.setOnline(true);
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(result.current.commitments[0]?.onchainState).toBe("EXPIRED");
+    expect(mocks.getCommitments).toHaveBeenCalledTimes(3);
+
+    unmount();
+    await act(async () => vi.advanceTimersByTimeAsync(20_000));
+    expect(mocks.getCommitments).toHaveBeenCalledTimes(3);
   });
 
   it("clears the pending due timer on unmount", async () => {
@@ -384,7 +467,7 @@ describe("usePoolConsoleController", () => {
 
     const { unmount } = renderController(queryClient);
     const controllerTimerIndex = setTimeoutSpy.mock.calls.findIndex(
-      ([, delay]) => delay === 30_000
+      ([, delay]) => delay === 31_000
     );
     expect(controllerTimerIndex).toBeGreaterThanOrEqual(0);
     const controllerTimer = setTimeoutSpy.mock.results[controllerTimerIndex]?.value;

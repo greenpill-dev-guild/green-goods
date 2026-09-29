@@ -13,7 +13,7 @@ import {
 } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import { proofComposerControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
 
@@ -57,12 +57,36 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) 
 
 const { ProofComposer } = await import("../../views/Home/Garden/Proof");
 
-const render = () =>
+function CommitmentDestination() {
+  const navigate = useNavigate();
+  return (
+    <>
+      <p>Back on the commitment</p>
+      <button onClick={() => navigate(-1)}>Native Back</button>
+    </>
+  );
+}
+
+const render = (fromCommitment = false) =>
   renderWithProviders(
-    <MemoryRouter initialEntries={[`/home/${GARDEN}/commitments/9/proof`]}>
+    <MemoryRouter
+      initialEntries={
+        fromCommitment
+          ? [
+              "/origin",
+              `/home/${GARDEN}/commitments/9`,
+              {
+                pathname: `/home/${GARDEN}/commitments/9/proof`,
+                state: { proofOrigin: `/home/${GARDEN}/commitments/9` },
+              },
+            ]
+          : [`/home/${GARDEN}/commitments/9/proof`]
+      }
+    >
       <Routes>
+        <Route path="/origin" element={<p>Real origin</p>} />
         <Route path="/home/:id/commitments/:commitmentId/proof" element={<ProofComposer />} />
-        <Route path="/home/:id/commitments/:commitmentId" element={<p>Back on the commitment</p>} />
+        <Route path="/home/:id/commitments/:commitmentId" element={<CommitmentDestination />} />
       </Routes>
     </MemoryRouter>
   );
@@ -211,6 +235,25 @@ describe("ProofComposer", () => {
     controller = proofComposerControllerFixture({ status: "queued" });
     render();
 
-    expect(screen.getByText("Proof added")).toBeInTheDocument();
+    expect(screen.getByText("Proof saved")).toBeInTheDocument();
+  });
+  it("returns to the existing commitment history entry so Back reaches its origin", async () => {
+    const user = userEvent.setup();
+    controller = proofComposerControllerFixture({ status: "queued" });
+    render(true);
+    await user.click(screen.getByRole("button", { name: "Back to the Commitment" }));
+    expect(screen.getByText("Back on the commitment")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Native Back" }));
+    expect(screen.getByText("Real origin")).toBeInTheDocument();
+  });
+
+  it("replaces a direct proof entry with its commitment", async () => {
+    const user = userEvent.setup();
+    controller = proofComposerControllerFixture({ status: "queued" });
+    render();
+    await user.click(screen.getByRole("button", { name: "Back to the Commitment" }));
+    await user.click(screen.getByRole("button", { name: "Native Back" }));
+    expect(screen.getByText("Back on the commitment")).toBeInTheDocument();
+    expect(screen.queryByText("Proof saved")).not.toBeInTheDocument();
   });
 });

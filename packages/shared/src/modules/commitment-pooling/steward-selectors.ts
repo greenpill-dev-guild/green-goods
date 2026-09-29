@@ -58,10 +58,9 @@ export function selectDueLiveCommitments<
 }
 
 /**
- * The earliest moment a live commitment becomes past due, or null when none
- * will. `selectDueLiveCommitments` answers against a fixed `now`, so a console
- * left open would never notice a row falling due; this is what it schedules
- * against instead of polling.
+ * The earliest due second that has not passed yet, or null when none remains.
+ * Include a deadline equal to `now`: expiry becomes valid in the next second,
+ * and the clock needs that boundary to schedule its next wakeup.
  */
 export function selectNextDueBoundary<
   T extends Pick<CommitmentReadModel, "onchainState" | "cycleId" | "dueDate">,
@@ -79,7 +78,7 @@ export function selectNextDueBoundary<
         : commitment.cycleId !== null && commitment.cycleId !== 0n
           ? (input.cycleEndTimes.get(commitment.cycleId.toString()) ?? null)
           : null;
-    if (due === null || due === 0n || due <= input.now) continue;
+    if (due === null || due === 0n || due < input.now) continue;
     if (next === null || due < next) next = due;
   }
   return next;
