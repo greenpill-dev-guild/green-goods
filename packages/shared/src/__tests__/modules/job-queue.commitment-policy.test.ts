@@ -48,8 +48,27 @@ describe("commitment queue retry policy", () => {
     ).toThrow("Unsupported commitment job kind: work");
   });
 
-  it("canonicalizes bigint payloads at the pooling boundary", () => {
-    expect(canonicalJobPayload({ commitmentId: 9n })).toBe('{"commitmentId":{"__bigint":"9"}}');
+  it("canonicalizes bigint payloads at the pooling boundary, even under a patched BigInt.prototype.toJSON", () => {
+    const canonical = () => canonicalJobPayload({ commitmentId: 9n, requirementIds: [7n] });
+    const expected = '{"commitmentId":{"__bigint":"9"},"requirementIds":[{"__bigint":"7"}]}';
+    expect(canonical()).toBe(expected);
+
+    // @hypercerts-org/sdk sets this when it loads, for the rest of the page.
+    const original = Object.getOwnPropertyDescriptor(BigInt.prototype, "toJSON");
+    Object.defineProperty(BigInt.prototype, "toJSON", {
+      configurable: true,
+      writable: true,
+      value(this: bigint) {
+        return this.toString();
+      },
+    });
+    try {
+      expect(canonical()).toBe(expected);
+      expect(canonicalJobPayload({ commitmentId: "9" })).toBe('{"commitmentId":"9"}');
+    } finally {
+      if (original) Object.defineProperty(BigInt.prototype, "toJSON", original);
+      else Reflect.deleteProperty(BigInt.prototype, "toJSON");
+    }
   });
 
   it("classifies exhausted unsynced jobs as terminal so they cannot win identity dedupe", () => {
