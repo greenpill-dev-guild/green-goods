@@ -122,6 +122,8 @@ export class Harness {
       voice: false,
       publication: true,
       outbound_messages: true,
+      channel_whatsapp: false,
+      channel_telegram: false,
       ...options.controls,
     });
     mountSyntheticIngress(this.app, () => this.core);

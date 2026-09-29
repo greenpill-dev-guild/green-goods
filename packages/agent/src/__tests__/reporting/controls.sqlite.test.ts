@@ -47,7 +47,7 @@ function coreFor(path: string): ReportingCore {
 }
 
 describe("operator controls", () => {
-  it("keeps earlier decisions when the document and voice switches are added", () => {
+  it("keeps earlier decisions when the document, voice and channel switches are added", () => {
     const path = join(dir, "reporting.db");
     const first = new Database(path, { create: true, strict: true });
     for (const statement of REPORTING_MIGRATIONS[0]?.statements ?? []) first.exec(statement);
@@ -69,6 +69,10 @@ describe("operator controls", () => {
       enabled: true,
       version: 2,
     });
+    expect(readControl(core, "channel_telegram")).toEqual({ enabled: false, version: 1 });
+    expect(
+      setControl(core, "channel_telegram", true, { actor: "operator", reason: "pilot" }).enabled
+    ).toBe(true);
     core.db.close();
   });
 });

@@ -113,6 +113,8 @@ export async function startDriver(
       voice: false,
       publication: true,
       outbound_messages: true,
+      channel_whatsapp: false,
+      channel_telegram: false,
     },
     secureCookies: false,
     workerId: "driver",

@@ -1,6 +1,7 @@
 import type { Chain } from "viem";
 import type { TrustedProxyConfig } from "../api/public-protection";
 import { createLogger } from "../services/logger";
+import { channelOfRealm, type ReportingChannel } from "../services/reporting/channels";
 import { loadReportingConfig } from "../services/reporting/config";
 import type { InboundMediaFetcher, OutboundTransport } from "../services/reporting/transport";
 import type { ReportingRuntime } from "./reporting";
@@ -8,20 +9,53 @@ import { createLiveReportingRuntime } from "./reporting-live";
 
 const log = createLogger("reporting");
 
-/**
- * Chat transports available to this build, by `AGENT_REPORTING_TRANSPORT`, which is also the on
- * switch: empty keeps reporting off. The reporting core ships before any production transport;
- * the WhatsApp adapter registers here as `whatsapp` in the next stack PR. Until one is registered,
- * a set value logs an error and leaves reporting off instead of starting a core that could never
- * receive or answer a message. The synthetic test transport is never registered here.
- */
+/** What a chat channel's adapter gives the core: sending replies and downloading media. */
 export interface TransportAdapter {
   transport: OutboundTransport;
   mediaFetcher: InboundMediaFetcher;
 }
 
-const TRANSPORTS: Record<string, () => TransportAdapter> = {};
+/** Builds a channel's adapter from this Agent's configuration, or null without its credentials. */
+type ChannelConnector = (env: Record<string, string | undefined>) => TransportAdapter | null;
 
+/**
+ * The chat channel adapters in this build. WhatsApp and Telegram (on the existing bot) register
+ * here in the next stack PR. An available adapter takes reports only while its channel's operator
+ * control is on (`acceptChannelEvent`); the synthetic test transport is never registered here.
+ */
+const CHANNEL_ADAPTERS: Partial<Record<ReportingChannel, ChannelConnector>> = {};
+
+/** Sends each reply and downloads each file through the adapter of the channel its realm names. */
+export function routeChannels(
+  adapters: ReadonlyMap<ReportingChannel, TransportAdapter>
+): TransportAdapter {
+  const adapterFor = (realm: string) => {
+    const channel = channelOfRealm(realm);
+    return channel ? (adapters.get(channel) ?? null) : null;
+  };
+  return {
+    transport: {
+      async send(request) {
+        const adapter = adapterFor(request.providerRealm);
+        return adapter
+          ? adapter.transport.send(request)
+          : { status: "terminal", errorCode: "channel_unavailable" };
+      },
+    },
+    mediaFetcher: {
+      async fetch(realm, media, limits) {
+        const adapter = adapterFor(realm);
+        if (!adapter) throw new Error("No chat channel serves this realm");
+        return adapter.mediaFetcher.fetch(realm, media, limits);
+      },
+    },
+  };
+}
+
+/**
+ * Starts reporting when this Agent has its key list and at least one chat channel's credentials.
+ * Nothing reaches people until an operator turns on a channel and intake.
+ */
 export function startReporting(input: {
   env: Record<string, string | undefined>;
   chain: Chain;
@@ -32,35 +66,35 @@ export function startReporting(input: {
   dataDir: string;
   trustedProxy?: TrustedProxyConfig;
 }): ReportingRuntime | null {
-  const loaded = loadReportingConfig(input.env, {
+  const config = loadReportingConfig(input.env, {
     isProduction: input.isProduction,
     dataDir: input.dataDir,
   });
-  if (!loaded) return null;
-  const adapter = TRANSPORTS[loaded.transport];
-  if (!adapter) {
-    log.error(
-      { transport: loaded.transport },
-      "AGENT_REPORTING_TRANSPORT names a transport this build does not have; reporting stays off"
-    );
+  if (!config) return null;
+  const adapters = new Map<ReportingChannel, TransportAdapter>();
+  for (const [channel, connect] of Object.entries(CHANNEL_ADAPTERS)) {
+    const adapter = connect?.(input.env);
+    if (adapter) adapters.set(channel as ReportingChannel, adapter);
+  }
+  if (adapters.size === 0) {
+    log.info("Agent reporting has its keys but no chat channel is available; it stays off");
     return null;
   }
-  const { config } = loaded;
   log.info(
     {
-      transport: loaded.transport,
+      channels: [...adapters.keys()],
       extraction: Boolean(config.openai),
       transcription: Boolean(config.openai?.transcriptionModel),
       jev: config.interpretation.provider === "jev",
     },
-    "Agent reporting starting; model providers without a pinned model stay off"
+    "Agent reporting starting; channels take reports only while their operator control is on"
   );
   const runtime = createLiveReportingRuntime({
     config,
     chain: input.chain,
     chainId: input.chainId,
     rpcUrl: input.rpcUrl,
-    ...adapter(),
+    ...routeChannels(adapters),
     ...(input.trustedProxy ? { trustedProxy: input.trustedProxy } : {}),
   });
   runtime.start();

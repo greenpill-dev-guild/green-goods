@@ -11,11 +11,14 @@ export interface ReportingMigration {
 /**
  * SQLite cannot change a CHECK constraint in place, so the switch list is rebuilt: existing rows,
  * with their operator decisions and versions, are copied into a table that also accepts the
- * document and voice switches.
+ * document and voice switches and one `channel_<name>` switch per chat channel.
  */
-const DOCUMENT_AND_VOICE_CONTROLS: readonly string[] = [
+const DOCUMENT_VOICE_AND_CHANNEL_CONTROLS: readonly string[] = [
   `CREATE TABLE operating_controls_next (
-    name TEXT PRIMARY KEY CHECK (name IN ('intake','model_processing','documents','voice','publication','outbound_messages')),
+    name TEXT PRIMARY KEY CHECK (
+      name IN ('intake','model_processing','documents','voice','publication','outbound_messages')
+      OR name GLOB 'channel_[a-z]*'
+    ),
     enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)),
     version INTEGER NOT NULL CHECK (version >= 1),
     reason TEXT,
@@ -35,5 +38,9 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
     name: "reporting core",
     statements: [...IDENTITY_AND_INTAKE_TABLES, ...WORKFLOW_TABLES, ...BROWSER_AND_DELIVERY_TABLES],
   },
-  { version: 2, name: "document and voice controls", statements: DOCUMENT_AND_VOICE_CONTROLS },
+  {
+    version: 2,
+    name: "document, voice and channel controls",
+    statements: DOCUMENT_VOICE_AND_CHANNEL_CONTROLS,
+  },
 ];

@@ -1,4 +1,6 @@
+import { channelControl, channelOfRealm } from "./channels";
 import { activeConsentId } from "./consent";
+import { readControl } from "./controls";
 import { inTransaction } from "./database";
 import { resolveChannelSubject, resolveConversation } from "./identity-store";
 import type { ReportingCore } from "./runtime";
@@ -93,6 +95,25 @@ export function acceptInboundEvent(
       });
     return { status: "accepted" as const, inboxEventId: id, conversationId };
   });
+}
+
+/**
+ * Intake for a real chat channel: a message is taken only while its channel's operator control
+ * is on. A closed channel's messages are not recorded at all, so the adapter can leave them to
+ * whatever else serves that channel, such as the existing Telegram bot's own commands. Delivery
+ * statuses always pass, because they settle messages the Agent already sent.
+ */
+export function acceptChannelEvent(
+  core: ReportingCore,
+  event: NormalizedInboundEvent
+): IntakeResult | { status: "channel_closed" } {
+  if (event.kind === "message") {
+    const channel = channelOfRealm(event.providerRealm);
+    if (!channel || !readControl(core, channelControl(channel)).enabled) {
+      return { status: "channel_closed" };
+    }
+  }
+  return acceptInboundEvent(core, event);
 }
 
 export function readInboxPayload<T extends NormalizedInboundEvent = InboundMessageEvent>(

@@ -1,13 +1,15 @@
+import { type ChannelControl, channelControl, REPORTING_CHANNELS } from "./channels";
 import { inTransaction } from "./database";
 import type { ReportingCore } from "./runtime";
 
 /**
  * Independent operating switches, changed at runtime through the operator routes. Intake pause
  * stops new domain intake; model pause falls back to deterministic questions; the documents and
- * voice switches decide whether PDFs, Word files and voice notes are read at all; publication
- * pause fences unsent reservations; message pause holds the outbox. Provider statuses, execution
- * outcomes and receipt reconciliation keep running under every pause, and a pause can never
- * revoke bytes already signed or broadcast.
+ * voice switches decide whether PDFs, Word files and voice notes are read at all; each chat
+ * channel takes reports only while its `channel_<name>` switch is on; publication pause fences
+ * unsent reservations; message pause holds the outbox. Provider statuses, execution outcomes and
+ * receipt reconciliation keep running under every pause, and a pause can never revoke bytes
+ * already signed or broadcast.
  */
 export type ControlName =
   | "intake"
@@ -15,7 +17,8 @@ export type ControlName =
   | "documents"
   | "voice"
   | "publication"
-  | "outbound_messages";
+  | "outbound_messages"
+  | ChannelControl;
 
 export const CONTROL_NAMES: readonly ControlName[] = [
   "intake",
@@ -24,6 +27,7 @@ export const CONTROL_NAMES: readonly ControlName[] = [
   "voice",
   "publication",
   "outbound_messages",
+  ...REPORTING_CHANNELS.map(channelControl),
 ];
 
 /** A new database starts with everything off but replies; each switch is an operator decision. */
@@ -34,6 +38,8 @@ export const INITIAL_CONTROLS: Readonly<Record<ControlName, boolean>> = {
   voice: false,
   publication: false,
   outbound_messages: true,
+  channel_whatsapp: false,
+  channel_telegram: false,
 };
 
 export interface ControlState {
