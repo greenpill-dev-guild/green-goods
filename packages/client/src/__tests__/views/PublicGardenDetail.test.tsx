@@ -803,9 +803,11 @@ describe("GardenDetail", () => {
       },
       isLoading: false,
     });
-    renderView("/gardens/missing-garden");
-    expect(screen.getByText("Garden not found")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /browse gardens/i })).toHaveAttribute(
+    renderView("/gardens/missing-garden", "pt");
+    expect(screen.getByRole("heading", { name: "Jardim não encontrado" })).toBeInTheDocument();
+    expect(screen.getByText(pt["public.sharedLink.unavailableHelp"])).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Jardim não encontrado" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Explorar Jardins" })).toHaveAttribute(
       "href",
       "/gardens"
     );
