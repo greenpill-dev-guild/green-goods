@@ -125,15 +125,25 @@ describe("preparing queued items in the background", () => {
     }
   });
 
-  it("prepares under Data Saver once the person asks", async () => {
-    const { ports, order } = harness([queued("a")], { isDataSaverOn: () => true });
-    preparation = createUploadPreparation(ports);
+  it("prepares under Data Saver once the person asks, for their session only", async () => {
+    const first = harness([queued("a")], { isDataSaverOn: () => true });
+    preparation = createUploadPreparation(first.ports);
 
     await settled(preparation);
-    expect(order).toEqual([]);
+    expect(first.order).toEqual([]);
     preparation.prepareNow();
+    await vi.waitFor(() => expect(first.order).toEqual(["a"]));
 
-    await vi.waitFor(() => expect(order).toEqual(["a"]));
+    // Signing out stops that session's preparation; the next person on this page has not asked.
+    preparation.stop();
+    const next = harness([queued("b")], { isDataSaverOn: () => true, userAddress: "0xnext" });
+    preparation = createUploadPreparation(next.ports);
+    await settled(preparation);
+    expect(next.order).toEqual([]);
+    expect(uploadPreparationStore.getSnapshot()).toMatchObject({
+      paused: "data-saver",
+      dataSaverOverride: false,
+    });
   });
 
   it("holds back while an upload runs, and resumes when it ends", async () => {
