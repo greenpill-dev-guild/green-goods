@@ -148,6 +148,7 @@ export const Sending: Story = {
 
 export const CouldNotConfirm: Story = {
   beforeEach: withJoinRequests({
+    hasCheckedStatus: true,
     submitRequest: fn(async () => {
       throw new GardenJoinRequestTransportError("timeout", undefined, undefined, true);
     }) as unknown as JoinRequests["submitRequest"],
@@ -162,6 +163,27 @@ export const CouldNotConfirm: Story = {
       )
     ).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Send Request" })).toBeDisabled();
+    await expect(
+      sheet.queryByText("You do not have a request for this garden yet.")
+    ).not.toBeInTheDocument();
+  },
+};
+
+export const NotSaved: Story = {
+  beforeEach: withJoinRequests({
+    mutationState: {
+      isLoading: false,
+      error: new GardenJoinRequestTransportError("Not saved", 503, "request_not_saved"),
+    },
+  }),
+  play: async () => {
+    const sheet = await openSheet();
+    await userEvent.type(sheet.getByRole("textbox", { name: "Display name" }), "Ana");
+    await expect(sheet.getByRole("alert")).toHaveTextContent(
+      "This attempt did not save a request. Please try again."
+    );
+    await expect(sheet.getByRole("button", { name: "Send Request" })).toBeEnabled();
+    await expect(sheet.getByText(/sign a message to verify your account/)).toBeVisible();
   },
 };
 

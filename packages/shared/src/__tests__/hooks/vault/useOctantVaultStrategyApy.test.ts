@@ -3,12 +3,11 @@
  * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OctantVaultYieldSource } from "../../../modules/vault-crowdfunding";
 import type { Address } from "../../../types/domain";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mockReadContract = vi.fn();
 const mockFetch = vi.fn();
@@ -26,15 +25,6 @@ const { useOctantVaultStrategyApy } = await import(
   "../../../hooks/vault/useOctantVaultStrategyApy"
 );
 
-function wrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 function okJson(body: unknown) {
   return { ok: true, json: async () => body };
 }
@@ -50,7 +40,7 @@ describe("hooks/vault/useOctantVaultStrategyApy", () => {
   });
 
   it("returns unavailable when vault/chain are missing", () => {
-    const { result } = renderHook(() => useOctantVaultStrategyApy({}), { wrapper: wrapper() });
+    const { result } = renderHookWithQueryClient(() => useOctantVaultStrategyApy({}));
     expect(result.current).toMatchObject({
       status: "unavailable",
       apy: null,
@@ -61,9 +51,8 @@ describe("hooks/vault/useOctantVaultStrategyApy", () => {
   });
 
   it("returns unavailable when no yield source is recorded", async () => {
-    const { result } = renderHook(
-      () => useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1 }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1 })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -79,10 +68,8 @@ describe("hooks/vault/useOctantVaultStrategyApy", () => {
   it("returns unavailable when the vault is shut down", async () => {
     mockReadContract.mockResolvedValueOnce(true);
 
-    const { result } = renderHook(
-      () =>
-        useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1, yieldSource: YEARN_SOURCE }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1, yieldSource: YEARN_SOURCE })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -97,10 +84,8 @@ describe("hooks/vault/useOctantVaultStrategyApy", () => {
   it("returns unavailable when no adapter matches the source kind", async () => {
     mockReadContract.mockResolvedValue(false);
 
-    const { result } = renderHook(
-      () =>
-        useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1, yieldSource: LIDO_SOURCE }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1, yieldSource: LIDO_SOURCE })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -116,10 +101,8 @@ describe("hooks/vault/useOctantVaultStrategyApy", () => {
     mockReadContract.mockResolvedValue(false);
     mockFetch.mockResolvedValue(okJson({ apr: { netAPR: 0.0143 } }));
 
-    const { result } = renderHook(
-      () =>
-        useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1, yieldSource: YEARN_SOURCE }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1, yieldSource: YEARN_SOURCE })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -137,10 +120,8 @@ describe("hooks/vault/useOctantVaultStrategyApy", () => {
     mockReadContract.mockResolvedValue(false);
     mockFetch.mockResolvedValue(okJson({ apr: { netAPR: 0 } }));
 
-    const { result } = renderHook(
-      () =>
-        useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1, yieldSource: YEARN_SOURCE }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1, yieldSource: YEARN_SOURCE })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -151,10 +132,8 @@ describe("hooks/vault/useOctantVaultStrategyApy", () => {
     mockReadContract.mockResolvedValue(false);
     mockFetch.mockResolvedValue({ ok: false, status: 404 });
 
-    const { result } = renderHook(
-      () =>
-        useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1, yieldSource: YEARN_SOURCE }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1, yieldSource: YEARN_SOURCE })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -169,10 +148,8 @@ describe("hooks/vault/useOctantVaultStrategyApy", () => {
     mockReadContract.mockRejectedValueOnce(new Error("rpc down"));
     mockFetch.mockResolvedValue(okJson({ apr: { netAPR: 0.02 } }));
 
-    const { result } = renderHook(
-      () =>
-        useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1, yieldSource: YEARN_SOURCE }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultStrategyApy({ vaultAddress: VAULT, chainId: 1, yieldSource: YEARN_SOURCE })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));

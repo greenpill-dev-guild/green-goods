@@ -22,13 +22,14 @@ const hookState = vi.hoisted(() => ({
   mutationLoading: false,
   statusError: null as Error | null,
   statusLoading: false,
+  hasCheckedStatus: false,
 }));
 
 vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
   useGardenJoinRequestAvailability: () => true,
   useGardenJoinRequests: () => ({
     request: null,
-    hasCheckedStatus: false,
+    hasCheckedStatus: hookState.hasCheckedStatus,
     statusState: { isLoading: hookState.statusLoading, error: hookState.statusError },
     mutationState: { isLoading: hookState.mutationLoading, error: hookState.mutationError },
     submitRequest,
@@ -66,6 +67,7 @@ describe("GardenJoinRequestDialog", () => {
     hookState.mutationLoading = false;
     hookState.statusError = null;
     hookState.statusLoading = false;
+    hookState.hasCheckedStatus = false;
   });
 
   it("requires a display name and submits an optional note", async () => {
@@ -183,11 +185,13 @@ describe("GardenJoinRequestDialog", () => {
     );
     expect(checkStatus).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    expect(screen.getByText(/sign a message to verify your account/)).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Check Request Status" }));
     expect(checkStatus).toHaveBeenCalledOnce();
   });
 
   it("blocks another submission until an unknown outcome is checked", async () => {
+    hookState.hasCheckedStatus = true;
     submitRequest.mockRejectedValueOnce(
       new GardenJoinRequestTransportError("Service unavailable.", 503, "internal_error", true)
     );
@@ -207,6 +211,9 @@ describe("GardenJoinRequestDialog", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "We could not confirm whether your request was saved"
     );
+    expect(
+      screen.queryByText("You do not have a request for this garden yet.")
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send Request" })).toHaveAttribute(
       "aria-disabled",
       "true"
@@ -219,6 +226,32 @@ describe("GardenJoinRequestDialog", () => {
       "aria-disabled",
       "true"
     );
+  });
+
+  it("explains a known pre-save failure and leaves retry available", async () => {
+    hookState.mutationError = new GardenJoinRequestTransportError(
+      "Unavailable",
+      503,
+      "request_not_saved"
+    );
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <IntlProvider locale="en">
+          <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
+        </IntlProvider>
+      </MemoryRouter>
+    );
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.type(screen.getByLabelText("Display name"), "Maya");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "This attempt did not save a request. Please try again."
+    );
+    expect(screen.getByRole("button", { name: "Send Request" })).not.toHaveAttribute(
+      "aria-disabled",
+      "true"
+    );
+    expect(screen.queryByText(/could not confirm whether/)).not.toBeInTheDocument();
   });
 
   it.each([

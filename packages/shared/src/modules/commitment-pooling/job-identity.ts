@@ -43,10 +43,17 @@ export function commitmentJobIdentity(kind: string, payload: unknown): string | 
   }
 }
 
+/**
+ * The payload as text that tells a bigint from its decimal string, for comparing a queued job with
+ * a new one. Each value is read from its holder: `JSON.stringify` applies a value's `toJSON` before
+ * the replacer sees it, and `@hypercerts-org/sdk` sets `BigInt.prototype.toJSON` when it loads, so
+ * after that the replacer would receive `"9"` for `9n`.
+ */
 export function canonicalJobPayload(payload: unknown): string {
-  return JSON.stringify(payload, (_key, value) =>
-    typeof value === "bigint" ? { __bigint: value.toString() } : value
-  );
+  return JSON.stringify(payload, function (this: Record<string, unknown>, key, value) {
+    const raw = this[key];
+    return typeof raw === "bigint" ? { __bigint: raw.toString() } : value;
+  });
 }
 
 export function toCommitmentJob(job: Job, chainId: number, moduleAddress: Address): CommitmentJob {

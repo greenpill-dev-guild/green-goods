@@ -14,6 +14,7 @@ import { IntlProvider } from "react-intl";
 import { encodeFunctionData } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { COOKIE_JAR_ABI } from "../../../utils/blockchain/abis/cookie-jar";
+import { createTestQueryClient } from "../../test-utils/query-client";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
@@ -135,12 +136,6 @@ function createWrapper(queryClient: QueryClient) {
   };
 }
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-}
-
 async function expectRejectedMutation<TVariables>(
   queryClient: QueryClient,
   useHook: () => UseMutationResult<`0x${string}`, Error, TVariables, { toastId: string }>,
@@ -169,7 +164,7 @@ describe("cookie jar setting hooks", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mocks.senderAvailable = true;
     mocks.sender.sendContractCall.mockResolvedValue({
       hash: TEST_TX_HASH as `0x${string}`,

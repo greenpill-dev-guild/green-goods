@@ -6,7 +6,7 @@ import { useProofComposerController } from "@green-goods/shared/hooks/client-ui/
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ImagePreviewDialog } from "@/components/Display";
 import { ProofBar } from "./ProofBar";
@@ -28,6 +28,7 @@ export function ProofComposer() {
   const intl = useIntl();
   const { formatMessage } = intl;
   const navigate = useNavigate();
+  const location = useLocation();
   const { commitmentId: commitmentIdParam, id: gardenAddress } = useParams<{
     commitmentId: string;
     id: string;
@@ -47,7 +48,11 @@ export function ProofComposer() {
   });
   const [beat, setBeat] = useState<ProofBeat>("media");
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
-  const back = () => navigate("..", { relative: "path" });
+  const back = () => {
+    const parent = location.pathname.replace(/\/proof\/?$/, "");
+    if (location.state?.proofOrigin === parent) navigate(-1);
+    else navigate("..", { relative: "path", replace: true, state: { proofDirectEntry: true } });
+  };
 
   if (controller.status !== "ready" || !controller.commitment) {
     return (
@@ -111,6 +116,11 @@ export function ProofComposer() {
           />
         }
       >
+        {controller.sendPhase !== "idle" && controller.sendPhase !== "queued" ? (
+          <p role="status" className="text-sm text-text-sub-600">
+            {formatMessage({ id: `app.proof.send.${controller.sendPhase}` })}
+          </p>
+        ) : null}
         {beat === "media" ? (
           <ProofMedia
             media={controller.media}

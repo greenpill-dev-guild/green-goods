@@ -3,13 +3,14 @@
  * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import type { QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { tokensKeys } from "../../../config/query-keys/tokens";
 import type { AuthMode } from "../../../types/auth";
 import type { Address } from "../../../types/domain";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111" as Address;
 const RECIPIENT = "0x2222222222222222222222222222222222222222" as Address;
@@ -93,16 +94,9 @@ let queryClient: QueryClient;
 const SEND_PARAMS = { token: TOKEN as any, to: RECIPIENT, amount: 100n, note: "hi" };
 const BALANCES_KEY = tokensKeys.balances(ACCOUNT.toLowerCase(), CHAIN);
 
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
-  });
-}
-
-function makeWrapper(client: QueryClient = makeQueryClient()) {
+function renderSendToken(client: QueryClient = createTestQueryClient()) {
   queryClient = client;
-  return ({ children }: { children: ReactNode }) =>
-    createElement(QueryClientProvider, { client }, children);
+  return renderHookWithQueryClient(() => useSendToken(), { queryClient: client });
 }
 
 function beforeUnloadCalls(spy: ReturnType<typeof vi.spyOn>) {
@@ -142,7 +136,7 @@ describe("hooks/blockchain/useSendToken", () => {
   });
 
   it("sends an ERC-20 transfer with the right args and records the recipient", async () => {
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await result.current.mutateAsync(SEND_PARAMS);
 
     expect(mockSendContractCall).toHaveBeenCalledTimes(1);
@@ -155,7 +149,7 @@ describe("hooks/blockchain/useSendToken", () => {
 
   it("rejects and does not send when the balance is insufficient", async () => {
     mockReadContract.mockResolvedValue(50n);
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(
       // biome-ignore lint/suspicious/noExplicitAny: test fixture token shape
       result.current.mutateAsync({ token: TOKEN as any, to: RECIPIENT, amount: 100n })
@@ -164,7 +158,7 @@ describe("hooks/blockchain/useSendToken", () => {
   });
 
   it("rejects a zero amount", async () => {
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(
       // biome-ignore lint/suspicious/noExplicitAny: test fixture token shape
       result.current.mutateAsync({ token: TOKEN as any, to: RECIPIENT, amount: 0n })
@@ -173,7 +167,7 @@ describe("hooks/blockchain/useSendToken", () => {
   });
 
   it("rejects an unsupported token", async () => {
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(
       result.current.mutateAsync({
         // biome-ignore lint/suspicious/noExplicitAny: test fixture token shape
@@ -202,10 +196,10 @@ describe("hooks/blockchain/useSendToken", () => {
     it("does not warn about leaving while an external wallet signs, then refreshes balances", async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       mockAuthMode = "wallet";
-      const client = makeQueryClient();
+      const client = createTestQueryClient();
       const invalidate = vi.spyOn(client, "invalidateQueries");
       const handoff = deferredHandoff();
-      const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper(client) });
+      const { result } = renderSendToken(client);
 
       let send!: Promise<unknown>;
       act(() => {
@@ -235,7 +229,7 @@ describe("hooks/blockchain/useSendToken", () => {
     it("keeps the guard while an in-page signer is pending and removes it once settled", async () => {
       mockAuthMode = "passkey";
       const handoff = deferredHandoff();
-      const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+      const { result } = renderSendToken();
 
       let send!: Promise<unknown>;
       act(() => {
@@ -263,10 +257,10 @@ describe("hooks/blockchain/useSendToken", () => {
       ["fails on-chain", new Error("Transaction reverted on-chain")],
     ])("recovers when the user %s: no refetch, no guard left, and a retry sends again", async (_label, failure) => {
       mockAuthMode = "wallet";
-      const client = makeQueryClient();
+      const client = createTestQueryClient();
       const invalidate = vi.spyOn(client, "invalidateQueries");
       const handoff = deferredHandoff();
-      const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper(client) });
+      const { result } = renderSendToken(client);
 
       let send!: Promise<unknown>;
       act(() => {
@@ -306,7 +300,7 @@ describe("hooks/blockchain/useSendToken", () => {
     it("removes the in-page guard when the send fails", async () => {
       mockAuthMode = "passkey";
       const handoff = deferredHandoff();
-      const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+      const { result } = renderSendToken();
 
       let send!: Promise<unknown>;
       act(() => {
@@ -354,7 +348,7 @@ describe("Celo send safety", () => {
   const input = { token: CELO_TOKEN, to: RECIPIENT, amount: 100n, reviewedFee };
 
   it("reads, sends, confirms and invalidates only the selected Celo chain", async () => {
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
     await result.current.mutateAsync(input);
     expect(mockClientForChain.mock.calls.every(([chain]) => chain === 42220)).toBe(true);
@@ -370,7 +364,7 @@ describe("Celo send safety", () => {
     mockReadContract.mockImplementation(({ functionName }: { functionName: string }) =>
       Promise.resolve(functionName === "getFees" ? [10n, true] : 105n)
     );
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(result.current.mutateAsync(input)).rejects.toThrow(/insufficient/i);
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(mockHandleError).toHaveBeenCalled();
@@ -378,7 +372,7 @@ describe("Celo send safety", () => {
   });
 
   it("blocks missing review and a changed fee before signing", async () => {
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(result.current.mutateAsync({ ...input, reviewedFee: undefined })).rejects.toThrow(
       /fee/i
     );
@@ -390,7 +384,7 @@ describe("Celo send safety", () => {
 
   it.each([null, false])("does not gate G$ sends on settlement delivery %s", async (enabled) => {
     mockDelivery.mockResolvedValue(enabled);
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(result.current.mutateAsync(input)).resolves.toMatchObject({
       account: ACCOUNT.toLowerCase(),
     });
@@ -404,7 +398,7 @@ describe("Celo send safety", () => {
         ? Promise.reject(new Error("unavailable"))
         : Promise.resolve(functionName === "getFees" ? [10n, true] : 1000n)
     );
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(result.current.mutateAsync(input)).rejects.toThrow();
     expect(mockSendContractCall).not.toHaveBeenCalled();
   });
@@ -418,7 +412,7 @@ describe("Celo send safety", () => {
             finishBalance = resolve;
           })
     );
-    const { result, rerender } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result, rerender } = renderSendToken();
     const pending = result.current.mutateAsync(input);
     const failure = expect(pending).rejects.toThrow(/session changed/i);
     await waitFor(() => expect(finishBalance).toBeDefined());
@@ -431,7 +425,7 @@ describe("Celo send safety", () => {
 
   it("never queues an offline send", async () => {
     Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(result.current.mutateAsync(input)).rejects.toThrow(/online/i);
     expect(mockSendContractCall).not.toHaveBeenCalled();
   });
@@ -440,7 +434,7 @@ describe("Celo send safety", () => {
     mockSendContractCall.mockRejectedValue(
       new TransactionRevertedError(`0x${"a".repeat(64)}`, "Transaction reverted on-chain")
     );
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
     await expect(result.current.mutateAsync(input)).rejects.toThrow(/revert/i);
     expect(mockAddRecent).not.toHaveBeenCalled();
@@ -452,21 +446,21 @@ describe("Celo send safety", () => {
     "replaced",
   ] as const)("does not report a %s transaction as confirmed", async (reason) => {
     mockSendContractCall.mockRejectedValue(new TransactionReplacementError(reason));
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(result.current.mutateAsync(input)).rejects.toThrow(/cancelled|replaced/i);
     expect(mockAddRecent).not.toHaveBeenCalled();
   });
   it("accepts repricing and returns the confirmed replacement hash", async () => {
     const hash = `0x${"b".repeat(64)}`;
     mockSendContractCall.mockResolvedValue({ hash, sponsored: false });
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(result.current.mutateAsync(input)).resolves.toMatchObject({ hash });
     expect(mockWaitForReceipt).not.toHaveBeenCalled();
   });
 
   it("accepts a confirmed Celo send when a separate public RPC wait would fail", async () => {
     mockWaitForReceipt.mockRejectedValue(new Error("Public RPC unavailable"));
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(result.current.mutateAsync(input)).resolves.toMatchObject({
       hash: `0x${"a".repeat(64)}`,
     });
@@ -475,7 +469,7 @@ describe("Celo send safety", () => {
 
   it("allows registry-supported non-G$ Celo tokens without a G$ fee quote", async () => {
     const token = { ...CELO_TOKEN, symbol: "USDC", address: TOKEN_ADDR };
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(
       result.current.mutateAsync({ token, to: RECIPIENT, amount: 100n })
     ).resolves.toMatchObject({ account: ACCOUNT.toLowerCase() });
@@ -485,7 +479,7 @@ describe("Celo send safety", () => {
 
   it("allows an explicit retry after rejection and does not retry automatically", async () => {
     mockSendContractCall.mockRejectedValueOnce(new Error("User rejected"));
-    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const { result } = renderSendToken();
     await expect(result.current.mutateAsync(input)).rejects.toThrow(/rejected/i);
     expect(mockSendContractCall).toHaveBeenCalledTimes(1);
     await result.current.mutateAsync(input);

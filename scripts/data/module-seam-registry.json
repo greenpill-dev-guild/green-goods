@@ -63,8 +63,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-09-27",
-      "evidenceFingerprint": "sha256:566a828aa4bebcb691d0760367df2e2e1f7dda980bb8c257946295f00b6ec0fb"
+      "reviewedAt": "2026-09-28",
+      "evidenceFingerprint": "sha256:71a3b23e56877d3878c8cfc4bd3d414d79486fdfa887a47e9fc8ed1e3f43b144"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -82,8 +82,8 @@
         "conformance": ["packages/shared/src/__tests__/commitment-pooling-read-repository.test.ts"],
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
-      "reviewedAt": "2026-09-27",
-      "evidenceFingerprint": "sha256:4e2b812ba8eeee36cf2a7e2781f7961886e10486c53a21c8972819a7ea6bfd48"
+      "reviewedAt": "2026-09-28",
+      "evidenceFingerprint": "sha256:010afa7ecd48487bb8b827e2c7850c9a8a50b995543b2d007044b7caacea7e6a"
     }
   ]
 }

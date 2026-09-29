@@ -8,18 +8,20 @@ import {
   type Address,
   Domain,
   type Garden,
-  type GardenerCard,
   type WorkInput,
 } from "../../types/domain";
+import { assertRecordedInputDefinitions } from "../../utils/action/input-validation";
+import { defaultTemplate, instructionTemplates } from "../../utils/action/templates";
 import {
   markStaleActionTranslations,
   normalizeActionTranslations,
 } from "../../utils/action/translations";
-import { defaultTemplate, instructionTemplates } from "../../utils/action/templates";
-import { assertRecordedInputDefinitions } from "../../utils/action/input-validation";
 import { logger } from "../app/logger";
 import { greenGoodsGraphQL, type ResultOf } from "./graphql";
-import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
+import { type GraphQLReader, greenGoodsIndexer } from "./graphql-client";
+
+export { getGardeners } from "./gardener-reader";
+
 import { parseIndexerCapital } from "./indexer-capitals";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs/resolve";
 
@@ -427,46 +429,6 @@ export async function getGardens(reader: GraphQLReader = greenGoodsIndexer): Pro
     );
   } catch (error) {
     logger.error("[getGardens] Failed to fetch gardens", { error });
-    throw error;
-  }
-}
-
-/** Retrieves gardener registrations for operator views. */
-export async function getGardeners(
-  reader: GraphQLReader = greenGoodsIndexer
-): Promise<GardenerCard[]> {
-  try {
-    const chainId = DEFAULT_CHAIN_ID;
-    const QUERY = greenGoodsGraphQL(/* GraphQL */ `
-      query Gardeners($chainId: Int!) {
-        Gardener(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 200) {
-          id
-          chainId
-          createdAt
-          firstGarden
-        }
-      }
-    `);
-
-    const { data, error } = await reader.query(QUERY, { chainId }, "getGardeners");
-
-    if (error) throw error;
-    if (!data || !Array.isArray(data.Gardener)) {
-      throw new Error("Gardener indexer response is missing the list");
-    }
-
-    return data.Gardener.map((gardener) => ({
-      id: gardener.id,
-      registeredAt: gardener.createdAt ? (gardener.createdAt as number) * 1000 : Date.now(),
-      account: gardener.id as Address, // Smart account address is the ID
-      email: undefined,
-      phone: undefined,
-      location: "",
-      username: gardener.id.slice(0, 8), // Use short address as username
-      avatar: undefined,
-    }));
-  } catch (error) {
-    logger.error("[getGardeners] Failed to fetch gardeners", { error });
     throw error;
   }
 }

@@ -2,7 +2,7 @@ import { RiArrowLeftLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
-import { useTimeout } from "../../hooks";
+import { useTimeout } from "../../hooks/utils/useTimeout";
 import { Button } from "../Button";
 import { Surface } from "../Surface";
 import { type Step, StepIndicator } from "./StepIndicator";

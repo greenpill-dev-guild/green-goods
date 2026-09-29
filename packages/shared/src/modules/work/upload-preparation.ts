@@ -25,7 +25,10 @@ export interface UploadPreparationSnapshot {
   activeJobId: string | null;
   /** Why preparation is waiting, when it is. */
   paused: UploadPreparationPause | null;
-  /** The person asked to prepare under Data Saver; it lasts for this session. */
+  /**
+   * The person asked to prepare under Data Saver. It lasts until their session's preparation
+   * stops, so the next person to sign in on this page starts under Data Saver again.
+   */
   dataSaverOverride: boolean;
 }
 
@@ -92,6 +95,7 @@ export interface UploadPreparation {
   suspend(): PreparationHold;
   /** Prepare under Data Saver for the rest of this session. */
   prepareNow(): void;
+  /** End this session's preparation, and the Data Saver override with it. */
   stop(): void;
 }
 
@@ -242,7 +246,7 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
     stop: () => {
       stopped = true;
       clearTimeout(retryTimer);
-      publish({ activeJobId: null, paused: null });
+      publish({ activeJobId: null, paused: null, dataSaverOverride: false });
     },
   };
 }

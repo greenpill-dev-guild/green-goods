@@ -4,7 +4,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useProofComposerController } from "../../../hooks/client-ui/commitment/useProofComposerController";
-import type { CommitmentJobInput } from "../../../hooks/commitment-pooling/useCommitmentJobs";
+import type { CommitmentJobVariables } from "../../../hooks/commitment-pooling/useCommitmentJobs";
 import type { CommitmentProofDraftHandle } from "../../../hooks/commitment-pooling/useCommitmentProofDraft";
 import {
   DEMO_CHAIN_ID,
@@ -14,6 +14,8 @@ import {
   TUNDE,
 } from "../../../modules/commitment-pooling/demo/demo-builders";
 import type { CommitmentDetail } from "../../../modules/commitment-pooling/types";
+import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
+import type { Job } from "../../../types/job-queue";
 import type { Address } from "../../../types/domain";
 import {
   availableCapability,
@@ -22,7 +24,7 @@ import {
   contributorFixture,
 } from "../../test-utils/commitment-pooling-fixtures";
 
-type Enqueue = (input: CommitmentJobInput) => Promise<string>;
+type Enqueue = (input: CommitmentJobVariables) => Promise<string>;
 type Prepared = { files: File[]; rejectedCount: number };
 
 const detail = commitmentDetailFixture({
@@ -246,6 +248,7 @@ describe("useProofComposerController", () => {
 
     expect(mocks.enqueue).toHaveBeenCalledWith({
       act: "evidence",
+      report: expect.any(Function),
       payload: {
         clientEvidenceId: result.current.clientEvidenceId,
         commitmentId: 1001n,
@@ -256,6 +259,84 @@ describe("useProofComposerController", () => {
     });
     expect(mocks.draft.clear).toHaveBeenCalledTimes(1);
     expect(result.current.status).toBe("queued");
+  });
+
+  it("distinguishes delayed signing, confirmation and a landed proof", async () => {
+    let finish!: () => void;
+    mocks.enqueue.mockImplementation(async ({ report }) => {
+      report?.({ stage: "wallet" });
+      await new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      report?.({ stage: "confirming", txHash: "0x123" });
+      report?.({ stage: "landed", txHash: "0x123" });
+      return "job-1";
+    });
+    const { result } = renderController();
+    act(() => result.current.setNote("Done"));
+    let pending!: Promise<boolean>;
+    act(() => {
+      pending = result.current.submit();
+    });
+    await waitFor(() => expect(result.current.sendPhase).toBe("signing"));
+    expect(result.current.status).toBe("ready");
+    expect(mocks.draft.clear).not.toHaveBeenCalled();
+    await act(async () => {
+      await expect(result.current.submit()).resolves.toBe(false);
+    });
+    await act(async () => {
+      finish();
+      await pending;
+    });
+    expect(result.current.status).toBe("confirmed");
+    expect(mocks.enqueue).toHaveBeenCalledOnce();
+  });
+
+  it("keeps queued proof unconfirmed when a send remains pending", async () => {
+    mocks.enqueue.mockImplementation(async ({ report }) => {
+      report?.({ stage: "confirming", txHash: "0x123" });
+      report?.({ stage: "queued" });
+      return "job-1";
+    });
+    const { result } = renderController();
+    act(() => result.current.setNote("Done"));
+    await act(async () => {
+      await result.current.submit();
+    });
+    expect(result.current.status).toBe("queued");
+    expect(result.current.sendPhase).toBe("queued");
+  });
+
+  it("tracks only the admitted proof through background failure and confirmation", async () => {
+    const { result } = renderController();
+    act(() => result.current.setNote("Done"));
+    await act(async () => {
+      await result.current.submit();
+    });
+    const job: Job = {
+      id: "job-1",
+      kind: "evidence",
+      chainId: DEMO_CHAIN_ID,
+      userAddress: TUNDE,
+      payload: { clientEvidenceId: result.current.clientEvidenceId },
+      attempts: 0,
+      createdAt: 1,
+      synced: false,
+    };
+    act(() =>
+      jobQueueEventBus.emit("job:completed", {
+        jobId: "other",
+        job: { ...job, payload: { clientEvidenceId: "other" } },
+        txHash: "0x123",
+      })
+    );
+    expect(result.current.status).toBe("queued");
+    act(() =>
+      jobQueueEventBus.emit("job:failed", { jobId: job.id, job, error: "connection lost" })
+    );
+    expect(result.current.status).toBe("failed");
+    act(() => jobQueueEventBus.emit("job:completed", { jobId: job.id, job, txHash: "0x123" }));
+    expect(result.current.status).toBe("confirmed");
   });
 
   it("keeps the draft and stable client id when enqueue rejects", async () => {
@@ -272,6 +353,71 @@ describe("useProofComposerController", () => {
     expect(result.current.clientEvidenceId).toBe(id);
     expect(result.current.note).toBe("Done");
     expect(mocks.draft.clear).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { failure: "admission", reportsQueued: true },
+    { failure: "wallet", reportsQueued: true },
+    { failure: "admission", reportsQueued: false },
+  ])("replaces $failure failure on a queued retry (report: $reportsQueued)", async ({
+    failure,
+    reportsQueued,
+  }) => {
+    mocks.enqueue.mockImplementationOnce(async ({ report }) => {
+      if (failure === "wallet") report?.({ stage: "wallet" });
+      throw new Error(failure === "wallet" ? "User rejected the request" : "queue unavailable");
+    });
+    const { result } = renderController();
+    const id = result.current.clientEvidenceId;
+    act(() => result.current.setNote("Done"));
+    await act(async () => {
+      await expect(result.current.submit()).resolves.toBe(false);
+    });
+    expect(result.current.sendPhase).toBe("failed");
+    expect(mocks.draft.clear).not.toHaveBeenCalled();
+    mocks.enqueue.mockImplementationOnce(async ({ report }) => {
+      if (reportsQueued) report?.({ stage: "queued" });
+      return "job-retry";
+    });
+    await act(async () => {
+      await expect(result.current.submit()).resolves.toBe(true);
+    });
+    expect(result.current.status).toBe("queued");
+    expect(result.current.sendPhase).toBe("queued");
+    expect(result.current.clientEvidenceId).toBe(id);
+    expect(mocks.draft.clear).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    "confirmed",
+    "failed",
+  ] as const)("preserves a current-attempt %s event before enqueue resolves", async (phase) => {
+    mocks.enqueue.mockImplementation(async (input) => {
+      if (input.act !== "evidence") throw new Error("Expected an evidence job");
+      const { payload, report } = input;
+      const job: Job = {
+        id: "job-1",
+        kind: "evidence",
+        chainId: DEMO_CHAIN_ID,
+        userAddress: TUNDE,
+        payload,
+        attempts: 0,
+        createdAt: 1,
+        synced: false,
+      };
+      if (phase === "confirmed")
+        jobQueueEventBus.emit("job:completed", { jobId: job.id, job, txHash: "0x123" });
+      else jobQueueEventBus.emit("job:failed", { jobId: job.id, job, error: "connection lost" });
+      report?.({ stage: "queued" });
+      return job.id;
+    });
+    const { result } = renderController();
+    act(() => result.current.setNote("Done"));
+    await act(async () => {
+      await expect(result.current.submit()).resolves.toBe(true);
+    });
+    expect(result.current.status).toBe(phase);
+    expect(result.current.sendPhase).toBe(phase);
   });
 
   it("restores words, choices, files, and the saved client id", async () => {

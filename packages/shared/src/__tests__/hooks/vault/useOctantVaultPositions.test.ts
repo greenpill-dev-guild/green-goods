@@ -3,12 +3,11 @@
  * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OctantVaultCampaignManifest } from "../../../modules/vault-crowdfunding";
 import type { Address } from "../../../types/domain";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mockReadContract = vi.fn();
 
@@ -40,15 +39,6 @@ function campaign(slug: string, vaultAddress: Address): OctantVaultCampaignManif
 const CAMPAIGNS = [campaign("greenpill-nyc", VAULT_A), campaign("evmavericks", VAULT_B)];
 
 const { useOctantVaultPositions } = await import("../../../hooks/vault/useOctantVaultPositions");
-
-function wrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
 
 /** Resolve reads by functionName + vault address so allSettled interleaving is irrelevant. */
 function mockReads(
@@ -89,9 +79,9 @@ describe("hooks/vault/useOctantVaultPositions", () => {
       [VAULT_B.toLowerCase()]: { shares: 0n, value: 0n, redeemableShares: 0n, redeemAssets: 0n },
     });
 
-    const { result } = renderHook(() => useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS }), {
-      wrapper: wrapper(),
-    });
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS })
+    );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -134,9 +124,9 @@ describe("hooks/vault/useOctantVaultPositions", () => {
       }
     );
 
-    const { result } = renderHook(() => useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS }), {
-      wrapper: wrapper(),
-    });
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS })
+    );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -168,9 +158,9 @@ describe("hooks/vault/useOctantVaultPositions", () => {
       }
     );
 
-    const { result } = renderHook(() => useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS }), {
-      wrapper: wrapper(),
-    });
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS })
+    );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -185,9 +175,8 @@ describe("hooks/vault/useOctantVaultPositions", () => {
 
   it("is disabled and reads nothing without an owner", async () => {
     mockReads({});
-    const { result } = renderHook(
-      () => useOctantVaultPositions(undefined, { campaigns: CAMPAIGNS }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultPositions(undefined, { campaigns: CAMPAIGNS })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -199,9 +188,9 @@ describe("hooks/vault/useOctantVaultPositions", () => {
   it("surfaces an error when every vault read fails", async () => {
     mockReadContract.mockRejectedValue(new Error("rpc down"));
 
-    const { result } = renderHook(() => useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS }), {
-      wrapper: wrapper(),
-    });
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS })
+    );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.hasPositions).toBe(false);
@@ -218,9 +207,9 @@ describe("hooks/vault/useOctantVaultPositions", () => {
       return Promise.resolve(0n);
     });
 
-    const { result } = renderHook(() => useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS }), {
-      wrapper: wrapper(),
-    });
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS })
+    );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isError).toBe(false);

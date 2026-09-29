@@ -245,7 +245,17 @@ describe("selectNextDueBoundary", () => {
     ).toBe(500n);
   });
 
-  it("is null once nothing live is still ahead of now", () => {
+  it("includes a row due this second so the clock can wake when expiry becomes valid", () => {
+    expect(
+      selectNextDueBoundary({
+        commitments: [live(100n), live(101n)],
+        cycleEndTimes: new Map(),
+        now: 100n,
+      })
+    ).toBe(100n);
+  });
+
+  it("is null once every live due date has passed", () => {
     expect(
       selectNextDueBoundary({
         commitments: [live(50n), { onchainState: "FULFILLED", cycleId: null, dueDate: 900n }],

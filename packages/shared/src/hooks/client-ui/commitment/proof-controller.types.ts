@@ -16,6 +16,8 @@ export type ProofComposerStatus =
   | "notYours"
   | "closed"
   | "queued"
+  | "confirmed"
+  | "failed"
   | "ready";
 
 export interface ProofRosterMember {
@@ -44,6 +46,7 @@ export interface ProofComposerController {
   isRecording: boolean;
   recordingElapsed: number;
   isPending: boolean;
+  sendPhase: "idle" | "signing" | "confirming" | "confirmed" | "queued" | "failed";
   linkInvalid: boolean;
   /** Photos only, without any HEIC photo still waiting to convert. */
   imageUrls: string[];

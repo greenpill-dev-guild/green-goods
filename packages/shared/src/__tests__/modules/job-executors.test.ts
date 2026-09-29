@@ -878,6 +878,37 @@ describe("commitment acts record their sends", () => {
     ],
     ["confirmation", { action: "confirm", commitmentId: 7n, gardenAddress: GARDEN }],
   ])("settles a recorded %s by receipt, by UserOperation or from the chain, never sending again", async (kind, payload) => {
+    // A first Safe proposal is not a completed act; a fresh copy after reload
+    // must still reconcile it rather than create a second proposal.
+    const safeSender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(safeSender.sendContractCall).mockResolvedValue({
+      hash: HASH,
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const pendingSafe = job(kind, payload, { id: `${kind}-safe-first-send` });
+    const safeDeps = {
+      demoActive: () => false,
+      reads: reads(),
+      store: store(),
+      reconcile: vi.fn().mockResolvedValue("unresolved"),
+      settleStrandedIntent: vi.fn().mockRejectedValue(new AwaitingWorkConfirmation(HASH)),
+    };
+    await expect(
+      executeCommitmentQueueJob(pendingSafe.id, pendingSafe, 42161, safeSender, safeDeps)
+    ).resolves.toEqual({ status: "waiting", reason: "awaiting-confirmation" });
+    expect(isDiscardableJob(pendingSafe)).toBe(false);
+    const reloadedSafe = structuredClone(pendingSafe);
+    await expect(
+      executeCommitmentQueueJob(reloadedSafe.id, reloadedSafe, 42161, safeSender, safeDeps)
+    ).resolves.toEqual({ status: "waiting", reason: "awaiting-confirmation" });
+    expect(safeSender.sendContractCall).toHaveBeenCalledOnce();
+    safeDeps.reconcile.mockResolvedValue("confirmed");
+    await expect(
+      executeCommitmentQueueJob(reloadedSafe.id, reloadedSafe, 42161, safeSender, safeDeps)
+    ).resolves.toEqual({ status: "complete", txHash: HASH });
+    expect(safeSender.sendContractCall).toHaveBeenCalledOnce();
+
     const operation = `0x${"cd".repeat(32)}` as const;
     // A Safe's own transaction id: no receipt ever answers it.
     const safeId = `0x${"5a".repeat(20)}` as const;

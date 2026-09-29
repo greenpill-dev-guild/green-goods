@@ -1,13 +1,14 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
-import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { useEnsAvatar } from "@green-goods/shared/hooks/blockchain/useEnsAvatar";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
+import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiCalendarEventFill,
   RiFileCopyLine,
@@ -49,24 +50,23 @@ const GardenMemberItem = memo(function GardenMemberItem({
   const intl = useIntl();
   const { data: greenGoodsEnsName } = useGreenGoodsEnsName(member.account);
   const { data: ensName } = useEnsName(member.account);
-  const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(member.account);
-  const preferredEnsName = greenGoodsEnsName || ensName;
+  const avatar = useResolvedProfileAvatar(
+    member.account,
+    "/images/avatar.png",
+    garden?.chainId ?? DEFAULT_CHAIN_ID
+  );
+  const identityName = greenGoodsEnsName || member.username || ensName;
   const displayName =
-    member.username ||
+    identityName ||
     member.email ||
     member.phone ||
-    (member.account ? formatAddress(member.account, { ensName: preferredEnsName }) : null) ||
+    (member.account ? formatAddress(member.account) : null) ||
     intl.formatMessage({
       id: "app.garden.gardeners.unknownUser",
       description: "Unknown User",
     });
-  const subline = member.account
-    ? formatAddress(member.account, { variant: "card", ensName: preferredEnsName })
-    : member.email || member.phone || "";
-
-  // Priority: uploaded avatar > ENS avatar > fallback
-  const avatarSrc = member.avatar || ensAvatar || "/images/avatar.png";
-  const showLoading = !member.avatar && isLoadingAvatar;
+  const subline =
+    member.account && identityName ? formatAddress(member.account, { variant: "card" }) : "";
 
   return (
     <button
@@ -95,12 +95,19 @@ const GardenMemberItem = memo(function GardenMemberItem({
         </Badge>
       ) : null}
       <Avatar className="w-10 h-10">
-        {showLoading ? (
+        {avatar.isLoading ? (
           <AvatarSkeleton />
         ) : (
           <>
-            <AvatarImage src={avatarSrc} alt="Profile" loading="lazy" decoding="async" />
-            <AvatarFallback />
+            <AvatarImage
+              src={avatar.avatarUri ?? undefined}
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+            <AvatarFallback>
+              <RiUserLine aria-hidden="true" />
+            </AvatarFallback>
           </>
         )}
       </Avatar>
@@ -113,11 +120,26 @@ const GardenMemberItem = memo(function GardenMemberItem({
             {subline}
           </span>
         ) : null}
-        <span className="text-xs text-text-sub-600 flex items-center gap-1">
-          <RiCalendarEventFill className="w-3.5 h-3.5 text-primary" />
-          {intl.formatMessage({ id: "app.garden.gardeners.registered", description: "Registered" })}
-          : {new Date(member.registeredAt || garden?.createdAt || Date.now()).toDateString()}
-        </span>
+        {member.isGardener ? (
+          <span className="text-xs text-text-sub-600 flex items-center gap-1">
+            <RiCalendarEventFill className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+            {intl.formatMessage({
+              id: "app.garden.gardeners.registered",
+              defaultMessage: "Gardener since",
+            })}
+            :{" "}
+            {member.registeredAt
+              ? intl.formatDate(member.registeredAt, {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })
+              : intl.formatMessage({
+                  id: "app.garden.gardeners.dateUnknown",
+                  defaultMessage: "Unknown",
+                })}
+          </span>
+        ) : null}
       </div>
     </button>
   );
@@ -160,14 +182,14 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
     const title = useMemo(() => {
       if (!selected) return "";
       return (
+        selectedGreenGoodsEnsName ||
         selected.username ||
+        selectedEnsName ||
         selected.email ||
         selected.phone ||
-        (selected.account
-          ? formatAddress(selected.account, { ensName: selectedPreferredEnsName })
-          : selected.id)
+        (selected.account ? formatAddress(selected.account) : selected.id)
       );
-    }, [selected, selectedPreferredEnsName]);
+    }, [selected, selectedGreenGoodsEnsName, selectedEnsName]);
 
     const copy = async (val?: string) => {
       if (!val) return;

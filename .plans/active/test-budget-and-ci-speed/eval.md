@@ -1,6 +1,25 @@
 # Evaluation and completion evidence
 
-## Current checkpoint — 2026-09-28 (closeout push)
+## Current checkpoint — 2026-09-28 (snapshot 08 follow-up, local)
+
+Items 2, 3, 5, 6 and 7 of scorecard snapshot 08 (D10) are eight local commits on `develop`,
+`1a3afcb52..f156aef6c`, not pushed. The
+[follow-up report](reports/2026-09-28-snapshot-08-follow-up.md) holds the commands and numbers.
+
+- **Behaviour fixes, each RED first.** `e03f3ebb9`: under a patched `BigInt.prototype.toJSON`,
+  `canonicalJobPayload` returned `"9"` for `9n`; GREEN 10/10. `e82d6d9c5`: the next session
+  prepared under Data Saver; GREEN 13/13. `1edb10426`: fault f3 now fails 1 of 55 related tests.
+  `b1c40eb3b`: FormWizard's old barrel import fails the new `import-seam` rule on the real tree.
+- **Admin.** All eight full-suite runs passed 135 files and 1,109 tests. viem external: −9% wall
+  and −28% import on a lightly loaded machine. All four Admin changes: −40% wall and −54% import
+  at load 42 to 56.
+- **Codemod.** 45 files kept identical names and results; the full Shared suite passed (545 files,
+  6,100 tests).
+- **Limits.** The push gate has not run: other sessions' uncommitted edits fail
+  `test-quality` Check 5 on two seams this pass does not touch. The CodeQL prune's first push-run
+  and the Admin CI number wait for the push.
+
+## Checkpoint — 2026-09-28 (closeout push)
 
 The range `d7cf681ec..fca76d585` is on `origin/develop`. The
 [closeout report](reports/2026-09-28-closeout-push.md) holds every command, time and run link.

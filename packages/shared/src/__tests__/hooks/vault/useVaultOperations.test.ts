@@ -3,11 +3,11 @@
  * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import type { QueryClient } from "@tanstack/react-query";
+import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 // Mock matchMedia before any module imports that touch theme system
 Object.defineProperty(window, "matchMedia", {
@@ -67,6 +67,8 @@ vi.mock("@wagmi/core", () => ({
   waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
 }));
 
+vi.mock("../../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
+
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => TEST_CHAIN_ID,
 }));
@@ -89,30 +91,10 @@ vi.mock("../../../utils/errors/mutation-error-handler", () => ({
   createMutationErrorHandler: (...args: unknown[]) => mockCreateMutationErrorHandler(...args),
 }));
 
-const messages = {
-  "app.treasury.deposit": "Deposit",
-  "app.treasury.withdraw": "Withdraw",
-  "app.treasury.harvest": "Harvest",
-  "app.treasury.emergencyPause": "Emergency Pause",
-  "app.treasury.enableAutoAllocate": "Enable Auto-Allocation",
-  "app.treasury.enablingAutoAllocate": "Enabling auto-allocation",
-  "app.treasury.enableAutoAllocateSuccess": "Auto-allocation enabled",
-  "app.treasury.depositSuccess": "Deposit successful",
-  "app.treasury.withdrawSuccess": "Withdraw successful",
-  "app.treasury.harvestSuccess": "Harvest successful",
-  "app.treasury.approving": "Approving",
-  "app.treasury.depositing": "Depositing",
-} as const;
-
-function createWrapper(queryClient: QueryClient) {
+function trackedQueryClient() {
+  const queryClient = createTestQueryClient();
   queryClients.add(queryClient);
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      createElement(IntlProvider, { locale: "en", messages }, children)
-    );
-  };
+  return queryClient;
 }
 
 const operationsModule = await import("../../../hooks/vault/useVaultOperations");
@@ -160,17 +142,10 @@ describe("hooks/vault/useVaultOperations", () => {
       .mockResolvedValueOnce(10n) // refreshed allowance
       .mockResolvedValueOnce(10n); // post-approval previewDeposit
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useVaultDeposit(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useVaultDeposit(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -218,16 +193,9 @@ describe("hooks/vault/useVaultOperations", () => {
       .mockResolvedValueOnce(100n) // allowance (sufficient)
       .mockResolvedValueOnce(10n); // post-approval previewDeposit
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useVaultDeposit(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useVaultDeposit(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -255,16 +223,9 @@ describe("hooks/vault/useVaultOperations", () => {
       .mockResolvedValueOnce(10n) // refreshed allowance
       .mockResolvedValueOnce(10n); // post-approval previewDeposit
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useOctantVaultWalletEndow(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useOctantVaultWalletEndow(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -319,21 +280,14 @@ describe("hooks/vault/useVaultOperations", () => {
       .mockResolvedValueOnce(10n) // refreshed allowance
       .mockResolvedValueOnce(10n); // post-approval previewDeposit
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(
+    const { result } = renderHookWithProviders(
       () =>
         useOctantVaultWalletEndow({
           onLifecycleStep: (step) => lifecycleSteps.push(step),
         }),
-      {
-        wrapper: createWrapper(queryClient),
-      }
+      { queryClient }
     );
 
     await act(async () => {
@@ -369,21 +323,14 @@ describe("hooks/vault/useVaultOperations", () => {
       .mockResolvedValueOnce(10n) // refreshed allowance
       .mockResolvedValueOnce(10n); // post-approval previewDeposit
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(
+    const { result } = renderHookWithProviders(
       () =>
         useOctantVaultWalletEndow({
           onLifecycleStep: (step) => lifecycleSteps.push(step),
         }),
-      {
-        wrapper: createWrapper(queryClient),
-      }
+      { queryClient }
     );
 
     await act(async () => {
@@ -449,22 +396,15 @@ describe("hooks/vault/useVaultOperations", () => {
       .mockResolvedValueOnce(10n) // refreshed allowance
       .mockResolvedValueOnce(98n); // post-approval previewDeposit (< 99% min shares)
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(
+    const { result } = renderHookWithProviders(
       () =>
         useOctantVaultWalletEndow({
           errorMode: "inline",
           onLifecycleStep: (step) => lifecycleSteps.push(step),
         }),
-      {
-        wrapper: createWrapper(queryClient),
-      }
+      { queryClient }
     );
 
     await act(async () => {
@@ -505,16 +445,12 @@ describe("hooks/vault/useVaultOperations", () => {
       .mockResolvedValueOnce(100n) // maxDeposit
       .mockResolvedValueOnce(5n); // balanceOf (< amount → insufficient WETH)
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useOctantVaultWalletEndow({ errorMode: "inline" }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(
+      () => useOctantVaultWalletEndow({ errorMode: "inline" }),
+      { queryClient }
+    );
 
     await act(async () => {
       await expect(
@@ -549,22 +485,15 @@ describe("hooks/vault/useVaultOperations", () => {
       .mockResolvedValueOnce(100n) // maxDeposit
       .mockResolvedValueOnce(5n); // balanceOf (< amount -> insufficient WETH)
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(
+    const { result } = renderHookWithProviders(
       () =>
         useOctantVaultWalletEndow({
           errorMode: "inline",
           onLifecycleStep: (step) => lifecycleSteps.push(step),
         }),
-      {
-        wrapper: createWrapper(queryClient),
-      }
+      { queryClient }
     );
 
     await act(async () => {
@@ -593,15 +522,10 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("wraps ETH into canonical mainnet WETH before the existing vault deposit path", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useWrapEthToWeth({ errorMode: "inline" }), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useWrapEthToWeth({ errorMode: "inline" }), {
+      queryClient,
     });
 
     await act(async () => {
@@ -624,15 +548,10 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("rejects non-canonical WETH targets before sending wrap value", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useWrapEthToWeth({ errorMode: "inline" }), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useWrapEthToWeth({ errorMode: "inline" }), {
+      queryClient,
     });
 
     await act(async () => {
@@ -657,16 +576,12 @@ describe("hooks/vault/useVaultOperations", () => {
       authMode: "passkey",
     };
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useOctantVaultWalletEndow({ errorMode: "inline" }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(
+      () => useOctantVaultWalletEndow({ errorMode: "inline" }),
+      { queryClient }
+    );
 
     await act(async () => {
       await expect(
@@ -702,16 +617,9 @@ describe("hooks/vault/useVaultOperations", () => {
       .mockResolvedValueOnce(100n) // allowance (sufficient)
       .mockResolvedValueOnce(90n); // post-approval: only 90 shares (>1% drop from 100)
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useVaultDeposit(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useVaultDeposit(), { queryClient });
 
     await act(async () => {
       await expect(
@@ -732,16 +640,9 @@ describe("hooks/vault/useVaultOperations", () => {
     // maxWithdraw pre-check
     mockReadContract.mockResolvedValueOnce(100n);
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useVaultWithdraw(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useVaultWithdraw(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -765,16 +666,9 @@ describe("hooks/vault/useVaultOperations", () => {
     // haircut to zero under price-oracle distress. Audit finding #2.
     mockReadContract.mockResolvedValueOnce(100n); // maxWithdraw
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useVaultWithdraw(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useVaultWithdraw(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -805,16 +699,9 @@ describe("hooks/vault/useVaultOperations", () => {
   it("threads caller-provided maxLossBps through both maxWithdraw precheck and withdraw call", async () => {
     mockReadContract.mockResolvedValueOnce(100n); // maxWithdraw
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useVaultWithdraw(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useVaultWithdraw(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -847,16 +734,9 @@ describe("hooks/vault/useVaultOperations", () => {
     // maxWithdraw pre-check returns the limit
     mockReadContract.mockResolvedValueOnce(maxWithdraw);
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useVaultWithdraw(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useVaultWithdraw(), { queryClient });
 
     // Withdraw exactly at the maxWithdraw limit should succeed
     await act(async () => {
@@ -881,16 +761,9 @@ describe("hooks/vault/useVaultOperations", () => {
     // maxWithdraw pre-check returns the limit
     mockReadContract.mockResolvedValueOnce(maxWithdraw);
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useVaultWithdraw(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useVaultWithdraw(), { queryClient });
 
     await act(async () => {
       await expect(
@@ -907,16 +780,9 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("calls OctantModule.harvest for harvest mutation", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useHarvest(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvest(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -934,16 +800,9 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("calls OctantModule.emergencyPause for emergency mutation", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useEmergencyPause(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useEmergencyPause(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -963,16 +822,9 @@ describe("hooks/vault/useVaultOperations", () => {
   it("calls OctantModule.enableAutoAllocate for recovery mutation", async () => {
     mockReadContract.mockResolvedValueOnce(TEST_PRIMARY_ADDRESS);
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useEnableAutoAllocate(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useEnableAutoAllocate(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -999,17 +851,10 @@ describe("hooks/vault/useVaultOperations", () => {
   it("invalidates readContracts queries on enableAutoAllocate success", async () => {
     mockReadContract.mockResolvedValueOnce(TEST_PRIMARY_ADDRESS);
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useEnableAutoAllocate(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useEnableAutoAllocate(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -1028,16 +873,9 @@ describe("hooks/vault/useVaultOperations", () => {
   it("rejects enableAutoAllocate when caller is not module owner", async () => {
     mockReadContract.mockResolvedValueOnce("0x9999999999999999999999999999999999999999");
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useEnableAutoAllocate(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useEnableAutoAllocate(), { queryClient });
 
     await act(async () => {
       await expect(
@@ -1076,16 +914,9 @@ describe("hooks/vault/useVaultOperations", () => {
       .mockResolvedValueOnce(100n) // allowance (sufficient)
       .mockResolvedValueOnce(10n); // post-approval previewDeposit
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useVaultDeposit(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useVaultDeposit(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -1110,16 +941,9 @@ describe("hooks/vault/useVaultOperations", () => {
   it("uses createMutationErrorHandler when a mutation fails", async () => {
     mockReadContract.mockRejectedValueOnce(new Error("boom"));
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useVaultDeposit(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useVaultDeposit(), { queryClient });
 
     await act(async () => {
       await expect(
@@ -1143,16 +967,9 @@ describe("hooks/vault/useVaultOperations", () => {
       .mockResolvedValueOnce(0n) // depositLimit
       .mockResolvedValueOnce(0n); // totalAssets
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useVaultDeposit(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useVaultDeposit(), { queryClient });
 
     await act(async () => {
       await expect(
@@ -1183,15 +1000,10 @@ describe("hooks/vault/useVaultOperations", () => {
   it("passes showToast=false to error handler in inline mode", async () => {
     mockReadContract.mockRejectedValueOnce(new Error("boom"));
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryClient = trackedQueryClient();
 
-    const { result } = renderHook(() => useVaultDeposit({ errorMode: "inline" }), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useVaultDeposit({ errorMode: "inline" }), {
+      queryClient,
     });
 
     await act(async () => {

@@ -1,5 +1,6 @@
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, mocked, userEvent, waitFor, within } from "storybook/test";
 import { withSignedOutAuth } from "../../../../../shared/.storybook/decorators";
@@ -38,7 +39,11 @@ const meta: Meta<typeof GardenGardeners> = {
     mocked(useGreenGoodsEnsName).mockReturnValue({ data: null } as ReturnType<
       typeof useGreenGoodsEnsName
     >);
-    return resetHookMocks(useEnsName, useGreenGoodsEnsName);
+    mocked(useResolvedProfileAvatar).mockReturnValue({
+      avatarUri: FIXTURE_IMAGE_PROFILE,
+      isLoading: false,
+    } as ReturnType<typeof useResolvedProfileAvatar>);
+    return resetHookMocks(useEnsName, useGreenGoodsEnsName, useResolvedProfileAvatar);
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -58,3 +63,52 @@ export default meta;
 type Story = StoryObj<typeof GardenGardeners>;
 export const FortyMembers: Story = { args: { members: members.slice(0, 40) } };
 export const FortyOneMembers: Story = {};
+export const IdentityStates: Story = {
+  args: {
+    members: [
+      {
+        ...members[0],
+        username: undefined,
+        avatar: "blob:unpublished-preview",
+        registeredAt: 1_700_000_000_000,
+      },
+      { ...members[1], username: undefined, registeredAt: null },
+      {
+        ...members[2],
+        username: undefined,
+        registeredAt: null,
+        isGardener: false,
+        isSteward: true,
+      },
+    ],
+  },
+  beforeEach: () => {
+    mocked(useGreenGoodsEnsName).mockImplementation(
+      (address) =>
+        ({
+          data: address === members[0].account ? "river.greengoods.eth" : null,
+        }) as ReturnType<typeof useGreenGoodsEnsName>
+    );
+    mocked(useEnsName).mockImplementation(
+      (address) =>
+        ({
+          data: address === members[1].account ? "ordinary.eth" : null,
+        }) as ReturnType<typeof useEnsName>
+    );
+    mocked(useResolvedProfileAvatar).mockImplementation(
+      (address) =>
+        ({
+          avatarUri: address === members[0].account ? FIXTURE_IMAGE_PROFILE : "/images/avatar.png",
+          isLoading: address === members[2].account,
+        }) as ReturnType<typeof useResolvedProfileAvatar>
+    );
+    return resetHookMocks(useEnsName, useGreenGoodsEnsName, useResolvedProfileAvatar);
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("river.greengoods.eth")).toBeVisible();
+    await expect(canvas.getByText("ordinary.eth")).toBeVisible();
+    // The row renders its label, the colon and the date as separate text nodes of one span.
+    await expect(canvas.getByText("Gardener since: Unknown")).toBeVisible();
+  },
+};

@@ -13,7 +13,7 @@
  * @module hooks/admin-ui/pool/usePoolConsoleController
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import type { PoolConsoleController } from "./controller.types";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
@@ -22,7 +22,6 @@ import {
   claimActKey,
   RESUME_POOL_ACT_KEY,
 } from "../../../modules/transactions/act-phase";
-import { selectNextDueBoundary } from "../../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../../types/domain";
 import { createMutationErrorHandler } from "../../../utils/errors/mutation-error-handler";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
@@ -46,7 +45,7 @@ import { useCommitmentReason } from "../../commitment-pooling/useCommitmentReaso
 import { usePoolCharter } from "../../commitment-pooling/usePoolCharter";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
 import { usePoolFunding } from "../../commitment-pooling/usePoolFunding";
-import { useTimeout } from "../../utils/useTimeout";
+import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
 
 /** Queue acts are not mutations, so their failures go through the same handler by hand. */
@@ -63,17 +62,23 @@ export function usePoolConsoleController(input: {
   const viewer = usePrimaryAddress() ?? undefined;
   const isOnline = useOnlineStatus();
 
-  const poolsQuery = useCommitmentPools({ chainId, garden });
+  const poolsQuery = useCommitmentPools({ chainId, garden }, { refreshWhileOpen: true });
   // .at(0) keeps the null honest in the type; [0] would claim a pool always exists.
   const pool = poolsQuery.pools.at(0) ?? null;
   const poolId = pool?.poolId;
   const hasPool = poolId !== undefined;
 
-  const cyclesQuery = useCommitmentCycles({ chainId, poolId: poolId ?? 0n }, { enabled: hasPool });
-  const commitmentsQuery = useCommitments({ chainId, poolId }, { enabled: hasPool });
+  const cyclesQuery = useCommitmentCycles(
+    { chainId, poolId: poolId ?? 0n },
+    { enabled: hasPool, refreshWhileOpen: true }
+  );
+  const commitmentsQuery = useCommitments(
+    { chainId, poolId },
+    { enabled: hasPool, refreshWhileOpen: true }
+  );
   const claimsQuery = usePoolClaimRequests(
     { chainId, poolId: poolId ?? 0n, state: "PENDING" },
-    { enabled: hasPool }
+    { enabled: hasPool, refreshWhileOpen: true }
   );
   const charter = usePoolCharter(pool?.charterCID);
   const pauseReason = useCommitmentReason(pool?.pauseReasonCID);
@@ -106,11 +111,14 @@ export function usePoolConsoleController(input: {
     ]
   );
 
-  // A console can sit open across a due moment. Rather than polling, the tick
-  // is scheduled for the next boundary the loaded rows actually have, so a row
-  // falling due starts offering Expire now without a remount.
-  const nowTimer = useTimeout();
-  const [now, setNow] = useState(() => BigInt(Math.floor(Date.now() / 1000)));
+  const cycleEndTimes = useMemo(
+    () =>
+      new Map(
+        (hasPool ? cyclesQuery.cycles : []).map((row) => [row.cycleId.toString(), row.endTime])
+      ),
+    [hasPool, cyclesQuery.cycles]
+  );
+  const now = useExpiryClock({ commitments: commitmentsQuery.commitments, cycleEndTimes });
   const model = useMemo(
     () =>
       selectPoolConsoleModel({
@@ -122,25 +130,6 @@ export function usePoolConsoleController(input: {
       }),
     [pool, hasPool, cyclesQuery.cycles, commitmentsQuery.commitments, claimsQuery.rows.length, now]
   );
-
-  const nextDue = useMemo(
-    () =>
-      selectNextDueBoundary({
-        commitments: commitmentsQuery.commitments,
-        cycleEndTimes: new Map(
-          (hasPool ? cyclesQuery.cycles : []).map((row) => [row.cycleId.toString(), row.endTime])
-        ),
-        now,
-      }),
-    [commitmentsQuery.commitments, cyclesQuery.cycles, hasPool, now]
-  );
-  useEffect(() => {
-    if (nextDue === null) return;
-    const delay = Number(nextDue - now) * 1000;
-    if (delay <= 0) return;
-    nowTimer.set(() => setNow(BigInt(Math.floor(Date.now() / 1000))), delay);
-    return () => nowTimer.clear();
-  }, [nextDue, now, nowTimer]);
 
   const pendingCreates = useMemo(
     () =>

@@ -73,10 +73,6 @@ function coverageGlobFloors(packageName) {
   return Object.fromEntries(entries);
 }
 
-function withoutComments(source) {
-  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
-}
-
 test("shared JS setup pins the toolchain and installs from the frozen lockfile", () => {
   const action = read(".github/actions/setup-js/action.yml");
 
@@ -646,89 +642,21 @@ test("Shared Node tests share one module graph unless they mock, stub, assign gl
   }
 });
 
-test("Admin, Client, and Shared keep the production import seams that protect isolated tests", () => {
+// The production import seams moved to check-source-structure.js, which the package workflows
+// and the push gate run for source changes; this suite never ran for them.
+test("Shared's public-contracts subpaths target real leaves, not the barrel", () => {
   const sharedExports = JSON.parse(read("packages/shared/package.json")).exports;
-  const declaredSharedImports = new Set(
-    Object.keys(sharedExports).map((specifier) =>
-      specifier === "."
-        ? "@green-goods/shared"
-        : `@green-goods/shared/${specifier.replace(/^\.\//, "")}`,
-    ),
-  );
   const publicContractsBarrelTarget = sharedExports["./public-contracts"];
   for (const [specifier, target] of Object.entries(sharedExports)) {
-    if (specifier.startsWith("./public-contracts/")) {
-      assert.ok(
-        existsSync(join(root, "packages/shared", target)),
-        `${specifier} must target an existing public-contracts leaf`,
-      );
-      assert.notEqual(
-        target,
-        publicContractsBarrelTarget,
-        `${specifier} must target a real leaf instead of aliasing the public-contracts barrel`,
-      );
-    }
-  }
-  const broadConsumerBarrels =
-    /@green-goods\/shared\/(?:components|config|constants|hooks|i18n|mocks|modules|profile-avatar|providers|public-contracts|stores|testing|types|utils|workflows)(?=["'])/;
-  const exactSharedRoot =
-    /(?:from\s+|import\s*\(|import\s+|vi\.(?:mock|importActual)\s*\()\s*["']@green-goods\/shared["']/;
-  const sharedImportPattern =
-    /(?:from\s+|import\s*\(\s*|import\s+|vi\.(?:mock|importActual)\s*\(\s*)["'](@green-goods\/shared(?:\/[^"']+)?)["']/g;
-  const deepRelativeSharedSource =
-    /(?:from\s+|import\s*\(|vi\.(?:mock|importActual)\s*\()\s*["'][^"']*shared\/src\//;
-
-  for (const consumerDirectory of ["packages/admin/src", "packages/client/src"]) {
-    for (const file of sourceFiles(consumerDirectory)) {
-      const source = withoutComments(read(file));
-      assert.doesNotMatch(source, exactSharedRoot, `${file} must import a declared Shared leaf`);
-      assert.doesNotMatch(
-        source,
-        broadConsumerBarrels,
-        `${file} must not restore a broad Shared barrel`,
-      );
-      for (const match of source.matchAll(sharedImportPattern)) {
-        assert.ok(
-          declaredSharedImports.has(match[1]),
-          `${file} imports undeclared Shared specifier ${match[1]}`,
-        );
-      }
-      assert.doesNotMatch(
-        source,
-        deepRelativeSharedSource,
-        `${file} must not bypass Shared package exports with a deep-relative import`,
-      );
-    }
-  }
-
-  const internalBarrels =
-    /from\s+["'][^"']*\/(?:config(?:\/query-keys)?|modules(?:\/data\/ipfs|\/job-queue|\/marketplace)?|public-contracts(?:\/saved-offers)?|utils(?:\/blockchain\/abis)?)["']/;
-  for (const file of sourceFiles("packages/shared/src")) {
-    if (
-      file.includes("/__tests__/") ||
-      file.includes("/__mocks__/") ||
-      /\.(?:test|spec|stories)\.(?:ts|tsx)$/.test(file) ||
-      file.endsWith("/index.ts")
-    ) {
-      continue;
-    }
-
-    const source = withoutComments(read(file));
-    assert.doesNotMatch(source, exactSharedRoot, `${file} must not self-import the package root`);
-    assert.doesNotMatch(
-      source,
-      /from\s+["'][^"']*config\/query-keys\/registry["']/,
-      `${file} must import domain query-key leaves`,
+    if (!specifier.startsWith("./public-contracts/")) continue;
+    assert.ok(
+      existsSync(join(root, "packages/shared", target)),
+      `${specifier} must target an existing public-contracts leaf`,
     );
-    assert.doesNotMatch(
-      source,
-      internalBarrels,
-      `${file} must import an internal leaf instead of a high-fanout barrel`,
-    );
-    assert.doesNotMatch(
-      source,
-      /DEFAULT_CHAIN_ID[^\n]*from\s+["'][^"']*config\/blockchain["']/,
-      `${file} must import DEFAULT_CHAIN_ID from config/default-chain`,
+    assert.notEqual(
+      target,
+      publicContractsBarrelTarget,
+      `${specifier} must target a real leaf instead of aliasing the public-contracts barrel`,
     );
   }
 });

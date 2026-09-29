@@ -68,7 +68,10 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
   const group = footerGroup(state.submissionState);
   // A reverted send left a transaction behind, so only an unsent failure can be discarded.
   const canDiscard =
-    group === "attention" || (group === "failed" && state.submissionState !== "reverted");
+    group === "waiting" ||
+    group === "attention" ||
+    (group === "preparing" && (!isOnline || pausedForDataSaver)) ||
+    (group === "failed" && state.submissionState !== "reverted");
 
   const primary = (() => {
     switch (group) {
@@ -174,6 +177,7 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
                 tone="danger"
                 size="lg"
                 className="w-full"
+                disabled={isRetrying || isTryingAgain || isDiscarding}
                 onClick={() => setConfirmingDiscard(true)}
                 data-testid="work-discard"
               >

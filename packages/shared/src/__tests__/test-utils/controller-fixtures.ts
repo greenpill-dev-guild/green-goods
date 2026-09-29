@@ -176,6 +176,7 @@ export function proofComposerControllerFixture(
     setLinks: () => undefined,
     credited,
     clientEvidenceId: "fixture-evidence-id",
+    sendPhase: "idle",
     isProcessing,
     isRecording,
     recordingElapsed: 0,

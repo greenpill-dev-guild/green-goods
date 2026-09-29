@@ -1,3 +1,6 @@
+import "fake-indexeddb/auto";
+import { draftDB } from "../modules/job-queue/draft-db";
+import { proofDraftRepository } from "../modules/commitment-pooling/proof-draft-repository";
 import { describe, expect, it, vi } from "vitest";
 import { createProofDraftRepository } from "../modules/commitment-pooling/proof-draft-repository";
 
@@ -18,6 +21,34 @@ describe("ProofDraftRepository", () => {
     expect(setImagesForDraft).toHaveBeenCalledWith("draft-1", [image]);
   });
 
+  it("clears after an in-flight attachment save instead of resurrecting its files", async () => {
+    let finish!: () => void;
+    const setImagesForDraft = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            finish = resolve;
+          })
+      )
+      .mockResolvedValue(undefined);
+    const getImagesForDraft = vi.fn().mockResolvedValue([]);
+    const repository = createProofDraftRepository({
+      drafts: { getImagesForDraft, setImagesForDraft },
+      media: { getOrCreateUrl: vi.fn(), cleanupUrls: vi.fn() },
+    });
+    const save = repository.save("proof-key", [new File(["bytes"], "photo.jpg")]);
+    await Promise.resolve();
+    await Promise.resolve();
+    const reopened = repository.load("proof-key");
+    expect(getImagesForDraft).not.toHaveBeenCalled();
+    const clear = repository.clear("proof-key");
+    expect(setImagesForDraft).toHaveBeenCalledTimes(1);
+    finish();
+    await Promise.all([save, clear, reopened]);
+    expect(setImagesForDraft).toHaveBeenLastCalledWith("proof-key", []);
+  });
+
   it("owns preview URL creation and revocation", async () => {
     const image = new File(["image"], "proof.jpg", { type: "image/jpeg" });
     const getOrCreateUrl = vi.fn().mockReturnValue("blob:proof");
@@ -36,5 +67,32 @@ describe("ProofDraftRepository", () => {
     expect(setImagesForDraft).toHaveBeenCalledWith("draft-1", []);
     expect(cleanupUrls).toHaveBeenCalledWith("proof");
     expect(cleanupUrls).toHaveBeenCalledWith("draft-1");
+  });
+});
+
+describe("proof attachment persistence", () => {
+  it("round-trips photo/audio without a Work record and clears only its proof scope", async () => {
+    const key = "proof:42161:0x1111111111111111111111111111111111111111:901";
+    const other = "proof:42161:0x1111111111111111111111111111111111111111:902";
+    const photo = new File(["photo bytes"], "photo.jpg", { type: "image/jpeg" });
+    const audio = new File(["voice bytes"], "voice.webm", { type: "audio/webm" });
+    await proofDraftRepository.save(key, [photo, audio]);
+    await proofDraftRepository.save(other, [photo]);
+    const restored = await proofDraftRepository.load(key);
+    expect(restored.map((file) => [file.name, file.type])).toEqual([
+      ["photo.jpg", "image/jpeg"],
+      ["voice.webm", "audio/webm"],
+    ]);
+    expect(await restored[0].text()).toBe("photo bytes");
+    expect(await restored[1].text()).toBe("voice bytes");
+    await expect(draftDB.getDraft(key)).resolves.toBeUndefined();
+    await proofDraftRepository.clear(key);
+    await expect(proofDraftRepository.load(key)).resolves.toEqual([]);
+    expect(await proofDraftRepository.load(other)).toHaveLength(1);
+    await proofDraftRepository.clear(other);
+    await expect(draftDB.setImagesForDraft("missing-work", [photo])).rejects.toThrow("not found");
+    await expect(draftDB.setImagesForProof("missing-work", [photo])).rejects.toThrow(
+      "Invalid proof draft key"
+    );
   });
 });

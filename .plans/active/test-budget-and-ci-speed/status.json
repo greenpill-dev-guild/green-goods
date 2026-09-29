@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-19T22:46:56.155Z",
-    "updated_at": "2026-09-28T22:11:59.338Z"
+    "updated_at": "2026-09-29T01:57:53.035Z"
   },
   "links": {
     "brief": "brief.md",
@@ -475,6 +475,14 @@
       "status": "in_progress",
       "branch": null,
       "note": "D9: Afo chose to prune unreachable CodeQL overlay-base databases hourly and keep overlay analysis on. 21 unreachable databases deleted by hand on 2026-09-28 (Actions cache 9.8 GB to 583 MB); the prune workflow is PR #945. Corrected: the Unit Tests cold compile on 8e05497f6 came from slice 9's cache-key rename; Lint And Build is the clean eviction case."
+    },
+    {
+      "timestamp": "2026-09-29T01:57:53.039Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "D10: snapshot 08 follow-up (items 2, 3, 5, 6, 7) committed locally as 1a3afcb52..f156aef6c, not pushed; see reports/2026-09-28-snapshot-08-follow-up.md. CodeQL prune dispatched by hand and now also runs on develop pushes; Admin tests stop inlining viem and loading AppKit and MSW; vault last page covered; 45-file helper codemod; canonicalJobPayload, Data Saver override and import seams fixed."
     }
   ]
 }

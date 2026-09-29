@@ -223,3 +223,11 @@ export const QueuedOffline: Story = {
 export const NotYours: Story = {
   render: () => <ProofState kind="notYours" isOnline onBack={fn()} />,
 };
+
+export const Confirmed: Story = {
+  render: () => <ProofState kind="confirmed" isOnline onBack={fn()} />,
+};
+
+export const Failed: Story = {
+  render: () => <ProofState kind="failed" isOnline onBack={fn()} />,
+};

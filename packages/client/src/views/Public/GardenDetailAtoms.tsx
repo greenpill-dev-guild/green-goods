@@ -1,6 +1,6 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Button } from "@green-goods/shared/components/Button";
 import type { Address } from "@green-goods/shared/types/domain";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
 // `getRelativeTimeParts` is not on the root barrel — only the declared
 // `./utils` subpath exports it (shared rule 11: narrowest declared path).
 import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
@@ -23,14 +23,11 @@ import {
 /**
  * Note author as plain text.
  *
- * Deliberately not `AddressDisplay`: that renders a `<button>` carrying a
- * popover tooltip whether or not the copy affordance is on, and the field-note
- * tile is itself a button. A button inside a button is invalid, and it breaks
- * the tile's own click and focus behaviour. `AddressDisplay` is still the right
- * primitive where it is not nested — the note dialog and the stewards row.
+ * The plain AddressDisplay variant keeps the public author's protocol name
+ * readable without placing a button inside the field-note tile's button.
  */
 export function NoteAuthor({ address }: { address: Address }) {
-  return <span>{formatAddress(address, { variant: "card" })}</span>;
+  return <AddressDisplay address={address} interactive={false} />;
 }
 
 /**

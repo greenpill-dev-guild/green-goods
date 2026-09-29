@@ -7,7 +7,10 @@
  * @module hooks/client-ui/commitment/useProofComposerController
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
+import type { Job } from "../../../types/job-queue";
+import type { EvidenceJobPayload } from "../../../modules/commitment-pooling/jobs";
 
 import { selectCommitmentActKind } from "../../../modules/commitment-pooling/acts";
 import {
@@ -81,10 +84,26 @@ export function useProofComposerController(
     () => (draft.saved?.credited as Address[] | null | undefined) ?? null
   );
   const [queued, setQueued] = useState(false);
-  const clientEvidenceId = useMemo(
-    () => draft.saved?.clientEvidenceId ?? crypto.randomUUID(),
-    [draft.saved?.clientEvidenceId]
-  );
+  const [clientEvidenceId] = useState(() => draft.saved?.clientEvidenceId ?? crypto.randomUUID());
+  const [sendPhase, setSendPhase] = useState<ProofComposerController["sendPhase"]>("idle");
+  const submitting = useRef(false);
+  useEffect(() => {
+    const matches = (job: Job) =>
+      job.kind === "evidence" &&
+      job.chainId === input.chainId &&
+      job.userAddress.toLowerCase() === viewer?.toLowerCase() &&
+      (job.payload as EvidenceJobPayload).clientEvidenceId === clientEvidenceId;
+    const complete = jobQueueEventBus.on("job:completed", ({ job }) => {
+      if (matches(job)) setSendPhase("confirmed");
+    });
+    const failed = jobQueueEventBus.on("job:failed", ({ job }) => {
+      if (matches(job)) setSendPhase("failed");
+    });
+    return () => {
+      complete();
+      failed();
+    };
+  }, [clientEvidenceId, input.chainId, viewer]);
   const restoreFiles = useCallback((files: { media: File[]; audioNotes: File[] }) => {
     if (files.media.length > 0) setMedia(files.media);
     if (files.audioNotes.length > 0) setAudioNotes(files.audioNotes);
@@ -197,10 +216,30 @@ export function useProofComposerController(
   );
 
   const submit = useCallback(async (): Promise<boolean> => {
-    if (!detail || !routeGarden) return false;
+    if (
+      !detail ||
+      !routeGarden ||
+      queued ||
+      submitting.current ||
+      !readiness("media").canAdvance ||
+      !readiness("details").canAdvance
+    )
+      return false;
+    submitting.current = true;
+    // Retire prior-attempt feedback before enqueue can report this attempt's outcome.
+    setSendPhase("idle");
     try {
       await jobs.enqueue({
         act: "evidence",
+        report: (event) => {
+          if (event.stage === "wallet") setSendPhase("signing");
+          else if (event.stage === "confirming") setSendPhase("confirming");
+          else if (event.stage === "landed") setSendPhase("confirmed");
+          else
+            setSendPhase((current) =>
+              current === "confirmed" || current === "failed" ? current : "queued"
+            );
+        },
         payload: {
           clientEvidenceId,
           commitmentId: detail.commitment.commitmentId,
@@ -214,10 +253,14 @@ export function useProofComposerController(
       });
       draftRepository.revoke("proof");
       setQueued(true);
+      setSendPhase((current) => (current === "idle" ? "queued" : current));
       await draft.clear();
       return true;
     } catch {
+      setSendPhase((current) => (current === "confirmed" ? current : "failed"));
       return false;
+    } finally {
+      submitting.current = false;
     }
   }, [
     audioNotes,
@@ -231,6 +274,8 @@ export function useProofComposerController(
     media,
     note,
     routeGarden,
+    queued,
+    readiness,
   ]);
 
   let status: ProofComposerStatus = "ready";
@@ -240,7 +285,8 @@ export function useProofComposerController(
   else if (!detail || (seat !== "provider" && seat !== "contributor")) status = "notYours";
   else if (selectCommitmentActKind({ commitment: detail.commitment, seat }) !== "addProof")
     status = "closed";
-  else if (queued) status = "queued";
+  else if (queued)
+    status = sendPhase === "confirmed" ? "confirmed" : sendPhase === "failed" ? "failed" : "queued";
 
   // A HEIC photo waiting to convert shows a placeholder, not a preview.
   const imageUrls = draftRepository.previewUrls(
@@ -269,6 +315,7 @@ export function useProofComposerController(
     isRecording: recording.isRecording,
     recordingElapsed: recording.elapsed,
     isPending: jobs.isPending,
+    sendPhase,
     linkInvalid,
     imageUrls,
     heicStateOf: heic.stateOf,

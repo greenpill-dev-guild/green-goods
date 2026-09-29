@@ -5,10 +5,10 @@
  * Tests protocol subdomain resolution via GreenGoodsENS.ownerToSlug.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mockReadContract = vi.fn();
 
@@ -49,20 +49,6 @@ vi.mock("../../../modules/app/logger", () => ({
 import { queryKeys } from "../../../config/query-keys";
 import { useGreenGoodsEnsName } from "../../../hooks/ens/useGreenGoodsEnsName";
 
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-    },
-  });
-
-  return {
-    queryClient,
-    wrapper: ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children),
-  };
-}
-
 describe("useGreenGoodsEnsName", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -72,8 +58,7 @@ describe("useGreenGoodsEnsName", () => {
   it("returns the protocol subdomain when ownerToSlug exists", async () => {
     mockReadContract.mockResolvedValueOnce("river");
 
-    const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useGreenGoodsEnsName(VALID_ADDRESS), { wrapper });
+    const { result } = renderHookWithQueryClient(() => useGreenGoodsEnsName(VALID_ADDRESS));
 
     await waitFor(() => {
       expect(result.current.data).toBe("river.greengoods.eth");
@@ -83,8 +68,7 @@ describe("useGreenGoodsEnsName", () => {
   it("returns null when the address has no protocol slug", async () => {
     mockReadContract.mockResolvedValueOnce("").mockResolvedValueOnce(ZERO_ADDRESS);
 
-    const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useGreenGoodsEnsName(VALID_ADDRESS), { wrapper });
+    const { result } = renderHookWithQueryClient(() => useGreenGoodsEnsName(VALID_ADDRESS));
 
     await waitFor(() => {
       expect(result.current.data).toBeNull();
@@ -97,8 +81,7 @@ describe("useGreenGoodsEnsName", () => {
       .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
       .mockResolvedValueOnce("river");
 
-    const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useGreenGoodsEnsName(VALID_ADDRESS), { wrapper });
+    const { result } = renderHookWithQueryClient(() => useGreenGoodsEnsName(VALID_ADDRESS));
 
     await waitFor(() => {
       expect(result.current.data).toBe("river.greengoods.eth");
@@ -111,8 +94,7 @@ describe("useGreenGoodsEnsName", () => {
       greenGoodsENS: ZERO_ADDRESS,
     });
 
-    const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useGreenGoodsEnsName(VALID_ADDRESS), { wrapper });
+    const { result } = renderHookWithQueryClient(() => useGreenGoodsEnsName(VALID_ADDRESS));
 
     await waitFor(() => {
       expect(result.current.fetchStatus).toBe("idle");
@@ -124,8 +106,8 @@ describe("useGreenGoodsEnsName", () => {
   it("caches by protocol name query key", async () => {
     mockReadContract.mockResolvedValueOnce("river");
 
-    const { queryClient, wrapper } = createWrapper();
-    renderHook(() => useGreenGoodsEnsName(VALID_ADDRESS), { wrapper });
+    const queryClient = createTestQueryClient();
+    renderHookWithQueryClient(() => useGreenGoodsEnsName(VALID_ADDRESS), { queryClient });
 
     await waitFor(() => {
       expect(
@@ -135,7 +117,7 @@ describe("useGreenGoodsEnsName", () => {
   });
 
   it("retains a receiver-only name when refreshing fails, then recovers", async () => {
-    const { queryClient, wrapper } = createWrapper();
+    const queryClient = createTestQueryClient();
     queryClient.setQueryData(
       queryKeys.ens.protocolName(VALID_ADDRESS.toLowerCase()),
       "river.greengoods.eth"
@@ -147,7 +129,9 @@ describe("useGreenGoodsEnsName", () => {
       if (unavailable) throw new Error("RPC unavailable");
       return "river";
     });
-    const { result } = renderHook(() => useGreenGoodsEnsName(VALID_ADDRESS), { wrapper });
+    const { result } = renderHookWithQueryClient(() => useGreenGoodsEnsName(VALID_ADDRESS), {
+      queryClient,
+    });
     expect(result.current.isError).toBe(false);
     expect(result.current.data).toBe("river.greengoods.eth");
     await act(async () => {

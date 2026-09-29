@@ -6,9 +6,8 @@
  * offline merging, deduplication, time filtering, and pagination.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Work } from "../../../types/domain";
 import { createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
@@ -500,10 +499,4 @@ describe("useMyOnlineWorks", () => {
 
     expect(mockGetWorksByGardener).toHaveBeenCalledWith(MOCK_ADDRESSES.user, 42220);
   });
-
-  function createWrapper(queryClient: QueryClient) {
-    return function Wrapper({ children }: { children: ReactNode }) {
-      return createElement(QueryClientProvider, { client: queryClient }, children);
-    };
-  }
 });
