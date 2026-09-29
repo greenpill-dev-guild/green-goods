@@ -620,6 +620,23 @@
         ".jsx"
       ],
       "excludePrefixes": [".plans/"]
+    },
+    {
+      "check": "immutable-plan-reports",
+      "intents": ["push"],
+      "note": "Dated Plan Hub reports never change once they exist; CI's Guidance integrity job rejects an edit, deletion or rename of one. ci-local hands the check the plan's base, as CI hands it the push's previous head or the pull request's base. select-validation.test.mjs fails when a dated report the check classifies does not select it.",
+      "match": "all",
+      "prefixes": [".plans/"],
+      "contains": ["/reports/"]
+    },
+    {
+      "check": "immutable-plan-reports",
+      "intents": ["push"],
+      "note": "The check's own code and the base resolution it shares with the other diff-aware guidance checks.",
+      "exact": [
+        "scripts/quality/check-immutable-plan-reports.mjs",
+        "scripts/lib/git-guardrails.mjs"
+      ]
     }
   ],
   "checks": [

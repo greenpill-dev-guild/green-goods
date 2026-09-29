@@ -563,7 +563,7 @@ const RECEIPT_IGNORED_PATTERN = /^(?:NVM_\w+|GREEN_GOODS_\w+_REEXEC)$/;
  * repository's lead PATH: `bun run` and Husky's shim do the same, and a manual run of the gate must
  * resolve them like the hook does.
  */
-export function checkEnvironment(check, baseEnvironment = process.env) {
+export function checkEnvironment(check, baseEnvironment = process.env, planBase = null) {
   const packageBinaries = [
     ...new Set([
       resolve(projectRoot, check.cwd ?? ".", "node_modules/.bin"),
@@ -571,7 +571,7 @@ export function checkEnvironment(check, baseEnvironment = process.env) {
     ]),
   ];
   const path = [...packageBinaries, baseEnvironment.PATH].filter(Boolean).join(delimiter);
-  return { ...baseEnvironment, ...envForCheck(check), PATH: path };
+  return { ...baseEnvironment, ...envForCheck(check, baseEnvironment, planBase), PATH: path };
 }
 
 /** A digest of the variables that can change a check's result; values never leave the hash. */
@@ -603,10 +603,17 @@ export function ignoredConfigurationFingerprint(root = projectRoot) {
   return `sha256:${hash.digest("hex")}`;
 }
 
-function envForCheck(check) {
+function envForCheck(check, baseEnvironment = {}, planBase = null) {
   // CI=true reproduces CI's test environment; the marker keeps local package suites on the
   // machine test lease, which real CI skips.
   const common = { CI: ciEnv.CI, [LOCAL_GATE_VARIABLE]: "1" };
+  if (check.id === "immutable-plan-reports") {
+    // CI hands the check the push's previous head or the pull request's base. Give it the base
+    // this plan compared against instead of its origin/develop fallback, so it judges the same
+    // commits and working tree; a base set by the caller still wins.
+    const explicit = baseEnvironment.PLAN_REPORTS_BASE_REF || baseEnvironment.GUIDANCE_BASE_REF;
+    return explicit || !planBase ? common : { ...common, PLAN_REPORTS_BASE_REF: planBase };
+  }
   if (check.id.startsWith("agent-")) {
     return {
       ...common,
@@ -798,7 +805,7 @@ export async function executePlan(plan, options = {}) {
   };
   // The receipt fingerprints the same environment the check then runs with.
   const reusableReceipt = (check) => {
-    const environment = checkEnvironment(check, baseEnvironment);
+    const environment = checkEnvironment(check, baseEnvironment, plan.base);
     const receiptInputs = buildReceiptInputs(plan, check, {
       environment: environmentFingerprint(environment),
       ignoredConfiguration,

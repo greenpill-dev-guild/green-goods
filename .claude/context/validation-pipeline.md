@@ -164,8 +164,10 @@ The focused path may be inferred when the changed file is itself a direct test. 
 chooses changed-path format/lint, direct behavior proof, and owner-package typecheck/build only when
 an interface, route, generated artifact, or runtime composition moved. It also runs the repository
 checks CI applies to those paths: `test-quality` for tests, test helpers and files a certified seam
-fingerprints; `docs-generated` for every input of `scripts/docs/generate.mjs` and `docs/`; and
-`docs-authority` for any script, configuration or guide outside Plan Hubs. Ordinary Shared
+fingerprints; `docs-generated` for every input of `scripts/docs/generate.mjs` and `docs/`;
+`docs-authority` for any script, configuration or guide outside Plan Hubs; and
+`immutable-plan-reports` for Plan Hub reports, over the plan's own commits and working tree, because
+CI rejects any edit, deletion or rename of a dated report. Ordinary Shared
 implementation changes do not run complete Client, Admin, or Agent suites locally; those remain CI
 responsibilities.
 
