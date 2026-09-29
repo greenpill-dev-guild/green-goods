@@ -108,6 +108,7 @@ export const IdentityStates: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("river.greengoods.eth")).toBeVisible();
     await expect(canvas.getByText("ordinary.eth")).toBeVisible();
-    await expect(canvas.getByText("Unknown")).toBeVisible();
+    // The row renders its label, the colon and the date as separate text nodes of one span.
+    await expect(canvas.getByText("Gardener since: Unknown")).toBeVisible();
   },
 };
