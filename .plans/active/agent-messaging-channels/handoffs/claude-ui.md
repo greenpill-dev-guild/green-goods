@@ -71,25 +71,17 @@ header shares none of its behavior.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `53e4dc7bd63fbc5c39cfdadaa8c4ba10fca15578`
-- Run at (UTC): 2026-09-27T23:41:20Z
-- Exact command(s): the pre-push hook's
-  `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts`
-  (plan `push · critical · 231 changed path(s)` against the PR base,
-  `chore/whatsapp-prototype-scope-lock`)
-- Result: every automated check passed: format, lint, validation-system-test, test-quality,
-  abi-artifacts, the Shared, Client, Admin, Agent and Indexer typecheck, test and build legs,
-  contracts-build, contracts-test, contracts-verify-fast, docs-authority, docs-test, docs-build,
-  staged-modules, source-structure, design-guardrails, agent-guidance, supply-chain and
-  story-quality. The Shared and Client test legs ran in full on this commit: Shared 6005 passed and 17 skipped; Client 1415. `browser-proof` stays pending (manual).
-- Validated paths: `.github bun.lock docs packages scripts` (everything the branch changes outside this hub)
-- Worktree identity command and result:
-  `git status --porcelain=v1 --untracked-files=all -- .github bun.lock docs packages scripts` → empty
-- Evidence-only diff command and result (if applicable):
-  `git diff --exit-code 53e4dc7bd63fbc5c39cfdadaa8c4ba10fca15578..HEAD -- .github bun.lock docs packages scripts`
-  → empty; the receipt commit changes only `.plans/`
-- Evidence-only worktree-status command and result (if applicable):
-  `git status --porcelain=v1 --untracked-files=all -- .github bun.lock docs packages scripts` → empty
+The receipt for `53e4dc7` no longer covers HEAD: the chat channel change that followed it touches
+validated paths. Pending the push gate for that commit.
+
+- Tested implementation commit SHA: pending
+- Run at (UTC): pending
+- Exact command(s): pending
+- Result: pending
+- Validated paths: `.github bun.lock docs packages scripts`
+- Worktree identity command and result: pending
+- Evidence-only diff command and result (if applicable): pending
+- Evidence-only worktree-status command and result (if applicable): pending
 
 ## Risks / Blockers
 

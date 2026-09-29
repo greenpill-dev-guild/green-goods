@@ -18,10 +18,11 @@ transaction was used, and nothing was deployed or broadcast.
 | --- | --- | --- |
 | #1 (#864) | `chore/whatsapp-prototype-scope-lock` | Scope lock, this hub and the accepted brief. Unchanged by PR #2 and not merged. |
 | #2 | `feature/agent-reporting-core` | This record: the reporting core, browser ceremonies and reproducible API testing. Synthetic transports only. |
-| #3 | next | WhatsApp transport: Meta webhook verification and ingress, media download, outbound sends and templates, provisioning. See section 6. |
+| #3 | next | Chat channels: WhatsApp (Meta webhook verification and ingress, media download, outbound sends and templates, provisioning) and Telegram on the existing bot. See section 6. |
 
 Excluded from all three by the task: EIP-7702, new-account onboarding, passkey or Profile wallet
-linking, live Telegram or SMS, WhatsApp groups, and contract or indexer changes.
+linking, live SMS, WhatsApp groups, and contract or indexer changes. Telegram was excluded too until
+28 September, when it was moved onto this architecture alongside WhatsApp.
 
 ## 2. Capability record
 
@@ -34,6 +35,7 @@ real provider, wallet or chain. *State*: how the capability ships.
 | Story-first drafts, Action clarification, fixed fields, corrections, revisions, confirmation tokens | Yes | Yes | No | Off until an operator turns on the `intake` control |
 | Every garden accepts reports: the Agent's chain's gardens from the indexer, without placeholders or gardens hidden everywhere, paged in chat | Yes | Yes (fixture indexer responses) | No | On |
 | Durable inbox, conversation leases with fencing, revision CAS, jobs, outbox, retries, restart recovery, operator controls | Yes | Yes | No | On |
+| Chat channels: WhatsApp and Telegram in code, intake only while a channel's operator control is on, replies and downloads routed by channel | Yes (adapters in PR #3) | Yes (channel intake and routing) | No | No adapter until PR #3; each channel starts closed |
 | Jev typed decisions and OpenAI Responses extraction with deterministic fallback questions | Yes | Yes (scripted responses) | No | Off: no model is pinned in code yet; then a key and the `model_processing` control |
 | Photos: byte detection, sanitizing, metadata stripping, private originals | Yes | Yes (real Sharp) | No | On |
 | PDF and Word reading with page provenance | Yes | Yes (real Poppler for page counts; scripted extraction) | No | Off (`documents` control) |
@@ -80,7 +82,7 @@ real receipts, removed roles on chain) need the live gates below.
 
 ## 4. Remaining live gates
 
-1. WhatsApp transport and provisioning (PR #3).
+1. The WhatsApp and Telegram channels (PR #3), with WhatsApp provisioning.
 2. Authenticated browser proof of wallet and passkey signing on the ceremony pages, in Brave.
 3. Real Arbitrum work and review attestations with matching receipts, including a Kernel UserOperation
    found by the bounded event scan within the RPC's log-range limits; Pinata uploads.
@@ -100,58 +102,81 @@ real receipts, removed roles on chain) need the live gates below.
 
 ## 5. Configuration to add to the root `.env.schema`
 
-Agents cannot edit `.env.schema`. Only what differs between deployments or is secret is an
-environment setting; secrets should follow the file's existing `_OP_REF` pattern.
+Agents cannot edit `.env.schema`. Only secrets are settings, and they should follow the file's
+existing `_OP_REF` pattern.
 
 ```dotenv
-AGENT_REPORTING_TRANSPORT=
 AGENT_REPORTING_KEYS=
-AGENT_REPORTING_BROWSER_ORIGIN=https://www.greengoods.app
 AGENT_REPORTING_OPENAI_API_KEY=
 AGENT_REPORTING_JEV_API_KEY=
 ```
 
-- `AGENT_REPORTING_TRANSPORT` names the chat transport and is the only on switch: empty keeps
-  reporting off. The only planned value is `whatsapp`, which PR #3 registers; until then any value
-  logs an error and leaves reporting off. The synthetic test transport cannot be selected here.
-- `AGENT_REPORTING_KEYS` takes `version:base64key` entries separated by commas, each key 32 bytes,
-  current first. Rotate by adding a new first entry; keep older entries while data sealed under
-  them remains. Each entry's encryption and lookup keys are derived separately (HKDF).
-- The model keys do nothing until a model is pinned in code, which none is yet.
+- `AGENT_REPORTING_KEYS` turns reporting on once a chat channel is available. It takes
+  `version:base64key` entries separated by commas, each key 32 bytes, current first. It is plural
+  because rotation adds a new first entry while older entries keep earlier data readable. Each
+  entry's encryption and lookup keys are derived separately (HKDF). Losing it makes stored reports
+  and chat identities unreadable, so keep it and only ever rotate it.
+- The OpenAI and Jev keys are used once a model is pinned in code, which none is yet.
+- Chat channels bring their own credentials: WhatsApp's arrive with PR #3, and Telegram uses the
+  existing `TELEGRAM_BOT_TOKEN`. A channel takes reports only while its operator control is on.
+- The browser origin is fixed in code: `https://www.greengoods.app` in production, where people's
+  passkeys live, and the Client dev server, `https://localhost:3001`, elsewhere. The loopback driver
+  and the tests set their own (`REPORTING_DRIVER_ORIGIN` for the driver).
 - Reporting keeps its database and private media beside the Agent's own database (`DB_PATH`, which
   is `/data/agent.db` on the Fly volume). Publication uploads use the existing `PINATA_JWT`, and
   `PINATA_UPLOADS_API_URL` is optional.
 - Every garden accepts reports; there is no garden list to configure.
 - Operator decisions are controls, not settings: `POST /reporting/ops/controls/:name` with the Agent
   API bearer token and `{ "enabled": true, "reason": "..." }`, for `intake`, `model_processing`,
-  `documents`, `voice`, `publication` and `outbound_messages`. A new database starts with all of
-  them off except `outbound_messages`.
+  `documents`, `voice`, `publication`, `outbound_messages`, `channel_whatsapp` and
+  `channel_telegram`. A new database starts with all of them off except `outbound_messages`.
 
-## 6. PR #3 handoff: WhatsApp transport
+To create the key without printing it, store it in 1Password and stage it on Fly (it applies with
+the next deploy):
 
-- Implement a `TransportAdapter` and register it as `whatsapp` in the `TRANSPORTS` map in
-  `packages/agent/src/runtime/reporting-startup.ts`; `AGENT_REPORTING_TRANSPORT=whatsapp` then
-  turns reporting on, and startup refuses to run reporting without a registered transport.
-- Inbound: verify `X-Hub-Signature-256` over the raw body before parsing, normalize messages and
-  statuses into the existing inbound event types, and hand them to `acceptInboundEvent`, which
-  persists before acknowledgement. Statuses reach `applyDeliveryStatus` in `delivery-status.ts`.
-- Media: implement `InboundMediaFetcher` against authenticated Graph API media URLs with the byte and
-  time limits the media job passes; refuse redirects to other hosts.
+```bash
+op item create --category=password --title="Green Goods agent reporting keys" --vault="<vault>" password="k1:$(openssl rand -base64 32)"
+fly secrets set --stage -a green-goods AGENT_REPORTING_KEYS="$(op read 'op://<vault>/Green Goods agent reporting keys/password')"
+```
+
+## 6. PR #3 handoff: WhatsApp and Telegram channels
+
+- Register each adapter in `CHANNEL_ADAPTERS` in `packages/agent/src/runtime/reporting-startup.ts`
+  under `whatsapp` and `telegram`; its connector returns the adapter when the Agent has the
+  channel's credentials. `routeChannels` already sends each reply and download to the channel its
+  realm names (`whatsapp:<phone-number-id>`, `telegram:<bot-id>`).
+- Inbound: verify the provider request before parsing (WhatsApp's `X-Hub-Signature-256` over the
+  raw body; the bot's existing Telegram webhook secret), normalize messages and statuses into the
+  existing inbound event types, and hand them to `acceptChannelEvent`. It persists before
+  acknowledgement, refuses messages while the channel's control is off (`channel_closed`) and
+  always takes delivery statuses, which reach `applyDeliveryStatus`.
+- Telegram runs on the existing bot. While `channel_telegram` is on, its direct messages go to
+  reporting; on `channel_closed` the bot's current handlers keep serving them. Decide which of the
+  bot's own report commands (submit, approve, reject, pending, status) retire once reporting covers
+  them; group capture and joining stay with the bot. Telegram's `callback_data` holds at most 64
+  bytes, so reply IDs must fit.
+- Media: implement `InboundMediaFetcher` per channel (authenticated Graph API media URLs; Telegram
+  `getFile` with the bot token) with the byte and time limits the media job passes; refuse
+  redirects to other hosts.
 - Outbound: implement `OutboundTransport.send` with the outbox idempotency key; map provider
   failures to `retryable`, `terminal` or `uncertain`. Buttons arrive as `choices` with reply IDs.
   WhatsApp lists hold at most 10 rows with short titles, while the core pages choices 10 at a time
-  plus "More options" and garden names are steward-editable: set `choicePageSize` to 9 for the
-  adapter and shorten long labels. Add template messages for the 24-hour window.
+  plus "More options" and garden names are steward-editable: set `choicePageSize` to 9 and shorten
+  long labels. Add WhatsApp template messages for the 24-hour window.
+- Local end-to-end tests: outside production, ceremony links point to `https://localhost:3001`,
+  which a phone cannot open; use the loopback driver, or a tunnel for both the Agent and the Client.
 - Provisioning: Meta app, test number, webhook subscription and Fly secrets.
 - Keep `mountSyntheticIngress` and the driver out of `createServer`; they are test composition.
 
 ## 7. Decisions for Afolabi
 
-Decided on 27 September 2026: every garden accepts chat reports (this replaces the TAS and Aiyeloja
-Family Garden prototype choice), and the reporting settings shrink to the five above.
+Decided on 27 and 28 September 2026: every garden accepts chat reports (this replaces the TAS and
+Aiyeloja Family Garden prototype choice); the reporting settings shrink to the three secrets above;
+chat channels are switched on by operator controls; the browser origin is fixed to
+`https://www.greengoods.app`; and Telegram moves onto this architecture with WhatsApp, on the
+existing bot.
 
 - LibreOffice: install `libreoffice-writer-nogui` and `libreoffice-calc-nogui` (the approved
   `libreoffice-core` alone cannot convert), or keep Office conversion disabled.
 - Pin the OpenAI extraction and transcription models and the Jev model in code after evaluation.
-- The canonical browser origin; ceremonies work only on the origin the Agent is configured with, so
-  the beta frontend cannot run them against the production Agent.
+- Which of the Telegram bot's own report commands retire once Telegram reporting is on (section 6).

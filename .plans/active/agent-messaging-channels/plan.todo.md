@@ -24,11 +24,13 @@
 > [technical brief](technical-brief.md) and [research amendment](reports/2026-09-25-account-and-conversation-amendment.md).
 > Older dispatch below remains historical. Current handoffs are reconciled; the tracker/start gate and runtime proof remain pending.
 
-> **27 September decisions:** every garden accepts chat reports, which replaces the TAS and Aiyeloja
-> Family Garden prototype choice; the reporter's role in the chosen garden is still checked on
-> chain. Reporting settings are cut to the transport, one key list, the browser origin and the
-> model keys: operator decisions are runtime controls and model versions are pinned in code. See
-> the [capability record](reports/2026-09-27-reporting-core-capability-record.md), sections 5 and 7.
+> **27 and 28 September decisions:** every garden accepts chat reports, which replaces the TAS and
+> Aiyeloja Family Garden prototype choice; the reporter's role in the chosen garden is still checked
+> on chain. Reporting settings are cut to three secrets (the key list and the OpenAI and Jev keys):
+> chat channels and other operator decisions are runtime controls, and model versions and the
+> browser origin (`https://www.greengoods.app`) are fixed in code. Telegram moves onto this
+> architecture with WhatsApp, on the existing bot. See the
+> [capability record](reports/2026-09-27-reporting-core-capability-record.md), sections 5 to 7.
 
 **Feature slug:** agent-messaging-channels
 
