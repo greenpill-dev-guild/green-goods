@@ -162,6 +162,11 @@ Admin and MSW removal.
 | [x] | Admin's DOM project runs in happy-dom (`9703b5402`); two files that assert authored inline styles stay on jsdom. Instructions −29% and Vitest time −29% in A B B A, identical names and results in all six runs, coverage unchanged | Report § happy-dom for Admin |
 | [x] | MSW removed (`1c6948d50`): the unused GraphQL mock server and its Shared export, unused imports in the Playwright Pimlico mocks, and the root `msw` pin. Every other lockfile edge keeps its version; four seam fingerprints re-certified because they hash Shared's manifest | Report § MSW removal |
 
+The D11 evidence went into the dated 2026-09-28 report in `30bfcf9fb`, against the plan skill's
+rule that dated reports are immutable, and CI's Guidance integrity job failed on that head. It
+stays there: restoring the report would be a second edit, which the same check rejects on the next
+push. The local push gate did not select `immutable-plan-reports` for the edit.
+
 ## Current handoff
 
 The snapshot 08 follow-up reached `develop` at `23a8d1ffb`, and D11 in `9703b5402` and
