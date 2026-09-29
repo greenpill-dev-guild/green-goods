@@ -6,7 +6,7 @@ on:
     paths:
       - "package.json"
       - "bun.lock"
-      - ".env.schema"
+      - "env.schema"
       - "packages/contracts/**"
       - "scripts/contracts/**"
       - "scripts/lib/git-guardrails.mjs"
@@ -17,7 +17,7 @@ on:
     paths:
       - "package.json"
       - "bun.lock"
-      - ".env.schema"
+      - "env.schema"
       - "packages/contracts/**"
       - "scripts/contracts/**"
       - "scripts/lib/git-guardrails.mjs"

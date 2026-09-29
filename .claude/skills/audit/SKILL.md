@@ -303,7 +303,7 @@ Run the consolidated drift check:
 bash .claude/scripts/check-drift.sh
 ```
 
-Checks: hook/utility/type references in skills vs actual shared exports, dev port assignments, core commands in package.json, `.env.schema` key variables.
+Checks: hook/utility/type references in skills vs actual shared exports, dev port assignments, core commands in package.json, `env.schema` key variables.
 
 **Manual check**: Provider order -- compare actual provider nesting in client/admin against documented order (MEDIUM if drifted).
 

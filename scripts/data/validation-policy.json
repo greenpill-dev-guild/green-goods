@@ -109,7 +109,7 @@
     },
     {
       "surface": "all",
-      "exact": ["package.json", "biome.json", ".env.schema", "tsconfig.json", "tsconfig.base.json"]
+      "exact": ["package.json", "biome.json", "env.schema", "tsconfig.json", "tsconfig.base.json"]
     }
   ],
   "conditionalRules": [
@@ -1589,7 +1589,7 @@
         "package.json",
         "bun.lock",
         "biome.json",
-        ".env.schema",
+        "env.schema",
         "playwright.config.ts",
         "scripts/ops/upload-sourcemaps.js",
         "scripts/lib/env-schema.mjs",
@@ -1617,7 +1617,7 @@
         "package.json",
         "bun.lock",
         "biome.json",
-        ".env.schema",
+        "env.schema",
         "scripts/quality/check-source-structure.js",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/agent.yml",
@@ -1631,7 +1631,7 @@
         "package.json",
         "bun.lock",
         "biome.json",
-        ".env.schema",
+        "env.schema",
         "playwright.config.ts",
         "scripts/ops/upload-sourcemaps.js",
         "scripts/lib/env-schema.mjs",
@@ -1660,7 +1660,7 @@
       "exact": [
         "package.json",
         "bun.lock",
-        ".env.schema",
+        "env.schema",
         "scripts/lib/git-guardrails.mjs",
         "scripts/quality/check-source-structure.js",
         ".github/actions/setup-js/action.yml",
@@ -1783,7 +1783,7 @@
       "exact": [
         "package.json",
         "bun.lock",
-        ".env.schema",
+        "env.schema",
         "scripts/quality/check-source-structure.js",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/indexer.yml",
@@ -1896,7 +1896,7 @@
         "package.json",
         "bun.lock",
         "biome.json",
-        ".env.schema",
+        "env.schema",
         "scripts/quality/check-source-structure.js",
         "scripts/lib/vitest-shared-graph.mjs",
         ".github/actions/setup-js/action.yml",

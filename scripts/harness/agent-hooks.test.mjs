@@ -72,7 +72,7 @@ test("advisory hooks tolerate missing fields, malformed events, and missing jq",
 });
 
 const harmless = [
-  "bun run test", "bun run contracts test", "cat .env.schema .env.example .env.template",
+  "bun run test", "bun run contracts test", "cat env.schema .env.example env.template",
   "rg 'production deployment|deploy mainnet|bun test' AGENTS.md",
   "printf '%s\\n' 'vercel --prod; bun test; cat .env'",
   "git log --grep='deploy mainnet'", "git push origin feature/main --force",

@@ -59,7 +59,7 @@ const CONTRACT_ARTIFACTS = [
   "packages/contracts/abis/",
   "packages/contracts/deployments/",
 ];
-const APP_BUILD = [".env.schema", "scripts/dev/remove-public-sourcemaps.js"];
+const APP_BUILD = ["env.schema", "scripts/dev/remove-public-sourcemaps.js"];
 
 function app(name) {
   return {

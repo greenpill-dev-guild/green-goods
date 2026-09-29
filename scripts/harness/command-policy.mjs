@@ -127,7 +127,7 @@ function executableWords(words) {
 
 function isSecretFile(value) {
   const name = basename(value);
-  return /^\.env(?:\..+)?$/.test(name) && ![".env.schema", ".env.example", ".env.template"].includes(name);
+  return /^\.env(?:\..+)?$/.test(name) && name !== ".env.example";
 }
 
 function readOperands(executable, args) {

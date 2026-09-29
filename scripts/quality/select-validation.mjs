@@ -167,7 +167,7 @@ function classifyChangedPath(path) {
     return "public-source";
   }
   if (/^packages\/[^/]+\/src\//.test(path)) return "runtime-source";
-  if (["biome.json", ".env.schema", "tsconfig.json", "tsconfig.base.json"].includes(path)) {
+  if (["biome.json", "env.schema", "tsconfig.json", "tsconfig.base.json"].includes(path)) {
     return "root-config";
   }
   return "other";

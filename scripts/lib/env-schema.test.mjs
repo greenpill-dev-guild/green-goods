@@ -76,7 +76,7 @@ test("rejects an injected production Vercel environment without a Sentry DSN", (
 
 test("enforces annotated keys for production and only warns for preview", () => {
   const root = mkdtempSync(join(tmpdir(), "env-parity-"));
-  const schemaPath = join(root, ".env.schema");
+  const schemaPath = join(root, "env.schema");
   writeFileSync(schemaPath, "VITE_REQUIRED= # @required-in production-client\n");
 
   try {
