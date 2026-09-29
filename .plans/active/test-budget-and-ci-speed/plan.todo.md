@@ -2,13 +2,21 @@
 
 **Feature Slug**: `test-budget-and-ci-speed`
 **Stage**: active
-**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshot 07 is published
+**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshots 07 and 08 are published. The snapshot 08 follow-up (D10) is committed locally on `develop`, not pushed
 **Created**: 2026-09-19
 **Last Updated**: 2026-09-28
 
 The user selected local implementation beginning with step 1 and later authorized a commit of completed slices. Item numbers below refer to the supplied twelve-item test-audit prompt. The closeout pass may push to `origin/develop` (D4); a PR, a merge to `main`, a deploy and Linear writes remain unauthorized.
 
 ## Current execution truth (2026-09-28)
+
+### Snapshot 08 follow-up (2026-09-28, later)
+
+Scorecard snapshot 08, an independent re-audit at `1a3afcb52`, listed eight open items. Afo chose
+items 2, 3, 5, 6 and 7 with the page's recommendations (D10). They are done and committed locally
+on `develop`, one commit per root cause; nothing is pushed. The
+[follow-up report](reports/2026-09-28-snapshot-08-follow-up.md) holds the evidence.
+
 
 The closeout pass pushed the range to `origin/develop` in three pushes (`d7cf681ec..fca76d585`,
 31 commits). The [closeout report](reports/2026-09-28-closeout-push.md) holds the timings, the run
@@ -81,6 +89,7 @@ Three recent published Shared runs have both shards green. They provide observat
 | D7 (2026-09-28): fix the `offlineDownloads` byte assertion now; the SDK's `BigInt.prototype.toJSON` patch is a follow-up | Decided by Afo | Test fixed in `7f1c0b7c7`; the SDK patch is a product question in the resolution report's open items |
 | D8 (2026-09-28): fix the three CI routing gaps now | Decided by Afo | Done in `ba6feb9b2`, `77cf70b55` and `268bb138f`, each with a guard against drift |
 | D9 (2026-09-28): prune CodeQL's unreachable overlay-base databases hourly; keep overlay analysis on | Decided by Afo, from three options | Pull-request analyses restore only the newest database, and overlay keeps them near 2 minutes instead of 7 while the rulesets wait for CodeQL. The free org plan cannot buy more cache. The 21 unreachable databases were deleted by hand; the workflow is PR #945 |
+| D10 (2026-09-28): address snapshot 08's items 2, 3, 5, 6 and 7 with the page's recommendations | Decided by Afo | Dispatch the CodeQL prune by hand; speed up what Admin's tests import rather than add a Shared shard; add the vault history's exactly-full page; finish the helper codemod; fix `canonicalJobPayload` instead of the SDK, end the Data Saver override with its session, and move the import-seam case into `check-source-structure.js` |
 
 ## Ordered work
 
@@ -127,15 +136,31 @@ the [follow-through report](reports/2026-09-28-velocity-follow-through.md).
 | [x] | 14 | Astra's review resolved: receipts fingerprint the effective environment and never serve the strict gates, the mutation analyzer follows references and fails closed on unreadable imports, shared-graph admission follows helpers under a fresh-module and globals guard, the Seed leaf imports, a real small-file reason; then D6–D8 | [Resolution report](reports/2026-09-28-astra-review-resolution.md) |
 | [x] | 15 | Closeout push: three pushes; two gate fixes found while measuring (`627149a4d` lets the hook reuse a manual pass under Husky's `NVM_DIR`; `fca76d585` gives manual runs the package binaries the hook has); critical plan 461 s cold and 2.1 s warm; every workflow green; Coverage Nightly passed; lease sample on a quiet machine; snapshot 07 | [Closeout report](reports/2026-09-28-closeout-push.md) |
 
+## Snapshot 08 follow-up (2026-09-28)
+
+Afo chose these on September 28 (D10). Each is a local commit on `develop` from `1a3afcb52`;
+evidence lives in the [follow-up report](reports/2026-09-28-snapshot-08-follow-up.md).
+
+| Done | Item | Work | Evidence |
+|---|---|---|---|
+| [x] | 2 | CodeQL prune dispatched by hand: 3 unreachable databases (1,364 MB) deleted, one left; the hourly schedule is still to be confirmed | Report § Item 2 |
+| [x] | 3 | Admin tests: viem external, AppKit's React entry and wagmi adapter mocked, MSW no longer started, FormWizard off the Shared hooks barrel | Report § Item 3 |
+| [x] | 5 | Vault history paging covers an exactly-full last page; fault f3 now fails 1 of 55 related tests | Report § Item 5 |
+| [x] | 6 | Helper codemod: 45 Shared test files converted with identical names and results, 18 kept with reasons | Report § Item 6 |
+| [x] | 7 | `canonicalJobPayload` reads raw values; the Data Saver override ends with its session; import seams checked by `check-source-structure.js` | Report § Item 7 |
+
 ## Current handoff
 
-The closeout pass is done. Next:
+The snapshot 08 follow-up is committed locally. Next:
 
-- the seven-day CI window from 2026-09-28, for the job medians, the CI Gate median and the red
-  rates that snapshot 07 leaves pending;
-- the open items in the [closeout report](reports/2026-09-28-closeout-push.md) and the
-  [resolution report](reports/2026-09-28-astra-review-resolution.md); the CodeQL cache item is
-  decided (D9) and merges with PR #945;
+- push it once Afo says so, with the push gate run first; other sessions' uncommitted edits in
+  this checkout currently fail `test-quality` Checks 5 and 8, and the gate judges the working tree;
+- confirm the CodeQL prune's hourly schedule starts on its own;
+- the seven-day CI window from 2026-09-28 (snapshot 09, Oct 5), for the job medians, the CI Gate
+  median and the red rates that snapshots 07 and 08 leave pending;
+- the follow-ups the [follow-up report](reports/2026-09-28-snapshot-08-follow-up.md) lists: the
+  same viem and AppKit measurements for Client and Shared, happy-dom for Admin (a new dev
+  dependency, so Afo's call), and removing the now-unstarted MSW server with its dependency;
 - `linear-sync` for PRD-835 (architecture hub), in a pass that may write to Linear.
 
 The earlier instructions below are historical.
