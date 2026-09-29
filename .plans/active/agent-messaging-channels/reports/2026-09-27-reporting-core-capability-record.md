@@ -100,10 +100,11 @@ real receipts, removed roles on chain) need the live gates below.
    its sender will need a bundler setting then.
 10. Before tester intake: the support rehearsal, processor terms and the remaining retention schedule.
 
-## 5. Configuration to add to the root `.env.schema`
+## 5. Configuration
 
-Agents cannot edit `.env.schema`. Only secrets are settings, and they should follow the file's
-existing `_OP_REF` pattern.
+Only secrets are settings. This branch declares them in an "Agent reporting" section at the end of
+the root `.env.schema` (on develop the file becomes `env.schema`, which agents can edit). Their
+1Password references still need adding to `.env.template` as `op://` values once the items exist.
 
 ```dotenv
 AGENT_REPORTING_KEYS=

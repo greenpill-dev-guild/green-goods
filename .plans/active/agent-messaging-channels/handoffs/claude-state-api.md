@@ -103,5 +103,5 @@ agent-test). The contracts checks need the contract submodules, initialized in t
 ## Risks / Blockers
 
 Model quality, provider behavior, wallet and bundler compatibility and chain inclusion are not
-established by fixtures. `.env.schema` needs the settings in capability record section 5, which
-agents cannot add. LibreOffice conversion waits on a package decision.
+established by fixtures. `.env.schema` declares the three reporting secrets; their 1Password
+references still need adding to `.env.template`. LibreOffice conversion waits on a package decision.
