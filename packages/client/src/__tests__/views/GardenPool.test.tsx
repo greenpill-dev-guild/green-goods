@@ -143,6 +143,12 @@ function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
   const ownCreations = queue.pendingCreates.filter(
     (entry: { poolId: string }) => entry.poolId === targetPool.poolId.toString()
   );
+  const shownCreations =
+    liveness === "settled"
+      ? []
+      : ownCreations.filter(
+          (entry: { direction: string }) => direction === "all" || entry.direction === direction
+        );
   const inDirection = commitments.commitments.filter(
     (entry: ReturnType<typeof commitment>) => direction === "all" || entry.direction === direction
   );
@@ -193,6 +199,7 @@ function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
     settledCount: settledInDirection.length,
     busyJobId,
     ownCreations,
+    shownCreations,
     rows,
     titleOf: () => null,
     commitments,
@@ -297,6 +304,27 @@ describe("GardenPool", () => {
     expect(screen.getByText("Waiting to send")).toBeInTheDocument();
     // The phone's own row counts: an otherwise empty pool is not empty.
     expect(screen.queryByText("No promises yet")).not.toBeInTheDocument();
+  });
+
+  it("counts a promise still on this phone with the rest, and keeps it out of Settled", async () => {
+    const user = userEvent.setup();
+    mockUseQueueState.mockReturnValue({
+      pendingCommitmentIds: new Set<string>(),
+      failedCount: 0,
+      failedCommitmentIds: new Set<string>(),
+      hasPendingCreate: true,
+      pendingCreates: [creation()],
+      isUnavailable: false,
+      refresh: vi.fn(),
+    });
+
+    render(<GardenPool pool={pool()} />);
+    expect(screen.getByText("1 live")).toBeInTheDocument();
+
+    // It is no settled promise, so Settled neither lists nor counts it.
+    await user.selectOptions(screen.getByRole("combobox", { name: "Status" }), "settled");
+    expect(screen.queryByText("Prune the north beds")).not.toBeInTheDocument();
+    expect(screen.getByText("0 settled")).toBeInTheDocument();
   });
 
   it("says a creation waiting for the member's hat spends no tries", () => {

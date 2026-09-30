@@ -83,6 +83,17 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     () => pendingCreates.filter((entry) => entry.poolId === pool.poolId.toString()),
     [pendingCreates, pool.poolId]
   );
+  // A creation still on this phone is a live promise to be, of its own kind: it
+  // follows Status and Kind like every row, and belongs to no season yet.
+  const shownCreations = useMemo(
+    () =>
+      liveness === "settled"
+        ? []
+        : ownCreations.filter(
+            (creation) => direction === "all" || creation.direction === direction
+          ),
+    [direction, liveness, ownCreations]
+  );
   const { rows, settledCount } = useMemo(() => {
     const inDirection =
       direction === "all"
@@ -150,7 +161,10 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     setLiveness,
     settledCount,
     busyJobId,
+    /** Every creation on this phone for the pool, whatever the filters. */
     ownCreations,
+    /** The creations the list shows under the chosen Status and Kind. */
+    shownCreations,
     rows,
     titleOf: (metadataCID: string | null | undefined) =>
       metadataCID ? (byCID.get(metadataCID)?.title ?? null) : null,

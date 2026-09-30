@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   commitments: [] as ReturnType<typeof commitmentFixture>[],
   cycles: [] as Array<{ cycleId: bigint; state: string }>,
   commitmentsInput: null as { cycleId?: bigint } | null,
-  pendingCreates: [] as Array<{ jobId: string; poolId: string }>,
+  pendingCreates: [] as Array<{ jobId: string; poolId: string; direction: "OFFER" | "REQUEST" }>,
   metadata: new Map<string, { title: string }>(),
   hasRole: false,
   roleRead: { isLoading: false, error: null as Error | null },
@@ -76,8 +76,8 @@ describe("useGardenPoolController", () => {
     ];
     mocks.cycles = [{ cycleId: 8n, state: "OPEN" }];
     mocks.pendingCreates = [
-      { jobId: "job-7", poolId: "7" },
-      { jobId: "job-9", poolId: "9" },
+      { jobId: "job-7", poolId: "7", direction: "OFFER" },
+      { jobId: "job-9", poolId: "9", direction: "OFFER" },
     ];
     mocks.metadata = new Map([["request-cid", { title: "Water the orchard" }]]);
     mocks.hasRole = false;
@@ -95,13 +95,23 @@ describe("useGardenPoolController", () => {
     const { result } = renderHookWithProviders(() => useGardenPoolController(targetPool));
 
     expect(result.current.rows).toHaveLength(2);
-    expect(result.current.ownCreations).toEqual([{ jobId: "job-7", poolId: "7" }]);
+    expect(result.current.ownCreations).toEqual([
+      { jobId: "job-7", poolId: "7", direction: "OFFER" },
+    ]);
+    expect(result.current.shownCreations).toEqual(result.current.ownCreations);
     expect(result.current.titleOf("request-cid")).toBe("Water the orchard");
     expect(result.current.cycles).toEqual([{ cycleId: 8n, state: "OPEN" }]);
     expect(result.current.canCreate).toBe(true);
 
     act(() => result.current.setDirection("REQUEST"));
     expect(result.current.rows.map((row) => row.commitment.direction)).toEqual(["REQUEST"]);
+    // A creation on this phone follows the filters too, and is never settled.
+    expect(result.current.shownCreations).toEqual([]);
+    act(() => result.current.setDirection("OFFER"));
+    expect(result.current.shownCreations).toHaveLength(1);
+    act(() => result.current.setLiveness("settled"));
+    expect(result.current.shownCreations).toEqual([]);
+    expect(result.current.ownCreations).toHaveLength(1);
   });
 
   it("leaves cancelled seasons out of the rail, as the public page does", () => {

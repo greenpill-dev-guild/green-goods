@@ -110,10 +110,12 @@ export function GardenPool({ pool }: GardenPoolProps) {
         ? formatMessage({ id: "app.pool.charter.loading" })
         : formatMessage({ id: "app.pool.charter" });
 
-  // The count, or, offline, when the saved list was read.
+  // The count of what the list shows, a creation still on this phone included,
+  // or, offline, when the saved list was read.
   const updatedAt = controller.commitments.dataUpdatedAt;
+  const listed = controller.rows.length + controller.shownCreations.length;
   const status = controller.isOnline
-    ? formatMessage({ id: COUNT_IDS[controller.liveness] }, { count: controller.rows.length })
+    ? formatMessage({ id: COUNT_IDS[controller.liveness] }, { count: listed })
     : updatedAt
       ? formatMessage({ id: "app.offline.savedAt" }, { when: formatSavedAt(intl, updatedAt) })
       : formatMessage({ id: "app.pool.offlineUnsaved" });
@@ -213,9 +215,9 @@ export function GardenPool({ pool }: GardenPoolProps) {
             space: <GardenListHeaderSpace />,
           }}
         >
-          {controller.ownCreations.length > 0 ? (
+          {controller.shownCreations.length > 0 ? (
             <div className="mb-2 space-y-2" data-component="PoolPendingCreations">
-              {controller.ownCreations.map((creation) => (
+              {controller.shownCreations.map((creation) => (
                 <PendingCreationRow
                   key={creation.jobId}
                   creation={creation}
@@ -228,7 +230,7 @@ export function GardenPool({ pool }: GardenPoolProps) {
           ) : null}
 
           {controller.rows.length === 0 ? (
-            controller.ownCreations.length === 0 ? (
+            controller.shownCreations.length === 0 ? (
               <p className="py-6 text-center text-sm text-text-sub-600">
                 {formatMessage({ id: "app.commitments.filter.noMatches" })}
               </p>

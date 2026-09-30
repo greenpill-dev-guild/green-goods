@@ -294,6 +294,7 @@ export function gardenPoolControllerFixture(
     settledCount: SETTLED_PROMISES.length,
     busyJobId: null,
     ownCreations: [],
+    shownCreations: [],
     rows: rows.map(({ row: r }) => r),
     titleOf: (cid) => (cid ? (titles.get(cid) ?? null) : null),
     commitments: {
