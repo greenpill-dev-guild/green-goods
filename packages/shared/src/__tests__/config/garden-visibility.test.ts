@@ -16,6 +16,8 @@ import {
   isGardenPubliclyReachable,
   isGardenPubliclyVisible,
   isGardenUnlisted,
+  UNKNOWN_GARDEN_LOCATION,
+  UNNAMED_GARDEN_NAME,
 } from "../../config/garden-visibility";
 
 const LIVE_GARDEN_COOP = "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8";
@@ -91,11 +93,15 @@ describe("config/garden-visibility", () => {
     it("hides placeholder gardens with neither name nor location", () => {
       expect(isGardenPubliclyVisible(garden(VIDA_VERDE, "", ""))).toBe(false);
       expect(isGardenPubliclyVisible(garden(VIDA_VERDE, "   ", "  "))).toBe(false);
+      expect(
+        isGardenPubliclyVisible(garden(VIDA_VERDE, UNNAMED_GARDEN_NAME, UNKNOWN_GARDEN_LOCATION))
+      ).toBe(false);
     });
 
     it("keeps a garden with only one of name or location", () => {
       expect(isGardenPubliclyVisible(garden(VIDA_VERDE, "Vida Verde", ""))).toBe(true);
       expect(isGardenPubliclyVisible(garden(VIDA_VERDE, "", "Brazil"))).toBe(true);
+      expect(isGardenPubliclyVisible(garden(VIDA_VERDE, UNNAMED_GARDEN_NAME, "Brazil"))).toBe(true);
     });
 
     it("treats null and undefined metadata as absent", () => {
