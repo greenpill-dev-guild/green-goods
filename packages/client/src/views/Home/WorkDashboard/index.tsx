@@ -344,9 +344,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     isLoading: isLoadingMyWorks || isLoadingMyApprovals,
     isError: isErrorMyWorks || (isErrorMyApprovals && allApprovals === undefined),
   };
-  // Pending shows these only while it has nothing else to show (its own rows decide).
-  const isLoadingPending = needsReviewState.isLoading || myWorkState.isLoading;
-  const hasPendingError = needsReviewState.isError || myWorkState.isError;
 
   const reviewHistoryState = { isLoading, isError: hasError };
   const completedSources =
@@ -420,9 +417,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             decisions={queuedDecisions}
             uploads={uploads}
             viewer={viewer}
-            isLoading={isLoadingPending}
+            // Pending weighs each read against the filter in use and the rows it shows.
+            reads={{ needsReview: needsReviewState, myWork: myWorkState }}
             isFetching={isRefreshing}
-            hasError={hasPendingError}
             isOffline={isOffline}
             savedAt={pendingSavedAt}
             pendingFilter={pendingFilter}

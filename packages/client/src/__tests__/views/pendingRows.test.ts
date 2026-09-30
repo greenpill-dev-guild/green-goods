@@ -141,8 +141,23 @@ describe("Pending rows", () => {
     const sent = { ...queuedWork("ready"), id: "0xabc", status: "pending" as const };
     expect(submissionRow(sent, false, context)).toMatchObject({ kind: "review" });
 
-    const decision = decisionRow(sent, { state: "sent" }, context);
+    const decision = decisionRow(
+      sent,
+      { jobId: "approval-1", status: { state: "sent" }, savedAt: 1 },
+      context
+    );
     expect(decision).toMatchObject({ kind: "checking", type: "decision" });
+  });
+
+  it("sorts a review saved here by when it was saved, not by the work's own date", () => {
+    const olderWork = { ...queuedWork("ready"), id: "0xold", createdAt: 1_000 };
+    const savedNow = 1_000_000_000_000;
+    const review = decisionRow(
+      olderWork,
+      { jobId: "approval-2", status: { state: "ready" }, savedAt: savedNow },
+      context
+    );
+    expect(review.at).toBe(savedNow);
   });
 
   it("names proof by its promise and holds it while it sends or is checked", () => {

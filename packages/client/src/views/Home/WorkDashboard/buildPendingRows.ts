@@ -38,7 +38,7 @@ export interface PendingRowContext {
   isLinked: (work: Work) => boolean;
 }
 
-type DecisionStatus = NonNullable<ReturnType<WorkUploads["decisionFor"]>>["status"];
+type QueuedDecision = NonNullable<ReturnType<WorkUploads["decisionFor"]>>;
 
 const message = (intl: IntlShape, id: string, values?: Record<string, string | number>) =>
   intl.formatMessage({ id }, values);
@@ -166,13 +166,17 @@ export function submissionRow(
   return { ...row, kind: card.kind, card, discardable };
 }
 
-/** A review you made on this phone that is still on its way to the record. */
+/**
+ * A review you made on this phone that is still on its way to the record. It
+ * sorts by when the review was saved, not by when the work was submitted.
+ */
 export function decisionRow(
   work: Work,
-  status: DecisionStatus | undefined,
+  decision: QueuedDecision | undefined,
   context: PendingRowContext
 ): PendingRow {
   const { intl } = context;
+  const status = decision?.status;
   const base = {
     title: workTitle(work, context),
     meta: message(intl, "app.pending.meta.yourReview"),
@@ -223,7 +227,7 @@ export function decisionRow(
     type: "decision",
     kind: card.kind,
     source: "work",
-    at: work.createdAt * 1000,
+    at: decision?.savedAt ?? work.createdAt * 1000,
     work,
     card,
   };

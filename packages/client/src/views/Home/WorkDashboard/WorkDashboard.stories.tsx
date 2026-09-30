@@ -161,15 +161,23 @@ function DashboardFrame({
           decisions={decisions}
           uploads={{
             pausedForDataSaver: uploads?.pausedForDataSaver ?? false,
-            decisionFor: (workId) =>
-              decisions.some((work) => work.id === workId)
-                ? { jobId: `approval-${workId}`, status: { state: "ready" } }
-                : undefined,
+            decisionFor: (workId) => {
+              const decided = decisions.find((work) => work.id === workId);
+              return decided
+                ? {
+                    jobId: `approval-${workId}`,
+                    status: { state: "ready" },
+                    savedAt: decided.createdAt * 1000,
+                  }
+                : undefined;
+            },
           }}
           viewer={JOURNEY_VIEWER}
-          isLoading={false}
+          reads={{
+            needsReview: { isLoading: false, isError: false },
+            myWork: { isLoading: false, isError: false },
+          }}
           isFetching={isFetching}
-          hasError={false}
           isOffline={isOffline}
           savedAt={savedAt}
           pendingFilter={pendingFilter}

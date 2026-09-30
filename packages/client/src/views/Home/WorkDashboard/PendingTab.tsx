@@ -36,7 +36,14 @@ import {
   submissionRow,
   toReviewRow,
 } from "./buildPendingRows";
-import { filterPendingRows, pendingFilterOptions, sortPendingRows } from "./pendingRows";
+import {
+  filterPendingRows,
+  type PendingRead,
+  type PendingReadName,
+  pendingFilterOptions,
+  readsBehindFilter,
+  sortPendingRows,
+} from "./pendingRows";
 import type { UploadAction } from "./uploadActions";
 import { WorkListHeader } from "./WorkListTab";
 
@@ -50,9 +57,9 @@ interface PendingTabProps {
   decisions: Work[];
   uploads: Pick<WorkUploads, "decisionFor" | "pausedForDataSaver">;
   viewer: Address | null;
-  isLoading: boolean;
+  /** The record's reads; the queue's own read is taken here. */
+  reads: Record<Exclude<PendingReadName, "queue">, PendingRead>;
   isFetching: boolean;
-  hasError: boolean;
   errorMessage?: string;
   isOffline: boolean;
   /** When the rows on screen were last read, in milliseconds. */
@@ -109,9 +116,8 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   decisions,
   uploads,
   viewer,
-  isLoading,
+  reads,
   isFetching,
-  hasError,
   errorMessage,
   isOffline,
   savedAt,
@@ -147,7 +153,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   };
   const rows = sortPendingRows([
     ...submissions.map((work) => submissionRow(work, isOnThisDevice(work), context)),
-    ...decisions.map((work) => decisionRow(work, uploads.decisionFor(work.id)?.status, context)),
+    ...decisions.map((work) => decisionRow(work, uploads.decisionFor(work.id), context)),
     ...toReview.map((work) => toReviewRow(work, context)),
     ...drafts.map(draftRow),
     ...proofs.items.map((proof) => proofRow(proof, context)),
@@ -155,17 +161,24 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   const shown = filterPendingRows(rows, pendingFilter);
   const options = pendingFilterOptions(rows, pendingFilter);
   const hasNothing = rows.length === 0;
-  // This phone's queue can fail to read while the record answers. An empty list
-  // then means nothing, so it reads as an error, and Refresh reads the queue too.
-  const queueUnreadable = proofs.isUnavailable;
-  const failed = hasError || queueUnreadable;
+  // An empty filter is only "nothing pending" once the reads that could fill it
+  // have answered. This phone's queue can fail to read while the record answers,
+  // so it counts as a read too, and Refresh reads it again.
+  const behind = readsBehindFilter(pendingFilter, {
+    ...reads,
+    queue: { isLoading: false, isError: proofs.isUnavailable },
+  });
+  const showsNothing = shown.length === 0;
+  const isLoading = showsNothing && behind.isLoading;
+  const failed = showsNothing && behind.failed.length > 0;
+  const queueUnreadable = failed && behind.failed.includes("queue");
   const refresh = () => {
     queue.refresh();
     onRefresh();
   };
 
   const statusText =
-    (isLoading || failed) && hasNothing
+    isLoading || failed
       ? null
       : isOffline && savedAt
         ? intl.formatMessage(
@@ -173,7 +186,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
             { when: formatSavedAt(intl, savedAt) }
           )
         : intl.formatMessage({ id: COUNT_LABELS[pendingFilter] }, { count: shown.length });
-  const showRefresh = !isOffline && !((isLoading || failed) && hasNothing);
+  const showRefresh = !isOffline && !(isLoading || failed);
   const showUpload =
     !isOffline && uploadAction && (pendingFilter === "all" || pendingFilter === "upload");
 
@@ -267,7 +280,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
         )}
       </WorkListHeader>
 
-      {isLoading && hasNothing ? (
+      {isLoading ? (
         <div className="flex flex-1 flex-col items-center justify-center pb-32">
           <Loader />
           <p className="mt-4 text-sm text-text-soft-400">
@@ -277,7 +290,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
             })}
           </p>
         </div>
-      ) : failed && hasNothing ? (
+      ) : failed ? (
         <EmptyState
           className="flex-1"
           placement="sheet"

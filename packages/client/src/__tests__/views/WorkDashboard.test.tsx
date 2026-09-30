@@ -13,6 +13,7 @@ const mockUseMyOnlineWorks = vi.fn();
 let mockReviewerGardenIds: string[] = [];
 let mockProofs: PendingProof[] = [];
 let mockQueueUnreadable = false;
+let mockInitialPendingFilter: string | undefined;
 const mockQueueRefresh = vi.fn();
 let mockOnPhone = 0;
 const mockDiscardWork = vi.fn(async () => true);
@@ -243,7 +244,7 @@ vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   ) =>
     selector({
       workDashboardInitialTab: undefined,
-      workDashboardInitialPendingFilter: undefined,
+      workDashboardInitialPendingFilter: mockInitialPendingFilter,
       rememberWorkDashboard: vi.fn(),
       registerOpenSheet: mockRegisterOpenSheet,
     }),
@@ -315,6 +316,7 @@ describe("WorkDashboard", () => {
     mockReviewerGardenIds = [];
     mockProofs = [];
     mockQueueUnreadable = false;
+    mockInitialPendingFilter = undefined;
     mockOnPhone = 0;
     mockIsOnline = true;
     mockUploads = idleUploads();
@@ -710,6 +712,21 @@ describe("WorkDashboard", () => {
     expect(screen.getByText("Unable to load work")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["needsReview", { isLoading: true }, "Loading your work..."],
+    ["needsReview", { isError: true }, "Unable to load work"],
+    // Drafts are on this phone, so their filter never waits on the record.
+    ["editing", { isLoading: true }, "Nothing pending"],
+  ] as const)("answers an empty %s filter by its own reads, whatever else is listed", (filter, read, expected) => {
+    // Your own queued work is listed meanwhile, under another filter.
+    mockInitialPendingFilter = filter;
+    mockNeedsReviewState = { ...mockNeedsReviewState, ...read, ready: false };
+
+    renderDashboard();
+
+    expect(screen.getByText(expected)).toBeInTheDocument();
   });
 
   it("says the list could not load when this phone's queue can't be read, and reads it again offline", () => {
