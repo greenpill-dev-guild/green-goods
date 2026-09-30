@@ -192,7 +192,42 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
             if (bytes(value).length > 0) return value;
         } catch { }
 
-        return "";
+        // Last, derive from the shared Alchemy key. Without this a developer who has the repo's
+        // single configured credential still cannot run any fork test, which is how the fork lane
+        // quietly becomes CI-only.
+        return _deriveAlchemyRpcUrl(chainName);
+    }
+
+    /// @notice Derive a provider URL from the shared Alchemy key for supported chains.
+    /// @dev Mirrors `NetworkManager._deriveAlchemyRpcUrl` in script/utils/network.ts, including its
+    ///      deliberate exclusion of Celo, which uses dedicated RPC infrastructure.
+    function _deriveAlchemyRpcUrl(string memory chainName) internal view returns (string memory) {
+        bytes32 chain = keccak256(bytes(chainName));
+        string memory networkPath;
+        if (chain == keccak256(bytes("arbitrum"))) {
+            networkPath = "arb-mainnet";
+        } else if (chain == keccak256(bytes("sepolia"))) {
+            networkPath = "eth-sepolia";
+        } else if (chain == keccak256(bytes("mainnet")) || chain == keccak256(bytes("ethereum"))) {
+            networkPath = "eth-mainnet";
+        } else {
+            return "";
+        }
+
+        string memory apiKey = _tryEnvString("ALCHEMY_API_KEY");
+        if (bytes(apiKey).length == 0) apiKey = _tryEnvString("ALCHEMY_KEY");
+        if (bytes(apiKey).length == 0) apiKey = _tryEnvString("VITE_ALCHEMY_API_KEY");
+        if (bytes(apiKey).length == 0) return "";
+
+        return string.concat("https://", networkPath, ".g.alchemy.com/v2/", apiKey);
+    }
+
+    function _tryEnvString(string memory name) internal view returns (string memory) {
+        try vm.envString(name) returns (string memory value) {
+            return value;
+        } catch {
+            return "";
+        }
     }
 
     /// @notice Resolve an optional fixed fork block number for RPC-cached test runs.
@@ -430,7 +465,7 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: domainMask,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
         return gardenToken.mintGarden(config);
     }
@@ -488,7 +523,7 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
         returns (address gardenAccount, uint256 actionUID)
     {
         gardenAccount = _mintTestGarden(name, 0x0F);
-        _grantGardenRole(gardenAccount, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(gardenAccount, forkOperator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(gardenAccount, forkGardener, IHatsModule.GardenRole.Gardener);
         _grantGardenRole(gardenAccount, forkEvaluator, IHatsModule.GardenRole.Evaluator);
         actionUID = _registerTestAction();
@@ -555,10 +590,27 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
         internal
         returns (bytes32 approvalUID)
     {
+        return _submitWorkDecision(approver, gardenAccount, actionUID, workAttUID, true);
+    }
+
+    /// @notice Submit a work approval or rejection attestation as a specific approver.
+    /// @dev The rejection path matters for commitment pooling, where a newer effective rejection
+    ///      must reverse the credit an earlier approval created.
+    /// @param approved True for an approval, false for a rejection
+    function _submitWorkDecision(
+        address approver,
+        address gardenAccount,
+        uint256 actionUID,
+        bytes32 workAttUID,
+        bool approved
+    )
+        internal
+        returns (bytes32 approvalUID)
+    {
         WorkApprovalSchema memory approval = WorkApprovalSchema({
             actionUID: actionUID,
             workUID: workAttUID,
-            approved: true,
+            approved: approved,
             feedback: "Verified on-site",
             confidence: 2,
             verificationMethod: 1,

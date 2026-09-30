@@ -1,6 +1,7 @@
 import { getAccount, switchChain, type Config } from "@wagmi/core";
 import { getWagmiConfig } from "../../config/appkit";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import type { Address } from "../../types/domain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getChainName } from "../../config/chains";
 
 const USER_REJECTED_REQUEST = 4001;
@@ -19,6 +20,7 @@ export type EnsureWalletChainOptions = {
 export class WalletChainMismatchError extends Error {
   readonly targetChainId: number;
   readonly walletChainId?: number;
+  readonly cause?: unknown;
 
   constructor(params: {
     targetChainId: number;
@@ -134,4 +136,22 @@ export async function ensureAppKitWalletChain(
   targetChainId: number = DEFAULT_CHAIN_ID
 ): Promise<void> {
   await ensureWagmiWalletChain(getWagmiConfig(), targetChainId);
+}
+
+class WalletAccountMismatchError extends Error {
+  readonly code = "account_mismatch";
+
+  constructor() {
+    super("Wallet account changed before submission");
+    this.name = "WalletAccountMismatchError";
+  }
+}
+
+export function assertWalletAccount(
+  expectedAccount: Address,
+  currentAccount: Address | undefined
+): void {
+  if (currentAccount?.toLowerCase() !== expectedAccount.toLowerCase()) {
+    throw new WalletAccountMismatchError();
+  }
 }

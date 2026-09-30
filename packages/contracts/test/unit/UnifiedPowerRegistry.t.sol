@@ -270,11 +270,7 @@ contract UnifiedPowerRegistryTest is Test {
             for (uint256 r = 0; r < 3; r++) {
                 uint256[3] memory hatIds = [OPERATOR_HAT, GARDENER_HAT, COMMUNITY_HAT];
                 sources[r] = NFTPowerSource({
-                    token: address(hats),
-                    nftType: NFTType.HAT,
-                    weight: allSchemes[s][r],
-                    tokenId: 0,
-                    hatId: hatIds[r]
+                    token: address(hats), nftType: NFTType.HAT, weight: allSchemes[s][r], tokenId: 0, hatId: hatIds[r]
                 });
             }
 
@@ -503,11 +499,7 @@ contract UnifiedPowerRegistryTest is Test {
 
         NFTPowerSource[] memory sources = new NFTPowerSource[](1);
         sources[0] = NFTPowerSource({
-            token: address(multiToken),
-            nftType: NFTType.ERC1155,
-            weight: 10_000,
-            tokenId: tokenId,
-            hatId: 0
+            token: address(multiToken), nftType: NFTType.ERC1155, weight: 10_000, tokenId: tokenId, hatId: 0
         });
 
         vm.startPrank(gardensModule);
@@ -560,11 +552,7 @@ contract UnifiedPowerRegistryTest is Test {
             NFTPowerSource({ token: address(badge), nftType: NFTType.ERC721, weight: 10_000, tokenId: 0, hatId: 0 });
         // ERC1155 source: weight 20000
         sources[2] = NFTPowerSource({
-            token: address(multiToken),
-            nftType: NFTType.ERC1155,
-            weight: 20_000,
-            tokenId: erc1155TokenId,
-            hatId: 0
+            token: address(multiToken), nftType: NFTType.ERC1155, weight: 20_000, tokenId: erc1155TokenId, hatId: 0
         });
 
         vm.startPrank(gardensModule);
@@ -833,25 +821,13 @@ contract UnifiedPowerRegistryTest is Test {
     function _buildSources() internal view returns (NFTPowerSource[] memory sources) {
         sources = new NFTPowerSource[](3);
         sources[0] = NFTPowerSource({
-            token: address(hats),
-            nftType: NFTType.HAT,
-            weight: OPERATOR_WEIGHT,
-            tokenId: 0,
-            hatId: OPERATOR_HAT
+            token: address(hats), nftType: NFTType.HAT, weight: OPERATOR_WEIGHT, tokenId: 0, hatId: OPERATOR_HAT
         });
         sources[1] = NFTPowerSource({
-            token: address(hats),
-            nftType: NFTType.HAT,
-            weight: GARDENER_WEIGHT,
-            tokenId: 0,
-            hatId: GARDENER_HAT
+            token: address(hats), nftType: NFTType.HAT, weight: GARDENER_WEIGHT, tokenId: 0, hatId: GARDENER_HAT
         });
         sources[2] = NFTPowerSource({
-            token: address(hats),
-            nftType: NFTType.HAT,
-            weight: COMMUNITY_WEIGHT,
-            tokenId: 0,
-            hatId: COMMUNITY_HAT
+            token: address(hats), nftType: NFTType.HAT, weight: COMMUNITY_WEIGHT, tokenId: 0, hatId: COMMUNITY_HAT
         });
     }
 }

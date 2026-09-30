@@ -1,21 +1,21 @@
+import type { Step } from "../../../components/Form/StepIndicator";
+import { toastService } from "../../../components/Toast/toast.service";
 import {
-  type CreateActionFormData,
-  adminRoutes,
-  buildActionInstructionsV2,
-  Domain,
-  getNetworkContracts,
-  logger,
-  parseContractError,
-  type Step,
-  toastService,
   trackAdminActionCreateFailed,
   trackAdminActionCreateStarted,
   trackAdminActionCreateSuccess,
-  uploadFileToIPFS,
-  useActionOperations,
-  useFormWizardStepValidation,
-  useSheetOrchestratorStore,
-} from "@green-goods/shared";
+} from "../../../modules/app/analytics-events";
+import { logger } from "../../../modules/app/logger";
+import { uploadFileToIPFS } from "../../../modules/data/ipfs/upload";
+import { useSheetOrchestratorStore } from "../../../stores/useSheetOrchestratorStore";
+import { Domain } from "../../../types/domain";
+import { buildActionInstructionsV2 } from "../../../utils/action/translations";
+import { getNetworkContracts } from "../../../utils/blockchain/contracts";
+import { parseContractError } from "../../../utils/errors/contract-errors";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
+import type { CreateActionFormData } from "../../action/useActionForm";
+import { useActionOperations } from "../../action/useActionOperations";
+import { useFormWizardStepValidation } from "../../ui/useFormWizardStepValidation";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -221,7 +221,7 @@ export function useCreateActionController() {
         const errorMessage = result.error?.message ?? "Action registration failed";
         mutationStarted = false;
         // Telemetry carries the parsed error family only — raw messages can
-        // embed operator-typed content (work/auth telemetry follow the same rule).
+        // embed steward-typed content (work/auth telemetry follow the same rule).
         const parsedFamily = parseContractError(result.error ?? errorMessage).name;
         trackAdminActionCreateFailed({
           ...telemetryBase,

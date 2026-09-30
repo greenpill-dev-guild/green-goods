@@ -1,13 +1,14 @@
 /**
  * Tests for wallet submission module
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Must mock before imports
 vi.mock("@wagmi/core", () => ({
+  getBlock: vi.fn(),
   getWalletClient: vi.fn(),
   getPublicClient: vi.fn(),
   waitForTransactionReceipt: vi.fn(),
@@ -68,11 +69,6 @@ vi.mock("../../utils/blockchain/polling", () => ({
   TX_RECEIPT_TIMEOUT_MS: 120_000,
 }));
 
-vi.mock("../../modules/work/simulate", () => ({
-  simulateWorkSubmission: vi.fn(),
-  simulateApprovalSubmission: vi.fn(),
-}));
-
 vi.mock("../../utils/debug", () => ({
   DEBUG_ENABLED: false,
   debugLog: vi.fn(),
@@ -117,6 +113,7 @@ vi.mock("../../config/query-keys", () => ({
 
 import * as wagmiCore from "@wagmi/core";
 import type { WalletClient } from "viem";
+import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 
 import {
   submitApprovalDirectly,
@@ -125,7 +122,7 @@ import {
 } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import * as encoders from "../../utils/eas/encoders";
-import { mock } from "../test-utils";
+import { mock } from "../test-utils/render-helpers";
 
 describe("wallet-submission", () => {
   const mockWalletClient: Partial<WalletClient> = {
@@ -151,8 +148,8 @@ describe("wallet-submission", () => {
       actionUID: 123,
       title: "Test Work",
       feedback: "Test feedback",
-      plantSelection: ["plant1", "plant2"],
-      plantCount: 10,
+      timeSpentMinutes: 10,
+      details: { plantSelection: ["plant1", "plant2"], plantCount: 10 },
       media: [],
     };
 
@@ -161,6 +158,28 @@ describe("wallet-submission", () => {
       new File(["image2"], "image2.jpg", { type: "image/jpeg" }),
     ];
 
+    it("reconciles an already broadcast transaction before uploading or sending again", async () => {
+      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({ status: "success" } as any);
+      await expect(
+        submitWorkDirectly(
+          mockWorkDraft,
+          "0xGardenAddress",
+          123,
+          "Test Action",
+          mockChainId,
+          mockImages,
+          {
+            checkpoint: {
+              submittedAt: "2026-09-09T00:00:00Z",
+              files: {},
+              transactionHash: "0x1234",
+            },
+          }
+        )
+      ).rejects.toThrow("awaiting-confirmation");
+      expect(encoders.encodeWorkData).not.toHaveBeenCalled();
+      expect(mockWalletClient.sendTransaction).not.toHaveBeenCalled();
+    });
     it("should successfully submit work when wallet is connected", async () => {
       // Setup mocks
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
@@ -208,6 +227,50 @@ describe("wallet-submission", () => {
         {},
         { hash: "0xTransactionHash", chainId: mockChainId }
       );
+    });
+
+    it("keeps the chain's head with the intent it records before the wallet prompt, and never a stale one", async () => {
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
+        "0xTransactionHash" as `0x${string}`
+      );
+      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
+      const onCheckpoint = vi.fn(async (_checkpoint: object) => undefined);
+      const send = (draft: WorkDraft) =>
+        submitWorkDirectly(draft, "0xGardenAddress", 123, "Test Action", mockChainId, mockImages, {
+          onCheckpoint,
+        });
+
+      // A lost answer is then timed on the chain's clock, whatever the device's does.
+      mock(wagmiCore.getBlock).mockResolvedValue({ number: 100n, timestamp: 1_234n } as any);
+      await send({ ...mockWorkDraft, uploadCheckpoint: undefined });
+      expect(onCheckpoint).toHaveBeenCalledWith(
+        expect.objectContaining({
+          broadcastPending: true,
+          intentBlock: 100n,
+          intentChainTime: 1_234,
+        })
+      );
+
+      // A head kept from an earlier try never stands in for one the chain cannot give now.
+      onCheckpoint.mockClear();
+      mock(wagmiCore.getBlock).mockRejectedValue(new Error("rpc unavailable"));
+      await send({
+        ...mockWorkDraft,
+        uploadCheckpoint: {
+          submittedAt: "2026-09-09T00:00:00Z",
+          files: {},
+          intentBlock: 7n,
+          intentChainTime: 1,
+          idleBlock: 5n,
+        },
+      });
+      const intent = onCheckpoint.mock.calls[0]?.[0];
+      expect(intent).toMatchObject({ broadcastPending: true });
+      expect(intent).not.toHaveProperty("intentChainTime");
+      expect(intent).not.toHaveProperty("intentBlock");
+      expect(intent).not.toHaveProperty("idleBlock");
     });
 
     it("should throw error when wallet is not connected", async () => {
@@ -371,17 +434,19 @@ describe("wallet-submission", () => {
         "0xApprovalTxHash" as `0x${string}`
       );
       mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
+      const onLifecycle = vi.fn();
 
       // Execute
       const result = await submitApprovalDirectly(
         mockApprovalDraft,
         "0xGardenAddress",
         "0xGardenerAddress",
-        mockChainId
+        mockChainId,
+        { onLifecycle } as any
       );
 
       // Verify
-      expect(result).toBe("0xApprovalTxHash");
+      expect(result).toEqual({ hash: "0xApprovalTxHash", confirmed: true });
       expect(wagmiCore.getWalletClient).toHaveBeenCalledWith({}, { chainId: mockChainId });
       expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, mockChainId);
       expect(encoders.encodeWorkApprovalData).toHaveBeenCalledWith(mockApprovalDraft, mockChainId);
@@ -396,6 +461,85 @@ describe("wallet-submission", () => {
         {},
         { hash: "0xApprovalTxHash", chainId: mockChainId }
       );
+      expect(onLifecycle.mock.calls).toEqual([
+        [{ stage: "handoff" }],
+        [{ stage: "broadcast", txHash: "0xApprovalTxHash" }],
+        [{ stage: "confirmed", txHash: "0xApprovalTxHash" }],
+      ]);
+    });
+
+    it("reports an unconfirmed submission when the receipt helper times out", async () => {
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkApprovalData).mockReturnValue(
+        "0xEncodedApprovalData" as `0x${string}`
+      );
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
+        "0xApprovalTxHash" as `0x${string}`
+      );
+      mock(wagmiCore.waitForTransactionReceipt).mockImplementation(() => new Promise(() => {}));
+      const onLifecycle = vi.fn();
+
+      const result = await submitApprovalDirectly(
+        mockApprovalDraft,
+        "0xGardenAddress",
+        "0xGardenerAddress",
+        mockChainId,
+        { onLifecycle, txTimeout: 0 }
+      );
+
+      expect(result).toEqual({ hash: "0xApprovalTxHash", confirmed: false });
+      expect(onLifecycle).toHaveBeenLastCalledWith({
+        stage: "broadcast",
+        txHash: "0xApprovalTxHash",
+        reason: "receipt-timeout",
+      });
+    });
+
+    it("rethrows receipt failures instead of recording an optimistic approval", async () => {
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkApprovalData).mockReturnValue(
+        "0xEncodedApprovalData" as `0x${string}`
+      );
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
+        "0xApprovalTxHash" as `0x${string}`
+      );
+      const receiptError = new Error("Transaction execution reverted");
+      mock(wagmiCore.waitForTransactionReceipt).mockRejectedValue(receiptError);
+
+      try {
+        await submitApprovalDirectly(
+          mockApprovalDraft,
+          "0xGardenAddress",
+          "0xGardenerAddress",
+          mockChainId
+        );
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect((error as Error).message).toBe("Transaction execution reverted");
+        expect((error as Error).cause).toBe(receiptError);
+      }
+    });
+
+    it("rejects a mined-but-reverted receipt instead of reporting it confirmed", async () => {
+      // waitForTransactionReceipt resolves with the receipt on revert rather
+      // than throwing, so "a receipt arrived" is not proof the write landed.
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkApprovalData).mockReturnValue(
+        "0xEncodedApprovalData" as `0x${string}`
+      );
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
+        "0xApprovalTxHash" as `0x${string}`
+      );
+      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({ status: "reverted" } as any);
+
+      await expect(
+        submitApprovalDirectly(
+          mockApprovalDraft,
+          "0xGardenAddress",
+          "0xGardenerAddress",
+          mockChainId
+        )
+      ).rejects.toThrow(/reverted on chain/i);
     });
 
     it("should throw error when wallet is not connected", async () => {

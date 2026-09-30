@@ -3,8 +3,10 @@
  *
  * Composes:
  *   - **Envio indexer** (`getGardens`): garden metadata, role addresses, createdAt.
- *   - **EAS** (`getWorks`): aggregates field-note (Work) counts, contributor
- *     counts, and last activity timestamps.
+ *   - **EAS** (`fetchListedApprovedWorks`, shared with the other public
+ *     aggregates on a page): aggregates field-note (Work) counts, contributor
+ *     counts, and last activity timestamps from approved work only. Pending
+ *     and rejected work is not public.
  *
  * No auth path — intended for visitors landing on `/sites` or the landing
  * page's "Live Observations" panel.
@@ -14,25 +16,22 @@
  * - **No `slug`** on `Garden` in the schema — derived client-side from `name`.
  *   Gardens with empty names fall back to the lowercased address as slug.
  * - **No `lastActivity`** field — derived from max `createdAt` across the
- *   garden's work attestations; falls back to `Garden.createdAt` when no
- *   works exist.
- * - **No `public-readable` flag on Action submissions** — v1 treats every
- *   on-chain `Work` attestation as public; gating ships when governance lands.
+ *   garden's approved work; falls back to `Garden.createdAt` when it has none.
  *
  * Failures in the EAS layer are treated as soft (zero stats) so the indexer
- * data still renders.
+ * data still renders. A work whose decision cannot be read is left out.
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { isGardenPubliclyVisible } from "../../config/garden-visibility";
+import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
-import { logger } from "../../modules/app/logger";
-import { getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
-import { derivePublicGardenSlug } from "../../public-contracts";
+import { derivePublicGardenSlug } from "../../public-contracts/garden-slug";
 import type { Address } from "../../types/domain";
+import { fetchListedApprovedWorks } from "./listedApprovedWorks";
 
 export interface PublicGardenSummary {
   id: string;
@@ -42,7 +41,7 @@ export interface PublicGardenSummary {
   name: string;
   /** Slug derived from name — see header for limitations. */
   slug: string;
-  /** Free-text location set by the operator. */
+  /** Free-text location set by the steward. */
   location: string;
   bannerImage: string;
   description: string;
@@ -52,8 +51,8 @@ export interface PublicGardenSummary {
   actionCount: number;
   /** Distinct gardener addresses across all works for this garden. */
   contributorCount: number;
-  /** Operator addresses surfaced to the public detail page. */
-  operators: Address[];
+  /** Steward addresses surfaced to the public detail page. */
+  stewards: Address[];
   /** Evaluator addresses surfaced for the "Verified Site" credibility path. */
   evaluators: Address[];
 }
@@ -68,41 +67,35 @@ export function usePublicGardens(
   chainId: number = DEFAULT_CHAIN_ID,
   options: { enabled?: boolean } = {}
 ) {
+  const queryClient = useQueryClient();
   return useQuery({
-    queryKey: queryKeys.public.gardens(chainId),
+    queryKey: publicKeys.gardens(chainId),
     enabled: options.enabled ?? true,
     queryFn: async (): Promise<PublicGardenSummary[]> => {
       const gardens = await getGardens();
-      // Filter placeholder gardens. The indexer's `Garden.initialized` flag is
-      // not exposed by `getGardens`; we approximate "placeholder" as a garden
-      // with no name AND no location. A garden with a name but no location
-      // (or vice-versa) is still public — it just hasn't filled all metadata.
-      const initializedGardens = gardens.filter((g) => {
-        const hasName = (g.name ?? "").trim().length > 0;
-        const hasLocation = (g.location ?? "").trim().length > 0;
-        return hasName || hasLocation;
-      });
+      // Curated visibility plus the placeholder check, both owned by
+      // config/garden-visibility.ts so the archive, the proof counters, and the
+      // evidence ledger can never disagree about which gardens are public.
+      const initializedGardens = gardens.filter(isGardenPubliclyVisible);
 
       if (initializedGardens.length === 0) return [];
 
       const gardenAddresses = initializedGardens.map((g) => g.id);
 
-      // EAS lookup is best-effort: if it fails, surface gardens with zero stats.
-      let works: Awaited<ReturnType<typeof getWorks>> = [];
-      try {
-        works = await getWorks(gardenAddresses, chainId);
-      } catch (error) {
-        logger.warn("[usePublicGardens] EAS works fetch failed; degrading to indexer-only", {
-          error,
-        });
-      }
+      // Shared with the other public aggregates on the page. Best-effort: a
+      // failed read leaves the gardens with zero stats.
+      const { works: approvedWorks } = await fetchListedApprovedWorks(
+        queryClient,
+        gardenAddresses,
+        chainId
+      );
 
       const statsByGarden = new Map<
         string,
         { actionCount: number; contributors: Set<string>; lastActivityAt: number }
       >();
 
-      for (const work of works) {
+      for (const work of approvedWorks) {
         const key = work.gardenAddress.toLowerCase();
         const entry = statsByGarden.get(key) ?? {
           actionCount: 0,
@@ -137,7 +130,7 @@ export function usePublicGardens(
               : fallbackSeconds,
           actionCount: stats?.actionCount ?? 0,
           contributorCount: stats?.contributors.size ?? 0,
-          operators: garden.operators ?? [],
+          stewards: garden.stewards ?? [],
           evaluators: garden.evaluators ?? [],
         };
       });

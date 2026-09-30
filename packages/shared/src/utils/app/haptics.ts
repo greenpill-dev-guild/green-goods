@@ -158,6 +158,72 @@ export function hapticSelection(): void {
 }
 
 /**
+ * Controls that change a selection: tabs (the app bar's included), chips,
+ * switches, radios and checkboxes (native or ARIA), and anything with a
+ * pressed state.
+ */
+const SELECTION_CONTROLS = [
+  '[data-pressable="tab"]',
+  '[role="tab"]',
+  '[role="switch"]',
+  '[role="radio"]',
+  '[role="checkbox"]',
+  'input[type="radio"]',
+  'input[type="checkbox"]',
+  "[aria-pressed]",
+  ".gg-chip",
+].join(", ");
+
+/**
+ * Everything else a finger can press: buttons, links, and every declared
+ * pressable (card, row, media, trigger, fab).
+ */
+const PRESS_CONTROLS = ["button", "a[href]", '[role="button"]', "summary", "[data-pressable]"].join(
+  ", "
+);
+
+/**
+ * Controls that stay quiet whatever else they are: a dropdown trigger opens a
+ * picker the way a field takes focus, and a scrim only closes the sheet above
+ * it. They win over the lists above, even on a button or a declared pressable.
+ */
+const SILENT_CONTROLS = '[role="combobox"], [data-pressable="scrim"]';
+
+/**
+ * Give every press the same tactile answer, from one place.
+ *
+ * Anything a finger can press answers: selection controls with the subtler
+ * selection tap, and buttons, links, cards, rows, and the rest with the light
+ * tap. The rule reads what the markup already says (a button, a link, a
+ * `data-pressable`), so a new control answers without asking and never calls
+ * a haptic itself. Text fields, dropdowns, backdrops, disabled controls, and
+ * clicks the app makes itself stay silent. A surface opts in by installing
+ * this (the installed PWA does; the admin cockpit and the public website stay
+ * silent). Returns the function that removes it.
+ *
+ * Outcome haptics (success, error, warning) stay with the code that knows the
+ * outcome.
+ */
+export function installPressHaptics(root: Document = document): () => void {
+  const handleClick = (event: Event) => {
+    // Only a finger's press counts. A click the app makes itself (a download
+    // link's `link.click()`, once per file) follows a press that already answered.
+    if (!event.isTrusted || !(event.target instanceof Element)) return;
+    const control = event.target.closest(
+      `${SILENT_CONTROLS}, ${SELECTION_CONTROLS}, ${PRESS_CONTROLS}`
+    );
+    if (!control || control.matches(`${SILENT_CONTROLS}, :disabled, [aria-disabled="true"]`)) {
+      return;
+    }
+    if (control.matches(SELECTION_CONTROLS)) hapticSelection();
+    else hapticLight();
+  };
+  // Capture, so a control that stops propagation still answers the press.
+  root.addEventListener("click", handleClick, true);
+  return () => root.removeEventListener("click", handleClick, true);
+}
+
+/**
  * Haptic feedback object for convenient grouped access.
  *
  * @example

@@ -42,6 +42,11 @@ export interface Config {
 
   // Security
   encryptionSecret?: string;
+  savedOffersEncryptionKey?: string;
+  savedOffersAudience?: string;
+  joinRequestsEnabled: boolean;
+  joinRequestsEncryptionKey?: string;
+  joinRequestsProductionReady: boolean;
 
   // API
   botApiToken?: string;
@@ -163,6 +168,11 @@ export function loadConfig(): Config {
 
     // Security
     encryptionSecret: process.env.ENCRYPTION_SECRET,
+    savedOffersEncryptionKey: process.env.SAVED_OFFERS_ENCRYPTION_KEY,
+    savedOffersAudience: process.env.SAVED_OFFERS_AUDIENCE,
+    joinRequestsEnabled: process.env.JOIN_REQUESTS_ENABLED === "true",
+    joinRequestsEncryptionKey: process.env.JOIN_REQUESTS_ENCRYPTION_KEY,
+    joinRequestsProductionReady: process.env.JOIN_REQUESTS_PRODUCTION_READY === "true",
 
     // Analytics
     posthogApiKey,
@@ -282,6 +292,7 @@ function parseCsv(value: string | undefined): string[] | undefined {
  * SECURITY: Enforces critical security requirements in production:
  * - ENCRYPTION_SECRET is required
  * - TELEGRAM_WEBHOOK_SECRET is required in webhook mode
+ * - Saved Offers encryption, audience, and proxy identity are required
  */
 export function validateConfig(config: Config): void {
   const warnings: string[] = [];
@@ -320,6 +331,42 @@ export function validateConfig(config: Config): void {
   if (config.isProduction && !config.publicAllowedOrigins?.trim()) {
     errors.push(
       "AGENT_ALLOWED_ORIGINS is required in production so public browser APIs fail closed."
+    );
+  }
+
+  if (config.isProduction && !config.savedOffersEncryptionKey?.trim()) {
+    errors.push("SAVED_OFFERS_ENCRYPTION_KEY is required in production.");
+  }
+
+  if (config.isProduction && !config.savedOffersAudience?.trim()) {
+    errors.push("SAVED_OFFERS_AUDIENCE is required in production.");
+  }
+
+  if (config.joinRequestsEnabled && !config.joinRequestsEncryptionKey?.trim()) {
+    errors.push("JOIN_REQUESTS_ENCRYPTION_KEY is required when join requests are enabled.");
+  }
+
+  if (config.isProduction && config.joinRequestsEnabled && !config.joinRequestsProductionReady) {
+    errors.push(
+      "JOIN_REQUESTS_PRODUCTION_READY=true is required after every production activation gate is recorded."
+    );
+  }
+
+  if (config.isProduction && !config.trustedProxyHops) {
+    errors.push(
+      "AGENT_TRUSTED_PROXY_HOPS is required in production so public APIs can enforce per-IP limits."
+    );
+  }
+
+  if (config.isProduction && !config.trustedProxyCidrs?.trim()) {
+    errors.push(
+      "AGENT_TRUSTED_PROXY_CIDRS is required in production so forwarded client IPs are accepted only from trusted peers."
+    );
+  }
+
+  if (Boolean(config.trustedProxyHops) !== Boolean(config.trustedProxyCidrs?.trim())) {
+    errors.push(
+      "AGENT_TRUSTED_PROXY_HOPS and AGENT_TRUSTED_PROXY_CIDRS must be configured together."
     );
   }
 

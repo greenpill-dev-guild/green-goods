@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { cookieJarKeys } from "../../config/query-keys/vault";
 import { getCampaignCookieJarCampaigns } from "../../modules/data/campaign-cookie-jars";
 import type { CampaignCookieJarCampaign } from "../../types/cookie-jar";
 import { parseCampaignCookieJarFallbacks } from "../../utils/cookie-jar-campaign";
@@ -55,7 +56,7 @@ export function useCampaignCookieJarCampaigns(
   );
 
   const query = useQuery({
-    queryKey: queryKeys.cookieJar.campaigns(chainId),
+    queryKey: cookieJarKeys.campaigns(chainId),
     queryFn: () => getCampaignCookieJarCampaigns(chainId),
     enabled: options.enabled ?? true,
     staleTime: STALE_TIME_MEDIUM,

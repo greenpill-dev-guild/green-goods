@@ -4,7 +4,7 @@
 
 **Warm Earth** is Green Goods' design language — a synthesis of [M3 Expressive](https://m3.material.io/) and [Liquid Glass](https://developer.apple.com/design/) that creates interfaces feeling alive, friendly, and spatially precise. It builds on the existing Adaptive Surface paradigm, Z-layer model, and material system. Those foundations remain — the Warm Earth language adds the visual/interaction identity.
 
-This file is the detailed Warm Earth implementation guide. The root `DESIGN.md` YAML front matter is the canonical DesignMD token source; this file, sibling sub-files (`spatial.md`, `interaction.md`, `materials.md`), generated artifacts, and runtime CSS are projections that explain or consume that source for implementation.
+This file is the detailed Warm Earth implementation guide. The root `DESIGN.md` YAML front matter is the canonical DesignMD token source; this file, sibling sub-files (`surfaces.md`), generated artifacts, and runtime CSS are projections that explain or consume that source for implementation.
 
 ---
 
@@ -26,7 +26,7 @@ Every surface, component, and interaction in Green Goods expresses:
 
 2. **Clarity** — Concentricity, functional layer separation, content-forward hierarchy, scroll edge effects. Structure is self-evident, never decorated into existence.
 
-3. **Purpose** — Every element serves the mission. No engagement hacking. No dark patterns. The regenerative design lens ([regenerative.md](./regenerative.md)) applies to visual expression too — solarpunk warmth, not trading-floor urgency.
+3. **Purpose** — Every element serves the mission. No engagement hacking. No dark patterns. The regenerative checks in [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design) apply to visual expression too — solarpunk warmth, not trading-floor urgency.
 
 ### What We Do NOT Take
 
@@ -45,14 +45,14 @@ Adapted from Apple's Liquid Glass, these three types create geometric harmony ac
 | Type | Behavior | When to Use | Examples |
 |------|----------|-------------|----------|
 | **Fixed** | Constant corner radius regardless of context | Small elements that don't nest | Avatars, badges, status dots, chips |
-| **Capsule** | Radius = half the container height | Elements that signal emphasis or interactivity | Primary buttons, pills, sliders, nav active indicators, icon buttons |
+| **Capsule** | Radius = half the container height | Elements that signal interactivity at a glance | Chips, pills, sliders, nav active indicators, icon buttons |
 | **Concentric** | Radius = parent radius - padding | Elements nested inside containers | Cards inside panels, content inside cards, inputs inside dialogs |
 
 ### Concentricity Rule
 
 When an element lives inside a container, its corner radius derives from the parent's radius minus the padding between them. This eliminates "pinched" or "flared" corners that create visual tension.
 
-```
+```text
 child_radius = parent_radius - padding
 
 ┌─────────────────────────────────┐  Panel: 20px radius
@@ -77,69 +77,88 @@ const cardRadius = isNested
 
 ### Radius Scale
 
-| Element | Radius | Tailwind Token | Shape Type | Concentric Parent |
-|---------|--------|----------------|------------|-------------------|
+Token names come from root `DESIGN.md` (`rounded.*`), not stock Tailwind. In client and shared code the
+Tailwind classes resolve to that runtime scale: `rounded-md` 8px, `rounded-lg` 16px, `rounded-xl` 20px,
+`rounded-2xl` 24px (admin remaps `rounded-xl` and `rounded-2xl` to 16px). The 12px step has no Tailwind
+class; use `var(--radius-squircle)`. Buttons and fields never take a radius class: their shared primitives
+own the shape (DL-022, DL-026, DL-029). Naming stock Tailwind classes here once let the secondary corner
+drift from 12px to 20px.
+
+| Element | Radius | Runtime token | Shape Type | Concentric Parent |
+|---------|--------|---------------|------------|-------------------|
 | Status dots, tiny badges | 4px | `rounded` | Fixed | — |
-| Chips, tags | 8px | `rounded-lg` | Fixed | — |
-| Content inside cards | 12px | `rounded-xl` | Concentric | Card (16px) - 4px |
-| Cards, form inputs | 16px | `rounded-2xl` | Concentric | Panel (20px) - 4px |
-| Panels, sheets | 20px | `rounded-[1.25rem]` | Concentric | Page (24px) - 4px |
-| Modals, dialogs, bottom sheets | 24px | `rounded-3xl` | Concentric | Viewport edge |
-| Primary buttons, icon buttons | half-height | `rounded-full` | Capsule | — |
-| Secondary buttons | 12px | `rounded-xl` | Fixed | — |
+| Tags and text badges | 8px | `--radius-md` · `rounded-md` | Fixed | — |
+| Content inside cards, actions inside a field, a pressed app button | 12px | `--radius-squircle` | Concentric | Card or field (16px) - 4px |
+| Cards, fields (DL-022) | 16px | `--radius-lg` · `rounded-lg` · `.gg-control` | Concentric | Panel (20px) - 4px |
+| Panels, sheets | 20px | `--radius-xl` · `rounded-xl` | Concentric | Page (24px) - 4px |
+| Modals, dialogs, bottom sheets | 24px | `--radius-2xl` · `rounded-2xl` | Concentric | Viewport edge |
+| Icon buttons | circle | `.gg-icon-button` | Capsule | — |
+| Chips (filters, choices) | capsule | `.gg-chip` · `--radius-full` | Capsule | — |
+| Buttons in the installed app, every emphasis (DL-029) | 16px | `--gg-button-radius` → `--radius-lg` | Fixed | matches the field beside it |
+| Buttons on the public website, every emphasis (DL-029) | 0px | `--gg-button-radius` → `--radius-none` | Fixed | square, like editorial cards and panels |
 
-### Shape & Emphasis Hierarchy
+### Button Corners and Emphasis
 
-Shape communicates emphasis level. This is the core Warm Earth principle for buttons and interactive elements:
+Emphasis is carried by fill, outline, and colour. The corner belongs to the surface, so a primary and the secondary beside it always share one shape (DL-026), and in the app that shape is the field's (DL-029):
 
-| Emphasis | Shape | Morph on Press | Use |
-|----------|-------|----------------|-----|
-| **Primary / hero** | Capsule (`rounded-full`) | Pill tightens toward squircle | CTAs, FABs, hero actions, "Create Garden" |
-| **Secondary / functional** | Squircle (`rounded-xl`) | Radius tightens further | Toolbar actions, form submits, "Cancel" |
-| **Icon buttons** | Capsule (`rounded-full`) | Circle squishes toward square | Settings gear, search, nav icons |
-| **Ghost / text** | None (inherits parent) | Subtle background appears | Inline links, tertiary actions |
+| Element | Installed app | Public website | Morph on Press | Use |
+|---------|---------------|----------------|----------------|-----|
+| **Primary** (filled; the error fill when destructive) | 16px | 0px | One step tighter in the app: 12px; none on the website | CTAs, hero actions, "Create Garden" |
+| **Secondary** (outlined, "Cancel" included) | 16px | 0px | One step tighter in the app: 12px; none on the website | Second actions, "Cancel" (DL-016), "Add Link" |
+| **Tertiary** (text) | No container at rest; 16px fill on hover and focus | Square fill on hover and focus | — | Inline actions, a rare third action; 44px hit area |
+| **Icon buttons** | Circle | Circle | Tightens to the 12px squircle | Close, back, share, menu, remove |
+| **Chips** | Capsule | Capsule | — | Filters and choices; selected uses the action fill (DL-017) |
 
-**Rule**: When a capsule button sits next to a squircle button, the capsule reads as primary and the squircle as secondary — no color difference needed. Shape alone creates hierarchy.
+**Rule (DL-026, values DL-029)**: one button corner per surface. In the installed app it is the 16px field corner (`rounded.lg`), so a button and the field beside it share one shape; the 32px compact size keeps that corner's proportion rather than its number, 12px at rest and 8px pressed (`--gg-button-radius-compact`, `--gg-button-radius-compact-pressed`; DL-038), because 16px on a 32px button is a full capsule and stopped reading as one of the app's buttons. On the public website buttons are square (`rounded.none`), like its editorial cards, dialogs, and panels. The website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`, and their `-compact` pair) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop and no legacy `variant`; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
+
+**Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with a 44px finger box on every tier and one 14px label, DL-030), and the admin FAB follows the capsule rule at both sizes (`rounded-full` — 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps — the capsule is that set's 9999 step.
 
 ### Shape Morphing
 
 Interactive elements shift shape on engagement. This creates physical, tactile feedback — the "Expressive touch" from M3 that makes interfaces feel alive.
 
-**Buttons**:
-- Capsule buttons (primary): pill tightens toward squircle on press, springs back on release
-- Squircle buttons (secondary): radius tightens subtly on press, springs back
-- Both use `--spring-spatial-fast` for the morph transition
+**Buttons** (DL-001, built in DL-026, values DL-029):
+- In the installed app, primary and secondary buttons tighten one step on press and spring back on release: 16px to 12px, and 12px to 8px at the compact size (DL-038). Website buttons are square and do not morph
+- A pressed button also takes its hover fill, because touch has no hover: without it a tap changed nothing visible but the corner (DL-039)
+- Icon buttons tighten from a circle to the 12px squircle
+- All use `--spring-spatial-fast` for the morph transition; under `prefers-reduced-motion` they keep their resting shape
 
 **Cards** (complements lift-and-press):
 - Hover: scale(1.008) + green shadow glow (lift-and-press)
-- Press: scale(0.985) + corner radius tightens 2-4px (shape morph addition)
+- Press: scale(0.985). In the installed app every card or row that opens something (`data-pressable="card"` or `"row"`) presses in through one rule in the client's `animation.css` (DL-039); the public website's cards stay still
 - Combined: the card feels like it's being pressed into the surface
 
-**CSS approach sketch**:
+**Haptics** (DL-039, DL-041): the installed app answers every press from one listener (`installPressHaptics`, mounted by `PwaRuntime`, so sign-in answers too). The listener reads what the markup already says: tabs (the app bar's included, as `data-pressable="tab"`), chips, switches, radios and checkboxes (native or ARIA), and anything with a pressed state (`aria-pressed`, such as a card that toggles a choice) get the selection tap; buttons, links, and every other declared pressable (card, row, media, trigger, fab) get the light tap. Text fields, dropdowns, scrims, and disabled controls stay silent. A new control answers without asking, so a control never calls a press haptic itself; outcome haptics (success, error, warning) stay with the code that knows the outcome. Settings offers a Vibration switch, shown only where the device can vibrate (iPhones have no Vibration API). The admin cockpit and the public website install nothing.
+
+**Admin carve-out**: the card motion above is client canon. Admin cards never lift, scale, or glow — hover/press feedback is an elevation step (`--m3-elevation-1`→`2`) or the neutral ink layer `rgb(var(--m3-on-surface)/0.08)` only.
+
+**Shipped CSS** (shared `theme.css`, components layer; abridged):
 ```css
-/* Capsule button — morph on press */
-.btn-primary {
-  border-radius: 9999px; /* capsule at rest */
-  transition: border-radius var(--spring-spatial-fast),
-              transform var(--spring-spatial-fast);
+/* One corner per surface for every emphasis (DL-026, values DL-029) */
+:root {
+  --gg-button-radius: var(--radius-lg);
+  --gg-button-radius-pressed: var(--radius-squircle);
 }
-.btn-primary:active {
-  border-radius: var(--radius-xl); /* tightens to squircle */
+:root:has([data-site="website"]) {
+  --gg-button-radius: var(--radius-none);
+  --gg-button-radius-pressed: var(--radius-none);
 }
-
-/* Squircle button — tighten on press */
-.btn-secondary {
-  border-radius: var(--radius-xl); /* squircle at rest */
-  transition: border-radius var(--spring-spatial-fast);
+.gg-button[data-emphasis] {
+  border-radius: var(--gg-button-radius);
 }
-.btn-secondary:active {
-  border-radius: var(--radius-lg); /* tightens further */
+.gg-button[data-emphasis="primary"]:active,
+.gg-button[data-emphasis="secondary"]:active {
+  border-radius: var(--gg-button-radius-pressed);
 }
 
-/* Card — complement lift-and-press with radius tighten */
-.card-interactive:active {
-  transform: scale(0.985);
-  border-radius: calc(var(--radius-2xl) - 2px);
+/* Compact keeps the proportion: 12px at rest, 8px pressed (DL-038) */
+.gg-button[data-size="compact"][data-emphasis] {
+  border-radius: var(--gg-button-radius-compact);
+}
+
+/* Card or row that opens something: client animation.css (DL-039) */
+:root:not(:has([data-site="website"])) :is([data-pressable="card"], [data-pressable="row"]):active {
+  scale: 0.985;
 }
 ```
 
@@ -150,7 +169,7 @@ From Apple's Liquid Glass talk — watch for these as you build:
 1. **Pinched corners** — Inner element radius too small relative to outer. Fix: make it concentric.
 2. **Flared corners** — Inner radius larger than outer minus padding. Fix: use `concentricShape(fallback)`.
 3. **Near device edges** — On phone, use capsule + extra margin near screen edge. On tablet/desktop, use concentric shape aligned to window edge.
-4. **Mixing shape types** — Don't put a capsule button inside a fixed-radius container if the radii clash. The capsule's geometry naturally supports concentricity.
+4. **Mixing shape types** — Don't put a capsule (a chip or pill) inside a fixed-radius container if the radii clash. The capsule's geometry naturally supports concentricity.
 
 ### Concentricity Reference (copy this shape)
 
@@ -159,12 +178,12 @@ The rule is `child_radius = parent_radius − padding`. A concrete before/after 
 ```css
 /* ❌ Before — flared corners: the child's 24px radius exceeds what the
    parent's geometry allows (24px parent − 16px padding = 8px budget). */
-.parent { border-radius: 24px; padding: 16px; }   /* --radius-2xl */
-.child  { border-radius: 24px; }                   /* clashes at every corner */
+.parent { border-radius: 24px; padding: 16px; }   /* design-guard: allow-radius-literal — pedagogical arithmetic */
+.child  { border-radius: 24px; }                   /* design-guard: allow-radius-literal — pedagogical arithmetic */
 
 /* ✅ After — concentric: child radius = parent radius − padding. */
-.parent { border-radius: 24px; padding: 16px; }    /* --radius-2xl */
-.child  { border-radius: 8px; }                    /* 24 − 16 = 8 → --radius-md */
+.parent { border-radius: 24px; padding: 16px; }    /* design-guard: allow-radius-literal — pedagogical arithmetic */
+.child  { border-radius: 8px; }                    /* design-guard: allow-radius-literal — pedagogical arithmetic */
 
 /* ✅ Token form — derive instead of hardcoding the arithmetic. */
 .child  { border-radius: calc(var(--radius-2xl) - var(--space-4)); }
@@ -188,6 +207,7 @@ All animation uses named spring tokens. No hardcoded `cubic-bezier` or `duration
 | `--spring-spatial` | `cubic-bezier(0.16, 1, 0.3, 1)` | 300ms | Layout shifts, navigation, expand/collapse, sheets |
 | `--spring-spatial-fast` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | 200ms | Button press, toggles, micro-interactions |
 | `--spring-spatial-slow` | `cubic-bezier(0.16, 1, 0.3, 1)` | 400ms | Hero transitions, page morphs, view transitions |
+| `--spring-spatial-exit` | `cubic-bezier(0.3, 0, 1, 1)` | 200ms | A surface leaving the screen from rest: a closing sheet or drawer (DL-033) |
 | `--spring-effects` | `cubic-bezier(0.2, 0, 0, 1)` | 250ms | Opacity, color, blur, material transitions |
 | `--spring-effects-fast` | `cubic-bezier(0.2, 0, 0, 1)` | 150ms | Hover states, focus rings, tooltip appearance |
 | `--spring-effects-slow` | `cubic-bezier(0.2, 0, 0, 1)` | 500ms | Loading indicators, progress bars, ambient pulse |
@@ -198,6 +218,7 @@ All animation uses named spring tokens. No hardcoded `cubic-bezier` or `duration
   --spring-spatial: cubic-bezier(0.16, 1, 0.3, 1) 300ms;
   --spring-spatial-fast: cubic-bezier(0.34, 1.56, 0.64, 1) 200ms;
   --spring-spatial-slow: cubic-bezier(0.16, 1, 0.3, 1) 400ms;
+  --spring-spatial-exit: cubic-bezier(0.3, 0, 1, 1) 200ms;
   --spring-effects: cubic-bezier(0.2, 0, 0, 1) 250ms;
   --spring-effects-fast: cubic-bezier(0.2, 0, 0, 1) 150ms;
   --spring-effects-slow: cubic-bezier(0.2, 0, 0, 1) 500ms;
@@ -206,16 +227,18 @@ All animation uses named spring tokens. No hardcoded `cubic-bezier` or `duration
 
 Each token is a `cubic-bezier(...) duration` pair — usable directly as a transition shorthand: `transition: transform var(--spring-spatial-fast);`. Reduced motion is handled globally — do not gate per-component.
 
+**Entering and leaving (DL-033).** The three spatial tokens decelerate: the motion starts at speed and settles into place, which suits a surface arriving or moving on screen. `--spring-spatial-exit` is the one token that accelerates. A surface that leaves the screen from rest starts slowly and is at full speed as it crosses the edge, so its deceleration is never seen. A surface that already has speed, such as a sheet thrown by a flick, leaves on `--spring-spatial` instead, because a curve that starts from rest would stall it under the finger. The exit duration stays within `--spring-spatial-duration`, which sheet consumers time their unmount on.
+
 ### Motion Schemes
 
 Two schemes control the personality of motion across the interface:
 
 | Scheme | When | Feel | Spring Character |
 |--------|------|------|-----------------|
-| **Standard** | Productivity, data-dense, operator cockpit | Efficient, professional, minimal overshoot | Spatial tokens as defined above |
+| **Standard** | Productivity, data-dense, steward cockpit | Efficient, professional, minimal overshoot | Spatial tokens as defined above |
 | **Expressive** | Hero moments, celebrations, onboarding, ritual | Playful, bouncy, delightful overshoot | Spatial tokens with +50% duration and higher overshoot |
 
-**Standard** is the default for the admin cockpit — operators scanning a review queue need motion that aids, not entertains. **Expressive** activates for hero moments (see § Hero Moments) — garden creation, first submission, hypercert minting.
+**Standard** is the default for the admin cockpit — stewards scanning a review queue need motion that aids, not entertains. **Expressive** activates for hero moments (see § Hero Moments) — garden creation, first submission, hypercert minting.
 
 The motion scheme is set at the surface level, not per-component. A "Ritual" paradigm surface uses Expressive; a "Command Surface" uses Standard.
 
@@ -225,9 +248,9 @@ Motion is built into components, not applied externally:
 
 | Component | Motion | Spring Token |
 |-----------|--------|-------------|
-| **Buttons** | Shape morph on press (capsule → squircle or squircle → tighter) | `--spring-spatial-fast` |
-| **Cards** | Hover lift (scale 1.008) + press (scale 0.985 + radius tighten) | `--spring-spatial-fast` |
-| **Client/PWA sheets** | Slide from source element; client shell depth may respond | `--spring-spatial` |
+| **Buttons** | App: shape morph on press (the corner tightens one step). Website: square, no morph | `--spring-spatial-fast` |
+| **Cards** | Client: hover lift (scale 1.008) + press (scale 0.985 + radius tighten). Admin: no lift/scale/glow — elevation 1→2 or the neutral 8% ink layer | `--spring-spatial-fast` |
+| **Client/PWA sheets** | Slide up from the bottom edge in one move, never past rest; follow the finger on a drag; accelerate out from rest, or leave at speed on a flick (DL-033) | `--spring-spatial-slow` in · `--spring-spatial-exit` out · `--spring-spatial` for a settle or a flick |
 | **Navigation** | Active indicator slides with spring transition | `--spring-spatial` |
 | **Progress (wavy)** | Organic wave motion on track | `--spring-effects-slow` |
 | **Loading indicator** | Organic shape rotation/pulse | `--spring-effects-slow` |
@@ -312,7 +335,7 @@ Each garden can derive an accent palette from its visual identity — this is M3
 | Admin dashboard (default) | Green Goods brand — primary green |
 | Garden detail view | Derived from garden's banner image |
 | Client PWA | Adapts to the garden the user operates in |
-| Workspace atmospheres | Subtle tonal wash per workspace (already spec'd in spatial architecture) |
+| Admin workspace wash | One faint top wash (`--tone-surface-tint-color`, 5% light / 10% dark, fading to transparent by 320px) over the constant linen canvas — per-workspace canvas tinting is retired |
 
 **Implementation note**: Dynamic garden theming is aspirational — the brand palette is the baseline. Garden-derived palettes are a future enhancement when the garden profile system supports banner images.
 
@@ -339,26 +362,26 @@ Admin dark mode is a **deliberate palette, not a light inversion**. Three rules 
 | `surface-container-high` | `26% .016 65` | `42 35 28` | Sheet / dialog |
 | `surface-container-highest` | `30% .018 65` | `52 44 36` | Active / hover, chips |
 
-**2 — Ring-forward elevation.** Depth is a warm-white hairline ring (`--neutral-50` at 6–16%, scaling with level) plus a small black blur only for chrome floating over content — never a black drop shadow as the primary cue. The canvas wash carries each workspace's hue at L≈17% (just under the card) with chroma ~0.024 (community ~0.034); the dark `--tone-strength` default is `1` (the wash chroma is too low to oversaturate).
+**2 — Ring-forward elevation.** Depth is a warm-white hairline ring (`--neutral-50` at low opacity, stepping across the single `--m3-elevation-0/1/2` ladder) plus a small black blur only for chrome floating over content — never a black drop shadow as the primary cue. The dark canvas stays constant; the only workspace atmosphere is the same faint `--tone-surface-tint-color` top wash as light (10% in dark, fading to transparent by 320px) — the per-workspace canvas hue wash is retired.
 
-**3 — Per-view accents (dual-use-safe).** `--tone-primary` feeds `--m3-primary`, which components consume **both** as a white-text fill **and** as on-surface text/icon/link color. So `--tone-primary` stays **light** (the `-200` step, readable as text on the dark card); saturation lives in `--tone-action` (deep, white-text filled CTA) and vividness in the wash + bright accent text. Never set `--tone-primary` to a deep step — it would make tone-colored links/icons unreadable.
+**3 — Per-view accents (tonal, DL-009).** `--tone-primary` feeds `--m3-primary`, which components consume **both** as a fill **and** as on-surface text/icon/link color, so it stays **light** (the `-200` step). Since DL-009 (2026-08-29), dark **filled actions are tonal too**: `--tone-action` is the same `-200` step carrying `-900` ink (`--tone-on-action`), with hover one step *lighter* (`-100`) — the M3-dark convention (filled surfaces go light, text goes deep; higher = lighter). The pre-DL-009 dark strategy (deep fill + white text) is retired. Never set `--tone-primary` to a deep step — it would make tone-colored links/icons unreadable.
 
-| Tone | Filled action (white-safe) | Accent text on card | Container / on |
+| Tone | Filled action (`-200` fill / `-900` ink) | Accent text on card | Container / on |
 |---|---|---|---|
-| hub (blue) | `blue-700` · 7.3:1 | `blue-200` · 11.7:1 | `blue-900` / `blue-100` |
-| garden (green) | `green-800` · 5.7:1 | `green-200` · 14.4:1 | `green-900` / `green-100` |
-| community (amber/gold) | `orange-700` · 5.0:1 (deep amber — gold identity from wash/accent, not the fill) | `yellow-200` · 14.9:1 | `yellow-900` / `yellow-100` |
-| actions (red) | `red-700` · 6.5:1 | `red-200` · 12.0:1 | `red-900` / `red-100` |
-| home (stone) | `neutral-600` · 7.6:1 | `neutral-300` · 11.7:1 | `neutral-700` / `neutral-100` |
+| hub (blue) | `blue-200`/`blue-900` · 7.81:1 (hover `blue-100` · 8.88) | `blue-200` · 11.7:1 | `blue-900` / `blue-100` |
+| garden (green) | `green-200`/`green-900` · 5.95:1 (hover 6.39) | `green-200` · 14.4:1 | `green-900` / `green-100` |
+| community (amber/gold) | `yellow-200`/`yellow-900` · 4.58:1 (tightest; hover 4.70) | `yellow-200` · 14.9:1 | `yellow-900` / `yellow-100` |
+| actions (purple, DL-045) | `purple-200`/`purple-900` · 7.27:1 (hover `purple-100` · 8.73) | `purple-200` · 10.3:1 | `purple-900` / `purple-100` |
+| home (stone) | `neutral-300`/`neutral-900` · 11.74:1 (hover `neutral-200` · 13.93) | `neutral-300` · 11.7:1 | `neutral-700` / `neutral-100` |
 
-**Contrast invariant:** filled actions carry white text and MUST clear AA (≥4.5:1) — this forces *deep* steps, so "vivid" can never come from brightening the fill. Accent-text `-200` steps clear AA on the `surface-container` card (≥11.7:1). A `check:design-tokens` dark-parity guard enforces light/dark tone-block and elevation parity.
+**Contrast invariant:** dark filled actions carry `-900` ink on `-200` tonal fills and MUST clear AA (≥4.5:1) — measured 4.58–11.74 above. The light-mode invariant is unchanged: deep fills with white text, ≥4.5. Accent-text `-200` steps clear AA on the `surface-container` card (≥10.3:1). A `check:design-tokens` dark-parity guard enforces light/dark tone-block parity and the single 2-level `--m3-elevation-0/1/2` ladder.
 
 **Light mode follows the same discipline** (applied 2026-07-03 after a 190-pair audit):
 
-- **Dual-safe light tones** — light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `red-700` (6.4), light home `neutral-600`. Hub and community light already passed and are unchanged.
+- **Dual-safe light tones** — light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `purple-700` (7.93; DL-045 moved Actions off the error red), light home `neutral-600`. Hub and community light already passed and are unchanged.
 - **Light surfaces are the linen ladder** — the M3 containers ride a warm linen family (constant hue ~85, chroma .005–.012, in `admin-m3-tokens.css`), not gray Tailwind neutrals; cards and sheets stay white. This mirrors dark's hue-65 ladder so both modes carry Warm Earth.
 - **`--tone-focus-ring`** is the only token for focus indicators: = `--tone-action` in light, = `--tone-on-surface-accent` in dark (deep fills measure 2.3–2.7 against dark surfaces — below the 3:1 non-text minimum). Never ring with `--tone-action` directly.
-- **State roles:** `-dark` steps for text/icons (they flip per mode: `-950` in light, `-400` in dark), `-lighter`+`-dark` for badges, `-base` for **fills only**. Admin-scope class backstops re-point stray `text-*-base` usages, but new code writes `text-*-dark`. The brand green `#1FC16B` (`--primary-base`) is a fill-only accent — never text; links use `--primary-dark`.
+- **State roles:** `-dark` steps for text/icons (they flip per mode: `-950` in light, `-400` in dark), `-lighter`+`-dark` for badges, `-base` for **fills only**. Admin-scope class backstops re-point stray `text-*-base` usages, but new code writes `text-*-dark`. The brand green `#1FC16B` (`--primary-base`) is a fill-only accent — never text, and never behind text: any green fill that carries text, a number, or a glyph (count badges, step markers, selected chips, pills) uses `--primary-action` with `--primary-action-foreground` (DL-017); links use `--primary-dark`.
 - **`--m3-error`** is `red-700`+white in light, a light red (`248 113 113`)+ink in dark (the M3-dark error convention). **`--m3-outline`** is control-grade (≥3:1: form fields, chips, outlined buttons); `--m3-outline-variant` stays the decorative hairline.
 
 ---
@@ -369,21 +392,40 @@ Admin-relevant subset. Components not listed here (button groups, split button, 
 
 ### Button System
 
-Three sizes, shape-as-emphasis hierarchy:
+Size sets the height; the surface sets the corner (see Button Corners and Emphasis). Buttons and fields
+share one height scale, so a field and its action line up in a row (DL-023):
 
-| Size | Height | Shape | Morph on Press | Use |
-|------|--------|-------|----------------|-----|
-| **SM** | 32px | Squircle (`rounded-xl`) | Tightens to `rounded-lg` | Toolbar actions, compact secondary, inline |
-| **MD** | 40px | Squircle (`rounded-xl`) | Tightens to `rounded-lg` | Default — forms, dialogs, table actions |
-| **LG** | 48px | Capsule (`rounded-full`) | Tightens to `rounded-xl` | Hero CTAs, mobile primary, FABs |
+| Size | Height | Hit area | Use |
+|------|--------|----------|-----|
+| **lg** | 48px | 48px | Page-level primaries (Upload Work, Submit), public hero actions |
+| **md** (default) | 44px | 44px | Sheets (`SheetActions`), forms, most actions |
+| **sm** | 40px | 48px | Dense rows, inline secondary actions, public row actions |
+| **compact** | 32px | 48px | Actions that sit in a line of text (DL-020), header icon buttons |
 
-**Icon buttons**: Always capsule (`rounded-full`), morph toward square on press. Three widths matching the three sizes (32/40/48px).
+No action is shorter than 32px and no hit area is smaller than 44px. Fields use the same steps
+(`controlSize` sm 40, md 44, lg 48), and a single-line field is exactly its step whatever its text:
+display-size digits and editorial type sit centered inside it instead of growing it.
 
-**Color variants** (from M3): Filled, Tonal, Outlined, Ghost. Combined with shape, these give sufficient hierarchy without introducing more sizes.
+**Primitives**: `Button` (`emphasis` primary / secondary / tertiary, `tone` default / danger / warning,
+`size`, `loading` stays focusable), `IconButton` (a circle at the same four sizes, `aria-label`
+required; a header launcher's count or status dot rides its `badge` slot), `Chip` (a 32px capsule
+toggle with a 44px hit area), `Switch` (a 44 × 24 track with a 44px hit box). All live in
+`@green-goods/shared`. Composite pieces ride the same anatomy: `DatePicker` and `FileUploadField`
+are field-shaped triggers (`gg-control`), `ConfidenceSelector` and `AssetSelector` are radio
+chips, `AudioRecorder` and toasts use `Button`, `ImagePreviewDialog` uses `IconButton` (DL-031).
+
+**Surface tokens**: every size reads one block token (`--gg-button-block-*`, `--gg-icon-size-*`)
+plus `--gg-button-inline-*`, `--gg-hit-block`, and the label sizes `--gg-label-md/sm`, with the app
+scale as the fallback, beside the corner and weight tokens. A surface moves the whole family by
+setting the tokens, never by restyling a component (DL-031).
+
+**Color variants** (from M3): Filled (primary), Outlined (secondary), Text (tertiary). A tonal fill is not a separate emphasis. Combined with shape, these give sufficient hierarchy without introducing more sizes.
+
+**Admin carve-out**: the size/morph table above is client canon. Cockpit buttons are `AdminButton` — pill at every size on the 28/32/40 compact metric (DL-011), Title Case labels (DL-012), no press-morph; the filled variant is `--tone-action` stepping elevation 1→2. Shared pieces the cockpit renders keep the shared family, and admin `index.css` sets the family's tokens so a shared `Button` lands on the cockpit tiers (lg and md → 40, sm → 32, compact → 28) as a pill with a 14px / 500 label and a 44px finger box; `surface="admin"` puts a shared field on the responsive field tier and the switch on the M3 52 × 32 track (DL-031).
 
 ### Floating Toolbar
 
-Contextual page-level actions. The admin cockpit's primary action surface.
+Contextual page-level actions — client/spatial vocabulary, not a shipped admin surface. The admin cockpit's primary actions live in the `AdminViewActions` header row and the nav-shell FAB.
 
 - Desktop: always visible, docked to content zone edge or floating centered
 - Mobile: replaced by bottom navigation bar
@@ -394,7 +436,7 @@ Contextual page-level actions. The admin cockpit's primary action surface.
 
 ### Sheets
 
-> **Admin cockpit exception**: the operator cockpit (`packages/admin`) has **retired workspace side sheets** — the shared sheet renderers are deleted and every workspace action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). The one sanctioned side sheet is **`AdminSideSheet`**, reserved for the three global AppBar surfaces (Profile, Settings, Notifications): right-docked and solid on desktop, AdminDialog-identical bottom sheet on mobile. See [prompt-contract.md § Overlays](./prompt-contract.md). The sheet motion below applies to the **client PWA's own sheet patterns** (wallet drawer, `PwaSheet`, mobile detail flows); `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* an `AdminDialog` or `AdminSideSheet` body.
+> **Admin cockpit exception**: the steward cockpit (`packages/admin`) has **retired workspace side sheets** — the shared sheet renderers are deleted and every workspace action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). The one sanctioned side sheet is **`AdminSideSheet`**, reserved for the three global AppBar surfaces (Profile, Settings, Notifications): right-docked and solid on desktop, AdminDialog-identical bottom sheet on mobile. See [prompt-contract.md § Overlays](./prompt-contract.md). The sheet motion below applies to the **client PWA's own sheet patterns** (wallet drawer, `PwaSheet`, mobile detail flows); `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* an `AdminDialog` or `AdminSideSheet` body.
 
 Client detail surfaces that slide from the edge, anchored to their trigger (source-anchored interaction):
 
@@ -412,6 +454,8 @@ Admin workspace action/detail flows open in centered `AdminDialog`; the admin ca
 | **Nav Bar** (bottom) | Mobile, 3-4 tabs | Capsule container, capsule active indicator | Symbol-first, tap to switch workspace |
 | **Nav Rail** (side) | Tablet, desktop sidebar | Collapsible (icons only) / expandable (icons + labels) | Icon moves from above to beside label when expanded |
 | **Floating Toolbar** | Desktop content zone | Capsule, glass material | Contextual actions, always visible |
+
+**Admin dock**: the cockpit's bottom nav is a flat dock, not a glass capsule — `rgb(var(--admin-surface-0)/0.85)` with 12px blur, a 1px ink ring, and the warm chrome shadow (`0 18px 44px rgb(var(--warm-shadow)/0.14)`); the active item is a tone primary-container pill. The Floating Toolbar row is client/spatial vocabulary — admin ships no floating toolbar.
 
 **Symbol-first rule** (from Liquid Glass): Persistent navigation uses symbols (icons). Text labels only when the icon is genuinely ambiguous. Don't pair a symbol with text in a way that looks like a single button — if you need text, let it sit on its own container.
 
@@ -433,7 +477,7 @@ Wavy progress makes the indicator feel alive and active — the progress isn't j
 
 ## Material Behaviors
 
-New behavioral patterns for glass materials, synthesized from Liquid Glass. These extend the existing material system ([materials.md](./materials.md)) with dynamic responses.
+New behavioral patterns for glass materials, synthesized from Liquid Glass. These extend the existing material system ([surfaces.md](./surfaces.md)) with dynamic responses.
 
 ### Focus Variation
 
@@ -513,9 +557,8 @@ Content extends behind glass surfaces for immersion. The glass layer floats abov
 
 | Pattern | Use |
 |---------|-----|
-| Hero images extend behind sidebar glass | Admin garden detail — banner flows behind nav rail |
 | Garden banners extend behind nav bar | Client PWA — banner visible through top glass |
-| Ambient color wash behind glass layers | Workspace atmospheres visible in margins around canvas |
+| Ambient color wash behind glass layers | Client ambient surfaces; in admin the only atmosphere is the faint workspace top wash over the constant linen canvas — no margin tinting |
 
 **Rule**: Text and controls must always layer above the extended background. Glass material provides the separation — content behind glass is visible but not interactive.
 
@@ -543,7 +586,7 @@ Content extends behind glass surfaces for immersion. The glass layer floats abov
 
 The interface has three distinct functional layers. Glass creates a floating control plane above content, replacing the traditional "embedded controls in content" model.
 
-```
+```text
 Layer 3: Glass Controls   — Navigation bars, toolbars, FABs
                             Liquid Glass material, floating above content
                             Interactive, persistent, orientation-giving
@@ -579,7 +622,7 @@ From Liquid Glass: persistent navigation bars now rely more on symbols (icons) t
 - Text labels only when the icon is genuinely ambiguous (e.g., "Select" vs "Edit" — a pencil could mean either).
 - Don't pair symbol with text in a way that reads as a single button.
 - When actions are closely related (multiple copy variants), use the symbol once to introduce the group, then text for variants.
-- The admin cockpit already follows this — floating toolbar uses RiClipboardLine, RiSeedlingLine, RiTeamLine with delayed tooltips.
+- The admin cockpit already follows this in its nav dock and AppBar icon actions (admin has no floating toolbar).
 
 **Grouping** (from Liquid Glass): Related bar items should share a glass background:
 - Group by function and frequency — related actions together
@@ -616,7 +659,7 @@ Hero moments are designated places where all style dimensions amplify simultaneo
 
 ### Succession-Aware Expression
 
-Match expressiveness to garden maturity (see [regenerative.md](./regenerative.md) § Succession-Stage Awareness):
+Match expressiveness to garden maturity (see [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design)):
 
 | Garden Stage | Hero Moment Level | Why |
 |-------------|-------------------|-----|
@@ -630,13 +673,15 @@ This prevents over-designing for communities that need onboarding simplicity, wh
 
 ## Design Decisions Log
 
-Decisions made during the Warm Earth synthesis (2026-04-07):
+Decisions made during the Warm Earth synthesis (2026-04-07). This table is a frozen historical
+snapshot, mirrored as DL-001–DL-006 in [decision-log.md](./decision-log.md) — the living
+append-only ledger where all ongoing design decisions land:
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | Interaction model | Complement: lift-and-press (cards) + shape morph (buttons) | Different elements get different physics; richer tactile vocabulary |
 | Motion system | Named spring tokens replacing hardcoded beziers | Semantic names enable motion scheme switching; consistent vocabulary |
-| Button shape | Context-dependent: capsule = primary, squircle = secondary | Shape as emphasis hierarchy; capsule draws eye, squircle recedes |
+| Button shape | One corner per surface, whatever the emphasis: 16px in the app, square on the website (DL-026, values DL-029; superseding the capsule-primary rule) | A primary and its secondary sit side by side, so mixed shapes read as inconsistent; fill and colour already carry emphasis |
 | Component scope | Admin-relevant subset (3 button sizes, toolbar, sheets, nav, progress) | Focus on what the revamp needs now; extend vocabulary later |
 | Document depth | Comprehensive standalone spec | language.md should be self-contained enough to guide implementation without jumping between files |
 | Spatial arch integration | Deep — all beziers → tokens, radii → concentric types, full vocabulary alignment | Spatial architecture is the first consumer of Warm Earth; coherence matters |
@@ -646,11 +691,9 @@ Decisions made during the Warm Earth synthesis (2026-04-07):
 ## Related
 
 - [SKILL.md](./SKILL.md) — Adaptive Surface paradigm, material metaphors, decision tree
-- [spatial.md](./spatial.md) — Z-layer model, concentricity details, scroll-linked depth
-- [interaction.md](./interaction.md) — Spring motion details, shape morphing, adaptive density, progressive disclosure
-- [materials.md](./materials.md) — Material thickness system, focus variation, tokens
-- [regenerative.md](./regenerative.md) — Seven principles, succession stages, growth-agnostic design
+- [surfaces.md](./surfaces.md) — Z-layer model, material thickness system, glass pane, adaptive density, progressive disclosure, scroll-linked depth
+- [review-checklist.md](./review-checklist.md) — Regenerative, spatial, ecosystem, and compliance checks
 - [ecosystem.md](./ecosystem.md) — 15 user archetypes, cascade awareness
-- [SKILL.md § Appendix](./SKILL.md#appendix--inspiration--frameworks) — Inspiration library, books, designers, studios
+- Warm Earth's sources are recorded in § Philosophy above; the former SKILL.md reading-list appendix (books, designers, studios) was removed in the 2026-07 round-2 consolidation
 - [review-checklist.md](./review-checklist.md) — Unified 4-lens PR review (Regenerative + Spatial + Ecosystem + Compliance)
-- `.plans/active/admin-ui-revamp/artifacts/spatial-architecture.md` — Three-body system applying Warm Earth
+- [`DESIGN.md`](../../../DESIGN.md) — canonical Warm Earth tokens and surface-dialect routing

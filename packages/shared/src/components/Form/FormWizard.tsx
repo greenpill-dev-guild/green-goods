@@ -2,7 +2,7 @@ import { RiArrowLeftLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
-import { useTimeout } from "../../hooks";
+import { useTimeout } from "../../hooks/utils/useTimeout";
 import { Button } from "../Button";
 import { Surface } from "../Surface";
 import { type Step, StepIndicator } from "./StepIndicator";
@@ -42,7 +42,7 @@ export function FormWizard({
 }: FormWizardProps) {
   const { formatMessage } = useIntl();
   const resolvedNextLabel =
-    nextLabel ?? formatMessage({ id: "app.form.next", defaultMessage: "Next" });
+    nextLabel ?? formatMessage({ id: "app.form.next", defaultMessage: "Continue" });
   const resolvedSubmitLabel =
     submitLabel ?? formatMessage({ id: "app.form.submit", defaultMessage: "Submit" });
   const contentRef = useRef<HTMLDivElement>(null);
@@ -74,12 +74,12 @@ export function FormWizard({
             {!isFirstStep && onBack && (
               <Button
                 type="button"
-                variant="secondary"
+                emphasis="secondary"
                 onClick={onBack}
                 disabled={isSubmitting}
                 className="w-full sm:w-auto"
+                leadingIcon={<RiArrowLeftLine className="h-4 w-4" aria-hidden="true" />}
               >
-                <RiArrowLeftLine className="h-4 w-4" />
                 {formatMessage({ id: "app.wizard.back", defaultMessage: "Back" })}
               </Button>
             )}
@@ -87,7 +87,7 @@ export function FormWizard({
             <div className="flex gap-3 sm:ml-auto">
               <Button
                 type="button"
-                variant="secondary"
+                emphasis="secondary"
                 onClick={onCancel}
                 disabled={isSubmitting}
                 className="flex-1 sm:flex-initial"

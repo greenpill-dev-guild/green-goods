@@ -1,10 +1,7 @@
-import {
-  type Action,
-  DEFAULT_CHAIN_ID,
-  Domain,
-  queryKeys,
-  useCreateAssessmentStore,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import { type Action, Domain } from "@green-goods/shared/types/domain";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useState } from "react";

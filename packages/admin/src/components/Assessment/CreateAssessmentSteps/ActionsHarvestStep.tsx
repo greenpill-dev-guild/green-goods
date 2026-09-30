@@ -1,26 +1,14 @@
-import {
-  cn,
-  DatePicker,
-  useActions,
-  useCreateAssessmentStore,
-  useCurrentChain,
-} from "@green-goods/shared";
-import { useEffect, useMemo, useRef } from "react";
+import { DatePicker } from "@green-goods/shared/components/DatePicker/DatePicker";
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { fromCalendarDateKey, toCalendarDateKey } from "@green-goods/shared/utils/time";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { LabeledField, resolveDomainLabel, Section } from "./shared";
-
-/** Convert a "YYYY-MM-DD" store string → Unix seconds for DatePicker */
-function dateStringToTimestamp(dateStr: string): number | null {
-  if (!dateStr) return null;
-  const ms = new Date(dateStr).getTime();
-  return Number.isNaN(ms) ? null : Math.floor(ms / 1000);
-}
-
-/** Convert Unix seconds from DatePicker → "YYYY-MM-DD" store string */
-function timestampToDateString(ts: number | null): string {
-  if (!ts || ts <= 0) return "";
-  return new Date(ts * 1000).toISOString().slice(0, 10);
-}
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCheckbox } from "@/components/AdminCheckbox";
+import { knownDomain, resolveDomainLabel, Section } from "./shared";
 
 interface ActionsHarvestStepProps {
   showValidation: boolean;
@@ -30,7 +18,7 @@ interface ActionsHarvestStepProps {
 /**
  * Step 3: Actions & Harvest
  * Actions multi-select (filtered by domain from Step 1) + reporting period date range.
- * Clears selected actions when domain changes.
+ * The store clears the selected actions when the domain changes.
  */
 export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarvestStepProps) {
   const intl = useIntl();
@@ -39,24 +27,21 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
   const form = useCreateAssessmentStore((s) => s.form);
   const setField = useCreateAssessmentStore((s) => s.setField);
 
-  const selectedDomain = form.domain;
+  // Null for a restored draft's domain that no longer exists: it lists no
+  // actions, and Submit sends the steward back to choose a domain.
+  const selectedDomain = knownDomain(form.domain);
   const selectedUIDs = form.selectedActionUIDs;
 
   // Fetch all actions from the current chain and filter by selected domain
   const chainId = useCurrentChain();
   const { data: allActions = [] } = useActions(chainId);
   const domainActions = useMemo(
-    () => allActions.filter((action) => action.domain === selectedDomain),
+    () =>
+      selectedDomain === null
+        ? []
+        : allActions.filter((action) => action.domain === selectedDomain),
     [allActions, selectedDomain]
   );
-
-  // Clear selected actions when domain changes
-  const prevDomainRef = useRef(selectedDomain);
-  useEffect(() => {
-    if (prevDomainRef.current === selectedDomain) return;
-    prevDomainRef.current = selectedDomain;
-    setField("selectedActionUIDs", []);
-  }, [selectedDomain, setField]);
 
   const handleToggleAction = (actionId: string) => {
     if (isSubmitting) return;
@@ -84,9 +69,11 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
               defaultMessage: "End date is required",
             }),
       dateRange: (() => {
-        if (!form.reportingPeriodStart || !form.reportingPeriodEnd) return null;
-        const start = new Date(form.reportingPeriodStart);
-        const end = new Date(form.reportingPeriodEnd);
+        // Same parser the pickers use — a bare `new Date(str)` here would read
+        // these as UTC and drift from the values the fields actually hold.
+        const start = fromCalendarDateKey(form.reportingPeriodStart);
+        const end = fromCalendarDateKey(form.reportingPeriodEnd);
+        if (start === null || end === null) return null;
         if (end < start) {
           return formatMessage({
             id: "app.admin.assessment.actionsHarvest.endAfterStart",
@@ -105,7 +92,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
       <Section
         title={formatMessage({
           id: "app.admin.assessment.domainAction.actionsTitle",
-          defaultMessage: "Coherent Actions",
+          defaultMessage: "Which Actions Count",
         })}
         description={formatMessage({
           id: "app.admin.assessment.domainAction.actionsDescription",
@@ -114,19 +101,24 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
       >
         {domainActions.length === 0 ? (
           <div className="rounded-md border border-dashed border-stroke-soft p-6 text-center">
-            <p className="text-sm text-text-soft">
-              {formatMessage(
-                {
-                  id: "app.admin.assessment.domainAction.noActions",
-                  defaultMessage: "No actions registered for {domain}.",
-                },
-                { domain: resolveDomainLabel(intl, selectedDomain) }
-              )}
+            <p className="body-sm text-text-soft">
+              {selectedDomain === null
+                ? formatMessage({
+                    id: "app.admin.assessment.domainAction.chooseDomainFirst",
+                    defaultMessage: "Choose a domain on the first step to see its actions.",
+                  })
+                : formatMessage(
+                    {
+                      id: "app.admin.assessment.domainAction.noActions",
+                      defaultMessage: "No actions registered for {domain}.",
+                    },
+                    { domain: resolveDomainLabel(intl, selectedDomain) }
+                  )}
             </p>
           </div>
         ) : (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-text-soft">
+            <div className="flex items-center justify-between body-xs text-text-soft">
               <span>
                 {formatMessage(
                   {
@@ -136,8 +128,10 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                   { count: selectedUIDs.length, total: domainActions.length }
                 )}
               </span>
-              <button
+              <AdminButton
                 type="button"
+                variant="text"
+                size="sm"
                 onClick={() => {
                   if (selectedUIDs.length === domainActions.length) {
                     setField("selectedActionUIDs", []);
@@ -149,53 +143,61 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                   }
                 }}
                 disabled={isSubmitting}
-                className="text-xs font-medium text-primary-dark hover:text-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {selectedUIDs.length === domainActions.length
                   ? formatMessage({
                       id: "app.admin.assessment.domainAction.deselectAll",
-                      defaultMessage: "Deselect all",
+                      defaultMessage: "Deselect All",
                     })
                   : formatMessage({
                       id: "app.admin.assessment.domainAction.selectAll",
-                      defaultMessage: "Select all",
+                      defaultMessage: "Select All",
                     })}
-              </button>
+              </AdminButton>
             </div>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {domainActions.map((action) => {
                 const isChecked = selectedUIDs.includes(action.id);
+                const checkboxId = `harvest-action-${action.id}`;
                 return (
-                  <label
+                  <div
                     key={action.id}
-                    aria-label={action.title}
                     className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 text-sm transition",
+                      "flex items-start gap-2 rounded-lg border px-3 py-2.5 body-sm transition",
                       isChecked
                         ? "border-primary-base bg-primary-alpha-10 text-primary-dark"
                         : "border-stroke-soft bg-bg-white text-text-sub hover:border-primary-alpha-24 hover:bg-primary-alpha-10",
-                      isSubmitting && "cursor-not-allowed opacity-60"
+                      isSubmitting && "opacity-60"
                     )}
                   >
-                    <input
-                      type="checkbox"
+                    {/* Canonical M3 control (18px box, 40px target); negative
+                        margins absorb the target padding so the compact row
+                        keeps its height. */}
+                    <AdminCheckbox
+                      id={checkboxId}
                       checked={isChecked}
                       onChange={() => handleToggleAction(action.id)}
                       disabled={isSubmitting}
-                      className="mt-0.5 h-4 w-4 rounded border-stroke-sub text-primary-base focus:ring-2 focus:ring-primary-alpha-24 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="-my-2 -ml-2.5"
                     />
-                    <div className="min-w-0 flex-1">
+                    <label
+                      htmlFor={checkboxId}
+                      className={cn(
+                        "min-w-0 flex-1 pt-0.5",
+                        isSubmitting ? "cursor-not-allowed" : "cursor-pointer"
+                      )}
+                    >
                       <span className="block truncate font-medium" title={action.title}>
                         {action.title}
                       </span>
                       {action.slug && (
-                        <span className="block truncate text-xs text-text-soft" title={action.slug}>
+                        <span className="block truncate body-xs text-text-soft" title={action.slug}>
                           {action.slug}
                         </span>
                       )}
-                    </div>
-                  </label>
+                    </label>
+                  </div>
                 );
               })}
             </div>
@@ -203,7 +205,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
         )}
 
         {/* Always render to reserve space */}
-        <span className="block min-h-[1.25rem] text-xs text-error-dark">{"\u00A0"}</span>
+        <span className="block min-h-[1.25rem] body-xs text-error-dark">{"\u00A0"}</span>
       </Section>
 
       {/* Reporting Period */}
@@ -219,63 +221,54 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
         })}
       >
         <div className="grid gap-2.5 md:grid-cols-2 md:gap-3">
-          <LabeledField
+          <DatePicker
+            surface="admin"
+            id="reportingPeriodStart"
             label={formatMessage({
               id: "app.admin.assessment.sdgHarvest.reportingStartLabel",
               defaultMessage: "Reporting period start",
             })}
             required
-            error={showValidation ? fieldErrors.reportingPeriodStart : null}
-            helpText={formatMessage({
+            value={fromCalendarDateKey(form.reportingPeriodStart)}
+            onChange={(ts) => setField("reportingPeriodStart", toCalendarDateKey(ts))}
+            disabled={isSubmitting}
+            placeholder={formatMessage({
+              id: "app.admin.assessment.actionsHarvest.reportingStartPlaceholder",
+              defaultMessage: "Select start date",
+            })}
+            helperText={formatMessage({
               id: "app.admin.assessment.actionsHarvest.reportingStartHelp",
               defaultMessage:
                 "When does the work period begin? Typically aligns with a season, project phase, or funding cycle.",
             })}
-          >
-            <DatePicker
-              id="reportingPeriodStart"
-              value={dateStringToTimestamp(form.reportingPeriodStart)}
-              onChange={(ts) => setField("reportingPeriodStart", timestampToDateString(ts))}
-              disabled={isSubmitting}
-              placeholder={formatMessage({
-                id: "app.admin.assessment.actionsHarvest.reportingStartPlaceholder",
-                defaultMessage: "Select start date",
-              })}
-              error={showValidation && fieldErrors.reportingPeriodStart ? " " : undefined}
-            />
-          </LabeledField>
-          <LabeledField
+            error={(showValidation && fieldErrors.reportingPeriodStart) || undefined}
+          />
+          <DatePicker
+            surface="admin"
+            id="reportingPeriodEnd"
             label={formatMessage({
               id: "app.admin.assessment.sdgHarvest.reportingEndLabel",
               defaultMessage: "Reporting period end",
             })}
             required
-            error={
-              showValidation ? (fieldErrors.dateRange ?? fieldErrors.reportingPeriodEnd) : null
-            }
-            helpText={formatMessage({
+            value={fromCalendarDateKey(form.reportingPeriodEnd)}
+            onChange={(ts) => setField("reportingPeriodEnd", toCalendarDateKey(ts))}
+            disabled={isSubmitting}
+            minDate={fromCalendarDateKey(form.reportingPeriodStart)}
+            placeholder={formatMessage({
+              id: "app.admin.assessment.actionsHarvest.reportingEndPlaceholder",
+              defaultMessage: "Select end date",
+            })}
+            helperText={formatMessage({
               id: "app.admin.assessment.actionsHarvest.reportingEndHelp",
               defaultMessage:
                 "When does the work period end? All work documented within this window will be aggregated.",
             })}
-          >
-            <DatePicker
-              id="reportingPeriodEnd"
-              value={dateStringToTimestamp(form.reportingPeriodEnd)}
-              onChange={(ts) => setField("reportingPeriodEnd", timestampToDateString(ts))}
-              disabled={isSubmitting}
-              minDate={dateStringToTimestamp(form.reportingPeriodStart)}
-              placeholder={formatMessage({
-                id: "app.admin.assessment.actionsHarvest.reportingEndPlaceholder",
-                defaultMessage: "Select end date",
-              })}
-              error={
-                showValidation && (fieldErrors.reportingPeriodEnd || fieldErrors.dateRange)
-                  ? " "
-                  : undefined
-              }
-            />
-          </LabeledField>
+            error={
+              (showValidation && (fieldErrors.dateRange ?? fieldErrors.reportingPeriodEnd)) ||
+              undefined
+            }
+          />
         </div>
       </Section>
     </div>

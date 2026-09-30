@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { act, renderHook } from "@testing-library/react";
@@ -136,5 +136,33 @@ describe("hooks/ui/useFormWizardStepValidation", () => {
     rerender({ currentStep: 1 });
 
     expect(result.current.showValidation).toBe(false);
+  });
+
+  it("shows validation on the step a flow sends the person back to", () => {
+    const { result, rerender } = renderHook(
+      ({ currentStep }) =>
+        useFormWizardStepValidation({
+          currentStep,
+          steps: STEPS,
+          onValidNext: vi.fn(),
+        }),
+      { initialProps: { currentStep: 1 } }
+    );
+
+    act(() => {
+      result.current.showValidationOnStep(0);
+    });
+    rerender({ currentStep: 0 });
+    expect(result.current.showValidation).toBe(true);
+
+    // Only that arrival: moving on resets validation as usual.
+    rerender({ currentStep: 1 });
+    expect(result.current.showValidation).toBe(false);
+
+    // Asked for the step already showing, validation shows at once.
+    act(() => {
+      result.current.showValidationOnStep(1);
+    });
+    expect(result.current.showValidation).toBe(true);
   });
 });

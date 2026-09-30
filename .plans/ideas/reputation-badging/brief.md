@@ -19,6 +19,8 @@ Season One already has an initial GreenWill badge surface for the three current 
 ## Scope Notes
 
 - This plan is deferred backlog work. The near-term presentation scope is only to verify and present the existing three initial GreenWill badges.
+- Current availability is derived from deployment artifacts and indexer configuration. Do not
+  describe GreenWill as live on a chain while its configured address is zero.
 - In scope:
   - `packages/agent` (or new `packages/greenwill`) badge registry + per-badge evaluators + Greenwill issuer loop + Unlock client + EAS writer.
   - `packages/contracts/deployments/{chainId}-latest.json` — 6 Unlock lock addresses + 1 shared `GreenGoodsBadge` EAS schema UID.

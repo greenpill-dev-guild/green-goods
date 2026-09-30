@@ -1,16 +1,11 @@
-import {
-  type Action,
-  Domain,
-  expandDomainMask,
-  type Garden,
-  hapticSelection,
-  hasDomain,
-  localizeAction,
-} from "@green-goods/shared";
-import { RiHammerFill, RiLoader4Line, RiPlantFill, RiUserAddLine } from "@remixicon/react";
+import { Button } from "@green-goods/shared/components/Button";
+import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
+import { expandDomainMask, hasDomain } from "@green-goods/shared/utils/domain";
+import { parseActionUID } from "@green-goods/shared/utils/action/parsers";
+import { localizeAction } from "@green-goods/shared/utils/action/translations";
+import { RiHammerFill, RiPlantFill, RiUserAddLine } from "@remixicon/react";
 import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { ActionCard } from "@/components/Cards/Action/ActionCard";
 import { ActionCardSkeleton } from "@/components/Cards/Action/ActionCardSkeleton";
 import { FormInfo } from "@/components/Cards/Form/FormInfo";
@@ -18,11 +13,12 @@ import { GardenCard } from "@/components/Cards/Garden/GardenCard";
 import { GardenCardSkeleton } from "@/components/Cards/Garden/GardenCardSkeleton";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
+import { type WorkCommitmentChoice, WorkCommitmentSelection } from "./WorkCommitmentSelection";
 
 /** Domain i18n label ID (stable); labels resolved via intl at render time */
 const DOMAIN_TAB_CONFIG: Record<Domain, { labelId: string; defaultLabel: string }> = {
   [Domain.SOLAR]: { labelId: "app.domain.tab.solar", defaultLabel: "Solar" },
-  [Domain.AGRO]: { labelId: "app.domain.tab.agro", defaultLabel: "Agro" },
+  [Domain.AGRO]: { labelId: "app.domain.tab.agro", defaultLabel: "Agroforestry" },
   [Domain.EDU]: {
     labelId: "app.domain.tab.education",
     defaultLabel: "Education",
@@ -47,6 +43,40 @@ interface WorkIntroProps {
   setActionUID: (value: number | null) => void;
   setGardenAddress: (value: string | null) => void;
   setSelectedDomain: (domain: Domain | null) => void;
+  commitmentChoices?: WorkCommitmentChoice[];
+  commitmentChoicesLoading?: boolean;
+  commitmentChoicesError?: unknown;
+  commitmentIntentStatus?: "none" | "validating" | "valid" | "invalid" | "unavailable";
+  showCommitmentChoices?: boolean;
+  onRetryCommitmentChoices?: () => void;
+  selectedCommitmentKey?: string | null;
+  setSelectedCommitmentKey?: (key: string | null) => void;
+}
+
+/**
+ * A picker slide is a toggle: pressing it chooses that card, and `aria-pressed`
+ * tells assistive tech which card is chosen and gives the press the selection tap.
+ */
+function PickerChoice({
+  selected,
+  onSelect,
+  children,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      data-pressable="card"
+      aria-pressed={selected}
+      onClick={onSelect}
+      className="block w-full rounded-2xl text-left"
+    >
+      {children}
+    </button>
+  );
 }
 
 export const WorkIntro: React.FC<WorkIntroProps> = ({
@@ -63,66 +93,94 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
   setActionUID,
   setGardenAddress,
   setSelectedDomain,
+  commitmentChoices = [],
+  commitmentChoicesLoading = false,
+  commitmentChoicesError = null,
+  commitmentIntentStatus = "none",
+  showCommitmentChoices = false,
+  onRetryCommitmentChoices,
+  selectedCommitmentKey = null,
+  setSelectedCommitmentKey,
 }) => {
   const intl = useIntl();
 
-  const uidFromActionId = (id: string): number | null => {
-    const last = id.split("-").pop();
-    const n = Number(last);
-    return Number.isFinite(n) ? n : null;
-  };
-
   // Single useMemo: compute available domains, filtered actions, filtered gardens (Rule 9)
-  const { availableDomains, filteredActions, filteredGardens, effectiveDomain } = useMemo(() => {
-    const now = Date.now();
+  const { availableDomains, filteredActions, unknownActions, filteredGardens, effectiveDomain } =
+    useMemo(() => {
+      const now = Date.now();
 
-    // Active actions only
-    const active = actions.filter((a) => now >= a.startTime && now <= a.endTime);
+      // Active actions only. Drop any action whose id yields no UID so the
+      // carousel never renders an unselectable card — and never parses a
+      // missing id at render time.
+      const active = actions.filter(
+        (a) => now >= a.startTime && now <= a.endTime && parseActionUID(a.id) !== null
+      );
 
-    // Derive available domains from gardens' domain masks (decision 13),
-    // falling back to action-derived domains for backward compatibility
-    const gardenDomainSet = new Set(
-      gardens.flatMap((g) => (g.domainMask ? expandDomainMask(g.domainMask) : []))
-    );
-    const domainSet =
-      gardenDomainSet.size > 0 ? gardenDomainSet : new Set(active.map((a) => a.domain));
-    const domains = Array.from(domainSet).sort((a, b) => a - b);
+      // Derive available domains from gardens' domain masks (decision 13),
+      // falling back to action-derived domains for backward compatibility
+      const gardenDomainSet = new Set(
+        gardens.flatMap((g) => (g.domainMask ? expandDomainMask(g.domainMask) : []))
+      );
+      const domainSet =
+        gardenDomainSet.size > 0
+          ? gardenDomainSet
+          : new Set(active.map((a) => a.domain).filter((d): d is Domain => d !== null));
+      const domains = Array.from(domainSet).sort((a, b) => a - b);
 
-    // Auto-select domain: if only 1 domain or none selected yet, pick first available
-    const effective =
-      selectedDomain !== null && domainSet.has(selectedDomain)
-        ? selectedDomain
-        : domains.length > 0
-          ? domains[0]
-          : null;
+      // Auto-select domain: if only 1 domain or none selected yet, pick first available
+      const effective =
+        selectedDomain !== null && domainSet.has(selectedDomain)
+          ? selectedDomain
+          : domains.length > 0
+            ? domains[0]
+            : null;
 
-    const domainActions =
-      effective !== null ? active.filter((a) => a.domain === effective) : active;
+      // Unknown-domain actions (a.domain === null) never join the named
+      // carousel — even when no effective domain exists — so they are never
+      // mislabeled or duplicated: they render only in their own "Other" group.
+      const unknownDomainActions = active.filter((a) => a.domain === null);
+      const knownActions = active.filter((a) => a.domain !== null);
+      const domainActions =
+        effective !== null ? knownActions.filter((a) => a.domain === effective) : knownActions;
 
-    // Gardens without a domainMask (0 or undefined) pass through all filters.
-    const domainGardens =
-      effective !== null
-        ? gardens.filter((g) => (g.domainMask ? hasDomain(g.domainMask, effective) : true))
-        : gardens;
+      // Gardens without a domainMask (0 or undefined) pass through all filters.
+      // A selected unknown-domain action has no named domain, so the garden
+      // list must not inherit whichever named tab happened to be active.
+      const selectedActionIsUnknown = unknownDomainActions.some(
+        (a) => parseActionUID(a.id) === selectedActionUID
+      );
+      const domainGardens =
+        effective !== null && !selectedActionIsUnknown
+          ? gardens.filter((g) => (g.domainMask ? hasDomain(g.domainMask, effective) : true))
+          : gardens;
 
-    return {
-      availableDomains: domains,
-      filteredActions: domainActions,
-      filteredGardens: domainGardens,
-      effectiveDomain: effective,
-    };
-  }, [actions, gardens, selectedDomain]);
+      return {
+        availableDomains: domains,
+        filteredActions: domainActions,
+        unknownActions: unknownDomainActions,
+        filteredGardens: domainGardens,
+        effectiveDomain: effective,
+      };
+    }, [actions, gardens, selectedDomain, selectedActionUID]);
 
   // Build tab items from available domains (resolved via intl)
   const domainTabItems: StandardTab[] = useMemo(
     () =>
       availableDomains.map((d) => {
         const config = DOMAIN_TAB_CONFIG[d];
+        const fullLabel = config
+          ? intl.formatMessage({ id: config.labelId, defaultMessage: config.defaultLabel })
+          : `Domain ${d}`;
         return {
           id: String(d),
-          label: config
-            ? intl.formatMessage({ id: config.labelId, defaultMessage: config.defaultLabel })
-            : `Domain ${d}`,
+          label:
+            d === Domain.AGRO
+              ? intl.formatMessage({
+                  id: "app.gardenIntro.domain.agroShort",
+                  defaultMessage: "Agro",
+                })
+              : fullLabel,
+          accessibleLabel: d === Domain.AGRO ? fullLabel : undefined,
         };
       }),
     [availableDomains, intl]
@@ -148,22 +206,25 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           activeTab={String(effectiveDomain ?? "")}
           onTabChange={(tabId) => {
             const domain = Number(tabId) as Domain;
-            hapticSelection();
             setSelectedDomain(domain);
             // Clear action/garden selection when switching domains
             setActionUID(null);
             setGardenAddress(null);
           }}
+          ariaLabel={intl.formatMessage({
+            id: "app.gardenIntro.domains.label",
+            defaultMessage: "Domains",
+          })}
           variant="compact"
-          className="mb-2"
-          triggerClassName="px-1 text-[10px] leading-4 sm:px-3 sm:text-label-sm"
+          className="-mx-4 mb-2 sm:-mx-6 md:-mx-12"
+          triggerClassName="px-2 text-xs leading-4 [&>span]:break-normal [&>span]:whitespace-nowrap sm:px-3 sm:text-label-sm"
         />
       )}
 
       <FormInfo
         title={intl.formatMessage({
           id: "app.garden.selectYourAction",
-          defaultMessage: "Select your action",
+          defaultMessage: "Select Your Action",
         })}
         info={intl.formatMessage({
           id: "app.garden.whatTypeOfWork",
@@ -191,46 +252,83 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             </CarouselItem>
           )}
 
-          {actionsStatus === "success" && actions.length > 0 && filteredActions.length === 0 && (
-            <CarouselItem className="basis-full max-w-full">
-              <div className="flex h-[13.25rem] w-full items-center rounded-lg border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-4 text-sm leading-5 text-text-sub-600">
-                {intl.formatMessage({
-                  id: "app.garden.noActiveActions",
-                  defaultMessage: "No active actions at this time.",
-                })}
-              </div>
-            </CarouselItem>
-          )}
+          {actionsStatus === "success" &&
+            actions.length > 0 &&
+            filteredActions.length === 0 &&
+            unknownActions.length === 0 && (
+              <CarouselItem className="basis-full max-w-full">
+                <div className="flex h-[13.25rem] w-full items-center rounded-lg border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-4 text-sm leading-5 text-text-sub-600">
+                  {intl.formatMessage({
+                    id: "app.garden.noActiveActions",
+                    defaultMessage: "No active actions at this time.",
+                  })}
+                </div>
+              </CarouselItem>
+            )}
 
           {filteredActions.length > 0 &&
             filteredActions.map((action) => {
-              const uid = uidFromActionId(action.id);
+              const uid = parseActionUID(action.id);
               const displayAction = localizeAction(action, intl.locale);
               return (
-                <CarouselItem
-                  key={action.id}
-                  onClick={() => {
-                    if (uid !== null) {
-                      hapticSelection();
-                      setActionUID(uid);
-                    }
-                  }}
-                >
-                  <ActionCard
-                    action={displayAction}
+                <CarouselItem key={action.id}>
+                  <PickerChoice
                     selected={selectedActionUID === uid}
-                    media="small"
-                    height="selection"
-                  />
+                    onSelect={() => {
+                      if (uid !== null) setActionUID(uid);
+                    }}
+                  >
+                    <ActionCard
+                      action={displayAction}
+                      selected={selectedActionUID === uid}
+                      media="small"
+                      height="selection"
+                    />
+                  </PickerChoice>
                 </CarouselItem>
               );
             })}
         </CarouselContent>
       </Carousel>
+
+      {/* Actions whose domain this client doesn't recognize (newer protocol
+          enum) — kept submittable in their own group, never under a named tab. */}
+      {unknownActions.length > 0 && (
+        <>
+          <p className="label-md text-text-sub-600">
+            {intl.formatMessage({ id: "app.domain.tab.unknown", defaultMessage: "Other" })}
+          </p>
+          <Carousel opts={{ align: "start" }}>
+            <CarouselContent>
+              {unknownActions.map((action) => {
+                const uid = parseActionUID(action.id);
+                const displayAction = localizeAction(action, intl.locale);
+                return (
+                  <CarouselItem key={action.id}>
+                    <PickerChoice
+                      selected={selectedActionUID === uid}
+                      onSelect={() => {
+                        if (uid !== null) setActionUID(uid);
+                      }}
+                    >
+                      <ActionCard
+                        action={displayAction}
+                        selected={selectedActionUID === uid}
+                        media="small"
+                        height="selection"
+                      />
+                    </PickerChoice>
+                  </CarouselItem>
+                );
+              })}
+            </CarouselContent>
+          </Carousel>
+        </>
+      )}
       <FormInfo
         title={intl.formatMessage({
           id: "app.garden.selectYourGarden",
-          defaultMessage: "Select your garden",
+          defaultMessage: "Select Your Garden",
         })}
         info={intl.formatMessage({
           id: "app.garden.whichGarden",
@@ -259,7 +357,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
                   height="selection"
                   selected
                   showDescription={true}
-                  showOperators={false}
+                  showStewards={false}
                   showStats={false}
                 />
               </CarouselItem>
@@ -292,25 +390,18 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
                     </div>
                   </div>
                   <Button
-                    variant="primary"
-                    mode="filled"
-                    size="small"
+                    type="button"
+                    size="sm"
                     onClick={onJoinCommunityGarden}
-                    disabled={isJoiningCommunityGarden}
-                    aria-busy={isJoiningCommunityGarden || undefined}
-                    leadingIcon={
-                      isJoiningCommunityGarden ? (
-                        <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
-                      ) : (
-                        <RiUserAddLine className="h-4 w-4" />
-                      )
-                    }
-                    label={intl.formatMessage({
-                      id: "app.garden.communityOnramp.action",
-                      defaultMessage: "Join garden",
-                    })}
+                    loading={isJoiningCommunityGarden}
+                    leadingIcon={<RiUserAddLine className="h-4 w-4" aria-hidden="true" />}
                     className="w-full"
-                  />
+                  >
+                    {intl.formatMessage({
+                      id: "app.garden.communityOnramp.action",
+                      defaultMessage: "Join Garden",
+                    })}
+                  </Button>
                 </div>
               </CarouselItem>
             )}
@@ -326,26 +417,37 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
 
           {filteredGardens.length > 0 &&
             filteredGardens.map((garden) => (
-              <CarouselItem
-                key={garden.id}
-                onClick={() => {
-                  hapticSelection();
-                  setGardenAddress(garden.id);
-                }}
-              >
-                <GardenCard
-                  garden={garden}
-                  media="small"
-                  height="selection"
+              <CarouselItem key={garden.id}>
+                <PickerChoice
                   selected={garden.id === selectedGardenAddress}
-                  showDescription={true}
-                  showOperators={false}
-                  showStats={false}
-                />
+                  onSelect={() => setGardenAddress(garden.id)}
+                >
+                  <GardenCard
+                    garden={garden}
+                    media="small"
+                    height="selection"
+                    selected={garden.id === selectedGardenAddress}
+                    showDescription={true}
+                    showStewards={false}
+                    showStats={false}
+                  />
+                </PickerChoice>
               </CarouselItem>
             ))}
         </CarouselContent>
       </Carousel>
+
+      {showCommitmentChoices ? (
+        <WorkCommitmentSelection
+          choices={commitmentChoices}
+          isLoading={commitmentChoicesLoading}
+          error={commitmentChoicesError}
+          intentStatus={commitmentIntentStatus}
+          onRetry={onRetryCommitmentChoices}
+          selectedKey={selectedCommitmentKey}
+          onSelectedKeyChange={setSelectedCommitmentKey}
+        />
+      ) : null}
     </>
   );
 };

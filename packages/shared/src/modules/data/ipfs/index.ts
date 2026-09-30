@@ -11,10 +11,14 @@ export {
 // Upload functions & context types
 export {
   type FileUploadContext,
+  type IpfsPinner,
+  ipfsPinner,
   type JsonUploadContext,
   uploadFileToIPFS,
   uploadJSONToIPFS,
 } from "./upload";
+
+export { createGatewayChain, type IpfsGateway, type IpfsReadOptions } from "./gateway";
 
 // Resolution, parsing, fetching
 export {
@@ -27,6 +31,5 @@ export {
   resolveAvatarUrl,
   resolveImageUrl,
   resolveIPFSUrl,
-  toCanonicalIPFSUri,
   tryParseJson,
 } from "./resolve";

@@ -195,13 +195,12 @@ async function readENSSponsorStatus(
     throw failedRead.reason;
   }
 
-  const [balance, registrationFee, releaseFee, totalPendingRefunds, l1Receiver] = reads.map((read) => read.value) as [
-    bigint,
-    bigint,
-    bigint,
-    bigint,
-    Address,
-  ];
+  // Narrowed per element rather than by the `find` above: TypeScript cannot carry that check into
+  // the map callback, and a bare `read.value` there is only sound because the throw already ran.
+  const [balance, registrationFee, releaseFee, totalPendingRefunds, l1Receiver] = reads.map((read) => {
+    if (read.status === "rejected") throw read.reason;
+    return read.value;
+  }) as [bigint, bigint, bigint, bigint, Address];
 
   const sponsorFee = maxBigInt(registrationFee, releaseFee);
   const targetReserve = totalPendingRefunds + sponsorFee * BigInt(minSponsoredClaims);

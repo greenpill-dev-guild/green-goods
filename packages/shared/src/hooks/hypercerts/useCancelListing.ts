@@ -9,7 +9,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Address, encodeFunctionData } from "viem";
 import { useWalletClient } from "wagmi";
 
-import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { createPublicClientForChain } from "../../config/pimlico";
 import { getChain } from "../../config/chains";
 import { logger } from "../../modules/app/logger";
 import {
@@ -21,7 +22,7 @@ import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { useAuth } from "../auth/useAuth";
-import { queryInvalidation } from "../../config/query-keys";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
 
 export interface UseCancelListingResult {

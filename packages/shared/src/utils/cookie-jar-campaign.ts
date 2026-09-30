@@ -1,17 +1,18 @@
 import { getAddress, isAddress } from "viem";
-import { derivePublicGardenSlug } from "../public-contracts";
+import { derivePublicGardenSlug } from "../public-contracts/garden-slug";
 import type { Address } from "../types/domain";
 import type {
   CampaignCookieJarCampaign,
   IndexedCampaignCookieJar,
   CampaignCookieJarMetadata,
-  CampaignCookieJarOperatorAggregation,
-  CampaignCookieJarOperatorSource,
+  CampaignCookieJarStewardAggregation,
+  CampaignCookieJarStewardSource,
   CookieJarWithdrawalType,
 } from "../types/cookie-jar";
 
 export const CAMPAIGN_COOKIE_JAR_METADATA_KIND = "green-goods.campaign-cookie-jar";
-const MAX_CAMPAIGN_DESCRIPTION_LENGTH = 480;
+/** The longest campaign description: the fields stop at it, and the builder refuses past it. */
+export const CAMPAIGN_DESCRIPTION_MAX_LENGTH = 480;
 const MAX_CAMPAIGN_METADATA_URL_LENGTH = 2048;
 const ALLOWED_CAMPAIGN_METADATA_PROTOCOLS = new Set(["http:", "https:", "ipfs:"]);
 export const CAMPAIGN_COOKIE_JAR_PAYOUT_ASSET_IDS = ["gooddollar", "usdc", "dai", "weth"] as const;
@@ -223,47 +224,47 @@ export function normalizeCampaignMetadataUrl(value: unknown): string | undefined
   }
 }
 
-export interface CampaignGardenOperatorInput {
+export interface CampaignGardenStewardInput {
   id: string;
   name: string;
-  operators?: readonly Address[];
+  stewards?: readonly Address[];
 }
 
-export function aggregateCampaignCookieJarOperators({
+export function aggregateCampaignCookieJarStewards({
   gardens,
   selectedGardenIds,
   extraAddressesInput = "",
 }: {
-  gardens: readonly CampaignGardenOperatorInput[];
+  gardens: readonly CampaignGardenStewardInput[];
   selectedGardenIds: readonly string[];
   extraAddressesInput?: string;
-}): CampaignCookieJarOperatorAggregation {
+}): CampaignCookieJarStewardAggregation {
   const selectedKeys = new Set(selectedGardenIds.map((id) => id.toLowerCase()));
   const { addresses: extraAllowlist, invalidAddresses } =
     parseCampaignAddressList(extraAddressesInput);
-  const sources: CampaignCookieJarOperatorSource[] = gardens
+  const sources: CampaignCookieJarStewardSource[] = gardens
     .filter((garden) => selectedKeys.has(garden.id.toLowerCase()))
     .map((garden) => {
-      const operators = dedupeAddresses(garden.operators ?? []);
+      const stewards = dedupeAddresses(garden.stewards ?? []);
       return {
         gardenAddress: normalizeCampaignAddress(garden.id) ?? (garden.id as Address),
         gardenName: garden.name,
         gardenSlug: derivePublicGardenSlug(garden.name, garden.id),
-        operators,
-        selectedOperator: operators[0] ?? null,
+        stewards,
+        selectedSteward: stewards[0] ?? null,
       };
     });
 
-  const operatorAllowlist = sources
-    .map((source) => source.selectedOperator)
+  const stewardAllowlist = sources
+    .map((source) => source.selectedSteward)
     .filter((address): address is Address => Boolean(address));
-  const allowlist = dedupeAddresses([...operatorAllowlist, ...extraAllowlist]);
+  const allowlist = dedupeAddresses([...stewardAllowlist, ...extraAllowlist]);
 
   return {
     allowlist,
     invalidAddresses,
     sources,
-    missingOperatorGardens: sources.filter((source) => source.selectedOperator === null),
+    missingStewardGardens: sources.filter((source) => source.selectedSteward === null),
     extraAllowlist,
   };
 }
@@ -279,10 +280,9 @@ export function buildCampaignCookieJarMetadata(params: {
   chainId: number;
   createdAt?: number;
 }): CampaignCookieJarMetadata {
-  const description = normalizeOptionalMetadataText(
-    params.description,
-    MAX_CAMPAIGN_DESCRIPTION_LENGTH
-  );
+  const description = params.description?.trim() || undefined;
+  if (description && description.length > CAMPAIGN_DESCRIPTION_MAX_LENGTH)
+    throw new Error(`Campaign description is past ${CAMPAIGN_DESCRIPTION_MAX_LENGTH} characters`);
   const image = normalizeCampaignMetadataUrl(params.image);
   const externalUrl = normalizeCampaignMetadataUrl(params.externalUrl);
 
@@ -362,7 +362,7 @@ export function parseCampaignCookieJarMetadata(
     if (!slug || !title) return null;
     const description = normalizeOptionalMetadataText(
       parsed.description,
-      MAX_CAMPAIGN_DESCRIPTION_LENGTH
+      CAMPAIGN_DESCRIPTION_MAX_LENGTH
     );
     const image = normalizeCampaignMetadataUrl(parsed.image);
     const externalUrl =

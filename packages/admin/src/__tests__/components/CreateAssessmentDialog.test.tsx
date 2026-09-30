@@ -1,23 +1,22 @@
+// jsdom pin (happy-dom A/B): asserts the authored inline z-index calc(var(--z-modal) + 1); happy-dom's computed style substitutes the undefined custom property with nothing.
 /**
  * @vitest-environment jsdom
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { get as idbGet } from "idb-keyval";
+import { del as idbDel, get as idbGet } from "idb-keyval";
+import type { ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  AuthContext,
-  DEFAULT_CHAIN_ID,
-  queryKeys,
-  useAdminStore,
-  useCreateAssessmentStore,
-  type AuthContextType,
-  type Garden,
-} from "@green-goods/shared";
-import { createTestQueryClient } from "@green-goods/shared/testing";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { AuthContext } from "@green-goods/shared/providers/Auth";
+import { useAdminStore } from "@green-goods/shared/stores/useAdminStore";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import type { Garden } from "@green-goods/shared/types/domain";
+import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
 import CreateAssessment from "@/views/Hub/CreateAssessment";
 
 const createAssessmentControllerOverride = vi.hoisted(() => ({
@@ -25,6 +24,7 @@ const createAssessmentControllerOverride = vi.hoisted(() => ({
 }));
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
+type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
 
 const SELECTED_GARDEN: Garden = {
   id: "0x1111111111111111111111111111111111111111",
@@ -36,7 +36,7 @@ const SELECTED_GARDEN: Garden = {
   location: "",
   bannerImage: "",
   gardeners: [],
-  operators: [OPERATOR],
+  stewards: [OPERATOR],
   owners: [],
   evaluators: [],
   funders: [],
@@ -54,18 +54,24 @@ vi.mock("wagmi", () => ({
   useWalletClient: () => ({ data: undefined }),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useCreateAssessmentController: (() =>
-      createAssessmentControllerOverride.current
-        ? createAssessmentControllerOverride.current()
-        : actual.useCreateAssessmentController()) as typeof actual.useCreateAssessmentController,
-  };
-});
+vi.mock(
+  "@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController")
+      >();
+    return {
+      ...actual,
+      useCreateAssessmentController: (() =>
+        createAssessmentControllerOverride.current
+          ? createAssessmentControllerOverride.current()
+          : actual.useCreateAssessmentController()) as typeof actual.useCreateAssessmentController,
+    };
+  }
+);
 
-const authContextValue: AuthContextType = {
+const authContextValue: AuthContextValue = {
   authMode: "wallet",
   isReady: true,
   isAuthenticated: true,
@@ -74,6 +80,7 @@ const authContextValue: AuthContextType = {
   credential: null,
   smartAccountAddress: null,
   smartAccountClient: null,
+  resolveSmartAccountClient: null,
   userName: null,
   hasStoredCredential: false,
   walletAddress: OPERATOR,
@@ -97,8 +104,9 @@ const authContextValue: AuthContextType = {
 function renderCreateAssessment() {
   const queryClient = createTestQueryClient();
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
+  queryClient.setQueryData(queryKeys.actions.byChain(DEFAULT_CHAIN_ID), []);
   queryClient.setQueryData(
-    queryKeys.role.operatorGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
     [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
   );
   queryClient.setQueryData(
@@ -135,8 +143,15 @@ function renderCreateAssessment() {
   return router;
 }
 
+// Every test in this file renders the same garden/operator pair, so they all
+// share one persisted draft key. Any test that dirties the form arms a 600ms
+// debounced write to it, which can land during a later test and make a
+// "pristine" form look dirty. Clear it on both sides of each test.
+const DRAFT_KEY = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}`;
+
 describe("CreateAssessment dialog", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await idbDel(DRAFT_KEY);
     useCreateAssessmentStore.getState().reset();
     useAdminStore.setState({
       selectedChainId: DEFAULT_CHAIN_ID,
@@ -158,11 +173,14 @@ describe("CreateAssessment dialog", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    vi.useRealTimers();
     createAssessmentControllerOverride.current = null;
     useCreateAssessmentStore.getState().reset();
     useAdminStore.setState({ selectedGarden: null, lastGardenIdsByScope: {} });
     cleanup();
+    // After cleanup, so a debounce that fires during unmount cannot re-persist.
+    await idbDel(DRAFT_KEY);
   });
 
   it("opens the assessment form from the route garden id without a Zustand selected garden", async () => {
@@ -176,7 +194,47 @@ describe("CreateAssessment dialog", () => {
     expect(screen.queryByText("app.garden.admin.notFound")).not.toBeInTheDocument();
   });
 
-  it("clears the persisted draft and in-memory form when the operator confirms Discard", async () => {
+  it("keeps the reporting-period calendars interactive above the assessment dialog", async () => {
+    // An empty DatePicker opens on the runtime's current month, so the fixed
+    // July 2026 days below only exist with the clock pinned. Only Date is faked
+    // — real timers keep findBy*/waitFor and the debounced draft save working.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-07-27T12:00:00Z"));
+
+    useCreateAssessmentStore.setState({ currentStep: 2 });
+
+    await act(async () => {
+      renderCreateAssessment();
+      await Promise.resolve();
+    });
+
+    // DatePicker includes the visible label and help text in the trigger's
+    // accessible name, so select it by the field label rather than placeholder.
+    const startTrigger = await screen.findByRole("button", { name: /Reporting period start/ });
+    fireEvent.click(startTrigger);
+
+    const startDay = await screen.findByRole("button", { name: /Monday, July 27th, 2026/i });
+    expect(startDay.closest('[data-component="DatePickerPopover"]')).toHaveStyle({
+      zIndex: "calc(var(--z-modal) + 1)",
+    });
+    fireEvent.click(startDay);
+
+    expect(useCreateAssessmentStore.getState().form.reportingPeriodStart).toBe("2026-07-27");
+    expect(startTrigger).toHaveTextContent("Jul 27, 2026");
+    expect(startTrigger).toHaveAttribute("aria-expanded", "false");
+
+    const endTrigger = screen.getByRole("button", { name: /Reporting period end/ });
+    fireEvent.click(endTrigger);
+
+    const endDay = await screen.findByRole("button", { name: /Tuesday, July 28th, 2026/i });
+    fireEvent.click(endDay);
+
+    expect(useCreateAssessmentStore.getState().form.reportingPeriodEnd).toBe("2026-07-28");
+    expect(endTrigger).toHaveTextContent("Jul 28, 2026");
+    expect(endTrigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("clears the persisted draft and in-memory form when the steward confirms Discard", async () => {
     await act(async () => {
       renderCreateAssessment();
       await Promise.resolve();
@@ -192,10 +250,9 @@ describe("CreateAssessment dialog", () => {
       await new Promise((resolve) => setTimeout(resolve, 700));
     });
 
-    const draftKey = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}`;
-    expect(await idbGet(draftKey)).toMatchObject({ title: "Should not survive discard" });
+    expect(await idbGet(DRAFT_KEY)).toMatchObject({ title: "Should not survive discard" });
 
-    const dialog = screen.getByRole("dialog", { name: "Submit Assessment" });
+    const dialog = screen.getByRole("dialog", { name: "Create Assessment" });
     fireEvent.keyDown(dialog, { key: "Escape" });
 
     const discardButton = await screen.findByRole("button", { name: "Discard" });
@@ -204,7 +261,7 @@ describe("CreateAssessment dialog", () => {
       await Promise.resolve();
     });
 
-    expect(await idbGet(draftKey)).toBeUndefined();
+    expect(await idbGet(DRAFT_KEY)).toBeUndefined();
     expect(useCreateAssessmentStore.getState().form.title).toBe("");
   });
 
@@ -251,6 +308,7 @@ describe("CreateAssessment dialog", () => {
       handleSubmit: vi.fn(),
       hasError: false,
       isDirty: false,
+      isPristine: true,
       isSubmitting: true,
       normalizedGardenDomainMask: undefined,
       resetWorkflow: vi.fn(),
@@ -265,7 +323,7 @@ describe("CreateAssessment dialog", () => {
       await Promise.resolve();
     });
 
-    const dialog = await screen.findByRole("dialog", { name: "Submit Assessment" });
+    const dialog = await screen.findByRole("dialog", { name: "Create Assessment" });
     expect(screen.getByLabelText(/close/i)).toBeDisabled();
 
     fireEvent.keyDown(dialog, { key: "Escape" });
@@ -291,6 +349,7 @@ describe("CreateAssessment dialog", () => {
       handleSubmit: vi.fn(),
       hasError: false,
       isDirty: false,
+      isPristine: true,
       isSubmitting: true,
       normalizedGardenDomainMask: undefined,
       resetWorkflow: vi.fn(),
@@ -322,7 +381,7 @@ describe("CreateAssessment dialog", () => {
       await Promise.resolve();
     });
 
-    const dialog = await screen.findByRole("dialog", { name: "Submit Assessment" });
+    const dialog = await screen.findByRole("dialog", { name: "Create Assessment" });
     await act(async () => {
       fireEvent.keyDown(dialog, { key: "Escape" });
       await Promise.resolve();
@@ -331,8 +390,10 @@ describe("CreateAssessment dialog", () => {
     // Pristine form: Escape must not raise the discard confirm — it exits
     // directly to the Hub workbench the flow was launched from (controller
     // handleCancel → adminRoutes.hub → the default /hub/work stage).
+    await waitFor(() => {
+      expect(router?.state.location.pathname).toBe("/hub/work");
+      expect(screen.queryByRole("dialog", { name: "Create Assessment" })).not.toBeInTheDocument();
+    });
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("dialog", { name: "Submit Assessment" })).not.toBeInTheDocument();
-    expect(router?.state.location.pathname).toBe("/hub/work");
   });
 });

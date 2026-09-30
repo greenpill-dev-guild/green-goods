@@ -7,7 +7,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { loadCaptureTopicsFromEnv, loadConfig, parseTopicEnvVar } from "../config";
+import { loadCaptureTopicsFromEnv, loadConfig, parseTopicEnvVar, validateConfig } from "../config";
 
 describe("parseTopicEnvVar", () => {
   it("returns undefined for unset / blank values", () => {
@@ -218,5 +218,72 @@ describe("loadConfig analytics env", () => {
     const config = loadConfig();
 
     expect(config.publicAllowedOrigins).toBe("https://admin.greengoods.app");
+  });
+});
+
+describe("production Saved Offers configuration", () => {
+  const ENV_KEYS = [
+    "NODE_ENV",
+    "TELEGRAM_BOT_TOKEN",
+    "BOT_MODE",
+    "TELEGRAM_WEBHOOK_SECRET",
+    "ENCRYPTION_SECRET",
+    "AGENT_ALLOWED_ORIGINS",
+    "SAVED_OFFERS_ENCRYPTION_KEY",
+    "SAVED_OFFERS_AUDIENCE",
+    "JOIN_REQUESTS_ENABLED",
+    "JOIN_REQUESTS_ENCRYPTION_KEY",
+    "JOIN_REQUESTS_PRODUCTION_READY",
+    "AGENT_TRUSTED_PROXY_HOPS",
+    "AGENT_TRUSTED_PROXY_CIDRS",
+  ] as const;
+  const original = new Map<string, string | undefined>(
+    ENV_KEYS.map((key) => [key, process.env[key]])
+  );
+
+  beforeEach(() => {
+    process.env.NODE_ENV = "production";
+    process.env.TELEGRAM_BOT_TOKEN = "1:production-token";
+    process.env.BOT_MODE = "webhook";
+    process.env.TELEGRAM_WEBHOOK_SECRET = "webhook-secret";
+    process.env.ENCRYPTION_SECRET = "a".repeat(32);
+    process.env.AGENT_ALLOWED_ORIGINS = "https://greengoods.app";
+    process.env.SAVED_OFFERS_ENCRYPTION_KEY = "b".repeat(64);
+    process.env.SAVED_OFFERS_AUDIENCE = "agent.greengoods.app";
+    process.env.JOIN_REQUESTS_ENABLED = "true";
+    process.env.JOIN_REQUESTS_ENCRYPTION_KEY = "c".repeat(64);
+    process.env.JOIN_REQUESTS_PRODUCTION_READY = "true";
+    process.env.AGENT_TRUSTED_PROXY_HOPS = "1";
+    process.env.AGENT_TRUSTED_PROXY_CIDRS = "10.0.0.0/8";
+  });
+
+  afterEach(() => {
+    for (const [key, value] of original) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+
+  it.each([
+    ["SAVED_OFFERS_ENCRYPTION_KEY", "SAVED_OFFERS_ENCRYPTION_KEY"],
+    ["SAVED_OFFERS_AUDIENCE", "SAVED_OFFERS_AUDIENCE"],
+    ["JOIN_REQUESTS_ENCRYPTION_KEY", "JOIN_REQUESTS_ENCRYPTION_KEY"],
+    ["JOIN_REQUESTS_PRODUCTION_READY", "JOIN_REQUESTS_PRODUCTION_READY"],
+    ["AGENT_TRUSTED_PROXY_HOPS", "AGENT_TRUSTED_PROXY_HOPS"],
+    ["AGENT_TRUSTED_PROXY_CIDRS", "AGENT_TRUSTED_PROXY_CIDRS"],
+  ] as const)("fails startup when %s is missing", (envKey, message) => {
+    delete process.env[envKey];
+    expect(() => validateConfig(loadConfig())).toThrow(message);
+  });
+
+  it("accepts the complete production Saved Offers configuration", () => {
+    expect(() => validateConfig(loadConfig())).not.toThrow();
+  });
+
+  it("allows production startup while the join-request queue is disabled", () => {
+    process.env.JOIN_REQUESTS_ENABLED = "false";
+    delete process.env.JOIN_REQUESTS_ENCRYPTION_KEY;
+    delete process.env.JOIN_REQUESTS_PRODUCTION_READY;
+    expect(() => validateConfig(loadConfig())).not.toThrow();
   });
 });

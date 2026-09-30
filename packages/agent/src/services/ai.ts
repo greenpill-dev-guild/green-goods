@@ -161,7 +161,7 @@ class AI {
     this.modelLoading = (async () => {
       log.info("Loading Whisper model (may take a moment on first run)");
       try {
-        const { pipeline } = await import("@xenova/transformers");
+        const { pipeline } = await import("@huggingface/transformers");
         const transcriber = await pipeline(
           "automatic-speech-recognition",
           "Xenova/whisper-tiny.en"
@@ -195,7 +195,7 @@ export function initAI(): AI {
   return _ai;
 }
 
-export function getAI(): AI {
+function getAI(): AI {
   if (!_ai) {
     throw new Error("AI not initialized. Call initAI() first.");
   }

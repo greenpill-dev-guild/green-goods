@@ -1,25 +1,21 @@
-import {
-  cn,
-  DOMAIN_COLORS,
-  Domain,
-  GARDEN_NAME_MAX_LENGTH,
-  imageCompressor,
-  logger,
-  resolveIPFSUrl,
-  suggestSlug,
-  Textarea,
-  TextInput,
-  toastService,
-  uploadFileToIPFS,
-  useCreateGardenStore,
-  FileUploadField,
-  useSlugAvailability,
-  validateSlug,
-} from "@green-goods/shared";
+import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useSlugAvailability } from "@green-goods/shared/hooks/ens/useSlugAvailability";
+import { GARDEN_NAME_MAX_LENGTH } from "@green-goods/shared/hooks/garden/useCreateGardenForm";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
+import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
+import { DOMAIN_COLORS, Domain } from "@green-goods/shared/types/domain";
+import { suggestSlug, validateSlug } from "@green-goods/shared/utils/blockchain/ens";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminFieldGroup } from "../../AdminFieldGroup";
 import { AdminSelectableCard } from "../../AdminSelectableCard";
+import { AdminTextArea, AdminTextField } from "../../AdminTextField";
 
 type DetailField = "name" | "slug" | "description" | "location";
 
@@ -89,21 +85,14 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
 
   const detailsErrors = useMemo(
     () => ({
+      // Past the byte limit, the field says so itself, counted as the contract counts.
       name:
         form.name.trim().length === 0
           ? formatMessage({
               id: "app.garden.create.nameRequired",
               defaultMessage: "Garden name is required",
             })
-          : form.name.length > GARDEN_NAME_MAX_LENGTH
-            ? formatMessage(
-                {
-                  id: "app.garden.create.nameTooLong",
-                  defaultMessage: "Garden name must be {max} characters or less",
-                },
-                { max: GARDEN_NAME_MAX_LENGTH }
-              )
-            : null,
+          : null,
       slug:
         trimmedSlug.length === 0
           ? formatMessage({
@@ -218,192 +207,135 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
-        <label className="space-y-1.5 text-sm">
-          <span className="font-medium text-text-strong">
-            {formatMessage({
-              id: "app.garden.create.gardenNameLabel",
-              defaultMessage: "Garden name *",
-            })}
-          </span>
-          <TextInput
-            surface="admin"
-            value={form.name}
-            onChange={(event) => setField("name", event.target.value)}
-            onBlur={() => handleFieldBlur("name")}
-            maxLength={GARDEN_NAME_MAX_LENGTH}
-            placeholder={formatMessage({
-              id: "admin.details.namePlaceholder",
-              defaultMessage: "e.g., Rio rainforest lab",
-            })}
-            aria-required="true"
-            aria-invalid={showFieldError("name") && !!detailsErrors.name}
-            invalid={showFieldError("name") && !!detailsErrors.name}
-            aria-describedby="name-error"
-          />
-          <div className="flex items-center justify-between min-h-[1.25rem]">
-            <span id="name-error" role="alert" className="text-xs text-error-base">
-              {showFieldError("name") && detailsErrors.name ? detailsErrors.name : "\u00A0"}
-            </span>
-            <span
-              className={cn(
-                "text-xs tabular-nums",
-                form.name.length > GARDEN_NAME_MAX_LENGTH
-                  ? "text-error-base"
-                  : form.name.length > GARDEN_NAME_MAX_LENGTH * 0.85
-                    ? "text-warning-base"
-                    : "text-text-soft"
-              )}
-            >
-              {form.name.length}/{GARDEN_NAME_MAX_LENGTH}
-            </span>
-          </div>
-        </label>
-        <label className="space-y-1.5 text-sm">
-          <span className="font-medium text-text-strong">
-            {formatMessage({ id: "app.garden.create.locationLabel", defaultMessage: "Location *" })}
-          </span>
-          <TextInput
-            surface="admin"
-            value={form.location}
-            onChange={(event) => setField("location", event.target.value)}
-            onBlur={() => handleFieldBlur("location")}
-            placeholder={formatMessage({
-              id: "admin.details.locationPlaceholder",
-              defaultMessage: "City, country or coordinates",
-            })}
-            aria-required="true"
-            aria-invalid={showFieldError("location") && !!detailsErrors.location}
-            invalid={showFieldError("location") && !!detailsErrors.location}
-            aria-describedby="location-error"
-          />
-          <span
-            id="location-error"
-            role="alert"
-            className="block min-h-[1.25rem] text-xs text-error-base"
-          >
-            {showFieldError("location") && detailsErrors.location
-              ? detailsErrors.location
-              : "\u00A0"}
-          </span>
-        </label>
-      </div>
-      <label className="space-y-1.5 text-sm">
-        <span className="font-medium text-text-strong">
-          {formatMessage({
-            id: "app.garden.create.ensSubdomainLabel",
-            defaultMessage: "ENS subdomain *",
+        {/* The contract counts the name in UTF-8 bytes, so the field does too:
+            past 72 it says why, and the step's schema holds the flow there. */}
+        <AdminTextField
+          id="create-garden-name"
+          label={formatMessage({
+            id: "app.garden.create.gardenNameLabel",
+            defaultMessage: "Garden name",
           })}
-        </span>
-        <div className="relative">
-          <TextInput
-            surface="admin"
-            value={form.slug}
-            onChange={(event) => {
-              slugManuallyEdited.current = true;
-              setField("slug", event.target.value.toLowerCase());
-            }}
-            onBlur={() => handleFieldBlur("slug")}
-            placeholder={formatMessage({
-              id: "admin.details.slugPlaceholder",
-              defaultMessage: "e.g., rio-rainforest-lab",
-            })}
-            inputMode="text"
-            autoCapitalize="none"
-            autoComplete="off"
-            spellCheck={false}
-            aria-required="true"
-            aria-invalid={
-              (showFieldError("slug") && !!detailsErrors.slug) ||
-              (slugValidation.valid && isSlugAvailable === false && !isCheckingSlug)
-            }
-            invalid={
-              (showFieldError("slug") && !!detailsErrors.slug) ||
-              (slugValidation.valid && isSlugAvailable === false && !isCheckingSlug)
-            }
-            aria-describedby="slug-error"
-            className="pr-10 font-mono"
-          />
-          {/* Availability indicator */}
-          {trimmedSlug.length > 0 && slugValidation.valid && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2">
-              {isCheckingSlug ? (
-                <RiLoader4Line
-                  className="h-4 w-4 animate-spin text-text-soft"
-                  aria-label="Checking availability"
-                />
-              ) : isSlugAvailable ? (
-                <RiCheckLine className="h-4 w-4 text-primary-base" aria-label="Name available" />
-              ) : isSlugAvailable === false ? (
-                <RiCloseLine className="h-4 w-4 text-error-base" aria-label="Name taken" />
-              ) : null}
-            </span>
-          )}
-        </div>
-        <span className="text-xs text-text-soft">
-          {trimmedSlug
+          required
+          value={form.name}
+          onChange={(event) => setField("name", event.target.value)}
+          onBlur={() => handleFieldBlur("name")}
+          placeholder={formatMessage({
+            id: "admin.details.namePlaceholder",
+            defaultMessage: "e.g., Rio rainforest lab",
+          })}
+          error={showFieldError("name") && detailsErrors.name ? detailsErrors.name : undefined}
+          showCount
+          countBytes
+          inputProps={{ maxLength: GARDEN_NAME_MAX_LENGTH }}
+        />
+        <AdminTextField
+          id="create-garden-location"
+          label={formatMessage({
+            id: "app.garden.create.locationLabel",
+            defaultMessage: "Location",
+          })}
+          required
+          value={form.location}
+          onChange={(event) => setField("location", event.target.value)}
+          onBlur={() => handleFieldBlur("location")}
+          placeholder={formatMessage({
+            id: "admin.details.locationPlaceholder",
+            defaultMessage: "City, country or coordinates",
+          })}
+          error={
+            showFieldError("location") && detailsErrors.location
+              ? detailsErrors.location
+              : undefined
+          }
+          helperText={" "}
+        />
+      </div>
+      <AdminTextField
+        id="create-garden-slug"
+        className="font-mono"
+        label={formatMessage({
+          id: "app.garden.create.ensSubdomainLabel",
+          defaultMessage: "ENS subdomain",
+        })}
+        required
+        value={form.slug}
+        onChange={(event) => {
+          slugManuallyEdited.current = true;
+          setField("slug", event.target.value.toLowerCase());
+        }}
+        onBlur={() => handleFieldBlur("slug")}
+        placeholder={formatMessage({
+          id: "admin.details.slugPlaceholder",
+          defaultMessage: "e.g., rio-rainforest-lab",
+        })}
+        trailingIcon={
+          trimmedSlug.length > 0 && slugValidation.valid
+            ? isCheckingSlug
+              ? SlugCheckingIcon
+              : isSlugAvailable
+                ? SlugAvailableIcon
+                : isSlugAvailable === false
+                  ? SlugTakenIcon
+                  : undefined
+            : undefined
+        }
+        error={
+          showFieldError("slug") && detailsErrors.slug
+            ? detailsErrors.slug
+            : slugValidation.valid && isSlugAvailable === false && !isCheckingSlug
+              ? formatMessage({
+                  id: "app.garden.create.slugTaken",
+                  defaultMessage: "This name is already taken",
+                })
+              : undefined
+        }
+        helperText={
+          trimmedSlug
             ? `${trimmedSlug}.greengoods.eth`
             : formatMessage({
                 id: "app.garden.create.ensHint",
                 defaultMessage: "This will be your garden's ENS name on greengoods.eth",
-              })}
-        </span>
-        {slugValidation.valid && isSlugAvailable === false && !isCheckingSlug && (
-          <span className="block text-xs text-error-base">
-            {formatMessage({
-              id: "app.garden.create.slugTaken",
-              defaultMessage: "This name is already taken",
-            })}
-          </span>
-        )}
-        <span
-          id="slug-error"
-          role="alert"
-          className="block min-h-[1.25rem] text-xs text-error-base"
-        >
-          {showFieldError("slug") && detailsErrors.slug ? detailsErrors.slug : "\u00A0"}
-        </span>
-      </label>
-      <label className="space-y-1.5 text-sm">
-        <span className="font-medium text-text-strong">
-          {formatMessage({
-            id: "app.garden.create.descriptionLabel",
-            defaultMessage: "Description *",
-          })}
-        </span>
-        <Textarea
-          surface="admin"
-          value={form.description}
-          onChange={(event) => setField("description", event.target.value)}
-          onBlur={() => handleFieldBlur("description")}
-          placeholder={formatMessage({
-            id: "admin.details.descriptionPlaceholder",
-            defaultMessage: "Share the story, mission and unique traits of the garden.",
-          })}
-          rows={3}
-          aria-required="true"
-          aria-invalid={showFieldError("description") && !!detailsErrors.description}
-          invalid={showFieldError("description") && !!detailsErrors.description}
-          aria-describedby="description-error"
-        />
-        <span
-          id="description-error"
-          role="alert"
-          className="block min-h-[1.25rem] text-xs text-error-base"
-        >
-          {showFieldError("description") && detailsErrors.description
+              })
+        }
+        inputProps={{
+          inputMode: "text",
+          autoCapitalize: "none",
+          autoComplete: "off",
+          spellCheck: false,
+        }}
+      />
+      <AdminTextArea
+        id="create-garden-description"
+        label={formatMessage({
+          id: "app.garden.create.descriptionLabel",
+          defaultMessage: "Description",
+        })}
+        required
+        value={form.description}
+        onChange={(event) => setField("description", event.target.value)}
+        onBlur={() => handleFieldBlur("description")}
+        placeholder={formatMessage({
+          id: "admin.details.descriptionPlaceholder",
+          defaultMessage: "Share the story, mission and unique traits of the garden.",
+        })}
+        rows={3}
+        error={
+          showFieldError("description") && detailsErrors.description
             ? detailsErrors.description
-            : "\u00A0"}
-        </span>
-      </label>
-      <div className="space-y-1.5 text-sm">
+            : undefined
+        }
+        helperText={" "}
+      />
+      <div className="space-y-1.5 body-sm">
         <FileUploadField
+          surface="admin"
           label={formatMessage({
             id: "app.garden.create.bannerImageLabel",
             defaultMessage: "Banner image",
           })}
           helpText={formatMessage({
             id: "app.garden.create.bannerImageHelp",
-            defaultMessage: "Upload a hero image showcasing the garden (optional)",
+            defaultMessage: "Upload a banner image showcasing the garden (optional)",
           })}
           accept="image/*"
           multiple={false}
@@ -415,7 +347,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           onRemoveFile={handleRemoveBanner}
         />
         {isUploadingBanner && (
-          <div className="flex items-center gap-2 text-xs text-text-sub">
+          <div className="flex items-center gap-2 body-xs text-text-sub">
             <RiLoader4Line className="h-4 w-4 animate-spin" />
             <span>
               {formatMessage(
@@ -431,54 +363,63 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           </div>
         )}
       </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-text-sub">
-          {formatMessage({
-            id: "app.garden.create.domains.title",
-            defaultMessage: "Action domains",
-          })}
-        </label>
-        <p className="text-xs text-text-soft">
-          {formatMessage({
-            id: "app.garden.create.domains.description",
-            defaultMessage:
-              "Select which regenerative domains this garden will focus on. Your domain selection determines which work actions are available to gardeners.",
-          })}
-        </p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {DOMAIN_OPTIONS.map(
-            ({ value, labelId, defaultLabel, descriptionId, defaultDescription }) => {
-              const isSelected = domains.includes(value);
-              return (
-                <AdminSelectableCard
-                  key={value}
-                  onClick={() => toggleDomain(value)}
-                  selected={isSelected}
-                  title={formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-                  description={formatMessage({
-                    id: descriptionId,
-                    defaultMessage: defaultDescription,
-                  })}
-                  leadingVisual={
-                    <span
-                      className="h-3 w-3 shrink-0 rounded-full"
-                      style={{ backgroundColor: DOMAIN_COLORS[value] }}
-                    />
-                  }
-                />
-              );
-            }
-          )}
-        </div>
-        {showValidation && domains.length === 0 && (
-          <p className="text-xs text-error-dark">
-            {formatMessage({
-              id: "app.garden.create.domains.required",
-              defaultMessage: "Select at least one domain",
-            })}
-          </p>
+      <AdminFieldGroup
+        as="div"
+        label={formatMessage({
+          id: "app.garden.create.domains.title",
+          defaultMessage: "Action domains",
+        })}
+        hint={formatMessage({
+          id: "app.garden.create.domains.description",
+          defaultMessage:
+            "Select which regenerative domains this garden will focus on. Your domain selection determines which work actions are available to gardeners.",
+        })}
+        error={
+          showValidation && domains.length === 0
+            ? formatMessage({
+                id: "app.garden.create.domains.required",
+                defaultMessage: "Select at least one domain",
+              })
+            : undefined
+        }
+        contentClassName="grid grid-cols-1 gap-2 sm:grid-cols-2"
+      >
+        {DOMAIN_OPTIONS.map(
+          ({ value, labelId, defaultLabel, descriptionId, defaultDescription }) => {
+            const isSelected = domains.includes(value);
+            return (
+              <AdminSelectableCard
+                key={value}
+                onClick={() => toggleDomain(value)}
+                selected={isSelected}
+                title={formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+                description={formatMessage({
+                  id: descriptionId,
+                  defaultMessage: defaultDescription,
+                })}
+                leadingVisual={
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: DOMAIN_COLORS[value] }}
+                  />
+                }
+              />
+            );
+          }
         )}
-      </div>
+      </AdminFieldGroup>
     </div>
   );
+}
+
+// Slug availability indicators for the ENS field's trailing slot. The slot is
+// presentational (the taken state also renders as field error text).
+function SlugCheckingIcon({ className }: { className?: string }) {
+  return <RiLoader4Line className={cn(className, "animate-spin text-text-soft")} />;
+}
+function SlugAvailableIcon({ className }: { className?: string }) {
+  return <RiCheckLine className={cn(className, "text-success-dark")} />;
+}
+function SlugTakenIcon({ className }: { className?: string }) {
+  return <RiCloseLine className={cn(className, "text-error-dark")} />;
 }

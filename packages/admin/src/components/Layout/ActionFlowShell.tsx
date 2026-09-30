@@ -1,9 +1,12 @@
 // Paradigm: Command Surface — solid surfaces only (no glass), pinned chrome,
 // scroll body only. The single chrome for admin action flows.
-import { cn, SheetBody, SheetFooter } from "@green-goods/shared";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowLeftLine } from "@remixicon/react";
 import type { ReactNode } from "react";
-import { ActionFlowStepper, type ActionFlowStep } from "./ActionFlowStepper";
+import { AdminIconButton } from "../AdminButton";
+import { type ActionFlowStep, ActionFlowStepper } from "./ActionFlowStepper";
 
 export interface ActionFlowShellProps {
   /** Sticky title (e.g. "Submit work"). */
@@ -24,6 +27,8 @@ export interface ActionFlowShellProps {
   currentStep?: number;
   /** Jump back to an already-completed step (1-indexed). */
   onStepClick?: (step: number) => void;
+  /** The run finished: the stepper checks every step and marks none current. */
+  complete?: boolean;
   /**
    * In-flow back (e.g. configure → qualify). When provided, a back-arrow renders
    * in the header. Omit it on the first phase so the only way out is the dialog
@@ -69,6 +74,7 @@ export function ActionFlowShell({
   steps,
   currentStep = 1,
   onStepClick,
+  complete = false,
   onBack,
   backLabel,
   backDisabled = false,
@@ -98,36 +104,31 @@ export function ActionFlowShell({
         )}
       >
         {onBack ? (
-          <button
-            type="button"
+          <AdminIconButton
+            size="lg"
+            className="mt-0.5 flex-shrink-0"
             onClick={onBack}
             disabled={backDisabled}
-            aria-label={backLabel}
-            title={backLabel}
-            className={cn(
-              "mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg",
-              "border border-stroke-soft text-text-soft",
-              "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-              "hover:text-text-sub active:scale-95",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-action)))]",
-              "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-text-soft disabled:active:scale-100"
-            )}
+            label={backLabel ?? ""}
           >
-            <RiArrowLeftLine className="h-5 w-5" aria-hidden />
-          </button>
+            <RiArrowLeftLine />
+          </AdminIconButton>
         ) : null}
 
         <div className="min-w-0 flex-1">
           {context ? (
             <p
               data-region="action-flow-context"
-              className="truncate text-xs font-medium text-text-soft"
+              className="truncate label-xs text-text-soft"
               title={typeof context === "string" ? context : undefined}
             >
               {context}
             </p>
           ) : null}
-          <h1 className="truncate text-lg font-semibold text-text-strong" title={title}>
+          <h1
+            className="truncate text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong"
+            title={title}
+          >
             {title}
           </h1>
           {/* Mobile stepper — the desktop rail (below) takes over at lg. */}
@@ -137,6 +138,7 @@ export function ActionFlowShell({
                 steps={steps as ActionFlowStep[]}
                 currentStep={currentStep}
                 onStepClick={onStepClick}
+                complete={complete}
                 orientation="horizontal"
               />
             </div>
@@ -155,6 +157,7 @@ export function ActionFlowShell({
               steps={steps as ActionFlowStep[]}
               currentStep={currentStep}
               onStepClick={onStepClick}
+              complete={complete}
               orientation="vertical"
             />
           </aside>

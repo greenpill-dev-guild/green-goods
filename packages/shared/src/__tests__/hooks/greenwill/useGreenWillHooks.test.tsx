@@ -1,13 +1,13 @@
 /**
  * GreenWill hook tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { act, waitFor } from "@testing-library/react";
 import { encodeAbiParameters, keccak256, stringToHex, type Address } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 42161;
 const TEST_USER = "0xABcDEFabcdefABCDEFabcdefAbcdefABcDefABCD" as Address;
@@ -25,6 +25,10 @@ const mockGetGreenWillRecentGrants = vi.fn();
 const mockSendContractCall = vi.fn();
 
 vi.mock("../../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 42161,
+}));
+
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 42161,
 }));
 
@@ -70,12 +74,6 @@ import {
   useGreenWillRecentGrants,
 } from "../../../hooks/greenwill";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 describe("hooks/greenwill", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -100,13 +98,7 @@ describe("hooks/greenwill", () => {
       },
     ]);
 
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-
-    const { result } = renderHook(() => useGreenWillBadgeDefinitions(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(() => useGreenWillBadgeDefinitions());
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -178,13 +170,7 @@ describe("hooks/greenwill", () => {
       },
     ]);
 
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-
-    const { result } = renderHook(() => useGreenWillBadges(TEST_USER), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(() => useGreenWillBadges(TEST_USER));
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -215,13 +201,7 @@ describe("hooks/greenwill", () => {
       },
     ]);
 
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-
-    const { result } = renderHook(() => useGreenWillRecentGrants({ limit: 5 }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(() => useGreenWillRecentGrants({ limit: 5 }));
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -235,17 +215,13 @@ describe("hooks/greenwill", () => {
       sponsored: false,
     });
 
-    const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false } },
-    });
+    const queryClient = createTestQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useClaimGenesisBadge(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(() => useClaimGenesisBadge(), { queryClient });
 
     await act(async () => {
-      await result.current.mutateAsync();
+      await result.current.mutateAsync(undefined);
     });
 
     expect(mockSendContractCall).toHaveBeenCalledWith(
@@ -266,13 +242,7 @@ describe("hooks/greenwill", () => {
       sponsored: false,
     });
 
-    const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false } },
-    });
-
-    const { result } = renderHook(() => useClaimFirstWorkBadge(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(() => useClaimFirstWorkBadge());
 
     await act(async () => {
       await result.current.mutateAsync({ uid: TEST_WORK_UID });
@@ -293,13 +263,7 @@ describe("hooks/greenwill", () => {
       sponsored: false,
     });
 
-    const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false } },
-    });
-
-    const { result } = renderHook(() => useClaimFirstSupportBadge(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(() => useClaimFirstSupportBadge());
 
     await act(async () => {
       await result.current.mutateAsync({

@@ -11,22 +11,42 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import messages from "../../../../shared/src/i18n/en.json";
+import messages from "@green-goods/shared/i18n/en.json";
 
+let mockGreenGoodsName: string | null = null;
+let mockRegistration: { status: string; registration?: { owner: string } } | undefined;
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: mockGreenGoodsName }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useENSRegistrationStatus", () => ({
+  useENSRegistrationStatus: () => ({ data: mockRegistration }),
+}));
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-  formatAddress: (addr: string, opts?: { ensName?: string }) =>
-    opts?.ensName || `${addr.slice(0, 6)}...${addr.slice(-4)}`,
+}));
+
+vi.mock("@green-goods/shared/utils/app/text", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/app/text")>()),
   formatEnsNameForDisplay: (ensName?: string | null) =>
     ensName?.endsWith(".greengoods.eth") ? ensName.replace(".greengoods.eth", "") : ensName,
-  resolveAvatarUrl: (url: string) => url,
-  useAuthState: () => ({ userName: "alice" }),
-  useEnsAvatar: () => ({ data: null, isLoading: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuthState: () => ({ authMode: "passkey", userName: "alice" }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: null }),
+}));
+
+vi.mock("@green-goods/shared/hooks/gardener/useGardenerProfile", () => ({
   useGardenerProfile: () => ({
     profile: null,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({
     user: { id: "0x1234567890abcdef1234567890abcdef12345678" },
   }),
@@ -110,6 +130,8 @@ const wrap = (el: React.ReactElement) =>
 describe("Profile View", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGreenGoodsName = null;
+    mockRegistration = undefined;
   });
 
   afterEach(() => {
@@ -120,8 +142,24 @@ describe("Profile View", () => {
     render(wrap(createElement(Profile)));
 
     expect(screen.getByTestId("user-profile")).toBeInTheDocument();
-    // With no ENS and no profile.name, falls back to userName "alice"
+    // With no ENS and no profile.name, falls back to the passkey account's chosen username.
     expect(screen.getByTestId("display-name")).toHaveTextContent("alice");
+  });
+
+  it("updates the header only after the Green Goods name resolves to this account", () => {
+    mockGreenGoodsName = "river.greengoods.eth";
+    mockRegistration = { status: "pending" };
+    const view = render(wrap(createElement(Profile)));
+    expect(screen.getByTestId("display-name")).toHaveTextContent("alice");
+    mockRegistration = {
+      status: "active",
+      registration: { owner: "0x9999999999999999999999999999999999999999" },
+    };
+    view.rerender(wrap(createElement(Profile)));
+    expect(screen.getByTestId("display-name")).toHaveTextContent("alice");
+    mockRegistration.registration!.owner = "0x1234567890abcdef1234567890abcdef12345678";
+    view.rerender(wrap(createElement(Profile)));
+    expect(screen.getByTestId("display-name")).toHaveTextContent("river");
   });
 
   it("renders avatar with default image when no profile image", () => {

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { MemoryRouter } from "react-router-dom";
+import { expect } from "storybook/test";
 import {
   EditorialDivider,
   EditorialDomainChip,
@@ -29,7 +30,10 @@ const meta: Meta = {
   decorators: [
     (Story) => (
       <MemoryRouter>
-        <Story />
+        {/* The atoms only render on the public website, whose shell sets data-site (DL-026). */}
+        <div data-site="website">
+          <Story />
+        </div>
       </MemoryRouter>
     ),
   ],
@@ -124,6 +128,44 @@ export const Buttons: Story = {
       </div>
     </div>
   ),
+};
+
+/** The shared height steps: lg 48 for hero actions, md 44 for sections and panels, sm 40 for rows. */
+export const ButtonSizes: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div className="flex flex-col gap-4 bg-bg-weak-50 p-8">
+      {(["lg", "md", "sm"] as const).map((size) => (
+        <div key={size} className="flex flex-wrap items-center gap-3" data-size-row={size}>
+          <EditorialPrimaryButton size={size}>Endow</EditorialPrimaryButton>
+          <EditorialGhostButton size={size} variant="warm">
+            Manage Endowments
+          </EditorialGhostButton>
+          <EditorialGhostLink size={size} to="/impact">
+            View Public Evidence
+          </EditorialGhostLink>
+        </div>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    for (const [size, height] of [
+      ["lg", 48],
+      ["md", 44],
+      ["sm", 40],
+    ] as const) {
+      const row = canvasElement.querySelector(`[data-size-row="${size}"]`);
+      const actions = Array.from(row?.querySelectorAll<HTMLElement>(".gg-button") ?? []);
+      await expect(actions).toHaveLength(3);
+      for (const action of actions) {
+        const style = getComputedStyle(action);
+        await expect(action.getBoundingClientRect().height).toBe(height);
+        // Every website button, link or not, is square with a semibold label (DL-029).
+        await expect(Number.parseFloat(style.borderTopLeftRadius)).toBe(0);
+        await expect(style.fontWeight).toBe("600");
+      }
+    }
+  },
 };
 
 export const ButtonsOnWalnut: Story = {

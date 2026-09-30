@@ -5,8 +5,9 @@
  * Composes:
  *   - **Envio indexer** (`getGardens`): garden roster used to find which
  *     gardens were active in the volume window.
- *   - **EAS** (`getWorks`, `getGardenAssessments`): activity within the
- *     volume's time window.
+ *   - **EAS** (`getWorks`, then `readApprovedWorks`; `getGardenAssessments`):
+ *     activity within the volume's time window, from approved work and the
+ *     assessments of listed gardens only.
  *
  * No auth path. v1 implements **Season One: Onboarding & Cultivation** with
  * a hardcoded start/open-end window keyed off the pilot launch date. When
@@ -27,12 +28,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { isGardenPubliclyVisible } from "../../config/garden-visibility";
+import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import { getGardenAssessments, getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
+import { readApprovedWorks } from "../../modules/work/work-list";
 import type { Address } from "../../types/domain";
 
 export const SEASON_ONE_VOLUME_ID = 1 as const;
@@ -83,17 +86,22 @@ export interface PublicVolume {
   startSeconds: number;
   endSeconds: number | null;
   activeGardens: PublicVolumeActiveGarden[];
-  /** Distinct gardener addresses with at least one work in the window. */
+  /** Distinct gardener addresses with at least one approved work in the window. */
   contributorCount: number;
-  /** Total `Work` attestations within the window. */
+  /** Approved `Work` attestations within the window. */
   actionCount: number;
-  /** Total `GardenAssessment` attestations within the window. */
+  /** Listed gardens' `GardenAssessment` attestations within the window. */
   attestationCount: number;
+  /**
+   * A read failed or a decision could not be read, so the counts above may be
+   * missing records; a caller that publishes them must not claim they are complete.
+   */
+  partialData: boolean;
 }
 
 export function usePublicVolume(volumeId: number, chainId: number = DEFAULT_CHAIN_ID) {
   return useQuery({
-    queryKey: queryKeys.public.volume(chainId, volumeId),
+    queryKey: publicKeys.volume(chainId, volumeId),
     queryFn: async (): Promise<PublicVolume | null> => {
       const meta = VOLUMES.get(volumeId);
       if (!meta) return null;
@@ -105,9 +113,7 @@ export function usePublicVolume(volumeId: number, chainId: number = DEFAULT_CHAI
       };
 
       const gardens = await getGardens();
-      const initializedGardens = gardens.filter(
-        (g) => (g.name ?? "").trim().length > 0 || (g.location ?? "").trim().length > 0
-      );
+      const initializedGardens = gardens.filter(isGardenPubliclyVisible);
 
       if (initializedGardens.length === 0) {
         return {
@@ -119,24 +125,29 @@ export function usePublicVolume(volumeId: number, chainId: number = DEFAULT_CHAI
           contributorCount: 0,
           actionCount: 0,
           attestationCount: 0,
+          partialData: false,
         };
       }
 
       const ids = initializedGardens.map((g) => g.id);
+      const listed = new Set(ids.map((id) => id.toLowerCase()));
 
-      // Both EAS reads are best-effort — surface zero counts if either fails.
+      // Both EAS reads are best-effort — surface zero counts if either fails,
+      // and say so on `partialData`.
       const [worksResult, assessmentsResult] = await Promise.allSettled([
-        getWorks(ids, chainId),
+        getWorks(ids, chainId).then((all) => readApprovedWorks(all, chainId)),
         getGardenAssessments(undefined, chainId),
       ]);
 
       const works =
         worksResult.status === "fulfilled"
-          ? worksResult.value.filter((w) => inWindow(w.createdAt))
+          ? worksResult.value.works.filter((w) => inWindow(w.createdAt))
           : [];
       const assessments =
         assessmentsResult.status === "fulfilled"
-          ? assessmentsResult.value.filter((a) => inWindow(a.createdAt))
+          ? assessmentsResult.value.filter(
+              (a) => listed.has(a.gardenAddress.toLowerCase()) && inWindow(a.createdAt)
+            )
           : [];
 
       if (worksResult.status === "rejected") {
@@ -170,6 +181,10 @@ export function usePublicVolume(volumeId: number, chainId: number = DEFAULT_CHAI
         contributorCount: contributorAddresses.size,
         actionCount: works.length,
         attestationCount: assessments.length,
+        partialData:
+          worksResult.status === "rejected" ||
+          worksResult.value.partial ||
+          assessmentsResult.status === "rejected",
       };
     },
     staleTime: STALE_TIME_RARE,

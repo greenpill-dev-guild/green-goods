@@ -82,6 +82,8 @@ export interface AppBarProps {
   /** Opens the notifications side sheet (bottom-sheet presentation on mobile). */
   onOpenNotifications?: () => void;
   onOpenProfile?: () => void;
+  /** Optional resolved profile image for the existing profile control. */
+  profileImageSrc?: string;
 }
 
 // ----------------------------------------------------------------------------
@@ -109,6 +111,7 @@ export function AppBar({
   onOpenSettings,
   onOpenNotifications,
   onOpenProfile,
+  profileImageSrc,
 }: AppBarProps) {
   const { formatMessage } = useIntl();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -180,7 +183,10 @@ export function AppBar({
           {onOpenSearch && (
             <TopBarIconButton
               slot="search-button"
-              tooltip={formatMessage({ id: "cockpit.topBar.openSearch", defaultMessage: "Search" })}
+              tooltip={formatMessage({
+                id: "cockpit.topBar.openSearch",
+                defaultMessage: "Open Search",
+              })}
               onClick={onOpenSearch}
               className="hidden min-[600px]:flex"
             >
@@ -209,7 +215,7 @@ export function AppBar({
               slot="settings-button"
               tooltip={formatMessage({
                 id: "cockpit.topBar.openSettings",
-                defaultMessage: "Settings",
+                defaultMessage: "Open Settings",
               })}
               onClick={onOpenSettings}
             >
@@ -227,7 +233,16 @@ export function AppBar({
               })}
               onClick={onOpenProfile}
             >
-              <RiUserLine className="h-5 w-5" />
+              {profileImageSrc ? (
+                <img
+                  src={profileImageSrc}
+                  alt=""
+                  style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }}
+                  data-slot="profile-image"
+                />
+              ) : (
+                <RiUserLine className="h-5 w-5" />
+              )}
             </TopBarIconButton>
           )}
         </div>

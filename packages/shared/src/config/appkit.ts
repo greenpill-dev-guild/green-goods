@@ -2,7 +2,7 @@
  * Reown AppKit Configuration
  *
  * Provides wallet connection UI with Green Goods branding.
- * Used as fallback for operators/admins who prefer traditional wallet login.
+ * Used as fallback for stewards/admins who prefer traditional wallet login.
  *
  * This is the SINGLE source of truth for Wagmi configuration.
  * The WagmiAdapter generates the wagmiConfig that should be used throughout the app.
@@ -115,7 +115,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
 
   if (!projectId) {
     logger.warn(
-      "[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Set it in .env (or in .env.template + run `bun run env:sync` for team-shared 1Password resolution)."
+      "[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Set it in .env (or in env.template + run `bun run env:sync` for team-shared 1Password resolution)."
     );
   }
 

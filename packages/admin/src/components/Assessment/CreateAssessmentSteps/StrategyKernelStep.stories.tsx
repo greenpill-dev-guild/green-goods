@@ -1,9 +1,5 @@
-import {
-  CynefinPhase,
-  Domain,
-  type SmartOutcome,
-  useCreateAssessmentStore,
-} from "@green-goods/shared";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import { CynefinPhase, Domain, type SmartOutcome } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
 import { StrategyKernelStep } from "./StrategyKernelStep";

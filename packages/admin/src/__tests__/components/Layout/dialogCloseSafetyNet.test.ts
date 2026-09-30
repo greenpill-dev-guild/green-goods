@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * dialogCloseSafetyNet — releases the Radix body pointer-events lock and
  * neutralizes frozen exit nodes, but only when no dialog is actually open.

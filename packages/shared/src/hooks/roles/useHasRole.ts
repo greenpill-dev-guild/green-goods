@@ -3,41 +3,20 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { readContract } from "@wagmi/core";
 import type { Address } from "viem";
-import { getWagmiConfig } from "../../config/appkit";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { isZeroAddress } from "../../utils/blockchain/address";
-import { GardenAccountABI } from "../../utils/blockchain/contracts";
-import { GARDEN_ROLE_FUNCTIONS, type GardenRole } from "../../utils/blockchain/garden-roles";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { readGardenRole } from "../../utils/blockchain/garden-role-reads";
+import type { GardenRole } from "../../utils/blockchain/garden-roles";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { roleKeys } from "../../config/query-keys/identity";
 
 export interface UseHasRoleResult {
+  /** False until the chain says yes, and after a failed read. */
   hasRole: boolean;
   isLoading: boolean;
+  /** Set when the read failed: then `hasRole` is false because the answer is unknown. */
   error?: Error | null;
-}
-
-async function fetchHasRole(
-  gardenAddress: Address,
-  userAddress: Address,
-  role: GardenRole,
-  chainId: number
-): Promise<boolean> {
-  const functionName = GARDEN_ROLE_FUNCTIONS[role];
-  try {
-    const result = await readContract(getWagmiConfig(), {
-      address: gardenAddress,
-      abi: GardenAccountABI,
-      functionName,
-      args: [userAddress],
-      chainId,
-    });
-
-    return Boolean(result);
-  } catch {
-    return false;
-  }
 }
 
 export function useHasRole(
@@ -49,9 +28,9 @@ export function useHasRole(
   const enabled = Boolean(gardenAddress && userAddress && role && !isZeroAddress(gardenAddress));
 
   const query = useQuery({
-    queryKey: queryKeys.role.hasRole(gardenAddress ?? undefined, userAddress ?? undefined, role),
+    queryKey: roleKeys.hasRole(gardenAddress ?? undefined, userAddress ?? undefined, role),
     queryFn: () =>
-      fetchHasRole(gardenAddress as Address, userAddress as Address, role as GardenRole, chainId),
+      readGardenRole(gardenAddress as Address, userAddress as Address, role as GardenRole, chainId),
     enabled,
     staleTime: STALE_TIME_MEDIUM,
     retry: false,

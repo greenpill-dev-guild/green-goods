@@ -1,10 +1,8 @@
-import {
-  AudioPlayer,
-  EmptyState,
-  ImagePreviewDialog,
-  ImageWithFallback,
-  resolveIPFSUrl,
-} from "@green-goods/shared";
+import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
+import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImagePreviewDialog";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { RiImageLine, RiZoomInLine } from "@remixicon/react";
 import { AdminButton } from "@/components/AdminButton";
 import { useState } from "react";
@@ -31,7 +29,7 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-text-strong">
+      <h3 className="body-sm font-semibold text-text-strong">
         {formatMessage({ id: "admin.work.mediaEvidence", defaultMessage: "Media Evidence" })}
       </h3>
 
@@ -74,8 +72,8 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
       {/* Audio notes from gardener */}
       {audioNoteCids && audioNoteCids.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-medium text-text-sub">
-            {formatMessage({ id: "admin.work.audioNotes", defaultMessage: "Audio Notes" })}
+          <h4 className="label-xs text-text-sub">
+            {formatMessage({ id: "admin.work.audioNotes", defaultMessage: "Audio notes" })}
           </h4>
           {audioNoteCids.map((cid) => (
             <AudioPlayer key={cid} src={resolveIPFSUrl(cid)} compact={false} className="w-full" />

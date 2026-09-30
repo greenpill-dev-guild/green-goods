@@ -1,4 +1,5 @@
-import { DEFAULT_CHAIN_ID, type MintingState } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type { MintingState } from "@green-goods/shared/stores/useHypercertWizardStore";
 import { useIntl } from "react-intl";
 import { AdminDialog } from "../AdminDialog";
 import { AdminButton } from "../AdminButton";

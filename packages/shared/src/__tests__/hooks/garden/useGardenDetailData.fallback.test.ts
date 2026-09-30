@@ -1,6 +1,6 @@
 /**
  * useGardenDetailData fallback tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { renderHook } from "@testing-library/react";
@@ -42,8 +42,8 @@ vi.mock("../../../hooks/garden/useGardenOperations", () => ({
   useGardenOperations: () => ({
     addGardener: vi.fn(),
     removeGardener: vi.fn(),
-    addOperator: vi.fn(),
-    removeOperator: vi.fn(),
+    addSteward: vi.fn(),
+    removeSteward: vi.fn(),
     addEvaluator: vi.fn(),
     removeEvaluator: vi.fn(),
     addOwner: vi.fn(),
@@ -58,6 +58,10 @@ vi.mock("../../../hooks/garden/useGardenOperations", () => ({
 
 vi.mock("../../../hooks/vault/useGardenVaults", () => ({
   useGardenVaults: () => ({ vaults: [], isLoading: false }),
+}));
+
+vi.mock("../../../hooks/cookie-jar/useGardenCookieJars", () => ({
+  useGardenCookieJars: () => ({ jars: [] }),
 }));
 
 vi.mock("../../../hooks/conviction/useConvictionStrategies", () => ({
@@ -80,14 +84,32 @@ vi.mock("../../../hooks/yield/useYieldAllocations", () => ({
   useYieldAllocations: () => ({ allocations: [], isLoading: false }),
 }));
 
+const mockUseWorks = vi.fn();
 vi.mock("../../../hooks/work/useWorks", () => ({
-  useWorks: () => ({
+  useWorks: () => mockUseWorks(),
+}));
+
+/** The garden's whole queue as a list, and past the read's limit as a floor. */
+const LISTED = { lastReviewedAt: 100, waiting: [] };
+const FLOOR = { lastReviewedAt: 100, waiting: null, waitingAtLeast: 3, waitingOverWeekAtLeast: 2 };
+const mockUseGardenReviewQueue = vi.fn(
+  (_gardenId: string, _options: { enabled: boolean }): object | undefined => LISTED
+);
+vi.mock("../../../hooks/work/useGardenReviewQueue", () => ({
+  useGardenReviewQueue: (gardenId: string, options: { enabled: boolean }) =>
+    mockUseGardenReviewQueue(gardenId, options),
+}));
+
+function defaultWorksResult() {
+  return {
     works: [],
     isLoading: false,
     isFetching: false,
+    isError: false,
+    error: null,
     refetch: vi.fn(),
-  }),
-}));
+  };
+}
 
 vi.mock("../../../hooks/hypercerts/useHypercerts", () => ({
   useHypercerts: () => ({ hypercerts: [], isLoading: false }),
@@ -107,7 +129,7 @@ const recoveredGarden = {
   location: "",
   bannerImage: "",
   gardeners: [],
-  operators: [ADDR_USER],
+  stewards: [ADDR_USER],
   evaluators: [],
   owners: [],
   funders: [],
@@ -128,10 +150,11 @@ describe("useGardenDetailData eligible garden fallback", () => {
       hasStaleBaseList: false,
       isError: false,
     });
+    mockUseWorks.mockReturnValue(defaultWorksResult());
     mockUseGardenPermissions.mockReturnValue({
-      canManageGarden: vi.fn((garden) => garden.operators.includes(ADDR_USER)),
+      canManageGarden: vi.fn((garden) => garden.stewards.includes(ADDR_USER)),
       canReviewGarden: vi.fn(() => false),
-      canAddMembers: vi.fn((garden) => garden.operators.includes(ADDR_USER)),
+      canAddMembers: vi.fn((garden) => garden.stewards.includes(ADDR_USER)),
       isOwnerOfGarden: vi.fn(() => false),
     });
   });
@@ -157,5 +180,98 @@ describe("useGardenDetailData eligible garden fallback", () => {
     expect(result.current.hasStaleBaseList).toBe(true);
     expect(result.current.baseListError).toBeInstanceOf(Error);
     expect(result.current.canManage).toBe(true);
+  });
+
+  it("exposes a work collection failure separately from garden resolution", () => {
+    const worksError = new Error("Work service unavailable");
+    mockUseGardens.mockReturnValue({
+      data: [recoveredGarden],
+      isLoading: false,
+      error: null,
+      isError: false,
+    });
+    mockUseWorks.mockReturnValue({
+      ...defaultWorksResult(),
+      isError: true,
+      error: worksError,
+    });
+
+    const { result } = renderHook(() => useGardenDetailData(recoveredGarden.id));
+
+    expect(result.current.garden).toBe(recoveredGarden);
+    expect(result.current.isWorksError).toBe(true);
+    expect(result.current.worksError).toBe(worksError);
+  });
+
+  // Rows left from the last good read cannot show that no review landed since.
+  // Past the newest page the garden's whole queue speaks: beside its list the
+  // rows add only decisions, but beside a floor their waiting work must be current.
+  it.each([
+    { name: "a current read", works: {}, complete: true, gardenWide: false },
+    { name: "a failed refresh", works: { isError: true }, complete: false, gardenWide: false },
+    { name: "a paused refresh", works: { isPaused: true }, complete: false, gardenWide: false },
+    {
+      name: "unread approvals",
+      works: { hasUnknownStatuses: true },
+      complete: false,
+      gardenWide: false,
+    },
+    {
+      name: "a restored read",
+      works: { readThisSession: false },
+      complete: false,
+      gardenWide: false,
+    },
+    { name: "older work", works: { hasOlderWork: true }, complete: false, gardenWide: true },
+    {
+      name: "older work and rows a later read left out",
+      works: { hasOlderWork: true, hasUnknownStatuses: true },
+      complete: false,
+      gardenWide: true,
+    },
+    {
+      name: "older work past the read's limit",
+      works: { hasOlderWork: true },
+      queue: FLOOR,
+      complete: false,
+      gardenWide: true,
+    },
+    {
+      name: "older work past the read's limit and rows a later read left out",
+      works: { hasOlderWork: true, hasUnknownStatuses: true },
+      queue: FLOOR,
+      complete: false,
+      gardenWide: false,
+    },
+  ])("weighs work after $name: whole $complete, garden-wide $gardenWide", ({
+    works,
+    queue = LISTED,
+    complete,
+    gardenWide,
+  }) => {
+    mockUseGardenReviewQueue.mockReturnValue(queue);
+    mockUseGardens.mockReturnValue({
+      data: [recoveredGarden],
+      isLoading: false,
+      error: null,
+      isError: false,
+    });
+    mockUseWorks.mockReturnValue({
+      ...defaultWorksResult(),
+      isPaused: false,
+      hasOlderWork: false,
+      hasUnknownStatuses: false,
+      readThisSession: true,
+      ...works,
+    });
+
+    const { result } = renderHook(() => useGardenDetailData(recoveredGarden.id));
+
+    expect(result.current.worksComplete).toBe(complete);
+    expect(result.current.gardenReviewQueue).toBe(gardenWide ? queue : undefined);
+    // The garden's whole queue is read only when the page cannot hold it.
+    expect(mockUseGardenReviewQueue).toHaveBeenLastCalledWith(recoveredGarden.id, {
+      enabled: "hasOlderWork" in works,
+    });
   });
 });

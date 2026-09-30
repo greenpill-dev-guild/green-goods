@@ -1,6 +1,19 @@
+/** @direct-test-command ./plan-hub.mjs */
+
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import {
+  cpSync,
+  existsSync,
+  linkSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
@@ -8,14 +21,23 @@ import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const SCRIPT_PATH = join(REPO_ROOT, "scripts", "harness", "plan-hub.mjs");
+const BRANCH_POLICY_PATH = join(REPO_ROOT, "scripts", "quality", "branch-name-policy.mjs");
 const TEMPLATE_PATH = join(REPO_ROOT, ".plans", "_templates", "feature");
 
 function createFixture() {
   const root = mkdtempSync(join(tmpdir(), "plan-hub-test-"));
   mkdirSync(join(root, "scripts", "harness"), { recursive: true });
+  mkdirSync(join(root, "scripts", "quality"), { recursive: true });
+  mkdirSync(join(root, "scripts", "data"), { recursive: true });
   mkdirSync(join(root, ".plans", "_templates"), { recursive: true });
   cpSync(SCRIPT_PATH, join(root, "scripts", "harness", "plan-hub.mjs"));
+  cpSync(BRANCH_POLICY_PATH, join(root, "scripts", "quality", "branch-name-policy.mjs"));
   cpSync(TEMPLATE_PATH, join(root, ".plans", "_templates", "feature"), { recursive: true });
+  writeFileSync(
+    join(root, "scripts", "data", "plan-hub-validation-receipt-debt.json"),
+    `${JSON.stringify({ version: 1, entries: [] }, null, 2)}\n`,
+  );
+  symlinkSync(join(REPO_ROOT, "node_modules"), join(root, "node_modules"), "dir");
   return root;
 }
 
@@ -34,6 +56,44 @@ function writeStatus(root, stage, slug, status) {
   writeFileSync(join(root, ".plans", stage, slug, "status.json"), `${JSON.stringify(status, null, 2)}\n`);
 }
 
+function writeValidationReceiptDebt(root, entries) {
+  writeFileSync(
+    join(root, "scripts", "data", "plan-hub-validation-receipt-debt.json"),
+    `${JSON.stringify({ version: 1, entries }, null, 2)}\n`,
+  );
+}
+
+function writeValidationReceipt(root, stage, slug, laneName, options = {}) {
+  const status = readStatus(root, stage, slug);
+  const handoffPath = join(root, ".plans", stage, slug, status.lanes[laneName].handoff);
+  const dirty = options.dirty === true;
+  const testedIdentity = dirty
+    ? "not commit-attributable; dirty worktree limitation for the validated paths"
+    : "0123456789abcdef0123456789abcdef01234567";
+  const worktreeResult = dirty
+    ? "`git status --porcelain=v1 --untracked-files=all -- packages/shared/src/example.ts` → `M packages/shared/src/example.ts` (dirty)"
+    : "`git status --porcelain=v1 --untracked-files=all -- packages/shared/src/example.ts` → no output (clean)";
+  const evidenceDiff = options.evidenceDiff ?? "not applicable";
+  const evidenceWorktree = options.evidenceWorktree ?? "not applicable";
+
+  writeFileSync(
+    handoffPath,
+    `# ${laneName} handoff
+
+## Validation Receipt
+
+- Tested implementation commit SHA: ${testedIdentity}
+- Run at (UTC): \`2026-08-12T12:00:00Z\`
+- Exact command(s): \`node --test scripts/harness/plan-hub.test.mjs\`
+- Result: focused Plan Hub fixtures passed
+- Validated paths: \`packages/shared/src/example.ts\`
+- Worktree identity command and result: ${worktreeResult}
+- Evidence-only diff command and result (if applicable): ${evidenceDiff}
+- Evidence-only worktree-status command and result (if applicable): ${evidenceWorktree}
+`,
+  );
+}
+
 function withFixture(work) {
   const root = createFixture();
   try {
@@ -42,6 +102,34 @@ function withFixture(work) {
     rmSync(root, { recursive: true, force: true });
   }
 }
+
+test("validate rejects unsupported plan-hub root entries", () =>
+  withFixture((root) => {
+    mkdirSync(join(root, ".plans", "reviews"), { recursive: true });
+
+    const rejected = runPlanHub(root, ["validate"]);
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /reviews: unsupported plan-hub root entry/);
+
+    rmSync(join(root, ".plans", "reviews"), { recursive: true });
+    const accepted = runPlanHub(root, ["validate"]);
+    assert.equal(accepted.status, 0, accepted.stderr);
+  }));
+
+test("validate rejects malformed fenced YAML", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "yaml-fixture", "--stage", "active"]).status, 0);
+    const specPath = join(root, ".plans", "active", "yaml-fixture", "config-spec.md");
+    writeFileSync(specPath, "```yaml\nroot:\n  - event: valid\n    - event: invalid\n```\n");
+
+    const rejected = runPlanHub(root, ["validate"]);
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /config-spec\.md:4: invalid fenced YAML/);
+
+    writeFileSync(specPath, "```yaml\nroot:\n  - event: valid\n  - event: corrected\n```\n");
+    const accepted = runPlanHub(root, ["validate"]);
+    assert.equal(accepted.status, 0, accepted.stderr);
+  }));
 
 test("scaffolded hubs include TDD metadata on implementation lanes", () =>
   withFixture((root) => {
@@ -61,6 +149,34 @@ test("scaffolded hubs include TDD metadata on implementation lanes", () =>
 
     assert.equal(status.lanes.qa_pass_1.tdd, undefined);
     assert.equal(status.lanes.qa_pass_2.tdd, undefined);
+    for (const lane of Object.values(status.lanes)) {
+      assert.equal(lane.branch, null);
+    }
+    assert.equal(status.lanes.qa_pass_2.branch_trigger, undefined);
+
+    status.lanes.ui.branch = "codex/ui";
+    writeStatus(root, "active", "tdd-fixture", status);
+    const invalidBranch = runPlanHub(root, ["validate"]);
+    assert.notEqual(invalidBranch.status, 0);
+    assert.match(invalidBranch.stderr, /lane "ui" branch must use <type>\/<work-description>/);
+
+    status.lanes.ui.branch = "feature/profile-avatar-editor";
+    writeStatus(root, "active", "tdd-fixture", status);
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("backlog scaffolds defer handoff files until activation", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "deferred-handoffs", "--stage", "backlog"]).status, 0);
+    assert.equal(existsSync(join(root, ".plans", "backlog", "deferred-handoffs", "handoffs")), false);
+
+    const moved = runPlanHub(root, ["move", "--feature", "deferred-handoffs", "--to", "active"]);
+    assert.equal(moved.status, 0, moved.stderr);
+    assert.equal(
+      existsSync(join(root, ".plans", "active", "deferred-handoffs", "handoffs", "codex-state-api.md")),
+      true,
+    );
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 
 test("terminal implementation lanes require recorded RED and GREEN evidence", () =>
@@ -96,6 +212,19 @@ test("terminal implementation lanes require recorded RED and GREEN evidence", ()
     ]);
     assert.equal(recorded.status, 0, recorded.stderr);
 
+    const missingReceipt = runPlanHub(root, [
+      "set-lane",
+      "--feature",
+      "terminal-proof",
+      "--lane",
+      "state-api",
+      "--status",
+      "completed",
+    ]);
+    assert.notEqual(missingReceipt.status, 0);
+    assert.match(missingReceipt.stderr, /state_api.*Validation Receipt.*Tested implementation commit SHA/);
+
+    writeValidationReceipt(root, "active", "terminal-proof", "state_api");
     const completed = runPlanHub(root, [
       "set-lane",
       "--feature",
@@ -140,7 +269,60 @@ test("not_applicable and proof_limit TDD modes require notes", () =>
     status.lanes.ui.tdd.note = "UI lane is not applicable for this API-only fixture.";
     status.lanes.state_api.tdd.note = "No deterministic RED state exists; fallback validation is recorded.";
     writeStatus(root, "active", "notes-required", status);
+    writeValidationReceipt(root, "active", "notes-required", "state_api");
 
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("terminal lanes accept an explicit non-commit dirty-tree receipt", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "dirty-receipt", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "dirty-receipt");
+    status.lanes.qa_pass_1.status = "passed";
+    status.history.push({
+      timestamp: "2026-08-12T11:59:00.000Z",
+      actor: "human",
+      lane: "qa_pass_1",
+      status: "passed",
+      branch: null,
+      note: "Dirty-tree evidence fixture",
+    });
+    writeStatus(root, "active", "dirty-receipt", status);
+    writeValidationReceipt(root, "active", "dirty-receipt", "qa_pass_1", { dirty: true });
+
+    const accepted = runPlanHub(root, ["validate"]);
+    assert.equal(accepted.status, 0, accepted.stderr);
+  }));
+
+test("evidence-only receipt reuse requires diff and clean path evidence", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "evidence-reuse", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "evidence-reuse");
+    status.lanes.qa_pass_1.status = "passed";
+    status.history.push({
+      timestamp: "2026-08-12T11:59:00.000Z",
+      actor: "human",
+      lane: "qa_pass_1",
+      status: "passed",
+      branch: null,
+      note: "Evidence-only fixture",
+    });
+    writeStatus(root, "active", "evidence-reuse", status);
+    writeValidationReceipt(root, "active", "evidence-reuse", "qa_pass_1", {
+      evidenceDiff:
+        "`git diff --exit-code 0123456..HEAD -- packages/shared/src/example.ts` → no output (clean)",
+    });
+
+    const rejected = runPlanHub(root, ["validate"]);
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /qa_pass_1.*evidence-only reuse requires clean path-scoped worktree-status evidence/);
+
+    writeValidationReceipt(root, "active", "evidence-reuse", "qa_pass_1", {
+      evidenceDiff:
+        "`git diff --exit-code 0123456..HEAD -- packages/shared/src/example.ts` → no output (clean)",
+      evidenceWorktree:
+        "`git status --porcelain=v1 --untracked-files=all -- packages/shared/src/example.ts` → no output (clean)",
+    });
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 
@@ -166,6 +348,86 @@ test("legacy_unrecorded is limited to pre-policy completed active work", () =>
     status.workflow.created_at = "2026-04-30T00:00:00.000Z";
     writeStatus(root, "active", "legacy-proof", status);
 
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+
+    status.history.push(
+      {
+        timestamp: "2026-08-12T10:00:00.000Z",
+        actor: "human",
+        lane: "state_api",
+        status: "in_progress",
+        branch: null,
+        note: "Reopened after the receipt policy boundary",
+      },
+      {
+        timestamp: "2026-08-12T11:00:00.000Z",
+        actor: "human",
+        lane: "state_api",
+        status: "completed",
+        branch: null,
+        note: "Closed again after the receipt policy boundary",
+      },
+    );
+    writeStatus(root, "active", "legacy-proof", status);
+
+    const reopened = runPlanHub(root, ["validate"]);
+    assert.notEqual(reopened.status, 0);
+    assert.match(reopened.stderr, /state_api.*Validation Receipt/);
+
+    writeValidationReceipt(root, "active", "legacy-proof", "state_api");
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("Validation Receipt debt baseline is exact, owner-bound, expiry-bound, and bidirectional", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "receipt-debt", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "receipt-debt");
+    status.workflow.created_at = "2026-08-12T10:00:00.000Z";
+    status.lanes.qa_pass_1.status = "passed";
+    status.history.push({
+      timestamp: "2026-08-12T11:00:00.000Z",
+      actor: "human",
+      lane: "qa_pass_1",
+      status: "passed",
+      branch: null,
+      note: "Receipt debt fixture",
+    });
+    writeStatus(root, "active", "receipt-debt", status);
+
+    const unbaselined = runPlanHub(root, ["validate"]);
+    assert.notEqual(unbaselined.status, 0);
+    assert.match(unbaselined.stderr, /qa_pass_1.*Validation Receipt.*Tested implementation commit SHA/);
+
+    const entry = {
+      feature: "receipt-debt",
+      lane: "qa_pass_1",
+      owner: "claude",
+      expires_at: "2099-01-01T00:00:00.000Z",
+      burn_down: "Run fresh QA proof and replace the incomplete handoff receipt.",
+    };
+    writeValidationReceiptDebt(root, [entry]);
+    const baselined = runPlanHub(root, ["validate"]);
+    assert.equal(baselined.status, 0, baselined.stderr);
+    assert.match(baselined.stdout, /Validation Receipt debt \(1 temporarily baselined lane gap\)/);
+    assert.match(baselined.stdout, /receipt-debt\/qa_pass_1.*owner=claude.*expires=2099-01-01/);
+
+    writeValidationReceiptDebt(root, [{ ...entry, owner: "codex" }]);
+    const wrongOwner = runPlanHub(root, ["validate"]);
+    assert.notEqual(wrongOwner.status, 0);
+    assert.match(wrongOwner.stderr, /baseline owner "codex" does not match lane owner "claude"/);
+
+    writeValidationReceiptDebt(root, [{ ...entry, expires_at: "2000-01-01T00:00:00.000Z" }]);
+    const expired = runPlanHub(root, ["validate"]);
+    assert.notEqual(expired.status, 0);
+    assert.match(expired.stderr, /baseline expired at 2000-01-01T00:00:00.000Z/);
+
+    writeValidationReceiptDebt(root, [entry]);
+    writeValidationReceipt(root, "active", "receipt-debt", "qa_pass_1");
+    const stale = runPlanHub(root, ["validate"]);
+    assert.notEqual(stale.status, 0);
+    assert.match(stale.stderr, /stale Validation Receipt debt baseline entry receipt-debt\/qa_pass_1/);
+
+    writeValidationReceiptDebt(root, []);
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 
@@ -286,24 +548,104 @@ test("summary preserves stage status for research-only hubs with no implementati
     assert.equal(item.overall_status, "backlog");
   }));
 
-test("archive hubs do not require taxonomy", () =>
+test("summary preserves an explicit lifecycle blocker when all lanes are terminal", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "proof-blocked", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "proof-blocked");
+    status.workflow.overall_status = "blocked";
+    for (const lane of Object.values(status.lanes)) {
+      lane.status = "passed";
+    }
+    writeStatus(root, "active", "proof-blocked", status);
+
+    const summary = runPlanHub(root, ["summary", "--json"]);
+    assert.equal(summary.status, 0, summary.stderr);
+    const item = JSON.parse(summary.stdout).find((entry) => entry.slug === "proof-blocked");
+    assert.equal(item.overall_status, "blocked");
+  }));
+
+test("archive closeouts append a ledger row and delete the hub", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "archived-hub", "--stage", "active"]).status, 0);
-    mkdirSync(join(root, ".plans", "archive"), { recursive: true });
-    cpSync(join(root, ".plans", "active", "archived-hub"), join(root, ".plans", "archive", "archived-hub"), {
-      recursive: true,
-    });
-    rmSync(join(root, ".plans", "active", "archived-hub"), { recursive: true, force: true });
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "archived-hub",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed",
+      "--reason",
+      "Fixture closeout.",
+    ]);
+    assert.equal(moved.status, 0, moved.stderr);
+    assert.match(moved.stdout, /git history is the archive/);
 
-    const status = JSON.parse(readFileSync(join(root, ".plans", "archive", "archived-hub", "status.json"), "utf8"));
-    status.feature.stage = "archive";
-    delete status.taxonomy;
-    writeFileSync(
-      join(root, ".plans", "archive", "archived-hub", "status.json"),
-      `${JSON.stringify(status, null, 2)}\n`,
-    );
-
+    assert.equal(existsSync(join(root, ".plans", "active", "archived-hub")), false);
+    assert.equal(existsSync(join(root, ".plans", "archive", "archived-hub")), false);
+    const ledger = readFileSync(join(root, ".plans", "ARCHIVE.md"), "utf8");
+    assert.match(ledger, /# Archived Plan Ledger/);
+    const row = ledger.split("\n").find((line) => line.includes("`archived-hub`"));
+    assert.ok(row, ledger);
+    assert.match(row, /\| closed \|/);
+    assert.match(row, /`\.plans\/active\/archived-hub`/);
+    assert.match(row, /Fixture closeout\./);
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
+
+    assert.equal(runPlanHub(root, ["scaffold", "second-hub", "--stage", "backlog"]).status, 0);
+    assert.equal(
+      runPlanHub(root, [
+        "move",
+        "--feature",
+        "second-hub",
+        "--to",
+        "archive",
+        "--resolution",
+        "closed",
+        "--reason",
+        "Second closeout.",
+      ]).status,
+      0,
+    );
+    const appended = readFileSync(join(root, ".plans", "ARCHIVE.md"), "utf8");
+    assert.ok(appended.indexOf("`archived-hub`") < appended.indexOf("`second-hub`"));
+    assert.equal((appended.match(/# Archived Plan Ledger/g) || []).length, 1);
+  }));
+
+test("a failed archive releases the archive lock", () =>
+  withFixture((root) => {
+    const lock = join(root, ".plans", "_templates", ".archive.lock");
+    const archive = (slug) =>
+      runPlanHub(root, [
+        "move",
+        "--feature",
+        slug,
+        "--to",
+        "archive",
+        "--resolution",
+        "closed",
+        "--reason",
+        "Fixture closeout.",
+      ]);
+    assert.equal(runPlanHub(root, ["scaffold", "linked-hub", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "linked-hub");
+    status.links.ui_handoff = "handoffs/claude-ui.md";
+    writeStatus(root, "active", "linked-hub", status);
+
+    const refused = archive("linked-hub");
+    assert.notEqual(refused.status, 0);
+    assert.match(refused.stderr, /archive links must reference top-level files/);
+    assert.equal(existsSync(lock), false);
+
+    const missing = archive("missing-hub");
+    assert.notEqual(missing.status, 0);
+    assert.match(missing.stderr, /Could not find feature "missing-hub"/);
+    assert.equal(existsSync(lock), false);
+
+    delete status.links.ui_handoff;
+    writeStatus(root, "active", "linked-hub", status);
+    const archived = archive("linked-hub");
+    assert.equal(archived.status, 0, archived.stderr);
   }));
 
 test("linear-sync manifest keeps backlog hubs parent-only", () =>
@@ -327,7 +669,7 @@ test("linear-sync manifest keeps backlog hubs parent-only", () =>
     assert.equal(manifest.feature.slug, "linear-fixture");
     assert.equal(manifest.feature.path, ".plans/backlog/linear-fixture/");
     assert.equal(manifest.parent.action, "create");
-    assert.equal(manifest.parent.title, "plan: Linear Fixture");
+    assert.equal(manifest.parent.title, "Linear Fixture roadmap");
     assert.deepEqual(manifest.parent.labels, [
       "activity:architecture",
       "package:client",
@@ -361,29 +703,97 @@ test("linear-sync manifest creates actionable lane issues for active hubs", () =
     assert.equal(manifest.feature.slug, "active-linear-fixture");
     assert.equal(manifest.feature.path, ".plans/active/active-linear-fixture/");
     assert.equal(manifest.parent.action, "create");
-    assert.equal(manifest.parent.title, "plan: Active Linear Fixture");
+    assert.equal(manifest.parent.title, "Active Linear Fixture roadmap");
     assert.deepEqual(
       manifest.lanes.map((lane) => [lane.lane, lane.action, lane.title, lane.state]),
       [
-        ["ui", "create", "UI: Active Linear Fixture", "Todo"],
-        ["state_api", "create", "State/API: Active Linear Fixture", "Todo"],
+        ["ui", "create", "Build the interface for Active Linear Fixture", "Todo"],
+        ["state_api", "create", "Build the data and API layer for Active Linear Fixture", "Todo"],
       ],
     );
     assert.deepEqual(manifest.lanes[0].labels, [
       "activity:build",
+      "ai:claude",
       "package:client",
       "protocol:green-goods",
       "source:plans",
     ]);
     assert.deepEqual(manifest.lanes[1].labels, [
       "activity:build",
+      "ai:codex",
       "package:shared",
       "protocol:green-goods",
       "source:plans",
     ]);
+    for (const lane of manifest.lanes) {
+      assert.equal(Object.hasOwn(lane, "branch"), false);
+      assert.doesNotMatch(lane.description, /Branch signal/);
+      // The handoff must stay plan-relative. `lane.handoff` is stored as
+      // `handoffs/<file>.md`, so emitting it bare leaves a Linear-dispatched
+      // agent unable to tell which plan hub owns it.
+      assert.match(
+        lane.description,
+        /Handoff: `\.plans\/active\/active-linear-fixture\/handoffs\//,
+        "canonical lane body must carry the full plan-relative handoff path",
+      );
+    }
     assert.match(manifest.warnings.join("\n"), /missing Linear parent issue/);
     assert.match(manifest.warnings.join("\n"), /missing Linear issue for lane ui/);
     assert.match(manifest.warnings.join("\n"), /unprojected/);
+  }));
+
+test("terminal implementation lanes and their active parent move to In Review", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "review-linear-fixture", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "review-linear-fixture");
+    status.linear = {
+      parentIssue: "PRD-800",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: status.workflow.updated_at,
+      lanes: { state_api: { issue: "PRD-801" } },
+    };
+    status.lanes.ui.status = "n/a";
+    status.lanes.contracts.status = "n/a";
+    status.lanes.qa_pass_1.status = "n/a";
+    status.lanes.qa_pass_2.status = "n/a";
+    writeStatus(root, "active", "review-linear-fixture", status);
+    const recorded = runPlanHub(root, [
+      "record-tdd",
+      "--feature",
+      "review-linear-fixture",
+      "--lane",
+      "state-api",
+      "--red-command",
+      "bun run test review-linear-fixture.test.ts",
+      "--red-evidence",
+      "handoffs/codex-state-api.md#red",
+      "--green-command",
+      "bun run test review-linear-fixture.test.ts",
+      "--green-evidence",
+      "handoffs/codex-state-api.md#green",
+    ]);
+    assert.equal(recorded.status, 0, recorded.stderr);
+    writeValidationReceipt(root, "active", "review-linear-fixture", "state_api");
+    const passed = runPlanHub(root, [
+      "set-lane",
+      "--feature",
+      "review-linear-fixture",
+      "--lane",
+      "state-api",
+      "--status",
+      "passed",
+    ]);
+    assert.equal(passed.status, 0, passed.stderr);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "review-linear-fixture", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    assert.equal(manifest.parent.state, "In Review");
+    assert.deepEqual(
+      manifest.lanes.map((lane) => [lane.lane, lane.issue, lane.state]),
+      [["state_api", "PRD-801", "In Review"]],
+    );
   }));
 
 test("linear-sync chooses package labels by lane for cross-package plans", () =>
@@ -595,13 +1005,22 @@ test("parent-only lane sync suppresses active lane issue actions and warnings", 
       laneSyncMode: "parent_only",
       lastSyncedAt: "2026-07-06T00:00:00.000Z",
     };
+    status.lanes.ui.status = "in_progress";
     writeStatus(root, "active", "parent-only-linear", status);
 
     const sync = runPlanHub(root, ["linear-sync", "--feature", "parent-only-linear", "--json"]);
     assert.equal(sync.status, 0, sync.stderr);
     const manifest = JSON.parse(sync.stdout);
     assert.equal(manifest.parent.issue, "PRD-900");
-    assert.match(manifest.parent.description, /intentionally does not create or update lane issues/);
+    assert.equal(manifest.parent.state, "In Progress");
+    assert.match(manifest.parent.description, /Lanes are not mirrored as child issues/);
+    // The parent record carries state and priority only — milestone, due date,
+    // and blocker relations live on lane records, which parent_only never
+    // creates. The body must not promise them here. Its Linear state is
+    // stage-derived, so it must not claim to carry the overall status either.
+    assert.doesNotMatch(manifest.parent.description, /dates,? and dependencies live on this issue/);
+    assert.match(manifest.parent.description, /The plan hub owns the overall status/);
+    assert.doesNotMatch(manifest.parent.description, /This issue carries the overall status/);
     assert.equal(manifest.laneSyncMode, "parent_only");
     assert.deepEqual(manifest.lanes, []);
     assert.equal(manifest.warnings.some((warning) => warning.includes("Plan is missing Linear issue for lane")), false);
@@ -620,6 +1039,402 @@ test("parent-only lane sync suppresses active lane issue actions and warnings", 
     const [item] = JSON.parse(list.stdout);
     assert.equal(item.slug, "parent-only-linear");
     assert.equal(item.linear_sync_warnings.some((warning) => warning.includes("Plan is missing Linear issue for lane")), false);
+  }));
+
+test("linear-sync uses execution sub-lanes without duplicating aggregate implementation lanes", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "execution-linear", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "execution-linear");
+    status.linear = {
+      parentIssue: "PRD-1000",
+      project: "Execution Project",
+      milestones: {
+        build: "2026-07-31",
+        release: "2026-08-12",
+      },
+      operationalCheckpoints: {
+        settlement_evidence: "2026-09-30",
+      },
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+      lanes: {
+        qa_pass_1: { issue: "PRD-1003", milestone: "build" },
+        qa_pass_2: { issue: "PRD-1004", milestone: "build" },
+      },
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "feature/commitment-pooling-contracts",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1001", parentIssue: "PRD-1000", milestone: "build" },
+      },
+      settlement_evidence: {
+        machine_lane: null,
+        owner: "human",
+        status: "blocked",
+        blocked_reason: "Definition inputs are not locked.",
+        branch: null,
+        depends_on: ["contracts"],
+        handoff: "handoffs/codex-state-api.md",
+        linear: {
+          sync: true,
+          issue: null,
+          parentIssue: null,
+          milestone: null,
+          dueDate: "2026-09-30",
+        },
+      },
+    };
+    writeStatus(root, "active", "execution-linear", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "execution-linear", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    assert.deepEqual(manifest.lanes.map((lane) => lane.lane), [
+      "contracts",
+      "settlement_evidence",
+      "qa_pass_1",
+      "qa_pass_2",
+    ]);
+    assert.deepEqual(manifest.warnings, []);
+    assert.equal(manifest.lanes[0].issue, "PRD-1001");
+    assert.equal(manifest.lanes[0].parentId, "PRD-1000");
+    assert.equal(Object.hasOwn(manifest.lanes[0], "branch"), false);
+    assert.deepEqual(manifest.lanes[0].milestone, { key: "build", targetDate: "2026-07-31" });
+    assert.equal(Object.hasOwn(manifest.lanes[0], "dueDate"), false);
+    assert.ok(manifest.lanes[0].labels.includes("ai:codex"));
+    assert.equal(manifest.lanes[1].action, "create");
+    assert.equal(manifest.lanes[1].title, "Settlement Evidence for Execution Linear");
+    assert.equal(manifest.lanes[1].parentId, null);
+    assert.equal(manifest.lanes[1].milestone, null);
+    assert.equal(manifest.lanes[1].dueDate, "2026-09-30");
+    // A blocked lane's validated blocked_reason must reach the cold Linear
+    // reader instead of an unverified "the handoff records it" claim.
+    assert.match(
+      manifest.lanes[1].description,
+      /This lane is blocked: Definition inputs are not locked\./,
+    );
+    assert.equal(manifest.lanes[1].labels.some((label) => label.startsWith("ai:")), false);
+    assert.equal(manifest.lanes.some((lane) => lane.lane === "ui" || lane.lane === "state_api"), false);
+    assert.deepEqual(manifest.lanes[2].milestone, { key: "build", targetDate: "2026-07-31" });
+    assert.deepEqual(manifest.schedule, {
+      milestones: {
+        build: "2026-07-31",
+        release: "2026-08-12",
+      },
+      operationalCheckpoints: {
+        settlement_evidence: "2026-09-30",
+      },
+    });
+  }));
+
+test("linear-sync update records leave out fields the hub does not record", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "unrecorded-fields", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "unrecorded-fields");
+    status.linear = {
+      parentIssue: "PRD-1500",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+    };
+    status.execution_sub_lanes = {
+      release_ops: {
+        machine_lane: null,
+        owner: "human",
+        status: "blocked",
+        blocked_reason: "Waits for the release window.",
+        branch: null,
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1501", parentIssue: null },
+      },
+    };
+    writeStatus(root, "active", "unrecorded-fields", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "unrecorded-fields", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    const lane = manifest.lanes.find((record) => record.lane === "release_ops");
+    assert.equal(lane.action, "update");
+    // A null would tell the applier to clear a parent, milestone, due date, or
+    // project someone set in Linear; an absent field leaves that value alone.
+    for (const field of ["parentId", "parentRef", "milestone", "dueDate", "project"]) {
+      assert.equal(Object.hasOwn(lane, field), false, `${field} is sent on an update`);
+    }
+    assert.equal(manifest.parent.action, "update");
+    assert.equal(Object.hasOwn(manifest.parent, "project"), false);
+  }));
+
+test("execution and canonical lane scheduling metadata must reference valid project dates", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "bad-linear-schedule", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "bad-linear-schedule");
+    status.linear = {
+      parentIssue: "PRD-1300",
+      milestones: {
+        build: "2026-02-30",
+      },
+      operationalCheckpoints: [],
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lanes: {
+        qa_pass_1: {
+          issue: "PRD-1302",
+          milestone: "missing",
+          dueDate: "2026-13-01",
+          surprise: true,
+        },
+      },
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "feature/linear-schedule-validation",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: {
+          sync: true,
+          issue: "PRD-1301",
+          parentIssue: "PRD-1300",
+          milestone: "release",
+          dueDate: "2026-09-31",
+        },
+      },
+    };
+    writeStatus(root, "active", "bad-linear-schedule", status);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /linear\.milestones\.build must be a YYYY-MM-DD date/);
+    assert.match(result.stderr, /linear\.operationalCheckpoints must be an object/);
+    assert.match(result.stderr, /linear\.lanes\.qa_pass_1 has unsupported fields: surprise/);
+    assert.match(result.stderr, /linear\.lanes\.qa_pass_1\.milestone must reference linear\.milestones\.missing/);
+    assert.match(result.stderr, /linear\.lanes\.qa_pass_1\.dueDate must be a YYYY-MM-DD date or null/);
+    assert.match(
+      result.stderr,
+      /execution_sub_lanes\.contracts\.linear\.milestone must reference linear\.milestones\.release/,
+    );
+    assert.match(
+      result.stderr,
+      /execution_sub_lanes\.contracts\.linear\.dueDate must be a YYYY-MM-DD date or null/,
+    );
+  }));
+
+test("execution sub-lane validation rejects unsafe metadata and dependency drift", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "bad-execution-linear", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "bad-execution-linear");
+    status.execution_sub_lanes = {
+      "Bad Lane": {
+        machine_lane: "mystery",
+        owner: "human",
+        status: "ready",
+        depends_on: ["missing_lane"],
+        handoff: "handoffs/missing.md",
+        linear: { sync: true, issue: null },
+      },
+    };
+    writeStatus(root, "active", "bad-execution-linear", status);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /invalid name/);
+    assert.match(result.stderr, /canonical machine lane/);
+    assert.match(result.stderr, /cannot be ready with a human owner/);
+    assert.match(result.stderr, /unknown lanes: missing_lane/);
+    assert.match(result.stderr, /handoff file is missing/);
+    assert.match(result.stderr, /linear\.parentIssue is required/);
+  }));
+
+test("execution sub-lane validation rejects parent drift and duplicate issue relationships", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "relationship-drift", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "relationship-drift");
+    status.linear = {
+      parentIssue: "PRD-1200",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+      lanes: {
+        qa_pass_1: { issue: "PRD-1203" },
+        qa_pass_2: { issue: "PRD-1203" },
+      },
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "feature/relationship-validation",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1203", parentIssue: "PRD-9999" },
+      },
+      docs: {
+        machine_lane: "ui",
+        owner: "claude",
+        status: "blocked",
+        blocked_reason: "Wait for source convergence.",
+        branch: "docs/relationship-validation",
+        depends_on: ["contracts"],
+        handoff: "handoffs/codex-state-api.md",
+        linear: { sync: true, issue: "PRD-1200", parentIssue: "PRD-1200" },
+      },
+    };
+    writeStatus(root, "active", "relationship-drift", status);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /parentIssue must match canonical parent PRD-1200 or be null/);
+    assert.match(result.stderr, /linear\.lanes\.qa_pass_2\.issue duplicates PRD-1203/);
+    assert.match(result.stderr, /duplicates PRD-1203 already used by linear\.lanes\.qa_pass_1/);
+    assert.match(result.stderr, /cannot reuse the canonical parent issue/);
+  }));
+
+// One sub-lane sits under the hub parent (PRD-1400) and one names PRD-1410, an
+// umbrella tracker that is only valid when the hub records it in linear.trackers.
+function writeTrackedSubLaneHub(root, slug, trackers) {
+  assert.equal(runPlanHub(root, ["scaffold", slug, "--stage", "active"]).status, 0);
+  const status = readStatus(root, "active", slug);
+  status.linear = {
+    parentIssue: "PRD-1400",
+    ...(trackers ? { trackers } : {}),
+    syncDirection: "plans_to_linear_visibility",
+    laneSyncMode: "lane_issues",
+    lastSyncedAt: "2026-07-20T00:00:00.000Z",
+  };
+  status.execution_sub_lanes = {
+    contracts: {
+      machine_lane: "contracts",
+      owner: "codex",
+      status: "ready",
+      branch: "feature/tracker-direct-lane",
+      depends_on: [],
+      handoff: "handoffs/codex-contracts.md",
+      linear: { sync: true, issue: "PRD-1401", parentIssue: "PRD-1400" },
+    },
+    follow_up: {
+      machine_lane: "ui",
+      owner: "claude",
+      status: "ready",
+      branch: "fix/tracker-follow-up",
+      depends_on: [],
+      handoff: "handoffs/codex-state-api.md",
+      linear: { sync: true, issue: "PRD-1411", parentIssue: "PRD-1410" },
+    },
+  };
+  writeStatus(root, "active", slug, status);
+  return status;
+}
+
+test("execution sub-lanes can nest under a tracker recorded on the hub", () =>
+  withFixture((root) => {
+    const status = writeTrackedSubLaneHub(root, "tracked-linear", { follow_ups: "PRD-1410" });
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "tracked-linear", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const parentIds = Object.fromEntries(
+      JSON.parse(result.stdout).lanes.map((lane) => [lane.lane, lane.parentId]),
+    );
+    assert.equal(parentIds.follow_up, "PRD-1410");
+    assert.equal(parentIds.contracts, "PRD-1400");
+
+    // The registry is the only way in: a tracker cannot be the hub parent or a
+    // lane's own issue, and a parent the hub has not recorded is still drift.
+    status.linear.trackers.hub = "PRD-1400";
+    status.execution_sub_lanes.contracts.linear.issue = "PRD-1410";
+    status.execution_sub_lanes.follow_up.linear.parentIssue = "PRD-9999";
+    writeStatus(root, "active", "tracked-linear", status);
+
+    const invalid = runPlanHub(root, ["validate"]);
+    assert.notEqual(invalid.status, 0);
+    assert.match(invalid.stderr, /linear\.trackers\.hub cannot reuse the canonical parent issue/);
+    assert.match(
+      invalid.stderr,
+      /contracts\.linear\.issue duplicates PRD-1410 already used by linear\.trackers\.follow_ups/,
+    );
+    assert.match(
+      invalid.stderr,
+      /follow_up\.linear\.parentIssue must match canonical parent PRD-1400 or an issue in linear\.trackers, or be null/,
+    );
+  }));
+
+test("hubs without linear.trackers keep the canonical parent check", () =>
+  withFixture((root) => {
+    writeTrackedSubLaneHub(root, "untracked-linear", null);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(
+      result.stderr,
+      /: execution_sub_lanes\.follow_up\.linear\.parentIssue must match canonical parent PRD-1400 or be null$/m,
+    );
+  }));
+
+test("execution sub-lane validation rejects compatibility issue-list drift", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "compatibility-issue-drift", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "compatibility-issue-drift");
+    status.linear = {
+      parentIssue: "PRD-1300",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "feature/compatibility-validation",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1301", parentIssue: "PRD-1300" },
+        linear_issues: ["PRD-1300"],
+      },
+    };
+    writeStatus(root, "active", "compatibility-issue-drift", status);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /linear_issues must include linear\.issue PRD-1301/);
+  }));
+
+test("parent-only mode remains authoritative when execution sub-lanes are present", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "parent-only-execution", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "parent-only-execution");
+    status.linear = {
+      parentIssue: "PRD-1010",
+      project: "Compatibility Project",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "parent_only",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "feature/parent-only-execution",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1011", parentIssue: "PRD-1010" },
+      },
+    };
+    writeStatus(root, "active", "parent-only-execution", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "parent-only-execution", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout).lanes, []);
   }));
 
 test("linear lane sync mode must be recognized", () =>
@@ -649,6 +1464,279 @@ test("validate fails when a referenced lane handoff file is missing", () =>
     assert.match(result.stderr, /lane "contracts" handoff file is missing: handoffs\/codex-contracts.md/);
   }));
 
+test("validate rejects loose files and directories without status metadata", () =>
+  withFixture((root) => {
+    mkdirSync(join(root, ".plans", "ideas", "untracked-idea"), { recursive: true });
+    writeFileSync(join(root, ".plans", "ideas", "untracked-idea", "brief.md"), "# Untracked idea\n");
+    mkdirSync(join(root, ".plans", "backlog"), { recursive: true });
+    writeFileSync(join(root, ".plans", "backlog", "loose-plan.md"), "# Loose plan\n");
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /untracked-idea: missing status\.json/);
+    assert.match(result.stderr, /loose-plan\.md: unsupported loose file/);
+  }));
+
+test("validate requires the four canonical plan document roles", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "missing-core-role", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "missing-core-role");
+    delete status.links.eval;
+    writeStatus(root, "backlog", "missing-core-role", status);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /links\.eval is required/);
+  }));
+
+test("archive closeouts record explicit metadata in the ledger", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "closed-fixture", "--stage", "active"]).status, 0);
+    const reportDir = join(root, ".plans", "active", "closed-fixture", "reports");
+    mkdirSync(reportDir, { recursive: true });
+    writeFileSync(join(reportDir, "review-2026-08-11.md"), "# Review 2026-08-11\n\nImmutable evidence.\n");
+    const activeStatus = readStatus(root, "active", "closed-fixture");
+    activeStatus.links.review = "reports/review-2026-08-11.md";
+    writeStatus(root, "active", "closed-fixture", activeStatus);
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "closed-fixture",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.equal(moved.status, 0, moved.stderr);
+
+    assert.equal(existsSync(join(root, ".plans", "active", "closed-fixture")), false);
+    assert.equal(existsSync(join(root, ".plans", "archive", "closed-fixture")), false);
+    const ledger = readFileSync(join(root, ".plans", "ARCHIVE.md"), "utf8");
+    const row = ledger.split("\n").find((line) => line.includes("`closed-fixture`"));
+    assert.ok(row, ledger);
+    assert.match(row, /\| closed_stale \|/);
+    assert.match(row, /No remaining live scope\./);
+    const archivedAt = row.split("|")[1].trim();
+    assert.ok(!Number.isNaN(Date.parse(archivedAt)), row);
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("archive moves reject completed resolution until every lane is terminal", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "incomplete-fixture", "--stage", "active"]).status, 0);
+
+    const rejected = runPlanHub(root, [
+      "move",
+      "--feature",
+      "incomplete-fixture",
+      "--to",
+      "archive",
+      "--resolution",
+      "completed",
+      "--reason",
+      "Claimed complete.",
+    ]);
+
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /archive resolution completed requires every lane to be terminal/);
+    assert.equal(existsSync(join(root, ".plans", "active", "incomplete-fixture", "status.json")), true);
+    assert.equal(existsSync(join(root, ".plans", "archive", "incomplete-fixture")), false);
+    assert.equal(readStatus(root, "active", "incomplete-fixture").feature.stage, "active");
+  }));
+
+test("archive moves reject a malformed reports entry before mutation", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "malformed-reports", "--stage", "active"]).status, 0);
+    writeFileSync(join(root, ".plans", "active", "malformed-reports", "reports"), "not a directory\n");
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "malformed-reports",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /reports must be a real directory inside the feature hub/);
+    assert.equal(existsSync(join(root, ".plans", "active", "malformed-reports")), true);
+    assert.equal(existsSync(join(root, ".plans", "archive", "malformed-reports")), false);
+  }));
+
+test("archive moves reject symlinked report directories", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "linked-reports", "--stage", "active"]).status, 0);
+    const externalReports = join(root, "external-reports");
+    mkdirSync(externalReports);
+    symlinkSync(externalReports, join(root, ".plans", "active", "linked-reports", "reports"), "dir");
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "linked-reports",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /reports must be a real directory inside the feature hub/);
+    assert.equal(existsSync(join(root, ".plans", "active", "linked-reports")), true);
+  }));
+
+test("archive moves reject symlinks nested inside report directories", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "nested-linked-reports", "--stage", "active"]).status, 0);
+    const reportsDir = join(root, ".plans", "active", "nested-linked-reports", "reports");
+    const externalReport = join(root, "external-report.md");
+    mkdirSync(reportsDir);
+    writeFileSync(externalReport, "# Mutable external evidence\n");
+    symlinkSync(externalReport, join(reportsDir, "review-2026-08-11.md"), "file");
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "nested-linked-reports",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /reports must not contain symlinks/);
+    assert.equal(existsSync(join(root, ".plans", "active", "nested-linked-reports")), true);
+    assert.equal(existsSync(join(root, ".plans", "archive", "nested-linked-reports")), false);
+  }));
+
+test("archive moves reject hard-linked report files", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "hard-linked-reports", "--stage", "active"]).status, 0);
+    const featureDir = join(root, ".plans", "active", "hard-linked-reports");
+    const reportsDir = join(featureDir, "reports");
+    mkdirSync(reportsDir);
+    linkSync(join(featureDir, "brief.md"), join(reportsDir, "review-2026-08-11.md"));
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "hard-linked-reports",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /reports must not contain hard-linked files/);
+    assert.equal(existsSync(join(root, ".plans", "active", "hard-linked-reports")), true);
+    assert.equal(existsSync(join(root, ".plans", "archive", "hard-linked-reports")), false);
+  }));
+
+test("archive moves revalidate reports after waiting for the archive lock", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "locked-archive-move", "--stage", "active"]).status, 0);
+    const reportsPath = join(root, ".plans", "active", "locked-archive-move", "reports");
+    const externalReports = join(root, "external-locked-reports");
+    const lockPath = join(root, ".plans", "_templates", ".archive.lock");
+    mkdirSync(reportsPath);
+    writeFileSync(join(reportsPath, "review.md"), "# Original evidence\n");
+    mkdirSync(externalReports);
+    mkdirSync(lockPath);
+    spawn(
+      process.execPath,
+      [
+        "-e",
+        "const fs=require('node:fs');setTimeout(()=>{fs.rmSync(process.env.REPORTS,{recursive:true});fs.symlinkSync(process.env.EXTERNAL,process.env.REPORTS,'dir');fs.rmSync(process.env.LOCK,{recursive:true});},25);",
+      ],
+      {
+        env: { ...process.env, REPORTS: reportsPath, EXTERNAL: externalReports, LOCK: lockPath },
+        stdio: "ignore",
+      },
+    );
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "locked-archive-move",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /reports must be a real directory inside the feature hub/);
+    assert.equal(existsSync(join(root, ".plans", "archive", "locked-archive-move")), false);
+  }));
+
+test("archive moves keep canonical document links at the top level", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "nested-canonical-link", "--stage", "active"]).status, 0);
+    const featureDir = join(root, ".plans", "active", "nested-canonical-link");
+    mkdirSync(join(featureDir, "reports"));
+    writeFileSync(join(featureDir, "reports", "brief.md"), "# Replacement brief\n");
+    const status = readStatus(root, "active", "nested-canonical-link");
+    status.links.brief = "reports/brief.md";
+    writeStatus(root, "active", "nested-canonical-link", status);
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "nested-canonical-link",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /archive canonical links must reference top-level files: brief/);
+    assert.equal(existsSync(join(root, ".plans", "active", "nested-canonical-link", "brief.md")), true);
+    assert.equal(existsSync(join(root, ".plans", "archive", "nested-canonical-link")), false);
+  }));
+
+
+
+
+test("validate rejects any hub left under .plans/archive", () =>
+  withFixture((root) => {
+    mkdirSync(join(root, ".plans", "archive", "legacy-hub"), { recursive: true });
+    writeFileSync(join(root, ".plans", "archive", "legacy-hub", "status.json"), "{}\n");
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /archived hubs must not exist in the working tree/);
+  }));
+
+
+test("stale reports live hubs whose status has not been refreshed", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "old-fixture", "--stage", "backlog"]).status, 0);
+    assert.equal(runPlanHub(root, ["scaffold", "fresh-fixture", "--stage", "backlog"]).status, 0);
+    const oldStatus = readStatus(root, "backlog", "old-fixture");
+    oldStatus.workflow.updated_at = "2020-01-01T00:00:00.000Z";
+    writeStatus(root, "backlog", "old-fixture", oldStatus);
+
+    const result = runPlanHub(root, ["stale", "--days", "14", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const records = JSON.parse(result.stdout);
+    assert.deepEqual(records.map((record) => record.slug), ["old-fixture"]);
+    assert.ok(records[0].age_days > 14);
+  }));
+
 test("record-linear writes parent and lane issue ids into status.json", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "record-linear-fixture", "--stage", "backlog"]).status, 0);
@@ -671,7 +1759,150 @@ test("record-linear writes parent and lane issue ids into status.json", () =>
     assert.equal(status.linear.syncDirection, "plans_to_linear_visibility");
     assert.equal(status.linear.lanes.ui.issue, "PRD-501");
     assert.equal(status.linear.lanes.state_api.issue, "PRD-502");
+    assert.equal(status.linear.lastSyncedAt, null);
+    assert.notEqual(status.workflow.updated_at, null);
     assert.equal(status.history.at(-1).status, "linear_recorded");
+    assert.equal(status.history.at(-1).timestamp, status.workflow.updated_at);
+    const archiveWithoutConfirmation = runPlanHub(root, [
+      "move",
+      "--feature",
+      "record-linear-fixture",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed",
+    ]);
+    assert.notEqual(archiveWithoutConfirmation.status, 0);
+    assert.match(archiveWithoutConfirmation.stderr, /last confirmed Linear sync/);
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("mirrored archives require a fresh confirmed Linear sync and retain the parent key", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "confirmed-linear-closeout", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "confirmed-linear-closeout");
+    status.linear = {
+      parentIssue: "PRD-900",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "parent_only",
+      lastSyncedAt: "2026-08-01T00:00:00.000Z",
+    };
+    status.workflow.updated_at = "2026-08-02T00:00:00.000Z";
+    writeStatus(root, "active", "confirmed-linear-closeout", status);
+
+    const stale = runPlanHub(root, [
+      "move",
+      "--feature",
+      "confirmed-linear-closeout",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed",
+      "--reason",
+      "Closeout proof is bounded.",
+    ]);
+    assert.notEqual(stale.status, 0);
+    assert.match(stale.stderr, /changed after its last confirmed Linear sync/);
+    assert.equal(existsSync(join(root, ".plans", "active", "confirmed-linear-closeout")), true);
+
+    status.linear.lastSyncedAt = status.workflow.updated_at;
+    writeStatus(root, "active", "confirmed-linear-closeout", status);
+    const timestampOnly = runPlanHub(root, [
+      "move",
+      "--feature",
+      "confirmed-linear-closeout",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed",
+      "--reason",
+      "Closeout proof is bounded.",
+    ]);
+    assert.notEqual(timestampOnly.status, 0);
+    assert.match(timestampOnly.stderr, /changed after its last confirmed Linear sync/);
+
+    const confirmed = runPlanHub(root, [
+      "confirm-linear-sync",
+      "--feature",
+      "confirmed-linear-closeout",
+      "--actor",
+      "codex",
+    ]);
+    assert.equal(confirmed.status, 0, confirmed.stderr);
+    const synchronized = readStatus(root, "active", "confirmed-linear-closeout");
+    assert.equal(synchronized.linear.lastSyncedAt, synchronized.workflow.updated_at);
+    assert.equal(synchronized.history.at(-1).status, "linear_sync_confirmed");
+    assert.equal(synchronized.history.at(-1).timestamp, synchronized.workflow.updated_at);
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "confirmed-linear-closeout",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed",
+      "--reason",
+      "Closeout proof is bounded.",
+    ]);
+    assert.equal(moved.status, 0, moved.stderr);
+    const ledger = readFileSync(join(root, ".plans", "ARCHIVE.md"), "utf8");
+    const row = ledger.split("\n").find((line) => line.includes("`confirmed-linear-closeout`"));
+    assert.match(row, /\| PRD-900 \|/);
+  }));
+
+test("record-linear records repeated execution sub-lane issue ids", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "record-execution-linear", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "record-execution-linear");
+    status.linear = {
+      parentIssue: "PRD-1100",
+      project: "Execution Project",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "feature/record-linear-execution",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1099", parentIssue: "PRD-1100" },
+        linear_issues: ["PRD-1099", "PRD-1100", "PRD-1098"],
+      },
+      release_ops: {
+        machine_lane: null,
+        owner: "human",
+        status: "blocked",
+        blocked_reason: "Human release gate is closed.",
+        branch: null,
+        depends_on: ["contracts"],
+        handoff: "handoffs/codex-state-api.md",
+        linear: { sync: true, issue: null, parentIssue: null },
+        linear_issues: [],
+      },
+    };
+    writeStatus(root, "active", "record-execution-linear", status);
+
+    const result = runPlanHub(root, [
+      "record-linear",
+      "--feature",
+      "record-execution-linear",
+      "--execution-lane",
+      "contracts=PRD-1101",
+      "--execution-lane",
+      "release_ops=PRD-1102",
+    ]);
+    assert.equal(result.status, 0, result.stderr);
+
+    const updated = readStatus(root, "active", "record-execution-linear");
+    assert.equal(updated.execution_sub_lanes.contracts.linear.issue, "PRD-1101");
+    assert.equal(updated.execution_sub_lanes.release_ops.linear.issue, "PRD-1102");
+    assert.deepEqual(updated.execution_sub_lanes.contracts.linear_issues, ["PRD-1101", "PRD-1100", "PRD-1098"]);
+    assert.deepEqual(updated.execution_sub_lanes.release_ops.linear_issues, ["PRD-1102"]);
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 

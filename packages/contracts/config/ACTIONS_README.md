@@ -319,10 +319,10 @@ Add the action to the `actions` array:
 cd packages/contracts
 
 # Dry run first
-bun deploy:dry
+bun run contracts -- deploy core --network sepolia --mode simulate
 
 # Deploy to testnet
-bun deploy:testnet
+bun run contracts -- deploy core --network sepolia --mode broadcast
 ```
 
 The deployment will:
@@ -386,10 +386,10 @@ vim config/actions.json
 node -e "JSON.parse(require('fs').readFileSync('config/actions.json', 'utf8'))"
 
 # 3. Dry run
-bun deploy:dry
+bun run contracts -- deploy core --network sepolia --mode simulate
 
 # 4. Deploy to testnet
-bun deploy:testnet
+bun run contracts -- deploy core --network sepolia --mode broadcast
 
 # 5. Verify on-chain
 cast call $ACTION_REGISTRY "getAction(uint256)" 1 --rpc-url $RPC

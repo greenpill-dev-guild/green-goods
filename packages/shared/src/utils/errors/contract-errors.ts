@@ -1,33 +1,22 @@
-/**
- * Contract Error Parsing Utilities
- *
- * Parses contract revert errors from UserOperation failures and transaction errors.
- * Provides human-readable messages for common Green Goods contract errors.
- *
- * @module utils/errors/contract-errors
- */
-
 import { extractErrorMessage } from "./extract-message";
 
-/**
- * Error metadata with recovery information
- */
 interface ErrorInfo {
   name: string;
-  message: string;
+  message?: string;
   action?: string;
+  messageKey?: string;
+  actionKey?: string;
   recoverable: boolean;
   suggestedAction?: "retry" | "join-garden" | "contact-support" | "check-wallet";
 }
 
-/**
- * Common contract error signatures and their human-readable messages
- *
- * Selectors are calculated using: cast sig "ErrorName()"
- * Run `cast sig "ErrorName()"` to get the 4-byte selector for any error.
- *
- * Last updated: 2026-02-25 (synced with deployed contracts)
- */
+const LOCALIZED_ERROR_FALLBACKS = {
+  SelfAttestation: {
+    message: "You cannot review your own work submission",
+    action: "Ask another garden steward to approve or reject this work",
+  },
+} as const;
+
 const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   // ============================================================================
   // GardenAccount.sol errors
@@ -40,7 +29,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   },
   "0xf3aeae14": {
     name: "NotGardenOperator",
-    message: "Only garden operators can perform this action",
+    message: "Only garden stewards can perform this action",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -53,7 +42,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   "0xdb926eba": {
     name: "InvalidInvite",
     message: "This garden is invite-only",
-    action: "Request an invite from a garden operator to join",
+    action: "Request an invite from a garden steward to join",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -70,14 +59,14 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   },
   "0x6055dca1": {
     name: "TooManyOperators",
-    message: "This garden has reached its maximum operator capacity",
+    message: "This garden has reached its maximum steward capacity",
     recoverable: false,
     suggestedAction: "contact-support",
   },
   "0xafbbf251": {
     name: "HatsEnabled",
     message: "Open joining is not available for this garden",
-    action: "Contact a garden operator to request access",
+    action: "Contact a garden steward to request access",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -130,7 +119,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   },
   "0x7862dfc0": {
     name: "NoOperatorsProvided",
-    message: "At least one operator is required to create a garden",
+    message: "At least one steward is required to create a garden",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -253,12 +242,19 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     recoverable: false,
   },
 
+  "0x9bce3284": {
+    name: "SelfAttestation",
+    messageKey: "app.errors.contract.selfAttestation.message",
+    actionKey: "app.errors.contract.selfAttestation.action",
+    recoverable: false,
+  },
+
   // ============================================================================
   // AssessmentResolver.sol errors
   // ============================================================================
   "0xb5d73c9b": {
     name: "NotAuthorizedAttester",
-    message: "You must be an evaluator or operator to submit assessments",
+    message: "You must be an evaluator or steward to submit assessments",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -368,6 +364,10 @@ export interface ParsedContractError {
   name: string;
   /** Human-readable error message */
   message: string;
+  /** Optional i18n key for the error message */
+  messageKey?: string;
+  /** Optional i18n key for the suggested action */
+  actionKey?: string;
   /** Optional suggested action for user */
   action?: string;
   /** Whether this is a recognized error */
@@ -378,9 +378,25 @@ export interface ParsedContractError {
   suggestedAction?: "retry" | "join-garden" | "contact-support" | "check-wallet";
 }
 
-/**
- * Extract error signature from various error formats
- */
+function parseKnownError(raw: string, errorInfo: ErrorInfo): ParsedContractError {
+  const fallback =
+    errorInfo.name in LOCALIZED_ERROR_FALLBACKS
+      ? LOCALIZED_ERROR_FALLBACKS[errorInfo.name as keyof typeof LOCALIZED_ERROR_FALLBACKS]
+      : undefined;
+
+  return {
+    raw,
+    name: errorInfo.name,
+    message: errorInfo.message ?? fallback?.message ?? "Transaction failed. Please try again.",
+    action: errorInfo.action ?? fallback?.action,
+    messageKey: errorInfo.messageKey,
+    actionKey: errorInfo.actionKey,
+    isKnown: true,
+    recoverable: errorInfo.recoverable,
+    suggestedAction: errorInfo.suggestedAction,
+  };
+}
+
 function extractErrorSignature(error: unknown): string | null {
   if (!error) return null;
 
@@ -433,30 +449,13 @@ export function parseContractError(error: unknown): ParsedContractError {
 
   // Check if we have a known error
   if (signature && ERROR_SIGNATURES[signature]) {
-    const knownError = ERROR_SIGNATURES[signature];
-    return {
-      raw: signature,
-      name: knownError.name,
-      message: knownError.message,
-      action: knownError.action,
-      isKnown: true,
-      recoverable: knownError.recoverable,
-      suggestedAction: knownError.suggestedAction,
-    };
+    return parseKnownError(signature, ERROR_SIGNATURES[signature]);
   }
 
   // Check if error string contains known error name
   for (const [_sig, errorInfo] of Object.entries(ERROR_SIGNATURES)) {
     if (errorStr.toLowerCase().includes(errorInfo.name.toLowerCase())) {
-      return {
-        raw: signature ?? errorStr,
-        name: errorInfo.name,
-        message: errorInfo.message,
-        action: errorInfo.action,
-        isKnown: true,
-        recoverable: errorInfo.recoverable,
-        suggestedAction: errorInfo.suggestedAction,
-      };
+      return parseKnownError(signature ?? errorStr, errorInfo);
     }
   }
 
@@ -749,7 +748,7 @@ export function parseContractError(error: unknown): ParsedContractError {
 
 /**
  * Check if an error is a "not a garden member" error
- * (user is neither a gardener nor an operator of the garden)
+ * (user is neither a gardener nor a steward of the garden)
  */
 export function isNotGardenMemberError(error: unknown): boolean {
   const parsed = parseContractError(error);

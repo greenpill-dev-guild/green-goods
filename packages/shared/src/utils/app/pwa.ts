@@ -248,3 +248,12 @@ export function getClientPresentationMode(source?: string | URL): ClientPresenta
   if (isAppInstalled() || isLocalDevicePreviewMode(url ?? undefined)) return "pwa";
   return "website";
 }
+/** Chromium's non-standard PWA installation prompt event. */
+export interface InstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: "accepted" | "dismissed";
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}

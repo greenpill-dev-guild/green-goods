@@ -1,11 +1,8 @@
-import {
-  AppBar,
-  MainSheet,
-  adminRoutes,
-  queryKeys,
-  useCurrentChain,
-  type AdminAccessState,
-} from "@green-goods/shared";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { AdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdminAccessState";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { AppBar, MainSheet } from "@/components/Shell";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
@@ -59,7 +56,7 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
           >
             {intl.formatMessage({
               id: "app.admin.auth.signOutAndReconnect",
-              defaultMessage: "Sign out & connect wallet",
+              defaultMessage: "Sign Out & Connect Wallet",
             })}
           </AdminButton>
         }
@@ -76,13 +73,13 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
           className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
         >
           <SeedlingIllustration className="h-28 w-28" />
-          <h1 className="mt-5 text-xl font-semibold text-text-strong">
+          <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
             {intl.formatMessage({
               id: "app.admin.auth.connectRequired",
               defaultMessage: "Connect to continue",
             })}
           </h1>
-          <p className="mt-2 max-w-md text-sm text-text-sub">
+          <p className="mt-2 max-w-md body-sm text-text-sub">
             {intl.formatMessage({
               id: "app.admin.auth.connectPrompt",
               defaultMessage: "Connect your wallet to access this feature.",
@@ -136,7 +133,7 @@ function AdminAccessHomeShell({ children }: { children: ReactNode }) {
       <div className="canvas-area-top">
         <AppBar
           gardenChip={
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-strong">
+            <span className="inline-flex items-center gap-1.5 body-sm font-semibold text-text-strong">
               <SeedlingIllustration className="h-5 w-5" />
               {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods" })}
             </span>

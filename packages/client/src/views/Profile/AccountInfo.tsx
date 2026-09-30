@@ -1,38 +1,29 @@
-import {
-  type Address,
-  debugError,
-  hapticLight,
-  toastService,
-  useAuthActions,
-  useAuthState,
-  useEnsName,
-  usePrimaryAddress,
-} from "@green-goods/shared";
-import {
-  RiAlertLine,
-  RiKeyLine,
-  RiLogoutBoxRLine,
-  RiUserLine,
-  RiWalletLine,
-} from "@remixicon/react";
+import { Button } from "@green-goods/shared/components/Button";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { isPasskeyServerEnabled } from "@green-goods/shared/config/passkeyServer";
+import { useAuthActions, useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import type { Address } from "@green-goods/shared/types/domain";
+import { debugError } from "@green-goods/shared/utils/debug";
+import { RiKeyLine, RiLogoutBoxRLine, RiUserLine, RiWalletLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
-import { APP_ROUTES } from "@/config/pwa-routing";
+import { APP_ROUTES } from "@/config/pwaRouting";
 
 export const AccountInfo: React.FC = () => {
-  const { authMode, credential, walletAddress, embeddedAddress } = useAuthState();
+  const { authMode, credential, walletAddress, embeddedAddress, userName } = useAuthState();
+  // The recovery line names a button the sign-in screen only renders with the
+  // passkey server on; without it there is no username lookup to point at.
+  const passkeyServerEnabled = isPasskeyServerEnabled();
   const { signOut } = useAuthActions();
   const primaryAddress = usePrimaryAddress();
-  const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
   const intl = useIntl();
 
   const handleLogout = async () => {
-    hapticLight();
     try {
       await signOut();
       navigate(APP_ROUTES.login, {
@@ -124,60 +115,58 @@ export const AccountInfo: React.FC = () => {
               </div>
             </Avatar>
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <div className="truncate text-label-md font-medium">
+              <div className="text-label-md font-medium">
                 {intl.formatMessage({
-                  id: "app.account.address",
-                  defaultMessage: "Address",
+                  id: "app.account.id",
+                  defaultMessage: "ID",
                 })}
               </div>
+              <AddressCopy address={primaryAddress as Address} size="compact" />
             </div>
-            <AddressCopy
-              address={primaryAddress as Address}
-              ensName={primaryEnsName}
-              size="compact"
-              className="w-auto shrink-0"
-            />
           </div>
         </Card>
       )}
 
-      {authMode === "passkey" && (
-        <div className="rounded-md border border-warning-light bg-warning-lighter px-3 py-2.5 text-xs text-warning-dark">
-          <p className="font-medium flex items-center gap-1.5">
-            <RiAlertLine className="w-3.5 h-3.5 shrink-0" />
-            {intl.formatMessage({
-              id: "app.identity.passkeyWarning.title",
-              defaultMessage: "Save a backup before changing browsers",
-            })}
+      {authMode === "passkey" && passkeyServerEnabled && (
+        <div className="space-y-1 px-1 text-xs leading-relaxed text-text-sub-600">
+          <p>
+            {userName
+              ? intl.formatMessage(
+                  {
+                    id: "app.identity.passkeyRecovery.device",
+                    defaultMessage:
+                      "To sign in on another device, choose “Already have an account?” and enter {name}.",
+                  },
+                  { name: userName }
+                )
+              : intl.formatMessage({
+                  id: "app.identity.passkeyRecovery.deviceGeneric",
+                  defaultMessage:
+                    "To sign in on another device, choose “Already have an account?” and enter your username.",
+                })}
           </p>
-          <p className="mt-1 leading-relaxed">
+          <p>
             {intl.formatMessage({
-              id: "app.identity.passkeyWarning.message",
+              id: "app.identity.passkeyRecovery.account",
               defaultMessage:
-                "This sign-in lives on this device only. Clearing browser data or uninstalling the app will sign you out.",
-            })}
-          </p>
-          <p className="mt-1 leading-relaxed">
-            {intl.formatMessage({
-              id: "app.identity.passkeyWarning.guidance",
-              defaultMessage: "Want access from another device? Sign in with a wallet instead.",
+                "Your passkey is saved in your Apple or Google account, so that device needs to be signed in to the same account.",
             })}
           </p>
         </div>
       )}
 
       <Button
-        variant="neutral"
-        mode="stroke"
-        size="small"
+        type="button"
+        emphasis="secondary"
         onClick={handleLogout}
-        label={intl.formatMessage({
+        leadingIcon={<RiLogoutBoxRLine className="h-4 w-4" aria-hidden="true" />}
+        className="w-full"
+      >
+        {intl.formatMessage({
           id: "app.profile.logout",
           defaultMessage: "Logout",
         })}
-        leadingIcon={<RiLogoutBoxRLine className="w-4" />}
-        className="w-full"
-      />
+      </Button>
     </>
   );
 };

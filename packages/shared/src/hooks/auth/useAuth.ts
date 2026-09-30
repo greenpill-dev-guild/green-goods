@@ -20,6 +20,7 @@
  * ```
  */
 
+import type { SmartAccountClientResolver } from "../../types/auth";
 import type { SmartAccountClient } from "permissionless";
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
@@ -55,6 +56,7 @@ interface UseAuthReturn {
   credential: P256Credential | null;
   smartAccountAddress: Hex | null;
   smartAccountClient: SmartAccountClient | null;
+  resolveSmartAccountClient: SmartAccountClientResolver | null;
   userName: string | null;
   hasStoredCredential: boolean;
 
@@ -108,6 +110,7 @@ export function useAuth(): UseAuthReturn {
     credential: auth.credential,
     smartAccountAddress: auth.smartAccountAddress,
     smartAccountClient: auth.smartAccountClient,
+    resolveSmartAccountClient: auth.resolveSmartAccountClient,
     userName: auth.userName,
     hasStoredCredential: auth.hasStoredCredential,
 

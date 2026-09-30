@@ -12,16 +12,13 @@ import { useCallback, useState } from "react";
 import { type Address, encodeFunctionData } from "viem";
 import { useWalletClient } from "wagmi";
 import { toastService } from "../../components/Toast/toast.service";
-import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { createPublicClientForChain } from "../../config/pimlico";
 import { getChain } from "../../config/chains";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
-import {
-  buildMakerAsk,
-  getOrderNonces,
-  signMakerAsk,
-  validateOrder,
-} from "../../modules/marketplace";
+import { getOrderNonces } from "../../modules/marketplace/client";
+import { buildMakerAsk, signMakerAsk, validateOrder } from "../../modules/marketplace/signing";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
@@ -33,7 +30,7 @@ import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { useAuth } from "../auth/useAuth";
-import { queryInvalidation } from "../../config/query-keys";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
 
 export type ListingStep =

@@ -1,15 +1,16 @@
 /**
  * useBatchListForYield Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests batch listing creation: progress tracking, validation,
  * and interface contract.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
@@ -31,7 +32,7 @@ vi.mock("../../../modules/app/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-vi.mock("../../../modules/marketplace", () => ({
+vi.mock("../../../modules/marketplace/signing", () => ({
   buildMakerAsk: (...args: unknown[]) => mockBuildMakerAsk(...args),
   signMakerAsk: (...args: unknown[]) => mockSignMakerAsk(...args),
   validateOrder: (...args: unknown[]) => mockValidateOrder(...args),
@@ -52,8 +53,11 @@ vi.mock("../../../modules/transactions/chain-guard", () => ({
   ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
 }));
 
-vi.mock("../../../config", () => ({
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
     waitForTransactionReceipt: vi.fn().mockResolvedValue({}),
   }),
@@ -80,7 +84,7 @@ vi.mock("../../../stores/useAdminStore", () => ({
     selector({ selectedChainId: 11155111 }),
 }));
 
-vi.mock("../../../config/query-keys", () => ({
+vi.mock("../../../config/query-keys/invalidation", () => ({
   queryInvalidation: {
     onMarketplaceListingChanged: () => [
       ["greengoods", "marketplace", "orders"],
@@ -108,18 +112,6 @@ import {
   useBatchListForYield,
 } from "../../../hooks/hypercerts/useBatchListForYield";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-}
-
 // ============================================
 // Test Suite
 // ============================================
@@ -129,7 +121,7 @@ describe("useBatchListForYield", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockAssertMarketplaceReady.mockReturnValue({
       available: true,
       status: "available",
@@ -162,8 +154,8 @@ describe("useBatchListForYield", () => {
 
   describe("initial state", () => {
     it("starts with idle progress and no error", () => {
-      const { result } = renderHook(() => useBatchListForYield(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+        queryClient,
       });
 
       expect(result.current.isBatching).toBe(false);
@@ -176,8 +168,8 @@ describe("useBatchListForYield", () => {
     });
 
     it("provides batchList and reset functions", () => {
-      const { result } = renderHook(() => useBatchListForYield(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+        queryClient,
       });
 
       expect(typeof result.current.batchList).toBe("function");
@@ -187,8 +179,8 @@ describe("useBatchListForYield", () => {
 
   describe("validation", () => {
     it("throws when garden address is missing", async () => {
-      const { result } = renderHook(() => useBatchListForYield(undefined), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useBatchListForYield(undefined), {
+        queryClient,
       });
 
       await act(async () => {
@@ -215,8 +207,8 @@ describe("useBatchListForYield", () => {
     });
 
     it("throws when listings array is empty", async () => {
-      const { result } = renderHook(() => useBatchListForYield(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+        queryClient,
       });
 
       await act(async () => {
@@ -234,8 +226,8 @@ describe("useBatchListForYield", () => {
       mockAssertMarketplaceReady.mockImplementation(() => {
         throw new Error("Marketplace configuration incomplete: marketplaceAdapter");
       });
-      const { result } = renderHook(() => useBatchListForYield(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+        queryClient,
       });
 
       await act(async () => {
@@ -267,8 +259,8 @@ describe("useBatchListForYield", () => {
 
   describe("invalidation", () => {
     it("keeps marketplace listing invalidation after a successful batch listing", async () => {
-      const { result } = renderHook(() => useBatchListForYield(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+        queryClient,
       });
 
       await act(async () => {
@@ -315,8 +307,8 @@ describe("useBatchListForYield", () => {
 
   describe("reset", () => {
     it("resets progress to initial state", () => {
-      const { result } = renderHook(() => useBatchListForYield(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+        queryClient,
       });
 
       act(() => result.current.reset());

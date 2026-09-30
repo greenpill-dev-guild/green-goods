@@ -1,81 +1,35 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { SheetDivider } from "@green-goods/shared/components/Canvas/SheetDivider";
+import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import {
-  AddressDisplay,
-  SheetBody,
-  SheetDivider,
-  SheetFooter,
-  cn,
-  compareAddresses,
-  DEFAULT_CHAIN_ID,
-  formatAddress,
-  getBlockExplorerAddressUrl,
-  type Address,
-  useAdminGardenWorkspaceSelection,
-  useAuthActions,
-  useAuthState,
-  useEligibleAdminGardens,
-  useEnsAvatar,
-  useEnsName,
-  useGardenUrlSync,
-  useRole,
-  useSheetOrchestratorStore,
-  type UserRole,
-} from "@green-goods/shared";
+  type AccountProfileController,
+  useAccountProfileController,
+} from "@green-goods/shared/hooks/admin-ui/layout/useAccountProfileController";
+import type { Address } from "@green-goods/shared/types/domain";
+import { getBlockExplorerAddressUrl } from "@green-goods/shared/utils/eas/explorers";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiExternalLinkLine,
   RiLogoutBoxLine,
   RiSeedlingLine,
   RiWallet3Line,
 } from "@remixicon/react";
-import { useCallback, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { formatEnsAddressName } from "@/components/EnsAddressText";
 import { AdminChoiceGroup } from "../AdminChoiceGroup";
+import { AccountProfileAvatarEditor } from "./AccountProfileAvatarEditor";
 
-const ROLE_LABEL_MESSAGES: Record<UserRole, { defaultMessage: string; id: string }> = {
-  deployer: {
-    id: "cockpit.role.deployer",
-    defaultMessage: "deployer",
-  },
-  operator: {
-    id: "cockpit.role.operator",
-    defaultMessage: "operator",
-  },
-  user: {
-    id: "cockpit.role.user",
-    defaultMessage: "user",
-  },
-};
-
-const AUTH_METHOD_MESSAGES = {
-  wallet: { id: "cockpit.account.authMethod.wallet", defaultMessage: "Wallet" },
-  passkey: { id: "cockpit.account.authMethod.passkey", defaultMessage: "Passkey" },
-  embedded: { id: "cockpit.account.authMethod.embedded", defaultMessage: "Embedded wallet" },
-} as const;
-
-interface AccountProfilePanelProps {
+export interface AccountProfilePanelProps {
+  controller: AccountProfileController;
   className?: string;
-}
-
-function getInitials(value: string | null | undefined): string {
-  if (!value) return "GG";
-
-  const sanitized = value
-    .replace(/\.eth$/i, "")
-    .replace(/^0x/i, "")
-    .trim();
-  const parts = sanitized.split(/[\s._-]+/).filter(Boolean);
-
-  if (parts.length >= 2) {
-    return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
-  }
-
-  return sanitized.slice(0, 2).toUpperCase();
 }
 
 /** Quiet capsule label — identity metadata (role, auth method), not a control. */
 function IdentityChip({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-stroke-soft bg-bg-soft px-2.5 py-0.5 text-xs font-medium capitalize text-text-sub">
+    <span className="inline-flex items-center rounded-full border border-stroke-soft bg-bg-soft px-2.5 py-0.5 label-xs capitalize text-text-sub">
       {children}
     </span>
   );
@@ -94,61 +48,28 @@ function IdentityChip({ children }: { children: ReactNode }) {
  *    the workspace (same action as the AppBar GardenChip).
  * 4. Sign out — pinned footer (identity action lives with identity).
  */
-export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
+export function AccountProfilePanel({ controller, className }: AccountProfilePanelProps) {
   const { formatMessage } = useIntl();
-  const { eoaAddress, authMode } = useAuthState();
-  const { signOut } = useAuthActions();
-  const { role } = useRole();
-  const { data: ensName } = useEnsName(eoaAddress as Address | null | undefined);
-  const { data: avatarUrl } = useEnsAvatar(eoaAddress as Address | null | undefined);
-  const { eligibleGardens } = useEligibleAdminGardens();
-  const { selectedGarden } = useAdminGardenWorkspaceSelection();
-  const { setGarden } = useGardenUrlSync();
-  const closeSheet = useSheetOrchestratorStore((state) => state.closeSheet);
-
-  const roleLabel = formatMessage(ROLE_LABEL_MESSAGES[role]);
-  const authMethodLabel = authMode ? formatMessage(AUTH_METHOD_MESSAGES[authMode]) : null;
-  const ensDisplayName =
-    eoaAddress && ensName ? formatEnsAddressName(eoaAddress as Address, ensName) : null;
-  const headline = ensDisplayName ?? (eoaAddress ? formatAddress(eoaAddress) : roleLabel);
-  const avatarFallback = getInitials(ensDisplayName ?? eoaAddress ?? roleLabel);
-  const selectedGardenChoiceId =
-    selectedGarden && eligibleGardens.length > 0
-      ? (eligibleGardens.find((garden) => compareAddresses(garden.id, selectedGarden.id))?.id ??
-        selectedGarden.id)
-      : null;
-
-  const handleSelectGarden = useCallback(
-    (gardenId: string) => {
-      const fullGarden = eligibleGardens.find((garden) => compareAddresses(garden.id, gardenId));
-      if (!fullGarden) return;
-      setGarden(fullGarden);
-      closeSheet();
-    },
-    [closeSheet, eligibleGardens, setGarden]
-  );
+  const {
+    authMethodLabel,
+    avatarFallback,
+    eligibleGardens,
+    eoaAddress,
+    headline,
+    roleLabel,
+    selectedGardenChoiceId,
+    selectGarden,
+    signOut,
+  } = controller;
 
   return (
     <>
       <SheetBody padded={true} className={cn("flex flex-col gap-4", className)}>
         {/* Identity header — who is signed in, at headline weight. */}
         <div className="flex items-center gap-4">
-          <div className="account-avatar-tile relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={formatMessage({
-                  id: "cockpit.profile.title",
-                  defaultMessage: "Profile",
-                })}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="text-sm font-semibold">{avatarFallback}</span>
-            )}
-          </div>
+          <AccountProfileAvatarEditor fallbackInitials={avatarFallback} />
           <div className="min-w-0">
-            <p className="truncate text-base font-semibold text-text-strong" title={headline}>
+            <p className="truncate text-title-md font-semibold text-text-strong" title={headline}>
               {headline}
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -166,7 +87,7 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
             <section className="space-y-2">
               <div className="flex items-center gap-2">
                 <RiWallet3Line className="h-4 w-4 text-text-soft" aria-hidden="true" />
-                <h2 className="text-sm font-semibold text-text-strong">
+                <h2 className="body-sm font-semibold text-text-strong">
                   {formatMessage({ id: "app.account.wallet", defaultMessage: "Wallet" })}
                 </h2>
               </div>
@@ -176,11 +97,11 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
                   href={getBlockExplorerAddressUrl(DEFAULT_CHAIN_ID, eoaAddress)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-text-sub transition-colors hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
+                  className="inline-flex shrink-0 items-center gap-1 label-xs text-text-sub transition-colors hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
                 >
                   {formatMessage({
                     id: "cockpit.account.viewOnExplorer",
-                    defaultMessage: "View on explorer",
+                    defaultMessage: "View on Explorer",
                   })}
                   <RiExternalLinkLine className="h-3.5 w-3.5" aria-hidden="true" />
                 </a>
@@ -194,10 +115,10 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
         {/* Your gardens — workspace scope switcher. */}
         <section className="space-y-2">
           <div>
-            <h2 className="text-sm font-semibold text-text-strong">
+            <h2 className="body-sm font-semibold text-text-strong">
               {formatMessage({ id: "cockpit.account.gardens", defaultMessage: "Your gardens" })}
             </h2>
-            <p className="mt-0.5 text-sm text-text-sub">
+            <p className="mt-0.5 body-sm text-text-sub">
               {formatMessage({
                 id: "cockpit.account.gardensDescription",
                 defaultMessage: "Switch the garden this canvas is scoped to.",
@@ -211,7 +132,7 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
                 defaultMessage: "Your gardens",
               })}
               value={selectedGardenChoiceId}
-              onChange={handleSelectGarden}
+              onChange={selectGarden}
               options={eligibleGardens.map((garden) => ({
                 value: garden.id,
                 label: garden.name,
@@ -219,7 +140,7 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
               }))}
             />
           ) : (
-            <p className="text-sm text-text-sub">
+            <p className="body-sm text-text-sub">
               {formatMessage({
                 id: "cockpit.account.gardensEmpty",
                 defaultMessage: "No gardens yet.",
@@ -236,7 +157,7 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
           onClick={() => signOut()}
           className={cn(
             "flex min-h-11 w-full items-center justify-between rounded-full px-4 py-3",
-            "text-sm font-medium text-error-base transition-colors hover:bg-error-lighter"
+            "body-sm font-medium text-error-dark transition-colors hover:bg-[rgb(var(--text-strong-950)/0.08)]"
           )}
         >
           <span>
@@ -247,4 +168,9 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
       </SheetFooter>
     </>
   );
+}
+
+export function AccountProfilePanelContainer({ className }: { className?: string }) {
+  const controller = useAccountProfileController();
+  return <AccountProfilePanel controller={controller} className={className} />;
 }

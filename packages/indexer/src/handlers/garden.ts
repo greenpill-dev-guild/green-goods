@@ -1,35 +1,26 @@
-import { GardenAccount, GardenToken } from "../../generated";
-
-import type {
-  contractRegistrations,
-  Garden,
-  GardenAccount_BannerImageUpdated_handlerArgs,
-  GardenAccount_DescriptionUpdated_handlerArgs,
-  GardenAccount_GAPProjectCreated_handlerArgs,
-  GardenAccount_LocationUpdated_handlerArgs,
-  GardenAccount_NameUpdated_handlerArgs,
-  GardenAccount_OpenJoiningUpdated_handlerArgs,
-  GardenToken_GardenMinted_eventArgs,
-  GardenToken_GardenMinted_handlerArgs,
-  HandlerTypes_contractRegisterArgs,
-} from "../../generated/src/Types.gen";
+import { indexer, type Garden } from "envio";
 
 import { createDefaultGarden } from "./shared";
+
+function markKarmaDetailsPending(garden: Garden, timestamp: number): Garden {
+  return {
+    ...garden,
+    karmaDetailsState: "PENDING",
+    karmaDetailsReason: "garden_metadata_changed",
+    karmaDetailsUpdatedAt: timestamp,
+  };
+}
 
 // ============================================================================
 // GARDEN TOKEN EVENT HANDLERS
 // ============================================================================
 
 // Register new GardenAccount contracts when gardens are minted
-GardenToken.GardenMinted.contractRegister(
-  ({
-    event,
-    context,
-  }: HandlerTypes_contractRegisterArgs<GardenToken_GardenMinted_eventArgs> & {
-    context: contractRegistrations;
-  }) => {
+indexer.contractRegister(
+  { contract: "GardenToken", event: "GardenMinted" },
+  async ({ event, context }) => {
     // Register the newly created garden account contract for event listening
-    context.addGardenAccount(event.params.account);
+    context.chain.GardenAccount.add(event.params.account);
 
     context.log.info(
       `Registered new GardenAccount at ${event.params.account} (tokenId: ${event.params.tokenId})`
@@ -38,62 +29,56 @@ GardenToken.GardenMinted.contractRegister(
 );
 
 // Handler for the GardenMinted event
-GardenToken.GardenMinted.handler(
-  async ({ event, context }: GardenToken_GardenMinted_handlerArgs<void>) => {
-    const gardenId = event.params.account;
+indexer.onEvent({ contract: "GardenToken", event: "GardenMinted" }, async ({ event, context }) => {
+  const gardenId = event.params.account;
+  const existingGarden =
+    (await context.Garden.get(gardenId)) ??
+    createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
 
-    // Role arrays are derived from HatsModule RoleGranted/RoleRevoked events.
-    const gardenEntity: Garden = {
-      id: gardenId,
-      chainId: event.chainId,
-      name: event.params.name,
-      description: event.params.description,
-      location: event.params.location,
-      bannerImage: event.params.bannerImage,
-      openJoining: event.params.openJoining,
-      initialized: true,
-      gardeners: [],
-      operators: [],
-      evaluators: [],
-      owners: [],
-      funders: [],
-      communities: [],
-      tokenAddress: event.srcAddress,
-      tokenID: event.params.tokenId,
-      createdAt: event.block.timestamp,
-      gapProjectUID: undefined,
-    };
-    context.Garden.set(gardenEntity);
-  }
-);
+  // Preserve any earlier module/role projections if logs are delivered out of their usual order.
+  const gardenEntity: Garden = {
+    ...existingGarden,
+    id: gardenId,
+    chainId: event.chainId,
+    name: event.params.name,
+    description: event.params.description,
+    location: event.params.location,
+    bannerImage: event.params.bannerImage,
+    openJoining: event.params.openJoining,
+    initialized: true,
+    tokenAddress: event.srcAddress,
+    tokenID: event.params.tokenId,
+    createdAt: event.block.timestamp,
+  };
+  context.Garden.set(gardenEntity);
+});
 
 // ============================================================================
 // GARDEN ACCOUNT EVENT HANDLERS
 // ============================================================================
 
 // Handler for the NameUpdated event
-GardenAccount.NameUpdated.handler(
-  async ({ event, context }: GardenAccount_NameUpdated_handlerArgs<void>) => {
-    const gardenId = event.srcAddress;
-    let existingGarden = await context.Garden.get(gardenId);
+indexer.onEvent({ contract: "GardenAccount", event: "NameUpdated" }, async ({ event, context }) => {
+  const gardenId = event.srcAddress;
+  let existingGarden = await context.Garden.get(gardenId);
 
-    if (!existingGarden) {
-      // Create minimal garden if it doesn't exist yet
-      existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
-    }
-
-    const updatedGarden: Garden = {
-      ...existingGarden,
-      name: event.params.newName,
-    };
-
-    context.Garden.set(updatedGarden);
+  if (!existingGarden) {
+    // Create minimal garden if it doesn't exist yet
+    existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
   }
-);
+
+  const updatedGarden = markKarmaDetailsPending(
+    { ...existingGarden, name: event.params.newName },
+    event.block.timestamp
+  );
+
+  context.Garden.set(updatedGarden);
+});
 
 // Handler for the DescriptionUpdated event
-GardenAccount.DescriptionUpdated.handler(
-  async ({ event, context }: GardenAccount_DescriptionUpdated_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "GardenAccount", event: "DescriptionUpdated" },
+  async ({ event, context }) => {
     const gardenId = event.srcAddress;
     let existingGarden = await context.Garden.get(gardenId);
 
@@ -101,18 +86,19 @@ GardenAccount.DescriptionUpdated.handler(
       existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
     }
 
-    const updatedGarden: Garden = {
-      ...existingGarden,
-      description: event.params.newDescription,
-    };
+    const updatedGarden = markKarmaDetailsPending(
+      { ...existingGarden, description: event.params.newDescription },
+      event.block.timestamp
+    );
 
     context.Garden.set(updatedGarden);
   }
 );
 
 // Handler for the LocationUpdated event
-GardenAccount.LocationUpdated.handler(
-  async ({ event, context }: GardenAccount_LocationUpdated_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "GardenAccount", event: "LocationUpdated" },
+  async ({ event, context }) => {
     const gardenId = event.srcAddress;
     let existingGarden = await context.Garden.get(gardenId);
 
@@ -120,18 +106,19 @@ GardenAccount.LocationUpdated.handler(
       existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
     }
 
-    const updatedGarden: Garden = {
-      ...existingGarden,
-      location: event.params.newLocation,
-    };
+    const updatedGarden = markKarmaDetailsPending(
+      { ...existingGarden, location: event.params.newLocation },
+      event.block.timestamp
+    );
 
     context.Garden.set(updatedGarden);
   }
 );
 
 // Handler for the BannerImageUpdated event
-GardenAccount.BannerImageUpdated.handler(
-  async ({ event, context }: GardenAccount_BannerImageUpdated_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "GardenAccount", event: "BannerImageUpdated" },
+  async ({ event, context }) => {
     const gardenId = event.srcAddress;
     let existingGarden = await context.Garden.get(gardenId);
 
@@ -139,42 +126,19 @@ GardenAccount.BannerImageUpdated.handler(
       existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
     }
 
-    const updatedGarden: Garden = {
-      ...existingGarden,
-      bannerImage: event.params.newBannerImage,
-    };
+    const updatedGarden = markKarmaDetailsPending(
+      { ...existingGarden, bannerImage: event.params.newBannerImage },
+      event.block.timestamp
+    );
 
     context.Garden.set(updatedGarden);
   }
 );
 
-// Handler for the GAPProjectCreated event
-GardenAccount.GAPProjectCreated.handler(
-  async ({ event, context }: GardenAccount_GAPProjectCreated_handlerArgs<void>) => {
-    const gardenId = event.params.gardenAddress;
-    const existingGarden = await context.Garden.get(gardenId);
-
-    if (existingGarden) {
-      // Update the garden with the Karma GAP project UID
-      const updatedGarden: Garden = {
-        ...existingGarden,
-        gapProjectUID: event.params.projectUID,
-      };
-
-      context.Garden.set(updatedGarden);
-
-      context.log.info(
-        `Updated Garden ${gardenId} with GAP project UID: ${event.params.projectUID}`
-      );
-    } else {
-      context.log.warn(`Garden ${gardenId} not found when processing GAPProjectCreated event`);
-    }
-  }
-);
-
 // Handler for the OpenJoiningUpdated event
-GardenAccount.OpenJoiningUpdated.handler(
-  async ({ event, context }: GardenAccount_OpenJoiningUpdated_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "GardenAccount", event: "OpenJoiningUpdated" },
+  async ({ event, context }) => {
     const gardenId = event.srcAddress;
     const existingGarden = await context.Garden.get(gardenId);
 

@@ -1,0 +1,43 @@
+---
+title: Run a Commitment Pool
+sidebar_label: Commitment Pool
+slug: /community/steward-guide/commitment-pooling
+description: "Set up a Garden pool, seed commitments, and review their lifecycle."
+audience: steward
+owner: docs
+last_verified: 2026-09-23
+feature_status: Live
+goal: "Help a steward find the right review and understand each wallet step before acting."
+difficulty: "standard"
+estimated_time: "Varies by action."
+prereqs: "A Garden with a registered pool and an account authorized for the selected action."
+next_steps: "./reviewing-work"
+persona_context: "Stewards configure pools and review commitments for their Garden."
+source_of_truth:
+  - packages/admin/src/views/Garden/Pool
+  - packages/admin/src/views/Hub/components/HubConfirmQueue.tsx
+  - packages/admin/src/views/Community/components/CommunityCoordinationTab.tsx
+  - packages/shared/src/hooks/commitment-pooling/useCommitmentPoolSetupSequence.ts
+---
+
+# Run a Commitment Pool
+
+Open the Garden's **Pool** tab in admin to read its status, funding, cycles, commitments, and claims. Check the Garden and connected account before starting a write. The pool status and any review shown for an action tell you whether it is available; seeing a row does not grant permission to act on it.
+
+## Set up and change the pool
+
+A registered **Not Ready** pool shows **Set Up Commitments**. The setup flow collects how the pool works, the season, and its split. Read the wallet-prompt count before starting; the progress list shows each write as it runs. Once a season opens, its split is fixed. **Pool Settings** lets an authorized steward update the agreement and per-person limit. A save with two changes can require two wallet prompts; if it stops partway, read which change landed before trying the remainder.
+
+## Seed and review commitments
+
+**Seed a Commitment** walks through the commitment, reward, confirmers, and final review. Check the reward's token and exact amount, and make sure a confirmer is independent of the contributor. **Add Another** builds a tray; **Create All** sends each commitment through its own wallet prompt. The done screen lists each row's result and transaction link where available. Press **Done** to close the wizard after reading the results. A row that waits on the pool tab has **Send Now**; read its current status before trying to send it.
+
+In **Hub → Confirm**, the selected Garden in the header sets the confirmation scope. A row may name another Garden's pool if this Garden has the confirmation authority. **Confirm Kept…** opens a review naming the commitment, pool, contributor, and confirmation progress before any wallet prompt. Read whether your confirmation finishes the threshold or is one of several. Fallback and disputed decisions have their own review paths. Protocol confirmations live in **Community → Coordination**.
+
+## Seasons, claims, and transfers
+
+**Resume Pool** and **Send for Confirmation** show wallet and chain progress on the action that started them. If an action says it is queued on this device, check its status before retrying; a queued line is not proof of a chain result.
+
+**End Season…** reconciles an open season after its commitments finish. It stops new commitments in that season and leaves its record ready for an impact certificate. **Archive Season…** is a separate, final action on a reconciled season: make any intended certificate first. Each dialog names its target and requires an online connection to confirm. Accepting a claim sends directly when you press **Accept**. Transfer dispatch opens a review; read the affected commitment and transfer details before signing.
+
+If a wallet prompt is refused or a read fails, return to the action's current status before sending again. A transaction that was broadcast but has not yet appeared in a readback needs reconciliation rather than an assumed retry.

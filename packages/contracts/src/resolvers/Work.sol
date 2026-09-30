@@ -84,7 +84,15 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     ///
     /// @param attestation The attestation data structure
     /// @return bool True if attestation is valid
-    function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
+    function onAttest(
+        Attestation calldata attestation,
+        uint256 /*value*/
+    )
+        internal
+        view
+        override
+        returns (bool)
+    {
         if (schemaUID != bytes32(0) && attestation.schema != schemaUID) revert InvalidSchema();
 
         // Decode as tuple — struct decode reverts because EAS stores data in flat-tuple
@@ -142,7 +150,16 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Handles the logic to be executed when an attestation is revoked.
     /// @dev Work submissions are NOT revocable - always returns false.
     /// @return Always false - work submissions cannot be revoked.
-    function onRevoke(Attestation calldata, /*attestation*/ uint256 /*value*/ ) internal pure override returns (bool) {
+    function onRevoke(
+        Attestation calldata,
+        /*attestation*/
+        uint256 /*value*/
+    )
+        internal
+        pure
+        override
+        returns (bool)
+    {
         // Work submissions are permanent and cannot be revoked
         return false;
     }

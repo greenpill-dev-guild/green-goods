@@ -8,6 +8,7 @@ import {
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../utils/styles/cn";
+import { IconButton } from "./IconButton";
 
 export type AlertVariant = "error" | "warning" | "info" | "success";
 
@@ -54,14 +55,13 @@ export function Alert({ variant, title, children, action, className, onDismiss }
         {action && <div className="mt-2">{action}</div>}
       </div>
       {onDismiss && (
-        <button
-          type="button"
+        <IconButton
+          size="compact"
+          className="-my-1.5 -mr-1.5 flex-shrink-0 text-current opacity-70 hover:opacity-100"
           onClick={onDismiss}
-          className="flex-shrink-0 rounded-md p-1 opacity-70 transition hover:opacity-100"
           aria-label={formatMessage({ id: "app.common.close" })}
-        >
-          <RiCloseLine className="h-4 w-4" />
-        </button>
+          icon={<RiCloseLine />}
+        />
       )}
     </div>
   );

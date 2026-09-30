@@ -1,41 +1,32 @@
-import {
-  type AdminHubRouteContext,
-  adminRoutes,
-  formatRelativeTime,
-  type SortOption,
-  useActions,
-  useAdminGardenWorkspaceSelection,
-  useCanvasSearchParams,
-  useDebouncedValue,
-  useGardenDerivedState,
-  useGardenDetailData,
-  useGardenPermissions,
-  useGardenStateStore,
-  useMediaQuery,
-  useRefreshAction,
-  useSheetOrchestrator,
-  useViewActions,
-} from "@green-goods/shared";
+import { useRefreshAction } from "../../../components/Canvas/RefreshActionContext";
+import { useViewActions } from "../../../components/Canvas/useViewActions";
+import type { SortOption } from "../../../components/ListPrimitives";
+import { useGardenStateStore } from "../../../stores/useGardenStateStore";
+import type { Address } from "../../../types/domain";
+import { type AdminHubRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
+import { useActions } from "../../blockchain/useBaseLists";
+import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
+import { useGardenDerivedState } from "../../garden/useGardenDerivedState";
+import { useGardenDetailData } from "../../garden/useGardenDetailData";
+import { useGardenPermissions } from "../../garden/useGardenPermissions";
+import { useCanvasSearchParams } from "../../navigation/useCanvasSearchParams";
+import { useSheetOrchestrator } from "../../navigation/useSheetOrchestrator";
+import { useMediaQuery } from "../../ui/useMediaQuery";
+import { useDebouncedValue } from "../../utils/useDebouncedValue";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocalizedRelativeTime } from "../../app/useLocalizedRelativeTime";
 import {
-  type ActivityEvent,
-  type HubPipelineStage,
-  type SortDirection,
   buildHubViewActions,
   getSearchPlaceholder,
   getStageDescription,
   getStageTitle,
+  type HubPipelineStage,
   isRouteSheetContentId,
   resolveOpenSectionRoute,
+  type SortDirection,
 } from "./hub.utils";
-import {
-  filterAssessmentQueue,
-  filterCertificationQueue,
-  filterHistoryEvents,
-  filterPendingWorks,
-} from "./hub.filters";
 import {
   buildActionTitleMap,
   buildHubStageModel,
@@ -45,6 +36,8 @@ import {
   resolveHubRouteSelection,
   resolveHubRouteState,
 } from "./hub.workbenchModel";
+import { useHubConfirmStage } from "./useHubConfirmStage";
+import { useHubStageQueues } from "./useHubStageQueues";
 
 export function useHubWorkbenchController() {
   const { formatMessage } = useIntl();
@@ -53,11 +46,11 @@ export function useHubWorkbenchController() {
   const {
     workId: routedWorkIdParam,
     assessmentId: routedAssessmentIdParam,
-    historyEventId: routedHistoryEventIdParam,
+    commitmentId: routeCommitmentId,
   } = useParams<{
     workId?: string;
     assessmentId?: string;
-    historyEventId?: string;
+    commitmentId?: string;
   }>();
   const { searchParams, updateSearch } = useCanvasSearchParams();
   const { activeSheet, activeContentId, closeSheet, openSheet } = useSheetOrchestrator();
@@ -76,7 +69,6 @@ export function useHubWorkbenchController() {
     isSubmitRoute,
     requestedStage,
     routeCertificationId,
-    routeHistoryEventId,
     routeSheetContentId,
     routeSheetSide,
     routeWorkId,
@@ -86,7 +78,6 @@ export function useHubWorkbenchController() {
     sortParam: searchParams.get("sort"),
     routedWorkIdParam,
     routedAssessmentIdParam,
-    routedHistoryEventIdParam,
     activeContentId,
   });
   const isDesktop = useMediaQuery("(min-width: 600px)");
@@ -112,8 +103,11 @@ export function useHubWorkbenchController() {
     canManage,
     canReview,
     works,
+    worksComplete,
+    gardenReviewQueue,
     worksLoading,
     worksFetching,
+    worksError,
     refreshWorks,
     assessments,
     fetchingAssessments,
@@ -124,13 +118,21 @@ export function useHubWorkbenchController() {
     allocations,
     allocationsLoading,
     gardenVaults,
-    vaultNetDeposited,
+    hasEndowment,
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
 
   const canAssess = garden ? gardenPermissions.isEvaluatorOfGarden(garden) : false;
   const canCertify = canReview;
-  const canBrowseHistory = canManage || canReview;
+
+  const { chainId, viewer, toConfirm, handleOpenCommitment, handleCloseCommitment } =
+    useHubConfirmStage({
+      navigate,
+      hubContext,
+      garden: (selectedGarden?.id as Address | undefined) ?? null,
+      canManage,
+      active: requestedStage === "confirm",
+    });
 
   const { stage, stages, stageCounts } = useMemo(
     () =>
@@ -139,7 +141,8 @@ export function useHubWorkbenchController() {
         canManage,
         canAssess,
         canCertify,
-        canBrowseHistory,
+        canConfirm: toConfirm.isSteward,
+        confirmCount: toConfirm.count,
         works,
         assessments,
         hypercerts,
@@ -147,11 +150,12 @@ export function useHubWorkbenchController() {
     [
       assessments,
       canAssess,
-      canBrowseHistory,
       canCertify,
       canManage,
       hypercerts,
       requestedStage,
+      toConfirm.count,
+      toConfirm.isSteward,
       works,
     ]
   );
@@ -173,16 +177,18 @@ export function useHubWorkbenchController() {
   const derived = useGardenDerivedState({
     garden: garden ?? { id: selectedGarden?.id ?? "", domainMask: 0, name: "", chainId: 0 },
     works,
+    worksComplete,
+    gardenReviewQueue,
     assessments,
     hypercerts,
     allocations,
     gardenVaults,
-    vaultNetDeposited,
+    hasEndowment,
     roleMembers,
     selectedRange: "30d",
     activityFilter: "all",
     memberSearch: "",
-    section: stage === "history" ? "decisions" : "work",
+    section: "work",
     formatMessage,
     openSection,
   });
@@ -205,57 +211,27 @@ export function useHubWorkbenchController() {
 
   const normalizedSearch = normalizeHubSearch(debouncedSearch);
 
-  const pendingWorks = useMemo(
-    () => filterPendingWorks(works, actionsMap, normalizedSearch, sortDirection),
-    [actionsMap, normalizedSearch, sortDirection, works]
-  );
-
-  const assessmentQueue = useMemo(
-    () => filterAssessmentQueue(works, actionsMap, normalizedSearch),
-    [actionsMap, normalizedSearch, works]
-  );
-
-  const certificationQueue = useMemo(
-    () => filterCertificationQueue(assessments, hypercerts, normalizedSearch),
-    [assessments, hypercerts, normalizedSearch]
-  );
-
-  const historyEvents = useMemo(
-    () => filterHistoryEvents(derived.activityEvents, normalizedSearch, sortDirection),
-    [derived.activityEvents, normalizedSearch, sortDirection]
-  );
-
-  const historyEventMap = useMemo(
-    () => new Map(historyEvents.map((event) => [event.id, event])),
-    [historyEvents]
-  );
-
-  const selectedWork = useMemo(() => {
-    const resolvedId = routeWorkId ?? activeWorkDetailId;
-    return resolvedId ? works.find((work) => work.id === resolvedId) : undefined;
-  }, [activeWorkDetailId, routeWorkId, works]);
-
-  const selectedCertification = useMemo(() => {
-    const resolvedId = routeCertificationId ?? activeCertificationId;
-    return resolvedId
-      ? certificationQueue.find((assessment) => assessment.id === resolvedId)
-      : undefined;
-  }, [activeCertificationId, certificationQueue, routeCertificationId]);
-
-  const selectedHistoryEvent = useMemo(() => {
-    return routeHistoryEventId ? historyEventMap.get(routeHistoryEventId) : undefined;
-  }, [historyEventMap, routeHistoryEventId]);
-
+  const { pendingWorks, assessmentQueue, certificationQueue, selectedWork, selectedCertification } =
+    useHubStageQueues({
+      works,
+      actionsMap,
+      normalizedSearch,
+      sortDirection,
+      assessments,
+      hypercerts,
+      routeWorkId,
+      activeWorkDetailId,
+      routeCertificationId,
+      activeCertificationId,
+    });
   const { hasOpenHubInspector, persistedSelectedItem } = resolveHubRouteSelection({
     routeWorkId,
     routeCertificationId,
-    routeHistoryEventId,
     activeWorkDetailId,
     activeCertificationId,
     isSubmitRoute,
     selectedWork,
     selectedCertification,
-    selectedHistoryEvent,
   });
 
   useEffect(() => {
@@ -323,35 +299,6 @@ export function useHubWorkbenchController() {
     [hubContext, navigate]
   );
 
-  const handleOpenHistoryEvent = useCallback(
-    (event: ActivityEvent) => {
-      if (event.category === "work" && event.itemId) {
-        navigate(adminRoutes.hubWorkDetail(event.itemId, hubContext));
-        return;
-      }
-
-      navigate(adminRoutes.hubHistoryDetail(event.id, hubContext));
-    },
-    [hubContext, navigate]
-  );
-
-  useEffect(() => {
-    if (!routedHistoryEventIdParam) return;
-    if (worksLoading || fetchingAssessments || hypercertsLoading || allocationsLoading) return;
-    if (selectedHistoryEvent) return;
-
-    navigate(adminRoutes.hubHistory(hubContext), { replace: true });
-  }, [
-    allocationsLoading,
-    fetchingAssessments,
-    hubContext,
-    hypercertsLoading,
-    navigate,
-    routedHistoryEventIdParam,
-    selectedHistoryEvent,
-    worksLoading,
-  ]);
-
   const handleRefresh = useCallback(() => {
     void Promise.resolve(refreshWorks()).finally(() => setLastRefreshAt(Date.now()));
   }, [refreshWorks]);
@@ -372,7 +319,7 @@ export function useHubWorkbenchController() {
 
   // Mobile/tablet: refresh icon in the AppBar (next to notifications). Desktop
   // keeps refresh implicit — the action set in the page header is the only
-  // chrome the operator needs.
+  // chrome the steward needs.
   const mobileRefreshAction = useMemo(
     () =>
       selectedGardenId && !isDesktop
@@ -386,11 +333,15 @@ export function useHubWorkbenchController() {
     pendingWorks: pendingWorks.length,
     assessmentQueue: assessmentQueue.length,
     certificationQueue: certificationQueue.length,
-    historyEvents: historyEvents.length,
+    confirmQueue: toConfirm.count,
   });
 
-  const refreshAgoText = useMemo(() => formatRelativeTime(lastRefreshAt), [lastRefreshAt]);
-  const hasDataError = Boolean(error || assessmentsError);
+  const formatEventAge = useLocalizedRelativeTime();
+  const refreshAgoText = useMemo(
+    () => formatEventAge(lastRefreshAt),
+    [formatEventAge, lastRefreshAt]
+  );
+  const hasDataError = Boolean(error || worksError || assessmentsError);
 
   const sortOptions = useMemo<SortOption<SortDirection>[]>(
     () => [
@@ -429,7 +380,7 @@ export function useHubWorkbenchController() {
       navigate(
         adminRoutes.hubMode(nextStage as HubPipelineStage, {
           gardenId: hubContext.gardenId,
-          sort: nextStage === "work" || nextStage === "history" ? sortDirection : undefined,
+          sort: nextStage === "work" ? sortDirection : undefined,
         })
       );
     },
@@ -443,40 +394,41 @@ export function useHubWorkbenchController() {
     assessmentQueue,
     canManage,
     certificationQueue,
+    chainId,
+    toConfirm,
+    viewer,
     debouncedSearch,
     desktopActions,
     fetchingAssessments,
     gardenOptions,
     handleClearSearch,
+    handleCloseCommitment,
     handleCloseSheet,
     handleOpenCertification,
-    handleOpenHistoryEvent,
+    handleOpenCommitment,
     handleOpenWorkDetail,
     handleRefresh,
     handleSelectGarden,
     handleStageChange,
     hasDataError,
     headerDescription,
-    historyEvents,
     hubContext,
     hypercertsLoading,
     isSubmitRoute,
     normalizedSearch,
-    pendingCriticalCount: derived.pendingCriticalCount,
-    pendingWarningCount: derived.pendingWarningCount,
+    waitingOverWeekCount: derived.reviewQueue.waitingOverWeekCount,
     pendingWorks,
     refreshAgoText,
     resultCount,
     routeSheetContentId,
     routeSheetCloseTo,
     routeCertificationId,
-    routeHistoryEventId,
+    routeCommitmentId,
     routeWorkId,
     searchPlaceholder,
     searchTerm,
     selectedCertification,
     selectedGarden,
-    selectedHistoryEvent,
     selectedWork,
     setSearchTerm: handleSearchTermChange,
     sortDirection,

@@ -10,12 +10,12 @@ import type { AssessmentWorkflowParams } from "../../workflows/createAssessment"
 // ---------------------------------------------------------------------------
 
 export interface AssessmentDraftRecord extends AssessmentWorkflowParams {
-  /** Composite key: `assessment_draft_${gardenId}_${operatorAddress}` */
+  /** Composite key: `assessment_draft_${gardenId}_${stewardAddress}` */
   id: string;
   /** Garden address this draft belongs to */
   gardenId: Address;
-  /** Operator who created the draft */
-  operatorAddress: Address;
+  /** Steward who created the draft */
+  stewardAddress: Address;
   /** Epoch ms when the draft was first created */
   createdAt: number;
   /** Epoch ms of the most recent save */
@@ -46,9 +46,9 @@ interface UseAssessmentDraftOptions {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function buildDraftKey(gardenId?: string, operatorAddress?: string) {
-  if (!gardenId || !operatorAddress) return null;
-  return `assessment_draft_${gardenId}_${operatorAddress}`;
+function buildDraftKey(gardenId?: string, stewardAddress?: string) {
+  if (!gardenId || !stewardAddress) return null;
+  return `assessment_draft_${gardenId}_${stewardAddress}`;
 }
 
 function hasMeaningfulProgress(params: AssessmentWorkflowParams): boolean {
@@ -71,7 +71,7 @@ function hasMeaningfulProgress(params: AssessmentWorkflowParams): boolean {
 
 export function useAssessmentDraft(
   gardenId?: string,
-  operatorAddress?: string,
+  stewardAddress?: string,
   options: UseAssessmentDraftOptions = {}
 ): UseAssessmentDraftResult {
   const { enabled = true, autoSaveIntervalMs = 60_000 } = options;
@@ -80,11 +80,11 @@ export function useAssessmentDraft(
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
   const draftKey = useMemo(
-    () => buildDraftKey(gardenId, operatorAddress),
-    [gardenId, operatorAddress]
+    () => buildDraftKey(gardenId, stewardAddress),
+    [gardenId, stewardAddress]
   );
 
-  // Track request ID to handle race conditions when gardenId/operatorAddress change rapidly
+  // Track request ID to handle race conditions when gardenId/stewardAddress change rapidly
   const loadRequestIdRef = useRef(0);
 
   // Keep latest params for interval-based safety-net saves
@@ -156,7 +156,7 @@ export function useAssessmentDraft(
 
   const saveDraft = useCallback(
     async (params: AssessmentWorkflowParams) => {
-      if (!draftKey || !gardenId || !operatorAddress || !enabled) return null;
+      if (!draftKey || !gardenId || !stewardAddress || !enabled) return null;
 
       // Store latest params for interval saves
       latestParamsRef.current = params;
@@ -172,7 +172,7 @@ export function useAssessmentDraft(
         ...params,
         id: draftKey,
         gardenId: gardenId as Address,
-        operatorAddress: operatorAddress as Address,
+        stewardAddress: stewardAddress as Address,
         createdAt,
         updatedAt: now,
       };
@@ -196,7 +196,7 @@ export function useAssessmentDraft(
         return null;
       }
     },
-    [draftKey, gardenId, operatorAddress, enabled]
+    [draftKey, gardenId, stewardAddress, enabled]
   );
 
   const clearDraft = useCallback(async () => {

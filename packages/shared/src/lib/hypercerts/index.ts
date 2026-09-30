@@ -20,7 +20,7 @@ export {
 } from "./validation";
 export type { MerkleLeaf, MerkleTree } from "./merkle";
 export { generateMerkleTree, generateProof, verifyProof } from "./merkle";
-export { encodeCreateAllowlist, TransferRestrictions, HYPERCERT_MINTER_ABI_FULL } from "./transactions";
+export { encodeCreateAllowlist, TransferRestrictions } from "./transactions";
 // Marketplace adapter ABIs (re-exported from hooks/hypercerts for barrel consistency)
 export {
   MARKETPLACE_ADAPTER_ABI,

@@ -8,24 +8,30 @@
  * - /vaults route renders within PublicShell
  * - No bottom nav (AppBar) visible in browser mode
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
-import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mocks ---
 
-const mockOpenWalletModal = vi.fn();
-
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/config/app", () => ({
   APP_NAME: "Green Goods",
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useTunnelUrl", () => ({
   useTunnelUrl: () => null,
-  useAppKit: () => ({ open: mockOpenWalletModal }),
+}));
+
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => ({
     isMobile: false,
     isInstalled: false,
@@ -33,7 +39,13 @@ vi.mock("@green-goods/shared", () => ({
     deferredPrompt: null,
     promptInstall: vi.fn(),
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useIsBraveBrowser", () => ({
   useIsBraveBrowser: () => false,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", () => ({
   useInstallGuidance: () => ({
     scenario: "desktop",
     primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
@@ -44,7 +56,13 @@ vi.mock("@green-goods/shared", () => ({
     browserSwitchReason: null,
     openInBrowserUrl: null,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/usePublicInstallHandler", () => ({
   usePublicInstallHandler: () => vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useEventListener", () => ({
   useEventListener: vi.fn(),
 }));
 
@@ -59,6 +77,10 @@ vi.mock("react-router-dom", async () => {
 });
 
 import PublicShell from "../../routes/PublicShell";
+import {
+  hasChunkReloadAttempt,
+  markChunkReloadAttempt,
+} from "../../components/Errors/errorClassification";
 
 const messages: Record<string, string> = {
   "public.nav.gardens": "Gardens",
@@ -68,8 +90,8 @@ const messages: Record<string, string> = {
   "public.nav.fund": "Fund",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
-  "public.nav.openMenu": "Open menu",
-  "public.nav.closeMenu": "Close menu",
+  "public.nav.openMenu": "Open Menu",
+  "public.nav.closeMenu": "Close Menu",
 };
 
 const FundContent = () =>
@@ -80,19 +102,27 @@ const FundContent = () =>
     createElement(Link, { to: "/gardens" }, "Open gardens"),
     createElement(Link, { to: "/fund?manage=endowments" }, "Open endowments")
   );
-const GardensContent = () =>
-  createElement("div", { "data-testid": "gardens-content" }, "Gardens Page Content");
+const GardensContent = () => {
+  const navigate = useNavigate();
+  return createElement(
+    "div",
+    { "data-testid": "gardens-content" },
+    "Gardens Page Content",
+    createElement("button", { type: "button", onClick: () => navigate(-1) }, "Go back")
+  );
+};
 const VaultsContent = () =>
   createElement("div", { "data-testid": "vaults-content" }, "Vaults Page Content");
 
-function renderShellWithRoute(initialRoute: string) {
+function renderShellWithRoute(initialRoute: string, priorEntries: string[] = []) {
+  const entries = [...priorEntries, initialRoute];
   return render(
     createElement(
       "div",
       { id: "client-scroll-root" },
       createElement(
         MemoryRouter,
-        { initialEntries: [initialRoute] },
+        { initialEntries: entries, initialIndex: entries.length - 1 },
         createElement(
           IntlProvider,
           { locale: "en", messages },
@@ -116,6 +146,11 @@ function renderShellWithRoute(initialRoute: string) {
 describe("PublicShell", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
+    Object.defineProperty(window, "scrollY", { configurable: true, writable: true, value: 0 });
+    vi.spyOn(window, "scrollTo").mockImplementation((options: any) => {
+      window.scrollY = options.top ?? 0;
+    });
   });
 
   it("renders SiteHeader above route outlet content", () => {
@@ -132,6 +167,15 @@ describe("PublicShell", () => {
     const main = document.querySelector("main");
     expect(main).toBeInTheDocument();
     expect(header!.compareDocumentPosition(main!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it("preserves the chunk reload guard while nested route content mounts", () => {
+    markChunkReloadAttempt();
+
+    renderShellWithRoute("/gardens");
+
+    expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
+    expect(hasChunkReloadAttempt()).toBe(true);
   });
 
   it("/fund route renders within PublicShell", () => {
@@ -165,45 +209,77 @@ describe("PublicShell", () => {
     expect(screen.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
   });
 
-  it("resets the public scroll container on route changes", () => {
+  it("resets the document scroll position on route changes", () => {
     renderShellWithRoute("/fund");
 
-    const scrollRoot = document.getElementById("client-scroll-root");
-    expect(scrollRoot).toBeInTheDocument();
-    scrollRoot!.scrollTop = 720;
+    window.scrollY = 720;
 
     fireEvent.click(screen.getByRole("link", { name: "Open gardens" }));
 
     expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
-    expect(scrollRoot!.scrollTop).toBe(0);
+    expect(window.scrollY).toBe(0);
   });
 
-  it("preserves the public scroll container on search-only route changes", () => {
+  it("restores the document scroll position on back navigation", () => {
+    // <ScrollRestoration> restores `window`; this shell scrolls
+    // `#client-scroll-root`, so it has to bank and restore that itself. Before
+    // `/gardens/:id` became a route, going back to the archive cost nothing
+    // because the grid never unmounted. Now a reader who opened a Garden from
+    // deep in the list has to come back to where they were.
     renderShellWithRoute("/fund");
 
-    const scrollRoot = document.getElementById("client-scroll-root");
-    expect(scrollRoot).toBeInTheDocument();
-    scrollRoot!.scrollTop = 720;
-    fireEvent.scroll(scrollRoot!);
+    window.scrollY = 1850;
+    fireEvent.scroll(window);
 
-    fireEvent.click(screen.getByRole("link", { name: "Open endowments" }));
+    fireEvent.click(screen.getByRole("link", { name: "Open gardens" }));
+    expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
+    // Forward navigation still starts at the top.
+    expect(window.scrollY).toBe(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
 
     expect(screen.getByTestId("fund-content")).toBeInTheDocument();
-    expect(scrollRoot!.scrollTop).toBe(720);
+    expect(window.scrollY).toBe(1850);
   });
 
-  it("preserves the public scroll container when opening management from receipt search params", () => {
-    renderShellWithRoute("/fund?intent=receipt_123");
+  it("resets to the top on back navigation with no banked position", () => {
+    // A hard reload mid-history, or a shell remount, leaves the map empty for
+    // an entry the reader can still go Back to. Keeping the outgoing route's
+    // offset would drop them into the middle of a page they have not seen.
+    // /fund is already in history but was never visited in this mount, so
+    // nothing is banked for it — exactly the state after a hard reload.
+    renderShellWithRoute("/gardens", ["/fund"]);
 
-    const scrollRoot = document.getElementById("client-scroll-root");
-    expect(scrollRoot).toBeInTheDocument();
-    scrollRoot!.scrollTop = 720;
-    fireEvent.scroll(scrollRoot!);
+    window.scrollY = 900;
+    fireEvent.scroll(window);
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+
+    expect(screen.getByTestId("fund-content")).toBeInTheDocument();
+    expect(window.scrollY).toBe(0);
+  });
+
+  it("preserves the document scroll position on search-only route changes", () => {
+    renderShellWithRoute("/fund");
+
+    window.scrollY = 720;
+    fireEvent.scroll(window);
 
     fireEvent.click(screen.getByRole("link", { name: "Open endowments" }));
 
     expect(screen.getByTestId("fund-content")).toBeInTheDocument();
-    expect(scrollRoot!.scrollTop).toBe(720);
+    expect(window.scrollY).toBe(720);
+  });
+
+  it("preserves the document scroll position when opening management from receipt search params", () => {
+    renderShellWithRoute("/fund?intent=receipt_123");
+
+    window.scrollY = 720;
+    fireEvent.scroll(window);
+
+    fireEvent.click(screen.getByRole("link", { name: "Open endowments" }));
+
+    expect(screen.getByTestId("fund-content")).toBeInTheDocument();
+    expect(window.scrollY).toBe(720);
   });
 
   it("no bottom nav (AppBar) visible in browser mode", () => {

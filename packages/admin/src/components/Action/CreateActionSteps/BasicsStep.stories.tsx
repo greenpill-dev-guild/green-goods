@@ -1,8 +1,8 @@
-import { createActionSchema, type CreateActionFormData } from "@green-goods/shared";
+import type { CreateActionFormData } from "@green-goods/shared/hooks/action/useActionForm";
+import { createActionResolver } from "@green-goods/shared/hooks/admin-ui/actions/createAction.utils";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { BasicsStep } from "./BasicsStep";
 
 const DOMAIN_OPTIONS = [
@@ -44,6 +44,7 @@ const EMPTY_DEFAULTS: CreateActionFormData = {
       review: { title: "", description: "" },
     },
   },
+  translations: {},
 };
 
 function BasicsStepHarness({
@@ -55,7 +56,7 @@ function BasicsStepHarness({
 }) {
   const form = useForm<CreateActionFormData>({
     defaultValues: defaults,
-    resolver: zodResolver(createActionSchema),
+    resolver: createActionResolver,
     mode: "onChange",
   });
 

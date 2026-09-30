@@ -31,6 +31,11 @@ export interface DatePickerProps {
   className?: string;
   /** Custom date formatter function */
   formatDate?: (date: Date) => string;
+  /**
+   * `default` is the 16px app field; `admin` rides the cockpit field tier
+   * (8px corner, 44px on touch widths and 40px from 640px; DL-030, DL-031).
+   */
+  surface?: "default" | "admin";
 }
 
 /**
@@ -62,7 +67,10 @@ function dateToTimestamp(date: Date | undefined): number | null {
 
 /**
  * A date picker component using react-day-picker with Radix UI Popover.
- * Styled to match Green Goods design system.
+ *
+ * The trigger is a shared control (`gg-control gg-control-trigger`, like the
+ * Select trigger), so it takes the surface's field corner and height and lines
+ * up with the fields beside it; the label rides `gg-field-label` (DL-031).
  *
  * @example
  * <DatePicker
@@ -89,6 +97,7 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
       id,
       className,
       formatDate = defaultFormatDate,
+      surface = "default",
     },
     ref
   ) => {
@@ -121,9 +130,9 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
     }, [minDateObj, maxDateObj]);
 
     return (
-      <div className={cn("flex flex-col gap-1", error && "shake-error")}>
+      <div className="flex flex-col gap-1" data-component="DatePicker">
         {label && (
-          <label className="font-semibold text-text-strong-950 text-label-sm" htmlFor={id}>
+          <label className="gg-field-label" htmlFor={id}>
             {label}
             {required && (
               <>
@@ -136,7 +145,16 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
           </label>
         )}
 
-        <Popover.Root open={open} onOpenChange={setOpen}>
+        {/*
+          Always modal, deliberately. Every consumer renders inside an AdminDialog
+          flow, and a non-modal popover portalled to document.body inherits that
+          dialog's `pointer-events: none`, which is what made these calendars
+          unclickable. A `modal` prop defaulting to false would put that bug one
+          forgotten prop away; defaulting to true would just be dead config.
+          Revisit if a standalone consumer appears — focus trap and scroll lock
+          are heavier than a plain form field needs.
+        */}
+        <Popover.Root open={open} onOpenChange={setOpen} modal>
           <Popover.Trigger asChild>
             <button
               ref={ref}
@@ -146,29 +164,31 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
               aria-haspopup="dialog"
               aria-expanded={open}
               aria-describedby={helperText || error ? `${id}-helper-text` : undefined}
-              className={cn(
-                "flex w-full items-center justify-between gap-2 rounded-lg border bg-bg-white-0 px-3 py-2.5 text-left text-sm transition",
-                "disabled:opacity-50 disabled:pointer-events-none",
-                error
-                  ? "border-error-base focus:ring-2 focus:ring-error-lighter focus:border-error-base"
-                  : "border-stroke-sub-300 focus:ring-2 focus:ring-primary-lighter focus:border-primary-base",
-                "focus:outline-none",
-                className
-              )}
+              data-component="DatePickerTrigger"
+              data-surface={surface}
+              data-invalid={error ? "true" : undefined}
+              data-placeholder={displayValue ? undefined : ""}
+              className={cn("gg-control gg-control-trigger", className)}
             >
-              <span className={cn(displayValue ? "text-text-strong-950" : "text-text-soft-400")}>
-                {displayValue || placeholder}
-              </span>
-              <RiCalendarLine className="h-4 w-4 text-text-sub-600 flex-shrink-0" />
+              <span>{displayValue || placeholder}</span>
+              <RiCalendarLine
+                className="h-4 w-4 flex-shrink-0 text-text-sub-600"
+                aria-hidden="true"
+              />
             </button>
           </Popover.Trigger>
 
           <Popover.Portal>
             <Popover.Content
+              data-component="DatePickerPopover"
               align="start"
               sideOffset={4}
+              // Inline, not a `z-*` utility: the popover portals to document.body and
+              // has to clear a host dialog surface at `z-modal`, and the named z-index
+              // scale has no step between `z-modal` and `z-toast`.
+              style={{ zIndex: "calc(var(--z-modal) + 1)" }}
               className={cn(
-                "z-overlay rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-lg",
+                "rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-lg",
                 "data-[state=open]:animate-in data-[state=closed]:animate-out",
                 "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                 "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -238,7 +258,8 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
         {(helperText || error) && (
           <p
             id={`${id}-helper-text`}
-            className={cn("text-xs min-h-[1rem]", error ? "text-error-base" : "text-text-sub-600")}
+            className="gg-field-help min-h-[1rem]"
+            data-invalid={error ? "true" : undefined}
           >
             {error || helperText}
           </p>

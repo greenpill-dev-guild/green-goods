@@ -1,24 +1,24 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import type { Address, Work } from "@green-goods/shared";
-import { render, screen } from "@testing-library/react";
+import enMessages from "@green-goods/shared/i18n/en.json";
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import { render, screen, within } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import enMessages from "@green-goods/shared/i18n/en.json";
 
-const { mockUseEnsName } = vi.hoisted(() => ({
+const { mockUseEnsName, mockUseGreenGoodsEnsName } = vi.hoisted(() => ({
   mockUseEnsName: vi.fn(),
+  mockUseGreenGoodsEnsName: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
-  };
-});
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: (address: Address | null | undefined) => mockUseGreenGoodsEnsName(address),
+}));
 
 import { HubAssessmentQueue } from "@/views/Hub/components/HubAssessmentQueue";
 import { HubWorkQueue } from "@/views/Hub/components/HubWorkQueue";
@@ -48,6 +48,8 @@ describe("Hub queue ENS display", () => {
   beforeEach(() => {
     mockUseEnsName.mockReset();
     mockUseEnsName.mockReturnValue({ data: "river.greengoods.eth" });
+    mockUseGreenGoodsEnsName.mockReset();
+    mockUseGreenGoodsEnsName.mockReturnValue({ data: null });
   });
 
   it("uses ENS display names in the work queue description", () => {
@@ -65,7 +67,10 @@ describe("Hub queue ENS display", () => {
       />
     );
 
-    expect(screen.getByText("Compost")).toBeInTheDocument();
+    // The queue search matches on the action title, so the card has to show it
+    // — a hover-only title leaves a search hit with no visible matching text.
+    const card = screen.getByRole("button", { name: /Compost setup/ });
+    expect(within(card).getByText("Compost")).toBeInTheDocument();
     expect(screen.getByText("river")).toBeInTheDocument();
   });
 
@@ -81,7 +86,51 @@ describe("Hub queue ENS display", () => {
       />
     );
 
-    expect(screen.getByText("Compost")).toBeInTheDocument();
+    // The queue search matches on the action title, so the card has to show it
+    // — a hover-only title leaves a search hit with no visible matching text.
+    const card = screen.getByRole("button", { name: /Compost setup/ });
+    expect(within(card).getByText("Compost")).toBeInTheDocument();
     expect(screen.getByText("river")).toBeInTheDocument();
+  });
+
+  it("prefers the submitter's protocol name in the work queue", () => {
+    mockUseEnsName.mockReturnValue({ data: "other.eth" });
+    mockUseGreenGoodsEnsName.mockReturnValue({ data: "river.greengoods.eth" });
+    renderWithIntl(
+      <HubWorkQueue
+        items={[TEST_WORK]}
+        worksLoading={false}
+        hasDataError={false}
+        normalizedSearch=""
+        debouncedSearch=""
+        actionsMap={new Map([[1, { title: "Compost" }]])}
+        selectedWorkId={undefined}
+        onOpenWorkDetail={vi.fn()}
+        onClearSearch={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("river")).toBeInTheDocument();
+    expect(screen.queryByText("other.eth")).not.toBeInTheDocument();
+    expect(mockUseGreenGoodsEnsName).toHaveBeenCalledWith(TEST_WORK.gardenerAddress);
+  });
+
+  it("prefers the submitter's protocol name in the assessment queue", () => {
+    mockUseEnsName.mockReturnValue({ data: "other.eth" });
+    mockUseGreenGoodsEnsName.mockReturnValue({ data: "forest.greengoods.eth" });
+    renderWithIntl(
+      <HubAssessmentQueue
+        items={[TEST_WORK]}
+        worksLoading={false}
+        hasDataError={false}
+        actionsMap={new Map([[1, { title: "Compost" }]])}
+        selectedWorkId={undefined}
+        onOpenWorkDetail={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("forest")).toBeInTheDocument();
+    expect(screen.queryByText("other.eth")).not.toBeInTheDocument();
+    expect(mockUseGreenGoodsEnsName).toHaveBeenCalledWith(TEST_WORK.gardenerAddress);
   });
 });

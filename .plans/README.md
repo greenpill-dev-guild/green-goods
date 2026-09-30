@@ -1,6 +1,6 @@
 # Plan Hub
 
-`.plans/` is the canonical workspace for feature ideas, implementation plans, evaluations, lane handoffs, and automation prompts.
+`.plans/` is the canonical workspace for actionable feature ideas, implementation plans, evaluations, and lane handoffs.
 
 ## Canonical Layout
 
@@ -9,12 +9,14 @@
   ideas/              # rough concepts and one-pagers
   backlog/            # approved but not yet active
   active/             # active feature hubs that automations scan
-  archive/            # shipped, superseded, or paused work
-  audits/             # point-in-time audits (existing convention)
-  reviews/            # recurring review outputs (docs, QA sweeps, report-only checks)
+  ARCHIVE.md          # ledger of closed hubs; git history is the only archive
   _templates/         # scaffold source for new feature hubs
-  _automation/        # automation prompt files and scheduling guidance
 ```
+
+No other top-level entries are supported. Architecture belongs in current package
+guides or `docs/`; point-in-time audit and cleanup results stay in the session until
+accepted into Linear; operational scratch belongs in ignored `tmp/`; release history
+belongs in Git tags, releases, and the closed hub's Git history (indexed by `ARCHIVE.md`).
 
 ## Feature Hub Contract
 
@@ -32,7 +34,17 @@ Every new feature or polish effort should live in a dedicated folder:
   artifacts/
 ```
 
-`status.json` is the machine-readable source of truth for explicit lane state. Queue readiness is computed by `node scripts/plan-hub.mjs list` from `status.json` plus any required branch trigger.
+Ideas and backlog hubs keep the four canonical documents plus `status.json`.
+Lane handoff files are created when the hub moves to `active`; `reports/` and
+`artifacts/` are added only when they contain real evidence.
+
+`status.json` is the machine-readable source of truth for explicit lane state. Queue readiness is computed by `node scripts/harness/plan-hub.mjs list` from `status.json` plus any required branch trigger.
+
+Every direct child of `ideas/`, `backlog/`, and `active/` must be a
+feature directory with `status.json`. Loose files and invisible status-less
+directories fail validation, and any hub left under `.plans/archive/` fails
+validation outright — closed hubs live only in Git history. `links.brief`, `links.spec`, `links.plan`, and
+`links.eval` are required and must resolve.
 
 The Markdown files are the human-readable context:
 
@@ -48,7 +60,7 @@ The Markdown files are the human-readable context:
 
 ### Repo Truth and Memory
 
-`.plans/` is the durable repo-truth surface for feature state, handoffs, evaluations, and automation context.
+`.plans/` is the durable repo-truth surface for feature state, handoffs, and evaluations.
 Tool-local memory stores and local checkpoints can help an agent resume work, but they do not outrank the
 active feature hub.
 
@@ -56,15 +68,22 @@ active feature hub.
   environment-local unless an explicit freshness, expiry, and ownership policy says otherwise
 - Do not promote a repo-level `.claude/agent-memory/` surface into committed truth by default
 - When the hub and a local memory artifact disagree, fix the hub or record the blocker in the hub
+- Keep decisions, acceptance criteria, evidence, ownership, and unresolved judgment in the hub.
+  Do not copy route, export, endpoint, deployment, or workflow inventories from code; cite their
+  owning source instead.
+- Code, tests, and CI configuration must not read files under `.plans/`; data they need lives in
+  its package. References that name hub paths (ontology `spec_source` and evidence, workflow
+  `paths:` filters, `scripts/data/validation-policy.json`, other hubs' `status.json` links) move
+  with the hub whenever it changes stage or closes.
 
 ### Validation Posture
 
 Use the fastest honest validation loop for the touched surface:
 
-- `node scripts/plan-hub.mjs validate` for hub and lane-state changes
+- `node scripts/harness/plan-hub.mjs validate` for hub and lane-state changes
 - targeted `bun run test -- <file>` while shaping a bounded code change
 - `bun run test` when the changed surface needs a package or repo-level iterative gate
-- `bash scripts/check-test-quality.sh` when touching test governance
+- `bash scripts/quality/check-test-quality.sh` when touching test governance
 
 Coverage is a scheduled or pre-merge floor, not the default inner loop.
 
@@ -72,24 +91,25 @@ Coverage is a scheduled or pre-merge floor, not the default inner loop.
 
 The default lane split is:
 
-| Lane | Owner | Branch Pattern | Purpose |
-|---|---|---|---|
-| `ui` | Claude | `claude/ui/<feature-slug>` | user interface, copy polish, visuals |
-| `state_api` | Codex | `codex/state-api/<feature-slug>` | state logic, hooks, APIs, data flow |
-| `contracts` | Codex | `codex/contracts/<feature-slug>` | Solidity, deployments-adjacent contract work, tests |
-| `qa_pass_1` | Claude | `claude/qa-pass-1/<feature-slug>` | first QA sweep, UX and flow validation |
-| `qa_pass_2` | Codex | `codex/qa-pass-2/<feature-slug>` | second QA sweep, regression and implementation validation |
+| Lane | Owner | Purpose |
+|---|---|---|
+| `ui` | Claude | user interface, copy polish, visuals |
+| `state_api` | Codex | state logic, hooks, APIs, data flow |
+| `contracts` | Codex | Solidity, deployments-adjacent contract work, tests |
+| `qa_pass_1` | Claude | first QA sweep, UX and flow validation |
+| `qa_pass_2` | Codex | second QA sweep, regression and implementation validation |
 
-`qa_pass_2` is intentionally sequential. It should only start after Claude marks `qa_pass_1` as passed and the trigger branch exists.
+`qa_pass_2` is intentionally sequential. It should only start after Claude marks `qa_pass_1` as passed.
 
-## Branch Signal Contract
+## Work Branch Contract
 
-Branch names are a wake-up signal for the next automation. `status.json` remains the authoritative state.
+`status.json` remains the authoritative lane state. Branch names describe concrete work and never identify the owner or lane.
 
-- Claude QA finishes on `claude/qa-pass-1/<feature-slug>`
-- Codex QA polls for that branch name and also verifies that `status.json` shows `qa_pass_1.status = "passed"`
+- Leave a lane branch `null` until implementation begins.
+- When a branch is needed, use the repository `<type>/<work-description>` contract and validate it with `node scripts/quality/branch-name-policy.mjs <branch>`.
+- Downstream readiness follows lane status and dependency state, not branch existence.
 
-Use both checks together. Branch existence alone is not enough, especially in cloud sandboxes where remote refs may lag.
+Existing version-1 hubs may retain historical branch signals as provenance. They do not authorize creating or reusing those names.
 
 ## Where Automations Live
 
@@ -98,13 +118,10 @@ The actual recurring jobs do **not** live in git:
 - Codex schedules live in the Codex app automation store
 - Claude schedules live in Claude cron / automation config
 
-This repo stores the **versioned prompt source-of-truth** and workflow contract:
-
-- prompt files in `.plans/_automation/`
-- plan and handoff state in `.plans/active/<feature-slug>/`
-- recurring review outputs in `.plans/reviews/`
-
-That split keeps scheduling platform-specific while keeping instructions, branches, and artifacts reviewable in the repo.
+Versioned automation instructions belong with their durable caller in `.claude/`,
+`docs/routines/`, or the planning harness. Feature state and handoffs stay in
+`.plans/active/<feature-slug>/`; automation telemetry stays in the scheduler rather
+than creating a second plan-history surface.
 
 ## Lifecycle
 
@@ -113,16 +130,37 @@ That split keeps scheduling platform-specific while keeping instructions, branch
 3. Move the hub to `.plans/active/<feature-slug>/` when it is ready for automation
 4. Mark unused lanes as `n/a` in `status.json`
 5. Let lane automations claim work from `.plans/active/`
-6. Archive the hub when QA pass 2 is complete and the work is merged or intentionally paused
+6. For a mirrored hub, update the Plan Hub first, apply the stakeholder-visible
+   `linear-sync` manifest in Linear, and confirm that mirror with
+   `confirm-linear-sync --feature <slug> --actor <actor>`.
+7. Close the hub when the work is completed, superseded, closed, cancelled,
+   or intentionally paused, following the plan skill's
+   [Closing a Plan Hub](../.claude/skills/plan/SKILL.md#closing-a-plan-hub) procedure:
+   commit the hub's closeout record first, then run `move --to archive`, which rejects
+   stale Linear mirrors, validates the requested `--resolution`, appends one row to
+   `ARCHIVE.md`, and deletes the hub directory. Do not label unfinished stale work as completed.
+8. Keep implementation issues in `In Review` while a PR is open. Move them to
+   `Done` only after the human merge completes delivery.
+
+Git history is the only archive. The `ARCHIVE.md` ledger records each closed hub's
+slug, Linear parent key when present, title, resolution, closeout reason, and historical path; recover full contents
+with `git log --oneline -- <historical path>` and `git checkout <sha>^ -- <historical path>`
+against the closeout commit; because the closeout record is committed first, that parent commit
+holds the hub's final state. Dated reports under `reports/` remain byte-for-byte
+immutable while a hub is live and may only leave the tree with their whole hub at
+closeout. Do not create parallel audit, review, cleanup, ADR, or meeting-note
+folders under `.plans/`.
 
 ## Backlog Quality Bar
 
 Backlog is for execution candidates, not general storage.
 
 - Keep only work that is realistic for the next execution cycle or two
-- Move strategic research to `.plans/ideas/` or `.plans/adr/`
-- Move prompt packs, team prompts, and implementation wrappers to `.plans/_automation/` or `.plans/archive/`
-- Archive broad legacy hubs once the remaining work can be expressed as a smaller follow-up hub
+- Move strategic research that could become work to `.plans/ideas/`; keep durable
+  architecture in current package guides or `docs/`
+- Keep agent instructions beside their active caller in `.claude/`; close only
+  feature implementation records, not generic prompt packs
+- Close broad legacy hubs once the remaining work can be expressed as a smaller follow-up hub
 
 Every hub that remains in `.plans/active/` or `.plans/backlog/` must include real `brief.md`, `spec.md`, `plan.todo.md`, and `eval.md` content. Migration placeholder text is not allowed in the live queue.
 
@@ -131,15 +169,19 @@ Every hub that remains in `.plans/active/` or `.plans/backlog/` must include rea
 Use the repo helper script for scaffolding, lane discovery, and status transitions:
 
 ```bash
-node scripts/plan-hub.mjs scaffold my-feature --title "My Feature"
-node scripts/plan-hub.mjs move --feature my-feature --to active
-node scripts/plan-hub.mjs list --agent claude --lane ui
-node scripts/plan-hub.mjs set-lane --feature my-feature --lane ui --status in_progress --actor claude
-node scripts/plan-hub.mjs validate
+node scripts/harness/plan-hub.mjs scaffold my-feature --title "My Feature"
+node scripts/harness/plan-hub.mjs move --feature my-feature --to active
+node scripts/harness/plan-hub.mjs list --agent claude --lane ui
+node scripts/harness/plan-hub.mjs summary --json
+node scripts/harness/plan-hub.mjs stale --days 14 --json
+node scripts/harness/plan-hub.mjs set-lane --feature my-feature --lane ui --status in_progress --actor claude
+node scripts/harness/plan-hub.mjs confirm-linear-sync --feature my-feature --actor claude
+node scripts/harness/plan-hub.mjs move --feature my-feature --to archive --resolution completed --reason "Merged and verified."
+node scripts/harness/plan-hub.mjs validate
 ```
 
 ## Legacy Compatibility
 
 The foldered feature hub layout is the only supported plan surface. Do not create new flat files in `.plans/`, `.plans/_backlog/`, or `.claude/plans/`. If a legacy plan artifact appears, migrate it into a feature hub immediately.
 
-Published product and developer specifications under `docs/docs/builders/specs/` remain where they are. They are public docs, not the live automation queue.
+The one retained published specification, `docs/docs/builders/specs/revenue-explorer.mdx`, remains where it is. It is a public doc, not part of the live automation queue.

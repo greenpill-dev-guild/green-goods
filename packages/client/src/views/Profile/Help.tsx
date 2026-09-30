@@ -35,7 +35,7 @@ const faqCategories: FaqCategory[] = [
       "whatIsGreenGoods",
       "whatIsImpact",
       "signingIn",
-      "gardensAndOperators",
+      "gardensAndStewards",
       "howToGetInvolved",
     ],
   },

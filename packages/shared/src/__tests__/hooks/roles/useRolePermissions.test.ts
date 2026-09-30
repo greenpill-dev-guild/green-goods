@@ -1,6 +1,6 @@
 /**
  * useRolePermissions Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { renderHook } from "@testing-library/react";
@@ -44,8 +44,8 @@ describe("useRolePermissions", () => {
     });
   });
 
-  it("returns operator permissions", () => {
-    const { result } = renderHook(() => useRolePermissions("operator"));
+  it("returns steward permissions", () => {
+    const { result } = renderHook(() => useRolePermissions("steward"));
 
     expect(result.current).toEqual({
       canSubmitWork: true,

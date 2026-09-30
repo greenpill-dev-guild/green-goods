@@ -1,4 +1,5 @@
-import { type Address, PoolType } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { PoolType } from "@green-goods/shared/types/gardens-community";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { withRouter } from "../../../../shared/.storybook/decorators";

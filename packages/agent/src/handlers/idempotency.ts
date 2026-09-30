@@ -9,14 +9,6 @@ export function messageIdempotencyKey(handler: IdempotentHandler, message: Inbou
   return `${handler}:${message.platform}:${message.sender.platformId}:${message.id}`;
 }
 
-export async function getCompletedIdempotencyResponse(
-  handler: IdempotentHandler,
-  message: InboundMessage
-): Promise<OutboundResponse | undefined> {
-  const record = await db.getIdempotencyRecord(messageIdempotencyKey(handler, message));
-  return record?.status === "completed" ? record.response : undefined;
-}
-
 export async function getExistingIdempotencyResponse(
   handler: IdempotentHandler,
   message: InboundMessage,

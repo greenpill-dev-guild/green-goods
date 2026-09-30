@@ -28,6 +28,11 @@ declare namespace NodeJS {
 
     // API
     BOT_API_TOKEN?: string;
+    SAVED_OFFERS_ENCRYPTION_KEY?: string;
+    SAVED_OFFERS_AUDIENCE?: string;
+    JOIN_REQUESTS_ENABLED?: string;
+    JOIN_REQUESTS_ENCRYPTION_KEY?: string;
+    JOIN_REQUESTS_PRODUCTION_READY?: string;
     AGENT_ALLOWED_ORIGINS?: string;
     AGENT_PUBLIC_ALLOWED_ORIGINS?: string;
     AGENT_TRUSTED_PROXY_HOPS?: string;

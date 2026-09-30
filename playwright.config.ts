@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import {
+  resolvePlaywrightApps,
+  shouldUsePlaywrightIndexer,
+} from "./tests/fixtures/playwright-services";
 
 // In CI, Vite skips mkcert and runs on HTTP instead of HTTPS
 const isCI = process.env.CI === "true";
@@ -20,14 +24,14 @@ function envFlag(name: string): boolean {
   return process.env[name]?.toLowerCase() === "true";
 }
 
-const playwrightApp = process.env.PLAYWRIGHT_APP;
-const shouldStartClient = playwrightApp !== "admin";
-const shouldStartAdmin = playwrightApp !== "client";
+const selectedApps = resolvePlaywrightApps({ playwrightApp: process.env.PLAYWRIGHT_APP });
+const shouldStartClient = selectedApps.client;
+const shouldStartAdmin = selectedApps.admin;
 
 // CI smoke / production-flows tests mock indexer GraphQL calls via Playwright
 // route interception, so the live envio indexer (which needs Docker) is not
 // required. SKIP_INDEXER=true (default in CI) keeps the webServer list lean.
-const skipIndexer = envFlag("SKIP_INDEXER") || (!!process.env.CI && !envFlag("REQUIRE_INDEXER"));
+const skipIndexer = !shouldUsePlaywrightIndexer();
 
 const webServers = [
   // Indexer (GraphQL)
@@ -35,7 +39,7 @@ const webServers = [
     ? []
     : [
         {
-          command: "bun run dev:indexer",
+          command: "bun run dev -- indexer",
           port: 3006,
           reuseExistingServer: !process.env.CI,
           timeout: 60000,
@@ -45,10 +49,13 @@ const webServers = [
   // Client (PWA) — `url` (not `port`) so Playwright waits for an actual HTTP
   // 200 before running tests; Vite binds the TCP socket before the HTTP route
   // handler is ready, which causes flaky page.goto timeouts in CI.
+  // Both app servers run Vite through the package script, not `bun run dev`:
+  // the PM2 launcher applies the local stack profile (Arbitrum, NODE_ENV
+  // development) over any env passed here, and the specs mock Sepolia.
   ...(shouldStartClient
     ? [
         {
-          command: "bun run dev:client",
+          command: "bun run --cwd packages/client dev",
           url: `${protocol}://localhost:3001`,
           reuseExistingServer: !process.env.CI,
           timeout: 120000,
@@ -56,6 +63,9 @@ const webServers = [
             NODE_ENV: "test",
             VITE_CHAIN_ID: "11155111",
             VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
+            // CI exercises the installed-app/offline contract, so the client
+            // test server must expose vite-plugin-pwa's development worker.
+            VITE_ENABLE_SW_DEV: "true",
           },
         },
       ]
@@ -64,7 +74,7 @@ const webServers = [
   ...(shouldStartAdmin
     ? [
         {
-          command: "bun run dev:admin",
+          command: "bun run --cwd packages/admin dev",
           url: `${protocol}://localhost:3002`,
           reuseExistingServer: !process.env.CI,
           timeout: 120000,
@@ -129,10 +139,14 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
 
-    // Admin CI - smoke plus production-flow checks owned by the admin lane
+    // Admin CI - deterministic auth, smoke, and production-flow checks owned by the admin lane
     {
       name: "admin-ci",
-      testMatch: [/admin\.smoke\.spec\.ts$/, /admin\.production-flows\.ci\.spec\.ts$/],
+      testMatch: [
+        /admin\.auth\.spec\.ts$/,
+        /admin\.smoke\.spec\.ts$/,
+        /admin\.production-flows\.ci\.spec\.ts$/,
+      ],
       use: { ...devices["Desktop Chrome"] },
     },
 
@@ -216,18 +230,18 @@ export default defineConfig({
     // ========================================================================
 
     // Anvil Fork - Tests with local Anvil fork of Sepolia
-    // Run with: bun test:e2e:fork
-    // Requires Anvil running: bun anvil:start
+    // Run with: bun run browser e2e --preset fork
     {
       name: "anvil-fork",
       testMatch: /.*\.fork\.spec\.ts$/,
+      fullyParallel: false,
       use: { ...devices["Desktop Chrome"] },
-      timeout: 60000, // Longer timeout for blockchain interactions
+      timeout: 120000, // Includes lazy upstream state reads through the Anvil fork
     },
 
     // Passkey Mock - Tests with mocked Pimlico bundler/paymaster
     // Enables full passkey E2E tests without real infrastructure
-    // Run with: bun test:e2e:passkey
+    // Run with: bun run browser e2e --preset passkey
     {
       name: "passkey-mock",
       testMatch: /.*\.passkey\.spec\.ts$/,
@@ -235,7 +249,7 @@ export default defineConfig({
     },
 
     // Testnet - Tests against real Sepolia (manual only)
-    // Run with: bun test:e2e:testnet
+    // Run with: bun run browser e2e --preset testnet
     // Requires: TEST_WALLET_PRIVATE_KEY env var
     {
       name: "testnet",

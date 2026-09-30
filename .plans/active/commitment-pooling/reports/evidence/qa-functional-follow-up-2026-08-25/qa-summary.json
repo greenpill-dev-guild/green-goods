@@ -1,0 +1,234 @@
+{
+  "date": "2026-08-25",
+  "mode": "A",
+  "targetSha": "fc27a5b000fd8ab8674ac5a6dea159a0a602234b",
+  "headMatchedTargetBeforeBrowserPhases": true,
+  "functionalVerdict": "PASS for all four scoped regressions; broader functional coverage retains exact external and out-of-scope blockers",
+  "codeChanged": false,
+  "fourDefects": [
+    {
+      "id": 1,
+      "name": "Fallback confirmation provenance DOM and hydration",
+      "result": "PASS",
+      "baseline": "Target already contains the candidate fix; fixture 1012 rendered cleanly on first fresh check",
+      "testEvidence": "shared suite PASS: 4234 passed, 18 skipped",
+      "renderedEvidence": "Fixture 1012 rendered fallback actor, path, and reason; invalid paragraph-div count 0; no invalid-nesting, hydration, or uncaught product log matches",
+      "evidence": "client-fixture-1012-fallback-provenance.png"
+    },
+    {
+      "id": 2,
+      "name": "Admin/Pool/PoolSetupFlow--FirstRun render and play",
+      "result": "PASS",
+      "baseline": "Target story rendered and its play ran without a code change",
+      "testEvidence": "Scoped Storybook Vitest run PASS: 1 file, 4 stories; authenticated Brave interaction panel PASS",
+      "renderedEvidence": "How it works rendered; Next began disabled; play typed Neighbourly help in Rio; Next became enabled; seven interaction steps passed",
+      "evidence": "storybook-admin-poolsetupflow-first-run-pass.png"
+    },
+    {
+      "id": 3,
+      "name": "ConfirmSheet positive proof count and empty-state contradiction",
+      "result": "PASS",
+      "baseline": "Target rendered a coherent positive-proof state without a code change",
+      "testEvidence": "client and shared suites PASS; full Storybook CI did not fail this story",
+      "renderedEvidence": "Multiple Proofs rendered Proof / 2 items, one submitted-proof list containing two rows, and zero No proof has been attached yet sentences",
+      "evidence": "storybook-client-confirmsheet-multiple-proofs-render.png"
+    },
+    {
+      "id": 4,
+      "name": "Local PWA service-worker text/html MIME registration failure",
+      "result": "PASS",
+      "baseline": "Target registered/navigated without a fresh MIME failure; no code change",
+      "testEvidence": "shared suite PASS; exact local request returned HTTP 200 with content-type text/javascript",
+      "renderedEvidence": "Authenticated Brave navigated Home, Profile, and Garden; service-worker, MIME, text/html, dev-sw, and registration error-log matches: 0",
+      "evidence": "client-pwa-navigation-service-worker-pass.png"
+    }
+  ],
+  "commands": [
+    { "command": "git fetch --prune origin develop", "result": "PASS" },
+    {
+      "command": "bun run validation:plan -- --intent qa",
+      "result": "PASS",
+      "selected": [{ "check": "format", "selectedBy": ["automatic-hygiene"] }]
+    },
+    { "command": "bun run dev:doctor", "result": "PASS" },
+    {
+      "command": "bun run dev:prod:mirror:health",
+      "result": "FAIL: Docker unavailable in the shell; no compatible target-matched local mirror was proven"
+    },
+    {
+      "command": "bun run dev:prod:smoke",
+      "result": "BLOCKED: two owned invocations produced no endpoint result and were stopped"
+    },
+    {
+      "command": "bun run --filter @green-goods/shared test",
+      "result": "PASS: 385 files passed, 2 skipped; 4234 tests passed, 18 skipped"
+    },
+    {
+      "command": "bun run --filter @green-goods/client test",
+      "result": "PASS: 105 files; 871 tests"
+    },
+    {
+      "command": "bun run --filter @green-goods/admin test",
+      "result": "PASS: 102 files; 723 tests"
+    },
+    {
+      "command": "bun run --filter @green-goods/shared check:stories",
+      "result": "PASS: 254 of 254"
+    },
+    {
+      "command": "bun run --filter @green-goods/shared check:story-quality",
+      "result": "PASS: 226 story files"
+    },
+    { "command": "bun run lint:vocab", "result": "PASS: 3 i18n files" },
+    {
+      "command": "bun run --filter @green-goods/shared test:stories:ci",
+      "result": "FAIL: 192 passed, 2 unrelated Actions stories failed"
+    },
+    {
+      "command": "bun run --cwd packages/shared ../../scripts/dev/node-cli.js vitest run ../admin/src/views/Garden/Pool/SetupFlow/SetupFlow.stories.tsx --config vitest.storybook.config.ts --project=storybook",
+      "result": "PASS: 1 file, 4 stories"
+    },
+    {
+      "command": "curl -sk -D - -o /dev/null https://localhost:3001/dev-sw.js?dev-sw",
+      "result": "PASS: HTTP 200, content-type text/javascript"
+    },
+    { "command": "git diff --check", "result": "PASS" }
+  ],
+  "focusedRows": [
+    {
+      "row": 5,
+      "result": "PASS",
+      "tier": "FIXTURE",
+      "evidence": "All fixtures 1001-1021 rendered with expected state and no product-error match"
+    },
+    {
+      "row": 6,
+      "result": "PASS",
+      "tier": "FIXTURE",
+      "evidence": "Season, campaign, All, Offers, Requests, Live, and Over time controls responded; no To confirm drawer tab"
+    },
+    {
+      "row": 7,
+      "result": "PASS",
+      "tier": "FIXTURE",
+      "evidence": "Offer and Request accepted real clicks and typing, reached Review, and each produced one local Waiting to send row"
+    },
+    {
+      "row": 8,
+      "result": "BLOCKED (media file chooser denied setFiles); text-only path PASS",
+      "tier": "FIXTURE",
+      "evidence": "Text-only proof reached Review and queued; NotYours rendered; authenticated Brave media setFiles returned Not allowed"
+    },
+    {
+      "row": 9,
+      "result": "PASS",
+      "tier": "FIXTURE",
+      "evidence": "Claim queued, withdrawal reason enabled without submit, Not yet reason enabled without submit, and confirmation queued locally"
+    },
+    {
+      "row": 10,
+      "result": "PASS",
+      "tier": "FIXTURE+SUITE",
+      "evidence": "Queued states stayed local; rapid Offer double-click produced exactly one matching pool row; job suites passed"
+    },
+    {
+      "row": 11,
+      "result": "PASS",
+      "tier": "FIXTURE+SUITE",
+      "evidence": "mockPooling=0 removed Pool and fixture data; flipping back restored Pool with no Garden not found"
+    },
+    {
+      "row": 12,
+      "result": "PASS",
+      "tier": "SUITE+STORYBOOK",
+      "evidence": "Exact zero-commitment pause-reason test passed; paused story rendered reason and withheld blocked acts"
+    },
+    {
+      "row": 13,
+      "result": "BLOCKED (target-matched local Commitment Pooling mirror unavailable)",
+      "tier": "AUTHENTICATED ROUTE",
+      "evidence": "All three routes rendered truthful unavailable, unregistered, or empty states; successful pooling read-back not claimed"
+    },
+    {
+      "row": 14,
+      "result": "PASS at STORYBOOK+SUITE tiers",
+      "tier": "STORYBOOK+SUITE",
+      "evidence": "FirstRun play passed; partial-failure recovery, direction, cycle including no-cycle, quantity, proof/confirmer, and review stories rendered; admin suite passed"
+    },
+    {
+      "row": 15,
+      "result": "PASS at STORYBOOK+SUITE tiers",
+      "tier": "STORYBOOK+SUITE",
+      "evidence": "Ordinary/fallback provenance, no-credit Kept guard, queue empty/loading/read-error/retry exits rendered; admin suite passed"
+    },
+    {
+      "row": 16,
+      "result": "PASS",
+      "tier": "LIVE+STORYBOOK+SUITE",
+      "evidence": "Reachable public garden, live impact, record/paused/pre-launch/ready/empty, populated and unavailable privacy-safe stories rendered"
+    }
+  ],
+  "newDefects": [
+    {
+      "id": "FU-1",
+      "severity": "Major",
+      "surface": "Client installed-PWA AppBar",
+      "route": "/home/garden",
+      "role": "mockAuth=user",
+      "expected": "Home link navigates to /home",
+      "observed": "Link href is /home, is visible and clickable, but the URL remains /home/garden and waitForURL times out",
+      "reproduction": [
+        "Open /home in PWA presentation",
+        "Click Garden and wait for /home/garden",
+        "Click Home",
+        "Observe /home/garden remains"
+      ],
+      "evidence": "client-pwa-home-link-no-navigation.png",
+      "suspectedOwner": "packages/client AppBar or PWA router/view-transition seam",
+      "fixed": false
+    },
+    {
+      "id": "FU-2",
+      "severity": "Minor QA harness",
+      "surface": "Live Storybook interaction panel",
+      "route": "ConfirmSheet--MultipleProofs and SeedCommitmentDialog--What",
+      "role": "Storybook seeded state",
+      "expected": "The play assertion resolves the visible responsive instance",
+      "observed": "The product frame renders correctly, but the live manager selects a hidden responsive duplicate and reports toBeVisible failure; clean Storybook CI did not fail these stories",
+      "reproduction": [
+        "Open either named story in the running Storybook manager",
+        "Open Interactions",
+        "Observe hidden duplicate selected by the visibility assertion"
+      ],
+      "evidence": "storybook-client-confirmsheet-multiple-proofs.png",
+      "suspectedOwner": "Story play selectors in client/admin stories",
+      "fixed": false
+    },
+    {
+      "id": "FU-3",
+      "severity": "Minor QA harness",
+      "surface": "Shared Storybook component-test gate",
+      "route": "Actions--Registry and ActionsSheetDescriptor--RouteBackedCreateMobile",
+      "role": "Storybook CI",
+      "expected": "All component story plays pass",
+      "observed": "192 plays passed; Registry could not find the Actions heading and RouteBackedCreateMobile could not find its dialog",
+      "reproduction": ["Run bun run --filter @green-goods/shared test:stories:ci"],
+      "evidence": "qa-summary.json",
+      "suspectedOwner": "packages/shared Actions stories",
+      "fixed": false
+    }
+  ],
+  "prohibitedActions": {
+    "walletSignatures": 0,
+    "passkeyCeremonies": 0,
+    "transactionApprovals": 0,
+    "simulationsTowardSignature": 0,
+    "broadcasts": 0,
+    "onchainWrites": 0,
+    "deployments": 0,
+    "commits": 0,
+    "pushes": 0,
+    "branchChanges": 0,
+    "linearRecords": 0
+  }
+}

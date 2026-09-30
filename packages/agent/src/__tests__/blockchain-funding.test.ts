@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { encodeEventTopics, parseAbiItem, type Hex, type Log } from "viem";
+import { encodeEventTopics, parseAbiItem, type Address, type Hex, type Log } from "viem";
 import { initBlockchain, resetBlockchain } from "../services/blockchain";
 
 const chain = {
@@ -13,11 +13,11 @@ const transferEvent = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 value)"
 );
 const txHash = `0x${"c".repeat(64)}` as Hex;
-const token = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-const destination = "0x2222222222222222222222222222222222222222";
-const from = "0x1111111111111111111111111111111111111111";
+const token: Address = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const destination: Address = "0x2222222222222222222222222222222222222222";
+const from: Address = "0x1111111111111111111111111111111111111111";
 
-function transferLog(value: bigint, to = destination, tokenAddress = token): Log {
+function transferLog(value: bigint, to: Address = destination, tokenAddress: Address = token): Log {
   return {
     address: tokenAddress as Hex,
     topics: encodeEventTopics({

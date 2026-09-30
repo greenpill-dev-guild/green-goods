@@ -14,4 +14,23 @@ export const tokensKeys = {
    */
   balances: (account: string, chainId: number) =>
     ["greengoods", "tokens", "balances", account, chainId] as const,
+  celoBalance: (account: string) =>
+    ["greengoods", "tokens", "celoBalance", account.toLowerCase(), 42220] as const,
+  transferFee: (
+    account: string,
+    chainId: number,
+    token: string,
+    recipient: string,
+    amount: bigint
+  ) =>
+    [
+      "greengoods",
+      "tokens",
+      "transferFee",
+      account.toLowerCase(),
+      chainId,
+      token.toLowerCase(),
+      recipient.toLowerCase(),
+      amount.toString(),
+    ] as const,
 } as const;

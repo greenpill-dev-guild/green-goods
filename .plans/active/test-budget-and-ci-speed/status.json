@@ -1,0 +1,488 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "test-budget-and-ci-speed",
+    "title": "Reduce test maintenance and improve validation feedback",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-09-19T22:46:56.155Z",
+    "updated_at": "2026-09-29T01:57:53.035Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["shared", "docs", "ops"],
+    "work_types": ["maintenance", "qa"],
+    "surfaces": ["shared", "client", "admin", "agent", "tooling", "docs"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "User selected local implementation on 2026-09-19, beginning with step 1 guidance, and later authorized a commit of completed slices. Branch changes, publication, and Linear writes remain unauthorized.",
+    "Preparation complete at 459ca0b904a46511e31293ef921dfc8c3af70496. See reports/2026-09-19-preparation.md for evidence and limitations.",
+    "September 27 local steps 8–10 implemented: 29 Shared/two Admin helper conversions, six unused settlement exports removed, eight memory/SQLite conformance cases, five stale mocks removed and one same-subject file merge. Shared full coverage passed (5,876 tests, all floors); focused Admin/Agent and selected types/build/quality checks passed. Full Client validation is blocked by 10-second DetailsGate timeouts; focused baseline-source and restored-source runs both passed. See reports/2026-09-26-snapshot-06.md. Validation was collected before commit; independent QA/current-SHA CI remain pending.",
+    "Selected order: original items 1, 4, 3, 11, 2+7, 5+8+9+10+6b, 12. Item 6a deferred.",
+    "Historical September 19 preparation: the architecture hub owned the September 22 checkpoint, and PRs #795/#802 were open then. Fresh September 27 reads: #802 merged on September 20; #795 remains open at efd85dcebab17ceb9da87cb78fce8d3fd6aef714. Existing floors and architecture checkpoint ownership are unchanged by this slice.",
+    "The linear-sync start manifest proposed a missing parent with parent_only visibility. No Linear write is authorized or recorded.",
+    "User authorized remaining local work on September 26–27. Publication, branch changes and Linear writes remain outside scope. Named layout guards and the batch-approval cache fixture are retained after inspection; isolate:false remains deferred.",
+    "2026-09-28 velocity follow-through (D1-D5): slices 0-13 committed locally on develop from d7cf681ec; evidence in reports/2026-09-28-velocity-follow-through.md; Astra's review handoff in handoffs/astra-review.md. Push, current-head CI, Linear sync and publication belong to the closeout pass.",
+    "2026-09-28 Astra review (reports/2026-09-28-astra-review.md): REQUEST_CHANGES with five Must-Fix and one Should-Fix, all fixed in fourteen commits after 01ba4e2cd together with Afo's D6-D8 call-out decisions; see reports/2026-09-28-astra-review-resolution.md. The closeout pass pushes to origin/develop and records current-head CI for steps 3 and 5."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No runtime UI or contract implementation selected in this test/tooling plan."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "node scripts/dev/node-cli.js node --test scripts/quality/workflow-performance-parity.test.mjs",
+          "evidence": "Image-compression exact-file parity before config edit: 31/32 passed, floor missing. /private/tmp/green-goods-image-compression-floor-red.log"
+        },
+        "green": {
+          "command": "node scripts/dev/node-cli.js node --test scripts/quality/workflow-performance-parity.test.mjs",
+          "evidence": "After measured image-compression floor: 32/32 passed; fixed-source full Shared coverage 499 files/5326 tests passed. /private/tmp/green-goods-image-compression-floor-green.log and /private/tmp/green-goods-image-compression-full-coverage-08f.log"
+        },
+        "note": "Historical tooling RED/GREEN retained. The September 27 slice preserves runtime behavior; mechanical-refactor proof, adapter conformance and a caught/restored revision fault are in Snapshot 06. Client whole-suite timeouts remain an explicit validation blocker."
+      },
+      "skill_tags": ["planning", "testing", "tooling"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No runtime UI or contract implementation selected in this test/tooling plan."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-19T22:46:56.164Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-09-19T22:55:35.579169Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "preparation_complete",
+      "branch": null,
+      "note": "Refreshed source targets, accessible CI/coverage baselines and PR overlaps; saved proposed order without selecting implementation."
+    },
+    {
+      "timestamp": "2026-09-19T23:13:18.127Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-09-19T23:13:33.577Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 1 guidance implementation selected; browser-evidence policy remains a later decision."
+    },
+    {
+      "timestamp": "2026-09-19T23:18:39.230Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 1 guidance implemented locally; direct guidance checks passed; selected validation-system test failed on unchanged Git-variable enumeration; step 2 policy pending."
+    },
+    {
+      "timestamp": "2026-09-20T00:42:05.548Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T00:43:04.991Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 2 browser policy selected and implemented locally. Focused RED/GREEN and disposable pre-push hook passed; selected validation-system suite remains failed on unchanged Apple Git-variable case. Step 3 Shared CI sharding next."
+    },
+    {
+      "timestamp": "2026-09-20T01:01:55.137Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T01:05:50.347Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 3 sharding code implemented locally; focused and selected tooling checks passed with installed Git 2.55, but Shared shard 2 and unsharded both fail another session locale case. Current-SHA CI and comparable CI timings pending."
+    },
+    {
+      "timestamp": "2026-09-20T01:11:14.404Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T01:12:42.662Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 4 informational churn summary implemented locally; focused 31/31 and selected validation 289/289 with installed Git 2.55. Step 5 requires stable exact-glob baseline and September 22 coverage checkpoint coordination."
+    },
+    {
+      "timestamp": "2026-09-20T01:37:38.440Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T01:40:43.504Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T01:42:10.257Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T01:58:54.693Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T02:00:09.643Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 5 Client floors locally implemented from fixed 08f96dc coverage. RED/GREEN parity, full coverage, and live selected QA checks passed; Admin floors next, current-SHA CI still pending."
+    },
+    {
+      "timestamp": "2026-09-20T02:10:28.169Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T02:15:28.408Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 5 Admin floors locally implemented: exact baseline, RED/GREEN parity, live full coverage and selected QA checks passed. Step 6 Cookie Jar direct proof next; current-SHA CI pending."
+    },
+    {
+      "timestamp": "2026-09-20T02:20:49.092Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 Cookie Jar deposit direct proof added; focused 4/4 and selected format/lint/test-typecheck/test passed. Campaign behavior and measured Cookie Jar floor next."
+    },
+    {
+      "timestamp": "2026-09-20T02:29:43.444Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 campaign-read proof passed focused 4/4 and selected format/lint/test-typecheck/test. Stable-source Cookie Jar coverage and floor next."
+    },
+    {
+      "timestamp": "2026-09-20T02:44:09.883Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 campaign-deposit direct proof passed focused 5/5 and selected checks. Fixed-source Shared coverage probe passed and identified low campaign file coverage; exact-file floors next."
+    },
+    {
+      "timestamp": "2026-09-20T02:58:44.406Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T02:58:50.203Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 Cookie Jar exact-file floors implemented: parity RED/GREEN, deliberate threshold failure, and fixed-source full Shared coverage passed. Live selected QA stopped on another session locale assertion after format/lint/validation-system/typecheck passed. Connectivity proof next; current-SHA CI pending authorization."
+    },
+    {
+      "timestamp": "2026-09-20T03:01:24.246Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 connectivity background-work proof passed all selected checks, including 14/14 focused tests; no runtime change. Queued-upload branches next. Current-SHA CI remains pending authorization."
+    },
+    {
+      "timestamp": "2026-09-20T03:04:11.825Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 queued-upload other-chain and embedded-cancellation proofs passed all selected checks, 23/23 focused tests. No runtime change; compression direct proof next."
+    },
+    {
+      "timestamp": "2026-09-20T03:18:49.033Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T03:18:54.799Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 image-compression direct proof and exact-file floor passed focused, parity RED/GREEN and fixed-source full Shared coverage. Live selected QA stopped on another session locale assertion after tooling and typecheck passed. Login/timeframe next; current-SHA CI pending authorization."
+    },
+    {
+      "timestamp": "2026-09-20T03:20:47.045Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 login-message direct proof passed all selected checks, focused 7/7. Timeframe boundary table next; current-SHA CI remains pending publication authorization."
+    },
+    {
+      "timestamp": "2026-09-20T03:22:43.950Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 local direct-proof subjects complete: timeframe table passed 58/58 selected focused tests; no runtime changes or test deletions. Step 7 Admin withdrawal proof next; current-SHA CI remains pending publication authorization."
+    },
+    {
+      "timestamp": "2026-09-20T03:25:41.543Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 7 Admin excessive-withdrawal/no-mutation proof passed selected format/lint/typecheck and focused 3/3. Client claim/join slices next; #802/#795 refresh failed network access, so CookieJarTab remains untouched."
+    },
+    {
+      "timestamp": "2026-09-20T03:28:57.565Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 7 Client claim-confirmation wiring passed selected checks, 15/15 focused tests and staged boundary. Cached dated #802 lacked this proof; fresh PR head/status unavailable. Garden-join proof next."
+    },
+    {
+      "timestamp": "2026-09-20T03:31:30.283Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 7 local direct proof complete: garden-join argument/failure cases passed selected checks, 13/13 focused tests. Step 8 representative helper conversion next; current-SHA CI pending authorization."
+    },
+    {
+      "timestamp": "2026-09-20T03:42:39.882Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 8 first helper conversion reviewed; selected QA and same-name before/after test passed. Bounded expansion and guard next."
+    },
+    {
+      "timestamp": "2026-09-20T03:50:28.485Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 8 bounded Shared helper batch and diff-aware test-quality guard reviewed; selected checks and test-quality pass. Further package batches and steps 9-11 remain."
+    },
+    {
+      "timestamp": "2026-09-20T03:56:56.597Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "User authorized committing completed local slices and hub only; steps 3/5 retain current-SHA CI obligations, steps 8-11 remain open. No push or Linear write."
+    },
+    {
+      "timestamp": "2026-09-27T07:05:54.795260Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Remaining consolidation implemented locally; final verification and Snapshot 06 reconciliation in progress."
+    },
+    {
+      "timestamp": "2026-09-27T07:33:57.004503Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Local consolidation complete and Shared full coverage green. Client full validation hits DetailsGate timeouts; focused baseline/restored source runs pass. Scope expansion requested for a table-driven test repair; no Client edits yet."
+    },
+    {
+      "timestamp": "2026-09-27T07:34:49.300566Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "blocked",
+      "branch": null,
+      "note": "Selected local changes are implemented and preserved. Full Client validation hits DetailsGate timeouts; applying the proposed out-of-target table refactor awaits scope approval. No Client edits, commit or publication."
+    },
+    {
+      "timestamp": "2026-09-27T08:09:58.924683Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "blocked",
+      "branch": null,
+      "note": "User authorized a local commit of the completed changes and hub records. Client timeout repair remains outside scope; no branch change, push, PR or external write is authorized. Verification evidence was collected before commit."
+    },
+    {
+      "timestamp": "2026-09-28T13:25:52.359Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Velocity follow-through (D1-D5) committed locally on develop from d7cf681ec, one commit per slice 0-13; Client validation blocker resolved (slice 5). Evidence: reports/2026-09-28-velocity-follow-through.md; review handoff: handoffs/astra-review.md. Nothing pushed; current-head CI and publication come with the closeout pass."
+    },
+    {
+      "timestamp": "2026-09-28T20:34:25.151Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Resolved Astra's review: receipts, strict-intent reuse, mutation analyzer, shared-graph admission, Seed leaf imports, small-file reason; then D6 (seven order-dependent test files), D7 (offlineDownloads bytes; SDK patch deferred) and D8 (three CI routing gaps). Evidence: reports/2026-09-28-astra-review-resolution.md. Push and current-head CI follow."
+    },
+    {
+      "timestamp": "2026-09-28T21:19:42.730Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Closeout push: d7cf681ec..fca76d585 on origin/develop in three pushes; two gate fixes fixed forward (627149a4d NVM_DIR receipts, fca76d585 package binaries); critical plan 461 s cold, 2.1 s warm; every workflow green per head; Coverage Nightly 36483127896 passed at 627149a4d; steps 3 and 5 closed. Evidence: reports/2026-09-28-closeout-push.md. Seven-day CI metrics pending."
+    },
+    {
+      "timestamp": "2026-09-28T22:11:59.338Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "D9: Afo chose to prune unreachable CodeQL overlay-base databases hourly and keep overlay analysis on. 21 unreachable databases deleted by hand on 2026-09-28 (Actions cache 9.8 GB to 583 MB); the prune workflow is PR #945. Corrected: the Unit Tests cold compile on 8e05497f6 came from slice 9's cache-key rename; Lint And Build is the clean eviction case."
+    },
+    {
+      "timestamp": "2026-09-29T01:57:53.039Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "D10: snapshot 08 follow-up (items 2, 3, 5, 6, 7) committed locally as 1a3afcb52..f156aef6c, not pushed; see reports/2026-09-28-snapshot-08-follow-up.md. CodeQL prune dispatched by hand and now also runs on develop pushes; Admin tests stop inlining viem and loading AppKit and MSW; vault last page covered; 45-file helper codemod; canonicalJobPayload, Data Saver override and import seams fixed."
+    }
+  ]
+}

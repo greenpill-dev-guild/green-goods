@@ -1,0 +1,108 @@
+import type { Job, SendCheckpoint } from "../../types/job-queue";
+
+export const MAX_RETRIES = 5;
+export const COMMITMENT_WAITING_REPROBE_MS = 30_000;
+
+export function createOfflineTxHash(jobId: string): `0x${string}` {
+  const paddedId = jobId.replace(/-/g, "").substring(0, 56).padStart(56, "0");
+  return `0xoffline_${paddedId}` as `0x${string}`;
+}
+
+export function isOfflineTxHash(txHash: string): boolean {
+  return txHash.startsWith("0xoffline_");
+}
+
+export function isTerminallyFailedJob(job: Job): boolean {
+  return !job.synced && job.attempts >= MAX_RETRIES;
+}
+
+export function isWaitingReprobeThrottled(job: Job, now: number = Date.now()): boolean {
+  return Boolean(
+    job.meta?.waitingForDependency === true &&
+      job.lastAttemptAt &&
+      now - job.lastAttemptAt < COMMITMENT_WAITING_REPROBE_MS
+  );
+}
+
+/**
+ * Where each job kind keeps its send record, inside its payload. A work's record
+ * shares its field with the uploads it saved, so that field is never removed. A
+ * kind that starts recording its sends adds one line here, and every reader and
+ * writer below follows.
+ */
+const SEND_RECORDS: Record<string, { field: string; keepsOtherState?: boolean }> = {
+  work: { field: "uploadCheckpoint", keepsOtherState: true },
+  approval: { field: "sendCheckpoint" },
+  // Commitment acts. The two creations keep their `submittedTxHash` path.
+  claim: { field: "sendCheckpoint" },
+  evidence: { field: "sendCheckpoint" },
+  workLink: { field: "sendCheckpoint" },
+  confirmation: { field: "sendCheckpoint" },
+};
+
+/**
+ * Whether the tap that finds a lost send never landed also sends it again.
+ * Work and decisions do, since their button says Send. A commitment act's says
+ * Check Again, so the act only reopens, and the person reads why before sending.
+ */
+export function sendsOnReopen(kind: string): boolean {
+  return kind === "work" || kind === "approval";
+}
+
+/** Whether this kind records each send, so a send on record is settled rather than sent again. */
+export function recordsSends(kind: string): boolean {
+  return Object.prototype.hasOwnProperty.call(SEND_RECORDS, kind);
+}
+
+/**
+ * A job's payload without its send record. The record is the queue's, not the
+ * act's: two records of the same act compare equal whether or not one of them
+ * has been sent.
+ */
+export function payloadWithoutSendRecord(job: Pick<Job, "kind" | "payload">): unknown {
+  const record = SEND_RECORDS[job.kind];
+  if (!record || !job.payload || typeof job.payload !== "object") return job.payload;
+  const { [record.field]: _sent, ...rest } = job.payload as Record<string, unknown>;
+  return rest;
+}
+
+/** What a job recorded about reaching the network while it was sent. */
+export function sendCheckpointOf(job: Pick<Job, "kind" | "payload">): SendCheckpoint | undefined {
+  const record = SEND_RECORDS[job.kind];
+  if (!record) return undefined;
+  return (job.payload as Record<string, SendCheckpoint | undefined>)[record.field];
+}
+
+/** Whether a job's send may already be on-chain, so it is confirmed and never sent again. */
+export function hasRecordedSend(job: Pick<Job, "kind" | "payload">): boolean {
+  const sent = sendCheckpointOf(job);
+  return Boolean(sent?.broadcast || sent?.transactionHash || sent?.broadcastPending);
+}
+
+/** Replace a job's send record, or clear it, keeping whatever else shares its field. */
+export function writeSendCheckpoint(job: Job, send: SendCheckpoint | undefined): void {
+  const record = SEND_RECORDS[job.kind];
+  if (!record) return;
+  const payload = job.payload as Record<string, unknown>;
+  const {
+    broadcast: _broadcast,
+    broadcastPending: _pending,
+    broadcastPendingAt: _pendingAt,
+    intentBlock: _block,
+    intentChainTime: _chainTime,
+    idleBlock: _idleBlock,
+    transactionNonce: _nonce,
+    // A floor an earlier build kept in place of the transaction's own nonce.
+    intentNonce: _legacyNonce,
+    transactionHash: _hash,
+    transactionReplaced: _replaced,
+    ...rest
+  } = (payload[record.field] ?? {}) as Record<string, unknown>;
+  if (!send && (!record.keepsOtherState || payload[record.field] === undefined)) {
+    delete payload[record.field];
+    return;
+  }
+  payload[record.field] = record.keepsOtherState
+    ? { submittedAt: new Date().toISOString(), files: {}, ...rest, ...send }
+    : { ...rest, ...send };
+}

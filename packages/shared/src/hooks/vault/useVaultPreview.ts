@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useReadContracts } from "wagmi";
 import type { Address } from "../../types/domain";
 import type { VaultPreview } from "../../types/vaults";
-import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
+import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { DEFAULT_WITHDRAW_MAX_LOSS_BPS, ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 
 interface UseVaultPreviewOptions {

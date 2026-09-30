@@ -1,4 +1,4 @@
-import { useInViewReveal } from "@green-goods/shared";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { useIntl } from "react-intl";
 import {
   EditorialHeading,
@@ -24,12 +24,11 @@ interface GlossaryTerm {
 /**
  * Editorial glossary — short, scannable definitions for the public site.
  *
- * Curated from `docs/docs/reference/glossary-community.md` (the canonical
- * vocabulary). Each entry is a one-sentence plain-language gloss with a
+ * Curated from the machine-readable ontology. Each entry is a one-sentence plain-language gloss with a
  * deeper link into the docs glossary for full definition + cross-references.
  *
  * Order: alphabetical so the visitor can skim. Term names use the canonical
- * casing from the docs glossary.
+ * casing from the ontology.
  */
 const TERMS: readonly GlossaryTerm[] = [
   {
@@ -47,7 +46,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Assessment",
     bodyId: "public.glossary.term.assessment.body",
     defaultBody:
-      "The diagnosis-and-plan stage of a Garden's season, written by operators and evaluators to name what the place needs and what counts as good.",
+      "The diagnosis-and-plan stage of a Garden's season, written by stewards and evaluators to name what the place needs and what counts as good.",
     docsPath: "/glossary#assessment",
   },
   {
@@ -65,7 +64,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Evaluator",
     bodyId: "public.glossary.term.evaluator.body",
     defaultBody:
-      "A trusted reviewer, from any background, who checks submitted Work and signs off with a confidence band and verification method. Their care is what turns a field log into evidence.",
+      "A person who strengthens Assessments, methods, and impact claims. Evaluators do not approve submitted Work; Stewards record those decisions.",
     docsPath: "/glossary#evaluator",
   },
   {
@@ -74,7 +73,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Garden",
     bodyId: "public.glossary.term.garden.body",
     defaultBody:
-      "A community of gardeners doing regenerative work in a place. Each Garden has its own Vault, operator, and gardeners, and its own public record.",
+      "A community of gardeners doing regenerative work in a place. Each Garden has its own Vault, steward, and gardeners, and its own public record.",
     docsPath: "/glossary#garden",
   },
   {
@@ -92,17 +91,17 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Impact Certificate",
     bodyId: "public.glossary.term.impactCertificate.body",
     defaultBody:
-      "A bundle of the season's approved Work, evaluator-verified and anchored to a public blockchain so the record stays readable beyond any one platform.",
+      "A bundle of approved Work grounded in an Assessment and anchored to a public blockchain so the record stays readable beyond any one platform.",
     docsPath: "/glossary#impact-certificate",
   },
   {
-    id: "operator",
-    labelId: "public.glossary.term.operator.label",
-    defaultLabel: "Operator",
-    bodyId: "public.glossary.term.operator.body",
+    id: "steward",
+    labelId: "public.glossary.term.steward.label",
+    defaultLabel: "Steward",
+    bodyId: "public.glossary.term.steward.body",
     defaultBody:
-      "The person who runs a Garden: assembling the season's plan, accepting gardeners, and confirming the Work that gets recorded.",
-    docsPath: "/glossary#operator",
+      "The person who runs a Garden: assembling the plan, accepting gardeners, and recording approval or rejection for submitted Work.",
+    docsPath: "/glossary#steward",
   },
   {
     id: "vault",
@@ -119,7 +118,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Work",
     bodyId: "public.glossary.term.work.body",
     defaultBody:
-      "One Action carried out by a gardener, captured with a photo and description, then recorded on the blockchain after operator approval.",
+      "One Action carried out by a gardener, captured with a photo and description, and recorded as a Work attestation when submitted. Approval is a separate record.",
     docsPath: "/glossary#work",
   },
 ] as const;
@@ -131,12 +130,12 @@ const DOCS_BASE = "https://docs.greengoods.app";
  *
  * Short, scannable definitions that lower the barrier for non-web3 visitors
  * who hit terms like "Hypercert", "Vault", "Attestation". Each entry links
- * to the canonical docs glossary for fuller definition and cross-references.
+ * to the generated docs glossary for fuller definition and cross-references.
  *
  * Linked from PublicFooter and from PublicReadDeeper instances that touch
  * vocabulary-heavy surfaces.
  */
-export default function GlossaryPage() {
+export default function Glossary() {
   const { formatMessage } = useIntl();
   const { ref: termsRef, revealed: termsRevealed } = useInViewReveal<HTMLElement>();
 
@@ -209,7 +208,7 @@ export default function GlossaryPage() {
                   <EditorialLinkArrow to={`${DOCS_BASE}${term.docsPath}`} external>
                     {formatMessage({
                       id: "public.glossary.readDocs",
-                      defaultMessage: "Read in docs",
+                      defaultMessage: "Read in Docs",
                     })}
                   </EditorialLinkArrow>
                 </div>
@@ -221,21 +220,21 @@ export default function GlossaryPage() {
             <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
               {formatMessage({
                 id: "public.glossary.canonicalKicker",
-                defaultMessage: "Canonical source",
+                defaultMessage: "Vocabulary authority",
               })}
             </p>
             <p className="mt-2 max-w-2xl text-sm leading-[1.6] text-text-sub-600 md:text-base">
               {formatMessage({
                 id: "public.glossary.canonicalBody",
                 defaultMessage:
-                  "The docs glossary is the source of truth for vocabulary across code, copy, and design prompts. Builder terms (Allowlist, Bundler, ERC-4337) live there too.",
+                  "Green Goods generates the docs glossary from its machine-readable ontology and language policy, keeping public definitions aligned with code, copy, and design guidance.",
               })}
             </p>
             <div className="mt-4">
               <EditorialLinkArrow to={`${DOCS_BASE}/glossary`} external>
                 {formatMessage({
                   id: "public.glossary.openDocsGlossary",
-                  defaultMessage: "Open the full docs glossary",
+                  defaultMessage: "Open the Full Docs Glossary",
                 })}
               </EditorialLinkArrow>
             </div>

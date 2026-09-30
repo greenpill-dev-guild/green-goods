@@ -1,3 +1,7 @@
+import type { ApproximateWorkLocation, WorkUploadCheckpoint } from "./work-media";
+
+export type { ApproximateWorkLocation, WorkUploadCheckpoint } from "./work-media";
+
 /**
  * Green Goods Domain Types
  *
@@ -79,13 +83,13 @@ export enum CynefinPhase {
 }
 
 /**
- * 4-value verification confidence — simple for field operators.
+ * 4-value verification confidence — simple for field stewards.
  * On-chain as uint8. Off-chain scoring maps these to numeric weights.
  */
 export enum Confidence {
   NONE = 0, // not assessed (valid only for rejections)
   LOW = 1, // minimal evidence, trust-based
-  MEDIUM = 2, // photo/document evidence reviewed by operator
+  MEDIUM = 2, // photo/document evidence reviewed by steward
   HIGH = 3, // strong proof (receipt, IoT, on-chain tx, witness)
 }
 
@@ -113,16 +117,15 @@ export enum VerificationMethod {
 /** User profile information for display in cards and lists */
 export interface GardenerCard {
   id: string; // Indexer gardener ID
-  /**
-   * Smart Account Ethereum address.
-   */
+  /** Smart account Ethereum address. */
   account?: Address;
   username?: string | null; // Unique username
   email?: string;
   phone?: string;
   location?: string;
   avatar?: string | null;
-  registeredAt: number;
+  /** First indexed gardener-role assignment in milliseconds; unknown for steward-only members. */
+  registeredAt: number | null;
 }
 
 // ============================================
@@ -135,10 +138,8 @@ export interface GardenCard {
   name: string;
   location: string;
   bannerImage: string;
-  /**
-   * Operator Ethereum addresses.
-   */
-  operators: Address[];
+  /** Steward addresses. The indexer field is `operators`; parseGarden renames it. */
+  stewards: Address[];
 }
 
 /** Full garden entity with all related data (assessments, works, gardeners) */
@@ -280,13 +281,13 @@ export interface AssessmentDraft {
 export interface ActionCard {
   id: string;
   slug: string;
-  startTime: number;
-  endTime: number;
+  startTime: number; // epoch milliseconds; getActions converts the indexer's seconds
+  endTime: number; // epoch milliseconds
   title: string;
   instructions?: string;
   capitals: Capital[];
   media: string[];
-  domain: Domain;
+  domain: Domain | null; // null = unrecognized indexer domain — render "Other", never coerce
   createdAt: number;
 }
 
@@ -314,6 +315,8 @@ export interface Action extends ActionCard {
   };
   defaultLocale?: ActionContentLocale;
   translations?: ActionTranslationMap;
+  /** Instructions came from the built-in fallback because the published copy could not be read. */
+  instructionsFallback?: boolean;
 }
 
 export type ActionContentLocale = "en" | "es" | "pt";
@@ -344,8 +347,8 @@ export interface WorkInput {
  * On-chain statuses: "pending" | "approved" | "rejected"
  * Offline/sync statuses: "syncing" | "uploading" | "sync_failed" | "offline"
  *
- * This is the single source of truth — all components (StatusBadge, WorkCard,
- * SyncIndicator) should reference this type rather than defining their own.
+ * This is the single source of truth — all components (StatusBadge, WorkCard)
+ * should reference this type rather than defining their own.
  */
 export type WorkDisplayStatus =
   | "approved"
@@ -365,23 +368,12 @@ export type WorkDisplayStatus =
  * This is the form input shape before processing/submission.
  * Generalized to support all 22 actions across 4 domains.
  *
- * @example
- * ```typescript
- * const submission: WorkSubmission = {
- *   actionUID: 1,
- *   title: "Cleanup Event",
- *   timeSpentMinutes: 90,
- *   feedback: "Collected lots of plastic",
- *   media: [photoFile1, photoFile2],
- *   details: { participantsCount: 12, amountRemovedKg: 32.5 },
- *   tags: ["riverbank", "plastic"],
- * };
- * ```
- *
  * @see WorkDraftRecord for the persisted draft state in IndexedDB
  * @see Work for the final on-chain work record
  */
 export interface WorkSubmission {
+  location?: ApproximateWorkLocation;
+  uploadCheckpoint?: WorkUploadCheckpoint;
   actionUID: number;
   title: string;
   /** Time spent on the work in minutes (required for all actions) */
@@ -423,6 +415,13 @@ export interface WorkCard {
 /** On-chain work record with approval status and display state */
 export interface Work extends WorkCard {
   status: WorkDisplayStatus;
+  /**
+   * When the decision was indexed (seconds). Unset while undecided, and for a
+   * decision only this device knows about yet.
+   */
+  reviewedAt?: number;
+  /** The feedback the indexed review gave the gardener, such as a rejection's reason. */
+  reviewFeedback?: string;
 }
 
 /**
@@ -430,6 +429,7 @@ export interface Work extends WorkCard {
  * Stored as JSON on IPFS, CID referenced in EAS attestation.
  */
 export interface WorkMetadata {
+  attachments?: Array<{ cid: string; type: string }>;
   schemaVersion: "work_metadata_v2";
   domain: Domain;
   actionSlug: string;
@@ -440,7 +440,7 @@ export interface WorkMetadata {
   clientWorkId: string;
   submittedAt: string;
   /** Optional GPS location (coarse, user-triggered) */
-  location?: { lat: number; lng: number; accuracy: number } | null;
+  location?: ApproximateWorkLocation | null;
 }
 
 /**
@@ -448,6 +448,7 @@ export interface WorkMetadata {
  * Kept for backward compatibility with existing attestations.
  */
 export interface WorkMetadataV1 {
+  clientWorkId?: string;
   plantCount: number;
   plantSelection: string[];
   timeSpentMinutes?: number;
@@ -474,8 +475,8 @@ export interface WorkApproval extends WorkApprovalDraft {
   id: string;
   /** Gardener's Ethereum address */
   gardenerAddress: Address;
-  /** Operator's Ethereum address */
-  operatorAddress: Address;
+  /** Steward's Ethereum address */
+  stewardAddress: Address;
   createdAt: number;
 }
 
@@ -562,14 +563,13 @@ export interface ActionInstructionConfigV2 extends ActionInstructionConfig {
 // ENS Registration Types
 // ============================================
 
-/**
- * ENS registration status data tracked through CCIP delivery.
- * Fully serializable for IndexedDB persistence via PersistQueryClientProvider.
- */
+/** Serializable CCIP claim/release status for the persisted query cache. */
 export interface ENSRegistrationData {
   status: "available" | "pending" | "active" | "timed_out";
   ccipMessageId?: string;
   submittedAt?: number;
+  /** Sender-confirmed release intent; retained until this owner's receiver record clears. */
+  release?: { owner: Address };
   registration?: {
     owner: Address;
     nameType: number;

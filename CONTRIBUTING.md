@@ -2,19 +2,11 @@
 
 Green Goods is open source infrastructure stewarded by the Greenpill Dev Guild. This file is the repo-level quick reference; the full contributor guide lives at [docs.greengoods.app/builders/how-to-contribute](https://docs.greengoods.app/builders/how-to-contribute).
 
-## First Setup
+## First setup
 
-Install Node.js 22+ and Git first. Install Docker Desktop if you plan to run the full stack or indexer locally.
-
-```bash
-git clone https://github.com/greenpill-dev-guild/green-goods.git
-cd green-goods
-npm run setup
-bun run dev:health
-bun run dev
-```
-
-`npm run setup` is the only normal npm entrypoint. It installs Bun if needed, installs workspace dependencies, and creates the root `.env` from `.env.schema`. After setup, use `bun run ...` for repo scripts.
+Follow [ONBOARDING.md](ONBOARDING.md). Public contributors can browse with hosted APIs;
+team members can run the connected local stack with shared credentials and Docker.
+Both modes use live Arbitrum; transaction confirmations can affect production.
 
 ## Contribution Flow
 
@@ -35,11 +27,15 @@ Branch from `develop` and PR into `develop`. Don't target `main` directly except
 
 ### Releases and hotfixes
 
-Green Goods ships a **monthly release** at the start of each month (minor bump: `1.1.0` → `1.2.0`; patch for hotfixes; major for breaking). Releases are cut from a `release/<ship-month>-<version>` branch off `develop`, PR'd into `main`, tagged `vX.Y.0`, then **back-merged to `develop`**. Hotfixes branch from `main` directly and are also back-merged. Full runbook: [Releasing](https://docs.greengoods.app/builders/deployments/releasing).
+Green Goods ships a **monthly release** at the start of each month (minor bump: `1.1.0` → `1.2.0`; patch for hotfixes; major for breaking). Releases are cut from a `release/<ship-month>-<version>` branch off `develop`, versioned with `node scripts/ops/bump-version.mjs <x.y.z>`, checked with `node scripts/ops/bump-version.mjs --check <x.y.z>`, PR'd into `main`, and tagged `vX.Y.0` after merge. Pushing the tag triggers `.github/workflows/release.yml`, which creates the GitHub Release from the merged production history.
+
+After every release or hotfix, fetch the merged `main` branch and merge it back into `develop`. Never open a back-merge PR with `main` as the head branch: GitHub is configured to delete merged PR head branches. If direct back-merge is unavailable, push `origin/main` to a temporary `chore/backmerge-main-<date>` branch and use that branch as the PR head.
+
+Hotfixes branch from `main`, use a patch version, follow the same tag workflow, and are also back-merged to `develop`. Release source-map upload jobs run on the trusted `main` push and must be checked separately because they are not part of the PR CI Gate.
 
 ### PR gate
 
-Both branches are protected: a pull request with passing CI checks is required to merge. Maintainers keep an admin fast-path for docs/trivial/hotfix changes only. (Required reviewer approval turns on as the contributor base grows; until then, the passing-checks requirement is the gate — it already applies to every PR, including maintainers'.)
+Both branches are protected: the **CI Gate** is the required aggregate check for a pull request to merge, and it passes only after every CI check triggered for that PR succeeds. Maintainers keep an admin fast-path for docs/trivial/hotfix changes only. (Required reviewer approval turns on as the contributor base grows; until then, CI Gate is the required check — it already applies to every PR, including maintainers'.)
 
 ## Funding and Bounties
 
@@ -47,18 +43,25 @@ Green Goods does not run open-ended bounties. Paid implementation work is grant-
 
 If compensation is part of the work, confirm the scope, budget, acceptance criteria, and review path in writing before implementing. Unlabeled issues and general roadmap items should not be treated as funded tasks.
 
-## Quality Gate
+## Validate your change
 
-Run the lightest validation that honestly proves your change. Before opening a normal pull request, expect to run:
+From the root, select the checks for your change:
 
 ```bash
-bun run format:check
-bun run lint
-bun run test
-bun run build
+bun run check --plan -- --intent qa
 ```
 
-If formatting fails, run `bun run format`, then rerun `bun run format:check`.
+Start with the focused behavior test and add the selected package checks. Before an
+ordinary push, use the targeted ready-for-CI gate:
+
+```bash
+node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path client:src/example.test.tsx
+```
+
+Replace the example with the package and test that prove your change. CI owns broad
+regression coverage; critical and release changes retain their complete local requirements.
+See the [validation contract](.claude/context/validation-pipeline.md) for exact gates.
+Formatting changes use `bun run format`; `bun run format --check` is read-only.
 
 ## Repo Rules
 
@@ -69,6 +72,7 @@ If formatting fails, run `bun run format`, then rerun `bun run format:check`.
 - Use shared `logger`, not `console.log`.
 - Add new user-facing app strings to `en`, `es`, and `pt`.
 - Read the nearest `AGENTS.md` before editing a package.
+- Read the relevant workflow guidance in [`.claude/skills/`](.claude/skills/) before cross-cutting work.
 
 ## Community
 

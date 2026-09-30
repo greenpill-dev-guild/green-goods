@@ -47,7 +47,7 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0x0F,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         address garden = gardenToken.mintGarden(config);
@@ -193,7 +193,7 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0x01,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         address garden = gardenToken.mintGarden{ value: mintValue }(config);

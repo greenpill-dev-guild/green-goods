@@ -86,7 +86,8 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
     /// @notice Role bitmask for vault operations this module performs
     /// @dev ADD_STRATEGY(0) | REVOKE_STRATEGY(1) | ACCOUNTANT_MANAGER(3)
     ///      | REPORTING(5) | DEBT_MANAGER(6) | MAX_DEBT_MANAGER(7) | DEPOSIT_LIMIT(8)
-    uint256 private constant VAULT_ROLE_BITMASK = (1 << 0) | (1 << 1) | (1 << 3) | (1 << 5) | (1 << 6) | (1 << 7) | (1 << 8);
+    uint256 private constant VAULT_ROLE_BITMASK = (1 << 0) | (1 << 1) | (1 << 3) | (1 << 5) | (1 << 6) | (1 << 7)
+        | (1 << 8);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
@@ -297,15 +298,7 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
     /// @param garden The garden address
     /// @param asset The underlying asset
     /// @param newStrategy The replacement strategy to attach
-    function resumeVault(
-        address garden,
-        address asset,
-        address newStrategy
-    )
-        external
-        nonReentrant
-        onlyGardenOwner(garden)
-    {
+    function resumeVault(address garden, address asset, address newStrategy) external nonReentrant onlyGardenOwner(garden) {
         if (newStrategy == address(0)) revert ZeroAddress();
 
         address vault = gardenAssetVaults[garden][asset];

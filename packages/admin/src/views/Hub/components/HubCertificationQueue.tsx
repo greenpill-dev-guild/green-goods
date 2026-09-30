@@ -1,10 +1,8 @@
-import {
-  Alert,
-  EmptyState,
-  EmptyStateShell,
-  formatRelativeTime,
-  WorkbenchCard,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
+import { WorkbenchCard } from "@green-goods/shared/components/Canvas/WorkbenchCard";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { RiMedalLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
@@ -37,6 +35,7 @@ export function HubCertificationQueue({
   onOpenCertification,
 }: HubCertificationQueueProps) {
   const { formatMessage } = useIntl();
+  const formatEventAge = useLocalizedRelativeTime();
 
   if (hasDataError) {
     return (
@@ -74,6 +73,7 @@ export function HubCertificationQueue({
   }
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-redundant-roles -- hub-workbench-grid sets list-style:none + display:grid, which drop implicit list semantics; the explicit role restores them
     <ul className="hub-workbench-grid" role="list">
       {items.map((assessment) => {
         const hasMintAuthority = canManage;
@@ -93,18 +93,17 @@ export function HubCertificationQueue({
                   ? formatMessage({
                       id: "cockpit.hub.certify.queueDescription",
                       defaultMessage:
-                        "Open the certification inspector to validate the package before minting.",
+                        "Open an assessment to check it before it becomes a hypercert.",
                     })
                   : formatMessage({
                       id: "cockpit.hub.certify.readOnlyDescription",
-                      defaultMessage:
-                        "You can review the certification handoff here, but only garden owners or operators can mint the hypercert.",
+                      defaultMessage: "Only garden owners and stewards can create the hypercert.",
                     })
               }
               meta={[
                 assessment.assessmentType ||
                   formatMessage({ id: "cockpit.garden.impact", defaultMessage: "Impact" }),
-                formatRelativeTime(assessment.createdAt),
+                formatEventAge(assessment.createdAt),
               ]}
               statusLabel={
                 hasMintAuthority
@@ -114,7 +113,7 @@ export function HubCertificationQueue({
                     })
                   : formatMessage({
                       id: "cockpit.hub.certify.readOnlyLabel",
-                      defaultMessage: "Read-only handoff",
+                      defaultMessage: "View only",
                     })
               }
               statusTone="certify"

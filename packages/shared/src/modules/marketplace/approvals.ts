@@ -14,7 +14,7 @@
 
 import { type Address, encodeFunctionData, type Hex } from "viem";
 
-import { createPublicClientForChain } from "../../config";
+import { createPublicClientForChain } from "../../config/pimlico";
 import { TRANSFER_MANAGER_ABI } from "../../utils/blockchain/hypercert-abis";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
 import { createLogger } from "../app/logger";

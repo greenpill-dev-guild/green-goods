@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildSendableTokens,
-  GOODS_TOKEN_META,
-  getStablecoinSendableTokens,
-} from "../../config/tokens";
+import { buildSendableTokens, getStablecoinSendableTokens } from "../../config/tokens";
 import type { Address } from "../../types/domain";
 
 const ARBITRUM = 42161;
@@ -11,6 +7,14 @@ const GOODS = "0x6Fc6bF735d2884dec59B0E9c8a00A9740C305c9e" as Address;
 const ZERO = "0x0000000000000000000000000000000000000000" as Address;
 
 describe("sendable token registry", () => {
+  it("retains the chain on every primary token and explicitly scopes Celo tokens", () => {
+    expect(buildSendableTokens(ARBITRUM, GOODS).every((token) => token.chainId === ARBITRUM)).toBe(
+      true
+    );
+    expect(getStablecoinSendableTokens(42220).find((token) => token.symbol === "G$")?.chainId).toBe(
+      42220
+    );
+  });
   it("marks USDC/DAI/WETH supported on Arbitrum and GoodDollar unsupported", () => {
     const bySymbol = Object.fromEntries(
       getStablecoinSendableTokens(ARBITRUM).map((token) => [token.symbol, token])
@@ -31,14 +35,12 @@ describe("sendable token registry", () => {
     expect(getStablecoinSendableTokens(ARBITRUM).every((t) => !t.confersGovernance)).toBe(true);
   });
 
-  it("leads with GOODS (governance) when a resolved address is provided", () => {
+  it("omits GOODS even when its contract is configured", () => {
     const tokens = buildSendableTokens(ARBITRUM, GOODS);
-
-    expect(tokens[0]?.symbol).toBe("GOODS");
-    expect(tokens[0]?.confersGovernance).toBe(true);
-    expect(tokens[0]?.supported).toBe(true);
-    expect(tokens[0]?.decimals).toBe(GOODS_TOKEN_META.decimals);
-    expect(tokens[0]?.address.toLowerCase()).toBe(GOODS.toLowerCase());
+    expect(tokens.some((token) => token.confersGovernance)).toBe(false);
+    expect(tokens.map((token) => token.symbol)).toEqual(
+      expect.arrayContaining(["USDC", "DAI", "WETH"])
+    );
   });
 
   it("omits GOODS when the resolved address is null or zero", () => {

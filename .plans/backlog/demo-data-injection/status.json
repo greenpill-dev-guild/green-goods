@@ -1,0 +1,141 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "demo-data-injection",
+    "title": "Demo Data Injection Seams",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-08-23T02:07:14.633Z",
+    "updated_at": "2026-08-23T02:07:14.633Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": [],
+    "work_types": ["implementation"],
+    "surfaces": [],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Deferred behind the module optimization and test work. Nothing here is claimed while the hub sits in backlog.",
+    "Four independently shippable rungs, sequenced in plan.todo.md. Rung 1 (seed the indexer database) is the recommended first move: it reaches all three UIs with no product-code branch.",
+    "Prerequisite before any rung ships: packages/admin/src/main.tsx has no demo awareness in its dehydration guard, so injected pooling reads can outlive their flag in IndexedDB.",
+    "spec.md is the seam map and the reference for every rung. It was read from the repository on 2026-08-22, not inferred.",
+    "Mark unused lanes as n/a before promoting QA. The contracts lane is used only if rung 4 is taken.",
+    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
+    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-23T02:07:14.637Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    }
+  ]
+}

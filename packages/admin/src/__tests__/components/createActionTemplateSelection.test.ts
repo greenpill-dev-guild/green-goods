@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/types/domain", () => ({
   Domain: {
     SOLAR: 0,
     AGRO: 1,
     EDU: 2,
     WASTE: 3,
   },
+}));
+
+vi.mock("@green-goods/shared/utils/action/templates", () => ({
   instructionTemplates: {
     "waste.repair_event": {
       description: "Repair event template",
@@ -101,7 +104,7 @@ vi.mock("@green-goods/shared", () => ({
   },
 }));
 
-import { Domain } from "@green-goods/shared";
+import { Domain } from "@green-goods/shared/types/domain";
 import { resolveCreateActionTemplateSelection } from "@/views/Actions/createActionTemplateSelection";
 
 describe("resolveCreateActionTemplateSelection", () => {

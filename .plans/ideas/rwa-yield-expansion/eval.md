@@ -3,7 +3,7 @@
 ## Release Gates
 
 1. **Correctness:** `PresetRegistry` stores Conservative + Balanced presets immutably (new ID per version); `MultistrategyVault` debt allocation stays inside preset bands under on-flow rebalance; `RedemptionQueue` honors FIFO with NAV-at-request pricing; existing vaults auto-migrate to Conservative in a single atomic upgrade tx.
-2. **Security:** External audit clears `PresetRegistry` + `RedemptionQueue` + new strategy adapters before **2026-05-30 contract freeze**. `RebalancePolicy` library is pure and hits **≥95% mutation score** (stretch 99%). `PRESET_ADMIN` / `OPERATOR` / `PAUSER` Hat roles gate all admin paths; 48-hour timelock enforced on operator-initiated preset switches. Emergency withdraw only after **14 days** of vault pause.
+2. **Security:** External audit clears `PresetRegistry` + `RedemptionQueue` + new strategy adapters before any production release. `RebalancePolicy` library is pure and hits **≥95% mutation score** (stretch 99%). `PRESET_ADMIN` / `OPERATOR` / `PAUSER` Hat roles gate all admin paths; 48-hour timelock enforced on operator-initiated preset switches. Emergency withdraw only after **14 days** of vault pause.
 3. **Yield target:** Rolling **30-day APY ≥ 5%** on at least one mainnet Octant Vault post-audit-deploy.
 
 ## Acceptance Checks
@@ -17,7 +17,7 @@
 | AC-5 | Existing vault auto-migrates to Conservative on upgrade in a single atomic tx; no withdrawal lockup during migration | `contracts` | Fork test against live mainnet vault state; upgrade path green |
 | AC-6 | Hats V2 roles wired: `PRESET_ADMIN` owns `PresetRegistry`; `OPERATOR` switches presets (48h timelock); `PAUSER` pauses vault | `state_api` | Hat role assignment persisted; role-gated call matrix covered by tests |
 | AC-7 | `useVaultOperations` / `useVaultPreset` extensions render queued withdrawal, buffer %, preset badge, 48h countdown in `VaultPositionCard` | `ui` | Admin Storybook stories + Chrome MCP spot-check across Conservative / Balanced / pending-switch states |
-| AC-8 | External audit complete and clean by **2026-05-30** contract freeze; mainnet deploy **2026-06-30** | `qa_pass_1` | Audit report committed to `.plans/active/rwa-yield-expansion/artifacts/`; deploy tx + block explorer link |
+| AC-8 | External audit complete and clean before production deployment | `qa_pass_1` | Audit report recorded in `artifacts/` after activation; deploy tx + block explorer link |
 | AC-9 | Rolling **30-day APY ≥ 5%** sustained on at least one mainnet Octant Vault post-deploy | `qa_pass_2` | On-chain NAV snapshots at deploy + 30 days; APY computed from `totalAssets` delta; evidence in `history[]` |
 
 ## Test Strategy
@@ -26,7 +26,7 @@
 - Integration: Forge tests against mainnet fork (Aave V3, Morpho Metamorpho, Ondo USDY); Gelato keeper dry-run against simulated flow sequence; upgrade path from current live vault state.
 - E2E / Playwright: admin preset picker with 48h countdown + cancel; queued-withdrawal state in `VaultPositionCard` across Conservative / Balanced / pending-switch.
 - Manual checks:
-  - Audit engagement booked with firm by **2026-05-15** (bundled with `SessionKeyValidator.sol` from `agent-messaging-channels`).
+  - Audit engagement booked before the implementation freeze (bundling decisions re-evaluated at activation).
   - `PRESET_ADMIN` / `OPERATOR` / `PAUSER` Hat IDs minted to intended signers.
   - Gelato keeper task provisioned + funded on Arbitrum.
   - NAV snapshot cron enabled for 30-day APY evidence at deploy + 30 days.

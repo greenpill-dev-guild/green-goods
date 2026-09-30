@@ -1,16 +1,14 @@
-import {
-  type Address,
-  toastService,
-  useGreenGoodsEnsName,
-  usePrimaryAddress,
-  useProtocolMemberStatus,
-  useTimeout,
-} from "@green-goods/shared";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import type { Address } from "@green-goods/shared/types/domain";
 import { useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
-import { APP_ROUTES } from "@/config/pwa-routing";
+import { APP_ROUTES } from "@/config/pwaRouting";
 
 const ENS_CLAIM_REMINDER_KEY_PREFIX = "greengoods_ens_claim_reminder_shown";
 
@@ -59,18 +57,17 @@ export function ENSClaimReminder() {
         id: "ens-claim-reminder",
         title: intl.formatMessage({
           id: "app.toast.ensClaimReminder.title",
-          defaultMessage: "Claim your username",
+          defaultMessage: "Claim your Green Goods name",
         }),
         message: intl.formatMessage({
           id: "app.toast.ensClaimReminder.message",
-          defaultMessage:
-            "You can now claim your Green Goods username. Please choose your greengoods.eth name so people can find you.",
+          defaultMessage: "Pick a personal Green Goods name so other gardeners can find you.",
         }),
         duration: 8000,
         action: {
           label: intl.formatMessage({
             id: "app.toast.ensClaimReminder.action",
-            defaultMessage: "Claim username",
+            defaultMessage: "Claim Name",
           }),
           onClick: () => navigate(APP_ROUTES.profile),
           dismissOnClick: true,

@@ -1,4 +1,5 @@
 import { type BrowserContext, expect, type Page } from "@playwright/test";
+import { type MockClientBackendOptions, mockClientBackend } from "./mock-backend";
 import { SELECTORS, TestHelpers, TIMEOUTS } from "./test-config";
 
 // ============================================================================
@@ -11,7 +12,8 @@ export interface ServiceStatus {
   admin: boolean;
 }
 
-export type AdminMockRole = "deployer" | "operator" | "user" | "disconnected";
+/** `operator` is the steward role's former name; DevAuthProvider still resolves it. */
+export type AdminMockRole = "deployer" | "steward" | "operator" | "user" | "disconnected";
 
 // ============================================================================
 // CONSTANTS
@@ -491,6 +493,16 @@ export class ClientTestHelper {
    */
   async waitForPageLoad() {
     await this.page.waitForLoadState("domcontentloaded");
+    // The index.html boot fallback stays visible until the app shell actually
+    // mounts (window.__GG_CLEAR_BOOT_FALLBACK). Waiting it out closes two
+    // wedges: toggling offline while AppShell.tsx is still a pending lazy
+    // import (chunk-load error -> update-recovery loop instead of the offline
+    // indicator), and CI cold-start transforms outrunning a spinner-only wait.
+    // An absent or detached #boot-fallback already satisfies "hidden", so this
+    // only rejects when the fallback is genuinely stuck visible — i.e. the app
+    // failed to mount. Let that propagate: a URL- or body-only assertion must
+    // never pass against the boot fallback.
+    await this.page.locator("#boot-fallback").waitFor({ state: "hidden", timeout: 30000 });
     await this.page
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })
@@ -498,6 +510,21 @@ export class ClientTestHelper {
         // No spinner is fine
       });
   }
+}
+
+/**
+ * Set up the client CI seam before navigation: persisted dev mock auth plus
+ * schema-correct route mocks for the indexer, EAS, and RPC boundaries.
+ */
+export async function setupAuthenticatedClient(
+  page: Page,
+  role: AdminMockRole = "user",
+  backend?: MockClientBackendOptions
+) {
+  const helper = new ClientTestHelper(page);
+  await helper.enableMockAuth(role);
+  await mockClientBackend(page, backend);
+  return helper;
 }
 
 // ============================================================================
@@ -523,7 +550,7 @@ export class AdminTestHelper {
     this.context = context;
   }
 
-  buildMockAuthPath(path: string, role: AdminMockRole = "operator") {
+  buildMockAuthPath(path: string, role: AdminMockRole = "steward") {
     const url = new URL(path, TEST_URLS.admin);
     url.searchParams.set("mockAuth", role);
     return `${url.pathname}${url.search}`;
@@ -535,7 +562,7 @@ export class AdminTestHelper {
    * This mirrors the app's `AuthGate` / `DevAuthProvider` path and survives
    * route changes and reloads during a browser session.
    */
-  async enableMockAuth(role: AdminMockRole = "operator") {
+  async enableMockAuth(role: AdminMockRole = "steward") {
     const initScript = ({ role, storageKey }: { role: AdminMockRole; storageKey: string }) => {
       window.sessionStorage.setItem(storageKey, role);
     };
@@ -665,7 +692,7 @@ export class AdminTestHelper {
     await this.page.waitForLoadState("domcontentloaded");
   }
 
-  async goToCockpit(path: string = "/hub", role: AdminMockRole = "operator") {
+  async goToCockpit(path: string = "/hub", role: AdminMockRole = "steward") {
     await this.page.goto(this.buildMockAuthPath(path, role));
     await this.page.waitForLoadState("domcontentloaded");
   }
@@ -682,6 +709,27 @@ export class AdminTestHelper {
    */
   async waitForPageLoad() {
     await this.page.waitForLoadState("domcontentloaded");
+    // The index.html boot fallback stays visible until the app shell actually
+    // mounts (window.__GG_CLEAR_BOOT_FALLBACK). Waiting it out closes two
+    // wedges: toggling offline while AppShell.tsx is still a pending lazy
+    // import (chunk-load error -> update-recovery loop instead of the offline
+    // indicator), and CI cold-start transforms outrunning a spinner-only wait.
+    // An absent or detached #boot-fallback already satisfies "hidden", so this
+    // only rejects when the fallback is genuinely stuck visible — i.e. the app
+    // failed to mount. Let that propagate: a URL- or body-only assertion must
+    // never pass against the boot fallback.
+    await this.page.locator("#boot-fallback").waitFor({ state: "hidden", timeout: 30000 });
+    // React boot and router hydration can outlive the HTML fallback. Waiting
+    // for real route content also prevents absence assertions passing on a spinner.
+    await this.page.getByRole("main").waitFor({ state: "visible", timeout: 30000 });
+    await this.page
+      .locator('[data-component="AdminBootShell"]')
+      .waitFor({ state: "hidden", timeout: 30000 });
+    // A failed lazy boot replaces the shell with AdminBootRecovery, which also
+    // satisfies "hidden" above. Fail here rather than assert against that screen.
+    if ((await this.page.locator('[data-component="AdminBootRecovery"]').count()) > 0) {
+      throw new Error("Admin failed to boot: the boot recovery screen replaced the app shell.");
+    }
     await this.page
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })

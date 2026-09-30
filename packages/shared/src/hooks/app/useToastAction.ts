@@ -25,11 +25,11 @@ export function useToastAction() {
       });
       const defaultSuccessMessage = intl.formatMessage({
         id: "app.toast.default.successMessage",
-        defaultMessage: "Action completed successfully",
+        defaultMessage: "All set.",
       });
       const defaultErrorMessage = intl.formatMessage({
         id: "app.toast.default.errorMessage",
-        defaultMessage: "Action failed",
+        defaultMessage: "Please try again.",
       });
 
       const {

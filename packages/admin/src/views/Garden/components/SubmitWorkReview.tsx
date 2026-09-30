@@ -4,10 +4,11 @@
 // from the react-hook-form snapshot; media previews use object URLs revoked on
 // unmount. Each section header carries an Edit control that jumps back to its
 // step so a value can be corrected without walking the flow again.
-import type { Action } from "@green-goods/shared";
-import { AdminCard } from "@/components/AdminCard";
+import type { Action } from "@green-goods/shared/types/domain";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCard } from "@/components/AdminCard";
 
 export interface SubmitWorkReviewProps {
   action: Action;
@@ -21,8 +22,8 @@ export interface SubmitWorkReviewProps {
 function ReviewRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-      <span className="text-xs font-medium text-text-sub">{label}</span>
-      <span className="min-w-0 break-words text-sm text-text-strong sm:max-w-[60%] sm:text-right">
+      <span className="label-xs text-text-sub">{label}</span>
+      <span className="min-w-0 break-words body-sm text-text-strong sm:max-w-[60%] sm:text-right">
         {value}
       </span>
     </div>
@@ -45,14 +46,15 @@ function ReviewCard({
       <div className="mb-2 flex items-center justify-between gap-2">
         <h3 className="label-xs text-text-sub">{title}</h3>
         {onEdit && editText ? (
-          <button
+          <AdminButton
             type="button"
+            variant="text"
+            size="sm"
             onClick={onEdit}
             aria-label={`${editText} ${title}`}
-            className="rounded text-xs font-medium text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))] transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-action)))]"
           >
             {editText}
-          </button>
+          </AdminButton>
         ) : null}
       </div>
       {children}
@@ -102,15 +104,15 @@ export function SubmitWorkReview({
         onEdit={onEditStep ? () => onEditStep(1) : undefined}
         editText={edit}
       >
-        <p className="text-sm font-semibold text-text-strong">{action.title}</p>
-        <p className="mt-0.5 text-xs text-text-sub">{photoRequirementText}</p>
+        <p className="body-sm font-semibold text-text-strong">{action.title}</p>
+        <p className="mt-0.5 body-xs text-text-sub">{photoRequirementText}</p>
       </ReviewCard>
 
       {action.inputs.length > 0 ? (
         <ReviewCard
           title={formatMessage({
             id: "app.admin.work.submit.section.details",
-            defaultMessage: "Details",
+            defaultMessage: "Action details",
           })}
           onEdit={onEditStep ? () => onEditStep(3) : undefined}
           editText={edit}
@@ -138,12 +140,15 @@ export function SubmitWorkReview({
           <ReviewRow
             label={formatMessage({
               id: "app.admin.work.submit.timeSpent",
-              defaultMessage: "Time spent",
+              defaultMessage: "Time Spent (hours)",
             })}
             value={timeValue}
           />
           <ReviewRow
-            label={formatMessage({ id: "app.admin.work.submit.feedback", defaultMessage: "Notes" })}
+            label={formatMessage({
+              id: "app.admin.work.submit.feedback",
+              defaultMessage: "Feedback",
+            })}
             value={feedback || emptyValue}
           />
         </div>
@@ -169,7 +174,7 @@ export function SubmitWorkReview({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-text-sub">
+          <p className="body-sm text-text-sub">
             {formatMessage({
               id: "app.admin.work.submit.review.noPhotos",
               defaultMessage: "No photos added.",

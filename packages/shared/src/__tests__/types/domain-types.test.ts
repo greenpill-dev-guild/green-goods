@@ -264,10 +264,10 @@ describe("types/domain generalized types", () => {
         details: {},
         clientWorkId: "client-789",
         submittedAt: "2026-02-13T00:00:00Z",
-        location: { lat: 1.234, lng: 5.678, accuracy: 10 },
+        location: { lat: 1.234, lng: 5.678 },
       };
 
-      expect(metadata.location).toEqual({ lat: 1.234, lng: 5.678, accuracy: 10 });
+      expect(metadata.location).toEqual({ lat: 1.234, lng: 5.678 });
     });
   });
 

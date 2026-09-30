@@ -1,4 +1,4 @@
-import { Spinner } from "@green-goods/shared";
+import { Spinner } from "@green-goods/shared/components/Spinner";
 import type React from "react";
 import { useIntl } from "react-intl";
 

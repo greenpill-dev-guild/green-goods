@@ -28,11 +28,6 @@ interface SchedulerPostTaskOptions {
   delay?: number;
 }
 
-interface Scheduler {
-  postTask<T>(callback: () => T | Promise<T>, options?: SchedulerPostTaskOptions): Promise<T>;
-  yield?(): Promise<void>;
-}
-
 type Deferred<T> = {
   promise: Promise<T>;
   resolve: (value: T | PromiseLike<T>) => void;
@@ -49,17 +44,16 @@ function createDeferred<T>(): Deferred<T> {
   return { promise, resolve, reject };
 }
 
-declare global {
-  interface Window {
-    scheduler?: Scheduler;
-  }
+function getScheduler(): Scheduler | undefined {
+  if (typeof window === "undefined") return undefined;
+  return window.scheduler;
 }
 
 /**
  * Check if native scheduler is available
  */
 export function isSchedulerSupported(): boolean {
-  return typeof window !== "undefined" && typeof window.scheduler?.postTask === "function";
+  return typeof getScheduler()?.postTask === "function";
 }
 
 /**
@@ -92,8 +86,9 @@ export async function scheduleTask<T>(
     throw new DOMException("Aborted", "AbortError");
   }
 
-  if (isSchedulerSupported()) {
-    return window.scheduler!.postTask(callback, { priority, signal, delay });
+  const scheduler = getScheduler();
+  if (scheduler) {
+    return scheduler.postTask(callback, { priority, signal, delay });
   }
 
   // Fallback implementation using setTimeout
@@ -135,8 +130,9 @@ export async function scheduleTask<T>(
  * ```
  */
 export async function yieldToMain(): Promise<void> {
-  if (isSchedulerSupported() && typeof window.scheduler?.yield === "function") {
-    return window.scheduler.yield();
+  const scheduler = getScheduler();
+  if (typeof scheduler?.yield === "function") {
+    return scheduler.yield();
   }
 
   // Fallback: yield via setTimeout(0)

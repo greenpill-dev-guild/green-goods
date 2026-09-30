@@ -1,8 +1,11 @@
-import { cn, ImageWithFallback, type PublicImpactEvidenceRecord } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import type { PublicImpactEvidenceRecord } from "@green-goods/shared/public-contracts/public-impact";
 import { RiImageLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { EVIDENCE_KIND_LABELS } from "./PublicEvidencePipeline";
+import { EVIDENCE_KIND_LABELS } from "./evidenceKinds";
+import { evidenceRecordTitle } from "./evidenceTitle";
 
 const DOMAIN_INK: Record<"solar" | "agro" | "education" | "waste", string> = {
   solar: "text-domain-solar",
@@ -50,22 +53,26 @@ function resolveDomainSlug(domain: string | number | undefined) {
  * Date a record happened, in editorial format ("Jan 15, 2024" / range with "→").
  * Falls back to `createdAt` when the record carries no time window — Works and
  * Certificates only have `createdAt`; Assessments also carry a planning window.
+ *
+ * Attested seconds are untrusted input: a value past what `Date` can hold
+ * would make `Intl` throw and take the whole ledger down with it, so an
+ * unrepresentable instant is treated as an absent one.
  */
-function formatRecordDate(record: PublicImpactEvidenceRecord, locale: string): string {
+function formatRecordDate(record: PublicImpactEvidenceRecord, locale: string): string | null {
   const dateFormat = new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
-  const window = record.timeWindow;
-  const start = window?.start ?? null;
-  const end = window?.end ?? null;
-  if (start && end) {
-    return `${dateFormat.format(start * 1000)} → ${dateFormat.format(end * 1000)}`;
-  }
-  if (start) return dateFormat.format(start * 1000);
-  if (end) return dateFormat.format(end * 1000);
-  return dateFormat.format(record.createdAt * 1000);
+  const format = (seconds: number | null | undefined): string | null => {
+    if (!seconds) return null;
+    const date = new Date(seconds * 1000);
+    return Number.isFinite(date.getTime()) ? dateFormat.format(date) : null;
+  };
+  const start = format(record.timeWindow?.start);
+  const end = format(record.timeWindow?.end);
+  if (start && end) return `${start} → ${end}`;
+  return start ?? end ?? format(record.createdAt);
 }
 
 export interface PublicEvidenceCardProps {
@@ -123,7 +130,7 @@ function EvidenceImageSlot({
         loading="lazy"
         onErrorCallback={onError}
         backgroundFallback={<></>}
-        className="h-full w-full object-cover transition-transform duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] group-hover:scale-[1.03]"
+        className="h-full w-full object-cover"
       />
     </div>
   );
@@ -227,15 +234,17 @@ export function PublicEvidenceCard({
   // still show a place. Cap at 3 — see EvidenceImageMosaic.
   const mosaicImages =
     record.media && record.media.length > 0 ? record.media : gardenImage ? [gardenImage] : [];
-  const kindLabel = EVIDENCE_KIND_LABELS[record.kind];
+  const kindLabel = intl.formatMessage(EVIDENCE_KIND_LABELS[record.kind]);
+  const title = evidenceRecordTitle(record, intl.formatMessage);
   const formattedDate = formatRecordDate(record, intl.locale);
 
   return (
     <button
       type="button"
+      data-pressable="card"
       onClick={() => onOpen(record)}
       className="group flex h-full cursor-pointer flex-col gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
-      aria-label={record.title}
+      aria-label={title}
     >
       <div className="relative aspect-[3/2] w-full overflow-hidden bg-editorial-warm">
         {mosaicImages.length > 0 ? (
@@ -264,9 +273,9 @@ export function PublicEvidenceCard({
 
       <h3
         className="font-serif text-xl font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 transition-[color,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] group-hover:text-primary-action motion-safe:group-hover:-translate-y-px"
-        title={record.title}
+        title={title}
       >
-        <span className="line-clamp-2">{record.title}</span>
+        <span className="line-clamp-2">{title}</span>
       </h3>
 
       <p
@@ -286,11 +295,15 @@ export function PublicEvidenceCard({
       ) : null}
 
       <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 text-xs leading-relaxed tracking-[0.02em] text-text-soft-400">
-        <span>{formattedDate}</span>
-        <span
-          aria-hidden="true"
-          className="inline-block h-0.5 w-0.5 rounded-full bg-current opacity-50"
-        />
+        {formattedDate ? (
+          <>
+            <span>{formattedDate}</span>
+            <span
+              aria-hidden="true"
+              className="inline-block h-0.5 w-0.5 rounded-full bg-current opacity-50"
+            />
+          </>
+        ) : null}
         <span className="italic">{kindLabel}</span>
       </div>
     </button>

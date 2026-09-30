@@ -288,15 +288,18 @@ contract KarmaModuleTest is Test {
         assertEq(module.getProjectUID(GARDEN), uid, "getProjectUID should return the UID");
     }
 
-    function test_createProject_revertsForDuplicateProject() public {
+    function testKarma_createProjectIsIdempotentForExistingProject() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);
-        module.createProject(GARDEN, OPERATOR, "Garden 1", "Desc", "Loc", "Banner");
+        bytes32 firstUID = module.createProject(GARDEN, OPERATOR, "Garden 1", "Desc", "Loc", "Banner");
+        uint256 attestationsBefore = mockGAP.attestationCount();
 
         vm.prank(GARDEN_TOKEN);
-        vm.expectRevert(abi.encodeWithSelector(IKarmaGAPModule.ProjectAlreadyExists.selector, GARDEN));
-        module.createProject(GARDEN, OPERATOR, "Garden 2", "Desc", "Loc", "Banner");
+        bytes32 secondUID = module.createProject(GARDEN, OPERATOR, "Garden 1", "Desc", "Loc", "Banner");
+
+        assertEq(secondUID, firstUID);
+        assertEq(mockGAP.attestationCount(), attestationsBefore);
     }
 
     function test_createProject_gracefulWhenGAPAttestFails() public {
@@ -311,27 +314,11 @@ contract KarmaModuleTest is Test {
         assertEq(uid, bytes32(0), "Should return zero UID when GAP fails");
     }
 
-    function test_createProject_memberOfFailure_doesNotPersistProject() public {
+    function testKarma_createProjectDetailsFailurePersistsProjectForRetry() public {
         _setupSupportedChain();
 
-        // Allow first attest call (project) to succeed, then revert on second (memberOf)
+        // Project and details are independent attempts: persist the project before details.
         mockGAP.setRevertAfterCalls(1);
-
-        vm.expectEmit(true, false, false, true);
-        emit GAPOperationFailed(GARDEN, "createProject", "MemberOf attestation failed");
-
-        vm.prank(GARDEN_TOKEN);
-        bytes32 uid = module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
-
-        assertEq(uid, bytes32(0), "Should return zero when MemberOf attestation fails");
-        assertEq(module.gardenProjects(GARDEN), bytes32(0), "Mapping must stay unset on partial failure");
-    }
-
-    function test_createProject_detailsFailure_doesNotPersistProject() public {
-        _setupSupportedChain();
-
-        // Allow first 2 attest calls (project + memberOf) to succeed, then revert on third (details)
-        mockGAP.setRevertAfterCalls(2);
 
         vm.expectEmit(true, false, false, true);
         emit GAPOperationFailed(GARDEN, "createProject", "Details attestation failed");
@@ -339,40 +326,54 @@ contract KarmaModuleTest is Test {
         vm.prank(GARDEN_TOKEN);
         bytes32 uid = module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
 
-        assertEq(uid, bytes32(0), "Should return zero when Details attestation fails");
-        assertEq(module.gardenProjects(GARDEN), bytes32(0), "Mapping must stay unset on partial failure");
+        assertTrue(uid != bytes32(0), "Project UID should survive details failure");
+        assertEq(module.gardenProjects(GARDEN), uid, "Project must remain retryable");
+        assertEq(module.gardenDetailsHashes(GARDEN), bytes32(0), "Failed details hash must not be persisted");
     }
 
-    function test_addProjectAdmin_callsGAP_onSupportedChain() public {
+    function testKarma_createProjectDetailsRetryDoesNotDuplicateProject() public {
+        _setupSupportedChain();
+
+        mockGAP.setRevertAfterCalls(1);
+
+        vm.prank(GARDEN_TOKEN);
+        bytes32 firstUID = module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
+        mockGAP.setRevertAfterCalls(0);
+        vm.prank(GARDEN_TOKEN);
+        bytes32 retryUID = module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
+
+        assertEq(retryUID, firstUID);
+        assertTrue(module.gardenDetailsHashes(GARDEN) != bytes32(0));
+        assertEq(mockGAP.attestationCount(), 2, "Retry should attest details without duplicating the project");
+    }
+
+    function testKarma_addProjectAdminReportsMissingGardenAccountCallback() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);
-        bytes32 projectUID = module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
+        module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
 
-        vm.expectEmit(true, true, false, false);
-        emit GAPProjectAdminAdded(projectUID, ADMIN);
+        vm.expectEmit(true, false, false, true);
+        emit GAPOperationFailed(GARDEN, "reconcileProjectAccess", "Project admin sync failed");
 
         vm.prank(GARDEN_TOKEN);
         module.addProjectAdmin(GARDEN, ADMIN);
     }
 
-    function test_removeProjectAdmin_callsGAP_onSupportedChain() public {
+    function testKarma_removeProjectAdminReportsMissingGardenAccountCallback() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);
-        bytes32 projectUID = module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
+        module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
 
-        vm.prank(GARDEN_TOKEN);
-        module.addProjectAdmin(GARDEN, ADMIN);
-
-        vm.expectEmit(true, true, false, false);
-        emit GAPProjectAdminRemoved(projectUID, ADMIN);
+        vm.expectEmit(true, false, false, true);
+        emit GAPOperationFailed(GARDEN, "reconcileProjectAccess", "Project admin sync failed");
 
         vm.prank(GARDEN_TOKEN);
         module.removeProjectAdmin(GARDEN, ADMIN);
     }
 
-    function test_addProjectAdmin_emitsFailedWhenGAPReverts() public {
+    function testKarma_addProjectAdminDoesNotRouteThroughGAPFacade() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);
@@ -381,13 +382,13 @@ contract KarmaModuleTest is Test {
         mockGAP.setShouldRevert(true);
 
         vm.expectEmit(true, false, false, true);
-        emit GAPOperationFailed(GARDEN, "addProjectAdmin", "Failed to add admin");
+        emit GAPOperationFailed(GARDEN, "reconcileProjectAccess", "Project admin sync failed");
 
         vm.prank(GARDEN_TOKEN);
         module.addProjectAdmin(GARDEN, ADMIN);
     }
 
-    function test_removeProjectAdmin_emitsFailedWhenGAPReverts() public {
+    function testKarma_removeProjectAdminDoesNotRouteThroughGAPFacade() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);
@@ -396,7 +397,7 @@ contract KarmaModuleTest is Test {
         mockGAP.setShouldRevert(true);
 
         vm.expectEmit(true, false, false, true);
-        emit GAPOperationFailed(GARDEN, "removeProjectAdmin", "Failed to remove admin");
+        emit GAPOperationFailed(GARDEN, "reconcileProjectAccess", "Project admin sync failed");
 
         vm.prank(GARDEN_TOKEN);
         module.removeProjectAdmin(GARDEN, ADMIN);

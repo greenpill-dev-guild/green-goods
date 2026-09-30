@@ -1,3 +1,8 @@
+import {
+  AwaitingWorkConfirmation,
+  WorkTransactionReverted,
+  reconcileWorkTransaction,
+} from "../work-confirmation";
 import type { Address } from "viem";
 import { getWalletClient } from "@wagmi/core";
 import type { WorkDraft } from "../../../types/domain";
@@ -6,10 +11,12 @@ import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
 import { getChain } from "../../../config/chains";
 import { queryClient } from "../../../config/react-query";
-import { queryKeys } from "../../../config/query-keys";
+import { worksKeys } from "../../../config/query-keys/work";
 import { trackWalletSubmissionTiming } from "../../../modules/app/analytics-events";
 import { ensureWagmiWalletChain } from "../../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/local-fork-safety";
+import type { WorkUploadCheckpoint } from "../../../types/work-media";
+import { createSendChainReads, intentHead } from "../../job-queue/send-chain-reads";
 import { logger } from "../../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
 import { encodeWorkData } from "../../../utils/eas/encoders";
@@ -22,7 +29,7 @@ import {
 } from "../../../utils/blockchain/polling";
 import { simulateWorkSubmission } from "../simulate";
 import { WorkSubmissionError, type WalletSubmissionOptions } from "./types";
-import { waitForReceiptWithTimeout } from "./receipt";
+import { TransactionRevertedError, waitForReceiptWithTimeout } from "./receipt";
 
 export async function submitWorkDirectly(
   draft: WorkDraft,
@@ -36,6 +43,13 @@ export async function submitWorkDirectly(
   const { onProgress, txTimeout = TX_RECEIPT_TIMEOUT_MS } = options;
   const startTime = Date.now();
   const uploadBatchId = crypto.randomUUID();
+  if (options.checkpoint?.transactionHash) {
+    const hash = options.checkpoint.transactionHash;
+    const state = await reconcileWorkTransaction(hash, chainId);
+    if (state === "confirmed") return hash;
+    if (state === "reverted") throw new WorkTransactionReverted(hash);
+    throw new AwaitingWorkConfirmation(hash);
+  }
 
   debugLog("[WalletSubmission] Starting direct work submission", {
     gardenAddress,
@@ -57,6 +71,19 @@ export async function submitWorkDirectly(
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
 
+  const originatingAccount = options.userAddress ?? walletClient.account?.address;
+  const assertOwnership = async () => {
+    await options.assertOwnership?.();
+    const current = await getWalletClient(wagmiConfig, { chainId });
+    if (
+      !originatingAccount ||
+      current?.account?.address.toLowerCase() !== originatingAccount.toLowerCase() ||
+      (current.chain?.id !== undefined && current.chain.id !== chainId)
+    )
+      throw new Error("submission-ownership-changed");
+    return current;
+  };
+  await assertOwnership();
   if (walletClient.account?.address) {
     try {
       debugLog("[WalletSubmission] Simulating transaction before upload...");
@@ -96,6 +123,9 @@ export async function submitWorkDirectly(
       },
       chainId,
       {
+        clientWorkId: options.clientWorkId,
+        checkpoint: options.checkpoint,
+        onCheckpoint: options.onCheckpoint,
         gardenAddress,
         authMode: "wallet",
         uploadBatchId,
@@ -124,24 +154,57 @@ export async function submitWorkDirectly(
     debugLog("[WalletSubmission] Sending transaction", { to: txParams.to });
     await assertLocalArbitrumForkWallet();
 
-    hash = await walletClient.sendTransaction({
+    const currentWallet = await assertOwnership();
+    // Kept with the intent, so a lost answer is timed on the chain's clock. A
+    // head from an earlier try never stands in for one the chain cannot give now,
+    // nor does a block an earlier recovery found it idle at.
+    const head = await intentHead(createSendChainReads({ chainId }).readChainHead);
+    const {
+      intentBlock: _block,
+      intentChainTime: _chainTime,
+      idleBlock: _idleBlock,
+      ...earlier
+    }: Partial<WorkUploadCheckpoint> = draft.uploadCheckpoint ?? {};
+    draft.uploadCheckpoint = {
+      submittedAt: new Date().toISOString(),
+      files: {},
+      ...earlier,
+      broadcastPending: true,
+      broadcastPendingAt: new Date().toISOString(),
+      ...head,
+    };
+    await options.onCheckpoint?.(draft.uploadCheckpoint);
+    await options.assertOwnership?.();
+    hash = await currentWallet.sendTransaction({
       ...txParams,
       chain: getChain(chainId),
-      account: walletClient.account,
+      account: currentWallet.account,
     });
 
+    draft.uploadCheckpoint = {
+      ...draft.uploadCheckpoint,
+      transactionHash: hash,
+      broadcast: { kind: "transaction", hash },
+      broadcastPending: false,
+    };
+    await options.onBroadcast?.(hash);
     debugLog("[WalletSubmission] Transaction sent", { hash });
   } catch (err: unknown) {
     debugError("[WalletSubmission] Transaction phase failed", err);
     throw new WorkSubmissionError(extractErrorMessage(err), "transaction", uploadBatchId, err);
   }
 
-  // ── Phase 3: Receipt, cache, and sync (non-critical) ───────────────
+  // ── Phase 3: Receipt, cache, and sync ──────────────────────────────
+  // Timing out is non-critical — the transaction may still land, and the
+  // optimistic cache below covers the gap. A revert is not: the attestation
+  // never happened, so surfacing it beats showing the gardener a submission
+  // that silently went nowhere.
   try {
     await waitForReceiptWithTimeout(hash, chainId, txTimeout);
     debugLog("[WalletSubmission] Transaction confirmed", { hash });
-  } catch {
-    debugLog("[WalletSubmission] Transaction timeout, continuing...", { hash });
+  } catch (err: unknown) {
+    if (err instanceof TransactionRevertedError) throw new WorkTransactionReverted(hash);
+    throw new AwaitingWorkConfirmation(hash);
   }
 
   const optimisticWork: EASWork = {
@@ -151,16 +214,16 @@ export async function submitWorkDirectly(
     actionUID,
     title: workTitle,
     feedback: draft.feedback || "",
-    metadata: "{}",
+    metadata: JSON.stringify({ clientWorkId: options.clientWorkId }),
     media: [],
     createdAt: Math.floor(Date.now() / 1000),
   };
 
-  queryClient.setQueryData<EASWork[]>(queryKeys.works.online(gardenAddress, chainId), (old) => [
+  queryClient.setQueryData<EASWork[]>(worksKeys.online(gardenAddress, chainId), (old) => [
     optimisticWork,
     ...(old || []),
   ]);
-  queryClient.setQueryData<EASWork[]>(queryKeys.works.merged(gardenAddress, chainId), (old) => [
+  queryClient.setQueryData<EASWork[]>(worksKeys.merged(gardenAddress, chainId), (old) => [
     optimisticWork,
     ...(old || []),
   ]);
@@ -168,7 +231,7 @@ export async function submitWorkDirectly(
   const userAddress = walletClient.account?.address;
   if (userAddress) {
     queryClient.invalidateQueries({
-      queryKey: queryKeys.works.mineByUser(userAddress),
+      queryKey: worksKeys.mineByUser(userAddress),
       exact: false,
     });
   }
@@ -176,10 +239,7 @@ export async function submitWorkDirectly(
   onProgress?.("syncing", "Syncing with blockchain...");
 
   await pollQueriesAfterTransaction({
-    queryKeys: [
-      queryKeys.works.online(gardenAddress, chainId),
-      queryKeys.works.merged(gardenAddress, chainId),
-    ],
+    queryKeys: [worksKeys.online(gardenAddress, chainId), worksKeys.merged(gardenAddress, chainId)],
     baseDelay: 1000,
     maxDelay: 4000,
     maxAttempts: 4,

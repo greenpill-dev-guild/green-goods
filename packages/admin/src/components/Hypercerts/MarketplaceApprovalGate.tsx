@@ -1,4 +1,6 @@
-import { Alert, getMarketplaceReadiness, useMarketplaceApprovals } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useMarketplaceApprovals } from "@green-goods/shared/hooks/hypercerts/useMarketplaceApprovals";
+import { getMarketplaceReadiness } from "@green-goods/shared/utils/blockchain/contracts";
 import { RiAlertLine, RiCheckLine, RiLoader4Line, RiShieldCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "../AdminButton";
@@ -11,7 +13,7 @@ interface MarketplaceApprovalGateProps {
 
 /**
  * Gates marketplace features behind deployment-artifact readiness AND
- * one-time operator approvals. State matrix:
+ * one-time steward approvals. State matrix:
  *
  * - unavailable: deployment-artifact marketplace addresses are missing/zero
  *                on the active chain. Renders a warning alert and refuses
@@ -47,7 +49,7 @@ export function MarketplaceApprovalGate({ chainId, children }: MarketplaceApprov
           )}
         </p>
         {readiness.missingFields.length > 0 && (
-          <p className="mt-2 text-xs">
+          <p className="mt-2 body-xs">
             {formatMessage(
               {
                 id: "app.marketplace.unavailable.missingFields",
@@ -73,7 +75,7 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex items-center justify-center gap-2 rounded-lg border border-stroke-soft bg-bg-white p-8">
         <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
-        <span className="text-sm text-text-soft">
+        <span className="body-sm text-text-soft">
           {formatMessage({
             id: "app.marketplace.checkingApprovals",
             defaultMessage: "Checking marketplace approvals...",
@@ -92,13 +94,13 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
       <div className="flex items-start gap-3">
         <RiAlertLine className="mt-0.5 h-5 w-5 shrink-0 text-warning-dark" />
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-text-strong">
+          <h3 className="body-sm font-semibold text-text-strong">
             {formatMessage({
               id: "app.marketplace.setupRequired",
               defaultMessage: "Marketplace Setup Required",
             })}
           </h3>
-          <p className="mt-1 text-sm text-text-sub">
+          <p className="mt-1 body-sm text-text-sub">
             {formatMessage({
               id: "app.marketplace.setupDescription",
               defaultMessage:
@@ -110,7 +112,7 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             <ApprovalStep
               label={formatMessage({
                 id: "app.marketplace.grantExchange",
-                defaultMessage: "Grant exchange approval",
+                defaultMessage: "Grant Exchange Approval",
               })}
               description={formatMessage({
                 id: "app.marketplace.grantExchangeDesc",
@@ -121,7 +123,7 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             <ApprovalStep
               label={formatMessage({
                 id: "app.marketplace.approveTransfer",
-                defaultMessage: "Approve transfer manager",
+                defaultMessage: "Approve Transfer Manager",
               })}
               description={formatMessage({
                 id: "app.marketplace.approveTransferDesc",
@@ -131,7 +133,7 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             />
           </div>
 
-          {error && <p className="mt-3 text-xs text-error-base">{error.message}</p>}
+          {error && <p className="mt-3 body-xs text-error-base">{error.message}</p>}
 
           <AdminButton
             type="button"
@@ -169,11 +171,11 @@ function ApprovalStep({
       </div>
       <div className="min-w-0">
         <span
-          className={`text-sm font-medium ${approved ? "text-text-soft line-through" : "text-text-strong"}`}
+          className={`body-sm font-medium ${approved ? "text-text-soft line-through" : "text-text-strong"}`}
         >
           {label}
         </span>
-        <p className="text-xs text-text-soft">{description}</p>
+        <p className="body-xs text-text-soft">{description}</p>
       </div>
     </div>
   );

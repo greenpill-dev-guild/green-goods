@@ -1,23 +1,21 @@
 ---
 name: plan
 user-invocable: false
-description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Claude+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed agent team', or describes cross-package / multi-lane implementation work.
+description: Planning, architecture opportunity discovery, and execution for Green Goods. Creates structured implementation plans, checks progress, manages lifecycle, and coordinates explicitly requested agent teams. Also use when the user asks to improve architecture, deepen modules, reduce coupling, improve testability, or increase agentic coding velocity across a codebase.
 argument-hint: "[feature-name]"
-version: "1.2.3"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-05-10"
-last_verified: "2026-05-10"
 ---
 
 # Plan Skill
 
 Planning lifecycle for Green Goods: create plans, check progress, execute in batches, coordinate agent teams.
 
-**References**: See `CLAUDE.md` for entry points, agent routing, and Green Goods conventions.
+**References**: See `AGENTS.md` for entry points, agent routing, and Green Goods conventions.
 
-This is a primary judgment surface. When placement, boundaries, or deletion questions dominate, pull the architecture lens into planning work rather than bouncing the user to a separate starting command.
+This is a primary judgment surface. When placement, boundaries, or deletion questions dominate, weigh them directly inside the planning work (layering rules live in AGENTS.md and `.claude/context/*.md`) rather than bouncing the user to a separate command.
+
+For architecture work, read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md)
+and use its vocabulary and candidate lifecycle. This skill owns repository-wide opportunity
+discovery and design of human-selected improvements; it does not certify an implemented seam.
 
 ---
 
@@ -50,38 +48,70 @@ Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose te
 - "maybe we should...", "what if we...", "I'm thinking about..."
 - Vision or exploration phase — route through [brainstorm.md](./brainstorm.md)
 
+### Architecture opportunity signals → Architecture mode
+
+- "improve the architecture", "deepen modules", "find better seams", or "reduce coupling"
+- improve testability, locality, or agentic coding velocity through structural change
+- find architecture hotspots or choose what architecture work to do next
+
+Action: follow **Architecture Opportunity Mode** below. Do not route broad opportunity discovery to
+`review`, and do not begin implementation before the human selects a candidate.
+
 ### Lifecycle / maintenance signals → Audit mode
 
 - "check progress on [plan]", "what's in flight?", "what plans are still relevant?"
 - `.plans/` feels stale (older than 14 days without updates)
+- "close", "archive", or "clean up" a plan, or a PR finishes a hub → follow
+  [Closing a Plan Hub](#closing-a-plan-hub)
 
-### Cross-package breaking change → ops/migration
+### Cross-package breaking change → dependency-order migration
 
 - "breaking change", schema migrations, deployment-affecting work
-- Create/update the owning feature hub first, then route execution through `ops/migration`
-
-### Legacy slash (deprecated)
-
-`/plan` and `/plan --mode teams` are no longer advertised. If a user explicitly types one, honor it — but normal flow is passive activation from the signals above.
-
-## Progress Tracking (REQUIRED)
-
-Use **TodoWrite** for visibility when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
+- Create/update the owning feature hub first, then sequence execution in dependency order (contracts → shared → indexer → client/admin → agent) with explicit blast-radius analysis
 
 ---
 
 ## Part 1: Create Plan
 
+### Architecture Opportunity Mode
+
+1. **Scope the scan.** Prefer the user-named subsystem. Otherwise inspect a bounded recent history
+   and let repeatedly changed paths, recurring test/mocking friction, and cross-file navigation cost
+   identify hotspots. State the search boundary.
+2. **Read domain decisions.** Load the nearest package guides, applicable context, Plan Hub, and
+   existing decision records before proposing a change.
+3. **Rank three to six candidate cards.** Use every field required by
+   `codebase-architecture.md`: concrete friction, current interface, deletion-test result,
+   dependency category, before/after shape, locality/leverage effect, test migration, risk,
+   confidence, and rejected overarchitecture.
+4. **Stop for human selection.** Unselected and deferred cards remain in the owning Plan Hub. Do not
+   add them to the machine registry or prescribe their implementation as settled work.
+5. **Design the selected interface.** Use design-it-twice only for a protected, cross-package, or
+   caller-facing interface with two materially different viable shapes. No mandatory HTML report
+   or subagent fan-out is required.
+6. **Route accepted implementation.** Record `SELECTED`, the chosen interface, migration, proof,
+   and risk in the owning Plan Hub. A selected critical module or hotspot may then enter
+   `scripts/data/module-seam-registry.json`; implementation advances it to `IMPLEMENTED`, and the
+   read-only `module-seams-review` certifies it as `CERTIFIED` only with fresh evidence.
+
+Architecture mode is discovery and design, not a license for blanket layering. Prefer the smallest
+change that creates concrete locality or leverage, and reject candidates that fail the deletion
+test.
+
 ### Phase 1: Understanding & Validation
 
 1. **Extract ALL requirements** from issue/task
 2. **Map each requirement** to planned steps
-3. **Audit codebase** — search for existing patterns
-4. **Review CLAUDE.md** for compliance rules
+3. **Resolve factual prerequisites** — inspect obvious local sources directly; route bounded,
+   decision-relevant questions that require reconciling repository or external evidence through
+   the passive `research` skill before asking the user
+4. **Read the Implementation Quality Contract** in `.claude/context/values.md`
+5. **Review AGENTS.md** for compliance rules
 
 ### Phase 2: Plan Structure
 
-Use a foldered feature hub in `.plans/{ideas|backlog|active|archive}/<feature-slug>/`.
+Use a foldered feature hub in `.plans/{ideas|backlog|active}/<feature-slug>/`. Closed hubs are
+deleted at closeout and indexed in `.plans/ARCHIVE.md`; Git history is the only archive.
 Prefer kebab-case slugs.
 
 Minimum files:
@@ -96,87 +126,42 @@ Minimum files:
 `status.json` is the machine-readable contract for automations. The Markdown files stay optimized for humans.
 Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavior-changing work.
 
-- Use the `testing` skill as the RED/GREEN source of truth.
+- Use `.claude/context/testing.md` as the RED/GREEN source of truth.
 - Record detailed RED/GREEN proof in the lane handoff.
 - Record machine-readable proof with `node scripts/harness/plan-hub.mjs record-tdd`.
 - If no behavior changed, set the lane TDD mode to `not_applicable` with a concrete note.
 - If TDD cannot honestly apply, set `proof_limit` with fallback validation evidence and a concrete note.
 - Do not mark a behavior-changing implementation lane `passed` or `completed` until its TDD proof is recorded.
+- Write validation status last. Every green, passed, completed, or merge-ready handoff claim records
+  the tested commit SHA, UTC timestamp, exact command, and summarized output from a fresh run. Do not
+  record a commit-attributed receipt until
+  `git status --porcelain=v1 --untracked-files=all -- <validated paths>` is empty; staged, unstaged, or
+  untracked validated code is not represented by the SHA. Do not copy forward an older lane's
+  evidence as current proof. An evidence-only follow-up may retain proof
+  from its tested parent only when it also records a path-scoped
+  `git diff --exit-code <tested>..HEAD -- <validated paths>` showing that implementation,
+  dependencies, configuration, and validation entrypoints are unchanged, plus an empty
+  `git status --porcelain=v1 --untracked-files=all -- <validated paths>` proving the index and
+  worktree are clean on those paths. Any committed, staged, unstaged, or untracked change on those
+  surfaces invalidates the receipt and requires a fresh run.
+- `status.json` lane state and `record-tdd` prove orchestration/TDD state, not current validation by
+  themselves. Before setting a lane to passed or completed, fill that lane's handoff Validation
+  Receipt. Reviewers treat a missing or stale receipt as pending evidence. This work does not add
+  validation receipts to the Plan Hub machine schema.
+- Legacy boundary: lanes already terminal before this receipt policy was adopted on 2026-08-11 keep
+  their existing recorded evidence and status. Any reopened lane or new terminal claim after that
+  date requires the receipt; do not rewrite historical dated reports to retrofit it.
 
-```markdown
-# [Feature Name] Plan
-
-**Linear Issue**: PRD-### (optional)
-**Linear Project**: [bounded project name] (optional)
-**Linear Source**: source:plans (only when mirrored to Linear)
-**Feature Slug**: `feature-slug`
-**Status**: ACTIVE | BLOCKED | IMPLEMENTED | SUPERSEDED
-**Supersedes**: [link to old plan if applicable]
-**Created**: YYYY-MM-DD
-**Last Updated**: YYYY-MM-DD
-
-## Decision Log
-
-| # | Decision | Rationale |
-|---|----------|-----------|
-| 1 | Choice made | Why this over alternatives |
-
-## Requirements Coverage
-
-| Requirement | Planned Step | Status |
-|-------------|--------------|--------|
-| User can X  | Step 3       | ⏳     |
-
-## CLAUDE.md Compliance
-- [ ] Hooks in shared package
-- [ ] i18n for UI strings
-- [ ] Deployment artifacts for addresses
-
-## Impact Analysis
-
-### Files to Modify
-- `path/to/file.ts` - Description
-
-### Files to Create
-- `path/to/new-file.ts`
-
-## Test Strategy
-- **Unit tests**: What gets tested, expected coverage delta
-- **Integration tests**: Cross-package or workflow tests needed
-- **E2E tests**: User-facing flows to verify
-
-## Implementation Steps
-
-### Step 1: [Action]
-**Files**: `path/to/file.ts`
-**Details**: Specific changes
-
-## Validation
-- [ ] TypeScript passes
-- [ ] Tests pass
-- [ ] Build succeeds
-```
+Copy-paste shapes — the plan header/body template, the `status.json` lane-state example, and
+the batch-report template — live in [templates.md](./templates.md). Load it when writing the
+plan, not before.
 
 Linear metadata is optional. Do not create or require a Linear issue for every plan. Add
 `Linear Issue`, `Linear Project`, and `Linear Source` only when the `.plans` item needs
 roadmap visibility, cross-functional coordination, stakeholder tracking, or accepted
 execution/research tracking. When a `.plans` item is mirrored to Linear, the Linear record
-must use `source:plans`.
-
-Machine-readable lane state belongs in `.plans/active/<feature-slug>/status.json`, for example:
-
-```json
-{
-  "feature": { "slug": "feature-slug", "stage": "active" },
-  "lanes": {
-    "ui": { "owner": "claude", "status": "ready", "branch": "claude/ui/feature-slug" },
-    "state_api": { "owner": "codex", "status": "ready", "branch": "codex/state-api/feature-slug" },
-    "contracts": { "owner": "codex", "status": "n/a", "branch": "codex/contracts/feature-slug" },
-    "qa_pass_1": { "owner": "claude", "status": "blocked", "depends_on": ["ui", "state_api", "contracts"] },
-    "qa_pass_2": { "owner": "codex", "status": "blocked", "depends_on": ["qa_pass_1"] }
-  }
-}
-```
+must use `source:plans`. Machine-readable lane state belongs in
+`.plans/active/<feature-slug>/status.json`.
 
 ### Task Decomposition Rules
 
@@ -217,7 +202,7 @@ Implementation steps must be granular enough for agents to execute reliably. Fol
 2. **Gather git context**: `git status`, `git diff --stat`
 3. **File-by-file status**: DONE / PARTIAL / NOT DONE
 4. **Requirements coverage table**
-5. **Run validation according to intent**: use the Validation Intent Ladder in `CLAUDE.md`; QA Speed Mode for narrow progress proof, Repo Quick Gate for cross-package checkpoints, and Ship Gate only for explicit ship/PR/merge/release readiness.
+5. **Run validation according to intent**: use the intent ladder in `.claude/context/validation-pipeline.md`; QA Speed Mode for narrow progress proof, Repo Quick Gate for cross-package checkpoints, the Ready-for-CI Push Gate for ordinary publication, and the full Ship Gate only for explicit offline/full-local readiness, critical work, or releases.
 
 ---
 
@@ -256,20 +241,7 @@ tracking.
 LOAD → EXECUTE BATCH → REPORT → PAUSE → CONTINUE/FINISH
 ```
 
-### Batch Report
-
-```markdown
-## Batch [N] Complete
-
-### Tasks Completed
-1. ✅ Step 1: [Description]
-   - Files: `path/to/file.ts`
-
-### Next Batch Preview
-- Steps 4, 5, 6
-
-**Awaiting feedback before continuing...**
-```
+Report each batch with the batch-report template in [templates.md](./templates.md).
 
 ### Safety Rules
 
@@ -307,22 +279,36 @@ in `.plans`.
 **Linear Source**: source:plans
 ```
 
-Rules:
+Rules: team routing, project attachment, label namespaces, and the privacy boundary follow
+[`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md) — do not
+restate them here. Plan-specific deltas:
 
 - Use `source:plans` whenever the Linear record mirrors a `.plans` item.
-- Attach a bounded active Linear project only when the plan scope clearly matches it.
-- Do not route new work into completed/staging umbrella projects such as `Green Goods`,
-  `Coop`, `Network Website`, or `Cookie Jar`.
-- If no active bounded project clearly matches, leave the Linear issue unprojected and correctly
-  labeled.
-- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
-  `funding:*`, `source:*`, `agent:*`.
+- Linear *project* descriptions (not issues) follow
+  `.claude/context/linear-project-template.md`.
+- A synced execution sub-lane's `linear.parentIssue` is the hub's parent issue or null. To nest
+  sub-lanes under an umbrella tracker that is itself a child of that parent, record the tracker in
+  `linear.trackers` (`name: issue`) and point their `parentIssue` at it. The manifest parents those
+  lanes under the tracker and never writes the tracker issue itself.
+- A `linear-sync` update record leaves out any field the hub does not record, such as a parent,
+  milestone, due date, or project; keep that field's current Linear value. On a create record, null
+  means the new issue starts without that field.
 
 ### Progress Updates
 
 Update `.plans/.../status.json` and the plan files first. If a Linear issue exists, mirror only
-the safe, stakeholder-relevant status. Do not paste private identifiers, debugging links, replay
-URLs, wallet addresses, or sensitive security detail into public Linear bodies or comments.
+the safe, stakeholder-relevant status, respecting the routing-rules privacy boundary.
+
+A mirrored hub closes through [Closing a Plan Hub](#closing-a-plan-hub). Its Linear steps:
+
+1. While the PR is open, apply the current `linear-sync` manifest so terminal implementation
+   issues and their active parent are `In Review`. Apply only forward writes; never let a manifest
+   move a `Done` issue backward.
+2. Move the implementation issues and the parent to `Done` only after a human merges the PR, each
+   with a one- or two-sentence comment on what shipped and anything still open.
+3. Run `node scripts/harness/plan-hub.mjs confirm-linear-sync --feature <slug> --actor <actor>` as
+   the last hub edit before the closeout-record commit. Archiving refuses a mirror that changed
+   after its last confirmation.
 
 ### PR Linkage
 
@@ -344,21 +330,69 @@ ACTIVE → BLOCKED        (waiting on external dependency)
 BLOCKED → ACTIVE        (dependency resolved)
 ```
 
+### Closing a Plan Hub
+
+Closing takes two commits: first the hub records its final state, then the archive deletes it.
+Git history is the only archive, so the version it keeps must be the final one. Never archive a hub
+whose closeout record is uncommitted.
+
+**When.** The PR that finishes a hub carries its closeout record (steps 1–5), and the archive
+commit (step 6) lands right after the human merge. The weekly `/audit drift plans` pass lists hubs
+that shipped without one.
+
+1. **Choose the resolution.** `completed` requires every lane to be terminal with its receipts.
+   Work that shipped without certified lanes closes as `closed`; the others are `superseded`,
+   `paused`, `cancelled`, and `closed_stale`.
+2. **Scan for references.** Run `git grep -n ".plans/<stage>/<slug>"` outside the hub and search
+   other hubs for relative links (`../<slug>/`). Code, tests, and CI configuration must not read
+   `.plans` files, so move any data they read into its package first. Update ontology
+   `spec_source` and evidence paths, `scripts/data/validation-policy.json`, workflow `paths:`
+   filters, and other hubs' `status.json` links, then regenerate with `node scripts/quality/check-ontology.mjs --generate`
+   and `node scripts/docs/generate.mjs`. Never edit dated `reports/`.
+3. **Write the closeout record.** In `plan.todo.md`, set `**Status**` to `CLOSED — <what shipped>`,
+   update `**Last Updated**`, and append a `## Closeout (<date>)` section
+   ([template](./templates.md#closeout-section-template)) naming the PR or commit that shipped, why
+   this resolution, and every open item with its destination: a Linear issue, another hub, or
+   explicitly dropped. In `status.json`, append a `closeout_recorded` history entry, leave
+   uncertified lanes as they are, and trim `links` to the hub's top-level files (plus confined
+   `reports/` paths); the archive refuses links into `handoffs/`, other hubs, or packages.
+4. **Mirrored hubs:** make the Linear writes in Part 4 and run `confirm-linear-sync` last.
+5. **Commit the record by itself** (`docs(plans): record the closeout of <slug>`), after
+   formatting `status.json` with Biome.
+6. **Archive, then commit.** Run
+   `node scripts/harness/plan-hub.mjs move --feature <slug> --to archive --resolution <resolution> --reason "<one or two sentences>"`.
+   The reason becomes the `ARCHIVE.md` row and must not contain `.plans/active/`,
+   `.plans/backlog/`, or `.plans/ideas/` paths. Commit the deletion, the ledger row, and the
+   reference updates together (`chore(plans): close <slug>`).
+7. **Verify.** Run `node scripts/harness/plan-hub.mjs validate` and, when references moved,
+   `bun run check --only ontology` and `bun run check --only docs-generated`. Confirm that
+   `git show <archive-commit>^:.plans/<stage>/<slug>/plan.todo.md` shows the closeout section.
+
+Stage moves (`--to backlog` or `--to ideas`) keep the hub, so they take one commit: run the
+reference scan, update the `**Stage**` and `**Status**` headers, add a `status.json` history entry
+that says why, and move a mirrored parent to `Backlog` in Linear.
+
 ### Lifecycle Rules
 
-1. **Supersedes header**: When a new plan replaces an old one, the new plan MUST include `**Supersedes**: [old-plan-name.md]` in its header. Delete the old plan immediately.
+1. **Supersedes header**: When a new plan replaces an old one, the new plan MUST include `**Supersedes**: [old-plan-name.md]` in its header. Close a superseded feature hub through [Closing a Plan Hub](#closing-a-plan-hub) with `--resolution superseded`; its reports stay recoverable from Git history.
 
 2. **One canonical plan per feature**: Never have 2+ active plans for the same feature area. If you're writing a v2 plan, delete or archive v1 first.
 
-3. **Status updates on implementation**: When work ships that partially or fully implements a plan, update the plan's `**Status**` and `**Last Updated**` headers and the feature hub's `status.json`. If fully implemented, move the hub to `.plans/archive/`.
+3. **Status updates on implementation**: When work fully implements a plan, update the plan's `**Status**` and `**Last Updated**` headers and the feature hub's `status.json`; make the same updates for a partial implementation without closing the hub. If fully implemented, close the hub with `plan-hub.mjs move --to archive` only after its closeout record is committed ([Closing a Plan Hub](#closing-a-plan-hub)). Use `completed` only when the evidence supports it; otherwise choose the honest terminal resolution. The archive ledger retains the Linear parent key, and Git history retains the closed hub.
 
 4. **Divergence notes**: If implementation diverges from the plan (different approach, dropped scope), add a `## Implementation Notes` section explaining what changed and why. Don't leave the plan as-if it was followed when it wasn't.
 
-5. **Stale plan cleanup**: Periodically audit `.plans/` — any plan untouched for 14+ days should be reviewed. Either update its status, confirm it's still active, or delete it.
+5. **Stale plan cleanup**: Run the weekly `/audit drift plans` pass — any plan untouched for 14+ days, or whose work already merged, should be reviewed. Either update its status, confirm it's still active, or close it through [Closing a Plan Hub](#closing-a-plan-hub) with an honest resolution (`closed_stale`, `paused`, …). Closeout deletes the hub after recording it in `.plans/ARCHIVE.md`; never hand-delete report-bearing hubs outside that command.
 
 6. **No meeting notes in `.plans/`**: Raw transcripts and meeting notes go in `notes/`, Customer Needs, or safe comments on linked Linear/PR records, not `.plans/`. Plans must be actionable specs.
 
-7. **No audit reports in implementation hubs**: Point-in-time audit findings go in `.plans/audits/` or accepted Linear records after approval, not mixed with feature implementation plans.
+7. **No generic audit storage in the plan hub**: Point-in-time audit findings stay
+   in the response; accepted findings go to Linear after approval. A report belongs
+   in an existing feature hub only when it is direct evidence for that feature.
+
+8. **Dated reports are immutable**: Never edit or delete an existing dated Markdown artifact under
+   `.plans/**/reports/`. Add a new correction, closure, or superseding report and link the historical
+   input instead.
 
 ### Scope Discipline
 
@@ -366,7 +400,7 @@ Plans with >15 locked decisions likely need splitting. Separate **vision/archite
 
 | Document Type | Decision Count | Location |
 |---------------|---------------|----------|
-| Architecture spec | Unlimited | `docs/specs/` or Linear project/issue document |
+| Architecture spec | Unlimited | Linear project/issue document or the owning `.plans/<feature-slug>/spec.md` |
 | Implementation plan | 5-15 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
 | Task checklist | 0 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
 | Evaluation plan | 0-10 gates | `.plans/active/<feature-slug>/eval.md` |
@@ -374,18 +408,7 @@ Plans with >15 locked decisions likely need splitting. Separate **vision/archite
 
 ### Decision Log Best Practice
 
-The numbered decision table with rationale is the most effective planning pattern in this repo. Every plan SHOULD include one:
-
-```markdown
-## Decision Log
-
-| # | Decision | Rationale |
-|---|----------|-----------|
-| 1 | Direct vault interaction | Standard ERC-4626; no proxy gas overhead |
-| 2 | Manual harvest only (Phase 1) | Simpler to build and debug |
-```
-
-This gives Claude and future contributors unambiguous constraints without reading 200 lines of prose.
+The numbered decision table with rationale is the most effective planning pattern in this repo. Every plan SHOULD include one (filled example in [templates.md](./templates.md)) — it gives Claude and future contributors unambiguous constraints without reading 200 lines of prose.
 
 ---
 
@@ -398,7 +421,7 @@ This gives Claude and future contributors unambiguous constraints without readin
 | Single-file bug fix with clear root cause | describe the bug → fix → test |
 | Typo or copy changes | Direct edit |
 | Config change (env var, build flag) | Direct edit → verify build |
-| Adding a test for existing behavior | `testing` skill directly |
+| Adding a test for existing behavior | Write it directly — conventions in `.claude/context/testing.md` |
 | Formatting or lint fix | `bun format && bun lint` |
 
 ### Signs a Plan is Needed
@@ -414,44 +437,28 @@ This gives Claude and future contributors unambiguous constraints without readin
 ### Planning Traps to Avoid
 
 - **Over-planning polish work** — Small UI tweaks don't need 10-step plans
-- **Planning without reading code first** — Always audit existing patterns before writing a plan
-- **Planning what you don't understand** — Use `oracle` agent or describe the bug to investigate first
+- **Planning without grounding first** — Inspect existing patterns before writing a plan. Use
+  `research` in the active agent when a factual prerequisite requires deeper evidence; use `debug`
+  for a bug. Ask the user only when the remaining question is judgment, preference, or inaccessible
+  private context.
+- **Vague steps** — "Update the component" is not a plan step; "Add `onSubmit` handler to `WorkForm` that calls `useJobQueue.addJob()`" is
+- **Missing test strategy** — Every feature plan needs a "Test Strategy" section. Contracts plans always include tests; frontend plans must too
 - **Stale plans** — If a plan sits untouched for 14+ days, reassess before executing
 - **Vision creep** — Keep architecture exploration separate from implementation plans; a plan with 60 decisions is a spec, not a plan
 
 ---
 
-## Anti-Patterns
-
-- **Planning without requirements** — Every plan step must trace to a requirement; if you can't articulate the requirement, you're not ready to plan
-- **Plans with vague steps** — "Update the component" is not a plan step; "Add `onSubmit` handler to `WorkForm` that calls `useJobQueue.addJob()`" is
-- **Skipping impact analysis** — A plan without "Files to Modify" will surprise you during execution
-- **Infinite planning** — If the plan exceeds 15 steps, split into multiple plans or incremental PRs
-- **Planning alone when blocked** — If you need information to plan, ask the user directly (or use `oracle`) instead of guessing
-- **Ignoring CLAUDE.md compliance** — Plans that skip the compliance checklist produce non-conforming code
-- **Plan proliferation** — Never have 2+ active plans for the same feature. When a new plan supersedes an old one, delete the old one immediately
-- **Missing test strategy** — Every feature plan needs a "Test Strategy" section. Contracts plans always include tests; frontend plans must too
-- **Write-only plans** — Plans that are never updated after creation become misleading. Update status or add divergence notes as work progresses
-- **Mixed content in `.plans/`** — Meeting notes, audit snapshots, and team prompts are not plans. Keep `.plans/` for actionable implementation specs only
-
 ## Validation Commands
 
-Use `CLAUDE.md § Validation Intent Ladder` to choose the rung. The command definitions
+Use `.claude/context/validation-pipeline.md` to choose the rung. The command definitions
 for QA Speed Mode examples, Repo Quick Gate, and the full Ship Gate live in
 [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md).
 
-## Key Principles
-
-- **100% requirement coverage** — Every requirement mapped
-- **Evidence before claims** — Verify before marking done
-- **Batch execution** — Pause for feedback
-- **Right-size the plan** — Match planning depth to task complexity
-
 ## Related Skills
 
+- `plan/templates.md` — Copy-paste plan/status/batch-report templates
 - `plan/brainstorm.md` — Pre-plan exploration when requirements are fuzzy
-- `architecture` — Architectural patterns considered during planning
-- `testing` — TDD strategy included in implementation plans
-- `ui` (mermaid sub-file) — Visualizing plan architecture and dependencies
+- `research` — Read-only evidence gathering for discoverable factual prerequisites before planning
+- `plan/teams.md` — Mixed Claude+Codex agent-team orchestration
 - `debug` — Investigate root cause before planning a fix
-- `ops` (migration sub-file) — Cross-package migration plans need blast radius analysis
+- `review` — Post-implementation review of the executed plan

@@ -1,3 +1,9 @@
+import { mediaResourceManager } from "../../modules/job-queue/media-resource-manager";
+import { resolveIPFSUrl } from "../../modules/data/ipfs/resolve";
+import { SW_CACHES } from "../../modules/app/service-worker-protocol";
+import { connectivityStore } from "../../stores/connectivity";
+import { shareLink } from "../app/clipboard";
+
 /**
  * Utility functions for work-related actions like download
  */
@@ -50,6 +56,45 @@ export function downloadWorkData(work: WorkData): void {
 export async function downloadWorkMedia(work: WorkData): Promise<void> {
   if (!work.media || work.media.length === 0) return;
 
+  if (!connectivityStore.getSnapshot()) {
+    // A new tab on a remote origin cannot read this app's Cache Storage.
+    // Materialize verified originals locally before handing them to the browser.
+    const owner = `work-download-${crypto.randomUUID()}`;
+    try {
+      const urls = await Promise.all(
+        work.media.map(async (source) => {
+          if (/^(blob:|data:)/.test(source)) return source;
+          const url = resolveIPFSUrl(source);
+          // The worker reads the legacy prepared-media cache too, so a photo
+          // still sitting only there is genuinely offline-available. Leaving it
+          // out reported "not available" for a file already on the device.
+          for (const name of [SW_CACHES.IMAGES, SW_CACHES.MEDIA, SW_CACHES.LEGACY_PREPARED_MEDIA]) {
+            const response = await (await caches.open(name)).match(url);
+            if (!response?.ok || response.type === "opaque") continue;
+            const blob = await response.blob();
+            if (blob.size === 0) continue;
+            return mediaResourceManager.createUrl(
+              new File([blob], "work-media", { type: blob.type }),
+              owner
+            );
+          }
+          throw new Error("Original media is not available offline");
+        })
+      );
+      for (const [index, url] of urls.entries()) {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `work-${work.id}-media-${index + 1}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+    } finally {
+      setTimeout(() => mediaResourceManager.cleanupUrls(owner), 1_000);
+    }
+    return;
+  }
+
   // For single file, download directly
   if (work.media.length === 1) {
     const url = work.media[0];
@@ -82,27 +127,19 @@ export async function downloadWorkMedia(work: WorkData): Promise<void> {
  * Shares work using the Web Share API or copies to clipboard
  */
 export async function shareWork(work: WorkData): Promise<void> {
-  const shareData = {
+  const url = new URL(window.location.href);
+  const path = `/home/${encodeURIComponent(work.gardenId)}/work/${encodeURIComponent(work.id)}`;
+  // Hash-router builds keep the gateway path; HTTPS builds use the app route directly.
+  if (url.hash.startsWith("#/")) {
+    url.hash = path;
+  } else {
+    url.pathname = path;
+    url.hash = "";
+  }
+  url.search = "";
+  await shareLink({
     title: work.title || `Work ${work.id}`,
     text: work.description || work.feedback || `Check out this work from garden ${work.gardenId}`,
-    url: typeof window !== "undefined" ? window.location.href : "",
-  };
-
-  // Try Web Share API first
-  if (typeof navigator !== "undefined" && navigator.share) {
-    try {
-      await navigator.share(shareData);
-      return;
-    } catch (err) {
-      // User cancelled or share failed, fall back to clipboard
-      if ((err as Error).name === "AbortError") {
-        return; // User cancelled
-      }
-    }
-  }
-
-  // Fall back to copying URL to clipboard
-  if (typeof navigator !== "undefined" && navigator.clipboard) {
-    await navigator.clipboard.writeText(shareData.url);
-  }
+    url: url.toString(),
+  });
 }

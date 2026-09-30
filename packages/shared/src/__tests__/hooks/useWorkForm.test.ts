@@ -1,14 +1,42 @@
 /**
- * useWorkForm + buildWorkFormSchema Tests
+ * useWorkForm module tests
  *
  * Validates dynamic Zod schema generation from WorkInput[] config,
- * replacing hardcoded planting fields.
+ * replacing hardcoded planting fields, and the location consent hook.
  */
 
-import { describe, expect, it } from "vitest";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { useForm } from "react-hook-form";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { buildWorkFormSchema } from "../../hooks/work/useWorkForm";
+import {
+  buildWorkFormSchema,
+  useWorkLocation,
+  type WorkFormData,
+} from "../../hooks/work/useWorkForm";
 import type { WorkInput } from "../../types/domain";
+import { instructionTemplates } from "../../utils/action/templates";
+
+function validValueForInput(input: WorkInput): unknown {
+  switch (input.type) {
+    case "number":
+      return 1;
+    case "select":
+      return input.options[0] ?? "test";
+    case "band":
+      return input.bands?.[0] ?? input.options[0] ?? "test";
+    case "multi-select":
+      return [input.options[0] ?? "test"];
+    case "repeater":
+      return [
+        Object.fromEntries(
+          (input.repeaterFields ?? []).map((field) => [field.key, validValueForInput(field)])
+        ),
+      ];
+    default:
+      return "test";
+  }
+}
 
 describe("hooks/work/useWorkForm", () => {
   describe("buildWorkFormSchema", () => {
@@ -245,6 +273,34 @@ describe("hooks/work/useWorkForm", () => {
       expect(pass.success).toBe(true);
     });
 
+    it("blocks an empty required repeater", () => {
+      const schema = buildWorkFormSchema([
+        {
+          key: "categoryBreakdown",
+          title: "Category Breakdown",
+          placeholder: "",
+          type: "repeater",
+          required: true,
+          options: [],
+          repeaterFields: [
+            {
+              key: "category",
+              title: "Category",
+              placeholder: "",
+              type: "select",
+              required: true,
+              options: ["Plastic"],
+            },
+          ],
+        },
+      ]);
+
+      expect(schema.safeParse({ feedback: "", categoryBreakdown: [] }).success).toBe(false);
+      expect(
+        schema.safeParse({ feedback: "", categoryBreakdown: [{ category: "Plastic" }] }).success
+      ).toBe(true);
+    });
+
     it("handles mixed required and optional fields", () => {
       const inputs: WorkInput[] = [
         {
@@ -275,5 +331,73 @@ describe("hooks/work/useWorkForm", () => {
       });
       expect(pass.success).toBe(true);
     });
+
+    it("accepts complete values and blocks missing requirements for every action template", () => {
+      const actionTemplates = Object.entries(instructionTemplates).filter(
+        ([slug]) => slug !== "default"
+      );
+
+      expect(actionTemplates).toHaveLength(23);
+      for (const [slug, template] of actionTemplates) {
+        const inputs = template.uiConfig.details.inputs;
+        const schema = buildWorkFormSchema(inputs);
+        const completeValues = Object.fromEntries(
+          inputs.map((input) => [input.key, validValueForInput(input)])
+        );
+
+        expect(
+          schema.safeParse({ feedback: "", ...completeValues }).success,
+          `${slug} should accept all required details`
+        ).toBe(true);
+
+        for (const requiredInput of inputs.filter((input) => input.required)) {
+          const incompleteValues = { ...completeValues };
+          delete incompleteValues[requiredInput.key];
+          expect(
+            schema.safeParse({ feedback: "", ...incompleteValues }).success,
+            `${slug} should require ${requiredInput.key}`
+          ).toBe(false);
+        }
+      }
+    });
+  });
+  it("retains only rounded, explicitly supplied location coordinates", () => {
+    const schema = buildWorkFormSchema([]);
+    expect(
+      schema.parse({ location: { lat: 12.345678, lng: -23.456789, accuracy: 1 } }).location
+    ).toEqual({ lat: 12.346, lng: -23.457 });
+    expect(schema.parse({ location: undefined }).location).toBeUndefined();
+    expect(schema.safeParse({ location: { lat: 91, lng: 0 } }).success).toBe(false);
+  });
+});
+
+describe("work location consent", () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("rounds before entering form state and clears on opt-out", () => {
+    let capture!: PositionCallback;
+    const getCurrentPosition = vi.fn((callback: PositionCallback) => {
+      capture = callback;
+    });
+    vi.stubGlobal("navigator", { geolocation: { getCurrentPosition } });
+    const { result } = renderHook(() => {
+      const form = useForm<WorkFormData>();
+      return { form, location: useWorkLocation(form.control, form.setValue) };
+    });
+    expect(getCurrentPosition).not.toHaveBeenCalled();
+    act(() => result.current.location.handleLocationToggle());
+    act(() =>
+      capture({
+        coords: { latitude: 12.345678, longitude: -34.567891, accuracy: 1 },
+      } as GeolocationPosition)
+    );
+    expect(result.current.form.getValues("location")).toEqual({ lat: 12.346, lng: -34.568 });
+    act(() => result.current.location.handleLocationToggle());
+    expect(result.current.form.getValues("location")).toBeUndefined();
+    expect(getCurrentPosition).toHaveBeenCalledOnce();
   });
 });

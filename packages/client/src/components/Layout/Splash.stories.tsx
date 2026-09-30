@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, userEvent, within } from "storybook/test";
 import { Splash } from "./Splash";
-import { LoadingSplash } from "../../views/Login/components/LoadingSplash";
 // Canonical flow source (renders as a Mermaid diagram on GitHub). `?raw` is
 // typed via vite/client (packages/client/src/vite-env.d.ts) and inlined by Vite.
 import loginFlowDiagram from "../../views/Login/login-flow.mmd?raw";
@@ -15,8 +14,8 @@ const meta: Meta<typeof Splash> = {
   title: "Client/Layout/Splash",
   component: Splash,
   tags: ["autodocs"],
+  globals: { viewport: { value: "mobile" } },
   parameters: {
-    viewport: { defaultViewport: "mobile1" },
     layout: "fullscreen",
   },
   decorators: [
@@ -267,9 +266,7 @@ export const Mobile: Story = {
       onSelect: () => {},
     },
   },
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -281,7 +278,7 @@ export const Mobile: Story = {
 // Slot model recap: two control slots on one scaffold. ENTRY screens put the
 // primary in slot 1 and the wallet secondary in slot 2; FORM screens (create /
 // recover) put the input in slot 1 and the primary in slot 2. The message zone
-// shows error XOR info; the tertiary is "Recover with username" on entry and
+// shows error XOR info; the tertiary is "Recover with Username" on entry and
 // "Back" on forms. Recovery is flat — no separate-account fork.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -289,21 +286,20 @@ type SplashStoryArgs = NonNullable<Story["args"]>;
 
 /** Mirrors the trimmed English strings in packages/shared/src/i18n/en.json. */
 const COPY = {
-  createButton: "Create account",
-  signInButton: "Sign in with passkey",
+  createButton: "Create Account",
+  signInButton: "Sign in with Passkey",
   continueAs: "Continue as gardener.eth",
-  recoverButton: "Recover with passkey",
-  wallet: "Sign in with a wallet",
-  recoverWithUsername: "Recover with username",
+  wallet: "Sign in with a Wallet",
+  recoverWithUsername: "Recover with Username",
   haveAccount: "Already have an account?",
   newAccountLabel: "Display name for new account",
   newAccountPlaceholder: "e.g. alice or alice.eth",
   back: "Back",
-  usernameHint: "Use this name later with a synced passkey on another device.",
+  usernameHint: "Keep this name somewhere safe. You'll use it to sign in on another device.",
   recoveryLabel: "Username or ENS handle",
   recoveryPlaceholder: "Enter your username or ENS handle",
   recoveryInfo:
-    "Synced passkeys recover on supported providers. Local-only passkeys work on this device.",
+    "Your passkey needs to be on this device or on a phone nearby. It usually arrives with your Apple or Google account.",
   loadingAuth: "Signing you in...",
   err: {
     noPasskey: "No passkey found for that username.",
@@ -371,10 +367,10 @@ const createFormArgs: SplashStoryArgs = {
   tertiaryAction: { label: COPY.back, onClick: () => {} },
 };
 
-/** Recover form: input (slot 1) · Recover with passkey (slot 2) · Back link. */
+/** Recover form: input (slot 1) · Sign in with passkey (slot 2) · Back link. */
 const recoverFormArgs: SplashStoryArgs = {
   login: () => {},
-  buttonLabel: COPY.recoverButton,
+  buttonLabel: COPY.signInButton,
   usernameInput: {
     value: "gardener.eth",
     onChange: () => {},
@@ -455,7 +451,7 @@ const CATALOG: ReadonlyArray<{ label: string; args: SplashStoryArgs }> = [
   { label: "Entry · first install", args: entryNewArgs },
   { label: "Entry · returning", args: entryReturningArgs },
   { label: "Create account form", args: createFormArgs },
-  { label: "Recover with username", args: recoverFormArgs },
+  { label: "Recover with Username", args: recoverFormArgs },
   { label: "Error · not found", args: { ...recoverFormArgs, errorMessage: COPY.err.noPasskey } },
   {
     label: "Error · server unavailable",
@@ -514,11 +510,11 @@ export const FlowDiagram: Story = {
  * component in every screen shape that must agree — both entry variants, the
  * create form, the recover form (with the worst-case localized info), the
  * longest real error, a deliberately over-long (~4-line) error, an in-flight
- * form attempt (spinner INSIDE the primary), and the boot LoadingSplash — each
- * pinned to a real 375px phone width. The play function asserts, with real
+ * form attempt (spinner INSIDE the primary) — each pinned to a real 375px
+ * phone width. The play function asserts, with real
  * (non-zero) browser geometry:
  *
- *   1. the LOGO sits at the same Y in EVERY state, including the boot swap;
+ *   1. the LOGO sits at the same Y in EVERY login state;
  *   2. BOTH SLOT ZONES sit at the same Y in every state — the skeleton never
  *      moves; the primary lives in slot 1 on entry screens and slot 2 on form
  *      screens, pinned within each cluster, and the entry→form move is EXACTLY
@@ -568,9 +564,6 @@ export const LayoutStability: Story = {
           message={COPY.loadingAuth}
         />
       </div>
-      <div data-testid="panel-boot" style={{ width: 375 }}>
-        <LoadingSplash loadingState="welcome" />
-      </div>
     </div>
   ),
   play: async ({ canvasElement }) => {
@@ -596,7 +589,6 @@ export const LayoutStability: Story = {
       "panel-error",
       "panel-overflow",
       "panel-loading",
-      "panel-boot",
     ];
     const entryPanels = ["panel-entry-new", "panel-entry-returning"];
     const formPanels = [
@@ -615,7 +607,7 @@ export const LayoutStability: Story = {
     await expect(entryLogo.height).toBeGreaterThan(0);
     await expect(entryPrimary.height).toBeGreaterThan(0);
 
-    // 2) Logo Y is identical across EVERY state, including the boot swap.
+    // 2) Logo Y is identical across every login state.
     const logoBase = logoOffset("panel-entry-new");
     for (const id of allPanels) {
       await expect(Math.abs(logoOffset(id) - logoBase)).toBeLessThanOrEqual(1);

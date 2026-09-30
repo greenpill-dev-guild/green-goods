@@ -7,6 +7,35 @@
 
 export const YIELD_SPLITTER_ABI = [
   {
+    type: "event",
+    name: "YieldSplit",
+    inputs: [
+      { name: "garden", type: "address", indexed: true },
+      { name: "asset", type: "address", indexed: true },
+      { name: "cookieJarAmount", type: "uint256", indexed: false },
+      { name: "fractionsAmount", type: "uint256", indexed: false },
+      { name: "juiceboxAmount", type: "uint256", indexed: false },
+      { name: "totalYield", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "YieldAccumulated",
+    inputs: [
+      { name: "garden", type: "address", indexed: true },
+      { name: "asset", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "totalPending", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "function",
+    name: "cookieJarModule",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
     type: "function",
     name: "splitYield",
     stateMutability: "nonpayable",
@@ -89,6 +118,13 @@ export const YIELD_SPLITTER_ABI = [
   },
   {
     type: "function",
+    name: "assetYieldThresholds",
+    stateMutability: "view",
+    inputs: [{ name: "asset", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
     name: "getEscrowedFractions",
     stateMutability: "view",
     inputs: [
@@ -115,6 +151,20 @@ export const YIELD_SPLITTER_ABI = [
       { name: "garden", type: "address" },
       { name: "asset", type: "address" },
     ],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "gardenCookieJars",
+    stateMutability: "view",
+    inputs: [{ name: "garden", type: "address" }],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "gardenTreasuries",
+    stateMutability: "view",
+    inputs: [{ name: "garden", type: "address" }],
     outputs: [{ name: "", type: "address" }],
   },
   {

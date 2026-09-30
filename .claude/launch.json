@@ -2,18 +2,6 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "deck",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": [
-        "-m",
-        "http.server",
-        "4599",
-        "--directory",
-        "/Users/afo/Code/greenpill/green-goods/presentations/red-coop-2026-05-22"
-      ],
-      "port": 4599
-    },
-    {
       "name": "storybook",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--filter", "@green-goods/shared", "storybook"],
@@ -24,6 +12,41 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--filter", "@green-goods/admin", "dev"],
       "port": 3002
+    },
+    {
+      "name": "qa-app",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "node packages/qa/build.mjs && exec node packages/qa/dev.mjs"],
+      "port": 4610
+    },
+    {
+      "name": "proto",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4601", "--bind", "127.0.0.1", "-d", "/tmp/gg-proto"],
+      "port": 4601
+    },
+    {
+      "name": "storybook-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4620",
+        "--bind",
+        "127.0.0.1",
+        "-d",
+        "packages/shared/storybook-static"
+      ],
+      "port": 4620
+    },
+    {
+      "name": "client-http-3011",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "SKIP_MKCERT=true VITE_ENABLE_SW_DEV=true VITE_CHAIN_ID=11155111 exec bun run --filter @green-goods/client dev -- --port 3011 --strictPort"
+      ],
+      "port": 3011
     }
   ]
 }

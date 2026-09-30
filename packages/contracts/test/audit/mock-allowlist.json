@@ -1,7 +1,43 @@
 {
   "version": 1,
-  "updated_at": "2026-07-04",
+  "updated_at": "2026-08-08",
   "entries": [
+    {
+      "file": "packages/contracts/test/fork/ArbitrumCommitmentPooling.t.sol",
+      "pattern": "vm.store",
+      "reason": "The rehearsal must prove deployOrReuse refuses a proxy whose ERC-1967 implementation slot was upgraded out from under it; producing that adversarial state genuinely would require the proxy owner's key in CI, so the slot is forged directly.",
+      "owner": "contracts-core",
+      "expires_on": "2026-09-30",
+      "network_scope": ["arbitrum"],
+      "classification": "necessary",
+      "source_boundaries": [
+        {
+          "selector": "testDeployTargetRefusesAProxyUpgradedOutFromUnderIt",
+          "occurrences": 1
+        }
+      ],
+      "replacement_recommendation": "If a CI-owned throwaway proxy fixture is introduced for the rehearsal, perform a real upgrade through it instead."
+    },
+    {
+      "file": "packages/contracts/test/fork/ArbitrumCommitmentPooling.t.sol",
+      "pattern": "vm.mockCall",
+      "reason": "The schema lane's two postconditions assert that a setter actually stuck — that preparation left the schema pinned and finalization left the module activated. Reaching either failure needs a resolver whose setter silently no-ops, which no real deployment produces: the genuine setters always stick, which is exactly why deleting these checks survived the rest of the suite. The mock replaces only the view being re-read; the setter, the classification entry, and the revert path under test are all real.",
+      "owner": "contracts-core",
+      "expires_on": "2026-09-30",
+      "network_scope": ["arbitrum"],
+      "classification": "necessary",
+      "source_boundaries": [
+        {
+          "selector": "testFinalizationRefusesWhenTheActivationDoesNotStick",
+          "occurrences": 1
+        },
+        {
+          "selector": "testPreparationRefusesWhenThePinDoesNotStick",
+          "occurrences": 2
+        }
+      ],
+      "replacement_recommendation": "Replace with a no-op-setter resolver implementation deployed in the rehearsal, once a CI-owned throwaway proxy fixture exists for this file."
+    },
     {
       "file": "packages/contracts/test/fork/CrossChainENS.t.sol",
       "pattern": "vm.store",
@@ -10,6 +46,12 @@
       "expires_on": "2026-09-30",
       "network_scope": ["mainnet"],
       "classification": "necessary",
+      "source_boundaries": [
+        {
+          "selector": "_setupL1",
+          "occurrences": 1
+        }
+      ],
       "replacement_recommendation": "Replace with delegated test-owned ENS test node when available."
     },
     {
@@ -20,6 +62,12 @@
       "expires_on": "2026-09-30",
       "network_scope": ["mainnet"],
       "classification": "necessary",
+      "source_boundaries": [
+        {
+          "selector": "_deployReceiverOnFork",
+          "occurrences": 1
+        }
+      ],
       "replacement_recommendation": "Use a dedicated CI ENS node delegation path if introduced."
     }
   ]

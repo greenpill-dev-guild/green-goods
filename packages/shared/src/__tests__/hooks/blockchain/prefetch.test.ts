@@ -1,6 +1,6 @@
 /**
  * Prefetch Utility Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the ensureBaseLists and ensureHomeData prefetch functions.
  * These use the module-level queryClient to warm the cache with
@@ -32,6 +32,10 @@ vi.mock("../../../modules/data/greengoods", () => ({
 }));
 
 vi.mock("../../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -162,4 +166,11 @@ describe("prefetch utilities", () => {
       expect(result.gardeners).toEqual([]);
     });
   });
+});
+
+it("handles unattended warmup rejection while awaited loaders still reject", async () => {
+  mockEnsureQueryData.mockImplementation(() => Promise.reject(new Error("offline")));
+  ensureBaseLists();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await expect(ensureHomeData()).rejects.toThrow("offline");
 });

@@ -1,11 +1,9 @@
-import {
-  Alert,
-  ErrorBoundary,
-  TxInlineFeedback,
-  useCreateAssessmentController,
-  useDirtyClose,
-  useStepFocus,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { useCreateAssessmentController } from "@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
@@ -37,11 +35,12 @@ export default function CreateAssessment() {
     onDiscard: createAssessment.handleDiscard,
   });
 
-  // Dialog title (Title Case) — distinct from the sentence-case submit button
-  // label (app.assessment.submitAssessment) the footer keeps.
+  // The dialog takes the name of the Hub action that opens it (Create
+  // Assessment); the final button still reads Submit Assessment
+  // (app.assessment.submitAssessment), the act it performs.
   const title = formatMessage({
     id: "cockpit.assessment.createTitle",
-    defaultMessage: "Submit Assessment",
+    defaultMessage: "Create Assessment",
   });
 
   const stepRegistry = {
@@ -102,7 +101,7 @@ export default function CreateAssessment() {
             >
               {formatMessage({
                 id: "app.assessment.retrySubmission",
-                defaultMessage: "Retry submission",
+                defaultMessage: "Retry Submission",
               })}
             </AdminButton>
             <AdminButton
@@ -113,7 +112,7 @@ export default function CreateAssessment() {
             >
               {formatMessage({
                 id: "app.assessment.editDetails",
-                defaultMessage: "Edit details",
+                defaultMessage: "Edit Details",
               })}
             </AdminButton>
           </div>
@@ -152,7 +151,7 @@ export default function CreateAssessment() {
             >
               {formatMessage({
                 id: "app.assessment.submitAssessment",
-                defaultMessage: "Submit assessment",
+                defaultMessage: "Submit Assessment",
               })}
             </AdminButton>
           ) : (
@@ -213,8 +212,7 @@ export default function CreateAssessment() {
         title={title}
         description={formatMessage({
           id: "cockpit.assessment.createDescription",
-          defaultMessage:
-            "Capture the context, strategy kernel, and harvest window for a new assessment.",
+          defaultMessage: "Describe the work, its goals, and the period it covers.",
         })}
         bodyClassName="flex min-h-0 flex-col !overflow-hidden"
       >

@@ -11,6 +11,12 @@ export const gardenerProfileKeys = {
     ["greengoods", "gardener-profile", address, chainId] as const,
 } as const;
 
+export const profileAvatarKeys = {
+  all: ["greengoods", "profile-avatars"] as const,
+  record: (chainId: number, address: Address | string) =>
+    ["greengoods", "profile-avatars", chainId, address.toLowerCase()] as const,
+} as const;
+
 export const ensKeys = {
   all: ["greengoods", "ens"] as const,
   name: (address: Address | string) => ["greengoods", "ens", "name", address] as const,
@@ -26,12 +32,23 @@ export const ensKeys = {
 
 export const roleKeys = {
   all: ["greengoods", "role"] as const,
-  operatorGardens: (address?: Address, chainId?: number) =>
-    ["greengoods", "role", "operatorGardens", address, chainId] as const,
+  stewardGardens: (address?: Address, chainId?: number) =>
+    ["greengoods", "role", "stewardGardens", address, chainId] as const,
   gardenRoles: (gardenId?: string, address?: Address) =>
     ["greengoods", "role", "gardenRoles", gardenId, address] as const,
   hasRole: (gardenId?: string, address?: Address, role?: string) =>
     ["greengoods", "role", "hasRole", gardenId, address, role] as const,
+  /** Any of the six roles, read strictly: a failed read is an error, not "no". */
+  membership: (gardenId?: string, address?: Address, chainId?: number) =>
+    ["greengoods", "role", "membership", gardenId, address, chainId] as const,
+  /**
+   * Prefix of every exact-hat answer cached for one person in one garden.
+   * Both exact-hat keys take lowercased addresses, so they type them as strings.
+   */
+  roleHatsOf: (gardenId?: string, address?: string) =>
+    ["greengoods", "role", "roleHat", gardenId, address] as const,
+  roleHat: (gardenId?: string, address?: string, role?: string, chainId?: number) =>
+    ["greengoods", "role", "roleHat", gardenId, address, role, chainId] as const,
   evaluatorGardens: (address?: Address, gardenIds: string[] = []) =>
     [
       "greengoods",

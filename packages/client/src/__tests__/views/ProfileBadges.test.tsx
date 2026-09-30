@@ -4,7 +4,8 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import messages from "../../../../shared/src/i18n/en.json";
+import messages from "@green-goods/shared/i18n/en.json";
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 
 const GREENWILL_BADGE_IDS = {
   GENESIS: "0x019f6193080fa2ce1eb4082321d3fc1563ca3ee6f96dc5b2092d4bd08cc1b2cb",
@@ -32,9 +33,12 @@ const sharedMocks = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-  DialogShell: ({ open, onOpenChange, title, description, children }: any) =>
+}));
+
+vi.mock("@green-goods/shared/components/Dialog/DialogShell", () => ({
+  DialogShell: ({ open, onOpenChange, title, description, children, actions }: any) =>
     open
       ? createElement(
           "div",
@@ -42,6 +46,7 @@ vi.mock("@green-goods/shared", () => ({
           createElement("h2", null, title),
           description ? createElement("p", null, description) : null,
           children,
+          actions ? createElement(SheetActions, actions) : null,
           createElement(
             "button",
             { type: "button", onClick: () => onOpenChange(false), "aria-label": "Close" },
@@ -49,19 +54,48 @@ vi.mock("@green-goods/shared", () => ({
           )
         )
       : null,
+}));
+
+vi.mock("@green-goods/shared/utils/app/text", () => ({
   formatAddress: sharedMocks.formatAddress,
-  // Default to "deployed" so existing empty-state tests aren't reroutes to the
-  // wrong-chain branch. Tests that want to assert wrong-chain UI override per case.
+}));
+
+vi.mock("@green-goods/shared/config/blockchain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/blockchain")>()),
   isGreenWillDeployed: () => true,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: sharedMocks.usePrimaryAddress,
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: sharedMocks.useGreenGoodsEnsName,
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: sharedMocks.useEnsName,
+}));
+
+vi.mock("@green-goods/shared/hooks/greenwill/useGreenWillBadges", () => ({
   useGreenWillBadges: sharedMocks.useGreenWillBadges,
+}));
+
+vi.mock("@green-goods/shared/hooks/greenwill/useClaimGreenWillBadge", () => ({
   useClaimGenesisBadge: sharedMocks.useClaimGenesisBadge,
   useClaimFirstSupportBadge: sharedMocks.useClaimFirstSupportBadge,
   useClaimFirstWorkBadge: sharedMocks.useClaimFirstWorkBadge,
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useMyVaultDeposits", () => ({
   useMyVaultDeposits: sharedMocks.useMyVaultDeposits,
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useMyWorks", () => ({
   useMyOnlineWorks: sharedMocks.useMyOnlineWorks,
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useProtocolMemberStatus", () => ({
   useProtocolMemberStatus: sharedMocks.useProtocolMemberStatus,
 }));
 
@@ -75,11 +109,6 @@ vi.mock("@remixicon/react", () => ({
 
 vi.mock("@/components/Cards", () => ({
   Card: ({ children, ...props }: any) => createElement("div", props, children),
-}));
-
-vi.mock("@/components/Actions", () => ({
-  Button: ({ label, onClick, ...props }: any) =>
-    createElement("button", { ...props, onClick, type: "button" }, label),
 }));
 
 import { ProfileBadges } from "../../views/Profile/Badges";

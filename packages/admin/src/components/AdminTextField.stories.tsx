@@ -1,8 +1,8 @@
 import { RiMailLine, RiSearchLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { AdminTextField } from "./AdminTextField";
+import { AdminSelect, AdminTextArea, AdminTextField } from "./AdminTextField";
 
 const meta: Meta<typeof AdminTextField> = {
   title: "Admin/Primitives/AdminTextField",
@@ -100,11 +100,64 @@ export const StateCatalog: Story = {
   ),
 };
 
+/** Assert a floated label's box ends above the first line of its control's text. */
+async function expectLabelClearsText(canvasElement: HTMLElement, control: HTMLElement) {
+  const label = canvasElement.querySelector<HTMLElement>(`label[for="${control.id}"]`);
+  await expect(label).not.toBeNull();
+  if (!label) return;
+  const textTop =
+    control.getBoundingClientRect().top + Number.parseFloat(getComputedStyle(control).paddingTop);
+  await expect(label.getBoundingClientRect().bottom).toBeLessThanOrEqual(textTop);
+}
+
+/**
+ * Focused and filled label geometry. Runs in addon-vitest browser mode, where real
+ * layout applies (jsdom has none): a floated label must end above the control's
+ * text, so it never covers a focused placeholder, a restored value, or a select's
+ * option text — the overlap reported on Add member, Create assessment, and Create
+ * hypercert.
+ */
+export const FloatingLabelGeometry: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div className="grid max-w-3xl gap-5 sm:grid-cols-2">
+      <AdminTextField label="Search" placeholder="Search by title" />
+      <AdminTextArea label="Description" placeholder="Describe the work in the garden" />
+      <AdminTextField label="Garden name" defaultValue="North Meadow" />
+      <AdminSelect label="Role" defaultValue="gardener">
+        <option value="gardener">Gardener</option>
+        <option value="evaluator">Evaluator</option>
+      </AdminSelect>
+      <AdminTextField label="Search outlined" variant="outlined" placeholder="Search by title" />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const focusedControls = [
+      canvas.getByRole("textbox", { name: "Search" }),
+      canvas.getByRole("textbox", { name: "Description" }),
+      canvas.getByRole("textbox", { name: "Search outlined" }),
+    ];
+
+    for (const control of focusedControls) {
+      await userEvent.click(control);
+      await expect(control).toHaveFocus();
+      await waitFor(() => expectLabelClearsText(canvasElement, control));
+    }
+
+    await expectLabelClearsText(
+      canvasElement,
+      canvas.getByRole("textbox", { name: "Garden name" })
+    );
+    await expectLabelClearsText(canvasElement, canvas.getByRole("combobox", { name: "Role" }));
+  },
+};
+
 export const OutlinedAtSectionTop: Story = {
   render: () => (
     <section className="max-w-sm overflow-hidden rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] p-0">
       <AdminTextField
-        label="Long campaign operator payout token label"
+        label="Long campaign steward payout token label"
         variant="outlined"
         defaultValue="0.25"
       />
@@ -171,4 +224,59 @@ export const WorkspaceToneMatrix: Story = {
     await userEvent.click(actionsField);
     await expect(actionsField).toHaveFocus();
   },
+};
+
+// ---------------------------------------------------------------------------
+// AdminSelect — the form select sharing this field anatomy (added 2026-08-29)
+// ---------------------------------------------------------------------------
+
+const CYCLE_OPTIONS = (
+  <>
+    <option value="">Choose a cycle</option>
+    <option value="c1">Season One</option>
+    <option value="c2">Winter interseason</option>
+  </>
+);
+
+export const SelectField: Story = {
+  name: "Select — filled",
+  render: () => (
+    <div className="max-w-sm space-y-4">
+      <AdminSelect
+        label="Cycle"
+        defaultValue=""
+        helperText="The label floats permanently — a select always shows its option text."
+      >
+        {CYCLE_OPTIONS}
+      </AdminSelect>
+      <AdminSelect label="Cycle" defaultValue="c1">
+        {CYCLE_OPTIONS}
+      </AdminSelect>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const selects = canvas.getAllByRole("combobox", { name: "Cycle" });
+    await expect(selects).toHaveLength(2);
+    await userEvent.selectOptions(selects[0], "c2");
+    await expect(selects[0]).toHaveValue("c2");
+  },
+};
+
+export const SelectStates: Story = {
+  name: "Select — error · disabled · outlined",
+  render: () => (
+    <div className="max-w-sm space-y-4">
+      <AdminSelect label="Action" defaultValue="" error="Pick an action">
+        <option value="">Choose an action</option>
+        <option value="a1">Turn soil</option>
+      </AdminSelect>
+      <AdminSelect label="Action" defaultValue="a1" disabled>
+        <option value="a1">Turn soil</option>
+      </AdminSelect>
+      <AdminSelect label="Action" variant="outlined" defaultValue="a1">
+        <option value="a1">Turn soil</option>
+      </AdminSelect>
+    </div>
+  ),
 };

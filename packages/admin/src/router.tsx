@@ -1,4 +1,5 @@
-import { HydrationFallback, adminRoutes } from "@green-goods/shared";
+import { HydrationFallback } from "@green-goods/shared/components/HydrationFallback";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { createBrowserRouter, createHashRouter, Navigate, useLocation } from "react-router-dom";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import { adminCanvasRoutes } from "@/routes/views";

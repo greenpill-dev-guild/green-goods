@@ -1,0 +1,534 @@
+{
+  "version": 1,
+  "chainId": "42161",
+  "createdAt": "2026-07-28T19:40:08.254Z",
+  "snapshotBlock": "488704377",
+  "authorizationModel": "The HatsModule owner is a live effective ancestor admin for every target hat and calls Hats.changeHatDetails directly.",
+  "caller": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+  "hatsProtocol": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+  "targetCount": 18,
+  "transactions": [
+    {
+      "tokenId": "0",
+      "garden": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+      "operatorHatId": "2480315916136414719231667453646948543306174011217524382706434853306368",
+      "currentDetails": "Green Goods Community Garden Operator",
+      "targetDetails": "Green Goods Community Garden Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136414719231667453646948543306174011217524382706434853306368",
+        "_newDetails": "Green Goods Community Garden Steward"
+      }
+    },
+    {
+      "tokenId": "1",
+      "garden": "0xF7b892886998DAe960D64a9db488336684F137A0",
+      "operatorHatId": "2480315916136414815012638757765002190702863208111848358877629989781504",
+      "currentDetails": "Aiyeloja Family Garden Operator",
+      "targetDetails": "Aiyeloja Family Garden Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136414815012638757765002190702863208111848358877629989781504",
+        "_newDetails": "Aiyeloja Family Garden Steward"
+      }
+    },
+    {
+      "tokenId": "2",
+      "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+      "operatorHatId": "2480315916136414910793610061883055838099552405006172335048825126256640",
+      "currentDetails": "TAS HUB Operator",
+      "targetDetails": "TAS HUB Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136414910793610061883055838099552405006172335048825126256640",
+        "_newDetails": "TAS HUB Steward"
+      }
+    },
+    {
+      "tokenId": "3",
+      "garden": "0x4055530dB392FB2B56037065A512c5b283D90A10",
+      "operatorHatId": "2480315916136415006574581366001109485496241601900496311220020262731776",
+      "currentDetails": "Greenpill London Operator",
+      "targetDetails": "Greenpill London Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136415006574581366001109485496241601900496311220020262731776",
+        "_newDetails": "Greenpill London Steward"
+      }
+    },
+    {
+      "tokenId": "4",
+      "garden": "0x51499A44BB7793647e67ed827bd17367d7e55314",
+      "operatorHatId": "2480315916136415102355552670119163132892930798794820287391215399206912",
+      "currentDetails": "GreenSofa Operator",
+      "targetDetails": "GreenSofa Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136415102355552670119163132892930798794820287391215399206912",
+        "_newDetails": "GreenSofa Steward"
+      }
+    },
+    {
+      "tokenId": "5",
+      "garden": "0xbcCE994513615988690aBCA373B1368218E4957C",
+      "operatorHatId": "2480315916136415198136523974237216780289619995689144263562410535682048",
+      "currentDetails": "Muizenberg Community Garden Operator",
+      "targetDetails": "Muizenberg Community Garden Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136415198136523974237216780289619995689144263562410535682048",
+        "_newDetails": "Muizenberg Community Garden Steward"
+      }
+    },
+    {
+      "tokenId": "6",
+      "garden": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf",
+      "operatorHatId": "2480315916136415293917495278355270427686309192583468239733605672157184",
+      "currentDetails": "Rifai Sicilia Operator",
+      "targetDetails": "Rifai Sicilia Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136415293917495278355270427686309192583468239733605672157184",
+        "_newDetails": "Rifai Sicilia Steward"
+      }
+    },
+    {
+      "tokenId": "7",
+      "garden": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30",
+      "operatorHatId": "2480315916136415389698466582473324075082998389477792215904800808632320",
+      "currentDetails": "Growecosystems Operator",
+      "targetDetails": "Growecosystems Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136415389698466582473324075082998389477792215904800808632320",
+        "_newDetails": "Growecosystems Steward"
+      }
+    },
+    {
+      "tokenId": "8",
+      "garden": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09",
+      "operatorHatId": "2480315916136415485479437886591377722479687586372116192075995945107456",
+      "currentDetails": "AgroforestDAO Operator",
+      "targetDetails": "AgroforestDAO Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136415485479437886591377722479687586372116192075995945107456",
+        "_newDetails": "AgroforestDAO Steward"
+      }
+    },
+    {
+      "tokenId": "9",
+      "garden": "0x636962584b1F492B06151Fee87810281372879b6",
+      "operatorHatId": "2480315916136415581260409190709431369876376783266440168247191081582592",
+      "currentDetails": "ReFi Barcelona Operator",
+      "targetDetails": "ReFi Barcelona Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136415581260409190709431369876376783266440168247191081582592",
+        "_newDetails": "ReFi Barcelona Steward"
+      }
+    },
+    {
+      "tokenId": "10",
+      "garden": "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+      "operatorHatId": "2480315916136415677041380494827485017273065980160764144418386218057728",
+      "currentDetails": "DeCleanup Network Action garden Operator",
+      "targetDetails": "DeCleanup Network Action garden Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136415677041380494827485017273065980160764144418386218057728",
+        "_newDetails": "DeCleanup Network Action garden Steward"
+      }
+    },
+    {
+      "tokenId": "11",
+      "garden": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+      "operatorHatId": "2480315916136415772822351798945538664669755177055088120589581354532864",
+      "currentDetails": "Greenpill Kenya Operator",
+      "targetDetails": "Greenpill Kenya Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136415772822351798945538664669755177055088120589581354532864",
+        "_newDetails": "Greenpill Kenya Steward"
+      }
+    },
+    {
+      "tokenId": "12",
+      "garden": "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
+      "operatorHatId": "2480315916136415868603323103063592312066444373949412096760776491008000",
+      "currentDetails": "Live Garden Coop Operator",
+      "targetDetails": "Live Garden Coop Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136415868603323103063592312066444373949412096760776491008000",
+        "_newDetails": "Live Garden Coop Steward"
+      }
+    },
+    {
+      "tokenId": "13",
+      "garden": "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2",
+      "operatorHatId": "2480315916136415964384294407181645959463133570843736072931971627483136",
+      "currentDetails": "Vida Verde Operator",
+      "targetDetails": "Vida Verde Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136415964384294407181645959463133570843736072931971627483136",
+        "_newDetails": "Vida Verde Steward"
+      }
+    },
+    {
+      "tokenId": "14",
+      "garden": "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+      "operatorHatId": "2480315916136416060165265711299699606859822767738060049103166763958272",
+      "currentDetails": "Mama Gardens Operator",
+      "targetDetails": "Mama Gardens Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136416060165265711299699606859822767738060049103166763958272",
+        "_newDetails": "Mama Gardens Steward"
+      }
+    },
+    {
+      "tokenId": "15",
+      "garden": "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1",
+      "operatorHatId": "2480315916136416155946237015417753254256511964632384025274361900433408",
+      "currentDetails": "La Ligne Verte Operator",
+      "targetDetails": "La Ligne Verte Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136416155946237015417753254256511964632384025274361900433408",
+        "_newDetails": "La Ligne Verte Steward"
+      }
+    },
+    {
+      "tokenId": "16",
+      "garden": "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+      "operatorHatId": "2480315916136416251727208319535806901653201161526708001445557036908544",
+      "currentDetails": "Greenpill Nigeria Operator",
+      "targetDetails": "Greenpill Nigeria Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136416251727208319535806901653201161526708001445557036908544",
+        "_newDetails": "Greenpill Nigeria Steward"
+      }
+    },
+    {
+      "tokenId": "17",
+      "garden": "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532",
+      "operatorHatId": "2480315916136416347508179623653860549049890358421031977616752173383680",
+      "currentDetails": "abundance islands Operator",
+      "targetDetails": "abundance islands Steward",
+      "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_hatId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "_newDetails",
+            "type": "string"
+          }
+        ],
+        "name": "changeHatDetails",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_hatId": "2480315916136416347508179623653860549049890358421031977616752173383680",
+        "_newDetails": "abundance islands Steward"
+      }
+    }
+  ]
+}

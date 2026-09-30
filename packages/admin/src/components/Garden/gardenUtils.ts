@@ -1,4 +1,7 @@
-import { GARDEN_ROLE_I18N_KEYS, type GardenRole } from "@green-goods/shared";
+import {
+  GARDEN_ROLE_I18N_KEYS,
+  type GardenRole,
+} from "@green-goods/shared/utils/blockchain/garden-roles";
 import type { IntlShape } from "react-intl";
 
 export const getRoleLabel = (role: GardenRole, formatMessage: IntlShape["formatMessage"]) => ({

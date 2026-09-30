@@ -1,9 +1,31 @@
-import { cn, useOffline, useUIStore } from "@green-goods/shared";
-import { RiCloudOffLine, RiLoader4Line, RiTaskLine } from "@remixicon/react";
-import React from "react";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { usePendingWorksCount } from "@green-goods/shared/hooks/work/usePendingWorksCount";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { RiTaskLine } from "@remixicon/react";
+import React, { lazy, Suspense } from "react";
 import { useIntl } from "react-intl";
-import { pwaStatusStyles, type PwaStatusTone } from "@/styles/pwaStatusStyles";
-import { WorkDashboard } from ".";
+import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
+
+function importWorkDashboard() {
+  return import(".").then((module) => ({ default: module.WorkDashboard }));
+}
+
+let workDashboardModulePromise: ReturnType<typeof importWorkDashboard> | null = null;
+
+function loadWorkDashboard() {
+  if (workDashboardModulePromise) return workDashboardModulePromise;
+
+  const pendingModule = importWorkDashboard().catch((error) => {
+    workDashboardModulePromise = null;
+    throw error;
+  });
+  workDashboardModulePromise = pendingModule;
+  return pendingModule;
+}
+
+const WorkDashboard = lazy(loadWorkDashboard);
 
 interface WorkDashboardIconProps {
   className?: string;
@@ -11,96 +33,75 @@ interface WorkDashboardIconProps {
 
 export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className }) => {
   const intl = useIntl();
-  const { isOnline, pendingCount, syncStatus } = useOffline();
+  const isOnline = useOnlineStatus();
+  const { data: pendingCount = 0 } = usePendingWorksCount();
+  const [isDashboardReady, setIsDashboardReady] = React.useState(false);
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
   const closeWorkDashboard = useUIStore((s) => s.closeWorkDashboard);
 
+  React.useEffect(() => {
+    let cancelled = false;
+    void loadWorkDashboard().then(
+      () => {
+        if (!cancelled) setIsDashboardReady(true);
+      },
+      () => {
+        // A reconnect changes isOnline and retries the failed preload.
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [isOnline]);
+
   // Only show notifications for actual pending work items
-  const isSyncing = syncStatus === "syncing";
   const hasPendingItems = pendingCount > 0;
-  const hasOfflineStatus = !isOnline;
-
-  // Determine primary icon and styling based on status priority
-  let PrimaryIcon = RiTaskLine;
-  let statusTone: PwaStatusTone = hasPendingItems ? "primary" : "neutral";
-  const bgColor = "bg-bg-white-0";
-
-  if (isSyncing) {
-    PrimaryIcon = RiLoader4Line;
-    statusTone = "primary";
-  } else if (!isOnline) {
-    PrimaryIcon = RiCloudOffLine;
-    statusTone = "warning";
-  }
+  const statusTone: PwaStatusTone = hasPendingItems ? "primary" : "neutral";
   const statusStyles = pwaStatusStyles[statusTone];
-  const borderColor =
-    isSyncing || hasOfflineStatus || hasPendingItems
-      ? statusStyles.border
-      : pwaStatusStyles.neutral.border;
-  const primaryIcon = (
-    <PrimaryIcon className={cn("w-4 h-4", statusStyles.icon, isSyncing && "animate-spin")} />
-  );
+  const borderColor = hasPendingItems ? statusStyles.border : undefined;
+  const primaryIcon = <RiTaskLine className={statusStyles.icon} aria-hidden="true" />;
 
-  // Dashboard state and handlers
+  let badge: React.ReactNode;
+  if (hasPendingItems) {
+    badge = (
+      <span
+        className={cn(
+          "inline-flex items-center justify-center text-xs font-semibold rounded-full min-w-[18px] h-[18px] px-1",
+          pwaStatusStyles.primary.badge,
+          "shadow-sm border-2 border-bg-white-0"
+        )}
+        data-testid="notification-badge"
+      >
+        {pendingCount > 99 ? "99+" : pendingCount}
+      </span>
+    );
+  }
 
   return (
     <>
-      <button
+      <IconButton
+        emphasis="secondary"
+        size="compact"
         onClick={() => openWorkDashboard()}
-        className={cn(
-          "relative p-1 rounded-lg border",
-          "transition-[color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-          "hover:shadow-lg hover:scale-105 active:scale-95",
-          "flex items-center justify-center w-8 h-8 tap-target-lg",
-          "focus:outline-none focus:ring-2",
-          statusStyles.focus,
-          bgColor,
-          borderColor,
-          statusStyles.icon,
-          className
-        )}
+        disabled={!isDashboardReady}
+        aria-busy={!isDashboardReady}
+        className={cn(borderColor, className)}
         aria-label={intl.formatMessage({
           id: "app.workDashboard.openButton",
-          defaultMessage: "Open work dashboard",
+          defaultMessage: "Open Your Work",
         })}
         data-testid="work-dashboard-button"
-      >
-        {primaryIcon}
+        icon={primaryIcon}
+        badge={badge}
+      />
 
-        {/* Only show badge for actual pending items */}
-        {hasPendingItems && (
-          <div className="absolute -top-1.5 -right-1.5">
-            <div
-              className={cn(
-                "inline-flex items-center justify-center text-xs font-semibold rounded-full min-w-[18px] h-[18px] px-1",
-                pwaStatusStyles.primary.badge,
-                "shadow-sm border-2 border-bg-white-0"
-              )}
-              data-testid="notification-badge"
-            >
-              {pendingCount > 99 ? "99+" : pendingCount}
-            </div>
-          </div>
-        )}
-
-        {/* Status indicator dot for offline/syncing without pending items */}
-        {(hasOfflineStatus || isSyncing) && !hasPendingItems && (
-          <div className="absolute -top-1 -right-1">
-            <span
-              className={cn(
-                "w-3 h-3 rounded-full border-2 border-bg-white-0",
-                statusStyles.dot,
-                isSyncing && "animate-pulse"
-              )}
-              data-testid="status-dot"
-            />
-          </div>
-        )}
-      </button>
-
-      {/* Dashboard Modal */}
-      {isWorkDashboardOpen && <WorkDashboard onClose={closeWorkDashboard} />}
+      {/* The launcher is enabled only after this split module is cached locally. */}
+      {isWorkDashboardOpen ? (
+        <Suspense fallback={null}>
+          <WorkDashboard onClose={closeWorkDashboard} />
+        </Suspense>
+      ) : null}
     </>
   );
 };

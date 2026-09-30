@@ -3,14 +3,13 @@ import type { AdminSheetSide } from "../navigation/sheetRegistry";
 import {
   type HubPipelineStage,
   PIPELINE_STAGE_CONFIG,
-  SUBMIT_WORK_CONTENT_ID,
-  type SortDirection,
   parseCertificationContentId,
   parseSortDirection,
   parseWorkDetailContentId,
   resolvePipelineStageFromPath,
+  type SortDirection,
+  SUBMIT_WORK_CONTENT_ID,
   toCertificationContentId,
-  toHistoryContentId,
   toWorkDetailContentId,
 } from "./hub.utils";
 
@@ -27,7 +26,10 @@ export interface HubStageModelInput {
   canManage: boolean;
   canAssess: boolean;
   canCertify: boolean;
-  canBrowseHistory: boolean;
+  /** The reader stewards at least one garden: the Confirm stage exists only then. */
+  canConfirm?: boolean;
+  /** Ordinary plus fallback rows waiting on the reader (useCommitmentsToConfirm). */
+  confirmCount?: number;
   works: WorkStatusLike[];
   assessments: Pick<GardenAssessment, "id">[];
   hypercerts: HypercertLike[];
@@ -36,19 +38,16 @@ export interface HubStageModelInput {
 export interface HubRouteSelectionInput {
   routeWorkId?: string;
   routeCertificationId?: string;
-  routeHistoryEventId?: string;
   activeWorkDetailId: string | null;
   activeCertificationId: string | null;
   isSubmitRoute: boolean;
   selectedWork: unknown;
   selectedCertification: unknown;
-  selectedHistoryEvent: unknown;
 }
 
 export interface HubRouteSheetInput {
   routeWorkId?: string;
   routeCertificationId?: string;
-  routeHistoryEventId?: string;
   isSubmitRoute: boolean;
 }
 
@@ -57,7 +56,6 @@ export interface HubRouteStateInput {
   sortParam: string | null;
   routedWorkIdParam?: string;
   routedAssessmentIdParam?: string;
-  routedHistoryEventIdParam?: string;
   activeContentId: string | null;
 }
 
@@ -69,10 +67,21 @@ export interface HubWorkspaceStateInput {
   hasOpenHubInspector: boolean;
 }
 
+export type HubStageContentKind = "work" | "assess" | "confirm" | "certify";
+
+export interface HubSheetSelectionInput {
+  routeWorkId?: string;
+  routeCertificationId?: string;
+  activeWorkDetailId: string | null;
+  hasSelectedCertification: boolean;
+}
+
+export type HubSheetSelection = { kind: "work"; id: string } | { kind: "certification" } | null;
+
 type ActionTitleLike = {
   id: string | number | bigint;
   title: string;
-  domain?: Domain;
+  domain?: Domain | null;
 };
 
 export interface HubActionSummary {
@@ -84,11 +93,27 @@ export function normalizeHubSearch(searchTerm: string): string {
   return searchTerm.trim().toLowerCase();
 }
 
+export function selectHubStageContent(stage: HubPipelineStage): HubStageContentKind {
+  return stage;
+}
+
+export function resolveHubSheetSelection({
+  routeWorkId,
+  routeCertificationId,
+  activeWorkDetailId,
+  hasSelectedCertification,
+}: HubSheetSelectionInput): HubSheetSelection {
+  const workId = routeWorkId ?? activeWorkDetailId;
+  if (workId) return { kind: "work", id: workId };
+  if (routeCertificationId || hasSelectedCertification) return { kind: "certification" };
+  return null;
+}
+
 export function buildActionTitleMap(actions: ActionTitleLike[]) {
   return new Map<number, HubActionSummary>(
     actions.map((action) => {
       const summary: HubActionSummary = { title: action.title };
-      if (action.domain !== undefined) {
+      if (action.domain !== null && action.domain !== undefined) {
         summary.domain = action.domain;
       }
       return [Number(action.id), summary];
@@ -101,20 +126,17 @@ export function resolveHubRouteState({
   sortParam,
   routedWorkIdParam,
   routedAssessmentIdParam,
-  routedHistoryEventIdParam,
   activeContentId,
 }: HubRouteStateInput) {
   const isSubmitRoute = pathname.endsWith("/work/submit");
   const routeWorkId = routedWorkIdParam;
   const routeCertificationId = routedAssessmentIdParam;
-  const routeHistoryEventId = routedHistoryEventIdParam;
   const activeWorkDetailId = parseWorkDetailContentId(activeContentId);
   const activeCertificationId = parseCertificationContentId(activeContentId);
   const { routeSheetContentId, routeSheetSide } = resolveHubRouteSheet({
     isSubmitRoute,
     routeWorkId,
     routeCertificationId,
-    routeHistoryEventId,
   });
 
   return {
@@ -123,7 +145,6 @@ export function resolveHubRouteState({
     isSubmitRoute,
     requestedStage: resolvePipelineStageFromPath(pathname),
     routeCertificationId,
-    routeHistoryEventId,
     routeSheetContentId,
     routeSheetSide,
     routeWorkId,
@@ -152,7 +173,8 @@ export function buildHubStageModel({
   canManage,
   canAssess,
   canCertify,
-  canBrowseHistory,
+  canConfirm = false,
+  confirmCount = 0,
   works,
   assessments,
   hypercerts,
@@ -162,14 +184,14 @@ export function buildHubStageModel({
     work: works.filter((work) => work.status === "pending").length,
     assess: works.filter((work) => work.status === "approved").length,
     certify: assessments.filter((assessment) => !certifiedAssessmentIds.has(assessment.id)).length,
-    history: undefined,
+    confirm: confirmCount,
   };
 
   const stageVisibility: Record<HubPipelineStage, boolean> = {
     work: canManage,
     assess: canAssess,
     certify: canCertify,
-    history: canBrowseHistory,
+    confirm: canConfirm,
   };
 
   const allStages = PIPELINE_STAGE_CONFIG.map((cfg) => ({
@@ -178,7 +200,7 @@ export function buildHubStageModel({
     visible: stageVisibility[cfg.id],
   }));
   const stages = allStages.filter((stageOption) => stageOption.visible);
-  const fallbackStage = stages[0]?.id ?? "history";
+  const fallbackStage = stages[0]?.id ?? "work";
   const stage = stages.some((option) => option.id === requestedStage)
     ? requestedStage
     : fallbackStage;
@@ -196,31 +218,18 @@ export function buildHubStageModel({
 export function resolveHubRouteSelection({
   routeWorkId,
   routeCertificationId,
-  routeHistoryEventId,
   activeWorkDetailId,
   activeCertificationId,
   isSubmitRoute,
   selectedWork,
   selectedCertification,
-  selectedHistoryEvent,
 }: HubRouteSelectionInput) {
   const persistedSelectedItem =
-    routeWorkId ??
-    routeCertificationId ??
-    routeHistoryEventId ??
-    activeWorkDetailId ??
-    activeCertificationId ??
-    null;
+    routeWorkId ?? routeCertificationId ?? activeWorkDetailId ?? activeCertificationId ?? null;
 
   return {
     hasOpenHubInspector: Boolean(
-      routeWorkId ||
-        routeCertificationId ||
-        routeHistoryEventId ||
-        isSubmitRoute ||
-        selectedWork ||
-        selectedCertification ||
-        selectedHistoryEvent
+      routeWorkId || routeCertificationId || isSubmitRoute || selectedWork || selectedCertification
     ),
     persistedSelectedItem,
   };
@@ -230,22 +239,19 @@ export function resolveHubRouteSheet({
   isSubmitRoute,
   routeWorkId,
   routeCertificationId,
-  routeHistoryEventId,
 }: HubRouteSheetInput): {
   routeSheetContentId: string | null;
   routeSheetSide: AdminSheetSide | null;
 } {
   const routeSheetSide: AdminSheetSide | null =
-    isSubmitRoute || routeWorkId || routeCertificationId || routeHistoryEventId ? "left" : null;
+    isSubmitRoute || routeWorkId || routeCertificationId ? "left" : null;
   const routeSheetContentId = isSubmitRoute
     ? SUBMIT_WORK_CONTENT_ID
     : routeWorkId
       ? toWorkDetailContentId(routeWorkId)
       : routeCertificationId
         ? toCertificationContentId(routeCertificationId)
-        : routeHistoryEventId
-          ? toHistoryContentId(routeHistoryEventId)
-          : null;
+        : null;
 
   return { routeSheetContentId, routeSheetSide };
 }
@@ -256,11 +262,11 @@ export function getHubResultCount(
     pendingWorks: number;
     assessmentQueue: number;
     certificationQueue: number;
-    historyEvents: number;
+    confirmQueue?: number;
   }
 ): number {
   if (stage === "work") return counts.pendingWorks;
   if (stage === "assess") return counts.assessmentQueue;
   if (stage === "certify") return counts.certificationQueue;
-  return counts.historyEvents;
+  return counts.confirmQueue ?? 0;
 }

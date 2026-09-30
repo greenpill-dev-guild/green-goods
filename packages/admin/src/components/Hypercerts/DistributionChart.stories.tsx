@@ -1,4 +1,6 @@
-import { type Address, type AllowlistEntry, TOTAL_UNITS } from "@green-goods/shared";
+import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { AllowlistEntry } from "@green-goods/shared/types/hypercerts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { DistributionChart } from "./DistributionChart";
 
@@ -15,7 +17,7 @@ const EVEN_SHARES: AllowlistEntry[] = [
 
 const WITH_LONG_TAIL: AllowlistEntry[] = [
   entry("0x1111111111111111111111111111111111111111", 40_000_000n, "Lead gardener"),
-  entry("0x2222222222222222222222222222222222222222", 25_000_000n, "Operator"),
+  entry("0x2222222222222222222222222222222222222222", 25_000_000n, "Steward"),
   entry("0x3333333333333333333333333333333333333333", 15_000_000n, "Contributor A"),
   ...Array.from({ length: 6 }, (_, i) =>
     entry(`0x${String(i + 10).padStart(40, "0")}`, 3_333_333n, `Minor contributor ${i + 1}`)

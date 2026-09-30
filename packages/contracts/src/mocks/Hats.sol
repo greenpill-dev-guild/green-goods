@@ -188,7 +188,7 @@ contract MockHats is IHats {
             mutable_: false,
             active: true,
             admin: topHatId // Self-admin
-         });
+        });
 
         wearers[topHatId][_target] = true;
         eligibility[topHatId][_target] = true;

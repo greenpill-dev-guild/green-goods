@@ -1,0 +1,721 @@
+{
+  "tabs": [
+    {
+      "id": "client",
+      "label": "Client PWA",
+      "sections": [
+        {
+          "id": "sheet",
+          "heading": "The commitments sheet",
+          "lead": "W5. Opened from the Home header. Three tabs for a steward, two for a member; every row leads into its garden.",
+          "frames": [
+            {
+              "file": "01-home-header-badge.webp",
+              "title": "Home, header badge",
+              "state": "badge",
+              "caption": "Seven things waiting: six of the steward's own acts plus one the garden must confirm. The badge counts every tab of the sheet."
+            },
+            {
+              "file": "02-live.webp",
+              "title": "Live",
+              "state": "live",
+              "caption": "Grouped by garden, what needs you first. State chip and marker under the words."
+            },
+            {
+              "file": "03-live-scrolled.webp",
+              "title": "Live, scrolled",
+              "state": "live",
+              "caption": "Rows that need nothing sit after the ones that do."
+            },
+            {
+              "file": "04-over-time.webp",
+              "title": "Over time",
+              "state": "overtime",
+              "caption": "Settled: kept, withdrawn, lapsed."
+            },
+            {
+              "file": "05-to-confirm-stewards-only.webp",
+              "title": "To confirm (stewards only)",
+              "state": "toconfirm",
+              "caption": "What reaches you through the garden's Hat, never a Live row twice. Each row says whether it is a garden claim or a recorded commitment."
+            },
+            {
+              "file": "06-the-same-sheet-as-a-member.webp",
+              "title": "The same sheet as a member",
+              "state": "live",
+              "caption": "mockAuth=user: two tabs, no To confirm."
+            }
+          ]
+        },
+        {
+          "id": "pool",
+          "heading": "The garden pool",
+          "lead": "W1. The Pool tab of Green Goods Community Garden: the cycle rail, the charter line, direction chips, the rows, and the floating doors.",
+          "frames": [
+            {
+              "file": "07-pool-tab.webp",
+              "title": "Pool tab",
+              "state": "not-ready",
+              "caption": "Spring 2026 (2 of 6 kept) and the Community work day campaign on the rail, then the rows."
+            },
+            {
+              "file": "08-pool-rows.webp",
+              "title": "Pool rows",
+              "state": "",
+              "caption": "Withdrawn, lapsed, kept, all still readable in the pool's own list."
+            },
+            {
+              "file": "09-two-doors.webp",
+              "title": "Two doors",
+              "state": "two doors",
+              "caption": "The floating entry opens Offer and Request over a scrim; the direction is fixed by the door."
+            },
+            {
+              "file": "10-a-queued-creation.webp",
+              "title": "A queued creation",
+              "state": "queued",
+              "caption": "A commitment composed on this phone rides the top of the list: Waiting to send, saved on this phone."
+            },
+            {
+              "file": "11-a-paused-pool-growecosystems.webp",
+              "title": "A paused pool (Growecosystems)",
+              "state": "paused",
+              "caption": "The stewards' reason, resolved from its CID, above an otherwise empty pool."
+            }
+          ]
+        },
+        {
+          "id": "compose",
+          "heading": "Composing an offer",
+          "lead": "W3. Four beats: what, how much, details, review. Every field persists as a draft on the device and resumes after a restart.",
+          "frames": [
+            {
+              "file": "12-what.webp",
+              "title": "What",
+              "state": "step-what",
+              "caption": "Garden work or a service; where it runs (one open season and one campaign, so a chooser); a name."
+            },
+            {
+              "file": "13-how-much.webp",
+              "title": "How much",
+              "state": "step-howmuch",
+              "caption": "Hours, by when, and the garden's own actions as requirement rows, each with its count."
+            },
+            {
+              "file": "14-details.webp",
+              "title": "Details",
+              "state": "step-details",
+              "caption": "Who confirms, fallback and open team, a note and links."
+            },
+            {
+              "file": "15-review.webp",
+              "title": "Review",
+              "state": "step-review-read",
+              "caption": "Every answer in sections, the consequence in words, the queued note, then Make this offer once read to the end."
+            },
+            {
+              "file": "16-placed.webp",
+              "title": "Placed",
+              "state": "placed",
+              "caption": "Queued on this phone; it sends when connected."
+            },
+            {
+              "file": "17-resume-your-draft.webp",
+              "title": "Resume your draft?",
+              "state": "draft-resume",
+              "caption": "Reopening the door after a reload offers the saved draft by name."
+            }
+          ]
+        },
+        {
+          "id": "detail",
+          "heading": "One commitment, by seat",
+          "lead": "W2. The same screen reads differently from every seat: status band first, then identity, people, team, progress, work, and the one act in the bar.",
+          "frames": [
+            {
+              "file": "18-a-neighbour-s-open-offer.webp",
+              "title": "A neighbour's open offer",
+              "state": "takeUp",
+              "caption": "Bystander: Take this up."
+            },
+            {
+              "file": "19-your-own-open-offer.webp",
+              "title": "Your own open offer",
+              "state": "withdraw",
+              "caption": "Provider before anyone takes it: Withdraw, with a required reason that is pinned before the call."
+            },
+            {
+              "file": "20-leading-garden-work.webp",
+              "title": "Leading garden work",
+              "state": "provider.active",
+              "caption": "Part of this is approved; note and link from the metadata; people with You."
+            },
+            {
+              "file": "21-team-progress-work.webp",
+              "title": "Team, progress, work",
+              "state": "team \u00b7 progress",
+              "caption": "Lead and assigned rows, per-action progress never summed, the linked work, and Add proof with Link work beneath it."
+            },
+            {
+              "file": "22-link-work.webp",
+              "title": "Link work",
+              "state": "link-picker",
+              "caption": "A picker of your approved work in this garden and the row it fulfils."
+            },
+            {
+              "file": "23-an-act-already-queued.webp",
+              "title": "An act already queued",
+              "state": "queued act",
+              "caption": "After adding proof the bar is held: your last act here is waiting to send from this phone."
+            },
+            {
+              "file": "24-an-open-team.webp",
+              "title": "An open team",
+              "state": "open-member",
+              "caption": "A bystander may join; joining earns no credit by itself."
+            },
+            {
+              "file": "25-kept-by-a-steward-stepping-in.webp",
+              "title": "Kept by a steward stepping in",
+              "state": "POOL_FALLBACK",
+              "caption": "Provenance names who confirmed, by which path, and the reason on record."
+            },
+            {
+              "file": "26-lapsed.webp",
+              "title": "Lapsed",
+              "state": "offerAgain",
+              "caption": "The season moved on; Offer it again."
+            },
+            {
+              "file": "27-the-work-screen-s-fulfills-row.webp",
+              "title": "The Work screen's Fulfills row",
+              "state": "WFLOW@review",
+              "caption": "WFLOW: read from the indexer's attribution, navigable to the commitment, never editable."
+            }
+          ]
+        },
+        {
+          "id": "proof",
+          "heading": "Adding proof",
+          "lead": "W2a. Media, who did this, review. Photos and voice notes stay on the phone and publish at sync; the commitment then shows the act as waiting.",
+          "frames": [
+            {
+              "file": "28-media.webp",
+              "title": "Media",
+              "state": "media",
+              "caption": "Tap to add, camera, gallery, voice note."
+            },
+            {
+              "file": "29-media-attached.webp",
+              "title": "Media attached",
+              "state": "media",
+              "caption": "Two photos, each drawn as the picture itself."
+            },
+            {
+              "file": "30-who-did-this.webp",
+              "title": "Who did this",
+              "state": "details",
+              "caption": "Credit is a labelled choice over the active roster; the signed-in member is preselected."
+            },
+            {
+              "file": "31-review.webp",
+              "title": "Review",
+              "state": "review",
+              "caption": "What is attached, the words, who is credited, and what adding it does."
+            },
+            {
+              "file": "32-queued.webp",
+              "title": "Queued",
+              "state": "queued",
+              "caption": "On its way; it appears on the commitment once it lands."
+            }
+          ]
+        },
+        {
+          "id": "confirm",
+          "heading": "Confirming, and Not yet",
+          "lead": "W4. The sheet asks the cast's own question and offers two answers. Not yet takes a reason and raises a dispute; it never cancels anything.",
+          "frames": [
+            {
+              "file": "33-ready-for-you-to-confirm.webp",
+              "title": "Ready for you to confirm",
+              "state": "confirm",
+              "caption": "The confirmer's view of a support offer they took up."
+            },
+            {
+              "file": "34-commitment-kept-support.webp",
+              "title": "Commitment kept? (support)",
+              "state": "confirm-support",
+              "caption": "Summary, proof count, the confirmation meter, the exclusion rule, two answers."
+            },
+            {
+              "file": "35-not-yet.webp",
+              "title": "Not yet",
+              "state": "not-yet",
+              "caption": "Reason chips, the words, and what sending does."
+            },
+            {
+              "file": "36-was-the-work-you-asked-for-done.webp",
+              "title": "Was the work you asked for done?",
+              "state": "confirm-request-work",
+              "caption": "Garden work you asked for: the approved-work row joins the proof row."
+            },
+            {
+              "file": "37-a-named-group.webp",
+              "title": "A named group",
+              "state": "named group",
+              "caption": "Any 2 of the named people; 1 of 2 so far; Your turn."
+            },
+            {
+              "file": "38-recorded-for-someone.webp",
+              "title": "Recorded for someone",
+              "state": "confirm-captured",
+              "caption": "A steward recorded it for a neighbour; they remain the source, you confirm it."
+            },
+            {
+              "file": "39-a-garden-s-claim-as-its-steward.webp",
+              "title": "A garden's claim, as its steward",
+              "state": "garden claim",
+              "caption": "The garden took the offer up; its steward confirms for it, as the contract seats them."
+            }
+          ]
+        },
+        {
+          "id": "claims",
+          "heading": "Asking to take something up",
+          "lead": "W1 + W25. Steward-reviewed requests in their exact lifecycle, and the provider-context choice on the protocol pool.",
+          "frames": [
+            {
+              "file": "40-declined.webp",
+              "title": "Declined",
+              "state": "claim-declined",
+              "caption": "The steward's reason from its CID, and a fresh Ask again."
+            },
+            {
+              "file": "41-taken-up-by-another.webp",
+              "title": "Taken up by another",
+              "state": "claim-superseded",
+              "caption": "Nothing failed, nothing to retry; Back to the pool."
+            },
+            {
+              "file": "42-who-takes-this-up.webp",
+              "title": "Who takes this up",
+              "state": "W25@context-chooser",
+              "caption": "On the protocol pool: as yourself by default; a garden option appears only for that garden's stewards."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "editorial",
+      "label": "Editorial website",
+      "sections": [
+        {
+          "id": "record",
+          "heading": "The Garden's public record",
+          "lead": "<code>/gardens/:id</code> \u00a7 02, &ldquo;Commitments between neighbours&rdquo;. One editorial panel under a canvas header, carrying the pool state, lifetime made and kept, the open cycles beside their unit rows, and the finished history. Cancelled cycles, pause reasons, provider rows and addresses never appear here. Each frame shows the panel at 1280 and at 390.",
+          "frames": [
+            {
+              "file": "01-record-full.webp",
+              "title": "Record",
+              "state": "record-full",
+              "caption": "The whole record at once: the pool-state sentence beside lifetime made and kept, the open Season and the open Campaign beside the pool-wide unit rows, finished cycles newest first, and the line tying fulfilled commitments to the certificates."
+            },
+            {
+              "file": "02-record-counts-only.webp",
+              "title": "CountsOnly",
+              "state": "record-counts-only",
+              "caption": "A young pool. Plenty of commitments, but between too few people to publish a rate, so the panel shows counts and no percentage anywhere."
+            },
+            {
+              "file": "03-record-between-seasons.webp",
+              "title": "BetweenSeasons",
+              "state": "record-between-seasons",
+              "caption": "No live cycle. The lifetime aggregates and the finished history carry the section, and it still has something true to say."
+            },
+            {
+              "file": "04-record-empty-open-season.webp",
+              "title": "EmptyOpenSeason",
+              "state": "record-empty-open-season",
+              "caption": "An open Season with nothing in it yet says so, and still names itself and its dates."
+            },
+            {
+              "file": "05-record-empty-pool.webp",
+              "title": "EmptyPool",
+              "state": "record-empty-pool",
+              "caption": "An open pool where nothing has been made. The empty note stands exactly where the numbers would be, rather than a row of zeroes."
+            },
+            {
+              "file": "06-record-ready.webp",
+              "title": "Ready",
+              "state": "record-ready",
+              "caption": "Charter and baseline in place, first Season not yet seeded. Readiness copy keeps the same panel rather than hiding it."
+            },
+            {
+              "file": "07-record-pre-launch.webp",
+              "title": "PreLaunch",
+              "state": "record-pre-launch",
+              "caption": "No pool registered yet. This is also what all eighteen local pools render as today, since every one of them is still NOT_READY."
+            },
+            {
+              "file": "08-record-paused.webp",
+              "title": "Paused",
+              "state": "record-paused",
+              "caption": "A quiet period. The line is neutral, the aggregates stay, and the pause reason is never published on the editorial surface."
+            },
+            {
+              "file": "09-record-closed.webp",
+              "title": "Closed",
+              "state": "record-closed",
+              "caption": "A closed pool keeps its history on the record. Closing never removes what was kept."
+            },
+            {
+              "file": "10-record-composted.webp",
+              "title": "Composted",
+              "state": "record-composted",
+              "caption": "Composted, ready for the next Season, record intact."
+            },
+            {
+              "file": "11-record-missing-cycle-name.webp",
+              "title": "MissingCycleName",
+              "state": "record-missing-cycle-name",
+              "caption": "A cycle whose metadata could not be resolved keeps its row. The window and the counts are known even when the name is not."
+            },
+            {
+              "file": "12-record-read-error.webp",
+              "title": "ReadError",
+              "state": "record-read-error",
+              "caption": "Unknown is not zero. The read failed, so every figure is an em dash, with a retry scoped to this section alone."
+            },
+            {
+              "file": "13-record-loading.webp",
+              "title": "Loading",
+              "state": "record-loading",
+              "caption": "The page is still resolving the Garden, and the section waits with it instead of flashing an empty state."
+            }
+          ]
+        },
+        {
+          "id": "band",
+          "heading": "The protocol band",
+          "lead": "<code>/impact</code> \u00a7 02, &ldquo;Work that starts as a commitment kept.&rdquo; Four markers in the proof-marker grammar of \u00a7 01: Gardens with open pools, lifetime commitments fulfilled, the share kept, and CCIP-confirmed G$ support. A failed source renders an em dash, never a zero.",
+          "frames": [
+            {
+              "file": "14-band-live.webp",
+              "title": "Live",
+              "state": "band-live",
+              "caption": "Above the publication threshold, so the one sanctioned percentage appears: commitments kept over commitments due."
+            },
+            {
+              "file": "15-band-counts-only.webp",
+              "title": "CountsOnly",
+              "state": "band-counts-only",
+              "caption": "Three of four due. Below the threshold, the band drops to counts and shows no percentage anywhere."
+            },
+            {
+              "file": "16-band-counts-only-few-providers.webp",
+              "title": "CountsOnlyFewProviders",
+              "state": "band-counts-only-few-providers",
+              "caption": "Enough commitments this time, but too few distinct providers for a rate to describe anyone fairly. Counts only again."
+            },
+            {
+              "file": "17-band-nothing-yet.webp",
+              "title": "NothingYet",
+              "state": "band-nothing-yet",
+              "caption": "Before any pool opens. Readiness phrasing throughout, never a live zero."
+            },
+            {
+              "file": "18-band-partial-read.webp",
+              "title": "PartialRead",
+              "state": "band-partial-read",
+              "caption": "Only the settlement read failed. Its marker dashes and the other three stand."
+            },
+            {
+              "file": "19-band-unavailable.webp",
+              "title": "Unavailable",
+              "state": "band-unavailable",
+              "caption": "Every source failed: four em dashes and the partial notice, with nothing invented to fill the gap."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "label": "Admin console",
+      "sections": [
+        {
+          "id": "setup",
+          "heading": "Setting the pool up",
+          "lead": "W11. The steward's first run, and every later Season and Campaign, through one resumable write chain. Each step is judged against chain reads before and after sending, so a retry repeats only the call that did not land.",
+          "frames": [
+            {
+              "file": "01-no-pool-registered.webp",
+              "title": "Who the console is for",
+              "state": "PoolStatusCasts \u00b7 NoPoolRegistered",
+              "caption": "The gate before any of this: a member who is not a steward is told where to read the pool instead, and given nothing to press. The story is named for the unregistered cast, but the permission gate is checked first and its identity is not a steward, so this is what it renders."
+            },
+            {
+              "file": "02-setup-first-run.webp",
+              "title": "First run",
+              "state": "PoolSetupFlow \u00b7 FirstRun",
+              "caption": "The four-step flow: how, then the cycle, then the split, then open. Later intents start further in."
+            },
+            {
+              "file": "03-setup-how.webp",
+              "title": "How it works here",
+              "state": "SetupStepHow \u00b7 Prefilled",
+              "caption": "The charter sentence the garden publishes, and the cap on how many commitments one person can hold open."
+            },
+            {
+              "file": "04-setup-season.webp",
+              "title": "Naming the season",
+              "state": "SetupStepCycle \u00b7 Season",
+              "caption": "Name and window. The name is pinned as a document before the seed call, so the record can resolve it later."
+            },
+            {
+              "file": "05-setup-second-season-blocked.webp",
+              "title": "Second season blocked",
+              "state": "SetupStepCycle \u00b7 SecondSeasonBlocked",
+              "caption": "One Season at a time. The guard names the season already running rather than failing at the write."
+            },
+            {
+              "file": "06-setup-split.webp",
+              "title": "The six-role split",
+              "state": "AllocationEditor \u00b7 Standard",
+              "caption": "How a kept commitment's recognition divides. Presets first, with the treasury floor called out."
+            },
+            {
+              "file": "07-setup-invalid-sum.webp",
+              "title": "A split that does not sum",
+              "state": "AllocationEditor \u00b7 InvalidSum",
+              "caption": "It must total 100%. Caught in the editor, before anything is sent."
+            },
+            {
+              "file": "08-setup-review.webp",
+              "title": "Review, then send",
+              "state": "SetupStepOpen \u00b7 FirstRun",
+              "caption": "The last read before the ordered writes go out."
+            },
+            {
+              "file": "09-setup-partly-landed.webp",
+              "title": "Partly landed",
+              "state": "SetupFailure \u00b7 PartlyLanded",
+              "caption": "The failure that matters most: it names what already landed on chain, and the retry sends only the rest."
+            }
+          ]
+        },
+        {
+          "id": "console",
+          "heading": "The pool console",
+          "lead": "W7. <code>/garden/pool</code> in the Garden workspace. Summary, cycles, claims and commitments on the left; the pool's status and its lifecycle acts in the right rail. Stewards only.",
+          "frames": [
+            {
+              "file": "10-cockpit-garden-pool.webp",
+              "title": "Where it lives",
+              "state": "Workspaces/Garden \u00b7 Pool",
+              "caption": "The Pool tab's place in the Garden workspace: the garden switcher, the tab rail, the bottom nav. The panel itself is bare here because the route story seeds the shell but not the chain-availability gate the console checks first \u2014 the populated console is the next frame."
+            },
+            {
+              "file": "10b-console-open.webp",
+              "title": "The console, open",
+              "state": "GardenPoolTab \u00b7 Open",
+              "caption": "The same tab with a pool behind it: summary, cycles, claims and commitments down the left, status and lifecycle acts in the right rail."
+            },
+            {
+              "file": "11-status-open.webp",
+              "title": "Status, open",
+              "state": "PoolStatusCard \u00b7 Open",
+              "caption": "The chip, the charter sentence, the cap, and the acts a steward can take from here."
+            },
+            {
+              "file": "12-cycles.webp",
+              "title": "Season and campaigns",
+              "state": "PoolCyclesCard \u00b7 OpenSeasonWithCampaigns",
+              "caption": "The Season slot with campaigns as peers beside it, each with exactly one act."
+            },
+            {
+              "file": "13-commitments-open.webp",
+              "title": "Open commitments",
+              "state": "PoolCommitmentsCard \u00b7 Open",
+              "caption": "Search, then Open \u00b7 Confirmed \u00b7 Past. Rows open in the left inspector."
+            },
+            {
+              "file": "14-commitments-past-due.webp",
+              "title": "Past due",
+              "state": "PoolCommitmentsCard \u00b7 PastDue",
+              "caption": "Past due is a filter, not a state: a row stays live until the chain says Expired."
+            },
+            {
+              "file": "15-commitments-queued.webp",
+              "title": "Queued offline",
+              "state": "PoolCommitmentsCard \u00b7 Queued",
+              "caption": "Creations waiting on a connection sit above the indexed rows rather than disappearing."
+            },
+            {
+              "file": "16-claims-waiting.webp",
+              "title": "Claims waiting",
+              "state": "PoolClaimsCard \u00b7 Waiting",
+              "caption": "Requests to take something up, keyed to the stored claimant. Accept is direct; decline needs a reason."
+            },
+            {
+              "file": "17-pause-reason.webp",
+              "title": "Pausing, with a reason",
+              "state": "PoolReasonDialogs \u00b7 PausePool",
+              "caption": "Every reasoned act pins its reason as a document before the call. Suggestion chips, not a required essay."
+            },
+            {
+              "file": "18-status-paused.webp",
+              "title": "Status, paused",
+              "state": "PoolStatusCard \u00b7 Paused",
+              "caption": "While paused the acts that would add to the pool are absent, not disabled. Evidence, cancel and resolve stay."
+            },
+            {
+              "file": "19-close-confirm.webp",
+              "title": "Closing",
+              "state": "PoolDialogs \u00b7 ClosePoolConfirm",
+              "caption": "Close is offered only when nothing is live. The dialog states the zero counts it is relying on."
+            }
+          ]
+        },
+        {
+          "id": "seed",
+          "heading": "Seeding a commitment",
+          "lead": "W8. <code>/garden/pool/seed</code>. The member composer recast for a steward, with the extras a steward has: named confirmers, a threshold, and a declared reward rail.",
+          "frames": [
+            {
+              "file": "20-seed-what.webp",
+              "title": "What it is",
+              "state": "SeedStepWhat \u00b7 SeasonOffer",
+              "caption": "Kind, direction, and which cycle it belongs to, grouped Season then Campaigns then cycle-less."
+            },
+            {
+              "file": "21-seed-how-much.webp",
+              "title": "How much",
+              "state": "SeedStepHowMuch \u00b7 GardenWork",
+              "caption": "Unit label, target, due window, and the garden-work actions that will credit it."
+            },
+            {
+              "file": "22-seed-proof.webp",
+              "title": "Who confirms it",
+              "state": "SeedStepProof \u00b7 NamedGroup",
+              "caption": "A named group with a threshold, and the Green Goods team as the fallback when the ordinary path cannot be reached."
+            },
+            {
+              "file": "23-seed-reward.webp",
+              "title": "The reward rail",
+              "state": "SeedRewardSection \u00b7 CeloSettlement",
+              "caption": "Rails are exclusive and declared up front. Celo settlement carries its own explanation."
+            },
+            {
+              "file": "24-seed-review.webp",
+              "title": "Review",
+              "state": "SeedStepReview \u00b7 GardenWorkWithReward",
+              "caption": "Sectioned, so the steward reads back exactly what will be created."
+            },
+            {
+              "file": "25-seed-protocol-context.webp",
+              "title": "In the protocol pool",
+              "state": "SeedCommitmentDialog \u00b7 ProtocolContext",
+              "caption": "The same composer opened from Community, where claims default to approval-gated."
+            }
+          ]
+        },
+        {
+          "id": "inspector",
+          "heading": "One commitment, inspected",
+          "lead": "W10. <code>/garden/pool/:commitmentId</code>, a route-backed left sheet in the Garden workspace and a dialog everywhere else. Summary, alerts, facts, recovery, claims, timeline, then the acts.",
+          "frames": [
+            {
+              "file": "26-inspector-detail.webp",
+              "title": "The record",
+              "state": "CommitmentDialogPanel \u00b7 Detail",
+              "caption": "Everything known about one commitment, in the order a steward reads it."
+            },
+            {
+              "file": "27-summary-unreachable.webp",
+              "title": "The ordinary path is unreachable",
+              "state": "CommitmentSummary \u00b7 OrdinaryUnreachable",
+              "caption": "The condition that unlocks a fallback confirmation, stated before the act appears."
+            },
+            {
+              "file": "28-alerts-under-review.webp",
+              "title": "Under review",
+              "state": "CommitmentAlerts \u00b7 UnderReview",
+              "caption": "A raised dispute changes what the panel offers, and says so at the top."
+            },
+            {
+              "file": "29-recovery-assessment.webp",
+              "title": "Recovery",
+              "state": "CommitmentRecovery \u00b7 AssessmentRequired",
+              "caption": "An accepted commitment that needs an assessment attached before it can be marked ready."
+            },
+            {
+              "file": "30-actions-send.webp",
+              "title": "Sending for confirmation",
+              "state": "CommitmentActions \u00b7 SendForConfirmation",
+              "caption": "Acts are separate and each is reasoned; none of them share a button."
+            },
+            {
+              "file": "31-fallback-confirm.webp",
+              "title": "Confirming as the garden",
+              "state": "CommitmentReasonDialogs \u00b7 GardenFallbackConfirm",
+              "caption": "The fallback names whose authority is being used, and requires a reason."
+            },
+            {
+              "file": "32-resolve-withheld.webp",
+              "title": "Resolving a dispute",
+              "state": "CommitmentResolveDialog \u00b7 KeptWithheld",
+              "caption": "Four outcomes, filtered by where the reader actually stands."
+            }
+          ]
+        },
+        {
+          "id": "confirm",
+          "heading": "The confirm stage",
+          "lead": "W13. <code>/hub/confirm</code>. Everything waiting on this steward, with the count carried on the Hub rail. Ordinary rows confirm in place; fallback rows open the record first.",
+          "frames": [
+            {
+              "file": "33-cockpit-hub-confirm.webp",
+              "title": "Confirm in the cockpit",
+              "state": "Workspaces/Hub \u00b7 ConfirmQueue",
+              "caption": "The stage's place in the Hub, beside Work, Certify and History. The route story seeds the shell and not the queue, so what it shows is the empty stage; the seeded queue is next."
+            },
+            {
+              "file": "34-confirm-queue.webp",
+              "title": "The queue",
+              "state": "HubConfirmQueue \u00b7 Queue",
+              "caption": "Progress against the threshold on every row, and an eligibility badge that decides which act is offered."
+            },
+            {
+              "file": "35-confirm-empty.webp",
+              "title": "Nothing to confirm",
+              "state": "HubConfirmQueue \u00b7 Empty",
+              "caption": "The empty stage, distinct from the copy shown when a search matches nothing."
+            }
+          ]
+        },
+        {
+          "id": "protocol",
+          "heading": "The protocol pool",
+          "lead": "W12. <code>/community/pools</code>. Exactly two tabs: the protocol pool the Green Goods team runs, and a way back into this garden's own. Never another garden's pool.",
+          "frames": [
+            {
+              "file": "36-cockpit-community-pools.webp",
+              "title": "Pools in the cockpit",
+              "state": "Workspaces/Community \u00b7 Pools",
+              "caption": "The Community workspace in its Pools mode. Same caveat as the other two shells: seeded for the frame, not for the pool inside it."
+            },
+            {
+              "file": "37-protocol-pool.webp",
+              "title": "Two tabs, never three",
+              "state": "CommunityPools \u00b7 ProtocolPool",
+              "caption": "Protocol pool and This garden, and nothing else \u2014 a steward never browses another garden's pool from here. Below the rail this story falls to the same steward gate as the first frame, so what the protocol console itself looks like is the pool console frames above, in the community tone."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

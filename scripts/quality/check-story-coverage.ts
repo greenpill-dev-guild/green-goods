@@ -91,6 +91,13 @@ const NON_VISUAL_ADMIN_COMPONENTS = new Set<string>([
   // UI of its own — the dialog it drives is covered by CanvasLayout stories.
   // Re-homed here from the retired shared Canvas/LeftSheetContext.tsx.
   "components/Layout/leftSheetChannel.tsx",
+
+  // Boot sequence glue. `bootAdmin.tsx` is the entry-point orchestration
+  // (create root, load the tree, start optional services) and `AdminRoot.tsx`
+  // is the provider tree it mounts; neither has a state catalog of its own.
+  // The visible boot frames (`BootSurface.tsx`) carry the story.
+  "components/Boot/AdminRoot.tsx",
+  "components/Boot/bootAdmin.tsx",
 ]);
 
 /**
@@ -106,30 +113,21 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   // params, and workflow components. They are reviewed through their
   // composed children — we do not render a whole route inside a single
   // story.
-  "Actions/ActionDetail.tsx",
   "Actions/CreateAction.tsx",
   "Actions/EditAction.tsx",
   "Actions/GreenWillPanel.tsx",
   "Actions/index.tsx",
   "Community/index.tsx",
-  "Garden/Assessment.tsx",
   "Garden/CreateGarden.tsx",
   "Garden/HypercertDetail.tsx",
   "Garden/SignalPool.tsx",
   "Garden/Strategies.tsx",
   "Garden/SubmitWork.tsx",
   "Garden/Vault.tsx",
-  "Garden/WorkTab.tsx",
   "Garden/index.tsx",
   "Hub/CreateAssessment.tsx",
   "Hub/CreateHypercert.tsx",
   "Hub/index.tsx",
-  // Route-level Manage Members flow (route-driven, added by the Manage Members
-  // refactor). A controller composition around AddMember/Members/ManageRoles
-  // sub-modals gated on wallet-bound useGardenOperations writes — reviewed
-  // through its child dialogs, not a whole-route story. Same class as the
-  // other route-level flow views above.
-  "Garden/ManageMembers.tsx",
   "NotFound.tsx",
   "Profile/index.tsx",
 
@@ -143,7 +141,7 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   "Garden/WorkDetail/index.tsx",
 
   // Pure helpers — small visual primitives (`DetailRow`, `ReviewSummary`,
-  // `TabBadge`, `SectionStateCard`, `GardenHeroBanner`, etc.) plus
+  // `TabBadge`, `SectionStateCard`, etc.) plus
   // non-visual utilities (zod schemas, parsers). Reviewed implicitly
   // through the tab stories that consume them.
   "Garden/components/GardenDetailHelpers.tsx",

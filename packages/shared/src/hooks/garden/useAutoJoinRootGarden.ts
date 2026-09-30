@@ -17,7 +17,8 @@ import { useWriteContract } from "wagmi";
 import { toastService } from "../../components/toast";
 import { ONBOARDED_STORAGE_KEY } from "../../config/app";
 import { getWagmiConfig } from "../../config/appkit";
-import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
+import { getDefaultChain } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { trackNetworkError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
 import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
@@ -29,7 +30,7 @@ import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
-import { queryInvalidation } from "../../config/query-keys";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 
 /**
  * Session data for passkey authentication.

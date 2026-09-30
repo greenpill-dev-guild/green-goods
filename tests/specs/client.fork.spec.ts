@@ -5,10 +5,9 @@
  * These tests verify real blockchain interactions with deterministic state.
  *
  * Prerequisites:
- * - Anvil running: bun anvil:start
- * - Client dev server: bun run dev:client
+ * - Client dev server: bun run dev -- client
  *
- * Run with: bun test:e2e:fork
+ * Run with: bun run browser e2e --preset fork
  */
 import { expect, type Page, test } from "@playwright/test";
 import {
@@ -17,12 +16,7 @@ import {
   snapshotState,
   startAnvilFork,
 } from "../fixtures/anvil-fork";
-import {
-  addGardener,
-  createGarden,
-  deployMockERC20,
-  isGardener,
-} from "../fixtures/contract-helpers";
+import { createGarden, isGardener, joinGarden } from "../fixtures/contract-helpers";
 import { ClientTestHelper, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
@@ -107,17 +101,12 @@ test.describe("Fork Integration Tests", () => {
     test("can create a garden on fork", async () => {
       expect(anvilContext).toBeDefined();
 
-      // Get a community token address (use existing USDC on fork)
-      const communityToken = await deployMockERC20(anvilContext);
-      console.log(`   Community token: ${communityToken}`);
-
       // Create a garden
       const garden = await createGarden(anvilContext, {
         name: "E2E Test Garden",
         description: "Garden created during E2E test",
         bannerImage: "ipfs://test-banner",
-        communityToken,
-        operators: [anvilContext.accounts.operator.address],
+        stewards: [anvilContext.accounts.steward.address],
         gardeners: [anvilContext.accounts.gardener1.address],
       });
 
@@ -190,15 +179,13 @@ test.describe("Fork Integration Tests", () => {
       const helper = new ClientTestHelper(page);
 
       // First, create a garden on the fork
-      const communityToken = await deployMockERC20(anvilContext);
       const garden = await createGarden(anvilContext, {
         name: "Viewable Garden",
         description: "Garden visible in client",
         bannerImage: "ipfs://test",
-        communityToken,
       });
 
-      // Inject wallet auth (using deployer address who is an operator)
+      // Inject wallet auth (using deployer address who is a steward)
       await helper.injectWalletAuth(anvilContext.accounts.deployer.address);
 
       // Navigate to home
@@ -222,17 +209,15 @@ test.describe("Fork Integration Tests", () => {
   });
 
   test.describe("Gardener Operations", () => {
-    test("can add gardener to existing garden", async () => {
+    test("can join an existing garden", async () => {
       expect(anvilContext).toBeDefined();
 
       // Create a garden
-      const communityToken = await deployMockERC20(anvilContext);
       const garden = await createGarden(anvilContext, {
         name: "Gardener Test Garden",
         description: "Testing gardener addition",
         bannerImage: "ipfs://test",
-        communityToken,
-        operators: [anvilContext.accounts.operator.address],
+        stewards: [anvilContext.accounts.steward.address],
       });
 
       // Initially, gardener2 should not be a gardener
@@ -243,13 +228,8 @@ test.describe("Fork Integration Tests", () => {
       );
       expect(before).toBe(false);
 
-      // Add gardener2 using operator account
-      await addGardener(
-        anvilContext,
-        garden.address,
-        anvilContext.accounts.gardener2.address,
-        anvilContext.accounts.operator
-      );
+      // Open gardens are joined by the gardener signing their own transaction.
+      await joinGarden(anvilContext, garden.address, anvilContext.accounts.gardener2);
 
       // Now gardener2 should be a gardener
       const after = await isGardener(
@@ -258,7 +238,7 @@ test.describe("Fork Integration Tests", () => {
         anvilContext.accounts.gardener2.address
       );
       expect(after).toBe(true);
-      console.log(`   Gardener2 added to ${garden.address}`);
+      console.log(`   Gardener2 joined ${garden.address}`);
     });
   });
 });

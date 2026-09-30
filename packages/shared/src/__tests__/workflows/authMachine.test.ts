@@ -6,11 +6,17 @@
  * wallet connection, session restoration, and error handling.
  */
 
+import { createSmartAccountClientResolver } from "../../modules/auth/smartAccountClientResolver";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type AnyActorRef, createActor, fromPromise } from "xstate";
 
-import { authMachine, type PasskeySessionResult } from "../../workflows/authMachine";
-import { createMockP256Credential, flushPromises, MOCK_ADDRESSES } from "../test-utils";
+import {
+  authMachine,
+  type AuthInput,
+  type PasskeySessionResult,
+} from "../../workflows/authMachine";
+import { createMockP256Credential, MOCK_ADDRESSES } from "../test-utils/mock-factories";
+import { flushPromises } from "../test-utils/render-helpers";
 
 // ============================================================================
 // MOCK SETUP (before imports that use localStorage)
@@ -92,9 +98,12 @@ function createTestMachine(
 /**
  * Start actor and wait for it to settle
  */
-async function startAndSettle(machine: ReturnType<typeof createTestMachine>): Promise<AnyActorRef> {
+async function startAndSettle(
+  machine: ReturnType<typeof createTestMachine>,
+  input: Partial<AuthInput> = {}
+): Promise<AnyActorRef> {
   const actor = createActor(machine, {
-    input: { chainId: MOCK_CHAIN_ID, passkeyClient: null },
+    input: { chainId: MOCK_CHAIN_ID, ...input },
   });
   actor.start();
 
@@ -161,6 +170,28 @@ describe("workflows/authMachine", () => {
       expect(snapshot.matches("unauthenticated")).toBe(true);
       // Error should be cleared (we don't show error for restore failures)
       expect(snapshot.context.error).toBeNull();
+    });
+
+    it.each([
+      "wallet",
+      "embedded",
+    ] as const)("keeps a persisted %s session in an explicit restoring state", async (restoreAuthMode) => {
+      const actor = await startAndSettle(createTestMachine(), { restoreAuthMode });
+
+      expect(actor.getSnapshot().matches({ restoring: restoreAuthMode })).toBe(true);
+    });
+
+    it("restores a persisted wallet when its connector hydrates late", async () => {
+      const actor = await startAndSettle(createTestMachine(), { restoreAuthMode: "wallet" });
+
+      actor.send({
+        type: "EXTERNAL_WALLET_CONNECTED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+        connectionType: "wallet",
+      });
+
+      expect(actor.getSnapshot().matches({ authenticated: "wallet" })).toBe(true);
+      expect(actor.getSnapshot().context.walletAddress).toBe(MOCK_ADDRESSES.gardener);
     });
   });
 
@@ -345,7 +376,7 @@ describe("workflows/authMachine", () => {
       try {
         const machine = createTestMachine();
         const actor = createActor(machine, {
-          input: { chainId: MOCK_CHAIN_ID, passkeyClient: null },
+          input: { chainId: MOCK_CHAIN_ID },
         });
         actor.start();
         await vi.advanceTimersByTimeAsync(0); // settle initialization
@@ -426,7 +457,7 @@ describe("workflows/authMachine", () => {
   });
 
   describe("authenticated.wallet state", () => {
-    it("transitions to unauthenticated on EXTERNAL_WALLET_DISCONNECTED", async () => {
+    it("restores after a transient external wallet disconnect", async () => {
       const machine = createTestMachine();
       const actor = await startAndSettle(machine);
 
@@ -438,16 +469,38 @@ describe("workflows/authMachine", () => {
       actor.send({
         type: "EXTERNAL_WALLET_CONNECTED",
         address: MOCK_ADDRESSES.gardener as `0x${string}`,
+        connectionType: "wallet",
       });
 
       expect(actor.getSnapshot().matches({ authenticated: "wallet" })).toBe(true);
 
       // Disconnect
-      actor.send({ type: "EXTERNAL_WALLET_DISCONNECTED" });
+      actor.send({ type: "EXTERNAL_WALLET_DISCONNECTED", connectionType: "wallet" });
 
-      const snapshot = actor.getSnapshot();
-      expect(snapshot.matches("unauthenticated")).toBe(true);
-      expect(snapshot.context.walletAddress).toBeNull();
+      expect(actor.getSnapshot().matches({ restoring: "wallet" })).toBe(true);
+      expect(actor.getSnapshot().context.walletAddress).toBe(MOCK_ADDRESSES.gardener);
+
+      actor.send({
+        type: "EXTERNAL_WALLET_CONNECTED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+        connectionType: "wallet",
+      });
+
+      expect(actor.getSnapshot().matches({ authenticated: "wallet" })).toBe(true);
+    });
+
+    it("keeps explicit sign-out final while a wallet is restoring", async () => {
+      const actor = await startAndSettle(createTestMachine(), { restoreAuthMode: "wallet" });
+
+      actor.send({ type: "SIGN_OUT" });
+      actor.send({
+        type: "EXTERNAL_WALLET_CONNECTED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+        connectionType: "wallet",
+      });
+
+      expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
+      expect(actor.getSnapshot().context.walletAddress).toBeNull();
     });
 
     it("allows switching to passkey from wallet auth", async () => {
@@ -700,7 +753,7 @@ describe("workflows/authMachine", () => {
       // Connect external wallet first
       actor.send({
         type: "EXTERNAL_WALLET_CONNECTED",
-        address: MOCK_ADDRESSES.operator as `0x${string}`,
+        address: MOCK_ADDRESSES.steward as `0x${string}`,
       });
 
       // Enter embedded state
@@ -715,7 +768,7 @@ describe("workflows/authMachine", () => {
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.matches({ authenticated: "wallet" })).toBe(true);
-      expect(snapshot.context.walletAddress).toBe(MOCK_ADDRESSES.operator);
+      expect(snapshot.context.walletAddress).toBe(MOCK_ADDRESSES.steward);
       expect(snapshot.context.embeddedAddress).toBeNull();
     });
 
@@ -772,13 +825,13 @@ describe("workflows/authMachine", () => {
       // Connect external wallet
       actor.send({
         type: "EXTERNAL_WALLET_CONNECTED",
-        address: MOCK_ADDRESSES.operator as `0x${string}`,
+        address: MOCK_ADDRESSES.steward as `0x${string}`,
       });
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.matches({ authenticated: "embedded" })).toBe(true);
       expect(snapshot.context.externalWalletConnected).toBe(true);
-      expect(snapshot.context.externalWalletAddress).toBe(MOCK_ADDRESSES.operator);
+      expect(snapshot.context.externalWalletAddress).toBe(MOCK_ADDRESSES.steward);
     });
 
     it("tracks external wallet disconnection while in embedded state", async () => {
@@ -788,7 +841,7 @@ describe("workflows/authMachine", () => {
       // Connect external wallet, then enter embedded
       actor.send({
         type: "EXTERNAL_WALLET_CONNECTED",
-        address: MOCK_ADDRESSES.operator as `0x${string}`,
+        address: MOCK_ADDRESSES.steward as `0x${string}`,
       });
       actor.send({
         type: "LOGIN_EMBEDDED",
@@ -848,5 +901,64 @@ describe("workflows/authMachine", () => {
 
       expect(actor.getSnapshot().context.embeddedAddress).toBeNull();
     });
+  });
+});
+
+describe("passkey resolver session lifecycle", () => {
+  function session() {
+    const result = createMockPasskeySessionResult();
+    result.smartAccountClient.chain = {
+      id: MOCK_CHAIN_ID,
+    } as typeof result.smartAccountClient.chain;
+    result.resolveSmartAccountClient = createSmartAccountClientResolver({
+      credential: result.credential,
+      primaryClient: result.smartAccountClient,
+      primaryChainId: MOCK_CHAIN_ID,
+      expectedAddress: result.smartAccountAddress,
+      buildSmartAccount: vi.fn(),
+    });
+    return result;
+  }
+
+  it("revokes the old resolver immediately on sign-out and creates a new session capability", async () => {
+    const first = session();
+    const second = session();
+    const actor = await startAndSettle(
+      createTestMachine({
+        restoreSession: async () => first,
+        authenticatePasskey: async () => second,
+      })
+    );
+    expect(actor.getSnapshot().context.resolveSmartAccountClient).toBe(
+      first.resolveSmartAccountClient
+    );
+    expect(await first.resolveSmartAccountClient!(MOCK_CHAIN_ID)).toBe(first.smartAccountClient);
+    actor.send({ type: "SIGN_OUT" });
+    expect(actor.getSnapshot().context.resolveSmartAccountClient).toBeNull();
+    await expect(first.resolveSmartAccountClient!(MOCK_CHAIN_ID)).rejects.toMatchObject({
+      code: "session_expired",
+    });
+    actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME });
+    await flushPromises();
+    expect(actor.getSnapshot().context.resolveSmartAccountClient).toBe(
+      second.resolveSmartAccountClient
+    );
+    expect(await second.resolveSmartAccountClient!(MOCK_CHAIN_ID)).toBe(second.smartAccountClient);
+    await expect(first.resolveSmartAccountClient!(MOCK_CHAIN_ID)).rejects.toMatchObject({
+      code: "session_expired",
+    });
+    actor.stop();
+  });
+
+  it("revokes the passkey resolver when explicitly switching to the external wallet", async () => {
+    const result = session();
+    const actor = await startAndSettle(createTestMachine({ restoreSession: async () => result }));
+    actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: MOCK_ADDRESSES.deployer });
+    actor.send({ type: "SWITCH_TO_WALLET" });
+    expect(actor.getSnapshot().context.resolveSmartAccountClient).toBeNull();
+    await expect(result.resolveSmartAccountClient!(MOCK_CHAIN_ID)).rejects.toMatchObject({
+      code: "session_expired",
+    });
+    actor.stop();
   });
 });

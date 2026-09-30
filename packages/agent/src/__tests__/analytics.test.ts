@@ -7,6 +7,7 @@ import {
   resetAgentAnalyticsForTests,
   shutdownAgentAnalytics,
   trackAgentEvent,
+  trackGardenJoinRequestEvent,
 } from "../services/analytics";
 import type { InboundMessage } from "../types";
 import { mockPostHog } from "./setup";
@@ -76,6 +77,28 @@ describe("agent analytics", () => {
     expect(serialized).not.toContain("private message body");
     expect(serialized).not.toContain("-1002847752257");
     expect(serialized).not.toContain("telegram-message-raw-id");
+  });
+
+  it("uses one aggregate identity for privacy-safe join-request lifecycle events", async () => {
+    initAgentAnalytics({ apiKey: "phc_agent_test", enabled: true });
+
+    await trackGardenJoinRequestEvent("join_request_created", {
+      kind: "garden_membership",
+      requested_via: "garden_detail",
+      is_counterfactual: true,
+      retry: false,
+    });
+
+    expect(mockPostHog.capture).toHaveBeenCalledWith({
+      distinctId: "green-goods-agent-runtime",
+      event: "join_request_created",
+      properties: {
+        kind: "garden_membership",
+        requested_via: "garden_detail",
+        is_counterfactual: true,
+        retry: false,
+      },
+    });
   });
 
   it("swallows capture failures", async () => {

@@ -6,12 +6,14 @@ import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import type { DepositParams } from "../../types/vaults";
-import { ERC20_ALLOWANCE_ABI, OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
+import { ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis/erc20";
+import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 import {

@@ -1,6 +1,6 @@
 import { RiCheckLine } from "@remixicon/react";
 import { type ComponentType } from "react";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 // ============================================================================
 // Types
@@ -23,7 +23,7 @@ export interface AdminFilterChipProps {
  * AdminFilterChip — M3 Filter Chip
  *
  * Implements Material Design 3 filter chip anatomy:
- * - Height: 32dp (h-8)
+ * - Height: 32dp visual (h-8) with a 44px effective touch target (admin-hit-target)
  * - Shape: corner-small (8dp) via --m3-shape-sm
  * - Unselected: transparent fill, outline ring, on-surface-variant text
  * - Selected: secondary-container fill, no outline, on-secondary-container text, leading checkmark
@@ -51,8 +51,8 @@ export function AdminFilterChip({
         "h-8 rounded-[var(--m3-shape-sm)]",
         // Typography
         "text-label-lg font-medium whitespace-nowrap",
-        // State layer
-        "m3-state-layer",
+        // State layer + expanded 44px hit area (visual stays 32px)
+        "m3-state-layer admin-hit-target",
         // Focus ring
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
         // Motion

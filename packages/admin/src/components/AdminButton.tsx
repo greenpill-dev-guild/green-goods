@@ -1,13 +1,13 @@
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiLoader4Line } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@green-goods/shared";
 
 // ============================================================================
 // Variant System
 // ============================================================================
 
-export const adminButtonVariants = tv({
+const adminButtonVariants = tv({
   base: [
     // Layout & shape
     "inline-flex items-center justify-center gap-2 whitespace-nowrap",
@@ -18,8 +18,9 @@ export const adminButtonVariants = tv({
     // outlined variant rendered 2px wider than filled (measured). Outlined
     // overrides only the border COLOR.
     "border border-transparent",
-    // Typography
-    "text-label-lg font-medium capitalize",
+    // Typography — Title Case labels as authored ("Create Assessment",
+    // DL-012; en only — es/pt keep native casing); no text-transform.
+    "text-label-lg font-medium",
     // Motion
     "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
     // State layer (pseudo-element overlay defined in admin-m3-tokens.css)
@@ -29,6 +30,10 @@ export const adminButtonVariants = tv({
     // Disabled
     "disabled:pointer-events-none",
     "disabled:bg-[rgb(var(--m3-on-surface)/0.12)] disabled:text-[rgb(var(--m3-on-surface)/0.38)] disabled:shadow-none",
+    // aria-disabled looks the same but keeps focus and hover, so a reason
+    // shown on hover or focus still reaches the steward.
+    "aria-disabled:cursor-not-allowed",
+    "aria-disabled:bg-[rgb(var(--m3-on-surface)/0.12)] aria-disabled:text-[rgb(var(--m3-on-surface)/0.38)] aria-disabled:shadow-none",
   ],
   variants: {
     variant: {
@@ -73,28 +78,39 @@ export const adminButtonVariants = tv({
         "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
         "[--state-layer-color:var(--m3-on-error)]",
       ],
+      // Outlined danger — a destructive action at outlined emphasis, beside a
+      // filled primary (Reject next to Approve). The focus ring stays the tone ring.
+      outlinedDanger: [
+        "bg-transparent [color:rgb(var(--m3-error))]",
+        "border-[rgb(var(--m3-error))]",
+        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
+        "[--state-layer-color:var(--m3-error)]",
+      ],
     },
     size: {
-      // Compact dense action — 32dp. Used in list rows, table actions, and
-      // inline text-variant buttons where 40dp would feel oversized.
-      sm: "h-8 px-3 text-label-sm",
-      // Standard M3 common-button height (40dp).
-      md: "h-10 px-6 text-label-lg",
-      // Prominent first-action button (48dp).
-      lg: "h-12 px-6 text-body-lg",
+      // Compact cockpit metric (DL-011): 28 / 32 / 40. Every tier carries a
+      // 44px finger box (admin-hit-target for sm and md, the 2px-margin
+      // admin-hit-target-lg for lg) and the one 14px label (DL-030): the size
+      // difference carries the emphasis, never a type jump.
+      // Densest action — list rows, table actions, inline text buttons.
+      sm: "admin-hit-target h-7 px-2.5 text-label-lg",
+      // Standard action (32dp).
+      md: "admin-hit-target h-8 px-4 text-label-lg",
+      // Prominent first-action button (40dp).
+      lg: "admin-hit-target-lg h-10 px-5 text-label-lg",
     },
     hasLeadingIcon: {
-      true: "pl-4",
+      true: "pl-3",
       false: "",
     },
   },
   compoundVariants: [
-    // When hasLeadingIcon + md → pl-4 pr-6
-    { size: "md", hasLeadingIcon: true, class: "pl-4 pr-6" },
-    // When hasLeadingIcon + sm → pl-2 pr-3 (tight spacing for the dense size)
-    { size: "sm", hasLeadingIcon: true, class: "pl-2 pr-3" },
-    // When hasLeadingIcon + lg → pl-4 pr-6
-    { size: "lg", hasLeadingIcon: true, class: "pl-4 pr-6" },
+    // When hasLeadingIcon + md → pl-3 pr-4
+    { size: "md", hasLeadingIcon: true, class: "pl-3 pr-4" },
+    // When hasLeadingIcon + sm → pl-2 pr-2.5 (tight spacing for the dense size)
+    { size: "sm", hasLeadingIcon: true, class: "pl-2 pr-2.5" },
+    // When hasLeadingIcon + lg → pl-3.5 pr-5
+    { size: "lg", hasLeadingIcon: true, class: "pl-3.5 pr-5" },
   ],
   defaultVariants: {
     variant: "filled",
@@ -155,10 +171,12 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
 
     const classes = cn(adminButtonVariants({ variant, size, hasLeadingIcon }), className);
 
+    // 16px icons in the densest tier; 18px otherwise.
+    const iconSize = size === "sm" ? "h-4 w-4" : "h-[18px] w-[18px]";
     const leadingSlot = loading ? (
-      <RiLoader4Line className="h-[18px] w-[18px] shrink-0 animate-spin" aria-hidden />
+      <RiLoader4Line className={cn(iconSize, "shrink-0 animate-spin")} aria-hidden />
     ) : leadingIcon ? (
-      <span className="h-[18px] w-[18px] shrink-0 [&>svg]:h-full [&>svg]:w-full" aria-hidden>
+      <span className={cn(iconSize, "shrink-0 [&>svg]:h-full [&>svg]:w-full")} aria-hidden>
         {leadingIcon}
       </span>
     ) : null;
@@ -207,3 +225,132 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
 );
 
 AdminButton.displayName = "AdminButton";
+
+// ============================================================================
+// Icon Button
+// ============================================================================
+
+const adminIconButtonVariants = tv({
+  base: [
+    "inline-flex shrink-0 items-center justify-center",
+    "rounded-[var(--m3-shape-full)]",
+    "border border-transparent",
+    "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
+    "m3-state-layer",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",
+    "disabled:pointer-events-none disabled:text-[rgb(var(--m3-on-surface)/0.38)]",
+  ],
+  variants: {
+    variant: {
+      // Standard — the M3 default: on-surface-variant glyph, ink state layer.
+      standard: [
+        "bg-transparent [color:rgb(var(--m3-on-surface-variant))]",
+        "[--state-layer-color:var(--m3-on-surface)]",
+      ],
+      // Accent — tone-colored glyph for emphasized inline actions (external
+      // links, primary row actions) without a filled container.
+      accent: [
+        "bg-transparent [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
+        "[--state-layer-color:var(--m3-primary)]",
+      ],
+      // Tonal — secondary-container fill, medium emphasis.
+      tonal: [
+        "bg-[rgb(var(--m3-secondary-container))] [color:rgb(var(--m3-on-secondary-container))]",
+        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
+        "[--state-layer-color:var(--m3-on-secondary-container)]",
+        "disabled:bg-[rgb(var(--m3-on-surface)/0.12)]",
+      ],
+      // Filled — highest emphasis, workspace tone fill.
+      filled: [
+        "bg-[rgb(var(--tone-action,var(--primary-action)))] [color:rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
+        "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
+        "[--state-layer-color:var(--tone-on-action,var(--primary-action-foreground))]",
+        "disabled:bg-[rgb(var(--m3-on-surface)/0.12)]",
+      ],
+      // Danger — destructive glyph; feedback stays the error-tinted ink layer.
+      danger: [
+        "bg-transparent [color:rgb(var(--m3-error))]",
+        "[--state-layer-color:var(--m3-error)]",
+      ],
+    },
+    size: {
+      // DL-011 compact tiers; every tier carries the 44px finger box (DL-030).
+      // Glyphs ride 16px in sm, 18px in md/lg.
+      sm: "admin-hit-target h-7 w-7 [&_svg]:h-4 [&_svg]:w-4",
+      md: "admin-hit-target h-8 w-8 [&_svg]:h-[18px] [&_svg]:w-[18px]",
+      lg: "admin-hit-target-lg h-10 w-10 [&_svg]:h-[18px] [&_svg]:w-[18px]",
+    },
+  },
+  defaultVariants: {
+    variant: "standard",
+    size: "md",
+  },
+});
+
+type AdminIconButtonVariantProps = VariantProps<typeof adminIconButtonVariants>;
+
+export interface AdminIconButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    AdminIconButtonVariantProps {
+  /**
+   * Accessible name — icon buttons have no text, so the name is mandatory.
+   * Applied as aria-label and title (hover tooltip).
+   */
+  label: string;
+  /** Render as child element (Radix Slot pattern) — e.g. an anchor or Link. */
+  asChild?: boolean;
+  /** Show spinner + aria-busy in place of the glyph. */
+  loading?: boolean;
+}
+
+export const AdminIconButton = React.forwardRef<HTMLButtonElement, AdminIconButtonProps>(
+  (
+    {
+      className,
+      variant,
+      size,
+      label,
+      asChild = false,
+      loading = false,
+      disabled,
+      children,
+      type = "button",
+      ...props
+    },
+    ref
+  ) => {
+    const classes = cn(adminIconButtonVariants({ variant, size }), className);
+    const glyph = loading ? <RiLoader4Line className="animate-spin" aria-hidden /> : children;
+
+    if (asChild && React.isValidElement(children)) {
+      const child = children as React.ReactElement<SlottableChildProps>;
+      return React.cloneElement(child, {
+        ...(props as SlottableChildProps),
+        ref,
+        className: cn(classes, child.props.className),
+        "data-component": "AdminIconButton",
+        "aria-label": label,
+        title: label,
+        "aria-busy": loading || undefined,
+      });
+    }
+
+    return (
+      <button
+        ref={ref}
+        data-component="AdminIconButton"
+        className={classes}
+        disabled={disabled || loading}
+        aria-label={label}
+        title={label}
+        aria-busy={loading || undefined}
+        type={type}
+        {...props}
+      >
+        {glyph}
+      </button>
+    );
+  }
+);
+
+AdminIconButton.displayName = "AdminIconButton";

@@ -1,0 +1,290 @@
+import {
+  COMPOSER_BEATS,
+  type ComposerBeat,
+  type ComposerBlockedReason,
+  selectBeatValidity,
+} from "@green-goods/shared/hooks/client-ui/commitment/composerBeats";
+import { Button } from "@green-goods/shared/components/Button";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import {
+  COMMITMENT_NOTE_MAX_LENGTH,
+  COMMITMENT_TITLE_MAX_LENGTH,
+  COMMITMENT_UNIT_LABEL_MAX_LENGTH,
+} from "@green-goods/shared/modules/commitment-pooling/metadata";
+import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
+import { useCommitmentComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useCommitmentComposerController";
+import { useCallback, useRef, useState } from "react";
+import { useIntl } from "react-intl";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
+
+import { ComposeDetails } from "./ComposeDetails";
+import { actionUIDOf, ComposeHowMuch } from "./ComposeHowMuch";
+import { ComposeReview } from "./ComposeReview";
+import { ComposeShell } from "./ComposeShell";
+import { ComposeWhat } from "./ComposeWhat";
+
+type Direction = "OFFER" | "REQUEST";
+
+type BlockedReason = Exclude<ComposerBlockedReason, null>;
+
+const BLOCKED_REASON_IDS: Record<BlockedReason, string> = {
+  title: "app.compose.blocked.title",
+  titleTooLong: "app.compose.blocked.titleTooLong",
+  unit: "app.compose.blocked.unit",
+  unitTooLong: "app.compose.blocked.unitTooLong",
+  count: "app.compose.blocked.count",
+  action: "app.compose.blocked.action",
+  rowCount: "app.compose.blocked.rowCount",
+  closedAction: "app.compose.blocked.closedAction",
+  noteTooLong: "app.compose.blocked.noteTooLong",
+};
+
+/** The limit each too-long reason names, from the constant the composer holds it to. */
+const BLOCKED_REASON_LIMITS: Partial<Record<BlockedReason, number>> = {
+  titleTooLong: COMMITMENT_TITLE_MAX_LENGTH,
+  unitTooLong: COMMITMENT_UNIT_LABEL_MAX_LENGTH,
+  noteTooLong: COMMITMENT_NOTE_MAX_LENGTH,
+};
+
+function directionFromRoute(value: string | null): Direction | null {
+  if (value === "offer") return "OFFER";
+  if (value === "request") return "REQUEST";
+  return null;
+}
+
+/** The commitment being made again, when the link names one. Anything else is no source. */
+function sourceFromRoute(value: string | null): bigint | null {
+  return value && /^\d+$/.test(value) ? BigInt(value) : null;
+}
+
+/** Resolve the route door before mounting the form-backed controller. */
+export function ComposeCommitment() {
+  const [searchParams] = useSearchParams();
+  const direction = directionFromRoute(searchParams.get("direction"));
+  if (!direction) return <Navigate to=".." replace />;
+  return (
+    <ComposeCommitmentForm
+      direction={direction}
+      fromCommitmentId={sourceFromRoute(searchParams.get("from"))}
+    />
+  );
+}
+
+function ComposeCommitmentForm({
+  direction,
+  fromCommitmentId,
+}: {
+  direction: Direction;
+  fromCommitmentId: bigint | null;
+}) {
+  const { formatMessage, formatRelativeTime } = useIntl();
+  const navigate = useNavigate();
+  const { id: gardenAddress } = useParams<{ id: string }>();
+  const controller = useCommitmentComposerController({
+    chainId: DEFAULT_CHAIN_ID,
+    garden: gardenAddress,
+    direction,
+    defaultUnitLabel:
+      direction === "OFFER" ? formatMessage({ id: "app.compose.unit.hours" }) : undefined,
+    fromCommitmentId,
+  });
+  const [beat, setBeat] = useState<ComposerBeat>("what");
+  const [readToEnd, setReadToEnd] = useState(false);
+  const reviewEndRef = useRef<HTMLDivElement>(null);
+  const back = () => navigate("..");
+
+  const beatIndex = COMPOSER_BEATS.indexOf(beat);
+  const isReview = beat === "review";
+  const validity = selectBeatValidity(beat, controller.values, controller.closedActionUIDs);
+  const blockingReasonId = validity.reason ? BLOCKED_REASON_IDS[validity.reason] : null;
+  const blockingLimit = validity.reason ? BLOCKED_REASON_LIMITS[validity.reason] : undefined;
+  const closedActionUID = controller.closedActionUIDs[0];
+  const actTitle = formatMessage({
+    id: direction === "REQUEST" ? "app.compose.title.request" : "app.compose.title.offer",
+  });
+  const placeLabelId =
+    direction === "REQUEST"
+      ? controller.values.kind === "GARDEN_WORK"
+        ? "app.compose.place.requestWork"
+        : "app.compose.place.request"
+      : "app.compose.place.offer";
+  const actionTitle = useCallback(
+    (uid: string) =>
+      controller.actions.find((action) => actionUIDOf(action.id, DEFAULT_CHAIN_ID) === uid)
+        ?.title ?? `#${uid}`,
+    [controller.actions]
+  );
+  const onReadToEnd = useCallback(() => setReadToEnd(true), []);
+
+  if (controller.access === "barred") return <Navigate to=".." replace />;
+
+  if (controller.placed) {
+    return (
+      <ComposeShell onBack={back} title={actTitle}>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+          {/* The ending echoes the thing made and names who acts next —
+              never a generic "it is on its way". */}
+          <h1 className="text-lg font-medium text-text-strong-950">
+            {formatMessage(
+              {
+                id: controller.isOnline
+                  ? "app.compose.done.title"
+                  : "app.compose.done.offlineTitle",
+              },
+              { title: controller.values.title }
+            )}
+          </h1>
+          <p className="max-w-sm text-sm text-text-sub-600">
+            {formatMessage(
+              {
+                id: controller.isOnline ? "app.compose.done.body" : "app.compose.done.offlineBody",
+              },
+              { direction }
+            )}
+          </p>
+          <Button type="button" size="lg" onClick={back} className="mt-2">
+            {formatMessage({ id: "app.compose.done.back" })}
+          </Button>
+        </div>
+      </ComposeShell>
+    );
+  }
+
+  const primaryBlocked =
+    !validity.canAdvance ||
+    controller.isPending ||
+    (isReview && (!controller.hasPool || !controller.poolOpen || !readToEnd));
+
+  return (
+    <>
+      <ComposeShell
+        onBack={() =>
+          beatIndex === 0 ? back() : setBeat(COMPOSER_BEATS[beatIndex - 1] as ComposerBeat)
+        }
+        title={actTitle}
+        progress={beatIndex + 1}
+        bar={
+          <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            {!validity.canAdvance && blockingReasonId ? (
+              <p className="mb-2 text-xs text-text-sub-600" id="compose-blocked" role="status">
+                {formatMessage(
+                  { id: blockingReasonId },
+                  {
+                    max: blockingLimit,
+                    action: closedActionUID ? actionTitle(closedActionUID) : undefined,
+                  }
+                )}
+              </p>
+            ) : null}
+            {isReview && !readToEnd ? (
+              <Button
+                type="button"
+                emphasis="tertiary"
+                onClick={() => {
+                  reviewEndRef.current?.scrollIntoView({ block: "end" });
+                  setReadToEnd(true);
+                }}
+                className="mb-2 w-full"
+              >
+                {formatMessage({ id: "app.compose.review.readToEnd" })}
+              </Button>
+            ) : null}
+            <Button
+              aria-describedby={
+                !validity.canAdvance && blockingReasonId ? "compose-blocked" : undefined
+              }
+              type="button"
+              size="lg"
+              loading={controller.isPending}
+              disabled={primaryBlocked && !controller.isPending}
+              onClick={() =>
+                isReview
+                  ? void controller.place()
+                  : setBeat(COMPOSER_BEATS[beatIndex + 1] as ComposerBeat)
+              }
+              className="w-full"
+            >
+              {formatMessage({ id: isReview ? placeLabelId : "app.compose.next" })}
+            </Button>
+          </div>
+        }
+      >
+        {beat === "what" ? (
+          <ComposeWhat
+            form={controller.form}
+            openCycles={controller.openCycles}
+            cycleNames={controller.cycleNames}
+          />
+        ) : null}
+        {beat === "howMuch" ? (
+          <ComposeHowMuch
+            form={controller.form}
+            chainId={DEFAULT_CHAIN_ID}
+            actions={controller.actions}
+            openActions={controller.openActions}
+            closedActionUIDs={controller.closedActionUIDs}
+          />
+        ) : null}
+        {beat === "details" ? <ComposeDetails form={controller.form} /> : null}
+        {isReview ? (
+          <ComposeReview
+            values={controller.values}
+            isOnline={controller.isOnline}
+            hasPool={controller.hasPool}
+            gardenName={controller.gardenName}
+            openCycles={controller.openCycles}
+            cycleNames={controller.cycleNames}
+            actionTitle={actionTitle}
+            onReadToEnd={onReadToEnd}
+            endRef={reviewEndRef}
+          />
+        ) : null}
+      </ComposeShell>
+
+      <DialogShell
+        open={controller.draftDecision === "pending"}
+        onOpenChange={(open) => {
+          if (!open) controller.resumeDraft();
+        }}
+        title={formatMessage({ id: "app.compose.draft.title" })}
+        description={
+          controller.savedDraft
+            ? formatMessage(
+                { id: "app.compose.draft.body" },
+                {
+                  when: formatRelativeTime(
+                    Math.round((controller.savedDraft.updatedAt - Date.now()) / 60_000),
+                    "minute",
+                    { numeric: "auto" }
+                  ),
+                }
+              )
+            : undefined
+        }
+        size="md"
+        actions={{
+          primary: {
+            label: formatMessage({ id: "app.compose.draft.resume" }),
+            onClick: controller.resumeDraft,
+          },
+          secondary: {
+            label: formatMessage({ id: "app.compose.draft.fresh" }),
+            onClick: controller.startFresh,
+          },
+        }}
+      >
+        {typeof controller.savedDraft?.values.title === "string" &&
+        controller.savedDraft.values.title ? (
+          <p
+            className="truncate text-sm font-medium text-text-strong-950"
+            title={controller.savedDraft.values.title}
+          >
+            {controller.savedDraft.values.title}
+          </p>
+        ) : null}
+      </DialogShell>
+    </>
+  );
+}
+
+export default ComposeCommitment;

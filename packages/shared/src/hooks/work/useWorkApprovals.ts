@@ -1,11 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
+import { getEASConfig } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
-import { parseWorkApprovalAttestation } from "../../modules/data/eas";
+import { parseEasAttestationRecord } from "../../modules/data/eas-parse";
+import { getWorksByUIDs, parseWorkApprovalAttestation } from "../../modules/data/eas";
+import { easStoredAddress } from "../../modules/data/eas-read-validation";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
-import { type WorkApproval } from "../../types/domain";
-import { queryKeys, STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../../config/query-keys";
+import { type Address, type WorkApproval } from "../../types/domain";
+import { STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../../config/query-keys/constants";
+import { workApprovalsKeys } from "../../config/query-keys/work";
 
 // Enhanced work approval interface for UI
 export interface EnhancedWorkApproval extends WorkApproval {
@@ -16,16 +20,18 @@ export interface EnhancedWorkApproval extends WorkApproval {
   // Add missing properties that UI expects
   title: string;
   description: string;
-  gardenId: string;
+  gardenId?: Address;
+  /** The reviewed work's photos, when its attestation could be read. */
+  media?: string[];
 }
 
 // Function to get work approvals by attester address.
 // Throws on network/server errors so React Query can surface them.
 // Individual attestation parse failures are logged and skipped gracefully.
 async function getWorkApprovalsByAttester(
-  attesterAddress: string,
+  attesterAddress: Address,
   chainId: number
-): Promise<WorkApproval[]> {
+): Promise<Array<WorkApproval & { gardenId?: Address; title?: string; media?: string[] }>> {
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
       attestations(where: $where) {
@@ -46,7 +52,7 @@ async function getWorkApprovalsByAttester(
     {
       where: {
         schemaId: { equals: easConfig.WORK_APPROVAL.uid },
-        attester: { equals: attesterAddress }, // Filter by attester (reviewer)
+        attester: { equals: easStoredAddress(attesterAddress) }, // Filter by attester (reviewer)
       },
     },
     "getWorkApprovalsByAttester"
@@ -59,15 +65,9 @@ async function getWorkApprovalsByAttester(
     return [];
   }
 
-  return (data.attestations as unknown[]).flatMap((attestation: unknown) => {
+  const approvals = (data.attestations as unknown[]).flatMap((attestation: unknown) => {
     try {
-      const att = attestation as {
-        id: string;
-        attester: string;
-        recipient: string;
-        timeCreated: number;
-        decodedDataJson: string;
-      };
+      const att = parseEasAttestationRecord(attestation);
       const approval: WorkApproval = parseWorkApprovalAttestation(att);
       return [approval];
     } catch (parseError) {
@@ -79,18 +79,39 @@ async function getWorkApprovalsByAttester(
       return [];
     }
   });
+  if (approvals.length === 0) return approvals;
+
+  // An approval attestation has the work UID but no garden or photos. Resolve the
+  // linked work in one read so history cards can open their detail route and show
+  // what was reviewed.
+  try {
+    const works = await getWorksByUIDs(
+      [...new Set(approvals.map((approval) => approval.workUID))],
+      chainId
+    );
+    const byId = new Map(works.map((work) => [work.id.toLowerCase(), work]));
+    return approvals.map((approval) => {
+      const work = byId.get(approval.workUID.toLowerCase());
+      return work
+        ? { ...approval, gardenId: work.gardenAddress, title: work.title, media: work.media }
+        : approval;
+    });
+  } catch (error) {
+    logger.warn("Could not resolve gardens for reviewed work", { error, count: approvals.length });
+    return approvals;
+  }
 }
 
 /**
  * Hook for work approvals where the user is the attester (reviewer)
  * Used by WorkDashboard to show all work the user has reviewed
  */
-export function useWorkApprovals(attesterAddress?: string) {
+export function useWorkApprovals(attesterAddress?: Address) {
   const chainId = DEFAULT_CHAIN_ID;
 
   // Online work approvals query (where user is attester)
   const onlineApprovalsQuery = useQuery({
-    queryKey: queryKeys.workApprovals.byAttester(attesterAddress, chainId),
+    queryKey: workApprovalsKeys.byAttester(attesterAddress, chainId),
     queryFn: () => getWorkApprovalsByAttester(attesterAddress!, chainId),
     enabled: !!attesterAddress,
     staleTime: STALE_TIME_MEDIUM, // 30 seconds for approval updates
@@ -108,10 +129,9 @@ export function useWorkApprovals(attesterAddress?: string) {
         status: approval.approved ? "approved" : "rejected",
         size: JSON.stringify(approval).length,
         // Add missing UI properties to prevent errors
-        title: `Work ${(approval.workUID || "").slice(0, 8) || "Unknown"}...`,
+        title: approval.title || `Work ${(approval.workUID || "").slice(0, 8) || "Unknown"}...`,
         description:
           approval.feedback || `${approval.approved ? "Approved" : "Rejected"} work submission`,
-        gardenId: approval.workUID || approval.id, // Use workUID as gardenId fallback
       })
     ),
   ];
@@ -134,11 +154,12 @@ export function useWorkApprovals(attesterAddress?: string) {
     pendingCount: sortedApprovals.filter((a) => ["pending", "syncing", "failed"].includes(a.status))
       .length,
     isLoading: onlineApprovalsQuery.isLoading,
+    isFetching: onlineApprovalsQuery.isFetching,
+    /** When the review history last read successfully; 0 before the first read. */
+    dataUpdatedAt: onlineApprovalsQuery.dataUpdatedAt,
     error: onlineApprovalsQuery.error,
     hasError,
     errorMessage,
-    refetch: () => {
-      onlineApprovalsQuery.refetch();
-    },
+    refetch: () => onlineApprovalsQuery.refetch(),
   };
 }

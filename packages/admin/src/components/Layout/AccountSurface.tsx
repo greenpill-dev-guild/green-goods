@@ -1,7 +1,8 @@
-import { cn, type AccountSheetTab } from "@green-goods/shared";
+import type { AccountSheetTab } from "@green-goods/shared/hooks/admin-ui/layout/accountSheet.events";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { useIntl } from "react-intl";
-import { AccountProfilePanel } from "./AccountProfilePanel";
+import { AccountProfilePanelContainer } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 
 interface AccountSurfaceProps {
@@ -37,14 +38,12 @@ export function AccountTabList({ activeTab, onTabChange, className }: AccountTab
       idBase="account"
       tabs={ACCOUNT_TABS.map((tab) => ({
         id: tab,
-        // The identity tab is "Account" in the product vocabulary (it holds
-        // the same content as the desktop Profile sheet); the internal tab id
-        // stays "profile" so deep links (?tab=) and the sheet registry are
-        // unchanged.
+        // The identity tab takes the name of the Profile nav item that opens
+        // it and of the desktop Profile sheet that holds the same content (D8).
         label:
           tab === "settings"
             ? formatMessage({ id: "cockpit.settings.title", defaultMessage: "Settings" })
-            : formatMessage({ id: "cockpit.nav.account", defaultMessage: "Account" }),
+            : formatMessage({ id: "cockpit.nav.profile", defaultMessage: "Profile" }),
       }))}
       className={cn("w-full", className)}
     />
@@ -59,7 +58,7 @@ export function AccountTabPanels({ activeTab, className }: AccountTabPanelsProps
       aria-labelledby={`account-tab-${activeTab}`}
       className={cn("flex flex-col gap-4", className)}
     >
-      {activeTab === "settings" ? <AccountSettingsPanel /> : <AccountProfilePanel />}
+      {activeTab === "settings" ? <AccountSettingsPanel /> : <AccountProfilePanelContainer />}
     </div>
   );
 }

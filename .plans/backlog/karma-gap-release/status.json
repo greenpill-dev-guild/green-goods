@@ -1,0 +1,152 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "karma-gap-release",
+    "title": "Karma GAP Arbitrum Release",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p1",
+    "created_at": "2026-09-11T00:45:41.341Z",
+    "updated_at": "2026-09-11T00:52:07.787Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md",
+    "release_runbook": "release-runbook.md",
+    "inventory": "arbitrum-karma-inventory.ts"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "protocol-readiness",
+    "tracks": ["contracts", "indexer", "shared", "admin"],
+    "work_types": ["implementation", "ops"],
+    "surfaces": [
+      "packages/contracts/src",
+      "packages/contracts/script",
+      "packages/indexer",
+      "packages/admin/src"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Successor to the closed karma-gap-integration-repair hub: PR #775 merged the repair and PRD-839 is Done. Recover the predecessor from Git history using its .plans/ARCHIVE.md row.",
+    "No Linear mirror yet; the PRD-839 closing comment points here.",
+    "Implementation, review, deployment, reconciliation, and expansion are separate human-authorized boundaries. No test result authorizes a broadcast.",
+    "Use Bun wrappers only; never raw Forge."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-11T00:45:41.343Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-09-11T00:52:07.787Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "seeded_from_predecessor",
+      "branch": null,
+      "note": "Filled the brief, spec, plan, and eval from the closed karma-gap-integration-repair hub and carried over release-runbook.md and arbitrum-karma-inventory.ts."
+    }
+  ]
+}

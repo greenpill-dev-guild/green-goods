@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as SelectPrimitive from "@radix-ui/react-select";
 
 export interface EditorialSelectOption {

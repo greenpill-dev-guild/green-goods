@@ -61,8 +61,8 @@ export const Pending: Story = {
 };
 
 /**
- * The registry grid — the consuming view authors the `grid-cols-*` container so
- * Tailwind reaches the utilities; the card fills each cell with `h-full`.
+ * The registry grid — the consuming view authors the `grid-cols-*` container
+ * and decides the columns; the card fills each cell with `h-full`.
  */
 export const Grid: Story = {
   render: (args) => (

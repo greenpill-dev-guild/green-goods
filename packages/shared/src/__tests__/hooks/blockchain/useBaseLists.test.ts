@@ -1,17 +1,17 @@
 /**
  * useBaseLists Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the factory-generated hooks: useActions, useGardens, useGardeners.
  * These are created by createBaseListHook, which wires up TanStack Query
  * with proper caching, stale times, and placeholder data.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { onlineManager, QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockAction, createMockGarden } from "../../test-utils/mock-factories";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -22,12 +22,16 @@ const mockGetGardens = vi.fn();
 const mockGetGardeners = vi.fn();
 
 vi.mock("../../../modules/data/greengoods", () => ({
-  getActions: () => mockGetActions(),
-  getGardens: () => mockGetGardens(),
-  getGardeners: () => mockGetGardeners(),
+  getActions: (...args: unknown[]) => mockGetActions(...args),
+  getGardens: (...args: unknown[]) => mockGetGardens(...args),
+  getGardeners: (...args: unknown[]) => mockGetGardeners(...args),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -39,7 +43,9 @@ vi.mock("../../../config/appkit", () => ({
   getWagmiConfig: () => ({}),
 }));
 
+import { GARDENS_HIDDEN_EVERYWHERE } from "../../../config/garden-visibility";
 import { useActions, useGardeners, useGardens } from "../../../hooks/blockchain/useBaseLists";
+import { Capital } from "../../../types/domain";
 
 // ============================================
 // Test helpers
@@ -48,15 +54,15 @@ import { useActions, useGardeners, useGardens } from "../../../hooks/blockchain/
 function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
-      queries: { retry: false, gcTime: 0, staleTime: 0 },
+      queries: {
+        retry: false,
+        gcTime: 0,
+        staleTime: 0,
+        networkMode: "offlineFirst",
+        refetchOnReconnect: "always",
+      },
     },
   });
-}
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
 }
 
 // ============================================
@@ -71,6 +77,11 @@ describe("useBaseLists", () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    onlineManager.setOnline(true);
+    queryClient.clear();
+  });
+
   // ------------------------------------------
   // useActions
   // ------------------------------------------
@@ -80,23 +91,20 @@ describe("useBaseLists", () => {
       const mockActions = [createMockAction(), createMockAction({ title: "Second" })];
       mockGetActions.mockResolvedValue(mockActions);
 
-      const { result } = renderHook(() => useActions(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useActions(), { queryClient });
 
       // Wait for actual data (not placeholder) by checking array length
       await waitFor(() => {
         expect(result.current.data).toHaveLength(2);
       });
       expect(result.current.data).toEqual(mockActions);
+      expect(mockGetActions).toHaveBeenCalledWith();
     });
 
     it("uses the correct query key based on chain ID", async () => {
       mockGetActions.mockResolvedValue([]);
 
-      renderHook(() => useActions(42161), {
-        wrapper: createWrapper(queryClient),
-      });
+      renderHookWithQueryClient(() => useActions(42161), { queryClient });
 
       await waitFor(() => {
         expect(mockGetActions).toHaveBeenCalled();
@@ -110,9 +118,7 @@ describe("useBaseLists", () => {
     it("defaults to DEFAULT_CHAIN_ID when no chainId is provided", async () => {
       mockGetActions.mockResolvedValue([]);
 
-      renderHook(() => useActions(), {
-        wrapper: createWrapper(queryClient),
-      });
+      renderHookWithQueryClient(() => useActions(), { queryClient });
 
       await waitFor(() => {
         expect(mockGetActions).toHaveBeenCalled();
@@ -125,9 +131,7 @@ describe("useBaseLists", () => {
     it("uses actions-specific stale time", async () => {
       mockGetActions.mockResolvedValue([]);
 
-      renderHook(() => useActions(), {
-        wrapper: createWrapper(queryClient),
-      });
+      renderHookWithQueryClient(() => useActions(), { queryClient });
 
       await waitFor(() => {
         expect(mockGetActions).toHaveBeenCalled();
@@ -136,10 +140,10 @@ describe("useBaseLists", () => {
       const query = queryClient.getQueryCache().find({
         queryKey: ["greengoods", "actions", 11155111],
       });
-      expect(query?.options.staleTime).toBe(60_000);
+      expect((query?.options as { staleTime?: number }).staleTime).toBe(60_000);
     });
 
-    it("provides empty array as placeholder data", async () => {
+    it("does not manufacture an empty list while the first fetch is pending", async () => {
       // Set up a fetch that doesn't resolve immediately
       let resolvePromise: (value: unknown[]) => void;
       mockGetActions.mockReturnValue(
@@ -148,12 +152,10 @@ describe("useBaseLists", () => {
         })
       );
 
-      const { result } = renderHook(() => useActions(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useActions(), { queryClient });
 
-      // While loading, placeholderData should provide an empty array
-      expect(result.current.data).toEqual([]);
+      expect(result.current.data).toBeUndefined();
+      expect(result.current.isPending).toBe(true);
 
       // Resolve the fetch
       resolvePromise!([createMockAction()]);
@@ -162,12 +164,23 @@ describe("useBaseLists", () => {
       });
     });
 
+    it("parses capital names in a list an older build cached", () => {
+      // Restoring that cache skips the fetch that parses the indexer's names.
+      queryClient.setQueryData(
+        ["greengoods", "actions", 11155111],
+        [createMockAction({ capitals: ["MATERIAL", "UNKNOWN", "SOCIAL"] as unknown as Capital[] })]
+      );
+      mockGetActions.mockReturnValue(new Promise(() => {}));
+
+      const { result } = renderHookWithQueryClient(() => useActions(), { queryClient });
+
+      expect(result.current.data?.[0].capitals).toEqual([Capital.MATERIAL, Capital.SOCIAL]);
+    });
+
     it("sets error state on fetch failure", async () => {
       mockGetActions.mockRejectedValue(new Error("GraphQL error"));
 
-      const { result } = renderHook(() => useActions(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useActions(), { queryClient });
 
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
@@ -185,22 +198,19 @@ describe("useBaseLists", () => {
       const mockGardens = [createMockGarden(), createMockGarden({ name: "Garden B" })];
       mockGetGardens.mockResolvedValue(mockGardens);
 
-      const { result } = renderHook(() => useGardens(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useGardens(), { queryClient });
 
       await waitFor(() => {
         expect(result.current.data).toHaveLength(2);
       });
       expect(result.current.data).toEqual(mockGardens);
+      expect(mockGetGardens).toHaveBeenCalledWith();
     });
 
     it("caches with chain-specific query key", async () => {
       mockGetGardens.mockResolvedValue([]);
 
-      renderHook(() => useGardens(11155111), {
-        wrapper: createWrapper(queryClient),
-      });
+      renderHookWithQueryClient(() => useGardens(11155111), { queryClient });
 
       await waitFor(() => {
         expect(mockGetGardens).toHaveBeenCalled();
@@ -213,14 +223,93 @@ describe("useBaseLists", () => {
     it("handles empty response", async () => {
       mockGetGardens.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useGardens(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useGardens(), { queryClient });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
       expect(result.current.data).toEqual([]);
+    });
+
+    it("drops a garden since hidden everywhere from a list an older build cached", () => {
+      // An offline restore keeps that list, and the fetch that filters it may not come.
+      queryClient.setQueryData(
+        ["greengoods", "gardens", 11155111],
+        [
+          createMockGarden({ id: GARDENS_HIDDEN_EVERYWHERE[0].address, name: "Hidden" }),
+          createMockGarden({ id: "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3", name: "TAS HUB" }),
+        ]
+      );
+      mockGetGardens.mockReturnValue(new Promise(() => {}));
+
+      const { result } = renderHookWithQueryClient(() => useGardens(), { queryClient });
+
+      expect(result.current.data?.map((garden) => garden.name)).toEqual(["TAS HUB"]);
+    });
+
+    it("keeps warm gardens after a failed refresh and refreshes on reconnect", async () => {
+      const cachedGardens = [createMockGarden({ name: "Cached Garden" })];
+      const refreshedGardens = [createMockGarden({ name: "Refreshed Garden" })];
+      mockGetGardens
+        .mockResolvedValueOnce(cachedGardens)
+        .mockRejectedValueOnce(new Error("Indexer unavailable"))
+        .mockResolvedValueOnce(refreshedGardens);
+
+      const { result } = renderHookWithQueryClient(() => useGardens(), { queryClient });
+
+      await waitFor(() => {
+        expect(result.current.data).toEqual(cachedGardens);
+      });
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+
+      expect(mockGetGardens).toHaveBeenCalledTimes(2);
+      expect(result.current.data).toEqual(cachedGardens);
+      expect(queryClient.getQueryData(["greengoods", "gardens", 11155111])).toEqual(cachedGardens);
+
+      act(() => onlineManager.setOnline(false));
+      act(() => onlineManager.setOnline(true));
+
+      await waitFor(() => {
+        expect(result.current.data).toEqual(refreshedGardens);
+      });
+    });
+
+    it("keeps cached gardens through a failed reconnect and allows a later retry", async () => {
+      const cachedGardens = [createMockGarden({ name: "Cached Garden" })];
+      const recoveredGardens = [createMockGarden({ name: "Recovered Garden" })];
+      mockGetGardens
+        .mockResolvedValueOnce(cachedGardens)
+        .mockRejectedValueOnce(new Error("Offline"))
+        .mockRejectedValueOnce(new Error("Indexer still unavailable"))
+        .mockResolvedValueOnce(recoveredGardens);
+
+      const { result } = renderHookWithQueryClient(() => useGardens(), { queryClient });
+
+      await waitFor(() => {
+        expect(result.current.data).toEqual(cachedGardens);
+      });
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+      expect(mockGetGardens).toHaveBeenCalledTimes(2);
+
+      act(() => onlineManager.setOnline(false));
+      act(() => onlineManager.setOnline(true));
+      await waitFor(() => {
+        expect(mockGetGardens).toHaveBeenCalledTimes(3);
+      });
+      expect(result.current.data).toEqual(cachedGardens);
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+      await waitFor(() => {
+        expect(result.current.data).toEqual(recoveredGardens);
+      });
     });
   });
 
@@ -236,22 +325,19 @@ describe("useBaseLists", () => {
       ];
       mockGetGardeners.mockResolvedValue(mockGardenersList);
 
-      const { result } = renderHook(() => useGardeners(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useGardeners(), { queryClient });
 
       await waitFor(() => {
         expect(result.current.data).toHaveLength(2);
       });
       expect(result.current.data).toEqual(mockGardenersList);
+      expect(mockGetGardeners).toHaveBeenCalledWith();
     });
 
     it("uses the gardeners.all query key (no chain scoping)", async () => {
       mockGetGardeners.mockResolvedValue([]);
 
-      renderHook(() => useGardeners(), {
-        wrapper: createWrapper(queryClient),
-      });
+      renderHookWithQueryClient(() => useGardeners(), { queryClient });
 
       await waitFor(() => {
         expect(mockGetGardeners).toHaveBeenCalled();
@@ -265,9 +351,7 @@ describe("useBaseLists", () => {
     it("handles error from gardeners fetch", async () => {
       mockGetGardeners.mockRejectedValue(new Error("Indexer unreachable"));
 
-      const { result } = renderHook(() => useGardeners(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useGardeners(), { queryClient });
 
       await waitFor(() => {
         expect(result.current.isError).toBe(true);

@@ -2,45 +2,161 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { basename, posix, resolve } from "node:path";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+
+import { parseBaseArgs, resolveGitBase } from "../lib/git-guardrails.mjs";
+import { STAGED_MARKER, STAGED_MODULES } from "./check-staged-modules.mjs";
 
 const repoRoot = resolve(new URL("../..", import.meta.url).pathname);
 const NEW_FILE_MAX_LINES = 350;
 const MODIFIED_FILE_MAX_LINES = 500;
-const ZERO_SHA = "0000000000000000000000000000000000000000";
+// Declaration-only Solidity interfaces (src/interfaces/I*.sol with no function
+// bodies) carry no implementation complexity: their length is a direct projection
+// of a contract's frozen ABI surface, and Solidity's qualified-access rules
+// (`IExample.Member` never resolves through inheritance) mean splitting one
+// rewrites every consumer of every type, error, and event it declares —
+// measured at 1,347 references across 50 files for ICommitmentPoolingModule.
+// They get a wide cap instead of a split demand; anything past it is a sign the
+// underlying contract surface itself needs decomposition. Decision: PR #694.
+const DECLARATION_ONLY_INTERFACE_MAX_LINES = 1200;
+const STRUCTURE_BASELINE_PATH = "scripts/data/source-structure-baseline.json";
 
-const FROZEN_ALLOWLIST = {
-  "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx": 542,
-  "packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.tsx": 503,
-  "packages/admin/src/components/Layout/CommandPalette.tsx": 559,
-  "packages/admin/src/views/Garden/CreateAssessment.tsx": 580,
-  "packages/admin/src/views/Garden/SubmitWork.tsx": 513,
-  "packages/admin/src/views/Hub/index.tsx": 591,
-  "packages/agent/src/services/db.ts": 553,
-  "packages/client/src/components/Dialogs/ConvictionDrawer.tsx": 538,
-  "packages/client/src/views/Garden/index.tsx": 601,
-  "packages/client/src/views/Garden/Media.tsx": 534,
-  "packages/client/src/views/Home/Garden/Work.tsx": 646,
-  "packages/client/src/views/Home/WorkDashboard/index.tsx": 503,
-  "packages/contracts/src/modules/Gardens.sol": 845,
+const ALLOWED_TOP_LEVEL_DIRECTORIES = {
+  admin: new Set(["components", "routes", "styles", "views"]),
+  agent: new Set(["api", "handlers", "platforms", "runtime", "services"]),
+  // `sw` is the service worker's own source, bundled separately from the app.
+  client: new Set(["components", "config", "content", "routes", "styles", "sw", "views"]),
+  contracts: new Set([
+    "accounts",
+    "interfaces",
+    "libraries",
+    "markets",
+    "mocks",
+    "modules",
+    "registries",
+    "resolvers",
+    "strategies",
+    "tokens",
+  ]),
+  indexer: new Set(["handlers"]),
+  shared: new Set([
+    "__mocks__",
+    "admin",
+    "commitment-pooling",
+    "components",
+    "config",
+    "hooks",
+    "i18n",
+    "lib",
+    "modules",
+    "ontology",
+    "profile-avatar",
+    "providers",
+    "public-contracts",
+    "stores",
+    "styles",
+    "types",
+    "utils",
+    "workflows",
+  ]),
+};
+
+const ALLOWED_ROOT_SOURCE_FILES = {
+  admin: new Set(["App.tsx", "main.tsx", "router.tsx"]),
+  agent: new Set(["config.ts", "i18n.ts", "index.ts", "types.ts"]),
+  client: new Set([
+    "App.tsx",
+    "PublicApp.tsx",
+    "PwaApp.tsx",
+    "bootstrapPublic.tsx",
+    "bootstrapPwa.tsx",
+    "main.tsx",
+    "router.tsx",
+    "webmcp.ts",
+  ]),
+  contracts: new Set(["CommonErrors.sol", "Schemas.sol"]),
+  indexer: new Set(["EventHandlers.ts"]),
+  shared: new Set(["index.ts"]),
+};
+
+/**
+ * True for Solidity files under an interfaces/ directory whose top-level
+ * declarations are exclusively `interface` blocks (no contract/library/function
+ * bodies — `;`-terminated members only).
+ */
+function isDeclarationOnlySolidityInterface(filePath) {
+  if (!/packages\/[^/]+\/src\/interfaces\/I[A-Za-z0-9]*\.sol$/.test(filePath)) return false;
+  const absolutePath = resolve(repoRoot, filePath);
+  if (!existsSync(absolutePath)) return false;
+  const source = readFileSync(absolutePath, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "");
+  const declarations = [...source.matchAll(/^\s*(abstract\s+contract|contract|library|interface)\b/gm)];
+  if (declarations.length === 0 || declarations.some(([, kind]) => kind !== "interface")) return false;
+  // A function body inside an interface file (even a free function) disqualifies it.
+  return !/\bfunction\b[^;{]*\{/.test(source);
+}
+
+// Frozen ceilings for files that were already above MODIFIED_FILE_MAX_LINES when
+// the gate was adopted. An entry may never grow; touching a file above its ceiling
+// fails until it is brought back down. When a file shrinks, lower its entry to the
+// new count. When a file drops below MODIFIED_FILE_MAX_LINES, delete its entry so
+// the normal cap governs it again. Entries are keyed by path, so a file keeps its
+// ceiling through a move only when its entry moves with it, unchanged.
+//
+// Re-baselined 2026-07-30: the original ceilings were captured months before the
+// check was wired into CI, and 17 entries had drifted above them in the meantime —
+// which meant the next edit to any of those files owed an unrelated shrink before it
+// could merge. Ceilings now reflect measured reality, and every oversized file is
+// listed (the previous list covered 32 of 63, so 31 oversized files had no ceiling
+// at all and would have tripped the blanket cap on first touch).
+export const FROZEN_ALLOWLIST = {
+  "packages/admin/src/components/Action/ActionTranslationEditor.tsx": 746,
+  "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx": 545,
+  "packages/admin/src/components/Garden/GardenSettingsEditor.tsx": 626,
+  "packages/agent/src/handlers/index.ts": 508,
+  "packages/agent/src/platforms/telegram.ts": 590,
+  "packages/agent/src/services/blockchain.ts": 627,
+  "packages/client/src/components/Sheets/ConvictionSheet.tsx": 569,
+  "packages/client/src/components/Errors/AppErrorBoundary.tsx": 520,
+  "packages/client/src/components/Errors/RouteErrorBoundary.tsx": 522,
+  "packages/client/src/components/Public/PublicCookieJarCard.tsx": 756,
+  "packages/client/src/components/Public/PublicEndowmentPanel.tsx": 719,
+  "packages/client/src/components/Public/PublicFundingCard.tsx": 1010,
+  "packages/client/src/components/Public/Vault/VaultCardEndowFlow.tsx": 1503,
+  "packages/client/src/components/Public/Vault/VaultCardPaymentPanel.tsx": 705,
+  "packages/client/src/components/Public/Vault/VaultCardWalletManage.tsx": 688,
+  "packages/client/src/components/Public/Vault/VaultCheckoutDialog.tsx": 1171,
+  "packages/client/src/components/Public/Vault/VaultManagePositionsPanel.tsx": 923,
+  "packages/client/src/components/Public/atoms/EditorialAtoms.tsx": 538,
+  "packages/client/src/views/Garden/Media.tsx": 728,
+  "packages/client/src/views/Public/Fund.tsx": 775,
+  "packages/client/src/views/Public/Impact.tsx": 627,
+  "packages/contracts/src/modules/Gardens.sol": 914,
   "packages/contracts/src/modules/Hats.sol": 851,
   "packages/contracts/src/modules/Octant.sol": 769,
-  "packages/contracts/src/resolvers/Yield.sol": 841,
-  "packages/contracts/src/tokens/Garden.sol": 527,
-  "packages/shared/src/components/Toast/toast.service.tsx": 664,
-  "packages/shared/src/hooks/work/useWorkApproval.ts": 535,
-  "packages/shared/src/hooks/work/useWorkMutation.ts": 612,
-  "packages/shared/src/index.ts": 1024,
-  "packages/shared/src/modules/app/posthog.ts": 528,
-  "packages/shared/src/modules/data/eas.ts": 618,
+  "packages/contracts/src/resolvers/Yield.sol": 899,
+  "packages/contracts/src/tokens/Garden.sol": 502,
+  "packages/shared/src/components/Toast/toast.service.tsx": 799,
+  "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 568,
+  "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts": 727,
+  "packages/shared/src/hooks/index.ts": 604,
+  "packages/shared/src/hooks/work/useWorkMutation.ts": 528,
+  "packages/shared/src/index.ts": 1418,
+  "packages/shared/src/modules/app/analytics-events.ts": 520,
+  "packages/shared/src/modules/app/posthog.ts": 577,
   "packages/shared/src/modules/data/marketplace.ts": 550,
-  "packages/shared/src/modules/job-queue/db.ts": 540,
-  "packages/shared/src/modules/job-queue/index.ts": 544,
-  "packages/shared/src/providers/Auth.tsx": 633,
-  "packages/shared/src/types/domain.ts": 553,
-  "packages/shared/src/utils/errors/contract-errors.ts": 605,
-  "packages/shared/src/utils/time.ts": 576,
-  "packages/shared/src/workflows/authMachine.ts": 722,
+  "packages/shared/src/modules/job-queue/db.ts": 536,
+  "packages/shared/src/providers/Auth.tsx": 739,
+  "packages/shared/src/public-contracts/index.ts": 582,
+  "packages/shared/src/types/domain.ts": 614,
+  "packages/shared/src/utils/action/translations.ts": 564,
+  "packages/shared/src/utils/cookie-jar-campaign.ts": 501,
+  "packages/shared/src/utils/errors/contract-errors.ts": 823,
+  "packages/shared/src/utils/time.ts": 536,
+  "packages/shared/src/workflows/authMachine.ts": 724,
 };
 
 function runGit(args, { allowFailure = false } = {}) {
@@ -63,18 +179,20 @@ function runGit(args, { allowFailure = false } = {}) {
   }
 }
 
-function parseArgs(argv) {
-  const args = { base: process.env.SOURCE_STRUCTURE_BASE_REF || "" };
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-    if (token === "--base") {
-      args.base = argv[index + 1] || "";
-      index += 1;
-    }
+// Resolve the base the way the other diff-aware checks do: an explicit --base, then CI's
+// SOURCE_STRUCTURE_BASE_REF, then origin/develop. A ref that does not resolve, such as a push
+// event's all-zero `before`, falls through to the next candidate.
+function resolveStructureBase(argv) {
+  try {
+    return resolveGitBase({
+      repoRoot,
+      explicitBase: parseBaseArgs(argv).base,
+      environmentVariables: ["SOURCE_STRUCTURE_BASE_REF"],
+    });
+  } catch (error) {
+    console.error(`❌ check-source-structure: ${error.message}`);
+    process.exit(2);
   }
-
-  return args;
 }
 
 function listFromGit(args, options) {
@@ -133,6 +251,437 @@ function isRelevantSourceFile(filePath) {
   return true;
 }
 
+function isStructurePolicyFile(filePath) {
+  if (!isPackageSourcePath(filePath)) return false;
+  if (!/\.(ts|tsx|sol)$/.test(filePath) || /\.d\.ts$/.test(filePath)) return false;
+  if (isGeneratedOrVendoredPath(filePath) || isTestOrStoryPath(filePath)) return false;
+  return true;
+}
+
+function packageSourceParts(filePath) {
+  const match = filePath.match(/^packages\/([^/]+)\/src\/(.+)$/);
+  if (!match) return null;
+  return { packageName: match[1], sourcePath: match[2], parts: match[2].split("/") };
+}
+
+function readSource(root, filePath) {
+  return readFileSync(resolve(root, filePath), "utf8");
+}
+
+function sourceImportSpecifiers(source) {
+  const matches = source.matchAll(
+    /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s*|\brequire\s*\(\s*)["']([^"']+)["']/g,
+  );
+  return [...matches].map((match) => match[1]);
+}
+
+// Reuse Shared's declared parser dependency; protected boundaries need real imports,
+// including types/re-exports, without treating commented examples as dependencies.
+const sharedRequire = createRequire(new URL("../../packages/shared/package.json", import.meta.url));
+
+function protectedImportSpecifiers(filePath, source) {
+  const { parse } = sharedRequire("@babel/parser");
+  const tree = parse(source, {
+    sourceType: "module",
+    plugins: filePath.endsWith(".tsx") ? ["typescript", "jsx"] : ["typescript"],
+  });
+  const specifiers = new Set();
+  function visit(node) {
+    if (!node || typeof node !== "object") return;
+    if (
+      ["ImportDeclaration", "ExportNamedDeclaration", "ExportAllDeclaration", "ImportExpression", "TSImportType"].includes(node.type) &&
+      node.source?.type === "StringLiteral"
+    ) {
+      specifiers.add(node.source.value);
+    }
+    if (node.type === "TSExternalModuleReference" && node.expression?.type === "StringLiteral") {
+      specifiers.add(node.expression.value);
+    }
+    if (
+      node.type === "CallExpression" &&
+      (node.callee?.type === "Import" || node.callee?.name === "require") &&
+      node.arguments[0]?.type === "StringLiteral"
+    ) {
+      specifiers.add(node.arguments[0].value);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === "object") visit(value);
+    }
+  }
+  visit(tree.program);
+  return [...specifiers];
+}
+
+function sharedDependencyPath(filePath, specifier, sharedExports) {
+  let target;
+  if (specifier.startsWith(".")) target = posix.join(posix.dirname(filePath), specifier);
+  else if (specifier === "@green-goods/shared") target = "packages/shared/src/index";
+  else if (specifier.startsWith("@shared/")) {
+    target = `packages/shared/src/${specifier.slice("@shared/".length)}`;
+  }
+  else if (specifier.startsWith("@green-goods/shared/")) {
+    const key = `./${specifier.slice("@green-goods/shared/".length)}`;
+    const declared = sharedExports[key];
+    target = typeof declared === "string"
+      ? posix.join("packages/shared", declared)
+      : `packages/shared/src/${key.slice(2).replace(/^src\//, "")}`;
+  } else return null;
+  return posix.normalize(target)
+    .replace(/\.(?:[cm]?[jt]sx?)$/, "")
+    .replace(/\/index$/, "")
+    .replace(/\/$/, "");
+}
+
+function capabilityBoundaryViolations(filePath, source, sharedExports) {
+  const transitions = filePath.startsWith("packages/shared/src/stores/transitions/");
+  const genericAccount = /^packages\/shared\/src\/modules\/(auth|wallet)\//.test(filePath);
+  if (!transitions && !genericAccount) return [];
+  return protectedImportSpecifiers(filePath, source).flatMap((specifier) => {
+    const target = sharedDependencyPath(filePath, specifier, sharedExports);
+    const mixedBarrel = ["packages/shared/src", "packages/shared/src/modules"].includes(target);
+    const uiDependency = transitions &&
+      /^packages\/shared\/src\/(hooks|providers|components)(?:\/|$)/.test(target);
+    const featureDependency = genericAccount &&
+      /^packages\/shared\/src\/(?:modules\/)?(profile-avatar|commitment-pooling)(?:\/|$)/.test(target);
+    if (!mixedBarrel && !uiDependency && !featureDependency) return [];
+    const reason = mixedBarrel
+      ? "use a capability leaf instead of a mixed Shared barrel"
+      : uiDependency
+        ? "store transitions cannot depend on UI hooks, providers, or components"
+        : "generic auth/wallet modules cannot depend on avatar or commitment-pooling features";
+    return [{
+      id: `capability-boundary:${filePath}:${specifier}`,
+      rule: "capability-boundary",
+      path: filePath,
+      baselineEligible: false,
+      message: `${filePath}: ${specifier}: ${reason}; see .claude/context/codebase-architecture.md`,
+    }];
+  });
+}
+
+function sharedExportMatches(exportKey, requestedKey) {
+  if (!exportKey.includes("*")) return exportKey === requestedKey;
+  const [prefix, suffix] = exportKey.split("*");
+  return requestedKey.startsWith(prefix) && requestedKey.endsWith(suffix);
+}
+
+function isDeclaredSharedSpecifier(specifier, sharedExportKeys) {
+  if (specifier === "@green-goods/shared") return sharedExportKeys.has(".");
+  if (!specifier.startsWith("@green-goods/shared/")) return true;
+  if (specifier.startsWith("@green-goods/shared/src/")) return false;
+  const requestedKey = `./${specifier.slice("@green-goods/shared/".length)}`;
+  return [...sharedExportKeys].some((exportKey) => sharedExportMatches(exportKey, requestedKey));
+}
+
+function primaryValueExport(source) {
+  const match = source.match(
+    /\bexport\s+(?:default\s+)?(?:async\s+)?(?:function|class|const|let|var)\s+([A-Za-z_$][\w$]*)/,
+  );
+  return match?.[1] ?? null;
+}
+
+function exportedValueNames(source) {
+  const names = new Set();
+  for (const match of source.matchAll(
+    /\bexport\s+(?:default\s+)?(?:async\s+)?(?:function|class|const|let|var)\s+([A-Za-z_$][\w$]*)/g,
+  )) {
+    names.add(match[1]);
+  }
+  const defaultIdentifier = source.match(/\bexport\s+default\s+([A-Za-z_$][\w$]*)\s*;?/);
+  if (defaultIdentifier) names.add(defaultIdentifier[1]);
+  for (const block of source.matchAll(/\bexport\s*{([^}]+)}/g)) {
+    for (const item of block[1].split(",")) {
+      const match = item.trim().match(/(?:^|\bas\s+)([A-Za-z_$][\w$]*)$/);
+      if (match) names.add(match[1]);
+    }
+  }
+  return [...names];
+}
+
+function hookDefinitions(source) {
+  const names = new Set();
+  for (const match of source.matchAll(
+    /\b(?:export\s+)?(?:async\s+)?function\s+(use[A-Z][A-Za-z0-9_$]*)\b/g,
+  )) {
+    names.add(match[1]);
+  }
+  for (const match of source.matchAll(
+    /\b(?:export\s+)?(?:const|let|var)\s+(use[A-Z][A-Za-z0-9_$]*)\b/g,
+  )) {
+    names.add(match[1]);
+  }
+  return [...names].sort();
+}
+
+function isMarkedStagedModule(root, filePath, stagedModulePaths) {
+  return (
+    stagedModulePaths.has(filePath) &&
+    existsSync(resolve(root, filePath)) &&
+    readSource(root, filePath).includes(STAGED_MARKER)
+  );
+}
+
+function namingViolation(root, filePath) {
+  if (!filePath.startsWith("packages/client/src/")) return null;
+  const sourceParts = packageSourceParts(filePath);
+  if (
+    sourceParts?.parts.length === 1 &&
+    ALLOWED_ROOT_SOURCE_FILES.client.has(sourceParts.parts[0])
+  ) {
+    return null;
+  }
+  const filename = basename(filePath);
+  const stem = filename.replace(/\.(tsx|ts)$/, "");
+  if (stem === "index" || /\.d\.ts$/.test(filename)) return null;
+  if (stem.includes("-")) {
+    return {
+      id: `naming:${filePath}:no-hyphens`,
+      rule: "naming",
+      path: filePath,
+      baselineEligible: true,
+      message: `${filePath}: client source filenames cannot contain hyphens`,
+    };
+  }
+
+  const name = stem.split(".")[0];
+  const source = readSource(root, filePath);
+  const primaryExport = filename.endsWith(".tsx") ? primaryValueExport(source) : null;
+  const componentFile =
+    filename.endsWith(".tsx") &&
+    (exportedValueNames(source).some(
+      (exportName) => /^[A-Z]/.test(exportName) && !/^[A-Z0-9_]+$/.test(exportName),
+    ) || /\bexport\s+default\s+(?:async\s+)?(?:function\s*\(|\(?[^=]*\)?\s*=>)/.test(source));
+  const validName = componentFile ? /^[A-Z][A-Za-z0-9]*$/.test(name) : /^[a-z][A-Za-z0-9]*$/.test(name);
+  if (validName) return null;
+  const expected = componentFile ? "PascalCase" : "camelCase";
+  return {
+    id: `naming:${filePath}:${expected}`,
+    rule: "naming",
+    path: filePath,
+    baselineEligible: true,
+    message: `${filePath}: primary export ${primaryExport ?? "is a module"}; filename must use ${expected}`,
+  };
+}
+
+// Import seams keep a test from loading whole subtrees it never uses: Admin and Client reach Shared
+// only through declared leaves, and Shared reaches its own modules through leaves rather than
+// high-fanout barrels. They cover every Admin and Client file, tests and stories included, and
+// Shared's production files other than the barrels themselves.
+const EXACT_SHARED_ROOT =
+  /(?:from\s+|import\s*\(|import\s+|vi\.(?:mock|importActual)\s*\()\s*["']@green-goods\/shared["']/;
+const BROAD_CONSUMER_BARREL =
+  /@green-goods\/shared\/(?:components|config|constants|hooks|i18n|mocks|modules|profile-avatar|providers|public-contracts|stores|testing|types|utils|workflows)(?=["'])/;
+const SHARED_SPECIFIER =
+  /(?:from\s+|import\s*\(\s*|import\s+|vi\.(?:mock|importActual)\s*\(\s*)["'](@green-goods\/shared(?:\/[^"']+)?)["']/g;
+const MOCKED_SPECIFIER = /vi\.(?:mock|importActual)\s*\(\s*["']([^"']+)["']/g;
+const DEEP_RELATIVE_SHARED_SOURCE =
+  /(?:from\s+|import\s*\(|vi\.(?:mock|importActual)\s*\()\s*["'][^"']*shared\/src\//;
+const SHARED_INTERNAL_BARREL =
+  /from\s+["'][^"']*\/(?:config(?:\/query-keys)?|hooks|modules(?:\/data\/ipfs|\/job-queue|\/marketplace)?|public-contracts(?:\/saved-offers)?|utils(?:\/blockchain\/abis)?)["']/;
+const QUERY_KEY_REGISTRY = /from\s+["'][^"']*config\/query-keys\/registry["']/;
+const DEFAULT_CHAIN_FROM_BLOCKCHAIN = /DEFAULT_CHAIN_ID[^\n]*from\s+["'][^"']*config\/blockchain["']/;
+
+function withoutComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+}
+
+function isSharedBarrelOrTestFile(filePath) {
+  return (
+    /\/(?:__tests__|__mocks__)\//.test(filePath) ||
+    /\.(?:test|spec|stories)\.(?:ts|tsx)$/.test(filePath) ||
+    filePath.endsWith("/index.ts")
+  );
+}
+
+function importSeamViolations(root, filePaths, sharedExportKeys) {
+  const violations = [];
+  const violation = (filePath, check, message) =>
+    violations.push({
+      id: `import-seam:${filePath}:${check}`,
+      rule: "import-seam",
+      path: filePath,
+      baselineEligible: false,
+      message: `${filePath}: ${message}`,
+    });
+  for (const filePath of filePaths) {
+    if (!/\.(?:ts|tsx)$/.test(filePath) || !existsSync(resolve(root, filePath))) continue;
+    const consumer = /^packages\/(?:admin|client)\/src\//.test(filePath);
+    const shared = filePath.startsWith("packages/shared/src/") && !isSharedBarrelOrTestFile(filePath);
+    if (!consumer && !shared) continue;
+    const source = withoutComments(readSource(root, filePath));
+    if (EXACT_SHARED_ROOT.test(source)) {
+      violation(
+        filePath,
+        "shared-root",
+        consumer ? "import a declared Shared leaf, not the package root" : "Shared must not import its own package root",
+      );
+    }
+    if (shared) {
+      if (QUERY_KEY_REGISTRY.test(source)) {
+        violation(filePath, "query-key-registry", "import the domain query-key leaf, not the registry");
+      }
+      if (SHARED_INTERNAL_BARREL.test(source)) {
+        violation(filePath, "internal-barrel", "import an internal leaf instead of a high-fanout barrel");
+      }
+      if (DEFAULT_CHAIN_FROM_BLOCKCHAIN.test(source)) {
+        violation(filePath, "default-chain", "import DEFAULT_CHAIN_ID from config/default-chain");
+      }
+      continue;
+    }
+    if (BROAD_CONSUMER_BARREL.test(source)) {
+      violation(filePath, "broad-barrel", "do not restore a broad Shared barrel");
+    }
+    if (DEEP_RELATIVE_SHARED_SOURCE.test(source)) {
+      violation(filePath, "deep-relative", "reach Shared through its package exports, not a relative path");
+    }
+    // Production files' imports are the shared-import rule's; this adds tests, stories and mocks.
+    const specifiers = isStructurePolicyFile(filePath)
+      ? [...source.matchAll(MOCKED_SPECIFIER)].map((match) => match[1])
+      : [...source.matchAll(SHARED_SPECIFIER)].map((match) => match[1]);
+    for (const specifier of new Set(specifiers)) {
+      if (!isDeclaredSharedSpecifier(specifier, sharedExportKeys)) {
+        violation(filePath, `undeclared:${specifier}`, `${specifier} is not a declared @green-goods/shared export`);
+      }
+    }
+  }
+  return violations;
+}
+
+export function collectStructureViolations({
+  root,
+  filePaths,
+  changedFilePaths = filePaths,
+  consumerFilePaths = filePaths,
+  stagedModulePaths = [],
+  sharedExportKeys = new Set(["."]),
+}) {
+  const sharedManifestPath = resolve(root, "packages/shared/package.json");
+  const sharedExports = existsSync(sharedManifestPath)
+    ? JSON.parse(readFileSync(sharedManifestPath, "utf8")).exports ?? {}
+    : {};
+  const violations = [];
+  const staged = new Set(stagedModulePaths);
+  const policyFiles = filePaths.filter(isStructurePolicyFile).filter((filePath) =>
+    existsSync(resolve(root, filePath)),
+  );
+
+  for (const filePath of policyFiles) {
+    const sourceParts = packageSourceParts(filePath);
+    if (!sourceParts) continue;
+    const { packageName, parts } = sourceParts;
+    const allowedDirectories = ALLOWED_TOP_LEVEL_DIRECTORIES[packageName];
+    const allowedRootFiles = ALLOWED_ROOT_SOURCE_FILES[packageName];
+    if (allowedDirectories && allowedRootFiles) {
+      if (parts.length === 1 && !allowedRootFiles.has(parts[0])) {
+        violations.push({
+          id: `placement:${filePath}:root-file`,
+          rule: "placement",
+          path: filePath,
+          baselineEligible: true,
+          message: `${filePath}: loose package-root source is not declared`,
+        });
+      } else if (parts.length > 1 && !allowedDirectories.has(parts[0])) {
+        violations.push({
+          id: `placement:${filePath}:top-level-directory`,
+          rule: "placement",
+          path: filePath,
+          baselineEligible: true,
+          message: `${filePath}: top-level source directory ${parts[0]} is not declared for ${packageName}`,
+        });
+      }
+    }
+
+    const markedStaged = isMarkedStagedModule(root, filePath, staged);
+    if (!markedStaged) {
+      const violation = namingViolation(root, filePath);
+      if (violation) violations.push(violation);
+    }
+
+    const source = readSource(root, filePath);
+    violations.push(...capabilityBoundaryViolations(filePath, source, sharedExports));
+    if (packageName !== "shared") {
+      for (const hookName of hookDefinitions(source)) {
+        violations.push({
+          id: `hook-location:${filePath}:${hookName}`,
+          rule: "hook-location",
+          path: filePath,
+          baselineEligible: true,
+          message: `${filePath}: ${hookName} is defined outside packages/shared`,
+        });
+      }
+    }
+
+    for (const specifier of sourceImportSpecifiers(source)) {
+      if (!isDeclaredSharedSpecifier(specifier, sharedExportKeys)) {
+        violations.push({
+          id: `shared-import:${filePath}:${specifier}`,
+          rule: "shared-import",
+          path: filePath,
+          baselineEligible: true,
+          message: `${filePath}: ${specifier} is not a declared @green-goods/shared export`,
+        });
+      }
+    }
+  }
+
+  const consumers = consumerFilePaths
+    .filter((filePath) => /\.(js|jsx|ts|tsx)$/.test(filePath))
+    .filter((filePath) => !isGeneratedOrVendoredPath(filePath))
+    .filter((filePath) => existsSync(resolve(root, filePath)))
+    .map((filePath) => ({ filePath, source: readSource(root, filePath) }));
+
+  for (const filePath of changedFilePaths.filter(isStructurePolicyFile)) {
+    if (!existsSync(resolve(root, filePath))) continue;
+    if (basename(filePath).startsWith("index.")) continue;
+    const sourceParts = packageSourceParts(filePath);
+    if (
+      sourceParts?.parts.length === 1 &&
+      ALLOWED_ROOT_SOURCE_FILES[sourceParts.packageName]?.has(sourceParts.parts[0])
+    ) {
+      continue;
+    }
+    if (isMarkedStagedModule(root, filePath, staged)) continue;
+    const source = readSource(root, filePath);
+    for (const exportName of exportedValueNames(source)) {
+      const word = new RegExp(`\\b${exportName.replace(/[$]/g, "\\$")}\\b`);
+      const hasConsumer = consumers.some(
+        (consumer) => consumer.filePath !== filePath && word.test(consumer.source),
+      );
+      if (hasConsumer) continue;
+      violations.push({
+        id: `dead-export:${filePath}:${exportName}`,
+        rule: "dead-export",
+        path: filePath,
+        baselineEligible: false,
+        message: `${filePath}: exported ${exportName} has no production consumer`,
+      });
+    }
+  }
+
+  violations.push(...importSeamViolations(root, filePaths, sharedExportKeys));
+  return violations.sort((left, right) => left.id.localeCompare(right.id));
+}
+
+export function reconcileStructureBaseline(violations, baselineIds) {
+  const currentBaselineIds = new Set(
+    violations.filter((violation) => violation.baselineEligible).map((violation) => violation.id),
+  );
+  return {
+    newViolations: violations.filter(
+      (violation) => !violation.baselineEligible || !baselineIds.has(violation.id),
+    ),
+    staleBaselineIds: [...baselineIds]
+      .filter((baselineId) => !currentBaselineIds.has(baselineId))
+      .sort(),
+  };
+}
+
+export function findStructureBaselineGrowth(baselineIds, previousBaselineIds) {
+  if (previousBaselineIds === null) return [];
+  return [...baselineIds].filter((baselineId) => !previousBaselineIds.has(baselineId)).sort();
+}
+
 function isDisallowedJavaScriptSourceFile(filePath) {
   if (!isPackageSourcePath(filePath)) {
     return false;
@@ -153,40 +702,111 @@ function isDisallowedJavaScriptSourceFile(filePath) {
   return true;
 }
 
+function mergeBaseWith(baseRef) {
+  return runGit(["merge-base", "HEAD", baseRef], { allowFailure: true }) || baseRef;
+}
+
+// Added, modified and moved files as `git diff --name-status -z` reports them. Rename detection is
+// pinned on, as CI's git has it, so personal git config cannot change which files are judged.
+function diffEntries(revisions) {
+  const fields = runGit([
+    "-c",
+    "diff.renames=true",
+    "diff",
+    "--name-status",
+    "-z",
+    "--diff-filter=AMR",
+    ...revisions,
+  ]).split("\0");
+  const entries = [];
+  for (let index = 0; index + 1 < fields.length; ) {
+    const status = fields[index];
+    if (status.startsWith("R")) {
+      entries.push({ status: "R", from: fields[index + 1], path: fields[index + 2] });
+      index += 3;
+    } else {
+      entries.push({ status, path: fields[index + 1] });
+      index += 2;
+    }
+  }
+  return entries;
+}
+
+// Judge committed work against the base, as CI judges the pushed head, and uncommitted and
+// untracked work as well. Judging only the working tree let a committed violation pass the local
+// push gate and fail CI on the same head (PR #898). A moved file is judged at its new path as a
+// modified file: dropping renames let a file moved and grown in one change pass unchecked, and
+// judging them as added would hold every move to the new-file cap.
 function resolveChangedFiles(baseRef) {
   const changed = new Set();
   const added = new Set();
-
-  if (baseRef && baseRef !== ZERO_SHA) {
-    const mergeBase = runGit(["merge-base", "HEAD", baseRef], { allowFailure: true });
-    const diffBase = mergeBase || baseRef;
-
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=AM", `${diffBase}...HEAD`])) {
-      changed.add(filePath);
+  const movedFrom = new Map();
+  const collect = (revisions) => {
+    for (const { status, path, from } of diffEntries(revisions)) {
+      changed.add(path);
+      if (status === "A") added.add(path);
+      if (status === "R") {
+        // A committed move followed by an uncommitted one traces back to the original path, and
+        // a file this branch added stays new wherever it moves.
+        movedFrom.set(path, movedFrom.get(from) ?? from);
+        if (added.has(from)) added.add(path);
+      }
     }
+  };
 
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=A", `${diffBase}...HEAD`])) {
-      added.add(filePath);
-    }
-  } else {
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=AM", "HEAD"])) {
-      changed.add(filePath);
-    }
-
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=A", "HEAD"])) {
-      added.add(filePath);
-    }
-
-    for (const filePath of listFromGit(["ls-files", "--others", "--exclude-standard"])) {
-      changed.add(filePath);
-      added.add(filePath);
-    }
+  if (baseRef) {
+    collect([`${mergeBaseWith(baseRef)}...HEAD`]);
+  }
+  collect(["HEAD"]);
+  for (const filePath of listFromGit(["ls-files", "--others", "--exclude-standard"])) {
+    changed.add(filePath);
+    added.add(filePath);
   }
 
   return {
     changed: Array.from(changed).sort(),
     added,
+    movedFrom,
   };
+}
+
+function resolveAllFiles() {
+  return [...new Set([
+    ...listFromGit(["ls-files"]),
+    ...listFromGit(["ls-files", "--others", "--exclude-standard"]),
+  ])].sort();
+}
+
+function parseStructureBaseline(source) {
+  const parsed = JSON.parse(source);
+  if (parsed.version !== 1 || !Array.isArray(parsed.violations)) {
+    throw new Error(`${STRUCTURE_BASELINE_PATH}: expected version 1 with a violations array`);
+  }
+  if (parsed.violations.some((violation) => typeof violation !== "string")) {
+    throw new Error(`${STRUCTURE_BASELINE_PATH}: every violation ID must be a string`);
+  }
+  const unique = new Set(parsed.violations);
+  if (unique.size !== parsed.violations.length) {
+    throw new Error(`${STRUCTURE_BASELINE_PATH}: duplicate violation IDs are not allowed`);
+  }
+  return unique;
+}
+
+function loadStructureBaseline() {
+  const absolutePath = resolve(repoRoot, STRUCTURE_BASELINE_PATH);
+  if (!existsSync(absolutePath)) return new Set();
+  return parseStructureBaseline(readFileSync(absolutePath, "utf8"));
+}
+
+function loadPreviousStructureBaseline(baseRef) {
+  const ref = baseRef ? mergeBaseWith(baseRef) : "HEAD";
+  const source = runGit(["show", `${ref}:${STRUCTURE_BASELINE_PATH}`], { allowFailure: true });
+  return source ? parseStructureBaseline(source) : null;
+}
+
+function loadSharedExportKeys() {
+  const packageJson = JSON.parse(readFileSync(resolve(repoRoot, "packages/shared/package.json"), "utf8"));
+  return new Set(Object.keys(packageJson.exports ?? {}));
 }
 
 function readLineCount(filePath) {
@@ -202,10 +822,32 @@ function printFailure(messageLines) {
   }
   console.error("");
   console.error(
-    "Remediation: split responsibilities into smaller modules, extract helpers/components, or reduce the touched file back under its frozen ceiling before merge.",
+    "Remediation: remove duplication or reuse a cohesive existing module. Extract only for a justified responsibility or boundary, never solely for file length; follow .claude/context/codebase-architecture.md and stay under the frozen ceiling.",
   );
   console.error(
-    "Wave 1 does not raise allowlist ceilings in the same change. If a ceiling is wrong after a shrink, lower the allowlist to the new line count instead.",
+    "Do not raise an allowlist ceiling to make a change fit. If a ceiling is wrong after a shrink, lower it to the new line count instead.",
+  );
+  process.exit(1);
+}
+
+function printPolicyFailure(newViolations, staleBaselineIds, grownBaselineIds) {
+  console.error("❌ check-source-structure found source-policy drift:");
+  for (const violation of newViolations) {
+    console.error(`- [${violation.rule}] ${violation.message}`);
+    console.error(`  baseline id: ${violation.id}`);
+  }
+  for (const baselineId of staleBaselineIds) {
+    console.error(`- [stale-baseline] ${baselineId}`);
+  }
+  for (const baselineId of grownBaselineIds) {
+    console.error(`- [baseline-growth] ${baselineId}`);
+  }
+  console.error("");
+  console.error(
+    "Remediation: fix new violations. When a known violation is removed, delete its exact ID from scripts/data/source-structure-baseline.json in the same change.",
+  );
+  console.error(
+    "Do not add baseline entries for new work. The baseline records pre-enforcement debt and may only shrink.",
   );
   process.exit(1);
 }
@@ -222,58 +864,113 @@ function printDisallowedJavaScriptFailure(filePaths) {
   process.exit(1);
 }
 
-const { base } = parseArgs(process.argv.slice(2));
-const { changed, added } = resolveChangedFiles(base);
-const disallowedJavaScriptFiles = changed
-  .filter(isDisallowedJavaScriptSourceFile)
-  .filter((filePath) => existsSync(resolve(repoRoot, filePath)));
-const relevantFiles = changed.filter(isRelevantSourceFile).filter((filePath) => existsSync(resolve(repoRoot, filePath)));
+function run() {
+  const base = resolveStructureBase(process.argv.slice(2));
+  const { changed, added, movedFrom } = resolveChangedFiles(base);
+  const allFiles = resolveAllFiles();
+  const disallowedJavaScriptFiles = changed
+    .filter(isDisallowedJavaScriptSourceFile)
+    .filter((filePath) => existsSync(resolve(repoRoot, filePath)));
+  const relevantFiles = changed
+    .filter(isRelevantSourceFile)
+    .filter((filePath) => existsSync(resolve(repoRoot, filePath)));
 
-if (disallowedJavaScriptFiles.length > 0) {
-  printDisallowedJavaScriptFailure(disallowedJavaScriptFiles);
-}
+  if (disallowedJavaScriptFiles.length > 0) {
+    printDisallowedJavaScriptFailure(disallowedJavaScriptFiles);
+  }
 
-if (relevantFiles.length === 0) {
-  console.log("✅ check-source-structure: no changed non-test source files in scope.");
-  process.exit(0);
-}
+  let baselineIds;
+  try {
+    baselineIds = loadStructureBaseline();
+  } catch (error) {
+    console.error(`❌ check-source-structure could not load its baseline: ${error.message}`);
+    process.exit(2);
+  }
+  const policyViolations = collectStructureViolations({
+    root: repoRoot,
+    filePaths: allFiles,
+    changedFilePaths: changed,
+    consumerFilePaths: allFiles,
+    stagedModulePaths: STAGED_MODULES,
+    sharedExportKeys: loadSharedExportKeys(),
+  });
+  const { newViolations, staleBaselineIds } = reconcileStructureBaseline(
+    policyViolations,
+    baselineIds,
+  );
+  const grownBaselineIds = findStructureBaselineGrowth(
+    baselineIds,
+    loadPreviousStructureBaseline(base),
+  );
+  if (newViolations.length > 0 || staleBaselineIds.length > 0 || grownBaselineIds.length > 0) {
+    printPolicyFailure(newViolations, staleBaselineIds, grownBaselineIds);
+  }
 
-const failures = [];
-let allowlistedChecks = 0;
+  const failures = [];
+  let allowlistedChecks = 0;
+  for (const filePath of relevantFiles) {
+    const lineCount = readLineCount(filePath);
+    const frozenCeiling = FROZEN_ALLOWLIST[filePath];
 
-for (const filePath of relevantFiles) {
-  const lineCount = readLineCount(filePath);
-  const frozenCeiling = FROZEN_ALLOWLIST[filePath];
+    if (frozenCeiling !== undefined) {
+      allowlistedChecks += 1;
+      if (lineCount > frozenCeiling) {
+        failures.push(
+          `- ${filePath}: ${lineCount} lines, above frozen ceiling ${frozenCeiling}. Reduce this file back to ${frozenCeiling} lines or below before merge; an allowlisted file may not grow.`,
+        );
+      }
+      continue;
+    }
 
-  if (frozenCeiling !== undefined) {
-    allowlistedChecks += 1;
+    if (isDeclarationOnlySolidityInterface(filePath)) {
+      if (lineCount > DECLARATION_ONLY_INTERFACE_MAX_LINES) {
+        failures.push(
+          `- ${filePath}: declaration-only interface at ${lineCount} lines (limit ${DECLARATION_ONLY_INTERFACE_MAX_LINES}). A surface this wide needs the underlying contract decomposed, not a wider cap.`,
+        );
+      }
+      continue;
+    }
 
-    if (lineCount > frozenCeiling) {
+    if (added.has(filePath) && lineCount > NEW_FILE_MAX_LINES) {
       failures.push(
-        `- ${filePath}: ${lineCount} lines, above frozen ceiling ${frozenCeiling}. Reduce this file back to ${frozenCeiling} lines or below before merge; Wave 1 does not allow this file to grow.`,
+        `- ${filePath}: new file at ${lineCount} lines (limit ${NEW_FILE_MAX_LINES}). Split the new implementation into smaller files; new files do not get allowlist entries.`,
+      );
+      continue;
+    }
+
+    const originalPath = movedFrom.get(filePath);
+    const originalCeiling =
+      originalPath === undefined ? undefined : FROZEN_ALLOWLIST[originalPath];
+    if (originalCeiling !== undefined && lineCount > MODIFIED_FILE_MAX_LINES) {
+      const grown =
+        lineCount > originalCeiling
+          ? `, and bring the file back to ${originalCeiling} lines or below`
+          : "";
+      failures.push(
+        `- ${filePath}: ${lineCount} lines, moved from ${originalPath}, which has a frozen ceiling of ${originalCeiling}. Rename its FROZEN_ALLOWLIST entry to the new path and keep the ceiling at ${originalCeiling}${grown}.`,
+      );
+      continue;
+    }
+
+    if (lineCount > MODIFIED_FILE_MAX_LINES) {
+      failures.push(
+        `- ${filePath}: modified file at ${lineCount} lines (limit ${MODIFIED_FILE_MAX_LINES}). Extract helpers, subcomponents, or shared modules before merge instead of widening the cap.`,
       );
     }
-    continue;
   }
 
-  if (added.has(filePath) && lineCount > NEW_FILE_MAX_LINES) {
-    failures.push(
-      `- ${filePath}: new file at ${lineCount} lines (limit ${NEW_FILE_MAX_LINES}). Split the new implementation into smaller files; new files do not get Wave 1 allowlist entries.`,
-    );
-    continue;
+  if (failures.length > 0) {
+    printFailure(failures);
   }
 
-  if (lineCount > MODIFIED_FILE_MAX_LINES) {
-    failures.push(
-      `- ${filePath}: modified file at ${lineCount} lines (limit ${MODIFIED_FILE_MAX_LINES}). Extract helpers, subcomponents, or shared modules before merge instead of widening the cap.`,
-    );
-  }
+  const scope = base
+    ? `against ${base} and the working tree`
+    : "in the working tree only, because no base ref resolved";
+  console.log(
+    `✅ check-source-structure: ${policyViolations.length} known policy violation(s) matched the shrinking baseline; checked ${relevantFiles.length} changed non-test source file(s) ${scope}; ${allowlistedChecks} oversized baseline file(s) stayed within frozen ceilings.`,
+  );
 }
 
-if (failures.length > 0) {
-  printFailure(failures);
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  run();
 }
-
-console.log(
-  `✅ check-source-structure: checked ${relevantFiles.length} changed non-test source file(s); ${allowlistedChecks} oversized baseline file(s) stayed within frozen ceilings.`,
-);

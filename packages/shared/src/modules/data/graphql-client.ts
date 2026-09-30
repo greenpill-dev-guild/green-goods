@@ -3,6 +3,7 @@ import { GraphQLClient, type RequestDocument } from "graphql-request";
 
 import { getEasGraphqlUrl, getIndexerUrl } from "../../config/blockchain";
 import { trackGraphQLError } from "../app/error-tracking";
+import { connectivityStore } from "../../stores/connectivity";
 
 /** Vite environment interface for indexer URL access */
 interface ViteEnv {
@@ -51,11 +52,19 @@ export function withTimeout<T>(
   });
 }
 
+export interface GraphQLReader {
+  query<TData, TVariables extends Record<string, unknown> = Record<string, unknown>>(
+    document: TypedDocumentNode<TData, TVariables> | RequestDocument,
+    variables?: TVariables,
+    operationName?: string
+  ): Promise<{ data: TData; error?: undefined } | { data?: undefined; error: Error }>;
+}
+
 /**
  * Lightweight GraphQL client wrapper using graphql-request
  * Provides a consistent interface for all GraphQL operations
  */
-export class GQLClient {
+export class GQLClient implements GraphQLReader {
   private client: GraphQLClient;
 
   constructor(url: string) {
@@ -90,17 +99,21 @@ export class GQLClient {
     } catch (error) {
       const normalizedError = error instanceof Error ? error : new Error(String(error));
 
-      trackGraphQLError(normalizedError, {
-        source: "GQLClient.query",
-        userAction: operationName ? `executing ${operationName} query` : "executing GraphQL query",
-        recoverable: true,
-        metadata: {
-          operation_name: operationName,
-          is_timeout: error instanceof TimeoutError,
-          timeout_ms: error instanceof TimeoutError ? error.timeoutMs : undefined,
-          is_offline: typeof navigator !== "undefined" ? !navigator.onLine : false,
-        },
-      });
+      if (connectivityStore.getStatusSnapshot().state !== "offline") {
+        trackGraphQLError(normalizedError, {
+          source: "GQLClient.query",
+          userAction: operationName
+            ? `executing ${operationName} query`
+            : "executing GraphQL query",
+          recoverable: true,
+          metadata: {
+            operation_name: operationName,
+            is_timeout: error instanceof TimeoutError,
+            timeout_ms: error instanceof TimeoutError ? error.timeoutMs : undefined,
+            is_offline: false,
+          },
+        });
+      }
 
       return { error: normalizedError };
     }

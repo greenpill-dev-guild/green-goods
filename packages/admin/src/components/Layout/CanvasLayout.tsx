@@ -1,174 +1,23 @@
-import {
-  FabProvider,
-  RefreshActionProvider,
-  GardenChip,
-  MainSheet,
-  NavigationBar,
-  AppBar,
-  NotificationPanel,
-  ACCOUNT_TAB_SEARCH_PARAM,
-  ADMIN_WORKSPACE_VIEWS,
-  NOTIFICATIONS_SHEET_CONTENT_ID,
-  OPEN_ACCOUNT_SHEET_EVENT,
-  parseAccountSheetTab,
-  PROFILE_SHEET_CONTENT_ID,
-  SETTINGS_SHEET_CONTENT_ID,
-  toAccountSheetContentId,
-  useAdminGardenWorkspaceSelection,
-  useAdminRightSheetDescriptor,
-  useAuth,
-  useEligibleAdminGardens,
-  useEffectiveToolbarPermissions,
-  useFabConfigValue,
-  useGardenDerivedState,
-  useGardenDetailData,
-  useGardenUrlSync,
-  adminRoutes,
-  formatRelativeTime,
-  getAdminWorkspaceForPath,
-  getAdminWorkspaceRoot,
-  resolveAdminWorkspaceSectionRoute,
-  useDocumentEvent,
-  useMediaQuery,
-  useSheetOrchestrator,
-  compareAddresses,
-  type AccountSheetTab,
-  type AdminRightSheetContentId,
-  type AdminWorkspaceSectionTab,
-  type NavigationBarProps,
-  type NotificationPanelItem,
-  type NotificationPanelSection,
-  type OpenAccountSheetEventDetail,
-  type ToolbarSlot,
-} from "@green-goods/shared";
-import { RiUserLine } from "@remixicon/react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FabProvider } from "@green-goods/shared/components/Canvas/FabContext";
+import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
+import { RefreshActionProvider } from "@green-goods/shared/components/Canvas/RefreshActionContext";
+import { useCanvasShellController } from "@green-goods/shared/hooks/admin-ui/layout/useCanvasShellController";
+import { memo, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
-import { AdminDialog } from "@/components/AdminDialog";
 import { AdminSideSheet } from "@/components/AdminSideSheet";
-import { useLocation, useNavigate } from "react-router-dom";
+import { AppBar, MainSheet } from "@/components/Shell";
 import { releaseStuckDialogArtifacts } from "./dialogCloseSafetyNet";
-import { LeftSheetProvider, useLeftSheetConfigValue } from "./leftSheetChannel";
-import { AccountProfilePanel } from "./AccountProfilePanel";
+import { LeftSheetProvider } from "./leftSheetChannel";
+import { AccountProfilePanelContainer } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
+import { AdminNotificationPanel } from "./AdminNotificationPanel";
+import { FabAwareNavigationBar, ProfiledNavigationBar } from "./canvasChromeProbe";
 import { CommandPalette } from "./CommandPalette";
+import { LeftInspectorDialog } from "./LeftInspectorDialog";
 import { PageTransition } from "./PageTransition";
-
-type CanvasChromeProbeComponent = "CanvasLayout" | "FabAwareNavigationBar" | "NavigationBar";
-type CanvasChromeProbePhase = "render" | "mount" | "update" | "unmount";
-
-interface CanvasChromeProbeStats {
-  renders: number;
-  mounts: number;
-  updates: number;
-  unmounts: number;
-  lastDetail?: unknown;
-}
-
-interface CanvasChromeProbeEvent {
-  sequence: number;
-  component: CanvasChromeProbeComponent;
-  phase: CanvasChromeProbePhase;
-  detail?: unknown;
-}
-
-interface CanvasChromeProbeState {
-  sequence: number;
-  components: Partial<Record<CanvasChromeProbeComponent, CanvasChromeProbeStats>>;
-  events: CanvasChromeProbeEvent[];
-}
-
-declare global {
-  interface Window {
-    __GG_CANVAS_CHROME_DEBUG__?: CanvasChromeProbeState;
-  }
-}
 
 const StableAppBar = memo(AppBar);
 StableAppBar.displayName = "StableAppBar";
-
-const StableNavigationBar = memo(NavigationBar);
-StableNavigationBar.displayName = "StableNavigationBar";
-
-function recordCanvasChromeProbe(
-  component: CanvasChromeProbeComponent,
-  phase: CanvasChromeProbePhase,
-  detail?: unknown
-) {
-  if (typeof window === "undefined" || !isLocalCanvasChromeProbeHost(window.location.hostname)) {
-    return;
-  }
-
-  const probe = (window.__GG_CANVAS_CHROME_DEBUG__ ??= {
-    sequence: 0,
-    components: {},
-    events: [],
-  });
-  const stats = (probe.components[component] ??= {
-    renders: 0,
-    mounts: 0,
-    updates: 0,
-    unmounts: 0,
-  });
-
-  if (phase === "render") stats.renders += 1;
-  if (phase === "mount") stats.mounts += 1;
-  if (phase === "update") stats.updates += 1;
-  if (phase === "unmount") stats.unmounts += 1;
-  stats.lastDetail = detail;
-
-  probe.sequence += 1;
-  probe.events.push({ sequence: probe.sequence, component, phase, detail });
-  if (probe.events.length > 200) {
-    probe.events.splice(0, probe.events.length - 200);
-  }
-  reflectCanvasChromeProbeToDom(component, stats, probe.sequence);
-}
-
-function isLocalCanvasChromeProbeHost(hostname: string) {
-  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
-}
-
-function reflectCanvasChromeProbeToDom(
-  component: CanvasChromeProbeComponent,
-  stats: CanvasChromeProbeStats,
-  sequence: number
-) {
-  const key = component.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
-  const root = document.documentElement;
-
-  root.setAttribute("data-gg-canvas-chrome-sequence", String(sequence));
-  root.setAttribute(`data-gg-canvas-chrome-${key}-renders`, String(stats.renders));
-  root.setAttribute(`data-gg-canvas-chrome-${key}-mounts`, String(stats.mounts));
-  root.setAttribute(`data-gg-canvas-chrome-${key}-updates`, String(stats.updates));
-  root.setAttribute(`data-gg-canvas-chrome-${key}-unmounts`, String(stats.unmounts));
-}
-
-function useCanvasChromeProbe(component: CanvasChromeProbeComponent, detail?: unknown) {
-  recordCanvasChromeProbe(component, "render", detail);
-
-  useEffect(() => {
-    recordCanvasChromeProbe(component, "mount", detail);
-    return () => recordCanvasChromeProbe(component, "unmount", detail);
-    // Mount/unmount identity is component-scoped. Render detail is recorded above.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [component]);
-}
-
-const ProfiledNavigationBar = memo(function ProfiledNavigationBar(props: NavigationBarProps) {
-  const profileDetail = useMemo(
-    () => ({
-      activePath: props.activePath,
-      slotIds: props.slots.map((slot) => slot.id),
-      hasFab: Boolean(props.fab),
-    }),
-    [props.activePath, props.fab, props.slots]
-  );
-  useCanvasChromeProbe("NavigationBar", profileDetail);
-
-  return <StableNavigationBar {...props} />;
-});
-ProfiledNavigationBar.displayName = "ProfiledNavigationBar";
 
 /**
  * Canvas layout — top context bar above the main sheet and floating navigation below.
@@ -181,258 +30,61 @@ ProfiledNavigationBar.displayName = "ProfiledNavigationBar";
  */
 export function CanvasLayout() {
   const intl = useIntl();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { isAuthenticated, eoaAddress, isReady, authMode } = useAuth();
-  const { eligibleGardens, isLoaded: eligibleGardensLoaded } = useEligibleAdminGardens();
-  const { selectedGarden } = useAdminGardenWorkspaceSelection();
-
-  const [searchOpen, setSearchOpen] = useState(false);
-  const isDesktop = useMediaQuery("(min-width: 600px)");
-  const usesFloatingFabNavigation = useMediaQuery("(max-width: 1023px)");
-  const permissions = useEffectiveToolbarPermissions();
-  const { showWork, showGarden, showCommunity, showActions } = permissions;
-  const { setGarden } = useGardenUrlSync();
-
-  // Sheet orchestrator — manages pane-scoped sheets
-  const orchestrator = useSheetOrchestrator();
-  const { activeContentId, activeSheet, closeSheet, openSheet } = orchestrator;
-  const pendingDesktopAccountTabRef = useRef<AccountSheetTab | null>(null);
-  const openRightSheetContent = useCallback(
-    (contentId: AdminRightSheetContentId) => {
-      openSheet("right", contentId);
-    },
-    [openSheet]
-  );
-  // Toggle: clicking the same trigger that opened the sheet should close it.
-  // Plain open is kept above for callers (event handlers, redirect bridge) that
-  // need to force-open a specific content id without toggling.
-  const toggleRightSheetContent = useCallback(
-    (contentId: AdminRightSheetContentId) => {
-      if (activeSheet === "right" && activeContentId === contentId) {
-        closeSheet();
-      } else {
-        openSheet("right", contentId);
-      }
-    },
-    [activeContentId, activeSheet, closeSheet, openSheet]
-  );
-  const renderAccountProfile = useCallback(() => <AccountProfilePanel />, []);
+  const renderAccountProfile = useCallback(() => <AccountProfilePanelContainer />, []);
   const renderAccountSettings = useCallback(() => <AccountSettingsPanel />, []);
   const renderNotifications = useCallback(
-    () => <AdminNotificationPanel onCloseSheet={closeSheet} />,
-    [closeSheet]
+    (closeSheet: () => void) => <AdminNotificationPanel onCloseSheet={closeSheet} />,
+    []
   );
-  const rightSheetDescriptor = useAdminRightSheetDescriptor({
-    contentId: activeContentId,
+  const controller = useCanvasShellController({
+    releaseDialogArtifacts: releaseStuckDialogArtifacts,
     renderAccountProfile,
     renderAccountSettings,
     renderNotifications,
   });
-
-  useEffect(() => {
-    if (activeSheet === "right" && rightSheetDescriptor === null) {
-      closeSheet();
-    }
-  }, [activeSheet, closeSheet, rightSheetDescriptor]);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<OpenAccountSheetEventDetail>).detail;
-      openRightSheetContent(toAccountSheetContentId(detail?.tab ?? "profile"));
-    };
-
-    window.addEventListener(OPEN_ACCOUNT_SHEET_EVENT, handler as EventListener);
-    return () => window.removeEventListener(OPEN_ACCOUNT_SHEET_EVENT, handler as EventListener);
-  }, [openRightSheetContent]);
-
-  // Safety net for the "page frozen until refresh" lockup (see
-  // dialogCloseSafetyNet.ts): runs after each navigation — an action dialog
-  // that closes by navigating away can unmount mid-close and leave Radix's
-  // body pointer-events lock stuck. No-op while any dialog is open.
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    releaseStuckDialogArtifacts(document);
-  }, [location.pathname]);
-
-  // …and when the tab becomes visible again: hidden tabs freeze CSS
-  // animations, so a close that happened in the background never fired
-  // animationend — its exit node and the body lock are still here.
-  useDocumentEvent("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      releaseStuckDialogArtifacts(document);
-    }
-  });
-
-  const handleOpenSearch = useCallback(() => setSearchOpen(true), []);
-  const openProfile = useCallback(
-    () => toggleRightSheetContent(PROFILE_SHEET_CONTENT_ID),
-    [toggleRightSheetContent]
-  );
-  const openSettings = useCallback(
-    () => toggleRightSheetContent(SETTINGS_SHEET_CONTENT_ID),
-    [toggleRightSheetContent]
-  );
-  const openNotifications = useCallback(
-    () => toggleRightSheetContent(NOTIFICATIONS_SHEET_CONTENT_ID),
-    [toggleRightSheetContent]
-  );
-  const toolbarVisibility = useMemo(
-    () => ({ showWork, showGarden, showCommunity, showActions }),
-    [showActions, showCommunity, showGarden, showWork]
-  );
-
-  // Build toolbar slots — visibility driven by role-adaptive permissions
-  const slots: ToolbarSlot[] = useMemo(
-    () => [
-      ...ADMIN_WORKSPACE_VIEWS.map((view) => ({
-        id: view.id,
-        label: view.label,
-        labelId: view.labelId,
-        icon: view.icon,
-        path: view.rootPath,
-        visible: toolbarVisibility[view.permission],
-      })),
-      {
-        id: "profile",
-        label: "Profile",
-        labelId: "cockpit.nav.profile",
-        icon: RiUserLine,
-        path: adminRoutes.profile(),
-        visible: true,
-        mobileOnly: true,
-      },
-    ],
-    [toolbarVisibility]
-  );
-
-  // Determine active path and workspace identity from current route
-  const { activePath, workspaceId, rawWorkspaceId } = useMemo(() => {
-    const rawActivePath = getAdminWorkspaceRoot(location.pathname);
-    const nextWorkspaceId = getAdminWorkspaceForPath(location.pathname);
-    const shouldNormalizeDesktopProfile = isDesktop && nextWorkspaceId === "profile";
-
-    return {
-      activePath: shouldNormalizeDesktopProfile ? adminRoutes.hub() : rawActivePath,
-      workspaceId: shouldNormalizeDesktopProfile ? "hub" : nextWorkspaceId,
-      rawWorkspaceId: nextWorkspaceId,
-    } as const;
-  }, [isDesktop, location.pathname]);
-
-  // Left-inspector accent: the inspector content is workspace-scoped, so the
-  // centered dialog keeps the active workspace tone (it portals out of
-  // CanvasLayout's [data-tone] scope). Non-tone ids (e.g. "profile") fall back
-  // to the neutral operator "hub" accent. Literal branches keep this a valid
-  // AdminDialog tone regardless of the workspace-id type.
-  const leftDialogTone: "hub" | "garden" | "community" | "actions" =
-    workspaceId === "garden"
-      ? "garden"
-      : workspaceId === "community"
-        ? "community"
-        : workspaceId === "actions"
-          ? "actions"
-          : "hub";
-
-  const isCoreWorkspace =
-    activePath === "/hub" || activePath === "/garden" || activePath === "/community";
-  const noEligibleGardens = eligibleGardens.length === 0;
-  const visibleSlotCount = useMemo(() => slots.filter((slot) => slot.visible).length, [slots]);
-  const handleNavigate = useCallback((path: string) => navigate(path), [navigate]);
-  const gardenList = useMemo(
-    () => eligibleGardens.map((garden) => ({ id: garden.id, name: garden.name })),
-    [eligibleGardens]
-  );
-  const chipGarden = useMemo(
-    () => (selectedGarden ? { id: selectedGarden.id, name: selectedGarden.name } : null),
-    [selectedGarden]
-  );
-  const handleSelectGarden = useCallback(
-    (garden: { id: string; name: string } | null) => {
-      if (garden) {
-        const fullGarden = eligibleGardens.find((eligibleGarden) =>
-          compareAddresses(eligibleGarden.id, garden.id)
-        );
-        setGarden(fullGarden ?? null);
-      } else {
-        setGarden(null);
-      }
-    },
-    [eligibleGardens, setGarden]
-  );
-  const handleCreateGarden = useCallback(() => navigate(adminRoutes.gardenCreate()), [navigate]);
-  const gardenChipNode = useMemo(
-    () => (
-      <GardenChip
-        gardens={gardenList}
-        selectedGarden={chipGarden}
-        onSelectGarden={handleSelectGarden}
-        onCreateGarden={handleCreateGarden}
-        showCreateGardenAction={false}
-      />
-    ),
-    [chipGarden, gardenList, handleCreateGarden, handleSelectGarden]
-  );
-
-  useCanvasChromeProbe("CanvasLayout", {
+  const {
     activePath,
-    pathname: location.pathname,
+    activeSheet,
+    closeSheet,
+    isDesktop,
+    leftDialogTone,
+    navigate: handleNavigate,
+    openNotifications,
+    openProfile,
+    openSearch: handleOpenSearch,
+    openSettings,
+    profileImageSrc,
+    rightSheetDescriptor,
+    searchOpen,
+    setSearchOpen,
+    slots,
     usesFloatingFabNavigation,
     visibleSlotCount,
     workspaceId,
-  });
+  } = controller;
 
-  useEffect(() => {
-    if (!isDesktop || rawWorkspaceId !== "profile") {
-      return;
-    }
-
-    const requestedTab = parseAccountSheetTab(
-      new URLSearchParams(location.search).get(ACCOUNT_TAB_SEARCH_PARAM)
-    );
-
-    pendingDesktopAccountTabRef.current = requestedTab;
-    navigate(adminRoutes.hub(), { replace: true });
-  }, [isDesktop, location.search, navigate, rawWorkspaceId]);
-
-  useEffect(() => {
-    if (!isDesktop || rawWorkspaceId === "profile") {
-      return;
-    }
-
-    const pendingTab = pendingDesktopAccountTabRef.current;
-    if (!pendingTab) {
-      return;
-    }
-
-    openRightSheetContent(toAccountSheetContentId(pendingTab));
-    pendingDesktopAccountTabRef.current = null;
-  }, [isDesktop, openRightSheetContent, rawWorkspaceId]);
-
-  // Redirect users with no gardens to home — they see the garden creation CTA there.
-  // Hoisted above the early-return ladder below so hook count stays stable across renders.
-  useEffect(() => {
-    if (!isReady) return;
-    if (authMode === "embedded") return;
-    if (!isAuthenticated || !eoaAddress) return;
-    if (!eligibleGardensLoaded) return;
-    if (noEligibleGardens && isCoreWorkspace) {
-      navigate("/", { replace: true });
-    }
-  }, [
-    isReady,
-    authMode,
-    isAuthenticated,
-    eoaAddress,
-    eligibleGardensLoaded,
-    noEligibleGardens,
-    isCoreWorkspace,
-    navigate,
-  ]);
+  const gardenChipNode = useMemo(
+    () => (
+      <GardenChip
+        gardens={controller.gardens}
+        selectedGarden={controller.selectedGarden}
+        onSelectGarden={controller.selectGarden}
+        onCreateGarden={controller.createGarden}
+        showCreateGardenAction={false}
+      />
+    ),
+    [
+      controller.createGarden,
+      controller.gardens,
+      controller.selectGarden,
+      controller.selectedGarden,
+    ]
+  );
 
   // Shared spinner — covers every authenticated in-app route while auth and
   // eligible-garden state resolve. Toolbar permissions are fail-open while they
   // load, so they must not block the shell from painting.
-  if (!isReady || (isAuthenticated && !eligibleGardensLoaded)) {
+  if (controller.isLoading) {
     return (
       <div
         className="flex min-h-screen items-center justify-center bg-bg-weak px-6"
@@ -459,11 +111,11 @@ export function CanvasLayout() {
             {/* Skip to content */}
             <a
               href="#main-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-lg focus:bg-[rgb(var(--tone-action,var(--primary-action)))] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-lg focus:bg-[rgb(var(--tone-action,var(--primary-action)))] focus:px-4 focus:py-2 focus:body-sm focus:font-medium focus:text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]"
             >
               {intl.formatMessage({
                 id: "app.admin.layout.skipToContent",
-                defaultMessage: "Skip to content",
+                defaultMessage: "Skip to Content",
               })}
             </a>
 
@@ -475,6 +127,7 @@ export function CanvasLayout() {
                 onOpenSettings={isDesktop ? openSettings : undefined}
                 onOpenNotifications={openNotifications}
                 onOpenProfile={isDesktop ? openProfile : undefined}
+                profileImageSrc={profileImageSrc ?? undefined}
               />
             </div>
 
@@ -531,7 +184,7 @@ export function CanvasLayout() {
                 desktop, compact inset bottom sheet on mobile (where only the
                 notification bell can open it — Profile/Settings live in the
                 Profile tab there). The same orchestrator contentId drives
-                open/close. Tone is the neutral operator "hub" accent: this is
+                open/close. Tone is the neutral steward "hub" accent: this is
                 global account chrome, not workspace content, so it should not
                 inherit the active garden's tint, and the sheet portals out of
                 CanvasLayout's [data-tone] scope. */}
@@ -557,185 +210,5 @@ export function CanvasLayout() {
         </LeftSheetProvider>
       </RefreshActionProvider>
     </FabProvider>
-  );
-}
-
-function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) {
-  const { formatMessage } = useIntl();
-  const navigate = useNavigate();
-  const { selectedGarden } = useAdminGardenWorkspaceSelection();
-  const selectedGardenAddress = selectedGarden?.id;
-  const workspace = useGardenDetailData(selectedGarden?.id);
-
-  const navigateFromNotification = useCallback(
-    (path: string) => {
-      navigate(path);
-      onCloseSheet();
-    },
-    [navigate, onCloseSheet]
-  );
-
-  const openSection = useCallback(
-    (tab: AdminWorkspaceSectionTab, section: string, itemId?: string) => {
-      navigateFromNotification(
-        resolveAdminWorkspaceSectionRoute({
-          tab,
-          section,
-          itemId,
-          gardenAddress: selectedGardenAddress,
-        })
-      );
-    },
-    [navigateFromNotification, selectedGardenAddress]
-  );
-
-  const derived = useGardenDerivedState({
-    garden: workspace.garden ?? {
-      id: selectedGarden?.id ?? "",
-      domainMask: undefined,
-      name: selectedGarden?.name ?? "",
-      chainId: selectedGarden?.chainId ?? 0,
-    },
-    works: workspace.works,
-    assessments: workspace.assessments,
-    hypercerts: workspace.hypercerts,
-    allocations: workspace.allocations,
-    gardenVaults: workspace.gardenVaults,
-    vaultNetDeposited: workspace.vaultNetDeposited,
-    roleMembers: workspace.roleMembers,
-    selectedRange: "30d",
-    activityFilter: "all",
-    memberSearch: "",
-    section: undefined,
-    formatMessage,
-    openSection,
-  });
-
-  const sections = useMemo<NotificationPanelSection[]>(() => {
-    if (!workspace.garden) return [];
-
-    // Actionable alerts and passive activity are different kinds of work —
-    // grouped so the review queue never visually blends into the audit trail.
-    const alertItems: NotificationPanelItem[] = derived.overviewAlerts.map((alert) => ({
-      id: `alert-${alert.key}`,
-      title: alert.label,
-      tone: alert.severity,
-      onSelect: alert.onAction,
-    }));
-
-    const activityItems: NotificationPanelItem[] = derived.activityEvents
-      .slice(0, 8)
-      .map((event) => {
-        const href = event.href;
-        return {
-          id: event.id,
-          title: event.title,
-          description: event.description,
-          meta: formatRelativeTime(event.timestamp),
-          tone: "info" as const,
-          onSelect: href ? () => navigateFromNotification(href) : undefined,
-        };
-      });
-
-    return [
-      {
-        id: "needs-attention",
-        title: formatMessage({
-          id: "cockpit.notifications.needsAttention",
-          defaultMessage: "Needs attention",
-        }),
-        items: alertItems,
-      },
-      {
-        id: "recent-activity",
-        title: formatMessage({
-          id: "cockpit.notifications.recentActivity",
-          defaultMessage: "Recent activity",
-        }),
-        items: activityItems,
-      },
-    ];
-  }, [
-    derived.activityEvents,
-    derived.overviewAlerts,
-    formatMessage,
-    navigateFromNotification,
-    workspace.garden,
-  ]);
-
-  const scopeLabel = selectedGarden
-    ? formatMessage(
-        { id: "cockpit.notifications.scope", defaultMessage: "Updates for {garden}" },
-        { garden: selectedGarden.name }
-      )
-    : undefined;
-
-  return (
-    <NotificationPanel
-      sections={sections}
-      scopeLabel={scopeLabel}
-      isLoading={
-        workspace.fetching ||
-        workspace.fetchingAssessments ||
-        workspace.worksLoading ||
-        workspace.hypercertsLoading ||
-        workspace.allocationsLoading ||
-        workspace.vaultsLoading
-      }
-    />
-  );
-}
-
-/** Bridge: reads FAB config from FabContext and passes to NavigationBar */
-const FabAwareNavigationBar = memo(function FabAwareNavigationBar(props: {
-  slots: ToolbarSlot[];
-  activePath: string;
-  onNavigate: (path: string) => void;
-}) {
-  const fabConfig = useFabConfigValue();
-  useCanvasChromeProbe("FabAwareNavigationBar", {
-    activePath: props.activePath,
-    hasFab: Boolean(fabConfig),
-    slotIds: props.slots.map((slot) => slot.id),
-  });
-
-  return <ProfiledNavigationBar {...props} fab={fabConfig} />;
-});
-FabAwareNavigationBar.displayName = "FabAwareNavigationBar";
-
-/**
- * Reads the left-inspector config from the admin left-sheet channel and renders
- * it as an AdminDialog — the left/bottom canvas sheets are retired, so
- * AdminDialog is the canonical admin overlay (bottom-sheet presentation on
- * mobile is built in). Persistent across route transitions — views declare
- * content via useLeftSheetConfig(). Closing runs `config.onClose`; route-backed
- * configs navigate to their `closeTo`, so deep-link + back-nav are preserved.
- *
- * Size + tone come from the descriptor's config (post-`77170588` the scale is
- * sm/md/lg); size defaults to `lg` — the richest single-view tier that every
- * inspector flow used before the size-collapse — and tone falls back to the
- * active workspace accent when a config omits it.
- */
-function LeftInspectorDialog({
-  fallbackTone,
-}: {
-  fallbackTone: "hub" | "garden" | "community" | "actions";
-}) {
-  const config = useLeftSheetConfigValue();
-  const isOpen = config !== null;
-
-  return (
-    <AdminDialog
-      open={isOpen}
-      onOpenChange={(next) => {
-        if (!next) config?.onClose?.();
-      }}
-      title={config?.title ?? ""}
-      tone={config?.tone ?? fallbackTone}
-      size={config?.size ?? "lg"}
-      preventClose={config?.preventClose}
-    >
-      {config?.content}
-    </AdminDialog>
   );
 }

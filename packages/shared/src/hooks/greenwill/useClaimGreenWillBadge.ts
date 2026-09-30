@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { encodeAbiParameters, type Hex } from "viem";
-import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { greenWillKeys } from "../../config/query-keys/greenwill";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -26,9 +27,9 @@ function useClaimGreenWillBadge(
   const greenWillAddress = getNetworkContracts(chainId).greenWill;
   const invalidate = useCallback(() => {
     if (!primaryAddress) return;
-    void queryClient.invalidateQueries({ queryKey: queryKeys.greenWill.all });
+    void queryClient.invalidateQueries({ queryKey: greenWillKeys.all });
     void queryClient.invalidateQueries({
-      queryKey: queryKeys.greenWill.ownership(normalizeAddress(primaryAddress), chainId),
+      queryKey: greenWillKeys.ownership(normalizeAddress(primaryAddress), chainId),
     });
   }, [chainId, primaryAddress, queryClient]);
   const { start: scheduleFollowUp } = useProgressiveInvalidation(

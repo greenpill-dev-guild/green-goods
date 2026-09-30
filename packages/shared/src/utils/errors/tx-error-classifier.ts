@@ -1,6 +1,13 @@
 import { extractErrorMessage } from "./extract-message";
 
-export type TxErrorKind = "cancelled" | "wrongChain" | "reverted" | "rpc" | "network" | "unknown";
+export type TxErrorKind =
+  | "cancelled"
+  | "passkeyUnavailable"
+  | "wrongChain"
+  | "reverted"
+  | "rpc"
+  | "network"
+  | "unknown";
 export type TxErrorSeverity = "warning" | "error";
 
 export interface TxErrorView {
@@ -24,6 +31,23 @@ const CANCELLED_PATTERNS = [
   "action_rejected",
   "transaction cancelled",
   "transaction canceled",
+];
+
+const PASSKEY_UNAVAILABLE_PATTERNS = [
+  "no passkey available",
+  "no passkey is available",
+  "no passkeys available",
+  "no passkeys are available",
+  "no credential available",
+  "no credential is available",
+  "no credentials available",
+  "no credentials are available",
+  "no matching credential",
+  "credential is not available",
+  "credential not found",
+  "could not find a passkey",
+  "couldn't find a passkey",
+  "not registered on this device",
 ];
 
 const NETWORK_PATTERNS = [
@@ -90,6 +114,30 @@ function includesAny(haystack: string, patterns: string[]): boolean {
   return patterns.some((pattern) => haystack.includes(pattern));
 }
 
+function hasMessageInErrorChain(
+  error: unknown,
+  patterns: string[],
+  depth = 0,
+  seen = new Set<unknown>()
+): boolean {
+  if (depth > 4 || error === null || error === undefined || seen.has(error)) return false;
+  seen.add(error);
+
+  const message = extractErrorMessage(error).trim().toLowerCase();
+  if (includesAny(message, patterns)) return true;
+  if (typeof error !== "object") return false;
+
+  const nested = error as { cause?: unknown; error?: unknown };
+  return (
+    hasMessageInErrorChain(nested.cause, patterns, depth + 1, seen) ||
+    hasMessageInErrorChain(nested.error, patterns, depth + 1, seen)
+  );
+}
+
+export function isPasskeyCredentialUnavailableError(error: unknown): boolean {
+  return hasMessageInErrorChain(error, PASSKEY_UNAVAILABLE_PATTERNS);
+}
+
 function extractErrorCode(error: unknown): number | string | undefined {
   if (!error || typeof error !== "object") return undefined;
 
@@ -112,9 +160,27 @@ function extractErrorCode(error: unknown): number | string | undefined {
   return nested;
 }
 
+/**
+ * WebAuthn ceremony rejections raised when the user dismisses the passkey prompt.
+ * Same set the auth flow already treats as cancellation in `authServices.ts`; the
+ * spec deliberately reuses `NotAllowedError` for both a dismissal and a timeout,
+ * so matching it here keeps a declined passkey out of the failure funnel.
+ */
+const CANCELLED_ERROR_NAMES = new Set(["NotAllowedError", "AbortError"]);
+
+/** Walk the `cause` chain looking for a WebAuthn cancellation name. */
+function hasCancelledErrorName(error: unknown, depth = 0): boolean {
+  if (depth > 4 || !(error instanceof Error)) return false;
+  if (CANCELLED_ERROR_NAMES.has(error.name)) return true;
+  return hasCancelledErrorName((error as Error & { cause?: unknown }).cause, depth + 1);
+}
+
 function isUserCancelled(error: unknown, normalizedMessage: string): boolean {
   const code = extractErrorCode(error);
   if (code === USER_REJECTED_CODE || code === "ACTION_REJECTED") {
+    return true;
+  }
+  if (hasCancelledErrorName(error)) {
     return true;
   }
   return includesAny(normalizedMessage, CANCELLED_PATTERNS);
@@ -123,6 +189,16 @@ function isUserCancelled(error: unknown, normalizedMessage: string): boolean {
 export function classifyTxError(error: unknown): TxErrorView {
   const rawMessage = extractErrorMessage(error).trim();
   const normalizedMessage = rawMessage.toLowerCase();
+
+  if (isPasskeyCredentialUnavailableError(error)) {
+    return {
+      kind: "passkeyUnavailable",
+      severity: "error",
+      titleKey: "app.txFeedback.failed.title",
+      messageKey: "app.errors.blockchain.passkeyUnavailable.message",
+      rawMessage,
+    };
+  }
 
   if (isUserCancelled(error, normalizedMessage)) {
     return {
@@ -223,5 +299,7 @@ export function isMeaningfulTxErrorMessage(message: string | null | undefined): 
   if (!normalized) return false;
   if (normalized === "undefined" || normalized === "null") return false;
   if (normalized.startsWith("[object ")) return false;
+  if (normalized === "failed to request credential.") return false;
+  if (includesAny(normalized, PASSKEY_UNAVAILABLE_PATTERNS)) return false;
   return true;
 }

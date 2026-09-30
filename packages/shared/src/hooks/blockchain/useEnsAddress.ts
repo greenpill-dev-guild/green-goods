@@ -7,7 +7,7 @@
  */
 
 import { resolveEnsAddress } from "../../utils/blockchain/ens";
-import { queryKeys } from "../../config/query-keys";
+import { ensKeys } from "../../config/query-keys/identity";
 import { type UseEnsQueryOptions, type UseEnsQueryResult, useEnsQuery } from "./useEnsQuery";
 
 /**
@@ -29,7 +29,7 @@ export function useEnsAddress(
   return useEnsQuery(
     name,
     (normalizedName, opts) => resolveEnsAddress(normalizedName, opts),
-    queryKeys.ens.address(name?.toLowerCase().trim() ?? ""),
+    ensKeys.address(name?.toLowerCase().trim() ?? ""),
     options
   );
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "../../utils";
+import { cn } from "../../utils/styles/cn";
 import { Surface } from "../Surface";
 
 export function EmptyStateShell({

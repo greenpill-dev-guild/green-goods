@@ -26,3 +26,6 @@ export const APP_URL = "https://greengoods.app";
 export const APP_ICON = "https://greengoods.app/icon.png";
 
 export const ONBOARDED_STORAGE_KEY = "greengoods_user_onboarded";
+
+// PRD-917: re-enable only after an approved, verified governance rollout.
+export const GOVERNANCE_ENABLED = false;

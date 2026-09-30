@@ -14,7 +14,7 @@ describe("AdminDialog", () => {
       <AdminDialog
         open
         onOpenChange={vi.fn()}
-        title="Edit domains"
+        title="Edit Domains"
         description="Choose supported work domains"
         actions={
           <>
@@ -27,7 +27,7 @@ describe("AdminDialog", () => {
       </AdminDialog>
     );
 
-    const dialog = screen.getByRole("dialog", { name: "Edit domains" });
+    const dialog = screen.getByRole("dialog", { name: "Edit Domains" });
     expect(dialog).toHaveAttribute("data-component", "AdminDialog");
     expect(dialog).toHaveAttribute("data-variant", "standard");
     expect(dialog).toHaveAttribute("data-mobile", "sheet");
@@ -55,7 +55,7 @@ describe("AdminDialog", () => {
       <AdminDialog
         open
         onOpenChange={vi.fn()}
-        title="Submit work"
+        title="Submit Work"
         variant="flow"
         size="lg"
         className={ADMIN_FLOW_DIALOG_CLASS}
@@ -64,7 +64,7 @@ describe("AdminDialog", () => {
       </AdminDialog>
     );
 
-    const dialog = screen.getByRole("dialog", { name: "Submit work" });
+    const dialog = screen.getByRole("dialog", { name: "Submit Work" });
     expect(dialog).toHaveAttribute("data-variant", "flow");
     expect(dialog).toHaveAttribute("data-size", "lg");
     expect(dialog.className).toContain("inset-x-0");
@@ -138,6 +138,41 @@ describe("AdminConfirmDialog", () => {
     screen.getByRole("button", { name: "Pause" }).click();
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("names what the act writes to under the title, before the description", () => {
+    renderWithProviders(
+      <AdminConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        title="Close This Pool"
+        target={<p>Writing to Rocinha’s pool</p>}
+        description="Closing ends participation for every member."
+        confirmLabel="Close Pool"
+      />
+    );
+
+    const title = screen.getByRole("heading", { name: "Close This Pool" });
+    const target = screen.getByText("Writing to Rocinha’s pool");
+    const description = screen.getByText("Closing ends participation for every member.");
+    const follows = (a: Element, b: Element) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(title, target)).toBe(true);
+    expect(follows(target, description)).toBe(true);
+  });
+
+  it("keeps the header as it was when a dialog names no target", () => {
+    renderWithProviders(
+      <AdminConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        title="Emergency pause"
+        description="Pause this vault?"
+      />
+    );
+    expect(document.querySelector('[data-slot="target"]')).toBeNull();
   });
 
   it("keeps confirm dialogs on the compact mobile geometry", () => {

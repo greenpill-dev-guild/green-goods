@@ -1,14 +1,13 @@
-import {
-  Button,
-  Card,
-  EmptyState,
-  adminRoutes,
-  formatDate,
-  getEASExplorerUrl,
-} from "@green-goods/shared";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { formatDate } from "@green-goods/shared/utils/time";
 import { RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
+import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
 
 interface Assessment {
   id: string;
@@ -23,6 +22,8 @@ interface GardenAssessmentsPanelProps {
   error: Error | null | undefined;
   gardenId: string;
   chainId: number;
+  /** The assessment the steward opened; its row is ringed and announced as current. */
+  selectedItem?: string;
 }
 
 export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
@@ -31,31 +32,32 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
   error,
   gardenId,
   chainId,
+  selectedItem,
 }) => {
   const { formatMessage } = useIntl();
 
   return (
-    <Card>
-      <Card.Header className="gap-2">
-        <h3 className="min-w-0 truncate label-md text-text-strong sm:text-lg">
+    <AdminCard density="none">
+      <AdminCardHeader className="gap-2">
+        <AdminCardTitle className="min-w-0 truncate">
           {formatMessage({ id: "app.garden.admin.recentAssessments" })}
-        </h3>
-        <Button variant="secondary" size="sm" asChild>
+        </AdminCardTitle>
+        <AdminButton variant="outlined" size="sm" asChild>
           <Link
             to={adminRoutes.gardenImpact({ gardenId, section: "assessments" })}
             aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
           >
             {formatMessage({ id: "app.garden.admin.viewAll" })}
           </Link>
-        </Button>
-      </Card.Header>
-      <Card.Body>
+        </AdminButton>
+      </AdminCardHeader>
+      <AdminCardBody>
         {isLoading ? (
-          <p className="py-4 text-center text-sm text-text-soft">
+          <p className="py-4 text-center body-sm text-text-soft">
             {formatMessage({ id: "app.garden.admin.loadingAssessments" })}
           </p>
         ) : error ? (
-          <p className="py-4 text-center text-sm text-error-dark" role="alert">
+          <p className="py-4 text-center body-sm text-error-dark" role="alert">
             {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}:{" "}
             {error instanceof Error ? error.message : ""}
           </p>
@@ -69,7 +71,10 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
             {assessments.map((assessment) => (
               <div
                 key={assessment.id}
-                className="flex items-center justify-between rounded-lg bg-bg-weak p-3"
+                aria-current={assessment.id === selectedItem ? "true" : undefined}
+                className={`flex items-center justify-between rounded-lg bg-bg-weak p-3 ${
+                  assessment.id === selectedItem ? "ring-1 ring-primary-base" : ""
+                }`}
               >
                 <div className="flex min-w-0 flex-1 items-center space-x-3">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-feature-lighter">
@@ -77,24 +82,24 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
                   </div>
                   <div className="min-w-0 flex-1">
                     <p
-                      className="truncate text-sm font-medium text-text-strong"
+                      className="truncate body-sm font-medium text-text-strong"
                       title={assessment.title || assessment.assessmentType || undefined}
                     >
                       {assessment.title ||
                         assessment.assessmentType ||
                         formatMessage({ id: "app.garden.admin.assessmentFallback" })}
                     </p>
-                    <p className="text-xs text-text-soft">{formatDate(assessment.createdAt)}</p>
+                    <p className="body-xs text-text-soft">{formatDate(assessment.createdAt)}</p>
                   </div>
                 </div>
                 <a
                   href={getEASExplorerUrl(chainId, assessment.id)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/40"
+                  className="inline-flex items-center rounded body-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
                   aria-label={formatMessage({
                     id: "app.admin.assessments.viewOnEas",
-                    defaultMessage: "View assessment on EAS Explorer",
+                    defaultMessage: "View Assessment on EAS Explorer",
                   })}
                 >
                   {formatMessage({ id: "app.actions.view" })}{" "}
@@ -104,7 +109,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
             ))}
           </div>
         )}
-      </Card.Body>
-    </Card>
+      </AdminCardBody>
+    </AdminCard>
   );
 };

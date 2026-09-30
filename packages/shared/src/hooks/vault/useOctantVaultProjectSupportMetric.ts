@@ -12,10 +12,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
-import { queryKeys } from "../../config/query-keys";
+import { vaultsKeys } from "../../config/query-keys/vault";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import type { Address } from "../../types/domain";
-import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
+import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 
 export type OctantVaultProjectSupportMetricStatus = "unavailable" | "zero" | "positive";
@@ -60,7 +60,7 @@ export function useOctantVaultProjectSupportMetric(
   const query = useQuery({
     queryKey:
       vaultAddress && chainId
-        ? queryKeys.vaults.projectSupportMetric(vaultAddress, chainId)
+        ? vaultsKeys.projectSupportMetric(vaultAddress, chainId)
         : (["greengoods", "vaults", "projectSupportMetric", "disabled"] as const),
     enabled,
     staleTime: STALE_TIME_MEDIUM,

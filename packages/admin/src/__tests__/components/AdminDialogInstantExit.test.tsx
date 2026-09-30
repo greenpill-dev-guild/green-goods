@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * AdminDialog instant-exit — a close that happens while the tab is hidden
  * marks the surface + scrim with data-instant-exit so the exit animation is

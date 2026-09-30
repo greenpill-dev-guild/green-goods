@@ -1,5 +1,7 @@
-import { formatAddress, type Work } from "@green-goods/shared";
-import type { ActivityEvent, SortDirection } from "./hub.utils";
+import type { Address, Work } from "../../../types/domain";
+import type { CommitmentsToConfirm } from "../../commitment-pooling/commitments-to-confirm.types";
+import { formatAddress } from "../../../utils/app/text";
+import type { SortDirection } from "./hub.utils";
 import type { HubActionSummary } from "./hub.workbenchModel";
 
 type ActionsMap = Map<number, HubActionSummary>;
@@ -74,19 +76,27 @@ export function filterCertificationQueue(
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export function filterHistoryEvents(
-  events: ActivityEvent[],
-  search: string,
-  sortDirection: SortDirection
-): ActivityEvent[] {
-  const filtered = events.filter((event) => {
-    if (!search) return true;
-    return (
-      event.title.toLowerCase().includes(search) || event.description.toLowerCase().includes(search)
-    );
-  });
+type ConfirmQueueScope = Pick<CommitmentsToConfirm, "groups" | "fallback" | "disputed" | "count">;
 
-  return [...filtered].sort((a, b) =>
-    sortDirection === "oldest" ? a.timestamp - b.timestamp : b.timestamp - a.timestamp
+/**
+ * The Confirm stage for the garden in the header, like every other Hub stage:
+ * what that garden's authority confirms (wherever the commitment lives), the
+ * garden fallbacks it may step into, and the disputes in its own pool. The
+ * protocol team's queue has its own home in Community → Coordination, so a
+ * protocol fallback row never appears here. No garden selected, nothing listed.
+ */
+export function selectToConfirmForGarden<T extends ConfirmQueueScope>(
+  toConfirm: T,
+  garden: Address | null
+): T {
+  const isSelected = (address: Address) =>
+    garden !== null && address.toLowerCase() === garden.toLowerCase();
+  const groups = toConfirm.groups.filter((group) => isSelected(group.garden));
+  const fallback = toConfirm.fallback.filter(
+    (row) => row.path === "POOL_FALLBACK" && isSelected(row.garden)
   );
+  const disputed = (toConfirm.disputed ?? []).filter((row) => isSelected(row.garden));
+  const count =
+    groups.reduce((sum, group) => sum + group.rows.length, 0) + fallback.length + disputed.length;
+  return { ...toConfirm, groups, fallback, disputed, count };
 }

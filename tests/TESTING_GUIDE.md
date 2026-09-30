@@ -4,20 +4,20 @@
 
 ```bash
 # One command - starts dev & runs tests
-bun test:e2e:smoke
+bun run browser e2e --preset smoke
 
 # All tests
-bun test:e2e
+bun run browser e2e --preset all
 
 # Debug UI (requires dev running separately)
-bun test:e2e:ui
+bun run browser e2e --preset ui
 ```
 
 ## How It Works
 
 ### `scripts/dev/test-e2e.js`
 
-1. Starts the PM2 web fallback with `bun run dev:web` in background
+1. Starts the PM2 web fallback with `bun run dev -- web` in background
 2. ✅ Waits for services (client:3001, admin:3002)
 3. ✅ Runs Playwright tests
 4. ✅ Auto-cleanup on exit/interrupt
@@ -89,7 +89,7 @@ npx pm2 delete all
 
 ```bash
 # Run from project root
-bun test:e2e:smoke
+bun run browser e2e --preset smoke
 ```
 
 ## References

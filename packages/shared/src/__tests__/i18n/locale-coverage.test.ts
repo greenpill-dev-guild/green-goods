@@ -1,6 +1,8 @@
+import { parse } from "@babel/parser";
+import traverse from "@babel/traverse";
+import type { JSXAttribute, Node, ObjectExpression } from "@babel/types";
 import fs from "node:fs";
 import path from "node:path";
-import * as ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 import en from "../../i18n/en.json";
@@ -12,6 +14,11 @@ type SourceMessageRef = {
   id: string;
   file: string;
   line: number;
+  /**
+   * The literal fallback paired with a literal id. Absent when the fallback is computed, or
+   * when it cannot be tied to one id, such as a single fallback beside a ternary id.
+   */
+  defaultMessage?: string;
 };
 
 const repoRoot = path.resolve(process.cwd(), "../..");
@@ -78,9 +85,24 @@ const descriptorIdPropNames = new Set([
   "ariaLabelId",
   "actionLabelId",
 ]);
+const sourceMessageTriggerTokens = [
+  "formatMessage",
+  "defineMessage",
+  "defineMessages",
+  "FormattedMessage",
+  "defaultMessage",
+  ...descriptorIdPropNames,
+];
 const allowedIdenticalLocalizedKeys = new Set([
+  // The account identifier intentionally uses the same compact abbreviation in en/es/pt.
+  "app.account.id",
   "app.admin.nav.cookieJars",
+  // Token symbol and network proper name have no words to translate.
+  "app.celoWallet.asset",
   "app.community.weightScheme.linear",
+  // The compact Agro tab label is intentionally the same abbreviation in all locales;
+  // its accessible name uses the translated full domain name.
+  "app.gardenIntro.domain.agroShort",
   "cockpit.community.stats.pools",
   "public.fund.vaults.vaultCount",
   // Vault checkout reuses the product term "Endowment" untranslated, matching the
@@ -88,6 +110,9 @@ const allowedIdenticalLocalizedKeys = new Set([
   // still translates it (es: "Dotación"), so this stays key-scoped rather than global.
   "public.vaults.cardEndow.positionHolder",
   "public.vaults.cardEndow.status.deposit",
+  // Portuguese keeps "Offline" as the product uses it elsewhere ("Offline · Salvo {when}"),
+  // and the dashboard's compact line drops "Saved" in every language, English included.
+  "app.workDashboard.offlineSaved",
 ]);
 const allowedIdenticalProductValues = new Set([
   "%",
@@ -110,6 +135,9 @@ const allowedIdenticalProductValues = new Set([
   "Feedback",
   "GitHub",
   "Green Goods",
+  // The product noun the team already uses untranslated in Spanish and
+  // Portuguese copy ("las pools", "as pools").
+  "Pool",
   "Greenpill Network",
   "GreenWill",
   "ha",
@@ -151,6 +179,24 @@ const allowedIdenticalProductValues = new Set([
 // compact "{n} h" value is legitimately locale-identical (the optional space matches
 // the actual en.json formatting).
 const allowedIdenticalValuePatterns = [/^[\d\W]+$/, /^\d+d$/, /^\{[^}]+\}$/, /^\{[^}]+\} ?h$/];
+
+/**
+ * A value made only of ICU placeholders and whitespace, like `{count} {unit}`.
+ *
+ * These carry no words to translate, so every locale is legitimately identical;
+ * the letters the has-letters check sees are inside the braces.
+ *
+ * Written as a linear scan rather than `(?:\s*\{[^}]+\}\s*)+`, which CodeQL
+ * flagged: whitespace between repetitions can be matched by either the trailing
+ * or the leading `\s*`, and that ambiguity backtracks exponentially on input
+ * like `{{|}}` repeated. Stripping the tokens has no such shape.
+ */
+function isPlaceholderOnlyValue(value: string): boolean {
+  if (!value.includes("{")) return false;
+  // Symbols and punctuation outside the placeholders (`× {count}`, `{start} – {end}`)
+  // are no more translatable than the whitespace; only letters are words.
+  return !/\p{L}/u.test(value.replace(/\{[^}]*\}/g, ""));
+}
 const localeAllowedIdenticalValues: Record<string, Set<string>> = {
   es: new Set([
     " - Error",
@@ -174,54 +220,61 @@ function isAllowedIdenticalLocalizedValue(locale: string, key: string, value: st
     allowedIdenticalLocalizedKeys.has(key) ||
     allowedIdenticalProductValues.has(value) ||
     allowedIdenticalValuePatterns.some((pattern) => pattern.test(value)) ||
+    isPlaceholderOnlyValue(value) ||
     (localeAllowedIdenticalValues[locale]?.has(value) ?? false)
   );
 }
 
-function propName(name: ts.PropertyName | undefined): string | undefined {
+function propName(name: Node | undefined): string | undefined {
   if (!name) return undefined;
-  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) {
-    return name.text;
+  if (name.type === "Identifier") return name.name;
+  if (name.type === "StringLiteral" || name.type === "NumericLiteral") {
+    return String(name.value);
   }
   return undefined;
 }
 
-function stringLiteral(node: ts.Node | undefined): string | undefined {
+function stringLiteral(node: Node | undefined): string | undefined {
   if (!node) return undefined;
-  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  if (node.type === "StringLiteral") return node.value;
+  if (node.type === "TemplateLiteral" && node.expressions.length === 0) {
+    return node.quasis[0]?.value.cooked ?? node.quasis[0]?.value.raw;
+  }
   return undefined;
 }
 
-function getObjectProp(obj: ts.ObjectLiteralExpression, name: string): ts.Expression | undefined {
+function getObjectProp(obj: ObjectExpression, name: string): Node | undefined {
   for (const property of obj.properties) {
-    if (ts.isPropertyAssignment(property) && propName(property.name) === name) {
-      return property.initializer;
+    if (property.type === "ObjectProperty" && propName(property.key) === name) {
+      return property.value;
     }
   }
   return undefined;
 }
 
-function calleeName(expr: ts.Expression): string | undefined {
-  if (ts.isIdentifier(expr)) return expr.text;
-  if (ts.isPropertyAccessExpression(expr)) return expr.name.text;
+function calleeName(node: Node): string | undefined {
+  if (node.type === "Identifier") return node.name;
+  if (node.type === "MemberExpression" && node.property.type === "Identifier") {
+    return node.property.name;
+  }
   return undefined;
 }
 
-function jsxTagName(name: ts.JsxTagNameExpression): string | undefined {
-  if (ts.isIdentifier(name)) return name.text;
-  if (ts.isPropertyAccessExpression(name)) return name.name.text;
+function jsxTagName(node: Node): string | undefined {
+  if (node.type === "JSXIdentifier") return node.name;
+  if (node.type === "JSXMemberExpression") return node.property.name;
   return undefined;
 }
 
-function jsxString(attr: ts.JsxAttribute): string | undefined {
-  if (!attr.initializer) return undefined;
-  if (ts.isStringLiteral(attr.initializer)) return attr.initializer.text;
-  if (ts.isJsxExpression(attr.initializer)) return stringLiteral(attr.initializer.expression);
+function jsxString(attr: JSXAttribute): string | undefined {
+  if (!attr.value) return undefined;
+  if (attr.value.type === "StringLiteral") return attr.value.value;
+  if (attr.value.type === "JSXExpressionContainer") return stringLiteral(attr.value.expression);
   return undefined;
 }
 
-function lineOf(source: ts.SourceFile, node: ts.Node): number {
-  return source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+function lineOf(node: Node): number {
+  return node.loc?.start.line ?? 1;
 }
 
 function walkSourceFiles(dir: string, files: string[] = []): string[] {
@@ -241,89 +294,135 @@ function walkSourceFiles(dir: string, files: string[] = []): string[] {
   return files;
 }
 
-function collectSourceMessageRefs(): SourceMessageRef[] {
-  const refs = new Map<string, SourceMessageRef>();
+function containsSourceMessageTrigger(source: string): boolean {
+  return sourceMessageTriggerTokens.some((token) => source.includes(token));
+}
 
-  const add = (id: string | undefined, source: ts.SourceFile, node: ts.Node) => {
+function collectMessageRefsFromSource(contents: string, file: string): SourceMessageRef[] {
+  const refs = new Map<string, SourceMessageRef>();
+  const sourceText = (node: Node) => contents.slice(node.start ?? 0, node.end ?? 0);
+
+  const add = (id: string | undefined, node: Node, defaultMessage?: string) => {
     if (!id?.includes(".")) return;
-    refs.set(`${id}:${source.fileName}:${lineOf(source, node)}`, {
+    const line = lineOf(node);
+    const key = `${id}:${line}`;
+    refs.set(key, {
       id,
-      file: path.relative(repoRoot, source.fileName),
-      line: lineOf(source, node),
+      file: path.relative(repoRoot, file),
+      line,
+      defaultMessage: defaultMessage ?? refs.get(key)?.defaultMessage,
     });
   };
 
-  for (const file of sourceRoots.flatMap((root) => walkSourceFiles(root))) {
-    const source = ts.createSourceFile(
-      file,
-      fs.readFileSync(file, "utf8"),
-      ts.ScriptTarget.Latest,
-      true,
-      file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
-    );
+  /**
+   * `formatMessage({ id: cond ? "a" : "b" })` used to hide both ids from this scan,
+   * so a stale id in either branch rendered its English defaultMessage in every
+   * locale with nothing failing. Following the branches puts them back in scope;
+   * genuinely dynamic template ids stay covered by knownDynamicMessageIds.
+   *
+   * A fallback written as the same ternary (`defaultMessage: cond ? "A" : "B"`) pairs
+   * branch by branch. Any other fallback beside a ternary id stays unpaired.
+   */
+  const literalPairs = (
+    id: Node | undefined,
+    fallback: Node | undefined
+  ): Array<{ id: string; defaultMessage?: string }> => {
+    if (!id) return [];
+    const direct = stringLiteral(id);
+    if (direct !== undefined) return [{ id: direct, defaultMessage: stringLiteral(fallback) }];
+    if (id.type !== "ConditionalExpression") return [];
+    const pairedFallback =
+      fallback?.type === "ConditionalExpression" &&
+      sourceText(fallback.test) === sourceText(id.test)
+        ? fallback
+        : undefined;
+    return [
+      ...literalPairs(id.consequent, pairedFallback?.consequent),
+      ...literalPairs(id.alternate, pairedFallback?.alternate),
+    ];
+  };
 
-    const visit = (node: ts.Node) => {
-      if (ts.isCallExpression(node)) {
-        const name = calleeName(node.expression);
-        const firstArg = node.arguments[0];
-        if (
-          (name === "formatMessage" || name === "defineMessage") &&
-          firstArg &&
-          ts.isObjectLiteralExpression(firstArg)
-        ) {
-          add(
-            stringLiteral(getObjectProp(firstArg, "id")),
-            source,
-            getObjectProp(firstArg, "id") ?? firstArg
-          );
-        }
-        if (name === "defineMessages" && firstArg && ts.isObjectLiteralExpression(firstArg)) {
-          for (const property of firstArg.properties) {
-            if (
-              ts.isPropertyAssignment(property) &&
-              ts.isObjectLiteralExpression(property.initializer)
-            ) {
-              add(
-                stringLiteral(getObjectProp(property.initializer, "id")),
-                source,
-                getObjectProp(property.initializer, "id") ?? property.initializer
-              );
-            }
+  const addAll = (id: Node | undefined, fallback: Node | undefined, anchor: Node) => {
+    for (const pair of literalPairs(id, fallback)) add(pair.id, id ?? anchor, pair.defaultMessage);
+  };
+
+  const source = parse(contents, {
+    sourceFilename: file,
+    sourceType: "unambiguous",
+    plugins: file.endsWith(".tsx") ? ["typescript", "jsx"] : ["typescript"],
+  });
+
+  traverse(source, {
+    CallExpression(path) {
+      const name = calleeName(path.node.callee);
+      const firstArg = path.node.arguments[0];
+      if (
+        (name === "formatMessage" || name === "defineMessage") &&
+        firstArg?.type === "ObjectExpression"
+      ) {
+        addAll(getObjectProp(firstArg, "id"), getObjectProp(firstArg, "defaultMessage"), firstArg);
+      }
+      if (name === "defineMessages" && firstArg?.type === "ObjectExpression") {
+        for (const property of firstArg.properties) {
+          if (property.type !== "ObjectProperty" || property.value.type !== "ObjectExpression") {
+            continue;
           }
+          const id = getObjectProp(property.value, "id");
+          const fallback = getObjectProp(property.value, "defaultMessage");
+          add(stringLiteral(id), id ?? property.value, stringLiteral(fallback));
         }
       }
-
-      if (ts.isObjectLiteralExpression(node)) {
-        const id = stringLiteral(getObjectProp(node, "id"));
-        if (id && getObjectProp(node, "defaultMessage"))
-          add(id, source, getObjectProp(node, "id") ?? node);
-
-        for (const property of node.properties) {
-          if (!ts.isPropertyAssignment(property)) continue;
-          const name = propName(property.name);
-          if (name && descriptorIdPropNames.has(name)) {
-            add(stringLiteral(property.initializer), source, property);
-          }
-        }
+    },
+    ObjectExpression(path) {
+      const id = getObjectProp(path.node, "id");
+      const fallback = getObjectProp(path.node, "defaultMessage");
+      if (stringLiteral(id) && fallback) {
+        add(stringLiteral(id), id ?? path.node, stringLiteral(fallback));
       }
 
-      if (ts.isJsxOpeningLikeElement(node) && jsxTagName(node.tagName) === "FormattedMessage") {
-        for (const property of node.attributes.properties) {
-          if (ts.isJsxAttribute(property) && property.name.text === "id") {
-            add(jsxString(property), source, property);
-          }
+      for (const property of path.node.properties) {
+        if (property.type !== "ObjectProperty") continue;
+        const name = propName(property.key);
+        if (name && descriptorIdPropNames.has(name)) {
+          add(stringLiteral(property.value), property);
         }
       }
+    },
+    JSXOpeningElement(path) {
+      if (jsxTagName(path.node.name) !== "FormattedMessage") return;
+      const attributes = new Map<string, JSXAttribute>();
+      for (const attribute of path.node.attributes) {
+        if (attribute.type === "JSXAttribute" && attribute.name.type === "JSXIdentifier") {
+          attributes.set(attribute.name.name, attribute);
+        }
+      }
+      const id = attributes.get("id");
+      const fallback = attributes.get("defaultMessage");
+      if (id) add(jsxString(id), id, fallback ? jsxString(fallback) : undefined);
+    },
+  });
 
-      ts.forEachChild(node, visit);
-    };
+  return [...refs.values()];
+}
 
-    visit(source);
-  }
+function collectSourceMessageRefs(): SourceMessageRef[] {
+  return sourceRoots
+    .flatMap((root) => walkSourceFiles(root))
+    .flatMap((file) => {
+      const contents = fs.readFileSync(file, "utf8");
+      return containsSourceMessageTrigger(contents)
+        ? collectMessageRefsFromSource(contents, file)
+        : [];
+    })
+    .sort((a, b) => a.id.localeCompare(b.id) || a.file.localeCompare(b.file));
+}
 
-  return [...refs.values()].sort(
-    (a, b) => a.id.localeCompare(b.id) || a.file.localeCompare(b.file)
-  );
+let sourceMessageRefsCache: SourceMessageRef[] | undefined;
+
+/** Parsing every source file takes seconds, so the tests that read the scan share one pass. */
+function sourceMessageRefs(): SourceMessageRef[] {
+  sourceMessageRefsCache ??= collectSourceMessageRefs();
+  return sourceMessageRefsCache;
 }
 
 function getSuspiciousEnglishFallbacks(locale: string, catalog: LocaleCatalog) {
@@ -412,8 +511,21 @@ describe("i18n locale coverage", () => {
   });
 
   describe("Source usage coverage", () => {
-    it("should include every statically declared source message id in all locales", () => {
-      const refs = collectSourceMessageRefs();
+    it("recognizes every direct source message form before parsing", () => {
+      const directForms = [
+        'intl.formatMessage({ id: "app.direct.format" })',
+        'defineMessage({ id: "app.direct.define" })',
+        'defineMessages({ direct: { id: "app.direct.group" } })',
+        'const descriptor = { id: "app.direct.descriptor", defaultMessage: "Direct" }',
+        'const config = { titleId: "app.direct.title" }',
+        '<FormattedMessage id="app.direct.component" />',
+      ];
+
+      expect(directForms.every(containsSourceMessageTrigger)).toBe(true);
+    });
+
+    it("should include every source message id — including ternary branches — in all locales", () => {
+      const refs = sourceMessageRefs();
       const catalogs: Record<string, LocaleCatalog> = { en, es, pt };
       const missing = refs.flatMap((ref) =>
         Object.entries(catalogs)
@@ -422,6 +534,64 @@ describe("i18n locale coverage", () => {
       );
 
       expect(missing, `Missing source message ids:\n${missing.join("\n")}`).toHaveLength(0);
+    }, 30_000);
+
+    it("pairs each literal id with its literal defaultMessage in every message form", () => {
+      const fixture = `
+        intl.formatMessage({ id: "app.fixture.format", defaultMessage: "Format" });
+        defineMessage({ id: "app.fixture.define", defaultMessage: \`Define\` });
+        defineMessages({ grouped: { id: "app.fixture.group", defaultMessage: "Group" } });
+        const descriptor = { id: "app.fixture.descriptor", defaultMessage: "Descriptor" };
+        intl.formatMessage({
+          id: ready ? "app.fixture.ready" : "app.fixture.waiting",
+          defaultMessage: ready ? "Ready" : "Waiting",
+        });
+        intl.formatMessage({
+          id: ready ? "app.fixture.left" : "app.fixture.right",
+          defaultMessage: other ? "Left" : "Right",
+        });
+        intl.formatMessage({ id: "app.fixture.computed", defaultMessage: computedLabel });
+        const element = <FormattedMessage id="app.fixture.component" defaultMessage="Component" />;
+      `;
+      const file = path.join(repoRoot, "packages/client/src/Fixture.tsx");
+      const pairs = collectMessageRefsFromSource(fixture, file)
+        .map((ref) => [ref.id, ref.defaultMessage])
+        .sort(([a], [b]) => String(a).localeCompare(String(b)));
+
+      expect(pairs).toStrictEqual([
+        ["app.fixture.component", "Component"],
+        // Nothing ties a computed fallback, or one on a different condition, to one id.
+        ["app.fixture.computed", undefined],
+        ["app.fixture.define", "Define"],
+        ["app.fixture.descriptor", "Descriptor"],
+        ["app.fixture.format", "Format"],
+        ["app.fixture.group", "Group"],
+        ["app.fixture.left", undefined],
+        ["app.fixture.ready", "Ready"],
+        ["app.fixture.right", undefined],
+        ["app.fixture.waiting", "Waiting"],
+      ]);
+    });
+
+    it("should keep every literal defaultMessage equal to its en.json value", () => {
+      // View tests often render without a message bundle, so they read the fallback. When it
+      // drifts from en.json, a missing bundle shows retired copy and those tests pass on it.
+      const catalog = en as LocaleCatalog;
+      const drift = sourceMessageRefs()
+        .filter(
+          (ref) =>
+            ref.defaultMessage !== undefined &&
+            ref.id in catalog &&
+            catalog[ref.id] !== ref.defaultMessage
+        )
+        .map(
+          (ref) =>
+            `${ref.id} at ${ref.file}:${ref.line}\n` +
+            `  defaultMessage: ${JSON.stringify(ref.defaultMessage)}\n` +
+            `  en.json:        ${JSON.stringify(catalog[ref.id])}`
+        );
+
+      expect(drift, `defaultMessage drifted from en.json:\n${drift.join("\n")}`).toHaveLength(0);
     }, 30_000);
 
     it("should include known dynamic message id families in all locales", () => {

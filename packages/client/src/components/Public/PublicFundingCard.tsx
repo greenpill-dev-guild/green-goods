@@ -1,28 +1,36 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { Chip } from "@green-goods/shared/components/Chip";
+import { TransactionSuccessAffordance } from "@green-goods/shared/components/feedback/TransactionSuccessAffordance";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useEthUsdPrice } from "@green-goods/shared/hooks/blockchain/useEthUsdPrice";
+import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
+import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useAppKit } from "@green-goods/shared/providers/AppKitProvider";
+import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
+import type { Address } from "@green-goods/shared/types/domain";
+import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
 import {
-  type Address,
-  classifyTxError,
-  formatTokenAmount,
   formatUsdCents,
   formatUsdPrice,
-  getVaultAssetSymbol,
-  isMeaningfulTxErrorMessage,
-  normalizeDecimalInput,
   parseUsdToCents,
-  type PublicGardenSummary,
-  TransactionSuccessAffordance,
-  truncateAddress,
-  useAppKit,
-  useAuth,
-  useCookieJarDeposit,
-  useEthUsdPrice,
-  useGardenCookieJars,
-  useGardenVaults,
-  useUser,
-  useVaultDeposit,
   usdCentsToWei,
   weiToUsdCents,
-} from "@green-goods/shared";
-import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/utils/blockchain/price-feeds";
+import {
+  formatTokenAmount,
+  getVaultAssetSymbol,
+  normalizeDecimalInput,
+} from "@green-goods/shared/utils/blockchain/vaults";
+import {
+  classifyTxError,
+  isMeaningfulTxErrorMessage,
+} from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -31,9 +39,7 @@ import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from ".
 
 const DAI_SYMBOL = "DAI";
 const WETH_SYMBOL = "WETH";
-
 type Denomination = "usd" | "weth";
-
 /**
  * Parse a user-typed token amount (WETH denomination) into wei. Mirrors the
  * tolerant input handling used across the public vault panels: normalize a bare
@@ -52,7 +58,6 @@ function parseTokenInputToWei(input: string, decimals: number): bigint {
     return 0n;
   }
 }
-
 interface PublicFundingCardProps {
   open: boolean;
   garden: PublicGardenSummary;
@@ -366,6 +371,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
     >
       <button
         type="button"
+        data-pressable="scrim"
         aria-label={formatMessage({ id: "public.fund.dialog.close", defaultMessage: "Close" })}
         className="absolute inset-0"
         onClick={status === "submitting" ? undefined : onClose}
@@ -388,15 +394,12 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
             </h2>
             <p className="text-xs leading-[1.45] text-text-soft-400">{pathText}</p>
           </div>
-          <button
-            type="button"
+          <IconButton
             aria-label={formatMessage({ id: "public.fund.dialog.close", defaultMessage: "Close" })}
-            onClick={status === "submitting" ? undefined : onClose}
+            onClick={onClose}
             disabled={status === "submitting"}
-            className="rounded-full p-1 text-text-sub-600 transition-colors hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <RiCloseLine className="h-5 w-5" />
-          </button>
+            icon={<RiCloseLine aria-hidden="true" />}
+          />
         </header>
 
         {status === "loading" ? (
@@ -425,7 +428,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
             selected={selected}
             selectedAddress={selectedAddress}
             onSelectAddress={setSelectedAddress}
-            primaryAddress={primaryAddress}
+            primaryAddress={primaryAddress ?? undefined}
             tokenAmountWei={tokenAmountWei}
             usdCents={usdCents}
             conversionUnavailable={conversionUnavailable}
@@ -437,7 +440,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
                 ? {
                     severity: txErrorView.severity,
                     message: isMeaningfulTxErrorMessage(txErrorView.rawMessage)
-                      ? txErrorView.rawMessage
+                      ? (txErrorView.rawMessage ?? undefined)
                       : formatMessage({
                           id: txErrorView.messageKey,
                           defaultMessage: "Something went wrong. Please try again.",
@@ -529,18 +532,18 @@ export function SuccessBody({
             )}
       </p>
       <div className="mt-2 flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
-        <EditorialPrimaryButton onClick={onDonateAgain} className="px-5 py-2.5 text-sm">
+        <EditorialPrimaryButton onClick={onDonateAgain}>
           {isDonate
             ? formatMessage({
                 id: "public.fund.card.donateAgain",
-                defaultMessage: "Donate again",
+                defaultMessage: "Donate Again",
               })
             : formatMessage({
                 id: "public.fund.card.endowAgain",
-                defaultMessage: "Endow again",
+                defaultMessage: "Endow Again",
               })}
         </EditorialPrimaryButton>
-        <EditorialGhostButton onClick={onClose} className="px-5 py-2.5 text-sm">
+        <EditorialGhostButton onClick={onClose}>
           {formatMessage({ id: "public.fund.dialog.close", defaultMessage: "Close" })}
         </EditorialGhostButton>
       </div>
@@ -628,7 +631,7 @@ function IdleBody(props: IdleBodyProps) {
     if (conversionUnavailable) {
       return formatMessage({
         id: "public.fund.card.conversionUnavailable",
-        defaultMessage: "ETH price unavailable",
+        defaultMessage: "Waiting on the ETH price…",
       });
     }
     const amountLabel = isWethDenomination
@@ -738,11 +741,7 @@ function IdleBody(props: IdleBodyProps) {
 
       {txError ? <InlineErrorBlock title={txError.title} message={txError.message} /> : null}
 
-      <EditorialPrimaryButton
-        onClick={onSubmit}
-        disabled={submitDisabled}
-        className="w-full px-6 py-3 text-sm"
-      >
+      <EditorialPrimaryButton onClick={onSubmit} disabled={submitDisabled} className="w-full">
         {submitLabel}
       </EditorialPrimaryButton>
 
@@ -756,16 +755,16 @@ function IdleBody(props: IdleBodyProps) {
             {
               address: truncateAddress(primaryAddress),
               disconnect: (
-                <button
+                // An inline text action: underlined in the sentence, with the 48px hit area.
+                <Button
                   type="button"
+                  emphasis="tertiary"
+                  size="compact"
                   onClick={() => openWalletModal()}
-                  className="underline transition-colors hover:text-text-sub-600"
+                  className="-my-2 px-1.5 text-[11px] underline"
                 >
-                  {formatMessage({
-                    id: "public.fund.card.disconnect",
-                    defaultMessage: "Manage",
-                  })}
-                </button>
+                  {formatMessage({ id: "public.fund.card.disconnect", defaultMessage: "Manage" })}
+                </Button>
               ),
             }
           )}
@@ -812,20 +811,15 @@ export function DenominationToggle({
       {choices.map((choice) => {
         const isSelected = denomination === choice.value;
         return (
-          <button
+          <Chip
             key={choice.value}
-            type="button"
+            selected={isSelected}
             onClick={() => onChange(choice.value)}
             disabled={disabled}
-            aria-pressed={isSelected}
-            className={`border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-              isSelected
-                ? "border-primary-action bg-editorial-warm text-text-strong-950"
-                : "border-stroke-soft-200 bg-bg-white-0 text-text-soft-400 hover:bg-editorial-warm/40"
-            }`}
+            className="font-mono text-[11px] uppercase tracking-[0.1em]"
           >
             {choice.label}
-          </button>
+          </Chip>
         );
       })}
     </fieldset>
@@ -890,7 +884,7 @@ export function AmountInput({
           />
         ) : null}
       </div>
-      <div className="flex items-center gap-2 border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 transition-colors focus-within:border-primary-action">
+      <div className="flex items-center gap-2">
         {isWethDenomination ? (
           <span className="font-mono text-sm uppercase tracking-[0.08em] text-text-soft-400">
             {symbol}
@@ -898,7 +892,7 @@ export function AmountInput({
         ) : (
           <span className="font-serif text-2xl text-text-soft-400">$</span>
         )}
-        <input
+        <TextInput
           ref={inputRef}
           id="public-fund-amount"
           type="text"
@@ -908,7 +902,7 @@ export function AmountInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={isWethDenomination ? "0.0" : "0.00"}
           disabled={disabled}
-          className="flex-1 bg-transparent font-serif text-2xl text-text-strong-950 outline-none placeholder:text-text-soft-400 disabled:opacity-60"
+          className="flex-1 font-serif text-2xl"
         />
       </div>
       <div className="flex min-h-[1rem] flex-col gap-1">
@@ -941,7 +935,7 @@ export function AmountInput({
             {formatMessage({
               id: "public.fund.card.wethUnavailable",
               defaultMessage:
-                "ETH price feed unavailable on this network. Pick DAI or check back later.",
+                "The live ETH price isn't reaching us on this network. Pick DAI, or check back soon.",
             })}
           </p>
         ) : null}
@@ -983,6 +977,7 @@ export function TokenPicker({ options, selectedAddress, onSelect, disabled }: To
             <button
               key={option.assetAddress}
               type="button"
+              data-pressable="card"
               onClick={() => onSelect(option.assetAddress)}
               disabled={disabled}
               aria-pressed={isSelected}

@@ -5,19 +5,25 @@
  * helpers are pure data-shapers around `formatMessage`; rendering coverage
  * lives at the view layer (Chrome MCP / data-component selectors) per the
  * cleanup proof_limit policy for visual changes.
- *
- * Cleanup item A6 from .plans/active/admin-design-revamp/handoffs/claude-cleanup.md.
  */
 
 import { describe, expect, it, vi } from "vitest";
 
 import { buildActionsHeaderStats } from "../../../hooks/admin-ui/actions/actions.utils";
-import { buildCommunityHeaderStats } from "../../../hooks/admin-ui/community/community.utils";
+import {
+  buildCommunityHeaderStats,
+  selectAllocationSplits,
+} from "../../../hooks/admin-ui/community/community.utils";
 import { buildGardenHeaderStats } from "../../../hooks/admin-ui/garden/garden.utils";
 import { buildHubHeaderStats } from "../../../hooks/admin-ui/hub/hub.utils";
 
 function makeFormatMessage() {
-  return vi.fn((descriptor: { id: string; defaultMessage?: string }) => descriptor.id);
+  return vi.fn(
+    (
+      descriptor: { id: string; defaultMessage?: string },
+      _values?: Record<string, string | number | boolean | Date | null | undefined>
+    ) => descriptor.id
+  );
 }
 
 describe("buildGardenHeaderStats", () => {
@@ -81,7 +87,7 @@ describe("buildCommunityHeaderStats", () => {
   it("returns an empty array when no garden is selected", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: false,
-      vaultNetDeposited: 0n,
+      endowmentByAsset: [],
       distributedAmounts: [0n],
       formatMessage: makeFormatMessage(),
     });
@@ -91,17 +97,17 @@ describe("buildCommunityHeaderStats", () => {
   it("emits treasury / distributed items in that order (people + pools live on the tabs)", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      vaultNetDeposited: 0n,
+      endowmentByAsset: [],
       distributedAmounts: [0n],
       formatMessage: makeFormatMessage(),
     });
     expect(items.map((item) => item.id)).toEqual(["treasury", "distributed"]);
   });
 
-  it("formats both token amounts via formatTokenAmount (zero renders as '0')", () => {
+  it("renders an empty endowment and no distributions as '0'", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      vaultNetDeposited: 0n,
+      endowmentByAsset: [],
       distributedAmounts: [0n],
       formatMessage: makeFormatMessage(),
     });
@@ -109,15 +115,28 @@ describe("buildCommunityHeaderStats", () => {
     expect(items[1]?.value).toBe("0");
   });
 
-  it("formats non-zero balances with the token's 18 decimal precision (default)", () => {
+  it("names each endowment asset beside its amount", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      vaultNetDeposited: 1_500_000_000_000_000_000n, // 1.5 * 10^18
+      endowmentByAsset: [
+        {
+          asset: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+          symbol: "WETH",
+          decimals: 18,
+          amount: 1_500_000_000_000_000_000n, // 1.5 * 10^18
+        },
+        {
+          asset: "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
+          symbol: "DAI",
+          decimals: 18,
+          amount: 12_000_000_000_000_000_000n,
+        },
+      ],
       distributedAmounts: [500_000_000_000_000_000n], // 0.5 * 10^18
       formatMessage: makeFormatMessage(),
     });
     // formatTokenAmount uses the active locale; assert digit + decimal-separator + digit
-    expect(items[0]?.value).toMatch(/^1[.,]5$/);
+    expect(items[0]?.value).toMatch(/^1[.,]5 WETH · 12 DAI$/);
     expect(items[1]?.value).toMatch(/^0[.,]5$/);
   });
 
@@ -125,7 +144,7 @@ describe("buildCommunityHeaderStats", () => {
     const formatMessage = makeFormatMessage();
     buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      vaultNetDeposited: 0n,
+      endowmentByAsset: [],
       distributedAmounts: [0n],
       formatMessage,
     });
@@ -139,7 +158,7 @@ describe("buildCommunityHeaderStats", () => {
   it("omits distributed totals when allocations span multiple assets", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      vaultNetDeposited: 0n,
+      endowmentByAsset: [],
       distributedAmounts: [500_000_000_000_000_000n, 1_000_000n],
       formatMessage: makeFormatMessage(),
     });
@@ -149,7 +168,7 @@ describe("buildCommunityHeaderStats", () => {
   it("omits distributed totals while allocations are still loading", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      vaultNetDeposited: 0n,
+      endowmentByAsset: [],
       distributedAmounts: null,
       formatMessage: makeFormatMessage(),
     });
@@ -157,39 +176,57 @@ describe("buildCommunityHeaderStats", () => {
   });
 });
 
+describe("selectAllocationSplits", () => {
+  it("derives percentages from the most recent allocation", () => {
+    expect(
+      selectAllocationSplits([
+        {
+          cookieJarAmount: 1n,
+          fractionsAmount: 3n,
+          juiceboxAmount: 6n,
+        },
+        {
+          cookieJarAmount: 9n,
+          fractionsAmount: 0n,
+          juiceboxAmount: 1n,
+        },
+      ])
+    ).toEqual({ cookieJar: 10, fractions: 30, endowment: 60 });
+  });
+
+  it("returns null without a positive allocation total", () => {
+    expect(selectAllocationSplits([])).toBeNull();
+    expect(
+      selectAllocationSplits([
+        {
+          cookieJarAmount: 0n,
+          fractionsAmount: 0n,
+          juiceboxAmount: 0n,
+        },
+      ])
+    ).toBeNull();
+  });
+});
+
 describe("buildHubHeaderStats", () => {
   it("returns an empty array when no garden is selected", () => {
     const items = buildHubHeaderStats({
       hasSelectedGarden: false,
-      overdueCount: 3,
-      waitingCount: 1,
+      waitingOverWeekCount: 3,
       formatMessage: makeFormatMessage(),
     });
     expect(items).toEqual([]);
   });
 
-  it("emits overdue / waiting aging counts in order (stage depth lives on the tabs)", () => {
+  it("counts work waiting over a week in plain ink (stage depth lives on the tabs)", () => {
     const items = buildHubHeaderStats({
       hasSelectedGarden: true,
-      overdueCount: 3,
-      waitingCount: 1,
+      waitingOverWeekCount: 3,
       formatMessage: makeFormatMessage(),
     });
-    expect(items.map((item) => item.id)).toEqual(["overdue", "waiting"]);
-    expect(items.map((item) => item.value)).toEqual(["3", "1"]);
-  });
-
-  it("calls formatMessage with the canonical i18n ids", () => {
-    const formatMessage = makeFormatMessage();
-    buildHubHeaderStats({
-      hasSelectedGarden: true,
-      overdueCount: 0,
-      waitingCount: 0,
-      formatMessage,
-    });
-    expect(formatMessage.mock.calls.map((call) => call[0].id)).toEqual([
-      "cockpit.hub.stats.overdue",
-      "cockpit.hub.stats.waiting",
+    // No valueTone: work age never takes the critical pair.
+    expect(items).toEqual([
+      { id: "waiting-over-week", value: "3", label: "cockpit.hub.stats.waitingOverWeek" },
     ]);
   });
 });

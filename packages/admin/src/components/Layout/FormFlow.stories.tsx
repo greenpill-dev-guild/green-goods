@@ -1,4 +1,4 @@
-import { Button } from "@green-goods/shared";
+import { Button } from "@green-goods/shared/components/Button";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { FormFlow, type FormFlowSection } from "./FormFlow";
@@ -33,7 +33,7 @@ const sections: FormFlowSection[] = [
 function actions(disabled = false) {
   return (
     <>
-      <Button type="button" variant="secondary" onClick={fn()} disabled={disabled}>
+      <Button type="button" emphasis="secondary" onClick={fn()} disabled={disabled}>
         Cancel
       </Button>
       <Button type="button" onClick={fn()} disabled={disabled} loading={disabled}>
@@ -83,7 +83,7 @@ export const Sheet: Story = {
 export const WithFeedback: Story = {
   args: {
     feedback: (
-      <div className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark">
+      <div className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 body-sm text-warning-dark">
         Check the highlighted fields before submitting.
       </div>
     ),

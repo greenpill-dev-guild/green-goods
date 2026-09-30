@@ -23,7 +23,7 @@ For ambiguous, multi-package, or high-risk work, follow the same research-plan-i
 High-risk paths remain human-governed even when Copilot review runs automatically:
 
 - deployment, verification, migration, and upgrade scripts
-- `.env*`
+- `.env*`, `env.schema` and `env.template`
 - `.github/workflows/**`, Copilot instruction files, and dependency/security config
 - `AGENTS.md`, `CLAUDE.md`, `.codex/**`, and `.claude/**`
 - contract safety-critical surfaces and indexer schema/config changes
@@ -32,7 +32,7 @@ Use the lightest validation that proves the change:
 
 - `node scripts/quality/check-codex-docs.js`
 - `node scripts/dev/ci-local.js --quick`
-- `bun run format:check && bun lint`
+- `bun run format --check && bun lint`
 - `bun run test`
 - `VITE_CHAIN_ID=11155111 bun run build`
 

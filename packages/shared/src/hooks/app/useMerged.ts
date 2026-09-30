@@ -47,6 +47,7 @@ export function useMerged<TOnline, TOffline, TMerged>(
   const offlineQuery = useQuery({
     queryKey: options.offlineKey,
     queryFn: options.fetchOffline,
+    networkMode: "always",
     enabled: isEnabled,
     staleTime: options.staleTimeOffline ?? 5_000,
     gcTime: options.gcTimeOffline ?? 30_000,
@@ -54,6 +55,7 @@ export function useMerged<TOnline, TOffline, TMerged>(
 
   const mergedQuery = useQuery({
     queryKey: options.mergedKey,
+    networkMode: "always",
     queryFn: async () => {
       // Handle undefined data gracefully - pass to merge function to handle
       return options.merge(onlineQuery.data, offlineQuery.data);

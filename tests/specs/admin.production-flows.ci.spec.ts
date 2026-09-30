@@ -10,13 +10,14 @@
  * These tests focus on route-level stability and are safe for CI.
  */
 
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
+import { mockSepoliaRpc } from "../helpers/mock-backend";
 import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
 const ROUTE_SMOKE_TEST_TIMEOUT_MS = 90_000;
 const MOCK_DEPLOYER_ADDRESS = "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e";
-const MOCK_OPERATOR_ADDRESS = "0x04D60647836bcA09c37B379550038BdaaFD82503";
+const MOCK_STEWARD_ADDRESS = "0x04D60647836bcA09c37B379550038BdaaFD82503";
 const TEST_GARDEN_ADDRESS = "0xabcd1234567890123456789012345678901234ef";
 const TEST_GARDEN_ID = "0x1234567890123456789012345678901234567890";
 const TEST_GARDEN_CONTEXT = `gardenAddress=${encodeURIComponent(TEST_GARDEN_ADDRESS)}`;
@@ -37,9 +38,10 @@ const MOCK_GARDEN = {
   description: "Fixture garden for admin production-flow route smoke",
   location: "Nairobi",
   bannerImage: "",
-  gardeners: [MOCK_OPERATOR_ADDRESS],
-  operators: [MOCK_OPERATOR_ADDRESS, MOCK_DEPLOYER_ADDRESS],
-  evaluators: [MOCK_OPERATOR_ADDRESS, MOCK_DEPLOYER_ADDRESS],
+  gardeners: [MOCK_STEWARD_ADDRESS],
+  // The indexer field keeps the deployed `operators` wire name.
+  operators: [MOCK_STEWARD_ADDRESS, MOCK_DEPLOYER_ADDRESS],
+  evaluators: [MOCK_STEWARD_ADDRESS, MOCK_DEPLOYER_ADDRESS],
   owners: [MOCK_DEPLOYER_ADDRESS],
   funders: [],
   communities: [],
@@ -62,39 +64,6 @@ function getGraphQLQueryText(route: Route): string {
   return "";
 }
 
-function encodeAddressResult(address: string) {
-  return `0x${address.replace(/^0x/, "").padStart(64, "0")}`;
-}
-
-function buildRpcResponse(payload: {
-  id?: string | number | null;
-  method?: string;
-  params?: Array<{ data?: string } | string | number | boolean | null>;
-}) {
-  const method = payload.method;
-  const callData =
-    typeof payload.params?.[0] === "object" && payload.params[0] !== null
-      ? String(payload.params[0].data ?? "")
-      : "";
-
-  let result: string | null = "0x1";
-  if (method === "eth_chainId") {
-    result = "0xaa36a7";
-  } else if (method === "eth_blockNumber") {
-    result = "0x1";
-  } else if (method === "eth_call" && callData.startsWith("0x8da5cb5b")) {
-    result = encodeAddressResult(MOCK_DEPLOYER_ADDRESS);
-  } else if (method === "eth_call") {
-    result = "0x0000000000000000000000000000000000000000000000000000000000000001";
-  }
-
-  return {
-    jsonrpc: "2.0",
-    id: payload.id ?? 1,
-    result,
-  };
-}
-
 async function setupAdminRouteBackend(page: Page) {
   const handleIndexerRoute = async (route: Route) => {
     if (route.request().method() === "OPTIONS") {
@@ -103,7 +72,7 @@ async function setupAdminRouteBackend(page: Page) {
 
     const query = getGraphQLQueryText(route);
 
-    if (query.includes("query GetOperatorGardens")) {
+    if (query.includes("query GetStewardGardens")) {
       return route.fulfill({
         status: 200,
         headers: GRAPHQL_HEADERS,
@@ -166,19 +135,7 @@ async function setupAdminRouteBackend(page: Page) {
     });
   });
 
-  await page.route("https://eth-sepolia.g.alchemy.com/**", async (route) => {
-    const rawBody = route.request().postData();
-    const payload = rawBody ? JSON.parse(rawBody) : { id: 1 };
-    const response = Array.isArray(payload)
-      ? payload.map((entry) => buildRpcResponse(entry))
-      : buildRpcResponse(payload);
-
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(response),
-    });
-  });
+  await mockSepoliaRpc(page);
 }
 
 async function setupAuthenticatedAdmin(page: Page) {

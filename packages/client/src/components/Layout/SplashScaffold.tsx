@@ -1,10 +1,11 @@
-import { APP_NAME, cn } from "@green-goods/shared";
+import { APP_NAME } from "@green-goods/shared/config/app";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import type React from "react";
 
 /**
- * Ritual surface — the single full-screen login ceremony frame shared by `Splash`
- * and `LoadingSplash`. It owns the root container, the golden-anchored constant-
- * height block, the logo, the title slot, and EVERY reserved zone wrapper.
+ * Ritual surface — the full-screen login ceremony frame used after boot has
+ * resolved. It owns the root container, the golden-anchored constant-height
+ * block, the logo, the title slot, and EVERY reserved zone wrapper.
  *
  * Slot model: every auth state renders the same skeleton —
  *   logo · title · slot 1 · slot 2 · message zone · tertiary
@@ -33,7 +34,7 @@ interface SplashScaffoldProps {
   pulse?: boolean;
   /** Title / wordmark line (APP_NAME, or a loading message). */
   title: React.ReactNode;
-  /** Slot 1 — entry primary, or the form input, or the boot spinner. */
+  /** Slot 1 — entry primary or the form input. */
   slotOne?: React.ReactNode;
   /** Slot 2 — entry secondary, or the form primary. Reserved when empty. */
   slotTwo?: React.ReactNode;
@@ -82,7 +83,7 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
 
       {/* TITLE / MESSAGE — fixed-height slot. */}
       <div className="h-8 flex items-center justify-center mb-5">
-        <h3 className="text-center font-bold text-primary-dark transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]">
+        <h3 className="text-center text-[1.25rem] font-bold text-primary-dark transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]">
           {title}
         </h3>
       </div>

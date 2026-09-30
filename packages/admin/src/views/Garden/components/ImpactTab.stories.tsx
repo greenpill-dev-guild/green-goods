@@ -1,3 +1,5 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { daysAgo, hoursAgo } from "../../../../../shared/.storybook/fixtures";
@@ -21,10 +23,26 @@ const ASSESSMENTS = [
   },
 ];
 
-const HYPERCERTS = [
-  { id: "hc-1", title: "Atlantic Forest planting — Q1", mintedAt: hoursAgo(72) },
-  { id: "hc-2", title: "Community workshop cohort", mintedAt: daysAgo(12) },
-  { id: "hc-3", title: undefined, mintedAt: daysAgo(21) },
+function hypercert(id: number, title: string | null, mintedAt: number): HypercertRecord {
+  return {
+    id: `hc-${id}`,
+    tokenId: BigInt(id),
+    gardenId: GARDEN_ID,
+    metadataUri: `ipfs://story-hypercert-${id}`,
+    mintedAt,
+    mintedBy: GARDEN_ID as Address,
+    txHash: `0x${id.toString().padStart(64, "0")}`,
+    totalUnits: 1_000_000n,
+    claimedUnits: 0n,
+    attestationCount: id,
+    title,
+  };
+}
+
+const HYPERCERTS: HypercertRecord[] = [
+  hypercert(1, "Atlantic Forest planting — Q1", hoursAgo(72)),
+  hypercert(2, "Community workshop cohort", daysAgo(12)),
+  hypercert(3, null, daysAgo(21)),
 ];
 
 const meta: Meta<typeof ImpactTab> = {
@@ -53,6 +71,7 @@ const meta: Meta<typeof ImpactTab> = {
     assessments: ASSESSMENTS,
     fetchingAssessments: false,
     assessmentsError: null,
+    hypercertsError: null,
     hypercerts: HYPERCERTS,
     hypercertsLoading: false,
     domainLabels: ["Agroforestry", "Education"],
@@ -72,10 +91,12 @@ export const Loading: Story = {
   },
 };
 
+/** Nothing yet: no View All, and each list points to where its items are made in the Hub. */
 export const Empty: Story = {
   args: {
     assessments: [],
     hypercerts: [],
+    canCertify: true,
   },
 };
 

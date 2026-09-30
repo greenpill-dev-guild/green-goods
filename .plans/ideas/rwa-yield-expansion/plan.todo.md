@@ -6,6 +6,7 @@
 **Spec**: [spec.md](./spec.md)
 **Linear Issue**: `RESR-9`
 **Linear Source**: `source:plans`
+**Stage**: `ideas`
 **Status**: `BACKLOG / RESEARCH-FIRST`
 **Created**: `2026-04-17`
 **Last Updated**: `2026-05-10`
@@ -63,7 +64,7 @@ This hub is now mirrored as Research issue `RESR-9` and should be framed around 
 
 ## CLAUDE.md Compliance
 
-- ✅ Never uses raw `forge` — all contract commands via `bun build` / `bun run test` / `bun run test:fork` / `bun script/deploy.ts`
+- ✅ Never uses raw `forge` — all contract commands via `bun run build` / `bun run test` / `bun run test:fork` / `bun script/deploy.ts`
 - ✅ All React hooks in `@green-goods/shared` (never in client/admin)
 - ✅ Barrel imports only (`import { x } from "@green-goods/shared"`)
 - ✅ Contract deployments read from `deployments/{chainId}-latest.json`
@@ -276,7 +277,7 @@ This hub is now mirrored as Research issue `RESR-9` and should be framed around 
 
 - [ ] `PresetSelectorDialog` — Radix dialog, comparison table (Conservative vs Balanced), risk band, target APY
 - [ ] `PresetDriftBadge` — pill showing "In target" / "Minor drift X%" / "Needs rebalance"
-- [ ] Both i18n'd per `.claude/skills/ui/i18n.md`
+- [ ] Both i18n'd per `.claude/skills/design/implementation.md` (§ i18n)
 - [ ] Storybook stories for each
 - [ ] Commit: `feat(admin): add preset selector + drift badge`
 

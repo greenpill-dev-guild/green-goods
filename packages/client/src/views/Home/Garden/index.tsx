@@ -1,78 +1,69 @@
+import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
+import { Button } from "@green-goods/shared/components/Button";
+import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
+import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
+import { useScrollToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import {
-  type Address,
-  DEFAULT_CHAIN_ID,
-  GardenBannerFallback,
-  GardenTab,
-  ImageWithFallback,
-  isGardenMember,
-  toastService,
   useActions,
-  useBrowserNavigation,
-  useConvictionStrategies,
   useGardeners,
   useGardens,
-  useGardenTabs,
-  useGardenVaults,
-  useHasRole,
-  useJoinGarden,
-  useNavigateToTop,
+} from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
+import { GardenTab, useGardenTabs } from "@green-goods/shared/hooks/garden/useGardenTabs";
+import {
+  isGardenMember,
   usePendingJoinsVersion,
-  useScrollToTop,
-  useUIStore,
-  useUser,
-  useVaultDeposits,
-  useWorks,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/garden/useJoinGarden";
+import { useHasRole } from "@green-goods/shared/hooks/roles/useHasRole";
+import { useElementHeight } from "@green-goods/shared/hooks/utils/useElementHeight";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
+import { useWorks } from "@green-goods/shared/hooks/work/useWorks";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
   RiCalendarEventFill,
   RiErrorWarningLine,
-  RiFileChartFill,
-  RiGroupFill,
-  RiHammerFill,
   RiLoader4Line,
   RiMapPin2Fill,
-  RiUserAddLine,
 } from "@remixicon/react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
-import { Button } from "@/components/Actions";
-import { ConvictionDrawer, EndowmentDrawer } from "@/components/Dialogs";
 import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
   GardenGardeners,
+  GardenJoinRequestDialog,
   type GardenMember,
   GardenWork,
+  JoinGardenButton,
 } from "@/components/Features";
-import { type StandardTab, StandardTabs, TopNav } from "@/components/Navigation";
+import { StandardTabs, TopNav } from "@/components/Navigation";
+import { ConvictionSheet, EndowmentSheet } from "@/components/Sheets";
+import { buildGardenTabs } from "./gardenTabs";
+import { GardenPool } from "./Pool";
+import { shareGarden } from "./shareGarden";
 
 export const Garden: React.FC = () => {
   const intl = useIntl();
   const { primaryAddress } = useUser();
-  const isEndowmentOpen = useUIStore((s) => s.isEndowmentDrawerOpen);
-  const openEndowmentDrawer = useUIStore((s) => s.openEndowmentDrawer);
-  const closeEndowmentDrawer = useUIStore((s) => s.closeEndowmentDrawer);
+  const isEndowmentOpen = useUIStore((s) => s.isEndowmentSheetOpen);
+  const openEndowmentSheet = useUIStore((s) => s.openEndowmentSheet);
+  const closeEndowmentSheet = useUIStore((s) => s.closeEndowmentSheet);
   const [isGovernanceOpen, setIsGovernanceOpen] = useState(false);
-  // Track the actual rendered height of the fixed header so the spacer below
-  // matches whatever the title section rendered as (including 1, 2, or 3+ line
-  // garden names). Avoids overflow when names exceed the previous hardcoded
-  // ~288px estimate.
-  const headerRef = useRef<HTMLDivElement | null>(null);
-  const [headerHeight, setHeaderHeight] = useState<number | null>(null);
-  useEffect(() => {
-    const element = headerRef.current;
-    if (!element || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setHeaderHeight(entry.contentRect.height);
-      }
-    });
-    observer.observe(element);
-    setHeaderHeight(element.getBoundingClientRect().height);
-    return () => observer.disconnect();
-  }, []);
+  // The spacer under the fixed header matches its measured height, whatever the
+  // title wraps to. The header is absent while the garden loads and on child
+  // routes (work, assessments, commitments); the hook observes each header
+  // element on its own so a removed one never reports 0 (see useElementHeight).
+  const [measureHeader, headerHeight] = useElementHeight();
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -80,25 +71,8 @@ export const Garden: React.FC = () => {
   // Reset scroll position before paint — prevents flash from stale scroll state
   useScrollToTop();
 
-  const tabNames = {
-    [GardenTab.Work]: intl.formatMessage({
-      id: "app.garden.work",
-      defaultMessage: "Work",
-    }),
-    [GardenTab.Insights]: intl.formatMessage({
-      id: "app.garden.insights",
-      defaultMessage: "Insights",
-    }),
-    [GardenTab.Gardeners]: intl.formatMessage({
-      id: "app.garden.gardeners",
-      defaultMessage: "Gardeners",
-    }),
-  };
-
   const navigate = useNavigateToTop();
   const { activeTab, setActiveTab } = useGardenTabs();
-
-  // Header uses CSS sticky; no JS height measurement needed
 
   const { id: gardenIdParam } = useParams<{ id: string }>();
   const { pathname } = useLocation();
@@ -110,7 +84,9 @@ export const Garden: React.FC = () => {
     isError: gardensError,
     refetch: refetchGardens,
   } = useGardens(chainId);
-  const garden = allGardens.find((g) => g.id === gardenIdParam);
+  // Addresses arrive in either case: the list is checksummed, the indexer's
+  // pool and work rows are lowercase, and a link may be typed. One garden.
+  const garden = allGardens.find((g) => g.id.toLowerCase() === gardenIdParam?.toLowerCase());
   const gardenStatus: "error" | "success" | "pending" = gardensError
     ? "error"
     : garden
@@ -118,22 +94,17 @@ export const Garden: React.FC = () => {
       : "pending";
   const { data: allGardeners = [] } = useGardeners();
   const { data: actions = [] } = useActions(chainId);
-  const {
-    works: mergedWorks,
-    isLoading: worksLoading,
-    isFetching: worksFetching,
-    isError: worksError,
-    refetch: refetchWorks,
-  } = useWorks(gardenIdParam || "", { offline: true });
+  const workRead = useWorks(gardenIdParam || "", { offline: true });
+  const { works: mergedWorks, isFetching: worksFetching, refetch: refetchWorks } = workRead;
   const members = useMemo<GardenMember[]>(() => {
     if (!garden) return [];
 
-    const operatorSet = new Set((garden.operators ?? []).map((addr) => addr.toLowerCase()));
+    const stewardSet = new Set((garden.stewards ?? []).map((addr) => addr.toLowerCase()));
     const gardenerSet = new Set((garden.gardeners ?? []).map((addr) => addr.toLowerCase()));
     const seen = new Set<string>();
     const orderedAddresses: string[] = [];
 
-    for (const list of [garden.operators ?? [], garden.gardeners ?? []]) {
+    for (const list of [garden.stewards ?? [], garden.gardeners ?? []]) {
       for (const address of list) {
         const normalized = address.toLowerCase();
         if (seen.has(normalized)) continue;
@@ -142,30 +113,28 @@ export const Garden: React.FC = () => {
       }
     }
 
-    const fallbackRegisteredAt = garden.createdAt ?? Date.now();
-
     return orderedAddresses.map((address) => {
       const normalized = address.toLowerCase();
       const match = allGardeners.find((g) => g.account?.toLowerCase() === normalized);
 
       return {
         id: match?.id || address,
-        account: address,
+        account: address as Address,
         username: match?.username || undefined,
         email: match?.email || undefined,
         phone: match?.phone || undefined,
         avatar: match?.avatar || undefined,
-        registeredAt: match?.registeredAt ?? fallbackRegisteredAt,
-        isOperator: operatorSet.has(normalized),
+        registeredAt: match?.registeredAt ?? null,
+        isSteward: stewardSet.has(normalized),
         isGardener: gardenerSet.has(normalized),
       };
     });
   }, [allGardeners, garden]);
 
-  const { vaults: gardenVaults = [] } = useGardenVaults(garden?.id, {
+  const { vaults: gardenVaults = [] } = useGardenVaults(garden?.id as Address | undefined, {
     enabled: Boolean(garden?.id),
   });
-  const { deposits: myVaultDeposits = [] } = useVaultDeposits(garden?.id, {
+  const { deposits: myVaultDeposits = [] } = useVaultDeposits(garden?.id as Address | undefined, {
     userAddress: primaryAddress ?? undefined,
     enabled: Boolean(garden?.id && primaryAddress),
   });
@@ -175,76 +144,55 @@ export const Garden: React.FC = () => {
   );
 
   const validGardenAddress = gardenIdParam && isAddress(gardenIdParam) ? gardenIdParam : undefined;
+
+  const { pools: commitmentPools } = useCommitmentPools({
+    chainId: DEFAULT_CHAIN_ID,
+    garden: validGardenAddress as Address | undefined,
+  });
+  const commitmentPool = commitmentPools[0];
   const { strategies: convictionStrategies } = useConvictionStrategies(validGardenAddress, {
-    enabled: Boolean(validGardenAddress),
+    enabled: GOVERNANCE_ENABLED && Boolean(validGardenAddress),
   });
   const hasGovernanceConfigured = convictionStrategies.length > 0;
 
-  // Check if current user is an operator (can approve/reject work)
-  const isOperator = useMemo(() => {
-    if (!primaryAddress || !garden?.operators) return false;
+  // Check if current user is a steward (can approve/reject work)
+  const isSteward = useMemo(() => {
+    if (!primaryAddress || !garden?.stewards) return false;
     const normalizedUserAddress = primaryAddress.toLowerCase();
-    return garden.operators.some((addr) => addr.toLowerCase() === normalizedUserAddress);
-  }, [primaryAddress, garden?.operators]);
+    return garden.stewards.some((addr) => addr.toLowerCase() === normalizedUserAddress);
+  }, [primaryAddress, garden?.stewards]);
 
   const { hasRole: canReviewOnChain } = useHasRole(
     garden?.id as Address | undefined,
     primaryAddress as Address | undefined,
     "evaluator"
   );
-  const canReview = isOperator || canReviewOnChain;
+  const canReview = isSteward || canReviewOnChain;
+  const canManageRequests = useMemo(() => {
+    if (!primaryAddress || !garden) return false;
+    const account = primaryAddress.toLowerCase();
+    return [...(garden.stewards ?? []), ...(garden.owners ?? [])].some(
+      (address) => address.toLowerCase() === account
+    );
+  }, [garden, primaryAddress]);
 
-  // Gate header drawers behind operator/funder roles. Default gardeners should not see
+  // Gate header drawers behind steward/funder roles. Default gardeners should not see
   // governance or endowment chrome — those drawers expose protocol-shaped surfaces (signal pool,
   // hypercert, vault, treasury) that don't belong on the gardener-default path.
   const hasOwnEndowmentDeposit = hasEndowmentDeposits;
-  const showGovernanceButton = hasGovernanceConfigured && canReview;
+  const showGovernanceButton = GOVERNANCE_ENABLED && hasGovernanceConfigured && canReview;
   const showEndowmentButton = gardenVaults.length > 0 && (canReview || hasOwnEndowmentDeposit);
   const hasGovernance = showGovernanceButton;
 
-  // Check if current user is already a member of this garden.
-  // pendingJoinsVersion subscribes to in-tab pending-join changes so the
-  // header re-renders the moment a join confirms or expires (the header
-  // would otherwise stay on the stale `Join` button until an unrelated
-  // dep change forced a re-memo).
+  // The version counter refreshes membership as in-tab joins confirm or expire,
+  // so the header does not keep showing stale join controls.
   const pendingJoinsVersion = usePendingJoinsVersion();
   const isMember = useMemo(() => {
     if (!garden) return false;
-    return isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id);
-  }, [primaryAddress, garden, pendingJoinsVersion]);
-
-  // Join garden functionality
-  const { joinGarden, isJoining } = useJoinGarden();
-
-  const handleJoinGarden = useCallback(async () => {
-    if (!garden?.id) return;
-
-    try {
-      const result = await joinGarden(garden.id);
-      if (result === "already-member") {
-        toastService.success({
-          title: intl.formatMessage({
-            id: "app.garden.alreadyMember",
-            defaultMessage: "You're already a member of this garden",
-          }),
-        });
-      } else {
-        toastService.success({
-          title: intl.formatMessage({
-            id: "app.garden.joinSuccess",
-            defaultMessage: "Successfully joined the garden!",
-          }),
-        });
-      }
-    } catch {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.garden.joinError",
-          defaultMessage: "Failed to join garden. Please try again.",
-        }),
-      });
-    }
-  }, [garden?.id, joinGarden, intl]);
+    const { gardeners, stewards, id } = garden;
+    return canManageRequests || isGardenMember(primaryAddress, gardeners, stewards, id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
+  }, [primaryAddress, garden, canManageRequests, pendingJoinsVersion]);
 
   // Determine if join button should be shown
   const showJoinButton = useMemo(() => {
@@ -253,6 +201,14 @@ export const Garden: React.FC = () => {
     if (!garden?.openJoining) return false;
     return true;
   }, [primaryAddress, isMember, garden?.openJoining]);
+  const showJoinRequestButton = Boolean(primaryAddress && !isMember && !garden?.openJoining);
+
+  const handleShareGarden = () => {
+    if (!garden) return;
+    shareGarden(garden.id, garden.name).catch(() => {
+      toastService.error({ title: intl.formatMessage({ id: "app.garden.shareFailed" }) });
+    });
+  };
 
   if (!garden) {
     if (gardensInitialLoading) {
@@ -280,16 +236,12 @@ export const Garden: React.FC = () => {
               defaultMessage: "Couldn't load this garden. Check your connection and try again.",
             })}
           </p>
-          <Button
-            variant="primary"
-            mode="filled"
-            size="small"
-            onClick={() => refetchGardens()}
-            label={intl.formatMessage({
+          <Button type="button" onClick={() => refetchGardens()}>
+            {intl.formatMessage({
               id: "app.garden.loadRetry",
-              defaultMessage: "Try again",
+              defaultMessage: "Try Again",
             })}
-          />
+          </Button>
         </div>
       );
     }
@@ -308,47 +260,29 @@ export const Garden: React.FC = () => {
   }
 
   const { name, bannerImage, location, createdAt, assessments, description } = garden;
+  const foundedLabel = `${intl.formatMessage({ id: "app.home.founded" })} ${new Date(createdAt).toLocaleDateString()}`;
 
   // Restore scroll position when switching tabs
 
-  // Standard tabs configuration - removed counts
-  const tabs: StandardTab[] = [
-    {
-      id: GardenTab.Work,
-      label: tabNames[GardenTab.Work],
-      icon: <RiHammerFill className="w-4 h-4" />,
-    },
-    {
-      id: GardenTab.Insights,
-      label: tabNames[GardenTab.Insights],
-      icon: <RiFileChartFill className="w-4 h-4" />,
-    },
-    {
-      id: GardenTab.Gardeners,
-      label: tabNames[GardenTab.Gardeners],
-      icon: <RiGroupFill className="w-4 h-4" />,
-    },
-  ];
+  const tabs = buildGardenTabs(intl, { hasPool: Boolean(commitmentPool) });
 
   const renderTabContent = () => {
     switch (activeTab) {
       case GardenTab.Work: {
-        // Determine fetch status from actual hook states
-        const workFetchStatus: "pending" | "success" | "error" = worksError
-          ? "error"
-          : worksLoading
-            ? "pending"
-            : "success";
         return (
           <GardenWork
-            workFetchStatus={workFetchStatus}
             actions={actions}
             works={mergedWorks}
             isFetching={worksFetching}
+            readState={workRead}
+            gardenId={gardenIdParam}
+            chainId={chainId}
             onRefresh={refetchWorks}
           />
         );
       }
+      case GardenTab.Pool:
+        return commitmentPool ? <GardenPool pool={commitmentPool} /> : null;
       case GardenTab.Insights:
         return (
           <GardenAssessments
@@ -358,7 +292,13 @@ export const Garden: React.FC = () => {
           />
         );
       case GardenTab.Gardeners:
-        return <GardenGardeners members={members} garden={garden} />;
+        return (
+          <GardenGardeners
+            members={members}
+            garden={garden}
+            canManageRequests={canManageRequests}
+          />
+        );
     }
   };
 
@@ -367,18 +307,24 @@ export const Garden: React.FC = () => {
   return (
     <GardenErrorBoundary>
       <div className="h-full min-h-0 w-full flex flex-col relative overflow-hidden">
-        {pathname.includes("work") || pathname.includes("assessments") ? null : (
+        {pathname.includes("work") ||
+        pathname.includes("assessments") ||
+        pathname.includes("commitments") ? null : (
           <>
             {/* Fixed Header (banner + TopNav + title/metadata) */}
-            <div ref={headerRef} className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20">
-              <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-b-3xl">
+            <div
+              ref={measureHeader}
+              data-testid="garden-header"
+              className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20"
+            >
+              <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-b-2xl">
                 <ImageWithFallback
                   src={bannerImage || ""}
                   alt={`${name} banner`}
                   loading="eager"
                   className="absolute inset-0 w-full h-full object-cover object-center"
                   backgroundFallback={
-                    <GardenBannerFallback name={name} className="rounded-b-3xl" />
+                    <GardenBannerFallback name={name} className="rounded-b-2xl" />
                   }
                 />
                 <div className="absolute top-0 left-0 right-0 z-20">
@@ -387,19 +333,20 @@ export const Garden: React.FC = () => {
                     onBackClick={() => navigate("/home")}
                     works={mergedWorks}
                     garden={garden}
-                    isOperator={canReview}
+                    isSteward={canReview}
                     showGovernanceButton={showGovernanceButton}
                     onGovernanceClick={() => setIsGovernanceOpen(true)}
                     showEndowmentButton={showEndowmentButton}
                     hasEndowmentDeposits={hasEndowmentDeposits}
-                    onEndowmentClick={openEndowmentDrawer}
+                    onEndowmentClick={openEndowmentSheet}
+                    onShareClick={handleShareGarden}
                   />
                 </div>
               </div>
 
               {/* Title and meta below banner */}
               <div className="px-4 sm:px-5 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
-                <h1 className="title-section line-clamp-2" title={name}>
+                <h1 className="line-clamp-2 text-2xl font-bold" title={name}>
                   {name}
                 </h1>
                 <div className="flex items-center gap-2">
@@ -411,28 +358,18 @@ export const Garden: React.FC = () => {
                       </span>
                     </div>
                     <span className="hidden sm:inline text-text-soft-400">•</span>
-                    <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
+                    <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
                       <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
-                      <span>
-                        {intl.formatMessage({ id: "app.home.founded" })}{" "}
-                        {new Date(createdAt).toLocaleDateString()}
+                      <span className="truncate" title={foundedLabel}>
+                        {foundedLabel}
                       </span>
                     </div>
                   </div>
-                  {showJoinButton && (
-                    <Button
-                      label={intl.formatMessage({
-                        id: "app.garden.join",
-                        defaultMessage: "Join",
-                      })}
-                      leadingIcon={<RiUserAddLine className="w-4 h-4" />}
-                      variant="primary"
-                      mode="filled"
-                      size="small"
-                      onClick={handleJoinGarden}
-                      disabled={isJoining}
-                    />
-                  )}
+                  {/* One compact action at most; Share lives in the banner actions (DL-020). */}
+                  {showJoinButton && <JoinGardenButton gardenId={garden.id} gardenName={name} />}
+                  {showJoinRequestButton ? (
+                    <GardenJoinRequestDialog gardenAddress={garden.id as Address} />
+                  ) : null}
                 </div>
               </div>
 
@@ -442,6 +379,10 @@ export const Garden: React.FC = () => {
                   tabs={tabs}
                   activeTab={activeTab}
                   onTabChange={(tabId) => setActiveTab(tabId as GardenTab)}
+                  ariaLabel={intl.formatMessage({
+                    id: "app.garden.tabs.label",
+                    defaultMessage: "Garden sections",
+                  })}
                   variant="compact"
                   isLoading={gardensLoading || worksFetching}
                 />
@@ -454,6 +395,7 @@ export const Garden: React.FC = () => {
                 static height for the brief moment before ResizeObserver
                 reports a value. */}
             <div
+              data-testid="garden-header-spacer"
               className="flex-shrink-0"
               style={{ height: headerHeight !== null ? `${headerHeight}px` : undefined }}
               aria-hidden="true"
@@ -473,18 +415,18 @@ export const Garden: React.FC = () => {
           </>
         )}
         {garden && (
-          <EndowmentDrawer
+          <EndowmentSheet
             isOpen={isEndowmentOpen}
-            onClose={closeEndowmentDrawer}
-            gardenAddress={garden.id}
+            onClose={closeEndowmentSheet}
+            gardenAddress={garden.id as Address}
             gardenName={garden.name}
           />
         )}
         {garden && hasGovernance && (
-          <ConvictionDrawer
+          <ConvictionSheet
             isOpen={isGovernanceOpen}
             onClose={() => setIsGovernanceOpen(false)}
-            gardenAddress={garden.id}
+            gardenAddress={garden.id as Address}
             gardenName={garden.name}
           />
         )}

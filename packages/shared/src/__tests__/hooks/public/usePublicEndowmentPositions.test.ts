@@ -26,7 +26,7 @@ function buildInput(overrides: Partial<PublicEndowmentInput> = {}): PublicEndowm
         lastActivityAt: 1700000000,
         actionCount: 0,
         contributorCount: 0,
-        operators: [],
+        stewards: [],
         evaluators: [],
       },
       {
@@ -40,7 +40,7 @@ function buildInput(overrides: Partial<PublicEndowmentInput> = {}): PublicEndowm
         lastActivityAt: 1700000000,
         actionCount: 0,
         contributorCount: 0,
-        operators: [],
+        stewards: [],
         evaluators: [],
       },
     ],

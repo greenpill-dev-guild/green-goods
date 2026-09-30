@@ -1,4 +1,5 @@
 // Modules — EXPLICIT EXPORTS for tree-shaking
+export * from "./commitment-pooling";
 
 export {
   ANALYTICS_EVENTS,
@@ -33,12 +34,8 @@ export {
   trackAuthWalletConnectFailed,
   trackAuthWalletConnectStarted,
   trackAuthWalletConnectSuccess,
-  trackGardenAutoJoinFailed,
-  trackGardenAutoJoinStarted,
-  trackGardenAutoJoinSuccess,
   trackGardenJoinAlreadyMember,
   trackGardenJoinFailed,
-  // Garden join events
   trackGardenJoinStarted,
   trackGardenJoinSuccess,
   trackWorkApprovalFailed,
@@ -56,6 +53,7 @@ export {
   trackWorkWalletRequestFailed,
   trackWorkWalletRequestStarted,
 } from "./app/analytics-events";
+// harvestDistributionAnalytics is not re-exported: its only consumer imports it directly.
 // ============================================================================
 // APP / ERROR TRACKING
 // ============================================================================
@@ -147,14 +145,14 @@ export {
   USERNAME_STORAGE_KEY,
 } from "./auth/session";
 // ============================================================================
-// DATA / EAS
-// ============================================================================
+// DATA / EAS =================================================================
 export {
   getGardenAssessments,
   getWorkApprovals,
   getWorks,
   getWorksByGardener,
 } from "./data/eas";
+export { getKarmaGardenProjection } from "./data/karma";
 // ============================================================================
 // DATA / GARDENS (Gardens V2 Subgraph)
 // ============================================================================
@@ -182,6 +180,7 @@ export {
   greenGoodsIndexer,
   withTimeout,
 } from "./data/graphql-client";
+export * from "./data/public-garden-impact-readers";
 // ============================================================================
 // DATA / GREENGOODS
 // ============================================================================
@@ -202,25 +201,37 @@ export {
 export {
   type AssessmentMetadataPrefill,
   checkAttestationsBundled,
+  createHypercertRepository,
   domainToActionDomain,
   filterAttestationsByAssessment,
   getApprovedAttestations,
   getGardenHypercerts,
   getHypercertById,
+  type HypercertDocuments,
+  type HypercertEas,
+  type HypercertIndexer,
+  type HypercertRepository,
+  hypercertRepository,
+  type HypercertRepositoryDependencies,
+  type HypercertSdk,
   prefillMetadataFromAssessment,
 } from "./data/hypercerts";
 // ============================================================================
 // DATA / IPFS
 // ============================================================================
 export {
-  // Upload context types
+  createGatewayChain,
   type FileUploadContext,
   getFileByHash,
   getIPFSFallbackGateways,
   getIpfsInitStatus,
   initializeIpfs,
   initializeIpfsFromEnv,
+  type IpfsGateway,
   IPFS_FALLBACK_GATEWAYS,
+  type IpfsPinner,
+  type IpfsReadOptions,
+  ipfsPinner,
   type JsonUploadContext,
   resolveAvatarUrl,
   resolveImageUrl,
@@ -244,8 +255,12 @@ export {
 // DATA / VAULTS
 // ============================================================================
 export {
+  createVaultRepository,
   getAllGardenVaults,
   getGardenVaults,
+  type RepositoryResult,
+  type VaultRepository,
+  vaultRepository,
   getVaultDeposits,
   getVaultEvents,
 } from "./data/vaults";
@@ -405,8 +420,14 @@ export {
 // ============================================================================
 // TRANSLATION
 // ============================================================================
-export { browserTranslator } from "./translation/browser-translator";
-export { translationCache } from "./translation/db";
+export {
+  browserTranslator,
+  createBrowserTranslator,
+  type DetectedTranslatorApi,
+  detectTranslatorApi,
+  type Translator,
+} from "./translation/browser-translator";
+export { type TranslationCache, translationCache } from "./translation/db";
 export { runTranslationDiagnostics } from "./translation/diagnostics";
 // ============================================================================
 // WORK / BOT SUBMISSION
@@ -419,6 +440,7 @@ export type {
   AcceptedWorkMediaFile,
   ConvertedWorkMediaFile,
   MediaRejectedReason,
+  PreparedMedia,
   RejectedWorkMediaFile,
   SafeMediaMetadata,
   WorkMediaKind,
@@ -435,6 +457,7 @@ export {
   HEIC_JPEG_QUALITY,
   isVideoFile,
   normalizeWorkMediaFiles,
+  prepareMediaForUpload,
 } from "./work/media-processing";
 // ============================================================================
 // TRANSACTIONS

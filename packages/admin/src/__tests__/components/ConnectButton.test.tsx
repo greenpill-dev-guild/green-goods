@@ -7,10 +7,16 @@ const mockLoginWithWallet = vi.fn();
 const mockOpen = vi.fn();
 const mockUseAccount = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
-  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
+}));
+
+vi.mock("@green-goods/shared/providers/Auth", () => ({
   useAuthActions: () => ({ loginWithWallet: mockLoginWithWallet }),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
 }));
 
 vi.mock("@reown/appkit/react", () => ({

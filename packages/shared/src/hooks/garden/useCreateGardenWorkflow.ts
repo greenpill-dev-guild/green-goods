@@ -8,76 +8,34 @@
  */
 
 import { useQueryClient } from "@tanstack/react-query";
-import { waitForTransactionReceipt } from "@wagmi/core";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { formatEther, isAddress } from "viem";
+import { isAddress } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { fromPromise } from "xstate";
-import { getWagmiConfig } from "../../config/appkit";
-import { getChain } from "../../config/chains";
 import {
   trackAdminGardenCreateFailed,
   trackAdminGardenCreateStarted,
   trackAdminGardenCreateSuccess,
 } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
-import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
+import {
+  createDefaultCreateGardenPorts,
+  createGarden,
+  estimateGardenCreation,
+} from "../../modules/garden/create-garden-command";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useCreateGardenStore } from "../../stores/useCreateGardenStore";
-import { isZeroAddress } from "../../utils/blockchain/address";
-import {
-  createClients,
-  GardenTokenABI,
-  GreenGoodsENSABI,
-  getNetworkContracts,
-} from "../../utils/blockchain/contracts";
-import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
-import { simulateTransaction } from "../../utils/blockchain/simulation";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useGardenDraft } from "./useGardenDraft";
 
 export type { GardenDraft } from "./useGardenDraft";
-
-/**
- * Estimate the CCIP fee for ENS registration during garden creation.
- * Returns 0n if slug is empty, ENS is not configured, or estimation fails.
- */
-async function estimateCCIPFee(
-  slug: string,
-  ensAddress: `0x${string}`,
-  callerAddress: `0x${string}`,
-  chainId: number
-): Promise<bigint> {
-  if (!slug || isZeroAddress(ensAddress)) {
-    return 0n;
-  }
-
-  try {
-    const { publicClient } = createClients(chainId);
-    return (await publicClient.readContract({
-      address: ensAddress,
-      abi: GreenGoodsENSABI,
-      functionName: "getRegistrationFee",
-      args: [slug, callerAddress, 1], // 1 = Garden NameType
-    })) as bigint;
-  } catch (error) {
-    // ENS fee estimation failed -- proceed without ENS (graceful degradation)
-    logger.warn("ENS fee estimation failed, proceeding without ENS", {
-      source: "estimateCCIPFee",
-      slug,
-      ensAddress,
-      chainId,
-      error,
-    });
-    return 0n;
-  }
-}
 
 /**
  * Get current form status from the store for passing to machine events
@@ -197,65 +155,14 @@ export function useCreateGardenWorkflow() {
             });
 
             try {
+              const txHash = await createGarden(
+                { params, accountAddress, chainId: currentChainId },
+                createDefaultCreateGardenPorts({
+                  walletClient: currentWalletClient,
+                  addPending: (hash) => addPendingTx(hash, "garden:create"),
+                })
+              );
               const contracts = getNetworkContracts(currentChainId);
-              const config = {
-                name: params.name,
-                slug: params.slug ?? "",
-                description: params.description,
-                location: params.location,
-                bannerImage: params.bannerImage,
-                metadata: params.metadata ?? "",
-                openJoining: params.openJoining ?? false,
-                weightScheme: params.weightScheme,
-                domainMask: params.domainMask,
-                gardeners: params.gardeners,
-                operators: params.operators,
-              };
-
-              // Estimate CCIP fee for ENS registration (if slug provided and ENS module configured)
-              const ccipFee = await estimateCCIPFee(
-                config.slug,
-                contracts.greenGoodsENS as `0x${string}`,
-                accountAddress,
-                currentChainId
-              );
-
-              // Simulate first to catch contract reverts without spending gas
-              const simulation = await simulateTransaction(
-                contracts.gardenToken,
-                GardenTokenABI,
-                "mintGarden",
-                [config],
-                accountAddress,
-                currentChainId
-              );
-
-              if (!simulation.success) {
-                throw new Error(simulation.error?.message ?? "Transaction simulation failed");
-              }
-
-              // Execute the transaction (payable -- includes CCIP fee for ENS)
-              await ensureAppKitWalletChain(currentChainId);
-              await assertLocalArbitrumForkWallet();
-
-              const txHash = await currentWalletClient.writeContract({
-                address: contracts.gardenToken,
-                abi: GardenTokenABI,
-                functionName: "mintGarden",
-                account: accountAddress,
-                args: [config],
-                value: ccipFee,
-                chain: getChain(currentChainId),
-              });
-
-              addPendingTx(txHash, "garden:create");
-
-              // Wait for on-chain confirmation before declaring success
-              await waitForTransactionReceipt(getWagmiConfig(), {
-                hash: txHash,
-                chainId: currentChainId,
-                timeout: TX_RECEIPT_TIMEOUT_MS,
-              });
 
               trackAdminGardenCreateSuccess({
                 gardenName: params.name,
@@ -394,55 +301,16 @@ export function useCreateGardenWorkflow() {
     }
     const accountAddress = currentAddress as `0x${string}`;
 
-    const contracts = getNetworkContracts(currentChainId);
-    const config = {
-      name: params.name,
-      slug: params.slug ?? "",
-      description: params.description,
-      location: params.location,
-      bannerImage: params.bannerImage,
-      metadata: params.metadata ?? "",
-      openJoining: params.openJoining ?? false,
-      weightScheme: params.weightScheme,
-      domainMask: params.domainMask,
-      gardeners: params.gardeners,
-      operators: params.operators,
-    };
-
-    const { publicClient } = createClients(currentChainId);
-
-    const ccipFee = await estimateCCIPFee(
-      config.slug,
-      contracts.greenGoodsENS as `0x${string}`,
-      accountAddress,
-      currentChainId
-    );
-
-    const gasEstimate = await publicClient.estimateContractGas({
-      address: contracts.gardenToken,
-      abi: GardenTokenABI,
-      functionName: "mintGarden",
-      account: accountAddress,
-      args: [config],
-      value: ccipFee,
+    const currentWalletClient = dependenciesRef.current.walletClient;
+    if (!currentWalletClient) throw new Error("Connect a wallet to estimate deployment cost");
+    const ports = createDefaultCreateGardenPorts({
+      walletClient: currentWalletClient,
+      addPending: () => {},
     });
-
-    const gasPrice = await publicClient.getGasPrice();
-    const txFee = gasEstimate * gasPrice;
-    const totalEstimatedFee = txFee + ccipFee;
-
-    return {
-      gasEstimate,
-      gasPrice,
-      txFee,
-      ccipFee,
-      totalEstimatedFee,
-      formatted: {
-        txFeeEth: formatEther(txFee),
-        ccipFeeEth: formatEther(ccipFee),
-        totalEth: formatEther(totalEstimatedFee),
-      },
-    };
+    return estimateGardenCreation(
+      { params, accountAddress, chainId: currentChainId },
+      { reader: ports.reader }
+    );
   }, []);
 
   const retry = useCallback(() => {

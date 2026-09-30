@@ -1,35 +1,8 @@
 import assert from "assert";
-import { createRequire } from "module";
+import { createTestIndexer, OctantModule, OctantVault, processEvents } from "./v3";
+import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
 
-// @ts-expect-error import.meta.url is valid at runtime in tsx.
-const require = createRequire(import.meta.url);
-const generated = require("../generated");
-const { TestHelpers } = generated;
-const { MockDb, Addresses, OctantModule, OctantVault } = TestHelpers;
-
-const CHAIN_ID = 42161;
-
-function addr(index: number): string {
-  return Addresses.mockAddresses[index] || `0x${index.toString().padStart(40, "0")}`;
-}
-
-function txHash(index: number): string {
-  return `0x${index.toString(16).padStart(64, "0")}`;
-}
-
-function mockEvent(
-  chainId: number,
-  timestamp: number,
-  opts: { srcAddress?: string; txHash?: string; logIndex?: number; blockNumber?: number } = {}
-) {
-  return {
-    chainId,
-    block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress ?? addr(99),
-    transaction: { hash: opts.txHash ?? txHash(timestamp) },
-    logIndex: opts.logIndex ?? 0,
-  };
-}
+const CHAIN_ID = CHAINS.arbitrum;
 
 const GARDEN = addr(20);
 const ASSET = addr(21);
@@ -54,9 +27,19 @@ function vaultId() {
 // ============================================================================
 
 describe("OctantModule.VaultCreated", () => {
+  it("registers the created OctantVault for dynamic discovery", async () => {
+    const mockDb = await seedVault(createTestIndexer());
+
+    assert.ok(
+      mockDb.chains[CHAIN_ID].OctantVault.addresses.some(
+        (address) => address.toLowerCase() === VAULT.toLowerCase()
+      )
+    );
+  });
+
   it("creates GardenVault entity", async () => {
-    const mockDb = await seedVault(MockDb.createMockDb());
-    const vault = mockDb.entities.GardenVault.get(vaultId());
+    const mockDb = await seedVault(createTestIndexer());
+    const vault = await mockDb.GardenVault.get(vaultId());
 
     assert.ok(vault);
     assert.equal(vault.garden, GARDEN.toLowerCase());
@@ -70,9 +53,9 @@ describe("OctantModule.VaultCreated", () => {
   });
 
   it("creates GardenVaultIndex with asset", async () => {
-    const mockDb = await seedVault(MockDb.createMockDb());
+    const mockDb = await seedVault(createTestIndexer());
     const indexId = `${CHAIN_ID}-${GARDEN.toLowerCase()}`;
-    const index = mockDb.entities.GardenVaultIndex.get(indexId);
+    const index = await mockDb.GardenVaultIndex.get(indexId);
 
     assert.ok(index);
     assert.equal(index.garden, GARDEN.toLowerCase());
@@ -80,9 +63,9 @@ describe("OctantModule.VaultCreated", () => {
   });
 
   it("creates VaultAddressIndex for reverse lookup", async () => {
-    const mockDb = await seedVault(MockDb.createMockDb());
+    const mockDb = await seedVault(createTestIndexer());
     const indexId = `${CHAIN_ID}-${VAULT.toLowerCase()}`;
-    const vaultIndex = mockDb.entities.VaultAddressIndex.get(indexId);
+    const vaultIndex = await mockDb.VaultAddressIndex.get(indexId);
 
     assert.ok(vaultIndex);
     assert.equal(vaultIndex.garden, GARDEN.toLowerCase());
@@ -91,7 +74,7 @@ describe("OctantModule.VaultCreated", () => {
   });
 
   it("does not duplicate assets in GardenVaultIndex", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
 
     // Create same vault again (should not duplicate asset)
     const event = OctantModule.VaultCreated.createMockEvent({
@@ -103,14 +86,14 @@ describe("OctantModule.VaultCreated", () => {
     mockDb = await OctantModule.VaultCreated.processEvent({ event, mockDb });
 
     const indexId = `${CHAIN_ID}-${GARDEN.toLowerCase()}`;
-    const index = mockDb.entities.GardenVaultIndex.get(indexId);
+    const index = await mockDb.GardenVaultIndex.get(indexId);
 
     assert.ok(index);
     assert.equal(index.assets.length, 1);
   });
 
   it("adds second asset to existing GardenVaultIndex", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
     const secondAsset = addr(23);
 
     const event = OctantModule.VaultCreated.createMockEvent({
@@ -122,7 +105,7 @@ describe("OctantModule.VaultCreated", () => {
     mockDb = await OctantModule.VaultCreated.processEvent({ event, mockDb });
 
     const indexId = `${CHAIN_ID}-${GARDEN.toLowerCase()}`;
-    const index = mockDb.entities.GardenVaultIndex.get(indexId);
+    const index = await mockDb.GardenVaultIndex.get(indexId);
 
     assert.ok(index);
     assert.equal(index.assets.length, 2);
@@ -135,7 +118,7 @@ describe("OctantModule.VaultCreated", () => {
 
 describe("OctantVault.Deposit", () => {
   it("creates deposit record and updates vault totals", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
 
     const event = OctantVault.Deposit.createMockEvent({
       sender: addr(30),
@@ -150,14 +133,14 @@ describe("OctantVault.Deposit", () => {
     });
     mockDb = await OctantVault.Deposit.processEvent({ event, mockDb });
 
-    const vault = mockDb.entities.GardenVault.get(vaultId());
+    const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
     assert.equal(vault.totalDeposited, 100n);
     assert.equal(vault.depositorCount, 1);
   });
 
   it("accumulates deposits from same depositor", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
 
     const event1 = OctantVault.Deposit.createMockEvent({
       sender: addr(30),
@@ -170,8 +153,6 @@ describe("OctantVault.Deposit", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: event1, mockDb });
-
     const event2 = OctantVault.Deposit.createMockEvent({
       sender: addr(30),
       owner: addr(31),
@@ -183,23 +164,23 @@ describe("OctantVault.Deposit", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: event2, mockDb });
+    mockDb = await processEvents(mockDb, [event1, event2]);
 
     const depositId = `${CHAIN_ID}-${VAULT.toLowerCase()}-${addr(31).toLowerCase()}`;
-    const deposit = mockDb.entities.VaultDeposit.get(depositId);
+    const deposit = await mockDb.VaultDeposit.get(depositId);
 
     assert.ok(deposit);
     assert.equal(deposit.shares, 150n);
     assert.equal(deposit.totalDeposited, 150n);
 
-    const vault = mockDb.entities.GardenVault.get(vaultId());
+    const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
     assert.equal(vault.totalDeposited, 150n);
     assert.equal(vault.depositorCount, 1); // Same depositor, count stays 1
   });
 
   it("increments depositor count for new depositors", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
 
     const deposit1 = OctantVault.Deposit.createMockEvent({
       sender: addr(30),
@@ -212,8 +193,6 @@ describe("OctantVault.Deposit", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: deposit1, mockDb });
-
     const deposit2 = OctantVault.Deposit.createMockEvent({
       sender: addr(32),
       owner: addr(33),
@@ -225,15 +204,15 @@ describe("OctantVault.Deposit", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: deposit2, mockDb });
+    mockDb = await processEvents(mockDb, [deposit1, deposit2]);
 
-    const vault = mockDb.entities.GardenVault.get(vaultId());
+    const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
     assert.equal(vault.depositorCount, 2);
   });
 
   it("does not increment depositor count for zero-share deposits", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
 
     const event = OctantVault.Deposit.createMockEvent({
       sender: addr(30),
@@ -248,13 +227,13 @@ describe("OctantVault.Deposit", () => {
     });
     mockDb = await OctantVault.Deposit.processEvent({ event, mockDb });
 
-    const vault = mockDb.entities.GardenVault.get(vaultId());
+    const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
     assert.equal(vault.depositorCount, 0);
   });
 
   it("creates VaultEvent with DEPOSIT type", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
     const tx = txHash(200);
 
     const event = OctantVault.Deposit.createMockEvent({
@@ -270,7 +249,7 @@ describe("OctantVault.Deposit", () => {
     });
     mockDb = await OctantVault.Deposit.processEvent({ event, mockDb });
 
-    const vaultEvent = mockDb.entities.VaultEvent.get(`${CHAIN_ID}-${tx}-5`);
+    const vaultEvent = await mockDb.VaultEvent.get(`${CHAIN_ID}-${tx}-5`);
     assert.ok(vaultEvent);
     assert.equal(vaultEvent.eventType, "DEPOSIT");
     assert.equal(vaultEvent.amount, 100n);
@@ -280,7 +259,7 @@ describe("OctantVault.Deposit", () => {
   });
 
   it("ignores deposit when vault address not indexed", async () => {
-    const mockDb = MockDb.createMockDb(); // No vault setup
+    const mockDb = createTestIndexer(); // No vault setup
 
     const event = OctantVault.Deposit.createMockEvent({
       sender: addr(30),
@@ -294,9 +273,13 @@ describe("OctantVault.Deposit", () => {
       }),
     });
 
-    const result = await OctantVault.Deposit.processEvent({ event, mockDb });
-    // Should not throw, just skip
-    assert.equal(result.entities.GardenVault.get(vaultId()), undefined);
+    // Envio rejects an event whose address is not indexed rather than silently
+    // skipping it, so the guarantee is now enforced before the handler runs.
+    await assert.rejects(
+      () => OctantVault.Deposit.processEvent({ event, mockDb }),
+      /never reached a handler/
+    );
+    assert.equal(await mockDb.GardenVault.get(vaultId()), undefined);
   });
 });
 
@@ -306,7 +289,7 @@ describe("OctantVault.Deposit", () => {
 
 describe("OctantVault.Withdraw", () => {
   it("tracks withdrawals and updates vault totals", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
 
     // Deposit first
     const deposit = OctantVault.Deposit.createMockEvent({
@@ -320,8 +303,6 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: deposit, mockDb });
-
     // Withdraw
     const withdraw = OctantVault.Withdraw.createMockEvent({
       sender: addr(30),
@@ -335,21 +316,21 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Withdraw.processEvent({ event: withdraw, mockDb });
+    mockDb = await processEvents(mockDb, [deposit, withdraw]);
 
-    const vault = mockDb.entities.GardenVault.get(vaultId());
+    const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
     assert.equal(vault.totalWithdrawn, 40n);
 
     const depositId = `${CHAIN_ID}-${VAULT.toLowerCase()}-${addr(31).toLowerCase()}`;
-    const depositRecord = mockDb.entities.VaultDeposit.get(depositId);
+    const depositRecord = await mockDb.VaultDeposit.get(depositId);
     assert.ok(depositRecord);
     assert.equal(depositRecord.shares, 60n); // 100 - 40
     assert.equal(depositRecord.totalWithdrawn, 40n);
   });
 
   it("clamps shares to zero when over-withdrawing", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
 
     // Deposit 50
     const deposit = OctantVault.Deposit.createMockEvent({
@@ -363,8 +344,6 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: deposit, mockDb });
-
     // Withdraw 100 (more than deposited)
     const withdraw = OctantVault.Withdraw.createMockEvent({
       sender: addr(30),
@@ -378,16 +357,16 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Withdraw.processEvent({ event: withdraw, mockDb });
+    mockDb = await processEvents(mockDb, [deposit, withdraw]);
 
     const depositId = `${CHAIN_ID}-${VAULT.toLowerCase()}-${addr(31).toLowerCase()}`;
-    const depositRecord = mockDb.entities.VaultDeposit.get(depositId);
+    const depositRecord = await mockDb.VaultDeposit.get(depositId);
     assert.ok(depositRecord);
     assert.equal(depositRecord.shares, 0n); // Clamped to 0
   });
 
   it("creates VaultEvent with WITHDRAW type", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
     const tx = txHash(300);
 
     // Deposit first
@@ -402,8 +381,6 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: deposit, mockDb });
-
     const withdraw = OctantVault.Withdraw.createMockEvent({
       sender: addr(30),
       receiver: addr(31),
@@ -416,9 +393,9 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 3,
       }),
     });
-    mockDb = await OctantVault.Withdraw.processEvent({ event: withdraw, mockDb });
+    mockDb = await processEvents(mockDb, [deposit, withdraw]);
 
-    const vaultEvent = mockDb.entities.VaultEvent.get(`${CHAIN_ID}-${tx}-3`);
+    const vaultEvent = await mockDb.VaultEvent.get(`${CHAIN_ID}-${tx}-3`);
     assert.ok(vaultEvent);
     assert.equal(vaultEvent.eventType, "WITHDRAW");
     assert.equal(vaultEvent.amount, 25n);
@@ -431,7 +408,7 @@ describe("OctantVault.Withdraw", () => {
 
 describe("OctantModule.HarvestTriggered", () => {
   it("increments harvest count", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
 
     const event = OctantModule.HarvestTriggered.createMockEvent({
       garden: GARDEN,
@@ -441,13 +418,13 @@ describe("OctantModule.HarvestTriggered", () => {
     });
     mockDb = await OctantModule.HarvestTriggered.processEvent({ event, mockDb });
 
-    const vault = mockDb.entities.GardenVault.get(vaultId());
+    const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
     assert.equal(vault.totalHarvestCount, 1);
   });
 
   it("increments harvest count multiple times", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
 
     for (let i = 0; i < 3; i++) {
       const event = OctantModule.HarvestTriggered.createMockEvent({
@@ -459,13 +436,13 @@ describe("OctantModule.HarvestTriggered", () => {
       mockDb = await OctantModule.HarvestTriggered.processEvent({ event, mockDb });
     }
 
-    const vault = mockDb.entities.GardenVault.get(vaultId());
+    const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
     assert.equal(vault.totalHarvestCount, 3);
   });
 
   it("creates VaultEvent with HARVEST type", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
     const tx = txHash(300);
 
     const event = OctantModule.HarvestTriggered.createMockEvent({
@@ -476,7 +453,7 @@ describe("OctantModule.HarvestTriggered", () => {
     });
     mockDb = await OctantModule.HarvestTriggered.processEvent({ event, mockDb });
 
-    const vaultEvent = mockDb.entities.VaultEvent.get(`${CHAIN_ID}-${tx}-2`);
+    const vaultEvent = await mockDb.VaultEvent.get(`${CHAIN_ID}-${tx}-2`);
     assert.ok(vaultEvent);
     assert.equal(vaultEvent.eventType, "HARVEST");
     assert.equal(vaultEvent.amount, undefined);
@@ -485,7 +462,7 @@ describe("OctantModule.HarvestTriggered", () => {
   });
 
   it("creates default vault when vault not found", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
 
     const event = OctantModule.HarvestTriggered.createMockEvent({
       garden: GARDEN,
@@ -495,7 +472,7 @@ describe("OctantModule.HarvestTriggered", () => {
     });
     mockDb = await OctantModule.HarvestTriggered.processEvent({ event, mockDb });
 
-    const vault = mockDb.entities.GardenVault.get(vaultId());
+    const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
     assert.equal(vault.totalHarvestCount, 1);
   });
@@ -503,7 +480,7 @@ describe("OctantModule.HarvestTriggered", () => {
 
 describe("OctantModule.EmergencyPaused", () => {
   it("sets paused flag to true", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
 
     const event = OctantModule.EmergencyPaused.createMockEvent({
       garden: GARDEN,
@@ -513,13 +490,13 @@ describe("OctantModule.EmergencyPaused", () => {
     });
     mockDb = await OctantModule.EmergencyPaused.processEvent({ event, mockDb });
 
-    const vault = mockDb.entities.GardenVault.get(vaultId());
+    const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
     assert.equal(vault.paused, true);
   });
 
   it("creates VaultEvent with EMERGENCY_PAUSED type", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
     const tx = txHash(300);
 
     const event = OctantModule.EmergencyPaused.createMockEvent({
@@ -530,7 +507,7 @@ describe("OctantModule.EmergencyPaused", () => {
     });
     mockDb = await OctantModule.EmergencyPaused.processEvent({ event, mockDb });
 
-    const vaultEvent = mockDb.entities.VaultEvent.get(`${CHAIN_ID}-${tx}-4`);
+    const vaultEvent = await mockDb.VaultEvent.get(`${CHAIN_ID}-${tx}-4`);
     assert.ok(vaultEvent);
     assert.equal(vaultEvent.eventType, "EMERGENCY_PAUSED");
   });
@@ -542,7 +519,7 @@ describe("OctantModule.EmergencyPaused", () => {
 
 describe("OctantModule.DonationAddressUpdated", () => {
   it("updates donationAddress on all vaults for the garden", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
 
     const event = OctantModule.DonationAddressUpdated.createMockEvent({
       garden: GARDEN,
@@ -552,13 +529,13 @@ describe("OctantModule.DonationAddressUpdated", () => {
     });
     mockDb = await OctantModule.DonationAddressUpdated.processEvent({ event, mockDb });
 
-    const vault = mockDb.entities.GardenVault.get(vaultId());
+    const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
     assert.equal(vault.donationAddress, addr(27).toLowerCase());
   });
 
   it("does nothing when GardenVaultIndex not found", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
 
     const event = OctantModule.DonationAddressUpdated.createMockEvent({
       garden: addr(50),
@@ -573,7 +550,7 @@ describe("OctantModule.DonationAddressUpdated", () => {
   });
 
   it("updates all assets for the same garden", async () => {
-    let mockDb = await seedVault(MockDb.createMockDb());
+    let mockDb = await seedVault(createTestIndexer());
     const secondAsset = addr(23);
     const secondVault = addr(24);
 
@@ -584,8 +561,6 @@ describe("OctantModule.DonationAddressUpdated", () => {
       asset: secondAsset,
       mockEventData: mockEvent(CHAIN_ID, 1500, { txHash: txHash(150), logIndex: 1 }),
     });
-    mockDb = await OctantModule.VaultCreated.processEvent({ event: createEvent, mockDb });
-
     // Update donation address
     const updateEvent = OctantModule.DonationAddressUpdated.createMockEvent({
       garden: GARDEN,
@@ -593,10 +568,10 @@ describe("OctantModule.DonationAddressUpdated", () => {
       newAddress: addr(27),
       mockEventData: mockEvent(CHAIN_ID, 4000, { txHash: txHash(400), logIndex: 1 }),
     });
-    mockDb = await OctantModule.DonationAddressUpdated.processEvent({ event: updateEvent, mockDb });
+    mockDb = await processEvents(mockDb, [createEvent, updateEvent]);
 
-    const vault1 = mockDb.entities.GardenVault.get(vaultId());
-    const vault2 = mockDb.entities.GardenVault.get(
+    const vault1 = await mockDb.GardenVault.get(vaultId());
+    const vault2 = await mockDb.GardenVault.get(
       `${CHAIN_ID}-${GARDEN.toLowerCase()}-${secondAsset.toLowerCase()}`
     );
 

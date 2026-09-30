@@ -2,18 +2,21 @@ import { useMemo } from "react";
 import { useReadContract, useReadContracts } from "wagmi";
 import type { CookieJar } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
-import {
-  COOKIE_JAR_ABI,
-  COOKIE_JAR_MODULE_ABI,
-  ERC20_DECIMALS_ABI,
-} from "../../utils/blockchain/abis";
+import { COOKIE_JAR_ABI, COOKIE_JAR_MODULE_ABI } from "../../utils/blockchain/abis/cookie-jar";
+import { ERC20_DECIMALS_ABI } from "../../utils/blockchain/abis/erc20";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 
 interface UseGardenCookieJarsOptions {
   enabled?: boolean;
+  /**
+   * Re-read each jar's balance, limit, cooldown and pause state on this interval while the
+   * caller is on screen. Deposits and claims come from other apps and devices, which no
+   * mutation here can announce, so a surface that stays open has to ask the chain again.
+   */
+  refetchInterval?: number | false;
 }
 
 export function useGardenCookieJars(
@@ -32,6 +35,7 @@ export function useGardenCookieJars(
   const {
     data: jarAddresses,
     isLoading: isLoadingAddresses,
+    isPaused: isAddressesPaused,
     error: addressError,
   } = useReadContract({
     address: moduleAddress as Address,
@@ -74,6 +78,7 @@ export function useGardenCookieJars(
   const {
     data: multicallResults,
     isLoading: isLoadingDetails,
+    isPaused: isDetailsPaused,
     error: detailsError,
   } = useReadContracts({
     contracts: jarContracts,
@@ -81,6 +86,7 @@ export function useGardenCookieJars(
     query: {
       enabled: validJarAddresses.length > 0,
       staleTime: STALE_TIME_MEDIUM,
+      refetchInterval: options.refetchInterval ?? false,
     },
   });
 
@@ -111,7 +117,11 @@ export function useGardenCookieJars(
     [currencyAddresses]
   );
 
-  const { data: decimalsResults, isLoading: isLoadingDecimals } = useReadContracts({
+  const {
+    data: decimalsResults,
+    isLoading: isLoadingDecimals,
+    isPaused: isDecimalsPaused,
+  } = useReadContracts({
     contracts: decimalsContracts,
     allowFailure: true,
     query: {
@@ -170,12 +180,27 @@ export function useGardenCookieJars(
   return {
     jars,
     isLoading: isLoadingAddresses || isLoadingDetails || isLoadingDecimals,
+    /**
+     * True while a read waits for the network (the app marked the session offline). TanStack
+     * Query reports such a read as pending but not loading, so an empty list proves nothing.
+     */
+    isPaused: isAddressesPaused || isDetailsPaused || isDecimalsPaused,
     error: addressError || detailsError,
     jarCount: validJarAddresses.length,
+    /**
+     * True only once the garden's jar list was read empty, or the chain has no
+     * jar module: a pending, failed, or skipped read proves nothing.
+     */
+    hasNoJar: (!moduleConfigured || jarAddresses !== undefined) && validJarAddresses.length === 0,
     moduleConfigured,
     detailErrorCount,
     hasDetailReadFailure: detailErrorCount > 0,
     decimalsErrorCount,
     hasDecimalsReadFailure: decimalsErrorCount > 0,
+    /**
+     * True until every jar currency's decimals have been read once. Until then each jar's
+     * amounts use an 18-decimal fallback, which misreads a six-decimal token.
+     */
+    hasUnreadDecimals: decimalsContracts.length > 0 && decimalsResults === undefined,
   };
 }

@@ -1,0 +1,549 @@
+/**
+ * @vitest-environment node
+ */
+
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { FlushResult, JobQueueDependencies } from "../../modules/job-queue/ports";
+import { createJobQueue } from "../../modules/job-queue/queue";
+import type { Job, JobKindMap, QueueEvent } from "../../types/job-queue";
+import {
+  createFakeJobExecutorRegistry,
+  createFakeJobQueueClock,
+  createFakeJobQueueConnectivity,
+  createInMemoryJobQueueStore,
+  createJobQueueDependencies,
+} from "../test-utils/job-queue-fakes";
+
+const USER = "0x1111111111111111111111111111111111111111";
+
+function queuedJob(overrides: Partial<Job> = {}): Job {
+  return {
+    id: "job-1",
+    kind: "work",
+    payload: {},
+    userAddress: USER,
+    chainId: 11155111,
+    createdAt: 1,
+    attempts: 0,
+    synced: false,
+    ...overrides,
+  } as Job;
+}
+
+function setup(overrides: Partial<JobQueueDependencies> = {}) {
+  const deps = createJobQueueDependencies(overrides);
+  return { deps, queue: createJobQueue(deps) };
+}
+
+describe("createJobQueue", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("constructs from explicit dependencies and persists a job", async () => {
+    const { deps, queue } = setup();
+    const id = await queue.addJob("work", {} as JobKindMap["work"], USER);
+
+    expect(id).toBe("job-1");
+    expect(await queue.getPendingCount(USER)).toBe(1);
+    expect(deps.events.emit).toHaveBeenCalledWith("job:added", expect.anything());
+    expect(deps.backgroundSync.request).toHaveBeenCalledOnce();
+    expect(deps.analytics.jobCreated).toHaveBeenCalledWith("work", true, 11155111);
+  });
+
+  it("requires an address for add and flush", async () => {
+    const { queue } = setup();
+    await expect(queue.addJob("work", {} as JobKindMap["work"], "")).rejects.toThrow(
+      "userAddress is required when adding a job"
+    );
+    await expect(queue.flush({ transactionSender: null, userAddress: "" })).rejects.toThrow(
+      "userAddress is required for flush operation"
+    );
+  });
+
+  it("caches quota reads and tolerates background-sync registration failure", async () => {
+    const backgroundSync = {
+      request: vi.fn(() => {
+        throw new Error("unsupported");
+      }),
+    };
+    const { deps, queue } = setup({ backgroundSync });
+    await queue.addJob("work", {} as JobKindMap["work"], USER);
+    await queue.addJob("approval", {} as JobKindMap["approval"], USER);
+
+    expect(deps.quota.get).toHaveBeenCalledOnce();
+    expect(deps.logger.debug).toHaveBeenCalledWith(
+      "[JobQueue] Failed to register background sync",
+      expect.anything()
+    );
+  });
+
+  it("deduplicates equal commitment identities and rejects conflicts", async () => {
+    const claim = {
+      commitmentId: 1n,
+      kind: 0,
+      gardenContext: "0x2222222222222222222222222222222222222222",
+    } as JobKindMap["claim"];
+    const { queue } = setup();
+    const first = await queue.addJob("claim", claim, USER);
+
+    await expect(queue.addJob("claim", { ...claim }, USER)).resolves.toBe(first);
+    await expect(
+      queue.addJob(
+        "claim",
+        { ...claim, gardenAddress: "0x3333333333333333333333333333333333333333" },
+        USER
+      )
+    ).rejects.toThrow("offline_job_identity_conflict");
+  });
+
+  it("joins a repeated act whose first send is already on record", async () => {
+    // The record is the queue's, not the act's: a second tap on the same
+    // take-up is the same job, not a conflicting one.
+    const claim = {
+      commitmentId: 1n,
+      kind: 1,
+      gardenContext: "0x2222222222222222222222222222222222222222",
+    } as JobKindMap["claim"];
+    const { deps, queue } = setup();
+    const first = await queue.addJob("claim", claim, USER);
+    const stored = await deps.store.getJob(first);
+    await deps.store.updateJob({
+      ...stored!,
+      payload: {
+        ...(stored!.payload as object),
+        sendCheckpoint: { broadcastPending: false, transactionHash: `0x${"44".repeat(32)}` },
+      },
+    });
+
+    await expect(queue.addJob("claim", { ...claim }, USER)).resolves.toBe(first);
+  });
+
+  it("emits an empty sync result", async () => {
+    const { deps, queue } = setup();
+    await expect(queue.flush({ transactionSender: null, userAddress: USER })).resolves.toEqual({
+      processed: 0,
+      failed: 0,
+      skipped: 0,
+    });
+    expect(deps.events.emit).toHaveBeenCalledWith("queue:sync-completed", {
+      result: { processed: 0, failed: 0, skipped: 0 },
+    });
+  });
+
+  it("serializes concurrent flushes and yields after three jobs", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({ id: "1" }),
+      queuedJob({ id: "2" }),
+      queuedJob({ id: "3" }),
+      queuedJob({ id: "4" }),
+    ]);
+    let release: (() => void) | undefined;
+    let started: (() => void) | undefined;
+    const firstStarted = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const executors = {
+      execute: vi.fn(
+        () =>
+          new Promise<{ status: "complete" }>((resolve) => {
+            if (executors.execute.mock.calls.length === 1) {
+              release = () => resolve({ status: "complete" });
+              started?.();
+            } else {
+              resolve({ status: "complete" });
+            }
+          })
+      ),
+    };
+    const { deps, queue } = setup({ store, executors });
+    const sender = {} as Parameters<typeof queue.flush>[0]["transactionSender"];
+    const first = queue.flush({ transactionSender: sender, userAddress: USER });
+    const second = queue.flush({ transactionSender: sender, userAddress: USER });
+    expect(second).toBe(first);
+    await firstStarted;
+    release?.();
+    await expect(first).resolves.toEqual({ processed: 4, failed: 0, skipped: 0 });
+    expect(deps.scheduler.yield).toHaveBeenCalledOnce();
+  });
+
+  it("counts scheduler failures without stopping the remaining batch", async () => {
+    const store = createInMemoryJobQueueStore([queuedJob({ id: "1" }), queuedJob({ id: "2" })]);
+    const scheduler = {
+      schedule: vi
+        .fn()
+        .mockRejectedValueOnce(new Error("scheduler failed"))
+        .mockImplementation((task: () => Promise<unknown>) => task()),
+      yield: vi.fn().mockResolvedValue(undefined),
+    } as JobQueueDependencies["scheduler"];
+    const { deps, queue } = setup({ store, scheduler });
+    const result = await queue.flush({ transactionSender: {} as never, userAddress: USER });
+    expect(result).toEqual({ processed: 1, failed: 1, skipped: 0 });
+    expect(deps.events.emit).toHaveBeenCalledWith(
+      "job:failed",
+      expect.objectContaining({ jobId: "1", error: "scheduler failed" })
+    );
+  });
+
+  it("exposes readers, subscriptions, recovery, and cleanup through the handle", async () => {
+    const failed = queuedJob({ id: "failed", attempts: 5, lastError: "failed" });
+    const store = createInMemoryJobQueueStore([failed]);
+    let unloadCleanup: (() => void) | undefined;
+    const detach = vi.fn();
+    const lifecycle = {
+      attach: vi.fn((cleanup: () => void) => {
+        unloadCleanup = cleanup;
+        return detach;
+      }),
+    };
+    const { deps, queue } = setup({ store, lifecycle });
+    const received: QueueEvent[] = [];
+    const unsubscribe = queue.subscribe((event) => received.push(event));
+    let syncResult: FlushResult | undefined;
+    const offSync = queue.onSyncCompleted((result) => {
+      syncResult = result;
+    });
+    let backgroundRequests = 0;
+    const offBackground = queue.onBackgroundSyncRequested(() => {
+      backgroundRequests += 1;
+    });
+
+    await queue.retryJob("failed");
+    expect((await store.getJob("failed"))?.attempts).toBe(0);
+    expect(received.at(-1)?.type).toBe("job_added");
+    expect(await queue.discardJob("failed")).toBe(true);
+    expect(await queue.discardJob("missing")).toBe(false);
+    deps.events.emit("queue:sync-completed", { result: { processed: 1, failed: 0, skipped: 0 } });
+    deps.events.emit("background:sync-requested", { source: "service-worker", timestamp: 1 });
+    expect(syncResult?.processed).toBe(1);
+    expect(backgroundRequests).toBe(1);
+    expect(await queue.getStats(USER)).toEqual({ total: 0, pending: 0, failed: 0, synced: 0 });
+    expect(await queue.getJobsWithImages(USER)).toEqual([]);
+    expect(await queue.hasPendingJobs(USER)).toBe(false);
+
+    unsubscribe();
+    offSync();
+    offBackground();
+    unloadCleanup?.();
+    await queue.cleanup();
+    expect(detach).toHaveBeenCalledOnce();
+    expect(store.cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("terminates a deferred link when its source Work is discarded", async () => {
+    const source = queuedJob({ id: "source-work", kind: "work" });
+    const dependent = queuedJob({
+      id: "dependent-link",
+      kind: "workLink",
+      payload: {
+        clientOperationId: "operation",
+        commitmentId: 1n,
+        clientWorkId: "client-work-1",
+        sourceWorkJobId: "source-work",
+        requirementIndex: 0,
+        operationKey: `0x${"11".repeat(32)}`,
+        gardenAddress: "0x2222222222222222222222222222222222222222",
+      },
+    });
+    const store = createInMemoryJobQueueStore([source, dependent]);
+    const { queue } = setup({ store });
+
+    await expect(queue.discardJob("source-work")).resolves.toBe(true);
+    expect(await store.getJob("source-work")).toBeUndefined();
+    expect(await store.getJob("dependent-link")).toMatchObject({
+      attempts: 5,
+      lastError: "identity_conflict:source-work-terminal",
+    });
+  });
+});
+
+describe("discardJob and execution claims", () => {
+  it("refuses to discard a job while a send holds its execution claim", async () => {
+    // A tap, a background flush or another tab can be mid-send: deleting the
+    // record then would orphan a transaction that may still broadcast.
+    const acquire = vi.fn().mockResolvedValue(null);
+    const { queue } = setup({ executionClaims: { acquire } });
+    const id = await queue.addJob("work", {} as JobKindMap["work"], USER);
+
+    await expect(queue.discardJob(id)).resolves.toBe(false);
+    expect(acquire).toHaveBeenCalledWith(id);
+    expect(await queue.getPendingCount(USER)).toBe(1);
+
+    // Free: the discard holds the claim while it deletes, then lets it go.
+    const release = vi.fn().mockResolvedValue(undefined);
+    acquire.mockResolvedValue({ release });
+    await expect(queue.discardJob(id)).resolves.toBe(true);
+    expect(await queue.getPendingCount(USER)).toBe(0);
+    expect(release).toHaveBeenCalledOnce();
+  });
+});
+
+describe("processJob", () => {
+  it("skips missing, synced, offline, backoff, and senderless jobs", async () => {
+    const clock = createFakeJobQueueClock(1_000);
+    const connectivity = createFakeJobQueueConnectivity(true);
+    const store = createInMemoryJobQueueStore([
+      queuedJob({ id: "synced", synced: true, meta: { txHash: "0xdone" } }),
+      queuedJob({ id: "backoff", attempts: 1, lastAttemptAt: 999 }),
+      queuedJob({ id: "senderless" }),
+    ]);
+    const { queue } = setup({ store, clock, connectivity });
+    await expect(queue.processJob("missing", { transactionSender: null })).resolves.toEqual({
+      success: true,
+      skipped: true,
+    });
+    await expect(queue.processJob("synced", { transactionSender: null })).resolves.toEqual({
+      success: true,
+      txHash: "0xdone",
+      skipped: true,
+    });
+    connectivity.setOnline(false);
+    await expect(queue.processJob("senderless", { transactionSender: null })).resolves.toEqual({
+      success: false,
+      error: "offline",
+      skipped: true,
+    });
+    connectivity.setOnline(true);
+    await expect(
+      queue.processJob("backoff", { transactionSender: {} as never })
+    ).resolves.toMatchObject({ success: false, error: "backoff_2s", skipped: true });
+    await expect(queue.processJob("senderless", { transactionSender: null })).resolves.toEqual({
+      success: false,
+      error: "transaction_sender_unavailable",
+      skipped: true,
+    });
+  });
+
+  it("reopens a commitment act on its Check Again without sending it in the same tap", async () => {
+    // The tap was a check: the person sees that the act never landed, and is asked
+    // to clear any request their wallet still shows, before anything sends.
+    const reopening = () => ({
+      execute: vi.fn().mockResolvedValue({ status: "waiting", reason: "send-intent-expired" }),
+    });
+    const act = reopening();
+    const { queue } = setup({
+      store: createInMemoryJobQueueStore([queuedJob({ kind: "claim" })]),
+      executors: act,
+    });
+    expect(
+      await queue.processJob("job-1", { transactionSender: {} as never, explicit: true })
+    ).toMatchObject({ error: "send-intent-expired", skipped: true });
+    expect(act.execute).toHaveBeenCalledTimes(1);
+
+    // Work keeps its one-tap send: its button said Send.
+    const work = reopening();
+    const { queue: workQueue } = setup({
+      store: createInMemoryJobQueueStore([queuedJob()]),
+      executors: work,
+    });
+    await workQueue.processJob("job-1", { transactionSender: {} as never, explicit: true });
+    expect(work.execute).toHaveBeenCalledTimes(2);
+  });
+
+  it("still reconciles a persisted UserOperation at the retry ceiling", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({
+        attempts: 5,
+        payload: {
+          uploadCheckpoint: {
+            files: {},
+            submittedAt: "2026-09-12",
+            broadcast: { kind: "user-operation", hash: "0xop" },
+          },
+        },
+      }),
+    ]);
+    const executors = {
+      execute: vi.fn().mockResolvedValue({ status: "waiting", reason: "awaiting-confirmation" }),
+    };
+    const { queue } = setup({ store, executors });
+    expect(await queue.processJob("job-1", { transactionSender: {} as never })).toMatchObject({
+      error: "awaiting-confirmation",
+    });
+    expect(executors.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not automatically execute a proved failed operation again", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({
+        attempts: 5,
+        meta: { workTransactionReverted: true },
+        payload: {
+          uploadCheckpoint: {
+            files: {},
+            submittedAt: "2026-09-12",
+            broadcast: { kind: "user-operation", hash: "0xop" },
+            transactionReverted: true,
+          },
+        },
+      }),
+    ]);
+    const executors = { execute: vi.fn() };
+    const { queue } = setup({ store, executors });
+    expect(await queue.processJob("job-1", { transactionSender: {} as never })).toMatchObject({
+      error: "work-transaction-reverted",
+    });
+    expect(executors.execute).not.toHaveBeenCalled();
+  });
+
+  it("permanently fails a job at the retry ceiling", async () => {
+    const store = createInMemoryJobQueueStore([queuedJob({ attempts: 5 })]);
+    const { deps, queue } = setup({ store });
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: false,
+      error: "Max retries (5) exceeded",
+    });
+    expect(deps.analytics.jobPermanentlyFailed).toHaveBeenCalledOnce();
+  });
+
+  it("uses the ordinary retry ceiling for repeated Work metadata failures", async () => {
+    const store = createInMemoryJobQueueStore([queuedJob({ kind: "workLink", attempts: 4 })]);
+    const executors = {
+      execute: vi.fn().mockRejectedValue(new Error("work-metadata-unavailable")),
+    };
+    const { queue } = setup({ store, executors });
+
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: false,
+      error: "work-metadata-unavailable",
+    });
+    expect(await store.getJob("job-1")).toMatchObject({
+      attempts: 5,
+      lastError: "work-metadata-unavailable",
+    });
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: false,
+      error: "Max retries (5) exceeded",
+    });
+  });
+
+  it.each([
+    [{ status: "waiting", reason: "membership-unavailable" }, "membership-unavailable", 0],
+    [
+      { status: "identity-conflict", reason: "payload-mismatch" },
+      "identity_conflict:payload-mismatch",
+      5,
+    ],
+    [{ status: "unavailable", reason: "gateway-down" }, "unavailable:gateway-down", 5],
+    [{ status: "submitted", txHash: "0xsubmitted" }, "pending_materialization", 0],
+  ] as const)("preserves %s execution semantics", async (execution, error, attempts) => {
+    const store = createInMemoryJobQueueStore([queuedJob()]);
+    const { queue } = setup({ store, executors: createFakeJobExecutorRegistry(execution) });
+    const result = await queue.processJob("job-1", { transactionSender: {} as never });
+    expect(result).toMatchObject({ success: false, error });
+    expect((await store.getJob("job-1"))?.attempts).toBe(attempts);
+  });
+
+  it("completes, maps work identity, and emits the completed job", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({ meta: { clientWorkId: "client-work" } }),
+    ]);
+    const { deps, queue } = setup({ store });
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: true,
+      txHash: "0xtest",
+    });
+    expect(store.storeClientWorkIdMapping).toHaveBeenCalledWith("client-work", "0xtest", "job-1");
+    expect(deps.events.emit).toHaveBeenCalledWith(
+      "job:completed",
+      expect.objectContaining({ jobId: "job-1", txHash: "0xtest" })
+    );
+    expect(await store.getJob("job-1")).toBeUndefined();
+  });
+
+  it("uses the offline receipt hash and tracks failed deletion for cleanup", async () => {
+    const store = createInMemoryJobQueueStore([queuedJob()]);
+    store.deleteJob = vi.fn().mockRejectedValue(new Error("locked"));
+    const { deps, queue } = setup({
+      store,
+      executors: createFakeJobExecutorRegistry({ status: "complete" }),
+    });
+    const result = await queue.processJob("job-1", { transactionSender: {} as never });
+    expect(result.txHash).toMatch(/^0xoffline_/);
+    expect(store.saveFailedDeleteIds).toHaveBeenCalledWith(["job-1"]);
+    expect(deps.logger.warn).toHaveBeenCalled();
+  });
+
+  it("records executor failures without swallowing them", async () => {
+    const store = createInMemoryJobQueueStore([queuedJob()]);
+    const executors = { execute: vi.fn().mockRejectedValue(new Error("send failed")) };
+    const { deps, queue } = setup({ store, executors });
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: false,
+      error: "send failed",
+    });
+    expect((await store.getJob("job-1"))?.lastError).toBe("send failed");
+    expect(deps.analytics.jobProcessingError).toHaveBeenCalledOnce();
+  });
+});
+
+describe("work confirmation recovery", () => {
+  const checkpoint = {
+    submittedAt: "2026-09-09",
+    files: { photo: { attachmentId: "photo", contentHash: "bytes", cid: "bafy-photo" } },
+    transactionHash: `0x${"12".repeat(32)}`,
+  };
+  it("confirmation checks and checkpoint failures do not consume submission attempts", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({ payload: { uploadCheckpoint: checkpoint } }),
+    ]);
+    const executors = {
+      execute: vi.fn().mockResolvedValue({ status: "waiting", reason: "awaiting-confirmation" }),
+    };
+    const { queue } = setup({ store, executors });
+    await queue.processJob("job-1", { transactionSender: {} as never });
+    expect((await store.getJob("job-1"))?.attempts).toBe(0);
+    expect((await store.getJob("job-1"))?.meta?.waitingReason).toBe("awaiting-confirmation");
+    expect(await queue.discardJob("job-1")).toBe(false);
+    const second = setup({
+      store: createInMemoryJobQueueStore([
+        queuedJob({ payload: { uploadCheckpoint: checkpoint } }),
+      ]),
+      executors: { execute: vi.fn().mockRejectedValue(new Error("checkpoint write failed")) },
+    });
+    await second.queue.processJob("job-1", { transactionSender: {} as never });
+    expect((await second.deps.store.getJob("job-1"))?.attempts).toBe(0);
+  });
+  it("explicit retry clears the reverted broadcast while retaining uploaded media", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({
+        payload: { uploadCheckpoint: { ...checkpoint } },
+        attempts: 5,
+        meta: { workTransactionReverted: true, submittedTxHash: checkpoint.transactionHash },
+      }),
+    ]);
+    const { queue } = setup({ store });
+    await queue.retryJob("job-1");
+    const retry = await store.getJob("job-1");
+    // Exactly this: a stale broadcast field left behind would pass toMatchObject.
+    expect((retry?.payload as { uploadCheckpoint?: unknown }).uploadCheckpoint).toEqual({
+      submittedAt: "2026-09-09",
+      files: checkpoint.files,
+    });
+    expect(retry?.meta).not.toHaveProperty("workTransactionReverted");
+    expect(retry?.attempts).toBe(0);
+  });
+  it("explicit retry prepares work that needed attention again from the start", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({
+        payload: { uploadCheckpoint: { submittedAt: "2026-09-09", files: checkpoint.files } },
+        meta: {
+          preparation: { status: "photo-needs-attention", checkedAt: "2026-09-17T00:00:00Z" },
+          mediaConversion: { failures: 3, inFlight: false },
+          waitingReason: "photo-needs-attention",
+          clientNote: "kept",
+        },
+      }),
+    ]);
+    const { queue } = setup({ store });
+    await queue.retryJob("job-1");
+    const retry = await store.getJob("job-1");
+    expect(retry?.meta).not.toHaveProperty("preparation");
+    expect(retry?.meta).not.toHaveProperty("mediaConversion");
+    expect(retry?.meta).not.toHaveProperty("waitingReason");
+    expect(retry?.meta).toMatchObject({ clientNote: "kept" });
+    // Exactly this: a stale broadcast field left behind would pass toMatchObject.
+    expect((retry?.payload as { uploadCheckpoint?: unknown }).uploadCheckpoint).toEqual({
+      submittedAt: "2026-09-09",
+      files: checkpoint.files,
+    });
+  });
+});

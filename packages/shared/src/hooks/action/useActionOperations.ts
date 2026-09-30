@@ -8,18 +8,20 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
-import type { Abi, WalletClient } from "viem";
+import type { Abi } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
-import { getChain } from "../../config/chains";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { toastService } from "../../components/toast";
-import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
+import {
+  type ActionOperationCommand,
+  type ActionOperationResult,
+  createDefaultActionOperationPorts,
+  executeActionOperation,
+} from "../../modules/action/action-operation-command";
 import { Capital, Domain } from "../../types/domain";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { parseContractError } from "../../utils/errors/contract-errors";
-import { type ToastActionOptions, useToastAction } from "../app/useToastAction";
-import { queryKeys } from "../../config/query-keys";
+import { useToastAction } from "../app/useToastAction";
+import { actionsKeys } from "../../config/query-keys/garden";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 
 /** Delay before refetching after transaction to allow indexer sync */
@@ -28,93 +30,11 @@ const INDEXER_SYNC_DELAY_MS = 5000;
 /**
  * Result of an action operation
  */
-export interface ActionOperationResult {
-  /** Transaction hash if successful */
-  hash?: `0x${string}`;
-  /** Whether the operation was successful */
-  success: boolean;
-  /** Error if operation failed */
-  error?: {
-    name: string;
-    message: string;
-    action?: string;
-  };
-}
+export type { ActionOperationResult } from "../../modules/action/action-operation-command";
 
 // ---------------------------------------------------------------------------
 // Core executor — shared by all 6 operations
 // ---------------------------------------------------------------------------
-
-interface ActionOpConfig {
-  functionName: string;
-  args: unknown[];
-  messages: { loading: string; success: string; error: string };
-}
-
-interface ActionOpDeps {
-  contractAddress: `0x${string}`;
-  abi: Abi;
-  walletClient: WalletClient;
-  address: `0x${string}`;
-  executeWithToast: <T>(action: () => Promise<T>, options: ToastActionOptions) => Promise<T>;
-  scheduleBackgroundRefetch: () => void;
-  chainId: number;
-}
-
-/**
- * Executes an ActionRegistry contract call with simulation, toast, and refetch.
- * Extracted from the per-operation functions to eliminate ~400 lines of duplication.
- */
-async function executeActionOperation(
-  config: ActionOpConfig,
-  deps: ActionOpDeps
-): Promise<ActionOperationResult> {
-  // Step 1: Simulate the transaction
-  const simulation = await simulateTransaction(
-    deps.contractAddress,
-    deps.abi,
-    config.functionName,
-    config.args,
-    deps.address,
-    deps.chainId
-  );
-
-  if (!simulation.success) {
-    toastService.error({
-      title: simulation.error?.name ?? "Transaction Failed",
-      message: simulation.error?.message ?? "Transaction simulation failed",
-      context: "action operation",
-    });
-    return { success: false, error: simulation.error };
-  }
-
-  // Step 2: Execute the actual transaction
-  const hash = await deps.executeWithToast(
-    async () => {
-      await ensureAppKitWalletChain(deps.chainId);
-      await assertLocalArbitrumForkWallet();
-
-      return deps.walletClient.writeContract({
-        address: deps.contractAddress,
-        abi: deps.abi,
-        functionName: config.functionName,
-        account: deps.address,
-        args: config.args,
-        chain: getChain(deps.chainId),
-      });
-    },
-    {
-      loadingMessage: config.messages.loading,
-      successMessage: config.messages.success,
-      errorMessage: config.messages.error,
-    }
-  );
-
-  // Step 3: Schedule background refetch for indexer sync
-  deps.scheduleBackgroundRefetch();
-
-  return { hash, success: true };
-}
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -135,7 +55,7 @@ export function useActionOperations(chainId: number) {
   // Schedule background refetch to sync with indexer
   const { start: scheduleBackgroundRefetch } = useDelayedInvalidation(
     useCallback(
-      () => queryClient.invalidateQueries({ queryKey: queryKeys.actions.byChain(chainId) }),
+      () => queryClient.invalidateQueries({ queryKey: actionsKeys.byChain(chainId) }),
       [queryClient, chainId]
     ),
     INDEXER_SYNC_DELAY_MS
@@ -145,7 +65,7 @@ export function useActionOperations(chainId: number) {
    * Wraps an operation with wallet check, loading tracking, and error parsing.
    */
   async function withTracking(
-    buildConfig: (deps: ActionOpDeps) => ActionOpConfig
+    buildConfig: () => ActionOperationCommand
   ): Promise<ActionOperationResult> {
     if (!walletClient || !address) {
       return {
@@ -160,18 +80,29 @@ export function useActionOperations(chainId: number) {
     loadingCount.current++;
     setIsLoading(true);
 
-    const deps: ActionOpDeps = {
+    const call = {
+      ...buildConfig(),
       contractAddress: contracts.actionRegistry as `0x${string}`,
       abi: ActionRegistryABI as Abi,
-      walletClient,
-      address: address as `0x${string}`,
-      executeWithToast,
-      scheduleBackgroundRefetch,
+      account: address as `0x${string}`,
       chainId,
     };
 
     try {
-      return await executeActionOperation(buildConfig(deps), deps);
+      const result = await executeActionOperation(
+        call,
+        createDefaultActionOperationPorts({ walletClient, executeWithToast })
+      );
+      if (!result.success) {
+        toastService.error({
+          title: result.error?.name ?? "Transaction Failed",
+          message: result.error?.message ?? "Transaction simulation failed",
+          context: "action operation",
+        });
+      } else {
+        scheduleBackgroundRefetch();
+      }
+      return result;
     } catch (error) {
       const parsed = parseContractError(error);
       return {

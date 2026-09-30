@@ -1,5 +1,5 @@
 import { logger } from "../../app/logger";
-import { PUBLIC_AGENT_ROUTES } from "../../../public-contracts";
+import { PUBLIC_AGENT_ROUTES } from "../../../public-contracts/routes";
 
 // ============================================================================
 // TYPES
@@ -136,7 +136,7 @@ function normalizePinataUploadsApiUrl(value?: string | null): string {
   return normalized;
 }
 
-export function configurePinata(
+function configurePinata(
   config: Pick<
     IpfsConfig,
     | "gatewayBaseUrl"

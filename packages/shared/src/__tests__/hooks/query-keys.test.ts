@@ -7,6 +7,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { readContractQueryKey, readContractsQueryKey } from "wagmi/query";
 import {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
@@ -21,6 +22,8 @@ import {
 } from "../../config/query-keys";
 import type { Address } from "../../types/domain";
 import type { AttestationFilters } from "../../types/hypercerts";
+import { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI } from "../../utils/blockchain/abis/cookie-jar";
+import { createTestQueryClient } from "../test-utils/query-client";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
@@ -30,6 +33,7 @@ const TEST_POOL = "0x4444444444444444444444444444444444444444";
 const TEST_JAR = "0x5555555555555555555555555555555555555555";
 const TEST_VAULT = "0x6666666666666666666666666666666666666666";
 const TEST_ASSET = "0x7777777777777777777777777777777777777777";
+const TEST_FACTORY = "0x8888888888888888888888888888888888888888" as Address;
 const TEST_HYPERCERT_ID = "hypercert-123";
 const TEST_DRAFT_ID = "draft-456";
 
@@ -65,7 +69,6 @@ describe("queryKeys", () => {
       queryKeys.works.all,
       queryKeys.workApprovals.all,
       queryKeys.approvals.all,
-      queryKeys.operatorWorks.all,
       queryKeys.offline.all,
       queryKeys.media.all,
       queryKeys.gardens.all,
@@ -85,27 +88,24 @@ describe("queryKeys", () => {
       queryKeys.hypercerts.all,
       queryKeys.marketplace.all,
       queryKeys.greenWill.all,
+      queryKeys.gardenJoinRequests.all,
     ];
 
     roots.forEach((root) => expectRooted(root, queryKeys.all));
+    expect(queryKeys.gardenJoinRequests.availability()).toEqual([
+      "greengoods",
+      "garden-join-requests",
+      "availability",
+    ]);
   });
 
   it("builds representative keys without mutating caller input", () => {
     const gardenIds = ["garden-c", "garden-a", "garden-b"];
-    const recipients = ["0xB", "0xa", "0xC"];
-    const approvalsKey = queryKeys.approvals.forWorkReview(recipients);
     const myWorkApprovalsKey = queryKeys.approvals.byMyWorkGardens(TEST_USER, gardenIds);
-    const operatorKey = queryKeys.operatorWorks.byAddress(TEST_OPERATOR, gardenIds);
 
-    // forWorkReview lowercases recipients for stability across checksum casings.
-    expect(approvalsKey[3]).toBe(JSON.stringify(["0xa", "0xb", "0xc"]));
     expect(myWorkApprovalsKey[3]).toBe(TEST_USER);
     expect(myWorkApprovalsKey[4]).toBe(JSON.stringify(["garden-a", "garden-b", "garden-c"]));
-    // operatorWorks carries a "v2" shape discriminator (queryFn returns { works, failedGardenIds }).
-    expect(operatorKey[2]).toBe("v2");
-    expect(operatorKey[4]).toBe(JSON.stringify(["garden-a", "garden-b", "garden-c"]));
     expect(gardenIds).toEqual(["garden-c", "garden-a", "garden-b"]);
-    expect(recipients).toEqual(["0xB", "0xa", "0xC"]);
   });
 
   it("serializes bigint inputs for preview keys", () => {
@@ -158,13 +158,13 @@ describe("queryKeys", () => {
       gardenerAddress: "0xABCDEF1234567890ABCDEF1234567890ABCDEF12" as Address,
       searchQuery: "  restoration  ",
       startDate: new Date("2026-01-01T00:00:00.000Z"),
-      domain: 2,
+      domain: "education",
     };
     const filtersB: AttestationFilters = {
       gardenerAddress: "0xabcdef1234567890abcdef1234567890abcdef12" as Address,
       searchQuery: "restoration",
       startDate: new Date("2026-01-01T00:00:00.000Z"),
-      domain: 2,
+      domain: "education",
     };
 
     const keyA = queryKeys.hypercerts.attestations(TEST_GARDEN, filtersA);
@@ -330,6 +330,65 @@ describe("queryInvalidation", () => {
     );
   });
 
+  // A jar's balance and limits are direct contract reads that wagmi keys itself, so the jar
+  // helpers must reach those keys. Registry keys alone left the balance stale after a deposit.
+  it.each([
+    ["deposit", () => queryInvalidation.onCookieJarDeposit(TEST_GARDEN, TEST_JAR, TEST_CHAIN_ID)],
+    [
+      "claim",
+      () => queryInvalidation.onCookieJarWithdraw(TEST_GARDEN, TEST_JAR, TEST_USER, TEST_CHAIN_ID),
+    ],
+    [
+      "limit change",
+      () => queryInvalidation.onCookieJarAdminAction(TEST_GARDEN, TEST_JAR, TEST_CHAIN_ID),
+    ],
+    [
+      "campaign jar change",
+      () => queryInvalidation.onCampaignCookieJarChanged(TEST_JAR, TEST_USER, TEST_CHAIN_ID),
+    ],
+  ])("refreshes the jar's onchain state after a %s", (_action, buildKeys) => {
+    const client = createTestQueryClient();
+    const jarStateKey = readContractsQueryKey({
+      contracts: [
+        {
+          address: TEST_JAR as Address,
+          abi: COOKIE_JAR_ABI,
+          functionName: "currencyHeldByJar",
+        },
+      ],
+    });
+    client.setQueryData(jarStateKey, [{ status: "success", result: 1n }]);
+
+    for (const queryKey of buildKeys()) {
+      void client.invalidateQueries({ queryKey });
+    }
+
+    expect(client.getQueryState(jarStateKey)?.isInvalidated).toBe(true);
+  });
+
+  // A campaign jar's title and description are a single read of the factory, which wagmi keys
+  // under a different root than the jar's own multicall.
+  it("refreshes a campaign jar's metadata after it is updated", () => {
+    const client = createTestQueryClient();
+    const metadataKey = readContractQueryKey({
+      address: TEST_FACTORY,
+      abi: COOKIE_JAR_FACTORY_ABI,
+      functionName: "getMetadata",
+      args: [TEST_JAR as Address],
+    });
+    client.setQueryData(metadataKey, "{}");
+
+    for (const queryKey of queryInvalidation.onCampaignCookieJarChanged(
+      TEST_JAR,
+      TEST_USER,
+      TEST_CHAIN_ID
+    )) {
+      void client.invalidateQueries({ queryKey });
+    }
+
+    expect(client.getQueryState(metadataKey)?.isInvalidated).toBe(true);
+  });
+
   it("keeps queue, works, and offline sync grouped for full sync completion", () => {
     expect(queryInvalidation.onSyncCompleted()).toEqual(
       expect.arrayContaining([queryKeys.queue.all, queryKeys.works.all, queryKeys.offline.sync()])
@@ -349,5 +408,28 @@ describe("queryInvalidation", () => {
         queryKeys.drafts.images(TEST_DRAFT_ID),
       ])
     );
+  });
+});
+
+// The marketplace approvals hook runs only with a steward (`enabled: Boolean(steward)`), but its
+// key must stay stable and type-safe without one: it takes an empty-string sentinel instead.
+describe("marketplace approvals query key safety", () => {
+  it("produces a stable key with a valid steward", () => {
+    const key = queryKeys.marketplace.approvals("0xAbC123", 11155111);
+    expect(key).toEqual(["greengoods", "marketplace", "approvals", "0xAbC123", 11155111]);
+  });
+
+  it("produces a key with sentinel when steward is undefined", () => {
+    // After fix: passing empty string sentinel instead of steward!
+    const sentinel = "";
+    const key = queryKeys.marketplace.approvals(sentinel, 11155111);
+    expect(key).toEqual(["greengoods", "marketplace", "approvals", "", 11155111]);
+    // The key is stable and type-safe -- no non-null assertion needed
+  });
+
+  it("sentinel key differs from valid steward key", () => {
+    const validKey = queryKeys.marketplace.approvals("0xAbC", 1);
+    const sentinelKey = queryKeys.marketplace.approvals("", 1);
+    expect(validKey).not.toEqual(sentinelKey);
   });
 });

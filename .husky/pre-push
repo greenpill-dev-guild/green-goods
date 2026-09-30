@@ -1,6 +1,12 @@
 #!/usr/bin/env sh
 set -eu
 
+# git exports GIT_DIR to hooks in a linked worktree, and a git that inherits it ignores `cwd`, so
+# a test fixture run by this gate works on this repository instead of its throwaway one. Clear
+# every variable that binds git to a repository (git lists them itself). Worktrees whose hooks
+# path points at the main checkout run this file, so it protects them even on older code.
+unset $(git rev-parse --local-env-vars)
+
 # Enable pipefail only if supported (dash doesn't support it)
 (set -o pipefail) 2>/dev/null && set -o pipefail
 
@@ -16,40 +22,14 @@ if [ -n "${BASH_VERSION-}" ] && [ -f .nvmrc ]; then
   fi
 fi
 
-echo "🔍 Running pre-push checks..."
+echo "🔍 Running the focused ready-for-CI gate..."
 
-# Determine runner (bun preferred, npm fallback)
-if command -v bun >/dev/null 2>&1; then
-  RUNNER="bun run"
-elif command -v npm >/dev/null 2>&1; then
-  RUNNER="npm run"
-else
-  echo "Error: Neither bun nor npm found. Install bun: https://bun.sh"
+# Bun is the repository's required package manager.
+if ! command -v bun >/dev/null 2>&1; then
+  echo "Error: Bun is required. Install bun: https://bun.sh"
   exit 1
 fi
-
-# Print the recovery commands when any check fails, so users don't have to
-# remember the auto-fix path.
-on_failure() {
-  status=$?
-  echo ""
-  echo "❌ Pre-push checks failed."
-  echo "   To fix locally, run:"
-  echo "     bun run format && bun run format:contracts"
-  echo "     bun run lint"
-  echo "   Then commit (or amend) and push again."
-  exit $status
-}
-trap on_failure EXIT
-
-# 1. Format check (non-mutating)
-echo "📐 Checking formatting..."
-$RUNNER format:check
-$RUNNER format:contracts:check
-
-# 2. Lint check (non-mutating)
-echo "🔎 Running linter..."
-$RUNNER lint:check
-
-trap - EXIT
-echo "✅ Pre-push checks passed!"
+# Run the gate through the repo's Node wrapper so a Bun or wrong-Node shell still reaches real
+# Node. The gate then re-execs itself under the exact pinned Node, because a plan that reads
+# "blocked:toolchain.node" on every check only teaches people to reach for --no-verify.
+node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts

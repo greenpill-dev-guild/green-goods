@@ -1,16 +1,13 @@
-import {
-  type Address,
-  cn,
-  copyToClipboard,
-  type FormatAddressVariant,
-  formatAddress,
-  toastService,
-  useTimeout,
-} from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
+import { type FormatAddressVariant, formatAddress } from "@green-goods/shared/utils/app/text";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import React, { useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface AddressCopyProps {
   address?: Address | null;
@@ -42,21 +39,22 @@ export function AddressCopy({
   const displayValue = formatAddress(address, { variant, ensName });
 
   const handleCopy = async () => {
-    try {
-      await copyToClipboard(address);
-      setCopied(true);
-      scheduleCopiedReset(() => setCopied(false), 2000);
-      toastService.success({
-        title: intl.formatMessage({
-          id: "app.toast.addressCopied",
-          defaultMessage: "Address copied",
-        }),
-      });
-    } catch {
+    const copiedOk = await copyToClipboard(address);
+    if (!copiedOk) {
+      setCopied(false);
       toastService.error({
         title: intl.formatMessage({ id: "app.toast.copyFailed", defaultMessage: "Copy failed" }),
       });
+      return;
     }
+    setCopied(true);
+    scheduleCopiedReset(() => setCopied(false), 2000);
+    toastService.success({
+      title: intl.formatMessage({
+        id: "app.toast.addressCopied",
+        defaultMessage: "Address copied",
+      }),
+    });
   };
 
   const sizeClasses = size === "compact" ? "px-3 py-2 min-h-[40px]" : "px-4 py-3 min-h-[48px]";
@@ -65,10 +63,11 @@ export function AddressCopy({
     <div className={cn("w-full", className)}>
       <button
         type="button"
+        data-pressable="row"
         onClick={handleCopy}
-        aria-labelledby={statusId}
+        aria-describedby={statusId}
         className={cn(
-          "flex w-full items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-stroke-soft-200 bg-bg-white-0 text-left shadow-sm tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+          "flex w-full items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-stroke-soft-200 bg-bg-white-0 text-left shadow-sm transition-[background-color,border-color,box-shadow,transform,scale] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
           "active:scale-[0.99]",
           "focus:outline-none",
           pwaStatusStyles.primary.focus,

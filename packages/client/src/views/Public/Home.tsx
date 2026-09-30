@@ -1,8 +1,9 @@
-import { useApp, usePublicStats } from "@green-goods/shared";
+import { Button } from "@green-goods/shared/components/Button";
+import { useApp } from "@green-goods/shared/providers/App";
+import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
 import { useIntl } from "react-intl";
 import {
   EditorialGhostLink,
-  EditorialPrimaryButton,
   EditorialPrimaryLink,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
@@ -25,7 +26,7 @@ import { publicCuration } from "@/content/publicCuration";
  *
  * Composition order matches the editorial dialect:
  *   Hero → Featured Gardens → Living Public Record → Regenerative Loop →
- *   Funding Bridge → Get In Touch → Footer.
+ *   Who Tends a Garden → Funding Bridge → Get In Touch → Footer.
  */
 export default function Home() {
   const { formatMessage } = useIntl();
@@ -50,20 +51,27 @@ export default function Home() {
   const heroActions = isMobile ? (
     <>
       <PublicInstallAction>
-        {({ label, onClick, disabled, dataInstallAction }) => (
-          <EditorialPrimaryButton
-            onClick={onClick}
-            disabled={disabled}
-            data-install-action={dataInstallAction}
-          >
-            {label}
-          </EditorialPrimaryButton>
+        {({ label, href, onClick, disabled, dataInstallAction }) => (
+          <Button asChild size="lg">
+            <a
+              href={href}
+              onClick={onClick}
+              aria-disabled={disabled || undefined}
+              data-install-action={dataInstallAction}
+            >
+              {label}
+            </a>
+          </Button>
         )}
       </PublicInstallAction>
-      <EditorialGhostLink to="/gardens">{exploreLabel}</EditorialGhostLink>
+      <EditorialGhostLink to="/gardens" size="lg">
+        {exploreLabel}
+      </EditorialGhostLink>
     </>
   ) : (
-    <EditorialPrimaryLink to="/gardens">{exploreLabel}</EditorialPrimaryLink>
+    <EditorialPrimaryLink to="/gardens" size="lg">
+      {exploreLabel}
+    </EditorialPrimaryLink>
   );
 
   return (

@@ -3,8 +3,25 @@ import { useLocation, useParams } from "react-router-dom";
 
 const DEFAULT_CLIENT_APP_URL = "https://greengoods.app";
 
-function normalizeClientBaseUrl(baseUrl?: string): string {
-  return (baseUrl || DEFAULT_CLIENT_APP_URL).replace(/\/+$/, "");
+/**
+ * The client origin that pairs with an admin host, so a deployment sends people
+ * to its own client rather than to production.
+ *
+ * `admin.greengoods.app` pairs with the apex, and every prefixed admin host
+ * pairs with the matching client host — `beta-admin` with `beta`,
+ * `staging-admin` with `staging`. Anything else (localhost, a preview URL) has
+ * no derivable pair and returns undefined so the caller falls through.
+ */
+function clientOriginForAdminHost(hostname?: string): string | undefined {
+  if (!hostname?.endsWith(".greengoods.app")) return undefined;
+  if (hostname === "admin.greengoods.app") return DEFAULT_CLIENT_APP_URL;
+  const prefixed = /^(.+)-admin\.greengoods\.app$/.exec(hostname);
+  return prefixed ? `https://${prefixed[1]}.greengoods.app` : undefined;
+}
+
+function normalizeClientBaseUrl(baseUrl?: string, adminHostname?: string): string {
+  const resolved = baseUrl || clientOriginForAdminHost(adminHostname) || DEFAULT_CLIENT_APP_URL;
+  return resolved.replace(/\/+$/, "");
 }
 
 function encodePathSuffix(pathSuffix?: string): string {
@@ -21,9 +38,10 @@ export function buildClientGardenRedirectUrl(
   locationSearch = "",
   locationHash = "",
   clientBaseUrl = import.meta.env.VITE_CLIENT_APP_URL,
-  pathSuffix = ""
+  pathSuffix = "",
+  adminHostname = typeof window === "undefined" ? undefined : window.location.hostname
 ): string {
-  const baseUrl = normalizeClientBaseUrl(clientBaseUrl);
+  const baseUrl = normalizeClientBaseUrl(clientBaseUrl, adminHostname);
   const nestedPath = encodePathSuffix(pathSuffix);
   const gardenPath = gardenId
     ? `/gardens/${encodeURIComponent(gardenId)}${nestedPath ? `/${nestedPath}` : ""}`

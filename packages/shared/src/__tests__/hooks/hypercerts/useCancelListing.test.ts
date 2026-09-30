@@ -1,14 +1,15 @@
 /**
  * useCancelListing Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the listing cancellation flow via HypercertsModule.delistFromYield().
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
@@ -44,8 +45,11 @@ vi.mock("../../../modules/transactions/chain-guard", () => ({
   ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
 }));
 
-vi.mock("../../../config", () => ({
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
     waitForTransactionReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
   }),
@@ -72,7 +76,7 @@ vi.mock("../../../stores/useAdminStore", () => ({
     selector({ selectedChainId: 11155111 }),
 }));
 
-vi.mock("../../../config/query-keys", () => ({
+vi.mock("../../../config/query-keys/invalidation", () => ({
   queryInvalidation: {
     onMarketplaceListingChanged: () => [
       ["greengoods", "marketplace", "orders"],
@@ -97,18 +101,6 @@ vi.mock("viem", () => ({
 
 import { useCancelListing } from "../../../hooks/hypercerts/useCancelListing";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-}
-
 // ============================================
 // Test Suite
 // ============================================
@@ -118,7 +110,7 @@ describe("useCancelListing", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockAssertMarketplaceReady.mockReturnValue({
       available: true,
       status: "available",
@@ -133,8 +125,8 @@ describe("useCancelListing", () => {
   });
 
   it("starts with idle state and no error", () => {
-    const { result } = renderHook(() => useCancelListing(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useCancelListing(TEST_GARDEN), {
+      queryClient,
     });
 
     expect(result.current.isCancelling).toBe(false);
@@ -142,16 +134,16 @@ describe("useCancelListing", () => {
   });
 
   it("provides cancelListing function", () => {
-    const { result } = renderHook(() => useCancelListing(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useCancelListing(TEST_GARDEN), {
+      queryClient,
     });
 
     expect(typeof result.current.cancelListing).toBe("function");
   });
 
   it("rejects when garden address is missing", async () => {
-    const { result } = renderHook(() => useCancelListing(undefined), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useCancelListing(undefined), {
+      queryClient,
     });
 
     let thrownError: Error | undefined;
@@ -178,8 +170,8 @@ describe("useCancelListing", () => {
 
     // This test validates the error path conceptually - the mock setup
     // above would need dynamic import to take effect, so we test the interface
-    const { result } = renderHook(() => useCancelListing(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useCancelListing(TEST_GARDEN), {
+      queryClient,
     });
 
     expect(result.current.isCancelling).toBe(false);
@@ -190,8 +182,8 @@ describe("useCancelListing", () => {
       throw new Error("Marketplace configuration incomplete: transferManager");
     });
 
-    const { result } = renderHook(() => useCancelListing(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useCancelListing(TEST_GARDEN), {
+      queryClient,
     });
 
     let thrownError: Error | undefined;
@@ -209,8 +201,8 @@ describe("useCancelListing", () => {
   });
 
   it("keeps marketplace listing invalidation after a successful cancel", async () => {
-    const { result } = renderHook(() => useCancelListing(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useCancelListing(TEST_GARDEN), {
+      queryClient,
     });
 
     await act(async () => {

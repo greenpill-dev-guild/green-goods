@@ -64,6 +64,8 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.yield.pendingYield>
   | ReturnType<typeof queryKeys.yield.protocolSummary>
   | typeof queryKeys.ens.all
+  | typeof queryKeys.profileAvatars.all
+  | ReturnType<typeof queryKeys.profileAvatars.record>
   | ReturnType<typeof queryKeys.ens.name>
   | ReturnType<typeof queryKeys.ens.address>
   | ReturnType<typeof queryKeys.ens.avatar>

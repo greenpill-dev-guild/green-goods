@@ -1,4 +1,5 @@
-import { type Address, usePrimaryAddress } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { AccountInfo } from "./AccountInfo";
 import { AppSettings } from "./AppSettings";
 import { ENSSection } from "./ENSSection";
@@ -13,7 +14,7 @@ export const ProfileAccount: React.FC = () => {
       <InstallCta />
       <AppSettings />
       <GardensList primaryAddress={primaryAddress} />
-      <ENSSection primaryAddress={primaryAddress} />
+      <ENSSection key={primaryAddress} primaryAddress={primaryAddress} />
       <AccountInfo />
     </>
   );

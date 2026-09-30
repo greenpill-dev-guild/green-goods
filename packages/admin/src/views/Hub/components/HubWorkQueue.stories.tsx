@@ -1,7 +1,11 @@
-import { Domain, type Address, type HubActionSummary, type Work } from "@green-goods/shared";
+import type { HubActionSummary } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { type Address, Domain, type Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
-import { FIXTURE_WORK_MEDIA, daysAgo } from "../../../../../shared/.storybook/fixtures";
+import { expect, fn, mocked, within } from "storybook/test";
+import { daysAgo, FIXTURE_WORK_MEDIA } from "../../../../../shared/.storybook/fixtures";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { HubWorkQueue } from "./HubWorkQueue";
 
 const GARDENER = "0x1111111111111111111111111111111111111111" as Address;
@@ -76,6 +80,24 @@ export const WithData: Story = {
   },
 };
 
+export const PublishedSubmitterName: Story = {
+  args: {
+    items: [PENDING_WORK[0]],
+    worksLoading: false,
+    hasDataError: false,
+  },
+  beforeEach: () => {
+    mocked(useEnsName).mockReturnValue({ data: "ordinary.eth" } as ReturnType<typeof useEnsName>);
+    mocked(useGreenGoodsEnsName).mockReturnValue({ data: "river.greengoods.eth" } as ReturnType<
+      typeof useGreenGoodsEnsName
+    >);
+    return resetHookMocks(useEnsName, useGreenGoodsEnsName);
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("river")).toBeVisible();
+  },
+};
+
 export const Loading: Story = {
   args: {
     items: [],
@@ -116,5 +138,16 @@ export const WithSelection: Story = {
     worksLoading: false,
     hasDataError: false,
     selectedWorkId: "w2",
+  },
+};
+
+/** Work age is metadata, never an alarm: months-old work still reads as a neutral Pending. */
+export const LongWaiting: Story = {
+  args: {
+    items: [
+      work("w-old-1", "Planted 50 native saplings", 10, 1, 3),
+      work("w-old-2", "Cleared 40kg of debris", 45, 2, 1),
+      work("w-old-3", "Led composting workshop", 200, 3, 0),
+    ],
   },
 };

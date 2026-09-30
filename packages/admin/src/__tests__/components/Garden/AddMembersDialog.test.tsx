@@ -2,24 +2,22 @@
  * AddMembersDialog Component Tests
  *
  * Multi-add staging semantics: resolved addresses stage into a fixed-height
- * list, the batch commits on submit, and failed writes stay staged for retry.
+ * list with the role picked for each person, the batch commits on submit, and
+ * failed writes stay staged for retry. Someone who already holds the picked
+ * role never reaches the list, so the wallet is never asked to sign for nothing.
  */
 
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Address } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { renderWithProviders as render } from "../../test-utils";
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", async () => {
   const { useState } = await import("react");
   return {
-    ...actual,
-    // Hex-only tests: ENS lookups stay inert so no network/query wiring is hit.
-    useEnsAddress: () => ({ data: undefined, isFetching: false }),
-    resolveEnsAddress: vi.fn(async () => null),
     // Faithful state-mode reimplementation of useDirtyClose minus the
     // router-bound useBlocker (renderWithProviders has no data router).
     useDirtyClose: ({ isDirty, onClose }: { isDirty: boolean; onClose: () => void }) => {
@@ -40,6 +38,22 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     },
   };
 });
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsAddress", () => ({
+  // Hex-only tests: ENS lookups stay inert so no network/query wiring is hit.
+  useEnsAddress: () => ({ data: undefined, isFetching: false }),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
+  resolveEnsAddress: vi.fn(async () => null),
+}));
+
+// The chain's answer to "does this person wear the role's hat". Default: not
+// answered yet, so the roster's answer stands.
+const mockUseGardenRoleHat = vi.fn();
+vi.mock("@green-goods/shared/hooks/roles/useGardenRoleHat", () => ({
+  useGardenRoleHat: (...args: unknown[]) => mockUseGardenRoleHat(...args),
+}));
 
 vi.mock("@/components/EnsAddressText", () => ({
   EnsAddressText: ({ address }: { address: string }) =>
@@ -71,25 +85,41 @@ import { AddMembersDialog } from "../../../components/Garden/AddMembersDialog";
 
 const ADDRESS_A = "0x1111111111111111111111111111111111111111" as Address;
 const ADDRESS_B = "0x2222222222222222222222222222222222222222" as Address;
+const GARDEN = "0x9999999999999999999999999999999999999999" as Address;
+
+const NO_MEMBERS: Record<GardenRole, Address[]> = {
+  owner: [],
+  steward: [],
+  evaluator: [],
+  gardener: [],
+  funder: [],
+  community: [],
+};
+// ADDRESS_A already gardens here.
+const WITH_GARDENER_A: Record<GardenRole, Address[]> = { ...NO_MEMBERS, gardener: [ADDRESS_A] };
 
 describe("components/Garden/AddMembersDialog", () => {
   const defaultProps = {
     open: true,
     onClose: vi.fn(),
     onAdd: vi.fn(async () => ({ success: true })),
+    gardenAddress: GARDEN,
+    roleMembers: NO_MEMBERS,
     isLoading: false,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseGardenRoleHat.mockReturnValue({ wearsHat: undefined, isLoading: false, isError: false });
   });
 
   it("stages resolved addresses into the reserved list and clears the input", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
 
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
-    await user.type(input, ADDRESS_A);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => {
@@ -101,16 +131,19 @@ describe("components/Garden/AddMembersDialog", () => {
   });
 
   it("commits the staged batch for the selected role and closes on success", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
 
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
-    await user.type(input, ADDRESS_A);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Add" }));
-    await user.type(input, ADDRESS_B);
+    await user.click(input);
+    await user.paste(ADDRESS_B);
 
     // Typed-but-unstaged address folds into the batch — one staged + one typed.
-    await user.click(screen.getByRole("button", { name: "Add 2 members" }));
+    // Every row shares the role, so the button names it.
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
 
     await waitFor(() => {
       expect(defaultProps.onAdd).toHaveBeenCalledTimes(2);
@@ -123,7 +156,7 @@ describe("components/Garden/AddMembersDialog", () => {
   });
 
   it("keeps failed writes staged for retry and stays open", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const onAdd = vi
       .fn()
       .mockResolvedValueOnce({ success: false })
@@ -131,10 +164,12 @@ describe("components/Garden/AddMembersDialog", () => {
     render(createElement(AddMembersDialog, { ...defaultProps, onAdd }));
 
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
-    await user.type(input, ADDRESS_A);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Add" }));
-    await user.type(input, ADDRESS_B);
-    await user.click(screen.getByRole("button", { name: "Add 2 members" }));
+    await user.click(input);
+    await user.paste(ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
 
     // First write failed → its address stays staged, the dialog stays open.
     await waitFor(() => {
@@ -142,15 +177,17 @@ describe("components/Garden/AddMembersDialog", () => {
     });
     expect(defaultProps.onClose).not.toHaveBeenCalled();
     expect(screen.getByTestId("staged-address")).toHaveTextContent(ADDRESS_A.slice(0, 10));
-    expect(screen.getByRole("button", { name: "Add 1 member" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add 1 Gardener" })).toBeInTheDocument();
   });
 
   it("submits a typed address directly without requiring the stage step", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
 
-    await user.type(screen.getByLabelText(/Ethereum Address or ENS Name/), ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add 1 member" }));
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+    await user.click(screen.getByRole("button", { name: "Add 1 Gardener" }));
 
     await waitFor(() => {
       expect(defaultProps.onAdd).toHaveBeenCalledWith("gardener", ADDRESS_A);
@@ -158,22 +195,153 @@ describe("components/Garden/AddMembersDialog", () => {
   });
 
   it("keeps invalid typed entries from becoming commit-ready", async () => {
-    const user = userEvent.setup();
-    render(createElement(AddMembersDialog, defaultProps));
-
-    await user.type(screen.getByLabelText(/Ethereum Address or ENS Name/), "not-a-wallet");
-
-    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Add 0 members" })).toBeDisabled();
-    expect(defaultProps.onAdd).not.toHaveBeenCalled();
-  });
-
-  it("confirms before discarding a staged batch on dialog dismiss", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
 
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
-    await user.type(input, ADDRESS_A);
+    await user.click(input);
+    await user.paste("not-a-wallet");
+
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Gardeners" })).toBeDisabled();
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("refuses a role the person already holds, then lets them be promoted", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(createElement(AddMembersDialog, { ...defaultProps, roleMembers: WITH_GARDENER_A }));
+
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+
+    // Calm guidance, not an error: the address is fine, only this role is taken.
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(
+      screen.getByText(/is already a Gardener\. Choose another role to add them\./)
+    ).toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-invalid", "false");
+
+    await user.selectOptions(screen.getByLabelText("Role"), "steward");
+    expect(screen.getByText(/is currently a Gardener\./)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    // The row names the role being added and the roles held today.
+    const list = screen.getByRole("group", { name: "Members to add" });
+    expect(within(list).getByText("Steward")).toBeInTheDocument();
+    expect(within(list).getByText("Currently a Gardener")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 1 Steward" }));
+    await waitFor(() => {
+      expect(defaultProps.onAdd).toHaveBeenCalledWith("steward", ADDRESS_A);
+    });
+  });
+
+  it("lets the chain overrule a roster that has not caught up with a revoke", async () => {
+    const user = userEvent.setup({ delay: null });
+    // The roster still lists ADDRESS_A as a gardener, but the hat is gone on chain.
+    mockUseGardenRoleHat.mockReturnValue({ wearsHat: false, isLoading: false, isError: false });
+    render(createElement(AddMembersDialog, { ...defaultProps, roleMembers: WITH_GARDENER_A }));
+
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+
+    expect(mockUseGardenRoleHat).toHaveBeenLastCalledWith(GARDEN, ADDRESS_A, "gardener", {
+      enabled: true,
+    });
+    expect(screen.queryByText(/is already a Gardener/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    // The staged row trusts the chain too: no "Currently a Gardener" beside Gardener.
+    const list = screen.getByRole("group", { name: "Members to add" });
+    expect(within(list).getByText("Gardener")).toBeInTheDocument();
+    expect(within(list).queryByText(/Currently/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 1 Gardener" }));
+    await waitFor(() => {
+      expect(defaultProps.onAdd).toHaveBeenCalledWith("gardener", ADDRESS_A);
+    });
+  });
+
+  it("refuses a role the chain shows was just granted, before the roster catches up", async () => {
+    const user = userEvent.setup({ delay: null });
+    // Nobody is on the roster yet, but ADDRESS_A already wears the gardener hat.
+    mockUseGardenRoleHat.mockReturnValue({ wearsHat: true, isLoading: false, isError: false });
+    render(createElement(AddMembersDialog, defaultProps));
+
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+
+    expect(mockUseGardenRoleHat).toHaveBeenLastCalledWith(GARDEN, ADDRESS_A, "gardener", {
+      enabled: true,
+    });
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByText(/is already a Gardener/)).toBeInTheDocument();
+  });
+
+  it("keeps each row's role when the picker changes and names a mixed list", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(createElement(AddMembersDialog, defaultProps));
+
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.selectOptions(screen.getByLabelText("Role"), "steward");
+    await user.click(input);
+    await user.paste(ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    const list = screen.getByRole("group", { name: "Members to add" });
+    expect(within(list).getByText("Gardener")).toBeInTheDocument();
+    expect(within(list).getByText("Steward")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 2 Members" }));
+
+    await waitFor(() => {
+      expect(defaultProps.onAdd).toHaveBeenCalledWith("gardener", ADDRESS_A);
+      expect(defaultProps.onAdd).toHaveBeenCalledWith("steward", ADDRESS_B);
+    });
+  });
+
+  it("says when a person is already in the list", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(createElement(AddMembersDialog, defaultProps));
+
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByText(/is already in the list as a Gardener\./)).toBeInTheDocument();
+  });
+
+  it("opens on a prefilled person without treating it as unsaved input", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        roleMembers: WITH_GARDENER_A,
+        initialAddress: ADDRESS_A,
+      })
+    );
+
+    expect(screen.getByLabelText(/Ethereum Address or ENS Name/)).toHaveValue(ADDRESS_A);
+    expect(screen.getByText(/is already a Gardener\./)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByText("Discard changes?")).not.toBeInTheDocument();
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("confirms before discarding a staged batch on dialog dismiss", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(createElement(AddMembersDialog, defaultProps));
+
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Add" }));
     await waitFor(() => {
       expect(screen.getByTestId("staged-address")).toBeInTheDocument();
@@ -195,10 +363,12 @@ describe("components/Garden/AddMembersDialog", () => {
   });
 
   it("lets the footer Cancel exit directly without a discard confirm", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
 
-    await user.type(screen.getByLabelText(/Ethereum Address or ENS Name/), ADDRESS_A);
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(screen.queryByText("Discard changes?")).not.toBeInTheDocument();

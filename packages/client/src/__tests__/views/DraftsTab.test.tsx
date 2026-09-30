@@ -5,7 +5,7 @@
  * resume navigation, and delete confirmation.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -25,52 +25,44 @@ const mockDraftsState = {
 const mockNavigate = vi.fn();
 
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/utils/action/parsers", () => ({
   findActionByUID: (actions: any[], uid: number) => actions.find((a: any) => a.id === uid),
+}));
+
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>()),
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useActions: () => ({
     data: [
       { id: 1, title: "Plant Trees" },
       { id: 2, title: "Water Garden" },
     ],
   }),
-  useDrafts: () => mockDraftsState,
   useGardens: () => ({
     data: [
       { id: "0xgarden1", name: "Community Garden" },
       { id: "0xgarden2", name: "Rooftop Garden" },
     ],
   }),
-  ConfirmDialog: ({
-    isOpen,
-    onClose,
-    onConfirm,
-    title,
-    description,
-  }: {
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm: () => void;
-    title: string;
-    description: string;
-  }) =>
-    isOpen
-      ? createElement(
-          "div",
-          { "data-testid": "confirm-dialog" },
-          createElement("span", null, title),
-          createElement("span", null, description),
-          createElement(
-            "button",
-            { "data-testid": "confirm-delete", onClick: onConfirm },
-            "Delete"
-          ),
-          createElement("button", { "data-testid": "cancel-delete", onClick: onClose }, "Cancel")
-        )
-      : null,
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useDrafts", () => ({
+  useDrafts: () => mockDraftsState,
 }));
 
 // Mock react-router-dom navigate
@@ -85,6 +77,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 // Mock @remixicon/react
 vi.mock("@remixicon/react", () => ({
   RiAlertLine: (props: any) => createElement("span", props),
+  RiCloseLine: (props: any) => createElement("span", props),
   RiDraftLine: (props: any) => createElement("span", props),
   RiLoader4Line: (props: any) => createElement("span", { ...props, "data-testid": "spinner" }),
   RiRefreshLine: (props: any) => createElement("span", props),
@@ -152,6 +145,10 @@ describe("DraftsTab", () => {
     expect(
       screen.getByText(/drafts are automatically saved when you start adding photos/i)
     ).toBeInTheDocument();
+    // Refresh sits with the status line on the left, as it does on Pending and Completed.
+    expect(screen.getByTestId("work-list-actions")).toContainElement(
+      screen.getByRole("button", { name: /refresh drafts/i })
+    );
   });
 
   it("renders draft cards with action titles and garden names", () => {
@@ -169,19 +166,34 @@ describe("DraftsTab", () => {
     expect(screen.getByText("Community Garden")).toBeInTheDocument();
     expect(screen.getByText("Water Garden")).toBeInTheDocument();
     expect(screen.getByText("Rooftop Garden")).toBeInTheDocument();
-    expect(screen.getByText(/2 draft\(s\)/i)).toBeInTheDocument();
+    expect(screen.getByText("2 drafts")).toBeInTheDocument();
   });
 
   it("navigates to garden route on resume", async () => {
     const user = userEvent.setup();
+    const onBeforeNavigate = vi.fn();
+    mockDraftsState.drafts = [
+      { id: "d1", actionUID: 1, gardenAddress: "0xgarden1", createdAt: Date.now() },
+    ];
+
+    render(wrap(createElement(DraftsTab, { onBeforeNavigate })));
+
+    await user.click(screen.getByTestId("resume-d1"));
+    expect(onBeforeNavigate).toHaveBeenCalledOnce();
+    expect(mockNavigate).toHaveBeenCalledWith("/home/garden?draftId=d1", { viewTransition: true });
+    expect(onBeforeNavigate.mock.invocationCallOrder[0]).toBeLessThan(
+      mockNavigate.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("lets populated draft content contribute to the dashboard scroll owner", () => {
     mockDraftsState.drafts = [
       { id: "d1", actionUID: 1, gardenAddress: "0xgarden1", createdAt: Date.now() },
     ];
 
     render(wrap(createElement(DraftsTab)));
 
-    await user.click(screen.getByTestId("resume-d1"));
-    expect(mockNavigate).toHaveBeenCalledWith("/home/garden?draftId=d1", { viewTransition: true });
+    expect(screen.getByTestId("draft-card-d1").closest(".overflow-y-auto")).toBeNull();
   });
 
   it("shows confirm dialog on delete and confirms", async () => {
@@ -196,12 +208,12 @@ describe("DraftsTab", () => {
     // Click delete on the draft card
     await user.click(screen.getByTestId("delete-d1"));
 
-    // Confirm dialog should appear
-    expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
-    expect(screen.getByText("Delete Draft?")).toBeInTheDocument();
+    // Destructive confirm renders as an alertdialog
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(screen.getByText("app.drafts.delete.title")).toBeInTheDocument();
 
     // Confirm the delete
-    await user.click(screen.getByTestId("confirm-delete"));
+    await user.click(screen.getByRole("button", { name: "app.drafts.delete.confirm" }));
     expect(mockDraftsState.deleteDraft).toHaveBeenCalledWith("d1");
   });
 
@@ -214,10 +226,10 @@ describe("DraftsTab", () => {
     render(wrap(createElement(DraftsTab)));
 
     await user.click(screen.getByTestId("delete-d1"));
-    expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
 
-    await user.click(screen.getByTestId("cancel-delete"));
-    expect(screen.queryByTestId("confirm-dialog")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "app.drafts.delete.cancel" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(mockDraftsState.deleteDraft).not.toHaveBeenCalled();
   });
 

@@ -1,9 +1,7 @@
-import {
-  buildGardenHeaderStats,
-  MetaStrip,
-  useGardenWorkspaceController,
-  useMediaQuery,
-} from "@green-goods/shared";
+import { MetaStrip } from "@green-goods/shared/components/Canvas/MetaStrip";
+import { buildGardenHeaderStats } from "@green-goods/shared/hooks/admin-ui/garden/garden.utils";
+import { useGardenWorkspaceController } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { useMemo } from "react";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminViewActions } from "@/components/AdminViewActions";
@@ -47,15 +45,14 @@ export default function GardenView() {
       <GardenSheetDescriptor
         hypercertId={garden.hypercertId}
         closeTo={garden.hypercertSheetCloseTo}
+        poolSeedOpen={garden.poolSeedOpen}
+        poolCommitmentId={garden.poolCommitmentId}
+        poolCloseTo={garden.poolSheetCloseTo}
+        gardenAddress={garden.selectedGarden?.id}
       />
 
       <CanvasRouteHeader
         title={formatMessage({ id: "cockpit.garden.title", defaultMessage: "Garden" })}
-        description={formatMessage({
-          id: "cockpit.garden.description",
-          defaultMessage:
-            "Internal tracking for garden health, outcome proof, and recent activity.",
-        })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }
@@ -98,6 +95,19 @@ export default function GardenView() {
                 defaultMessage: "Activity",
               }),
             },
+            // The pool console is the steward's surface (uiux-spec §6.2): a
+            // gardener reads the pool in the client, never here.
+            ...(garden.canManage
+              ? [
+                  {
+                    id: "pool",
+                    label: formatMessage({
+                      id: "cockpit.garden.pool.tab",
+                      defaultMessage: "Pool",
+                    }),
+                  },
+                ]
+              : []),
           ]}
         />
       </CanvasRouteHeader>

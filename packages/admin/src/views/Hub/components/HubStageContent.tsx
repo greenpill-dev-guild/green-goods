@@ -1,7 +1,13 @@
-import type { ActivityEvent, HubActionSummary, HubPipelineStage, Work } from "@green-goods/shared";
+import type { HubPipelineStage } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import {
+  type HubActionSummary,
+  selectHubStageContent,
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
 import { HubAssessmentQueue } from "./HubAssessmentQueue";
 import { HubCertificationQueue } from "./HubCertificationQueue";
-import { HubHistoryQueue } from "./HubHistoryQueue";
+import { HubConfirmQueue } from "./HubConfirmQueue";
 import { HubWorkQueue } from "./HubWorkQueue";
 
 interface CertificationItem {
@@ -17,11 +23,9 @@ interface HubStageContentProps {
   pendingWorks: Work[];
   assessmentQueue: Work[];
   certificationQueue: CertificationItem[];
-  historyEvents: ActivityEvent[];
   worksLoading: boolean;
   fetchingAssessments: boolean;
   hypercertsLoading: boolean;
-  allocationsLoading: boolean;
   hasDataError: boolean;
   normalizedSearch: string;
   debouncedSearch: string;
@@ -29,12 +33,17 @@ interface HubStageContentProps {
   selectedGardenName?: string;
   selectedWorkId: string | undefined;
   selectedCertificationId: string | undefined;
-  selectedHistoryEventId: string | undefined;
   canManage: boolean;
+  /** The Confirm stage's queue (uiux-spec §6.9), read by the Hub controller. */
+  toConfirm: CommitmentsToConfirm;
+  chainId: number;
+  viewer?: Address;
+  selectedCommitmentId: string | undefined;
+  onOpenCommitment: (commitmentId: string) => void;
+  onCloseCommitment: () => void;
   onOpenWorkDetail: (workId: string) => void;
   onClearSearch: () => void;
   onOpenCertification: (assessmentId: string) => void;
-  onOpenHistoryEvent: (event: ActivityEvent) => void;
 }
 
 export function HubStageContent({
@@ -42,11 +51,9 @@ export function HubStageContent({
   pendingWorks,
   assessmentQueue,
   certificationQueue,
-  historyEvents,
   worksLoading,
   fetchingAssessments,
   hypercertsLoading,
-  allocationsLoading,
   hasDataError,
   normalizedSearch,
   debouncedSearch,
@@ -54,14 +61,20 @@ export function HubStageContent({
   selectedGardenName,
   selectedWorkId,
   selectedCertificationId,
-  selectedHistoryEventId,
   canManage,
+  toConfirm,
+  chainId,
+  viewer,
+  selectedCommitmentId,
+  onOpenCommitment,
+  onCloseCommitment,
   onOpenWorkDetail,
   onClearSearch,
   onOpenCertification,
-  onOpenHistoryEvent,
 }: HubStageContentProps) {
-  if (stage === "work") {
+  const content = selectHubStageContent(stage);
+
+  if (content === "work") {
     return (
       <HubWorkQueue
         items={pendingWorks}
@@ -78,7 +91,7 @@ export function HubStageContent({
     );
   }
 
-  if (stage === "assess") {
+  if (content === "assess") {
     return (
       <HubAssessmentQueue
         items={assessmentQueue}
@@ -92,31 +105,29 @@ export function HubStageContent({
     );
   }
 
-  if (stage === "certify") {
+  if (content === "confirm") {
     return (
-      <HubCertificationQueue
-        items={certificationQueue}
-        fetchingAssessments={fetchingAssessments}
-        hypercertsLoading={hypercertsLoading}
-        hasDataError={hasDataError}
-        canManage={canManage}
-        selectedCertificationId={selectedCertificationId}
-        onOpenCertification={onOpenCertification}
+      <HubConfirmQueue
+        toConfirm={toConfirm}
+        chainId={chainId}
+        viewer={viewer}
+        normalizedSearch={normalizedSearch}
+        selectedCommitmentId={selectedCommitmentId}
+        onOpenCommitment={onOpenCommitment}
+        onCloseCommitment={onCloseCommitment}
       />
     );
   }
 
   return (
-    <HubHistoryQueue
-      items={historyEvents}
-      worksLoading={worksLoading}
+    <HubCertificationQueue
+      items={certificationQueue}
       fetchingAssessments={fetchingAssessments}
       hypercertsLoading={hypercertsLoading}
-      allocationsLoading={allocationsLoading}
       hasDataError={hasDataError}
-      selectedHistoryEventId={selectedHistoryEventId}
-      selectedWorkId={selectedWorkId}
-      onOpenHistoryEvent={onOpenHistoryEvent}
+      canManage={canManage}
+      selectedCertificationId={selectedCertificationId}
+      onOpenCertification={onOpenCertification}
     />
   );
 }

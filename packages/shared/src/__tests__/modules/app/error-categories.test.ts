@@ -3,7 +3,7 @@ import {
   registerExternalErrorReporter,
   type ExternalErrorReporterContext,
 } from "../../../modules/app/external-error-reporters";
-import { trackAuthError } from "../../../modules/app/error-categories";
+import { trackAuthError, trackContractError } from "../../../modules/app/error-categories";
 
 describe("auth error tracking", () => {
   it("redacts sensitive auth error details before forwarding generic error telemetry", () => {
@@ -50,5 +50,47 @@ describe("auth error tracking", () => {
     expect(serialized).not.toContain(secretApiKey);
     expect(serialized).not.toContain("apikey=");
     expect(serialized).toContain("[REDACTED]");
+  });
+});
+
+describe("contract error tracking", () => {
+  it("redacts the signer address from a viem wallet error while keeping the garden address", () => {
+    // viem prints the signer in the request arguments of wallet errors. Redaction
+    // used to be gated to the auth category, so contract telemetry leaked it.
+    const signerAddress = "0x2222222222222222222222222222222222222222";
+    const gardenAddress = "0x3333333333333333333333333333333333333333";
+    const calls: Array<{ error: Error; context: ExternalErrorReporterContext }> = [];
+    const unregister = registerExternalErrorReporter((error, context) => {
+      calls.push({ error, context });
+    });
+
+    try {
+      trackContractError(
+        new Error(
+          `An unknown RPC error occurred.\n\nRequest Arguments:\n  from: ${signerAddress}\n  to: ${gardenAddress}`
+        ),
+        {
+          source: "useJoinGarden",
+          gardenAddress,
+          authMode: "wallet",
+          userAction: "joining garden",
+        }
+      );
+    } finally {
+      unregister();
+    }
+
+    expect(calls).toHaveLength(1);
+    const serialized = JSON.stringify({
+      message: calls[0]?.error.message,
+      stack: calls[0]?.error.stack,
+      metadata: calls[0]?.context.metadata,
+    });
+
+    expect(serialized).not.toContain(signerAddress);
+    expect(serialized).toContain("[REDACTED_WALLET]");
+    // The structured garden address is a public contract address and is tracked
+    // deliberately — redaction must not swallow it.
+    expect(calls[0]?.context.gardenAddress).toBe(gardenAddress);
   });
 });

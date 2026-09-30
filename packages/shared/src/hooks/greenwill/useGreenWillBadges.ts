@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { greenWillKeys } from "../../config/query-keys/greenwill";
 import {
   getGreenWillBadgesByOwner,
   getGreenWillBadgeDefinitions,
@@ -25,14 +26,14 @@ export function useGreenWillBadges(owner?: string, options: UseGreenWillBadgesOp
   const ownershipEnabled = enabled && normalizedOwner.length > 0;
 
   const definitionsQuery = useQuery({
-    queryKey: queryKeys.greenWill.definitions(chainId),
+    queryKey: greenWillKeys.definitions(chainId),
     queryFn: () => getGreenWillBadgeDefinitions(chainId),
     enabled,
     staleTime: STALE_TIME_MEDIUM,
   });
 
   const ownershipQuery = useQuery({
-    queryKey: queryKeys.greenWill.ownership(normalizedOwner, chainId),
+    queryKey: greenWillKeys.ownership(normalizedOwner, chainId),
     queryFn: () => getGreenWillBadgesByOwner(normalizedOwner, chainId),
     enabled: ownershipEnabled,
     staleTime: STALE_TIME_MEDIUM,

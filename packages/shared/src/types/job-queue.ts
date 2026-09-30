@@ -12,12 +12,40 @@
 
 import type { SmartAccountClient } from "permissionless";
 
-import type { Address, WorkDisplayStatus } from "./domain";
+import type {
+  Address,
+  ApproximateWorkLocation,
+  WorkUploadCheckpoint,
+  WorkDisplayStatus,
+} from "./domain";
+import type {
+  ClaimJobPayload,
+  CommitmentCreationPayload,
+  CommitmentSeriesJobPayload,
+  ConfirmationJobPayload,
+  EvidenceJobPayload,
+  WorkLinkJobPayload,
+} from "../modules/commitment-pooling/jobs";
 
 // ============================================
 // Core Job Types
 // ============================================
 
+/**
+ * A queued piece of work.
+ *
+ * **Ownership rule, and it has cost two bugs.** A `Job` is passed by reference
+ * from `processJob` into an executor and back. The executor may persist changes
+ * itself, but `processJob` then writes *its own copy* of the same object on the
+ * waiting and submitted paths, and `markJobFailed` re-reads from storage. So a
+ * value written only to storage is silently overwritten on the same attempt.
+ *
+ * Anything that must survive to the next attempt has to be **mutated on this
+ * object** before it is persisted — `payload.metadataCID = cid` and
+ * `job.meta = {...}` are both written that way for exactly this reason. Writing
+ * `updateJob({ ...job, meta: { ... } })` without also mutating `job` is the
+ * mistake; it looks correct and is undone microseconds later.
+ */
 export interface Job<T = unknown> {
   id: string;
   kind: string;
@@ -55,6 +83,10 @@ export interface JobProcessor<TPayload = unknown, TEncoded = unknown> {
 // ============================================
 
 export interface WorkJobPayload {
+  location?: ApproximateWorkLocation;
+  uploadCheckpoint?: WorkUploadCheckpoint;
+  /** Stable identity encoded into metadata; optional only for persisted legacy jobs. */
+  clientWorkId?: string;
   title?: string;
   feedback: string;
   metadata?: Record<string, unknown>;
@@ -66,6 +98,20 @@ export interface WorkJobPayload {
   gardenAddress: Address;
   media?: File[];
 }
+
+/** What a queued send recorded about reaching the network, so it is confirmed, never sent twice. */
+export type SendCheckpoint = Pick<
+  WorkUploadCheckpoint,
+  | "broadcast"
+  | "broadcastPending"
+  | "broadcastPendingAt"
+  | "intentBlock"
+  | "intentChainTime"
+  | "idleBlock"
+  | "transactionNonce"
+  | "transactionHash"
+  | "transactionReplaced"
+>;
 
 export interface ApprovalJobPayload {
   actionUID: number;
@@ -80,6 +126,8 @@ export interface ApprovalJobPayload {
   verificationMethod: number;
   /** Optional IPFS CID for review audio + notes */
   reviewNotesCID?: string;
+  /** Recorded as the decision is sent; the resolver accepts a second decision for the same work. */
+  sendCheckpoint?: SendCheckpoint;
 }
 
 // ============================================
@@ -89,6 +137,12 @@ export interface ApprovalJobPayload {
 export interface JobKindMap {
   work: WorkJobPayload;
   approval: ApprovalJobPayload;
+  commitmentSeries: CommitmentSeriesJobPayload;
+  commitment: CommitmentCreationPayload;
+  claim: ClaimJobPayload;
+  evidence: EvidenceJobPayload;
+  workLink: WorkLinkJobPayload;
+  confirmation: ConfirmationJobPayload;
 }
 
 export type JobKind = keyof JobKindMap;
@@ -129,6 +183,9 @@ export interface SerializedFileData {
 }
 
 export interface JobQueueDBImage {
+  attachmentId?: string;
+  contentHash?: string;
+  order?: number;
   id: string;
   jobId: string;
   /**
@@ -137,7 +194,7 @@ export interface JobQueueDBImage {
    * @see https://bugs.webkit.org/show_bug.cgi?id=228005
    */
   fileData: SerializedFileData;
-  url: string;
+  url?: string;
   createdAt: number;
   /**
    * @deprecated Use fileData instead. Kept for migration compatibility.
@@ -191,13 +248,34 @@ export type DraftStep = "intro" | "media" | "details" | "review";
  * @see WorkSubmission for the form input shape (what gets submitted)
  * @see DraftStep for valid step values
  */
+export interface MissingDraftAttachment {
+  id: string;
+  name: string;
+  order: number;
+  kind: "media" | "audio";
+}
+
 export interface WorkDraftRecord {
+  kind?: "work";
+  missingAttachments?: MissingDraftAttachment[];
+  legacySourceId?: string;
+  legacyEntries?: Array<{ id: string; index: number; name: string }>;
+  thumbnail?: { attachmentId: string; contentHash?: string } | null;
+  attachmentCount?: number;
+  legacyRecovery?: boolean;
+  tags?: string[];
+  location?: ApproximateWorkLocation;
+  revision?: number;
+  clientWorkId?: string;
+  uploadCheckpoint?: WorkUploadCheckpoint;
   id: string;
   userAddress: Address;
   chainId: number;
   gardenAddress: Address | null;
   actionUID: number | null;
   feedback: string;
+  /** Action-specific form values. Optional for drafts created before this field existed. */
+  details?: Record<string, unknown>;
   /** Time spent on the work in minutes */
   timeSpentMinutes?: number;
   /** Current step in the flow (for resume) */
@@ -209,6 +287,9 @@ export interface WorkDraftRecord {
 }
 
 export interface DraftImage {
+  kind?: "media" | "audio";
+  order?: number;
+  contentHash?: string;
   id: string;
   draftId: string;
   /**
@@ -216,7 +297,7 @@ export interface DraftImage {
    * because iOS Safari fails to clone File objects to IndexedDB.
    */
   fileData: SerializedFileData;
-  url: string;
+  url?: string;
   createdAt: number;
   /**
    * @deprecated Use fileData instead. Kept for migration compatibility.

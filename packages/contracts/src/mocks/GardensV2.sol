@@ -53,11 +53,26 @@ contract MockUnifiedPowerRegistry is IUnifiedPowerRegistry, IVotingPowerRegistry
     }
 
     // IVotingPowerRegistry implementation
-    function getMemberPowerInStrategy(address member, address /* strategy */ ) external view override returns (uint256) {
+    function getMemberPowerInStrategy(
+        address member,
+        address /* strategy */
+    )
+        external
+        view
+        override
+        returns (uint256)
+    {
         return mockPower[member];
     }
 
-    function getMemberStakedAmount(address /* member */ ) external pure override returns (uint256) {
+    function getMemberStakedAmount(
+        address /* member */
+    )
+        external
+        pure
+        override
+        returns (uint256)
+    {
         return 0;
     }
 
@@ -193,39 +208,39 @@ contract MockRegistryCommunity is IRegistryCommunity {
     }
 }
 
-/// @title MockRegistryFactory
-/// @notice Mock RegistryFactory for testing community creation
-contract MockRegistryFactory is IRegistryFactory {
-    address[] public createdCommunities;
-    MockRegistryCommunity public lastCreated;
+    /// @title MockRegistryFactory
+    /// @notice Mock RegistryFactory for testing community creation
+    contract MockRegistryFactory is IRegistryFactory {
+        address[] public createdCommunities;
+        MockRegistryCommunity public lastCreated;
 
-    /// @notice When true, newly created communities will revert on createPool
-    bool public createFailingCommunities;
+        /// @notice When true, newly created communities will revert on createPool
+        bool public createFailingCommunities;
 
-    /// @notice Toggle whether new communities should fail on pool creation
-    function setCreateFailingCommunities(bool _shouldFail) external {
-        createFailingCommunities = _shouldFail;
-    }
-
-    function createRegistry(RegistryCommunityInitializeParamsV2 memory params)
-        external
-        override
-        returns (address community)
-    {
-        MockRegistryCommunity mock = new MockRegistryCommunity(params._gardenToken, params._councilSafe);
-        if (createFailingCommunities) {
-            mock.setShouldRevertPoolCreation(true);
+        /// @notice Toggle whether new communities should fail on pool creation
+        function setCreateFailingCommunities(bool _shouldFail) external {
+            createFailingCommunities = _shouldFail;
         }
-        community = address(mock);
-        lastCreated = mock;
-        createdCommunities.push(community);
-    }
 
-    function getCreatedCount() external view returns (uint256) {
-        return createdCommunities.length;
-    }
+        function createRegistry(RegistryCommunityInitializeParamsV2 memory params)
+            external
+            override
+            returns (address community)
+        {
+            MockRegistryCommunity mock = new MockRegistryCommunity(params._gardenToken, params._councilSafe);
+            if (createFailingCommunities) {
+                mock.setShouldRevertPoolCreation(true);
+            }
+            community = address(mock);
+            lastCreated = mock;
+            createdCommunities.push(community);
+        }
 
-    function getCreatedCommunity(uint256 index) external view returns (address) {
-        return createdCommunities[index];
+        function getCreatedCount() external view returns (uint256) {
+            return createdCommunities.length;
+        }
+
+        function getCreatedCommunity(uint256 index) external view returns (address) {
+            return createdCommunities[index];
+        }
     }
-}

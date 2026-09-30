@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { RiAddLine, RiQuestionLine } from "@remixicon/react";
 import * as React from "react";

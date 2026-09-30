@@ -78,7 +78,7 @@ export const SaveAndCancel: Story = {
 };
 
 /**
- * Single danger action — full-width "Disconnect" / "Sign out" pattern. Pinned
+ * Single danger action — full-width "Disconnect" / "Sign Out" pattern. Pinned
  * to bottom even when SheetBody is short.
  */
 export const SingleDangerAction: Story = {

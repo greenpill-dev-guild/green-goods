@@ -6,7 +6,7 @@
  * a broken state. When any stat is non-zero or loading, the four numerals
  * render as before.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -15,8 +15,11 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
   useInViewReveal: () => ({ ref: () => undefined, revealed: true }),
 }));
 
@@ -27,7 +30,7 @@ const messages: Record<string, string> = {
   "public.home.proof.title": "Quantifiable restoration.",
   "public.home.proof.body":
     "This isn't a dashboard. These are confirmed counts: gardens tended, hands at work, entries logged, assessments recorded. Public, verifiable.",
-  "public.home.proof.cta": "View public evidence",
+  "public.home.proof.cta": "View Public Evidence",
   "public.home.proof.emptyKicker": "Reading the record",
   "public.home.proof.empty":
     "The first records will appear here as Gardens publish their work, season by season.",
@@ -39,13 +42,14 @@ const messages: Record<string, string> = {
   "public.home.proof.worksNote": "Panel checks, soil cores, workshop notes.",
   "public.home.proof.assessments": "Assessments recorded",
   "public.home.proof.assessmentsNote": "Season baselines each Garden sets before the work begins.",
+  "public.impact.proof.unavailable": "Not available right now",
 };
 
 function renderBand(props: {
-  gardens: number;
-  contributors: number;
-  works: number;
-  assessments: number;
+  gardens: number | null;
+  contributors: number | null;
+  works: number | null;
+  assessments: number | null;
   isLoading?: boolean;
 }) {
   return render(
@@ -85,9 +89,25 @@ describe("PublicProofBand", () => {
     expect(screen.queryByText(/first records will appear here/)).toBeNull();
   });
 
+  it("dashes out a count that could not be read instead of publishing zero", () => {
+    renderBand({ gardens: 13, contributors: 40, works: null, assessments: 2 });
+    expect(screen.getByText("Entries logged")).toBeInTheDocument();
+    expect(screen.getByText("Not available right now")).toBeInTheDocument();
+    expect(screen.queryByText("0")).toBeNull();
+    expect(screen.queryByText(/first records will appear here/)).toBeNull();
+  });
+
   it("shows the four markers while loading even when counts are zero", () => {
-    renderBand({ gardens: 0, contributors: 0, works: 0, assessments: 0, isLoading: true });
+    const { container } = renderBand({
+      gardens: 0,
+      contributors: 0,
+      works: 0,
+      assessments: 0,
+      isLoading: true,
+    });
     expect(screen.getByText("Gardens tended")).toBeInTheDocument();
     expect(screen.queryByText(/first records will appear here/)).toBeNull();
+    expect(container.querySelectorAll("[data-editorial-skeleton]")).toHaveLength(4);
+    expect(screen.queryByText("...")).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import { FormField, FormFieldWrapper } from "./FormFieldWrapper";
 
@@ -235,5 +236,46 @@ export const Interactive: Story = {
     await userEvent.click(input);
     await userEvent.type(input, "Hello World");
     await expect(input).toHaveValue("Hello World");
+  },
+};
+
+export const StableFeedback: Story = {
+  render: function StableFeedbackRender() {
+    const [error, setError] = useState<string>();
+    return (
+      <div style={{ maxWidth: "18rem" }}>
+        <FormFieldWrapper id="stable-field" label="Amount" error={error}>
+          <input
+            id="stable-field"
+            aria-invalid={Boolean(error) || undefined}
+            aria-describedby={error ? "stable-field-helper-text" : undefined}
+          />
+        </FormFieldWrapper>
+        <button
+          type="button"
+          onClick={() =>
+            setError(
+              error
+                ? undefined
+                : "Enter an amount with no more than six decimal places. Please check the amount and try again."
+            )
+          }
+        >
+          Toggle validation
+        </button>
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const toggle = canvas.getByRole("button", { name: "Toggle validation" });
+    const top = toggle.getBoundingClientRect().top;
+    await userEvent.click(toggle);
+    await expect(canvas.getByRole("alert")).toBeVisible();
+    await expect(canvas.getByRole("textbox")).toHaveAttribute("aria-invalid", "true");
+    await expect(toggle.getBoundingClientRect().top).toBe(top);
+    await userEvent.click(toggle);
+    await expect(canvas.queryByRole("alert")).not.toBeInTheDocument();
+    await expect(toggle.getBoundingClientRect().top).toBe(top);
   },
 };

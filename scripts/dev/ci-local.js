@@ -1,30 +1,44 @@
 #!/usr/bin/env node
-/**
- * scripts/ci-local.js - Run all CI checks locally
- *
- * Usage: node scripts/ci-local.js [options]
- *   --skip-contracts  Skip contracts tests (requires Foundry)
- *   --skip-indexer    Skip indexer tests (requires codegen setup)
- *   --skip-build      Skip build step
- *   --skip-docs       Skip docs build (catches broken links)
- *   --skip-lighthouse Skip Lighthouse performance tests
- *   --only-lint       Only run lint and format checks
- *   --quick           Skip contracts, indexer, build, docs, and lighthouse (fast feedback)
- *   --lighthouse      Run Lighthouse tests (included by default, use --skip-lighthouse to skip)
- *   --generate-indexer  Run indexer codegen if generated files are missing
- *
- * This script mimics what GitHub Actions CI runs.
- */
 
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { createConnection } from "node:net";
+import { delimiter, dirname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
-// Get project root (one level up from scripts/)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const projectRoot = resolve(__dirname, "../..");
+import {
+  SUBMODULE_RECOVERY_COMMAND,
+  clearRepositoryLocalGitVariables,
+  findInheritedFixtureIdentity,
+  findSharedGitSettingChanges,
+  inspectPinnedSubmodules,
+  readSharedGitSettings,
+  reexecUnderCompatibleNodeIfNeeded,
+  reexecUnderSystemNodeIfNeeded,
+} from "../lib/dev-shared.js";
+import { LOCAL_GATE_VARIABLE } from "./test-lease.mjs";
+import {
+  buildReceiptInputs,
+  fingerprintReceiptInputs,
+  isAdvisoryManualCheck,
+  resolveGitInputs,
+  loadPolicy,
+  selectValidation,
+  summarizeBudget,
+} from "../quality/select-validation.mjs";
+
+const scriptDirectory = dirname(fileURLToPath(import.meta.url));
+const projectRoot = resolve(scriptDirectory, "../..");
+const defaultReceiptPath = resolve(projectRoot, ".cache/validation/passing-receipts.json");
 
 const ABI_EXPORT_SOURCES = {
   "ActionRegistry.json": "Action.sol/ActionRegistry.json",
@@ -35,7 +49,6 @@ const ABI_EXPORT_SOURCES = {
   "MockEAS.json": "EAS.sol/MockEAS.json",
 };
 
-// ANSI color codes
 const colors = {
   reset: "\x1b[0m",
   red: "\x1b[0;31m",
@@ -44,557 +57,1107 @@ const colors = {
   blue: "\x1b[0;34m",
 };
 
-// Environment variables matching GitHub Actions CI
 const ciEnv = {
-  // Common
   CI: "true",
-  // Agent tests
   ENCRYPTION_SECRET: "test-secret-for-ci-encryption-32chars",
   TELEGRAM_BOT_TOKEN: "test-bot-token",
   VITE_RPC_URL_11155111: "http://localhost:3009",
-  // Client/Admin builds
   VITE_USE_HASH_ROUTER: "false",
   VITE_CHAIN_ID: "11155111",
   VITE_WALLETCONNECT_PROJECT_ID: "test",
   VITE_PIMLICO_API_KEY: "test",
-  VITE_ENVIO_INDEXER_URL: "http://localhost:3006",
+  VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql",
 };
 
-// Configuration
-const config = {
-  skipContracts: false,
-  skipIndexer: false,
-  skipBuild: false,
-  skipDocs: false,
-  skipLighthouse: false,
-  onlyLint: false,
-  generateIndexer: false,
-  quick: false,
-};
+export function parseArguments(argv) {
+  const options = {
+    intent: "ship",
+    checkpointScope: "workspace",
+    changedPaths: [],
+    testPaths: {},
+    checkIds: [],
+    onlyChecks: [],
+    capabilities: {},
+    attestations: {},
+    skipContracts: false,
+    skipIndexer: false,
+    skipBuild: false,
+    skipDocs: false,
+    skipLighthouse: false,
+    onlyLint: false,
+    generateIndexer: false,
+    lighthouse: false,
+    failFast: true,
+    planJson: false,
+    cancelled: false,
+    reusePassingReceipts: false,
+  };
 
-// Track failures
-const failures = [];
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    const next = () => {
+      const value = argv[++index];
+      if (!value || value.startsWith("--")) throw new Error(`${arg} requires a value`);
+      return value;
+    };
 
-// ============================================================================
-// Helpers
-// ============================================================================
-
-function printHeader(message) {
-  console.log("");
-  console.log(`${colors.blue}========================================${colors.reset}`);
-  console.log(`${colors.blue}  ${message}${colors.reset}`);
-  console.log(`${colors.blue}========================================${colors.reset}`);
-  console.log("");
-}
-
-function printSection(message) {
-  console.log("");
-  console.log(`${colors.yellow}=== ${message} ===${colors.reset}`);
-}
-
-function printSuccess(message) {
-  console.log(`${colors.green}✓ ${message}${colors.reset}`);
-}
-
-function printWarning(message) {
-  console.log(`${colors.yellow}⚠ ${message}${colors.reset}`);
-}
-
-function printError(message) {
-  console.log(`${colors.red}✗ ${message}${colors.reset}`);
-}
-
-/**
- * Calculate elapsed time in human-readable format
- */
-function getElapsedTime(startTime) {
-  return ((Date.now() - startTime) / 1000).toFixed(2);
-}
-
-/**
- * Run a command and track its result with real-time output
- * @param {string} name - Display name for the step
- * @param {string} command - Command to run
- * @param {string} cwd - Working directory (defaults to projectRoot)
- * @param {Object} env - Additional environment variables
- */
-async function runStep(name, command, cwd = projectRoot, env = {}) {
-  return new Promise((resolve) => {
-    const startTime = Date.now();
-    console.log(`${colors.blue}Running: ${command}${colors.reset}`);
-
-    const child = spawn(command, {
-      cwd,
-      shell: true,
-      stdio: 'inherit', // Stream output directly to parent process
-      env: { ...process.env, ...env }
-    });
-
-    child.on('close', (code) => {
-      const duration = getElapsedTime(startTime);
-      if (code === 0) {
-        printSuccess(`${name} passed (${duration}s)`);
-        resolve(true);
-      } else {
-        printError(`${name} failed (exit code: ${code}, ${duration}s)`);
-        failures.push(name);
-        resolve(false);
+    switch (arg) {
+      case "--skip-contracts":
+        options.skipContracts = true;
+        break;
+      case "--skip-indexer":
+        options.skipIndexer = true;
+        break;
+      case "--skip-build":
+        options.skipBuild = true;
+        break;
+      case "--skip-docs":
+        options.skipDocs = true;
+        break;
+      case "--skip-lighthouse":
+        options.skipLighthouse = true;
+        break;
+      case "--only-lint":
+        options.onlyLint = true;
+        options.intent = "diagnose";
+        options.checkIds.push("format", "lint");
+        break;
+      case "--quick":
+        options.intent = "checkpoint";
+        break;
+      case "--generate-indexer":
+        options.generateIndexer = true;
+        break;
+      case "--lighthouse":
+        options.lighthouse = true;
+        options.checkIds.push("lighthouse-client", "lighthouse-admin");
+        break;
+      case "--no-fail-fast":
+        options.failFast = false;
+        break;
+      case "--plan":
+        options.planOnly = true;
+        break;
+      case "--list":
+        options.list = true;
+        break;
+      case "--json":
+        options.json = true;
+        break;
+      case "--only": {
+        const id = next();
+        options.onlyChecks.push(id);
+        options.checkIds.push(id);
+        break;
       }
-    });
-
-    child.on('error', (error) => {
-      const duration = getElapsedTime(startTime);
-      printError(`${name} failed: ${error.message} (${duration}s)`);
-      failures.push(name);
-      resolve(false);
-    });
-  });
+      case "--":
+        break;
+      case "--plan-json":
+        options.planJson = true;
+        break;
+      case "--cancelled":
+        options.cancelled = true;
+        break;
+      case "--reuse-passing-receipts":
+        options.reusePassingReceipts = true;
+        break;
+      case "--intent":
+        options.intent = next();
+        break;
+      case "--checkpoint-scope":
+        options.checkpointScope = next();
+        break;
+      case "--base":
+        options.base = next();
+        break;
+      case "--head":
+        options.head = next();
+        break;
+      case "--changed":
+        options.changedPaths.push(...next().split(",").filter(Boolean));
+        break;
+      case "--risk":
+        options.risk = next();
+        break;
+      case "--test-path": {
+        const value = next();
+        const separator = value.indexOf(":");
+        if (separator < 1) throw new Error("--test-path must use surface:path");
+        const surface = value.slice(0, separator);
+        (options.testPaths[surface] ??= []).push(value.slice(separator + 1));
+        break;
+      }
+      case "--check":
+        options.checkIds.push(next());
+        break;
+      case "--capability": {
+        const [name, value] = next().split("=", 2);
+        if (!name || !["true", "false"].includes(value)) {
+          throw new Error("--capability must use name=true or name=false");
+        }
+        options.capabilities[name] = value === "true";
+        break;
+      }
+      case "--attest": {
+        const value = next();
+        const separator = value.indexOf("=");
+        if (separator < 1 || separator === value.length - 1) {
+          throw new Error("--attest must use check-id=evidence");
+        }
+        options.attestations[value.slice(0, separator)] = value.slice(separator + 1);
+        break;
+      }
+      case "--help":
+      case "-h":
+        options.help = true;
+        break;
+      default:
+        throw new Error(`Unknown argument: ${arg}`);
+    }
+  }
+  if (options.onlyChecks.length && !argv.includes("--intent")) options.intent = "diagnose";
+  if (options.json && !options.planOnly && !options.planJson && !options.list) {
+    throw new Error("--json requires --plan or --list");
+  }
+  if (options.list && (options.checkIds.length || options.planOnly || options.planJson)) {
+    throw new Error("--list cannot be combined with check selection or --plan");
+  }
+  if (
+    options.intent === "checkpoint" &&
+    options.checkpointScope === "lane" &&
+    options.changedPaths.length === 0 &&
+    !options.cancelled
+  ) {
+    throw new Error("Lane checkpoint requires --changed");
+  }
+  return options;
 }
 
-/**
- * Check if a command exists
- */
-async function commandExists(cmd) {
-  return new Promise((resolve) => {
-    const checkCmd = process.platform === 'win32' ? `where ${cmd}` : `command -v ${cmd}`;
-    const child = spawn(checkCmd, {
-      shell: true,
-      stdio: 'ignore'
-    });
-
-    child.on('close', (code) => {
-      resolve(code === 0);
-    });
-
-    child.on('error', () => {
-      resolve(false);
-    });
-  });
-}
-
-/**
- * Show help message
- */
 function showHelp() {
-  console.log("Usage: node scripts/ci-local.js [options]");
-  console.log("");
-  console.log("Options:");
-  console.log("  --skip-contracts    Skip contracts tests (requires Foundry)");
-  console.log("  --skip-indexer      Skip indexer tests (requires codegen setup)");
-  console.log("  --skip-build        Skip build step");
-  console.log("  --skip-docs         Skip docs build (catches broken links)");
-  console.log("  --skip-lighthouse   Skip Lighthouse performance tests");
-  console.log("  --only-lint         Only run lint and format checks");
-  console.log("  --quick             Skip contracts, indexer, build, docs, and lighthouse (fast feedback)");
-  console.log("  --generate-indexer  Run indexer codegen if generated files missing");
-  console.log("  --help, -h          Show this help message");
-  console.log("");
-  console.log("This script runs the same checks as GitHub Actions CI:");
-  console.log("  0. Contract ABI artifact tracking (pre-flight)");
-  console.log("  1. Format check (biome)");
-  console.log("  2. Lint (oxlint + solhint)");
-  console.log("  3. Type checking (TypeScript)");
-  console.log("  4. Unit tests (all packages)");
-  console.log("  5. Build (all packages)");
-  console.log("  6. Docs build (catches broken links)");
-  console.log("  7. Lighthouse performance tests (client + admin)");
-  process.exit(0);
+  console.log(`Usage: bun run check -- [options]
+
+Selector options:
+  --intent <intent>       diagnose|qa|review|checkpoint|readiness|push|ship|merge|release
+  --checkpoint-scope <s>  lane|workspace; lane requires explicit --changed paths
+  --base <revision>       Base revision (default: origin/develop)
+  --head <revision>       Head revision (default: HEAD)
+  --changed <paths>       Comma-separated changed paths; repeatable
+  --risk <risk>           routine|sensitive|critical
+  --test-path <pkg:path>  Direct behavior proof for push, e.g. shared:src/utils/date.test.ts
+  --check <check-id>      Add an explicit acceptance check; repeatable
+  --only <check-id>       Select checks plus mandatory checks; repeatable
+  --plan                 Show the plan without executing checks
+  --list                 List stable checks without probing services
+  --json                 JSON output for --plan or --list
+  --capability k=true     Declare an environment capability; repeatable
+  --attest <id>=<text>    Record manual proof for an advisory check; only release requires it,
+                          e.g. --attest browser-proof="authenticated Brave, steward session, 2026-09-22: sheet renders"
+  --plan-json             Print the exact plan as JSON without running it
+  --cancelled             Emit a terminal cancelled plan
+  --reuse-passing-receipts Reuse exact-fingerprint passes from .cache/validation
+
+Execution options:
+  --quick                 Change-aware cross-package checkpoint
+  --only-lint             Run only explicitly requested format and lint evidence
+  --no-fail-fast          Continue independent checks after a failure
+  --lighthouse            Add advisory Lighthouse checks
+
+Compatibility filters (mandatory critical checks ignore these flags):
+  --skip-contracts        Skip non-mandatory contract checks
+  --skip-indexer          Skip non-mandatory indexer checks
+  --skip-build            Skip non-mandatory build checks
+  --skip-docs             Skip non-mandatory docs checks
+  --skip-lighthouse       Skip Lighthouse checks
+  --generate-indexer      Retained compatibility flag; package commands own codegen
+  --help, -h              Show this help`);
 }
 
-// ============================================================================
-// Parse Arguments
-// ============================================================================
+async function commandExists(command) {
+  return new Promise((resolvePromise) => {
+    const check = process.platform === "win32" ? `where ${command}` : `command -v ${command}`;
+    const child = spawn(check, { shell: true, stdio: "ignore" });
+    child.once("close", (code) => resolvePromise(code === 0));
+    child.once("error", () => resolvePromise(false));
+  });
+}
 
-const args = process.argv.slice(2);
-for (const arg of args) {
-  switch (arg) {
-    case "--skip-contracts":
-      config.skipContracts = true;
-      break;
-    case "--skip-indexer":
-      config.skipIndexer = true;
-      break;
-    case "--skip-build":
-      config.skipBuild = true;
-      break;
-    case "--skip-docs":
-      config.skipDocs = true;
-      break;
-    case "--skip-lighthouse":
-      config.skipLighthouse = true;
-      break;
-    case "--only-lint":
-      config.onlyLint = true;
-      break;
-    case "--quick":
-      config.quick = true;
-      config.skipContracts = true;
-      config.skipIndexer = true;
-      config.skipBuild = true;
-      config.skipDocs = true;
-      config.skipLighthouse = true;
-      break;
-    case "--generate-indexer":
-      config.generateIndexer = true;
-      break;
-    case "--help":
-    case "-h":
-      showHelp();
-      break;
+async function commandOutput(command) {
+  return new Promise((resolvePromise) => {
+    const child = spawn(`${command} --version`, { shell: true, stdio: ["ignore", "pipe", "ignore"] });
+    let output = "";
+    child.stdout.on("data", (chunk) => {
+      output += chunk;
+    });
+    child.once("close", (code) => resolvePromise(code === 0 ? output.trim() : null));
+    child.once("error", () => resolvePromise(null));
+  });
+}
+
+function portAvailable({ host, port, timeoutMs = 250 }) {
+  return new Promise((resolvePromise) => {
+    let settled = false;
+    const finish = (available) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolvePromise(available);
+    };
+    const socket = createConnection({ host, port });
+    socket.setTimeout(timeoutMs);
+    socket.once("connect", () => finish(true));
+    socket.once("timeout", () => finish(false));
+    socket.once("error", () => finish(false));
+  });
+}
+
+export async function arbitrumForkAvailable({
+  rpcUrl = process.env.ARBITRUM_RPC_URL,
+  probe = portAvailable,
+} = {}) {
+  if (typeof rpcUrl === "string" && rpcUrl.trim() !== "") return true;
+  return probe({ host: "127.0.0.1", port: 3009 });
+}
+
+// An attestation is a person's claim, so nothing here can prove it true. What it can do is
+// insist the claim says which engine and session produced the proof, when, and what was seen,
+// so a release cannot be cleared with a placeholder like "none".
+const ATTESTATION_MIN_OBSERVATION = 12;
+
+export function validateAttestation(check, evidence) {
+  const problems = [];
+  const text = typeof evidence === "string" ? evidence.trim() : "";
+  if (!text) return { ok: false, problems: ["no evidence was supplied"] };
+
+  const engines = check.attestation?.engines ?? [];
+  const matched = engines.find((engine) => text.toLowerCase().includes(engine.toLowerCase()));
+  if (engines.length > 0 && !matched) {
+    problems.push(`must name the rendered engine and session (${engines.join(", ")})`);
+  }
+
+  const date = text.match(/\b20\d{2}-\d{2}-\d{2}\b/);
+  if (!date) problems.push("must carry the observation date as YYYY-MM-DD");
+
+  const observation = text
+    .replace(matched ?? "", "")
+    .replace(date?.[0] ?? "", "")
+    .replace(/[\s,;:.\-]+/g, " ")
+    .trim();
+  if (observation.length < ATTESTATION_MIN_OBSERVATION) {
+    problems.push("must say what was observed, not only the engine and date");
+  }
+
+  return { ok: problems.length === 0, problems };
+}
+
+export function capabilityRecoveryHint(capability, contractSubmoduleState) {
+  if (capability === "manual-attestation-required") {
+    return 'Record the rendered proof, then rerun with --attest <check-id>="<engine, session, date, what was observed>".';
+  }
+  if (capability === "manual-attestation-invalid") {
+    return 'The supplied --attest text is not usable evidence; state the engine and session, the date as YYYY-MM-DD, and what you observed.';
+  }
+  if (capability === "arbitrumFork") {
+    return "Start the local fork with `bun run --cwd packages/contracts dev:arbitrum-fork`.";
+  }
+  if (capability === "contractSubmodules") {
+    if (contractSubmoduleState === "modified") {
+      return "Inspect and preserve, commit, stash, or discard the local changes in the contract submodules; validation will not reset them.";
+    }
+    if (contractSubmoduleState === "mismatched") {
+      return "Inspect the mismatched contract submodule commits and restore the pinned gitlinks manually; validation will not reset them.";
+    }
+    if (contractSubmoduleState === "conflicted") {
+      return "Resolve the conflicted contract submodule gitlinks before retrying validation.";
+    }
+    if (contractSubmoduleState === "command-error") {
+      return "Run `git submodule status --recursive` and resolve the reported Git error before retrying validation.";
+    }
+    return `Initialize the pinned commits with \`${SUBMODULE_RECOVERY_COMMAND}\`.`;
+  }
+  return null;
+}
+
+async function detectEnvironment(options) {
+  const dependencies = [
+    "node_modules/.bun",
+    "node_modules/@biomejs/biome/package.json",
+    "node_modules/typescript/package.json",
+    "node_modules/vitest/package.json",
+  ].every((path) => existsSync(resolve(projectRoot, path)));
+  const bunVersion = await commandOutput("bun");
+  const foundryOutput = await commandOutput("forge");
+  const foundryVersion = foundryOutput?.match(/\d+\.\d+\.\d+/)?.[0] ?? null;
+  const contractSubmodules = inspectPinnedSubmodules({ cwd: projectRoot });
+  return {
+    profile: "local-ci",
+    contractSubmoduleState: contractSubmodules.state,
+    toolchain: {
+      node: process.version.replace(/^v/, ""),
+      ...(bunVersion ? { bun: bunVersion } : {}),
+      ...(foundryVersion ? { foundry: foundryVersion } : {}),
+    },
+    capabilities: {
+      dependencies,
+      foundry: await commandExists("forge"),
+      contractSubmodules: contractSubmodules.ready,
+      docker: await commandExists("docker"),
+      indexerCodegen: dependencies,
+      arbitrumFork: await arbitrumForkAvailable(),
+      authenticatedBrave: false,
+      browser: false,
+      ...options.capabilities,
+    },
+  };
+}
+
+export function applyCompatibilityFilters(plan, options) {
+  const skipped = [];
+  const keep = (check) => {
+    let requestedSkip = false;
+    if (options.onlyChecks?.length && !options.onlyChecks.includes(check.id)) requestedSkip = true;
+    if (options.onlyLint && !["format", "lint"].includes(check.id)) requestedSkip = true;
+    if (
+      options.skipContracts &&
+      (check.id.startsWith("contracts-") || check.id === "abi-artifacts")
+    ) {
+      requestedSkip = true;
+    }
+    if (options.skipIndexer && check.id.startsWith("indexer-")) requestedSkip = true;
+    if (
+      options.skipBuild &&
+      (check.id.endsWith("-build") || check.id.startsWith("lighthouse-"))
+    ) {
+      requestedSkip = true;
+    }
+    if (options.skipDocs && check.id.startsWith("docs-")) requestedSkip = true;
+    if (options.skipLighthouse && check.id.startsWith("lighthouse-")) requestedSkip = true;
+    if (!requestedSkip || check.mandatory) return true;
+    skipped.push({ id: check.id, reason: "compatibility-filter" });
+    return false;
+  };
+  const checks = plan.checks.filter(keep);
+  // The toolchain comparison upstream runs over the unfiltered plan, so a tool
+  // that only a dropped check needed — Foundry for contracts-test, say — would
+  // otherwise keep every surviving check blocked. `bun run check --only
+  // design-tokens` on a runner without Foundry is the case that bit CI. Work
+  // out which tools the remaining checks actually require, by the same rule the
+  // comparison uses, and drop the blockers that no longer apply.
+  // Same rule as the selector: only checks that run a command need a toolchain, so a filter
+  // that leaves nothing but the advisory proof must also drop the toolchain blockers.
+  const executableChecks = checks.filter((check) => !isAdvisoryManualCheck(check));
+  const requiredTools = new Set(executableChecks.length > 0 ? ["node"] : []);
+  if (executableChecks.some((check) => check.command?.includes("bun"))) requiredTools.add("bun");
+  if (executableChecks.some((check) => check.capabilities?.includes("foundry"))) {
+    requiredTools.add("foundry");
+  }
+  const priorBlockers = plan.environmentBlockers ?? [];
+  // A blocker is a { capability } record from the toolchain comparison, or a
+  // bare capability string from a caller that built the plan by hand.
+  const capabilityOf = (blocker) =>
+    typeof blocker === "string" ? blocker : String(blocker?.capability ?? "");
+  const environmentBlockers = priorBlockers.filter((blocker) =>
+    requiredTools.has(capabilityOf(blocker).replace(/^toolchain\./, "")),
+  );
+  const lifted = new Set(
+    priorBlockers
+      .filter((blocker) => !environmentBlockers.includes(blocker))
+      .map(capabilityOf),
+  );
+  // A lifted toolchain blocker was stamped onto every check, including the ones
+  // that survived; clear it there too, leaving capability blocks untouched.
+  const rescoped =
+    lifted.size === 0
+      ? checks
+      : checks.map((check) => {
+          const blockedBy = (check.blockedBy ?? []).filter(
+            (capability) => !lifted.has(capability),
+          );
+          return {
+            ...check,
+            blockedBy,
+            state: isAdvisoryManualCheck(check)
+              ? "advisory"
+              : blockedBy.length > 0
+                ? "blocked"
+                : "pending",
+          };
+        });
+  // Recompute rather than inheriting plan.status: when the only blocked checks
+  // are the ones a compatibility filter just dropped, the remaining plan is
+  // runnable and must not keep reporting blocked.
+  const stillBlocked =
+    rescoped.some((check) => check.state === "blocked" && !isAdvisoryManualCheck(check)) ||
+    environmentBlockers.length > 0;
+  const status = stillBlocked ? "blocked" : plan.status === "blocked" ? "ready" : plan.status;
+  const budget = summarizeBudget(plan.effectiveIntent, rescoped, plan.risk);
+  return { ...plan, checks: rescoped, status, budget, skipped, environmentBlockers };
+}
+
+export function isSupportedCiNodeVersion(version) {
+  const major = Number.parseInt(version.split(".")[0], 10);
+  return Number.isInteger(major) && major >= 22;
+}
+
+// The selector compares the toolchain exactly, so a merely runnable Node — 22.22.0 against a
+// 22.22.1 pin — makes every check read `blocked:toolchain.node`, which is what drove people to
+// --no-verify. Re-exec whenever the running version is not the pin itself; when the pinned Node
+// is installed nowhere, this finds nothing, the run proceeds, and the plan reports the mismatch.
+export function pinnedCiNodeVersion(policyLoader = loadPolicy) {
+  try {
+    return policyLoader().toolchain?.node ?? null;
+  } catch {
+    return null;
   }
 }
 
-// ============================================================================
-// Main
-// ============================================================================
+export function isPinnedCiNodeVersion(version, pinnedVersion) {
+  if (!pinnedVersion) return isSupportedCiNodeVersion(version);
+  return version === pinnedVersion;
+}
 
-async function main() {
-  printHeader("Green Goods CI Local Validation");
+export function buildLocalValidationPlan(options, gitInputs, environment) {
+  const plan = selectValidation({
+    intent: options.intent,
+    checkpointScope: options.checkpointScope,
+    base: gitInputs.base,
+    head: gitInputs.head,
+    workingCopyFingerprint: gitInputs.workingCopyFingerprint,
+    changedPaths: gitInputs.changedPaths,
+    // A path deleted or moved since the base is still a changed path; without
+    // this the scoped format and lint commands hand Biome a file that no
+    // longer exists and the whole plan fails at its first check.
+    deletedPaths: gitInputs.deletedPaths ?? [],
+    mutationPaths: gitInputs.mutationPaths ?? [],
+    risk: options.risk,
+    cancelled: options.cancelled,
+    testPaths: options.testPaths,
+    checkIds: options.checkIds,
+    environment,
+  });
+  return applyCompatibilityFilters(plan, options);
+}
 
-  // Show configuration
-  console.log(`${colors.yellow}Configuration:${colors.reset}`);
-  console.log(`  Skip Contracts: ${config.skipContracts ? 'Yes' : 'No'}`);
-  console.log(`  Skip Indexer: ${config.skipIndexer ? 'Yes' : 'No'}`);
-  console.log(`  Skip Build: ${config.skipBuild ? 'Yes' : 'No'}`);
-  console.log(`  Skip Docs: ${config.skipDocs ? 'Yes' : 'No'}`);
-  console.log(`  Skip Lighthouse: ${config.skipLighthouse ? 'Yes' : 'No'}`);
-  console.log(`  Only Lint: ${config.onlyLint ? 'Yes' : 'No'}`);
-  console.log(`  Generate Indexer: ${config.generateIndexer ? 'Yes' : 'No'}`);
-  console.log("");
+// A receipt covers every variable a check inherits except these, which differ between a manual
+// run and the same run from the pre-push hook without changing what a check does. Git prepends its
+// exec path and the hook prepends tool directories to PATH, and NODE names the interpreter; the
+// node, bun and forge versions those resolve to are fingerprinted as the toolchain. Husky's shim
+// sources ~/.config/husky/init.sh, which commonly exports NVM_DIR, and the hook loads nvm when a
+// .nvmrc exists: nvm's own variables configure only nvm, and `nvm use` also moves MANPATH, which
+// only `man` reads. Shells count and track themselves, and each re-exec wrapper marks that it ran.
+const RECEIPT_IGNORED_VARIABLES = new Set([
+  "PATH",
+  "GIT_EXEC_PATH",
+  "NODE",
+  "npm_node_execpath",
+  "MANPATH",
+  "SHLVL",
+  "_",
+  "OLDPWD",
+  "PWD",
+]);
+const RECEIPT_IGNORED_PATTERN = /^(?:NVM_\w+|GREEN_GOODS_\w+_REEXEC)$/;
 
-  // Pre-flight checks
-  if (!config.skipContracts) {
-    const hasForge = await commandExists("forge");
-    if (!hasForge) {
-      printWarning(
-        "Foundry not found. Use --skip-contracts or install with: curl -L https://foundry.paradigm.xyz | bash"
-      );
-      config.skipContracts = true;
-    }
+/**
+ * The exact environment a check's process receives. Check commands call package binaries by name
+ * (`design.md`, `vitest`), as package scripts do, so the check's own node_modules/.bin and the
+ * repository's lead PATH: `bun run` and Husky's shim do the same, and a manual run of the gate must
+ * resolve them like the hook does.
+ */
+export function checkEnvironment(check, baseEnvironment = process.env, planBase = null) {
+  const packageBinaries = [
+    ...new Set([
+      resolve(projectRoot, check.cwd ?? ".", "node_modules/.bin"),
+      resolve(projectRoot, "node_modules/.bin"),
+    ]),
+  ];
+  const path = [...packageBinaries, baseEnvironment.PATH].filter(Boolean).join(delimiter);
+  return { ...baseEnvironment, ...envForCheck(check, baseEnvironment, planBase), PATH: path };
+}
+
+/** A digest of the variables that can change a check's result; values never leave the hash. */
+export function environmentFingerprint(environment) {
+  const hash = createHash("sha256");
+  hash.update("validation-environment-v1\0");
+  for (const name of Object.keys(environment).sort()) {
+    if (RECEIPT_IGNORED_VARIABLES.has(name) || RECEIPT_IGNORED_PATTERN.test(name)) continue;
+    hash.update(`${name}\0${environment[name]}\0`);
   }
+  return `sha256:${hash.digest("hex")}`;
+}
 
-  if (!config.skipIndexer) {
-    const indexerGeneratedPath = resolve(projectRoot, "packages/indexer/generated/src");
-    if (!existsSync(indexerGeneratedPath)) {
-      if (config.generateIndexer) {
-        printSection("Indexer Code Generation");
-        await runStep("Indexer codegen", "bun run codegen", resolve(projectRoot, "packages/indexer"));
-        await runStep("Indexer setup-generated", "bun run setup-generated", resolve(projectRoot, "packages/indexer"));
-      } else {
-        printWarning(
-          "Indexer generated files not found. Use --skip-indexer, --generate-indexer, or run: cd packages/indexer && bun run codegen && bun run setup-generated"
-        );
-        config.skipIndexer = true;
-      }
-    }
+// Builds and tests read the root .env family (Vite's loadEnv, `bun --env-file`). Git ignores those
+// files, so the working-copy fingerprint cannot see a change to them.
+export function ignoredConfigurationFingerprint(root = projectRoot) {
+  const hash = createHash("sha256");
+  hash.update("validation-ignored-configuration-v1\0");
+  const names = readdirSync(root)
+    .filter((name) => name.startsWith(".env"))
+    .sort();
+  for (const name of names) {
+    const path = resolve(root, name);
+    if (!statSync(path).isFile()) continue;
+    hash.update(`${name}\0`);
+    hash.update(readFileSync(path));
+    hash.update("\0");
   }
+  return `sha256:${hash.digest("hex")}`;
+}
 
-  // ============================================================================
-  // Pre-flight: Contract ABI Artifact Tracking
-  // ============================================================================
-  // Shared imports ABIs from packages/contracts/abis/. CI doesn't build contracts
-  // first — it relies on these files being committed. If a new ABI import is added
-  // but the ABI export step is skipped, downstream builds fail.
-  printSection("Contract ABI Artifact Tracking");
-  {
-    const contractsTs = resolve(projectRoot, "packages/shared/src/utils/blockchain/contracts.ts");
-    if (existsSync(contractsTs)) {
-      const content = readFileSync(contractsTs, "utf8");
-      const importPattern = /from\s+["']@green-goods\/contracts\/abis\/(.+?\.json)["']/g;
-      let match;
-      const missingArtifacts = [];
-      const staleArtifacts = [];
-
-      while ((match = importPattern.exec(content)) !== null) {
-        const abiFileName = match[1];
-        const artifactRelPath = `packages/contracts/abis/${abiFileName}`;
-        const artifactAbsPath = resolve(projectRoot, artifactRelPath);
-
-        if (!existsSync(artifactAbsPath)) {
-          missingArtifacts.push({
-            path: artifactRelPath,
-            reason: "file does not exist — run `cd packages/contracts && bun run build:abis`",
-          });
-          continue;
-        }
-
-        // Check if git is tracking the file (not ignored by .gitignore)
-        try {
-          const child = spawn("git", ["check-ignore", "-q", artifactRelPath], {
-            cwd: projectRoot,
-            stdio: "pipe",
-          });
-          const exitCode = await new Promise((res) => child.on("close", res));
-          if (exitCode === 0) {
-            // exit 0 means git IGNORES the file
-            missingArtifacts.push({ path: artifactRelPath, reason: "tracked by .gitignore — update .gitignore to un-ignore it" });
-          }
-        } catch {
-          // git check-ignore not available, skip
-        }
-
-        const sourceArtifactRelPath = ABI_EXPORT_SOURCES[abiFileName];
-        if (!sourceArtifactRelPath) continue;
-
-        const compiledArtifactAbsPath = resolve(
-          projectRoot,
-          `packages/contracts/.generated/foundry/out/default/${sourceArtifactRelPath}`,
-        );
-        if (!existsSync(compiledArtifactAbsPath)) continue;
-
-        try {
-          const compiledArtifact = JSON.parse(readFileSync(compiledArtifactAbsPath, "utf8"));
-          const committedArtifact = readFileSync(artifactAbsPath, "utf8");
-          const expectedArtifact = `${JSON.stringify(compiledArtifact.abi ?? [], null, 2)}\n`;
-          if (committedArtifact !== expectedArtifact) {
-            staleArtifacts.push({
-              path: artifactRelPath,
-              reason: "stale versus current contracts build output — run `cd packages/contracts && bun run build:abis`",
-            });
-          }
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          staleArtifacts.push({
-            path: artifactRelPath,
-            reason: `unable to validate against build artifact: ${message}`,
-          });
-        }
-      }
-
-      if (missingArtifacts.length > 0 || staleArtifacts.length > 0) {
-        printError("Contract ABI artifacts imported by shared are missing or stale:");
-        for (const { path, reason } of missingArtifacts) {
-          console.log(`  ${colors.red}✗ ${path}${colors.reset}`);
-          console.log(`    ${colors.yellow}→ ${reason}${colors.reset}`);
-        }
-        for (const { path, reason } of staleArtifacts) {
-          console.log(`  ${colors.red}✗ ${path}${colors.reset}`);
-          console.log(`    ${colors.yellow}→ ${reason}${colors.reset}`);
-        }
-        console.log("");
-        console.log(
-          `${colors.yellow}Fix: Regenerate and commit packages/contracts/abis/*.json via \`cd packages/contracts && bun run build:abis\`.${colors.reset}`,
-        );
-        failures.push("ABI artifact tracking");
-      } else {
-        printSuccess("All contract ABI imports are tracked in git");
-      }
-    }
+function envForCheck(check, baseEnvironment = {}, planBase = null) {
+  // CI=true reproduces CI's test environment; the marker keeps local package suites on the
+  // machine test lease, which real CI skips.
+  const common = { CI: ciEnv.CI, [LOCAL_GATE_VARIABLE]: "1" };
+  if (check.id === "immutable-plan-reports") {
+    // CI hands the check the push's previous head or the pull request's base. Give it the base
+    // this plan compared against instead of its origin/develop fallback, so it judges the same
+    // commits and working tree; a base set by the caller still wins.
+    const explicit = baseEnvironment.PLAN_REPORTS_BASE_REF || baseEnvironment.GUIDANCE_BASE_REF;
+    return explicit || !planBase ? common : { ...common, PLAN_REPORTS_BASE_REF: planBase };
   }
-
-  // ============================================================================
-  // Phase 1: Format & Lint (matches all workflow lint jobs)
-  // ============================================================================
-  printSection("Format Check");
-  await runStep("Format check", "bun run format:check");
-
-  printSection("Lint");
-  await runStep("Lint (all packages)", "bun run lint");
-
-  // Early exit for lint-only mode
-  if (config.onlyLint) {
-    printHeader("Lint-only checks completed!");
-    process.exit(failures.length > 0 ? 1 : 0);
-  }
-
-  // ============================================================================
-  // Phase 2: Type Checking (matches GH Actions type check steps)
-  // ============================================================================
-  printSection("Type Checking");
-
-  // Shared package type check (matches shared.yml)
-  await runStep("Shared typecheck", "npx tsc --noEmit", resolve(projectRoot, "packages/shared"));
-
-  // Agent package type check (matches agent.yml)
-  await runStep("Agent typecheck", "bun run typecheck", resolve(projectRoot, "packages/agent"));
-
-  // ============================================================================
-  // Phase 3: Unit Tests (matches all workflow test jobs)
-  // ============================================================================
-  printSection("Shared Package Tests");
-  await runStep("Shared tests", "bun run test", resolve(projectRoot, "packages/shared"), { CI: "true" });
-
-  printSection("Client Tests");
-  await runStep("Client tests", "bun run test", resolve(projectRoot, "packages/client"), { CI: "true" });
-
-  printSection("Admin Tests");
-  const adminTestCommand = config.quick ? "bun run test:hub" : "bun run test";
-  const adminTestName = config.quick ? "Admin hub tests" : "Admin tests";
-  await runStep(adminTestName, adminTestCommand, resolve(projectRoot, "packages/admin"), { CI: "true" });
-
-  // Indexer tests (matches indexer.yml)
-  if (!config.skipIndexer) {
-    printSection("Indexer Tests");
-    await runStep("Indexer tests", "bun run test", resolve(projectRoot, "packages/indexer"), { CI: "true" });
-  } else {
-    printSection("Indexer Tests (SKIPPED)");
-  }
-
-  // Contracts tests (matches contracts.yml - builds first, then tests)
-  if (!config.skipContracts) {
-    printSection("Contracts Build & Tests");
-    await runStep("Contracts build", "bun run build", resolve(projectRoot, "packages/contracts"));
-    await runStep("Contracts tests", "bun run test", resolve(projectRoot, "packages/contracts"), { CI: "true" });
-  } else {
-    printSection("Contracts Tests (SKIPPED)");
-  }
-
-  // Agent tests (matches agent.yml with full env vars)
-  printSection("Agent Tests");
-  await runStep(
-    "Agent tests",
-    "bun run test",
-    resolve(projectRoot, "packages/agent"),
-    {
-      CI: "true",
+  if (check.id.startsWith("agent-")) {
+    return {
+      ...common,
       ENCRYPTION_SECRET: ciEnv.ENCRYPTION_SECRET,
       TELEGRAM_BOT_TOKEN: ciEnv.TELEGRAM_BOT_TOKEN,
       VITE_RPC_URL_11155111: ciEnv.VITE_RPC_URL_11155111,
+    };
+  }
+  if (["client-build", "admin-build"].includes(check.id)) return { ...common, ...ciEnv };
+  return common;
+}
+
+function elapsedSeconds(start) {
+  return Number(((Date.now() - start) / 1000).toFixed(3));
+}
+
+async function runAbiArtifactCheck() {
+  const contractsTs = resolve(projectRoot, "packages/shared/src/utils/blockchain/contracts.ts");
+  if (!existsSync(contractsTs)) return { ok: true, exitCode: 0, details: [] };
+
+  const content = readFileSync(contractsTs, "utf8");
+  const importPattern = /from\s+["']@green-goods\/contracts\/abis\/(.+?\.json)["']/g;
+  const problems = [];
+  let match;
+  while ((match = importPattern.exec(content)) !== null) {
+    const abiFileName = match[1];
+    const artifactPath = resolve(projectRoot, `packages/contracts/abis/${abiFileName}`);
+    if (!existsSync(artifactPath)) {
+      problems.push(`${abiFileName}: committed ABI is missing`);
+      continue;
     }
-  );
-
-  // ============================================================================
-  // Phase 4: Build (matches all workflow build jobs with env vars)
-  // ============================================================================
-  if (!config.skipBuild) {
-    printSection("Build All Packages");
-
-    // Build contracts first (dependency for other packages)
-    if (!config.skipContracts) {
-      // Already built above during tests
-      printSuccess("Contracts already built");
-    }
-
-    // Build shared (dependency for client/admin)
-    await runStep("Shared build", "bun run build", resolve(projectRoot, "packages/shared"));
-
-    // Build indexer
-    if (!config.skipIndexer) {
-      await runStep("Indexer build", "bun run build", resolve(projectRoot, "packages/indexer"));
-    }
-
-    // Build client (matches client.yml lint-and-build job)
-    await runStep(
-      "Client build",
-      "bun run build",
-      resolve(projectRoot, "packages/client"),
-      {
-        VITE_USE_HASH_ROUTER: ciEnv.VITE_USE_HASH_ROUTER,
-        VITE_CHAIN_ID: ciEnv.VITE_CHAIN_ID,
-        VITE_WALLETCONNECT_PROJECT_ID: ciEnv.VITE_WALLETCONNECT_PROJECT_ID,
-        VITE_PIMLICO_API_KEY: ciEnv.VITE_PIMLICO_API_KEY,
-        VITE_ENVIO_INDEXER_URL: ciEnv.VITE_ENVIO_INDEXER_URL,
-      }
+    const source = ABI_EXPORT_SOURCES[abiFileName];
+    if (!source) continue;
+    const compiledPath = resolve(
+      projectRoot,
+      `packages/contracts/.generated/foundry/out/default/${source}`,
     );
-
-    // Build admin (matches admin.yml lint-and-build job)
-    await runStep(
-      "Admin build",
-      "bun run build",
-      resolve(projectRoot, "packages/admin"),
-      {
-        VITE_CHAIN_ID: ciEnv.VITE_CHAIN_ID,
-        VITE_WALLETCONNECT_PROJECT_ID: ciEnv.VITE_WALLETCONNECT_PROJECT_ID,
-        VITE_PIMLICO_API_KEY: ciEnv.VITE_PIMLICO_API_KEY,
-        VITE_ENVIO_INDEXER_URL: ciEnv.VITE_ENVIO_INDEXER_URL,
+    if (!existsSync(compiledPath)) continue;
+    try {
+      const compiled = JSON.parse(readFileSync(compiledPath, "utf8"));
+      const expected = `${JSON.stringify(compiled.abi ?? [], null, 2)}\n`;
+      if (readFileSync(artifactPath, "utf8") !== expected) {
+        problems.push(`${abiFileName}: committed ABI is stale`);
       }
-    );
-  } else {
-    printSection("Build (SKIPPED)");
+    } catch (error) {
+      problems.push(`${abiFileName}: ${error.message}`);
+    }
+  }
+  return { ok: problems.length === 0, exitCode: problems.length === 0 ? 0 : 1, details: problems };
+}
+
+export async function runCommandCheck(
+  check,
+  { signal, captureOutput = false, environment = checkEnvironment(check) } = {},
+) {
+  const start = Date.now();
+  if (check.builtin === "abiArtifacts") {
+    const result = await runAbiArtifactCheck();
+    return { ...result, durationSeconds: elapsedSeconds(start) };
+  }
+  if (!check.command) {
+    return {
+      ok: false,
+      blocked: true,
+      exitCode: 2,
+      durationSeconds: elapsedSeconds(start),
+      details: ["manual proof required"],
+    };
   }
 
-  // ============================================================================
-  // Phase 5: Docs Build (catches broken links before deployment)
-  // ============================================================================
-  if (!config.skipDocs) {
-    const docsPath = resolve(projectRoot, "docs");
-    if (!existsSync(docsPath)) {
-      printSection("Docs Build (SKIPPED - directory not found)");
-      printWarning("Docs directory not found at: " + docsPath);
-    } else {
-      // Check if docs has a build script before attempting to run it
-      const docsPackageJsonPath = resolve(docsPath, "package.json");
-      let hasBuildScript = false;
-
-      if (existsSync(docsPackageJsonPath)) {
+  return new Promise((resolvePromise) => {
+    if (signal?.aborted) {
+      resolvePromise({ ok: false, cancelled: true, exitCode: 130, durationSeconds: 0 });
+      return;
+    }
+    const child = spawn(check.command, {
+      cwd: resolve(projectRoot, check.cwd ?? "."),
+      shell: true,
+      // A check running on its own streams live. Checks running concurrently
+      // capture instead, so their logs replay in plan order rather than
+      // interleaving into noise.
+      stdio: captureOutput ? ["ignore", "pipe", "pipe"] : "inherit",
+      env: environment,
+      detached: process.platform !== "win32",
+    });
+    let output = "";
+    if (captureOutput) {
+      const collect = (chunk) => {
+        output += chunk.toString();
+      };
+      child.stdout?.on("data", collect);
+      child.stderr?.on("data", collect);
+    }
+    let cancelled = false;
+    let forceKillTimer = null;
+    const abort = () => {
+      cancelled = true;
+      if (process.platform === "win32") {
+        child.kill("SIGTERM");
+      } else if (child.pid) {
         try {
-          const packageJson = JSON.parse(readFileSync(docsPackageJsonPath, "utf8"));
-          hasBuildScript = packageJson.scripts && packageJson.scripts.build;
-        } catch (error) {
-          printWarning(`Failed to read/parse ${docsPackageJsonPath}: ${error.message}`);
-          // Assume no build script and continue
+          process.kill(-child.pid, "SIGTERM");
+        } catch {
+          return;
         }
+        forceKillTimer = setTimeout(() => {
+          try {
+            process.kill(-child.pid, "SIGKILL");
+          } catch {
+            // The process group already exited after SIGTERM.
+          }
+        }, 2_000);
+      }
+    };
+    signal?.addEventListener("abort", abort, { once: true });
+    child.once("close", (code) => {
+      signal?.removeEventListener("abort", abort);
+      if (forceKillTimer) clearTimeout(forceKillTimer);
+      resolvePromise({
+        ok: !cancelled && code === 0,
+        cancelled,
+        exitCode: cancelled ? 130 : (code ?? 1),
+        durationSeconds: elapsedSeconds(start),
+        ...(captureOutput ? { output } : {}),
+      });
+    });
+    child.once("error", (error) => {
+      signal?.removeEventListener("abort", abort);
+      if (forceKillTimer) clearTimeout(forceKillTimer);
+      resolvePromise({
+        ok: false,
+        cancelled,
+        exitCode: cancelled ? 130 : 1,
+        durationSeconds: elapsedSeconds(start),
+        details: [error.message],
+      });
+    });
+  });
+}
+
+export async function executePlan(plan, options = {}) {
+  const failFast = options.failFast !== false;
+  const runCheck = options.runCheck ?? runCommandCheck;
+  const externalSignal = options.signal;
+  const results = [];
+  const blocked = [];
+  const pendingManual = [];
+  const ignoredAttestations = [];
+  const attestations = options.attestations ?? {};
+  const receiptStore = options.receiptStore ?? new Map();
+  const reusePassingReceipts = options.reusePassingReceipts === true;
+  const baseEnvironment = options.environment ?? process.env;
+  const ignoredConfiguration = options.ignoredConfiguration ?? ignoredConfigurationFingerprint();
+
+  if (plan.status === "cancelled" || externalSignal?.aborted) {
+    return { status: "cancelled", exitCode: 130, results, blocked };
+  }
+  if (plan.status === "needs-focus") {
+    return { status: "needs-focus", exitCode: 2, results, blocked };
+  }
+
+  const deadlineController = plan.budget?.enforced ? new AbortController() : null;
+  const signal = deadlineController
+    ? externalSignal
+      ? AbortSignal.any([externalSignal, deadlineController.signal])
+      : deadlineController.signal
+    : externalSignal;
+  let budgetExpired = false;
+  const deadlineTimer = deadlineController
+    ? setTimeout(() => {
+        budgetExpired = true;
+        deadlineController.abort();
+      }, plan.budget.hardLimitSeconds * 1000)
+    : null;
+  const finish = (result) => {
+    if (deadlineTimer) clearTimeout(deadlineTimer);
+    return result;
+  };
+
+  // The selector owns receipt policy; a plan that does not allow reuse runs every check fresh.
+  const receiptsAllowed = plan.receiptPolicy?.reuseAllowed === true;
+  const recordPass = (receiptInputs) => {
+    if (!reusePassingReceipts || !receiptsAllowed) return;
+    receiptStore.set(receiptInputs.fingerprint, {
+      status: "passed",
+      passedAt: new Date().toISOString(),
+      receiptInputs,
+    });
+  };
+  // The receipt fingerprints the same environment the check then runs with.
+  const reusableReceipt = (check) => {
+    const environment = checkEnvironment(check, baseEnvironment, plan.base);
+    const receiptInputs = buildReceiptInputs(plan, check, {
+      environment: environmentFingerprint(environment),
+      ignoredConfiguration,
+    });
+    const cached = reusePassingReceipts ? receiptStore.get(receiptInputs.fingerprint) : null;
+    const reusable =
+      receiptsAllowed &&
+      cached?.status === "passed" &&
+      cached.receiptInputs?.fingerprint === receiptInputs.fingerprint;
+    return { environment, receiptInputs, reusable };
+  };
+  let index = 0;
+  while (index < plan.checks.length) {
+    if (signal?.aborted) {
+      return finish(
+        budgetExpired
+          ? { status: "budget-exceeded", exitCode: 124, results, blocked }
+          : { status: "cancelled", exitCode: 130, results, blocked },
+      );
+    }
+    const check = plan.checks[index];
+
+    if (isAdvisoryManualCheck(check)) {
+      // Only the release gate consumes an attestation. Everywhere else the proof stays
+      // pending however the runner was invoked, so a manual receipt can never stand in
+      // for the advisory obligation on a push, review, ship, or merge plan.
+      if (plan.effectiveIntent !== "release") {
+        // Say so rather than dropping it silently: someone who passed --attest here should not
+        // walk away believing the obligation was cleared.
+        if (attestations[check.id] !== undefined) {
+          ignoredAttestations.push({ id: check.id, intent: plan.effectiveIntent });
+        }
+        pendingManual.push({ id: check.id, blockedBy: [...(check.blockedBy ?? [])] });
+        index += 1;
+        continue;
+      }
+      const attestation = validateAttestation(check, attestations[check.id]);
+      if (attestation.ok) {
+        const record = {
+          id: check.id,
+          ok: true,
+          attested: true,
+          exitCode: 0,
+          durationSeconds: 0,
+          details: [`attested: ${attestations[check.id].trim()}`],
+        };
+        results.push(record);
+        options.onCheckComplete?.(check, record);
+      } else if (attestations[check.id] === undefined) {
+        blocked.push({ id: check.id, blockedBy: ["manual-attestation-required"] });
       } else {
-        printSection("Docs Build (SKIPPED - no package.json)");
-        printWarning("No package.json found at: " + docsPackageJsonPath);
+        blocked.push({
+          id: check.id,
+          blockedBy: ["manual-attestation-invalid"],
+          problems: attestation.problems,
+        });
       }
-
-      if (!hasBuildScript && existsSync(docsPackageJsonPath)) {
-        printSection("Docs Build (SKIPPED - no build script)");
-        printWarning("No build script found in " + docsPackageJsonPath);
-      } else if (hasBuildScript) {
-        printSection("Docs Build");
-        await runStep(
-          "Docs build",
-          "bun run build",
-          docsPath
-        );
-      }
+      index += 1;
+      continue;
     }
-  } else {
-    printSection("Docs Build (SKIPPED)");
+
+    if (check.state === "blocked") {
+      blocked.push({ id: check.id, blockedBy: [...check.blockedBy] });
+      index += 1;
+      continue;
+    }
+    if (check.manual && !check.command) {
+      blocked.push({ id: check.id, blockedBy: ["manual-proof-required"] });
+      index += 1;
+      continue;
+    }
+
+    const { environment, receiptInputs, reusable } = reusableReceipt(check);
+    if (reusable) {
+      const evidence = {
+        id: check.id,
+        ok: true,
+        reused: true,
+        exitCode: 0,
+        durationSeconds: 0,
+        receiptInputs,
+      };
+      results.push(evidence);
+      options.onCheckReuse?.(check, evidence);
+      index += 1;
+      continue;
+    }
+
+    // Checks run one at a time in plan order. Package suites get the whole machine: the
+    // machine-wide test lease in package-commands.mjs sizes their workers.
+    options.onCheckStart?.(check);
+    const result = await runCheck(check, { signal, environment });
+    const evidence = { id: check.id, ...result, receiptInputs };
+    results.push(evidence);
+    options.onCheckComplete?.(check, evidence);
+
+    if (result.cancelled || signal?.aborted) {
+      return finish(
+        budgetExpired
+          ? { status: "budget-exceeded", exitCode: 124, results, blocked }
+          : { status: "cancelled", exitCode: 130, results, blocked },
+      );
+    }
+    if (!result.ok && failFast) {
+      return finish({ status: "failed", exitCode: result.exitCode || 1, results, blocked });
+    }
+    if (result.ok) recordPass(receiptInputs);
+    index += 1;
   }
 
-  // ============================================================================
-  // Phase 6: Lighthouse Performance Tests (matches client.yml/admin.yml advisory jobs)
-  // ============================================================================
-  if (!config.skipLighthouse && !config.skipBuild) {
-    // @lhci/cli is a root devDep; run it via bunx so we use the workspace
-    // version instead of polluting global node_modules with `npm install -g`.
-    printSection("Lighthouse CI - Client");
-    await runStep(
-      "Lighthouse client",
-      "bunx lhci autorun",
-      resolve(projectRoot, "packages/client"),
-      { CI: "true" }
-    );
-
-    printSection("Lighthouse CI - Admin");
-    await runStep(
-      "Lighthouse admin",
-      "bunx lhci autorun",
-      resolve(projectRoot, "packages/admin"),
-      { CI: "true" }
-    );
-  } else if (config.skipLighthouse) {
-    printSection("Lighthouse (SKIPPED)");
-  } else if (config.skipBuild) {
-    printSection("Lighthouse (SKIPPED - requires build)");
+  if (results.some((result) => !result.ok)) {
+    return finish({ status: "failed", exitCode: 1, results, blocked });
   }
+  if (blocked.length > 0 || plan.status === "blocked") {
+    return finish({ status: "blocked", exitCode: 2, results, blocked, ignoredAttestations });
+  }
+  return finish({ status: "passed", exitCode: 0, results, blocked, pendingManual, ignoredAttestations });
+}
 
-  // ============================================================================
-  // Summary
-  // ============================================================================
-  printHeader("CI Validation Summary");
-
-  if (failures.length > 0) {
-    console.log(`${colors.red}Some checks failed:${colors.reset}`);
-    for (const failure of failures) {
-      console.log(`  - ${failure}`);
+export function loadPassingReceiptStore(path = defaultReceiptPath) {
+  if (!existsSync(path)) return new Map();
+  const parsed = JSON.parse(readFileSync(path, "utf8"));
+  if (parsed.version !== 1 || !parsed.receipts || typeof parsed.receipts !== "object") {
+    throw new Error(`Invalid passing receipt store: ${path}`);
+  }
+  const store = new Map();
+  for (const [fingerprint, record] of Object.entries(parsed.receipts)) {
+    if (
+      record?.status === "passed" &&
+      record.receiptInputs?.fingerprint === fingerprint &&
+      fingerprintReceiptInputs(record.receiptInputs) === fingerprint &&
+      record.receiptInputs?.cacheReuse?.failuresCacheable === false
+    ) {
+      store.set(fingerprint, record);
     }
-    console.log("");
-    console.log("Fix the issues above and run again.");
-    process.exit(1);
-  } else {
-    console.log(`${colors.green}All CI checks passed! ✓${colors.reset}`);
-    console.log("");
-    console.log("Your code is ready for commit/push.");
-    process.exit(0);
+  }
+  return store;
+}
+
+export function savePassingReceiptStore(store, path = defaultReceiptPath) {
+  const directory = dirname(path);
+  mkdirSync(directory, { recursive: true });
+  const temporaryPath = `${path}.${process.pid}.tmp`;
+  const receipts = Object.fromEntries([...store.entries()].sort(([left], [right]) => left.localeCompare(right)));
+  writeFileSync(temporaryPath, `${JSON.stringify({ version: 1, receipts }, null, 2)}\n`, {
+    mode: 0o600,
+  });
+  renameSync(temporaryPath, path);
+}
+
+function printPlan(plan) {
+  console.log(
+    `${colors.blue}Validation plan${colors.reset}: ${plan.effectiveIntent} · ${plan.risk} · ${plan.changedPaths.length} changed path(s)`,
+  );
+  console.log(
+    `${colors.blue}Budget${colors.reset}: ${plan.budget.estimatedWallSeconds}s estimated wall` +
+      ` (${plan.budget.automatedSeconds}s summed)` +
+      (plan.budget.hardLimitSeconds === null
+        ? " / uncapped"
+        : ` / ${plan.budget.hardLimitSeconds}s hard limit`),
+  );
+  for (const check of plan.checks) {
+    const flags = [
+      check.mandatory ? "mandatory" : null,
+      isAdvisoryManualCheck(check)
+        ? plan.effectiveIntent === "release"
+          ? `manual attestation required: --attest ${check.id}="<evidence>"`
+          : "advisory manual proof; record it in the PR body"
+        : check.state === "blocked"
+          ? `blocked:${check.blockedBy.join(",")}`
+          : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    console.log(`  - ${check.id}${flags ? ` (${flags})` : ""}`);
+  }
+  for (const skipped of plan.skipped ?? []) {
+    console.log(`  - ${skipped.id} (skipped by compatibility filter)`);
   }
 }
 
-// Run main and handle errors
-main().catch((error) => {
-  console.error(`${colors.red}Fatal error:${colors.reset}`, error);
-  process.exit(1);
-});
+function reportGitFixtureLeak({ problems, repairs }, consequence) {
+  if (problems.length === 0) return false;
+  console.error(
+    `\n${colors.red}The git config shared by every worktree shows a test-fixture leak:${colors.reset}`,
+  );
+  for (const problem of problems) console.error(`  - ${problem}`);
+  console.error(`${consequence} Restore the config with:`);
+  for (const repair of repairs) console.error(`  ${repair}`);
+  return true;
+}
+
+async function main() {
+  // The push hook exports GIT_DIR inside a linked worktree, and every check inherits this
+  // environment. Clear it so `cwd` chooses the repository for each of them.
+  clearRepositoryLocalGitVariables();
+  const options = parseArguments(process.argv.slice(2));
+  if (options.help) {
+    showHelp();
+    return;
+  }
+  const policy = loadPolicy();
+  if (!policy.intentOrder.includes(options.intent)) throw new Error(`Unknown validation intent: ${options.intent}`);
+  for (const id of options.checkIds) {
+    if (!policy.checks.some((check) => check.id === id)) throw new Error(`Unknown validation check: ${id}`);
+  }
+  if (options.list) {
+    const checks = policy.checks.map(({ id, command, capabilities, risk, expectedSignal }) => ({ id, command, capabilities: capabilities ?? [], risk, expectedSignal }));
+    console.log(options.json ? JSON.stringify(checks, null, 2) : checks.map((check) => `${check.id}: ${check.expectedSignal}`).join("\n"));
+    return;
+  }
+
+  const gitInputs = options.cancelled
+    ? {
+        base: options.base ?? null,
+        head: options.head ?? null,
+        changedPaths: options.changedPaths,
+        deletedPaths: [],
+        workingCopyFingerprint: null,
+      }
+    : resolveGitInputs(options);
+  const environment = options.cancelled
+    ? { profile: "cancelled", toolchain: {}, capabilities: {} }
+    : await detectEnvironment(options);
+  const plan = buildLocalValidationPlan(options, gitInputs, environment);
+
+  if (options.planJson || options.planOnly && options.json) {
+    console.log(JSON.stringify(plan, null, 2));
+    return;
+  }
+
+  printPlan(plan);
+  if (options.planOnly) return;
+  if (options.generateIndexer) {
+    console.log(
+      `${colors.yellow}Note:${colors.reset} --generate-indexer is retained for compatibility; selected Indexer package commands own code generation.`,
+    );
+  }
+
+  // A fixture identity left in the shared config authors every commit made since. Refuse to
+  // publish them, because repairing a pushed author needs a force-push; lighter intents only warn.
+  const sharedGitSettings = readSharedGitSettings({ cwd: projectRoot });
+  const publishing =
+    policy.intentOrder.indexOf(options.intent) >= policy.intentOrder.indexOf("push");
+  const inheritedIdentity = reportGitFixtureLeak(
+    findInheritedFixtureIdentity(sharedGitSettings),
+    publishing
+      ? "Commits made since carry that author, so nothing is published from here."
+      : "Commits made since carry that author, and a push will be refused.",
+  );
+  if (inheritedIdentity && publishing) {
+    process.exitCode = 1;
+    return;
+  }
+
+  const abortController = new AbortController();
+  const cancel = () => abortController.abort("user-cancelled");
+  process.once("SIGINT", cancel);
+  if (options.reusePassingReceipts && plan.receiptPolicy?.reuseAllowed !== true) {
+    console.log(
+      `${colors.yellow}--reuse-passing-receipts is ignored:${colors.reset} ${plan.receiptPolicy?.note ?? "this plan runs every check fresh."}`,
+    );
+  }
+  const receiptStore = options.reusePassingReceipts ? loadPassingReceiptStore() : new Map();
+  const execution = await executePlan(plan, {
+    failFast: options.failFast,
+    signal: abortController.signal,
+    reusePassingReceipts: options.reusePassingReceipts,
+    receiptStore,
+    attestations: options.attestations,
+    onCheckStart(check) {
+      console.log(`\n${colors.blue}Running ${check.id}:${colors.reset} ${check.command ?? check.builtin}`);
+    },
+    onCheckComplete(check, result) {
+      const color = result.ok ? colors.green : colors.red;
+      if (result.output) {
+        console.log(`\n${colors.blue}── ${check.id} output ──${colors.reset}`);
+        process.stdout.write(result.output.endsWith("\n") ? result.output : `${result.output}\n`);
+      }
+      console.log(
+        `${color}${result.ok ? "✓" : "✗"} ${check.id} (${result.durationSeconds ?? 0}s)${colors.reset}`,
+      );
+      for (const detail of result.details ?? []) console.log(`  ${detail}`);
+    },
+    onCheckReuse(check) {
+      console.log(`\n${colors.green}↻ ${check.id} reused exact passing receipt${colors.reset}`);
+    },
+  });
+  process.removeListener("SIGINT", cancel);
+  if (options.reusePassingReceipts) savePassingReceiptStore(receiptStore);
+
+  for (const ignored of execution.ignoredAttestations ?? []) {
+    console.log(
+      `\n${colors.yellow}--attest ${ignored.id} was ignored:${colors.reset} only the release gate` +
+        ` consumes a manual attestation, so this ${ignored.intent} plan leaves the proof pending.`,
+    );
+  }
+  if (execution.status === "blocked") {
+    console.log(`\n${colors.yellow}Validation blocked:${colors.reset}`);
+    for (const entry of execution.blocked) {
+      console.log(`  - ${entry.id}: ${entry.blockedBy.join(", ")}`);
+      for (const problem of entry.problems ?? []) console.log(`    ${problem}`);
+      for (const capability of entry.blockedBy) {
+        const hint = capabilityRecoveryHint(capability, environment.contractSubmoduleState);
+        if (hint) console.log(`    ${hint}`);
+      }
+    }
+  } else if (execution.status === "cancelled") {
+    console.log(`\n${colors.yellow}Validation cancelled; no additional checks will run.${colors.reset}`);
+  } else if (execution.status === "needs-focus") {
+    console.log(`\n${colors.yellow}Validation needs focused proof; no checks were started.${colors.reset}`);
+    for (const instruction of plan.remediation ?? []) console.log(`  - ${instruction}`);
+  } else if (execution.status === "budget-exceeded") {
+    console.log(
+      `\n${colors.red}Validation exceeded its ${plan.budget.hardLimitSeconds}s local budget; remaining noncritical checks were stopped.${colors.reset}`,
+    );
+  } else if (execution.status === "passed") {
+    console.log(
+      execution.pendingManual?.length
+        ? `\n${colors.green}Automated checks passed.${colors.reset} Manual rendered proof is still pending for ${execution.pendingManual
+            .map((entry) => entry.id)
+            .join(", ")}; record it, labeled, in the PR body (AGENTS.md § Browser Evidence).`
+        : `\n${colors.green}Selected validation plan passed.${colors.reset}`,
+    );
+  } else {
+    console.log(`\n${colors.red}Validation failed; dependent checks stopped.${colors.reset}`);
+  }
+  // A leaking fixture passes its own test, so only the config it wrote to can report it.
+  const leaked = reportGitFixtureLeak(
+    findSharedGitSettingChanges(sharedGitSettings, readSharedGitSettings({ cwd: projectRoot })),
+    "One of these checks wrote to it, or a worktree without this guard did meanwhile.",
+  );
+  process.exitCode = leaked && execution.exitCode === 0 ? 1 : execution.exitCode;
+}
+
+const isDirectRun =
+  process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+if (isDirectRun) {
+  reexecUnderSystemNodeIfNeeded({
+    scriptPath: fileURLToPath(import.meta.url),
+    sentinel: "GREEN_GOODS_CI_LOCAL_NODE_REEXEC",
+    cwd: projectRoot,
+  });
+  const pinnedNode = pinnedCiNodeVersion();
+  reexecUnderCompatibleNodeIfNeeded({
+    scriptPath: fileURLToPath(import.meta.url),
+    sentinel: "GREEN_GOODS_CI_LOCAL_COMPAT_REEXEC",
+    cwd: projectRoot,
+    isSupported: (version) => isPinnedCiNodeVersion(version, pinnedNode),
+  });
+  main().catch((error) => {
+    console.error(`${colors.red}${error.message}${colors.reset}`);
+    process.exitCode = 1;
+  });
+}

@@ -1,18 +1,22 @@
-import {
-  type Address,
-  cn,
-  ConfirmDialog,
-  ENSProgressTimeline,
-  validateSlug,
-  useENSClaim,
-  useENSReleaseName,
-  useGreenGoodsEnsName,
-  useENSRegistrationStatus,
-  useOffline,
-  useProtocolMemberStatus,
-  useSlugAvailability,
-  useSlugForm,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { ENSProgressTimeline } from "@green-goods/shared/components/Progress/ENSProgressTimeline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useENSClaim } from "@green-goods/shared/hooks/ens/useENSClaim";
+import { useENSRegistrationStatus } from "@green-goods/shared/hooks/ens/useENSRegistrationStatus";
+import { useENSReleaseName } from "@green-goods/shared/hooks/ens/useENSReleaseName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
+import { useSlugAvailability } from "@green-goods/shared/hooks/ens/useSlugAvailability";
+import { useSlugForm } from "@green-goods/shared/hooks/ens/useSlugForm";
+import { SW_MESSAGE } from "@green-goods/shared/modules/app/service-worker-protocol";
+import type { Address } from "@green-goods/shared/types/domain";
+import { chosenPasskeyUsername } from "@green-goods/shared/utils/app/text";
+import { suggestSlug } from "@green-goods/shared/utils/blockchain/ens";
 import {
   RiAlertLine,
   RiCheckLine,
@@ -23,121 +27,90 @@ import {
 } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { ENSUsernameChangeRequest } from "./ENSUsernameChangeRequest";
 
 interface ENSSectionProps {
   primaryAddress: Address | undefined;
 }
 
-type ENSUsernameChangeReason = "same-passkey" | "lost-passkey" | "other";
-
-const ENS_SUPPORT_URL = "https://t.me/+N3o3_43iRec1Y2Jh";
-const ENS_USERNAME_CHANGE_REQUESTS_KEY = "green-goods:ens-username-change-requests";
-
-function normalizeRequestedSlug(slug: string) {
-  return slug
-    .trim()
-    .toLowerCase()
-    .replace(/\.greengoods\.eth$/, "");
-}
-
-function createUsernameChangeRequestId(owner: Address) {
-  return `ens-change-${Date.now()}-${owner.slice(2, 8).toLowerCase()}`;
-}
-
-function saveUsernameChangeRequest(request: Record<string, unknown>) {
-  if (typeof window === "undefined") return;
-  try {
-    let parsed: unknown = [];
-    const existing = window.localStorage.getItem(ENS_USERNAME_CHANGE_REQUESTS_KEY);
-    parsed = existing ? (JSON.parse(existing) as unknown) : [];
-    const requests = Array.isArray(parsed) ? parsed : [];
-    window.localStorage.setItem(
-      ENS_USERNAME_CHANGE_REQUESTS_KEY,
-      JSON.stringify([request, ...requests].slice(0, 10))
-    );
-  } catch {
-    // Local storage is best-effort; the prepared support packet still renders.
-  }
-}
-
 export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
   const intl = useIntl();
-  const { isOnline } = useOffline();
-  const { data: isProtocolMember = false } = useProtocolMemberStatus(
-    primaryAddress as `0x${string}` | undefined
-  );
-  const slugForm = useSlugForm();
+  const isOnline = useOnlineStatus();
+  const { data: isProtocolMember = false, isLoading: isMembershipLoading } =
+    useProtocolMemberStatus(primaryAddress as `0x${string}` | undefined);
+  // Start from the name the account already goes by: the username it chose for
+  // its passkey, or the label of its wallet's ENS name. It stays editable, and
+  // the availability check below runs on it like on anything typed.
+  const { authMode, userName } = useAuthState();
+  const { data: walletEnsName } = useEnsName(primaryAddress);
+  const knownName = chosenPasskeyUsername(authMode, userName) ?? walletEnsName?.split(".")[0];
+  const suggestedSlug = knownName ? suggestSlug(knownName) : "";
+  const slugForm = useSlugForm(suggestedSlug);
   const slugValue = slugForm.watch("slug");
-  const { data: isSlugAvailable, isFetching: isCheckingSlug } = useSlugAvailability(
-    slugValue || undefined
-  );
+  // The suggestion can arrive after the form mounts (the wallet's ENS name
+  // resolves) or change with the account. It replaces only what it put in the
+  // field itself, never something typed.
+  const appliedSuggestion = useRef(suggestedSlug);
+  useEffect(() => {
+    const current = slugForm.getValues("slug");
+    if (current === suggestedSlug || current !== appliedSuggestion.current) return;
+    appliedSuggestion.current = suggestedSlug;
+    slugForm.reset({ slug: suggestedSlug });
+  }, [suggestedSlug, slugForm]);
   const ensClaim = useENSClaim();
   const ensRelease = useENSReleaseName();
   const [claimedSlug, setClaimedSlug] = useState<string | null>(null);
-  const [releasingSlug, setReleasingSlug] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReleaseConfirmOpen, setIsReleaseConfirmOpen] = useState(false);
   const [showChangeRequest, setShowChangeRequest] = useState(false);
-  const [requestedSlug, setRequestedSlug] = useState("");
-  const [requestReason, setRequestReason] = useState<ENSUsernameChangeReason>("same-passkey");
-  const [requestContact, setRequestContact] = useState("");
-  const [requestNotes, setRequestNotes] = useState("");
-  const [requestError, setRequestError] = useState<string | null>(null);
-  const [preparedRequest, setPreparedRequest] = useState<{
-    id: string;
-    copied: boolean;
-    message: string;
-  } | null>(null);
-  const { data: existingGreenGoodsEnsName } = useGreenGoodsEnsName(primaryAddress);
+  const { data: existingGreenGoodsEnsName, isLoading: isNameLoading } =
+    useGreenGoodsEnsName(primaryAddress);
   const existingSlug = existingGreenGoodsEnsName?.endsWith(".greengoods.eth")
     ? existingGreenGoodsEnsName.replace(/\.greengoods\.eth$/, "")
     : null;
-  const activeSlug = claimedSlug ?? releasingSlug ?? existingSlug;
-  const { data: registrationData } = useENSRegistrationStatus(activeSlug ?? undefined);
+  const activeSlug = claimedSlug ?? existingSlug;
+  const {
+    data: registrationData,
+    refetch: checkRegistration,
+    isFetching: isCheckingRegistration,
+    isError: registrationCheckFailed,
+  } = useENSRegistrationStatus(activeSlug ?? undefined);
+  const isReleased =
+    registrationData?.status === "available" &&
+    registrationData.release?.owner.toLowerCase() === primaryAddress?.toLowerCase();
+  const isReleasing = Boolean(registrationData?.release && !isReleased);
+  const nameOwnedByAnotherAccount =
+    registrationData?.status === "active" &&
+    Boolean(registrationData.registration) &&
+    registrationData.registration?.owner.toLowerCase() !== primaryAddress?.toLowerCase();
+  const showClaimForm =
+    !isSubmitting && (isReleased || nameOwnedByAnotherAccount || (!activeSlug && !isNameLoading));
+  const { data: isSlugAvailable, isFetching: isCheckingSlug } = useSlugAvailability(
+    showClaimForm ? slugValue || undefined : undefined
+  );
+  const showENSSection = primaryAddress && !isMembershipLoading;
+  const isReady = registrationData?.status === "active" && !nameOwnedByAnotherAccount;
+  const showRelease = existingSlug && !isSubmitting && !isReleased && !nameOwnedByAnotherAccount;
 
-  const hasExistingName =
-    Boolean(existingGreenGoodsEnsName) ||
-    Boolean(releasingSlug) ||
-    registrationData?.status === "pending" ||
-    registrationData?.status === "active";
-  const showENSSection = primaryAddress && isProtocolMember && !hasExistingName;
-  const showExistingENSSection = primaryAddress && isProtocolMember && existingSlug && !claimedSlug;
   const isReleaseUnavailable = ensRelease.isSponsoredReleaseUnavailable;
-  const requestReasonOptions: Array<{ value: ENSUsernameChangeReason; label: string }> = [
-    {
-      value: "same-passkey",
-      label: intl.formatMessage({
-        id: "app.profile.ensChangeReasonSamePasskey",
-        defaultMessage: "I still use this sign-in",
-      }),
-    },
-    {
-      value: "lost-passkey",
-      label: intl.formatMessage({
-        id: "app.profile.ensChangeReasonLostPasskey",
-        defaultMessage: "I lost access to my old sign-in",
-      }),
-    },
-    {
-      value: "other",
-      label: intl.formatMessage({
-        id: "app.profile.ensChangeReasonOther",
-        defaultMessage: "Something else",
-      }),
-    },
-  ];
 
   const ensNotifiedRef = useRef(false);
+  useEffect(() => {
+    if (!isReleased || isSubmitting) return;
+    setClaimedSlug(null);
+    setShowChangeRequest(false);
+    ensNotifiedRef.current = false;
+  }, [isReleased, isSubmitting]);
   useEffect(() => {
     if (claimedSlug && registrationData?.status === "active" && !ensNotifiedRef.current) {
       ensNotifiedRef.current = true;
       const sw = navigator.serviceWorker?.controller;
       if (sw) {
         sw.postMessage({
-          type: "ENS_REGISTRATION_COMPLETE",
+          type: SW_MESSAGE.ENS_REGISTRATION_COMPLETE,
           slug: claimedSlug,
         });
       }
@@ -148,19 +121,24 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
     const result = slugForm.trigger("slug");
     if (!(await result)) return;
     const slug = slugForm.getValues("slug");
+    // Hide availability before opening the wallet. A focus refetch may correctly
+    // report this name as taken by our own transaction before its receipt arrives.
+    setClaimedSlug(slug);
+    setIsSubmitting(true);
     try {
       await ensClaim.mutateAsync({ slug });
-      setClaimedSlug(slug);
       slugForm.reset();
     } catch {
+      setClaimedSlug(null);
       // Error handling is in the mutation hook
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleENSRelease = () => {
     if (isReleaseUnavailable) {
       setShowChangeRequest((current) => !current);
-      setRequestError(null);
       return;
     }
     setIsReleaseConfirmOpen(true);
@@ -168,8 +146,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
 
   const confirmENSRelease = async () => {
     try {
-      const release = await ensRelease.mutateAsync();
-      setReleasingSlug(release.slug);
+      await ensRelease.mutateAsync();
       // Reset the SW-notification one-shot so a reclaim later in the same
       // session can refire ENS_REGISTRATION_COMPLETE. Without this, the next
       // claim's "ready" status wouldn't push to the service worker.
@@ -181,448 +158,245 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
     }
   };
 
-  const handlePrepareUsernameChangeRequest = async () => {
-    if (!primaryAddress || !existingSlug) return;
-
-    const desiredSlug = normalizeRequestedSlug(requestedSlug);
-    const slugValidation = validateSlug(desiredSlug);
-    if (!slugValidation.valid) {
-      setRequestError(
-        intl.formatMessage(
-          {
-            id: "app.profile.ensChangeDesiredSlugError",
-            defaultMessage: "Enter a valid desired username: {error}",
-          },
-          { error: slugValidation.error ?? "invalid username" }
-        )
-      );
-      return;
-    }
-    if (requestContact.trim().length < 3) {
-      setRequestError(
-        intl.formatMessage({
-          id: "app.profile.ensChangeContactError",
-          defaultMessage: "Add a Telegram handle, email, or another contact path.",
-        })
-      );
-      return;
-    }
-
-    const requestId = createUsernameChangeRequestId(primaryAddress);
-    const reasonLabel =
-      requestReasonOptions.find((option) => option.value === requestReason)?.label ?? requestReason;
-    // Gardener-visible message — read aloud in the support textarea and copied to clipboard.
-    // Support can derive the underlying account from the request id and current name, so we
-    // keep only details the gardener understands here.
-    const message = [
-      "Name change request",
-      `Request ID: ${requestId}`,
-      `Current name: ${existingSlug}`,
-      `Desired name: ${desiredSlug}`,
-      `Reason: ${reasonLabel}`,
-      `Contact: ${requestContact.trim()}`,
-      requestNotes.trim() ? `Notes: ${requestNotes.trim()}` : null,
-    ]
-      .filter(Boolean)
-      .join("\n");
-
-    saveUsernameChangeRequest({
-      id: requestId,
-      currentSlug: existingSlug,
-      desiredSlug,
-      owner: primaryAddress,
-      reason: requestReason,
-      contact: requestContact.trim(),
-      notes: requestNotes.trim(),
-      createdAt: new Date().toISOString(),
-      message,
-    });
-
-    let copied = false;
-    try {
-      await navigator.clipboard?.writeText(message);
-      copied = Boolean(navigator.clipboard);
-    } catch {
-      copied = false;
-    }
-
-    setPreparedRequest({ id: requestId, copied, message });
-    setRequestError(null);
-  };
-
   return (
     <>
-      {showExistingENSSection && (
-        <>
-          <h5 className="text-label-md text-text-strong-950">
-            {intl.formatMessage({
-              id: "app.profile.currentENSName",
-              defaultMessage: "Username",
-            })}
-          </h5>
-          <Card>
-            <div className="flex flex-col gap-3 w-full">
-              <div className="flex items-center gap-3">
-                <Avatar>
-                  <div className="flex items-center justify-center text-center mx-auto text-primary">
-                    <RiGlobalLine className="w-4" />
-                  </div>
-                </Avatar>
-                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                  <div
-                    className="truncate font-mono text-sm font-medium text-text-strong-950"
-                    title={existingSlug}
-                  >
-                    {existingSlug}
-                  </div>
-                  <div className="text-xs text-text-sub-600">
-                    {intl.formatMessage(
-                      {
-                        id: "app.profile.currentENSDescription",
-                        defaultMessage: "People can find you as {name}.greengoods.eth.",
-                      },
-                      { name: existingSlug }
-                    )}
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant="neutral"
-                mode="stroke"
-                size="small"
-                onClick={handleENSRelease}
-                disabled={!isOnline || ensRelease.isPending || releasingSlug === existingSlug}
-                aria-busy={ensRelease.isPending || undefined}
-                leadingIcon={
-                  ensRelease.isPending ? (
-                    <RiLoader4Line className="w-4 animate-spin" aria-hidden />
-                  ) : isReleaseUnavailable ? (
-                    <RiHeadphoneLine className="w-4" />
-                  ) : (
-                    <RiCloseCircleLine className="w-4" />
-                  )
-                }
-                label={
-                  !isOnline
-                    ? intl.formatMessage({
-                        id: "app.profile.releaseOffline",
-                        defaultMessage: "Go online to release",
-                      })
-                    : isReleaseUnavailable
-                      ? intl.formatMessage({
-                          id: "app.profile.ensChangeRequestButton",
-                          defaultMessage: "Request username change",
-                        })
-                      : releasingSlug === existingSlug
-                        ? intl.formatMessage({
-                            id: "app.profile.releaseStarted",
-                            defaultMessage: "Release started",
-                          })
-                        : intl.formatMessage({
-                            id: "app.profile.releaseENSButton",
-                            defaultMessage: "Release username",
-                          })
-                }
-                className="w-full"
-              />
-              {isReleaseUnavailable && (
-                <div className="flex flex-col gap-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 p-3">
-                  <p className="text-xs text-text-sub-600">
-                    {intl.formatMessage({
-                      id: "app.profile.ensChangeSupportDescription",
-                      defaultMessage:
-                        "Username changes need a hand from support right now. We can either help you release this name or look into recovering it if you've lost access.",
-                    })}
-                  </p>
-                  {showChangeRequest && (
-                    <div className="flex flex-col gap-3">
-                      <label className="flex flex-col gap-1 text-xs text-text-sub-600">
-                        {intl.formatMessage({
-                          id: "app.profile.ensChangeDesiredSlug",
-                          defaultMessage: "Desired username",
-                        })}
-                        <input
-                          value={requestedSlug}
-                          onChange={(event) => setRequestedSlug(event.target.value)}
-                          placeholder={intl.formatMessage({
-                            id: "app.profile.ensChangeDesiredSlugPlaceholder",
-                            defaultMessage: "new-name",
-                          })}
-                          inputMode="text"
-                          autoCapitalize="none"
-                          autoComplete="off"
-                          spellCheck={false}
-                          className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1 text-xs text-text-sub-600">
-                        {intl.formatMessage({
-                          id: "app.profile.ensChangeReason",
-                          defaultMessage: "What happened?",
-                        })}
-                        <select
-                          value={requestReason}
-                          onChange={(event) =>
-                            setRequestReason(event.target.value as ENSUsernameChangeReason)
-                          }
-                          className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
-                        >
-                          {requestReasonOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="flex flex-col gap-1 text-xs text-text-sub-600">
-                        {intl.formatMessage({
-                          id: "app.profile.ensChangeContact",
-                          defaultMessage: "Contact",
-                        })}
-                        <input
-                          value={requestContact}
-                          onChange={(event) => setRequestContact(event.target.value)}
-                          placeholder={intl.formatMessage({
-                            id: "app.profile.ensChangeContactPlaceholder",
-                            defaultMessage: "@telegram, email, or phone",
-                          })}
-                          className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1 text-xs text-text-sub-600">
-                        {intl.formatMessage({
-                          id: "app.profile.ensChangeNotes",
-                          defaultMessage: "Notes",
-                        })}
-                        <textarea
-                          value={requestNotes}
-                          onChange={(event) => setRequestNotes(event.target.value)}
-                          placeholder={intl.formatMessage({
-                            id: "app.profile.ensChangeNotesPlaceholder",
-                            defaultMessage: "Anything support should know",
-                          })}
-                          rows={3}
-                          className="w-full resize-none rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
-                        />
-                      </label>
-                      {requestError && <p className="text-xs text-error-base">{requestError}</p>}
-                      {preparedRequest && (
-                        <div
-                          className={cn(
-                            "flex flex-col gap-2 rounded-lg border p-2 text-xs text-text-sub-600",
-                            pwaStatusStyles.success.surface,
-                            pwaStatusStyles.success.border
-                          )}
-                        >
-                          <p>
-                            {intl.formatMessage(
-                              {
-                                id: "app.profile.ensChangeRequestPrepared",
-                                defaultMessage:
-                                  "Request {id} is ready. {copied, select, true {Details were copied.} other {Copy the details below.}} Send it to support so the team can help.",
-                              },
-                              { id: preparedRequest.id, copied: String(preparedRequest.copied) }
-                            )}
-                          </p>
-                          <label className="sr-only" htmlFor="ens-change-request-details">
-                            {intl.formatMessage({
-                              id: "app.profile.ensChangeRequestDetails",
-                              defaultMessage: "Request details",
-                            })}
-                          </label>
-                          <textarea
-                            id="ens-change-request-details"
-                            readOnly
-                            value={preparedRequest.message}
-                            rows={6}
-                            className="w-full resize-none rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-2 py-1 font-mono text-[11px] text-text-sub-600"
-                          />
-                        </div>
-                      )}
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          variant="primary"
-                          mode="filled"
-                          size="small"
-                          onClick={handlePrepareUsernameChangeRequest}
-                          label={intl.formatMessage({
-                            id: "app.profile.ensChangePrepareRequest",
-                            defaultMessage: "Prepare request",
-                          })}
-                          className="w-full"
-                        />
-                        <a
-                          href={ENS_SUPPORT_URL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-center text-sm font-medium text-primary"
-                        >
-                          {intl.formatMessage({
-                            id: "app.profile.ensChangeOpenSupport",
-                            defaultMessage: "Open Telegram support",
-                          })}
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </Card>
-        </>
-      )}
-
       {showENSSection && (
         <>
           <h5 className="text-label-md text-text-strong-950">
-            {intl.formatMessage({
-              id: "app.profile.ensName",
-              defaultMessage: "Claim your name",
-            })}
+            {intl.formatMessage({ id: "app.profile.currentENSName", defaultMessage: "Username" })}
           </h5>
           <Card>
-            <div className="flex flex-col gap-3 w-full">
+            <div className="flex flex-col gap-3 w-full" data-ens-card>
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <div className="flex items-center justify-center text-center mx-auto text-primary">
-                    <RiGlobalLine className="w-4" />
-                  </div>
+                  <RiGlobalLine className="h-4 w-4 text-primary" aria-hidden="true" />
                 </Avatar>
                 <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                   <div className="text-sm font-medium">
                     {intl.formatMessage({
-                      id: "app.profile.claimENSTitle",
-                      defaultMessage: "Claim your Green Goods name",
+                      id: "app.profile.ensTitle",
+                      defaultMessage: "Your Green Goods name",
                     })}
                   </div>
                   <div className="text-xs text-text-sub-600">
                     {intl.formatMessage({
-                      id: "app.profile.claimENSDescription",
-                      defaultMessage:
-                        "Choose a personal name tied to your work. Registration takes about 15-20 minutes.",
+                      id: "app.profile.ensDescription",
+                      defaultMessage: "A personal name people can use to find your work.",
                     })}
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
-                <div className="relative">
-                  <input
-                    {...slugForm.register("slug")}
-                    aria-label={intl.formatMessage({
-                      id: "app.profile.slugHint",
-                      defaultMessage: "Choose your personal Green Goods name",
-                    })}
-                    placeholder={intl.formatMessage({
-                      id: "app.profile.slugPlaceholder",
-                      defaultMessage: "your-name",
-                    })}
-                    inputMode="text"
-                    autoCapitalize="none"
-                    autoComplete="off"
-                    spellCheck={false}
-                    className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 pr-10 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
-                  />
-                  {slugValue && slugValue.length >= 3 && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                      {isCheckingSlug ? (
-                        <RiLoader4Line
-                          className="h-4 w-4 animate-spin text-text-soft-400"
-                          aria-label={intl.formatMessage({
-                            id: "app.profile.slugChecking",
-                            defaultMessage: "Checking availability",
-                          })}
-                        />
-                      ) : isSlugAvailable ? (
-                        <RiCheckLine
-                          className={`h-4 w-4 ${pwaStatusStyles.success.icon}`}
-                          aria-label={intl.formatMessage({
-                            id: "app.profile.slugAvailable",
-                            defaultMessage: "Name available",
-                          })}
-                        />
-                      ) : isSlugAvailable === false ? (
-                        <RiAlertLine
-                          className="h-4 w-4 text-error-base"
-                          aria-label={intl.formatMessage({
-                            id: "app.profile.slugTakenLabel",
-                            defaultMessage: "Name taken",
-                          })}
-                        />
-                      ) : null}
-                    </span>
-                  )}
-                </div>
-                <div className="min-h-[48px]">
-                  <span className="text-xs text-text-sub-600">
-                    {slugValue
-                      ? `${slugValue}.greengoods.eth`
-                      : intl.formatMessage({
+              {isProtocolMember || activeSlug || isNameLoading ? (
+                // Both panels share a grid cell, so status changes preserve the form's space.
+                <div className="grid min-h-[256px]">
+                  <div
+                    className="flex flex-col justify-between gap-2"
+                    style={{ gridArea: "1 / 1", visibility: showClaimForm ? "visible" : "hidden" }}
+                    inert={!showClaimForm}
+                  >
+                    <div className="relative">
+                      <TextInput
+                        {...slugForm.register("slug")}
+                        aria-label={intl.formatMessage({
                           id: "app.profile.slugHint",
                           defaultMessage: "Choose your personal Green Goods name",
                         })}
-                  </span>
-                  {slugForm.formState.errors.slug && (
-                    <p className="text-xs text-error-base mt-0.5">
-                      {slugForm.formState.errors.slug.message}
-                    </p>
-                  )}
-                  {!isCheckingSlug && isSlugAvailable === false && slugValue && (
-                    <p className="text-xs text-error-base mt-0.5">
-                      {intl.formatMessage({
-                        id: "app.profile.slugTaken",
-                        defaultMessage: "This name is already taken",
-                      })}
-                    </p>
+                        placeholder={intl.formatMessage({
+                          id: "app.profile.slugPlaceholder",
+                          defaultMessage: "your-name",
+                        })}
+                        inputMode="text"
+                        autoCapitalize="none"
+                        autoComplete="off"
+                        spellCheck={false}
+                        controlSize="sm"
+                        className="pr-10 font-mono"
+                      />
+                      {showClaimForm && slugValue && slugValue.length >= 3 && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {isCheckingSlug ? (
+                            <RiLoader4Line
+                              className="h-4 w-4 animate-spin text-text-soft-400"
+                              aria-label={intl.formatMessage({
+                                id: "app.profile.slugChecking",
+                                defaultMessage: "Checking availability",
+                              })}
+                            />
+                          ) : isSlugAvailable ? (
+                            <RiCheckLine
+                              className={`h-4 w-4 ${pwaStatusStyles.success.icon}`}
+                              aria-label={intl.formatMessage({
+                                id: "app.profile.slugAvailable",
+                                defaultMessage: "Name available",
+                              })}
+                            />
+                          ) : isSlugAvailable === false ? (
+                            <RiAlertLine
+                              className="h-4 w-4 text-error-base"
+                              aria-label={intl.formatMessage({
+                                id: "app.profile.slugTakenLabel",
+                                defaultMessage: "Name taken",
+                              })}
+                            />
+                          ) : null}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-h-[48px]">
+                      <span className="text-xs text-text-sub-600">
+                        {slugValue
+                          ? `${slugValue}.greengoods.eth`
+                          : intl.formatMessage({
+                              id: "app.profile.slugHint",
+                              defaultMessage: "Choose your personal Green Goods name",
+                            })}
+                      </span>
+                      {slugForm.formState.errors.slug && (
+                        <p className="text-xs text-error-base mt-0.5">
+                          {slugForm.formState.errors.slug.message}
+                        </p>
+                      )}
+                      {showClaimForm &&
+                        !isCheckingSlug &&
+                        isSlugAvailable === false &&
+                        slugValue && (
+                          <p className="text-xs text-error-base mt-0.5">
+                            {intl.formatMessage({
+                              id: "app.profile.slugTaken",
+                              defaultMessage: "This name is already taken",
+                            })}
+                          </p>
+                        )}
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleENSClaim}
+                      loading={ensClaim.isPending}
+                      disabled={!isOnline || !isSlugAvailable || isCheckingSlug || !slugValue}
+                      leadingIcon={<RiGlobalLine className="h-4 w-4" aria-hidden="true" />}
+                      className="w-full"
+                    >
+                      {!isOnline
+                        ? intl.formatMessage({
+                            id: "app.profile.claimOffline",
+                            defaultMessage: "Go Online to Claim",
+                          })
+                        : intl.formatMessage({
+                            id: "app.profile.claimButton",
+                            defaultMessage: "Claim Name",
+                          })}
+                    </Button>
+                  </div>
+
+                  {!showClaimForm && (
+                    <div
+                      className="flex flex-col justify-between gap-2"
+                      style={{ gridArea: "1 / 1", minWidth: 0 }}
+                    >
+                      <ENSProgressTimeline
+                        data={registrationData ?? { status: "pending" }}
+                        slug={activeSlug ?? ""}
+                        embedded
+                        phase={
+                          isSubmitting
+                            ? "submitting"
+                            : !registrationData || registrationData.status === "available"
+                              ? "checking"
+                              : undefined
+                        }
+                      />
+                      {showRelease ? (
+                        <>
+                          <Button
+                            type="button"
+                            emphasis="secondary"
+                            size="sm"
+                            onClick={handleENSRelease}
+                            loading={ensRelease.isPending}
+                            disabled={!isOnline || isReleasing}
+                            leadingIcon={
+                              isReleaseUnavailable ? (
+                                <RiHeadphoneLine className="h-4 w-4" aria-hidden="true" />
+                              ) : (
+                                <RiCloseCircleLine className="h-4 w-4" aria-hidden="true" />
+                              )
+                            }
+                            className="w-full"
+                          >
+                            {!isOnline
+                              ? intl.formatMessage({
+                                  id: "app.profile.releaseOffline",
+                                  defaultMessage: "Go Online to Release",
+                                })
+                              : isReleaseUnavailable
+                                ? intl.formatMessage({
+                                    id: "app.profile.ensChangeRequestButton",
+                                    defaultMessage: "Request Username Change",
+                                  })
+                                : isReleasing
+                                  ? intl.formatMessage({
+                                      id: "app.profile.releaseStarted",
+                                      defaultMessage: "Release started",
+                                    })
+                                  : intl.formatMessage({
+                                      id: "app.profile.releaseENSButton",
+                                      defaultMessage: "Release Username",
+                                    })}
+                          </Button>
+                          {isReleaseUnavailable && !isReleasing && (
+                            <ENSUsernameChangeRequest
+                              primaryAddress={primaryAddress}
+                              existingSlug={existingSlug}
+                              isOpen={showChangeRequest}
+                            />
+                          )}
+                        </>
+                      ) : null}
+                      {(!isReady || registrationCheckFailed || isReleasing) && (
+                        <Button
+                          type="button"
+                          emphasis="secondary"
+                          size="sm"
+                          onClick={() => void checkRegistration()}
+                          disabled={!isOnline || isSubmitting || !activeSlug}
+                          loading={!isSubmitting && isCheckingRegistration}
+                          className="w-full"
+                        >
+                          {intl.formatMessage({
+                            id: "ens.timeline.checkStatus",
+                            defaultMessage: "Check status",
+                          })}
+                        </Button>
+                      )}
+                      <p role="alert" className="min-h-[32px] text-xs text-text-sub-600">
+                        {registrationCheckFailed
+                          ? intl.formatMessage({
+                              id: "ens.timeline.checkFailed",
+                              defaultMessage: "Couldn’t check your name. Please try again.",
+                            })
+                          : null}
+                      </p>
+                    </div>
                   )}
                 </div>
-                <Button
-                  variant="primary"
-                  mode="filled"
-                  size="small"
-                  onClick={handleENSClaim}
-                  disabled={
-                    !isOnline ||
-                    ensClaim.isPending ||
-                    !isSlugAvailable ||
-                    isCheckingSlug ||
-                    !slugValue
-                  }
-                  aria-busy={ensClaim.isPending || undefined}
-                  leadingIcon={
-                    ensClaim.isPending ? (
-                      <RiLoader4Line className="w-4 animate-spin" aria-hidden />
-                    ) : (
-                      <RiGlobalLine className="w-4" />
-                    )
-                  }
-                  label={
-                    !isOnline
-                      ? intl.formatMessage({
-                          id: "app.profile.claimOffline",
-                          defaultMessage: "Go online to claim",
-                        })
-                      : intl.formatMessage({
-                          id: "app.profile.claimButton",
-                          defaultMessage: "Claim name",
-                        })
-                  }
-                  className="w-full"
-                />
-              </div>
+              ) : (
+                <Alert
+                  variant="info"
+                  className="p-3"
+                  title={intl.formatMessage({
+                    id: "app.profile.claimENSUnavailable",
+                    defaultMessage: "Not available yet",
+                  })}
+                >
+                  {intl.formatMessage({
+                    id: "app.profile.claimENSJoinHint",
+                    defaultMessage: "Join a garden to unlock your Green Goods name.",
+                  })}
+                </Alert>
+              )}
             </div>
           </Card>
-        </>
-      )}
-
-      {activeSlug && registrationData && registrationData.status !== "available" && (
-        <>
-          <h5 className="text-label-md text-text-strong-950">
-            {intl.formatMessage({
-              id: "app.profile.ensRegistration",
-              defaultMessage: "Registration progress",
-            })}
-          </h5>
-          <ENSProgressTimeline data={registrationData} slug={activeSlug} />
         </>
       )}
 
@@ -642,7 +416,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
         variant="warning"
         confirmLabel={intl.formatMessage({
           id: "app.profile.releaseENSButton",
-          defaultMessage: "Release username",
+          defaultMessage: "Release Username",
         })}
         isLoading={ensRelease.isPending}
       />
