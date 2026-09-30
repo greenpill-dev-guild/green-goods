@@ -169,12 +169,12 @@ export function PoolFundingSection({
               size="sm"
               icon={
                 derivedUnavailable ? (
-                  <RiAlertLine />
+                  <RiAlertLine className="h-3 w-3" />
                 ) : snapshot?.fundingState === "healthy" ||
                   snapshot?.fundingState === "no-demand" ? (
-                  <RiCheckLine />
+                  <RiCheckLine className="h-3 w-3" />
                 ) : (
-                  <RiInformationLine />
+                  <RiInformationLine className="h-3 w-3" />
                 )
               }
             >

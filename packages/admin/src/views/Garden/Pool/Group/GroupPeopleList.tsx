@@ -73,7 +73,13 @@ export function GroupPeopleList({
             defaultMessage: "Confirmed by {who}, {when}",
           },
           {
-            who: <PersonName key="who" address={row.confirmedBy} className="font-normal" />,
+            who: (
+              <PersonName
+                key="who"
+                address={row.confirmedBy}
+                className="body-xs font-normal text-text-sub"
+              />
+            ),
             when: timelineTime(intl, row.confirmedAt, now),
           }
         )

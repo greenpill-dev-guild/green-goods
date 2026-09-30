@@ -131,7 +131,7 @@ export function WaitingForApprovalRow({
     );
   } else if (state.status === "approved") {
     action = (
-      <StatusBadge variant="success" size="sm" icon={<RiCheckLine />}>
+      <StatusBadge variant="success" size="sm" icon={<RiCheckLine className="h-3 w-3" />}>
         {formatMessage({
           id: "cockpit.garden.pool.approvals.approved",
           defaultMessage: "Approved",
@@ -140,7 +140,7 @@ export function WaitingForApprovalRow({
     );
   } else if (decided) {
     action = (
-      <StatusBadge variant="neutral" size="sm">
+      <StatusBadge variant="neutral" size="sm" showIcon={false}>
         {state.status === "declined"
           ? formatMessage({
               id: "cockpit.garden.pool.approvals.declined",
@@ -202,7 +202,7 @@ export function WaitingForApprovalRow({
         className="min-w-0 rounded-[var(--m3-shape-sm)] border-0 bg-transparent px-1 py-0.5"
       >
         <span className="flex min-w-0 items-baseline gap-2 whitespace-nowrap">
-          <span className="min-w-0 truncate">{who}</span>
+          <span className="min-w-0 truncate body-sm text-text-sub">{who}</span>
           {marker}
           {when}
         </span>

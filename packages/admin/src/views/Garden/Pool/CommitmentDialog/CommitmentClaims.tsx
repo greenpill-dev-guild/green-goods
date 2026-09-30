@@ -163,7 +163,7 @@ export function CommitmentClaims({
                                 <PersonName
                                   key="by"
                                   address={claim.requestedBy}
-                                  className="font-normal"
+                                  className="body-xs font-normal text-text-sub"
                                 />
                               ),
                             }
@@ -265,7 +265,7 @@ function AskOutcome({ state }: { state: WaitingRowState }) {
   const { formatMessage } = useIntl();
   if (state.status === "approved") {
     return (
-      <StatusBadge variant="success" size="sm" icon={<RiCheckLine />}>
+      <StatusBadge variant="success" size="sm" icon={<RiCheckLine className="h-3 w-3" />}>
         {formatMessage({
           id: "cockpit.garden.pool.approvals.approved",
           defaultMessage: "Approved",
@@ -275,7 +275,7 @@ function AskOutcome({ state }: { state: WaitingRowState }) {
   }
   if (state.status === "declined" || state.status === "not-chosen") {
     return (
-      <StatusBadge variant="neutral" size="sm">
+      <StatusBadge variant="neutral" size="sm" showIcon={false}>
         {state.status === "declined"
           ? formatMessage({
               id: "cockpit.garden.pool.approvals.declined",
@@ -289,7 +289,7 @@ function AskOutcome({ state }: { state: WaitingRowState }) {
     );
   }
   return (
-    <StatusBadge variant="warning" size="sm" icon={<RiTimeLine />}>
+    <StatusBadge variant="warning" size="sm" icon={<RiTimeLine className="h-3 w-3" />}>
       {formatMessage({ id: "cockpit.garden.pool.claims.waiting", defaultMessage: "Waiting" })}
     </StatusBadge>
   );

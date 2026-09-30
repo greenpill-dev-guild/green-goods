@@ -67,7 +67,7 @@ export function PoolGroupRow({
             <span className="truncate text-body-md text-text-strong" title={title}>
               {title}
             </span>
-            <StatusBadge variant="neutral" size="sm" icon={<RiStackLine />}>
+            <StatusBadge variant="neutral" size="sm" icon={<RiStackLine className="h-3 w-3" />}>
               {formatMessage(
                 {
                   id: "cockpit.garden.pool.group.chip",
