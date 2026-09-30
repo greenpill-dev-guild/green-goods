@@ -1238,6 +1238,7 @@ describe("/impact commitments band", () => {
     withProviders(createElement(PublicCommitmentsBand));
     // 43 of 50 due, 9 providers: above threshold, fulfilled / due.
     expect(markerValue(en["public.pool.impact.kept.label"])).toBe("86%");
+    expect(screen.getByText(en["public.pool.impact.kept.rateNote"])).toBeInTheDocument();
   });
 
   it("shows counts only below the public threshold", () => {
@@ -1248,6 +1249,8 @@ describe("/impact commitments band", () => {
     const { container } = withProviders(createElement(PublicCommitmentsBand));
     expect(markerValue(en["public.pool.impact.kept.label"])).toBe("3 of 4");
     expect(container.textContent).not.toMatch(/%/);
+    // The note is the only place the band says why no percentage shows.
+    expect(screen.getByText(en["public.pool.impact.kept.countsOnlyNote"])).toBeInTheDocument();
 
     mockUsePublicCommitmentImpact.mockReturnValue({
       data: impactData({

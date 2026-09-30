@@ -52,7 +52,8 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
     }),
     note: formatMessage({
       id: "public.pool.impact.openPools.note",
-      defaultMessage: "Places where neighbours can offer and take up commitments today.",
+      defaultMessage:
+        "Places where neighbours can offer, ask for, and take up commitments right now.",
     }),
     loading: isLoading,
     unavailable: failed || data?.openPoolCount === null || unavailable?.commitmentPools === true,
@@ -102,12 +103,12 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
         ? formatMessage({
             id: "public.pool.impact.kept.rateNote",
             defaultMessage:
-              "Of every commitment taken up and not mutually released, the share confirmed as kept. Commitments still in progress count until they are kept.",
+              "Of all commitments taken up and not mutually released, including those still in progress.",
           })
         : formatMessage({
             id: "public.pool.impact.kept.countsOnlyNote",
             defaultMessage:
-              "Of every commitment taken up and not mutually released, those confirmed as kept. A share is published once the record is large enough to describe fairly.",
+              "Of all commitments taken up and not mutually released. Not enough yet for a fair percentage.",
           }),
     loading: isLoading,
     unavailable: !isLoading && keptSelection === null,
@@ -149,7 +150,7 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
     note: formatMessage({
       id: "public.pool.impact.support.note",
       defaultMessage:
-        "G$ delivered to Gardens and confirmed on arrival. Support still on its way is not counted here.",
+        "G$ delivered to Gardens and confirmed on arrival. Support still on its way is not counted.",
     }),
     loading: isLoading,
     unavailable: !isLoading && (confirmedTotal === null || !goodDollar),
