@@ -76,6 +76,123 @@ function readHolder(slotPath) {
   }
 }
 
+// A slot only stops runs whose code takes it. A worktree on a branch from before the lease, or a
+// run started outside the package wrapper, holds none and still competes for the machine, so a
+// leased run waits for those before it starts. Every package-wide run starts Vitest's `run`
+// subcommand; watch and UI sessions and `vitest related` are left alone.
+const VITEST_RUN = /\bvitest(?:\.mjs)?\s+run\b/;
+export const UNLEASED_RUN_WAIT_MS = 300_000;
+const UNLEASED_RUN_POLL_MS = 5_000;
+
+/** Every process on this machine as `{ pid, ppid, command }`, or none when `ps` cannot run. */
+export function listSystemProcesses(execFile = execFileSync) {
+  try {
+    return String(
+      execFile("ps", ["-A", "-o", "pid=,ppid=,command="], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        maxBuffer: 16 * 1024 * 1024,
+      }),
+    )
+      .split("\n")
+      .map((line) => /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(line))
+      .filter(Boolean)
+      .map(([, pid, ppid, command]) => ({ pid: Number(pid), ppid: Number(ppid), command }));
+  } catch {
+    // Without a process list there is nothing to wait for, as before this check existed.
+    return [];
+  }
+}
+
+function slotHolderPids(directory) {
+  let names;
+  try {
+    names = fs.readdirSync(directory);
+  } catch {
+    return [];
+  }
+  return names
+    .filter((name) => /^slot-\d+\.json$/.test(name))
+    .map((name) => readHolder(path.join(directory, name))?.pid)
+    .filter(Number.isInteger);
+}
+
+/**
+ * Vitest runs on this machine that no slot holder started, listing the topmost process of each.
+ * `self` is the caller: runs it starts and runs it was started from are its own.
+ */
+export function listUnleasedVitestRuns({ directory, self = process.pid, listProcesses = listSystemProcesses }) {
+  const processes = listProcesses();
+  const parentOf = new Map(processes.map((entry) => [entry.pid, entry.ppid]));
+  const ancestry = (pid) => {
+    const chain = [];
+    for (let current = pid; current && chain.length < 64 && !chain.includes(current); current = parentOf.get(current)) {
+      chain.push(current);
+    }
+    return chain;
+  };
+  const covered = new Set([...slotHolderPids(directory), self]);
+  const selfAncestry = new Set(ancestry(self));
+  const runs = processes.filter(
+    (entry) =>
+      VITEST_RUN.test(entry.command) &&
+      !selfAncestry.has(entry.pid) &&
+      !ancestry(entry.pid).some((pid) => covered.has(pid)),
+  );
+  const runPids = new Set(runs.map((entry) => entry.pid));
+  return runs.filter((entry) => !runPids.has(entry.ppid));
+}
+
+export function describeUnleasedRuns(runs) {
+  const count = runs.length === 1 ? "1 Vitest run that holds" : `${runs.length} Vitest runs that hold`;
+  const named = runs
+    .slice(0, 3)
+    .map((run) => `pid ${run.pid} (${run.command.length > 140 ? `${run.command.slice(0, 139)}…` : run.command})`)
+    .join(", ");
+  return `${count} no lease: ${named}${runs.length > 3 ? ", …" : ""}`;
+}
+
+/**
+ * Waits while Vitest runs that hold no lease are running. Resolves `{ status: "clear" }`,
+ * `{ status: "timeout", runs }` once `timeoutMs` passes, or `{ status: "cancelled" }`.
+ */
+export async function waitForUnleasedVitestRuns({
+  directory,
+  self = process.pid,
+  listProcesses = listSystemProcesses,
+  timeoutMs = UNLEASED_RUN_WAIT_MS,
+  pollMs = UNLEASED_RUN_POLL_MS,
+  statusIntervalMs = DEFAULT_STATUS_INTERVAL_MS,
+  now = Date.now,
+  sleep = waitFor,
+  report = (line) => process.stderr.write(`${line}\n`),
+  signal,
+}) {
+  const started = now();
+  let reportedAt = null;
+  for (;;) {
+    if (signal?.aborted) return { status: "cancelled" };
+    const runs = listUnleasedVitestRuns({ directory, self, listProcesses });
+    const elapsed = now() - started;
+    if (runs.length === 0) {
+      if (reportedAt !== null) {
+        report(`test lease: no Vitest run without a lease is left after ${Math.round(elapsed / 1000)}s`);
+      }
+      return { status: "clear" };
+    }
+    if (elapsed >= timeoutMs) return { status: "timeout", runs };
+    if (reportedAt === null || now() - reportedAt >= statusIntervalMs) {
+      report(
+        `test lease: waiting for ${describeUnleasedRuns(runs)}. A checkout older than the lease, or a ` +
+          `run started outside the package wrapper, does not take one; waited ` +
+          `${Math.round(elapsed / 1000)}s of ${Math.round(timeoutMs / 1000)}s.`,
+      );
+      reportedAt = now();
+    }
+    await sleep(pollMs, signal);
+  }
+}
+
 export function describeTestLeaseHolder(holder, now = Date.now()) {
   if (!holder || holder.unreadable) return "an unreadable holder record";
   const seconds = Math.max(0, Math.round((now - holder.startedAt) / 1000));

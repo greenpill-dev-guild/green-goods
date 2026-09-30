@@ -11,10 +11,16 @@ import {
   TEST_LEASE_TIMEOUT_EXIT_CODE,
   TestLeaseTimeoutError,
   acquireTestLease,
+  listSystemProcesses,
+  listUnleasedVitestRuns,
   resolveTestLeaseDirectory,
   resolveTestLeaseSettings,
   runsInContinuousIntegration,
+  waitForUnleasedVitestRuns,
 } from "./test-lease.mjs";
+
+// A leased run also waits for Vitest runs that hold no lease; tests keep the real process list out.
+const clearMachine = async () => ({ status: "clear" });
 
 test("package test selections retain their actual scope", () => {
   const admin = resolve("admin", "test", ["--suite", "hub"]);
@@ -102,7 +108,7 @@ test("invalid scope and options fail before any subprocess", () => {
 test("package executor stops after failure and preserves process boundaries", async () => {
   const calls = [];
   const signalHost = new EventEmitter();
-  const code = await executePackageCommand(resolve("agent", "test"), { signals: signalHost, environment: {}, acquire: async () => ({ status: "acquired", slot: 0, release() {} }), resources: { cpus: 4, totalMemoryBytes: 8 * 1024 ** 3 }, spawnImpl(command, args, options) { calls.push({ command, args, options }); const child = new EventEmitter(); queueMicrotask(() => child.emit("close", 9, null)); return child; } });
+  const code = await executePackageCommand(resolve("agent", "test"), { signals: signalHost, environment: {}, acquire: async () => ({ status: "acquired", slot: 0, release() {} }), awaitUnleasedRuns: clearMachine, resources: { cpus: 4, totalMemoryBytes: 8 * 1024 ** 3 }, spawnImpl(command, args, options) { calls.push({ command, args, options }); const child = new EventEmitter(); queueMicrotask(() => child.emit("close", 9, null)); return child; } });
   assert.equal(code, 9);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].options.shell, false);
@@ -284,6 +290,7 @@ test("a leased run holds the slot for every step, gives Vitest the machine share
     signals: new EventEmitter(),
     environment: {},
     leaseDirectory: directory,
+    awaitUnleasedRuns: clearMachine,
     resources: machine,
     report: () => {},
     spawnImpl: (command, args, options) => {
@@ -301,7 +308,7 @@ test("a leased run keeps an explicit worker choice", async (t) => {
   const { directory } = leaseFixture(t);
   for (const [args, environment, expected] of [[[], { VITEST_MAX_WORKERS: "3" }, "3"], [["--maxWorkers", "2"], {}, "2"]]) {
     const calls = [];
-    await executePackageCommand(resolve("shared", "test", args), { signals: new EventEmitter(), environment, leaseDirectory: directory, resources: machine, report: () => {}, spawnImpl: recordingSpawn(calls) });
+    await executePackageCommand(resolve("shared", "test", args), { signals: new EventEmitter(), environment, leaseDirectory: directory, awaitUnleasedRuns: clearMachine, resources: machine, report: () => {}, spawnImpl: recordingSpawn(calls) });
     assert.equal(calls[0].options.env.VITEST_MAX_WORKERS, expected, JSON.stringify(args));
   }
 });
@@ -336,6 +343,7 @@ test("CI runners and focused runs never touch the lease; the local gate and a lo
         taken += 1;
         return { status: "acquired", slot: 0, release: () => {} };
       },
+      awaitUnleasedRuns: clearMachine,
       leaseDirectory: directory,
       resources: machine,
       spawnImpl: recordingSpawn([]),
@@ -369,6 +377,7 @@ test("an interrupt releases the lease while the suite runs and while it waits", 
     signals,
     environment: {},
     leaseDirectory: directory,
+    awaitUnleasedRuns: clearMachine,
     resources: machine,
     report: () => {},
     spawnImpl: () => {
@@ -416,4 +425,114 @@ test("an explicit worker count reaches Vitest through VITEST_MAX_WORKERS, which 
   }
   assert.equal(resolve("agent", "test", ["--scope", "unit", "--maxWorkers", "2"]).steps[0].env.VITEST_MAX_WORKERS, "2");
   assert.throws(() => resolve("agent", "test", ["--scope", "sqlite", "--maxWorkers", "2"]));
+});
+
+test("a run from code older than the lease is found by its process tree, not by a slot", (t) => {
+  const { directory } = leaseFixture(t);
+  mkdirSync(directory, { recursive: true });
+  writeFileSync(join(directory, "slot-0.json"), `${JSON.stringify({ token: "t", pid: 100, cwd: "/work/leased", package: "shared", startedAt: 0 })}\n`);
+  const processes = [
+    { pid: 100, ppid: 1, command: "node scripts/dev/package-commands.mjs shared test" },
+    { pid: 101, ppid: 100, command: "node /work/leased/scripts/dev/node-cli.js vitest run --exclude src/__tests__/integration/**" },
+    { pid: 102, ppid: 101, command: "node /work/leased/node_modules/vitest/vitest.mjs run --exclude src/__tests__/integration/**" },
+    // A worktree on a branch from before the lease: its gate runs the suite without a slot.
+    { pid: 200, ppid: 1, command: "node ../../scripts/dev/package-commands.mjs shared test" },
+    { pid: 201, ppid: 200, command: "node /work/old-worktree/scripts/dev/node-cli.js vitest run --exclude src/__tests__/integration/**" },
+    { pid: 202, ppid: 201, command: "node /work/old-worktree/node_modules/vitest/vitest.mjs run --exclude src/__tests__/integration/**" },
+    // Watch sessions, `vitest related`, and the caller's own ancestry are not waited on.
+    { pid: 300, ppid: 1, command: "node /work/a/node_modules/vitest/vitest.mjs --watch" },
+    { pid: 310, ppid: 1, command: "node /work/a/node_modules/vitest/vitest.mjs related src/x.ts --run" },
+    { pid: 400, ppid: 1, command: "node /work/a/node_modules/vitest/vitest.mjs run src/spawns-a-suite.test.ts" },
+    { pid: 401, ppid: 400, command: "node scripts/dev/package-commands.mjs agent test" },
+  ];
+  const runs = listUnleasedVitestRuns({ directory, self: 401, listProcesses: () => processes });
+  assert.deepEqual(runs.map((run) => run.pid), [201]);
+});
+
+test("a leased run waits for a run that holds no lease, names it, and stops waiting when it ends or the wait runs out", async (t) => {
+  const { directory } = leaseFixture(t);
+  const foreign = [{ pid: 201, ppid: 1, command: "node /work/old-worktree/node_modules/vitest/vitest.mjs run" }];
+  let clock = 0;
+  const sleep = async (ms) => {
+    clock += ms;
+  };
+  let polls = 0;
+  const lines = [];
+  const clear = await waitForUnleasedVitestRuns({
+    directory,
+    self: 9999,
+    listProcesses: () => (polls++ < 8 ? foreign : []),
+    now: () => clock,
+    sleep,
+    pollMs: 5_000,
+    statusIntervalMs: 30_000,
+    report: (line) => lines.push(line),
+  });
+  assert.equal(clear.status, "clear");
+  assert.equal(lines.length, 3);
+  assert.match(lines[0], /waiting for 1 Vitest run that holds no lease: pid 201 \(node \/work\/old-worktree/);
+  assert.match(lines[2], /no Vitest run without a lease is left after 40s/);
+
+  clock = 0;
+  const stuck = await waitForUnleasedVitestRuns({ directory, self: 9999, listProcesses: () => foreign, now: () => clock, sleep, timeoutMs: 20_000, report: () => {} });
+  assert.equal(stuck.status, "timeout");
+  assert.deepEqual(stuck.runs.map((run) => run.pid), [201]);
+
+  const aborted = new AbortController();
+  aborted.abort();
+  assert.equal((await waitForUnleasedVitestRuns({ directory, listProcesses: () => foreign, signal: aborted.signal, report: () => {} })).status, "cancelled");
+});
+
+test("a run that outlasts the wait starts the suite on the conservative worker cap; a GitHub runner never scans", async (t) => {
+  const { directory } = leaseFixture(t);
+  const calls = [];
+  const lines = [];
+  let heldWhileWaiting = false;
+  const code = await executePackageCommand(resolve("shared", "test"), {
+    signals: new EventEmitter(),
+    environment: {},
+    leaseDirectory: directory,
+    resources: machine,
+    report: (line) => lines.push(line),
+    awaitUnleasedRuns: async (options) => {
+      heldWhileWaiting = existsSync(join(options.directory, "slot-0.json"));
+      return { status: "timeout", runs: [{ pid: 201, ppid: 1, command: "node vitest.mjs run" }] };
+    },
+    spawnImpl: recordingSpawn(calls),
+  });
+  assert.equal(code, 0);
+  assert.equal(heldWhileWaiting, true);
+  assert.equal(calls[0].options.env.VITEST_MAX_WORKERS, "4");
+  assert.match(lines.join("\n"), /gave up waiting for 1 Vitest run that holds no lease: pid 201 .*; running with a conservative worker cap/);
+  assert.equal(existsSync(join(directory, "slot-0.json")), false);
+
+  let scanned = 0;
+  await executePackageCommand(resolve("shared", "test"), {
+    signals: new EventEmitter(),
+    environment: { CI: "true", GITHUB_ACTIONS: "true", GREEN_GOODS_LOCAL_GATE: "1" },
+    leaseDirectory: directory,
+    resources: machine,
+    report: () => {},
+    awaitUnleasedRuns: async () => {
+      scanned += 1;
+      return { status: "clear" };
+    },
+    spawnImpl: recordingSpawn([]),
+  });
+  assert.equal(scanned, 0);
+});
+
+test("the process list comes from ps, includes this process, and is empty when ps cannot run", () => {
+  const output = "  101   100 node /work/x/node_modules/vitest/vitest.mjs run\n    7     1 /sbin/launchd\n";
+  assert.deepEqual(listSystemProcesses(() => output), [
+    { pid: 101, ppid: 100, command: "node /work/x/node_modules/vitest/vitest.mjs run" },
+    { pid: 7, ppid: 1, command: "/sbin/launchd" },
+  ]);
+  assert.deepEqual(
+    listSystemProcesses(() => {
+      throw new Error("ps: command not found");
+    }),
+    [],
+  );
+  assert.ok(listSystemProcesses().some((entry) => entry.pid === process.pid));
 });

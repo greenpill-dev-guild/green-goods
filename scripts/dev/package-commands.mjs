@@ -11,9 +11,11 @@ import {
   TEST_LEASE_TIMEOUT_EXIT_CODE,
   TestLeaseTimeoutError,
   acquireTestLease,
+  describeUnleasedRuns,
   resolveTestLeaseDirectory,
   resolveTestLeaseSettings,
   runsInContinuousIntegration,
+  waitForUnleasedVitestRuns,
 } from "./test-lease.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -232,7 +234,7 @@ export function resolvePackageCommand(pkg, action, args = []) {
 // Without the lease another session may be running a suite, so take half the machine.
 const UNLEASED_WORKER_SHARE = 2;
 
-async function takeTestLease(plan, { environment, leaseDirectory, acquire, resources, report, signal }) {
+async function takeTestLease(plan, { environment, leaseDirectory, acquire, awaitUnleasedRuns, resources, report, signal }) {
   if (!plan.lease?.required || runsInContinuousIntegration(environment)) return { env: {} };
   const settings = resolveTestLeaseSettings(environment);
   let directory = leaseDirectory;
@@ -251,10 +253,22 @@ async function takeTestLease(plan, { environment, leaseDirectory, acquire, resou
     signal,
   });
   if (outcome.status === "cancelled") return { cancelled: true, env: {} };
+  let share = outcome.status === "acquired" ? settings.slots : UNLEASED_WORKER_SHARE;
   if (outcome.status !== "acquired") {
     report(`test lease: ${outcome.reason}; running without a machine slot and with a conservative worker cap.`);
+  } else if (environment.GITHUB_ACTIONS !== "true") {
+    // The slot keeps out every run that takes one; a run from older code does not, so wait for it
+    // while holding the slot. A runner holds one job and has no such neighbour.
+    const clear = await awaitUnleasedRuns({ directory, report, signal });
+    if (clear.status === "cancelled") {
+      outcome.release();
+      return { cancelled: true, env: {} };
+    }
+    if (clear.status === "timeout") {
+      report(`test lease: gave up waiting for ${describeUnleasedRuns(clear.runs)}; running with a conservative worker cap.`);
+      share = UNLEASED_WORKER_SHARE;
+    }
   }
-  const share = outcome.status === "acquired" ? settings.slots : UNLEASED_WORKER_SHARE;
   const env = environment.VITEST_MAX_WORKERS || plan.lease.pinnedWorkers ? {} : {
     VITEST_MAX_WORKERS: String(resolveVitestMaxWorkers({ ...resources, ci: false, share })),
   };
@@ -267,6 +281,7 @@ export async function executePackageCommand(plan, {
   environment = process.env,
   leaseDirectory,
   acquire = acquireTestLease,
+  awaitUnleasedRuns = waitForUnleasedVitestRuns,
   resources = { cpus: availableParallelism(), totalMemoryBytes: totalmem() },
   report = (line) => process.stderr.write(`${line}\n`),
 } = {}) {
@@ -287,7 +302,7 @@ export async function executePackageCommand(plan, {
   signals.on("exit", onExit);
   try {
     try {
-      lease = await takeTestLease(plan, { environment, leaseDirectory, acquire, resources, report, signal: interrupt.signal });
+      lease = await takeTestLease(plan, { environment, leaseDirectory, acquire, awaitUnleasedRuns, resources, report, signal: interrupt.signal });
     } catch (error) {
       if (!(error instanceof TestLeaseTimeoutError)) throw error;
       report(error.message);

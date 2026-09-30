@@ -78,7 +78,10 @@ Three habits keep the suite from spreading into small files:
   or commit message, with the reason.
 - Run the focused file while you work (`bun run test <path>` in the package). Package-wide runs take
   the machine-wide test lease, so a second one waits for the first. A local `CI=true` run, such as a
-  hand-run Coverage Nightly, takes it too; only a GitHub runner skips it.
+  hand-run Coverage Nightly, takes it too; only a GitHub runner skips it. A checkout whose branch
+  predates the lease (`d1bc5d86e`) runs suites without it, so merge develop into an old worktree
+  branch before running package-wide suites there. A leased run waits up to five minutes for such
+  runs, naming each, then starts on half the machine.
 
 ## Critical paths (deepest coverage in `packages/shared/src/`)
 
