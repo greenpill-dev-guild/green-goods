@@ -253,9 +253,9 @@ const messages = {
   "app.garden.unknown": "Unknown Garden",
   "app.action.selected": "Selected Action",
   "app.garden.commitment.linkSchedulingError":
-    "Your work was submitted, but its commitment link could not be queued.",
-  "app.garden.commitment.linkScheduling": "Work submitted. Queueing its commitment link…",
-  "app.garden.commitment.linkScheduled": "Work submitted. Its commitment link is queued.",
+    "Your work was submitted, but its link to the promise could not be queued.",
+  "app.garden.commitment.linkScheduling": "Work submitted. Queueing its link to the promise…",
+  "app.garden.commitment.linkScheduled": "Work submitted. Its link to the promise is queued.",
   "app.garden.commitment.retryLink": "Retry Link",
 };
 
@@ -455,7 +455,7 @@ describe("Garden (Work) View", () => {
 
     expect(screen.getByRole("button", { name: "Upload Work" })).toBeDisabled();
     if (queueing) {
-      expect(screen.getByText(/Queueing its commitment link/)).toBeInTheDocument();
+      expect(screen.getByText(/Queueing its link to the promise/)).toBeInTheDocument();
     } else {
       expect(screen.queryByText(/Work submitted/)).toBeNull();
     }
@@ -466,7 +466,7 @@ describe("Garden (Work) View", () => {
     mockLinkSchedulingWorkSent = false;
     renderWithProviders();
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Your work is saved on this device, but its commitment link could not be queued."
+      "Your work is saved on this device, but its link to the promise could not be queued."
     );
     expect(screen.queryByText(/Your work was submitted/)).toBeNull();
   });
@@ -476,7 +476,7 @@ describe("Garden (Work) View", () => {
     mockLinkSchedulingWorkSent = false;
     renderWithProviders();
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Work saved on this device. Its commitment link is queued."
+      "Work saved on this device. Its link to the promise is queued."
     );
   });
 
@@ -487,7 +487,7 @@ describe("Garden (Work) View", () => {
     renderWithProviders();
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Work submitted. Its commitment link is queued."
+      "Work submitted. Its link to the promise is queued."
     );
   });
 });

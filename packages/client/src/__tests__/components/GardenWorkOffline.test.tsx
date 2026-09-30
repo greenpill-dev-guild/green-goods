@@ -17,6 +17,7 @@ vi.mock("@/components/Communication", async () => ({
   Loader: () => <div>Loading</div>,
 }));
 
+import enMessages from "@green-goods/shared/i18n/en";
 import type { Work } from "@green-goods/shared/types/domain";
 import { GardenWork } from "../../components/Features/Garden/Work";
 
@@ -42,7 +43,7 @@ function savedWork(index: number): Work {
 
 const renderList = (props: Partial<Parameters<typeof GardenWork>[0]>) =>
   render(
-    <IntlProvider locale="en" messages={{}}>
+    <IntlProvider locale="en" messages={enMessages}>
       <GardenWork works={[]} actions={[]} {...props} />
     </IntlProvider>
   );
@@ -55,7 +56,9 @@ it("says nothing about offline content while online", () => {
     lastSuccessfulRefresh: Date.now(),
   });
 
-  expect(screen.queryByRole("status")).toBeNull();
+  // Online, the header's status line is the count, never a saved-copy line.
+  expect(screen.getByRole("status")).toHaveTextContent("1 submission");
+  expect(screen.queryByText(/Offline/)).toBeNull();
   expect(offline.useActiveOfflineGarden).toHaveBeenCalledWith("0xgarden");
 });
 
@@ -69,7 +72,8 @@ it("keeps saved work visible without an online refresh-failure accent", () => {
   });
 
   expect(screen.getByTestId("cached-work")).toBeInTheDocument();
-  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.getByRole("status")).toHaveTextContent("1 submission");
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("labels a saved copy while offline on one line", () => {
@@ -80,9 +84,10 @@ it("labels a saved copy while offline on one line", () => {
     lastSuccessfulRefresh: new Date(2026, 8, 13, 16, 5).getTime(),
   });
 
+  // The saved copy's line takes the count's place in the header row, on one line.
   const status = screen.getByRole("status");
   expect(status).toHaveTextContent("Offline · Saved Sep 13");
-  expect(status.querySelector("p")).toHaveClass("truncate");
+  expect(status).toHaveClass("whitespace-nowrap");
 });
 
 it("explains an offline cache miss without a network spinner or empty-garden claim", () => {

@@ -250,7 +250,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
                 >
                   {intl.formatMessage({
                     id: "app.garden.commitment.none",
-                    defaultMessage: "Not for a Commitment",
+                    defaultMessage: "Not for a Promise",
                   })}
                 </Button>
               </div>

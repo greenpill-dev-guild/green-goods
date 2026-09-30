@@ -1,4 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type { Address } from "@green-goods/shared/types/domain";
 import { writeWorkLinkIntent } from "@green-goods/shared/commitment-pooling";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
@@ -12,7 +13,9 @@ import { commitmentActForKind } from "./commitmentActions";
 import { CommitmentClaims } from "./CommitmentClaims";
 import { CommitmentDetailShell, CommitmentDetailState } from "./CommitmentDetailShell";
 import { CommitmentEvidence } from "./CommitmentEvidence";
+import { CommitmentHistory } from "./CommitmentHistory";
 import { CommitmentIdentity } from "./CommitmentIdentity";
+import { CommitmentPlace } from "./CommitmentPlace";
 import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
@@ -105,6 +108,15 @@ export function GardenCommitment() {
     : null;
   const heading =
     controller.metadata?.title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
+  // The stewards of the promise's own garden, so whoever confirms it carries the
+  // role. The page holds the route garden's record, which is the pool's garden
+  // unless the promise sits in another garden's pool.
+  const poolGarden = controller.pool?.garden;
+  const gardenRecord = controller.roles.garden;
+  const stewards =
+    poolGarden && gardenRecord && gardenRecord.id.toLowerCase() === poolGarden.toLowerCase()
+      ? gardenRecord.stewards
+      : [];
   const openWorkSubmission = (requirementIndex: number, actionUID: number | bigint) => {
     const parsedActionUID = Number(actionUID);
     if (!controller.routeGarden || !controller.workGarden || !Number.isSafeInteger(parsedActionUID))
@@ -170,6 +182,13 @@ export function GardenCommitment() {
       <CommitmentDetailShell
         onBack={back}
         title={heading}
+        subtitle={
+          <CommitmentPlace
+            chainId={controller.chainId}
+            commitment={commitment}
+            garden={controller.pool?.garden ?? (controller.routeGarden as Address | undefined)}
+          />
+        }
         bar={
           act ? (
             <CommitmentActionBar
@@ -217,6 +236,8 @@ export function GardenCommitment() {
           metadata={controller.metadata}
           units={units}
           joinable={controller.joinable}
+          viewer={controller.viewer}
+          stewards={stewards}
         />
         {showJoinToAct ? (
           <JoinToAct garden={controller.membership.garden} isOnline={controller.isOnline} />
@@ -264,11 +285,12 @@ export function GardenCommitment() {
           chainId={controller.chainId}
           commitment={commitment}
           requirements={requirements}
-        />
-        <CommitmentEvidence
-          attributions={controller.detail.evidenceAttributions}
-          recordedCount={commitment.evidenceCount}
-        />
+        >
+          <CommitmentEvidence
+            attributions={controller.detail.evidenceAttributions}
+            recordedCount={commitment.evidenceCount}
+          />
+        </CommitmentProgress>
         <CommitmentWork
           commitment={commitment}
           requirements={requirements}
@@ -285,6 +307,11 @@ export function GardenCommitment() {
           }
           onOpenWork={(workUID) => navigate(`../../work/${workUID}`, { relative: "path" })}
           onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}
+        />
+        <CommitmentHistory
+          chainId={controller.chainId}
+          commitment={commitment}
+          viewer={controller.viewer}
         />
       </CommitmentDetailShell>
 

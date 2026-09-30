@@ -444,6 +444,17 @@ export const withSignedOutAuth: Decorator = (Story, context) => (
 );
 
 /**
+ * An installed-app screen, edge to edge on the app's white ground. The preview
+ * pads every story and paints its own neutral; a page captured beside a design
+ * frame has to fill the viewport the way the client draws it.
+ */
+export const withAppPage: Decorator = (Story) => (
+  <div className="-m-[var(--gg-space-md)] min-h-dvh bg-bg-white-0 text-text-strong-950">
+    <Story />
+  </div>
+);
+
+/**
  * Client runtime harness for protected PWA/client stories that render the real
  * shell widgets. It mirrors the auth + queue + work providers used by
  * `AppShell` while keeping wallet reads mocked and inert.

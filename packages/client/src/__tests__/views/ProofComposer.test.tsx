@@ -241,7 +241,7 @@ describe("ProofComposer", () => {
     const user = userEvent.setup();
     controller = proofComposerControllerFixture({ status: "queued" });
     render(true);
-    await user.click(screen.getByRole("button", { name: "Back to the Commitment" }));
+    await user.click(screen.getByRole("button", { name: "Back to the Promise" }));
     expect(screen.getByText("Back on the commitment")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Native Back" }));
     expect(screen.getByText("Real origin")).toBeInTheDocument();
@@ -251,7 +251,7 @@ describe("ProofComposer", () => {
     const user = userEvent.setup();
     controller = proofComposerControllerFixture({ status: "queued" });
     render();
-    await user.click(screen.getByRole("button", { name: "Back to the Commitment" }));
+    await user.click(screen.getByRole("button", { name: "Back to the Promise" }));
     await user.click(screen.getByRole("button", { name: "Native Back" }));
     expect(screen.getByText("Back on the commitment")).toBeInTheDocument();
     expect(screen.queryByText("Proof saved")).not.toBeInTheDocument();

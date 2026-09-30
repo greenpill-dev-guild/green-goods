@@ -9,8 +9,12 @@ export interface EmptyStateProps {
   description?: React.ReactNode;
   action?: React.ReactNode;
   tone?: EmptyStateTone;
-  /** Keep the icon and title fixed while sheet descriptions and actions grow below them. */
-  placement?: "center" | "sheet";
+  /**
+   * Keep the icon and title fixed while descriptions and actions grow below them:
+   * `sheet` at the sheet tabs' upper-middle anchor, `list` 32px under a list's
+   * header row, where a garden tab's list would start.
+   */
+  placement?: "center" | "sheet" | "list";
   className?: string;
 }
 
@@ -37,7 +41,9 @@ export function EmptyState({
         "flex min-h-[12rem] flex-col items-center px-6 text-center",
         placement === "sheet"
           ? "justify-start pt-[clamp(3rem,13dvh,7rem)] pb-8"
-          : "justify-center py-8",
+          : placement === "list"
+            ? "justify-start pt-8 pb-8"
+            : "justify-center py-8",
         className
       )}
     >

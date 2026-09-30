@@ -426,7 +426,7 @@ const Work: React.FC = () => {
               <p className="text-xs text-text-sub-600 px-1" role="status" aria-live="polite">
                 {intl.formatMessage({
                   id: "app.garden.commitment.linkScheduling",
-                  defaultMessage: "Work submitted. Queueing its commitment link…",
+                  defaultMessage: "Work submitted. Queueing its link to the promise…",
                 })}
               </p>
             ) : null}
@@ -435,11 +435,12 @@ const Work: React.FC = () => {
                 {linkSchedulingWorkSent
                   ? intl.formatMessage({
                       id: "app.garden.commitment.linkScheduled",
-                      defaultMessage: "Work submitted. Its commitment link is queued.",
+                      defaultMessage: "Work submitted. Its link to the promise is queued.",
                     })
                   : intl.formatMessage({
                       id: "app.garden.commitment.linkSavedQueued",
-                      defaultMessage: "Work saved on this device. Its commitment link is queued.",
+                      defaultMessage:
+                        "Work saved on this device. Its link to the promise is queued.",
                     })}
               </p>
             ) : null}
@@ -454,12 +455,12 @@ const Work: React.FC = () => {
                     ? intl.formatMessage({
                         id: "app.garden.commitment.linkSchedulingError",
                         defaultMessage:
-                          "Your work was submitted, but its commitment link could not be queued.",
+                          "Your work was submitted, but its link to the promise could not be queued.",
                       })
                     : intl.formatMessage({
                         id: "app.garden.commitment.linkSavedQueueError",
                         defaultMessage:
-                          "Your work is saved on this device, but its commitment link could not be queued.",
+                          "Your work is saved on this device, but its link to the promise could not be queued.",
                       })}
                 </span>
                 <Button

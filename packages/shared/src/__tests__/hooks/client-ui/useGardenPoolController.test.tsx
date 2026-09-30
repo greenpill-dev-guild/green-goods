@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   metadata: new Map<string, { title: string }>(),
   hasRole: false,
   roleRead: { isLoading: false, error: null as Error | null },
+  isMember: true as boolean | null,
   isOnline: true,
   refresh: vi.fn(),
   flush: vi.fn(),
@@ -31,6 +32,14 @@ vi.mock("../../../hooks/app/useOnlineStatus", () => ({
 }));
 vi.mock("../../../hooks/roles/useHasRole", () => ({
   useHasRole: () => ({ hasRole: mocks.hasRole, ...mocks.roleRead }),
+}));
+vi.mock("../../../hooks/roles/useGardenMembership", () => ({
+  useGardenMembership: () => ({
+    isMember: mocks.isMember,
+    isLoading: mocks.isMember === null,
+    isError: false,
+    refetch: vi.fn(),
+  }),
 }));
 vi.mock("../../../providers/JobQueue", () => ({
   useJobQueue: () => ({ flush: mocks.flush, retryAndSend: mocks.retryAndSend }),
@@ -73,6 +82,7 @@ describe("useGardenPoolController", () => {
     mocks.metadata = new Map([["request-cid", { title: "Water the orchard" }]]);
     mocks.hasRole = false;
     mocks.roleRead = { isLoading: false, error: null };
+    mocks.isMember = true;
     mocks.isOnline = true;
     mocks.flush.mockResolvedValue(undefined);
     mocks.retryAndSend.mockResolvedValue(undefined);
@@ -139,6 +149,40 @@ describe("useGardenPoolController", () => {
     expect(result.current.busyJobId).toBeNull();
   });
 
+  it("shows live, settled or all promises, as Status asks", () => {
+    mocks.commitments = [
+      commitmentFixture({ commitmentId: 1n, derivedState: "ACTIVE" }),
+      commitmentFixture({ commitmentId: 2n, derivedState: "FULFILLED" }),
+      commitmentFixture({ commitmentId: 3n, derivedState: "CANCELLED" }),
+    ];
+    const { result } = renderHookWithProviders(() =>
+      useGardenPoolController(poolFixture({ poolId: 7n, state: "OPEN" }))
+    );
+    const ids = () => result.current.rows.map((row) => row.commitment.commitmentId);
+
+    expect(ids()).toEqual([1n]);
+    act(() => result.current.setLiveness("settled"));
+    expect(ids()).toEqual([2n, 3n]);
+    act(() => result.current.setLiveness("all"));
+    expect(ids()).toEqual([1n, 2n, 3n]);
+  });
+
+  it("offers creation in a garden's pool only to its members", () => {
+    const gardenPool = poolFixture({ state: "OPEN", poolType: "GARDEN" });
+    const { result, rerender } = renderHookWithProviders(() => useGardenPoolController(gardenPool));
+    expect(result.current.canCreate).toBe(true);
+
+    // A visitor joins from the garden header; the tab draws no + for them.
+    mocks.isMember = false;
+    rerender();
+    expect(result.current.canCreate).toBe(false);
+
+    // Membership that is still reading, or could not be read, draws no + either.
+    mocks.isMember = null;
+    rerender();
+    expect(result.current.canCreate).toBe(false);
+  });
+
   it("closes creation for lifecycle and protocol permission gates", () => {
     const { result, rerender } = renderHookWithProviders(
       ({ targetPool }) => useGardenPoolController(targetPool),
@@ -151,6 +195,7 @@ describe("useGardenPoolController", () => {
     expect(result.current.isParticipating).toBe(false);
     expect(result.current.canCreate).toBe(false);
 
+    // Membership alone does not open the protocol pool: its stewards start promises.
     rerender({ targetPool: poolFixture({ state: "OPEN", poolType: "PROTOCOL" }) });
     expect(result.current.isParticipating).toBe(true);
     expect(result.current.canCreate).toBe(false);

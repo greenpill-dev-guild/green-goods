@@ -342,13 +342,13 @@ describe("GardenCommitment", () => {
     render("not-a-number");
 
     expect(mockUseController).toHaveBeenCalledWith(expect.objectContaining({ commitmentId: null }));
-    expect(screen.getByText("Commitment not found")).toBeInTheDocument();
+    expect(screen.getByText("Promise not found")).toBeInTheDocument();
   });
 
   it("renders unavailable and retryable error states from the controller", async () => {
     mockUseController.mockReturnValue(controller({ status: "unavailable", detail: null }));
     const view = render();
-    expect(screen.getByText("Commitments are not ready here yet")).toBeInTheDocument();
+    expect(screen.getByText("Promises are not ready here yet")).toBeInTheDocument();
 
     const refetch = vi.fn(async () => undefined);
     mockUseController.mockReturnValue(controller({ status: "error", detail: null, refetch }));
@@ -752,7 +752,7 @@ describe("GardenCommitment", () => {
     ["awaitingApproval", "Linked · waiting for approval"],
     ["readyToReconcile", "Approved · waiting for a steward to count it"],
     ["needsFreshReview", "Approved again · needs a fresh review"],
-    ["counted", "Counted toward this commitment"],
+    ["counted", "Counted toward this promise"],
     ["unavailable", "Counting status unavailable"],
   ] as const)("shows the %s Work-link state honestly", (state, label) => {
     mockUseController.mockReturnValue(

@@ -4,17 +4,20 @@ import {
   type CommitmentRequirementRecord,
   isTerminalCommitmentState,
 } from "@green-goods/shared/commitment-pooling";
-import { useMemo } from "react";
+import { type ReactNode, useId, useMemo } from "react";
 import { useIntl } from "react-intl";
 
 export interface CommitmentProgressProps {
   chainId: number;
   commitment: CommitmentReadModel;
   requirements: CommitmentRequirementRecord[];
+  /** The proof itself, shown under the progress in the same section. */
+  children?: ReactNode;
 }
 
 /**
- * What has actually been done toward this commitment.
+ * Progress and proof: what has actually been done toward this promise, and the
+ * proof itself under it.
  *
  * Each requirement keeps its own row and its own units. Rows are never summed
  * into one figure: two rows counting different things have no common total, and
@@ -23,8 +26,19 @@ export interface CommitmentProgressProps {
  * Display is capped at what was required while the audited count stays intact,
  * so an over-delivered row reads as complete rather than as more than complete.
  */
-export function CommitmentProgress({ chainId, commitment, requirements }: CommitmentProgressProps) {
+export function CommitmentProgress({
+  chainId,
+  commitment,
+  requirements,
+  children,
+}: CommitmentProgressProps) {
   const { formatMessage } = useIntl();
+  const headingId = useId();
+  const heading = (
+    <h2 id={headingId} className="text-sm font-semibold leading-5 text-text-strong-950">
+      {formatMessage({ id: "app.commitment.progress.title" })}
+    </h2>
+  );
   // Each row is a garden action, so it is named by the action registry rather
   // than by its position. Position stays as the fallback for an action the
   // registry cannot name, which is still a row somebody has to fulfil.
@@ -45,11 +59,12 @@ export function CommitmentProgress({ chainId, commitment, requirements }: Commit
     // but a settled record has stopped moving, so its copy just counts.
     const settled = isTerminalCommitmentState(commitment.derivedState);
     return (
-      <section className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
-        <h3 className="text-sm font-medium text-text-strong-950">
-          {formatMessage({ id: "app.commitment.progress.title" })}
-        </h3>
-        <p className="mt-1 text-sm text-text-sub-600">
+      <section
+        className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
+        aria-labelledby={headingId}
+      >
+        {heading}
+        <p className="mt-2 text-sm text-text-sub-600">
           {formatMessage(
             {
               id: settled
@@ -59,15 +74,17 @@ export function CommitmentProgress({ chainId, commitment, requirements }: Commit
             { count: commitment.evidenceCount }
           )}
         </p>
+        {children}
       </section>
     );
   }
 
   return (
-    <section className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
-      <h3 className="text-sm font-medium text-text-strong-950">
-        {formatMessage({ id: "app.commitment.progress.title" })}
-      </h3>
+    <section
+      className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
+      aria-labelledby={headingId}
+    >
+      {heading}
       <ul className="mt-3 space-y-3">
         {requirements.map((requirement) => {
           const done = Math.min(requirement.approvedCount, requirement.requiredCount);
@@ -109,6 +126,7 @@ export function CommitmentProgress({ chainId, commitment, requirements }: Commit
       <p className="mt-3 text-xs text-text-soft-400">
         {formatMessage({ id: "app.commitment.progress.note" })}
       </p>
+      {children}
     </section>
   );
 }
