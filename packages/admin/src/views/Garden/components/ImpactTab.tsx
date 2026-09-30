@@ -9,6 +9,7 @@ import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
+import { AdminListRow } from "@/components/AdminListRow";
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
 import { SectionStateCard } from "./GardenDetailHelpers";
@@ -194,6 +195,7 @@ export function ImpactTab({
               error={assessmentsError}
               gardenId={gardenId}
               chainId={garden.chainId}
+              selectedItem={selectedItem}
             />
           ) : null}
 
@@ -259,17 +261,10 @@ export function ImpactTab({
                 ) : (
                   <div className="space-y-2">
                     {recentAssessments.map((assessment) => (
-                      <AdminButton
+                      <AdminListRow
                         key={assessment.id}
-                        type="button"
-                        variant="text"
-                        size="sm"
+                        current={section === "assessments" && assessment.id === selectedItem}
                         onClick={() => openSection("impact", "assessments", assessment.id)}
-                        className={`group w-full rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2 text-left hover:bg-bg-soft ${
-                          selectedItem && assessment.id === selectedItem
-                            ? "ring-1 ring-primary-base"
-                            : ""
-                        }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
@@ -289,7 +284,7 @@ export function ImpactTab({
                           </div>
                           <RiArrowRightSLine className="mt-0.5 h-4 w-4 flex-shrink-0 text-text-disabled transition-colors group-hover:text-text-sub" />
                         </div>
-                      </AdminButton>
+                      </AdminListRow>
                     ))}
                   </div>
                 )}
