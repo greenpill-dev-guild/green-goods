@@ -32,6 +32,72 @@ export interface SeedFlowFooterProps {
 }
 
 /**
+ * The note beside a creating button: while the wallet asks, that the dialog
+ * waits; otherwise why the button is off, or how many times the wallet will
+ * ask. Seed Promises and Add to This Group say it the same way.
+ */
+export function SeedFlowNote({
+  phase,
+  busy,
+  mode,
+  count,
+  reason,
+}: {
+  phase: string;
+  busy: boolean;
+  mode: CreationSendMode | null;
+  /** How many the button sends. */
+  count: number;
+  /** Why the button is off, when it is. */
+  reason: string | null;
+}) {
+  const { formatMessage } = useIntl();
+  const note =
+    phase === "asking"
+      ? formatMessage({
+          id: "cockpit.garden.pool.seed.note.waiting",
+          defaultMessage: "The dialog stays open until your wallet answers.",
+        })
+      : busy
+        ? null
+        : (reason ??
+          (mode === "bundle"
+            ? count <= CREATION_BUNDLE_SIZE
+              ? formatMessage(
+                  {
+                    id: "cockpit.garden.pool.seed.note.bundle",
+                    defaultMessage:
+                      "{count, plural, one {Your wallet will ask you once.} other {Your wallet will ask you once, for all #.}}",
+                  },
+                  { count }
+                )
+              : formatMessage(
+                  {
+                    id: "cockpit.garden.pool.seed.note.bundles",
+                    defaultMessage: "Your wallet will ask you {requests} times, once for every 10.",
+                  },
+                  { requests: Math.ceil(count / CREATION_BUNDLE_SIZE) }
+                )
+            : mode === "one-by-one"
+              ? formatMessage(
+                  {
+                    id: "cockpit.garden.pool.seed.note.oneByOne",
+                    defaultMessage:
+                      "{count, plural, one {Your wallet will ask you once.} =2 {Your wallet will ask you twice, one after the other.} other {Your wallet will ask you # times, one after another.}}",
+                  },
+                  { count }
+                )
+              : mode === "background"
+                ? formatMessage({
+                    id: "cockpit.garden.pool.seed.note.background",
+                    defaultMessage:
+                      "They wait in this device's queue until you send them from the pool tab.",
+                  })
+                : null));
+  return note ? <span role="status">{note}</span> : null;
+}
+
+/**
  * The seeding flow's pinned footer. The last step says how many times the
  * wallet will ask beside the button that asks (interaction patterns §3), and
  * the buttons follow the status row: Create, then Try Again for what didn't
@@ -57,41 +123,6 @@ export function SeedFlowFooter({
 }: SeedFlowFooterProps) {
   const { formatMessage } = useIntl();
   const busy = status.busy;
-
-  const asks = (count: number) =>
-    mode === "bundle"
-      ? count <= CREATION_BUNDLE_SIZE
-        ? formatMessage(
-            {
-              id: "cockpit.garden.pool.seed.note.bundle",
-              defaultMessage:
-                "{count, plural, one {Your wallet will ask you once.} other {Your wallet will ask you once, for all #.}}",
-            },
-            { count }
-          )
-        : formatMessage(
-            {
-              id: "cockpit.garden.pool.seed.note.bundles",
-              defaultMessage: "Your wallet will ask you {requests} times, once for every 10.",
-            },
-            { requests: Math.ceil(count / CREATION_BUNDLE_SIZE) }
-          )
-      : mode === "one-by-one"
-        ? formatMessage(
-            {
-              id: "cockpit.garden.pool.seed.note.oneByOne",
-              defaultMessage:
-                "{count, plural, one {Your wallet will ask you once.} =2 {Your wallet will ask you twice, one after the other.} other {Your wallet will ask you # times, one after another.}}",
-            },
-            { count }
-          )
-        : mode === "background"
-          ? formatMessage({
-              id: "cockpit.garden.pool.seed.note.background",
-              defaultMessage:
-                "They wait in this device's queue until you send them from the pool tab.",
-            })
-          : null;
 
   if (!isLast) {
     return (
@@ -124,22 +155,17 @@ export function SeedFlowFooter({
   }
 
   const retrying = status.retry > 0;
-  const note =
-    status.phase === "asking"
-      ? formatMessage({
-          id: "cockpit.garden.pool.seed.note.waiting",
-          defaultMessage: "The dialog stays open until your wallet answers.",
-        })
-      : busy
-        ? null
-        : createDisabled && blockedReason
-          ? blockedReason
-          : asks(retrying ? status.retry : total);
 
   return (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
       <p className="min-w-0 body-xs text-text-soft sm:flex-1" data-testid="seed-prompt-count">
-        {note ? <span role="status">{note}</span> : null}
+        <SeedFlowNote
+          phase={status.phase}
+          busy={busy}
+          mode={mode}
+          count={retrying ? status.retry : total}
+          reason={createDisabled ? blockedReason : null}
+        />
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         <AdminButton
