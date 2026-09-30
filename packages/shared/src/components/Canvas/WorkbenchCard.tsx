@@ -21,8 +21,9 @@ export interface WorkbenchCardProps {
  * WorkbenchCard — the card-shaped presentation of a registry item. Same data
  * model and visual vocabulary as {@link WorkbenchRow} (icon tile, status pill,
  * meta chips) so list and grid layouts of the same registry stay coherent. The
- * grid container itself is authored in the consuming view (admin) so its
- * `grid-cols-*` utilities are reached by the app's Tailwind content scan.
+ * grid container itself is authored in the consuming view (admin), which
+ * decides the columns: Actions uses `grid-cols-*` breakpoints, the Hub an
+ * auto-fill grid.
  */
 export function WorkbenchCard({
   eyebrow,

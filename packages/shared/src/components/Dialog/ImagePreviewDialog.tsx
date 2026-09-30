@@ -104,10 +104,9 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   // Count the preview as a sheet only when it renders: open with no images
   // returns null below, and a phantom count would keep the AppBar hidden.
   useSheetPresence(isOpen && images.length > 0);
-  // The editorial variant carries no utilities of its own: Tailwind does not
-  // scan packages/shared/src from the client build, so classes written here
-  // never generate. Its chrome is dressed from `[data-variant="editorial"]`
-  // rules in the client's editorial.css, beside the tokens it uses.
+  // The editorial variant carries no utilities of its own. Its chrome is
+  // dressed from `[data-variant="editorial"]` rules in the client's
+  // editorial.css, beside the editorial tokens that only the client defines.
   const editorial = variant === "editorial";
   const counter = editorial ? undefined : "text-sm font-medium";
   const [currentIndex, setCurrentIndex] = useState(initialIndex);

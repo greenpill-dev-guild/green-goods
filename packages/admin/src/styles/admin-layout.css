@@ -216,12 +216,10 @@ button.garden-stat-row:hover {
   }
 
   /* ── Workbench surfaces (Hub WorkbenchRow + Actions WorkbenchCard) ──────────
-     These shared Canvas components are admin-only consumers. A handful of their
-     edge/elevation/hover/selected utilities are authored in packages/shared/src
-     JSX as arbitrary-value or compound variants that admin's Tailwind v4 content
-     scan does not reach, so they silently no-op in admin's build. Own those here
-     (base layout/colour utilities that DO ship stay in the components).
-     Verified against admin dist (packages/admin/dist/assets/*.css). */
+     These shared Canvas components render only in the cockpit, so their edge,
+     elevation, hover and selected treatment lives here with the cockpit's
+     other surface rules, as named classes the components carry. Base layout
+     and colour utilities stay in the components. */
   .hub-workbench-grid {
     display: grid;
     width: 100%;

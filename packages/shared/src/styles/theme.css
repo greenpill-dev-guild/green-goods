@@ -798,8 +798,9 @@
 
 /* ============================================================================
  * Components layer: shared primitive classes.
- * These classes are consumed by admin/client builds without relying on the
- * consumer package's Tailwind content scan seeing shared JSX utilities.
+ * One anatomy per primitive on every surface: surfaces retune these classes
+ * through --gg-* tokens and data-surface, and a utility on the same element
+ * still overrides them.
  * ============================================================================ */
 @layer components {
   .gg-control {
@@ -1053,7 +1054,8 @@
   }
 
   /* Select options sit concentric inside the 8px menu and its 4px padding. The
-   * utility class never generated in the apps (Tailwind skips shared JSX). */
+   * rule predates the app builds scanning shared source; a rounded utility on
+   * the item would work as well. */
   [data-component="SelectItem"] {
     border-radius: calc(var(--radius-md) - 0.25rem);
   }

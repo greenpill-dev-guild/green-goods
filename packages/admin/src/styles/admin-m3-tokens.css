@@ -329,7 +329,7 @@
  * Shell chrome — Navigation dock material
  *
  * Geometry, typography, and states live in the forked Shell/NavigationBar.tsx
- * JSX (admin's Tailwind scan reaches them). The translucent material + blur
+ * JSX (admin's own copy of the shared bar). The translucent material + blur
  * must stay in an approved chrome file per the Controlled Chrome contract in
  * scripts/design/check-tokens.sh; it lives HERE (not index.css) so the shared
  * Storybook — which imports this file but not the admin app entrypoint —

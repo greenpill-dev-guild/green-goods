@@ -117,8 +117,7 @@ const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> =
 // centered max-w-3xl→5xl card on desktop with a STABLE 85dvh height so async content
 // (e.g. the hypercert attestation list resolving on step 1) can't resize the
 // dialog mid-open — the body scrolls inside and the footer stays pinned, the way
-// ActionFlowShell is designed. Centralized so the three flows can't drift (the
-// literal lives here in admin/src so the Tailwind scan reaches it).
+// ActionFlowShell is designed. Centralized so the three flows can't drift.
 export const ADMIN_FLOW_DIALOG_CLASS =
   "min-h-[90dvh] sm:min-h-0 sm:h-[85dvh] sm:!max-w-3xl lg:!max-w-5xl";
 

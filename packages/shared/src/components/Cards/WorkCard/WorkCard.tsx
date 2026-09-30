@@ -108,8 +108,8 @@ export interface WorkCardProps extends WorkCardVariantProps {
 
 /**
  * Compact list thumbnail: its height follows the compact row and aspect-ratio keeps it square,
- * so the row owns the size and a future row-height change cannot leave a gap (DL-034). Inline
- * because shared utility classes are not in the client's Tailwind scan.
+ * so the row owns the size and a future row-height change cannot leave a gap (DL-034). The
+ * inline styles predate the client build scanning shared source; utilities would work too.
  */
 const COMPACT_CARD_STYLE: React.CSSProperties = { height: 88 };
 const COMPACT_THUMBNAIL_STYLE: React.CSSProperties = { height: "100%", aspectRatio: "1 / 1" };
