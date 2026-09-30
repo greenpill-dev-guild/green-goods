@@ -1,37 +1,16 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
-import { getCampaignCookieJarPayoutAssets } from "@green-goods/shared/utils/cookie-jar-campaign";
+import { formatUsdCents } from "@green-goods/shared/utils/blockchain/price-feeds";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { usePublicCommitmentImpact } from "@green-goods/shared/hooks/public/usePublicCommitmentImpact";
-import { selectPublicPromiseKeptRate } from "@green-goods/shared/modules/commitment-pooling/disclosure";
 import { useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker, EditorialLede, EditorialLinkArrow } from "./atoms";
-import { formatKeptRate } from "./keptRate";
 import { type PublicProofMarker, PublicProofMarkers } from "./PublicProofMarkers";
 
 /**
- * `/impact` § 02 — protocol-wide commitment aggregates (uiux-spec §7.3).
- *
- * Header and record both sit on the linen like § 01 and § 04 — the
- * 2026-08-25 supersession of the PR-748 `EditorialPanel` choice; nothing on the
- * band is card-wrapped. Four markers in the § 01 proof-marker grammar —
- * Gardens with open pools, lifetime commitments fulfilled across every
- * registered pool, the share of taken-up commitments kept, and CCIP-confirmed G$
- * support — then one lifecycle sentence and a way into `/gardens` as the
- * record's footer line. No per-garden table, comparison, or ordering of any
- * kind: public comparison drifts toward ranking (§7.4).
- *
- * Honesty rules this band enforces:
- * - every figure comes from `usePublicCommitmentImpact`, which returns `null`
- *   per source when its read failed; a null renders an em dash, never `0`;
- * - the kept share is published only when `selectPublicPromiseKeptRate`
- *   returns its `rate` branch (≥ 5 due, ≥ 3 distinct providers); below that
- *   the marker shows counts and no percentage is ever computed;
- * - "Support arrived" describes the confirmed total and nothing else —
- *   queued, dispatched, and executed-but-unacknowledged settlement never
- *   reach the figure because the aggregate read selects `CONFIRMED` only;
- * - the fulfilled figure is lifetime, not seasonal: a season is per-garden,
- *   so there is no protocol-wide season to scope to.
+ * Community commitment totals on the public Impact page. Counts include
+ * offers and requests across every registered pool, including earlier seasons.
+ * Funding includes only confirmed disbursements to Gardens. A failed read
+ * remains unavailable rather than appearing as an empty record.
  */
 export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?: number }) {
   const { formatMessage, formatNumber, locale } = useIntl();
@@ -44,32 +23,30 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
   const failed = !isLoading && data === undefined;
   const noneYet = formatMessage({ id: "public.pool.impact.noneYet", defaultMessage: "None yet" });
 
-  const openPools: PublicProofMarker = {
-    key: "open-pools",
+  const made: PublicProofMarker = {
+    key: "made",
     label: formatMessage({
-      id: "public.pool.impact.openPools.label",
-      defaultMessage: "Gardens with open pools",
+      id: "public.pool.impact.made.label",
+      defaultMessage: "Commitments made",
     }),
     note: formatMessage({
-      id: "public.pool.impact.openPools.note",
-      defaultMessage:
-        "Places where neighbours can offer, ask for, and take up commitments right now.",
+      id: "public.pool.impact.made.note",
+      defaultMessage: "What members have offered or asked for across Green Goods.",
     }),
     loading: isLoading,
-    unavailable: failed || data?.openPoolCount === null || unavailable?.commitmentPools === true,
-    ...countMarker(data?.openPoolCount, formatNumber, noneYet),
+    unavailable: failed || data?.commitmentsMade === null || unavailable?.commitmentPools === true,
+    ...countMarker(data?.commitmentsMade, formatNumber, noneYet),
   };
 
-  const fulfilled: PublicProofMarker = {
-    key: "fulfilled",
+  const kept: PublicProofMarker = {
+    key: "kept",
     label: formatMessage({
-      id: "public.pool.impact.fulfilled.label",
-      defaultMessage: "Commitments fulfilled",
+      id: "public.pool.impact.kept.label",
+      defaultMessage: "Commitments kept",
     }),
     note: formatMessage({
-      id: "public.pool.impact.fulfilled.note",
-      defaultMessage:
-        "Lifetime, across every registered pool. Closing a pool never removes its record.",
+      id: "public.pool.impact.kept.note",
+      defaultMessage: "Work carried out and confirmed by the people involved.",
     }),
     loading: isLoading,
     unavailable:
@@ -77,87 +54,26 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
     ...countMarker(data?.commitmentsFulfilled, formatNumber, noneYet),
   };
 
-  // The share depends on both the pool counters and the distinct-provider
-  // aggregate. If either source failed the threshold cannot be evaluated, and
-  // an aggregate that cannot be evaluated is unavailable, not counts-only.
-  const keptInputs =
-    data &&
-    data.commitmentsFulfilled !== null &&
-    data.commitmentsDue !== null &&
-    data.distinctProviderCount !== null
-      ? {
-          commitmentsFulfilled: data.commitmentsFulfilled,
-          commitmentsDue: data.commitmentsDue,
-          distinctProviderCount: data.distinctProviderCount,
-        }
-      : null;
-  const keptSelection = keptInputs ? selectPublicPromiseKeptRate(keptInputs) : null;
-  const kept: PublicProofMarker = {
-    key: "kept",
-    label: formatMessage({
-      id: "public.pool.impact.kept.label",
-      defaultMessage: "Commitments kept",
-    }),
-    note:
-      keptSelection?.kind === "rate"
-        ? formatMessage({
-            id: "public.pool.impact.kept.rateNote",
-            defaultMessage:
-              "Of all commitments taken up and not mutually released, including those still in progress.",
-          })
-        : formatMessage({
-            id: "public.pool.impact.kept.countsOnlyNote",
-            defaultMessage:
-              "Of all commitments taken up and not mutually released. Not enough yet for a fair percentage.",
-          }),
-    loading: isLoading,
-    unavailable: !isLoading && keptSelection === null,
-    ...(keptSelection?.kind === "rate"
-      ? {
-          value: formatKeptRate(formatNumber, keptSelection.rate.fulfilled, keptSelection.rate.due),
-        }
-      : keptSelection?.kind === "counts-only" && keptSelection.counts.due > 0n
-        ? {
-            value: formatMessage(
-              { id: "public.pool.impact.kept.countsOnly", defaultMessage: "{fulfilled} of {due}" },
-              {
-                fulfilled: formatNumber(keptSelection.counts.fulfilled),
-                due: formatNumber(keptSelection.counts.due),
-              }
-            ),
-          }
-        : {
-            phrase: formatMessage({
-              id: "public.pool.impact.kept.noneDue",
-              defaultMessage: "None due yet",
-            }),
-          }),
-  };
-
-  // G$ metadata comes from the shared asset registry (symbol + decimals); the
-  // figure is never rendered from base units or with guessed decimals. If the
-  // registry ever lacks the asset, the figure is unavailable rather than wrong.
-  const goodDollar = getCampaignCookieJarPayoutAssets(chainId).find(
-    (asset) => asset.id === "gooddollar"
-  );
-  const confirmedTotal = data?.confirmedDisbursementTotal ?? null;
+  const confirmedTotal = data?.confirmedDisbursementUsdCents ?? null;
   const support: PublicProofMarker = {
     key: "support",
     label: formatMessage({
       id: "public.pool.impact.support.label",
-      defaultMessage: "Support arrived",
+      defaultMessage: "Funding received (USD)",
     }),
     note: formatMessage({
       id: "public.pool.impact.support.note",
-      defaultMessage:
-        "G$ delivered to Gardens and confirmed on arrival. Support still on its way is not counted.",
+      defaultMessage: "Funding received by Gardens to support their communities’ work.",
     }),
     loading: isLoading,
-    unavailable: !isLoading && (confirmedTotal === null || !goodDollar),
-    ...(confirmedTotal !== null && goodDollar
-      ? confirmedTotal > 0n
+    unavailable: !isLoading && confirmedTotal === null,
+    ...(confirmedTotal !== null
+      ? (data?.confirmedDisbursementTotal ?? 0n) > 0n
         ? {
-            value: `${formatTokenAmount(confirmedTotal, goodDollar.decimals, 2, locale)} ${goodDollar.symbol}`,
+            value:
+              confirmedTotal === 0n
+                ? `<${formatUsdCents(1n, locale)}`
+                : formatUsdCents(confirmedTotal, locale),
           }
         : { phrase: noneYet }
       : {}),
@@ -181,7 +97,7 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
           <EditorialHeading id="public-impact-commitments-title" className="max-w-4xl">
             {formatMessage({
               id: "public.pool.impact.title",
-              defaultMessage: "Work that starts as a commitment kept.",
+              defaultMessage: "Commitments within communities",
             })}
           </EditorialHeading>
         </header>
@@ -190,24 +106,27 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
             opens the record, the footer line's hairline closes it. min-h keeps
             an unavailable or empty record holding its place (AD-11). */}
         <div className="mt-10 min-h-40">
-          <PublicProofMarkers layout="panel" markers={[openPools, fulfilled, kept, support]} />
+          <EditorialLede className="mb-10 max-w-3xl">
+            {formatMessage({
+              id: "public.pool.impact.lifecycle",
+              defaultMessage:
+                "Planting trees, maintaining solar panels, sharing skills. The work of a Garden starts with what its community needs and what people can offer. Commitments give that work a shared record: who will carry it out, when, and whether it was kept. Community members can follow what is happening in their Garden. Funders can see the work they help make possible.",
+            })}
+          </EditorialLede>
+          <PublicProofMarkers
+            layout="panel"
+            markers={[made, kept, support]}
+            unavailableDisplay="label"
+          />
           {data?.partialData || failed ? (
             <p role="status" className="mt-6 max-w-xl text-sm leading-relaxed text-text-sub-600">
               {formatMessage({
                 id: "public.pool.impact.partial",
-                defaultMessage:
-                  "Some commitment figures could not be loaded right now. Nothing is shown as zero in their place.",
+                defaultMessage: "Some figures are unavailable right now. Please check back soon.",
               })}
             </p>
           ) : null}
           <div className="mt-10 flex flex-col gap-5 border-t border-stroke-soft-200 pt-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
-            <EditorialLede className="max-w-2xl">
-              {formatMessage({
-                id: "public.pool.impact.lifecycle",
-                defaultMessage:
-                  "A commitment is offered or asked for, taken up, worked, witnessed, and confirmed by an eligible confirmer, usually the person it was made to. Fulfilled commitments join a Garden's record and can anchor an Impact Certificate.",
-              })}
-            </EditorialLede>
             <EditorialLinkArrow to="/gardens" className="shrink-0 self-start lg:self-auto">
               {formatMessage({
                 id: "public.pool.impact.seeGardens",
