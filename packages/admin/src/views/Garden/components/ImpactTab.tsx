@@ -3,6 +3,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenDetailTab } from "@green-goods/shared/types/garden-detail";
 import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { normalizeTimestamp } from "@green-goods/shared/utils/time";
 import { RiArrowRightSLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -281,7 +282,9 @@ export function ImpactTab({
                                 formatMessage({ id: "app.garden.admin.assessmentFallback" })}
                             </p>
                             <p className="mt-0.5 body-xs text-text-soft">
-                              {formatDate(assessment.createdAt, { dateStyle: "medium" })}
+                              {formatDate(normalizeTimestamp(assessment.createdAt), {
+                                dateStyle: "medium",
+                              })}
                             </p>
                           </div>
                           <RiArrowRightSLine className="mt-0.5 h-4 w-4 flex-shrink-0 text-text-disabled transition-colors group-hover:text-text-sub" />
