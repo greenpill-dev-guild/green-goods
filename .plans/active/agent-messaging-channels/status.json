@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-09-27T10:02:29.970Z"
+    "updated_at": "2026-09-30T05:13:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -27,7 +27,8 @@
     "final_brief_review": "reports/2026-09-26-final-brief-review.md",
     "final_brief_validation": "reports/2026-09-26-final-brief-validation.md",
     "accepted_review_decisions": "reports/2026-09-26-accepted-review-decisions.md",
-    "reporting_core_capability_record": "reports/2026-09-27-reporting-core-capability-record.md"
+    "reporting_core_capability_record": "reports/2026-09-27-reporting-core-capability-record.md",
+    "telegram_first_whatsapp_outlook": "reports/2026-09-29-telegram-first-whatsapp-outlook.md"
   },
   "notes": [
     "CURRENT EXECUTION CONTRACT: technical-brief.md sections 11–12, plan.todo.md Current build sequence and the current handoffs. Remaining notes preserve chronological decisions; later user decisions supersede historical scope statements.",
@@ -373,6 +374,14 @@
       "status": "tdd_recorded",
       "branch": "feature/agent-reporting-core",
       "note": "PR #2 ceremony hooks and pages; see handoffs/claude-ui.md"
+    },
+    {
+      "timestamp": "2026-09-30T05:13:00.000Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/agent-reporting-telegram",
+      "note": "WhatsApp account disabled; PR #3 adds the Telegram channel on the existing bot. The state_api lane itself stays on PR #2; see handoffs/claude-telegram-channel.md"
     }
   ],
   "taxonomy": {

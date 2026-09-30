@@ -32,15 +32,23 @@
 > architecture with WhatsApp, on the existing bot. See the
 > [capability record](reports/2026-09-27-reporting-core-capability-record.md), sections 5 to 7.
 
+> **29 September:** the WhatsApp Business account is disabled, so reporting runs on Telegram, on
+> the existing bot (PR #3, `feature/agent-reporting-telegram`). While `channel_telegram` is on,
+> reporting takes every private chat, `/start` included; groups stay with the bot. The local demo
+> runs on the production bot, with the browser step on the laptop. WhatsApp keeps its channel and
+> control, off, until its account works again. See the
+> [Telegram-first report](reports/2026-09-29-telegram-first-whatsapp-outlook.md) and the
+> [Telegram channel handoff](handoffs/claude-telegram-channel.md).
+
 **Feature slug:** agent-messaging-channels
 
 **Stage:** `active`
 
-**Status:** `ACTIVE — PR #2 (reporting core) in draft; Astra review, live gates and PR #3 (WhatsApp transport) pending`
+**Status:** `ACTIVE — PR #2 (reporting core) and PR #3 (Telegram channel) in draft; Astra review, live gates and the WhatsApp account pending`
 
 **Created:** 2026-04-17
 
-**Last updated:** 2026-09-27
+**Last updated:** 2026-09-29
 
 **Specification:** [current technical brief](technical-brief.md), with [earlier slice context](spec.md)
 
