@@ -14,7 +14,12 @@
  */
 
 import { claimActKey, type TxActPhase } from "../transactions/act-phase";
-import type { PoolClaimRequestRow } from "./types-core";
+import type { Address } from "../../types/domain";
+import type {
+  CommitmentClaimRequestRecord,
+  CommitmentReadModel,
+  PoolClaimRequestRow,
+} from "./types-core";
 
 /** A decision this steward made on one ask this visit. */
 export interface ClaimDecision {
@@ -79,6 +84,27 @@ export function reconcileWaitingVisit(
   return { entries, started: true };
 }
 
+/** This visit's decision on an ask, or an approval that closed it; null when neither. */
+function decidedHere(
+  key: string,
+  commitmentId: bigint,
+  decisions: ClaimDecisions
+): WaitingRowState | null {
+  const decision = decisions[key];
+  if (decision) return { status: decision.kind, at: decision.at };
+  const promise = commitmentId.toString();
+  const chosen = Object.values(decisions).find(
+    (other) => other.kind === "approved" && other.commitmentId === promise
+  );
+  return chosen ? { status: "not-chosen", at: chosen.at } : null;
+}
+
+/** An approval with the wallet or the chain, or one that failed and left the ask waiting. */
+function onTheLine(phase: TxActPhase): WaitingRowState | null {
+  const { status } = phase;
+  return status === "signing" || status === "confirming" || status === "failed" ? { status } : null;
+}
+
 /**
  * Where one ask stands this visit. `phase` is the approval line for this ask
  * (`actPhaseFor` over its key), idle when another ask holds the line.
@@ -87,17 +113,68 @@ export function waitingRowState(
   entry: WaitingVisitEntry,
   input: { live: ReadonlySet<string>; decisions: ClaimDecisions; phase: TxActPhase }
 ): WaitingRowState {
-  const decision = input.decisions[entry.key];
-  if (decision) return { status: decision.kind, at: decision.at };
-  const commitmentId = entry.row.claim.commitmentId.toString();
-  const chosen = Object.values(input.decisions).find(
-    (other) => other.kind === "approved" && other.commitmentId === commitmentId
+  return (
+    decidedHere(entry.key, entry.row.claim.commitmentId, input.decisions) ??
+    onTheLine(input.phase) ??
+    (input.live.has(entry.key) ? { status: "waiting", isNew: entry.isNew } : { status: "gone" })
   );
-  if (chosen) return { status: "not-chosen", at: chosen.at };
-  const { status } = input.phase;
-  if (status === "signing" || status === "confirming" || status === "failed") return { status };
-  if (!input.live.has(entry.key)) return { status: "gone" };
-  return { status: "waiting", isNew: entry.isNew };
+}
+
+/**
+ * Where an ask stands in its promise's inspector (D4): this visit's decision
+ * first, as it lands before the index moves; then the index's answer, which
+ * keeps a decided ask listed after the visit; then the approval line.
+ */
+export function askState(
+  claim: CommitmentClaimRequestRecord,
+  input: { decisions: ClaimDecisions; phase: TxActPhase }
+): WaitingRowState {
+  const here = decidedHere(
+    claimActKey(claim.commitmentId, claim.claimant),
+    claim.commitmentId,
+    input.decisions
+  );
+  if (here) return here;
+  const at = (claim.resolvedAt ?? claim.updatedAt) * 1000;
+  if (claim.state === "ACCEPTED") return { status: "approved", at };
+  if (claim.state === "DECLINED") return { status: "declined", at };
+  if (claim.state === "SUPERSEDED") return { status: "not-chosen", at };
+  return onTheLine(input.phase) ?? { status: "waiting", isNew: false };
+}
+
+/** What an asker already does in a pool: open promises they lead, against the limit, and kept ones. */
+export interface ClaimantStanding {
+  holding: number;
+  /** The pool's limit on open promises per person; 0 when none is set. */
+  cap: number;
+  kept: number;
+}
+
+const HELD: ReadonlySet<CommitmentReadModel["onchainState"]> = new Set([
+  "ACCEPTED",
+  "READY_FOR_CONFIRMATION",
+  "DISPUTED",
+]);
+
+/**
+ * The asker's standing as a provider in the pool, for deciding a request (D4):
+ * how many promises they lead that are still open, which is what the pool's
+ * limit counts, and how many they have kept.
+ */
+export function claimantStanding(
+  commitments: readonly CommitmentReadModel[],
+  claimant: Address,
+  cap: bigint | number
+): ClaimantStanding {
+  const who = claimant.toLowerCase();
+  let holding = 0;
+  let kept = 0;
+  for (const commitment of commitments) {
+    if (commitment.leadProvider?.toLowerCase() !== who) continue;
+    if (HELD.has(commitment.onchainState)) holding += 1;
+    if (commitment.onchainState === "FULFILLED") kept += 1;
+  }
+  return { holding, cap: Number(cap), kept };
 }
 
 /** An ask still open to a decision: waiting, in flight, or back after a failure. */

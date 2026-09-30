@@ -65,11 +65,13 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
   const { model } = pool;
 
   const openCommitment = useCallback(
-    (commitment: CommitmentReadModel) => {
+    (commitment: CommitmentReadModel, focus?: "waiting") => {
       navigate(
-        adminRoutes.gardenPoolCommitment(commitment.commitmentId.toString(), {
-          gardenId: garden.id,
-        })
+        adminRoutes.gardenPoolCommitment(
+          commitment.commitmentId.toString(),
+          { gardenId: garden.id },
+          { focus }
+        )
       );
     },
     [navigate, garden.id]
@@ -242,7 +244,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
           <PoolClaimsCard
             console={pool}
             onDecline={(row) => setReasonDialog({ kind: "decline-claim", row })}
-            onOpen={(row) => openCommitment(row.commitment)}
+            onOpen={(row) => openCommitment(row.commitment, "waiting")}
           />
         ) : null}
         {statusCard}

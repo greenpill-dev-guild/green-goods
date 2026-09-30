@@ -22,12 +22,14 @@ import type {
 } from "../../../modules/commitment-pooling/types";
 import type { TxActPhase } from "../../../modules/transactions/act-phase";
 import type {
+  ClaimantStanding,
   ClaimDecision,
   ClaimDecisions,
 } from "../../../modules/commitment-pooling/waiting-for-approval";
 import type { Address } from "../../../types/domain";
 import type { EASGardenAssessment } from "../../../types/eas-responses";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
+import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
 import type { PoolFundingSnapshot } from "../../../modules/commitment-pooling/pool-funding";
 import type {
   CommitmentSettlementChainState,
@@ -76,7 +78,7 @@ export interface PoolConsoleActs {
 /** Where a single-signature act started from a row stands. */
 export type { TxActPhase };
 /** A decision on an ask this visit, shared by the Pool tab and the inspector. */
-export type { ClaimDecision, ClaimDecisions };
+export type { ClaimantStanding, ClaimDecision, ClaimDecisions };
 
 export interface PoolConsoleController {
   chainId: number;
@@ -199,6 +201,8 @@ export interface CommitmentDialogController {
   detail: CommitmentDetail | null;
   title: string | null;
   note: string | null;
+  /** The promise's metadata document: its group and the reward as set, when it has them. */
+  metadata: CommitmentMetadataV1 | null;
   cycle: CommitmentCycleRecord | null;
   events: CommitmentEventRecord[];
   disputeReason: CommitmentReasonResolution;
@@ -218,8 +222,14 @@ export interface CommitmentDialogController {
   can: ReturnType<typeof selectCommitmentActPermissions>;
   reconciliation: CommitmentWorkReconciliation;
   acts: CommitmentDialogActs;
-  /** Where an Accept started from this claimant's row stands. */
+  /** Where an Approve started from this claimant's row stands, here or on the Pool tab. */
   claimPhase: (claimant: Address) => TxActPhase;
+  /** What the steward decided on asks this visit, by `claimActKey`, shared with the Pool tab. */
+  claimDecisions: ClaimDecisions;
+  /** An approval is with the wallet or the chain, from here or the Pool tab. */
+  claimInFlight: boolean;
+  /** What an asker already holds in the pool and has kept there; null until the pool is read. */
+  claimantStanding: (claimant: Address) => ClaimantStanding | null;
   /** Where Send for Confirmation stands. */
   sendPhase: TxActPhase;
   isActing: boolean;

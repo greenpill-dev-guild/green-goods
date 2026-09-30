@@ -5,6 +5,7 @@
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   availableCapability,
+  claimFixture,
   commitmentDetailFixture,
   commitmentFixture,
   contributorFixture,
@@ -32,6 +33,12 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/useCommitmentDialogController",
 // This view proves the confirmation flow; ENS resolution has its own coverage.
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: null }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: null }),
+}));
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => ({ data: [] }),
 }));
 
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -498,6 +505,83 @@ describe("CommitmentDialogPanel (W10)", () => {
     );
     fireEvent.click(within(review).getByRole("button", { name: /^confirm kept$/i }));
     await waitFor(() => expect(acts.confirmOrdinary).toHaveBeenCalledTimes(1));
+  });
+
+  it("lists who asked, with what a requester holds and has kept, and keeps an answered ask", () => {
+    const OTHER = "0x4444444444444444444444444444444444444444" as const;
+    const record = commitment({
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+      state: "REQUESTED",
+      direction: "REQUEST",
+      leadProvider: null,
+      counterparty: null,
+    });
+    mocks.controller = controller({
+      commitment: record,
+      detail: commitmentDetailFixture({
+        commitment: record,
+        claimRequests: [
+          claimFixture({
+            commitmentId: 9n,
+            claimant: OTHER,
+            state: "DECLINED",
+            resolvedAt: 1_755_950_000,
+          }),
+          claimFixture({ commitmentId: 9n, claimant: TAKER, requestedAt: 1_755_900_000 }),
+        ],
+      }),
+      can: can({ acceptClaim: true, declineClaim: true }),
+      claimantStanding: (who) =>
+        who.toLowerCase() === TAKER ? { holding: 1, cap: 3, kept: 2 } : null,
+    });
+    renderPanel();
+    const asks = within(screen.getByRole("region", { name: "Who asked" })).getAllByRole("listitem");
+
+    // The ask still waiting leads, with the asker's standing in the pool.
+    expect(asks[0]).toHaveAttribute("data-state", "waiting");
+    expect(asks[0]).toHaveTextContent("Holds 1 of 3 open promises here · Kept 2 here before");
+    fireEvent.click(within(asks[0]!).getByRole("button", { name: "Approve" }));
+    expect(mocks.controller.acts.acceptClaim).toHaveBeenCalledWith(TAKER);
+
+    // An answered ask stays listed with its outcome, and nothing to decide.
+    expect(asks[1]).toHaveAttribute("data-state", "declined");
+    expect(within(asks[1]!).getByText("Declined")).toBeInTheDocument();
+    expect(within(asks[1]!).queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("offers Edit Reward on a promise that stands alone, only while nobody has taken it", () => {
+    const untaken = {
+      onchainState: "REQUESTED" as const,
+      derivedState: "REQUESTED" as const,
+      state: "REQUESTED" as const,
+      considerationRail: "CELO_SETTLEMENT" as const,
+      considerationAmount: 38_865n * 10n ** 18n,
+    };
+    const editReward = () => screen.queryByRole("button", { name: "Edit Reward" });
+
+    mocks.controller = controller({ commitment: untaken });
+    const alone = renderPanel();
+    expect(editReward()).toBeInTheDocument();
+    alone.unmount();
+
+    // A copy in a group changes its reward from the group's inspector.
+    mocks.controller = controller({
+      commitment: untaken,
+      metadata: {
+        version: 1,
+        title: "Repair tool handles",
+        displayGroup: { version: 1, id: "group-00000001" },
+      },
+    });
+    const grouped = renderPanel();
+    expect(editReward()).not.toBeInTheDocument();
+    grouped.unmount();
+
+    // Once taken, the chain has locked the reward.
+    mocks.controller = controller({ commitment: { ...untaken, onchainState: "ACCEPTED" } });
+    renderPanel();
+    expect(editReward()).not.toBeInTheDocument();
   });
 
   it("sets Expire apart from the routine acts, in its own row", () => {

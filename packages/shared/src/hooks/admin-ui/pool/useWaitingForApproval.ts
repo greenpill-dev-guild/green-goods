@@ -12,6 +12,7 @@
 
 import { useState } from "react";
 import {
+  askState,
   claimRowKey,
   EMPTY_WAITING_VISIT,
   isStillWaiting,
@@ -22,8 +23,12 @@ import {
 import type { PoolClaimRequestRow } from "../../../modules/commitment-pooling/types-core";
 import type { PoolConsoleController, TxActPhase } from "./controller.types";
 
-/** The key an ask's approval and decision go by, for a caller that seeds them. */
-export { claimRowKey };
+/**
+ * The same reading for the promise's own inspector, where every ask on it is
+ * listed (`askState`); the key an ask's approval and decision go by, for a
+ * caller that seeds them; and whether a state is still open to a decision.
+ */
+export { askState, claimRowKey, isStillWaiting };
 export type { WaitingRowState };
 
 export interface WaitingRow {

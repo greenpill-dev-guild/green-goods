@@ -13,6 +13,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useClaimDecisions, useClaimDecisionVisit } from "../hooks/admin-ui/pool/useClaimDecisions";
 import { useWaitingForApproval } from "../hooks/admin-ui/pool/useWaitingForApproval";
 import {
+  askState,
+  claimantStanding,
   claimRowKey,
   EMPTY_WAITING_VISIT,
   isStillWaiting,
@@ -94,6 +96,56 @@ describe("the visit's rows", () => {
     expect(failed).toEqual({ status: "failed" });
     expect(isStillWaiting(failed)).toBe(true);
     expect(isStillWaiting({ status: "not-chosen", at: 1 })).toBe(false);
+  });
+});
+
+describe("an ask in its promise's inspector", () => {
+  it("reads this visit's decision first, then the index's answer, then the approval line", () => {
+    const pending = claimFixture({ commitmentId: 3n, claimant: KWAME });
+    const declined = claimFixture({
+      commitmentId: 3n,
+      claimant: LENA,
+      state: "DECLINED",
+      resolvedAt: 1_700,
+    });
+    const approvedHere = {
+      [claimRowKey(ines)]: { kind: "approved" as const, commitmentId: "3", at: 9_000 },
+    };
+    const key = claimRowKey(kwame);
+
+    expect(askState(pending, { decisions: {}, phase: IDLE_ACT_PHASE })).toEqual({
+      status: "waiting",
+      isNew: false,
+    });
+    expect(askState(pending, { decisions: {}, phase: { status: "failed", key } })).toEqual({
+      status: "failed",
+    });
+    // Another ask on the same promise was approved here, before the index says so.
+    expect(askState(pending, { decisions: approvedHere, phase: IDLE_ACT_PHASE })).toEqual({
+      status: "not-chosen",
+      at: 9_000,
+    });
+    expect(askState(declined, { decisions: {}, phase: IDLE_ACT_PHASE })).toEqual({
+      status: "declined",
+      at: 1_700_000,
+    });
+  });
+
+  it("counts what an asker leads and still holds against the pool's limit, and what they kept", () => {
+    const led = (onchainState: typeof ines.commitment.onchainState) =>
+      commitmentFixture({ onchainState, leadProvider: INES });
+    const standing = claimantStanding(
+      [
+        led("ACCEPTED"),
+        led("READY_FOR_CONFIRMATION"),
+        led("FULFILLED"),
+        led("CANCELLED"),
+        kwame.commitment,
+      ],
+      INES,
+      3n
+    );
+    expect(standing).toEqual({ holding: 2, cap: 3, kept: 1 });
   });
 });
 

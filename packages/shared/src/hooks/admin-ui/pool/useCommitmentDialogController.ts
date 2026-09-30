@@ -47,6 +47,7 @@ import { toActPhaseReport, useCommitmentJobs } from "../../commitment-pooling/us
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
+import { claimantStanding } from "../../../modules/commitment-pooling/waiting-for-approval";
 import { useClaimDecisions } from "./useClaimDecisions";
 import {
   actPhaseFor,
@@ -59,6 +60,7 @@ import {
   useCommitmentActivity,
   useCommitmentCycle,
   useCommitmentPools,
+  useCommitments,
 } from "../../commitment-pooling/useCommitmentPooling";
 import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQueueState";
 import { useCommitmentReason } from "../../commitment-pooling/useCommitmentReason";
@@ -97,6 +99,12 @@ export function useCommitmentDialogController(input: {
   const poolsQuery = useCommitmentPools({ chainId, garden }, { refreshWhileOpen: true });
   // .at(0) keeps the null honest in the type; [0] would claim a pool always exists.
   const pool = poolsQuery.pools.at(0) ?? null;
+  // The pool's promises, for what each asker already holds and has kept (D4);
+  // the same read as the Pool tab's, so it comes from its cache.
+  const poolCommitments = useCommitments(
+    { chainId, poolId: pool?.poolId },
+    { enabled: pool !== null }
+  );
   const cycleQuery = useCommitmentCycle(
     { chainId, cycleId: commitment?.cycleId ?? 0n },
     { enabled: Boolean(commitment?.cycleId && commitment.cycleId !== 0n), refreshWhileOpen: true }
@@ -413,6 +421,7 @@ export function useCommitmentDialogController(input: {
     detail,
     title: metadata?.title ?? null,
     note: metadata?.note ?? null,
+    metadata: metadata ?? null,
     cycle: cycleQuery.cycle,
     events: activity.events,
     disputeReason,
@@ -448,6 +457,13 @@ export function useCommitmentDialogController(input: {
     acts,
     claimPhase: (claimant: Address) =>
       actPhaseFor(claimDecisions.phase, claimActKey(commitmentId, claimant)),
+    claimDecisions: claimDecisions.decisions,
+    claimInFlight:
+      claimDecisions.phase.status === "signing" || claimDecisions.phase.status === "confirming",
+    claimantStanding: (claimant: Address) =>
+      pool && poolCommitments.data
+        ? claimantStanding(poolCommitments.commitments, claimant, pool.providerOpenCommitmentCap)
+        : null,
     sendPhase: actPhaseFor(sendAct.phase, sendForConfirmationActKey(commitmentId)),
     isActing: mutation.isPending || jobs.isPending,
     isLoading: detailQuery.isLoading || activity.isLoading || poolsQuery.isLoading,
