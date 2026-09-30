@@ -87,6 +87,42 @@ export const Interactive: Story = {
   },
 };
 
+/**
+ * A toast with a title, a message and an action: the status icon sits on the
+ * title's line, and the message and action run the toast's full width below it.
+ * The action's green is the text role, so it reads on the dark toast too.
+ */
+export const TitleMessageAndAction: Story = {
+  render: () => <ToastTrigger />,
+  play: async ({ canvasElement }) => {
+    toastService.error({
+      id: "title-message-action",
+      title: "Couldn't add proof",
+      message: "It's still saved on this phone. Try again here or from Your Work.",
+      action: { label: "Open Your Work", onClick: () => {} },
+      // Long enough to measure and capture; a persistent toast would add a close button.
+      duration: 60_000,
+    });
+    const body = await within(canvasElement).findByTestId("toast-content");
+    const title = within(body).getByText("Couldn't add proof");
+    const titleLine = title.parentElement as HTMLElement;
+    const icon = titleLine.querySelector("svg") as SVGElement;
+    const message = within(body).getByText(/still saved on this phone/);
+    const center = (box: DOMRect) => box.top + box.height / 2;
+    const iconBox = icon.getBoundingClientRect();
+    const titleBox = title.getBoundingClientRect();
+    await expect(Math.abs(center(iconBox) - center(titleBox))).toBeLessThanOrEqual(1);
+    // The message starts where the icon does, not after it.
+    await expect(message.getBoundingClientRect().left).toBe(iconBox.left);
+    const action = within(body).getByRole("button", { name: "Open Your Work" });
+    const probe = document.createElement("span");
+    probe.style.color = "var(--color-primary-on-surface)";
+    body.append(probe);
+    await expect(getComputedStyle(action).color).toBe(getComputedStyle(probe).color);
+    probe.remove();
+  },
+};
+
 export const DarkMode: Story = {
   decorators: [
     (Story) => (

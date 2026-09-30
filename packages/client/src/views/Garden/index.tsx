@@ -390,7 +390,12 @@ const Work: React.FC = () => {
               ? 5
               : Object.values(WorkTab).indexOf(activeTab) + 1
           }
-          steps={Object.values(WorkTab).slice(0, 4)}
+          steps={[
+            intl.formatMessage({ id: "app.work.step.start" }),
+            intl.formatMessage({ id: "app.work.step.media" }),
+            intl.formatMessage({ id: "app.work.step.details" }),
+            intl.formatMessage({ id: "app.work.step.review" }),
+          ]}
         />
       </TopNav>
       <form

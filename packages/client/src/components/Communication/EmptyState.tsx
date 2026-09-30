@@ -31,6 +31,8 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
+      // A failed read replaces the content, so it is announced like any error.
+      role={tone === "error" ? "alert" : undefined}
       className={cn(
         "flex min-h-[12rem] flex-col items-center px-6 text-center",
         placement === "sheet"

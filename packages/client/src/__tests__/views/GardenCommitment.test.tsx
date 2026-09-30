@@ -874,7 +874,8 @@ describe("GardenCommitment", () => {
     );
     render();
     expect(screen.queryByText(/your last act here is waiting/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/your take-up waits for your garden membership/i)).toBeInTheDocument();
+    expect(screen.getByText("Waiting for your membership")).toBeInTheDocument();
+    expect(screen.getByText(/sends once your garden membership lands/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Send Now" }));
     expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
     await userEvent.click(screen.getByRole("button", { name: "Discard" }));
@@ -902,7 +903,7 @@ describe("GardenCommitment", () => {
     );
     render();
     // A discard now could delete the record of a transaction about to broadcast.
-    expect(screen.getByText(/your take-up is being sent from this phone/i)).toBeInTheDocument();
+    expect(screen.getByText("Sending from this phone")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send Now" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Discard" })).toBeDisabled();
   });
@@ -951,7 +952,10 @@ describe("GardenCommitment", () => {
       })
     );
     render();
-    expect(screen.getByText(/your take-up has left this phone/i)).toBeInTheDocument();
+    expect(screen.getByText("May already be sent")).toBeInTheDocument();
+    expect(
+      screen.getByText(/can't be discarded or sent twice while we check/i)
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Check Again" }));
     expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");

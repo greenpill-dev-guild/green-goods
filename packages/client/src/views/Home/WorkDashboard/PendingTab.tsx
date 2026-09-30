@@ -217,7 +217,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
               id: "app.workDashboard.pendingFilter.label",
               defaultMessage: "Pending work filter",
             })}
-            controlSize="sm"
+            controlSize="compact"
             density="condensed"
             className="w-auto min-w-16 max-w-48 field-sizing-content"
             value={pendingFilter}

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
 import { Button } from "./Button";
 import { Alert } from "./Alert";
 
@@ -69,5 +69,56 @@ export const WithAction: Story = {
         Refresh
       </Button>
     ),
+  },
+};
+
+/**
+ * The stacked layout: the icon and title share a line, and the body and action
+ * run the full width below. The body keeps two lines, so notices that replace
+ * each other on a page (saved, not sent, may already be sent) share one height.
+ */
+export const StackedNotices: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div className="flex w-[360px] max-w-full flex-col gap-3">
+      <Alert variant="warning" layout="stacked" title="Saved on this phone, not sent">
+        It sends when you're connected.
+      </Alert>
+      <Alert
+        variant="error"
+        layout="stacked"
+        title="The send gave up"
+        action={
+          <div className="grid grid-cols-2 gap-2">
+            <Button size="sm" emphasis="secondary">
+              Discard
+            </Button>
+            <Button size="sm">Try Again</Button>
+          </div>
+        }
+      >
+        It stopped after several tries. Nothing else is affected.
+      </Alert>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const saved = canvas.getByRole("status");
+    const failed = canvas.getByRole("alert");
+    const center = (element: Element) => {
+      const box = element.getBoundingClientRect();
+      return box.top + box.height / 2;
+    };
+    // The icon sits on the title's line.
+    for (const notice of [saved, failed]) {
+      const title = within(notice).getByText(/Saved on this phone|The send gave up/);
+      const icon = notice.querySelector("svg");
+      await expect(icon).not.toBeNull();
+      await expect(Math.abs(center(icon as Element) - center(title))).toBeLessThanOrEqual(1);
+    }
+    // A one-line body still takes two lines.
+    const body = within(saved).getByText("It sends when you're connected.");
+    const lineHeight = Number.parseFloat(getComputedStyle(body).lineHeight);
+    await expect(body.getBoundingClientRect().height).toBe(lineHeight * 2);
   },
 };

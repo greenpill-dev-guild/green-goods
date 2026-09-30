@@ -1,23 +1,45 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiArrowRightSLine, RiCheckFill } from "@remixicon/react";
+import { RiCheckFill } from "@remixicon/react";
+import { useIntl } from "react-intl";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface FormProgressProps {
   currentStep: number;
+  /** Each step's name, shown under its marker. */
   steps: string[];
 }
 
+/**
+ * A flow's steps in its top bar: a numbered marker per step with the step's name
+ * under it, joined by lines that fill as steps complete. Submit Work, proof and
+ * compose share it, so every flow names its steps (D6).
+ */
 export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
+  const { formatMessage } = useIntl();
   return (
-    <div className="relative flex flex-row gap-x-2">
+    <ol aria-label={formatMessage({ id: "app.form.progress.label" })} className="flex items-start">
       {steps.map((step, index) => {
         const isCurrentStep = currentStep === index + 1;
         const isCompletedStep = currentStep > index + 1;
         return (
-          <div key={step} className="flex flex-col justify-center items-center flex-1 group">
-            <div className="inline-flex items-center text-xs align-middle">
+          <li
+            key={step}
+            aria-current={isCurrentStep ? "step" : undefined}
+            className={cn("flex items-start gap-1", index > 0 && "ms-1")}
+          >
+            {index > 0 ? (
               <span
-                aria-current={isCurrentStep ? "step" : undefined}
+                aria-hidden="true"
+                className={cn(
+                  "mt-3 h-px w-4 shrink-0",
+                  isCompletedStep || isCurrentStep
+                    ? pwaStatusStyles.success.progress
+                    : pwaStatusStyles.neutral.progress
+                )}
+              />
+            ) : null}
+            <span className="flex min-w-14 flex-col items-center gap-1">
+              <span
                 className={cn(
                   "relative grid h-6 w-6 place-items-center rounded-full border border-stroke-soft-200 text-xs font-medium transition-[color,border-color,background-color] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
                   isCompletedStep && cn(pwaStatusStyles.success.badge, "border-0"),
@@ -25,30 +47,33 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
                 )}
               >
                 {isCompletedStep ? (
-                  <RiCheckFill className={cn("w-3 h-3", pwaStatusStyles.success.foreground)} />
+                  <RiCheckFill
+                    aria-hidden="true"
+                    className={cn("w-3 h-3", pwaStatusStyles.success.foreground)}
+                  />
                 ) : (
-                  <span className={cn(!isCurrentStep && pwaStatusStyles.neutral.foreground)}>
+                  <span
+                    aria-hidden="true"
+                    className={cn(!isCurrentStep && pwaStatusStyles.neutral.foreground)}
+                  >
                     {index + 1}
                   </span>
                 )}
               </span>
-              <div
+              <span
                 className={cn(
-                  currentStep > index + 1
-                    ? pwaStatusStyles.success.progress
-                    : pwaStatusStyles.neutral.progress,
-                  "ms-2 w-full h-px flex-1 group-last:hidden"
+                  "whitespace-nowrap text-[11px] leading-[14px]",
+                  isCurrentStep
+                    ? "font-semibold text-text-strong-950"
+                    : "font-medium text-text-sub-600"
                 )}
-              />
-              {index < steps.length - 1 && (
-                <div>
-                  <RiArrowRightSLine className="w-4 text-text-soft-400" />
-                </div>
-              )}
-            </div>
-          </div>
+              >
+                {step}
+              </span>
+            </span>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 };

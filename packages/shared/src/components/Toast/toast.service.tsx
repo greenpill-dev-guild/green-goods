@@ -1,3 +1,9 @@
+import {
+  RiCheckboxCircleFill,
+  RiErrorWarningFill,
+  RiInformationLine,
+  RiLoader4Line,
+} from "@remixicon/react";
 import type { ReactNode } from "react";
 import * as React from "react";
 import toast, { type Toast as HotToast, type ToastOptions } from "react-hot-toast";
@@ -86,6 +92,8 @@ interface ResolvedToastDescriptor {
 interface ToastMessageProps {
   title?: string;
   message: string;
+  /** Replaces the status icon; `null` shows none. */
+  icon?: ReactNode;
   description?: string;
   action?: ToastAction;
   toastId?: string;
@@ -131,15 +139,49 @@ const STATUS_ARIA_ROLE: Record<ToastStatus, "status" | "alert"> = {
 
 // The shared Button carries its own finger box (48px in the app, 44px in the
 // cockpit; DL-031), so the action keeps the surface's sm height and only widens
-// to a 44px minimum for one-word labels.
+// to a 44px minimum for one-word labels. Its green is text on a surface, so it
+// takes the text role (DL-053): the action fill green read 3.45:1 on the dark
+// toast.
 const ACTION_BUTTON_STYLE: React.CSSProperties = {
-  color: "rgb(var(--tone-action, var(--primary-action)))",
+  color: "var(--color-primary-on-surface)",
   maxWidth: "100%",
   minWidth: "44px",
   overflowWrap: "anywhere",
   paddingInline: "0.25rem",
   whiteSpace: "normal",
 };
+
+// The public website's editorial toast keeps its icon in the deep editorial ink.
+const EDITORIAL_ICON_CLASS =
+  "[.gg-toast-editorial_&]:text-[rgb(var(--editorial-deep-rgb,45_33_24))]";
+
+/**
+ * The status icon a toast shows on its title's line (D23): Remix glyphs on the
+ * status tokens, so they follow the theme. The text and the live region carry
+ * the status, so the icon is hidden from assistive technology.
+ */
+function StatusIcon({ status }: { status: ToastStatus }) {
+  const className = cn("h-5 w-5 shrink-0", EDITORIAL_ICON_CLASS);
+  switch (status) {
+    case "success":
+      return (
+        <RiCheckboxCircleFill aria-hidden="true" className={cn(className, "text-success-base")} />
+      );
+    case "error":
+      return <RiErrorWarningFill aria-hidden="true" className={cn(className, "text-error-base")} />;
+    case "loading":
+      return (
+        <RiLoader4Line
+          aria-hidden="true"
+          className={cn(className, "animate-spin text-text-sub-600")}
+        />
+      );
+    default:
+      return (
+        <RiInformationLine aria-hidden="true" className={cn(className, "text-information-base")} />
+      );
+  }
+}
 
 /**
  * Self-managed auto-dismiss timers.
@@ -442,6 +484,7 @@ function logDiagnostics(resolved: ResolvedToastDescriptor) {
 function ToastMessage({
   title,
   message,
+  icon,
   description,
   action,
   toastId,
@@ -560,8 +603,17 @@ function ToastMessage({
       {...pauseHandlers}
     >
       {closeButton}
-      {title ? <p className="text-sm font-semibold leading-tight">{title}</p> : null}
-      <p className="text-sm leading-snug">{message}</p>
+      {/* The status icon shares the title's line (the message's, when there is
+          no title); everything below it runs the toast's full width (D23). */}
+      <div className="flex items-start gap-2">
+        {icon === undefined ? <StatusIcon status={status} /> : icon}
+        {title ? (
+          <p className="min-w-0 text-sm font-semibold">{title}</p>
+        ) : (
+          <p className="min-w-0 text-sm leading-snug">{message}</p>
+        )}
+      </div>
+      {title ? <p className="text-sm leading-snug">{message}</p> : null}
       {description ? (
         <p className="text-xs leading-snug text-[color:var(--color-text-sub-600)]">{description}</p>
       ) : null}
@@ -644,6 +696,7 @@ function DebugToastMessage({
     <ToastMessage
       title={resolved.title}
       message={resolved.message}
+      icon={resolved.icon}
       description={resolved.description}
       action={resolved.action}
       status={resolved.status}
@@ -678,10 +731,10 @@ function showToast(descriptor: ToastDescriptor) {
       role: STATUS_ARIA_ROLE[resolved.status],
       "aria-live": resolved.status === "error" ? "assertive" : "polite",
     },
+    // The message draws its status icon on the title's line (D23), so the
+    // library's own icon column stays empty under any Toaster.
+    icon: null,
   };
-  if (typeof resolved.icon !== "undefined") {
-    toastOptions.icon = resolved.icon as any;
-  }
 
   // Prepare clipboard text for debug mode
   const clipboardText = formatErrorForClipboard(
@@ -714,6 +767,7 @@ function showToast(descriptor: ToastDescriptor) {
       <ToastMessage
         title={resolved.title}
         message={resolved.message}
+        icon={resolved.icon}
         description={resolved.description}
         action={resolved.action}
         status={resolved.status}
