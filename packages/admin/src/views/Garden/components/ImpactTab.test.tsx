@@ -87,4 +87,14 @@ describe("ImpactTab", () => {
 
     expect(screen.getAllByRole("link", { name: "View All" })).toHaveLength(1);
   });
+
+  it("dates a recent assessment by when EAS recorded it, in Unix seconds", () => {
+    // Noon local time reads as Sep 23 in every time zone.
+    const recordedAtSeconds = new Date(2026, 8, 23, 12).getTime() / 1000;
+    renderImpact({
+      assessments: [{ id: "a-1", title: "Canopy baseline", createdAt: recordedAtSeconds }],
+    });
+
+    expect(screen.getByText("Sep 23, 2026")).toBeInTheDocument();
+  });
 });
