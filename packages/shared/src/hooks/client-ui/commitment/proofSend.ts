@@ -181,3 +181,35 @@ export function followBackgroundProof({
   timer = setTimeout(() => end("undecided"), followForMs);
   return stop;
 }
+
+/**
+ * Add and Send's second act, queued with the proof and waiting for it, followed
+ * from the moment the queue took both. The background flush sends it right after
+ * the proof, so its end is heard from now, over two sends' time; a wallet reader
+ * is asked for it once the proof has landed. The returned call resolves true
+ * only for a send that landed: one still queued, or one that failed, leaves the
+ * promise to say where it stands.
+ */
+export function followSecondAct({
+  jobId,
+  owner,
+  byFlush,
+  sendNow,
+}: {
+  jobId: string | null;
+  owner: string;
+  byFlush: boolean;
+  sendNow: (jobId: string) => Promise<"landed" | "queued">;
+}): () => Promise<boolean> {
+  if (!jobId) return async () => false;
+  if (!byFlush)
+    return () =>
+      sendNow(jobId).then(
+        (outcome) => outcome === "landed",
+        () => false
+      );
+  const ended = new Promise<BackgroundProofOutcome>((onEnd) => {
+    followBackgroundProof({ jobId, owner, onEnd, followForMs: 2 * FOLLOW_FOR_MS });
+  });
+  return async () => (await ended) === "landed";
+}

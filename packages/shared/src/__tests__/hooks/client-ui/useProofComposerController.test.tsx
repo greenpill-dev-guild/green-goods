@@ -178,6 +178,7 @@ vi.mock("../../../components/Toast/presets/proof", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.sendQueued.mockResolvedValue("landed");
   mocks.viewer = TUNDE;
   mocks.isOnline = true;
   mocks.query.detail = detail;
@@ -608,6 +609,60 @@ describe("useProofComposerController", () => {
       });
 
       await waitFor(() => expect(mocks.toasts[toast]).toHaveBeenCalledWith(...args));
+      expect(mocks.sendQueued).not.toHaveBeenCalled();
+    });
+
+    it("says sent only once the second act has landed, not while it waits in the queue", async () => {
+      mocks.sendQueued.mockResolvedValue("queued");
+      const { result } = readyToSend();
+      act(() => result.current.setSendToo(true));
+      mocks.enqueue.mockImplementation(async ({ report }) => {
+        report?.({ stage: "admitted", jobId: "job-1", followUpJobId: "job-2" });
+        report?.({ stage: "landed", txHash: "0x123" });
+        return "job-1";
+      });
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      await waitFor(() =>
+        expect(mocks.toasts.added).toHaveBeenCalledWith({ sent: false, leads: true })
+      );
+    });
+
+    it("hears the background flush's second act from admission, and says sent once it lands", async () => {
+      mocks.sendsFromTap = false;
+      const { result } = readyToSend();
+      act(() => result.current.setSendToo(true));
+      mocks.enqueue.mockImplementation(async ({ report }) => {
+        report?.({ stage: "admitted", jobId: "job-1", followUpJobId: "job-2" });
+        report?.({ stage: "queued" });
+        return "job-1";
+      });
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      // One flush lands the proof, then its send, before anything reads its outcome.
+      const job = (id: string) => ({ id, kind: "evidence", payload: {} }) as unknown as Job;
+      act(() => {
+        jobQueueEventBus.emit("job:completed", {
+          jobId: "job-1",
+          job: job("job-1"),
+          txHash: "0x1",
+        });
+        jobQueueEventBus.emit("job:processing", { jobId: "job-2", job: job("job-2") });
+        jobQueueEventBus.emit("job:completed", {
+          jobId: "job-2",
+          job: job("job-2"),
+          txHash: "0x2",
+        });
+      });
+
+      await waitFor(() =>
+        expect(mocks.toasts.added).toHaveBeenCalledWith({ sent: true, leads: true })
+      );
       expect(mocks.sendQueued).not.toHaveBeenCalled();
     });
   });

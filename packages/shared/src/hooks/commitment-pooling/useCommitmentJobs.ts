@@ -123,6 +123,11 @@ function queueAct(input: CommitmentJobInput, owner: Address, chainId: number): P
  * send is kept whatever happens to this screen: an offline add, a reload, a try
  * the queue repeats. The queue refuses a second, different send for the same
  * promise, so a send already queued there stands and this one is left out.
+ *
+ * Any other refusal takes the proof back out of the queue and rejects, so Add
+ * and Send never quietly becomes Add: the form stays with its draft. Only a
+ * proof already on its way, which can't be taken back, goes on alone, and the
+ * promise then offers the send.
  */
 async function queueSendAfterProof(
   proof: EvidenceJobPayload,
@@ -143,8 +148,11 @@ async function queueSendAfterProof(
       { chainId }
     );
   } catch (error) {
-    logger.warn("[useCommitmentJobs] Add and Send's send was not queued", {
-      error: error instanceof Error ? error.message : String(error),
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.startsWith("offline_job_identity_conflict:")) return undefined;
+    if (await jobQueue.discardJob(proofJobId).catch(() => false)) throw error;
+    logger.warn("[useCommitmentJobs] Add and Send's send was not queued; the proof goes alone", {
+      error: message,
     });
     return undefined;
   }

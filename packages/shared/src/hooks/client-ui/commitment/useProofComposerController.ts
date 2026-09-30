@@ -54,7 +54,13 @@ import type {
   ProofRosterMember,
 } from "./proof-controller.types";
 import { proofContentsOf } from "./proofContents";
-import { followBackgroundProof, proofSendKey, settleProofSend, startProofSend } from "./proofSend";
+import {
+  followBackgroundProof,
+  followSecondAct,
+  proofSendKey,
+  settleProofSend,
+  startProofSend,
+} from "./proofSend";
 import { type ProofBeat, selectProofReadiness, selectSendTooOffered } from "./proofReadiness";
 
 export interface UseProofComposerControllerInput {
@@ -277,8 +283,8 @@ export function useProofComposerController(
     const leads = seat === "provider";
     // Written by the send's reports; typed here, not narrowed to their first values.
     let admittedJobId = null as string | null;
-    // Add and Send's send, queued behind the proof when the queue took it.
-    let sendJobId = null as string | null;
+    // Add and Send's second act, followed once the queue holds it (followSecondAct).
+    let secondActSent = null as (() => Promise<boolean>) | null;
     // How the tap's own send ended, when it ended here.
     let ended = null as "landed" | "declined" | null;
     let queuedReason = undefined as string | undefined;
@@ -296,23 +302,11 @@ export function useProofComposerController(
         contents: proofContentsOf({ media, audioNotes, links, note }),
         baseline: record.evidenceCount,
       });
-    // The second act was queued with the proof and waited for it. Now the proof
-    // has landed it goes: a wallet is asked for the second signature here, and
-    // anyone else's goes with the background flush. With no send queued, or one
-    // that failed, Send for Confirmation stays on the promise.
-    const sendForConfirmation = async () => {
-      const sent = sendJobId
-        ? await jobs.sendQueued({ jobId: sendJobId, commitmentId: record.commitmentId }).then(
-            () => true,
-            () => false
-          )
-        : false;
-      toasts.added({ sent, leads });
-    };
+    // The proof is on the record now, whatever its second act does next; the
+    // toast says sent only once that act has landed too.
     const proofLanded = async () => {
-      if (withSend) await sendForConfirmation();
-      else toasts.added({ sent: false, leads });
       settleProofSend(sendKey, { landed: true });
+      toasts.added({ sent: secondActSent ? await secondActSent() : false, leads });
     };
     const sendOver = () => settleProofSend(sendKey, { landed: false });
     // A passkey or embedded sign-in leaves the send to the background flush,
@@ -351,9 +345,15 @@ export function useProofComposerController(
       switch (event.stage) {
         case "admitted":
           admittedJobId = event.jobId;
-          sendJobId = event.followUpJobId ?? null;
           letGo();
-          if (flushSends && viewer) followFlush(event.jobId, viewer);
+          if (withSend)
+            secondActSent = followSecondAct({
+              jobId: event.followUpJobId ?? null,
+              owner: viewer,
+              byFlush: flushSends,
+              sendNow: (jobId) => jobs.sendQueued({ jobId, commitmentId: record.commitmentId }),
+            });
+          if (flushSends) followFlush(event.jobId, viewer);
           return;
         case "confirming":
           onItsWay();

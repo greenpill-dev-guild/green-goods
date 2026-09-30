@@ -284,14 +284,38 @@ describe("useCommitmentJobs", () => {
         expect(mocks.processJob).toHaveBeenCalledWith("job-1", expect.anything());
       });
 
-      it("still adds the proof when the queue already holds another send for the promise", async () => {
-        mocks.addJob
-          .mockResolvedValueOnce("job-1")
-          .mockRejectedValueOnce(new Error("offline_job_identity_conflict:confirmation:submit:9"));
+      it.each([
+        // That send stands, so there is nothing to take back.
+        [
+          "the queue already holds another send for the promise",
+          "offline_job_identity_conflict:confirmation:submit:9",
+          0,
+        ],
+        ["the proof is already on its way and can't be taken back", "QuotaExceededError", 1],
+      ] as const)("still adds the proof alone when %s", async (_case, refusal, takeBacks) => {
+        mocks.addJob.mockResolvedValueOnce("job-1").mockRejectedValueOnce(new Error(refusal));
+        mocks.discardJob.mockResolvedValue(false);
         const report = vi.fn();
 
         await expect(jobs().current.enqueue({ ...proof, report })).resolves.toBe("job-1");
         expect(report.mock.calls[0]?.[0]).toEqual({ stage: "admitted", jobId: "job-1" });
+        expect(mocks.discardJob).toHaveBeenCalledTimes(takeBacks);
+      });
+
+      it("takes the proof back out when its send can't be queued, so Add and Send never quietly becomes Add", async () => {
+        mocks.addJob
+          .mockResolvedValueOnce("job-1")
+          .mockRejectedValueOnce(new Error("QuotaExceededError"));
+        mocks.discardJob.mockResolvedValue(true);
+        const report = vi.fn();
+
+        await expect(jobs().current.enqueue({ ...proof, report })).rejects.toThrow(
+          "QuotaExceededError"
+        );
+        // Never admitted: the form keeps its draft.
+        expect(mocks.discardJob).toHaveBeenCalledWith("job-1");
+        expect(report).not.toHaveBeenCalled();
+        expect(mocks.processJob).not.toHaveBeenCalled();
       });
 
       it.each([
