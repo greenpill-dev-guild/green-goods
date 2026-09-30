@@ -46,7 +46,7 @@ export const JOURNEY_NAMES: Readonly<Record<string, string>> = {
  * preview freezes the clock when it loads, before any story module does, so
  * this reads the frozen day wherever a story calls it.
  */
-function todayAt(hours: number, minutes: number): number {
+export function todayAt(hours: number, minutes: number): number {
   const at = new Date(Date.now());
   at.setHours(hours, minutes, 0, 0);
   return at.getTime();
@@ -314,7 +314,7 @@ export function gardenPoolControllerFixture(
 }
 
 /** Riverside Commons as a garden record: Amara and Dele garden there, Tomás stewards it. */
-const JOURNEY_GARDEN_RECORD: Garden = {
+export const JOURNEY_GARDEN_RECORD: Garden = {
   id: JOURNEY_GARDEN,
   chainId: 42161,
   tokenAddress: JOURNEY_GARDEN,
@@ -334,7 +334,7 @@ const JOURNEY_GARDEN_RECORD: Garden = {
   works: [],
 };
 
-const FENCE_TITLE = "Repair the north fence panel by the compost bays before the first frost";
+export const FENCE_TITLE = "Repair the north fence panel by the compost bays before the first frost";
 const FENCE_PROOF_CID = "bafy-fence-proof";
 /** Noon UTC on Oct 20, 2026. */
 const OCT_20 = 1_792_497_600n;
@@ -565,7 +565,7 @@ export function promisePageFixture(stage: PromiseStage): {
 }
 
 /** One of the fence sketches as a file on the phone, as the composer holds it. */
-function fenceFile(name: string, leaning: boolean): File {
+export function fenceFile(name: string, leaning: boolean): File {
   const svg = decodeURIComponent(fenceSketch(leaning).slice("data:image/svg+xml;utf8,".length));
   return new File([svg], name, { type: "image/svg+xml" });
 }

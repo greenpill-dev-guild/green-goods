@@ -19,6 +19,7 @@ import {
   type ProofDraftRepository,
   proofDraftRepository,
 } from "../../modules/commitment-pooling/proof-draft-repository";
+import { isVideoFile } from "../../modules/work/media-processing";
 import {
   type CommitmentProofDraft,
   commitmentProofDraftKey,
@@ -40,7 +41,7 @@ export interface CommitmentProofDraftHandle {
   savedFiles: ProofDraftFiles | null;
   /** False until the files have been read back, so a form does not start empty and then fill. */
   isRestored: boolean;
-  saveWords: (draft: Omit<CommitmentProofDraft, "updatedAt">) => void;
+  saveWords: (draft: Omit<CommitmentProofDraft, "updatedAt" | "files">) => void;
   saveFiles: (files: ProofDraftFiles) => Promise<void>;
   clear: () => Promise<void>;
 }
@@ -62,6 +63,7 @@ export function useCommitmentProofDraft(input: {
       : null;
   const drafts = useCommitmentProofDraftStore((state) => state.drafts);
   const saveDraft = useCommitmentProofDraftStore((state) => state.saveDraft);
+  const recordFiles = useCommitmentProofDraftStore((state) => state.recordFiles);
   const clearDraft = useCommitmentProofDraftStore((state) => state.clearDraft);
   const saved = key ? drafts[key] : undefined;
 
@@ -87,7 +89,7 @@ export function useCommitmentProofDraft(input: {
   }, [key, repository]);
 
   const saveWords = useCallback(
-    (draft: Omit<CommitmentProofDraft, "updatedAt">) => {
+    (draft: Omit<CommitmentProofDraft, "updatedAt" | "files">) => {
       if (key) saveDraft(key, draft);
     },
     [key, saveDraft]
@@ -97,8 +99,14 @@ export function useCommitmentProofDraft(input: {
     async (files: ProofDraftFiles) => {
       if (!key) return;
       await repository.save(key, [...files.media, ...files.audioNotes]);
+      const videos = files.media.filter((file) => isVideoFile(file)).length;
+      recordFiles(key, {
+        photos: files.media.length - videos,
+        videos,
+        voiceNotes: files.audioNotes.length,
+      });
     },
-    [key, repository]
+    [key, recordFiles, repository]
   );
 
   const clear = useCallback(async () => {
@@ -120,7 +128,7 @@ export function useProofDraftSync(
   draft: CommitmentProofDraftHandle,
   input: {
     queued: boolean;
-    words: Omit<CommitmentProofDraft, "updatedAt">;
+    words: Omit<CommitmentProofDraft, "updatedAt" | "files">;
     files: ProofDraftFiles;
     onRestore: (files: ProofDraftFiles) => void;
   }

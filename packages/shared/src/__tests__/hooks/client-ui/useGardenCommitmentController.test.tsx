@@ -80,6 +80,8 @@ const mocks = vi.hoisted(() => ({
     pendingActs: new Map(),
     hasPendingCreate: false,
     pendingCreates: [],
+    proofJobs: [],
+    linkedWorkIds: new Set<string>(),
     isUnavailable: false,
     refresh: vi.fn(),
   },

@@ -194,6 +194,8 @@ function queueState(overrides: Partial<CommitmentQueueState> = {}): CommitmentQu
     pendingActs: new Map(),
     hasPendingCreate: false,
     pendingCreates: [],
+    proofJobs: [],
+    linkedWorkIds: new Set<string>(),
     isUnavailable: false,
     refresh: vi.fn(),
     ...overrides,

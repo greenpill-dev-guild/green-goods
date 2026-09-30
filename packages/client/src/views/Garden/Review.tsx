@@ -9,18 +9,11 @@ import {
 import type { Action, Garden, WorkInput } from "@green-goods/shared/types/domain";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import {
-  RiCloseLine,
-  RiFileFill,
-  RiHandHeartLine,
-  RiPencilFill,
-  RiTimeFill,
-} from "@remixicon/react";
-import { useMemo } from "react";
+import { RiCheckboxCircleFill, RiFileFill, RiPencilFill, RiTimeFill } from "@remixicon/react";
+import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { PendingPhotoTile, type PendingPhotoState, WorkView } from "@/components/Features/Work";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import type { WorkCommitmentChoice } from "./WorkCommitmentSelection";
 
 /** Stable tracking ID for work draft media URLs (shared with Media.tsx) */
 
@@ -55,8 +48,8 @@ interface WorkReviewProps {
   onRemoveBrokenMedia?: (surface: "review") => void;
   heicStateOf?: (file: File) => PendingPhotoState | undefined;
   onRetryHeicConversion?: (file: File) => void;
-  commitmentSelection?: WorkCommitmentChoice | null;
-  onClearCommitment?: () => void;
+  /** The promise this work is for, after the heading; its sheet can unlink it (D16, O9). */
+  pinned?: ReactNode;
 }
 
 export const WorkReview: React.FC<WorkReviewProps> = ({
@@ -73,8 +66,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   onRemoveBrokenMedia,
   heicStateOf,
   onRetryHeicConversion,
-  commitmentSelection = null,
-  onClearCommitment,
+  pinned = null,
 }) => {
   const intl = useIntl();
   const reviewTitle =
@@ -205,57 +197,13 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
         media={photoUrls}
         showMedia={photoUrls.length > 0}
         details={details}
-        headerIcon={RiFileFill}
+        headerIcon={RiCheckboxCircleFill}
         primaryActions={[]}
-        fulfills={
-          commitmentSelection ? (
-            <section
-              className="rounded-[var(--radius-lg)] border border-primary-alpha-24 bg-primary-alpha-10 p-3"
-              aria-label={intl.formatMessage({
-                id: "app.garden.commitment.fulfills",
-                defaultMessage: "Fulfills",
-              })}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-2">
-                  <RiHandHeartLine className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-text-sub-600">
-                      {intl.formatMessage({
-                        id: "app.garden.commitment.fulfills",
-                        defaultMessage: "Fulfills",
-                      })}
-                    </p>
-                    <p className="text-sm font-medium text-text-strong-950">
-                      {intl.formatMessage(
-                        {
-                          id: "app.garden.commitment.fulfillsValue",
-                          defaultMessage: "{commitment} · requirement {requirement}",
-                        },
-                        {
-                          commitment: commitmentSelection.title,
-                          requirement: commitmentSelection.requirementIndex + 1,
-                        }
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  emphasis="tertiary"
-                  size="compact"
-                  onClick={onClearCommitment}
-                  leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
-                  className="shrink-0"
-                >
-                  {intl.formatMessage({
-                    id: "app.garden.commitment.none",
-                    defaultMessage: "Not for a Promise",
-                  })}
-                </Button>
-              </div>
-            </section>
-          ) : null
+        afterHeading={pinned}
+        afterDetails={
+          <p className="text-xs text-text-sub-600">
+            {intl.formatMessage({ id: "app.garden.review.staysNote" })}
+          </p>
         }
         onMediaError={(mediaUrl, index) => {
           const file = photoFiles[index];

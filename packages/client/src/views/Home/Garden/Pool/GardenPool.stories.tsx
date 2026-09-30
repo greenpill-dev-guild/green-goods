@@ -75,7 +75,7 @@ function GardenPageFrame({ children }: { children: ReactNode }) {
   );
 }
 
-const useController = (fixture: ReturnType<typeof gardenPoolControllerFixture>) => () => {
+const withController = (fixture: ReturnType<typeof gardenPoolControllerFixture>) => () => {
   mocked(useGardenPoolController).mockReturnValue(fixture);
   return resetHookMocks(useGardenPoolController);
 };
@@ -109,7 +109,7 @@ type Story = StoryObj<typeof GardenPool>;
 
 export const Live: Story = {
   tags: ["storybook-ci"],
-  beforeEach: useController(gardenPoolControllerFixture(LIVE_PROMISES)),
+  beforeEach: withController(gardenPoolControllerFixture(LIVE_PROMISES)),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("7 live")).toBeVisible();
@@ -140,11 +140,13 @@ export const Live: Story = {
 };
 
 export const Settled: Story = {
-  beforeEach: useController(gardenPoolControllerFixture(SETTLED_PROMISES, { liveness: "settled" })),
+  beforeEach: withController(
+    gardenPoolControllerFixture(SETTLED_PROMISES, { liveness: "settled" })
+  ),
 };
 
 export const SeasonSelected: Story = {
-  beforeEach: useController(
+  beforeEach: withController(
     gardenPoolControllerFixture(
       [LIVE_PROMISES[0], LIVE_PROMISES[1], LIVE_PROMISES[2], LIVE_PROMISES[3], LIVE_PROMISES[6]],
       { selectedCycleId: 3n }
@@ -153,7 +155,7 @@ export const SeasonSelected: Story = {
 };
 
 export const CampaignSelected: Story = {
-  beforeEach: useController(
+  beforeEach: withController(
     gardenPoolControllerFixture([LIVE_PROMISES[4], LIVE_PROMISES[5]], { selectedCycleId: 4n })
   ),
 };
@@ -161,7 +163,7 @@ export const CampaignSelected: Story = {
 /** Someone who isn't a member reads every promise and gets no +; the garden header offers Join Garden. */
 export const Visitor: Story = {
   tags: ["storybook-ci"],
-  beforeEach: useController(gardenPoolControllerFixture(LIVE_PROMISES, { canCreate: false })),
+  beforeEach: withController(gardenPoolControllerFixture(LIVE_PROMISES, { canCreate: false })),
   play: async ({ canvasElement }) => {
     await expect(
       within(canvasElement).queryByRole("button", { name: "Offer or Request" })
@@ -172,7 +174,7 @@ export const Visitor: Story = {
 /** The protocol pool: its host garden's stewards start promises, with no notice about it. */
 export const ProtocolPool: Story = {
   args: { pool: { ...JOURNEY_POOL, poolType: "PROTOCOL" } },
-  beforeEach: useController(
+  beforeEach: withController(
     gardenPoolControllerFixture([LIVE_PROMISES[6], LIVE_PROMISES[5], LIVE_PROMISES[2]], {
       canCreate: false,
     })
@@ -182,7 +184,7 @@ export const ProtocolPool: Story = {
 /** Loading keeps the loaded layout: the header row, placeholders the filters' widths, 88px rows. */
 export const Loading: Story = {
   tags: ["storybook-ci"],
-  beforeEach: useController(
+  beforeEach: withController(
     gardenPoolControllerFixture([], { rows: [], commitments: { isLoading: true, commitments: [] } })
   ),
   play: async ({ canvasElement }) => {
@@ -203,7 +205,7 @@ export const Loading: Story = {
 /** No promises yet: the count and ⓘ stay, the filters hide, and the same + starts one. */
 export const Empty: Story = {
   tags: ["storybook-ci"],
-  beforeEach: useController(gardenPoolControllerFixture([], { rows: [] })),
+  beforeEach: withController(gardenPoolControllerFixture([], { rows: [] })),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("0 live")).toBeVisible();
@@ -216,7 +218,7 @@ export const Empty: Story = {
 /** Couldn't load sits exactly where No promises yet sits, as an alert with Try Again, and no +. */
 export const LoadError: Story = {
   tags: ["storybook-ci"],
-  beforeEach: useController(
+  beforeEach: withController(
     gardenPoolControllerFixture([], { rows: [], commitments: { isError: true, commitments: [] } })
   ),
   play: async ({ canvasElement }) => {
@@ -230,7 +232,7 @@ export const LoadError: Story = {
 
 /** Offline, the count line says when the saved list was read; the selects still narrow it. */
 export const Offline: Story = {
-  beforeEach: useController(
+  beforeEach: withController(
     gardenPoolControllerFixture(
       [LIVE_PROMISES[0], LIVE_PROMISES[1], LIVE_PROMISES[2], LIVE_PROMISES[4]],
       { isOnline: false }
@@ -241,7 +243,7 @@ export const Offline: Story = {
 /** The ⓘ beside the count opens the pool's agreement in today's compact sheet. */
 export const Agreement: Story = {
   tags: ["storybook-ci"],
-  beforeEach: useController(gardenPoolControllerFixture(LIVE_PROMISES)),
+  beforeEach: withController(gardenPoolControllerFixture(LIVE_PROMISES)),
   play: async ({ canvasElement }) => {
     await userEvent.click(
       within(canvasElement).getByRole("button", { name: "What this pool is for" })
@@ -256,7 +258,7 @@ export const Agreement: Story = {
 
 /** The + opens Offer or Request: two choice cards and a way to Help. */
 export const Chooser: Story = {
-  beforeEach: useController(gardenPoolControllerFixture(LIVE_PROMISES)),
+  beforeEach: withController(gardenPoolControllerFixture(LIVE_PROMISES)),
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Offer or Request" }));
     await waitFor(() =>
@@ -267,7 +269,7 @@ export const Chooser: Story = {
 
 /** A season's ⓘ opens its details; Show Its Promises selects the card. */
 export const SeasonDetails: Story = {
-  beforeEach: useController(gardenPoolControllerFixture(LIVE_PROMISES)),
+  beforeEach: withController(gardenPoolControllerFixture(LIVE_PROMISES)),
   play: async ({ canvasElement }) => {
     await userEvent.click(
       within(canvasElement).getByRole("button", { name: "About Autumn Planting 2026" })
@@ -279,7 +281,7 @@ export const SeasonDetails: Story = {
 };
 
 export const CampaignDetails: Story = {
-  beforeEach: useController(gardenPoolControllerFixture(LIVE_PROMISES)),
+  beforeEach: withController(gardenPoolControllerFixture(LIVE_PROMISES)),
   play: async ({ canvasElement }) => {
     await userEvent.click(
       within(canvasElement).getByRole("button", { name: "About Seed Swap Weekend" })

@@ -434,7 +434,7 @@ export function useWorkSubmissionFlowController({
       close: () => setShowDraftSheet(false),
       recover: () => setShowDraftSheet(true),
       manage: () => {
-        useUIStore.getState().openWorkDashboard("drafts");
+        useUIStore.getState().openWorkDashboard("pending", "editing");
         navigate(homeRoute);
       },
       handleContinueDraft,

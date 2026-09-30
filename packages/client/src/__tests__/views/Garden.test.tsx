@@ -5,7 +5,7 @@
  * This is the work submission flow view at /garden.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -53,6 +53,7 @@ const mockSelectLinkIntent = vi.fn();
 const mockClearLinkIntent = vi.fn();
 const mockIntroProps = vi.fn();
 const mockReviewProps = vi.fn();
+const mockWorkForSheetProps = vi.fn();
 let mockActiveTab = "Intro";
 interface MockWorkLinkIntent {
   commitmentId: bigint;
@@ -201,9 +202,17 @@ vi.mock("../../views/Garden/Details", () => ({
 }));
 
 vi.mock("../../views/Garden/Review", () => ({
-  WorkReview: (props: unknown) => {
+  WorkReview: (props: { pinned?: React.ReactNode }) => {
     mockReviewProps(props);
-    return createElement("div", { "data-testid": "work-review" }, "Review Step");
+    return createElement("div", { "data-testid": "work-review" }, "Review Step", props.pinned);
+  },
+}));
+
+// The promise sheet reads the promise; here it only reports what it was handed.
+vi.mock("../../views/Garden/WorkForSheet", () => ({
+  WorkForSheet: (props: { open: boolean }) => {
+    mockWorkForSheetProps(props);
+    return props.open ? createElement("div", { role: "dialog" }, "Promise sheet") : null;
   },
 }));
 
@@ -253,6 +262,8 @@ const messages = {
   "app.garden.submit.tab.review.label": "Upload Work",
   "app.garden.unknown": "Unknown Garden",
   "app.action.selected": "Selected Action",
+  "app.commitment.pinned.workFor": "Work for",
+  "app.commitment.pinned.open": "{label} {title}. Open the promise",
   "app.garden.commitment.linkSchedulingError":
     "Your work was submitted, but its link to the promise could not be queued.",
   "app.garden.commitment.linkScheduling": "Work submitted. Queueing its link to the promise…",
@@ -405,7 +416,7 @@ describe("Garden (Work) View", () => {
     expect(mockSelectLinkIntent).toHaveBeenCalledWith(choice);
   });
 
-  it("clears the Review Fulfills context through the submission controller", () => {
+  it("names the chosen promise on the step and unlinks the work from its sheet", () => {
     mockActiveTab = "Review";
     mockLinkIntent = {
       commitmentId: 9n,
@@ -418,13 +429,22 @@ describe("Garden (Work) View", () => {
     };
     renderWithProviders();
 
-    const props = mockReviewProps.mock.lastCall?.[0] as {
-      commitmentSelection: { title: string };
-      onClearCommitment: () => void;
-    };
-    expect(props.commitmentSelection.title).toBe("Repair tool handles");
-    props.onClearCommitment();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Work for Repair tool handles. Open the promise" })
+    );
+    expect(screen.getByRole("dialog")).toHaveTextContent("Promise sheet");
+
+    const sheet = mockWorkForSheetProps.mock.lastCall?.[0] as { onUnlink: () => void };
+    sheet.onUnlink();
     expect(mockClearLinkIntent).toHaveBeenCalledTimes(1);
+  });
+
+  it("pins no promise when the work isn't for one", () => {
+    mockActiveTab = "Review";
+    renderWithProviders();
+
+    expect(screen.queryByTestId("pinned-promise")).toBeNull();
+    expect(mockWorkForSheetProps).not.toHaveBeenCalled();
   });
 
   it("retries only the dependent commitment link after Work submission succeeds", () => {
@@ -476,7 +496,7 @@ describe("Garden (Work) View", () => {
     mockLinkSchedulingSucceeded = true;
     mockLinkSchedulingWorkSent = false;
     renderWithProviders();
-    expect(screen.getByRole("status")).toHaveTextContent(
+    expect(screen.getAllByRole("status").map((status) => status.textContent)).toContain(
       "Work saved on this device. Its link to the promise is queued."
     );
   });
@@ -487,7 +507,7 @@ describe("Garden (Work) View", () => {
 
     renderWithProviders();
 
-    expect(screen.getByRole("status")).toHaveTextContent(
+    expect(screen.getAllByRole("status").map((status) => status.textContent)).toContain(
       "Work submitted. Its link to the promise is queued."
     );
   });

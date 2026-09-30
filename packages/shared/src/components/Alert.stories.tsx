@@ -82,7 +82,7 @@ export const StackedNotices: Story = {
   render: () => (
     <div className="flex w-[360px] max-w-full flex-col gap-3">
       <Alert variant="warning" layout="stacked" title="Saved on this phone, not sent">
-        It sends when you're connected.
+        {"It sends when you're connected."}
       </Alert>
       <Alert
         variant="error"

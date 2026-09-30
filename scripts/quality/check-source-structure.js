@@ -131,7 +131,7 @@ export const FROZEN_ALLOWLIST = {
   "packages/client/src/components/Public/Vault/VaultCheckoutDialog.tsx": 1171,
   "packages/client/src/components/Public/Vault/VaultManagePositionsPanel.tsx": 923,
   "packages/client/src/components/Public/atoms/EditorialAtoms.tsx": 538,
-  "packages/client/src/views/Garden/Media.tsx": 728,
+  "packages/client/src/views/Garden/Media.tsx": 720,
   "packages/client/src/views/Public/Fund.tsx": 775,
   "packages/client/src/views/Public/Impact.tsx": 627,
   "packages/contracts/src/modules/Gardens.sol": 914,

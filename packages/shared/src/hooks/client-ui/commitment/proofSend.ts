@@ -36,9 +36,13 @@ export interface ProofSend {
 /** How long a landed proof may wait for the record before the page stops saying so. */
 const LANDED_GRACE_MS = 120_000;
 
-const sends = new Map<string, ProofSend>();
+// Replaced, never changed in place, so a reader can tell a change by identity.
+let sends: ReadonlyMap<string, ProofSend> = new Map();
 const listeners = new Set<() => void>();
-const announce = () => {
+const update = (change: (next: Map<string, ProofSend>) => void) => {
+  const next = new Map(sends);
+  change(next);
+  sends = next;
   for (const listener of listeners) listener();
 };
 const subscribe = (listener: () => void) => {
@@ -53,8 +57,7 @@ export function proofSendKey(chainId: number, commitmentId: bigint): string {
 }
 
 export function startProofSend(key: string, send: Omit<ProofSend, "landed">): void {
-  sends.set(key, { ...send, landed: false });
-  announce();
+  update((next) => next.set(key, { ...send, landed: false }));
 }
 
 /** The send ended: a landed proof stays until the record shows it; any other ending clears it. */
@@ -62,20 +65,23 @@ export function settleProofSend(key: string, { landed }: { landed: boolean }): v
   const current = sends.get(key);
   if (!current) return;
   if (!landed) {
-    sends.delete(key);
-    announce();
+    update((next) => next.delete(key));
     return;
   }
   const settled = { ...current, landed: true };
-  sends.set(key, settled);
-  announce();
+  update((next) => next.set(key, settled));
   setTimeout(() => {
     // A later proof for the same promise keeps its own entry.
     if (sends.get(key) !== settled) return;
-    sends.delete(key);
-    announce();
+    update((next) => next.delete(key));
   }, LANDED_GRACE_MS);
 }
+
+/** Every proof this phone is sending, by `proofSendKey`: Your Work holds their Discard. */
+export function useProofSends(): ReadonlyMap<string, ProofSend> {
+  return useSyncExternalStore(subscribe, readSends, readSends);
+}
+const readSends = () => sends;
 
 /** The proof this phone is sending for one promise, if any. */
 export function useProofSend(key: string | null): ProofSend | null {

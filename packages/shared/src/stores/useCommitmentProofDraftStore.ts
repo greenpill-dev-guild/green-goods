@@ -34,6 +34,11 @@ export interface CommitmentProofDraft {
    * button rather than two.
    */
   clientEvidenceId: string;
+  /**
+   * What the draft's files hold, counted when they are saved, so Your Work can
+   * list the draft and say what is in it without reading the files back.
+   */
+  files?: { photos: number; videos: number; voiceNotes: number };
   updatedAt: number;
 }
 
@@ -41,10 +46,30 @@ export interface CommitmentProofDraftStore {
   drafts: Record<string, CommitmentProofDraft>;
   saveDraft: (
     key: string,
-    draft: Omit<CommitmentProofDraft, "updatedAt">,
+    draft: Omit<CommitmentProofDraft, "updatedAt" | "files">,
     updatedAt?: number
   ) => void;
+  /** Counts the files just saved under a draft the words already created. */
+  recordFiles: (key: string, files: NonNullable<CommitmentProofDraft["files"]>) => void;
   clearDraft: (key: string) => void;
+}
+
+/** Where one reader's proof drafts on one chain start in the store. */
+export function commitmentProofDraftPrefix(chainId: number, viewer: string): string {
+  return `proof:${chainId}:${viewer.toLowerCase()}:`;
+}
+
+/**
+ * Whether a draft holds anything. Opening the composer saves its empty words,
+ * so a draft only counts once it has words, links or files.
+ */
+export function proofDraftHasContent(draft: CommitmentProofDraft): boolean {
+  const files = draft.files;
+  return (
+    draft.note.trim().length > 0 ||
+    draft.links.length > 0 ||
+    Boolean(files && files.photos + files.videos + files.voiceNotes > 0)
+  );
 }
 
 export function commitmentProofDraftKey(input: {
@@ -52,17 +77,27 @@ export function commitmentProofDraftKey(input: {
   viewer: string;
   commitmentId: bigint | string;
 }): string {
-  return ["proof", input.chainId, input.viewer.toLowerCase(), String(input.commitmentId)].join(":");
+  return `${commitmentProofDraftPrefix(input.chainId, input.viewer)}${String(input.commitmentId)}`;
 }
 
 export const useCommitmentProofDraftStore = create<CommitmentProofDraftStore>()(
   persist(
     (set) => ({
       drafts: {},
+      // The words replace the words; the file counts stay until the files change.
       saveDraft: (key, draft, updatedAt = Date.now()) =>
         set((state) => ({
-          drafts: { ...state.drafts, [key]: { ...draft, updatedAt } },
+          drafts: {
+            ...state.drafts,
+            [key]: { ...draft, files: state.drafts[key]?.files, updatedAt },
+          },
         })),
+      recordFiles: (key, files) =>
+        set((state) => {
+          const current = state.drafts[key];
+          if (!current) return state;
+          return { drafts: { ...state.drafts, [key]: { ...current, files } } };
+        }),
       clearDraft: (key) =>
         set((state) => {
           const { [key]: _removed, ...rest } = state.drafts;

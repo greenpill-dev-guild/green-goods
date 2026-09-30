@@ -3,11 +3,12 @@ import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/clien
 import { WorkTab } from "@green-goods/shared/stores/workFlowTypes";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiHammerFill, RiPlantFill, RiRefreshLine } from "@remixicon/react";
-import React from "react";
+import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@green-goods/shared/components/Button";
 import { ActionCardSkeleton, FormInfo, GardenCardSkeleton } from "@/components/Cards";
 import { FormProgress } from "@/components/Communication";
+import { PinnedPromiseCard } from "@/components/Features/Commitments";
 import { DraftSheet } from "@/components/Sheets";
 import {
   FlowBar,
@@ -23,6 +24,7 @@ import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
+import { WorkForSheet } from "./WorkForSheet";
 
 const trackControllerMediaEvent = (
   event: "work_media_preview_failed" | "work_media_removed" | "work_broken_media_removed",
@@ -164,14 +166,16 @@ const Work: React.FC = () => {
     requirementIndex: choice.requirementIndex,
     title: choice.commitmentTitle,
   }));
-  const commitmentSelection = linkIntent
-    ? {
-        key: linkChoiceKey(linkIntent),
-        commitmentId: linkIntent.commitmentId,
-        requirementIndex: linkIntent.requirementIndex,
-        title: linkIntent.commitmentTitle,
-      }
-    : null;
+  // Once a promise is chosen at Start, every later step names it after its
+  // heading (D16, O9); the card opens the promise, which can unlink the work.
+  const [promiseOpen, setPromiseOpen] = useState(false);
+  const pinned = linkIntent ? (
+    <PinnedPromiseCard
+      kind="work"
+      title={linkIntent.commitmentTitle}
+      onOpen={() => setPromiseOpen(true)}
+    />
+  ) : null;
 
   const currentTab = {
     [WorkTab.Intro]: {
@@ -301,11 +305,13 @@ const Work: React.FC = () => {
             actionUID={actionUID}
             heicStateOf={heicStateOf}
             onRetryHeicConversion={retryHeicConversion}
+            pinned={pinned}
           />
         );
       case WorkTab.Details:
         return (
           <WorkDetails
+            pinned={pinned}
             config={detailsConfig}
             inputs={detailInputs}
             register={register}
@@ -333,8 +339,7 @@ const Work: React.FC = () => {
             onRemoveBrokenMedia={removeBrokenMedia}
             heicStateOf={heicStateOf}
             onRetryHeicConversion={retryHeicConversion}
-            commitmentSelection={commitmentSelection}
-            onClearCommitment={clearLinkIntent}
+            pinned={pinned}
           />
         );
     }
@@ -342,6 +347,17 @@ const Work: React.FC = () => {
 
   return (
     <>
+      {linkIntent ? (
+        <WorkForSheet
+          open={promiseOpen}
+          onClose={() => setPromiseOpen(false)}
+          intent={linkIntent}
+          onUnlink={() => {
+            setPromiseOpen(false);
+            clearLinkIntent();
+          }}
+        />
+      ) : null}
       <DraftSheet
         isOpen={draft.showDraftSheet}
         onContinue={draft.handleContinueDraft}

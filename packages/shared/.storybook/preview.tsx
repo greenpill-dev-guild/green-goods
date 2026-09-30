@@ -27,14 +27,19 @@ sb.mock(import("../src/hooks/blockchain/useSendableTokens.ts"), { spy: true });
 sb.mock(import("../src/hooks/client-ui/commitment/useGardenCommitmentController.ts"), {
   spy: true,
 });
+sb.mock(import("../src/hooks/client-ui/commitment/usePendingProof.ts"), { spy: true });
 sb.mock(import("../src/hooks/client-ui/commitment/useProofComposerController.ts"), {
   spy: true,
 });
 sb.mock(import("../src/hooks/client-ui/pool/useGardenPoolController.ts"), { spy: true });
+sb.mock(import("../src/hooks/client-ui/work/useWorkSubmissionFlowController.ts"), {
+  spy: true,
+});
 sb.mock(import("../src/hooks/client-ui/wallet/useSendFlowController.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentCycleNames.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentJobs.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentPooling.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useCommitmentQueueState.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useAllocateHypercertSupport.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useConvictionStrategies.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useGardenCommunity.ts"), { spy: true });
@@ -64,6 +69,7 @@ sb.mock(import("../src/hooks/vault/useVaultPreview.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useVaultWithdraw.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useDrafts.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useMyWorks.ts"), { spy: true });
+sb.mock(import("../src/hooks/work/useYourWorkCount.ts"), { spy: true });
 sb.mock(import("../src/hooks/yield/useYieldAllocations.ts"), { spy: true });
 // The public vault panel mounts the wallet runtime itself; its stories render the panel without it.
 sb.mock(import("../../client/src/routes/WalletRuntimeProviders.tsx"), { spy: true });

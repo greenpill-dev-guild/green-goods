@@ -3,6 +3,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { writeWorkLinkIntent } from "@green-goods/shared/commitment-pooling";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -65,10 +66,13 @@ export function GardenCommitment() {
   const [linkOpen, setLinkOpen] = useState<
     { workUID: string; requirementIndex: number | null } | true | null
   >(null);
-  const back = () =>
-    location.state?.proofDirectEntry
-      ? navigate("../..", { relative: "path", replace: true })
-      : navigate(-1);
+  // Opened from Your Work, Back reopens it where it was, as a work's page does.
+  const back = () => {
+    if (location.state?.proofDirectEntry)
+      return navigate("../..", { relative: "path", replace: true });
+    if (location.state?.from === "dashboard") useUIStore.getState().restoreWorkDashboard();
+    navigate(-1);
+  };
 
   if (controller.status !== "ready") {
     if (controller.status === "error") {

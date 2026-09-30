@@ -104,6 +104,13 @@ export interface CommitmentQueueState {
   hasPendingCreate: boolean;
   /** Every creation still on this phone, failed ones included, newest first. */
   pendingCreates: PendingCommitmentCreation[];
+  /** Proof still on this phone, failed ones included, newest first: Your Work lists it. */
+  proofJobs: Job[];
+  /**
+   * Queued work that a queued link ties to a promise, by its job id and its
+   * client work id, so Your Work can mark it "For a promise".
+   */
+  linkedWorkIds: ReadonlySet<string>;
   /**
    * The queue could not be read. Distinct from "nothing is queued": a surface
    * that treats a failed read as an empty queue re-enables an act already
@@ -200,11 +207,19 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     const failedJobs = new Map<string, FailedCommitmentJob>();
     const pendingActs = new Map<string, PendingCommitmentAct>();
     const pendingCreates: PendingCommitmentCreation[] = [];
+    const proofJobs: Job[] = [];
+    const linkedWorkIds = new Set<string>();
     let failedCount = 0;
     let hasPendingCreate = false;
 
     for (const job of jobs) {
       if (job.synced) continue;
+      if (job.kind === "evidence") proofJobs.push(job);
+      if (job.kind === "workLink") {
+        const link = job.payload as { sourceWorkJobId?: string; clientWorkId?: string };
+        if (link.sourceWorkJobId) linkedWorkIds.add(link.sourceWorkJobId);
+        if (link.clientWorkId) linkedWorkIds.add(link.clientWorkId);
+      }
       const commitmentId = commitmentIdOf(job);
       const failed = isTerminallyFailedJob(job);
       if (job.kind === "commitment") {
@@ -255,6 +270,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       } else if (job.kind === "commitment") hasPendingCreate = true;
     }
     pendingCreates.sort((left, right) => right.createdAt - left.createdAt);
+    proofJobs.sort((left, right) => right.createdAt - left.createdAt);
 
     return {
       pendingCommitmentIds,
@@ -264,6 +280,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       pendingActs,
       hasPendingCreate,
       pendingCreates,
+      proofJobs,
+      linkedWorkIds,
       isUnavailable: Boolean(viewer) && query.isError,
       refresh,
     };

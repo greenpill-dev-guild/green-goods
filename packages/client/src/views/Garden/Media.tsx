@@ -25,6 +25,7 @@ import { Books } from "@/components/Features";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
 import {
+  MediaRulePill,
   type PendingPhotoState,
   WorkMediaPhotoCard,
   WorkMediaVideoCard,
@@ -52,6 +53,8 @@ interface WorkMediaProps {
   /** A HEIC photo's conversion while it waits for the decoder; `undefined` otherwise. */
   heicStateOf?: (file: File) => PendingPhotoState | undefined;
   onRetryHeicConversion?: (file: File) => void;
+  /** The promise this work is for, after the heading (O9). */
+  pinned?: React.ReactNode;
 }
 
 /** Get platform context for analytics */
@@ -98,6 +101,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   actionUID,
   heicStateOf,
   onRetryHeicConversion,
+  pinned,
 }) => {
   const intl = useIntl();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -460,34 +464,22 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     });
   const neededItems = useMemo(() => config?.needed?.filter(Boolean) ?? [], [config?.needed]);
   const optionalItems = useMemo(() => config?.optional?.filter(Boolean) ?? [], [config?.optional]);
-  const maxImageCount =
-    config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : 0;
   const photoCount = images.filter((file) => !isVideoFile(file)).length;
-  const requirementBadgeTone =
-    photoCount >= minRequired ? pwaStatusStyles.success : pwaStatusStyles.warning;
 
   return (
     <div className="flex flex-col gap-4">
       <FormInfo title={title} info={description} Icon={RiImageFill} />
-
-      {/* Progress badge (shortened) */}
-      {minRequired > 0 && (
-        <Badge
-          className={`self-start ${requirementBadgeTone.surface} ${requirementBadgeTone.text}`}
-          variant="pill"
-          tint="none"
-        >
-          {intl.formatMessage(
-            {
-              id: "app.garden.upload.mediaBadge",
-              defaultMessage: "{current}/{required} media",
-            },
-            { current: photoCount, required: minRequired }
-          )}
-          {maxImageCount > 0 && ` (max ${maxImageCount})`}
-          {photoCount >= minRequired && " \u2713"}
-        </Badge>
-      )}
+      {pinned}
+      {minRequired > 0 || photoCount > 0 ? (
+        <MediaRulePill met={photoCount >= minRequired}>
+          {photoCount >= minRequired
+            ? intl.formatMessage({ id: "app.garden.upload.mediaRule.added" }, { count: photoCount })
+            : intl.formatMessage(
+                { id: "app.garden.upload.mediaRule.needed" },
+                { current: photoCount, required: minRequired }
+              )}
+        </MediaRulePill>
+      ) : null}
 
       {/* Required items */}
       {neededItems.length > 0 && (

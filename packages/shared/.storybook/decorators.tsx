@@ -5,7 +5,7 @@ import {
   type QueryKey,
 } from "@tanstack/react-query";
 import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { IntlProvider, useIntl } from "react-intl";
+import { IntlProvider, type IntlShape, useIntl } from "react-intl";
 import {
   createMemoryRouter,
   MemoryRouter,
@@ -546,41 +546,48 @@ export type ProofToastMoment =
   | "takingLonger"
   | "couldNotAdd";
 
-function ProofToast({ moment }: { moment: ProofToastMoment }) {
+/**
+ * One toast held in place over a frame. The app's toasts leave after a few
+ * seconds; a frame holds its moment, so the same toast is raised again in
+ * place before it would go, and is gone at once when the story ends.
+ */
+function HeldToast({ show }: { show: (formatMessage: IntlShape["formatMessage"]) => void }) {
   const { formatMessage } = useIntl();
   useEffect(() => {
-    const toasts = createProofToasts(formatMessage);
-    const show = () => {
-      if (moment === "adding") toasts.adding({ sendToo: false });
-      else if (moment === "addingSendToo") toasts.adding({ sendToo: true });
-      else if (moment === "confirming") toasts.confirming();
-      else if (moment === "added") toasts.added({ sent: false, leads: true });
-      else if (moment === "sent") toasts.added({ sent: true, leads: true });
-      else if (moment === "savedOffline") toasts.savedOffline();
-      else if (moment === "notAdded") toasts.notAdded();
-      else if (moment === "takingLonger") toasts.takingLonger();
-      else toasts.couldNotAdd(() => undefined);
-    };
-    show();
-    // The app's toasts leave after a few seconds; a frame holds its moment, so
-    // the same toast is raised again in place before it would go.
-    const hold = window.setInterval(show, 1500);
+    show(formatMessage);
+    const hold = window.setInterval(() => show(formatMessage), 1500);
     return () => {
       window.clearInterval(hold);
-      toasts.dismiss();
-      // Gone at once, not after its exit, so the next story starts with no toast.
       toast.remove();
     };
-  }, [formatMessage, moment]);
+  }, [formatMessage, show]);
   return <ToastViewport toastOptions={{ style: { borderRadius: "var(--radius-md)" } }} />;
+}
+
+/** A client page with one toast over it, raised through the app's own call. */
+export function withHeldToast(show: (formatMessage: IntlShape["formatMessage"]) => void): Decorator {
+  return (Story) => (
+    <>
+      <Story />
+      <HeldToast show={show} />
+    </>
+  );
+}
+
+function showProofToast(moment: ProofToastMoment, formatMessage: IntlShape["formatMessage"]) {
+  const toasts = createProofToasts(formatMessage);
+  if (moment === "adding") toasts.adding({ sendToo: false });
+  else if (moment === "addingSendToo") toasts.adding({ sendToo: true });
+  else if (moment === "confirming") toasts.confirming();
+  else if (moment === "added") toasts.added({ sent: false, leads: true });
+  else if (moment === "sent") toasts.added({ sent: true, leads: true });
+  else if (moment === "savedOffline") toasts.savedOffline();
+  else if (moment === "notAdded") toasts.notAdded();
+  else if (moment === "takingLonger") toasts.takingLonger();
+  else toasts.couldNotAdd(() => undefined);
 }
 
 /** A client page with one proof toast over it, where the app's viewport draws it. */
 export function withProofToast(moment: ProofToastMoment): Decorator {
-  return (Story) => (
-    <>
-      <Story />
-      <ProofToast moment={moment} />
-    </>
-  );
+  return withHeldToast((formatMessage) => showProofToast(moment, formatMessage));
 }
