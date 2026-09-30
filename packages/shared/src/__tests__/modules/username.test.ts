@@ -35,98 +35,102 @@ const BASE: UsernameCardInput = {
   changeTargetFree: undefined,
 };
 
+/** One row of the table: a case, what differs from BASE, and the state it reads as. */
+const row = (label: string, input: Partial<UsernameCardInput>, expected: UsernameCardState) =>
+  [label, input, expected] as const;
+
 describe("selectUsernameCard", () => {
-  it.each<[string, Partial<UsernameCardInput>, UsernameCardState]>([
-    ["waits for an account", { owner: undefined }, { kind: "loading" }],
-    ["waits for membership", { isMember: undefined }, { kind: "loading" }],
-    ["reads a resolving name as ready", {}, { kind: "ready", slug: "ines" }],
-    [
+  it.each([
+    row("waits for an account", { owner: undefined }, { kind: "loading" }),
+    row("waits for membership", { isMember: undefined }, { kind: "loading" }),
+    row("reads a resolving name as ready", {}, { kind: "ready", slug: "ines" }),
+    row(
       "reads a name on its way to Ethereum as setting up",
       { status: { status: "pending" } },
-      { kind: "setting-up", slug: "ines", claimedHere: false },
-    ],
-    [
+      { kind: "setting-up", slug: "ines", claimedHere: false }
+    ),
+    row(
       "says a name claimed here was claimed",
       { status: { status: "pending" }, claimedHere: true },
-      { kind: "setting-up", slug: "ines", claimedHere: true },
-    ],
-    [
+      { kind: "setting-up", slug: "ines", claimedHere: true }
+    ),
+    row(
       "says a slow setup is taking longer",
       { status: { status: "timed_out" } },
-      { kind: "taking-longer", slug: "ines" },
-    ],
-    [
+      { kind: "taking-longer", slug: "ines" }
+    ),
+    row(
       "calls a failed check with nothing known unknown, not a failed name",
       { status: undefined, statusError: true },
-      { kind: "unknown", slug: "ines" },
-    ],
-    [
+      { kind: "unknown", slug: "ines" }
+    ),
+    row(
       "keeps the last known status when a later check fails",
       { statusError: true },
-      { kind: "ready", slug: "ines" },
-    ],
-    ["waits on the first check", { status: undefined }, { kind: "checking", slug: "ines" }],
-    [
+      { kind: "ready", slug: "ines" }
+    ),
+    row("waits on the first check", { status: undefined }, { kind: "checking", slug: "ines" }),
+    row(
       "holds on a claim in flight even when a read already calls the name taken",
       { claiming: "ines-duarte", slug: null, status: undefined },
-      { kind: "claiming", slug: "ines-duarte" },
-    ],
-    [
+      { kind: "claiming", slug: "ines-duarte" }
+    ),
+    row(
       "asks for a first name",
       { slug: null, status: undefined },
-      { kind: "choose", after: "none", taken: null },
-    ],
-    [
+      { kind: "choose", after: "none", taken: null }
+    ),
+    row(
       "keeps a first name locked outside a garden",
       { slug: null, isMember: false },
-      { kind: "locked" },
-    ],
-    ["waits for the account's own name", { slug: null, nameLoading: true }, { kind: "loading" }],
-    [
+      { kind: "locked" }
+    ),
+    row("waits for the account's own name", { slug: null, nameLoading: true }, { kind: "loading" }),
+    row(
       "asks again when a stale lookup points at another account's name",
       { status: active(OTHER) },
-      { kind: "choose", after: "released", taken: null },
-    ],
-    [
+      { kind: "choose", after: "released", taken: null }
+    ),
+    row(
       "shows a release started elsewhere as step 1, with no new name",
       { status: RELEASING },
-      { kind: "releasing", from: "ines", to: null },
-    ],
-    [
+      { kind: "releasing", from: "ines", to: null }
+    ),
+    row(
       "carries a change on step 1 while the old name releases",
       { change: CHANGE, status: RELEASING },
-      { kind: "releasing", from: "ines", to: "ines-duarte" },
-    ],
-    [
+      { kind: "releasing", from: "ines", to: "ines-duarte" }
+    ),
+    row(
       "stays on step 1 while a check fails, never guessing the release cleared",
       { change: CHANGE, slug: null, status: undefined, statusError: true },
-      { kind: "releasing", from: "ines", to: "ines-duarte" },
-    ],
-    [
+      { kind: "releasing", from: "ines", to: "ines-duarte" }
+    ),
+    row(
       "offers the new name's claim once the old one cleared",
       { change: CHANGE, slug: null, status: CLEARED, changeTargetFree: true },
-      { kind: "claimable", to: "ines-duarte" },
-    ],
-    [
+      { kind: "claimable", to: "ines-duarte" }
+    ),
+    row(
       "asks again when the new name was taken while waiting",
       { change: CHANGE, slug: null, status: CLEARED, changeTargetFree: false },
-      { kind: "choose", after: "taken", taken: "ines-duarte" },
-    ],
-    [
+      { kind: "choose", after: "taken", taken: "ines-duarte" }
+    ),
+    row(
       "asks for another name after Choose Another",
       { change: { ...CHANGE, to: null }, slug: null, status: CLEARED },
-      { kind: "choose", after: "released", taken: null },
-    ],
-    [
+      { kind: "choose", after: "released", taken: null }
+    ),
+    row(
       "locks the claim when the account left every garden meanwhile",
       { change: CHANGE, slug: null, status: CLEARED, isMember: false },
-      { kind: "locked" },
-    ],
-    [
+      { kind: "locked" }
+    ),
+    row(
       "ends a change once the account holds some other name",
       { change: CHANGE, slug: "ines-d" },
-      { kind: "ready", slug: "ines-d" },
-    ],
+      { kind: "ready", slug: "ines-d" }
+    ),
   ])("%s", (_, input, expected) => {
     expect(selectUsernameCard({ ...BASE, ...input })).toEqual(expected);
   });
