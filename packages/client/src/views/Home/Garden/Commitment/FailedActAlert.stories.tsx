@@ -5,6 +5,8 @@ import { FailedActRow } from "./FailedActAlert";
 
 const gaveUp: FailedCommitmentJob = {
   jobId: "job-evidence-1",
+  kind: "evidence",
+  at: Date.UTC(2026, 0, 15, 10, 26),
   discardable: true,
   reason: null,
   retryable: true,

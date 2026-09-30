@@ -21,6 +21,8 @@ import {
 } from "../../../../../../shared/.storybook/clientJourneyFixtures";
 import {
   withAppPage,
+  withClientAppRuntime,
+  withProofToast,
   withRouter,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
@@ -158,4 +160,113 @@ export const Kept: Story = {
 export const TwoActsInPortuguese: Story = {
   decorators: [withPortuguese],
   beforeEach: atStage("working"),
+};
+
+const toasts = (canvasElement: HTMLElement) => within(canvasElement.ownerDocument.body);
+
+/**
+ * Back on the promise after signing (D7, D18): the toast carries the send, and
+ * Progress and proof says what is on its way. No notice offers to send it again.
+ */
+export const ProofSending: Story = {
+  tags: ["storybook-ci"],
+  decorators: [withProofToast("confirming")],
+  beforeEach: atStage("sending"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText("Your proof is on its way: 2 photos, 1 voice note, 1 link.")
+    ).toBeVisible();
+    await expect(canvas.queryByText("May already be sent")).toBeNull();
+    await expect(
+      await toasts(canvasElement).findByText(
+        "Confirming it on the garden record. You can leave this screen."
+      )
+    ).toBeVisible();
+  },
+};
+
+/** The proof landed: the new state, the proof itself, its history line and the next act. */
+export const ProofAdded: Story = {
+  tags: ["storybook-ci"],
+  decorators: [withProofToast("added")],
+  beforeEach: atStage("added"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
+      "Send it to tomas when the team is done"
+    );
+    // Two photos and the voice note as squares, then who added it and when.
+    await expect(
+      await canvas.findByRole("button", { name: "Play voice note 1" })
+    ).toHaveTextContent("0:24");
+    await expect(canvas.getByText(/Added today, 10:24/)).toHaveTextContent("1 link");
+    await expect(canvas.getByRole("button", { name: "Send for Confirmation" })).toBeVisible();
+  },
+};
+
+/** Added and sent in one go: the promise waits for Tomás. */
+export const ProofSent: Story = {
+  decorators: [withProofToast("sent")],
+  beforeEach: atStage("waiting"),
+};
+
+/** Saved on this phone, not sent: the notice, and Progress and History say it isn't on the promise yet. */
+export const ProofQueued: Story = {
+  decorators: [withClientAppRuntime],
+  tags: ["storybook-ci"],
+  beforeEach: atStage("queued"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Saved on this phone, not sent")).toBeVisible();
+    await expect(
+      canvas.getByText("No proof on the promise yet. Yours is still on this phone (see above).")
+    ).toBeVisible();
+    const line = canvas.getByText("Your proof is saved on this phone, not sent yet");
+    await expect(line.closest("li")).toHaveAttribute("data-local", "true");
+  },
+};
+
+/** The moment after adding it offline: the toast Submit Work shows. */
+export const ProofSavedOffline: Story = {
+  decorators: [withProofToast("savedOffline"), withClientAppRuntime],
+  beforeEach: atStage("queued"),
+};
+
+/** Signature cancelled: nothing was sent, and the proof waits to be sent or discarded. */
+export const ProofNotSent: Story = {
+  tags: ["storybook-ci"],
+  decorators: [withProofToast("notAdded"), withClientAppRuntime],
+  beforeEach: atStage("notSent"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Signature cancelled. Nothing was sent")).toBeVisible();
+    await expect(canvas.getByText("Sending was cancelled. Nothing was sent")).toBeVisible();
+  },
+};
+
+/** It left the phone and no answer came yet: nothing can be discarded or sent twice. */
+export const ProofChecking: Story = {
+  decorators: [withProofToast("takingLonger"), withClientAppRuntime],
+  beforeEach: atStage("checking"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("May already be sent")).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Discard" })).toBeNull();
+  },
+};
+
+/** The send gave up: the proof stays on this phone, with Discard and Try Again. */
+export const ProofFailed: Story = {
+  tags: ["storybook-ci"],
+  decorators: [withProofToast("couldNotAdd"), withClientAppRuntime],
+  beforeEach: atStage("failed"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("The send gave up")).toBeVisible();
+    await expect(canvas.getByText("Your proof didn't send after several tries")).toBeVisible();
+    await expect(
+      await toasts(canvasElement).findByRole("button", { name: "Open Your Work" })
+    ).toBeVisible();
+  },
 };

@@ -75,6 +75,8 @@ describe("useCommitmentQueueState", () => {
     await waitFor(() => expect(result.current.failedCount).toBe(1));
     expect(result.current.failedJobs.get("9")).toEqual({
       jobId: "link-1",
+      kind: "workLink",
+      at: expect.any(Number),
       discardable: true,
       reason: "membershipLost",
       retryable: false,
@@ -125,6 +127,28 @@ describe("useCommitmentQueueState", () => {
     expect(result.current.pendingActs.get("9")).toMatchObject({
       discardable: false,
       waitingReason: "awaiting-confirmation",
+    });
+  });
+
+  it("reads a declined proof as a send that never went, so the promise offers it again", async () => {
+    // Nothing was sent, and no flush sends it without the person: the notice
+    // says the signature was cancelled and offers Send Now and Discard.
+    mocks.getJobs.mockResolvedValue([
+      creation({
+        id: "proof-1",
+        kind: "evidence",
+        payload: { commitmentId: 9n, clientEvidenceId: "proof-1" },
+        meta: { requiresExplicitSend: true },
+        attempts: 1,
+        lastError: "User rejected the request",
+      }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingActs.has("9")).toBe(true));
+    expect(result.current.pendingActs.get("9")).toMatchObject({
+      kind: "evidence",
+      discardable: true,
+      waitingReason: "send-intent-expired",
     });
   });
 });

@@ -8,7 +8,10 @@ import {
   commitmentDetailFixture,
   contributorFixture,
 } from "../src/__tests__/test-utils/commitment-pooling-fixtures";
-import { gardenCommitmentControllerFixture } from "../src/__tests__/test-utils/controller-fixtures";
+import {
+  gardenCommitmentControllerFixture,
+  proofComposerControllerFixture,
+} from "../src/__tests__/test-utils/controller-fixtures";
 import type {
   CommitmentCycleRecord,
   CommitmentEventRecord,
@@ -18,6 +21,7 @@ import type {
 } from "../src/commitment-pooling";
 import { commitmentPoolingKeys } from "../src/config/query-keys/commitment-pooling";
 import type { GardenCommitmentController } from "../src/hooks/client-ui/commitment/controller.types";
+import type { ProofComposerController } from "../src/hooks/client-ui/commitment/proof-controller.types";
 import type { useGardenPoolController } from "../src/hooks/client-ui/pool/useGardenPoolController";
 import type { CommitmentEvidenceDocumentV1 } from "../src/modules/commitment-pooling/evidence";
 import type { Address, Garden } from "../src/types/domain";
@@ -362,7 +366,24 @@ export const PROMISE_PAGE_SEEDS: [readonly unknown[], unknown][] = [
   [commitmentPoolingKeys.evidence(FENCE_PROOF_CID), FENCE_PROOF],
 ];
 
-type PromiseStage = "working" | "waiting" | "kept";
+/**
+ * `working` is the frame `commitment` (proof still to add), `sending` is
+ * `commitment-proof-sending` (Amara's proof on its way), `added` is
+ * `commitment-proof-added`, `waiting` is `commitment-waiting` (sent today),
+ * `kept` is `commitment-kept`; `queued`, `notSent`, `checking` and `failed` are
+ * the proof still on this phone (`commitment-proof-queued`, `-notsent`,
+ * `-checking`, `-failed`).
+ */
+export type PromiseStage =
+  | "working"
+  | "sending"
+  | "added"
+  | "waiting"
+  | "kept"
+  | "queued"
+  | "notSent"
+  | "checking"
+  | "failed";
 
 function historyEvent(
   eventType: string,
@@ -390,18 +411,21 @@ function historyEvent(
 
 /**
  * The fence repair on its own page, as the frames draw it: Tomás asked for it,
- * Amara leads, Dele helps, and Tomás confirms. `working` is the frame
- * `commitment` (proof still to add), `waiting` is `commitment-waiting` (sent
- * today) and `kept` is `commitment-kept`. Returns what the page's controller
- * gives and its history, newest first.
+ * Amara leads, Dele helps, and Tomás confirms. Returns what the page's
+ * controller gives and its history, newest first.
  */
 export function promisePageFixture(stage: PromiseStage): {
   controller: GardenCommitmentController;
   history: CommitmentEventRecord[];
 } {
-  const proofAt = stage === "waiting" ? todayAt(10, 24) : new Date(2026, 9, 12, 10, 24).getTime();
-  const sentAt = stage === "waiting" ? todayAt(10, 41) : new Date(2026, 9, 12, 10, 41).getTime();
+  const today = stage !== "kept";
+  const proofAt = today ? todayAt(10, 24) : new Date(2026, 9, 12, 10, 24).getTime();
+  const sentAt = today ? todayAt(10, 41) : new Date(2026, 9, 12, 10, 41).getTime();
   const keptAt = new Date(2026, 9, 14, 8, 3).getTime();
+  // Proof on the promise's record, and proof still on this phone.
+  const landed = stage === "added" || stage === "waiting" || stage === "kept";
+  const onPhone =
+    stage === "queued" || stage === "notSent" || stage === "checking" || stage === "failed";
   const commitment = promise({
     id: "42161-9",
     commitmentId: 9n,
@@ -414,8 +438,14 @@ export function promisePageFixture(stage: PromiseStage): {
     dueDate: OCT_20,
     contributorCount: 2,
     metadataCID: "bafy-fence",
-    evidenceCount: stage === "working" ? 0 : 1,
-    ...(stage === "waiting"
+    evidenceCount: landed ? 1 : 0,
+    ...(stage === "added"
+      ? {
+          derivedState: "EVIDENCE_SUBMITTED",
+          onchainState: "ACCEPTED",
+          state: "ACCEPTED",
+        }
+      : stage === "waiting"
       ? {
           derivedState: "READY_FOR_CONFIRMATION",
           onchainState: "READY_FOR_CONFIRMATION",
@@ -437,10 +467,9 @@ export function promisePageFixture(stage: PromiseStage): {
       contributorFixture({ commitmentId: 9n, contributor: JOURNEY_VIEWER, isLead: true }),
       contributorFixture({ commitmentId: 9n, contributor: JOURNEY_HELPER }),
     ],
-    evidenceAttributions:
-      stage === "working"
-        ? []
-        : [
+    evidenceAttributions: !landed
+      ? []
+      : [
             {
               cid: FENCE_PROOF_CID,
               contributor: JOURNEY_VIEWER,
@@ -462,10 +491,45 @@ export function promisePageFixture(stage: PromiseStage): {
     },
     pool: JOURNEY_POOL,
     seat: "provider",
-    actKind: stage === "working" ? "addProof" : null,
-    linkable: stage === "working",
+    // A proof on its way or waiting on this phone holds every act; one that
+    // gave up leaves the promise's own acts in place under its alert.
+    actKind:
+      stage === "working" || stage === "failed"
+        ? "addProof"
+        : stage === "added"
+          ? "sendForConfirmation"
+          : null,
+    linkable: stage === "working" || stage === "failed",
     membership: { isMember: true, garden: null, unavailable: false, retry: () => undefined },
   });
+  const proofJob = { jobId: "proof-9", kind: "evidence" as const, createdAt: todayAt(10, 24) };
+  const queue: GardenCommitmentController["queue"] = {
+    ...controller.queue,
+    hasPendingJob: stage === "sending" || (onPhone && stage !== "failed"),
+    pendingAct:
+      stage === "sending" || stage === "checking"
+        ? { ...proofJob, waitingReason: "awaiting-confirmation", discardable: false }
+        : stage === "queued"
+          ? { ...proofJob, waitingReason: null, discardable: true }
+          : stage === "notSent"
+            ? { ...proofJob, waitingReason: "send-intent-expired", discardable: true }
+            : null,
+    sendFailed: stage === "failed",
+    failedJob:
+      stage === "failed"
+        ? {
+            jobId: proofJob.jobId,
+            kind: "evidence",
+            at: todayAt(10, 26),
+            discardable: true,
+            reason: null,
+            retryable: true,
+          }
+        : null,
+    proofSending: stage === "sending",
+    proofOnItsWay:
+      stage === "sending" ? { photos: 2, videos: 0, voiceNotes: 1, links: 1, words: true } : null,
+  };
 
   const taken = [
     historyEvent("ACCEPTED", JOURNEY_VIEWER, new Date(2026, 9, 3, 9, 12).getTime(), 2),
@@ -476,11 +540,13 @@ export function promisePageFixture(stage: PromiseStage): {
     historyEvent("EVIDENCE_ATTACHED", JOURNEY_VIEWER, proofAt, 3),
   ];
   const history =
-    stage === "working"
-      ? taken
+    stage === "added"
+      ? [sent[1], ...taken]
       : stage === "waiting"
         ? [...sent, ...taken]
-        : [
+        : stage !== "kept"
+          ? taken
+          : [
             // Kept in the transaction that recorded the confirmation: one line says both.
             historyEvent("CONFIRMATION_RECORDED", JOURNEY_NEIGHBOUR, keptAt, 5),
             historyEvent("FULFILLED", JOURNEY_NEIGHBOUR, keptAt, 5),
@@ -489,7 +555,89 @@ export function promisePageFixture(stage: PromiseStage): {
           ];
   // The route garden's record, as the page's roles read it: Tomás stewards it.
   return {
-    controller: { ...controller, roles: { ...controller.roles, garden: JOURNEY_GARDEN_RECORD } },
+    controller: {
+      ...controller,
+      queue,
+      roles: { ...controller.roles, garden: JOURNEY_GARDEN_RECORD },
+    },
     history,
   };
+}
+
+/** One of the fence sketches as a file on the phone, as the composer holds it. */
+function fenceFile(name: string, leaning: boolean): File {
+  const svg = decodeURIComponent(fenceSketch(leaning).slice("data:image/svg+xml;utf8,".length));
+  return new File([svg], name, { type: "image/svg+xml" });
+}
+
+function voiceNoteFile(): File {
+  const bytes = Uint8Array.from(atob(SILENT_WAV.split(",")[1] ?? ""), (c) => c.charCodeAt(0));
+  return new File([bytes], "voice-note.wav", { type: "audio/wav" });
+}
+
+/**
+ * The proof frames: `media`, `mediaAdded` and `recording` are the Media step;
+ * `details`, `detailsEmpty` and `detailsLink` the Details step; `review`,
+ * `reviewSend`, `reviewTeammate` and `reviewOffline` the Review step; `signing`
+ * and `signingSend` are Review while the prompt is open.
+ */
+export type ProofStage =
+  | "media"
+  | "mediaAdded"
+  | "recording"
+  | "details"
+  | "detailsEmpty"
+  | "detailsLink"
+  | "review"
+  | "reviewSend"
+  | "reviewTeammate"
+  | "reviewOffline"
+  | "signing"
+  | "signingSend";
+
+const PROOF_NOTE = "Replaced two posts and re-hung the panel. Dele helped with the digging.";
+const PROOF_LINK = "https://riverside-commons.example/receipts/fence-posts";
+
+/**
+ * Amara's proof for the fence repair at one step of the flow, as its frame draws
+ * it; in `reviewTeammate` it is Dele's. Amara leads and Dele is on the team, so
+ * "Send for confirmation too" starts off.
+ */
+export function proofFlowFixture(stage: ProofStage): ProofComposerController {
+  const { controller: page } = promisePageFixture("working");
+  const detail = page.detail;
+  const teammate = stage === "reviewTeammate";
+  const reviewing = stage.startsWith("review") || stage.startsWith("signing");
+  const withMedia = stage !== "media" && stage !== "detailsEmpty" && stage !== "detailsLink";
+  return proofComposerControllerFixture({
+    viewer: teammate ? JOURNEY_HELPER : JOURNEY_VIEWER,
+    detail,
+    commitment: detail?.commitment ?? null,
+    metadata: page.metadata,
+    roster: [
+      { address: JOURNEY_VIEWER, isLead: true },
+      { address: JOURNEY_HELPER, isLead: false },
+    ],
+    seat: teammate ? "contributor" : "provider",
+    stewards: JOURNEY_GARDEN_RECORD.stewards,
+    leads: !teammate,
+    media: withMedia
+      ? [fenceFile("fence-before.svg", true), fenceFile("fence-after.svg", false)]
+      : [],
+    audioNotes: withMedia ? [voiceNoteFile()] : [],
+    note:
+      stage === "details" || reviewing
+        ? teammate
+          ? "Dug the two post holes and set the new posts in gravel."
+          : PROOF_NOTE
+        : "",
+    links: stage === "details" || stage === "detailsLink" || reviewing ? [PROOF_LINK] : [],
+    credited: teammate ? [JOURNEY_HELPER] : [JOURNEY_VIEWER, JOURNEY_HELPER],
+    isOnline: stage !== "reviewOffline",
+    isRecording: stage === "recording",
+    recordingElapsed: stage === "recording" ? 12 : 0,
+    isPending: stage === "signing" || stage === "signingSend",
+    canSendToo: reviewing && !teammate,
+    sendToo: stage === "reviewSend" || stage === "signingSend",
+  });
 }

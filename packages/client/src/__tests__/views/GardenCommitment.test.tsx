@@ -267,6 +267,8 @@ function controller(
       sendFailed: false,
       failedJob: null,
       pendingAct: null,
+      proofSending: false,
+      proofOnItsWay: null,
       isUnavailable: false,
       refresh: vi.fn(),
     },
@@ -526,6 +528,8 @@ describe("GardenCommitment", () => {
           sendFailed: true,
           failedJob: {
             jobId: "job-9",
+            kind: "confirmation",
+            at: 1,
             discardable: true,
             reason: null,
             retryable: true,
@@ -690,6 +694,8 @@ describe("GardenCommitment", () => {
           sendFailed: true,
           failedJob: {
             jobId: "link-1",
+            kind: "workLink",
+            at: 1,
             discardable: true,
             reason: "membershipLost",
             retryable: false,
@@ -959,6 +965,61 @@ describe("GardenCommitment", () => {
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Check Again" }));
     expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
+  });
+
+  it("says a proof from this phone is on its way, with no notice to send it twice", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "proof-9",
+            kind: "evidence",
+            waitingReason: "awaiting-confirmation",
+            discardable: false,
+            createdAt: Date.now(),
+          },
+          proofSending: true,
+          proofOnItsWay: { photos: 2, videos: 0, voiceNotes: 1, links: 1, words: true },
+        },
+      })
+    );
+    render();
+
+    expect(
+      screen.getByText("Your proof is on its way: 2 photos, 1 voice note, 1 link.")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("May already be sent")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Check Again" })).not.toBeInTheDocument();
+  });
+
+  it("says a declined proof is still on this phone, above, in progress and in the history", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "proof-9",
+            kind: "evidence",
+            waitingReason: "send-intent-expired",
+            discardable: true,
+            createdAt: Date.now(),
+          },
+        },
+      })
+    );
+    render();
+
+    expect(screen.getByText("Signature cancelled. Nothing was sent")).toBeInTheDocument();
+    expect(
+      screen.getByText("No proof on the promise yet. Yours is still on this phone (see above).")
+    ).toBeInTheDocument();
+    const line = screen.getByText("Sending was cancelled. Nothing was sent").closest("li");
+    expect(line).toHaveAttribute("data-local", "true");
   });
 
   it("offers the membership check again when it could not be read", async () => {

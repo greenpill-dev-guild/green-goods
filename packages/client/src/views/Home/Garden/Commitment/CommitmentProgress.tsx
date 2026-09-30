@@ -4,6 +4,7 @@ import {
   type CommitmentRequirementRecord,
   isTerminalCommitmentState,
 } from "@green-goods/shared/commitment-pooling";
+import { RiLoader4Line } from "@remixicon/react";
 import { type ReactNode, useId, useMemo } from "react";
 import { useIntl } from "react-intl";
 
@@ -11,6 +12,11 @@ export interface CommitmentProgressProps {
   chainId: number;
   commitment: CommitmentReadModel;
   requirements: CommitmentRequirementRecord[];
+  /**
+   * Proof from this phone that is not on the promise yet: on its way, with
+   * what it carries in words, or still on the phone under the notice above.
+   */
+  onPhone?: { kind: "sending"; summary: string } | { kind: "local" } | null;
   /** The proof itself, shown under the progress in the same section. */
   children?: ReactNode;
 }
@@ -30,6 +36,7 @@ export function CommitmentProgress({
   chainId,
   commitment,
   requirements,
+  onPhone = null,
   children,
 }: CommitmentProgressProps) {
   const { formatMessage } = useIntl();
@@ -47,6 +54,21 @@ export function CommitmentProgress({
     () => new Map(actions.map((action) => [action.id, action.title])),
     [actions]
   );
+  const hasProof = commitment.evidenceCount > 0;
+  // What this phone still holds, said once, under what is already on the promise.
+  const phoneLine =
+    onPhone?.kind === "sending" ? (
+      <p className="mt-2 flex items-center gap-2 text-sm text-text-sub-600" role="status">
+        <RiLoader4Line className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+        {formatMessage({ id: "app.commitment.progress.sending" }, { summary: onPhone.summary })}
+      </p>
+    ) : onPhone?.kind === "local" ? (
+      <p className="mt-2 text-sm text-text-sub-600">
+        {formatMessage({
+          id: hasProof ? "app.commitment.progress.localMore" : "app.commitment.progress.local",
+        })}
+      </p>
+    ) : null;
   const rowLabel = (requirement: CommitmentRequirementRecord) =>
     titleByActionId.get(`${chainId}-${requirement.actionUID.toString()}`) ??
     formatMessage(
@@ -62,19 +84,24 @@ export function CommitmentProgress({
       <section
         className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
         aria-labelledby={headingId}
+        data-component="CommitmentProgress"
       >
         {heading}
-        <p className="mt-2 text-sm text-text-sub-600">
-          {formatMessage(
-            {
-              id: settled
-                ? "app.commitment.progress.proofOnlySettled"
-                : "app.commitment.progress.proofOnly",
-            },
-            { count: commitment.evidenceCount }
-          )}
-        </p>
+        {/* Once proof is on the promise, the proof itself says so. */}
+        {hasProof || onPhone ? null : (
+          <p className="mt-2 text-sm text-text-sub-600">
+            {formatMessage(
+              {
+                id: settled
+                  ? "app.commitment.progress.proofOnlySettled"
+                  : "app.commitment.progress.proofOnly",
+              },
+              { count: 0 }
+            )}
+          </p>
+        )}
         {children}
+        {phoneLine}
       </section>
     );
   }
@@ -83,6 +110,7 @@ export function CommitmentProgress({
     <section
       className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
       aria-labelledby={headingId}
+      data-component="CommitmentProgress"
     >
       {heading}
       <ul className="mt-3 space-y-3">
@@ -127,6 +155,7 @@ export function CommitmentProgress({
         {formatMessage({ id: "app.commitment.progress.note" })}
       </p>
       {children}
+      {phoneLine}
     </section>
   );
 }

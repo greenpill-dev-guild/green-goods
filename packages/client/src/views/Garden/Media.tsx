@@ -24,11 +24,11 @@ import { ImagePreviewDialog } from "@/components/Display";
 import { Books } from "@/components/Features";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
-import type { PendingPhotoState } from "@/components/Features/Work";
-import { WorkMediaPhotoCard } from "./WorkMediaPhotoCard";
-import { WorkMediaVideoCard } from "./WorkMediaVideoCard";
-
-/** Max video duration in seconds (Decision #28) */
+import {
+  type PendingPhotoState,
+  WorkMediaPhotoCard,
+  WorkMediaVideoCard,
+} from "@/components/Features/Work";
 
 interface WorkMediaProps {
   config?: Action["mediaInfo"];

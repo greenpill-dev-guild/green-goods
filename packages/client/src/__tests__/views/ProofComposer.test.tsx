@@ -1,16 +1,13 @@
 /**
  * ProofComposer renders the shared controller contract. Draft persistence,
- * commitment authority, payload shaping, and queue failure behavior are
- * covered by the controller suite; this file owns the client journey and copy.
+ * commitment authority, payload shaping, the send and its toasts are covered by
+ * the controller suite; this file owns the client journey, its copy, and the
+ * hand-over to the promise.
  *
  * @vitest-environment happy-dom
  */
 
 import type { ProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
-import {
-  commitmentDetailFixture,
-  commitmentFixture,
-} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import { proofComposerControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
@@ -57,21 +54,21 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) 
 
 const { ProofComposer } = await import("../../views/Home/Garden/Proof");
 
-function CommitmentDestination() {
+function PromiseDestination() {
   const navigate = useNavigate();
   return (
     <>
-      <p>Back on the commitment</p>
+      <p>Back on the promise</p>
       <button onClick={() => navigate(-1)}>Native Back</button>
     </>
   );
 }
 
-const render = (fromCommitment = false) =>
+const render = (fromPromise = false) =>
   renderWithProviders(
     <MemoryRouter
       initialEntries={
-        fromCommitment
+        fromPromise
           ? [
               "/origin",
               `/home/${GARDEN}/commitments/9`,
@@ -86,15 +83,15 @@ const render = (fromCommitment = false) =>
       <Routes>
         <Route path="/origin" element={<p>Real origin</p>} />
         <Route path="/home/:id/commitments/:commitmentId/proof" element={<ProofComposer />} />
-        <Route path="/home/:id/commitments/:commitmentId" element={<CommitmentDestination />} />
+        <Route path="/home/:id/commitments/:commitmentId" element={<PromiseDestination />} />
       </Routes>
     </MemoryRouter>
   );
 
-const next = () => screen.getByRole("button", { name: "Next" });
+const forward = (name: string) => screen.getByRole("button", { name });
 const reachReview = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(next());
-  await user.click(next());
+  await user.click(forward("Details"));
+  await user.click(forward("Review Proof"));
 };
 
 describe("ProofComposer", () => {
@@ -110,22 +107,21 @@ describe("ProofComposer", () => {
       ],
       metadata: { version: 1, title: "Prune the north beds" },
       removeMedia: vi.fn(),
-      removeAudio: vi.fn(),
       toggleCredit: vi.fn(),
-      pick: vi.fn(async () => ({ rejectedCount: 0 })),
+      setSendToo: vi.fn(),
       submit: vi.fn(async () => true),
-      refetch: vi.fn(async () => undefined),
     });
     mockUseController.mockImplementation(() => controller);
   });
 
-  it("passes the parsed route identity to the controller", () => {
+  it("passes the route identity, and a way to Your Work, to the controller", () => {
     render();
 
     expect(mockUseController).toHaveBeenCalledWith({
       chainId: 42161,
       commitmentId: 9n,
       routeGarden: GARDEN,
+      onOpenYourWork: expect.any(Function),
     });
   });
 
@@ -134,126 +130,146 @@ describe("ProofComposer", () => {
     render();
 
     expect(screen.getByText("Nothing for you to add here")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Details" })).not.toBeInTheDocument();
   });
 
-  it("renders attached media and delegates removal", async () => {
+  it("says what the proof holds as it is added, and removes a photo", async () => {
     const user = userEvent.setup();
+    controller = { ...controller, note: "", contents: { ...controller.contents, words: false } };
+    const { unmount } = render();
+    expect(screen.getByRole("status")).toHaveTextContent("Nothing added yet");
+    expect(screen.getByRole("button", { name: /Proof for Prune the north beds/ })).toBeVisible();
+    unmount();
+
     const file = new File(["jpeg-bytes"], "beds.jpg", { type: "image/jpeg" });
     controller = proofComposerControllerFixture({
-      note: "Beds cleared",
+      note: "",
       media: [file],
       imageUrls: ["blob:beds.jpg"],
       removeMedia: vi.fn(),
     });
     render();
 
-    expect(screen.getByRole("button", { name: "Open beds.jpg" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Remove beds.jpg" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Proof added: 1 photo");
+    await user.click(screen.getByRole("button", { name: "Remove media 1" }));
     expect(controller.removeMedia).toHaveBeenCalledWith(0);
   });
 
-  it("shows visible credit choices and delegates selection", async () => {
+  it("shows visible credit choices and tells the truth about the note", async () => {
     const user = userEvent.setup();
+    controller = { ...controller, contents: { ...controller.contents, links: 1, words: true } };
     render();
-    await user.click(next());
+    await user.click(forward("Details"));
 
-    const me = screen.getByRole("checkbox", { name: "Credit 0x1111...1111" });
-    expect(me).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Credit 0x2222...2222" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Credit 0x1111...1111" })).toBeChecked();
     await user.click(screen.getByRole("checkbox", { name: "Credit 0x2222...2222" }));
     expect(controller.toggleCredit).toHaveBeenCalledWith(OTHER);
+    expect(screen.getByText("Optional: your link is enough.")).toBeInTheDocument();
   });
 
-  it("explains why an empty proof cannot advance", async () => {
+  it("explains why an empty proof cannot go to Review", async () => {
     const user = userEvent.setup();
     controller = proofComposerControllerFixture({ note: "", credited: [VIEWER] });
     render();
-    await user.click(next());
+    await user.click(forward("Details"));
 
-    expect(next()).toBeDisabled();
+    expect(forward("Review Proof")).toBeDisabled();
     expect(
       screen.getByText("Add a photo, a voice note, a link or a few words first.")
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Needed if you add nothing else. Or add a link below, or go back for a photo."
+      )
+    ).toBeInTheDocument();
   });
 
-  it("keeps beat stepping and renders the commitment consequence", async () => {
+  it("offers Add and Send to the lead, with what it costs", async () => {
     const user = userEvent.setup();
-    const detail = commitmentDetailFixture({
-      commitment: commitmentFixture({
-        direction: "REQUEST",
-        creator: OTHER,
-        leadProvider: VIEWER,
-        counterparty: VIEWER,
-        commitmentType: "SUPPORT_SERVICE",
-      }),
-    });
-    controller = proofComposerControllerFixture({
-      detail,
-      commitment: detail.commitment,
-      viewer: VIEWER,
-      note: "Done",
-      credited: [VIEWER],
-    });
+    controller = { ...controller, canSendToo: true, sendToo: true };
     render();
     await reachReview(user);
 
-    expect(screen.getByText("Before you add this")).toBeInTheDocument();
-    expect(screen.getByText(/goes to the person who asked for the help/i)).toBeInTheDocument();
-  });
-
-  it("shows offline queue copy and delegates submission", async () => {
-    const user = userEvent.setup();
-    controller = proofComposerControllerFixture({
-      isOnline: false,
-      note: "Done",
-      submit: vi.fn(async () => true),
-    });
-    render();
-    await reachReview(user);
-
-    expect(screen.getByText(/will wait on your phone, photos and all/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add This Proof" }));
+    const send = screen.getByRole("switch", { name: "Send for confirmation too" });
+    expect(send).toBeChecked();
+    expect(
+      screen.getByText("You'll be asked to sign twice: once for the proof, once to send it.")
+    ).toBeInTheDocument();
+    await user.click(send);
+    expect(controller.setSendToo).toHaveBeenCalledWith(false);
+    await user.click(forward("Add and Send"));
     expect(controller.submit).toHaveBeenCalledTimes(1);
   });
 
-  it("stays on review when the controller cannot queue the proof", async () => {
+  it("tells a teammate who sends it, with no switch", async () => {
     const user = userEvent.setup();
-    controller = proofComposerControllerFixture({
-      note: "Done",
-      submit: vi.fn(async () => false),
-    });
+    controller = {
+      ...controller,
+      leads: false,
+      seat: "contributor",
+      roster: [
+        { address: OTHER, isLead: true },
+        { address: VIEWER, isLead: false },
+      ],
+    };
     render();
     await reachReview(user);
-    await user.click(screen.getByRole("button", { name: "Add This Proof" }));
+
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+    expect(screen.getByText(/leads this one and sends it/)).toBeInTheDocument();
+  });
+
+  it("says an offline proof waits on the phone, and still adds it", async () => {
+    const user = userEvent.setup();
+    controller = { ...controller, isOnline: false };
+    render();
+    await reachReview(user);
+
+    expect(screen.getByText(/It waits on this phone, photos and all/)).toBeInTheDocument();
+    await user.click(forward("Add This Proof"));
+    expect(controller.submit).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays on Review while nothing is admitted", async () => {
+    const user = userEvent.setup();
+    controller = { ...controller, submit: vi.fn(async () => false) };
+    render();
+    await reachReview(user);
+    await user.click(forward("Add This Proof"));
 
     expect(controller.submit).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Before you add this")).toBeInTheDocument();
+    expect(screen.getByText("Review Proof", { selector: "h6" })).toBeInTheDocument();
   });
 
-  it("renders the queued outcome from the controller", () => {
-    controller = proofComposerControllerFixture({ status: "queued" });
-    render();
-
-    expect(screen.getByText("Proof saved")).toBeInTheDocument();
-  });
-  it("returns to the existing commitment history entry so Back reaches its origin", async () => {
+  it("hands over to the promise it came from, so Back reaches the promise's origin", async () => {
     const user = userEvent.setup();
-    controller = proofComposerControllerFixture({ status: "queued" });
+    controller = { ...controller, landing: "sending" };
     render(true);
-    await user.click(screen.getByRole("button", { name: "Back to the Promise" }));
-    expect(screen.getByText("Back on the commitment")).toBeInTheDocument();
+
+    expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Native Back" }));
     expect(screen.getByText("Real origin")).toBeInTheDocument();
   });
 
-  it("replaces a direct proof entry with its commitment", async () => {
+  it("replaces a proof link opened directly with its promise", async () => {
     const user = userEvent.setup();
-    controller = proofComposerControllerFixture({ status: "queued" });
+    controller = { ...controller, landing: "queued" };
     render();
-    await user.click(screen.getByRole("button", { name: "Back to the Promise" }));
+
+    expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Native Back" }));
-    expect(screen.getByText("Back on the commitment")).toBeInTheDocument();
-    expect(screen.queryByText("Proof saved")).not.toBeInTheDocument();
+    expect(screen.queryByText("Nothing added yet")).not.toBeInTheDocument();
+  });
+
+  it("opens the promise from the pinned card and returns to the same step", async () => {
+    const user = userEvent.setup();
+    render();
+    await user.click(forward("Details"));
+    await user.click(screen.getByRole("button", { name: /Proof for Prune the north beds/ }));
+
+    const sheet = await screen.findByRole("dialog", { name: "Prune the north beds" });
+    expect(sheet).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(forward("Review Proof")).toBeInTheDocument();
   });
 });

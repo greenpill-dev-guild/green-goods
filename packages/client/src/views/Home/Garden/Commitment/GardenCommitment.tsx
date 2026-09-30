@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
+import { describeProofContents } from "@/components/Features/Commitments";
 import type { ClaimContext } from "./ClaimContextSheet";
 import { CommitmentActionBar } from "./CommitmentActionBar";
 import { commitmentActForKind } from "./commitmentActions";
@@ -103,6 +104,29 @@ export function GardenCommitment() {
     actKind: controller.actKind,
   });
   const isPending = controller.isQueueing || controller.isSending;
+  // Proof still on this phone and not being sent: the notice above says what
+  // it waits for; the progress and the history say it is not on the promise yet.
+  const proofJob =
+    controller.queue.pendingAct?.kind === "evidence" ? controller.queue.pendingAct : null;
+  const failedProof =
+    controller.queue.failedJob?.kind === "evidence" ? controller.queue.failedJob : null;
+  const proofOnPhone = controller.queue.proofSending
+    ? null
+    : failedProof
+      ? { text: formatMessage({ id: "app.commitment.history.local.failed" }), at: failedProof.at }
+      : proofJob
+        ? {
+            text: formatMessage({
+              id:
+                proofJob.waitingReason === "send-intent-expired"
+                  ? "app.commitment.history.local.cancelled"
+                  : proofJob.waitingReason === "awaiting-confirmation"
+                    ? "app.commitment.history.local.checking"
+                    : "app.commitment.history.local.saved",
+            }),
+            at: proofJob.createdAt,
+          }
+        : null;
   const units = commitment.unitLabel
     ? formatCommitmentUnits(intl, commitment.targetUnits, commitment.unitLabel)
     : null;
@@ -215,7 +239,7 @@ export function GardenCommitment() {
           ) : null
         }
       >
-        {controller.queue.sendFailed ? (
+        {controller.queue.proofSending ? null : controller.queue.sendFailed ? (
           <FailedActAlert
             failed={controller.queue.failedJob}
             onChanged={controller.queue.refresh}
@@ -285,6 +309,19 @@ export function GardenCommitment() {
           chainId={controller.chainId}
           commitment={commitment}
           requirements={requirements}
+          onPhone={
+            controller.queue.proofOnItsWay
+              ? {
+                  kind: "sending",
+                  summary:
+                    describeProofContents(intl, controller.queue.proofOnItsWay, {
+                      words: "alone",
+                    }) ?? "",
+                }
+              : proofOnPhone
+                ? { kind: "local" }
+                : null
+          }
         >
           <CommitmentEvidence
             attributions={controller.detail.evidenceAttributions}
@@ -312,6 +349,7 @@ export function GardenCommitment() {
           chainId={controller.chainId}
           commitment={commitment}
           viewer={controller.viewer}
+          localLine={proofOnPhone}
         />
       </CommitmentDetailShell>
 

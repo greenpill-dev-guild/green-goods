@@ -75,6 +75,9 @@ export type CommitmentFailureReason =
 
 export interface FailedCommitmentJob {
   jobId: string;
+  kind: CommitmentJobKind;
+  /** When it last tried, so the promise's history can place the line. */
+  at: number;
   discardable: boolean;
   /** A terminal cause safe to explain without exposing queue internals. */
   reason: CommitmentFailureReason | null;
@@ -146,10 +149,13 @@ function explainTerminalFailure(
 /**
  * Why an act still on this phone waits. A send on record is the answer
  * whatever the stored reason says: the reason can outlive the record, and the
- * record is what keeps the act from being dropped or sent twice.
+ * record is what keeps the act from being dropped or sent twice. An act the
+ * person declined, or whose lost send was reopened, waits for their own send:
+ * nothing was sent, so it reads as a send that never went.
  */
 function pendingActWaitingReason(job: Job): string | null {
   if (hasRecordedSend(job)) return "awaiting-confirmation";
+  if (job.meta?.requiresExplicitSend) return "send-intent-expired";
   const reason = job.meta?.waitingReason;
   return typeof reason === "string" && reason !== "awaiting-confirmation" ? reason : null;
 }
@@ -229,6 +235,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           failedCommitmentIds.add(commitmentId);
           failedJobs.set(commitmentId, {
             jobId: job.id,
+            kind: job.kind as CommitmentJobKind,
+            at: job.lastAttemptAt ?? job.createdAt,
             discardable: isDiscardableJob(job),
             ...explainTerminalFailure(job.lastError),
           });

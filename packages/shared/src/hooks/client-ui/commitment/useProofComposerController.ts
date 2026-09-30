@@ -2,17 +2,18 @@
  * Proof composer controller
  *
  * Owns commitment authority, draft persistence, queue payloads, media resources,
- * and form state so the client view only renders the three-beat journey.
+ * form state and the send's feedback, so the client view only renders the
+ * three steps and leaves for the promise when told.
  *
  * @module hooks/client-ui/commitment/useProofComposerController
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
-import type { Job } from "../../../types/job-queue";
-import type { EvidenceJobPayload } from "../../../modules/commitment-pooling/jobs";
+import { useIntl } from "react-intl";
 
+import { createProofToasts } from "../../../components/Toast/presets/proof";
 import { selectCommitmentActKind } from "../../../modules/commitment-pooling/acts";
+import type { EvidenceJobPayload } from "../../../modules/commitment-pooling/jobs";
 import {
   type ProofDraftRepository,
   proofDraftRepository,
@@ -28,36 +29,53 @@ import type { Address } from "../../../types/domain";
 import { imageCompressor } from "../../../utils/work/image-compression";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
-import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
+import {
+  type CommitmentSendReport,
+  useCommitmentJobs,
+} from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
 import {
   useCommitmentProofDraft,
   useProofDraftSync,
 } from "../../commitment-pooling/useCommitmentProofDraft";
-import { useCommitment } from "../../commitment-pooling/useCommitmentPooling";
+import {
+  useCommitment,
+  useCommitmentCycle,
+  useCommitmentPool,
+} from "../../commitment-pooling/useCommitmentPooling";
+import { useProtocolPool } from "../../commitment-pooling/useProtocolPool";
+import { useGardenRecord } from "../../garden/useGardenRecord";
 import { useAudioRecording } from "../../utils/useAudioRecording";
 import { useDeferredHeicConversion } from "../../work/useDeferredHeicConversion";
 import type {
   ProofComposerController,
   ProofComposerStatus,
+  ProofLanding,
   ProofRosterMember,
 } from "./proof-controller.types";
-import { type ProofBeat, selectProofReadiness } from "./proofReadiness";
+import { proofContentsOf } from "./proofContents";
+import { followBackgroundProof, proofSendKey, settleProofSend, startProofSend } from "./proofSend";
+import { type ProofBeat, selectProofReadiness, selectSendTooOffered } from "./proofReadiness";
 
 export interface UseProofComposerControllerInput {
   chainId: number;
   commitmentId: bigint | null;
   routeGarden: Address | string | null | undefined;
   draftRepository?: ProofDraftRepository;
+  /** Where "Couldn't add proof" sends someone to try again: Your Work's Pending list. */
+  onOpenYourWork?: () => void;
 }
 
 function sameAddress(left: Address, right: Address): boolean {
   return left.toLowerCase() === right.toLowerCase();
 }
 
+const NO_STEWARDS: readonly Address[] = [];
+
 export function useProofComposerController(
   input: UseProofComposerControllerInput
 ): ProofComposerController {
+  const intl = useIntl();
   const isOnline = useOnlineStatus();
   const draftRepository = input.draftRepository ?? proofDraftRepository;
   const viewer = (usePrimaryAddress() as Address | null) ?? null;
@@ -66,7 +84,20 @@ export function useProofComposerController(
     { chainId: input.chainId, commitmentId: input.commitmentId ?? 0n },
     { enabled: input.commitmentId !== null }
   );
-  const metadata = useCommitmentMetadataFor(query.detail?.commitment);
+  const commitment = query.detail?.commitment;
+  const metadata = useCommitmentMetadataFor(commitment);
+  const pool = useCommitmentPool(
+    { chainId: input.chainId, poolId: commitment?.poolId ?? 0n },
+    { enabled: Boolean(commitment?.poolId) }
+  );
+  const cycleId = commitment?.cycleId ?? 0n;
+  const cycle = useCommitmentCycle(
+    { chainId: input.chainId, cycleId },
+    { enabled: cycleId !== 0n }
+  );
+  const protocolPool = useProtocolPool({ chainId: input.chainId });
+  // The promise's own garden, so the Proof for sheet tags whoever confirms it as a steward.
+  const poolGarden = useGardenRecord((pool.pool?.garden as Address | undefined) ?? null);
   const jobs = useCommitmentJobs({ chainId: input.chainId });
   const draft = useCommitmentProofDraft({
     chainId: input.chainId,
@@ -83,27 +114,13 @@ export function useProofComposerController(
   const [selectedCredit, setSelectedCredit] = useState<Address[] | null>(
     () => (draft.saved?.credited as Address[] | null | undefined) ?? null
   );
+  // Once the queue holds the proof, the draft is let go and never saved again.
   const [queued, setQueued] = useState(false);
   const [clientEvidenceId] = useState(() => draft.saved?.clientEvidenceId ?? crypto.randomUUID());
-  const [sendPhase, setSendPhase] = useState<ProofComposerController["sendPhase"]>("idle");
+  const [landing, setLanding] = useState<ProofLanding | null>(null);
+  const [sendTooChoice, setSendTooChoice] = useState<boolean | null>(null);
   const submitting = useRef(false);
-  useEffect(() => {
-    const matches = (job: Job) =>
-      job.kind === "evidence" &&
-      job.chainId === input.chainId &&
-      job.userAddress.toLowerCase() === viewer?.toLowerCase() &&
-      (job.payload as EvidenceJobPayload).clientEvidenceId === clientEvidenceId;
-    const complete = jobQueueEventBus.on("job:completed", ({ job }) => {
-      if (matches(job)) setSendPhase("confirmed");
-    });
-    const failed = jobQueueEventBus.on("job:failed", ({ job }) => {
-      if (matches(job)) setSendPhase("failed");
-    });
-    return () => {
-      complete();
-      failed();
-    };
-  }, [clientEvidenceId, input.chainId, viewer]);
+
   const restoreFiles = useCallback((files: { media: File[]; audioNotes: File[] }) => {
     if (files.media.length > 0) setMedia(files.media);
     if (files.audioNotes.length > 0) setAudioNotes(files.audioNotes);
@@ -155,6 +172,23 @@ export function useProofComposerController(
         .map((entry) => entry.address),
     [roster, selectedCredit, viewer]
   );
+
+  // D19: Add and Send only when this reader may send and the chain would take it.
+  const canSendToo = useMemo(
+    () =>
+      selectSendTooOffered({
+        detail,
+        seat,
+        pool: pool.pool,
+        cycle: cycleId === 0n ? null : (cycle.cycle ?? undefined),
+        creditedCount: credited.length,
+        protocolPoolRegistered: protocolPool.isRegistered,
+      }),
+    [credited.length, cycle.cycle, cycleId, detail, pool.pool, protocolPool.isRegistered, seat]
+  );
+  // On by default for someone working alone; off with a team, since sending
+  // settles the team and its credit.
+  const sendToo = canSendToo && (sendTooChoice ?? roster.length <= 1);
 
   const toggleCredit = useCallback(
     (address: Address) =>
@@ -215,6 +249,14 @@ export function useProofComposerController(
     [credited.length, hasAnything, isProcessing, links, recording.isRecording]
   );
 
+  /**
+   * Add This Proof, in Submit Work's sequence (D18). The page stays still while
+   * the toast says what is happening. Once the queue holds the proof the draft
+   * is let go, and as soon as nothing waits on this screen (the signature is
+   * given, the send is left queued, or the person declined) the flow hands over
+   * to the promise through `landing`. Anything after that, the rest of a send
+   * and Add and Send's second act, runs on without the screen.
+   */
   const submit = useCallback(async (): Promise<boolean> => {
     if (
       !detail ||
@@ -226,42 +268,143 @@ export function useProofComposerController(
     )
       return false;
     submitting.current = true;
-    // Retire prior-attempt feedback before enqueue can report this attempt's outcome.
-    setSendPhase("idle");
-    try {
-      await jobs.enqueue({
-        act: "evidence",
-        report: (event) => {
-          if (event.stage === "wallet") setSendPhase("signing");
-          else if (event.stage === "confirming") setSendPhase("confirming");
-          else if (event.stage === "landed") setSendPhase("confirmed");
-          else
-            setSendPhase((current) =>
-              current === "confirmed" || current === "failed" ? current : "queued"
-            );
-        },
-        payload: {
-          clientEvidenceId,
-          commitmentId: detail.commitment.commitmentId,
-          creditedContributors: credited,
-          gardenAddress: (detail.commitment.providerGarden ?? routeGarden) as Address,
-          ...(note.trim() ? { note: note.trim() } : {}),
-          ...(links.length > 0 ? { links } : {}),
-          ...(media.length > 0 ? { media } : {}),
-          ...(audioNotes.length > 0 ? { audioNotes } : {}),
-        },
-      });
+    const toasts = createProofToasts(intl.formatMessage);
+    const onOpenYourWork = input.onOpenYourWork;
+    const record = detail.commitment;
+    const gardenAddress = (record.providerGarden ?? routeGarden) as Address;
+    const withSend = sendToo;
+    const leads = seat === "provider";
+    // Written by the send's reports; typed here, not narrowed to their first values.
+    let admittedJobId = null as string | null;
+    // How the tap's own send ended, when it ended here.
+    let ended = null as "landed" | "declined" | null;
+    let queuedReason = undefined as string | undefined;
+    const land = (to: ProofLanding) => setLanding((current) => current ?? to);
+    const letGo = () => {
       draftRepository.revoke("proof");
       setQueued(true);
-      setSendPhase((current) => (current === "idle" ? "queued" : current));
-      await draft.clear();
-      return true;
+      void draft.clear().catch(() => undefined);
+    };
+    // The promise says the proof is on its way, and holds its queue notice,
+    // from the moment it leaves this phone until the send is over.
+    const sendKey = proofSendKey(input.chainId, record.commitmentId);
+    const onItsWay = () =>
+      startProofSend(sendKey, {
+        contents: proofContentsOf({ media, audioNotes, links, note }),
+        baseline: record.evidenceCount,
+      });
+    // The second act waits for the proof to land: sent first, it would settle
+    // the team before the proof and its credit were on the record.
+    const sendForConfirmation = async () => {
+      try {
+        await jobs.enqueue({
+          act: "sendForConfirmation",
+          commitmentId: record.commitmentId,
+          gardenAddress,
+        });
+        toasts.added({ sent: true, leads });
+      } catch {
+        // The proof landed; Send for Confirmation stays on the promise.
+        toasts.added({ sent: false, leads });
+      }
+    };
+    const proofLanded = async () => {
+      if (withSend) await sendForConfirmation();
+      else toasts.added({ sent: false, leads });
+      settleProofSend(sendKey, { landed: true });
+    };
+    const sendOver = () => settleProofSend(sendKey, { landed: false });
+    // A passkey or embedded sign-in leaves the send to the background flush,
+    // which may pick the proof up at once, so it is followed from admission.
+    const flushSends = !jobs.sendsFromTap && isOnline && viewer !== null;
+    const followFlush = (jobId: string, owner: Address) => {
+      onItsWay();
+      followBackgroundProof({
+        jobId,
+        owner,
+        onEnd: (outcome) => {
+          if (outcome === "landed") {
+            void proofLanded();
+            return;
+          }
+          sendOver();
+          if (outcome === "declined") toasts.notAdded();
+          else if (outcome === "failed") toasts.couldNotAdd(onOpenYourWork);
+          else toasts.takingLonger();
+        },
+      });
+    };
+
+    if (isOnline) toasts.adding({ sendToo: withSend });
+    const payload: EvidenceJobPayload = {
+      clientEvidenceId,
+      commitmentId: record.commitmentId,
+      creditedContributors: credited,
+      gardenAddress,
+      ...(note.trim() ? { note: note.trim() } : {}),
+      ...(links.length > 0 ? { links } : {}),
+      ...(media.length > 0 ? { media } : {}),
+      ...(audioNotes.length > 0 ? { audioNotes } : {}),
+    };
+    const report = (event: CommitmentSendReport) => {
+      switch (event.stage) {
+        case "admitted":
+          admittedJobId = event.jobId;
+          letGo();
+          if (flushSends && viewer) followFlush(event.jobId, viewer);
+          return;
+        case "confirming":
+          onItsWay();
+          toasts.confirming();
+          land("sending");
+          return;
+        case "landed":
+          ended = "landed";
+          // Held until the record counts it, when no confirming stage came first.
+          onItsWay();
+          land("landed");
+          return;
+        case "declined":
+          ended = "declined";
+          toasts.notAdded();
+          land("declined");
+          return;
+        case "queued":
+          queuedReason = event.reason;
+          land("queued");
+          return;
+      }
+    };
+
+    try {
+      await jobs.enqueue({ act: "evidence", payload, report });
     } catch {
-      setSendPhase((current) => (current === "confirmed" ? current : "failed"));
-      return false;
-    } finally {
       submitting.current = false;
+      sendOver();
+      if (!admittedJobId) {
+        // Never queued: the proof is still this draft, and the form stays.
+        toasts.dismiss();
+        return false;
+      }
+      toasts.couldNotAdd(onOpenYourWork);
+      land("failed");
+      return true;
     }
+    submitting.current = false;
+
+    if (ended === "landed") void proofLanded();
+    else if (ended === "declined") {
+      // Already said: nothing was sent, and the proof waits on the phone.
+    } else if (!isOnline) toasts.savedOffline();
+    else if (flushSends) {
+      // Followed since admission; the follower says how the flush's send ended.
+    } else {
+      sendOver();
+      if (queuedReason === "awaiting-confirmation") toasts.takingLonger();
+      // Otherwise the wallet send waits its turn, and the promise's notice says why.
+      else toasts.dismiss();
+    }
+    return true;
   }, [
     audioNotes,
     clientEvidenceId,
@@ -269,6 +412,10 @@ export function useProofComposerController(
     detail,
     draft,
     draftRepository,
+    input.chainId,
+    input.onOpenYourWork,
+    intl.formatMessage,
+    isOnline,
     jobs,
     links,
     media,
@@ -276,6 +423,9 @@ export function useProofComposerController(
     routeGarden,
     queued,
     readiness,
+    seat,
+    sendToo,
+    viewer,
   ]);
 
   let status: ProofComposerStatus = "ready";
@@ -283,10 +433,12 @@ export function useProofComposerController(
   else if (query.isLoading) status = "loading";
   else if (query.isError) status = "error";
   else if (!detail || (seat !== "provider" && seat !== "contributor")) status = "notYours";
-  else if (selectCommitmentActKind({ commitment: detail.commitment, seat }) !== "addProof")
+  // Once handed over, the refreshed record may read as sent; the view is leaving anyway.
+  else if (
+    !landing &&
+    selectCommitmentActKind({ commitment: detail.commitment, seat }) !== "addProof"
+  )
     status = "closed";
-  else if (queued)
-    status = sendPhase === "confirmed" ? "confirmed" : sendPhase === "failed" ? "failed" : "queued";
 
   // A HEIC photo waiting to convert shows a placeholder, not a preview.
   const imageUrls = draftRepository.previewUrls(
@@ -303,8 +455,12 @@ export function useProofComposerController(
     commitment: detail?.commitment ?? null,
     metadata,
     roster,
+    seat,
+    stewards: poolGarden.data?.stewards ?? NO_STEWARDS,
+    leads: seat === "provider",
     media,
     audioNotes,
+    contents: proofContentsOf({ media, audioNotes, links, note }),
     note,
     setNote,
     links,
@@ -315,7 +471,10 @@ export function useProofComposerController(
     isRecording: recording.isRecording,
     recordingElapsed: recording.elapsed,
     isPending: jobs.isPending,
-    sendPhase,
+    landing,
+    canSendToo,
+    sendToo,
+    setSendToo: setSendTooChoice,
     linkInvalid,
     imageUrls,
     heicStateOf: heic.stateOf,

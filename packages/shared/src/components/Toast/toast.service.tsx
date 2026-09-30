@@ -1,9 +1,3 @@
-import {
-  RiCheckboxCircleFill,
-  RiErrorWarningFill,
-  RiInformationLine,
-  RiLoader4Line,
-} from "@remixicon/react";
 import type { ReactNode } from "react";
 import * as React from "react";
 import toast, { type Toast as HotToast, type ToastOptions } from "react-hot-toast";
@@ -13,6 +7,7 @@ import { capitalize } from "../../utils/app/text";
 import { cn } from "../../utils/styles/cn";
 import { Button } from "../Button";
 import { createToastDismissQueue } from "./toast.queue";
+import { ToastStatusIcon } from "./ToastStatusIcon";
 
 type ToastFn = typeof toast.success;
 
@@ -150,38 +145,6 @@ const ACTION_BUTTON_STYLE: React.CSSProperties = {
   paddingInline: "0.25rem",
   whiteSpace: "normal",
 };
-
-// The public website's editorial toast keeps its icon in the deep editorial ink.
-const EDITORIAL_ICON_CLASS =
-  "[.gg-toast-editorial_&]:text-[rgb(var(--editorial-deep-rgb,45_33_24))]";
-
-/**
- * The status icon a toast shows on its title's line (D23): Remix glyphs on the
- * status tokens, so they follow the theme. The text and the live region carry
- * the status, so the icon is hidden from assistive technology.
- */
-function StatusIcon({ status }: { status: ToastStatus }) {
-  const className = cn("h-5 w-5 shrink-0", EDITORIAL_ICON_CLASS);
-  switch (status) {
-    case "success":
-      return (
-        <RiCheckboxCircleFill aria-hidden="true" className={cn(className, "text-success-base")} />
-      );
-    case "error":
-      return <RiErrorWarningFill aria-hidden="true" className={cn(className, "text-error-base")} />;
-    case "loading":
-      return (
-        <RiLoader4Line
-          aria-hidden="true"
-          className={cn(className, "animate-spin text-text-sub-600")}
-        />
-      );
-    default:
-      return (
-        <RiInformationLine aria-hidden="true" className={cn(className, "text-information-base")} />
-      );
-  }
-}
 
 /**
  * Self-managed auto-dismiss timers.
@@ -563,9 +526,9 @@ function ToastMessage({
 
   const ariaLabel = title ? `${title}: ${message}` : undefined;
 
+  // Its words stay at full strength while loading: the icon says it is working.
   const containerClassName = cn(
     "relative flex w-full flex-col gap-1 text-[color:var(--color-text-strong-950)] text-left rounded",
-    status === "loading" && "animate-pulse",
     dismissible && "cursor-pointer",
     closable && "pr-6",
     "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-base)] focus-visible:ring-offset-2"
@@ -606,7 +569,7 @@ function ToastMessage({
       {/* The status icon shares the title's line (the message's, when there is
           no title); everything below it runs the toast's full width (D23). */}
       <div className="flex items-start gap-2">
-        {icon === undefined ? <StatusIcon status={status} /> : icon}
+        {icon === undefined ? <ToastStatusIcon status={status} /> : icon}
         {title ? (
           <p className="min-w-0 text-sm font-semibold">{title}</p>
         ) : (

@@ -112,14 +112,18 @@ function queueAct(input: CommitmentJobInput, owner: Address, chainId: number): P
 }
 
 /**
- * Where one tap's send stands, for a view that follows it: the wallet is asked,
- * the chain is confirming, and then either the act landed or it stays queued
- * to send later. A send that fails rejects instead.
+ * Where one tap's send stands, for a view that follows it: the queue has the
+ * act, the wallet is asked, the chain is confirming, and then either the act
+ * landed or it stays queued to send later, with the queue's reason when it gave
+ * one. A declined proof stays queued for the person to send, and says so; any
+ * other send that fails rejects instead.
  */
 export type CommitmentSendReport =
+  | { stage: "admitted"; jobId: string }
   | JobSendPhase
   | { stage: "landed"; txHash: string | null }
-  | { stage: "queued" };
+  | { stage: "queued"; reason?: string }
+  | { stage: "declined" };
 
 /** An act, and optionally who to tell where its send stands. */
 export type CommitmentJobVariables = CommitmentJobInput & {
@@ -194,14 +198,17 @@ async function sendAndSettle(
  * - Declined at the wallet: the send never left and its record is cleared, so
  *   the job is dropped through the queue's own `discardJob` and the refusal is
  *   reported. The composers keep their own drafts, so nothing the person made
- *   is lost.
+ *   is lost. Proof is the exception: its composer lets go of the draft once the
+ *   queue has it, so a declined proof stays, marked for the person's own send,
+ *   and the promise offers Send Now and Discard (`keepDeclined`).
  * - Failed any other way: the job stays. The queued row and the failed-act
  *   surface carry it from here, with Try Again.
  */
 async function sendFromTap(
   jobId: string,
   sender: TransactionSender | null,
-  report?: (event: CommitmentSendReport) => void
+  report?: (event: CommitmentSendReport) => void,
+  { keepDeclined = false }: { keepDeclined?: boolean } = {}
 ): Promise<void> {
   if (sender?.authMode !== "wallet") {
     // No prompt to answer here: the background flush sends it.
@@ -214,11 +221,17 @@ async function sendFromTap(
     return;
   }
   if (result.skipped) {
-    tell(report, { stage: "queued" });
+    tell(report, { stage: "queued", ...(result.error ? { reason: result.error } : {}) });
     return;
   }
 
-  if (isCancelledTxError(result.error)) await jobQueue.discardJob(jobId);
+  if (isCancelledTxError(result.error)) {
+    if (keepDeclined) {
+      tell(report, { stage: "declined" });
+      return;
+    }
+    await jobQueue.discardJob(jobId);
+  }
   throw new Error(result.error ?? SEND_FAILED);
 }
 
@@ -265,7 +278,9 @@ export function useCommitmentJobs(options: { chainId?: number } = {}) {
     mutationFn: async ({ report, ...input }: CommitmentJobVariables) => {
       if (!viewer) throw new Error("Sign in before making a commitment");
       const jobId = await queueAct(input as CommitmentJobInput, viewer, chainId);
-      await sendFromTap(jobId, sender, report);
+      // From here the act is durable: whatever the send does, the queue holds it.
+      tell(report, { stage: "admitted", jobId });
+      await sendFromTap(jobId, sender, report, { keepDeclined: input.act === "evidence" });
       return jobId;
     },
     onSuccess: async (_jobId, input) => {
@@ -288,6 +303,8 @@ export function useCommitmentJobs(options: { chainId?: number } = {}) {
     enqueue: mutation.mutateAsync,
     isPending: mutation.isPending,
     error: mutation.error,
+    /** A wallet reader's act is sent from the tap; anyone else's by the background flush. */
+    sendsFromTap: sender?.authMode === "wallet",
     /** Absent until somebody is signed in; every act needs an owner. */
     viewer: viewer as Address | null,
   };

@@ -56,6 +56,7 @@ const BANDS: Record<string, StatusBand> = {
   },
   "provider:EVIDENCE_SUBMITTED": {
     bodyId: "app.commitment.band.provider.evidence.b",
+    named: { bodyId: "app.commitment.band.provider.evidence.named", who: "confirmer" },
     tone: "attention",
   },
   // The costliest one to get wrong: their part is done and they cannot confirm it.

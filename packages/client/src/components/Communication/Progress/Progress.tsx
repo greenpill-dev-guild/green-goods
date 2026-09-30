@@ -42,14 +42,16 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
               <span
                 className={cn(
                   "relative grid h-6 w-6 place-items-center rounded-full border border-stroke-soft-200 text-xs font-medium transition-[color,border-color,background-color] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-                  isCompletedStep && cn(pwaStatusStyles.success.badge, "border-0"),
+                  // A finished step steps back: a light marker and a tick, so the
+                  // one filled marker is the step you are on.
+                  isCompletedStep && cn(pwaStatusStyles.success.surface, "border-0"),
                   isCurrentStep && cn(pwaStatusStyles.primary.badge, "border-0 font-semibold")
                 )}
               >
                 {isCompletedStep ? (
                   <RiCheckFill
                     aria-hidden="true"
-                    className={cn("w-3 h-3", pwaStatusStyles.success.foreground)}
+                    className={cn("w-3 h-3", pwaStatusStyles.success.text)}
                   />
                 ) : (
                   <span

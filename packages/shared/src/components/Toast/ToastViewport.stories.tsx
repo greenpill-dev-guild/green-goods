@@ -103,8 +103,9 @@ export const TitleMessageAndAction: Story = {
       // Long enough to measure and capture; a persistent toast would add a close button.
       duration: 60_000,
     });
-    const body = await within(canvasElement).findByTestId("toast-content");
-    const title = within(body).getByText("Couldn't add proof");
+    // A toast an earlier story raised may still be leaving; read this one.
+    const title = await within(canvasElement).findByText("Couldn't add proof");
+    const body = title.closest("[data-testid=toast-content]") as HTMLElement;
     const titleLine = title.parentElement as HTMLElement;
     const icon = titleLine.querySelector("svg") as SVGElement;
     const message = within(body).getByText(/still saved on this phone/);

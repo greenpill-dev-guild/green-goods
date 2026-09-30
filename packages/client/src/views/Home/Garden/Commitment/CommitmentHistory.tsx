@@ -67,8 +67,11 @@ interface CommitmentHistoryProps {
   chainId: number;
   commitment: CommitmentReadModel;
   viewer?: Address | null;
-  /** An act still on this phone, drawn first on a dashed node: it is not on the record yet. */
-  localLine?: string | null;
+  /**
+   * An act still on this phone, drawn first on a dashed node: it is not on the
+   * record yet. `at` is when this phone last touched it, in milliseconds.
+   */
+  localLine?: { text: string; at: number } | null;
 }
 
 /**
@@ -134,7 +137,14 @@ export function CommitmentHistory({
         </p>
       ) : null}
       <ol className="mt-3">
-        {localLine ? <HistoryLine text={localLine} local latest={false} /> : null}
+        {localLine ? (
+          <HistoryLine
+            text={localLine.text}
+            when={formatWhen(intl, localLine.at / 1000)}
+            local
+            latest={false}
+          />
+        ) : null}
         {lines.map((line, index) => (
           <HistoryLine
             key={line.key}

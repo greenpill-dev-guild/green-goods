@@ -1,12 +1,10 @@
 import {
   type CommitmentReadModel,
-  useCommitmentCycle,
-  useCommitmentCycleNames,
+  useCommitmentCycleLabel,
 } from "@green-goods/shared/commitment-pooling";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiFlagLine, RiSunLine } from "@remixicon/react";
-import { useIntl } from "react-intl";
 
 interface CommitmentPlaceProps {
   chainId: number;
@@ -21,19 +19,13 @@ interface CommitmentPlaceProps {
  * a promise outside any season names only its garden.
  */
 export function CommitmentPlace({ chainId, commitment, garden }: CommitmentPlaceProps) {
-  const { formatMessage } = useIntl();
-  const cycleId = commitment.cycleId ?? 0n;
-  const { cycle } = useCommitmentCycle({ chainId, cycleId }, { enabled: cycleId !== 0n });
-  const { byCycleId } = useCommitmentCycleNames(cycle ? [cycle] : []);
+  const cycle = useCommitmentCycleLabel({ chainId, cycleId: commitment.cycleId });
   const { data: gardens = [] } = useGardens(chainId);
   const gardenName = garden
     ? gardens.find((entry) => entry.id.toLowerCase() === garden.toLowerCase())?.name
     : undefined;
-  const isCampaign = cycle?.cycleType === "CAMPAIGN";
-  const cycleName = cycle
-    ? (byCycleId.get(cycle.cycleId.toString())?.name ??
-      formatMessage({ id: isCampaign ? "app.pool.rail.campaign" : "app.pool.rail.season" }))
-    : null;
+  const isCampaign = cycle?.isCampaign ?? false;
+  const cycleName = cycle?.name ?? null;
 
   if (!cycleName && !gardenName) return null;
   return (

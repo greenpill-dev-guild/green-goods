@@ -28,12 +28,18 @@ const mocks = vi.hoisted(() => ({
   addJob: vi.fn(),
   processJob: vi.fn(),
   retryJob: vi.fn(),
+  discardJob: vi.fn(),
   viewer: "0x1111111111111111111111111111111111111111" as string | null,
   sender: null as { authMode: "wallet" | "passkey" | "embedded" } | null,
 }));
 
 vi.mock("../modules/job-queue/default-instance", () => ({
-  jobQueue: { addJob: mocks.addJob, processJob: mocks.processJob, retryJob: mocks.retryJob },
+  jobQueue: {
+    addJob: mocks.addJob,
+    processJob: mocks.processJob,
+    retryJob: mocks.retryJob,
+    discardJob: mocks.discardJob,
+  },
 }));
 vi.mock("../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => mocks.viewer }));
 vi.mock("../hooks/blockchain/useTransactionSender", () => ({
@@ -179,11 +185,37 @@ describe("useCommitmentJobs", () => {
 
       await jobs().current.enqueue({ ...confirm, report });
 
+      // The queue holds the act before any prompt opens, so a view can tell a
+      // durable act from one that never got that far.
       expect(report.mock.calls.map(([event]) => event)).toEqual([
+        { stage: "admitted", jobId: "job-1" },
         { stage: "wallet" },
         { stage: "confirming", txHash: "0xabc" },
         { stage: "landed", txHash: "0xabc" },
       ]);
+    });
+
+    it("keeps a declined proof for the person to send, where any other act is dropped", async () => {
+      mocks.sender = { authMode: "wallet" };
+      mocks.processJob.mockResolvedValue({ success: false, error: "User rejected the request" });
+      const proof = {
+        act: "evidence",
+        payload: {
+          clientEvidenceId: "proof-1",
+          commitmentId: 9n,
+          creditedContributors: [],
+          gardenAddress: GARDEN,
+        },
+      } as const;
+      const report = vi.fn();
+
+      // The composer has let go of its draft by now: the queue is the proof's home.
+      await expect(jobs().current.enqueue({ ...proof, report })).resolves.toBe("job-1");
+      expect(report).toHaveBeenLastCalledWith({ stage: "declined" });
+      expect(mocks.discardJob).not.toHaveBeenCalled();
+
+      await expect(jobs().current.enqueue(confirm)).rejects.toThrow(/rejected/i);
+      expect(mocks.discardJob).toHaveBeenCalledWith("job-1");
     });
 
     it.each([

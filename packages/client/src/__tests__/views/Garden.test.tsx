@@ -222,7 +222,8 @@ vi.mock("@/components/Sheets", () => ({
   DraftSheet: () => null,
 }));
 
-vi.mock("@/components/Features/Work", () => ({
+vi.mock("@/components/Features/Work", async (importOriginal) => ({
+  ...(await importOriginal()),
   WorkViewSkeleton: () => createElement("div", { "data-testid": "work-skeleton" }),
 }));
 

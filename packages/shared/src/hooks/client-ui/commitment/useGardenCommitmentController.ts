@@ -41,6 +41,7 @@ import type {
   GardenCommitmentController,
   GardenCommitmentStatus,
 } from "./controller.types";
+import { proofSendKey, useProofSend } from "./proofSend";
 
 const CLAIM_TYPE_GARDEN = 0;
 const CLAIM_TYPE_INDIVIDUAL = 1;
@@ -113,6 +114,9 @@ export function useGardenCommitmentController(input: {
   const queueKey = commitment?.commitmentId.toString() ?? "";
   const pending = Boolean(commitment && queueState.pendingCommitmentIds.has(queueKey));
   const sendFailed = Boolean(commitment && queueState.failedCommitmentIds.has(queueKey));
+  const proofSend = useProofSend(
+    commitmentId !== null ? proofSendKey(chainId, commitmentId) : null
+  );
   const ownRequest = viewer
     ? (claimsQuery.claimRequests
         .filter(
@@ -341,6 +345,11 @@ export function useGardenCommitmentController(input: {
       sendFailed,
       failedJob: queueState.failedJobs.get(queueKey) ?? null,
       pendingAct: queueState.pendingActs.get(queueKey) ?? null,
+      proofSending: Boolean(proofSend && !proofSend.landed),
+      proofOnItsWay:
+        proofSend && (commitment?.evidenceCount ?? 0) <= proofSend.baseline
+          ? proofSend.contents
+          : null,
       isUnavailable: queueState.isUnavailable,
       refresh: queueState.refresh,
     },
