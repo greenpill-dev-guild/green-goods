@@ -77,7 +77,8 @@ Three habits keep the suite from spreading into small files:
 - When a change adds more test lines than source lines, say so in one line of the pull request body
   or commit message, with the reason.
 - Run the focused file while you work (`bun run test <path>` in the package). Package-wide runs take
-  the machine-wide test lease, so a second one waits for the first.
+  the machine-wide test lease, so a second one waits for the first. A local `CI=true` run, such as a
+  hand-run Coverage Nightly, takes it too; only a GitHub runner skips it.
 
 ## Critical paths (deepest coverage in `packages/shared/src/`)
 

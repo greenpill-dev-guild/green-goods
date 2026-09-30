@@ -241,9 +241,11 @@ test("lease settings read positive overrides and reject malformed ones", () => {
   for (const value of ["0", "-1", "two", "1.5"]) {
     assert.throws(() => resolveTestLeaseSettings({ GREEN_GOODS_TEST_LEASE_SLOTS: value }), /GREEN_GOODS_TEST_LEASE_SLOTS/);
   }
-  assert.equal(runsInContinuousIntegration({ CI: "true" }), true);
-  assert.equal(runsInContinuousIntegration({ CI: "true", GREEN_GOODS_LOCAL_GATE: "1" }), false);
-  assert.equal(runsInContinuousIntegration({ CI: "false" }), false);
+  assert.equal(runsInContinuousIntegration({ CI: "true", GITHUB_ACTIONS: "true" }), true);
+  assert.equal(runsInContinuousIntegration({ CI: "true", GITHUB_ACTIONS: "true", GREEN_GOODS_LOCAL_GATE: "1" }), false);
+  // A hand-run Coverage Nightly exports CI=true on this machine; it is not a runner.
+  assert.equal(runsInContinuousIntegration({ CI: "true" }), false);
+  assert.equal(runsInContinuousIntegration({ CI: "false", GITHUB_ACTIONS: "true" }), false);
   assert.equal(runsInContinuousIntegration({}), false);
 });
 
@@ -317,27 +319,29 @@ test("an unavailable lease warns once and runs with a conservative worker cap", 
   assert.ok(calls.every((call) => call.options.env.VITEST_MAX_WORKERS === "4"));
 });
 
-test("CI and focused runs never touch the lease; the local gate still takes it", async (t) => {
+test("CI runners and focused runs never touch the lease; the local gate and a local CI=true take it", async (t) => {
   const { directory } = leaseFixture(t);
   const acquire = async () => assert.fail("the lease must not be taken");
-  for (const [plan, environment] of [[resolve("shared", "test"), { CI: "true" }], [resolve("shared", "test", ["src/utils/date.test.ts"]), {}]]) {
+  for (const [plan, environment] of [[resolve("shared", "test"), { CI: "true", GITHUB_ACTIONS: "true" }], [resolve("shared", "test", ["src/utils/date.test.ts"]), {}]]) {
     const calls = [];
     assert.equal(await executePackageCommand(plan, { signals: new EventEmitter(), environment, acquire, leaseDirectory: directory, resources: machine, spawnImpl: recordingSpawn(calls) }), 0);
     assert.equal(calls[0].options.env.VITEST_MAX_WORKERS, undefined);
   }
   let taken = 0;
-  await executePackageCommand(resolve("shared", "test"), {
-    signals: new EventEmitter(),
-    environment: { CI: "true", GREEN_GOODS_LOCAL_GATE: "1" },
-    acquire: async () => {
-      taken += 1;
-      return { status: "acquired", slot: 0, release: () => {} };
-    },
-    leaseDirectory: directory,
-    resources: machine,
-    spawnImpl: recordingSpawn([]),
-  });
-  assert.equal(taken, 1);
+  for (const environment of [{ CI: "true", GREEN_GOODS_LOCAL_GATE: "1" }, { CI: "true" }]) {
+    await executePackageCommand(resolve("shared", "test"), {
+      signals: new EventEmitter(),
+      environment,
+      acquire: async () => {
+        taken += 1;
+        return { status: "acquired", slot: 0, release: () => {} };
+      },
+      leaseDirectory: directory,
+      resources: machine,
+      spawnImpl: recordingSpawn([]),
+    });
+  }
+  assert.equal(taken, 2);
 });
 
 test("a lease timeout exits with its own code and never starts the suite", async () => {
@@ -394,7 +398,8 @@ test("Turbo passes lease overrides and the local-gate marker through, and hashes
   const turbo = JSON.parse(readFileSync(new URL("../../turbo.json", import.meta.url), "utf8"));
   const matches = (entries, variable) =>
     (entries ?? []).some((entry) => entry === variable || (entry.endsWith("*") && variable.startsWith(entry.slice(0, -1))));
-  for (const variable of ["GREEN_GOODS_TEST_LEASE_SLOTS", "GREEN_GOODS_TEST_LEASE_TIMEOUT_SECONDS", "GREEN_GOODS_LOCAL_GATE"]) {
+  // GITHUB_ACTIONS lets a suite under Turbo tell a runner from a local CI=true.
+  for (const variable of ["GREEN_GOODS_TEST_LEASE_SLOTS", "GREEN_GOODS_TEST_LEASE_TIMEOUT_SECONDS", "GREEN_GOODS_LOCAL_GATE", "GITHUB_ACTIONS"]) {
     assert.ok(matches(turbo.globalPassThroughEnv, variable), variable);
   }
   // A worker count can change a suite's result, so Turbo's cache must not replay a pass made

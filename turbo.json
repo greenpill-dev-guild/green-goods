@@ -11,7 +11,7 @@
     "bun.lock"
   ],
   "globalEnv": ["NODE_ENV", "APP_ENV", "CI", "VITEST_MAX_WORKERS"],
-  "globalPassThroughEnv": ["GREEN_GOODS_TEST_LEASE_*", "GREEN_GOODS_LOCAL_GATE"],
+  "globalPassThroughEnv": ["GREEN_GOODS_TEST_LEASE_*", "GREEN_GOODS_LOCAL_GATE", "GITHUB_ACTIONS"],
   "tasks": {
     "test": {
       "outputs": [],

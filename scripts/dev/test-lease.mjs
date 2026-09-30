@@ -41,11 +41,18 @@ export function resolveTestLeaseSettings(environment = process.env) {
   };
 }
 
-// A CI runner holds one job, so it has nobody to wait for. The local gate exports CI=true to
-// reproduce CI's test environment and marks itself, so its suites still take a slot.
+// A CI runner holds one job, so it has nobody to wait for, and GitHub Actions is the only CI that
+// runs these suites. CI=true alone is not a runner: the local gate exports it to reproduce CI's
+// test environment (and marks itself), and so does a hand-run Coverage Nightly, so both take a slot.
 export function runsInContinuousIntegration(environment = process.env) {
   const ci = environment.CI;
-  return Boolean(ci) && ci !== "false" && ci !== "0" && !environment[LOCAL_GATE_VARIABLE];
+  return (
+    Boolean(ci) &&
+    ci !== "false" &&
+    ci !== "0" &&
+    environment.GITHUB_ACTIONS === "true" &&
+    !environment[LOCAL_GATE_VARIABLE]
+  );
 }
 
 export function resolveTestLeaseDirectory({ cwd, execFile = execFileSync }) {
