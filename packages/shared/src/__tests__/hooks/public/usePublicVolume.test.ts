@@ -33,7 +33,8 @@ vi.mock("../../../modules/data/eas", () => ({
   readWorkApprovalsForWorks: (...args: unknown[]) => mockReadWorkApprovalsForWorks(...args),
 }));
 
-vi.mock("../../../config/blockchain", () => ({
+vi.mock("../../../config/blockchain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../config/blockchain")>()),
   DEFAULT_CHAIN_ID: 11155111,
 }));
 

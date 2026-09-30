@@ -1,4 +1,6 @@
+import { getEASConfig } from "../../config/blockchain";
 import type { EASWork, EASWorkApproval, EASWorkListRow } from "../../types/eas-responses";
+import { isZeroBytes32 } from "../../utils/blockchain/bytes";
 import { logger } from "../app/logger";
 import {
   getWorkApprovalsForWork,
@@ -95,10 +97,13 @@ export interface ApprovedWorks {
  * approved work, such as the public website. A work is left out when it has
  * no decision, when its latest decision rejected it, or when its latest
  * decisions disagree. It is also left out when its decisions could not be
- * read, and `partial` then says approved work may be missing.
+ * read, and `partial` then says approved work may be missing. A chain with no
+ * decision schema can record no decision, so there approval is unknown, not
+ * "none".
  */
 export async function readApprovedWorks(works: EASWork[], chainId: number): Promise<ApprovedWorks> {
   if (works.length === 0) return { works: [], partial: false };
+  if (isZeroBytes32(getEASConfig(chainId).WORK_APPROVAL.uid)) return { works: [], partial: true };
   let approvals: EASWorkApproval[];
   let unread: Set<string>;
   try {

@@ -38,6 +38,7 @@ const CONFIGURED_UID = "0x111111111111111111111111111111111111111111111111111111
 const ZERO_UID = `0x${"0".repeat(64)}`;
 const mockEasConfig = vi.fn(() => ({
   WORK: { uid: CONFIGURED_UID },
+  WORK_APPROVAL: { uid: CONFIGURED_UID },
   ASSESSMENT: { uid: CONFIGURED_UID },
 }));
 vi.mock("../../../config/blockchain", () => ({
@@ -75,6 +76,7 @@ describe("usePublicGardenDetail", () => {
     // configured unless a test says otherwise.
     mockEasConfig.mockReturnValue({
       WORK: { uid: CONFIGURED_UID },
+      WORK_APPROVAL: { uid: CONFIGURED_UID },
       ASSESSMENT: { uid: CONFIGURED_UID },
     });
   });
@@ -405,6 +407,7 @@ describe("usePublicGardenDetail", () => {
     mockGetGardenAssessments.mockResolvedValue([]);
     mockEasConfig.mockReturnValue({
       WORK: { uid: ZERO_UID },
+      WORK_APPROVAL: { uid: CONFIGURED_UID },
       ASSESSMENT: { uid: CONFIGURED_UID },
     });
 

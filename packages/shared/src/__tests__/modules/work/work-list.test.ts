@@ -16,6 +16,13 @@ vi.mock("../../../modules/data/eas", () => ({
   readWorkApprovalsForWorks: seams.approvals,
 }));
 
+const CONFIGURED_UID = `0x${"1".repeat(64)}`;
+const chain = vi.hoisted(() => ({ workApprovalUID: "" }));
+vi.mock("../../../config/blockchain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../config/blockchain")>()),
+  getEASConfig: () => ({ WORK_APPROVAL: { uid: chain.workApprovalUID } }),
+}));
+
 const { readApprovedWorks, readWorkByUID, readWorkList } = await import(
   "../../../modules/work/work-list"
 );
@@ -105,7 +112,20 @@ describe("readWorkByUID", () => {
 });
 
 describe("readApprovedWorks", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    chain.workApprovalUID = CONFIGURED_UID;
+  });
+
+  it("calls approval unknown, not none, on a chain with no decision schema", async () => {
+    chain.workApprovalUID = `0x${"0".repeat(64)}`;
+
+    await expect(readApprovedWorks([work("work-1")], 42220)).resolves.toEqual({
+      works: [],
+      partial: true,
+    });
+    expect(seams.approvals).not.toHaveBeenCalled();
+  });
 
   it("keeps only works whose latest decision approved them", async () => {
     const at = (decision: EASWorkApproval, createdAt: number) => ({ ...decision, createdAt });
