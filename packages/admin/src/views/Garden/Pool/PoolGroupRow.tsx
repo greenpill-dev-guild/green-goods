@@ -55,9 +55,11 @@ export function PoolGroupRow({
       className={`flex flex-wrap items-center justify-between gap-2 py-2 ps-3 ${directionEdgeClass(first.direction)}`}
       data-testid={`pool-group-${group.displayGroupId}`}
     >
+      {/* The text keeps a 240px basis, so on a narrow card Finish Creating
+          wraps under it, on the right, instead of squeezing the counts. */}
       <AdminListRow
         onClick={onOpen}
-        className="flex min-w-0 flex-1 items-center gap-3 rounded-[var(--m3-shape-sm)] border-0 bg-transparent px-0 py-1"
+        className="flex min-w-0 grow basis-60 items-center gap-3 rounded-[var(--m3-shape-sm)] border-0 bg-transparent px-0 py-1"
       >
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
@@ -159,6 +161,7 @@ export function PoolGroupRow({
           type="button"
           variant="outlined"
           size="sm"
+          className="ms-auto"
           onClick={onFinish}
           loading={finishing}
           disabled={finishDisabled || finishing}

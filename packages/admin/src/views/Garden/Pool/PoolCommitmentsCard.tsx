@@ -368,9 +368,11 @@ export function PoolCommitmentsCard({
                   className={`flex flex-wrap items-center justify-between gap-2 py-2 ps-3 ${directionEdgeClass(commitment.direction)}`}
                   data-testid={`pool-commitment-${commitment.commitmentId.toString()}`}
                 >
+                  {/* As in the group row: a 240px basis, so Expire Now… wraps
+                      under the text on a narrow card. */}
                   <button
                     type="button"
-                    className="m3-state-layer flex min-w-0 flex-1 items-center gap-3 rounded-[var(--m3-shape-sm)] py-1 text-left [--state-layer-color:var(--text-strong-950)]"
+                    className="m3-state-layer flex min-w-0 grow basis-60 items-center gap-3 rounded-[var(--m3-shape-sm)] py-1 text-left [--state-layer-color:var(--text-strong-950)]"
                     onClick={() => onOpenCommitment(commitment)}
                   >
                     <span className="min-w-0 flex-1">
@@ -409,6 +411,7 @@ export function PoolCommitmentsCard({
                       type="button"
                       variant="outlined"
                       size="sm"
+                      className="ms-auto"
                       onClick={() => setExpireTarget(commitment)}
                       disabled={actDisabled}
                     >
