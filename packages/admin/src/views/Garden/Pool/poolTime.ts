@@ -59,6 +59,15 @@ function dayOffset(ms: number, nowMs: number): number {
 const sameYear = (ms: number, nowMs: number) =>
   new Date(ms).getFullYear() === new Date(nowMs).getFullYear();
 
+/** A day with no time: "Sep 28", with the year when it isn't this one. */
+export function dayText(intl: Pick<IntlShape, "formatDate">, ms: number, nowMs: number): string {
+  return intl.formatDate(ms, {
+    month: "short",
+    day: "numeric",
+    ...(sameYear(ms, nowMs) ? {} : { year: "numeric" as const }),
+  });
+}
+
 /**
  * A timeline event: "Today, 3:42 PM", "Yesterday, 9:05 AM", the weekday within
  * the week ("Sat, Sep 26, 10:05 AM"), then the date ("Sep 21, 2:18 PM"), with
@@ -117,9 +126,5 @@ export function dueDateText(intl: TimeIntl, ms: number, nowMs: number): string {
       minute: "2-digit",
     });
   }
-  return intl.formatDate(ms, {
-    month: "short",
-    day: "numeric",
-    ...(sameYear(ms, nowMs) ? {} : { year: "numeric" as const }),
-  });
+  return dayText(intl, ms, nowMs);
 }

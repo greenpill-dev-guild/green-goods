@@ -122,6 +122,21 @@ export function groupInspectorRows(
   return { taken, available };
 }
 
+/**
+ * When the group's first copy was created, in milliseconds: the day its G$
+ * reward was fixed from dollars. Null when the activity window doesn't reach it.
+ */
+export function groupSetAt(
+  children: readonly CommitmentReadModel[],
+  events: readonly CommitmentEventRecord[]
+): number | null {
+  const created = children.flatMap((child) => {
+    const event = eventFor(events, child.commitmentId, "CREATED", true);
+    return event ? [event.timestamp * 1000] : [];
+  });
+  return created.length > 0 ? Math.min(...created) : null;
+}
+
 /** The rows a filter keeps, and whether the not-taken row shows under it. */
 export function scopeRows(
   rows: GroupInspectorRows,

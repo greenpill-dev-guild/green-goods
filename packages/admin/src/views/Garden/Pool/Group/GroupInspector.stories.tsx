@@ -11,9 +11,11 @@ import {
   STORY_GROUP_EVENTS,
   STORY_GROUP_METADATA,
   STORY_GROUP_TITLES,
+  STORY_NOW,
   STORY_PRICE_STATE,
 } from "../poolStoryFixtures";
 import { GroupInspector } from "./GroupInspector";
+import { groupSetAt } from "./groupInspectorModel";
 import { groupReward, groupTerms } from "./groupTerms";
 
 const intl = createIntl({ locale: "en", messages: {} });
@@ -26,13 +28,15 @@ function groupOf(copies: typeof STORY_GROUP_COPIES) {
   return group;
 }
 
-function termsOf(group: PoolCommitmentGroup) {
+function termsOf(group: PoolCommitmentGroup, events = STORY_GROUP_EVENTS) {
   return groupTerms({
     intl,
     children: group.children,
     metadata: STORY_GROUP_METADATA,
     reward: groupReward(group.children, STORY_GROUP_METADATA),
     price: STORY_PRICE_STATE,
+    setAt: groupSetAt(group.children, events),
+    now: Number(STORY_NOW) * 1000,
   });
 }
 
@@ -87,4 +91,4 @@ export const EditRewardOpen: Story = {
 };
 
 /** Without the pool's activity the dates are left out; what the records say still shows. */
-export const WithoutActivity: Story = { args: { events: [] } };
+export const WithoutActivity: Story = { args: { events: [], terms: termsOf(SURVEY, []) } };

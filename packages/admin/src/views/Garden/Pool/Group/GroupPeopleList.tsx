@@ -10,6 +10,13 @@ import { commitmentStateChip } from "../poolPresentation";
 import { dueDateText, timelineTime } from "../poolTime";
 import type { GroupTakenRow } from "./groupInspectorModel";
 
+// The text keeps a 240px basis, so on a narrow sheet the state and chevron
+// wrap under it, on the right, as the design's rows do.
+const ROW_CLASS =
+  "flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[var(--m3-shape-sm)] border-0 bg-transparent px-1 py-2";
+const TEXT_CLASS = "min-w-0 grow basis-60";
+const END_CLASS = "ms-auto flex shrink-0 items-center gap-3";
+
 export interface GroupPeopleListProps {
   /** The copies someone took, in the order to show them. */
   taken: readonly GroupTakenRow[];
@@ -131,11 +138,8 @@ export function GroupPeopleList({
         const chip = commitmentStateChip(row.commitment, formatMessage);
         return (
           <li key={row.commitment.id}>
-            <AdminListRow
-              onClick={() => onOpenCommitment(row.commitment)}
-              className="flex items-center gap-3 rounded-[var(--m3-shape-sm)] border-0 bg-transparent px-1 py-2"
-            >
-              <span className="min-w-0 flex-1">
+            <AdminListRow onClick={() => onOpenCommitment(row.commitment)} className={ROW_CLASS}>
+              <span className={TEXT_CLASS}>
                 {row.commitment.counterparty ? (
                   <ClaimantName
                     chainId={chainId}
@@ -155,10 +159,12 @@ export function GroupPeopleList({
                   ))}
                 </span>
               </span>
-              <StatusBadge variant={chip.variant} size="sm">
-                {chip.label}
-              </StatusBadge>
-              <RiArrowRightSLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden />
+              <span className={END_CLASS}>
+                <StatusBadge variant={chip.variant} size="sm">
+                  {chip.label}
+                </StatusBadge>
+                <RiArrowRightSLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden />
+              </span>
             </AdminListRow>
           </li>
         );
@@ -167,9 +173,9 @@ export function GroupPeopleList({
         <li>
           <AdminListRow
             onClick={() => onOpenCommitment(available[0] as CommitmentReadModel)}
-            className="flex items-center gap-3 rounded-[var(--m3-shape-sm)] border-0 bg-transparent px-1 py-2"
+            className={ROW_CLASS}
           >
-            <span className="min-w-0 flex-1">
+            <span className={TEXT_CLASS}>
               <span className="block body-sm font-semibold text-text-strong">
                 {formatMessage(
                   {
@@ -186,13 +192,15 @@ export function GroupPeopleList({
                 })}
               </span>
             </span>
-            <StatusBadge variant="info" size="sm">
-              {formatMessage({
-                id: "cockpit.garden.pool.group.availableChip",
-                defaultMessage: "Available",
-              })}
-            </StatusBadge>
-            <RiArrowRightSLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden />
+            <span className={END_CLASS}>
+              <StatusBadge variant="info" size="sm">
+                {formatMessage({
+                  id: "cockpit.garden.pool.group.availableChip",
+                  defaultMessage: "Available",
+                })}
+              </StatusBadge>
+              <RiArrowRightSLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden />
+            </span>
           </AdminListRow>
         </li>
       ) : null}

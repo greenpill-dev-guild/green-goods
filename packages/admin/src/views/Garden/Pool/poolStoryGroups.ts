@@ -123,8 +123,9 @@ function event(
   };
 }
 
-/** When each copy was taken, proven and confirmed, as the pool's activity has it. */
+/** When the set was created, and each copy taken, proven and confirmed, as the pool's activity has it. */
 export const STORY_GROUP_EVENTS: CommitmentEventRecord[] = [
+  event(21, "CREATED", 122, STORY_STEWARD),
   event(25, "ACCEPTED", 110, STORY_MARIA),
   event(25, "EVIDENCE_ATTACHED", 30, STORY_MARIA),
   event(26, "ACCEPTED", 96, STORY_JOAO),

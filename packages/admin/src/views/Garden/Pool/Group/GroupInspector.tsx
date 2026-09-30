@@ -179,11 +179,12 @@ export function GroupInspector({
               defaultMessage: "Each promise",
             })}
           </AdminCardTitle>
-          <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
+          {/* Label left, value right, as the promise inspector's facts read. */}
+          <dl className="space-y-1">
             {terms.map(([label, value]) => (
-              <div key={label} className="contents">
-                <dt className="body-sm text-text-soft">{label}</dt>
-                <dd className="body-sm text-text-strong">{value}</dd>
+              <div key={label} className="flex justify-between gap-3 body-sm">
+                <dt className="shrink-0 text-text-soft">{label}</dt>
+                <dd className="min-w-0 text-right text-text-strong">{value}</dd>
               </div>
             ))}
           </dl>

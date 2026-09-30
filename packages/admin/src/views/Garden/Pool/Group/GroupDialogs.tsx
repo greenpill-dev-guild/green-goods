@@ -20,6 +20,7 @@ import { exactTime } from "../poolTime";
 import { AddToGroupDialog } from "./AddToGroupDialog";
 import { EditRewardDialog } from "./EditRewardDialog";
 import { GroupInspector } from "./GroupInspector";
+import { groupSetAt } from "./groupInspectorModel";
 import { groupReward, groupTerms } from "./groupTerms";
 import { SeedMoreDialog } from "./SeedMoreDialog";
 
@@ -77,6 +78,8 @@ export function GroupDialogs({
     metadata,
     reward,
     price: price.state,
+    setAt: groupSetAt(group.children, activity.events),
+    now: Date.now(),
   });
   const unsent = pool.queuedGroupCopies.get(group.displayGroupId)?.length ?? 0;
   const edit = selectRewardEdit(group.children, { unsent });

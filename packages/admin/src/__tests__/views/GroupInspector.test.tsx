@@ -7,14 +7,20 @@
  */
 
 import { groupCommitmentsForDisplay } from "@green-goods/shared/modules/commitment-pooling/display-groups";
+import { createIntl } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 import type { PoolCommitmentGroup } from "@/views/Garden/Pool/poolCommitmentRows";
+import { STORY_PRICE_STATE } from "@/views/Garden/Pool/poolStoryFixtures";
+import { STORY_NOW } from "@/views/Garden/Pool/poolStoryActors";
 import {
   STORY_GROUP_COPIES,
   STORY_GROUP_EVENTS,
+  STORY_GROUP_METADATA,
   STORY_GROUP_TITLES,
 } from "@/views/Garden/Pool/poolStoryGroups";
 import { GroupInspector } from "@/views/Garden/Pool/Group/GroupInspector";
+import { groupSetAt } from "@/views/Garden/Pool/Group/groupInspectorModel";
+import { groupReward, groupTerms } from "@/views/Garden/Pool/Group/groupTerms";
 import { fireEvent, renderWithProviders, screen, within } from "../test-utils";
 
 // The inspector proves what it lists; names resolve under their own tests.
@@ -108,5 +114,40 @@ describe("GroupInspector", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit Reward" }));
     expect(onEditReward).toHaveBeenCalled();
     expect(screen.getByText("Edit Reward is open until one of this group is kept.")).toBeVisible();
+  });
+});
+
+describe("the group's reward line", () => {
+  const intl = createIntl({ locale: "en", messages: {} });
+  const now = Number(STORY_NOW) * 1000;
+  const rewardOf = (metadata: typeof STORY_GROUP_METADATA | null, setAt: number | null) => {
+    const terms = groupTerms({
+      intl,
+      children: GROUP.children,
+      metadata,
+      reward: groupReward(GROUP.children, metadata),
+      price: STORY_PRICE_STATE,
+      setAt,
+      now,
+    });
+    return terms.find(([label]) => label === "Reward")?.[1];
+  };
+
+  it("names the day the G$ amount was fixed while the chain still holds it", () => {
+    const setAt = groupSetAt(GROUP.children, STORY_GROUP_EVENTS);
+    // The first copy's creation, five days back in the story's activity.
+    expect(setAt).toBe(STORY_GROUP_EVENTS[0]!.timestamp * 1000);
+    expect(rewardOf(STORY_GROUP_METADATA, setAt)).toMatch(
+      /^\$5\.00 each in G\$, paid once it’s kept \([\d,]+ G\$, set [A-Z][a-z]{2} \d{1,2}\)$/
+    );
+  });
+
+  it("leaves the day out when the activity doesn't reach it or the dollars aren't known as set", () => {
+    expect(groupSetAt(GROUP.children, [])).toBeNull();
+    expect(rewardOf(STORY_GROUP_METADATA, null)).not.toMatch(/set /);
+    // Without the set's reward record, the amount reads at today's rate, with no day.
+    expect(rewardOf(null, groupSetAt(GROUP.children, STORY_GROUP_EVENTS))).toMatch(
+      /^about \$[\d.,]+ each in G\$, paid once it’s kept \([\d,]+ G\$\)$/
+    );
   });
 });

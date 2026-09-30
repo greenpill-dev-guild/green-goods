@@ -18,7 +18,7 @@ import {
 import type { IntlShape } from "react-intl";
 import { railLabel } from "../CommitmentDialog/commitmentDialogPresentation";
 import { formatGoodDollars, formatUsd } from "../poolPresentation";
-import { exactTime } from "../poolTime";
+import { dayText, exactTime } from "../poolTime";
 
 type TermsIntl = Pick<IntlShape, "formatMessage" | "formatDate" | "locale">;
 
@@ -64,13 +64,18 @@ function rewardText(
   );
 }
 
-/** "$5.00 each in G$, paid once it's kept (38,866 G$)", or how it differs after Edit Reward. */
+/**
+ * "$5.00 each in G$, paid once it's kept (38,866 G$, set Sep 28)", or how it
+ * differs after Edit Reward. The day shows only while the reward is still the
+ * one set in dollars at creation and the activity window reaches that day.
+ */
 function rewardLine(
   intl: TermsIntl,
   children: readonly CommitmentReadModel[],
   reward: GroupReward,
   metadata: CommitmentMetadataV1 | null,
-  price: GoodDollarPriceState
+  price: GoodDollarPriceState,
+  set: { at: number | null; now: number }
 ): string {
   const [first] = children;
   if (!first || reward.currentWei === null) {
@@ -85,6 +90,15 @@ function rewardLine(
       (child.considerationAmount ?? 0n) > 0n
   );
   const earlier = takenAtOther[0]?.considerationAmount;
+  if (!earlier && reward.centsAsSet !== null && set.at !== null) {
+    return intl.formatMessage(
+      {
+        id: "cockpit.garden.pool.group.rewardEachSet",
+        defaultMessage: "{amount} each in G$, paid once it’s kept ({goodDollars} G$, set {day})",
+      },
+      { amount: current, goodDollars, day: dayText(intl, set.at, set.now) }
+    );
+  }
   if (!earlier) {
     return intl.formatMessage(
       {
@@ -118,8 +132,11 @@ export function groupTerms(input: {
   metadata: CommitmentMetadataV1 | null;
   reward: GroupReward;
   price: GoodDollarPriceState;
+  /** When the group's reward was set (`groupSetAt`), and now, for "set Sep 28". */
+  setAt: number | null;
+  now: number;
 }): Array<[string, string]> {
-  const { intl, children, metadata, reward, price } = input;
+  const { intl, children, metadata, reward, price, setAt, now } = input;
   const { formatMessage } = intl;
   const [first] = children;
   if (!first) return [];
@@ -148,7 +165,7 @@ export function groupTerms(input: {
     ],
     [
       formatMessage({ id: "cockpit.garden.pool.group.reward", defaultMessage: "Reward" }),
-      rewardLine(intl, children, reward, metadata, price),
+      rewardLine(intl, children, reward, metadata, price, { at: setAt, now }),
     ],
     [
       formatMessage({
