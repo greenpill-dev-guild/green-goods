@@ -49,8 +49,15 @@ export interface CommitmentProofDraftStore {
     draft: Omit<CommitmentProofDraft, "updatedAt" | "files">,
     updatedAt?: number
   ) => void;
-  /** Counts the files just saved under a draft the words already created. */
-  recordFiles: (key: string, files: NonNullable<CommitmentProofDraft["files"]>) => void;
+  /**
+   * Counts the files just saved under a draft the words already created. A
+   * change in them is an edit, so it dates the draft too.
+   */
+  recordFiles: (
+    key: string,
+    files: NonNullable<CommitmentProofDraft["files"]>,
+    updatedAt?: number
+  ) => void;
   clearDraft: (key: string) => void;
 }
 
@@ -92,11 +99,20 @@ export const useCommitmentProofDraftStore = create<CommitmentProofDraftStore>()(
             [key]: { ...draft, files: state.drafts[key]?.files, updatedAt },
           },
         })),
-      recordFiles: (key, files) =>
+      // Saving the same files again (the composer reopening) is not an edit.
+      // A draft with no count yet holds no files, as Your Work reads it.
+      recordFiles: (key, files, updatedAt = Date.now()) =>
         set((state) => {
           const current = state.drafts[key];
           if (!current) return state;
-          return { drafts: { ...state.drafts, [key]: { ...current, files } } };
+          const before = current.files ?? { photos: 0, videos: 0, voiceNotes: 0 };
+          if (
+            before.photos === files.photos &&
+            before.videos === files.videos &&
+            before.voiceNotes === files.voiceNotes
+          )
+            return state;
+          return { drafts: { ...state.drafts, [key]: { ...current, files, updatedAt } } };
         }),
       clearDraft: (key) =>
         set((state) => {

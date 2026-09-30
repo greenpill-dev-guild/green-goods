@@ -3,6 +3,7 @@ import { draftDB } from "../modules/job-queue/draft-db";
 import { proofDraftRepository } from "../modules/commitment-pooling/proof-draft-repository";
 import { describe, expect, it, vi } from "vitest";
 import { createProofDraftRepository } from "../modules/commitment-pooling/proof-draft-repository";
+import { useCommitmentProofDraftStore } from "../stores/useCommitmentProofDraftStore";
 
 describe("ProofDraftRepository", () => {
   it("loads and saves files through the draft port", async () => {
@@ -94,5 +95,24 @@ describe("proof attachment persistence", () => {
     await expect(draftDB.setImagesForProof("missing-work", [photo])).rejects.toThrow(
       "Invalid proof draft key"
     );
+  });
+
+  it("dates a draft's last edit when its files change, not when the same files are saved again", () => {
+    const key = "proof:42161:0x1111111111111111111111111111111111111111:903";
+    const store = useCommitmentProofDraftStore.getState();
+    store.saveDraft(key, { note: "", links: [], credited: null, clientEvidenceId: "e-903" }, 1_000);
+    // Opened with words only: no files, before or after.
+    store.recordFiles(key, { photos: 0, videos: 0, voiceNotes: 0 }, 1_500);
+    expect(useCommitmentProofDraftStore.getState().drafts[key]?.updatedAt).toBe(1_000);
+
+    store.recordFiles(key, { photos: 1, videos: 0, voiceNotes: 0 }, 2_000);
+    expect(useCommitmentProofDraftStore.getState().drafts[key]?.updatedAt).toBe(2_000);
+    // The composer reopening saves what it read back; that is not an edit.
+    store.recordFiles(key, { photos: 1, videos: 0, voiceNotes: 0 }, 3_000);
+    expect(useCommitmentProofDraftStore.getState().drafts[key]?.updatedAt).toBe(2_000);
+    store.recordFiles(key, { photos: 1, videos: 0, voiceNotes: 1 }, 4_000);
+    expect(useCommitmentProofDraftStore.getState().drafts[key]?.updatedAt).toBe(4_000);
+
+    store.clearDraft(key);
   });
 });

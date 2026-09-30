@@ -255,6 +255,39 @@ describe("the promise a draft was for", () => {
     expect(useWorkFlowStore.getState().draftLinkCleared).toBe(false);
   });
 
+  describe("with the draft still loaded from an earlier visit", () => {
+    const stillLoaded = (draftLinkCleared: boolean) => {
+      useWorkFlowStore.setState({
+        draftScope: "0x1111111111111111111111111111111111111111:11155111",
+        draftHydrated: true,
+        activeDraftId: "draft-1",
+        draftLinkCleared,
+      });
+      mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });
+    };
+
+    it("puts the draft's promise back into the page without reloading the draft", async () => {
+      stillLoaded(false);
+      const input = options();
+      renderHook(() => useDraftResume(input));
+
+      await waitFor(() => expect(input.setSearchParams).toHaveBeenCalledOnce());
+      const params = input.setSearchParams.mock.lastCall?.[0] as URLSearchParams;
+      expect(params.get("linkCommitmentId")).toBe("12");
+      expect(mocks.resume).not.toHaveBeenCalled();
+    });
+
+    it("leaves a promise the person removed off the page", async () => {
+      stillLoaded(true);
+      const input = options();
+      renderHook(() => useDraftResume(input));
+
+      await act(async () => undefined);
+      expect(mocks.draft).not.toHaveBeenCalled();
+      expect(input.setSearchParams).not.toHaveBeenCalled();
+    });
+  });
+
   it("gives way to a promise the page was opened for", async () => {
     mocks.active.mockResolvedValue("draft-1");
     mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });

@@ -78,7 +78,35 @@ export function useDraftResume({
     setLegacyRecovery(false);
     setShowDraftSheet(false);
     const state = useWorkFlowStore.getState();
-    if (state.draftScope === scope && state.draftHydrated && !explicitId) return;
+    if (state.draftScope === scope && state.draftHydrated && !explicitId) {
+      // Still loaded from an earlier visit, so the page comes back as it was.
+      // The URL doesn't, though: the draft's promise is put back into it, as a
+      // resume does, or the work could upload without its link.
+      const draftId = state.activeDraftId;
+      if (
+        !draftId ||
+        state.draftLinkCleared ||
+        hasWorkLinkIntentParams(latest.current.searchParams)
+      )
+        return;
+      let cancelled = false;
+      void draftDB
+        .getDraft(draftId)
+        .then((draft) => {
+          const current = useWorkFlowStore.getState();
+          if (cancelled || current.activeDraftId !== draftId || current.draftLinkCleared) return;
+          const link = draft?.linkIntent ? fromDraftWorkLink(draft.linkIntent) : null;
+          if (!link || hasWorkLinkIntentParams(latest.current.searchParams)) return;
+          restoredLink.current = true;
+          latest.current.setSearchParams(writeWorkLinkIntent(latest.current.searchParams, link), {
+            replace: true,
+          });
+        })
+        .catch(() => undefined);
+      return () => {
+        cancelled = true;
+      };
+    }
     if (state.draftScope && state.draftScope !== scope) {
       state.reset();
       latest.current.restoreForm?.({ feedback: "" });
