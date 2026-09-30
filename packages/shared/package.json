@@ -345,6 +345,7 @@
     "./hooks/commitment-pooling/useSettlementQueries": "./src/hooks/commitment-pooling/useSettlementQueries.ts",
     "./modules/commitment-pooling/cycle-metadata": "./src/modules/commitment-pooling/cycle-metadata.ts",
     "./modules/commitment-pooling/disclosure": "./src/modules/commitment-pooling/disclosure.ts",
+    "./modules/commitment-pooling/display-groups": "./src/modules/commitment-pooling/display-groups.ts",
     "./modules/commitment-pooling/metadata": "./src/modules/commitment-pooling/metadata.ts",
     "./modules/commitment-pooling/pool-charter": "./src/modules/commitment-pooling/pool-charter.ts",
     "./modules/commitment-pooling/pool-console": "./src/modules/commitment-pooling/pool-console.ts",

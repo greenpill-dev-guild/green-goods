@@ -19,6 +19,7 @@ import { STORY_CYCLES, storyPool } from "./poolStoryPools";
 export * from "./poolStoryActors";
 export * from "./poolStoryCommitments";
 export * from "./poolStoryControllers";
+export * from "./poolStoryGroups";
 export * from "./poolStoryPools";
 export * from "./poolStorySettlement";
 

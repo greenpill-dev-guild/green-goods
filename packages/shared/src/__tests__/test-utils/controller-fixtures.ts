@@ -219,6 +219,7 @@ const poolActs: PoolConsoleActs = {
   declineClaim: successfulTransaction,
   retryQueued: async () => undefined,
   discardQueued: async () => undefined,
+  finishCreating: async () => "sent",
 };
 
 type PoolConsoleFixtureOverrides = Omit<Partial<PoolConsoleController>, "pool" | "poolId"> & {
@@ -259,6 +260,8 @@ export function poolConsoleControllerFixture(
     charter: { charter: null, isLoading: false, isUnavailable: false },
     pauseReason: { reason: null, isLoading: false, isUnavailable: false },
     pendingCreates: [],
+    queuedGroupCopies: new Map(),
+    finishingGroupId: null,
     queueUnavailable: false,
     funding: {
       snapshot: null,

@@ -11,9 +11,11 @@ import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { CommitmentPeople } from "./CommitmentPeople";
 import { CommitmentExpireDialog } from "./CommitmentExpireDialog";
+import { PoolGroupRow } from "./PoolGroupRow";
 import { GardenPoolTarget } from "./PoolTarget";
 import {
   type PoolCommitmentFocus,
+  type PoolCommitmentGroup,
   type PoolCommitmentScope,
   selectPoolCommitmentRows,
 } from "./poolCommitmentRows";
@@ -29,6 +31,8 @@ export interface PoolCommitmentsCardProps {
   focus: PoolCommitmentFocus;
   onFocusChange: (focus: PoolCommitmentFocus) => void;
   onOpenCommitment: (commitment: CommitmentReadModel) => void;
+  /** Open a group of copies made together in its inspector. */
+  onOpenGroup: (group: PoolCommitmentGroup) => void;
   onSeed: () => void;
   canSeed: boolean;
   /** Workspace tone for the expire confirmation this card can open. */
@@ -42,7 +46,9 @@ export interface PoolCommitmentsCardProps {
  * those and the disputed ones, and rows that open in the left inspector. The row information contract: kind · lifecycle · at most one
  * attention chip; meta = who · how much · when. Creations still queued on this
  * device render above the indexed rows so a seeded commitment shows up before
- * the indexer has it.
+ * the indexer has it. Copies made together are one group row (PRD-1022 D3),
+ * and a group's copies still queued fold into it as "didn't send" with Finish
+ * Creating, rather than as queued rows of their own.
  */
 export function PoolCommitmentsCard({
   console: pool,
@@ -51,6 +57,7 @@ export function PoolCommitmentsCard({
   focus,
   onFocusChange,
   onOpenCommitment,
+  onOpenGroup,
   onSeed,
   canSeed,
   tone,
@@ -58,7 +65,7 @@ export function PoolCommitmentsCard({
   const intl = useIntl();
   const { formatMessage } = intl;
   const now = Date.now();
-  const { model, titles, pendingCreates, isOnline, isActing, acts } = pool;
+  const { model, titles, isOnline, isActing, acts } = pool;
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
@@ -82,7 +89,25 @@ export function PoolCommitmentsCard({
       { id: commitment.commitmentId.toString() }
     );
 
-  const rows = selectPoolCommitmentRows({ model, scope, focus, search, titleOf });
+  const rows = selectPoolCommitmentRows({
+    model,
+    commitments: pool.commitments,
+    metadataByCID: titles,
+    scope,
+    focus,
+    search,
+    titleOf,
+  });
+  // A group's queued copies are counted on its row, so they leave the queued list.
+  const shownGroups = new Set(
+    rows.flatMap((entry) => (entry.kind === "group" ? [entry.displayGroupId] : []))
+  );
+  const foldedJobs = new Set(
+    [...pool.queuedGroupCopies]
+      .filter(([groupId]) => shownGroups.has(groupId))
+      .flatMap(([, jobIds]) => jobIds)
+  );
+  const pendingCreates = pool.pendingCreates.filter((row) => !foldedJobs.has(row.jobId));
 
   const actDisabled = !isOnline || isActing;
   const total = model.groups.open.length + model.groups.confirmed.length + model.groups.past.length;
@@ -99,8 +124,8 @@ export function PoolCommitmentsCard({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <AdminCardTitle>
             {formatMessage({
-              id: "cockpit.garden.pool.commitments.title",
-              defaultMessage: "Commitments",
+              id: "cockpit.garden.pool.promises.title",
+              defaultMessage: "Promises",
             })}
           </AdminCardTitle>
           <AdminButton
@@ -112,8 +137,8 @@ export function PoolCommitmentsCard({
             disabled={!canSeed}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.act.seed",
-              defaultMessage: "Seed Commitment",
+              id: "cockpit.garden.pool.act.seedPromises",
+              defaultMessage: "Seed Promises",
             })}
           </AdminButton>
         </div>
@@ -122,8 +147,8 @@ export function PoolCommitmentsCard({
           search={search}
           onSearchChange={setSearch}
           placeholder={formatMessage({
-            id: "cockpit.garden.pool.commitments.search",
-            defaultMessage: "Search commitments",
+            id: "cockpit.garden.pool.promises.search",
+            defaultMessage: "Search promises",
           })}
         >
           <div
@@ -310,7 +335,22 @@ export function PoolCommitmentsCard({
           </p>
         ) : (
           <ul className="divide-y divide-stroke-soft">
-            {rows.map((commitment) => {
+            {rows.map((entry) => {
+              if (entry.kind === "group") {
+                return (
+                  <PoolGroupRow
+                    key={entry.key}
+                    group={entry}
+                    title={titleOf(entry.children[0] as CommitmentReadModel)}
+                    unsent={pool.queuedGroupCopies.get(entry.displayGroupId)?.length ?? 0}
+                    finishing={pool.finishingGroupId === entry.displayGroupId}
+                    finishDisabled={!isOnline || pool.finishingGroupId !== null}
+                    onOpen={() => onOpenGroup(entry)}
+                    onFinish={() => void acts.finishCreating(entry.displayGroupId)}
+                  />
+                );
+              }
+              const commitment = entry.record;
               const chip = commitmentStateChip(commitment, formatMessage);
               const title = titleOf(commitment);
               const isDue = dueIds.has(commitment.id);

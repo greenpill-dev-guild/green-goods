@@ -6,6 +6,7 @@ import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminCard } from "@/components/AdminCard";
+import { GroupDialogs } from "./Group/GroupDialogs";
 import { PoolClaimsCard } from "./PoolClaimsCard";
 import {
   type PoolCommitmentFocus,
@@ -20,6 +21,7 @@ import { PoolNotReadyCard } from "./PoolNotReadyCard";
 import { PoolStatsCard } from "./PoolStatsCard";
 import { PoolStatusCard } from "./PoolStatusCard";
 import { PoolStatusCasts } from "./PoolStatusCasts";
+import { currentGroup } from "./poolCommitmentRows";
 import type { ConfirmDialog, CycleDialog, FlowState, ReasonDialog } from "./poolDialogState";
 
 export interface GardenPoolTabProps {
@@ -57,6 +59,8 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
   const [cycleDialog, setCycleDialog] = useState<CycleDialog>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fundingOpen, setFundingOpen] = useState(false);
+  // The open group, by key: its counts follow the pool as it refreshes.
+  const [openGroupKey, setOpenGroupKey] = useState<string | null>(null);
   const fundingDetailsButtonRef = useRef<HTMLButtonElement>(null);
   const { model } = pool;
 
@@ -73,6 +77,14 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
   const openSeed = useCallback(() => {
     navigate(adminRoutes.gardenPoolSeed({ gardenId: garden.id }));
   }, [navigate, garden.id]);
+  const openSeedFrom = useCallback(
+    (from: CommitmentReadModel) => {
+      navigate(
+        adminRoutes.gardenPoolSeed({ gardenId: garden.id }, { from: from.commitmentId.toString() })
+      );
+    },
+    [navigate, garden.id]
+  );
   const jumpTo = (id: string) => {
     if (typeof document === "undefined") return;
     document.getElementById(id)?.scrollIntoView({ block: "start" });
@@ -140,6 +152,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
     setFocus(next);
     jumpTo("pool-commitments");
   };
+  const openGroup = openGroupKey ? currentGroup(pool.commitments, pool.titles, openGroupKey) : null;
   const summary =
     !preOpen && !finished ? (
       <PoolStatsCard
@@ -214,6 +227,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
             focus={focus}
             onFocusChange={setFocus}
             onOpenCommitment={openCommitment}
+            onOpenGroup={(group) => setOpenGroupKey(group.key)}
             onSeed={openSeed}
             canSeed={canSeed}
             tone={tone}
@@ -251,6 +265,27 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         setCycleDialog={setCycleDialog}
       />
       {fundingDialog}
+      {openGroup ? (
+        <GroupDialogs
+          pool={pool}
+          group={openGroup}
+          title={
+            (openGroup.children[0]?.metadataCID &&
+              pool.titles.get(openGroup.children[0].metadataCID.trim())?.title) ||
+            ""
+          }
+          isProtocol={isProtocolPool}
+          onClose={() => setOpenGroupKey(null)}
+          onOpenCommitment={(commitment) => {
+            setOpenGroupKey(null);
+            openCommitment(commitment);
+          }}
+          onSeedNew={(from) => {
+            setOpenGroupKey(null);
+            openSeedFrom(from);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

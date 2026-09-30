@@ -47,7 +47,28 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", () =
 // This view proves pool actions; name resolution has its own coverage.
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: null }),
+  useEnsNames: () => new Map(),
 }));
+// A group's inspector reads the pool's activity and the settlement account;
+// the facts proven here are the pool console's own.
+vi.mock(
+  "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling")
+    >()),
+    useCommitmentActivity: () => ({ events: [] }),
+  })
+);
+vi.mock(
+  "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("@green-goods/shared/hooks/commitment-pooling/useSettlementQueries")
+    >()),
+    useSettlementAccount: () => ({ detail: null }),
+  })
+);
 vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: () => ({ data: null }),
 }));
@@ -105,6 +126,9 @@ vi.mock(
 );
 
 const { GardenPoolTab } = await import("@/views/Garden/Pool");
+const { STORY_GROUP_COPIES, STORY_GROUP_TITLES } = await import(
+  "@/views/Garden/Pool/poolStoryGroups"
+);
 const { default: GardenView } = await import("@/views/Garden");
 
 const NOW = 1_756_000_000n;
@@ -263,6 +287,7 @@ function controller(overrides: ControllerOverrides = {}): PoolConsoleController 
     declineClaim: vi.fn().mockResolvedValue("0x1"),
     retryQueued: vi.fn().mockResolvedValue(undefined),
     discardQueued: vi.fn().mockResolvedValue(undefined),
+    finishCreating: vi.fn().mockResolvedValue("sent"),
   };
   const poolRecord = overrides.pool === undefined ? pool() : overrides.pool;
   const cycles = overrides.cycles ?? [cycle()];
@@ -718,6 +743,62 @@ describe("GardenPoolTab (W7)", () => {
     fireEvent.click(within(stats).getByRole("button", { name: /1\s*past due/i }));
     expect(within(list).queryByTestId("pool-commitment-2")).not.toBeInTheDocument();
     expect(within(list).getByTestId("pool-commitment-3")).toBeInTheDocument();
+  });
+
+  it("folds copies made together into one group row, which opens the group's inspector", async () => {
+    mocks.controller = controller({
+      commitments: [commitment(), ...STORY_GROUP_COPIES],
+      titles: new Map([
+        ["bafy-1", { version: 1, title: "Prune the north beds" }],
+        ...STORY_GROUP_TITLES,
+      ]),
+    });
+    renderTab();
+    const group = screen.getByTestId("pool-group-group-00000001");
+    expect(group).toHaveTextContent(/10 promises/);
+    expect(group).toHaveTextContent(/4 available.*3 in progress.*2 kept.*1 ended/);
+    // The copies are the group's: none is a row of its own.
+    expect(screen.queryByTestId("pool-commitment-21")).not.toBeInTheDocument();
+    expect(screen.getByTestId("pool-commitment-1")).toBeInTheDocument();
+
+    fireEvent.click(within(group).getByRole("button", { name: /household water survey/i }));
+    const inspector = await screen.findByRole("dialog", { name: "Household water survey" });
+    expect(within(inspector).getByText("4 not taken up yet")).toBeInTheDocument();
+  });
+
+  it("counts a group's queued copy on its row as didn't send, with Finish Creating, not as a queued row", async () => {
+    const queued = {
+      chainId: 42161,
+      poolId: "7",
+      direction: "REQUEST" as const,
+      unitLabel: "survey",
+      targetUnits: "1",
+      waitingForMembership: false,
+      failed: true,
+      createdAt: 1,
+      discardable: true,
+    };
+    mocks.controller = controller({
+      commitments: STORY_GROUP_COPIES.slice(0, 9),
+      titles: STORY_GROUP_TITLES,
+      pendingCreates: [
+        { ...queued, jobId: "job-copy", title: "Household water survey" },
+        { ...queued, jobId: "job-own", title: "Seed swap" },
+      ],
+      queuedGroupCopies: new Map([["group-00000001", ["job-copy"]]]),
+    });
+    renderTab();
+    const group = screen.getByTestId("pool-group-group-00000001");
+    expect(group).toHaveTextContent(/9 created.*1 didn’t send/);
+    const queuedRows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
+    expect(queuedRows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining("Seed swap"),
+    ]);
+
+    fireEvent.click(within(group).getByRole("button", { name: "Finish Creating (1)" }));
+    await waitFor(() =>
+      expect(mocks.controller!.acts.finishCreating).toHaveBeenCalledWith("group-00000001")
+    );
   });
 
   it("keeps Waiting for approval, Pool Status and Pool Funding in the right column, in that order", () => {

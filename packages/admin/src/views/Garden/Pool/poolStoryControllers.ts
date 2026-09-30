@@ -118,6 +118,7 @@ export function storyPoolConsole(
     declineClaim: noop,
     retryQueued: async () => undefined,
     discardQueued: async () => undefined,
+    finishCreating: async () => "sent",
   };
   return {
     chainId: DEFAULT_CHAIN_ID,
@@ -148,6 +149,8 @@ export function storyPoolConsole(
     },
     pauseReason: { reason: null, isLoading: false, isUnavailable: false },
     pendingCreates: [],
+    queuedGroupCopies: new Map(),
+    finishingGroupId: null,
     queueUnavailable: false,
     acts,
     claimPhase: () => ({ status: "idle" }),

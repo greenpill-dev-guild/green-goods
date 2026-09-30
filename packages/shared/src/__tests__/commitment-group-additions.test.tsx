@@ -9,7 +9,7 @@
  * in its own test; here it is scripted.
  */
 
-import { act } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { type GroupToAddTo, useAddToGroup } from "../hooks/admin-ui/pool/useAddToGroup";
@@ -273,6 +273,18 @@ describe("useAddToGroup", () => {
 });
 
 describe("useFinishCreating", () => {
+  it("reads which of the steward's queued copies belong to which group on this chain", async () => {
+    const view = renderHookWithProviders(() =>
+      useFinishCreating({ chainId: 42161, owner: STEWARD })
+    );
+    await waitFor(() => expect(view.result.current.waiting.size).toBe(2));
+    // A copy on another chain, or in no group, is no group's to count.
+    expect([...view.result.current.waiting]).toEqual([
+      ["group-00000001", ["1", "5"]],
+      ["group-00000002", ["2"]],
+    ]);
+  });
+
   it("sends only this group's waiting copies on this chain, and a declined prompt keeps them", async () => {
     send.script = () => ({ status: "not-sent", miss: "declined" });
     const view = renderHookWithProviders(() =>

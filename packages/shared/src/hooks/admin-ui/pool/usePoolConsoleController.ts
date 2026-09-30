@@ -48,6 +48,7 @@ import { usePoolFunding } from "../../commitment-pooling/usePoolFunding";
 import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
 import { useClaimDecisions, useClaimDecisionVisit } from "./useClaimDecisions";
+import { useFinishCreating } from "./useFinishCreating";
 
 /** Queue acts are not mutations, so their failures go through the same handler by hand. */
 const reportQueuedSendError = createMutationErrorHandler({
@@ -157,6 +158,9 @@ export function usePoolConsoleController(input: {
   const trackQueued = queuedAct.trackReported;
   const sender = useTransactionSender();
   const refreshQueue = queue.refresh;
+  // A group's copies that didn't send, and the one act that sends them (PRD-1022 D12).
+  const finishing = useFinishCreating({ chainId, owner: viewer ?? null });
+  const finishGroup = finishing.finish;
 
   const requirePool = useCallback(() => {
     if (poolId === undefined) throw new Error("This garden has no commitment pool");
@@ -218,6 +222,17 @@ export function usePoolConsoleController(input: {
           refreshQueue();
         }
       },
+      finishCreating: async (displayGroupId: string) => {
+        try {
+          return await finishGroup(displayGroupId);
+        } catch (error) {
+          reportQueuedSendError(error, {
+            gardenAddress: garden,
+            metadata: { act: "finishCreating" },
+          });
+          return "blocked" as const;
+        }
+      },
       // The queue refuses a row whose send may already be on chain, and a row on
       // screen can go stale. Say so rather than leaving it sitting there.
       discardQueued: async (jobId: string) => {
@@ -241,6 +256,7 @@ export function usePoolConsoleController(input: {
       declineClaim,
       trackPool,
       trackQueued,
+      finishGroup,
       requirePool,
       garden,
       sender,
@@ -284,6 +300,8 @@ export function usePoolConsoleController(input: {
     charter,
     pauseReason,
     pendingCreates,
+    queuedGroupCopies: finishing.waiting,
+    finishingGroupId: finishing.sendingGroupId,
     queueUnavailable: queue.isUnavailable,
     funding: fundingView,
     acts,

@@ -69,6 +69,8 @@ export interface PoolConsoleActs {
   retryQueued: (jobId: string) => Promise<void>;
   /** Remove a queued creation. The queue refuses one whose send may be on chain. */
   discardQueued: (jobId: string) => Promise<void>;
+  /** Send a group's copies still waiting in this steward's queue, as they were built. */
+  finishCreating: (displayGroupId: string) => Promise<"sent" | "left" | "none" | "blocked">;
 }
 
 /** Where a single-signature act started from a row stands. */
@@ -97,6 +99,10 @@ export interface PoolConsoleController {
   charter: PoolCharterResolution;
   pauseReason: CommitmentReasonResolution;
   pendingCreates: CommitmentQueueState["pendingCreates"];
+  /** Each display group's copies still waiting in this steward's queue, by job id. */
+  queuedGroupCopies: ReadonlyMap<string, readonly string[]>;
+  /** The group Finish Creating is sending, while it is. */
+  finishingGroupId: string | null;
   queueUnavailable: boolean;
   funding: PoolFundingControllerView;
   acts: PoolConsoleActs;

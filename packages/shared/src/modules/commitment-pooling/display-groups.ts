@@ -85,9 +85,10 @@ export interface DisplaySingleEntry<T> {
 
 export type DisplayEntry<T> = DisplayGroupEntry<T> | DisplaySingleEntry<T>;
 
-type Bucket = Exclude<keyof DisplayGroupCounts, "published">;
+/** The count a copy falls in. */
+export type DisplayBucket = Exclude<keyof DisplayGroupCounts, "published">;
 
-const BUCKET: Record<GroupableCommitment["onchainState"], Bucket> = {
+const BUCKET: Record<GroupableCommitment["onchainState"], DisplayBucket> = {
   OFFERED: "available",
   REQUESTED: "available",
   ACCEPTED: "inProgress",
@@ -98,6 +99,11 @@ const BUCKET: Record<GroupableCommitment["onchainState"], Bucket> = {
   EXPIRED: "ended",
   UNKNOWN: "other",
 };
+
+/** Which count a copy falls in, by its state on chain: available, in progress, kept, ended or other. */
+export function displayBucketOf(state: GroupableCommitment["onchainState"]): DisplayBucket {
+  return BUCKET[state] ?? "other";
+}
 
 function countDisplayGroup(children: readonly GroupableCommitment[]): DisplayGroupCounts {
   const counts: DisplayGroupCounts = {
@@ -110,7 +116,7 @@ function countDisplayGroup(children: readonly GroupableCommitment[]): DisplayGro
   };
   for (const child of children) {
     counts.published += 1;
-    counts[BUCKET[child.onchainState] ?? "other"] += 1;
+    counts[displayBucketOf(child.onchainState)] += 1;
   }
   return counts;
 }
@@ -221,6 +227,6 @@ export function selectRewardEdit<T extends Pick<GroupableCommitment, "onchainSta
     return { open: false, reason: "kept" };
   }
   if ((options.unsent ?? 0) > 0) return { open: false, reason: "unsent" };
-  const targets = children.filter((child) => BUCKET[child.onchainState] === "available");
+  const targets = children.filter((child) => displayBucketOf(child.onchainState) === "available");
   return targets.length > 0 ? { open: true, targets } : { open: false, reason: "none-available" };
 }
