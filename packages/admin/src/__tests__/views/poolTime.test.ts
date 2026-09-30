@@ -5,7 +5,7 @@
  */
 
 import { createIntl } from "react-intl";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { formatUnixDate } from "@/views/Garden/Pool/poolPresentation";
 import { dueDateText, exactTime, timelineTime } from "@/views/Garden/Pool/poolTime";
 
@@ -15,14 +15,8 @@ const NOW = Date.parse("2026-09-28T16:00:00-07:00");
 const at = (iso: string) => Date.parse(iso);
 
 describe("poolTime", () => {
-  beforeEach(() => {
-    // Calendar days are the viewer's: the day boundaries follow the process zone.
-    vi.stubEnv("TZ", "America/Los_Angeles");
-  });
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
+  // Calendar days follow intl's zone, not the process's: 6:00 PM in Los Angeles
+  // is already tomorrow in UTC, and still reads "today" here.
   it("reads timeline events as today, yesterday, a weekday this week, a date, or a date with its year", () => {
     expect(timelineTime(intl, at("2026-09-28T15:42:00-07:00"), NOW)).toBe("Today, 3:42 PM");
     expect(timelineTime(intl, at("2026-09-27T09:05:00-07:00"), NOW)).toBe("Yesterday, 9:05 AM");

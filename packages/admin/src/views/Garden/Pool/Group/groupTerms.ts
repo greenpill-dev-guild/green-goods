@@ -20,7 +20,7 @@ import { railLabel } from "../CommitmentDialog/commitmentDialogPresentation";
 import { formatGoodDollars, formatUsd } from "../poolPresentation";
 import { dayText, exactTime } from "../poolTime";
 
-type TermsIntl = Pick<IntlShape, "formatMessage" | "formatDate" | "locale">;
+type TermsIntl = Pick<IntlShape, "formatMessage" | "formatDate" | "formatDateToParts" | "locale">;
 
 export interface GroupReward {
   /** The G$ amount on a copy nobody has taken: what new copies take and Edit Reward changes. */

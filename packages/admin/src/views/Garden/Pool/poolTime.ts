@@ -50,21 +50,35 @@ export function zoneName(intl: Pick<IntlShape, "formatDateToParts">, ms: number)
   );
 }
 
-/** Calendar days from the viewer's today to the day holding `ms`: 0 today, -1 yesterday. */
-function dayOffset(ms: number, nowMs: number): number {
-  const day = (value: number) => new Date(value).setHours(0, 0, 0, 0);
-  return Math.round((day(ms) - day(nowMs)) / DAY_MS);
+type DayIntl = Pick<IntlShape, "formatDate" | "formatDateToParts">;
+
+/**
+ * The calendar day holding `ms`, in the zone the text is written in, as a day
+ * number and its year. Reading it through `intl` keeps "today" and the time
+ * beside it in one zone.
+ */
+function calendarDay(intl: DayIntl, ms: number): { day: number; year: number } {
+  const parts = intl.formatDateToParts(ms, { year: "numeric", month: "numeric", day: "numeric" });
+  const part = (type: "year" | "month" | "day") =>
+    Number(parts.find((entry) => entry.type === type)?.value);
+  const year = part("year");
+  return { day: Date.UTC(year, part("month") - 1, part("day")) / DAY_MS, year };
 }
 
-const sameYear = (ms: number, nowMs: number) =>
-  new Date(ms).getFullYear() === new Date(nowMs).getFullYear();
+/** Calendar days from the viewer's today to the day holding `ms`: 0 today, -1 yesterday. */
+function dayOffset(intl: DayIntl, ms: number, nowMs: number): number {
+  return calendarDay(intl, ms).day - calendarDay(intl, nowMs).day;
+}
+
+const sameYear = (intl: DayIntl, ms: number, nowMs: number) =>
+  calendarDay(intl, ms).year === calendarDay(intl, nowMs).year;
 
 /** A day with no time: "Sep 28", with the year when it isn't this one. */
-export function dayText(intl: Pick<IntlShape, "formatDate">, ms: number, nowMs: number): string {
+export function dayText(intl: DayIntl, ms: number, nowMs: number): string {
   return intl.formatDate(ms, {
     month: "short",
     day: "numeric",
-    ...(sameYear(ms, nowMs) ? {} : { year: "numeric" as const }),
+    ...(sameYear(intl, ms, nowMs) ? {} : { year: "numeric" as const }),
   });
 }
 
@@ -74,7 +88,7 @@ export function dayText(intl: Pick<IntlShape, "formatDate">, ms: number, nowMs: 
  * the year only when it isn't this one ("Dec 30, 2025, 4:10 PM").
  */
 export function timelineTime(intl: TimeIntl, ms: number, nowMs: number): string {
-  const offset = dayOffset(ms, nowMs);
+  const offset = dayOffset(intl, ms, nowMs);
   const time = clockTime(intl, ms);
   if (offset === 0) {
     return intl.formatMessage(
@@ -92,7 +106,7 @@ export function timelineTime(intl: TimeIntl, ms: number, nowMs: number): string 
     ...(offset < 0 && offset > -7 ? { weekday: "short" as const } : {}),
     month: "short",
     day: "numeric",
-    ...(sameYear(ms, nowMs) ? {} : { year: "numeric" as const }),
+    ...(sameYear(intl, ms, nowMs) ? {} : { year: "numeric" as const }),
     hour: "numeric",
     minute: "2-digit",
   });
@@ -105,7 +119,7 @@ export function timelineTime(intl: TimeIntl, ms: number, nowMs: number): string 
  */
 export function dueDateText(intl: TimeIntl, ms: number, nowMs: number): string {
   if (ms >= nowMs && ms - nowMs <= TWO_DAYS_MS) {
-    const offset = dayOffset(ms, nowMs);
+    const offset = dayOffset(intl, ms, nowMs);
     const time = clockTime(intl, ms);
     if (offset === 0) {
       return intl.formatMessage(
