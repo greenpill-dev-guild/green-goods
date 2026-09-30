@@ -6,8 +6,6 @@ import type { IntlShape } from "react-intl";
 export interface UploadBarState {
   /** Prepared items Upload all sends. */
   readyCount: number;
-  /** Items that cannot upload until their problem is addressed. */
-  attentionCount: number;
   /** Items still being prepared, photos waiting to convert included. */
   preparingCount: number;
   /** Background preparation waits for Data Saver until the person asks. */
@@ -34,13 +32,12 @@ export interface UploadAction {
 
 /**
  * The Pending header's upload action for queued work and decisions. It is one
- * compact button beside the item count. Upload
- * all appears once something can go, and names only the prepared items while
- * the rest are still preparing or need attention. Before anything is ready it shows Upload all
- * with a spinner, and that label carries no count, so the button keeps one
- * width while the work turns ready, at any count. Under Data Saver it offers
- * Prepare now once nothing is ready to go; each work's own page offers it for
- * that work.
+ * compact button beside the item count. Upload all appears once something can
+ * go and sends every prepared item; items still preparing or needing attention
+ * wait, and their rows say why (O3). Before anything is ready it shows Upload
+ * all with a spinner. The label never carries a count, so the button keeps one
+ * width while the work turns ready. Under Data Saver it offers Prepare now once
+ * nothing is ready to go; each work's own page offers it for that work.
  */
 export function buildUploadAction(
   state: UploadBarState,
@@ -63,18 +60,7 @@ export function buildUploadAction(
     };
   }
   if (state.readyCount > 0) {
-    return {
-      label:
-        state.preparingCount === 0 && state.attentionCount === 0
-          ? uploadAll
-          : formatMessage(
-              { id: "app.uploads.uploadReady", defaultMessage: "Upload {count} ready" },
-              { count: state.readyCount }
-            ),
-      icon,
-      onClick: onUpload,
-      testId: "upload-all",
-    };
+    return { label: uploadAll, icon, onClick: onUpload, testId: "upload-all" };
   }
   if (state.preparingCount === 0) return undefined;
   if (state.pausedForDataSaver) return prepareNow;

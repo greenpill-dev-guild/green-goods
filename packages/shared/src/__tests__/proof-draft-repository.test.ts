@@ -3,6 +3,7 @@ import { draftDB } from "../modules/job-queue/draft-db";
 import { proofDraftRepository } from "../modules/commitment-pooling/proof-draft-repository";
 import { describe, expect, it, vi } from "vitest";
 import { createProofDraftRepository } from "../modules/commitment-pooling/proof-draft-repository";
+import { useCommitmentProofDraftStore } from "../stores/useCommitmentProofDraftStore";
 
 describe("ProofDraftRepository", () => {
   it("loads and saves files through the draft port", async () => {
@@ -94,5 +95,34 @@ describe("proof attachment persistence", () => {
     await expect(draftDB.setImagesForProof("missing-work", [photo])).rejects.toThrow(
       "Invalid proof draft key"
     );
+  });
+
+  it("dates a draft's last edit when its words or files change, not when they are saved again", () => {
+    const key = "proof:42161:0x1111111111111111111111111111111111111111:903";
+    const store = useCommitmentProofDraftStore.getState();
+    const words = { note: "Beds cleared", links: [], credited: null, clientEvidenceId: "e-903" };
+    const read = () => useCommitmentProofDraftStore.getState().drafts[key];
+    store.saveDraft(key, words, 1_000);
+    // Reopened with words only: the same words, no files, and the garden it opens under.
+    store.saveDraft(key, { ...words, garden: "0xgarden" }, 1_200);
+    store.recordFiles(key, { photos: 0, videos: 0, voiceNotes: 0 }, 1_500);
+    expect(read()).toMatchObject({ updatedAt: 1_000, garden: "0xgarden" });
+
+    store.recordFiles(key, { photos: 1, videos: 0, voiceNotes: 0 }, 2_000);
+    expect(read()?.updatedAt).toBe(2_000);
+    // The composer reopening saves what it read back; that is not an edit.
+    store.recordFiles(key, { photos: 1, videos: 0, voiceNotes: 0 }, 3_000);
+    expect(read()?.updatedAt).toBe(2_000);
+    store.recordFiles(key, { photos: 1, videos: 0, voiceNotes: 1 }, 4_000);
+    expect(read()?.updatedAt).toBe(4_000);
+    // New words are an edit, and keep the files and the garden.
+    store.saveDraft(key, { ...words, note: "Beds cleared and mulched" }, 5_000);
+    expect(read()).toMatchObject({
+      updatedAt: 5_000,
+      garden: "0xgarden",
+      files: { voiceNotes: 1 },
+    });
+
+    store.clearDraft(key);
   });
 });

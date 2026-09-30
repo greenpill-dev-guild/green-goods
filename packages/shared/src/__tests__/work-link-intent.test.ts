@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  fromDraftWorkLink,
   hasWorkLinkIntentParams,
   parseWorkLinkIntent,
+  toDraftWorkLink,
   workLinkReturnGarden,
   writeWorkLinkIntent,
 } from "../modules/commitment-pooling/work-link-intent";
@@ -21,6 +23,16 @@ function complete() {
 }
 
 describe("Work link intent", () => {
+  it("survives a work draft and comes back only through the page's own checks", () => {
+    const intent = parseWorkLinkIntent(complete())!;
+    const kept = toDraftWorkLink(intent);
+    // The draft keeps the id as text, so it survives JSON and IndexedDB.
+    expect(JSON.parse(JSON.stringify(kept))).toEqual({ ...intent, commitmentId: "9" });
+    expect(fromDraftWorkLink(kept)).toEqual(intent);
+    expect(fromDraftWorkLink({ ...kept, returnTo: "//example.com/path" })).toBeNull();
+    expect(fromDraftWorkLink({ ...kept, commitmentId: "not a number" })).toBeNull();
+  });
+
   it("round-trips one complete safe intent", () => {
     const params = complete();
     expect(hasWorkLinkIntentParams(params)).toBe(true);

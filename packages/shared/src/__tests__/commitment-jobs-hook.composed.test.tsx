@@ -131,6 +131,29 @@ describe("useCommitmentJobs over the real queue, signed in with a wallet", () =>
     expect(await store.getJobs({ userAddress: VIEWER })).toEqual([]);
   });
 
+  it("keeps a declined proof on the phone with its identity, for the person to send or discard", async () => {
+    const { store, jobs } = setUp(async () => {
+      throw new Error("User rejected the request");
+    });
+
+    await expect(
+      jobs.current.enqueue({
+        act: "evidence",
+        payload: {
+          clientEvidenceId: "proof-1",
+          commitmentId: 9n,
+          creditedContributors: [VIEWER],
+          gardenAddress: GARDEN,
+          note: "Posts replaced",
+        },
+      })
+    ).resolves.toEqual(expect.any(String));
+
+    const [kept] = await store.getJobs({ userAddress: VIEWER });
+    expect(kept?.kind).toBe("evidence");
+    expect(kept?.payload).toMatchObject({ clientEvidenceId: "proof-1", note: "Posts replaced" });
+  });
+
   it("keeps an act the queue is holding, one it judged final, and one that may have been sent", async () => {
     const waiting = setUp(async () => ({ status: "waiting", reason: "membership-unavailable" }));
     await expect(waiting.jobs.current.enqueue(confirm)).resolves.toEqual(expect.any(String));

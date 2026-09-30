@@ -253,6 +253,56 @@ describe("createJobQueue", () => {
       lastError: "identity_conflict:source-work-terminal",
     });
   });
+
+  describe("Add and Send's send, queued behind its proof", () => {
+    const proof = () =>
+      queuedJob({ id: "proof", kind: "evidence", payload: { commitmentId: 1n } as never });
+    const sendAfterProof = () =>
+      queuedJob({
+        id: "send",
+        kind: "confirmation",
+        payload: { action: "submit", commitmentId: 1n, afterEvidenceJobId: "proof" } as never,
+      });
+
+    it("goes after its proof in one pass, and is left untried while the proof has not landed", async () => {
+      // The store keeps no order: the send comes back first.
+      const store = createInMemoryJobQueueStore([sendAfterProof(), proof()]);
+      const clock = createFakeJobQueueClock();
+      let proofLands = false;
+      const executors = {
+        execute: vi.fn(async (jobId: string) =>
+          jobId === "proof" && !proofLands
+            ? ({ status: "waiting", reason: "evidence-not-published" } as const)
+            : ({ status: "complete", txHash: "0x1" } as const)
+        ),
+      };
+      const { queue } = setup({ store, clock, executors });
+      const context = { transactionSender: {} as never, userAddress: USER };
+
+      await expect(queue.flush(context)).resolves.toEqual({ processed: 0, failed: 0, skipped: 2 });
+      expect(executors.execute.mock.calls.map(([jobId]) => jobId)).toEqual(["proof"]);
+      // Untried, so nothing holds it back once its proof goes.
+      expect((await store.getJob("send"))?.meta?.waitingForDependency).toBeUndefined();
+
+      proofLands = true;
+      executors.execute.mockClear();
+      clock.advance(60_000);
+      await expect(queue.flush(context)).resolves.toEqual({ processed: 2, failed: 0, skipped: 0 });
+      expect(executors.execute.mock.calls.map(([jobId]) => jobId)).toEqual(["proof", "send"]);
+    });
+
+    it("is discarded with its proof, since nothing of it was ever sent", async () => {
+      const store = createInMemoryJobQueueStore([proof(), sendAfterProof()]);
+      const { deps, queue } = setup({ store });
+
+      await expect(queue.discardJob("proof")).resolves.toBe(true);
+      expect(await store.getJob("send")).toBeUndefined();
+      expect(deps.events.emit).toHaveBeenCalledWith(
+        "job:failed",
+        expect.objectContaining({ jobId: "send", error: "discarded" })
+      );
+    });
+  });
 });
 
 describe("discardJob and execution claims", () => {

@@ -255,8 +255,27 @@ export interface MissingDraftAttachment {
   kind: "media" | "audio";
 }
 
+/**
+ * The promise a work draft is for, as Submit Work's link carries it. The id is
+ * a decimal string so the draft survives IndexedDB and JSON.
+ */
+export interface DraftWorkLink {
+  commitmentId: string;
+  requirementIndex: number;
+  actionUID: number;
+  garden: Address;
+  commitmentTitle: string;
+  requirementLabel: string;
+  returnTo: string;
+}
+
 export interface WorkDraftRecord {
   kind?: "work";
+  /**
+   * The promise this draft is for, kept so resuming it keeps the promise. Null
+   * once the person unlinked it; absent on drafts that never had one.
+   */
+  linkIntent?: DraftWorkLink | null;
   missingAttachments?: MissingDraftAttachment[];
   legacySourceId?: string;
   legacyEntries?: Array<{ id: string; index: number; name: string }>;

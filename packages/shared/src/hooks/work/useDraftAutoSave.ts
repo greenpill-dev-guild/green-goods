@@ -10,7 +10,7 @@ import { queueDraftWrite } from "../../modules/work/draft-lifecycle";
 import { useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Address, ApproximateWorkLocation } from "../../types/domain";
-import type { DraftStep } from "../../types/job-queue";
+import type { DraftStep, DraftWorkLink } from "../../types/job-queue";
 import { draftDB, hasMeaningfulDraftDetails } from "../../modules/job-queue/draft-db";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { requestPersistentStorageOnce } from "../../utils/storage/quota";
@@ -28,6 +28,8 @@ interface DraftFormData {
   tags?: string[];
   audioNotes?: File[];
   location?: ApproximateWorkLocation;
+  /** The promise the work is for; null unlinks it; undefined leaves the draft's as it is. */
+  linkIntent?: DraftWorkLink | null;
 }
 
 export function useDraftAutoSave(

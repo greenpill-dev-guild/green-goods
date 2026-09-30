@@ -14,7 +14,7 @@ function WithSheetOpen({ children }: { children: React.ReactNode }) {
 
 /**
  * AppBar requires react-router context (useLocation, Link) and several shared hooks:
- * - usePendingWorksCount (TanStack Query)
+ * - useYourWorkCount (the job queue and drafts on this device)
  * - useUIStore (Zustand)
  *
  * We provide a MemoryRouter decorator and let the global QueryClientProvider

@@ -267,6 +267,8 @@ function controller(
       sendFailed: false,
       failedJob: null,
       pendingAct: null,
+      proofSending: false,
+      proofOnItsWay: null,
       isUnavailable: false,
       refresh: vi.fn(),
     },
@@ -342,13 +344,13 @@ describe("GardenCommitment", () => {
     render("not-a-number");
 
     expect(mockUseController).toHaveBeenCalledWith(expect.objectContaining({ commitmentId: null }));
-    expect(screen.getByText("Commitment not found")).toBeInTheDocument();
+    expect(screen.getByText("Promise not found")).toBeInTheDocument();
   });
 
   it("renders unavailable and retryable error states from the controller", async () => {
     mockUseController.mockReturnValue(controller({ status: "unavailable", detail: null }));
     const view = render();
-    expect(screen.getByText("Commitments are not ready here yet")).toBeInTheDocument();
+    expect(screen.getByText("Promises are not ready here yet")).toBeInTheDocument();
 
     const refetch = vi.fn(async () => undefined);
     mockUseController.mockReturnValue(controller({ status: "error", detail: null, refetch }));
@@ -526,6 +528,8 @@ describe("GardenCommitment", () => {
           sendFailed: true,
           failedJob: {
             jobId: "job-9",
+            kind: "confirmation",
+            at: 1,
             discardable: true,
             reason: null,
             retryable: true,
@@ -690,6 +694,8 @@ describe("GardenCommitment", () => {
           sendFailed: true,
           failedJob: {
             jobId: "link-1",
+            kind: "workLink",
+            at: 1,
             discardable: true,
             reason: "membershipLost",
             retryable: false,
@@ -752,7 +758,7 @@ describe("GardenCommitment", () => {
     ["awaitingApproval", "Linked · waiting for approval"],
     ["readyToReconcile", "Approved · waiting for a steward to count it"],
     ["needsFreshReview", "Approved again · needs a fresh review"],
-    ["counted", "Counted toward this commitment"],
+    ["counted", "Counted toward this promise"],
     ["unavailable", "Counting status unavailable"],
   ] as const)("shows the %s Work-link state honestly", (state, label) => {
     mockUseController.mockReturnValue(
@@ -874,7 +880,8 @@ describe("GardenCommitment", () => {
     );
     render();
     expect(screen.queryByText(/your last act here is waiting/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/your take-up waits for your garden membership/i)).toBeInTheDocument();
+    expect(screen.getByText("Waiting for your membership")).toBeInTheDocument();
+    expect(screen.getByText(/sends once your garden membership lands/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Send Now" }));
     expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
     await userEvent.click(screen.getByRole("button", { name: "Discard" }));
@@ -902,7 +909,7 @@ describe("GardenCommitment", () => {
     );
     render();
     // A discard now could delete the record of a transaction about to broadcast.
-    expect(screen.getByText(/your take-up is being sent from this phone/i)).toBeInTheDocument();
+    expect(screen.getByText("Sending from this phone")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send Now" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Discard" })).toBeDisabled();
   });
@@ -951,10 +958,68 @@ describe("GardenCommitment", () => {
       })
     );
     render();
-    expect(screen.getByText(/your take-up has left this phone/i)).toBeInTheDocument();
+    expect(screen.getByText("May already be sent")).toBeInTheDocument();
+    expect(
+      screen.getByText(/can't be discarded or sent twice while we check/i)
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Check Again" }));
     expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
+  });
+
+  it("says a proof from this phone is on its way, with no notice to send it twice", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "proof-9",
+            kind: "evidence",
+            waitingReason: "awaiting-confirmation",
+            discardable: false,
+            createdAt: Date.now(),
+          },
+          proofSending: true,
+          proofOnItsWay: { photos: 2, videos: 0, voiceNotes: 1, links: 1, words: true },
+        },
+      })
+    );
+    render();
+
+    expect(
+      screen.getByText("Your proof is on its way: 2 photos, 1 voice note, 1 link.")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("May already be sent")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Check Again" })).not.toBeInTheDocument();
+  });
+
+  it("says a declined proof is still on this phone, above, in progress and in the history", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "proof-9",
+            kind: "evidence",
+            waitingReason: "send-intent-expired",
+            discardable: true,
+            createdAt: Date.now(),
+          },
+        },
+      })
+    );
+    render();
+
+    expect(screen.getByText("Signature cancelled. Nothing was sent")).toBeInTheDocument();
+    expect(
+      screen.getByText("No proof on the promise yet. Yours is still on this phone (see above).")
+    ).toBeInTheDocument();
+    const line = screen.getByText("Sending was cancelled. Nothing was sent").closest("li");
+    expect(line).toHaveAttribute("data-local", "true");
   });
 
   it("offers the membership check again when it could not be read", async () => {

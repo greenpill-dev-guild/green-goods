@@ -3,18 +3,11 @@ import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
 import React from "react";
-import { type IntlShape, useIntl } from "react-intl";
+import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
+import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import type { WorkCardPresentation } from "@/components/Cards/Work/WorkCard";
 import { EmptyState, Loader } from "@/components/Communication";
-
-/** A time for today's saves, a short date for older ones (matches the garden Work tab). */
-function formatSavedAt(intl: IntlShape, timestamp: number): string {
-  const saved = new Date(timestamp);
-  return saved.toDateString() === new Date().toDateString()
-    ? intl.formatTime(saved, { hour: "numeric", minute: "2-digit" })
-    : intl.formatDate(saved, { month: "short", day: "numeric" });
-}
 
 interface WorkListMessages {
   itemCount: { id: string; defaultMessage: string };
@@ -149,7 +142,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
       ? null
       : isOffline && savedAt
         ? intl.formatMessage(
-            { id: "app.workDashboard.offlineSaved", defaultMessage: "Offline · {when}" },
+            { id: "app.offline.savedAt", defaultMessage: "Offline · {when}" },
             { when: formatSavedAt(intl, savedAt) }
           )
         : items.length > 0

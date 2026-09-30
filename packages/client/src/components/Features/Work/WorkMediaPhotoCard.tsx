@@ -1,7 +1,7 @@
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { RiCloseLine, RiZoomInLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { PendingPhotoTile, type PendingPhotoState } from "@/components/Features/Work";
+import { PendingPhotoTile, type PendingPhotoState } from "./PendingPhotoTile";
 
 export interface WorkMediaPhotoCardProps {
   file: File;
