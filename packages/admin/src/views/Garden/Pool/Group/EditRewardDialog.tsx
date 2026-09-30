@@ -115,14 +115,23 @@ export function EditRewardDialog({
   const cents = parseUsdCents(amountText);
   const unavailable = locked ? null : priceUnavailableReason(price.state, formatMessage);
   const newCents = cents !== null && cents > 0n ? cents : null;
+  const retrying = status.retry.length > 0;
+  // The amount starts at the reward as set; asking the wallet to write it again changes nothing.
+  const unchanged =
+    !locked && !retrying && currentCentsAsSet !== null && newCents === currentCentsAsSet;
   const blocked = !settlementActive
     ? formatMessage({
         id: "cockpit.garden.pool.reward.needsSettlement",
         defaultMessage:
           "A reward is paid through this garden's settlement account, which isn't active.",
       })
-    : unavailable;
-  const retrying = status.retry.length > 0;
+    : (unavailable ??
+      (unchanged
+        ? formatMessage({
+            id: "cockpit.garden.pool.reward.unchanged",
+            defaultMessage: "Type the new amount to change the reward.",
+          })
+        : null));
   const count = retrying ? status.retry.length : available.length;
 
   const change = async () => {

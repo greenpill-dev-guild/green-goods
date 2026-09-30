@@ -101,6 +101,9 @@ describe("Edit Reward", () => {
     expect(screen.getByTestId("edit-reward")).toHaveTextContent(
       "Joon Park and Sofia Mendes took theirs at $3.00 and keep it."
     );
+    // It starts at the reward as set, which would change nothing.
+    expect(within(dialog()).getByRole("button", { name: "Change 4 Rewards" })).toBeDisabled();
+    expect(screen.getByTestId("reward-prompt-count")).toHaveTextContent(/type the new amount/i);
     fireEvent.change(within(dialog()).getByLabelText(/^amount for each/i), {
       target: { value: "4.00" },
     });
