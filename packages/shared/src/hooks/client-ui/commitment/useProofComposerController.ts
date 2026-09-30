@@ -127,7 +127,7 @@ export function useProofComposerController(
   }, []);
   useProofDraftSync(draft, {
     queued,
-    words: { note, links, credited: selectedCredit, clientEvidenceId },
+    words: { note, links, credited: selectedCredit, clientEvidenceId, garden: routeGarden ?? "" },
     files: { media, audioNotes },
     onRestore: restoreFiles,
   });

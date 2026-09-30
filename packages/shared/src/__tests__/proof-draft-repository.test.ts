@@ -97,21 +97,31 @@ describe("proof attachment persistence", () => {
     );
   });
 
-  it("dates a draft's last edit when its files change, not when the same files are saved again", () => {
+  it("dates a draft's last edit when its words or files change, not when they are saved again", () => {
     const key = "proof:42161:0x1111111111111111111111111111111111111111:903";
     const store = useCommitmentProofDraftStore.getState();
-    store.saveDraft(key, { note: "", links: [], credited: null, clientEvidenceId: "e-903" }, 1_000);
-    // Opened with words only: no files, before or after.
+    const words = { note: "Beds cleared", links: [], credited: null, clientEvidenceId: "e-903" };
+    const read = () => useCommitmentProofDraftStore.getState().drafts[key];
+    store.saveDraft(key, words, 1_000);
+    // Reopened with words only: the same words, no files, and the garden it opens under.
+    store.saveDraft(key, { ...words, garden: "0xgarden" }, 1_200);
     store.recordFiles(key, { photos: 0, videos: 0, voiceNotes: 0 }, 1_500);
-    expect(useCommitmentProofDraftStore.getState().drafts[key]?.updatedAt).toBe(1_000);
+    expect(read()).toMatchObject({ updatedAt: 1_000, garden: "0xgarden" });
 
     store.recordFiles(key, { photos: 1, videos: 0, voiceNotes: 0 }, 2_000);
-    expect(useCommitmentProofDraftStore.getState().drafts[key]?.updatedAt).toBe(2_000);
+    expect(read()?.updatedAt).toBe(2_000);
     // The composer reopening saves what it read back; that is not an edit.
     store.recordFiles(key, { photos: 1, videos: 0, voiceNotes: 0 }, 3_000);
-    expect(useCommitmentProofDraftStore.getState().drafts[key]?.updatedAt).toBe(2_000);
+    expect(read()?.updatedAt).toBe(2_000);
     store.recordFiles(key, { photos: 1, videos: 0, voiceNotes: 1 }, 4_000);
-    expect(useCommitmentProofDraftStore.getState().drafts[key]?.updatedAt).toBe(4_000);
+    expect(read()?.updatedAt).toBe(4_000);
+    // New words are an edit, and keep the files and the garden.
+    store.saveDraft(key, { ...words, note: "Beds cleared and mulched" }, 5_000);
+    expect(read()).toMatchObject({
+      updatedAt: 5_000,
+      garden: "0xgarden",
+      files: { voiceNotes: 1 },
+    });
 
     store.clearDraft(key);
   });

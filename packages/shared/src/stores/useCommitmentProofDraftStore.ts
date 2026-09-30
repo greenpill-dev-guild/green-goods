@@ -35,11 +35,28 @@ export interface CommitmentProofDraft {
    */
   clientEvidenceId: string;
   /**
+   * The garden the composer was opened under, where the promise's page opens,
+   * so Your Work can reopen the draft without reading the promise first.
+   */
+  garden?: string;
+  /**
    * What the draft's files hold, counted when they are saved, so Your Work can
    * list the draft and say what is in it without reading the files back.
    */
   files?: { photos: number; videos: number; voiceNotes: number };
   updatedAt: number;
+}
+
+type DraftWords = Omit<CommitmentProofDraft, "updatedAt" | "files" | "garden">;
+
+/** Whether two saves hold the same words: saving them again is not an edit. */
+function sameWords(left: DraftWords, right: DraftWords): boolean {
+  return (
+    left.note === right.note &&
+    left.clientEvidenceId === right.clientEvidenceId &&
+    JSON.stringify(left.links) === JSON.stringify(right.links) &&
+    JSON.stringify(left.credited) === JSON.stringify(right.credited)
+  );
 }
 
 export interface CommitmentProofDraftStore {
@@ -92,13 +109,23 @@ export const useCommitmentProofDraftStore = create<CommitmentProofDraftStore>()(
     (set) => ({
       drafts: {},
       // The words replace the words; the file counts stay until the files change.
+      // The same words saved again (the composer reopening) are not an edit, and
+      // filling in the draft's garden is not one either.
       saveDraft: (key, draft, updatedAt = Date.now()) =>
-        set((state) => ({
-          drafts: {
-            ...state.drafts,
-            [key]: { ...draft, files: state.drafts[key]?.files, updatedAt },
-          },
-        })),
+        set((state) => {
+          const current = state.drafts[key];
+          if (current && sameWords(current, draft)) {
+            if (!draft.garden || current.garden === draft.garden) return state;
+            return { drafts: { ...state.drafts, [key]: { ...current, garden: draft.garden } } };
+          }
+          const garden = draft.garden || current?.garden;
+          return {
+            drafts: {
+              ...state.drafts,
+              [key]: { ...draft, ...(garden ? { garden } : {}), files: current?.files, updatedAt },
+            },
+          };
+        }),
       // Saving the same files again (the composer reopening) is not an edit.
       // A draft with no count yet holds no files, as Your Work reads it.
       recordFiles: (key, files, updatedAt = Date.now()) =>

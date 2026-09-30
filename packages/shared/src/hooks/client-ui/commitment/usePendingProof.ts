@@ -121,6 +121,9 @@ export function usePendingProof(input: { chainId: number; viewer: Address | null
         links: draft.links.length,
         words: draft.note.trim().length > 0,
       };
+      // Saved with the draft, so it reopens without the promise's record.
+      const promise = commitmentId.toString();
+      if (draft.garden && !gardens.has(promise)) gardens.set(promise, draft.garden as Address);
       items.push({
         id: key,
         source: "draft",
@@ -159,7 +162,8 @@ export function usePendingProof(input: { chainId: number; viewer: Address | null
   const commitments = [...byId.values()];
   const metadata = useCommitmentMetadata(commitments);
   // A promise's page opens under its pool's garden. Queued proof names the
-  // garden it was added from; a draft finds it through the promise's pool.
+  // garden it was added from, and a draft the one it was opened under; an
+  // older draft without one finds it through the promise's pool.
   const { pools } = useCommitmentPools({ chainId });
 
   const items = found.items

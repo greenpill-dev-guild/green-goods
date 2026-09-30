@@ -142,11 +142,11 @@ export function useProofDraftSync(
   }, [draft.isRestored, draft.savedFiles, filesRestored, onRestore]);
 
   const { saveWords, saveFiles } = draft;
-  const { note, links, credited, clientEvidenceId } = input.words;
+  const { note, links, credited, clientEvidenceId, garden } = input.words;
   useEffect(() => {
     if (input.queued) return;
-    saveWords({ note, links, credited, clientEvidenceId });
-  }, [note, links, credited, clientEvidenceId, input.queued, saveWords]);
+    saveWords({ note, links, credited, clientEvidenceId, ...(garden ? { garden } : {}) });
+  }, [note, links, credited, clientEvidenceId, garden, input.queued, saveWords]);
 
   const { media, audioNotes } = input.files;
   useEffect(() => {
