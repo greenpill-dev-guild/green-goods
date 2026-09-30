@@ -1,5 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { isGardenHiddenEverywhere } from "../../config/garden-visibility";
+import { withoutHiddenGardens } from "../../config/garden-visibility";
 import {
   type Action,
   type ActionContentLocale,
@@ -422,7 +422,7 @@ export async function getGardens(reader: GraphQLReader = greenGoodsIndexer): Pro
     // Curated out of every surface — see config/garden-visibility.ts. Filtering
     // here rather than per-view keeps the PWA and admin consistent with the
     // website for gardens that should not exist anywhere in Green Goods.
-    const visibleGardens = data.Garden.filter((garden) => !isGardenHiddenEverywhere(garden.id));
+    const visibleGardens = withoutHiddenGardens(data.Garden);
 
     return visibleGardens.map((garden) =>
       gardenFromRow(garden, domainMap.get(garden.id.toLowerCase()) ?? 0)

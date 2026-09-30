@@ -1,4 +1,5 @@
 import { type WorkAttachmentPolicy, validateWorkAttachments } from "./work-attachments";
+import { isGardenHiddenEverywhere } from "../../config/garden-visibility";
 import type { Action, Address, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { findActionByUID } from "../../utils/action/parsers";
 import { resolveKnownWorkTitle } from "../../utils/work/workTitles";
@@ -169,7 +170,9 @@ export function validateWorkSubmissionContext(
   // Default to 0 so direct callers don't accidentally require media.
   const minRequired = options.minRequired ?? 0;
 
-  if (!gardenAddress) {
+  // A garden curated out of every surface counts as none: a saved draft, a
+  // commitment link, or navigation state can carry one past the garden picker.
+  if (!gardenAddress || isGardenHiddenEverywhere(gardenAddress)) {
     errors.push("Garden must be selected");
   }
 

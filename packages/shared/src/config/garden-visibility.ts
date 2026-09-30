@@ -2,9 +2,11 @@
  * Curated garden visibility.
  *
  * Not every garden minted on-chain belongs on every Green Goods surface. One
- * was created for a different project. Others are real gardens whose recorded
- * work is people practicing rather than impact, so counting it as evidence on
- * the public website would overstate what we can show.
+ * was created for a different project. Another is inactive, yet gardeners kept
+ * submitting work to it that belonged to other gardens. Others are real
+ * gardens whose recorded work is people practicing rather than impact, so
+ * counting it as evidence on the public website would overstate what we can
+ * show.
  *
  * There is no visibility flag on `Garden` in the contract or the indexer, so
  * the list is curated here. Entries are keyed by garden address, never by
@@ -14,7 +16,9 @@
  * Two tiers:
  *   - `GARDENS_HIDDEN_EVERYWHERE` is filtered inside `getGardens()`, so the
  *     garden is absent from the client PWA and admin dashboard as well, and
- *     its public page does not exist.
+ *     its public page does not exist. The list hooks drop it from cached
+ *     lists too, and work submission refuses it whichever way it was chosen,
+ *     so a saved draft that names it resumes at the garden choice.
  *   - `GARDENS_HIDDEN_FROM_EDITORIAL` is filtered only by the public lists, so
  *     the garden keeps working normally for the people using it while staying
  *     off the public archive, impact ledger, funding list, and proof counters.
@@ -40,6 +44,11 @@ export const GARDENS_HIDDEN_EVERYWHERE: readonly CuratedGarden[] = [
     address: "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
     name: "Live Garden Coop",
     reason: "Created during Coop project work; never a Green Goods garden.",
+  },
+  {
+    address: "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+    name: "Greenpill Nigeria",
+    reason: "Inactive but open to join; gardeners kept filing work here that belonged elsewhere.",
   },
 ] as const;
 
@@ -75,6 +84,15 @@ const hiddenFromEditorial = new Set(
  */
 export function isGardenHiddenEverywhere(address: string): boolean {
   return hiddenEverywhere.has(address.toLowerCase());
+}
+
+/**
+ * A garden list without the gardens curated out of every surface. Fetches
+ * apply it, and so do the list hooks, because a list restored from an older
+ * build's cache never passes through the fetch.
+ */
+export function withoutHiddenGardens<T extends { id: string }>(gardens: T[]): T[] {
+  return gardens.filter((garden) => !isGardenHiddenEverywhere(garden.id));
 }
 
 interface PublicGardenFields {
