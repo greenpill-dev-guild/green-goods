@@ -16,8 +16,9 @@
  * Two tiers:
  *   - `GARDENS_HIDDEN_EVERYWHERE` is filtered inside `getGardens()`, so the
  *     garden is absent from the client PWA and admin dashboard as well, and
- *     its public page does not exist. A saved work draft that names it
- *     resumes without a garden, so the gardener chooses one again.
+ *     its public page does not exist. The list hooks drop it from cached
+ *     lists too, and work submission refuses it whichever way it was chosen,
+ *     so a saved draft that names it resumes at the garden choice.
  *   - `GARDENS_HIDDEN_FROM_EDITORIAL` is filtered only by the public lists, so
  *     the garden keeps working normally for the people using it while staying
  *     off the public archive, impact ledger, funding list, and proof counters.
@@ -83,6 +84,15 @@ const hiddenFromEditorial = new Set(
  */
 export function isGardenHiddenEverywhere(address: string): boolean {
   return hiddenEverywhere.has(address.toLowerCase());
+}
+
+/**
+ * A garden list without the gardens curated out of every surface. Fetches
+ * apply it, and so do the list hooks, because a list restored from an older
+ * build's cache never passes through the fetch.
+ */
+export function withoutHiddenGardens<T extends { id: string }>(gardens: T[]): T[] {
+  return gardens.filter((garden) => !isGardenHiddenEverywhere(garden.id));
 }
 
 interface PublicGardenFields {
