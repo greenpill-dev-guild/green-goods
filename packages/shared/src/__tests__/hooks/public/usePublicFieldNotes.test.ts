@@ -76,6 +76,19 @@ describe("usePublicFieldNotes", () => {
 
     expect(result.current.data?.fieldNotes.map((note) => note.id)).toEqual(["approved"]);
     expect(result.current.data?.total).toBe(1);
+    expect(result.current.data?.partialData).toBe(false);
+  });
+
+  it("says the feed may be missing work when a decision cannot be read", async () => {
+    const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([createMockWork({ id: "unread", gardenAddress: garden.id })]);
+    mockReadWorkApprovalsForWorks.mockResolvedValue({ approvals: [], failedWorkUIDs: ["unread"] });
+
+    const { result } = renderHookWithQueryClient(() => usePublicFieldNotes(), { queryClient });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data).toMatchObject({ fieldNotes: [], total: 0, partialData: true });
   });
 
   it("returns empty page when no works exist", async () => {

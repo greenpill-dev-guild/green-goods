@@ -183,24 +183,45 @@ describe("usePublicStats", () => {
     expect(stats?.areaRegeneratingSqFt).toBeUndefined();
   });
 
-  it("treats one source failure as soft — other counts still return", async () => {
+  // A count the reads cannot establish is unknown, never a zero or an undercount;
+  // the other counts still return.
+  it.each([
+    {
+      failure: "the works read fails",
+      fail: () => mockGetWorks.mockRejectedValue(new Error("EAS down")),
+      expected: { gardenCount: 1, contributorCount: 1, fieldNoteCount: null, attestationCount: 0 },
+    },
+    {
+      failure: "a decision cannot be read",
+      fail: () =>
+        mockReadWorkApprovalsForWorks.mockResolvedValue({ approvals: [], failedWorkUIDs: ["w-1"] }),
+      expected: { gardenCount: 1, contributorCount: 1, fieldNoteCount: null, attestationCount: 0 },
+    },
+    {
+      failure: "the assessments read fails",
+      fail: () => mockGetGardenAssessments.mockRejectedValue(new Error("EAS down")),
+      expected: { gardenCount: 1, contributorCount: 1, fieldNoteCount: 1, attestationCount: null },
+    },
+    {
+      failure: "the garden list cannot be read",
+      fail: () => mockGetGardens.mockRejectedValue(new Error("Indexer down")),
+      expected: {
+        gardenCount: null,
+        contributorCount: null,
+        fieldNoteCount: null,
+        attestationCount: null,
+      },
+    },
+  ])("reports a count as unknown when $failure", async ({ fail, expected }) => {
     mockGetGardens.mockResolvedValue([
       createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" }),
     ]);
-    mockGetWorks.mockRejectedValue(new Error("EAS down"));
-    mockGetGardenAssessments.mockResolvedValue([]);
+    mockGetWorks.mockResolvedValue([createMockWork({ id: "w-1" })]);
+    fail();
 
-    const { result } = renderHookWithQueryClient(() => usePublicStats(), {
-      queryClient,
-    });
+    const { result } = renderHookWithQueryClient(() => usePublicStats(), { queryClient });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    const stats = result.current.data;
-    expect(stats?.gardenCount).toBe(1);
-    expect(stats?.contributorCount).toBe(1);
-    expect(stats?.fieldNoteCount).toBe(0);
+    expect(result.current.data).toMatchObject(expected);
   });
 });

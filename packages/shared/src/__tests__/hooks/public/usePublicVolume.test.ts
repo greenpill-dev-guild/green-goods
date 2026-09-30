@@ -158,6 +158,7 @@ describe("usePublicVolume", () => {
     expect(data?.actionCount).toBe(1);
     expect(data?.attestationCount).toBe(1);
     expect(data?.contributorCount).toBe(1);
+    expect(data?.partialData).toBe(false);
   });
 
   it("returns zero counts when EAS is unreachable but volume metadata still resolves", async () => {
@@ -182,5 +183,7 @@ describe("usePublicVolume", () => {
     expect(data?.actionCount).toBe(0);
     expect(data?.attestationCount).toBe(0);
     expect(data?.activeGardens).toEqual([]);
+    // The zeros are unknowns, and the volume says so.
+    expect(data?.partialData).toBe(true);
   });
 });

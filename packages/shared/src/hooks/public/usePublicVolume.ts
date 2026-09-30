@@ -92,6 +92,11 @@ export interface PublicVolume {
   actionCount: number;
   /** Listed gardens' `GardenAssessment` attestations within the window. */
   attestationCount: number;
+  /**
+   * A read failed or a decision could not be read, so the counts above may be
+   * missing records; a caller that publishes them must not claim they are complete.
+   */
+  partialData: boolean;
 }
 
 export function usePublicVolume(volumeId: number, chainId: number = DEFAULT_CHAIN_ID) {
@@ -120,13 +125,15 @@ export function usePublicVolume(volumeId: number, chainId: number = DEFAULT_CHAI
           contributorCount: 0,
           actionCount: 0,
           attestationCount: 0,
+          partialData: false,
         };
       }
 
       const ids = initializedGardens.map((g) => g.id);
       const listed = new Set(ids.map((id) => id.toLowerCase()));
 
-      // Both EAS reads are best-effort — surface zero counts if either fails.
+      // Both EAS reads are best-effort — surface zero counts if either fails,
+      // and say so on `partialData`.
       const [worksResult, assessmentsResult] = await Promise.allSettled([
         getWorks(ids, chainId).then((all) => readApprovedWorks(all, chainId)),
         getGardenAssessments(undefined, chainId),
@@ -174,6 +181,10 @@ export function usePublicVolume(volumeId: number, chainId: number = DEFAULT_CHAI
         contributorCount: contributorAddresses.size,
         actionCount: works.length,
         attestationCount: assessments.length,
+        partialData:
+          worksResult.status === "rejected" ||
+          worksResult.value.partial ||
+          assessmentsResult.status === "rejected",
       };
     },
     staleTime: STALE_TIME_RARE,

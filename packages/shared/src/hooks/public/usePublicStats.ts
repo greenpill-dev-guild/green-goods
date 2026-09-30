@@ -11,8 +11,10 @@
  * gardeners of those gardens, each address once.
  *
  * No auth path. All three sources are queried with `Promise.allSettled` so
- * one outage doesn't blank the page. Without the garden list no count can be
- * scoped to listed gardens, so every count is zero.
+ * one outage doesn't blank the page. A count that cannot be established is
+ * `null`, never zero: a failed read, or a decision that could not be read,
+ * leaves the number unknown. Without the garden list no count can be scoped
+ * to listed gardens, so every count is `null`.
  *
  * ### Indexer-scope gaps surfaced here
  *
@@ -45,11 +47,12 @@ import { getGardenAssessments, getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
 import { readApprovedWorks } from "../../modules/work/work-list";
 
+/** Each count is `null` when it could not be established; see the file header. */
 export interface PublicStats {
-  gardenCount: number;
-  contributorCount: number;
-  fieldNoteCount: number;
-  attestationCount: number;
+  gardenCount: number | null;
+  contributorCount: number | null;
+  fieldNoteCount: number | null;
+  attestationCount: number | null;
 
   // ----- Indexer-scope gaps -----
   // These remain `undefined` in v1; see file header for the data-source
@@ -82,30 +85,43 @@ export function usePublicStats(chainId: number = DEFAULT_CHAIN_ID) {
         });
       }
 
-      const gardens = gardensResult.status === "fulfilled" ? gardensResult.value : [];
-      const works = worksResult.status === "fulfilled" ? worksResult.value : [];
-      const assessments = assessmentsResult.status === "fulfilled" ? assessmentsResult.value : [];
+      if (gardensResult.status === "rejected") {
+        return {
+          gardenCount: null,
+          contributorCount: null,
+          fieldNoteCount: null,
+          attestationCount: null,
+        };
+      }
 
       // Same predicate the archive and the evidence ledger use, so no headline
       // count can include a garden a visitor cannot browse, or its people and records.
-      const visibleGardens = gardens.filter(isGardenPubliclyVisible);
+      const visibleGardens = gardensResult.value.filter(isGardenPubliclyVisible);
       const listed = new Set(visibleGardens.map((garden) => garden.id.toLowerCase()));
       const inListedGarden = (gardenAddress: string) => listed.has(gardenAddress.toLowerCase());
-      const { works: approvedWorks } = await readApprovedWorks(
-        works.filter((work) => inListedGarden(work.gardenAddress)),
-        chainId
-      );
       const gardeners = new Set(
         visibleGardens.flatMap((garden) => garden.gardeners.map((address) => address.toLowerCase()))
       );
 
+      let fieldNoteCount: number | null = null;
+      if (worksResult.status === "fulfilled") {
+        const approved = await readApprovedWorks(
+          worksResult.value.filter((work) => inListedGarden(work.gardenAddress)),
+          chainId
+        );
+        fieldNoteCount = approved.partial ? null : approved.works.length;
+      }
+
       return {
         gardenCount: visibleGardens.length,
         contributorCount: gardeners.size,
-        fieldNoteCount: approvedWorks.length,
-        attestationCount: assessments.filter((assessment) =>
-          inListedGarden(assessment.gardenAddress)
-        ).length,
+        fieldNoteCount,
+        attestationCount:
+          assessmentsResult.status === "fulfilled"
+            ? assessmentsResult.value.filter((assessment) =>
+                inListedGarden(assessment.gardenAddress)
+              ).length
+            : null,
         // Oracle-derived metrics intentionally left undefined — see header.
       };
     },

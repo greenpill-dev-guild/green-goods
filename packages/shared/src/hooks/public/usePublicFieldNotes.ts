@@ -58,6 +58,8 @@ export interface PublicFieldNotesPage {
   nextCursor?: number;
   /** Total field notes available given the current filter set. */
   total: number;
+  /** Some decisions could not be read, so the feed and its total may be missing approved work. */
+  partialData: boolean;
 }
 
 const DEFAULT_LIMIT = 20;
@@ -99,12 +101,15 @@ export function usePublicFieldNotes(opts: UsePublicFieldNotesOptions = {}) {
         const gardens = await getGardens();
         const ids = gardens.filter(isGardenPubliclyVisible).map((g) => g.id as Address);
         if (ids.length === 0) {
-          return { fieldNotes: [], hasMore: false, total: 0 };
+          return { fieldNotes: [], hasMore: false, total: 0, partialData: false };
         }
         recipient = ids;
       }
 
-      const { works } = await readApprovedWorks(await getWorks(recipient, chainId), chainId);
+      const { works, partial } = await readApprovedWorks(
+        await getWorks(recipient, chainId),
+        chainId
+      );
 
       // Volume window (v1: Season One only). When `volume` is unset we leave
       // every work in scope so the journal feed shows the full public archive.
@@ -133,6 +138,7 @@ export function usePublicFieldNotes(opts: UsePublicFieldNotesOptions = {}) {
         hasMore,
         nextCursor,
         total,
+        partialData: partial,
       };
     },
     staleTime: STALE_TIME_RARE,
