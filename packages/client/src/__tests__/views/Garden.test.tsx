@@ -74,6 +74,8 @@ let mockLinkSchedulingSucceeded = false;
 let mockLinkSchedulingWorkSent: boolean | null = null;
 let mockIsSchedulingDependentLink = false;
 let mockIsQueueingDependentLink = false;
+let mockDraftSaveState: "saving" | "saved" | "failed" | undefined;
+const mockDraftRetry = vi.fn().mockResolvedValue(undefined);
 const mockActions = [
   {
     id: "action-1",
@@ -139,6 +141,9 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
       showDraftSheet: false,
       handleContinueDraft: vi.fn(),
       startFresh: vi.fn(),
+      saveState: mockDraftSaveState,
+      missingAttachments: [],
+      retry: mockDraftRetry,
     },
     ensureWorkSubmissionJourneyId: mockWorkFlowState.ensureWorkSubmissionJourneyId,
     exit: vi.fn(),
@@ -269,6 +274,9 @@ const messages = {
   "app.garden.commitment.linkScheduling": "Work submitted. Queueing its link to the promise…",
   "app.garden.commitment.linkScheduled": "Work submitted. Its link to the promise is queued.",
   "app.garden.commitment.retryLink": "Retry Link",
+  "app.garden.draft.saving": "Saving…",
+  "app.garden.draft.failed": "Could not save or restore this work.",
+  "app.garden.draft.retry": "Retry",
 };
 
 const renderWithProviders = (initialRoute = "/home/garden") => {
@@ -304,10 +312,28 @@ describe("Garden (Work) View", () => {
     mockLinkSchedulingWorkSent = null;
     mockIsSchedulingDependentLink = false;
     mockIsQueueingDependentLink = false;
+    mockDraftSaveState = undefined;
   });
 
   afterEach(() => {
     cleanup();
+  });
+
+  it("says a draft is saving to screen readers only, so the step never moves (D29)", () => {
+    mockDraftSaveState = "saving";
+    renderWithProviders();
+
+    const saving = screen.getAllByRole("status").find((status) => status.textContent === "Saving…");
+    expect(saving).toHaveClass("sr-only");
+  });
+
+  it("keeps a failed draft save on screen with a way to try again", () => {
+    mockDraftSaveState = "failed";
+    renderWithProviders();
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not save or restore this work.");
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(mockDraftRetry).toHaveBeenCalledOnce();
   });
 
   it("renders without crashing", () => {
