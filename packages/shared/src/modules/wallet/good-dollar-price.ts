@@ -126,3 +126,8 @@ export function goodDollarWeiToUsdCents(wei: bigint, price: bigint): bigint {
   if (price <= 0n || wei <= 0n) return 0n;
   return (wei * price) / CENTS_SCALE;
 }
+
+/** Cents as a steward would type them into a dollar field: "5.00". `parseUsdCents` reads it back. */
+export function usdCentsText(cents: bigint): string {
+  return `${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
+}

@@ -5,6 +5,7 @@ import {
   COMMITMENT_METADATA_VERSION,
   isResolvableMetadataCID,
   parseCommitmentMetadata,
+  rewardCentsAsSet,
 } from "../modules/commitment-pooling/metadata";
 import {
   buildCommitmentCreationPayload,
@@ -206,6 +207,52 @@ describe("commitment metadata display group", () => {
     ]) {
       const parsed = parseCommitmentMetadata({ version: 1, title: "Survey", displayGroup });
       expect(parsed).toEqual({ version: 1, title: "Survey" });
+    }
+  });
+});
+
+describe("commitment metadata reward, as the steward set it", () => {
+  /** $5.00 at the reserve's 2026-09-30 price. */
+  const wei = 38_865_763_105_965_141_239_068n;
+  const reward = { version: 1 as const, usdCents: "500", goodDollarWei: wei.toString() };
+
+  it("keeps the dollars typed beside the G$ they became, once per set", () => {
+    const built = buildCommitmentCreationPayload({
+      values: {
+        ...COMMITMENT_COMPOSER_DEFAULTS,
+        title: "Survey",
+        unitLabel: "survey",
+        considerationRail: "CELO_SETTLEMENT",
+        considerationUsd: "$5.00",
+        considerationAmount: wei.toString(),
+      },
+      clientCommitmentId: "copy-1",
+      poolId: 7n,
+      creator: "0x1111111111111111111111111111111111111111" as Address,
+      gardenAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address,
+      nowSeconds: 1_700_000_000,
+    });
+    expect(built.metadata?.reward).toEqual(reward);
+    expect(parseCommitmentMetadata(built.metadata)).toEqual(built.metadata);
+  });
+
+  it("reads the dollars only while the chain still holds that G$ amount", () => {
+    const metadata = buildCommitmentMetadata({ title: "Survey", reward });
+    expect(rewardCentsAsSet(metadata, wei)).toBe(500n);
+    // After Edit Reward the amount moved and the record did not: today's rate, then.
+    expect(rewardCentsAsSet(metadata, wei + 1n)).toBeNull();
+    expect(rewardCentsAsSet({}, wei)).toBeNull();
+  });
+
+  it("refuses a record no reader could use, and reads one it doesn't understand as none", () => {
+    expect(() =>
+      buildCommitmentMetadata({ title: "Survey", reward: { ...reward, usdCents: "0" } })
+    ).toThrow("reward record");
+    for (const bad of [{ ...reward, version: 2 }, { ...reward, goodDollarWei: "-5" }, "500"]) {
+      expect(parseCommitmentMetadata({ version: 1, title: "Survey", reward: bad })).toEqual({
+        version: 1,
+        title: "Survey",
+      });
     }
   });
 });

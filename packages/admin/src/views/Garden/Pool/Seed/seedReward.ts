@@ -11,6 +11,7 @@ import {
   type GoodDollarPriceState,
   goodDollarWeiToUsdCents,
   parseUsdCents,
+  usdCentsText,
   usdCentsToGoodDollarWei,
 } from "@green-goods/shared/modules/wallet/good-dollar-price";
 
@@ -91,8 +92,7 @@ export function needsGoodDollarPrice(rows: readonly CommitmentComposerValues[]):
 /** Dollars for a G$ amount carried over from an earlier promise, at today's rate. */
 export function carriedOverUsd(considerationAmount: string, price: bigint): string {
   const wei = /^\d+$/.test(considerationAmount) ? BigInt(considerationAmount) : 0n;
-  const cents = goodDollarWeiToUsdCents(wei, price);
-  return `${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
+  return usdCentsText(goodDollarWeiToUsdCents(wei, price));
 }
 
 /** When a promise answered now is due, for the review; Create fixes the exact second. */

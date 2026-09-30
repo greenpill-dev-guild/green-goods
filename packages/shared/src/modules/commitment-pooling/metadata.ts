@@ -41,6 +41,22 @@ export interface CommitmentDisplayGroup {
 
 export const COMMITMENT_DISPLAY_GROUP_VERSION = 1 as const;
 
+/**
+ * The reward as the steward set it (PRD-1022 D13): the dollars they typed and
+ * the G$ amount those became at the rate read at Create. The chain keeps only
+ * the G$ amount, and the G$ price moves, so this is how a reward can still read
+ * "$5.00" later. It holds only while the chain's amount is still this one: an
+ * Edit Reward changes the amount and not this record. Decimal strings, since
+ * the document is JSON.
+ */
+export interface CommitmentRewardRecord {
+  version: typeof COMMITMENT_REWARD_RECORD_VERSION;
+  usdCents: string;
+  goodDollarWei: string;
+}
+
+export const COMMITMENT_REWARD_RECORD_VERSION = 1 as const;
+
 export interface CommitmentMetadataV1 {
   version: number;
   /** One line, in the member's words. Never generated from the record. */
@@ -51,6 +67,8 @@ export interface CommitmentMetadataV1 {
   links?: CommitmentMetadataLink[];
   /** The set it was created in, when there was one. */
   displayGroup?: CommitmentDisplayGroup;
+  /** The reward in the dollars it was set in, when it was set in dollars. */
+  reward?: CommitmentRewardRecord;
 }
 
 /**
@@ -150,12 +168,41 @@ function cleanDisplayGroup(value: unknown): CommitmentDisplayGroup | null {
   return { version: COMMITMENT_DISPLAY_GROUP_VERSION, id: record.id };
 }
 
+/** A positive whole number, as a decimal string without a sign or leading zeros. */
+const POSITIVE_WHOLE = /^[1-9]\d{0,77}$/;
+
+/** A reward record this reader understands, or null; a later version reads as none. */
+function cleanRewardRecord(value: unknown): CommitmentRewardRecord | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (record.version !== COMMITMENT_REWARD_RECORD_VERSION) return null;
+  const { usdCents, goodDollarWei } = record;
+  if (typeof usdCents !== "string" || !POSITIVE_WHOLE.test(usdCents)) return null;
+  if (typeof goodDollarWei !== "string" || !POSITIVE_WHOLE.test(goodDollarWei)) return null;
+  return { version: COMMITMENT_REWARD_RECORD_VERSION, usdCents, goodDollarWei };
+}
+
+/**
+ * The cents a reward was set in, while the chain still holds the G$ amount they
+ * became; null once it doesn't (after an Edit Reward) or when it was never set
+ * in dollars. The caller then shows today's rate, as an estimate.
+ */
+export function rewardCentsAsSet(
+  metadata: Pick<CommitmentMetadataV1, "reward"> | null | undefined,
+  goodDollarWei: bigint | null | undefined
+): bigint | null {
+  const reward = metadata?.reward;
+  if (!reward || goodDollarWei === null || goodDollarWei === undefined) return null;
+  return BigInt(reward.goodDollarWei) === goodDollarWei ? BigInt(reward.usdCents) : null;
+}
+
 /** Build the object the composer writes. */
 export function buildCommitmentMetadata(input: {
   title: string;
   note?: string;
   links?: CommitmentMetadataLink[];
   displayGroup?: CommitmentDisplayGroup;
+  reward?: CommitmentRewardRecord;
 }): CommitmentMetadataV1 {
   const title = lineWithin(input.title, COMMITMENT_TITLE_MAX_LENGTH, "title");
   if (!title) throw new Error("A commitment needs a title");
@@ -165,12 +212,15 @@ export function buildCommitmentMetadata(input: {
   // Refused rather than dropped: a copy written without its group would show
   // on its own, apart from the set it was made with.
   if (input.displayGroup && !displayGroup) throw new Error("That display group id is not valid");
+  const reward = input.reward ? cleanRewardRecord(input.reward) : null;
+  if (input.reward && !reward) throw new Error("That reward record is not valid");
   return {
     version: COMMITMENT_METADATA_VERSION,
     title,
     ...(note ? { note } : {}),
     ...(links.length > 0 ? { links } : {}),
     ...(displayGroup ? { displayGroup } : {}),
+    ...(reward ? { reward } : {}),
   };
 }
 
@@ -192,6 +242,7 @@ export function parseCommitmentMetadata(raw: unknown): CommitmentMetadataV1 | nu
     cleanLine(record.description, NOTE_READ_TOLERANCE);
   const links = cleanLinks(record.links);
   const displayGroup = cleanDisplayGroup(record.displayGroup);
+  const reward = cleanRewardRecord(record.reward);
   const version =
     typeof record.version === "number" && Number.isFinite(record.version)
       ? record.version
@@ -202,6 +253,7 @@ export function parseCommitmentMetadata(raw: unknown): CommitmentMetadataV1 | nu
     ...(note ? { note } : {}),
     ...(links.length > 0 ? { links } : {}),
     ...(displayGroup ? { displayGroup } : {}),
+    ...(reward ? { reward } : {}),
   };
 }
 
