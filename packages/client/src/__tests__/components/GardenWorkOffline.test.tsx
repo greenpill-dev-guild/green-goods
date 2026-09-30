@@ -158,6 +158,37 @@ it("offers no older work once the read has reached the end of the garden", () =>
   expect(screen.queryByRole("button", { name: "Show older work" })).toBeNull();
 });
 
+it("reads the rest of the garden's history before listing it oldest first", () => {
+  const loadOlderWork = vi.fn();
+  const read = (hasOlderWork: boolean) => loadedRead({ hasOlderWork, loadOlderWork });
+  const view = renderList({
+    works: [savedWork(3), savedWork(2)],
+    gardenId: "0xgarden",
+    readState: read(true),
+  });
+
+  fireEvent.change(screen.getByRole("combobox", { name: "Sort" }), {
+    target: { value: "oldest" },
+  });
+  // The newest page's oldest work is not the garden's, so none is listed yet.
+  expect(loadOlderWork).toHaveBeenCalledTimes(1);
+  expect(screen.queryByTestId("cached-work")).toBeNull();
+  expect(screen.getByRole("status")).toHaveTextContent("Gathering…");
+
+  view.rerender(
+    <IntlProvider locale="en" messages={enMessages}>
+      <GardenWork
+        works={[savedWork(3), savedWork(2), savedWork(1)]}
+        actions={[]}
+        gardenId="0xgarden"
+        readState={read(false)}
+      />
+    </IntlProvider>
+  );
+  expect(screen.getAllByTestId("cached-work")[0]).toHaveTextContent("work 1");
+  expect(loadOlderWork).toHaveBeenCalledTimes(1);
+});
+
 it("hides older work offline, where a wider window cannot be read", () => {
   renderList({
     works: [savedWork(1)],

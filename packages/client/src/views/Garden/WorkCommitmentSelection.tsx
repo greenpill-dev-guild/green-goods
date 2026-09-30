@@ -43,6 +43,10 @@ export function WorkCommitmentSelection({
   });
   const readFailed = error !== null || intentStatus === "unavailable";
   const intentInvalid = intentStatus === "invalid";
+  // A link that holds the work back can always be let go: it is no longer
+  // eligible, or its eligibility could not be read.
+  const canUnlink =
+    (intentInvalid || intentStatus === "unavailable") && onSelectedKeyChange !== undefined;
   const loading = isLoading || intentStatus === "validating";
 
   return (
@@ -82,35 +86,36 @@ export function WorkCommitmentSelection({
                 : "Eligible promises could not be read. Try again or continue without one.",
             })}
           </span>
-          {intentInvalid && onSelectedKeyChange ? (
-            <Button
-              type="button"
-              emphasis="tertiary"
-              size="compact"
-              onClick={() => onSelectedKeyChange(null)}
-              leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
-              className="shrink-0"
-            >
-              {intl.formatMessage({
-                id: "app.garden.commitment.none",
-                defaultMessage: "Not for a Promise",
-              })}
-            </Button>
-          ) : readFailed && onRetry ? (
-            <Button
-              type="button"
-              emphasis="tertiary"
-              size="compact"
-              onClick={onRetry}
-              leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
-              className="shrink-0"
-            >
-              {intl.formatMessage({
-                id: "app.garden.commitment.retry",
-                defaultMessage: "Try Again",
-              })}
-            </Button>
-          ) : null}
+          <span className="flex shrink-0 flex-col items-end gap-1">
+            {readFailed && onRetry ? (
+              <Button
+                type="button"
+                emphasis="tertiary"
+                size="compact"
+                onClick={onRetry}
+                leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+              >
+                {intl.formatMessage({
+                  id: "app.garden.commitment.retry",
+                  defaultMessage: "Try Again",
+                })}
+              </Button>
+            ) : null}
+            {canUnlink ? (
+              <Button
+                type="button"
+                emphasis="tertiary"
+                size="compact"
+                onClick={() => onSelectedKeyChange?.(null)}
+                leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
+              >
+                {intl.formatMessage({
+                  id: "app.garden.commitment.none",
+                  defaultMessage: "Not for a Promise",
+                })}
+              </Button>
+            ) : null}
+          </span>
         </div>
       ) : null}
       {!loading && !readFailed && choices.length === 0 ? (

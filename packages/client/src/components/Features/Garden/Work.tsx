@@ -9,7 +9,7 @@ import {
 } from "@green-goods/shared/hooks/work/useGardenWorkListView";
 import type { Action, Work } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiInboxLine, RiRefreshLine } from "@remixicon/react";
-import React, { forwardRef, memo, type UIEvent, useCallback } from "react";
+import React, { forwardRef, memo, type UIEvent, useCallback, useEffect } from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
 import { EmptyState } from "@/components/Communication";
@@ -162,9 +162,23 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
     const view = useGardenWorkListView(works, actions);
     const typeAllLabel = intl.formatMessage({ id: "app.garden.work.type.all" });
     const sortLabel = (sort: GardenWorkSort) => intl.formatMessage({ id: SORT_LABEL_IDS[sort] });
+    // Oldest first needs the garden's whole history, since its oldest work is on
+    // the last page: the rest is read before the list is shown in that order.
+    const loadOlderWork = readState?.loadOlderWork;
+    const readsHistory =
+      view.sort === "oldest" &&
+      hasRows &&
+      !isOffline &&
+      Boolean(readState?.hasOlderWork && loadOlderWork);
+    const isLoadingOlder = Boolean(readState?.isLoadingOlder);
+    useEffect(() => {
+      if (readsHistory && !isLoadingOlder) loadOlderWork?.();
+    }, [readsHistory, isLoadingOlder, loadOlderWork]);
     // While a saved copy stands in for live data, its line takes the count's place.
-    const status =
-      context ?? intl.formatMessage({ id: "app.garden.work.count" }, { count: view.works.length });
+    const status = readsHistory
+      ? intl.formatMessage({ id: "app.garden.work.loading" })
+      : (context ??
+        intl.formatMessage({ id: "app.garden.work.count" }, { count: view.works.length }));
 
     // Loading keeps the loaded layout (D28): the header row with the loading line
     // where the count lands and a placeholder where each filter goes, then cards
@@ -307,14 +321,22 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
             </li>
           )}
 
-          {hasRows && <WorkList sorted={view.works} actionById={view.actionById} />}
-          {hasRows && readState?.hasOlderWork && !isOffline && readState.loadOlderWork && (
+          {readsHistory ? (
+            Array.from({ length: SKELETON_CARDS }, (_, index) => (
+              <li key={index} className="animate-pulse" aria-hidden="true">
+                <WorkCardSkeleton />
+              </li>
+            ))
+          ) : hasRows ? (
+            <WorkList sorted={view.works} actionById={view.actionById} />
+          ) : null}
+          {hasRows && !readsHistory && readState?.hasOlderWork && !isOffline && loadOlderWork && (
             <li className="col-span-full flex justify-center">
               <Button
                 type="button"
                 emphasis="secondary"
                 loading={readState.isLoadingOlder}
-                onClick={readState.loadOlderWork}
+                onClick={loadOlderWork}
               >
                 {intl.formatMessage({
                   id: "app.garden.work.showOlder",
