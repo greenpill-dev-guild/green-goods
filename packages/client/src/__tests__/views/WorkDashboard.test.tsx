@@ -12,6 +12,8 @@ const mockUseMyWorks = vi.fn();
 const mockUseMyOnlineWorks = vi.fn();
 let mockReviewerGardenIds: string[] = [];
 let mockProofs: PendingProof[] = [];
+let mockQueueUnreadable = false;
+const mockQueueRefresh = vi.fn();
 let mockOnPhone = 0;
 const mockDiscardWork = vi.fn(async () => true);
 let mockIsOnline = true;
@@ -173,12 +175,15 @@ vi.mock("@green-goods/shared/hooks/work/useDrafts", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/client-ui/commitment/usePendingProof", () => ({
-  usePendingProof: () => ({ items: mockProofs, isUnavailable: false }),
+  usePendingProof: () => ({ items: mockProofs, isUnavailable: mockQueueUnreadable }),
   discardPendingProof: vi.fn(async () => true),
 }));
 
 vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState", () => ({
-  useCommitmentQueueState: () => ({ linkedWorkIds: new Set<string>() }),
+  useCommitmentQueueState: () => ({
+    linkedWorkIds: new Set<string>(),
+    refresh: mockQueueRefresh,
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling", () => ({
@@ -309,6 +314,7 @@ describe("WorkDashboard", () => {
     vi.clearAllMocks();
     mockReviewerGardenIds = [];
     mockProofs = [];
+    mockQueueUnreadable = false;
     mockOnPhone = 0;
     mockIsOnline = true;
     mockUploads = idleUploads();
@@ -551,6 +557,7 @@ describe("WorkDashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
 
     await waitFor(() => expect(mockNeedsReviewState.refetch).toHaveBeenCalledOnce());
+    expect(mockQueueRefresh).toHaveBeenCalledOnce();
     expect(refetchMyWorks).toHaveBeenCalledOnce();
     expect(mockWorkApprovalsState.refetch).toHaveBeenCalledOnce();
     expect(mockMyApprovalsRefetch).toHaveBeenCalledOnce();
@@ -660,6 +667,34 @@ describe("WorkDashboard", () => {
     );
   });
 
+  it("reopens a proof draft where it was left, with Back leading to Your Work", () => {
+    mockProofs = [
+      {
+        id: "proof-draft",
+        source: "draft",
+        commitmentId: 7n,
+        garden: "0x00000000000000000000000000000000000000a1",
+        commitment: null,
+        title: "Repair the north fence panel",
+        savedAt: Date.now(),
+        contents: { photos: 1, videos: 0, voiceNotes: 0, links: 0, words: false },
+        waitingReason: null,
+        failed: false,
+        sending: false,
+        discardable: true,
+        firstPhoto: null,
+      },
+    ];
+
+    renderDashboard();
+    fireEvent.click(screen.getByText("Repair the north fence panel"));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/home/0x00000000000000000000000000000000000000a1/commitments/7/proof",
+      { state: { from: "dashboard" }, viewTransition: true }
+    );
+  });
+
   it("offers no Retry on a failed load while offline", () => {
     mockIsOnline = false;
     mockNeedsReviewState = { ...mockNeedsReviewState, isError: true, ready: false };
@@ -675,6 +710,25 @@ describe("WorkDashboard", () => {
     expect(screen.getByText("Unable to load work")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
+  });
+
+  it("says the list could not load when this phone's queue can't be read, and reads it again offline", () => {
+    // The record answered with nothing, but queued proof may still be on this phone.
+    mockIsOnline = false;
+    mockQueueUnreadable = true;
+    mockUseMyWorks.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+
+    renderDashboard();
+
+    expect(screen.getByText("Unable to load work")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing pending")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(mockQueueRefresh).toHaveBeenCalledOnce();
   });
 
   it("keeps Completed loading while the gardener's own work is still being read", () => {

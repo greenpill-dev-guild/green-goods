@@ -155,9 +155,17 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   const shown = filterPendingRows(rows, pendingFilter);
   const options = pendingFilterOptions(rows, pendingFilter);
   const hasNothing = rows.length === 0;
+  // This phone's queue can fail to read while the record answers. An empty list
+  // then means nothing, so it reads as an error, and Refresh reads the queue too.
+  const queueUnreadable = proofs.isUnavailable;
+  const failed = hasError || queueUnreadable;
+  const refresh = () => {
+    queue.refresh();
+    onRefresh();
+  };
 
   const statusText =
-    (isLoading || hasError) && hasNothing
+    (isLoading || failed) && hasNothing
       ? null
       : isOffline && savedAt
         ? intl.formatMessage(
@@ -165,7 +173,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
             { when: formatSavedAt(intl, savedAt) }
           )
         : intl.formatMessage({ id: COUNT_LABELS[pendingFilter] }, { count: shown.length });
-  const showRefresh = !isOffline && !((isLoading || hasError) && hasNothing);
+  const showRefresh = !isOffline && !((isLoading || failed) && hasNothing);
   const showUpload =
     !isOffline && uploadAction && (pendingFilter === "all" || pendingFilter === "upload");
 
@@ -178,9 +186,10 @@ export const PendingTab: React.FC<PendingTabProps> = ({
         if (!garden) return;
         const promise = `/home/${garden}/commitments/${commitmentId.toString()}`;
         // A draft picks up where it was left; queued proof shows where it stands.
-        return source === "draft"
-          ? onOpenPath(`${promise}/proof`)
-          : onOpenPath(promise, { from: "dashboard" });
+        // Either way Back from the promise reopens Your Work.
+        return onOpenPath(source === "draft" ? `${promise}/proof` : promise, {
+          from: "dashboard",
+        });
       }
       default:
         return onOpenWork(row.work);
@@ -213,7 +222,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
     <div className="flex min-h-full flex-col">
       <WorkListHeader
         statusText={statusText}
-        onRefresh={showRefresh ? onRefresh : undefined}
+        onRefresh={showRefresh ? refresh : undefined}
         isFetching={isFetching}
         actions={
           showUpload ? (
@@ -268,7 +277,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
             })}
           </p>
         </div>
-      ) : hasError && hasNothing ? (
+      ) : failed && hasNothing ? (
         <EmptyState
           className="flex-1"
           placement="sheet"
@@ -279,11 +288,12 @@ export const PendingTab: React.FC<PendingTabProps> = ({
             errorMessage || intl.formatMessage({ id: "app.workDashboard.error.description" })
           }
           action={
-            isOffline ? null : (
+            // The queue is on this phone, so trying it again needs no connection.
+            isOffline && !queueUnreadable ? null : (
               <Button
                 type="button"
                 emphasis="secondary"
-                onClick={onRefresh}
+                onClick={refresh}
                 loading={isFetching}
                 leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
               >

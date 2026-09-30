@@ -10,7 +10,7 @@
 import type { ProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
 import { proofComposerControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
 
@@ -56,30 +56,30 @@ const { ProofComposer } = await import("../../views/Home/Garden/Proof");
 
 function PromiseDestination() {
   const navigate = useNavigate();
+  const { state } = useLocation();
   return (
     <>
       <p>Back on the promise</p>
+      {state?.from === "dashboard" ? <p>Its Back reopens Your Work</p> : null}
       <button onClick={() => navigate(-1)}>Native Back</button>
     </>
   );
 }
 
-const render = (fromPromise = false) =>
+const PROOF = `/home/${GARDEN}/commitments/9/proof`;
+const ENTRIES = {
+  direct: [PROOF],
+  promise: [
+    "/origin",
+    `/home/${GARDEN}/commitments/9`,
+    { pathname: PROOF, state: { proofOrigin: `/home/${GARDEN}/commitments/9` } },
+  ],
+  dashboard: [{ pathname: PROOF, state: { from: "dashboard" } }],
+};
+
+const render = (openedFrom: keyof typeof ENTRIES = "direct") =>
   renderWithProviders(
-    <MemoryRouter
-      initialEntries={
-        fromPromise
-          ? [
-              "/origin",
-              `/home/${GARDEN}/commitments/9`,
-              {
-                pathname: `/home/${GARDEN}/commitments/9/proof`,
-                state: { proofOrigin: `/home/${GARDEN}/commitments/9` },
-              },
-            ]
-          : [`/home/${GARDEN}/commitments/9/proof`]
-      }
-    >
+    <MemoryRouter initialEntries={ENTRIES[openedFrom]}>
       <Routes>
         <Route path="/origin" element={<p>Real origin</p>} />
         <Route path="/home/:id/commitments/:commitmentId/proof" element={<ProofComposer />} />
@@ -244,7 +244,7 @@ describe("ProofComposer", () => {
   it("hands over to the promise it came from, so Back reaches the promise's origin", async () => {
     const user = userEvent.setup();
     controller = { ...controller, landing: "sending" };
-    render(true);
+    render("promise");
 
     expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Native Back" }));
@@ -259,6 +259,14 @@ describe("ProofComposer", () => {
     expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Native Back" }));
     expect(screen.queryByText("Nothing added yet")).not.toBeInTheDocument();
+  });
+
+  it("hands a draft reopened from Your Work to its promise, whose Back reopens Your Work", async () => {
+    controller = { ...controller, landing: "queued" };
+    render("dashboard");
+
+    expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
+    expect(screen.getByText("Its Back reopens Your Work")).toBeInTheDocument();
   });
 
   it("opens the promise from the pinned card and returns to the same step", async () => {
