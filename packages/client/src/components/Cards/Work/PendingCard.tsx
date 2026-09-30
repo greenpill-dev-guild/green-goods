@@ -149,11 +149,12 @@ export const PendingCard: React.FC<PendingCardProps> = ({
         </div>
       </button>
 
+      {/* Drawn over the row, not part of it: a tap on the pill opens the row. */}
       <StatusBadge
         size="xs"
         variant={PILL_TONE[kind]}
         showIcon={false}
-        className="absolute right-2 top-2 whitespace-nowrap"
+        className="pointer-events-none absolute right-2 top-2 whitespace-nowrap"
       >
         {pill}
       </StatusBadge>

@@ -101,6 +101,8 @@ describe("PendingCard", () => {
     };
     renderWithIntl(<PendingCard {...base} locked />);
     expect(screen.queryByLabelText("Discard Path Edging")).toBeNull();
+    // The pill is drawn over the row's button, so a tap on it reaches the row.
+    expect(screen.getByRole("status")).toHaveClass("pointer-events-none");
     cleanup();
 
     const onDiscard = vi.fn();
