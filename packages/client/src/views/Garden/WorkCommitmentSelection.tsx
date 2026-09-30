@@ -39,10 +39,14 @@ export function WorkCommitmentSelection({
   const intl = useIntl();
   const description = intl.formatMessage({
     id: "app.garden.commitment.description",
-    defaultMessage: "Choose the commitment and exact requirement this work fulfils.",
+    defaultMessage: "Choose the promise and exact requirement this work fulfils.",
   });
   const readFailed = error !== null || intentStatus === "unavailable";
   const intentInvalid = intentStatus === "invalid";
+  // A link that holds the work back can always be let go: it is no longer
+  // eligible, or its eligibility could not be read.
+  const canUnlink =
+    (intentInvalid || intentStatus === "unavailable") && onSelectedKeyChange !== undefined;
   const loading = isLoading || intentStatus === "validating";
 
   return (
@@ -50,7 +54,7 @@ export function WorkCommitmentSelection({
       <FormInfo
         title={intl.formatMessage({
           id: "app.garden.commitment.label",
-          defaultMessage: "Commitment",
+          defaultMessage: "Promise",
         })}
         info={description}
         Icon={RiHandHeartLine}
@@ -64,7 +68,7 @@ export function WorkCommitmentSelection({
           <RiLoader4Line className="h-4 w-4 shrink-0" aria-hidden="true" />
           {intl.formatMessage({
             id: "app.garden.commitment.loading",
-            defaultMessage: "Checking eligible commitments…",
+            defaultMessage: "Checking eligible promises…",
           })}
         </p>
       ) : null}
@@ -78,46 +82,47 @@ export function WorkCommitmentSelection({
             {intl.formatMessage({
               id: intentInvalid ? "app.garden.commitment.invalid" : "app.garden.commitment.error",
               defaultMessage: intentInvalid
-                ? "That commitment link is no longer eligible. Choose another commitment or continue without one."
-                : "Eligible commitments could not be read. Try again or continue without one.",
+                ? "That promise link is no longer eligible. Choose another promise or continue without one."
+                : "Eligible promises could not be read. Try again or continue without one.",
             })}
           </span>
-          {intentInvalid && onSelectedKeyChange ? (
-            <Button
-              type="button"
-              emphasis="tertiary"
-              size="compact"
-              onClick={() => onSelectedKeyChange(null)}
-              leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
-              className="shrink-0"
-            >
-              {intl.formatMessage({
-                id: "app.garden.commitment.none",
-                defaultMessage: "Not for a Commitment",
-              })}
-            </Button>
-          ) : readFailed && onRetry ? (
-            <Button
-              type="button"
-              emphasis="tertiary"
-              size="compact"
-              onClick={onRetry}
-              leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
-              className="shrink-0"
-            >
-              {intl.formatMessage({
-                id: "app.garden.commitment.retry",
-                defaultMessage: "Try Again",
-              })}
-            </Button>
-          ) : null}
+          <span className="flex shrink-0 flex-col items-end gap-1">
+            {readFailed && onRetry ? (
+              <Button
+                type="button"
+                emphasis="tertiary"
+                size="compact"
+                onClick={onRetry}
+                leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+              >
+                {intl.formatMessage({
+                  id: "app.garden.commitment.retry",
+                  defaultMessage: "Try Again",
+                })}
+              </Button>
+            ) : null}
+            {canUnlink ? (
+              <Button
+                type="button"
+                emphasis="tertiary"
+                size="compact"
+                onClick={() => onSelectedKeyChange?.(null)}
+                leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
+              >
+                {intl.formatMessage({
+                  id: "app.garden.commitment.none",
+                  defaultMessage: "Not for a Promise",
+                })}
+              </Button>
+            ) : null}
+          </span>
         </div>
       ) : null}
       {!loading && !readFailed && choices.length === 0 ? (
         <p className="text-sm text-text-sub-600">
           {intl.formatMessage({
             id: "app.garden.commitment.empty",
-            defaultMessage: "No eligible commitments match this garden and action.",
+            defaultMessage: "No eligible promises match this garden and action.",
           })}
         </p>
       ) : null}
@@ -126,7 +131,7 @@ export function WorkCommitmentSelection({
           <label htmlFor="work-commitment-selection" className="sr-only">
             {intl.formatMessage({
               id: "app.garden.commitment.label",
-              defaultMessage: "Commitment",
+              defaultMessage: "Promise",
             })}
           </label>
           <p id="work-commitment-selection-description" className="sr-only">
@@ -141,7 +146,7 @@ export function WorkCommitmentSelection({
             <option value="">
               {intl.formatMessage({
                 id: "app.garden.commitment.none",
-                defaultMessage: "Not for a Commitment",
+                defaultMessage: "Not for a Promise",
               })}
             </option>
             {choices.map((choice) => (

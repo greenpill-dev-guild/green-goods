@@ -19,6 +19,7 @@ import { TopNav } from "@/components/Navigation";
 import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 import { WorkDecisionUploadFooter } from "./WorkDecisionUploadFooter";
 import { WorkFulfills } from "./WorkFulfills";
+import { WorkStatusNotice } from "./WorkStatusNotice";
 import { WorkUploadFooter } from "./WorkUploadFooter";
 import { WorkViewSection } from "./WorkViewSection";
 
@@ -110,23 +111,24 @@ export const GardenWork: React.FC = () => {
   );
 
   // The gardener's own queued work: where it stands and what they can do about it.
-  const retryFooter =
-    isOfflineWork && isUserAddress(work.gardenerAddress, user?.id) ? (
-      <WorkUploadFooter
-        work={work}
-        isOnline={isOnline}
-        pausedForDataSaver={uploads.pausedForDataSaver}
-        onPrepareNow={uploads.prepareNow}
-        onRetry={handleRetry}
-        isRetrying={isRetrying}
-        onTryAgain={queuedWork.tryAgain}
-        isTryingAgain={queuedWork.isTryingAgain}
-        onDiscard={async () => {
-          if (await queuedWork.discard()) handleBack();
-        }}
-        isDiscarding={queuedWork.isDiscarding}
-      />
-    ) : null;
+  const ownQueuedWork = isOfflineWork && isUserAddress(work.gardenerAddress, user?.id);
+  const retryNotice = ownQueuedWork ? <WorkStatusNotice work={work} isOnline={isOnline} /> : null;
+  const retryFooter = ownQueuedWork ? (
+    <WorkUploadFooter
+      work={work}
+      isOnline={isOnline}
+      pausedForDataSaver={uploads.pausedForDataSaver}
+      onPrepareNow={uploads.prepareNow}
+      onRetry={handleRetry}
+      isRetrying={isRetrying}
+      onTryAgain={queuedWork.tryAgain}
+      isTryingAgain={queuedWork.isTryingAgain}
+      onDiscard={async () => {
+        if (await queuedWork.discard()) handleBack();
+      }}
+      isDiscarding={queuedWork.isDiscarding}
+    />
+  ) : null;
 
   const queuedDecision = uploads.decisionFor(work.id);
   const approvalFooter =
@@ -358,7 +360,7 @@ export const GardenWork: React.FC = () => {
             <span
               className={cn(
                 "text-sm font-medium",
-                effectiveStatus === "approved" ? "text-success-base" : "text-error-base"
+                effectiveStatus === "approved" ? "text-success-dark" : "text-error-base"
               )}
             >
               {effectiveStatus === "approved"
@@ -403,16 +405,13 @@ export const GardenWork: React.FC = () => {
           onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
           onShare={handleShare}
           onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
+          notice={retryNotice}
           fulfills={<WorkFulfills chainId={chainId} workUID={onChainWorkId} gardenId={gardenId} />}
           footer={retryFooter || approvalFooter || decisionFooter || successFooter}
           reserveFooterSpace={Boolean(
             retryFooter || approvalFooter || decisionFooter || successFooter
           )}
-          footerSpacerClassName={
-            retryFooter
-              ? "h-[calc(180px+env(safe-area-inset-bottom))]"
-              : "h-[calc(112px+env(safe-area-inset-bottom))]"
-          }
+          footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
         />
 
         {metadataStatus === "unavailable" && (

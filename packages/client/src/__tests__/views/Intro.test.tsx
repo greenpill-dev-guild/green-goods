@@ -409,6 +409,24 @@ describe("WorkIntro", () => {
     expect(onRetryCommitmentChoices).toHaveBeenCalledTimes(1);
   });
 
+  it("lets a linked promise whose eligibility can't be read be retried or let go", () => {
+    const onRetryCommitmentChoices = vi.fn();
+    const setSelectedCommitmentKey = vi.fn();
+    renderIntro({
+      showCommitmentChoices: true,
+      commitmentIntentStatus: "unavailable",
+      onRetryCommitmentChoices,
+      setSelectedCommitmentKey,
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not be read/i);
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(onRetryCommitmentChoices).toHaveBeenCalledTimes(1);
+    // The link holds the work back, so the person can continue without it.
+    fireEvent.click(screen.getByRole("button", { name: "No commitment" }));
+    expect(setSelectedCommitmentKey).toHaveBeenCalledWith(null);
+  });
+
   it("distinguishes an invalid deep link from an empty eligible list", () => {
     const setSelectedCommitmentKey = vi.fn();
     const view = renderIntro({

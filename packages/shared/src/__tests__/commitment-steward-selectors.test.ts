@@ -12,6 +12,7 @@ import {
   selectDueLiveCommitments,
   selectNextDueBoundary,
   selectOrdinaryConfirmationReachable,
+  selectOrdinaryConfirmer,
 } from "../modules/commitment-pooling/steward-selectors";
 
 const CREATOR = "0x1111111111111111111111111111111111111111" as const;
@@ -120,6 +121,45 @@ describe("selectOrdinaryConfirmationReachable", () => {
         activeContributors: [],
       })
     ).toBe(false);
+  });
+});
+
+describe("selectOrdinaryConfirmer", () => {
+  const taken = {
+    confirmers: [] as `0x${string}`[],
+    counterpartyKind: "INDIVIDUAL" as const,
+    creator: CREATOR,
+    counterparty: TAKER,
+    activeContributors: [TAKER],
+  };
+
+  it("names the one account a page can say confirms it, and no one for a group or a garden", () => {
+    // A Request's creator confirms it; on a Request the taker is stored as the counterparty.
+    expect(selectOrdinaryConfirmer({ ...taken, direction: "REQUEST" })).toBe(CREATOR);
+    expect(
+      selectOrdinaryConfirmer({ ...taken, direction: "OFFER", activeContributors: [CREATOR] })
+    ).toBe(TAKER);
+    expect(
+      selectOrdinaryConfirmer({ ...taken, direction: "REQUEST", confirmers: [NAMED_A] })
+    ).toBeNull();
+    expect(
+      selectOrdinaryConfirmer({
+        ...taken,
+        direction: "OFFER",
+        counterpartyKind: "GARDEN",
+        counterparty: GARDEN,
+      })
+    ).toBeNull();
+  });
+
+  it("names no one once that account joined the team, since a fallback decides", () => {
+    expect(
+      selectOrdinaryConfirmer({
+        ...taken,
+        direction: "REQUEST",
+        activeContributors: [TAKER, CREATOR.toUpperCase() as typeof CREATOR],
+      })
+    ).toBeNull();
   });
 });
 

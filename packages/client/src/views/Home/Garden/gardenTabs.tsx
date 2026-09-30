@@ -19,7 +19,7 @@ export function buildGardenTabs(intl: IntlShape, options: { hasPool: boolean }):
       ? [
           {
             id: GardenTab.Pool,
-            label: intl.formatMessage({ id: "app.garden.pool", defaultMessage: "Pool" }),
+            label: intl.formatMessage({ id: "app.garden.pool", defaultMessage: "Promises" }),
           },
         ]
       : []),

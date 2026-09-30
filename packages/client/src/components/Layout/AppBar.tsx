@@ -1,4 +1,4 @@
-import { usePendingWorksCount } from "@green-goods/shared/hooks/work/usePendingWorksCount";
+import { useYourWorkCount } from "@green-goods/shared/hooks/work/useYourWorkCount";
 import { useApp } from "@green-goods/shared/providers/App";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -28,7 +28,7 @@ export const AppBar = () => {
   // the nav underneath it would sit exactly where the thumb lands.
   const isCommitmentRoute = pathname.includes("/commitments/");
   const intl = useIntl();
-  const { data: pendingCount = 0 } = usePendingWorksCount();
+  const { count: pendingCount } = useYourWorkCount();
   const { isPwaPresentation } = useApp();
 
   // Every sheet and dialog registers itself while open, so the bar steps aside
@@ -112,7 +112,7 @@ export const AppBar = () => {
                 </span>
               )}
             </div>
-            <p className={cn("text-sm", isActive && "text-primary")}>{title}</p>
+            <p className={cn("text-sm", isActive && "text-primary-on-surface")}>{title}</p>
           </Link>
         );
       })}

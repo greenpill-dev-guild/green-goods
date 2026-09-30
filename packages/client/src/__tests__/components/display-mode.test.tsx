@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // --- Mocks ---
 
 const mockUseApp = vi.fn();
-const mockUsePendingWorksCount = vi.fn();
+const mockUseYourWorkCount = vi.fn();
 const mockUseUIStore = vi.fn();
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
@@ -35,8 +35,8 @@ vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => mockUseApp(),
 }));
 
-vi.mock("@green-goods/shared/hooks/work/usePendingWorksCount", () => ({
-  usePendingWorksCount: () => mockUsePendingWorksCount(),
+vi.mock("@green-goods/shared/hooks/work/useYourWorkCount", () => ({
+  useYourWorkCount: () => mockUseYourWorkCount(),
 }));
 
 vi.mock("@green-goods/shared/stores/useUIStore", () => ({
@@ -120,7 +120,7 @@ function renderSiteHeader(initialRoute = "/gardens") {
 describe("Display mode — AppBar visibility", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUsePendingWorksCount.mockReturnValue({ data: 0 });
+    mockUseYourWorkCount.mockReturnValue({ count: 0 });
     // Default: no sheets open
     mockUseUIStore.mockImplementation((selector: (s: any) => any) =>
       selector({ openSheetCount: 0 })

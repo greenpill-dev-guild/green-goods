@@ -280,7 +280,7 @@ describe("CommitmentsSheet", () => {
 
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
-    expect(screen.getByText("Commitments are not ready here yet")).toBeInTheDocument();
+    expect(screen.getByText("Promises are not ready here yet")).toBeInTheDocument();
     expect(screen.queryByText("Nothing moving right now")).not.toBeInTheDocument();
   });
 
@@ -289,7 +289,7 @@ describe("CommitmentsSheet", () => {
 
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
-    expect(screen.getByText("Commitments are not ready here yet")).toBeInTheDocument();
+    expect(screen.getByText("Promises are not ready here yet")).toBeInTheDocument();
   });
 
   it("shows a loading region while it is still finding out", () => {
@@ -308,7 +308,7 @@ describe("CommitmentsSheet", () => {
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
     expect(
-      screen.getByText("We could not load what is still moving. Your commitments are safe.")
+      screen.getByText("We could not load what is still moving. Your promises are safe.")
     ).toBeInTheDocument();
 
     await userEvent.setup().click(screen.getByRole("button", { name: "Try Again" }));
@@ -330,7 +330,7 @@ describe("CommitmentsSheet", () => {
     expect(screen.getByText("Nothing moving right now")).toBeInTheDocument();
   });
 
-  it("names the reader's own relationship on each row", () => {
+  it("puts what needs the reader ahead of their relationship on a row", () => {
     mockUseCommitmentsInbox.mockReturnValue(
       inbox({
         live: [{ commitment: commitment(), seat: "provider", needsYou: true }],
@@ -341,11 +341,12 @@ describe("CommitmentsSheet", () => {
 
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
-    expect(screen.getByText("You offered this")).toBeInTheDocument();
+    // A row carries one qualifier: what needs the reader outranks how they are involved.
+    expect(screen.getByText("Needs you")).toBeInTheDocument();
+    expect(screen.queryByText("You offered this")).not.toBeInTheDocument();
     expect(screen.getByText("3 hours")).toBeInTheDocument();
     expect(screen.getByText("Rocinha Community Garden")).toBeInTheDocument();
     expect(screen.getByText("In progress")).toBeInTheDocument();
-    expect(screen.getByText("Needs you")).toBeInTheDocument();
   });
 
   it("reads the same commitment differently from the other side", () => {
@@ -376,7 +377,8 @@ describe("CommitmentsSheet", () => {
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
     await user.click(screen.getByTestId("tab-over-time"));
 
-    expect(screen.getByText("You are helping with this")).toBeInTheDocument();
+    // Kept, the relationship is told in the past tense.
+    expect(screen.getByText("You helped with this")).toBeInTheDocument();
     expect(screen.queryByText("You offered this")).not.toBeInTheDocument();
   });
 

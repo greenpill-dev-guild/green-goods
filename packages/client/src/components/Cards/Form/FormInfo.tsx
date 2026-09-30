@@ -1,10 +1,12 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { RemixiconComponentType } from "@remixicon/react";
+import type { ReactNode } from "react";
 import { Card } from "../Card";
 
 interface FormInfoProps {
   title: string;
-  info: string;
+  /** Usually words; a sentence that names someone renders the name as its own element. */
+  info: ReactNode;
   variant?: "primary" | "secondary" | "tertiary";
   Icon?: RemixiconComponentType;
   className?: string;

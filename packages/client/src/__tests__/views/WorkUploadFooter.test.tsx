@@ -3,6 +3,7 @@ import type { Work } from "@green-goods/shared/types/domain";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { WorkStatusNotice } from "@/views/Home/Garden/WorkStatusNotice";
 import { WorkUploadFooter, type WorkUploadFooterProps } from "@/views/Home/Garden/WorkUploadFooter";
 
 function queuedWork(submissionState: string, blockedReason?: string): Work {
@@ -94,14 +95,11 @@ describe("WorkUploadFooter", () => {
     }
   });
 
-  it("disables Upload now while offline and explains when to use it", () => {
+  it("disables Upload now while offline and keeps Discard", () => {
     renderFooter(queuedWork("ready"), { isOnline: false });
 
     expect(screen.getByRole("button", { name: "Upload now" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Discard" })).toBeEnabled();
-    expect(
-      screen.getByText("You're offline. Upload this work once you're connected.")
-    ).toBeInTheDocument();
   });
 
   it("holds discard while an explicit send is active", () => {
@@ -172,5 +170,48 @@ describe("WorkUploadFooter", () => {
     renderFooter(queuedWork("checking-submission"), { isOnline: false });
 
     expect(screen.getByRole("button", { name: "Check again" })).toBeDisabled();
+  });
+});
+
+describe("WorkStatusNotice", () => {
+  const renderNotice = (work: Work, isOnline = true) =>
+    render(
+      <IntlProvider locale="en" messages={messages}>
+        <WorkStatusNotice work={work} isOnline={isOnline} />
+      </IntlProvider>
+    );
+
+  it("says why waiting work is still on this phone, and what to do offline", () => {
+    renderNotice(queuedWork("ready"));
+    expect(screen.getByText("Saved on this phone, not sent")).toBeInTheDocument();
+    expect(
+      screen.getByText("Nothing has been sent yet. It stays on this phone until you upload it.")
+    ).toBeInTheDocument();
+    cleanup();
+
+    renderNotice(queuedWork("ready"), false);
+    expect(
+      screen.getByText("You're offline. Upload this work once you're connected.")
+    ).toBeInTheDocument();
+  });
+
+  it("keeps a blocked work's full sentence in the page, with what can be done", () => {
+    renderNotice(queuedWork("blocked", "NotActiveAction"));
+
+    expect(screen.getByText("Can't upload: this action has ended")).toBeInTheDocument();
+    expect(
+      screen.getByText("The action closed before this was sent. Try again, or discard it.")
+    ).toBeInTheDocument();
+  });
+
+  it("tells work that may already be sent why it can't be discarded", () => {
+    renderNotice(queuedWork("checking-submission"));
+
+    expect(screen.getByText("May already be sent")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "It may already be on its way, so it can't be discarded or edited until we know."
+      )
+    ).toBeInTheDocument();
   });
 });
