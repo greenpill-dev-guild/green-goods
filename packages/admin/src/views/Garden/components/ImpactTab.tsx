@@ -194,6 +194,7 @@ export function ImpactTab({
               error={assessmentsError}
               gardenId={gardenId}
               chainId={garden.chainId}
+              selectedItem={selectedItem}
             />
           ) : null}
 

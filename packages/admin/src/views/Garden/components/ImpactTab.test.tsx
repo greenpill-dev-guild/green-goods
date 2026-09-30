@@ -76,10 +76,12 @@ describe("ImpactTab", () => {
     cleanup();
 
     renderImpact({ openSection, section: "assessments", selectedItem: "a-1", assessments });
-    expect(screen.getByRole("button", { name: /Canopy baseline/ })).toHaveAttribute(
-      "aria-current",
-      "true"
-    );
+    // The list row and the opened assessments panel both mark the one the steward picked.
+    const picked = screen.getAllByText("Canopy baseline");
+    expect(picked).toHaveLength(2);
+    for (const title of picked) {
+      expect(title.closest("[aria-current]")).toHaveAttribute("aria-current", "true");
+    }
     const other = screen.getByRole("button", { name: /Soil health check/ });
     expect(other).not.toHaveAttribute("aria-current");
 
