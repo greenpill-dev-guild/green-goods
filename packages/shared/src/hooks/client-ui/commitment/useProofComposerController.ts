@@ -296,23 +296,18 @@ export function useProofComposerController(
         contents: proofContentsOf({ media, audioNotes, links, note }),
         baseline: record.evidenceCount,
       });
-    // The second act was queued with the proof and waited for it: sent first,
-    // it would settle the team before the proof and its credit were on the
-    // record. Now the proof has landed, so it goes: a wallet is asked for the
-    // second signature here, anyone else's send goes with the background flush.
-    // Had this screen gone first, the queue would still hold it.
+    // The second act was queued with the proof and waited for it. Now the proof
+    // has landed it goes: a wallet is asked for the second signature here, and
+    // anyone else's goes with the background flush. With no send queued, or one
+    // that failed, Send for Confirmation stays on the promise.
     const sendForConfirmation = async () => {
-      if (!sendJobId) {
-        toasts.added({ sent: false, leads });
-        return;
-      }
-      try {
-        await jobs.sendQueued({ jobId: sendJobId, commitmentId: record.commitmentId });
-        toasts.added({ sent: true, leads });
-      } catch {
-        // The proof landed; Send for Confirmation stays on the promise.
-        toasts.added({ sent: false, leads });
-      }
+      const sent = sendJobId
+        ? await jobs.sendQueued({ jobId: sendJobId, commitmentId: record.commitmentId }).then(
+            () => true,
+            () => false
+          )
+        : false;
+      toasts.added({ sent, leads });
     };
     const proofLanded = async () => {
       if (withSend) await sendForConfirmation();
