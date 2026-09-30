@@ -261,7 +261,7 @@ export function ImpactTab({
                     {recentAssessments.map((assessment) => (
                       <AdminListRow
                         key={assessment.id}
-                        current={assessment.id === selectedItem}
+                        current={section === "assessments" && assessment.id === selectedItem}
                         onClick={() => openSection("impact", "assessments", assessment.id)}
                       >
                         <div className="flex items-start justify-between gap-2">

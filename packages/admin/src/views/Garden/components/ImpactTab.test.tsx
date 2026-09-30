@@ -3,7 +3,7 @@
  */
 
 import enMessages from "@green-goods/shared/i18n/en";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -62,17 +62,20 @@ describe("ImpactTab", () => {
     expect(screen.queryByRole("link", { name: "Create Assessment" })).not.toBeInTheDocument();
   });
 
-  it("opens a recent assessment from its row and marks the open one current", () => {
+  it("opens a recent assessment from its row and marks it current only while it is open", () => {
     const openSection = vi.fn();
-    renderImpact({
-      openSection,
-      selectedItem: "a-1",
-      assessments: [
-        { id: "a-1", title: "Canopy baseline", createdAt: 1_700_000_000 },
-        { id: "a-2", title: "Soil health check", createdAt: 1_700_000_000 },
-      ],
-    });
+    const assessments = [
+      { id: "a-1", title: "Canopy baseline", createdAt: 1_700_000_000 },
+      { id: "a-2", title: "Soil health check", createdAt: 1_700_000_000 },
+    ];
+    // An activity-feed link names the item without opening the assessments section.
+    renderImpact({ openSection, selectedItem: "a-1", assessments });
+    expect(screen.getByRole("button", { name: /Canopy baseline/ })).not.toHaveAttribute(
+      "aria-current"
+    );
+    cleanup();
 
+    renderImpact({ openSection, section: "assessments", selectedItem: "a-1", assessments });
     expect(screen.getByRole("button", { name: /Canopy baseline/ })).toHaveAttribute(
       "aria-current",
       "true"
