@@ -2,7 +2,7 @@ import { type NormalizeWorkMediaOptions, normalizeWorkMediaFiles } from "./media
 import { isGardenHiddenEverywhere } from "../../config/garden-visibility";
 import { WorkTab } from "../../stores/workFlowTypes";
 
-export const WORK_SUBMISSION_TAB_ORDER = [
+const WORK_SUBMISSION_TAB_ORDER = [
   WorkTab.Intro,
   WorkTab.Media,
   WorkTab.Details,
