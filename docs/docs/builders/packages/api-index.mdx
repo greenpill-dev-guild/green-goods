@@ -18,7 +18,7 @@ generated_from:
   - packages/indexer/package.json
   - packages/shared/package.json
   - packages/shared/src/public-contracts/routes.ts
-source_digest: "sha256:ca9bc889b6edebd6907482efdebc8cf8d6504219f4450b8a03d46b4ac846a373"
+source_digest: "sha256:a983ee7a1c1fce8806e0a5fadbffd60f464170267867393c245d7f425520688e"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
@@ -189,13 +189,16 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/admin-ui/navigation/sheetRegistry` | `./src/hooks/admin-ui/navigation/sheetRegistry.ts` |
 | @green-goods/shared | `./hooks/admin-ui/navigation/workspaceNavigation` | `./src/hooks/admin-ui/navigation/workspaceNavigation.ts` |
 | @green-goods/shared | `./hooks/admin-ui/pool/controller.types` | `./src/hooks/admin-ui/pool/controller.types.ts` |
+| @green-goods/shared | `./hooks/admin-ui/pool/useAddToGroup` | `./src/hooks/admin-ui/pool/useAddToGroup.ts` |
 | @green-goods/shared | `./hooks/admin-ui/pool/useCommitmentDialogController` | `./src/hooks/admin-ui/pool/useCommitmentDialogController.ts` |
 | @green-goods/shared | `./hooks/admin-ui/pool/useCommitmentSettlementController` | `./src/hooks/admin-ui/pool/useCommitmentSettlementController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/pool/useEditReward` | `./src/hooks/admin-ui/pool/useEditReward.ts` |
 | @green-goods/shared | `./hooks/admin-ui/pool/useHubConfirmQueueController` | `./src/hooks/admin-ui/pool/useHubConfirmQueueController.ts` |
 | @green-goods/shared | `./hooks/admin-ui/pool/usePoolConsoleController` | `./src/hooks/admin-ui/pool/usePoolConsoleController.ts` |
 | @green-goods/shared | `./hooks/admin-ui/pool/useProtocolFundingOperationsController` | `./src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts` |
 | @green-goods/shared | `./hooks/admin-ui/pool/useSeedTray` | `./src/hooks/admin-ui/pool/useSeedTray.ts` |
 | @green-goods/shared | `./hooks/admin-ui/pool/useSettlementOperationsController` | `./src/hooks/admin-ui/pool/useSettlementOperationsController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/pool/useWaitingForApproval` | `./src/hooks/admin-ui/pool/useWaitingForApproval.ts` |
 | @green-goods/shared | `./hooks/admin-ui/useAdminAccessState` | `./src/hooks/admin-ui/useAdminAccessState.ts` |
 | @green-goods/shared | `./hooks/admin-ui/useCanvasChromeProbe` | `./src/hooks/admin-ui/useCanvasChromeProbe.ts` |
 | @green-goods/shared | `./hooks/admin-ui/useDirtyClose` | `./src/hooks/admin-ui/useDirtyClose.ts` |
@@ -230,6 +233,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/blockchain/useEnsName` | `./src/hooks/blockchain/useEnsName.ts` |
 | @green-goods/shared | `./hooks/blockchain/useErc20Metadata` | `./src/hooks/blockchain/useErc20Metadata.ts` |
 | @green-goods/shared | `./hooks/blockchain/useEthUsdPrice` | `./src/hooks/blockchain/useEthUsdPrice.ts` |
+| @green-goods/shared | `./hooks/blockchain/useGoodDollarPrice` | `./src/hooks/blockchain/useGoodDollarPrice.ts` |
 | @green-goods/shared | `./hooks/blockchain/useRecentRecipients` | `./src/hooks/blockchain/useRecentRecipients.ts` |
 | @green-goods/shared | `./hooks/blockchain/useSendableTokens` | `./src/hooks/blockchain/useSendableTokens.ts` |
 | @green-goods/shared | `./hooks/blockchain/useSendToken` | `./src/hooks/blockchain/useSendToken.ts` |
@@ -448,6 +452,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./modules/vault-crowdfunding/wallet-endow` | `./src/modules/vault-crowdfunding/wallet-endow.ts` |
 | @green-goods/shared | `./modules/wallet/barcode-scanner` | `./src/modules/wallet/barcode-scanner.ts` |
 | @green-goods/shared | `./modules/wallet/good-dollar-fees` | `./src/modules/wallet/good-dollar-fees.ts` |
+| @green-goods/shared | `./modules/wallet/good-dollar-price` | `./src/modules/wallet/good-dollar-price.ts` |
 | @green-goods/shared | `./modules/wallet/send-flow` | `./src/modules/wallet/send-flow.ts` |
 | @green-goods/shared | `./modules/work/bot-submission` | `./src/modules/work/bot-submission.ts` |
 | @green-goods/shared | `./modules/work/media-processing` | `./src/modules/work/media-processing.ts` |
