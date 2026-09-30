@@ -10,6 +10,7 @@ import type { WorkLinkIntent } from "../src/modules/commitment-pooling/work-link
 import { WorkTab } from "../src/stores/workFlowTypes";
 import type { Action } from "../src/types/domain";
 import { JOURNEY_GARDEN, JOURNEY_GARDEN_RECORD } from "./clientJourneyFixtures";
+import SEEDLINGS_SVG from "./fixture-art/seedlings.svg?raw";
 
 type SubmitWorkController = ReturnType<typeof useWorkSubmissionFlowController>;
 
@@ -63,10 +64,7 @@ const SEEDLING_ACTION = {
 
 /** A small drawing of seedlings in their bed, as a photo on the phone. */
 function seedlingPhoto(name: string): File {
-  const shoot = (x: number) =>
-    `<path d='M${x} 78 v-18 m0 4 q-10-8-12 2 m12-2 q10-8 12 2' stroke='#4f9a47' stroke-width='4' fill='none'/>`;
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 90'><rect width='120' height='90' fill='#eaf0dc'/><rect y='72' width='120' height='18' fill='#7c5634'/>${[18, 46, 74, 102].map(shoot).join("")}</svg>`;
-  return new File([svg], name, { type: "image/svg+xml" });
+  return new File([SEEDLINGS_SVG], name, { type: "image/svg+xml" });
 }
 
 const noop = () => undefined;

@@ -25,6 +25,8 @@ import type { ProofComposerController } from "../src/hooks/client-ui/commitment/
 import type { useGardenPoolController } from "../src/hooks/client-ui/pool/useGardenPoolController";
 import type { CommitmentEvidenceDocumentV1 } from "../src/modules/commitment-pooling/evidence";
 import type { Address, Garden } from "../src/types/domain";
+import FENCE_LEANING_SVG from "./fixture-art/fence-leaning.svg?raw";
+import FENCE_UPRIGHT_SVG from "./fixture-art/fence-upright.svg?raw";
 
 export const JOURNEY_GARDEN = "0x5eed000000000000000000000000000000000001" as Address;
 export const JOURNEY_VIEWER = "0x5eed0000000000000000000000000000000000a1" as Address; // Amara
@@ -339,12 +341,9 @@ const FENCE_PROOF_CID = "bafy-fence-proof";
 /** Noon UTC on Oct 20, 2026. */
 const OCT_20 = 1_792_497_600n;
 
-/** A small drawing of the fence, for the proof's photos. */
+/** A small drawing of the fence, before (a post leaning) or after the repair, for the proof's photos. */
 function fenceSketch(leaning: boolean): string {
-  const post = (x: number, tilt: number) =>
-    `<rect x='${x}' y='38' width='8' height='60' fill='#a47c52' transform='rotate(${tilt} ${x + 4} 98)'/>`;
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' fill='#dde8f3'/><rect y='92' width='120' height='28' fill='${leaning ? "#7a5a3a" : "#6f9a4c"}'/>${post(14, 0)}${post(56, leaning ? -18 : 0)}${post(98, 0)}<rect x='8' y='52' width='104' height='6' fill='#c9a174'/><rect x='8' y='70' width='104' height='6' fill='#c9a174'/></svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(leaning ? FENCE_LEANING_SVG : FENCE_UPRIGHT_SVG)}`;
 }
 
 /** A silent WAV, so a voice note has something to point at. */
@@ -566,8 +565,7 @@ export function promisePageFixture(stage: PromiseStage): {
 
 /** One of the fence sketches as a file on the phone, as the composer holds it. */
 export function fenceFile(name: string, leaning: boolean): File {
-  const svg = decodeURIComponent(fenceSketch(leaning).slice("data:image/svg+xml;utf8,".length));
-  return new File([svg], name, { type: "image/svg+xml" });
+  return new File([leaning ? FENCE_LEANING_SVG : FENCE_UPRIGHT_SVG], name, { type: "image/svg+xml" });
 }
 
 function voiceNoteFile(): File {
