@@ -121,7 +121,19 @@ function draft(id: string, actionUID: number, step: DraftWithImages["firstIncomp
 }
 
 const MULCH_DRAFT = draft("draft-mulch", 4, "media", 3, Date.now() - 2 * HOUR);
-const SEEDLING_DRAFT = draft("draft-seedling", 5, "review", 2, Date.now() - 24 * HOUR);
+const SEEDLING_DRAFT: DraftWithImages = {
+  ...draft("draft-seedling", 5, "review", 2, Date.now() - 24 * HOUR),
+  // Started from the garden's east-beds promise, which the draft keeps.
+  linkIntent: {
+    commitmentId: "12",
+    requirementIndex: 0,
+    actionUID: 5,
+    garden: JOURNEY_GARDEN,
+    commitmentTitle: "Transplant 36 seedlings into the east beds",
+    requirementLabel: "Seedling Transplant · 36 plants",
+    returnTo: `/home/${JOURNEY_GARDEN}/commitments/12`,
+  },
+};
 
 function proof(overrides: Partial<PendingProof>): PendingProof {
   return {

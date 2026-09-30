@@ -79,6 +79,8 @@ export async function saveDraftSnapshot(
         missingAttachments: missing,
         tags: data.tags ?? [],
         location: roundWorkLocation(data.location),
+        // A snapshot that doesn't mention the promise keeps the draft's; null unlinks it.
+        linkIntent: data.linkIntent === undefined ? previous?.linkIntent : data.linkIntent,
         clientWorkId: previous?.clientWorkId ?? data.clientWorkId ?? crypto.randomUUID(),
         uploadCheckpoint: previous?.uploadCheckpoint ?? data.uploadCheckpoint,
         revision: (previous?.revision ?? 0) + 1,

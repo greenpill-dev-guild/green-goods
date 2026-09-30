@@ -12,6 +12,8 @@ import { logger } from "../../../modules/app/logger";
 import {
   hasWorkLinkIntentParams,
   parseWorkLinkIntent,
+  sameWorkLinkIdentity,
+  toDraftWorkLink,
   type WorkLinkIntent,
   workLinkReturnGarden,
   writeWorkLinkIntent,
@@ -58,15 +60,6 @@ interface PendingLinkRecovery {
   workSent: boolean;
 }
 
-function sameLinkIdentity(left: WorkLinkIntent, right: WorkLinkIntent): boolean {
-  return (
-    left.commitmentId === right.commitmentId &&
-    left.requirementIndex === right.requirementIndex &&
-    left.actionUID === right.actionUID &&
-    left.garden.toLowerCase() === right.garden.toLowerCase()
-  );
-}
-
 interface UseWorkSubmissionFlowControllerOptions {
   homeRoute: string;
   profileRoute: string;
@@ -98,6 +91,7 @@ export function useWorkSubmissionFlowController({
   const setGardenAddressStable = useWorkFlowStore((state) => state.setGardenAddress);
   const tags = useWorkFlowStore((state) => state.tags);
   const setAudioNotes = useWorkFlowStore((state) => state.setAudioNotes);
+  const linkCleared = useWorkFlowStore((state) => state.draftLinkCleared);
   const { isOnline, pendingCount, syncStatus } = useOffline();
   const { set: scheduleNavigation } = useTimeout();
   const {
@@ -141,7 +135,8 @@ export function useWorkSubmissionFlowController({
   const linkIntent = useMemo(
     () =>
       parsedLinkIntent
-        ? (linkChoices.choices.find((choice) => sameLinkIdentity(choice, parsedLinkIntent)) ?? null)
+        ? (linkChoices.choices.find((choice) => sameWorkLinkIdentity(choice, parsedLinkIntent)) ??
+          null)
         : null,
     [linkChoices.choices, parsedLinkIntent]
   );
@@ -156,15 +151,17 @@ export function useWorkSubmissionFlowController({
           : linkIntent
             ? "valid"
             : "invalid";
-  const clearLinkIntent = useCallback(
-    () => setSearchParams(writeWorkLinkIntent(searchParams, null), { replace: true }),
-    [searchParams, setSearchParams]
-  );
+  // Taking the promise off is saved with the draft; see draftLinkCleared.
+  const clearLinkIntent = useCallback(() => {
+    useWorkFlowStore.setState({ draftLinkCleared: true });
+    setSearchParams(writeWorkLinkIntent(searchParams, null), { replace: true });
+  }, [searchParams, setSearchParams]);
   const selectLinkIntent = useCallback(
     (intent: WorkLinkIntent | null) => {
       const canonical = intent
-        ? (linkChoices.choices.find((choice) => sameLinkIdentity(choice, intent)) ?? null)
+        ? (linkChoices.choices.find((choice) => sameWorkLinkIdentity(choice, intent)) ?? null)
         : null;
+      useWorkFlowStore.setState({ draftLinkCleared: !canonical });
       setSearchParams(writeWorkLinkIntent(searchParams, canonical), { replace: true });
       if (canonical) {
         setGardenAddressStable(canonical.garden);
@@ -210,6 +207,11 @@ export function useWorkSubmissionFlowController({
       tags,
       location: roundWorkLocation(formLocation),
       currentStep: activeTab.toLowerCase() as "intro" | "media" | "details" | "review",
+      linkIntent: parsedLinkIntent
+        ? toDraftWorkLink(parsedLinkIntent)
+        : linkCleared
+          ? null
+          : undefined,
     },
     images,
     { enabled: !legacyRecovery }

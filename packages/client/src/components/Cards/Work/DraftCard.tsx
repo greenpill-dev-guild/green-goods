@@ -37,6 +37,17 @@ export const DraftCard: React.FC<DraftCardProps> = ({
         intl.formatMessage({ id: "app.draft.untitled", defaultMessage: "Untitled Draft" })
       }
       meta={formatAgoStandalone(intl, draft.updatedAt)}
+      marker={
+        draft.linkIntent
+          ? {
+              kind: "linked",
+              label: intl.formatMessage({
+                id: "app.pending.marker.linked",
+                defaultMessage: "For a promise",
+              }),
+            }
+          : undefined
+      }
       status={intl.formatMessage(
         {
           id: "app.pending.status.draft",

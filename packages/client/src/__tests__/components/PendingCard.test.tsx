@@ -54,6 +54,29 @@ describe("PendingCard", () => {
     expect(onResume).toHaveBeenCalledOnce();
   });
 
+  it("marks a draft that keeps a promise", () => {
+    renderWithIntl(
+      <DraftCard
+        draft={draft({
+          linkIntent: {
+            commitmentId: "12",
+            requirementIndex: 0,
+            actionUID: 5,
+            garden: "0x5eed000000000000000000000000000000000001",
+            commitmentTitle: "Transplant 36 seedlings into the east beds",
+            requirementLabel: "Seedling Transplant · 36 plants",
+            returnTo: "/home/0x5eed000000000000000000000000000000000001/commitments/12",
+          },
+        })}
+        actionTitle="Seedling Transplant"
+        onResume={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("For a promise")).toBeInTheDocument();
+  });
+
   it("names an untitled draft and leaves the photo count out when there is none", () => {
     renderWithIntl(
       <DraftCard

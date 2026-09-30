@@ -14,6 +14,12 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { draftDB } from "../../modules/job-queue/draft-db";
 import {
+  fromDraftWorkLink,
+  hasWorkLinkIntentParams,
+  type WorkLinkIntent,
+  writeWorkLinkIntent,
+} from "../../modules/commitment-pooling/work-link-intent";
+import {
   captureWorkFile,
   identifyWorkFile,
   restoreWorkFile,
@@ -50,6 +56,8 @@ export function useDraftResume({
   const explicitId = searchParams.get("draftId");
   const latest = useRef({ resumeDraft, restoreForm, searchParams, setSearchParams });
   latest.current = { resumeDraft, restoreForm, searchParams, setSearchParams };
+  // Whether the page's promise came back from the resumed draft rather than the page's own link.
+  const restoredLink = useRef(false);
 
   useEffect(() => {
     if (!userAddress) {
@@ -76,22 +84,29 @@ export function useDraftResume({
       latest.current.restoreForm?.({ feedback: "" });
     }
     const controller = new AbortController();
+    restoredLink.current = false;
     useWorkFlowStore.setState((current) => ({
       draftScope: scope,
       draftHydrated: false,
       draftEpoch: current.draftEpoch + 1,
       draftSaveState: "loading",
       draftError: null,
+      draftLinkCleared: false,
     }));
     void (async () => {
       try {
         const draftId = explicitId ?? (await draftDB.getActiveDraft(userAddress, chainId));
         controller.signal.throwIfAborted();
+        // The draft brings back the promise it was for, unless the page was opened for one.
+        let link: WorkLinkIntent | null = null;
         if (draftId) {
           await latest.current.resumeDraft(draftId, {
             signal: controller.signal,
             restoreForm: latest.current.restoreForm,
           });
+          const kept = (await draftDB.getDraft(draftId))?.linkIntent;
+          if (kept && !hasWorkLinkIntentParams(latest.current.searchParams))
+            link = fromDraftWorkLink(kept);
           if (!explicitId) setShowDraftSheet(true);
         } else {
           const legacy = await get<File[]>(LEGACY_KEY);
@@ -107,9 +122,12 @@ export function useDraftResume({
           draftHydrated: true,
           draftSaveState: draftId ? "saved" : "idle",
         });
-        if (explicitId) {
-          const params = new URLSearchParams(latest.current.searchParams);
+        if (explicitId || link) {
+          const params = link
+            ? writeWorkLinkIntent(latest.current.searchParams, link)
+            : new URLSearchParams(latest.current.searchParams);
           params.delete("draftId");
+          restoredLink.current = Boolean(link);
           latest.current.setSearchParams(params, { replace: true });
         }
       } catch (error) {
@@ -200,6 +218,12 @@ export function useDraftResume({
     if (useWorkFlowStore.getState().draftScope === scope) {
       setLegacyRecovery(false);
       setShowDraftSheet(false);
+      // A promise that came back with the old draft goes with it; one the page was opened for stays.
+      if (restoredLink.current) {
+        restoredLink.current = false;
+        const { searchParams: params, setSearchParams: write } = latest.current;
+        write(writeWorkLinkIntent(params, null), { replace: true });
+      }
     }
   }, [legacyRecovery, clearActiveDraft, userAddress, chainId, restoreForm]);
 

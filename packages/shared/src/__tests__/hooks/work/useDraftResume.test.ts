@@ -2,6 +2,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useDraftResume } from "../../../hooks/work/useDraftResume";
+import { writeWorkLinkIntent } from "../../../modules/commitment-pooling/work-link-intent";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 const mocks = vi.hoisted(() => ({
   resume: vi.fn(),
@@ -226,4 +227,62 @@ it.each([
   expect(mocks.marker).toBe(marker);
   expect(mocks.save.mock.calls[0][2]).toBe(mocks.save.mock.calls[1][2]);
   expect(mocks.removeLegacy).not.toHaveBeenCalled();
+});
+
+describe("the promise a draft was for", () => {
+  const GARDEN = "0x5eed000000000000000000000000000000000001" as const;
+  const kept = {
+    commitmentId: "12",
+    requirementIndex: 0,
+    actionUID: 5,
+    garden: GARDEN,
+    commitmentTitle: "Transplant 36 seedlings into the east beds",
+    requirementLabel: "Seedling Transplant · 36 plants",
+    returnTo: `/home/${GARDEN}/commitments/12`,
+  };
+
+  it("comes back into the page when the draft resumes", async () => {
+    mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });
+    const input = { ...options(), searchParams: new URLSearchParams("draftId=draft-1") };
+    renderHook(() => useDraftResume(input));
+    await waitFor(() => expect(input.setSearchParams).toHaveBeenCalled());
+
+    const params = input.setSearchParams.mock.lastCall?.[0] as URLSearchParams;
+    expect(params.get("draftId")).toBeNull();
+    expect(params.get("linkCommitmentId")).toBe("12");
+    expect(params.get("linkCommitmentTitle")).toBe(kept.commitmentTitle);
+    // Autosave was already on, and the draft's own promise stays saved meanwhile.
+    expect(useWorkFlowStore.getState().draftLinkCleared).toBe(false);
+  });
+
+  it("gives way to a promise the page was opened for", async () => {
+    mocks.active.mockResolvedValue("draft-1");
+    mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });
+    const page = writeWorkLinkIntent(new URLSearchParams(), {
+      ...kept,
+      commitmentId: 9n,
+      commitmentTitle: "Repair the north fence panel",
+      returnTo: `/home/${GARDEN}/commitments/9`,
+    });
+    const input = { ...options(), searchParams: page };
+    const { result } = renderHook(() => useDraftResume(input));
+    await waitFor(() => expect(result.current.showDraftSheet).toBe(true));
+
+    expect(input.setSearchParams).not.toHaveBeenCalled();
+  });
+
+  it("leaves with the old draft when the person starts fresh", async () => {
+    mocks.active.mockResolvedValue("draft-1");
+    mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });
+    const input = options();
+    const { result } = renderHook(() => useDraftResume(input));
+    await waitFor(() => expect(input.setSearchParams).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      await result.current.handleStartFresh();
+    });
+    const params = input.setSearchParams.mock.lastCall?.[0] as URLSearchParams;
+    expect(input.setSearchParams).toHaveBeenCalledTimes(2);
+    expect(params.get("linkCommitmentId")).toBeNull();
+  });
 });
