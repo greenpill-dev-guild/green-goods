@@ -4661,7 +4661,7 @@
   "cockpit.hub.confirm.act.confirm": "Confirm Kept…",
   "cockpit.hub.confirm.act.notYet": "Not yet…",
   "cockpit.hub.confirm.act.resolve": "Resolve…",
-  "cockpit.hub.confirm.description": "Commitments kept and waiting for this garden to confirm them.",
+  "cockpit.hub.confirm.description": "Promises waiting on you to confirm they were kept.",
   "cockpit.hub.confirm.disputed": "Under review",
   "cockpit.hub.confirm.eligibility.garden": "Needs a steward step-in",
   "cockpit.hub.confirm.eligibility.ordinary": "Ready to confirm",
@@ -6470,5 +6470,8 @@
   "app.pool.group.sheet.taken.body": "Another one is still free. Take it up instead?",
   "app.pool.group.sheet.taken.bodyAsk": "Another one nobody has asked for is still free. Ask for it instead?",
   "app.pool.group.sheet.none.body": "Someone got to the last one first.",
-  "app.pool.group.sheet.failed": "It didn’t go through, and nothing changed. You can try again."
+  "app.pool.group.sheet.failed": "It didn’t go through, and nothing changed. You can try again.",
+  "cockpit.hub.confirm.fromGroup": "from a group of {count}",
+  "cockpit.hub.confirm.outcome.confirmed": "Confirmed",
+  "cockpit.hub.confirm.outcome.queued": "Queued on this device"
 }

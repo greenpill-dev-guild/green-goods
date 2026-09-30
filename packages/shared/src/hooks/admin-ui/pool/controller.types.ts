@@ -4,6 +4,7 @@ import type { CommitmentQueueState } from "../../commitment-pooling/useCommitmen
 import type { CommitmentReasonResolution } from "../../commitment-pooling/useCommitmentReason";
 import type { PoolCharterResolution } from "../../commitment-pooling/usePoolCharter";
 import type { selectCommitmentActPermissions } from "../../../modules/commitment-pooling/commitment-act-permissions";
+import type { ConfirmRowState } from "../../../modules/commitment-pooling/confirm-queue";
 import type {
   CommitmentSeat,
   selectConfirmationEligibility,
@@ -143,6 +144,10 @@ export interface ConfirmQueueRow {
   /** The pool's garden by name, when the commitment lives outside the confirming garden. */
   poolGardenName?: string | null;
   canDispute?: boolean;
+  /** Where the row stands this visit: waiting, confirmed or queued here, or settled elsewhere. */
+  state: ConfirmRowState;
+  /** Published promises in the group this copy belongs to; null when it belongs to none. */
+  groupSize: number | null;
 }
 
 export interface HubConfirmQueueActs {

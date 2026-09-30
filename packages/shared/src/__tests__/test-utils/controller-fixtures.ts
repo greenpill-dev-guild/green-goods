@@ -330,6 +330,8 @@ export function hubConfirmQueueControllerFixture(
           title: null,
           poolGarden: row.poolGarden,
           canDispute: row.canDispute,
+          state: { status: "waiting" },
+          groupSize: null,
         })
       )
     ),
@@ -342,6 +344,8 @@ export function hubConfirmQueueControllerFixture(
         title: null,
         poolGarden: row.poolGarden,
         canDispute: row.canDispute,
+        state: { status: "waiting" },
+        groupSize: null,
       })
     ),
     ...(toConfirm.disputed ?? []).map(
@@ -353,6 +357,8 @@ export function hubConfirmQueueControllerFixture(
         title: null,
         poolGarden: row.garden,
         canDispute: true,
+        state: { status: "waiting" },
+        groupSize: null,
       })
     ),
   ];

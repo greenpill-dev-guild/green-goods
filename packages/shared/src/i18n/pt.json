@@ -4661,7 +4661,7 @@
   "cockpit.hub.confirm.act.confirm": "Confirmar cumprido…",
   "cockpit.hub.confirm.act.notYet": "Ainda não…",
   "cockpit.hub.confirm.act.resolve": "Resolver…",
-  "cockpit.hub.confirm.description": "Compromissos cumpridos à espera de confirmação deste jardim.",
+  "cockpit.hub.confirm.description": "Promessas à espera de que confirmes que foram cumpridas.",
   "cockpit.hub.confirm.disputed": "Em revisão",
   "cockpit.hub.confirm.eligibility.garden": "Precisa da intervenção de um responsável",
   "cockpit.hub.confirm.eligibility.ordinary": "Pronto para confirmar",
@@ -6470,5 +6470,8 @@
   "app.pool.group.sheet.taken.body": "Outra ainda está livre. Quer aceitar essa no lugar?",
   "app.pool.group.sheet.taken.bodyAsk": "Outra que ninguém pediu ainda está livre. Quer pedir essa no lugar?",
   "app.pool.group.sheet.none.body": "Alguém chegou antes na última.",
-  "app.pool.group.sheet.failed": "Não foi concluído e nada mudou. Você pode tentar de novo."
+  "app.pool.group.sheet.failed": "Não foi concluído e nada mudou. Você pode tentar de novo.",
+  "cockpit.hub.confirm.fromGroup": "de um grupo de {count}",
+  "cockpit.hub.confirm.outcome.confirmed": "Confirmada",
+  "cockpit.hub.confirm.outcome.queued": "Em fila neste dispositivo"
 }
