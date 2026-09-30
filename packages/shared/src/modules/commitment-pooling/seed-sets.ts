@@ -121,6 +121,18 @@ export function seedSetLeftNothing(copies: readonly SeedCopyProgress[]): boolean
 }
 
 /**
+ * Whether a pass that left nothing may clear this set's jobs: only when nothing
+ * of it exists outside the copies the pass sent. A Try Again of a set that has
+ * copies created keeps its unsent ones queued, whatever the wallet answers.
+ */
+export function seedSetClearableAfter(
+  copies: readonly SeedCopyProgress[],
+  sentThisPass: ReadonlySet<string>
+): boolean {
+  return seedSetLeftNothing(copies.filter((copy) => !sentThisPass.has(copy.clientCommitmentId)));
+}
+
+/**
  * Whether the answers behind a set are fixed. Once any copy exists, or may
  * exist, the rest must keep its terms: changed answers would split them from
  * their group, and an admitted copy's payload can't change.

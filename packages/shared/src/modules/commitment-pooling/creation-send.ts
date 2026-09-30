@@ -21,7 +21,8 @@
  *
  * When nothing of a set can be on chain (declined, or refused before or on the
  * chain), its jobs are cleared: the dialog keeps the answers, which the steward
- * may still change. Otherwise its unsent copies stay queued.
+ * may still change. Otherwise, and whenever some of the set exists outside this
+ * pass (`clearable`), its unsent copies stay queued.
  *
  * @module modules/commitment-pooling/creation-send
  */
@@ -65,6 +66,14 @@ export interface CreationSendInput {
   chainId: number;
   /** Told each time a copy moves. Report-only: a throw here never reaches a send. */
   onCopy?: (progress: SeedCopyProgress) => void;
+  /**
+   * Whether a set that left nothing in this pass may be cleared: true only when
+   * nothing of it exists outside this pass either. A Try Again of a set with
+   * copies already created, or Finish Creating, must say no, or a declined
+   * prompt would discard copies the group is still waiting for. Absent means
+   * every set sent here is whole in this pass.
+   */
+  clearable?: (setId: string) => boolean;
 }
 
 /** Asking the wallet what it can do never prompts anyone. */
@@ -216,7 +225,7 @@ export async function sendCreationCopies(input: CreationSendInput): Promise<Seed
     }
   }
 
-  await clearSetsThatLeftNothing(copies, progress, queue, tell);
+  await clearSetsThatLeftNothing(copies, progress, queue, tell, input.clearable);
   return copies.map((copy) => progress.get(copy.clientCommitmentId) as SeedCopyProgress);
 }
 
@@ -230,13 +239,15 @@ async function clearSetsThatLeftNothing(
   copies: readonly CreationCopy[],
   progress: Map<string, SeedCopyProgress>,
   queue: CreationQueue,
-  tell: (id: string, patch: Partial<SeedCopyProgress>) => void
+  tell: (id: string, patch: Partial<SeedCopyProgress>) => void,
+  clearable: ((setId: string) => boolean) | undefined
 ): Promise<void> {
   const sets = new Map<string, string[]>();
   for (const copy of copies) {
     sets.set(copy.setId, [...(sets.get(copy.setId) ?? []), copy.clientCommitmentId]);
   }
-  for (const ids of sets.values()) {
+  for (const [setId, ids] of sets) {
+    if (clearable && !clearable(setId)) continue;
     const rows = ids.map((id) => progress.get(id) as SeedCopyProgress);
     if (!seedSetLeftNothing(rows)) continue;
     for (const row of rows) {

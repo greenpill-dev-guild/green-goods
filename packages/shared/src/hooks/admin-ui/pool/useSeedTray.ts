@@ -57,6 +57,7 @@ import {
   copiesToRetry,
   mintSeedSet,
   type SeedCopyProgress,
+  seedSetClearableAfter,
   seedSetLocked,
 } from "../../../modules/commitment-pooling/seed-sets";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
@@ -343,7 +344,8 @@ export function useSeedTray(input: {
           return status === "waiting" || status === "not-sent";
         })
       );
-      setPassIds(toSend.map((copy) => copy.clientCommitmentId));
+      const sentThisPass = new Set(toSend.map((copy) => copy.clientCommitmentId));
+      setPassIds([...sentThisPass]);
       setIsSending(true);
       try {
         await sendCreationCopies({
@@ -353,6 +355,10 @@ export function useSeedTray(input: {
           owner,
           chainId,
           onCopy: report,
+          clearable: (setId) => {
+            const set = next.get(setId);
+            return set ? seedSetClearableAfter(set.progress, sentThisPass) : false;
+          },
         });
       } finally {
         setIsSending(false);

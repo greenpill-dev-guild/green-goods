@@ -12,7 +12,12 @@ import "fake-indexeddb/auto";
 import { describe, expect, it, vi } from "vitest";
 
 import { type CreationCopy, sendCreationCopies } from "../modules/commitment-pooling/creation-send";
-import { copiesToRetry, mintSeedSet, seedSetLocked } from "../modules/commitment-pooling/seed-sets";
+import {
+  copiesToRetry,
+  mintSeedSet,
+  seedSetClearableAfter,
+  seedSetLocked,
+} from "../modules/commitment-pooling/seed-sets";
 import type { JobExecution, JobQueueHandle } from "../modules/job-queue/ports";
 import { createJobQueue } from "../modules/job-queue/queue";
 import type { ContractCall, TransactionSender } from "../modules/transactions/types";
@@ -204,11 +209,24 @@ describe("sending a set's creations", () => {
     expect(seedSetLocked(first)).toBe(true);
     expect(await store.getJobs({ userAddress: STEWARD })).toHaveLength(2);
 
-    declining = false;
-    sender.sendContractCall.mockClear();
     const retry = copies.filter((copy) =>
       copiesToRetry(first).some((row) => row.clientCommitmentId === copy.clientCommitmentId)
     );
+    // A declined Try Again leaves them waiting: the rest of their set exists.
+    const sentThisPass = new Set(retry.map((copy) => copy.clientCommitmentId));
+    const declinedAgain = await sendCreationCopies({
+      copies: retry,
+      queue,
+      sender,
+      owner: STEWARD,
+      chainId: 42161,
+      clearable: () => seedSetClearableAfter(first, sentThisPass),
+    });
+    expect(declinedAgain.map((row) => row.miss)).toEqual(["declined", "declined"]);
+    expect(await store.getJobs({ userAddress: STEWARD })).toHaveLength(2);
+
+    declining = false;
+    sender.sendContractCall.mockClear();
     const second = await sendCreationCopies({
       copies: retry,
       queue,
