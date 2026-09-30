@@ -84,7 +84,6 @@ export function PromiseGroupPage({
     ? formatCommitmentUnits(intl, sample.targetUnits, sample.unitLabel)
     : null;
   const sectionClass = "rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4";
-  const headingClass = "text-sm font-semibold leading-5 text-text-strong-950";
 
   return (
     <CommitmentDetailShell
@@ -112,7 +111,7 @@ export function PromiseGroupPage({
       }
     >
       <section className={sectionClass} aria-labelledby={asksId}>
-        <h2 id={asksId} className={headingClass}>
+        <h2 id={asksId} className="text-sm font-semibold leading-5 text-text-strong-950">
           {formatMessage({ id: "app.pool.group.eachAsks" })}
         </h2>
         <dl className="mt-1 divide-y divide-stroke-soft-200">
@@ -148,7 +147,7 @@ export function PromiseGroupPage({
       </section>
 
       <section className={sectionClass} aria-labelledby={nowId}>
-        <h2 id={nowId} className={headingClass}>
+        <h2 id={nowId} className="text-sm font-semibold leading-5 text-text-strong-950">
           {formatMessage({ id: "app.pool.group.rightNow" })}
         </h2>
         <div className="mt-2 flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1">
@@ -180,7 +179,7 @@ export function PromiseGroupPage({
 
       {yours.length > 0 ? (
         <section aria-labelledby={yoursId} className="space-y-2">
-          <h2 id={yoursId} className={headingClass}>
+          <h2 id={yoursId} className="text-sm font-semibold leading-5 text-text-strong-950">
             {formatMessage({ id: "app.pool.group.yours" })}
           </h2>
           {yours.map((row) => (
