@@ -2,7 +2,7 @@
 
 **Feature Slug**: `test-budget-and-ci-speed`
 **Stage**: active
-**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshots 07 and 08 are published. The snapshot 08 follow-up (D10, through `23a8d1ffb`), D11 (Admin happy-dom and the MSW removal) and D12 (Client happy-dom) are on `origin/develop`, as is the push gate's dated-report routing (`57916fed7`); D13 (the test lease) is committed locally
+**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshots 07 and 08 are published. The snapshot 08 follow-up (D10, through `23a8d1ffb`), D11 (Admin happy-dom and the MSW removal) and D12 (Client happy-dom) are on `origin/develop`, as are the push gate's dated-report routing (`57916fed7`) and D13 (the test lease)
 **Created**: 2026-09-19
 **Last Updated**: 2026-09-29
 
@@ -192,10 +192,9 @@ record the answer (D13). Evidence in [its report](reports/2026-09-29-test-lease-
 ## Current handoff
 
 The snapshot 08 follow-up reached `develop` at `23a8d1ffb`, and D11 in `9703b5402` and
-`1c6948d50`, and D12 in `46be0573a`. D13 is committed locally in `e0046ac17` and `09ada5970`.
-Next:
+`1c6948d50`, D12 in `46be0573a`, and D13 in `e0046ac17` and `09ada5970`, which reached `origin`
+inside another session's push at `58d442042`. Next:
 
-- push D13 once Afo says so;
 - the worktree branches from before the lease (option A): each owner merges `develop`, starting
   with `feature/agent-reporting-core`, and Afo decides which finished worktrees to prune;
 
