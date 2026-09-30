@@ -175,8 +175,12 @@ export function WaitingForApprovalRow({
           onClick={onApprove}
           disabled={disabled}
         >
+          {/* Its own id: es and pt need a label short enough to leave the row its name. */}
           {state.status === "failed"
-            ? formatMessage({ id: "cockpit.garden.pool.setup.retry", defaultMessage: "Try Again" })
+            ? formatMessage({
+                id: "cockpit.garden.pool.approvals.retry",
+                defaultMessage: "Try Again",
+              })
             : formatMessage({
                 id: "cockpit.garden.pool.approvals.approve",
                 defaultMessage: "Approve",

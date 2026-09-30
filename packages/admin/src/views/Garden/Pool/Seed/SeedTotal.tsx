@@ -30,7 +30,7 @@ export function SeedTotal({ count, each, unit, busy, onMakeItOne }: SeedTotalPro
       data-testid="seed-total"
       data-warn={warn || undefined}
       className={cn(
-        "grid min-h-[128px] grid-cols-[1.25rem_minmax(0,1fr)] content-center items-center gap-x-3 gap-y-1 rounded-[var(--m3-shape-md)] border px-4 py-3",
+        "grid min-h-[142px] grid-cols-[1.25rem_minmax(0,1fr)] content-center items-center gap-x-3 gap-y-1 rounded-[var(--m3-shape-md)] border px-4 py-3",
         "sm:min-h-[76px] sm:grid-cols-[1.25rem_minmax(0,1fr)_auto]",
         warn ? "border-warning-light bg-warning-lighter" : "border-bg-weak bg-bg-weak"
       )}

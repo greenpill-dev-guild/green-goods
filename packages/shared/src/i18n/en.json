@@ -6235,7 +6235,7 @@
   "cockpit.garden.pool.add.nothing": "Nothing was added",
   "cockpit.garden.pool.add.declinedHint": "Your wallet declined the request. The group is unchanged, and Try Again asks once more.",
   "cockpit.garden.pool.add.refusedHint": "The request didn't go through. The group is unchanged, and Try Again asks once more.",
-  "cockpit.garden.pool.add.partial": "{added} added · {notSent} didn't send{later, plural, =0 {} other { · # waits}}",
+  "cockpit.garden.pool.add.partial": "{added} added · {notSent} didn't send{later, plural, =0 {} one { · # waits} other { · # wait}}",
   "cockpit.garden.pool.add.partialHint": "Try Again ({notSent}) sends only the ones that didn't send, with the group's terms and deadline.",
   "cockpit.garden.pool.add.finishLater": "{added} added · {later} didn't send",
   "cockpit.garden.pool.seed.status.finishLaterHint": "{later, plural, one {Finish creating the last one from the pool tab when you're ready.} other {Finish creating the last # from the pool tab when you're ready.}}",
@@ -6368,7 +6368,7 @@
   "cockpit.garden.pool.seed.status.nothing": "Nothing was created",
   "cockpit.garden.pool.seed.status.declinedHint": "Your wallet declined the request. Your answers are still here, and Try Again asks once more.",
   "cockpit.garden.pool.seed.status.refusedHint": "The request didn't go through. Your answers are still here; check them, then Try Again.",
-  "cockpit.garden.pool.seed.status.partial": "{created} created · {notSent} didn't send{later, plural, =0 {} other { · # waits}}",
+  "cockpit.garden.pool.seed.status.partial": "{created} created · {notSent} didn't send{later, plural, =0 {} one { · # waits} other { · # wait}}",
   "cockpit.garden.pool.seed.status.partialHint": "Try Again ({notSent}) sends only the ones that didn't send, with the same answers and deadline.{later, plural, =0 {} one { The one that waits is on the pool tab.} other { The ones that wait are on the pool tab.}}",
   "cockpit.garden.pool.seed.status.finishLater": "{created} created · {later} didn't send",
   "cockpit.garden.pool.seed.status.created": "{count, plural, one {The promise is created} other {# promises created}}",
@@ -6438,5 +6438,6 @@
   "app.profile.username.noneNow": "No username right now",
   "app.profile.username.chooseAgain": "Choose again",
   "app.profile.username.takenLine": "{name} was claimed by someone else while your old name cleared. Choose another name to finish.",
-  "app.profile.username.clearedLine": "Your old name has cleared. Choose the name to claim instead."
+  "app.profile.username.clearedLine": "Your old name has cleared. Choose the name to claim instead.",
+  "cockpit.garden.pool.approvals.retry": "Try Again"
 }

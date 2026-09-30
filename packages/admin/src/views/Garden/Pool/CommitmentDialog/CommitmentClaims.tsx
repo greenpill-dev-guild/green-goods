@@ -241,7 +241,7 @@ export function CommitmentClaims({
                     >
                       {state.status === "failed"
                         ? formatMessage({
-                            id: "cockpit.garden.pool.setup.retry",
+                            id: "cockpit.garden.pool.approvals.retry",
                             defaultMessage: "Try Again",
                           })
                         : formatMessage({

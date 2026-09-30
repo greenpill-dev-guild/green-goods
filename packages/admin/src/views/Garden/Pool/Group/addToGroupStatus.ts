@@ -183,7 +183,7 @@ export function addToGroupStatus(input: {
           {
             id: "cockpit.garden.pool.add.partial",
             defaultMessage:
-              "{added} added · {notSent} didn't send{later, plural, =0 {} other { · # waits}}",
+              "{added} added · {notSent} didn't send{later, plural, =0 {} one { · # waits} other { · # wait}}",
           },
           { added: state.created, notSent: state.notSent, later: state.later }
         ),

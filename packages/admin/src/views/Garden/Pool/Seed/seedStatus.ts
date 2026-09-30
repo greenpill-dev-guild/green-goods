@@ -201,7 +201,7 @@ export function seedStatusView(input: {
           {
             id: "cockpit.garden.pool.seed.status.partial",
             defaultMessage:
-              "{created} created · {notSent} didn't send{later, plural, =0 {} other { · # waits}}",
+              "{created} created · {notSent} didn't send{later, plural, =0 {} one { · # waits} other { · # wait}}",
           },
           { created: state.created, notSent: state.notSent, later: state.later }
         ),
