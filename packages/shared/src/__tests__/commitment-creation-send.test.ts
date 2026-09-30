@@ -20,6 +20,7 @@ import {
 } from "../modules/commitment-pooling/seed-sets";
 import type { JobExecution, JobQueueHandle } from "../modules/job-queue/ports";
 import { createJobQueue } from "../modules/job-queue/queue";
+import { MAX_RETRIES } from "../modules/job-queue/queue-policy";
 import type { ContractCall, TransactionSender } from "../modules/transactions/types";
 import type { Job } from "../types/job-queue";
 import type { Address } from "../types/domain";
@@ -255,6 +256,10 @@ describe("sending a set's creations", () => {
     await sendCreationCopies({ copies, queue, sender, owner: STEWARD, chainId: 42161 });
     const [queued] = await store.getJobs({ userAddress: STEWARD });
     expect(queued?.payload).toMatchObject({ clientCommitmentId: kept!.clientCommitmentId });
+    // It has since run out of attempts: it is still the job that finishes.
+    await store.amendJob(queued!.id, (job) => {
+      job.attempts = MAX_RETRIES;
+    });
 
     const finish = wallet(chain, { bundles: false });
     const [finished] = await sendCreationCopies({
@@ -268,6 +273,7 @@ describe("sending a set's creations", () => {
     expect(finish.sendContractCall).toHaveBeenCalledTimes(1);
     expect(finished).toMatchObject({ status: "created", jobId: queued!.id });
     expect(chain.created.size).toBe(3);
+    expect(await store.getJobs({ userAddress: STEWARD })).toEqual([]);
   });
 
   it("keeps a set queued and locked when a bundle's answer is lost", async () => {

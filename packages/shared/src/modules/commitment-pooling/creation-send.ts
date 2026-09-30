@@ -31,7 +31,6 @@ import type { Address } from "../../types/domain";
 import { classifyTxError } from "../../utils/errors/tx-error-classifier";
 import { logger } from "../app/logger";
 import type { JobQueueHandle, JobSendPhase, ProcessJobResult } from "../job-queue/ports";
-import { isTerminallyFailedJob } from "../job-queue/queue-policy";
 import { type BundleOutcome, createBundlingSender } from "../transactions/bundling-sender";
 import type { TransactionSender } from "../transactions/types";
 import type { CommitmentCreationPayload } from "./job-types";
@@ -139,11 +138,14 @@ export async function sendCreationCopies(input: CreationSendInput): Promise<Seed
   };
 
   // A copy tried before keeps its job, and the retry is that same job: a second
-  // admission would be refused once the first has published its words.
+  // admission would be refused once the first has published its words. That
+  // holds for a job that ran out of attempts too: `retryJob` gives it a fresh
+  // run, where a new job would leave the spent one behind as a copy that
+  // "didn't send" long after it was created.
   const live = new Map<string, string>();
   for (const job of await queue.getJobs(owner, { kind: "commitment", synced: false })) {
     const id = clientIdOf(job.payload);
-    if (id && !isTerminallyFailedJob(job)) live.set(id, job.id);
+    if (id) live.set(id, job.id);
   }
   const admitted: Array<{ id: string; jobId: string }> = [];
   for (const copy of copies) {
