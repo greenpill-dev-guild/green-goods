@@ -5164,6 +5164,8 @@
   "public.fund.walletDisconnected": "Carteira desconectada. Reconecte para continuar seu depósito.",
   "public.gardenDetail.backToArchive": "Todos os Jardins",
   "public.gardenDetail.backToGardens": "Explorar Jardins",
+  "public.gardenDetail.explore.title": "Encontre um jardim para explorar",
+  "public.gardenDetail.explore.help": "Explore Jardins, acompanhe seu trabalho documentado e veja as evidências que as comunidades compartilham.",
   "public.gardenDetail.certificates.attestations": "{count, plural, one {# atestação} other {# atestações}}",
   "public.gardenDetail.certificates.empty": "Ainda não há Certificados de Impacto. Eles aparecem quando o Trabalho aprovado é agrupado.",
   "public.gardenDetail.certificates.heading": "Certificados de impacto",

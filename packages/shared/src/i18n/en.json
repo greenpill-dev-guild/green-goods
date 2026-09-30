@@ -5164,6 +5164,8 @@
   "public.fund.walletDisconnected": "Wallet disconnected. Reconnect to continue your deposit.",
   "public.gardenDetail.backToArchive": "All Gardens",
   "public.gardenDetail.backToGardens": "Browse Gardens",
+  "public.gardenDetail.explore.title": "Find a garden to explore",
+  "public.gardenDetail.explore.help": "Explore Gardens, follow their documented work, and see the evidence communities share.",
   "public.gardenDetail.certificates.attestations": "{count, plural, one {# attestation} other {# attestations}}",
   "public.gardenDetail.certificates.empty": "No Impact Certificates yet. They appear when approved Work is bundled.",
   "public.gardenDetail.certificates.heading": "Impact Certificates",
