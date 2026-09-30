@@ -18,16 +18,16 @@
  * failures degrade to `partialData: true` rather than failing the whole page.
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { isGardenPubliclyVisible } from "../../config/garden-visibility";
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
-import { getGardenAssessments, getWorks } from "../../modules/data/eas";
+import { getGardenAssessments } from "../../modules/data/eas";
 import { getActions, getGardens } from "../../modules/data/greengoods";
 import { getGardenHypercerts } from "../../modules/data/hypercerts-fetch";
-import { readApprovedWorks } from "../../modules/work/work-list";
+import { fetchListedApprovedWorks } from "./listedApprovedWorks";
 import {
   createPublicImpactSlice,
   PUBLIC_IMPACT_DEFAULT_PAGE_SIZE,
@@ -47,6 +47,7 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
   const chainId = options.chainId ?? DEFAULT_CHAIN_ID;
   const page = Math.max(1, options.page ?? 1);
   const pageSize = Math.max(1, options.pageSize ?? PUBLIC_IMPACT_DEFAULT_PAGE_SIZE);
+  const queryClient = useQueryClient();
 
   return useQuery({
     queryKey: publicKeys.impactEvidence(chainId, page, pageSize),
@@ -56,18 +57,15 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
       // from the website must not leak back in through its work records.
       const visibleGardens = gardens.filter(isGardenPubliclyVisible);
 
-      // First pass: pull all approved Work to determine recency-ordered Garden
-      // caps. Work that cannot be read, or whose decision cannot, is missing
-      // evidence, so the ledger says it is partial.
-      const { works, partial: worksPartial } = await getWorks(
+      // First pass: pull all approved Work, through the read the page's other
+      // aggregates share, to determine recency-ordered Garden caps. Work that
+      // cannot be read, or whose decision cannot, is missing evidence, so the
+      // ledger says it is partial.
+      const { works, partial: worksPartial } = await fetchListedApprovedWorks(
+        queryClient,
         visibleGardens.map((garden) => garden.id),
         chainId
-      )
-        .then((all) => readApprovedWorks(all, chainId))
-        .catch((error) => {
-          logger.warn("[usePublicImpactEvidence] EAS works fetch failed", { error });
-          return { works: [], partial: true };
-        });
+      );
 
       const latestWorkByGarden = new Map<string, number>();
       for (const work of works) {

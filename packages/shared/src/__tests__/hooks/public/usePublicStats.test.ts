@@ -42,6 +42,7 @@ vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+import { usePublicGardens } from "../../../hooks/public/usePublicGardens";
 import { usePublicStats } from "../../../hooks/public/usePublicStats";
 
 // ============================================
@@ -132,11 +133,16 @@ describe("usePublicStats", () => {
         gardeners: [MOCK_ADDRESSES.user, MOCK_ADDRESSES.smartAccount],
       }),
     ]);
-    mockGetWorks.mockResolvedValue([
+    const works = [
       createMockWork({ id: "approved" }),
       createMockWork({ id: "pending" }),
       createMockWork({ id: "practice", gardenAddress: communityGarden }),
-    ]);
+    ];
+    // EAS filters works by recipient on the server; emulate it.
+    mockGetWorks.mockImplementation(async (recipients: string[]) => {
+      const wanted = new Set(recipients.map((address) => address.toLowerCase()));
+      return works.filter((work) => wanted.has(work.gardenAddress.toLowerCase()));
+    });
     mockReadWorkApprovalsForWorks.mockImplementation(async (workUIDs: string[]) => ({
       approvals: workUIDs
         .filter((workUID) => workUID !== "pending")
@@ -157,6 +163,27 @@ describe("usePublicStats", () => {
       fieldNoteCount: 1,
       attestationCount: 1,
     });
+  });
+
+  it("shares one approved-work read with the other public aggregates on the page", async () => {
+    mockGetGardens.mockResolvedValue([
+      createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" }),
+    ]);
+    mockGetWorks.mockResolvedValue([createMockWork({ id: "w-1" })]);
+
+    const { result: stats } = renderHookWithQueryClient(() => usePublicStats(), { queryClient });
+    const { result: gardens } = renderHookWithQueryClient(() => usePublicGardens(), {
+      queryClient,
+    });
+    await waitFor(() => {
+      expect(stats.current.isSuccess).toBe(true);
+      expect(gardens.current.isSuccess).toBe(true);
+    });
+
+    expect(stats.current.data?.fieldNoteCount).toBe(1);
+    expect(gardens.current.data?.[0]?.actionCount).toBe(1);
+    expect(mockGetWorks).toHaveBeenCalledTimes(1);
+    expect(mockReadWorkApprovalsForWorks).toHaveBeenCalledTimes(1);
   });
 
   it("documents indexer gaps via undefined oracle-derived metrics", async () => {

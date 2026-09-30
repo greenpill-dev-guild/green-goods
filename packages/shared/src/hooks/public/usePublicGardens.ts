@@ -3,9 +3,10 @@
  *
  * Composes:
  *   - **Envio indexer** (`getGardens`): garden metadata, role addresses, createdAt.
- *   - **EAS** (`getWorks`, then `readApprovedWorks`): aggregates field-note
- *     (Work) counts, contributor counts, and last activity timestamps from
- *     approved work only. Pending and rejected work is not public.
+ *   - **EAS** (`fetchListedApprovedWorks`, shared with the other public
+ *     aggregates on a page): aggregates field-note (Work) counts, contributor
+ *     counts, and last activity timestamps from approved work only. Pending
+ *     and rejected work is not public.
  *
  * No auth path — intended for visitors landing on `/sites` or the landing
  * page's "Live Observations" panel.
@@ -21,18 +22,16 @@
  * data still renders. A work whose decision cannot be read is left out.
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { isGardenPubliclyVisible } from "../../config/garden-visibility";
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
-import { logger } from "../../modules/app/logger";
-import { getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
-import { readApprovedWorks } from "../../modules/work/work-list";
 import { derivePublicGardenSlug } from "../../public-contracts/garden-slug";
 import type { Address } from "../../types/domain";
+import { fetchListedApprovedWorks } from "./listedApprovedWorks";
 
 export interface PublicGardenSummary {
   id: string;
@@ -68,6 +67,7 @@ export function usePublicGardens(
   chainId: number = DEFAULT_CHAIN_ID,
   options: { enabled?: boolean } = {}
 ) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: publicKeys.gardens(chainId),
     enabled: options.enabled ?? true,
@@ -82,16 +82,13 @@ export function usePublicGardens(
 
       const gardenAddresses = initializedGardens.map((g) => g.id);
 
-      // EAS lookup is best-effort: if it fails, surface gardens with zero stats.
-      let works: Awaited<ReturnType<typeof getWorks>> = [];
-      try {
-        works = await getWorks(gardenAddresses, chainId);
-      } catch (error) {
-        logger.warn("[usePublicGardens] EAS works fetch failed; degrading to indexer-only", {
-          error,
-        });
-      }
-      const { works: approvedWorks } = await readApprovedWorks(works, chainId);
+      // Shared with the other public aggregates on the page. Best-effort: a
+      // failed read leaves the gardens with zero stats.
+      const { works: approvedWorks } = await fetchListedApprovedWorks(
+        queryClient,
+        gardenAddresses,
+        chainId
+      );
 
       const statsByGarden = new Map<
         string,

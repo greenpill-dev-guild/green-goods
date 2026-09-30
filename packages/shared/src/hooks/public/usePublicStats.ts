@@ -4,14 +4,16 @@
  *
  * Composes:
  *   - **Envio indexer** (`getGardens`): the gardens and their gardeners.
- *   - **EAS** (`getWorks`, then `readApprovedWorks`; `getGardenAssessments`).
+ *   - **EAS** (`fetchListedApprovedWorks`, shared with the other public
+ *     aggregates on a page; `getGardenAssessments`).
  *
  * Every count covers the gardens the website lists, the same set the archive
  * shows, and entries count approved work only. Hands at work are the
  * gardeners of those gardens, each address once.
  *
- * No auth path. All three sources are queried with `Promise.allSettled` so
- * one outage doesn't blank the page. A count that cannot be established is
+ * No auth path. Every source is best-effort, so one outage doesn't blank the
+ * page: gardens and assessments settle side by side, then the listed gardens'
+ * approved work is read. A count that cannot be established is
  * `null`, never zero: a failed read, or a decision that could not be read,
  * leaves the number unknown. Without the garden list no count can be scoped
  * to listed gardens, so every count is `null`.
@@ -36,16 +38,16 @@
  * tile.
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { isGardenPubliclyVisible } from "../../config/garden-visibility";
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
-import { getGardenAssessments, getWorks } from "../../modules/data/eas";
+import { getGardenAssessments } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
-import { readApprovedWorks } from "../../modules/work/work-list";
+import { fetchListedApprovedWorks } from "./listedApprovedWorks";
 
 /** Each count is `null` when it could not be established; see the file header. */
 export interface PublicStats {
@@ -64,20 +66,17 @@ export interface PublicStats {
 }
 
 export function usePublicStats(chainId: number = DEFAULT_CHAIN_ID) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: publicKeys.stats(chainId),
     queryFn: async (): Promise<PublicStats> => {
-      const [gardensResult, worksResult, assessmentsResult] = await Promise.allSettled([
+      const [gardensResult, assessmentsResult] = await Promise.allSettled([
         getGardens(),
-        getWorks(undefined, chainId),
         getGardenAssessments(undefined, chainId),
       ]);
 
       if (gardensResult.status === "rejected") {
         logger.warn("[usePublicStats] gardens fetch failed", { error: gardensResult.reason });
-      }
-      if (worksResult.status === "rejected") {
-        logger.warn("[usePublicStats] works fetch failed", { error: worksResult.reason });
       }
       if (assessmentsResult.status === "rejected") {
         logger.warn("[usePublicStats] assessments fetch failed", {
@@ -103,19 +102,18 @@ export function usePublicStats(chainId: number = DEFAULT_CHAIN_ID) {
         visibleGardens.flatMap((garden) => garden.gardeners.map((address) => address.toLowerCase()))
       );
 
-      let fieldNoteCount: number | null = null;
-      if (worksResult.status === "fulfilled") {
-        const approved = await readApprovedWorks(
-          worksResult.value.filter((work) => inListedGarden(work.gardenAddress)),
-          chainId
-        );
-        fieldNoteCount = approved.partial ? null : approved.works.length;
-      }
+      // The listed gardens' approved work, through the read the page's other
+      // aggregates share. A read that fails or comes back partial is unknown.
+      const approved = await fetchListedApprovedWorks(
+        queryClient,
+        visibleGardens.map((garden) => garden.id),
+        chainId
+      );
 
       return {
         gardenCount: visibleGardens.length,
         contributorCount: gardeners.size,
-        fieldNoteCount,
+        fieldNoteCount: approved.partial ? null : approved.works.length,
         attestationCount:
           assessmentsResult.status === "fulfilled"
             ? assessmentsResult.value.filter((assessment) =>
