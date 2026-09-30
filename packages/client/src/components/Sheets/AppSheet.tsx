@@ -88,7 +88,12 @@ export const AppSheet: FC<AppSheetProps> = ({
           data-testid={`tab-${tab.id}`}
         >
           {tab.icon && (
-            <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4">
+            <span
+              className={cn(
+                "flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4",
+                activeTab === tab.id && pwaSheetStyles.tabActiveIcon
+              )}
+            >
               {tab.icon}
             </span>
           )}

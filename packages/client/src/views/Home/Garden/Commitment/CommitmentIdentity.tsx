@@ -107,7 +107,7 @@ export function CommitmentIdentity({
                   href={link.url}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="text-primary underline-offset-2 hover:underline"
+                  className="text-primary-on-surface underline-offset-2 hover:underline"
                   title={link.url}
                 >
                   {link.label ?? link.url}

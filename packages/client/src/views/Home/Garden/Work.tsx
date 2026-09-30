@@ -358,7 +358,7 @@ export const GardenWork: React.FC = () => {
             <span
               className={cn(
                 "text-sm font-medium",
-                effectiveStatus === "approved" ? "text-success-base" : "text-error-base"
+                effectiveStatus === "approved" ? "text-success-dark" : "text-error-base"
               )}
             >
               {effectiveStatus === "approved"

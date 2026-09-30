@@ -359,6 +359,10 @@
   --primary-action: var(--gg-design-tertiary-action, var(--green-800));
   --primary-action-hover: var(--gg-design-tertiary-action-hover, var(--green-900));
   --primary-action-foreground: var(--gg-design-on-tertiary-action, var(--neutral-0));
+  /* Green text on a surface (DL-053): the deep action step here (5.72:1 on
+   * white, 5.25:1 on the primary tint); the dark theme flips it back to the
+   * bright accent. Bright green stays on icons, bars and dots. */
+  --primary-on-surface: var(--gg-design-tertiary-action, var(--green-800));
   --primary-alpha-24: var(--green-alpha-24);
   --primary-alpha-16: var(--green-alpha-16);
   --primary-alpha-10: var(--green-alpha-10);
@@ -412,6 +416,9 @@
   --error-base: var(--red-500);
   --error-light: var(--red-200);
   --error-lighter: var(--red-50);
+  /* A red fill that carries white text (DL-053): 5.26:1, hover 6.98:1. */
+  --error-action: var(--red-700);
+  --error-action-hover: var(--red-800);
 
   --success-dark: var(--green-950);
   --success-base: var(--green-500);
@@ -672,6 +679,8 @@
   --primary-action: var(--gg-design-tertiary-action, var(--green-800));
   --primary-action-hover: var(--gg-design-tertiary-action-hover, var(--green-900));
   --primary-action-foreground: var(--gg-design-on-tertiary-action, var(--neutral-0));
+  /* The deep step reads 3.1:1 on the dark surface, so green text stays bright here. */
+  --primary-on-surface: var(--gg-design-tertiary, var(--green-500));
 
   /* Focus rings - Dark theme */
   --focus-ring: var(--blue-400);
@@ -692,6 +701,9 @@
   --error-base: var(--red-600);
   --error-light: var(--red-alpha-24);
   --error-lighter: var(--red-alpha-16);
+  /* The same deep fill as light: white on red-600 is only 4.15:1. */
+  --error-action: var(--red-700);
+  --error-action-hover: var(--red-800);
 
   --success-dark: var(--green-400);
   --success-base: var(--green-600);
@@ -1211,12 +1223,12 @@
   }
 
   .gg-button[data-emphasis="primary"][data-tone="danger"] {
-    background: rgb(var(--error-base));
+    background: rgb(var(--error-action));
     color: rgb(var(--static-white, var(--neutral-0)));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="danger"]:hover {
-    background: rgb(var(--error-dark, var(--red-700)));
+    background: rgb(var(--error-action-hover));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="warning"] {
@@ -1275,7 +1287,7 @@
   }
 
   .gg-button[data-emphasis="primary"][data-tone="danger"]:active {
-    background: rgb(var(--error-dark, var(--red-700)));
+    background: rgb(var(--error-action-hover));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="warning"]:active {
@@ -1938,6 +1950,7 @@
   --color-primary-action: rgb(var(--primary-action));
   --color-primary-action-hover: rgb(var(--primary-action-hover));
   --color-primary-action-foreground: rgb(var(--primary-action-foreground));
+  --color-primary-on-surface: rgb(var(--primary-on-surface));
   /* Alpha variants using relative color syntax */
   --color-primary-alpha-24: rgb(from rgb(var(--primary-base)) r g b / 24%);
   --color-primary-alpha-16: rgb(from rgb(var(--primary-base)) r g b / 16%);
@@ -2013,6 +2026,8 @@
   --color-error-base: rgb(var(--error-base));
   --color-error-light: rgb(var(--error-light));
   --color-error-lighter: rgb(var(--error-lighter));
+  --color-error-action: rgb(var(--error-action));
+  --color-error-action-hover: rgb(var(--error-action-hover));
 
   /* Success */
   --color-success-dark: rgb(var(--success-dark));

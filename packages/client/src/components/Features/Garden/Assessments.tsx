@@ -219,7 +219,7 @@ const AttachmentCard = memo(function AttachmentCard({
         href={resolveIPFSUrl(attachment.cid)}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+        className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-primary-on-surface hover:underline"
       >
         <RiExternalLinkLine className="h-4 w-4" aria-hidden="true" />
         {intl.formatMessage({ id: "app.actions.viewDocument" })}
