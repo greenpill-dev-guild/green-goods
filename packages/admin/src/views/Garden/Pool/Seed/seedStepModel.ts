@@ -13,6 +13,7 @@ import type { Action, Address } from "@green-goods/shared/types/domain";
 import { hasActionEnded } from "@green-goods/shared/utils/action/window";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
+import { defineMessage } from "react-intl";
 import type { ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
 import type { SeedMember } from "./SeedConfirmerList";
 import { cycleName } from "../poolPresentation";
@@ -59,20 +60,20 @@ export function seedBlockedReason(input: {
   priceUnavailable: boolean;
 }): { id: string; defaultMessage: string } | null {
   if (!input.poolOpen)
-    return {
+    return defineMessage({
       id: "cockpit.garden.pool.seed.blocked.poolClosed",
       defaultMessage: "Open the pool before seeding into it.",
-    };
+    });
   if (input.capacityOver)
-    return {
+    return defineMessage({
       id: "cockpit.garden.pool.seed.blocked.capacity",
       defaultMessage: "That is more offers than this pool has room for.",
-    };
+    });
   if (input.priceUnavailable)
-    return {
+    return defineMessage({
       id: "cockpit.garden.pool.seed.blocked.price",
       defaultMessage: "A reward is in dollars, and today's G$ price can't be read to convert it.",
-    };
+    });
   return null;
 }
 

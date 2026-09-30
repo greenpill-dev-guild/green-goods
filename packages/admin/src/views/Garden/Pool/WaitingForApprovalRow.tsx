@@ -106,12 +106,14 @@ export function WaitingForApprovalRow({
   const who =
     state.status === "approved"
       ? formatMessage(
-          row.commitment.direction === "REQUEST"
-            ? { id: "cockpit.garden.pool.approvals.willDo", defaultMessage: "{who} will do this" }
-            : {
-                id: "cockpit.garden.pool.approvals.takesUp",
-                defaultMessage: "{who} takes this up",
-              },
+          {
+            id:
+              row.commitment.direction === "REQUEST"
+                ? "cockpit.garden.pool.approvals.willDo"
+                : "cockpit.garden.pool.approvals.takesUp",
+            defaultMessage:
+              row.commitment.direction === "REQUEST" ? "{who} will do this" : "{who} takes this up",
+          },
           { who: name }
         )
       : name;
