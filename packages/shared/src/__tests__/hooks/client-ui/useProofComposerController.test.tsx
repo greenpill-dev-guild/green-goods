@@ -75,6 +75,7 @@ const mocks = vi.hoisted(() => ({
   cycle: null as CommitmentCycleRecord | null,
   metadata: null as { version: 1; title: string } | null,
   enqueue: vi.fn<Enqueue>(),
+  sendQueued: vi.fn(async (_input: { jobId: string; commitmentId: bigint }) => "landed"),
   jobsPending: false,
   sendsFromTap: true,
   draft: {
@@ -132,6 +133,7 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentMetadata", () => ({
 vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
   useCommitmentJobs: () => ({
     enqueue: mocks.enqueue,
+    sendQueued: mocks.sendQueued,
     isPending: mocks.jobsPending,
     error: null,
     viewer: mocks.viewer,
@@ -232,7 +234,7 @@ function readyToSend() {
 
 describe("useProofComposerController", () => {
   // The promise's view of a proof on its way outlives any one screen.
-  afterEach(() => settleProofSend(proofSendKey(DEMO_CHAIN_ID, 1001n), { landed: false }));
+  afterEach(() => settleProofSend(proofSendKey(DEMO_CHAIN_ID, 1001n, TUNDE), { landed: false }));
 
   it("resolves the status ladder and keeps availability first", () => {
     mocks.query.availability = { status: "unknown-chain" };
@@ -355,7 +357,7 @@ describe("useProofComposerController", () => {
     });
     const { result } = readyToSend();
     // What the promise hears about this proof while it sends.
-    const onItsWay = renderHook(() => useProofSend(proofSendKey(DEMO_CHAIN_ID, 1001n)));
+    const onItsWay = renderHook(() => useProofSend(proofSendKey(DEMO_CHAIN_ID, 1001n, TUNDE)));
     let pending!: Promise<boolean>;
     act(() => {
       pending = result.current.submit();
@@ -425,7 +427,7 @@ describe("useProofComposerController", () => {
     expect(mocks.toasts.takingLonger).not.toHaveBeenCalled();
     expect(mocks.draft.clear).toHaveBeenCalledOnce();
     // Nothing left the phone, so the promise shows its notice, not a proof on its way.
-    const onItsWay = renderHook(() => useProofSend(proofSendKey(DEMO_CHAIN_ID, 1001n)));
+    const onItsWay = renderHook(() => useProofSend(proofSendKey(DEMO_CHAIN_ID, 1001n, TUNDE)));
     expect(onItsWay.result.current).toBeNull();
   });
 
@@ -547,17 +549,16 @@ describe("useProofComposerController", () => {
       expect(renderController().result.current.canSendToo).toBe(false);
     });
 
-    it("queues the confirmation only after the proof lands", async () => {
+    it("queues the send with the proof, and sends it only once the proof lands", async () => {
       const { result } = readyToSend();
       act(() => result.current.setSendToo(true));
-      mocks.enqueue.mockImplementation(async (input) => {
-        if (input.act !== "evidence") return "job-2";
-        input.report?.({ stage: "admitted", jobId: "job-1" });
-        input.report?.({ stage: "wallet" });
-        input.report?.({ stage: "confirming", txHash: "0x123" });
+      mocks.enqueue.mockImplementation(async ({ report }) => {
+        report?.({ stage: "admitted", jobId: "job-1", followUpJobId: "job-2" });
+        report?.({ stage: "wallet" });
+        report?.({ stage: "confirming", txHash: "0x123" });
         // Sending for confirmation now would settle the team before the proof.
-        expect(mocks.enqueue).toHaveBeenCalledTimes(1);
-        input.report?.({ stage: "landed", txHash: "0x123" });
+        expect(mocks.sendQueued).not.toHaveBeenCalled();
+        report?.({ stage: "landed", txHash: "0x123" });
         return "job-1";
       });
 
@@ -565,12 +566,11 @@ describe("useProofComposerController", () => {
         await result.current.submit();
       });
 
+      // One call queues both, so the send outlives this screen.
+      expect(mocks.enqueue).toHaveBeenCalledOnce();
+      expect(mocks.enqueue.mock.calls[0]?.[0]).toMatchObject({ act: "evidence", sendToo: true });
       await waitFor(() =>
-        expect(mocks.enqueue).toHaveBeenLastCalledWith({
-          act: "sendForConfirmation",
-          commitmentId: 1001n,
-          gardenAddress: DEMO_GARDEN,
-        })
+        expect(mocks.sendQueued).toHaveBeenCalledWith({ jobId: "job-2", commitmentId: 1001n })
       );
       expect(mocks.toasts.adding).toHaveBeenCalledWith({ sendToo: true });
       await waitFor(() =>
@@ -578,12 +578,28 @@ describe("useProofComposerController", () => {
       );
     });
 
-    it("never sends for confirmation when the proof did not land", async () => {
+    it.each([
+      [
+        // The send stays queued behind the kept proof, for when the person sends it.
+        "the proof did not land",
+        [{ stage: "admitted", jobId: "job-1", followUpJobId: "job-2" }, { stage: "declined" }],
+        "notAdded",
+        [],
+      ],
+      [
+        "the queue kept no send",
+        [
+          { stage: "admitted", jobId: "job-1" },
+          { stage: "landed", txHash: "0x123" },
+        ],
+        "added",
+        [{ sent: false, leads: true }],
+      ],
+    ] as const)("sends nothing for confirmation when %s", async (_case, events, toast, args) => {
       const { result } = readyToSend();
       act(() => result.current.setSendToo(true));
       mocks.enqueue.mockImplementation(async ({ report }) => {
-        report?.({ stage: "admitted", jobId: "job-1" });
-        report?.({ stage: "declined" });
+        for (const event of events) report?.(event);
         return "job-1";
       });
 
@@ -591,7 +607,8 @@ describe("useProofComposerController", () => {
         await result.current.submit();
       });
 
-      expect(mocks.enqueue).toHaveBeenCalledOnce();
+      await waitFor(() => expect(mocks.toasts[toast]).toHaveBeenCalledWith(...args));
+      expect(mocks.sendQueued).not.toHaveBeenCalled();
     });
   });
 

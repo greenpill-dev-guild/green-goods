@@ -24,7 +24,10 @@ import { jobQueue } from "../../modules/job-queue/default-instance";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { hasRecordedSend, isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
 import type { CommitmentJobKind } from "../../modules/commitment-pooling/job-types";
-import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/jobs";
+import {
+  COMMITMENT_JOB_KINDS,
+  commitmentJobPrerequisite,
+} from "../../modules/commitment-pooling/jobs";
 import type { Job } from "../../types/job-queue";
 import type { Address } from "../../types/domain";
 
@@ -211,6 +214,11 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     const linkedWorkIds = new Set<string>();
     let failedCount = 0;
     let hasPendingCreate = false;
+    // Add and Send's send waits behind its proof. Until the proof lands the
+    // promise speaks for the proof, so the send holds the acts but not the notice.
+    const queuedIds = new Set(jobs.filter((job) => !job.synced).map((job) => job.id));
+    const waitsForQueuedProof = (job: Job) =>
+      queuedIds.has(commitmentJobPrerequisite(job.kind, job.payload) ?? "");
 
     for (const job of jobs) {
       if (job.synced) continue;
@@ -260,6 +268,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       }
       if (commitmentId) {
         pendingCommitmentIds.add(commitmentId);
+        if (waitsForQueuedProof(job)) continue;
         pendingActs.set(commitmentId, {
           jobId: job.id,
           kind: job.kind as CommitmentJobKind,

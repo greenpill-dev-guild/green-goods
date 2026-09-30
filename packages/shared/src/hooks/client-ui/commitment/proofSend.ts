@@ -52,8 +52,12 @@ const subscribe = (listener: () => void) => {
   };
 };
 
-export function proofSendKey(chainId: number, commitmentId: bigint): string {
-  return `${chainId}:${commitmentId.toString()}`;
+/**
+ * One account's proof for one promise. The map outlives a sign-in change, so a
+ * send another account started on this phone never reads as this one's.
+ */
+export function proofSendKey(chainId: number, commitmentId: bigint, owner: string): string {
+  return `${chainId}:${owner.toLowerCase()}:${commitmentId.toString()}`;
 }
 
 export function startProofSend(key: string, send: Omit<ProofSend, "landed">): void {
@@ -94,7 +98,10 @@ export type BackgroundProofOutcome =
   | "landed"
   | "declined"
   | "failed"
-  /** It left the phone, or never got its turn, and the queue keeps it: the promise says which. */
+  /**
+   * It left the phone, never got its turn, or failed a try the queue will
+   * repeat; the queue keeps it either way, and the promise says which.
+   */
   | "undecided";
 
 /** Long enough for a prompt and a receipt; after it the promise's own notice takes over. */
@@ -155,10 +162,14 @@ export function followBackgroundProof({
     jobQueueEventBus.on("job:completed", ({ jobId: id }) => {
       if (id === jobId) end("landed");
     }),
-    // Every failed attempt reports here, a declined prompt included; the
-    // record says which it was.
-    jobQueueEventBus.on("job:failed", ({ jobId: id, job }) => {
-      if (id === jobId) end(outcomeOfKept(job) === "declined" ? "declined" : "failed");
+    // Every failed attempt reports here: a declined prompt, the queue giving up,
+    // and an ordinary try it keeps for another turn. The event's copy can predate
+    // the failure being written, so the stored record says which it was.
+    jobQueueEventBus.on("job:failed", ({ jobId: id }) => {
+      if (id !== jobId) return;
+      void readKept()
+        .then((job) => end(job ? outcomeOfKept(job) : "failed"))
+        .catch(() => end("undecided"));
     }),
     jobQueueEventBus.on("queue:sync-completed", () => {
       if (!pickedUp) return;

@@ -82,7 +82,9 @@ export function usePendingProof(input: { chainId: number; viewer: Address | null
 
   const found = useMemo(() => {
     const isSending = (commitmentId: bigint) => {
-      const send = proofSends.get(proofSendKey(chainId, BigInt(commitmentId)));
+      const send = viewer
+        ? proofSends.get(proofSendKey(chainId, BigInt(commitmentId), viewer))
+        : null;
       return Boolean(send && !send.landed);
     };
     const items: Omit<PendingProof, "garden" | "commitment" | "title">[] = [];

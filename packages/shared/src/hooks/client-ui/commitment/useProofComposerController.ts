@@ -261,6 +261,7 @@ export function useProofComposerController(
     if (
       !detail ||
       !routeGarden ||
+      !viewer ||
       queued ||
       submitting.current ||
       !readiness("media").canAdvance ||
@@ -276,6 +277,8 @@ export function useProofComposerController(
     const leads = seat === "provider";
     // Written by the send's reports; typed here, not narrowed to their first values.
     let admittedJobId = null as string | null;
+    // Add and Send's send, queued behind the proof when the queue took it.
+    let sendJobId = null as string | null;
     // How the tap's own send ended, when it ended here.
     let ended = null as "landed" | "declined" | null;
     let queuedReason = undefined as string | undefined;
@@ -287,21 +290,24 @@ export function useProofComposerController(
     };
     // The promise says the proof is on its way, and holds its queue notice,
     // from the moment it leaves this phone until the send is over.
-    const sendKey = proofSendKey(input.chainId, record.commitmentId);
+    const sendKey = proofSendKey(input.chainId, record.commitmentId, viewer);
     const onItsWay = () =>
       startProofSend(sendKey, {
         contents: proofContentsOf({ media, audioNotes, links, note }),
         baseline: record.evidenceCount,
       });
-    // The second act waits for the proof to land: sent first, it would settle
-    // the team before the proof and its credit were on the record.
+    // The second act was queued with the proof and waited for it: sent first,
+    // it would settle the team before the proof and its credit were on the
+    // record. Now the proof has landed, so it goes: a wallet is asked for the
+    // second signature here, anyone else's send goes with the background flush.
+    // Had this screen gone first, the queue would still hold it.
     const sendForConfirmation = async () => {
+      if (!sendJobId) {
+        toasts.added({ sent: false, leads });
+        return;
+      }
       try {
-        await jobs.enqueue({
-          act: "sendForConfirmation",
-          commitmentId: record.commitmentId,
-          gardenAddress,
-        });
+        await jobs.sendQueued({ jobId: sendJobId, commitmentId: record.commitmentId });
         toasts.added({ sent: true, leads });
       } catch {
         // The proof landed; Send for Confirmation stays on the promise.
@@ -350,6 +356,7 @@ export function useProofComposerController(
       switch (event.stage) {
         case "admitted":
           admittedJobId = event.jobId;
+          sendJobId = event.followUpJobId ?? null;
           letGo();
           if (flushSends && viewer) followFlush(event.jobId, viewer);
           return;
@@ -377,7 +384,12 @@ export function useProofComposerController(
     };
 
     try {
-      await jobs.enqueue({ act: "evidence", payload, report });
+      await jobs.enqueue({
+        act: "evidence",
+        payload,
+        report,
+        ...(withSend ? { sendToo: true } : {}),
+      });
     } catch {
       submitting.current = false;
       sendOver();

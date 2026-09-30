@@ -50,24 +50,33 @@ describe("followBackgroundProof", () => {
   });
   afterEach(() => stop());
 
-  it.each([
-    ["landed", "job:completed", proofJob()],
-    // A declined prompt fails the attempt but marks the job for the person's own send.
-    ["declined", "job:failed", proofJob({ meta: { requiresExplicitSend: true } })],
-    ["failed", "job:failed", proofJob()],
-  ] as const)("says %s once, and only for its own job", (outcome, event, job) => {
-    jobQueueEventBus.emit(event, {
-      jobId: "other",
-      job: { ...job, id: "other" },
-      txHash: "0x1",
-      error: "x",
-    } as never);
+  it("says landed once, and only for its own job", () => {
+    const job = proofJob();
+    jobQueueEventBus.emit("job:completed", { jobId: "other", job, txHash: "0x1" });
     expect(onEnd).not.toHaveBeenCalled();
 
-    jobQueueEventBus.emit(event, { jobId: "job-1", job, txHash: "0x1", error: "x" } as never);
+    jobQueueEventBus.emit("job:completed", { jobId: "job-1", job, txHash: "0x1" });
     jobQueueEventBus.emit("job:completed", { jobId: "job-1", job, txHash: "0x1" });
     expect(onEnd).toHaveBeenCalledTimes(1);
-    expect(onEnd).toHaveBeenCalledWith(outcome);
+    expect(onEnd).toHaveBeenCalledWith("landed");
+  });
+
+  it.each([
+    // A declined prompt fails the attempt but marks the job for the person's own send.
+    ["declined", [proofJob({ meta: { requiresExplicitSend: true } })]],
+    ["failed", [proofJob({ attempts: 5 })]],
+    // An ordinary failed try the queue keeps for another turn is not the end of it.
+    ["undecided", [proofJob({ attempts: 2 })]],
+    ["failed", []],
+  ] as const)("reads a failed attempt as %s from the stored record", async (outcome, stored) => {
+    mocks.getJobs.mockResolvedValue([...stored]);
+    // The event's copy is from before the failure was written.
+    const stale = proofJob({ attempts: 0 });
+    jobQueueEventBus.emit("job:failed", { jobId: "other", job: stale, error: "x" });
+    jobQueueEventBus.emit("job:failed", { jobId: "job-1", job: stale, error: "x" });
+
+    await vi.waitFor(() => expect(onEnd).toHaveBeenCalledWith(outcome));
+    expect(onEnd).toHaveBeenCalledTimes(1);
   });
 
   it("waits for a flush that picked the job up before reading what it left", async () => {
@@ -97,7 +106,7 @@ describe("followBackgroundProof", () => {
 });
 
 describe("a proof on its way", () => {
-  const key = proofSendKey(42161, 9n);
+  const key = proofSendKey(42161, 9n, OWNER);
   const contents = proofContentsOf({
     media: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
     audioNotes: [new File(["b"], "b.webm", { type: "audio/webm" })],
@@ -123,6 +132,17 @@ describe("a proof on its way", () => {
 
     act(() => settleProofSend(key, { landed: false }));
     expect(result.current).toBeNull();
+  });
+
+  it("is told only to the account that sent it, however its address is written", () => {
+    const lead = "0xAbCdEf0000000000000000000000000000000001";
+    act(() => startProofSend(proofSendKey(42161, 9n, lead), { contents, baseline: 0 }));
+    const sameAccount = renderHook(() => useProofSend(proofSendKey(42161, 9n, lead.toLowerCase())));
+    const otherAccount = renderHook(() => useProofSend(key));
+
+    expect(sameAccount.result.current).toMatchObject({ baseline: 0, landed: false });
+    expect(otherAccount.result.current).toBeNull();
+    act(() => settleProofSend(proofSendKey(42161, 9n, lead), { landed: false }));
   });
 
   it("keeps a landed proof until the record can catch up, then lets go", () => {

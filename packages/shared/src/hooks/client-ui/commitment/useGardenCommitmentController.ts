@@ -115,7 +115,7 @@ export function useGardenCommitmentController(input: {
   const pending = Boolean(commitment && queueState.pendingCommitmentIds.has(queueKey));
   const sendFailed = Boolean(commitment && queueState.failedCommitmentIds.has(queueKey));
   const proofSend = useProofSend(
-    commitmentId !== null ? proofSendKey(chainId, commitmentId) : null
+    commitmentId !== null && viewer ? proofSendKey(chainId, commitmentId, viewer) : null
   );
   const ownRequest = viewer
     ? (claimsQuery.claimRequests

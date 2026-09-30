@@ -244,6 +244,69 @@ describe("useCommitmentJobs", () => {
       expect(report).toHaveBeenLastCalledWith(last);
     });
 
+    describe("Add and Send", () => {
+      const proof = {
+        act: "evidence",
+        payload: {
+          clientEvidenceId: "proof-1",
+          commitmentId: 9n,
+          creditedContributors: [],
+          gardenAddress: GARDEN,
+        },
+        sendToo: true,
+      } as const;
+
+      it("queues the send with the proof, to go after it, before any prompt opens", async () => {
+        mocks.sender = { authMode: "wallet" };
+        mocks.addJob.mockResolvedValueOnce("job-1").mockResolvedValueOnce("job-2");
+        const report = vi.fn();
+
+        await jobs().current.enqueue({ ...proof, report });
+
+        expect(mocks.addJob).toHaveBeenLastCalledWith(
+          "confirmation",
+          {
+            action: "submit",
+            commitmentId: 9n,
+            gardenAddress: GARDEN,
+            afterEvidenceJobId: "job-1",
+          },
+          VIEWER,
+          { chainId: 42161 }
+        );
+        expect(report.mock.calls[0]?.[0]).toEqual({
+          stage: "admitted",
+          jobId: "job-1",
+          followUpJobId: "job-2",
+        });
+        // Only the proof goes from this tap.
+        expect(mocks.processJob).toHaveBeenCalledOnce();
+        expect(mocks.processJob).toHaveBeenCalledWith("job-1", expect.anything());
+      });
+
+      it("still adds the proof when the queue already holds another send for the promise", async () => {
+        mocks.addJob
+          .mockResolvedValueOnce("job-1")
+          .mockRejectedValueOnce(new Error("offline_job_identity_conflict:confirmation:submit:9"));
+        const report = vi.fn();
+
+        await expect(jobs().current.enqueue({ ...proof, report })).resolves.toBe("job-1");
+        expect(report.mock.calls[0]?.[0]).toEqual({ stage: "admitted", jobId: "job-1" });
+      });
+
+      it.each([
+        [{ authMode: "wallet" }, "landed", 1],
+        [{ authMode: "passkey" }, "queued", 0],
+      ] as const)("sends the queued send as a %o tap", async (sender, outcome, sends) => {
+        mocks.sender = sender;
+
+        await expect(jobs().current.sendQueued({ jobId: "job-2", commitmentId: 9n })).resolves.toBe(
+          outcome
+        );
+        expect(mocks.processJob).toHaveBeenCalledTimes(sends);
+      });
+    });
+
     it("never lets a report that throws turn an act that landed into a failure", async () => {
       mocks.sender = { authMode: "wallet" };
       const report = vi.fn(() => {

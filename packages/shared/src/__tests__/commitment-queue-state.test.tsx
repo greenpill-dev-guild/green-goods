@@ -151,4 +151,27 @@ describe("useCommitmentQueueState", () => {
       waitingReason: "send-intent-expired",
     });
   });
+
+  it("leaves the promise to its proof while Add and Send's send waits behind it", async () => {
+    const proof = creation({
+      id: "proof-1",
+      kind: "evidence",
+      payload: { commitmentId: 9n, clientEvidenceId: "proof-1" },
+    });
+    const send = creation({
+      id: "send-1",
+      kind: "confirmation",
+      payload: { action: "submit", commitmentId: 9n, afterEvidenceJobId: "proof-1" },
+    });
+    mocks.getJobs.mockResolvedValueOnce([proof, send]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingActs.get("9")?.jobId).toBe("proof-1"));
+
+    // Landed, the proof has left the queue, and the send is what the promise holds.
+    mocks.getJobs.mockResolvedValueOnce([send]);
+    jobQueueEventBus.emit("queue:sync-completed", {
+      result: { processed: 1, failed: 0, skipped: 0 },
+    });
+    await waitFor(() => expect(result.current.pendingActs.get("9")?.jobId).toBe("send-1"));
+  });
 });

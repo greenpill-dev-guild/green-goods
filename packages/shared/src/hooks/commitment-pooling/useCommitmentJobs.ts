@@ -15,6 +15,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import type { Hex } from "viem";
 
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
@@ -39,7 +40,12 @@ import { useTransactionSender } from "../blockchain/useTransactionSender";
 /** What a view asks for, before the queue fills in keys and hashes. */
 export type CommitmentJobInput =
   | { act: "claim"; payload: ClaimJobPayload }
-  | { act: "evidence"; payload: EvidenceJobPayload }
+  | {
+      act: "evidence";
+      payload: EvidenceJobPayload;
+      /** Add and Send: queue the send for confirmation with the proof, to go once it lands. */
+      sendToo?: boolean;
+    }
   | { act: "workLink"; payload: Omit<WorkLinkJobPayload, "operationKey"> }
   | { act: "sendForConfirmation"; commitmentId: bigint; gardenAddress: Address }
   | {
@@ -112,6 +118,39 @@ function queueAct(input: CommitmentJobInput, owner: Address, chainId: number): P
 }
 
 /**
+ * Add and Send's second act, queued behind the proof it goes after (O7: two
+ * calls, two signatures). Queued now rather than once the proof lands, so the
+ * send is kept whatever happens to this screen: an offline add, a reload, a try
+ * the queue repeats. The queue refuses a second, different send for the same
+ * promise, so a send already queued there stands and this one is left out.
+ */
+async function queueSendAfterProof(
+  proof: EvidenceJobPayload,
+  proofJobId: string,
+  owner: Address,
+  chainId: number
+): Promise<string | undefined> {
+  try {
+    return await jobQueue.addJob(
+      "confirmation",
+      {
+        action: "submit",
+        commitmentId: proof.commitmentId,
+        gardenAddress: proof.gardenAddress,
+        afterEvidenceJobId: proofJobId,
+      },
+      owner,
+      { chainId }
+    );
+  } catch (error) {
+    logger.warn("[useCommitmentJobs] Add and Send's send was not queued", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return undefined;
+  }
+}
+
+/**
  * Where one tap's send stands, for a view that follows it: the queue has the
  * act, the wallet is asked, the chain is confirming, and then either the act
  * landed or it stays queued to send later, with the queue's reason when it gave
@@ -119,7 +158,8 @@ function queueAct(input: CommitmentJobInput, owner: Address, chainId: number): P
  * other send that fails rejects instead.
  */
 export type CommitmentSendReport =
-  | { stage: "admitted"; jobId: string }
+  /** `followUpJobId`: Add and Send's send, queued behind the proof. */
+  | { stage: "admitted"; jobId: string; followUpJobId?: string }
   | JobSendPhase
   | { stage: "landed"; txHash: string | null }
   | { stage: "queued"; reason?: string }
@@ -278,8 +318,12 @@ export function useCommitmentJobs(options: { chainId?: number } = {}) {
     mutationFn: async ({ report, ...input }: CommitmentJobVariables) => {
       if (!viewer) throw new Error("Sign in before making a commitment");
       const jobId = await queueAct(input as CommitmentJobInput, viewer, chainId);
+      const followUpJobId =
+        input.act === "evidence" && input.sendToo
+          ? await queueSendAfterProof(input.payload, jobId, viewer, chainId)
+          : undefined;
       // From here the act is durable: whatever the send does, the queue holds it.
-      tell(report, { stage: "admitted", jobId });
+      tell(report, { stage: "admitted", jobId, ...(followUpJobId ? { followUpJobId } : {}) });
       await sendFromTap(jobId, sender, report, { keepDeclined: input.act === "evidence" });
       return jobId;
     },
@@ -297,10 +341,32 @@ export function useCommitmentJobs(options: { chainId?: number } = {}) {
     },
   });
 
+  /**
+   * Send an act already in the queue as the person's own tap: Add and Send's
+   * second act once its proof has landed. A wallet reader is asked now; anyone
+   * else's goes with the background flush. Resolves whether it landed here or
+   * was left queued; rejects when it failed or was declined (and dropped).
+   */
+  const sendQueued = useCallback(
+    async ({ jobId, commitmentId }: { jobId: string; commitmentId: bigint }) => {
+      let outcome: "landed" | "queued" = "queued";
+      await sendFromTap(jobId, sender, (event) => {
+        if (event.stage === "landed") outcome = "landed";
+      });
+      await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
+      await queryClient.invalidateQueries({
+        queryKey: commitmentPoolingKeys.commitment(chainId, commitmentId),
+      });
+      return outcome;
+    },
+    [chainId, queryClient, sender]
+  );
+
   return {
     // `mutateAsync` is already a stable reference, so wrapping it would add a
     // memo that guards nothing.
     enqueue: mutation.mutateAsync,
+    sendQueued,
     isPending: mutation.isPending,
     error: mutation.error,
     /** A wallet reader's act is sent from the tap; anyone else's by the background flush. */
