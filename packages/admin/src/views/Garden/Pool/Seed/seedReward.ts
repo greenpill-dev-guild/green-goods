@@ -7,6 +7,7 @@
  */
 
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import { formatGoodDollars, formatUsd } from "../poolPresentation";
 import {
   type GoodDollarPriceState,
   goodDollarWeiToUsdCents,
@@ -20,22 +21,7 @@ type FormatMessage = (
   values?: Record<string, string | number>
 ) => string;
 
-const WEI_PER_G = 10n ** 18n;
 const SECONDS_PER_DAY = 86_400;
-
-/** Cents as dollars, the way the steward's locale writes money. */
-export function formatUsd(cents: bigint, locale: string): string {
-  return new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(
-    Number(cents) / 100
-  );
-}
-
-/** A G$ amount in whole G$, grouped the way the steward's locale groups numbers. */
-export function formatGoodDollars(wei: bigint, locale: string): string {
-  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(
-    Number(wei / WEI_PER_G)
-  );
-}
 
 /** The dollars an answer's reward was typed in, when it was typed in dollars. */
 export function rewardCentsOf(

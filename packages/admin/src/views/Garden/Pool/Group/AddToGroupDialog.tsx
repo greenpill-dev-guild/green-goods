@@ -14,7 +14,7 @@ import { AdminTextField } from "@/components/AdminTextField";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { GardenPoolTarget } from "../PoolTarget";
 import { SeedFlowNote } from "../Seed/SeedFlowFooter";
-import { formatUsd } from "../Seed/seedReward";
+import { formatUsd } from "../poolPresentation";
 import { addToGroupStatus } from "./addToGroupStatus";
 
 /** How many a steward usually adds at once, as the seeding flow suggests. */

@@ -311,6 +311,43 @@ export function formatUnixDate(
   );
 }
 
+const WEI_PER_G = 10n ** 18n;
+
+/** Cents as dollars, the way the steward's locale writes money. */
+export function formatUsd(cents: bigint, locale: string): string {
+  return new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(
+    Number(cents) / 100
+  );
+}
+
+/**
+ * Dollars for a summary figure read at today's rate: whole dollars from $100,
+ * where cents would claim a precision the rate doesn't have, cents below.
+ */
+export function formatUsdSummary(cents: bigint, locale: string): string {
+  const digits = cents >= 10_000n ? 0 : 2;
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(Number(cents) / 100);
+}
+
+/** A G$ amount in whole G$, grouped the way the steward's locale groups numbers. */
+export function formatGoodDollars(wei: bigint, locale: string): string {
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(
+    Number(wei / WEI_PER_G)
+  );
+}
+
+/** A G$ amount shortened the way the locale shortens numbers (12.4M), for a figure beside dollars. */
+export function formatGoodDollarsCompact(wei: bigint, locale: string): string {
+  return new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(
+    Number(wei / WEI_PER_G)
+  );
+}
+
 /**
  * The Confirm queue's eligibility chip: ordinary, this garden's fallback, or
  * the Green Goods team's. Kept beside the other pool chips so the queue and

@@ -2,18 +2,10 @@ import {
   COMMITMENT_COMPOSER_DEFAULTS,
   useCommitmentComposerForm,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
-import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import type { Meta, StoryObj } from "@storybook/react";
-import { STORY_ANA, STORY_JOAO, STORY_MARIA } from "../poolStoryFixtures";
+import { STORY_ANA, STORY_JOAO, STORY_MARIA, STORY_PRICE_STATE } from "../poolStoryFixtures";
 import type { SeedMember } from "./SeedConfirmerList";
 import { SeedStepProof, type SeedStepProofProps } from "./SeedStepProof";
-
-/** The reserve's price on 2026-09-30: $5.00 is about 38,866 G$. */
-const PRICE: GoodDollarPriceState = {
-  status: "ready",
-  price: 128_647_930_734_508n,
-  readAt: 1_790_000_000_000,
-};
 
 const MEMBERS: SeedMember[] = [
   { address: STORY_MARIA, role: "steward" },
@@ -56,7 +48,7 @@ const meta: Meta<typeof SeedStepProof> = {
     members: MEMBERS,
     protocolRegistered: true,
     settlementActive: true,
-    price: PRICE,
+    price: STORY_PRICE_STATE,
   },
   render: (args) => <SeedStepProofWithForm {...args} />,
   decorators: [

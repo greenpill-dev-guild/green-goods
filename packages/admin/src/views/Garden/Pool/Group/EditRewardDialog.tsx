@@ -15,7 +15,8 @@ import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { GardenPoolTarget } from "../PoolTarget";
-import { formatGoodDollars, formatUsd, priceUnavailableReason } from "../Seed/seedReward";
+import { formatGoodDollars, formatUsd } from "../poolPresentation";
+import { priceUnavailableReason } from "../Seed/seedReward";
 import { editRewardStatus, editRewardSummary } from "./editRewardStatus";
 
 /** A term edit is cheap, so up to this many go in one wallet approval (`reward-edit`). */

@@ -2,16 +2,9 @@ import {
   COMMITMENT_COMPOSER_DEFAULTS,
   useCommitmentComposerForm,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
-import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import type { Meta, StoryObj } from "@storybook/react";
+import { STORY_PRICE_STATE } from "../poolStoryFixtures";
 import { SeedRewardSection, type SeedRewardSectionProps } from "./SeedRewardSection";
-
-/** The reserve's price on 2026-09-30: $5.00 is about 38,866 G$. */
-const PRICE: GoodDollarPriceState = {
-  status: "ready",
-  price: 128_647_930_734_508n,
-  readAt: 1_790_000_000_000,
-};
 
 /** The section reads and writes the real composer form, exactly as the flow does. */
 function SeedRewardSectionWithForm(args: SeedRewardSectionProps) {
@@ -36,7 +29,7 @@ const meta: Meta<typeof SeedRewardSection> = {
     busy: false,
     errorOf: () => undefined,
     settlementActive: true,
-    price: PRICE,
+    price: STORY_PRICE_STATE,
     count: 10,
   },
   render: (args) => <SeedRewardSectionWithForm {...args} />,

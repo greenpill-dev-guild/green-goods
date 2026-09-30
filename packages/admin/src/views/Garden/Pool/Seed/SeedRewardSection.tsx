@@ -9,13 +9,8 @@ import { useIntl } from "react-intl";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminTextField } from "@/components/AdminTextField";
-import {
-  carriedOverUsd,
-  formatGoodDollars,
-  formatUsd,
-  priceUnavailableReason,
-  rewardCentsOf,
-} from "./seedReward";
+import { formatGoodDollars, formatUsd } from "../poolPresentation";
+import { carriedOverUsd, priceUnavailableReason, rewardCentsOf } from "./seedReward";
 import type { SeedFieldError } from "./seedStepModel";
 
 export interface SeedRewardSectionProps {

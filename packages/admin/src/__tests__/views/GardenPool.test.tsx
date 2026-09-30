@@ -49,6 +49,11 @@ vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: null }),
 }));
 
+// Pool Funding reads dollars at today's G$ price; the facts here are the pool's.
+vi.mock("@green-goods/shared/hooks/blockchain/useGoodDollarPrice", () => ({
+  useGoodDollarPrice: () => ({ state: { status: "loading" }, readNow: vi.fn() }),
+}));
+
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
   useMediaQuery: () => true,
 }));
@@ -204,6 +209,35 @@ function commitment(overrides: Partial<CommitmentReadModel> = {}): CommitmentRea
     metadataCID: "bafy-1",
     ...overrides,
   });
+}
+
+/** Someone asking to take up commitment 2, still pending. */
+function pendingClaim(): PoolConsoleController["claims"][number] {
+  return {
+    claim: {
+      id: `42161-2-${CLAIMANT}`,
+      chainId: 42161,
+      commitmentId: 2n,
+      claimant: CLAIMANT,
+      requestSeen: true,
+      requestedBy: CLAIMANT,
+      claimType: "INDIVIDUAL",
+      gardenContext: null,
+      state: "PENDING",
+      reasonCID: null,
+      resolutionCode: null,
+      requestedAt: 1_700_000_000,
+      resolvedAt: null,
+      updatedAt: 1_700_000_100,
+    },
+    commitment: commitment({
+      id: "42161-2",
+      commitmentId: 2n,
+      onchainState: "REQUESTED",
+      state: "REQUESTED",
+      metadataCID: "bafy-2",
+    }),
+  };
 }
 
 type ControllerOverrides = Omit<Partial<PoolConsoleController>, "pool" | "poolId"> & {
@@ -514,33 +548,7 @@ describe("GardenPoolTab (W7)", () => {
         isLoading: false,
         isUnavailable: false,
       },
-      claims: [
-        {
-          claim: {
-            id: `42161-2-${CLAIMANT}`,
-            chainId: 42161,
-            commitmentId: 2n,
-            claimant: CLAIMANT,
-            requestSeen: true,
-            requestedBy: CLAIMANT,
-            claimType: "INDIVIDUAL",
-            gardenContext: null,
-            state: "PENDING",
-            reasonCID: null,
-            resolutionCode: null,
-            requestedAt: 1_700_000_000,
-            resolvedAt: null,
-            updatedAt: 1_700_000_100,
-          },
-          commitment: commitment({
-            id: "42161-2",
-            commitmentId: 2n,
-            onchainState: "REQUESTED",
-            state: "REQUESTED",
-            metadataCID: "bafy-2",
-          }),
-        },
-      ],
+      claims: [pendingClaim()],
     });
     renderTab();
     expect(screen.getByText(/seasonal flooding, back after the rains/i)).toBeInTheDocument();
@@ -594,33 +602,7 @@ describe("GardenPoolTab (W7)", () => {
 
   it("accepts a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
     mocks.controller = controller({
-      claims: [
-        {
-          claim: {
-            id: `42161-2-${CLAIMANT}`,
-            chainId: 42161,
-            commitmentId: 2n,
-            claimant: CLAIMANT,
-            requestSeen: true,
-            requestedBy: CLAIMANT,
-            claimType: "INDIVIDUAL",
-            gardenContext: null,
-            state: "PENDING",
-            reasonCID: null,
-            resolutionCode: null,
-            requestedAt: 1_700_000_000,
-            resolvedAt: null,
-            updatedAt: 1_700_000_100,
-          },
-          commitment: commitment({
-            id: "42161-2",
-            commitmentId: 2n,
-            onchainState: "REQUESTED",
-            state: "REQUESTED",
-            metadataCID: "bafy-2",
-          }),
-        },
-      ],
+      claims: [pendingClaim()],
       titles: new Map([["bafy-2", { version: 1, title: "Ride to the market on Saturday" }]]),
     });
     renderTab();
@@ -718,10 +700,10 @@ describe("GardenPoolTab (W7)", () => {
     });
     renderTab();
     const stats = screen.getByRole("list", { name: /what needs you/i });
-    // No claim waits, so its zero is text rather than a way in.
-    expect(within(stats).getByText(/claims waiting/i)).toBeInTheDocument();
+    // Nobody waits, so its zero is text rather than a way in.
+    expect(within(stats).getByText(/waiting for approval/i)).toBeInTheDocument();
     expect(
-      within(stats).queryByRole("button", { name: /claims waiting/i })
+      within(stats).queryByRole("button", { name: /waiting for approval/i })
     ).not.toBeInTheDocument();
 
     const list = screen.getByTestId("pool-commitments");
@@ -733,6 +715,24 @@ describe("GardenPoolTab (W7)", () => {
     fireEvent.click(within(stats).getByRole("button", { name: /1\s*past due/i }));
     expect(within(list).queryByTestId("pool-commitment-2")).not.toBeInTheDocument();
     expect(within(list).getByTestId("pool-commitment-3")).toBeInTheDocument();
+  });
+
+  it("keeps Waiting for approval, Pool Status and Pool Funding in the right column, in that order", () => {
+    mocks.controller = controller({
+      claims: [pendingClaim()],
+      titles: new Map([["bafy-2", { version: 1, title: "Ride to the market on Saturday" }]]),
+    });
+    renderTab();
+    const aside = screen.getByRole("complementary");
+    const cards = Array.from(aside.querySelectorAll("[data-component]"), (node) =>
+      node.getAttribute("data-component")
+    ).filter((name) =>
+      ["PoolClaimsCard", "PoolStatusCard", "PoolFundingSection"].includes(name ?? "")
+    );
+    expect(cards).toEqual(["PoolClaimsCard", "PoolStatusCard", "PoolFundingSection"]);
+    // The promises stay on the left, so nothing on the right moves them.
+    expect(within(aside).queryByTestId("pool-commitments")).not.toBeInTheDocument();
+    expect(screen.getByTestId("pool-commitments")).toBeInTheDocument();
   });
 
   it("says on its status card when the pool is the protocol's", () => {

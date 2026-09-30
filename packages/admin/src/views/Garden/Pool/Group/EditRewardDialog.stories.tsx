@@ -1,21 +1,12 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Meta, StoryObj } from "@storybook/react";
-import type { QueryKey } from "@tanstack/react-query";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
-import { STORYBOOK_NOW_SECONDS } from "../../../../../../shared/.storybook/fixtures";
-import { STORY_GARDEN } from "../poolStoryActors";
+import { STORY_GARDEN, STORY_PRICE_SEED } from "../poolStoryFixtures";
 import { EditRewardDialog } from "./EditRewardDialog";
-
-/** The reserve's price on 2026-09-30, read at Storybook's frozen now: $3.00 is about 23,319 G$. */
-const PRICE_SEED: readonly [QueryKey, unknown] = [
-  queryKeys.tokens.goodDollarPrice(),
-  { price: 128_647_930_734_508n, readAt: STORYBOOK_NOW_SECONDS * 1000 },
-];
 
 const meta: Meta<typeof EditRewardDialog> = {
   title: "Admin/Pool/EditRewardDialog",
@@ -46,7 +37,8 @@ const meta: Meta<typeof EditRewardDialog> = {
   },
   decorators: [
     withAdminIdentity,
-    withSeededQueryClient([...STORYBOOK_ADMIN_SHELL_SEEDS, PRICE_SEED]),
+    // At the story price, $3.00 is about 23,319 G$.
+    withSeededQueryClient([...STORYBOOK_ADMIN_SHELL_SEEDS, STORY_PRICE_SEED]),
   ],
 };
 

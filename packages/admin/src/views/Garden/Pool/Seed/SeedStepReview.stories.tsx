@@ -1,12 +1,11 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type { CreationSendMode } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import { COMMITMENT_COMPOSER_DEFAULTS } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
-import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import type { Action } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
 import { STORYBOOK_ADMIN_ACTIONS } from "../../../../../../shared/.storybook/adminFixtures";
-import { STORY_JOAO, STORY_MARIA } from "../poolStoryFixtures";
+import { STORY_JOAO, STORY_MARIA, STORY_PRICE_STATE } from "../poolStoryFixtures";
 import { SeedStepReview, type SeedStepReviewProps } from "./SeedStepReview";
 import { seedStatusView } from "./seedStatus";
 import {
@@ -30,12 +29,6 @@ const CYCLE_OPTIONS: SeedCycleOption[] = [
   { value: "0", label: "No cycle (runs on its own)" },
 ];
 
-/** The reserve's price on 2026-09-30: $5.00 is about 38,866 G$. */
-const PRICE: GoodDollarPriceState = {
-  status: "ready",
-  price: 128_647_930_734_508n,
-  readAt: 1_790_000_000_000,
-};
 const NOW = 1_790_000_000_000;
 const noop = () => undefined;
 
@@ -104,7 +97,7 @@ const meta: Meta<ReviewStoryArgs> = {
     chainId: DEFAULT_CHAIN_ID,
     cycleOptions: CYCLE_OPTIONS,
     protocolRegistered: true,
-    price: PRICE,
+    price: STORY_PRICE_STATE,
     capacity: { cap: 3, room: 3, full: false, over: false },
     submitError: null,
     queueUnavailable: false,
