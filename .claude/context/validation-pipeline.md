@@ -175,6 +175,11 @@ Comparison scope comes from the live PR base when available, otherwise `origin/d
 successful exact post-commit receipt is reusable by the pre-push hook. Commit, working-tree,
 command, policy, toolchain, or environment drift invalidates it.
 
+When direct proof needs explicit paths, pass the same whitespace-separated `surface:path` entries
+to the hook through `GREEN_GOODS_PUSH_TEST_PATHS`, for example:
+`GREEN_GOODS_PUSH_TEST_PATHS="client:src/__tests__/views/PublicGardenDetail.test.tsx shared:src/__tests__/i18n/locale-coverage.test.ts" git push origin <branch>`.
+The hook forwards each entry as `--test-path` and retains every selected gate.
+
 Pre-commit runs `lint-staged` only. Pre-push runs this ready-for-CI gate. Per-file formatting and
 critical-surface warnings may run during editing, but package-wide validation is owned by the
 coordinating agent rather than edit or task-completion hooks.
