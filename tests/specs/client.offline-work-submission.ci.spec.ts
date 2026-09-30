@@ -105,10 +105,12 @@ test.describe("Offline Work Submission CI Tests", () => {
     const dashboard = page.getByRole("dialog");
     await expect(dashboard).toBeVisible({ timeout: 15000 });
     // Exactly one queued submission. Offline the header line reads "Offline · {time}"
-    // once any read has been saved, so count the work itself rather than the header.
-    await expect(dashboard.getByText("You submitted")).toHaveCount(1, { timeout: 15000 });
-    await expect(dashboard.getByText("You submitted")).toBeVisible();
-    await expect(dashboard.getByText("To upload", { exact: true })).toBeVisible();
+    // once any read has been saved, so count the Pending rows waiting to upload instead,
+    // each with its pill and the line saying what happens once connected.
+    const queued = dashboard.locator('[data-component="PendingCard"][data-kind="upload"]');
+    await expect(queued).toHaveCount(1, { timeout: 15000 });
+    await expect(queued.getByText("To upload", { exact: true })).toBeVisible();
+    await expect(queued).toContainText("Uploads when you're connected");
     // The dashboard is a modal sheet: while it is open the page, the offline bar
     // included, is hidden from assistive tech, so look for the bar itself.
     await expect(
@@ -138,8 +140,8 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(page.getByRole("link", { name: /Home/ })).toContainText("1");
     await yourWork.click();
     await expect(dashboard).toBeVisible({ timeout: 15000 });
-    await expect(dashboard.getByText("You submitted")).toHaveCount(1, { timeout: 15000 });
-    await expect(dashboard.getByText("To upload", { exact: true })).toBeVisible();
+    await expect(queued).toHaveCount(1, { timeout: 15000 });
+    await expect(queued.getByText("To upload", { exact: true })).toBeVisible();
     // Background preparation starts once the connection is confirmed. The fixture has
     // no media-upload service, so the work remains queued with the preparation action.
     await expect(page.getByTestId("upload-all")).toHaveText("Upload all");
