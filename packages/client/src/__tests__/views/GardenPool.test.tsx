@@ -21,6 +21,7 @@ import {
   isSettledCommitmentState,
   selectCommitmentSeat,
 } from "@green-goods/shared/commitment-pooling";
+import { groupCommitmentsForDisplay } from "@green-goods/shared/modules/commitment-pooling/display-groups";
 import { renderWithProviders, screen } from "../test-utils";
 
 /** The tab navigates into commitment detail, so it needs a router around it. */
@@ -233,6 +234,16 @@ vi.mock(
   }
 );
 
+// The list's folding is proven in Shared (group-browsing); here each row stays
+// its own entry unless a case hands the tab a group.
+const mockUsePoolPromiseEntries = vi.fn();
+vi.mock("@green-goods/shared/hooks/client-ui/pool/usePromiseGroups", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("@green-goods/shared/hooks/client-ui/pool/usePromiseGroups")
+  >()),
+  usePoolPromiseEntries: (input: unknown) => mockUsePoolPromiseEntries(input),
+}));
+
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
   useCommitments: () => mockUseCommitments(),
@@ -268,6 +279,49 @@ describe("GardenPool", () => {
     mockFlush.mockResolvedValue(undefined);
     mockUseCommitments.mockReturnValue(commitmentsResult());
     mockUseGardenPoolController.mockImplementation(useGardenPoolControllerMock);
+    mockUsePoolPromiseEntries.mockImplementation(({ rows }: { rows: unknown[] }) =>
+      rows.map((row) => ({ kind: "single", row }))
+    );
+  });
+
+  it("folds a set's copies into one group row that counts them and opens the group", async () => {
+    const user = userEvent.setup();
+    const states = [
+      ...Array(4).fill(["REQUESTED", "REQUESTED"]),
+      ...Array(3).fill(["ACCEPTED", "ACTIVE"]),
+      ...Array(3).fill(["FULFILLED", "FULFILLED"]),
+    ] as Array<[string, CommitmentDerivedState]>;
+    const copies = states.map(([onchainState, derivedState], index) =>
+      commitment({
+        id: `42161-${index + 20}`,
+        commitmentId: BigInt(index + 20),
+        direction: "REQUEST",
+        onchainState,
+        derivedState,
+        metadataCID: "set-cid",
+      })
+    );
+    const [group] = groupCommitmentsForDisplay({
+      commitments: copies as never,
+      metadataByCID: new Map([
+        [
+          "set-cid",
+          { version: 1, title: "Water the orchard", displayGroup: { version: 1, id: "set-1" } },
+        ],
+      ]),
+    });
+    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: copies }));
+    mockUsePoolPromiseEntries.mockReturnValue([{ kind: "group", group }]);
+
+    render(<GardenPool pool={pool()} />);
+
+    const row = screen.getByRole("button", { name: /A group of 10 separate promises/ });
+    expect(row).toHaveTextContent("4 available · 3 in progress · 3 kept");
+    expect(screen.queryAllByRole("progressbar")).toHaveLength(0);
+    await user.click(row);
+    expect(mockNavigate).toHaveBeenCalledWith("commitments/group/set-1", {
+      state: { groupKey: group?.kind === "group" ? group.key : undefined },
+    });
   });
 
   const creation = (overrides: Record<string, unknown> = {}) => ({

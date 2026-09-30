@@ -418,6 +418,8 @@
     "./hooks/client-ui/commitment/usePendingProof": "./src/hooks/client-ui/commitment/usePendingProof.ts",
     "./hooks/client-ui/commitment/useProofComposerController": "./src/hooks/client-ui/commitment/useProofComposerController.ts",
     "./hooks/client-ui/pool/useGardenPoolController": "./src/hooks/client-ui/pool/useGardenPoolController.ts",
+    "./hooks/client-ui/pool/usePromiseGroupController": "./src/hooks/client-ui/pool/usePromiseGroupController.ts",
+    "./hooks/client-ui/pool/usePromiseGroups": "./src/hooks/client-ui/pool/usePromiseGroups.ts",
     "./hooks/client-ui/profile/useUsernameController": "./src/hooks/client-ui/profile/useUsernameController.ts",
     "./hooks/client-ui/wallet/useCeloWallet": "./src/hooks/client-ui/wallet/useCeloWallet.ts",
     "./hooks/client-ui/wallet/useSendFlowController": "./src/hooks/client-ui/wallet/useSendFlowController.ts",

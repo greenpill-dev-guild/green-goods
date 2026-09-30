@@ -1424,6 +1424,8 @@
         "packages/shared/src/hooks/client-ui/commitment/usePendingProof.ts",
         "packages/shared/src/hooks/client-ui/commitment/useProofComposerController.ts",
         "packages/shared/src/hooks/client-ui/pool/useGardenPoolController.ts",
+        "packages/shared/src/hooks/client-ui/pool/useGroupTakeUp.ts",
+        "packages/shared/src/hooks/client-ui/pool/usePromiseGroupController.ts",
         "packages/shared/src/hooks/client-ui/profile/useUsernameController.ts",
         "packages/shared/src/hooks/client-ui/work/useCommunityGardenOnramp.ts",
         "packages/shared/src/hooks/client-ui/work/useWorkDetailController.ts",

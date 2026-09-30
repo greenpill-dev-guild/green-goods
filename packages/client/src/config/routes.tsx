@@ -229,6 +229,15 @@ const combinedAppRoutes = [
                             }),
                           },
                           {
+                            // A group of promises, by its display-group id; static
+                            // beside the dynamic sibling, so "group" is never an id.
+                            path: "commitments/group/:groupId",
+                            lazy: async () => ({
+                              Component: (await import("@/views/Home/Garden/PromiseGroup"))
+                                .GardenPromiseGroup,
+                            }),
+                          },
+                          {
                             path: "commitments/:commitmentId",
                             lazy: async () => ({
                               Component: (await import("@/views/Home/Garden/Commitment"))

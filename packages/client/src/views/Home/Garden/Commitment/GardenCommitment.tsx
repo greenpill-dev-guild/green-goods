@@ -25,6 +25,7 @@ import { ConfirmSheet } from "./ConfirmSheet";
 import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
+import { PromiseGroupNote } from "./PromiseGroupNote";
 import { QueuedActNotice } from "./QueuedActRow";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
@@ -266,6 +267,12 @@ export function GardenCommitment() {
           joinable={controller.joinable}
           viewer={controller.viewer}
           stewards={stewards}
+        />
+        <PromiseGroupNote
+          chainId={controller.chainId}
+          commitment={commitment}
+          metadata={controller.metadata}
+          viewer={controller.viewer}
         />
         {showJoinToAct ? (
           <JoinToAct garden={controller.membership.garden} isOnline={controller.isOnline} />
