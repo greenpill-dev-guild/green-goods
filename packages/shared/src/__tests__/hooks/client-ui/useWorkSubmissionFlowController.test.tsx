@@ -18,6 +18,9 @@ const mocks = vi.hoisted(() => ({
   loadShareTarget: vi.fn(),
   normalizeWorkMediaFiles: vi.fn(),
   saveOnExit: vi.fn(),
+  autoSaveFields: null as null | Record<string, unknown>,
+  setFlowState: vi.fn(),
+  linkCleared: false,
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
   setImages: vi.fn(),
@@ -87,7 +90,10 @@ vi.mock("../../../hooks/work/useDraftAutoSave", () => ({
     missingAttachments: [],
     removeMissingAttachment: vi.fn(),
   }),
-  useDraftAutoSave: () => ({ saveOnExit: mocks.saveOnExit }),
+  useDraftAutoSave: (fields: Record<string, unknown>) => {
+    mocks.autoSaveFields = fields;
+    return { saveOnExit: mocks.saveOnExit };
+  },
 }));
 
 vi.mock("../../../modules/app/share-target", () => ({
@@ -139,8 +145,12 @@ vi.mock("../../../stores/useWorkFlowStore", () => ({
         setGardenAddress: vi.fn(),
         audioNotes: [],
         setAudioNotes: vi.fn(),
+        draftLinkCleared: mocks.linkCleared,
       }),
-    { getState: () => ({ audioNotes: [], reset: mocks.reset, setActionUID: vi.fn() }) }
+    {
+      getState: () => ({ audioNotes: [], reset: mocks.reset, setActionUID: vi.fn() }),
+      setState: mocks.setFlowState,
+    }
   ),
 }));
 
@@ -290,6 +300,8 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.normalizeWorkMediaFiles.mockReset();
     mocks.saveOnExit.mockReset();
     mocks.saveOnExit.mockResolvedValue("draft-1");
+    mocks.autoSaveFields = null;
+    mocks.linkCleared = false;
     mocks.toastError.mockReset();
     navigateShareRoute = null;
     exitPath = "";
@@ -688,6 +700,27 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.joinState = { isJoining: true, joiningGardenId };
 
     expect(renderFlow().result.current.isJoiningCommunityGarden).toBe(joining);
+  });
+
+  it("saves the promise with the draft, and taking it off as an unlink", async () => {
+    const intent = commitmentLinkIntent;
+    mocks.actionUID = intent.actionUID;
+    mocks.gardenAddress = intent.garden;
+    mocks.choices = [intent];
+    const view = renderFlow();
+    // A page without a promise leaves the draft's own alone.
+    expect(mocks.autoSaveFields?.linkIntent).toBeUndefined();
+
+    act(() => view.result.current.selectLinkIntent(intent));
+    await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+    expect(mocks.setFlowState).toHaveBeenLastCalledWith({ draftLinkCleared: false });
+    expect(mocks.autoSaveFields?.linkIntent).toEqual({ ...intent, commitmentId: "9" });
+
+    act(() => view.result.current.clearLinkIntent());
+    expect(mocks.setFlowState).toHaveBeenLastCalledWith({ draftLinkCleared: true });
+    mocks.linkCleared = true;
+    view.rerender();
+    expect(mocks.autoSaveFields?.linkIntent).toBeNull();
   });
 
   it("links the original work when the current flow selection changes during upload", async () => {

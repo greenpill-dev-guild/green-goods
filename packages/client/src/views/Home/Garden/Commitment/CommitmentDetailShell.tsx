@@ -10,6 +10,8 @@ export interface CommitmentDetailShellProps {
   children: React.ReactNode;
   onBack: () => void;
   title?: string;
+  /** A line under the title, drawn by the caller (it may have nothing to say yet). */
+  subtitle?: React.ReactNode;
   bar?: React.ReactNode;
 }
 
@@ -23,19 +25,20 @@ export function CommitmentDetailShell({
   children,
   onBack,
   title,
+  subtitle,
   bar,
 }: CommitmentDetailShellProps) {
   // TopNav owns the back affordance only; it takes no title of its own, so the
-  // commitment names itself in its own heading rather than in a tooltip.
+  // promise names itself in its own heading, whole: the title wraps rather than
+  // cutting off.
   return (
     <div className="w-full">
       <TopNav onBackClick={onBack} overlay />
       <div className="space-y-4 p-4 pt-20">
         {title ? (
-          <h1 className="truncate text-lg font-medium text-text-strong-950" title={title}>
-            {title}
-          </h1>
+          <h1 className="text-lg font-medium leading-7 text-text-strong-950">{title}</h1>
         ) : null}
+        {title ? subtitle : null}
         {children}
       </div>
       {bar ? <FixedBar>{bar}</FixedBar> : null}

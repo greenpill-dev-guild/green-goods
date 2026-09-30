@@ -103,7 +103,13 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           data-testid={`tab-${tab.id}`}
         >
           {tab.icon && (
-            <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4">
+            // The active label takes the contrast-safe green; its icon keeps the bright accent (DL-053).
+            <span
+              className={cn(
+                "flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4",
+                activeTab === tab.id && pwaStatusStyles.primary.icon
+              )}
+            >
               {tab.icon}
             </span>
           )}

@@ -36,6 +36,8 @@ export {
 } from "./useCommitmentComposerForm";
 export type { CommitmentCycleNameMap } from "./useCommitmentCycleNames";
 export { useCommitmentCycleNames } from "./useCommitmentCycleNames";
+export type { CommitmentCycleLabel } from "./useCommitmentCycleLabel";
+export { useCommitmentCycleLabel } from "./useCommitmentCycleLabel";
 export type { CommitmentMetadataMap } from "./useCommitmentMetadata";
 export {
   useCommitmentMetadata,

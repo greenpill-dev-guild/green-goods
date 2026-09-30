@@ -111,8 +111,9 @@ const allowedIdenticalLocalizedKeys = new Set([
   "public.vaults.cardEndow.positionHolder",
   "public.vaults.cardEndow.status.deposit",
   // Portuguese keeps "Offline" as the product uses it elsewhere ("Offline · Salvo {when}"),
-  // and the dashboard's compact line drops "Saved" in every language, English included.
-  "app.workDashboard.offlineSaved",
+  // and the compact line Your Work and a garden's Promises share drops "Saved" in every
+  // language, English included.
+  "app.offline.savedAt",
 ]);
 const allowedIdenticalProductValues = new Set([
   "%",

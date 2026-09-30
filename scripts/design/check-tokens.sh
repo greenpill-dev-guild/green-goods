@@ -59,6 +59,10 @@ EXPECTED_TOKENS=(
   "material|--blur-material-regular"
   "material|--blur-material-thick"
   "material|--border-material"
+  # Contrast-safe colour roles (DL-053)
+  "color|--primary-on-surface"
+  "color|--error-action"
+  "color|--error-action-hover"
   # Runtime radius aliases
   "radius|--radius-md"
   "radius|--radius-squircle"

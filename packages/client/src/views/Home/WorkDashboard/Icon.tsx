@@ -1,6 +1,6 @@
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
-import { usePendingWorksCount } from "@green-goods/shared/hooks/work/usePendingWorksCount";
+import { useYourWorkCount } from "@green-goods/shared/hooks/work/useYourWorkCount";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiTaskLine } from "@remixicon/react";
@@ -34,7 +34,7 @@ interface WorkDashboardIconProps {
 export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className }) => {
   const intl = useIntl();
   const isOnline = useOnlineStatus();
-  const { data: pendingCount = 0 } = usePendingWorksCount();
+  const { count: pendingCount } = useYourWorkCount();
   const [isDashboardReady, setIsDashboardReady] = React.useState(false);
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
