@@ -1,5 +1,11 @@
+import { Telegram } from "telegraf";
 import type { Chain } from "viem";
 import type { TrustedProxyConfig } from "../api/public-protection";
+import {
+  createTelegramMediaFetcher,
+  createTelegramTransport,
+  telegramRealm,
+} from "../platforms/telegram-reporting";
 import { createLogger } from "../services/logger";
 import { channelOfRealm, type ReportingChannel } from "../services/reporting/channels";
 import { loadReportingConfig } from "../services/reporting/config";
@@ -19,11 +25,27 @@ export interface TransportAdapter {
 type ChannelConnector = (env: Record<string, string | undefined>) => TransportAdapter | null;
 
 /**
- * The chat channel adapters in this build. WhatsApp and Telegram (on the existing bot) register
- * here in the next stack PR. An available adapter takes reports only while its channel's operator
- * control is on (`acceptChannelEvent`); the synthetic test transport is never registered here.
+ * The chat channel adapters in this build. Telegram runs on the Agent's existing bot whenever its
+ * Telegram runtime runs; WhatsApp registers here once its business account is restored. An
+ * available adapter takes reports only while its channel's operator control is on
+ * (`acceptChannelEvent`); the synthetic test transport is never registered here.
  */
-const CHANNEL_ADAPTERS: Partial<Record<ReportingChannel, ChannelConnector>> = {};
+const CHANNEL_ADAPTERS: Partial<Record<ReportingChannel, ChannelConnector>> = {
+  telegram: (env) => {
+    const token =
+      env.AGENT_DISABLE_TELEGRAM_RUNTIME === "true" ? undefined : env.TELEGRAM_BOT_TOKEN;
+    const realm = token ? telegramRealm(token) : null;
+    if (!token || !realm) return null;
+    const telegram = new Telegram(token);
+    return {
+      transport: createTelegramTransport(telegram),
+      mediaFetcher: createTelegramMediaFetcher(telegram, realm),
+    };
+  },
+};
+
+/** A started reporting runtime and the chat channels it serves. */
+export type StartedReporting = ReportingRuntime & { channels: ReadonlySet<ReportingChannel> };
 
 /** Sends each reply and downloads each file through the adapter of the channel its realm names. */
 export function routeChannels(
@@ -65,7 +87,7 @@ export function startReporting(input: {
   /** The directory of the Agent's database; reporting data lives beside it. */
   dataDir: string;
   trustedProxy?: TrustedProxyConfig;
-}): ReportingRuntime | null {
+}): StartedReporting | null {
   const config = loadReportingConfig(input.env, {
     isProduction: input.isProduction,
     dataDir: input.dataDir,
@@ -98,5 +120,5 @@ export function startReporting(input: {
     ...(input.trustedProxy ? { trustedProxy: input.trustedProxy } : {}),
   });
   runtime.start();
-  return runtime;
+  return { ...runtime, channels: new Set(adapters.keys()) };
 }
