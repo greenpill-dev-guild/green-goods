@@ -5240,7 +5240,7 @@
   "public.gardenDetail.notes.details": "Recorded details",
   "public.gardenDetail.notes.detailsLoading": "Loading work details…",
   "public.gardenDetail.notes.detailsUnavailable": "Work details are not available right now.",
-  "public.gardenDetail.notes.empty": "No field notes yet. They appear when Work is submitted.",
+  "public.gardenDetail.notes.empty": "No field notes yet. They appear when Work is approved.",
   "public.gardenDetail.notes.heading": "Latest field notes",
   "public.gardenDetail.notes.helper": "What gardeners have logged from the field, most recent first.",
   "public.gardenDetail.notes.justNow": "Just now",

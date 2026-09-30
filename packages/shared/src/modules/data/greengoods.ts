@@ -1,5 +1,9 @@
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { isGardenHiddenEverywhere } from "../../config/garden-visibility";
+import {
+  UNKNOWN_GARDEN_LOCATION,
+  UNNAMED_GARDEN_NAME,
+  withoutHiddenGardens,
+} from "../../config/garden-visibility";
 import {
   type Action,
   type ActionContentLocale,
@@ -379,9 +383,9 @@ export function gardenFromRow(garden: IndexerGardenRow, domainMask: number): Gar
     chainId: garden.chainId,
     tokenAddress: garden.tokenAddress as Address,
     tokenID: BigInt(garden.tokenID),
-    name: garden.name || "Unnamed Garden",
+    name: garden.name || UNNAMED_GARDEN_NAME,
     description: garden.description || "",
-    location: garden.location || "Unknown Location",
+    location: garden.location || UNKNOWN_GARDEN_LOCATION,
     bannerImage,
     gardeners: (garden.gardeners || []) as Address[],
     // The indexer field keeps the deployed `operators` wire name.
@@ -422,7 +426,7 @@ export async function getGardens(reader: GraphQLReader = greenGoodsIndexer): Pro
     // Curated out of every surface — see config/garden-visibility.ts. Filtering
     // here rather than per-view keeps the PWA and admin consistent with the
     // website for gardens that should not exist anywhere in Green Goods.
-    const visibleGardens = data.Garden.filter((garden) => !isGardenHiddenEverywhere(garden.id));
+    const visibleGardens = withoutHiddenGardens(data.Garden);
 
     return visibleGardens.map((garden) =>
       gardenFromRow(garden, domainMap.get(garden.id.toLowerCase()) ?? 0)

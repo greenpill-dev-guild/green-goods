@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { type Abi } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { withoutHiddenGardens } from "../../config/garden-visibility";
 import { createPublicClientForChain } from "../../config/pimlico";
 import type { Address } from "../../types/domain";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
@@ -43,6 +44,8 @@ export function useReviewerGardenIds(address: Address | undefined): UseReviewerG
   const { data: gardens = [] } = useQuery({
     queryKey: gardensKeys.byChain(DEFAULT_CHAIN_ID),
     queryFn: () => getGardens(),
+    // The list useGardens reads; a restored copy can hold a garden hidden since.
+    select: withoutHiddenGardens,
     staleTime: STALE_TIME_SLOW,
     retry: DEFAULT_RETRY_COUNT,
   });

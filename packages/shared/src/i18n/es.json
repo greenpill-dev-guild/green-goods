@@ -5240,7 +5240,7 @@
   "public.gardenDetail.notes.details": "Detalles registrados",
   "public.gardenDetail.notes.detailsLoading": "Cargando detalles del trabajo…",
   "public.gardenDetail.notes.detailsUnavailable": "Los detalles del trabajo no están disponibles en este momento.",
-  "public.gardenDetail.notes.empty": "Aún no hay notas de campo. Aparecen cuando se envía el Trabajo.",
+  "public.gardenDetail.notes.empty": "Aún no hay notas de campo. Aparecen cuando se aprueba el Trabajo.",
   "public.gardenDetail.notes.heading": "Notas de campo recientes",
   "public.gardenDetail.notes.helper": "Lo que los jardineros registraron en campo, lo más reciente primero.",
   "public.gardenDetail.notes.justNow": "Ahora mismo",

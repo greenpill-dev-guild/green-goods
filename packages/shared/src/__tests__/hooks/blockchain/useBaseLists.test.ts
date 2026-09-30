@@ -43,6 +43,7 @@ vi.mock("../../../config/appkit", () => ({
   getWagmiConfig: () => ({}),
 }));
 
+import { GARDENS_HIDDEN_EVERYWHERE } from "../../../config/garden-visibility";
 import { useActions, useGardeners, useGardens } from "../../../hooks/blockchain/useBaseLists";
 import { Capital } from "../../../types/domain";
 
@@ -228,6 +229,22 @@ describe("useBaseLists", () => {
         expect(result.current.isSuccess).toBe(true);
       });
       expect(result.current.data).toEqual([]);
+    });
+
+    it("drops a garden since hidden everywhere from a list an older build cached", () => {
+      // An offline restore keeps that list, and the fetch that filters it may not come.
+      queryClient.setQueryData(
+        ["greengoods", "gardens", 11155111],
+        [
+          createMockGarden({ id: GARDENS_HIDDEN_EVERYWHERE[0].address, name: "Hidden" }),
+          createMockGarden({ id: "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3", name: "TAS HUB" }),
+        ]
+      );
+      mockGetGardens.mockReturnValue(new Promise(() => {}));
+
+      const { result } = renderHookWithQueryClient(() => useGardens(), { queryClient });
+
+      expect(result.current.data?.map((garden) => garden.name)).toEqual(["TAS HUB"]);
     });
 
     it("keeps warm gardens after a failed refresh and refreshes on reconnect", async () => {
