@@ -202,7 +202,9 @@ export function WaitingForApprovalRow({
         className="min-w-0 rounded-[var(--m3-shape-sm)] border-0 bg-transparent px-1 py-0.5"
       >
         <span className="flex min-w-0 items-baseline gap-2 whitespace-nowrap">
-          <span className="min-w-0 truncate body-sm text-text-sub">{who}</span>
+          {/* The name keeps its length and the age gives way first (D6); only a
+              name wider than the whole line is cut. */}
+          <span className="max-w-full shrink-0 truncate body-sm text-text-sub">{who}</span>
           {marker}
           {when}
         </span>
