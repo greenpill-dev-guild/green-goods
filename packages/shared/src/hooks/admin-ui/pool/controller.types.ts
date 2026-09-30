@@ -96,6 +96,8 @@ export interface PoolConsoleController {
   cycles: CommitmentCycleRecord[];
   cycleNames: CommitmentCycleNameMap["byCycleId"];
   commitments: CommitmentReadModel[];
+  /** Ids of the promises whose next act is this steward's own ("Needs you"), not an option. */
+  waitingOnYou: ReadonlySet<string>;
   titles: CommitmentMetadataMap["byCID"];
   claims: PoolClaimRequestRow[];
   charter: PoolCharterResolution;

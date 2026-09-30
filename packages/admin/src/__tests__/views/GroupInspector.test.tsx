@@ -39,7 +39,9 @@ const [GROUP] = groupCommitmentsForDisplay({
   metadataByCID: STORY_GROUP_TITLES,
 }) as [PoolCommitmentGroup];
 
-function inspector(overrides: { canEditReward?: boolean } = {}) {
+function inspector(
+  overrides: { canEditReward?: boolean; waitingOnYou?: ReadonlySet<string> } = {}
+) {
   const handlers = {
     onClose: vi.fn(),
     onOpenCommitment: vi.fn(),
@@ -57,6 +59,7 @@ function inspector(overrides: { canEditReward?: boolean } = {}) {
       rewarded
       canEditReward={overrides.canEditReward ?? false}
       events={STORY_GROUP_EVENTS}
+      waitingOnYou={overrides.waitingOnYou ?? new Set()}
       {...handlers}
     />
   );
@@ -107,6 +110,16 @@ describe("GroupInspector", () => {
     expect(screen.queryByRole("button", { name: "Edit Reward" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /seed more like this/i }));
     expect(onSeedMore).toHaveBeenCalled();
+  });
+
+  it("marks only the copies waiting on this steward, first in the list", () => {
+    const waiting = STORY_GROUP_COPIES.find(
+      (copy) => copy.onchainState === "READY_FOR_CONFIRMATION"
+    );
+    inspector({ waitingOnYou: new Set([waiting!.id]) });
+    const rows = people();
+    expect(rows[0]).toHaveTextContent(/Needs you.*Waiting to be confirmed/);
+    expect(rows.filter((row) => row.textContent?.includes("Needs you"))).toHaveLength(1);
   });
 
   it("offers Edit Reward while it is open, and says until when", () => {

@@ -99,6 +99,17 @@ export const STORY_GROUP_COPIES: CommitmentReadModel[] = [
   ),
 ];
 
+/**
+ * The steward made this request group, so they confirm its copies: the one
+ * with its proof in waits on them ("Needs you", a8). The pool controller works
+ * this out from the seat rules; stories name it.
+ */
+export const STORY_GROUP_WAITING_ON_YOU: ReadonlySet<string> = new Set(
+  STORY_GROUP_COPIES.filter((copy) => copy.onchainState === "READY_FOR_CONFIRMATION").map(
+    (copy) => copy.id
+  )
+);
+
 function event(
   commitmentId: number,
   eventType: string,

@@ -271,6 +271,7 @@ export function poolConsoleControllerFixture(
     cycles,
     cycleNames: new Map(),
     commitments,
+    waitingOnYou: new Set(),
     titles: new Map(),
     claims,
     charter: { charter: null, isLoading: false, isUnavailable: false },

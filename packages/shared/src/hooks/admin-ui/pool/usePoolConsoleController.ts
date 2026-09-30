@@ -16,7 +16,9 @@
 import { useCallback, useMemo } from "react";
 import type { PoolConsoleController } from "./controller.types";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
+import { commitmentNeedsSeat } from "../../../modules/commitment-pooling/acts";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
+import { selectCommitmentSeat } from "../../../modules/commitment-pooling/selectors";
 import {
   actPhaseFor,
   claimActKey,
@@ -132,6 +134,20 @@ export function usePoolConsoleController(input: {
       }),
     [pool, hasPool, cyclesQuery.cycles, commitmentsQuery.commitments, claimsQuery.rows.length, now]
   );
+  // "Needs you" (PRD-1022 a8): promises whose next act is this steward's own,
+  // not an option they may take, by the seat and act rules the promise page and
+  // the app's pool list use. A request the steward made sits here rather than in
+  // the garden's Confirm queue, which leaves out what the reader is a party to.
+  // The team isn't read at list scope, as in the app's pool list.
+  const waitingOnYou = useMemo(() => {
+    const ids = new Set<string>();
+    if (!viewer) return ids;
+    for (const commitment of commitmentsQuery.commitments) {
+      const seat = selectCommitmentSeat({ commitment, contributors: [], viewer });
+      if (commitmentNeedsSeat({ commitment, seat })) ids.add(commitment.id);
+    }
+    return ids;
+  }, [commitmentsQuery.commitments, viewer]);
 
   const pendingCreates = useMemo(
     () =>
@@ -295,6 +311,7 @@ export function usePoolConsoleController(input: {
     cycles: hasPool ? cyclesQuery.cycles : [],
     cycleNames: cycleNames.byCycleId,
     commitments: commitmentsQuery.commitments,
+    waitingOnYou,
     titles: metadata.byCID,
     claims: claimsQuery.rows,
     charter,

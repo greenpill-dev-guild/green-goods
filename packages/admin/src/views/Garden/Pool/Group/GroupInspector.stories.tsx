@@ -11,6 +11,7 @@ import {
   STORY_GROUP_EVENTS,
   STORY_GROUP_METADATA,
   STORY_GROUP_TITLES,
+  STORY_GROUP_WAITING_ON_YOU,
   STORY_NOW,
   STORY_PRICE_STATE,
 } from "../poolStoryFixtures";
@@ -68,6 +69,7 @@ const meta: Meta<typeof GroupInspector> = {
     rewarded: true,
     canEditReward: false,
     events: STORY_GROUP_EVENTS,
+    waitingOnYou: STORY_GROUP_WAITING_ON_YOU,
     onOpenCommitment: () => undefined,
     onSeedMore: () => undefined,
     onEditReward: () => undefined,

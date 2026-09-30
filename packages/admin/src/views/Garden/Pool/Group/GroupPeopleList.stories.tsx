@@ -2,7 +2,11 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../../shared/.storybook/adminFixtures";
 import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
-import { STORY_GROUP_COPIES, STORY_GROUP_EVENTS } from "../poolStoryFixtures";
+import {
+  STORY_GROUP_COPIES,
+  STORY_GROUP_EVENTS,
+  STORY_GROUP_WAITING_ON_YOU,
+} from "../poolStoryFixtures";
 import { GroupPeopleList } from "./GroupPeopleList";
 import { groupInspectorRows } from "./groupInspectorModel";
 
@@ -26,6 +30,7 @@ const meta: Meta<typeof GroupPeopleList> = {
     showAvailable: true,
     chainId: DEFAULT_CHAIN_ID,
     rewarded: true,
+    waitingOnYou: STORY_GROUP_WAITING_ON_YOU,
     onOpenCommitment: () => undefined,
   },
   decorators: [

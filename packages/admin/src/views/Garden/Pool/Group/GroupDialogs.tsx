@@ -119,6 +119,7 @@ export function GroupDialogs({
         rewarded={reward.currentWei !== null}
         canEditReward={canEditReward}
         events={activity.events}
+        waitingOnYou={pool.waitingOnYou}
         onOpenCommitment={onOpenCommitment}
         onSeedMore={() => setStep("seed-more")}
         onEditReward={() => setStep("edit-reward")}

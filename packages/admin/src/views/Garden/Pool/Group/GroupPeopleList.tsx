@@ -27,6 +27,8 @@ export interface GroupPeopleListProps {
   chainId: number;
   /** The group carries a G$ reward, so each row says whether it was paid. */
   rewarded: boolean;
+  /** Copies whose next act is this steward's own: their rows say "Needs you". */
+  waitingOnYou: ReadonlySet<string>;
   onOpenCommitment: (commitment: CommitmentReadModel) => void;
 }
 
@@ -43,6 +45,7 @@ export function GroupPeopleList({
   showAvailable,
   chainId,
   rewarded,
+  waitingOnYou,
   onOpenCommitment,
 }: GroupPeopleListProps) {
   const intl = useIntl();
@@ -160,6 +163,15 @@ export function GroupPeopleList({
                 </span>
               </span>
               <span className={END_CLASS}>
+                {/* A 12px marker in sentence case, like "didn't send" (DL-052). */}
+                {waitingOnYou.has(row.commitment.id) ? (
+                  <span className="label-xs text-warning-dark">
+                    {formatMessage({
+                      id: "cockpit.garden.pool.group.needsYou",
+                      defaultMessage: "Needs you",
+                    })}
+                  </span>
+                ) : null}
                 <StatusBadge variant={chip.variant} size="sm">
                   {chip.label}
                 </StatusBadge>

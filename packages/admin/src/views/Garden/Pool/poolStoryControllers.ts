@@ -136,6 +136,7 @@ export function storyPoolConsole(
     cycles,
     cycleNames: STORY_CYCLE_NAMES,
     commitments,
+    waitingOnYou: new Set<string>(),
     titles: STORY_TITLES,
     claims,
     charter: {

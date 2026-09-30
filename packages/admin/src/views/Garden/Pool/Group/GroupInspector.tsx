@@ -29,6 +29,8 @@ export interface GroupInspectorProps {
   canEditReward: boolean;
   /** The pool's recent activity, for when each copy was taken, proven and confirmed. */
   events: readonly CommitmentEventRecord[];
+  /** Copies whose next act is this steward's own, marked "Needs you". */
+  waitingOnYou: ReadonlySet<string>;
   onOpenCommitment: (commitment: CommitmentReadModel) => void;
   onSeedMore: () => void;
   onEditReward: () => void;
@@ -56,6 +58,7 @@ export function GroupInspector({
   rewarded,
   canEditReward,
   events,
+  waitingOnYou,
   onOpenCommitment,
   onSeedMore,
   onEditReward,
@@ -260,6 +263,7 @@ export function GroupInspector({
           showAvailable={shown.showAvailable}
           chainId={chainId}
           rewarded={rewarded}
+          waitingOnYou={waitingOnYou}
           onOpenCommitment={onOpenCommitment}
         />
         <p className="mt-3 body-xs text-text-soft">
