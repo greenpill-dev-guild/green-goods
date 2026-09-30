@@ -3,7 +3,8 @@
  *
  * Aggregates three record kinds into a single ledger:
  *   - **Assessment** — EAS attestations against the Assessment schema
- *   - **Work** — EAS attestations against the Work schema (carries media)
+ *   - **Work** — EAS attestations against the Work schema (carries media),
+ *     approved work only; pending and rejected work is not public
  *   - **Certificate** — Impact Certificates (Hypercerts indexed via Envio)
  *
  * Cycle order on the Impact page is Assessment → Work → Certificate, but the
@@ -26,6 +27,7 @@ import { logger } from "../../modules/app/logger";
 import { getGardenAssessments, getWorks } from "../../modules/data/eas";
 import { getActions, getGardens } from "../../modules/data/greengoods";
 import { getGardenHypercerts } from "../../modules/data/hypercerts-fetch";
+import { readApprovedWorks } from "../../modules/work/work-list";
 import {
   createPublicImpactSlice,
   PUBLIC_IMPACT_DEFAULT_PAGE_SIZE,
@@ -54,17 +56,21 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
       // from the website must not leak back in through its work records.
       const visibleGardens = gardens.filter(isGardenPubliclyVisible);
 
-      // First pass: pull all Work entries to determine recency-ordered Garden caps.
-      const worksResult = await getWorks(
+      // First pass: pull all approved Work to determine recency-ordered Garden
+      // caps. Work that cannot be read, or whose decision cannot, is missing
+      // evidence, so the ledger says it is partial.
+      const { works, partial: worksPartial } = await getWorks(
         visibleGardens.map((garden) => garden.id),
         chainId
-      ).catch((error) => {
-        logger.warn("[usePublicImpactEvidence] EAS works fetch failed", { error });
-        return [];
-      });
+      )
+        .then((all) => readApprovedWorks(all, chainId))
+        .catch((error) => {
+          logger.warn("[usePublicImpactEvidence] EAS works fetch failed", { error });
+          return { works: [], partial: true };
+        });
 
       const latestWorkByGarden = new Map<string, number>();
-      for (const work of worksResult) {
+      for (const work of works) {
         const key = work.gardenAddress.toLowerCase();
         latestWorkByGarden.set(key, Math.max(latestWorkByGarden.get(key) ?? 0, work.createdAt));
       }
@@ -149,7 +155,7 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
 
       // Work — first-class evidence, carries `media[]` from the EAS Work schema.
       const cappedGardenIds = new Set(cappedGardenSources.map((garden) => garden.id.toLowerCase()));
-      for (const work of worksResult) {
+      for (const work of works) {
         const gardenKey = work.gardenAddress.toLowerCase();
         if (!cappedGardenIds.has(gardenKey)) continue;
         const gardenContext = gardenById.get(gardenKey);
@@ -200,7 +206,7 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
         page,
         pageSize,
         easFailed,
-        partialData: easFailed || certFailed,
+        partialData: easFailed || certFailed || worksPartial,
       });
     },
     staleTime: STALE_TIME_RARE,

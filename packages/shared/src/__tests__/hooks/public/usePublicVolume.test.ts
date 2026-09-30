@@ -6,7 +6,12 @@
 import { type QueryClient } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createMockGarden, createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import {
+  approveEveryWork,
+  createMockGarden,
+  createMockWork,
+  MOCK_ADDRESSES,
+} from "../../test-utils/mock-factories";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
@@ -21,9 +26,11 @@ vi.mock("../../../modules/data/greengoods", () => ({
 
 const mockGetWorks = vi.fn();
 const mockGetGardenAssessments = vi.fn();
+const mockReadWorkApprovalsForWorks = vi.fn();
 vi.mock("../../../modules/data/eas", () => ({
   getWorks: (...args: unknown[]) => mockGetWorks(...args),
   getGardenAssessments: (...args: unknown[]) => mockGetGardenAssessments(...args),
+  readWorkApprovalsForWorks: (...args: unknown[]) => mockReadWorkApprovalsForWorks(...args),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
@@ -57,6 +64,9 @@ describe("usePublicVolume", () => {
     mockGetGardens.mockResolvedValue([]);
     mockGetWorks.mockResolvedValue([]);
     mockGetGardenAssessments.mockResolvedValue([]);
+    mockReadWorkApprovalsForWorks.mockImplementation(async (workUIDs: string[]) =>
+      approveEveryWork(workUIDs)
+    );
   });
 
   it("exposes a stable Season One window the page layer can render", () => {
@@ -78,7 +88,7 @@ describe("usePublicVolume", () => {
     expect(result.current.data).toBeNull();
   });
 
-  it("aggregates gardens active within the volume window", async () => {
+  it("aggregates listed gardens' approved activity within the volume window", async () => {
     const inWindowGarden = createMockGarden({
       id: MOCK_ADDRESSES.garden,
       name: "Active Garden",
@@ -106,21 +116,32 @@ describe("usePublicVolume", () => {
         gardenerAddress: MOCK_ADDRESSES.user as `0x${string}`,
         createdAt: beforeWindowSeconds,
       }),
-    ]);
-    mockGetGardenAssessments.mockResolvedValue([
-      {
-        id: "a-1",
-        authorAddress: MOCK_ADDRESSES.steward,
-        gardenAddress: inWindowGarden.id,
-        title: "Q1",
-        description: "",
-        assessmentConfigCID: "",
-        domain: 1,
-        startDate: null,
-        endDate: null,
-        location: "",
+      // Awaiting review: in the window, but not public.
+      createMockWork({
+        id: "w-pending",
+        gardenAddress: stillBornGarden.id as `0x${string}`,
+        gardenerAddress: MOCK_ADDRESSES.smartAccount as `0x${string}`,
         createdAt: inWindowSeconds,
-      },
+      }),
+    ]);
+    mockReadWorkApprovalsForWorks.mockResolvedValue(approveEveryWork(["w-in", "w-before"]));
+    const assessment = {
+      id: "a-1",
+      authorAddress: MOCK_ADDRESSES.steward,
+      gardenAddress: inWindowGarden.id,
+      title: "Q1",
+      description: "",
+      assessmentConfigCID: "",
+      domain: 1,
+      startDate: null,
+      endDate: null,
+      location: "",
+      createdAt: inWindowSeconds,
+    };
+    mockGetGardenAssessments.mockResolvedValue([
+      assessment,
+      // Green Goods Community Garden, which config/garden-visibility keeps off the lists.
+      { ...assessment, id: "a-2", gardenAddress: "0xf401f34378384713222d1d21f63359cc4E8a858a" },
     ]);
 
     const { result } = renderHookWithQueryClient(() => usePublicVolume(SEASON_ONE_VOLUME_ID), {

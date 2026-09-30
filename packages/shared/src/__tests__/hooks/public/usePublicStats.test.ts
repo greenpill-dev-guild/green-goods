@@ -6,7 +6,13 @@
 import { type QueryClient } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createMockGarden, createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import {
+  approveEveryWork,
+  createMockGarden,
+  createMockWork,
+  createMockWorkApproval,
+  MOCK_ADDRESSES,
+} from "../../test-utils/mock-factories";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
@@ -15,17 +21,17 @@ import { renderHookWithQueryClient } from "../../test-utils/query-client-render"
 // ============================================
 
 const mockGetGardens = vi.fn();
-const mockGetGardeners = vi.fn();
 vi.mock("../../../modules/data/greengoods", () => ({
   getGardens: (...args: unknown[]) => mockGetGardens(...args),
-  getGardeners: (...args: unknown[]) => mockGetGardeners(...args),
 }));
 
 const mockGetWorks = vi.fn();
 const mockGetGardenAssessments = vi.fn();
+const mockReadWorkApprovalsForWorks = vi.fn();
 vi.mock("../../../modules/data/eas", () => ({
   getWorks: (...args: unknown[]) => mockGetWorks(...args),
   getGardenAssessments: (...args: unknown[]) => mockGetGardenAssessments(...args),
+  readWorkApprovalsForWorks: (...args: unknown[]) => mockReadWorkApprovalsForWorks(...args),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
@@ -42,6 +48,22 @@ import { usePublicStats } from "../../../hooks/public/usePublicStats";
 // Helpers
 // ============================================
 
+function assessment(id: string, gardenAddress: string) {
+  return {
+    id,
+    authorAddress: MOCK_ADDRESSES.steward,
+    gardenAddress,
+    title: "",
+    description: "",
+    assessmentConfigCID: "",
+    domain: 1,
+    startDate: null,
+    endDate: null,
+    location: "",
+    createdAt: 1,
+  };
+}
+
 // ============================================
 // Tests
 // ============================================
@@ -53,41 +75,32 @@ describe("usePublicStats", () => {
     vi.clearAllMocks();
     queryClient = createTestQueryClient();
     mockGetGardens.mockResolvedValue([]);
-    mockGetGardeners.mockResolvedValue([]);
     mockGetWorks.mockResolvedValue([]);
     mockGetGardenAssessments.mockResolvedValue([]);
+    mockReadWorkApprovalsForWorks.mockImplementation(async (workUIDs: string[]) =>
+      approveEveryWork(workUIDs)
+    );
   });
 
   it("returns aggregated counts across gardens, gardeners, works, assessments", async () => {
     mockGetGardens.mockResolvedValue([
-      createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden A" }),
-      createMockGarden({ id: "0xOtherG12345678901234567890123456789012345", name: "Garden B" }),
-    ]);
-    mockGetGardeners.mockResolvedValue([
-      { id: MOCK_ADDRESSES.gardener, registeredAt: 1, account: MOCK_ADDRESSES.gardener },
-      { id: MOCK_ADDRESSES.user, registeredAt: 1, account: MOCK_ADDRESSES.user },
-      { id: MOCK_ADDRESSES.smartAccount, registeredAt: 1, account: MOCK_ADDRESSES.smartAccount },
+      createMockGarden({
+        id: MOCK_ADDRESSES.garden,
+        name: "Garden A",
+        gardeners: [MOCK_ADDRESSES.gardener, MOCK_ADDRESSES.user],
+      }),
+      createMockGarden({
+        id: "0xOtherG12345678901234567890123456789012345",
+        name: "Garden B",
+        gardeners: [MOCK_ADDRESSES.user, MOCK_ADDRESSES.smartAccount],
+      }),
     ]);
     mockGetWorks.mockResolvedValue([
       createMockWork({ id: "w-1" }),
       createMockWork({ id: "w-2" }),
       createMockWork({ id: "w-3" }),
     ]);
-    mockGetGardenAssessments.mockResolvedValue([
-      {
-        id: "a-1",
-        authorAddress: MOCK_ADDRESSES.steward,
-        gardenAddress: MOCK_ADDRESSES.garden,
-        title: "",
-        description: "",
-        assessmentConfigCID: "",
-        domain: 1,
-        startDate: null,
-        endDate: null,
-        location: "",
-        createdAt: 1,
-      },
-    ]);
+    mockGetGardenAssessments.mockResolvedValue([assessment("a-1", MOCK_ADDRESSES.garden)]);
 
     const { result } = renderHookWithQueryClient(() => usePublicStats(), {
       queryClient,
@@ -104,9 +117,50 @@ describe("usePublicStats", () => {
     expect(stats?.attestationCount).toBe(1);
   });
 
+  it("leaves unlisted gardens and unapproved work out of every count", async () => {
+    // Curated off the public lists in config/garden-visibility.
+    const communityGarden = "0xf401f34378384713222d1d21f63359cc4E8a858a";
+    mockGetGardens.mockResolvedValue([
+      createMockGarden({
+        id: MOCK_ADDRESSES.garden,
+        name: "Pilot Garden",
+        gardeners: [MOCK_ADDRESSES.gardener],
+      }),
+      createMockGarden({
+        id: communityGarden,
+        name: "Green Goods Community Garden",
+        gardeners: [MOCK_ADDRESSES.user, MOCK_ADDRESSES.smartAccount],
+      }),
+    ]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "approved" }),
+      createMockWork({ id: "pending" }),
+      createMockWork({ id: "practice", gardenAddress: communityGarden }),
+    ]);
+    mockReadWorkApprovalsForWorks.mockImplementation(async (workUIDs: string[]) => ({
+      approvals: workUIDs
+        .filter((workUID) => workUID !== "pending")
+        .map((workUID) => createMockWorkApproval({ id: `a-${workUID}`, workUID })),
+      failedWorkUIDs: [],
+    }));
+    mockGetGardenAssessments.mockResolvedValue([
+      assessment("a-pilot", MOCK_ADDRESSES.garden),
+      assessment("a-community", communityGarden),
+    ]);
+
+    const { result } = renderHookWithQueryClient(() => usePublicStats(), { queryClient });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data).toMatchObject({
+      gardenCount: 1,
+      contributorCount: 1,
+      fieldNoteCount: 1,
+      attestationCount: 1,
+    });
+  });
+
   it("documents indexer gaps via undefined oracle-derived metrics", async () => {
     mockGetGardens.mockResolvedValue([]);
-    mockGetGardeners.mockResolvedValue([]);
     mockGetWorks.mockResolvedValue([]);
     mockGetGardenAssessments.mockResolvedValue([]);
 
@@ -132,9 +186,6 @@ describe("usePublicStats", () => {
   it("treats one source failure as soft — other counts still return", async () => {
     mockGetGardens.mockResolvedValue([
       createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" }),
-    ]);
-    mockGetGardeners.mockResolvedValue([
-      { id: MOCK_ADDRESSES.gardener, registeredAt: 1, account: MOCK_ADDRESSES.gardener },
     ]);
     mockGetWorks.mockRejectedValue(new Error("EAS down"));
     mockGetGardenAssessments.mockResolvedValue([]);

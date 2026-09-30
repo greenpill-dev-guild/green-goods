@@ -3,11 +3,16 @@
  * "Quantifiable Restoration" panel and the landing-page Network Total tile.
  *
  * Composes:
- *   - **Envio indexer** (`getGardens`, `getGardeners`).
- *   - **EAS** (`getWorks`, `getGardenAssessments`).
+ *   - **Envio indexer** (`getGardens`): the gardens and their gardeners.
+ *   - **EAS** (`getWorks`, then `readApprovedWorks`; `getGardenAssessments`).
  *
- * No auth path. All four sources are queried with `Promise.allSettled` so
- * one outage doesn't blank the page.
+ * Every count covers the gardens the website lists, the same set the archive
+ * shows, and entries count approved work only. Hands at work are the
+ * gardeners of those gardens, each address once.
+ *
+ * No auth path. All three sources are queried with `Promise.allSettled` so
+ * one outage doesn't blank the page. Without the garden list no count can be
+ * scoped to listed gardens, so every count is zero.
  *
  * ### Indexer-scope gaps surfaced here
  *
@@ -37,7 +42,8 @@ import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import { getGardenAssessments, getWorks } from "../../modules/data/eas";
-import { getGardeners, getGardens } from "../../modules/data/greengoods";
+import { getGardens } from "../../modules/data/greengoods";
+import { readApprovedWorks } from "../../modules/work/work-list";
 
 export interface PublicStats {
   gardenCount: number;
@@ -58,19 +64,14 @@ export function usePublicStats(chainId: number = DEFAULT_CHAIN_ID) {
   return useQuery({
     queryKey: publicKeys.stats(chainId),
     queryFn: async (): Promise<PublicStats> => {
-      const [gardensResult, gardenersResult, worksResult, assessmentsResult] =
-        await Promise.allSettled([
-          getGardens(),
-          getGardeners(),
-          getWorks(undefined, chainId),
-          getGardenAssessments(undefined, chainId),
-        ]);
+      const [gardensResult, worksResult, assessmentsResult] = await Promise.allSettled([
+        getGardens(),
+        getWorks(undefined, chainId),
+        getGardenAssessments(undefined, chainId),
+      ]);
 
       if (gardensResult.status === "rejected") {
         logger.warn("[usePublicStats] gardens fetch failed", { error: gardensResult.reason });
-      }
-      if (gardenersResult.status === "rejected") {
-        logger.warn("[usePublicStats] gardeners fetch failed", { error: gardenersResult.reason });
       }
       if (worksResult.status === "rejected") {
         logger.warn("[usePublicStats] works fetch failed", { error: worksResult.reason });
@@ -82,19 +83,29 @@ export function usePublicStats(chainId: number = DEFAULT_CHAIN_ID) {
       }
 
       const gardens = gardensResult.status === "fulfilled" ? gardensResult.value : [];
-      const gardeners = gardenersResult.status === "fulfilled" ? gardenersResult.value : [];
       const works = worksResult.status === "fulfilled" ? worksResult.value : [];
       const assessments = assessmentsResult.status === "fulfilled" ? assessmentsResult.value : [];
 
-      // Same predicate the archive and the evidence ledger use, so the headline
-      // garden count can never disagree with the gardens a visitor can browse.
+      // Same predicate the archive and the evidence ledger use, so no headline
+      // count can include a garden a visitor cannot browse, or its people and records.
       const visibleGardens = gardens.filter(isGardenPubliclyVisible);
+      const listed = new Set(visibleGardens.map((garden) => garden.id.toLowerCase()));
+      const inListedGarden = (gardenAddress: string) => listed.has(gardenAddress.toLowerCase());
+      const { works: approvedWorks } = await readApprovedWorks(
+        works.filter((work) => inListedGarden(work.gardenAddress)),
+        chainId
+      );
+      const gardeners = new Set(
+        visibleGardens.flatMap((garden) => garden.gardeners.map((address) => address.toLowerCase()))
+      );
 
       return {
         gardenCount: visibleGardens.length,
-        contributorCount: gardeners.length,
-        fieldNoteCount: works.length,
-        attestationCount: assessments.length,
+        contributorCount: gardeners.size,
+        fieldNoteCount: approvedWorks.length,
+        attestationCount: assessments.filter((assessment) =>
+          inListedGarden(assessment.gardenAddress)
+        ).length,
         // Oracle-derived metrics intentionally left undefined — see header.
       };
     },

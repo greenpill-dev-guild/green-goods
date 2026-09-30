@@ -16,7 +16,9 @@ vi.mock("../../../modules/data/eas", () => ({
   readWorkApprovalsForWorks: seams.approvals,
 }));
 
-const { readWorkByUID, readWorkList } = await import("../../../modules/work/work-list");
+const { readApprovedWorks, readWorkByUID, readWorkList } = await import(
+  "../../../modules/work/work-list"
+);
 
 function work(id: string): EASWork {
   return {
@@ -99,5 +101,50 @@ describe("readWorkByUID", () => {
 
     expect(row?.id).toBe("work-older");
     expect(row).not.toHaveProperty("approval");
+  });
+});
+
+describe("readApprovedWorks", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("keeps only works whose latest decision approved them", async () => {
+    const at = (decision: EASWorkApproval, createdAt: number) => ({ ...decision, createdAt });
+    seams.approvals.mockResolvedValue({
+      approvals: [
+        approval("a-approved", "approved", true),
+        approval("a-rejected", "rejected", false),
+        at(approval("a-overturned-1", "overturned", true), 10),
+        at(approval("a-overturned-2", "overturned", false), 20),
+        at(approval("a-reinstated-1", "reinstated", false), 10),
+        at(approval("a-reinstated-2", "reinstated", true), 20),
+        approval("a-tied-1", "tied", true),
+        approval("a-tied-2", "tied", false),
+      ],
+      failedWorkUIDs: [],
+    });
+    const works = ["approved", "pending", "rejected", "overturned", "reinstated", "tied"].map(work);
+
+    const result = await readApprovedWorks(works, 42161);
+
+    expect(result.works.map((row) => row.id)).toEqual(["approved", "reinstated"]);
+    expect(result.partial).toBe(false);
+  });
+
+  it("leaves out work whose decisions could not be read, and says approved work may be missing", async () => {
+    // A batch that fails part-way can already have returned some of its decisions.
+    seams.approvals.mockResolvedValueOnce({
+      approvals: [approval("a-1", "work-1", true), approval("a-2", "work-2", true)],
+      failedWorkUIDs: ["work-2"],
+    });
+    await expect(readApprovedWorks([work("work-1"), work("work-2")], 42161)).resolves.toEqual({
+      works: [work("work-1")],
+      partial: true,
+    });
+
+    seams.approvals.mockRejectedValueOnce(new Error("Unavailable"));
+    await expect(readApprovedWorks([work("work-1")], 42161)).resolves.toEqual({
+      works: [],
+      partial: true,
+    });
   });
 });

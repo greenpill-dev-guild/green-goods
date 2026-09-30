@@ -75,14 +75,66 @@ export async function readWorkList({
     });
     return works;
   }
-  const byWork = new Map<string, EASWorkApproval[]>();
-  for (const approval of approvals) {
-    const key = approval.workUID.toLowerCase();
-    byWork.set(key, [...(byWork.get(key) ?? []), approval]);
-  }
+  const byWork = groupByWork(approvals);
   return works.map((work) => {
     const key = work.id.toLowerCase();
     if (failedWorkUIDs.has(key)) return work;
     return withLatestApproval(work, byWork.get(key) ?? []);
   });
+}
+
+/** Approved works, and whether unread decisions may be hiding more. */
+export interface ApprovedWorks {
+  works: EASWork[];
+  /** Some decisions could not be read, so approved work may be missing from `works`. */
+  partial: boolean;
+}
+
+/**
+ * The works whose latest decision approved them, for surfaces that show only
+ * approved work, such as the public website. A work is left out when it has
+ * no decision, when its latest decision rejected it, or when its latest
+ * decisions disagree. It is also left out when its decisions could not be
+ * read, and `partial` then says approved work may be missing.
+ */
+export async function readApprovedWorks(works: EASWork[], chainId: number): Promise<ApprovedWorks> {
+  if (works.length === 0) return { works: [], partial: false };
+  let approvals: EASWorkApproval[];
+  let unread: Set<string>;
+  try {
+    const result = await readWorkApprovalsForWorks(
+      works.map((work) => work.id),
+      chainId
+    );
+    approvals = result.approvals;
+    unread = new Set(result.failedWorkUIDs.map((uid) => uid.toLowerCase()));
+  } catch (error) {
+    logger.warn("[readApprovedWorks] Decisions could not be read; no work counts as approved", {
+      error,
+    });
+    return { works: [], partial: true };
+  }
+  if (unread.size > 0) {
+    logger.warn("[readApprovedWorks] Some decisions could not be read; their works are left out", {
+      unreadWorkCount: unread.size,
+    });
+  }
+  const byWork = groupByWork(approvals);
+  return {
+    works: works.filter((work) => {
+      const key = work.id.toLowerCase();
+      if (unread.has(key)) return false;
+      return withLatestApproval(work, byWork.get(key) ?? []).approval?.approved === true;
+    }),
+    partial: unread.size > 0,
+  };
+}
+
+function groupByWork(approvals: EASWorkApproval[]): Map<string, EASWorkApproval[]> {
+  const byWork = new Map<string, EASWorkApproval[]>();
+  for (const approval of approvals) {
+    const key = approval.workUID.toLowerCase();
+    byWork.set(key, [...(byWork.get(key) ?? []), approval]);
+  }
+  return byWork;
 }

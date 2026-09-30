@@ -6,7 +6,12 @@
 import { type QueryClient } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createMockGarden, createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import {
+  approveEveryWork,
+  createMockGarden,
+  createMockWork,
+  MOCK_ADDRESSES,
+} from "../../test-utils/mock-factories";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
@@ -20,8 +25,10 @@ vi.mock("../../../modules/data/greengoods", () => ({
 }));
 
 const mockGetWorks = vi.fn();
+const mockReadWorkApprovalsForWorks = vi.fn();
 vi.mock("../../../modules/data/eas", () => ({
   getWorks: (...args: unknown[]) => mockGetWorks(...args),
+  readWorkApprovalsForWorks: (...args: unknown[]) => mockReadWorkApprovalsForWorks(...args),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
@@ -50,6 +57,25 @@ describe("usePublicFieldNotes", () => {
     queryClient = createTestQueryClient();
     mockGetGardens.mockResolvedValue([]);
     mockGetWorks.mockResolvedValue([]);
+    mockReadWorkApprovalsForWorks.mockImplementation(async (workUIDs: string[]) =>
+      approveEveryWork(workUIDs)
+    );
+  });
+
+  it("leaves unapproved work out of the feed and its total", async () => {
+    const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "approved", gardenAddress: garden.id }),
+      createMockWork({ id: "pending", gardenAddress: garden.id }),
+    ]);
+    mockReadWorkApprovalsForWorks.mockResolvedValue(approveEveryWork(["approved"]));
+
+    const { result } = renderHookWithQueryClient(() => usePublicFieldNotes(), { queryClient });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data?.fieldNotes.map((note) => note.id)).toEqual(["approved"]);
+    expect(result.current.data?.total).toBe(1);
   });
 
   it("returns empty page when no works exist", async () => {

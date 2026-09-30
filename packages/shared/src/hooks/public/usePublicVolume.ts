@@ -5,8 +5,9 @@
  * Composes:
  *   - **Envio indexer** (`getGardens`): garden roster used to find which
  *     gardens were active in the volume window.
- *   - **EAS** (`getWorks`, `getGardenAssessments`): activity within the
- *     volume's time window.
+ *   - **EAS** (`getWorks`, then `readApprovedWorks`; `getGardenAssessments`):
+ *     activity within the volume's time window, from approved work and the
+ *     assessments of listed gardens only.
  *
  * No auth path. v1 implements **Season One: Onboarding & Cultivation** with
  * a hardcoded start/open-end window keyed off the pilot launch date. When
@@ -34,6 +35,7 @@ import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import { getGardenAssessments, getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
+import { readApprovedWorks } from "../../modules/work/work-list";
 import type { Address } from "../../types/domain";
 
 export const SEASON_ONE_VOLUME_ID = 1 as const;
@@ -84,11 +86,11 @@ export interface PublicVolume {
   startSeconds: number;
   endSeconds: number | null;
   activeGardens: PublicVolumeActiveGarden[];
-  /** Distinct gardener addresses with at least one work in the window. */
+  /** Distinct gardener addresses with at least one approved work in the window. */
   contributorCount: number;
-  /** Total `Work` attestations within the window. */
+  /** Approved `Work` attestations within the window. */
   actionCount: number;
-  /** Total `GardenAssessment` attestations within the window. */
+  /** Listed gardens' `GardenAssessment` attestations within the window. */
   attestationCount: number;
 }
 
@@ -122,20 +124,23 @@ export function usePublicVolume(volumeId: number, chainId: number = DEFAULT_CHAI
       }
 
       const ids = initializedGardens.map((g) => g.id);
+      const listed = new Set(ids.map((id) => id.toLowerCase()));
 
       // Both EAS reads are best-effort — surface zero counts if either fails.
       const [worksResult, assessmentsResult] = await Promise.allSettled([
-        getWorks(ids, chainId),
+        getWorks(ids, chainId).then((all) => readApprovedWorks(all, chainId)),
         getGardenAssessments(undefined, chainId),
       ]);
 
       const works =
         worksResult.status === "fulfilled"
-          ? worksResult.value.filter((w) => inWindow(w.createdAt))
+          ? worksResult.value.works.filter((w) => inWindow(w.createdAt))
           : [];
       const assessments =
         assessmentsResult.status === "fulfilled"
-          ? assessmentsResult.value.filter((a) => inWindow(a.createdAt))
+          ? assessmentsResult.value.filter(
+              (a) => listed.has(a.gardenAddress.toLowerCase()) && inWindow(a.createdAt)
+            )
           : [];
 
       if (worksResult.status === "rejected") {
