@@ -1,32 +1,41 @@
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
-import { Controller, type UseFormReturn } from "react-hook-form";
+import {
+  type GoodDollarPriceState,
+  usdCentsToGoodDollarWei,
+} from "@green-goods/shared/modules/wallet/good-dollar-price";
+import { useEffect } from "react";
+import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminTextField } from "@/components/AdminTextField";
-import { SeedAmountField } from "./SeedAmountField";
-import type { RewardUnits } from "./seedRewardAmount";
 import {
-  railForRewardAnswer,
-  type RewardAnswer,
-  rewardAnswerOf,
-  type SeedFieldError,
-} from "./seedStepModel";
+  carriedOverUsd,
+  formatGoodDollars,
+  formatUsd,
+  priceUnavailableReason,
+  rewardCentsOf,
+} from "./seedReward";
+import type { SeedFieldError } from "./seedStepModel";
 
 export interface SeedRewardSectionProps {
   form: UseFormReturn<CommitmentComposerValues>;
   values: CommitmentComposerValues;
   busy: boolean;
   errorOf: SeedFieldError;
-  /** Celo settlement stays disabled until the garden's account is active. */
+  /** G$ is paid through the garden's settlement account, so Yes waits until it is active. */
   settlementActive: boolean;
-  /** The units the amount is typed in, read once by the wizard for every step. */
-  units: RewardUnits;
+  price: GoodDollarPriceState;
+  /** How many promises the answer creates, for the most the reward could total. */
+  count: number;
 }
 
 /**
- * The declared reward, asked as a question: No leaves the rail at none, and Yes
- * shows the rails, one only, the external one naming its fields. Nothing here
- * pays anyone. The amount is typed in the rail's own token units.
+ * The reward, asked as a question (PRD-1022 D9, D13). No leaves it at none.
+ * Yes pays in G$ through the garden's settlement account, and waits, with its
+ * reason, until that account is active. The steward enters dollars; the G$
+ * amount is converted at today's rate when the promises are created and fixed
+ * from then. Nothing here pays anyone or reserves anything.
  */
 export function SeedRewardSection({
   form,
@@ -34,154 +43,132 @@ export function SeedRewardSection({
   busy,
   errorOf,
   settlementActive,
-  units,
+  price,
+  count,
 }: SeedRewardSectionProps) {
-  const { formatMessage } = useIntl();
-  const answer = rewardAnswerOf(values.considerationRail);
+  const { formatMessage, locale } = useIntl();
+  const wanted = values.considerationRail !== "NONE";
+  const cents = rewardCentsOf(values);
+  const unavailable = priceUnavailableReason(price, formatMessage);
   const question = formatMessage({
     id: "cockpit.garden.pool.seed.rewardQuestion",
     defaultMessage: "Does this come with a reward?",
   });
+
+  // A reward carried over in G$ (seeding more like an earlier promise) is shown
+  // in dollars at today's rate, and converted back when these are created.
+  const carried =
+    values.considerationRail === "CELO_SETTLEMENT" &&
+    values.considerationUsd === undefined &&
+    price.status === "ready"
+      ? carriedOverUsd(values.considerationAmount, price.price)
+      : null;
+  useEffect(() => {
+    if (carried === null) return;
+    form.setValue("considerationUsd", carried, { shouldDirty: false });
+  }, [carried, form]);
+
+  const choose = (answer: string) => {
+    if (answer === "yes") {
+      form.setValue("considerationRail", "CELO_SETTLEMENT", { shouldDirty: true });
+      form.setValue("considerationUsd", values.considerationUsd ?? "", { shouldDirty: true });
+    } else {
+      form.setValue("considerationRail", "NONE", { shouldDirty: true });
+      form.setValue("considerationUsd", undefined, { shouldDirty: true });
+      form.setValue("considerationAmount", "", { shouldDirty: true });
+    }
+    void form.trigger(["considerationUsd", "considerationAmount"]);
+  };
+
+  const helper =
+    unavailable ??
+    (cents !== null && cents > 0n && price.status === "ready"
+      ? formatMessage(
+          {
+            id: "cockpit.garden.pool.seed.rewardEstimate",
+            defaultMessage:
+              "About {amount} G$ at today's rate. The G$ amount is fixed when you create.",
+          },
+          { amount: formatGoodDollars(usdCentsToGoodDollarWei(cents, price.price), locale) }
+        )
+      : formatMessage({
+          id: "cockpit.garden.pool.seed.rewardRate",
+          defaultMessage: "Paid in G$ at today's rate. The G$ amount is fixed when you create.",
+        }));
+
   return (
-    <section className="space-y-3">
-      <p className="label-md text-text-strong">{question}</p>
+    <section className="space-y-3" data-testid="seed-reward">
+      <AdminCardTitle as="h4">{question}</AdminCardTitle>
       <AdminChoiceGroup
         ariaLabel={question}
-        value={answer}
+        value={wanted ? "yes" : "no"}
         columns={2}
-        onChange={(next) => {
-          const rail = railForRewardAnswer(next as RewardAnswer, values.considerationRail);
-          // An amount means nothing in another rail's units, so it starts over.
-          if (rail !== values.considerationRail) {
-            form.setValue("considerationAmount", "", { shouldDirty: true });
-          }
-          form.setValue("considerationRail", rail, { shouldDirty: true, shouldValidate: true });
-        }}
+        onChange={choose}
         options={[
           {
             value: "no",
+            disabled: busy,
             label: formatMessage({ id: "cockpit.garden.pool.seed.rewardNo", defaultMessage: "No" }),
+            description: formatMessage({
+              id: "cockpit.garden.pool.seed.rewardNoHint",
+              defaultMessage: "Nothing is paid",
+            }),
           },
           {
             value: "yes",
+            disabled: busy || !settlementActive,
             label: formatMessage({
               id: "cockpit.garden.pool.seed.rewardYes",
               defaultMessage: "Yes",
             }),
+            description: settlementActive
+              ? formatMessage({
+                  id: "cockpit.garden.pool.seed.rewardYesHint",
+                  defaultMessage: "Paid in G$ after each one is kept",
+                })
+              : formatMessage({
+                  id: "cockpit.garden.pool.seed.rail.celoUnavailable",
+                  defaultMessage: "Needs this garden's settlement account to be active first",
+                }),
           },
         ]}
       />
-      {answer === "yes" ? (
-        <div className="space-y-3" data-testid="seed-consideration">
-          <Controller
-            control={form.control}
-            name="considerationRail"
-            render={({ field }) => (
-              <AdminChoiceGroup
-                ariaLabel={formatMessage({
-                  id: "cockpit.garden.pool.seed.rail",
-                  defaultMessage: "Reward rail",
-                })}
-                value={field.value}
-                onChange={(rail) => {
-                  // An amount means nothing in another rail's units, so it starts over.
-                  if (rail !== field.value) {
-                    form.setValue("considerationAmount", "", { shouldDirty: true });
-                  }
-                  field.onChange(rail);
-                }}
-                options={[
-                  {
-                    value: "ARBITRUM_EXTERNAL",
-                    label: formatMessage({
-                      id: "cockpit.garden.pool.seed.rail.external",
-                      defaultMessage: "External payout record",
-                    }),
-                    description: formatMessage({
-                      id: "cockpit.garden.pool.seed.rail.externalHint",
-                      defaultMessage:
-                        "Record a jar or treasury payout after the fact; no value moves here",
-                    }),
-                  },
-                  {
-                    value: "CELO_SETTLEMENT",
-                    label: formatMessage({
-                      id: "cockpit.garden.pool.seed.rail.celo",
-                      defaultMessage: "Celo G$ settlement",
-                    }),
-                    description: settlementActive
-                      ? formatMessage({
-                          id: "cockpit.garden.pool.seed.rail.celoHint",
-                          defaultMessage: "A conserved payout plan after fulfilment",
-                        })
-                      : formatMessage({
-                          id: "cockpit.garden.pool.seed.rail.celoUnavailable",
-                          defaultMessage:
-                            "Needs this garden's settlement account to be active first",
-                        }),
-                    disabled: !settlementActive,
-                  },
-                ]}
-              />
-            )}
-          />
-          {values.considerationRail === "ARBITRUM_EXTERNAL" ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <AdminTextField
-                label={formatMessage({
-                  id: "cockpit.garden.pool.seed.rewardSource",
-                  defaultMessage: "Paid from (address)",
-                })}
-                value={values.considerationSource}
-                onChange={(event) =>
-                  form.setValue("considerationSource", event.target.value, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  })
-                }
-                error={errorOf("considerationSource")}
-                placeholder="0x…"
-                disabled={busy}
-              />
-              <AdminTextField
-                label={formatMessage({
-                  id: "cockpit.garden.pool.seed.rewardToken",
-                  defaultMessage: "Token (address)",
-                })}
-                value={values.considerationToken}
-                onChange={(event) =>
-                  form.setValue("considerationToken", event.target.value, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  })
-                }
-                error={errorOf("considerationToken")}
-                placeholder="0x…"
-                disabled={busy}
-              />
-              <SeedAmountField
-                form={form}
-                value={values.considerationAmount}
-                units={units}
-                error={errorOf("considerationAmount")}
-                disabled={busy}
-              />
-            </div>
-          ) : values.considerationRail === "CELO_SETTLEMENT" ? (
-            <SeedAmountField
-              form={form}
-              value={values.considerationAmount}
-              units={units}
-              error={errorOf("considerationAmount")}
-              disabled={busy}
-            />
-          ) : null}
-          <p className="body-xs text-text-soft">
-            {formatMessage({
-              id: "cockpit.garden.pool.seed.rewardNote",
-              defaultMessage:
-                "One rail only. External payouts are recorded after the fact; Celo G$ becomes a conserved payout plan after fulfilment. Nothing here pays anyone.",
+      {wanted ? (
+        <div className="space-y-1">
+          <AdminTextField
+            label={formatMessage({
+              id: "cockpit.garden.pool.seed.rewardAmountUsd",
+              defaultMessage: "Amount for each (USD)",
             })}
+            value={values.considerationUsd ?? ""}
+            onChange={(event) =>
+              form.setValue("considerationUsd", event.target.value, {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+            placeholder="$5.00"
+            error={unavailable ? undefined : errorOf("considerationUsd")}
+            helperText={helper}
+            inputProps={{ inputMode: "decimal" }}
+            disabled={busy || price.status !== "ready"}
+            className="max-w-sm"
+          />
+          <p className="body-xs text-text-soft">
+            {cents !== null && cents > 0n && count > 1
+              ? formatMessage(
+                  {
+                    id: "cockpit.garden.pool.seed.rewardTotal",
+                    defaultMessage:
+                      "Up to {total} if all {count} are kept, paid in G$ through this garden's settlement account. Nothing is reserved or paid here.",
+                  },
+                  { total: formatUsd(cents * BigInt(count), locale), count }
+                )
+              : formatMessage({
+                  id: "cockpit.garden.pool.seed.rewardTotalOne",
+                  defaultMessage:
+                    "Paid in G$ through this garden's settlement account once it's kept. Nothing is reserved or paid here.",
+                })}
           </p>
         </div>
       ) : null}

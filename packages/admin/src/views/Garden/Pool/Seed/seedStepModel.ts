@@ -1,6 +1,7 @@
 import {
   COMMITMENT_COMPOSER_ERROR_IDS,
   type CommitmentComposerValues,
+  MAX_COMMITMENT_SET_SIZE,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import type { CycleMetadataNameResolution } from "@green-goods/shared/modules/commitment-pooling/cycle-metadata";
 import {
@@ -8,10 +9,12 @@ import {
   COMMITMENT_TITLE_MAX_LENGTH,
   COMMITMENT_UNIT_LABEL_MAX_LENGTH,
 } from "@green-goods/shared/modules/commitment-pooling/metadata";
-import type { Action } from "@green-goods/shared/types/domain";
+import type { Action, Address } from "@green-goods/shared/types/domain";
 import { hasActionEnded } from "@green-goods/shared/utils/action/window";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
+import type { SeedMember } from "./SeedConfirmerList";
 import { cycleName } from "../poolPresentation";
 
 export type StepId = "what" | "howMuch" | "proof" | "review";
@@ -19,7 +22,7 @@ export const STEPS: StepId[] = ["what", "howMuch", "proof", "review"];
 
 export const STEP_FIELDS: Record<StepId, Array<keyof CommitmentComposerValues>> = {
   what: ["kind", "direction", "cycleId", "title", "note"],
-  howMuch: ["unitLabel", "targetUnits", "dueInDays", "requirements", "openTeam"],
+  howMuch: ["count", "unitLabel", "targetUnits", "dueInDays", "requirements", "openTeam"],
   proof: [
     "confirmers",
     "confirmationThreshold",
@@ -29,6 +32,7 @@ export const STEP_FIELDS: Record<StepId, Array<keyof CommitmentComposerValues>> 
     "considerationSource",
     "considerationToken",
     "considerationAmount",
+    "considerationUsd",
   ],
   review: [],
 };
@@ -47,28 +51,12 @@ export function stepFieldsFor(
     : fields;
 }
 
-export type RewardAnswer = "no" | "yes";
-type RewardRail = CommitmentComposerValues["considerationRail"];
-
-/** The Proof step's reward question, read from the rail the draft holds. */
-export function rewardAnswerOf(rail: RewardRail): RewardAnswer {
-  return rail === "NONE" ? "no" : "yes";
-}
-
-/**
- * The rail an answer leaves the draft on. No means none. Yes keeps a rail
- * already chosen, or starts on the external one, which every garden can use.
- */
-export function railForRewardAnswer(answer: RewardAnswer, current: RewardRail): RewardRail {
-  if (answer === "no") return "NONE";
-  return current === "NONE" ? "ARBITRUM_EXTERNAL" : current;
-}
-
-/** Why seeding is off, the first reason first, or null when it may go ahead. */
+/** Why creating is off, the first reason first, or null when it may go ahead. */
 export function seedBlockedReason(input: {
   poolOpen: boolean;
   capacityOver: boolean;
-  rewardUnknown: boolean;
+  /** A reward is in dollars and today's G$ price can't be read to convert it. */
+  priceUnavailable: boolean;
 }): { id: string; defaultMessage: string } | null {
   if (!input.poolOpen)
     return {
@@ -80,10 +68,10 @@ export function seedBlockedReason(input: {
       id: "cockpit.garden.pool.seed.blocked.capacity",
       defaultMessage: "That is more offers than this pool has room for.",
     };
-  if (input.rewardUnknown)
+  if (input.priceUnavailable)
     return {
-      id: "cockpit.garden.pool.seed.blocked.reward",
-      defaultMessage: "A reward in the tray cannot be read yet.",
+      id: "cockpit.garden.pool.seed.blocked.price",
+      defaultMessage: "A reward is in dollars, and today's G$ price can't be read to convert it.",
     };
   return null;
 }
@@ -105,6 +93,33 @@ export function withConfirmer(current: string[], draft: string): string[] | null
   if (!CONFIRMER_ADDRESS_PATTERN.test(candidate)) return null;
   const alreadyNamed = current.some((address) => address.toLowerCase() === candidate.toLowerCase());
   return alreadyNamed ? null : [...current, candidate];
+}
+
+/** Who is offered as a confirmer, in this order. */
+const MEMBER_ROLES = ["steward", "evaluator", "gardener", "owner"] as const satisfies GardenRole[];
+
+type GardenPeople = Partial<
+  Record<"stewards" | "evaluators" | "gardeners" | "owners", readonly Address[]>
+>;
+
+/** The garden's people to offer as confirmers: each person once, under their first role. */
+export function seedMembers(garden: GardenPeople | undefined): SeedMember[] {
+  if (!garden) return [];
+  const seen = new Set<string>();
+  const lists: Record<(typeof MEMBER_ROLES)[number], readonly Address[]> = {
+    steward: garden.stewards ?? [],
+    evaluator: garden.evaluators ?? [],
+    gardener: garden.gardeners ?? [],
+    owner: garden.owners ?? [],
+  };
+  return MEMBER_ROLES.flatMap((role) =>
+    lists[role].flatMap((address) => {
+      const key = address.toLowerCase();
+      if (seen.has(key)) return [];
+      seen.add(key);
+      return [{ address, role }];
+    })
+  );
 }
 
 /** One entry of the seeding console's cycle selector: the season, a campaign, or cycle-less. */
@@ -181,6 +196,19 @@ const SEED_ERROR_MESSAGES = {
   considerationAmount: {
     id: "cockpit.garden.pool.seed.error.considerationAmount",
     defaultMessage: "Enter an amount above zero.",
+  },
+  countAtLeastOne: {
+    id: "cockpit.garden.pool.seed.error.countAtLeastOne",
+    defaultMessage: "Create at least one promise.",
+  },
+  countTooMany: {
+    id: "cockpit.garden.pool.seed.error.countTooMany",
+    defaultMessage: "Create {max, number} promises or fewer at once.",
+    values: { max: MAX_COMMITMENT_SET_SIZE },
+  },
+  considerationUsd: {
+    id: "cockpit.garden.pool.seed.error.considerationUsd",
+    defaultMessage: "Enter an amount in dollars above zero, like 5.00.",
   },
 } satisfies Record<keyof typeof COMMITMENT_COMPOSER_ERROR_IDS, SeedErrorMessage>;
 
@@ -296,8 +324,8 @@ export function buildSeedStepConfigs(formatMessage: FormatMessage): ActionFlowSt
       id: "what",
       title: formatMessage({ id: "cockpit.garden.pool.seed.step.what", defaultMessage: "What" }),
       description: formatMessage({
-        id: "cockpit.garden.pool.seed.step.whatHint",
-        defaultMessage: "The kind of commitment, in its words",
+        id: "cockpit.garden.pool.seed.step.whatPromiseHint",
+        defaultMessage: "The kind of promise, in its words",
       }),
     },
     {
@@ -307,8 +335,8 @@ export function buildSeedStepConfigs(formatMessage: FormatMessage): ActionFlowSt
         defaultMessage: "How Much",
       }),
       description: formatMessage({
-        id: "cockpit.garden.pool.seed.step.howMuchHint",
-        defaultMessage: "Units, target, due, and the team",
+        id: "cockpit.garden.pool.seed.step.howManyHint",
+        defaultMessage: "How many, what each asks, and the team",
       }),
     },
     {
