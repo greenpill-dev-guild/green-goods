@@ -273,6 +273,8 @@ export function poolConsoleControllerFixture(
     },
     acts: poolActs,
     claimPhase: () => ({ status: "idle" }),
+    claimDecisions: {},
+    claimInFlight: false,
     resumePhase: { status: "idle" },
     queuedPhase: () => ({ status: "idle" }),
     isActing: false,

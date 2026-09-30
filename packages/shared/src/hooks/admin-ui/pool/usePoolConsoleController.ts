@@ -47,6 +47,7 @@ import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimReque
 import { usePoolFunding } from "../../commitment-pooling/usePoolFunding";
 import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
+import { useClaimDecisions, useClaimDecisionVisit } from "./useClaimDecisions";
 
 /** Queue acts are not mutations, so their failures go through the same handler by hand. */
 const reportQueuedSendError = createMutationErrorHandler({
@@ -143,9 +144,11 @@ export function usePoolConsoleController(input: {
 
   const poolMutation = useCommitmentPoolMutation({ chainId });
   const commitmentMutation = useCommitmentMutation({ chainId });
-  // Accept is one signature from a list row: the row follows it to the chain.
-  const claimAct = useTxActPhase();
-  const trackClaim = claimAct.track;
+  // Approve is one signature from a list row: the row follows it to the chain,
+  // on this card and in the inspector alike, and keeps its outcome this visit.
+  useClaimDecisionVisit(chainId, garden);
+  const claimDecisions = useClaimDecisions();
+  const { approve: approveClaim, decline: declineClaim } = claimDecisions;
   // Resume and a queued row's send are single signatures too: each says where
   // it stands on the card it started from.
   const poolAct = useTxActPhase();
@@ -188,17 +191,19 @@ export function usePoolConsoleController(input: {
       expire: (commitmentId: bigint) =>
         commitmentMutation.mutateAsync({ action: "expireCommitment", commitmentId }),
       acceptClaim: (commitmentId: bigint, claimant: Address) =>
-        trackClaim(claimActKey(commitmentId, claimant), (send) =>
+        approveClaim(commitmentId, claimant, (send) =>
           commitmentMutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send })
         ),
       declineClaim: (commitmentId: bigint, claimant: Address, reason: string) =>
-        commitmentMutation.mutateAsync({
-          action: "declineClaim",
-          commitmentId,
-          claimant,
-          reason,
-          gardenAddress: garden,
-        }),
+        declineClaim(commitmentId, claimant, () =>
+          commitmentMutation.mutateAsync({
+            action: "declineClaim",
+            commitmentId,
+            claimant,
+            reason,
+            gardenAddress: garden,
+          })
+        ),
       // The admin mounts no queue provider, so nothing sends a queued creation
       // unless the steward does. The row is re-read either way: a failed retry
       // changes what it says.
@@ -232,7 +237,8 @@ export function usePoolConsoleController(input: {
     [
       poolMutation,
       commitmentMutation,
-      trackClaim,
+      approveClaim,
+      declineClaim,
       trackPool,
       trackQueued,
       requirePool,
@@ -282,7 +288,10 @@ export function usePoolConsoleController(input: {
     funding: fundingView,
     acts,
     claimPhase: (commitmentId: bigint, claimant: Address) =>
-      actPhaseFor(claimAct.phase, claimActKey(commitmentId, claimant)),
+      actPhaseFor(claimDecisions.phase, claimActKey(commitmentId, claimant)),
+    claimDecisions: claimDecisions.decisions,
+    claimInFlight:
+      claimDecisions.phase.status === "signing" || claimDecisions.phase.status === "confirming",
     resumePhase: actPhaseFor(poolAct.phase, RESUME_POOL_ACT_KEY),
     queuedPhase: (jobId: string) => actPhaseFor(queuedAct.phase, jobId),
     isActing: poolMutation.isPending || commitmentMutation.isPending,

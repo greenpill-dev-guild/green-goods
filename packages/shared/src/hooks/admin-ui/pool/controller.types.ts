@@ -21,6 +21,10 @@ import type {
   PoolClaimRequestRow,
 } from "../../../modules/commitment-pooling/types";
 import type { TxActPhase } from "../../../modules/transactions/act-phase";
+import type {
+  ClaimDecision,
+  ClaimDecisions,
+} from "../../../modules/commitment-pooling/waiting-for-approval";
 import type { Address } from "../../../types/domain";
 import type { EASGardenAssessment } from "../../../types/eas-responses";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
@@ -69,6 +73,8 @@ export interface PoolConsoleActs {
 
 /** Where a single-signature act started from a row stands. */
 export type { TxActPhase };
+/** A decision on an ask this visit, shared by the Pool tab and the inspector. */
+export type { ClaimDecision, ClaimDecisions };
 
 export interface PoolConsoleController {
   chainId: number;
@@ -94,8 +100,12 @@ export interface PoolConsoleController {
   queueUnavailable: boolean;
   funding: PoolFundingControllerView;
   acts: PoolConsoleActs;
-  /** Where an Accept started from this claimant's row stands. */
+  /** Where an Approve started from this claimant's row stands, here or in the inspector. */
   claimPhase: (commitmentId: bigint, claimant: Address) => TxActPhase;
+  /** What the steward decided on asks this visit, by `claimActKey`. */
+  claimDecisions: ClaimDecisions;
+  /** An approval is with the wallet or the chain, from this card or the inspector. */
+  claimInFlight: boolean;
   /** Where Resume Pool stands. */
   resumePhase: TxActPhase;
   /** Where the send started from this queued row stands. */

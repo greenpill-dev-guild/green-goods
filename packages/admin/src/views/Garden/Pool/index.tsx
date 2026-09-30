@@ -228,6 +228,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
           <PoolClaimsCard
             console={pool}
             onDecline={(row) => setReasonDialog({ kind: "decline-claim", row })}
+            onOpen={(row) => openCommitment(row.commitment)}
           />
         ) : null}
         {statusCard}

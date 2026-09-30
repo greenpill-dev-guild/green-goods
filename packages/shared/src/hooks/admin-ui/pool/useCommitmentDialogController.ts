@@ -47,6 +47,7 @@ import { toActPhaseReport, useCommitmentJobs } from "../../commitment-pooling/us
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
+import { useClaimDecisions } from "./useClaimDecisions";
 import {
   actPhaseFor,
   claimActKey,
@@ -113,8 +114,9 @@ export function useCommitmentDialogController(input: {
   );
   const queue = useCommitmentQueueState(viewer);
   const mutation = useCommitmentMutation({ chainId });
-  const claimAct = useTxActPhase();
-  const trackClaim = claimAct.track;
+  // The same line and decisions as the Pool tab's Waiting for approval card.
+  const claimDecisions = useClaimDecisions();
+  const { approve: approveClaim, decline: declineClaim } = claimDecisions;
   // Send for Confirmation goes through the queue, which says whether it landed
   // or stays queued on this device.
   const sendAct = useTxActPhase();
@@ -335,17 +337,19 @@ export function useCommitmentDialogController(input: {
       confirmFallback: (reason: string) =>
         mutation.mutateAsync({ action: "confirmFulfillmentAsFallback", commitmentId, reason }),
       acceptClaim: (claimant: Address) =>
-        trackClaim(claimActKey(commitmentId, claimant), (send) =>
+        approveClaim(commitmentId, claimant, (send) =>
           mutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send })
         ),
       declineClaim: (claimant: Address, reason: string) =>
-        mutation.mutateAsync({
-          action: "declineClaim",
-          commitmentId,
-          claimant,
-          reason,
-          gardenAddress: garden,
-        }),
+        declineClaim(commitmentId, claimant, () =>
+          mutation.mutateAsync({
+            action: "declineClaim",
+            commitmentId,
+            claimant,
+            reason,
+            gardenAddress: garden,
+          })
+        ),
       syncWorkDecisions: async () => {
         const decisionUIDs = reconciliationDecisionUIDs;
         if (decisionUIDs.length === 0) throw new Error("No approved linked Work is ready to count");
@@ -368,7 +372,8 @@ export function useCommitmentDialogController(input: {
     }),
     [
       mutation,
-      trackClaim,
+      approveClaim,
+      declineClaim,
       trackSend,
       jobs,
       commitmentId,
@@ -442,7 +447,7 @@ export function useCommitmentDialogController(input: {
     },
     acts,
     claimPhase: (claimant: Address) =>
-      actPhaseFor(claimAct.phase, claimActKey(commitmentId, claimant)),
+      actPhaseFor(claimDecisions.phase, claimActKey(commitmentId, claimant)),
     sendPhase: actPhaseFor(sendAct.phase, sendForConfirmationActKey(commitmentId)),
     isActing: mutation.isPending || jobs.isPending,
     isLoading: detailQuery.isLoading || activity.isLoading || poolsQuery.isLoading,

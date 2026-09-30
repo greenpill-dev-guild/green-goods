@@ -44,9 +44,12 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", () =
   usePoolConsoleController: () => mocks.controller!,
 }));
 
-// This view proves pool actions; ENS resolution has its own coverage.
+// This view proves pool actions; name resolution has its own coverage.
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: null }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: null }),
 }));
 
 // Pool Funding reads dollars at today's G$ price; the facts here are the pool's.
@@ -552,7 +555,7 @@ describe("GardenPoolTab (W7)", () => {
     });
     renderTab();
     expect(screen.getByText(/seasonal flooding, back after the rains/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^accept$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^approve$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^pause/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /resume pool/i }));
     await waitFor(() => expect(mocks.controller!.acts.resume).toHaveBeenCalled());
@@ -600,15 +603,15 @@ describe("GardenPoolTab (W7)", () => {
     expect(rows[1]).toHaveClass("border-s-information-base");
   });
 
-  it("accepts a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
+  it("approves a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
     mocks.controller = controller({
       claims: [pendingClaim()],
       titles: new Map([["bafy-2", { version: 1, title: "Ride to the market on Saturday" }]]),
     });
     renderTab();
     const claims = screen.getByTestId("pool-claims");
-    expect(within(claims).getByText("Ride to the market on Saturday")).toBeInTheDocument();
-    fireEvent.click(within(claims).getByRole("button", { name: /^accept$/i }));
+    expect(within(claims).getByText("Offer · Ride to the market on Saturday")).toBeInTheDocument();
+    fireEvent.click(within(claims).getByRole("button", { name: /^approve$/i }));
     await waitFor(() =>
       expect(mocks.controller!.acts.acceptClaim).toHaveBeenCalledWith(2n, CLAIMANT)
     );
