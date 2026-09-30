@@ -47,6 +47,7 @@ vi.mock("../../modules/data/graphql", () => ({
   greenGoodsGraphQL: vi.fn((query) => query),
 }));
 
+import { isGardenPubliclyReachable, isGardenPubliclyVisible } from "../../config/garden-visibility";
 import {
   getActions,
   getGardeners,
@@ -98,6 +99,44 @@ describe("modules/data/greengoods", () => {
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(1);
+    });
+
+    it("keeps a garden the indexer never filled in off the public site, not out of the app", async () => {
+      // The indexer's placeholder for a garden it has seen only in a role or Karma event.
+      const placeholder = {
+        id: "0x1111111111111111111111111111111111111111",
+        chainId: 11155111,
+        tokenAddress: "",
+        tokenID: "0",
+        name: "",
+        description: "",
+        location: "",
+        bannerImage: "",
+        gardeners: [],
+        operators: [],
+        evaluators: [],
+        owners: [],
+        funders: [],
+        communities: [],
+        openJoining: false,
+        createdAt: "1700000000",
+      };
+      const minted = {
+        ...placeholder,
+        id: "0x2222222222222222222222222222222222222222",
+        tokenAddress: "0xGarden123",
+        tokenID: "2",
+        name: "Vida Verde",
+        location: "Brazil",
+      };
+      mockQuery.mockResolvedValue({ data: { Garden: [placeholder, minted] } });
+
+      const [unfilled, filled] = await getGardens(reader);
+
+      // The app and admin still get the garden, under its stand-in name.
+      expect(unfilled).toMatchObject({ name: "Unnamed Garden", location: "Unknown Location" });
+      expect(isGardenPubliclyReachable(unfilled)).toBe(false);
+      expect(isGardenPubliclyVisible(filled)).toBe(true);
     });
 
     it("includes openJoining field from indexer", async () => {

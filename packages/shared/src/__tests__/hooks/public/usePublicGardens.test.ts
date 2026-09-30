@@ -6,7 +6,13 @@
 import { type QueryClient } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createMockGarden, createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import {
+  approveEveryWork,
+  createMockGarden,
+  createMockWork,
+  createMockWorkApproval,
+  MOCK_ADDRESSES,
+} from "../../test-utils/mock-factories";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
@@ -20,11 +26,14 @@ vi.mock("../../../modules/data/greengoods", () => ({
 }));
 
 const mockGetWorks = vi.fn();
+const mockReadWorkApprovalsForWorks = vi.fn();
 vi.mock("../../../modules/data/eas", () => ({
   getWorks: (...args: unknown[]) => mockGetWorks(...args),
+  readWorkApprovalsForWorks: (...args: unknown[]) => mockReadWorkApprovalsForWorks(...args),
 }));
 
-vi.mock("../../../config/blockchain", () => ({
+vi.mock("../../../config/blockchain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../config/blockchain")>()),
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -50,6 +59,9 @@ describe("usePublicGardens", () => {
     queryClient = createTestQueryClient();
     mockGetGardens.mockResolvedValue([]);
     mockGetWorks.mockResolvedValue([]);
+    mockReadWorkApprovalsForWorks.mockImplementation(async (workUIDs: string[]) =>
+      approveEveryWork(workUIDs)
+    );
   });
 
   it("returns empty list when no gardens exist", async () => {
@@ -191,6 +203,45 @@ describe("usePublicGardens", () => {
     expect(target?.contributorCount).toBe(2);
     // EAS createdAt is in seconds; lastActivityAt should expose seconds value of the most recent work
     expect(target?.lastActivityAt).toBe(1_700_001_000);
+  });
+
+  it("counts only approved work, so pending and rejected work set no count or recency", async () => {
+    const garden = createMockGarden({
+      id: MOCK_ADDRESSES.garden,
+      name: "Riparian Restoration",
+      createdAt: 1_650_000_000_000, // ms
+    });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "approved", gardenAddress: garden.id, createdAt: 1_700_000_000 }),
+      createMockWork({
+        id: "pending",
+        gardenAddress: garden.id,
+        gardenerAddress: MOCK_ADDRESSES.user,
+        createdAt: 1_700_001_000,
+      }),
+      createMockWork({ id: "rejected", gardenAddress: garden.id, createdAt: 1_700_002_000 }),
+    ]);
+    mockReadWorkApprovalsForWorks.mockResolvedValue({
+      approvals: [
+        createMockWorkApproval({ id: "a-1", workUID: "approved", approved: true }),
+        createMockWorkApproval({ id: "a-2", workUID: "rejected", approved: false }),
+      ],
+      failedWorkUIDs: [],
+    });
+
+    const { result } = renderHookWithQueryClient(() => usePublicGardens(), {
+      queryClient,
+    });
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data?.[0]).toMatchObject({
+      actionCount: 1,
+      contributorCount: 1,
+      lastActivityAt: 1_700_000_000,
+    });
   });
 
   it("falls back to garden createdAt when no works exist", async () => {

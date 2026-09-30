@@ -95,10 +95,24 @@ export function withoutHiddenGardens<T extends { id: string }>(gardens: T[]): T[
   return gardens.filter((garden) => !isGardenHiddenEverywhere(garden.id));
 }
 
+/**
+ * What `getGardens()` shows in place of a blank name or location. The indexer
+ * stores a garden with both blank when it sees the garden's address in a role
+ * or Karma event before, or without, the event that created the garden.
+ */
+export const UNNAMED_GARDEN_NAME = "Unnamed Garden";
+export const UNKNOWN_GARDEN_LOCATION = "Unknown Location";
+
 interface PublicGardenFields {
   id: string;
   name?: string | null;
   location?: string | null;
+}
+
+/** True when a field holds what the indexer recorded, not a blank or its stand-in. */
+function isRecorded(value: string | null | undefined, standIn: string): boolean {
+  const text = (value ?? "").trim();
+  return text.length > 0 && text !== standIn;
 }
 
 /**
@@ -106,16 +120,18 @@ interface PublicGardenFields {
  *
  * Also carries the placeholder check that was previously copy-pasted across
  * the three public hooks: a garden with neither name nor location has never
- * been filled in. The indexer does track this properly as
- * `Garden.initialized`, but `getGardens()` does not select that field, so the
- * heuristic stands in until it does.
+ * been filled in. The check reads through the stand-ins `getGardens()` shows
+ * in their place, which the app and admin keep showing. The indexer does
+ * track this properly as `Garden.initialized`, but `getGardens()` does not
+ * select that field, so the heuristic stands in until it does.
  */
 export function isGardenPubliclyReachable(garden: PublicGardenFields): boolean {
   if (hiddenEverywhere.has(garden.id.toLowerCase())) return false;
 
-  const hasName = (garden.name ?? "").trim().length > 0;
-  const hasLocation = (garden.location ?? "").trim().length > 0;
-  return hasName || hasLocation;
+  return (
+    isRecorded(garden.name, UNNAMED_GARDEN_NAME) ||
+    isRecorded(garden.location, UNKNOWN_GARDEN_LOCATION)
+  );
 }
 
 /** True when a garden is kept out of the public lists but keeps its own page. */

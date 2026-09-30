@@ -10,6 +10,7 @@ import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
 import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { Confidence, Domain, VerificationMethod } from "../../types/domain";
 import type { CookieJar } from "../../types/cookie-jar";
+import type { EASWorkApproval } from "../../types/eas-responses";
 import type {
   AllowlistEntry,
   HypercertAttestation,
@@ -85,6 +86,37 @@ export function createMockWorkApprovalDraft(
     confidence: Confidence.MEDIUM,
     verificationMethod: VerificationMethod.HUMAN,
     ...overrides,
+  };
+}
+
+// ============================================
+// Work Decision Factories
+// ============================================
+
+export function createMockWorkApproval(overrides?: Partial<EASWorkApproval>): EASWorkApproval {
+  return {
+    id: `approval-${Date.now()}`,
+    stewardAddress: MOCK_ADDRESSES.steward,
+    gardenerAddress: MOCK_ADDRESSES.garden,
+    actionUID: 1,
+    workUID: "0xWorkUID123",
+    approved: true,
+    feedback: "",
+    confidence: Confidence.MEDIUM,
+    verificationMethod: VerificationMethod.HUMAN,
+    reviewNotesCID: "",
+    createdAt: 1_700_000_000,
+    ...overrides,
+  };
+}
+
+/** A `readWorkApprovalsForWorks` result in which every requested work was approved. */
+export function approveEveryWork(workUIDs: string[]) {
+  return {
+    approvals: workUIDs.map((workUID) =>
+      createMockWorkApproval({ id: `approval-${workUID}`, workUID })
+    ),
+    failedWorkUIDs: [] as string[],
   };
 }
 
