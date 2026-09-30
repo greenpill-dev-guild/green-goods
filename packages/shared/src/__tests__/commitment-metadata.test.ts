@@ -114,6 +114,31 @@ describe("composer metadata handoff", () => {
   it("stays a pure function, so the same draft always hashes the same", () => {
     expect(payload()).toEqual(payload());
   });
+
+  it("gives a copy of a set the set's deadline and group, whenever it is built", () => {
+    const copy = (nowSeconds: number) =>
+      buildCommitmentCreationPayload({
+        values: {
+          ...COMMITMENT_COMPOSER_DEFAULTS,
+          title: "Survey",
+          unitLabel: "survey",
+          count: 10,
+        },
+        clientCommitmentId: "copy-1",
+        poolId: 7n,
+        creator: "0x1111111111111111111111111111111111111111" as Address,
+        gardenAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address,
+        nowSeconds,
+        dueDate: 1_790_000_000n,
+        displayGroup: { version: 1, id: "group-00000001" },
+      });
+
+    expect(copy(1_700_000_000)).toEqual(copy(1_700_086_400));
+    expect(copy(1_700_000_000)).toMatchObject({
+      dueDate: 1_790_000_000n,
+      metadata: { displayGroup: { version: 1, id: "group-00000001" } },
+    });
+  });
 });
 
 describe("commitment metadata v1 note and links", () => {
@@ -149,5 +174,38 @@ describe("commitment metadata v1 note and links", () => {
         links: [{ url: "https://example.org/a" }, { url: "javascript:alert(1)" }, { url: 5 }],
       })?.links
     ).toEqual([{ url: "https://example.org/a" }]);
+  });
+});
+
+describe("commitment metadata display group", () => {
+  const group = { version: 1 as const, id: "5f0c2b1e-8a4d-4c2e-9f3a-1b2c3d4e5f60" };
+
+  it("writes a set's group into every copy and reads it back", () => {
+    const written = buildCommitmentMetadata({
+      title: "Household water survey",
+      displayGroup: group,
+    });
+    expect(written.displayGroup).toEqual(group);
+    expect(parseCommitmentMetadata(written)).toEqual(written);
+  });
+
+  it("refuses a group id no reader could use, rather than writing a copy that stands alone", () => {
+    for (const id of ["", "short", "has spaces in it", "<script>x</script>", "x".repeat(65)]) {
+      expect(() =>
+        buildCommitmentMetadata({ title: "Survey", displayGroup: { version: 1, id } })
+      ).toThrow("display group");
+    }
+  });
+
+  it("reads a group it doesn't understand as none, and keeps the title", () => {
+    for (const displayGroup of [
+      { version: 2, id: group.id },
+      { version: 1, id: 42 },
+      "group-1",
+      null,
+    ]) {
+      const parsed = parseCommitmentMetadata({ version: 1, title: "Survey", displayGroup });
+      expect(parsed).toEqual({ version: 1, title: "Survey" });
+    }
   });
 });

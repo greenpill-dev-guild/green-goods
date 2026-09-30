@@ -27,6 +27,20 @@ export interface CommitmentMetadataLink {
   label?: string;
 }
 
+/**
+ * The set a commitment was created in, when a steward created several copies at
+ * once. Every copy of a set carries the same id, which is how the pool shows
+ * them as one group. It is a display hint and nothing more: each copy is still
+ * its own commitment, and the chain never reads this.
+ */
+export interface CommitmentDisplayGroup {
+  version: typeof COMMITMENT_DISPLAY_GROUP_VERSION;
+  /** Minted once per set. Opaque: compare it, never parse it. */
+  id: string;
+}
+
+export const COMMITMENT_DISPLAY_GROUP_VERSION = 1 as const;
+
 export interface CommitmentMetadataV1 {
   version: number;
   /** One line, in the member's words. Never generated from the record. */
@@ -35,6 +49,8 @@ export interface CommitmentMetadataV1 {
   note?: string;
   /** Web addresses that belong with it. */
   links?: CommitmentMetadataLink[];
+  /** The set it was created in, when there was one. */
+  displayGroup?: CommitmentDisplayGroup;
 }
 
 /**
@@ -118,21 +134,43 @@ function cleanLinks(value: unknown): CommitmentMetadataLink[] {
     .slice(0, MAX_LINKS);
 }
 
+/** What a set's id may look like: a UUID fits, and nothing a reader could take for markup. */
+const DISPLAY_GROUP_ID = /^[A-Za-z0-9_-]{8,64}$/;
+
+/**
+ * A display group this reader understands, or null. A later version is read as
+ * no group at all, so its copies show as ordinary commitments rather than being
+ * grouped by rules this build doesn't know.
+ */
+function cleanDisplayGroup(value: unknown): CommitmentDisplayGroup | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (record.version !== COMMITMENT_DISPLAY_GROUP_VERSION) return null;
+  if (typeof record.id !== "string" || !DISPLAY_GROUP_ID.test(record.id)) return null;
+  return { version: COMMITMENT_DISPLAY_GROUP_VERSION, id: record.id };
+}
+
 /** Build the object the composer writes. */
 export function buildCommitmentMetadata(input: {
   title: string;
   note?: string;
   links?: CommitmentMetadataLink[];
+  displayGroup?: CommitmentDisplayGroup;
 }): CommitmentMetadataV1 {
   const title = lineWithin(input.title, COMMITMENT_TITLE_MAX_LENGTH, "title");
   if (!title) throw new Error("A commitment needs a title");
   const note = lineWithin(input.note, COMMITMENT_NOTE_MAX_LENGTH, "note");
   const links = cleanLinks(input.links);
+  const displayGroup = input.displayGroup ? cleanDisplayGroup(input.displayGroup) : null;
+  // Refused rather than dropped: a copy written without its group would show
+  // on its own, apart from the set it was made with.
+  if (input.displayGroup && !displayGroup) throw new Error("That display group id is not valid");
   return {
     version: COMMITMENT_METADATA_VERSION,
     title,
     ...(note ? { note } : {}),
     ...(links.length > 0 ? { links } : {}),
+    ...(displayGroup ? { displayGroup } : {}),
   };
 }
 
@@ -153,6 +191,7 @@ export function parseCommitmentMetadata(raw: unknown): CommitmentMetadataV1 | nu
     cleanLine(record.note, NOTE_READ_TOLERANCE) ??
     cleanLine(record.description, NOTE_READ_TOLERANCE);
   const links = cleanLinks(record.links);
+  const displayGroup = cleanDisplayGroup(record.displayGroup);
   const version =
     typeof record.version === "number" && Number.isFinite(record.version)
       ? record.version
@@ -162,6 +201,7 @@ export function parseCommitmentMetadata(raw: unknown): CommitmentMetadataV1 | nu
     title,
     ...(note ? { note } : {}),
     ...(links.length > 0 ? { links } : {}),
+    ...(displayGroup ? { displayGroup } : {}),
   };
 }
 

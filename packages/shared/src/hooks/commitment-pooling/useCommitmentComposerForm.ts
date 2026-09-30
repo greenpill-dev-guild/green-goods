@@ -30,8 +30,10 @@ import {
   COMMITMENT_NOTE_MAX_LENGTH,
   COMMITMENT_TITLE_MAX_LENGTH,
   COMMITMENT_UNIT_LABEL_MAX_LENGTH,
+  type CommitmentDisplayGroup,
 } from "../../modules/commitment-pooling/metadata";
 import { MAX_LINKED_WORKS_PER_COMMITMENT } from "../../modules/commitment-pooling/acts";
+import { parseUsdCents } from "../../modules/wallet/good-dollar-price";
 import type { Address } from "../../types/domain";
 
 /** ICommitmentPoolingModule enum ordinals. */
@@ -51,6 +53,12 @@ const ZERO_BYTES32 = `0x${"0".repeat(64)}` as `0x${string}`;
  * many a commitment should have.
  */
 export const MAX_COMMITMENT_REQUIREMENTS = 40;
+
+/**
+ * The most separate commitments one seeding answer creates: the sending's limit,
+ * not the chain's. Fifty is five bundled approvals, or fifty prompts one by one.
+ */
+export const MAX_COMMITMENT_SET_SIZE = 50;
 
 /** A decimal action UID. Zero is a real action in the registry. */
 const actionUIDSchema = z.string().regex(/^\d+$/, "Choose an action");
@@ -116,6 +124,9 @@ export const COMMITMENT_COMPOSER_ERROR_IDS = {
   considerationSource: "cockpit.garden.pool.seed.error.considerationSource",
   considerationToken: "cockpit.garden.pool.seed.error.considerationToken",
   considerationAmount: "cockpit.garden.pool.seed.error.considerationAmount",
+  countAtLeastOne: "cockpit.garden.pool.seed.error.countAtLeastOne",
+  countTooMany: "cockpit.garden.pool.seed.error.countTooMany",
+  considerationUsd: "cockpit.garden.pool.seed.error.considerationUsd",
 } as const;
 
 /** Static English; the view renders its own translated messages. */
@@ -149,6 +160,13 @@ export const commitmentComposerSchema = z
       .min(1, COMMITMENT_COMPOSER_ERROR_IDS.unitRequired)
       .max(COMMITMENT_UNIT_LABEL_MAX_LENGTH, COMMITMENT_COMPOSER_ERROR_IDS.unitTooLong),
     targetUnits: z.number().int().positive("How many?"),
+    /** How many separate commitments (seeding only; absent is one); `targetUnits` is each one's. */
+    count: z
+      .number({ error: COMMITMENT_COMPOSER_ERROR_IDS.countAtLeastOne })
+      .int(COMMITMENT_COMPOSER_ERROR_IDS.countAtLeastOne)
+      .min(1, COMMITMENT_COMPOSER_ERROR_IDS.countAtLeastOne)
+      .max(MAX_COMMITMENT_SET_SIZE, COMMITMENT_COMPOSER_ERROR_IDS.countTooMany)
+      .optional(),
     /** Days from now. A commitment with no end never lapses and never settles. */
     dueInDays: z.number().int().positive("Give it an end"),
     /** Which season or campaign holds it. "0" is neither. Decimal, for the form's sake. */
@@ -176,6 +194,11 @@ export const commitmentComposerSchema = z
     considerationSource: z.string().trim(),
     considerationToken: z.string().trim(),
     considerationAmount: z.string().trim(),
+    /**
+     * A G$ reward in dollars, as the steward typed it (seeding only, PRD-1022 D13).
+     * While set it stands in for `considerationAmount`, converted at Create.
+     */
+    considerationUsd: z.string().trim().optional(),
   })
   .superRefine((values, context) => {
     if (values.kind === "GARDEN_WORK") {
@@ -232,7 +255,16 @@ export const commitmentComposerSchema = z
         });
       }
     }
-    if (values.considerationRail !== "NONE") {
+    if (values.considerationRail === "CELO_SETTLEMENT" && values.considerationUsd !== undefined) {
+      const cents = parseUsdCents(values.considerationUsd);
+      if (cents === null || cents === 0n) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["considerationUsd"],
+          message: COMMITMENT_COMPOSER_ERROR_IDS.considerationUsd,
+        });
+      }
+    } else if (values.considerationRail !== "NONE") {
       const amount = amountSchema.safeParse(values.considerationAmount);
       if (!amount.success || BigInt(values.considerationAmount) === 0n) {
         context.addIssue({
@@ -375,6 +407,10 @@ export function buildCommitmentCreationPayload(input: {
   gardenAddress: Address;
   /** Seconds since epoch at build time; passed in so the result stays pure. */
   nowSeconds: number;
+  /** A set's deadline, fixed at its first Create; otherwise `dueInDays` from `nowSeconds`. */
+  dueDate?: bigint;
+  /** The set this copy belongs to, written into its metadata so it reads as one group. */
+  displayGroup?: CommitmentDisplayGroup;
   /**
    * A steward seeding from the console may gate an offer (the protocol pool
    * defaults to steward review); a member composing alone may not.
@@ -390,7 +426,7 @@ export function buildCommitmentCreationPayload(input: {
   capturedFor?: Address;
 }): Omit<CommitmentCreationPayload, "creationRequestKey"> {
   const { values, clientCommitmentId, poolId, gardenAddress } = input;
-  const dueDate = BigInt(input.nowSeconds + values.dueInDays * 24 * 60 * 60);
+  const dueDate = input.dueDate ?? BigInt(input.nowSeconds + values.dueInDays * 24 * 60 * 60);
   const isGardenWork = values.kind === "GARDEN_WORK";
   const confirmers = [
     ...new Set(values.confirmers.map((address) => address.toLowerCase() as Address)),
@@ -446,6 +482,7 @@ export function buildCommitmentCreationPayload(input: {
       title: values.title,
       note: values.note,
       links: values.links.map((url) => ({ url })),
+      ...(input.displayGroup ? { displayGroup: input.displayGroup } : {}),
     }),
     needUID: ZERO_BYTES32,
     counterCommitmentId: 0n,
