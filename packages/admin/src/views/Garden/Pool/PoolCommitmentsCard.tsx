@@ -17,12 +17,8 @@ import {
   type PoolCommitmentScope,
   selectPoolCommitmentRows,
 } from "./poolCommitmentRows";
-import {
-  commitmentStateChip,
-  directionEdgeClass,
-  directionLabel,
-  formatUnixDate,
-} from "./poolPresentation";
+import { commitmentStateChip, directionEdgeClass, directionLabel } from "./poolPresentation";
+import { dueDateText } from "./poolTime";
 
 export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
 
@@ -59,7 +55,9 @@ export function PoolCommitmentsCard({
   canSeed,
   tone,
 }: PoolCommitmentsCardProps) {
-  const { formatMessage, locale } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  const now = Date.now();
   const { model, titles, pendingCreates, isOnline, isActing, acts } = pool;
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
@@ -321,7 +319,7 @@ export function PoolCommitmentsCard({
               const due = commitment.dueDate
                 ? formatMessage(
                     { id: "cockpit.garden.pool.row.due", defaultMessage: "due {date}" },
-                    { date: formatUnixDate(commitment.dueDate, locale, "—") }
+                    { date: dueDateText(intl, Number(commitment.dueDate) * 1000, now) }
                   )
                 : "";
               return (

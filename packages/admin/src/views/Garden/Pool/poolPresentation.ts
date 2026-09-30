@@ -297,7 +297,10 @@ export function otherPoolGardenLabel(row: {
   return row.poolGardenName || shortAddress(row.poolGarden);
 }
 
-/** Unix seconds → the locale's short date, or the fallback when absent. */
+/**
+ * Unix seconds → the locale's short date, with the year only when it isn't
+ * this one (PRD-1025 D3), or the fallback when absent.
+ */
 export function formatUnixDate(
   value: bigint | number | null | undefined,
   locale: string,
@@ -306,9 +309,13 @@ export function formatUnixDate(
   if (value === null || value === undefined) return fallback;
   const seconds = Number(value);
   if (!Number.isFinite(seconds) || seconds <= 0) return fallback;
-  return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(
-    new Date(seconds * 1000)
-  );
+  const date = new Date(seconds * 1000);
+  const thisYear = date.getFullYear() === new Date().getFullYear();
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    ...(thisYear ? {} : { year: "numeric" as const }),
+  }).format(date);
 }
 
 const WEI_PER_G = 10n ** 18n;
