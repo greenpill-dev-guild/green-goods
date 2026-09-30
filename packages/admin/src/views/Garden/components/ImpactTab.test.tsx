@@ -3,7 +3,7 @@
  */
 
 import enMessages from "@green-goods/shared/i18n/en";
-import { render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -60,6 +60,33 @@ describe("ImpactTab", () => {
 
     expect(screen.queryByRole("link", { name: "Create Hypercert" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Create Assessment" })).not.toBeInTheDocument();
+  });
+
+  it("opens a recent assessment from its row and marks it current only while it is open", () => {
+    const openSection = vi.fn();
+    const assessments = [
+      { id: "a-1", title: "Canopy baseline", createdAt: 1_700_000_000 },
+      { id: "a-2", title: "Soil health check", createdAt: 1_700_000_000 },
+    ];
+    // An activity-feed link names the item without opening the assessments section.
+    renderImpact({ openSection, selectedItem: "a-1", assessments });
+    expect(screen.getByRole("button", { name: /Canopy baseline/ })).not.toHaveAttribute(
+      "aria-current"
+    );
+    cleanup();
+
+    renderImpact({ openSection, section: "assessments", selectedItem: "a-1", assessments });
+    // The list row and the opened assessments panel both mark the one the steward picked.
+    const picked = screen.getAllByText("Canopy baseline");
+    expect(picked).toHaveLength(2);
+    for (const title of picked) {
+      expect(title.closest("[aria-current]")).toHaveAttribute("aria-current", "true");
+    }
+    const other = screen.getByRole("button", { name: /Soil health check/ });
+    expect(other).not.toHaveAttribute("aria-current");
+
+    fireEvent.click(other);
+    expect(openSection).toHaveBeenCalledWith("impact", "assessments", "a-2");
   });
 
   it("says a failed assessments read failed, rather than reading as an empty list", () => {
