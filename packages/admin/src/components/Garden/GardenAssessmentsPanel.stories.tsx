@@ -49,6 +49,16 @@ export const WithAssessments: Story = {
   },
 };
 
+/** The assessment opened from Recent Assessments is ringed and announced as current. */
+export const SelectedAssessment: Story = {
+  args: {
+    assessments: MOCK_ASSESSMENTS,
+    isLoading: false,
+    error: null,
+    selectedItem: MOCK_ASSESSMENTS[0].id,
+  },
+};
+
 export const Loading: Story = {
   args: {
     assessments: [],

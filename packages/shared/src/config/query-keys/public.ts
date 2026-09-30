@@ -52,6 +52,19 @@ export const publicKeys = {
   /** Network-wide aggregate stats. */
   stats: (chainId: number) => ["greengoods", "public", "stats", chainId] as const,
 
+  /** Approved work of a set of gardens, shared by the public aggregates on a page. */
+  approvedWorks: (chainId: number, gardenIds: readonly string[]) =>
+    [
+      "greengoods",
+      "public",
+      "approvedWorks",
+      chainId,
+      gardenIds
+        .map((id) => id.toLowerCase())
+        .sort()
+        .join(","),
+    ] as const,
+
   /** Visitor-safe public impact evidence slice. */
   impactEvidence: (chainId: number, page: number, pageSize: number) =>
     ["greengoods", "public", "impactEvidence", chainId, page, pageSize] as const,

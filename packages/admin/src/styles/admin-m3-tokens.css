@@ -12,8 +12,13 @@
    * other sanctioned shadow is the warm ambient chrome shadow on the floating
    * navigation (--admin-chrome-shadow). Levels 3–5 and the parallel
    * --elevation-* / --e* ladders are deleted — do not reintroduce them.
+   *
+   * Level 0 is a transparent zero shadow (what Tailwind's shadow-none sets),
+   * never `none`: Tailwind joins shadow and ring utilities into one box-shadow
+   * list, and `none` inside a list voids the whole declaration, so a focus
+   * ring or an outlined card's ring on the same element would never draw.
    * -------------------------------------------------------------------------- */
-  --m3-elevation-0: none;
+  --m3-elevation-0: 0 0 transparent;
   --m3-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
   --m3-elevation-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
 
@@ -175,8 +180,9 @@
    * black drop shadows that are invisible on near-black). In M3-dark, depth is a
    * warm-white RING that scales with elevation; a small black blur is retained
    * only to help glass/sheets that float OVER content read as lifted. Paired with
-   * the lightness STEP in the surface ladder, this restores card separation. */
-  --m3-elevation-0: none;
+   * the lightness STEP in the surface ladder, this restores card separation.
+   * Level 0 stays a transparent zero shadow, never `none` (see the light ladder). */
+  --m3-elevation-0: 0 0 transparent;
   --m3-elevation-1: 0 0 0 1px rgb(var(--neutral-50) / 0.06);
   --m3-elevation-2: 0 1px 2px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(var(--neutral-50) / 0.09);
 

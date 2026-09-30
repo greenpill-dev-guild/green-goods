@@ -6,7 +6,13 @@
 import { type QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createMockGarden, createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import {
+  approveEveryWork,
+  createMockGarden,
+  createMockWork,
+  createMockWorkApproval,
+  MOCK_ADDRESSES,
+} from "../../test-utils/mock-factories";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
@@ -21,15 +27,18 @@ vi.mock("../../../modules/data/greengoods", () => ({
 
 const mockGetWorks = vi.fn();
 const mockGetGardenAssessments = vi.fn();
+const mockReadWorkApprovalsForWorks = vi.fn();
 vi.mock("../../../modules/data/eas", () => ({
   getWorks: (...args: unknown[]) => mockGetWorks(...args),
   getGardenAssessments: (...args: unknown[]) => mockGetGardenAssessments(...args),
+  readWorkApprovalsForWorks: (...args: unknown[]) => mockReadWorkApprovalsForWorks(...args),
 }));
 
 const CONFIGURED_UID = "0x1111111111111111111111111111111111111111111111111111111111111111";
 const ZERO_UID = `0x${"0".repeat(64)}`;
 const mockEasConfig = vi.fn(() => ({
   WORK: { uid: CONFIGURED_UID },
+  WORK_APPROVAL: { uid: CONFIGURED_UID },
   ASSESSMENT: { uid: CONFIGURED_UID },
 }));
 vi.mock("../../../config/blockchain", () => ({
@@ -60,10 +69,14 @@ describe("usePublicGardenDetail", () => {
     mockGetGardens.mockResolvedValue([]);
     mockGetWorks.mockResolvedValue([]);
     mockGetGardenAssessments.mockResolvedValue([]);
+    mockReadWorkApprovalsForWorks.mockImplementation(async (workUIDs: string[]) =>
+      approveEveryWork(workUIDs)
+    );
     // clearAllMocks drops the factory implementation; both schemas are
     // configured unless a test says otherwise.
     mockEasConfig.mockReturnValue({
       WORK: { uid: CONFIGURED_UID },
+      WORK_APPROVAL: { uid: CONFIGURED_UID },
       ASSESSMENT: { uid: CONFIGURED_UID },
     });
   });
@@ -261,6 +274,58 @@ describe("usePublicGardenDetail", () => {
     expect(data?.assessmentCount).toBe(1);
   });
 
+  it("shows only approved field notes, and counts hands at work from them", async () => {
+    const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "approved", gardenerAddress: MOCK_ADDRESSES.gardener }),
+      createMockWork({ id: "pending", gardenerAddress: MOCK_ADDRESSES.user }),
+      createMockWork({ id: "rejected", gardenerAddress: MOCK_ADDRESSES.smartAccount }),
+    ]);
+    mockReadWorkApprovalsForWorks.mockResolvedValue({
+      approvals: [
+        createMockWorkApproval({ id: "a-1", workUID: "approved", approved: true }),
+        createMockWorkApproval({ id: "a-2", workUID: "rejected", approved: false }),
+      ],
+      failedWorkUIDs: [],
+    });
+
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data?.fieldNotes.map((note) => note.id)).toEqual(["approved"]);
+    expect(result.current.data?.totalFieldNotes).toBe(1);
+    expect(result.current.data?.contributors).toEqual([
+      { address: MOCK_ADDRESSES.gardener.toLowerCase(), fieldNoteCount: 1 },
+    ]);
+    expect(result.current.data?.unavailableSources.works).toBe(false);
+  });
+
+  it("reports the works source unavailable when a decision cannot be read", async () => {
+    // The page must not claim the approved notes it shows are all there are.
+    const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "read" }),
+      createMockWork({ id: "unread" }),
+    ]);
+    mockReadWorkApprovalsForWorks.mockResolvedValue({
+      approvals: [createMockWorkApproval({ id: "a-1", workUID: "read" })],
+      failedWorkUIDs: ["unread"],
+    });
+
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data?.fieldNotes.map((note) => note.id)).toEqual(["read"]);
+    expect(result.current.data?.partialData).toBe(true);
+    expect(result.current.data?.unavailableSources.works).toBe(true);
+  });
+
   it("returns every field note so callers can page locally", async () => {
     // The query key carries no page size, so a hook-side slice could never be
     // widened without a second fetch. The full set is already in memory here.
@@ -342,6 +407,7 @@ describe("usePublicGardenDetail", () => {
     mockGetGardenAssessments.mockResolvedValue([]);
     mockEasConfig.mockReturnValue({
       WORK: { uid: ZERO_UID },
+      WORK_APPROVAL: { uid: CONFIGURED_UID },
       ASSESSMENT: { uid: CONFIGURED_UID },
     });
 

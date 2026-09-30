@@ -83,7 +83,7 @@
     },
     "packages/admin": {
       "name": "@green-goods/admin",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "@green-goods/shared": "workspace:*",
         "@hookform/resolvers": "5.4.0",
@@ -130,7 +130,7 @@
     },
     "packages/agent": {
       "name": "@green-goods/agent",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "@green-goods/shared": "workspace:*",
         "@huggingface/transformers": "4.2.0",
@@ -154,7 +154,7 @@
     },
     "packages/client": {
       "name": "@green-goods/client",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "@ethereum-attestation-service/eas-sdk": "2.9.1",
         "@green-goods/shared": "workspace:*",
@@ -219,7 +219,7 @@
     },
     "packages/contracts": {
       "name": "@green-goods/contracts",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "@chainlink/contracts-ccip": "^1.6.4",
         "@ethereum-attestation-service/eas-contracts": "1.9.0",
@@ -235,7 +235,7 @@
     },
     "packages/indexer": {
       "name": "@green-goods/indexer",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "envio": "3.6.1",
         "viem": "2.55.0",
@@ -258,7 +258,7 @@
     },
     "packages/shared": {
       "name": "@green-goods/shared",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "@green-goods/contracts": "workspace:*",
         "@hypercerts-org/contracts": "^2.0.0-alpha.0",
