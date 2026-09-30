@@ -274,6 +274,32 @@ describe("modules/data/greengoods", () => {
       expect(result).toHaveLength(1);
       expect(result[0].domainMask).toBe(5);
     });
+
+    it("leaves a garden curated out of every surface off the list the apps read", async () => {
+      const row = (id: string, name: string) => ({
+        id,
+        chainId: 42161,
+        tokenAddress: "0xGardenToken",
+        tokenID: "1",
+        name,
+        location: "Nigeria",
+        openJoining: true,
+        createdAt: "1700000000",
+      });
+      mockQuery.mockResolvedValue({
+        data: {
+          Garden: [
+            row("0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB", "Greenpill Nigeria"),
+            row("0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3", "TAS HUB"),
+          ],
+          GardenDomains: [],
+        },
+      });
+
+      const result = await getGardens(reader);
+
+      expect(result.map((garden) => garden.name)).toEqual(["TAS HUB"]);
+    });
   });
 
   describe("getGarden", () => {

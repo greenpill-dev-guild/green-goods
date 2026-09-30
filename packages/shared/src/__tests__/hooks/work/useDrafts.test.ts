@@ -54,8 +54,10 @@ vi.mock("../../../utils/errors/mutation-error-handler", () => ({
 }));
 
 // Must come after mocks
+import { GARDENS_HIDDEN_EVERYWHERE } from "../../../config/garden-visibility";
 import { useDrafts } from "../../../hooks/work/useDrafts";
-import { draftDB } from "../../../modules/job-queue/draft-db";
+import { computeFirstIncompleteStep, draftDB } from "../../../modules/job-queue/draft-db";
+import { computeFirstIncompleteStep as firstIncompleteStep } from "../../../modules/job-queue/draft-state";
 
 // Cast to access mock methods
 const mockDraftDB = draftDB as unknown as Record<string, ReturnType<typeof vi.fn>>;
@@ -408,6 +410,37 @@ describe("useDrafts", () => {
         sessionType: "Workshop",
         feedback: "Test feedback",
         timeSpentMinutes: 1.5,
+      });
+    });
+
+    it("resumes a draft for a garden hidden everywhere at the garden step, keeping its work", async () => {
+      // Restoring the garden would send the work to one the picker no longer offers.
+      vi.mocked(computeFirstIncompleteStep).mockImplementationOnce(firstIncompleteStep);
+      mockDraftDB.getDraft.mockResolvedValue(
+        createMockDraftRecord({
+          gardenAddress: GARDENS_HIDDEN_EVERYWHERE[0].address,
+          actionUID: 3,
+          feedback: "Weeded the beds",
+        })
+      );
+      mockDraftDB.getImagesForDraft.mockResolvedValue([
+        { id: "img-1", file: createMockFile(), url: "blob:test" },
+      ]);
+      const { result } = renderHookWithQueryClient(() => useDrafts(), { queryClient });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      let targetTab: WorkTab | undefined;
+      await act(async () => {
+        targetTab = await result.current.resumeDraft("draft-1");
+      });
+
+      expect(targetTab).toBe(WorkTab.Intro);
+      const { gardenAddress, actionUID, feedback, images } = useWorkFlowStore.getState();
+      expect({ gardenAddress, actionUID, feedback, imageCount: images.length }).toEqual({
+        gardenAddress: null,
+        actionUID: 3,
+        feedback: "Weeded the beds",
+        imageCount: 1,
       });
     });
 

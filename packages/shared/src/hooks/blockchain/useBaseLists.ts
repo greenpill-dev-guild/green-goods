@@ -1,5 +1,6 @@
 import { type QueryKey, type UseQueryResult, useQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { withoutHiddenGardens } from "../../config/garden-visibility";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { getActions, getGardeners, getGardens } from "../../modules/data/greengoods";
 import { withKnownCapitals } from "../../modules/data/indexer-capitals";
@@ -60,7 +61,8 @@ export const useActions = createBaseListHook<Action>(
 export const useGardens = createBaseListHook<Garden>(
   (chainId) => gardensKeys.byChain(chainId),
   getGardens,
-  { networkMode: "offlineFirst" }
+  // A cache an older build wrote can hold a garden since curated out of every surface.
+  { networkMode: "offlineFirst", select: withoutHiddenGardens }
 );
 
 /** Loads gardener profiles for steward dashboards. */
