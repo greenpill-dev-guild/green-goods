@@ -1,4 +1,3 @@
-import { Button } from "@green-goods/shared/components/Button";
 import type { Address } from "@green-goods/shared/types/domain";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import {
@@ -19,6 +18,7 @@ import {
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
+import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
 import { PublicInstallCta } from "@/components/Public/PublicInstallCta";
 import { getPublicHeroImage } from "@/content/publicCuration";
 import { StatCell } from "./GardenDetailAtoms";
@@ -272,38 +272,29 @@ export default function GardenDetail() {
 
 function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
   const { formatMessage } = useIntl();
-  const { id } = useParams<{ id: string }>();
   return (
     <>
-      <div className="mx-auto max-w-6xl px-6 py-32 sm:px-10">
-        <h1 className="font-serif text-3xl font-bold text-text-strong-950">
-          {formatMessage({
-            id: "public.gardenDetail.unavailable",
-            defaultMessage: "This Garden could not be loaded",
-          })}
-        </h1>
-        <p className="mt-3 text-sm text-text-sub-600">
-          {formatMessage({
-            id: "public.gardenDetail.unavailableHelp",
-            defaultMessage:
-              "We could not read this Garden's public record right now. Try again in a moment.",
-          })}
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
+      <PublicEditorialHero
+        variant="banner"
+        imageSrc={getPublicHeroImage("gardens")}
+        imageAlt=""
+        titleId="public-garden-unavailable-title"
+        title={formatMessage({
+          id: "public.gardenDetail.unavailable",
+          defaultMessage: "This Garden could not be loaded",
+        })}
+        lede={formatMessage({
+          id: "public.gardenDetail.unavailableHelp",
+          defaultMessage:
+            "We could not read this Garden's public record right now. Try again in a moment.",
+        })}
+        actions={
           <EditorialGhostButton onClick={onRetry}>
             {formatMessage({ id: "public.gardenDetail.retry", defaultMessage: "Try Again" })}
           </EditorialGhostButton>
-          <Button asChild emphasis="tertiary">
-            <Link to="/gardens" viewTransition>
-              {formatMessage({
-                id: "public.gardenDetail.backToGardens",
-                defaultMessage: "Browse Gardens",
-              })}
-            </Link>
-          </Button>
-        </div>
-      </div>
-      <PublicInstallCta destination={`/home/${id}`} />
+        }
+      />
+      <GardenRecoverySection />
       <PublicFooter variant="soil" />
     </>
   );
@@ -311,32 +302,77 @@ function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
 
 function GardenNotFound() {
   const { formatMessage } = useIntl();
-  const { id } = useParams<{ id: string }>();
   return (
     <>
-      <div className="mx-auto max-w-6xl px-6 py-32 sm:px-10">
-        <h1 className="font-serif text-3xl font-bold text-text-strong-950">
-          {formatMessage({
-            id: "public.gardenDetail.notFound",
-            defaultMessage: "Garden not found",
-          })}
-        </h1>
-        <p className="mt-3 text-sm text-text-sub-600">
-          {formatMessage({
-            id: "public.sharedLink.unavailableHelp",
-            defaultMessage:
-              "This record may require sign-in or may no longer be available. Open it in the app and sign in to check access.",
-          })}
-        </p>
-        <EditorialGhostLink to="/gardens" className="mt-6">
-          {formatMessage({
-            id: "public.gardenDetail.backToGardens",
-            defaultMessage: "Browse Gardens",
-          })}
-        </EditorialGhostLink>
-      </div>
-      <PublicInstallCta destination={`/home/${id}`} />
+      <PublicEditorialHero
+        variant="banner"
+        imageSrc={getPublicHeroImage("gardens")}
+        imageAlt=""
+        titleId="public-garden-not-found-title"
+        title={formatMessage({
+          id: "public.gardenDetail.notFound",
+          defaultMessage: "Garden not found",
+        })}
+        lede={formatMessage({
+          id: "public.sharedLink.unavailableHelp",
+          defaultMessage:
+            "This record may require sign-in or may no longer be available. Open it in the app and sign in to check access.",
+        })}
+      />
+      <GardenRecoverySection />
       <PublicFooter variant="soil" />
     </>
+  );
+}
+
+function GardenRecoverySection() {
+  const { formatMessage } = useIntl();
+  const { data: gardens = [] } = usePublicGardens();
+  const suggestions = [...gardens]
+    .sort((left, right) => right.lastActivityAt - left.lastActivityAt)
+    .slice(0, 3);
+
+  return (
+    <section
+      className="flex-1 bg-bg-soft-200 px-6 pt-36 pb-12 dark:bg-bg-surface-800 sm:px-10 sm:pt-40 sm:pb-16"
+      aria-labelledby="public-garden-explore-title"
+    >
+      <div className="mx-auto max-w-7xl">
+        <EditorialHeading id="public-garden-explore-title" className="text-center">
+          {formatMessage({
+            id: "public.gardenDetail.explore.title",
+            defaultMessage: "Find a garden to explore",
+          })}
+        </EditorialHeading>
+        <p className="mx-auto mt-4 max-w-2xl text-center text-base leading-relaxed text-text-sub-600">
+          {formatMessage({
+            id: "public.gardenDetail.explore.help",
+            defaultMessage:
+              "Explore Gardens, follow their documented work, and see the evidence communities share.",
+          })}
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <EditorialPrimaryLink to="/gardens">
+            {formatMessage({
+              id: "public.gardenDetail.backToGardens",
+              defaultMessage: "Browse Gardens",
+            })}
+          </EditorialPrimaryLink>
+          <EditorialGhostLink to="/impact">
+            {formatMessage({
+              id: "public.gardenDetail.evidence.cta",
+              defaultMessage: "View Public Evidence",
+            })}
+          </EditorialGhostLink>
+        </div>
+        {suggestions.length > 0 ? (
+          <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {suggestions.map((garden) => (
+              <PublicGardenCard key={garden.id} garden={garden} />
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }

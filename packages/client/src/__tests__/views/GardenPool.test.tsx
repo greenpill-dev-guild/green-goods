@@ -132,7 +132,7 @@ function commitmentsResult(overrides: Record<string, unknown> = {}) {
 function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
   const [selectedCycleId, setSelectedCycleId] = useState<bigint | null>(null);
   const [direction, setDirection] = useState<"all" | "OFFER" | "REQUEST">("all");
-  const [liveness, setLiveness] = useState<"live" | "settled">("live");
+  const [liveness, setLiveness] = useState<"live" | "settled" | "all">("live");
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
   const { cycles } = mockUseCommitmentCycles();
   const queue = mockUseQueueState();
@@ -143,6 +143,12 @@ function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
   const ownCreations = queue.pendingCreates.filter(
     (entry: { poolId: string }) => entry.poolId === targetPool.poolId.toString()
   );
+  const shownCreations =
+    liveness === "settled"
+      ? []
+      : ownCreations.filter(
+          (entry: { direction: string }) => direction === "all" || entry.direction === direction
+        );
   const inDirection = commitments.commitments.filter(
     (entry: ReturnType<typeof commitment>) => direction === "all" || entry.direction === direction
   );
@@ -150,11 +156,13 @@ function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
     isSettledCommitmentState(entry.derivedState)
   );
   const rows = (
-    liveness === "settled"
-      ? settledInDirection
-      : inDirection.filter(
-          (entry: ReturnType<typeof commitment>) => !isSettledCommitmentState(entry.derivedState)
-        )
+    liveness === "all"
+      ? inDirection
+      : liveness === "settled"
+        ? settledInDirection
+        : inDirection.filter(
+            (entry: ReturnType<typeof commitment>) => !isSettledCommitmentState(entry.derivedState)
+          )
   ).map((entry: ReturnType<typeof commitment>) => {
     const seat = selectCommitmentSeat({
       commitment: entry as never,
@@ -191,6 +199,7 @@ function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
     settledCount: settledInDirection.length,
     busyJobId,
     ownCreations,
+    shownCreations,
     rows,
     titleOf: () => null,
     commitments,
@@ -294,7 +303,28 @@ describe("GardenPool", () => {
     expect(screen.getByText("Prune the north beds")).toBeInTheDocument();
     expect(screen.getByText("Waiting to send")).toBeInTheDocument();
     // The phone's own row counts: an otherwise empty pool is not empty.
-    expect(screen.queryByText("No commitments yet")).not.toBeInTheDocument();
+    expect(screen.queryByText("No promises yet")).not.toBeInTheDocument();
+  });
+
+  it("counts a promise still on this phone with the rest, and keeps it out of Settled", async () => {
+    const user = userEvent.setup();
+    mockUseQueueState.mockReturnValue({
+      pendingCommitmentIds: new Set<string>(),
+      failedCount: 0,
+      failedCommitmentIds: new Set<string>(),
+      hasPendingCreate: true,
+      pendingCreates: [creation()],
+      isUnavailable: false,
+      refresh: vi.fn(),
+    });
+
+    render(<GardenPool pool={pool()} />);
+    expect(screen.getByText("1 live")).toBeInTheDocument();
+
+    // It is no settled promise, so Settled neither lists nor counts it.
+    await user.selectOptions(screen.getByRole("combobox", { name: "Status" }), "settled");
+    expect(screen.queryByText("Prune the north beds")).not.toBeInTheDocument();
+    expect(screen.getByText("0 settled")).toBeInTheDocument();
   });
 
   it("says a creation waiting for the member's hat spends no tries", () => {
@@ -404,9 +434,7 @@ describe("GardenPool", () => {
     expect(rows[0]).toHaveAttribute("data-done", "true");
     expect(rows[1]).toHaveAttribute("data-done", "false");
     expect(screen.getByText("What this pool is for")).toBeInTheDocument();
-    expect(
-      screen.getByText("How many commitments one person can hold at once")
-    ).toBeInTheDocument();
+    expect(screen.getByText("How many promises one person can hold at once")).toBeInTheDocument();
     expect(screen.getByText(/steward dashboard/i)).toBeInTheDocument();
   });
 
@@ -437,7 +465,7 @@ describe("GardenPool", () => {
 
     expect(screen.getByText(/paused this pool/i)).toBeInTheDocument();
     expect(screen.getByText("Why: Flooding on the lower terraces")).toBeInTheDocument();
-    expect(screen.getByText("No commitments yet")).toBeInTheDocument();
+    expect(screen.getByText("No promises yet")).toBeInTheDocument();
   });
 
   it("says a paused pool resumes and loses nothing, above a still-readable list", () => {
@@ -454,7 +482,7 @@ describe("GardenPool", () => {
 
     expect(screen.getByText("This pool has closed")).toBeInTheDocument();
     expect(screen.getByText("What this pool grew")).toBeInTheDocument();
-    expect(screen.getByText("12 commitments made · 9 kept")).toBeInTheDocument();
+    expect(screen.getByText("12 promises made · 9 kept")).toBeInTheDocument();
   });
 
   it("says a composted pool can be reopened, which a closed one does not", () => {
@@ -467,7 +495,7 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool({ state: "READY" })} />);
 
     expect(screen.getByText("The pool is set up")).toBeInTheDocument();
-    expect(screen.queryByText("No commitments yet")).not.toBeInTheDocument();
+    expect(screen.queryByText("No promises yet")).not.toBeInTheDocument();
   });
 
   it("does not claim a pool is empty when it cannot read it at all", () => {
@@ -475,8 +503,8 @@ describe("GardenPool", () => {
 
     render(<GardenPool pool={pool()} />);
 
-    expect(screen.getByText("Commitments are not ready here yet")).toBeInTheDocument();
-    expect(screen.queryByText("No commitments yet")).not.toBeInTheDocument();
+    expect(screen.getByText("Promises are not ready here yet")).toBeInTheDocument();
+    expect(screen.queryByText("No promises yet")).not.toBeInTheDocument();
   });
 
   it("says offline rather than empty when the device cannot reach anything", () => {
@@ -488,9 +516,19 @@ describe("GardenPool", () => {
   });
 
   it("names a reader's own relationship to a commitment in someone else's garden", () => {
+    // Their own offer, not yet taken up: nothing waits on them, so the row's one
+    // qualifier says how they are involved.
     mockUseCommitments.mockReturnValue(
       commitmentsResult({
-        commitments: [commitment({ creator: VIEWER, leadProvider: VIEWER })],
+        commitments: [
+          commitment({
+            creator: VIEWER,
+            leadProvider: VIEWER,
+            derivedState: "OFFERED",
+            onchainState: "OFFERED",
+            state: "OFFERED",
+          }),
+        ],
       })
     );
 
@@ -534,8 +572,9 @@ describe("GardenPool", () => {
 
     render(<GardenPool pool={pool()} />);
 
-    expect(screen.getByText("Season")).toBeInTheDocument();
-    expect(screen.getByText("Campaign")).toBeInTheDocument();
+    // Each card says its kind in words beside its glyph; unnamed, the kind names the card too.
+    expect(screen.getAllByText("Season").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Campaign").length).toBeGreaterThan(0);
     expect(screen.getByText("6 of 16 kept")).toBeInTheDocument();
     expect(screen.getByText("8 of 8 kept")).toBeInTheDocument();
   });
@@ -565,8 +604,8 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool()} />);
 
     expect(screen.getByText("Spring planting")).toBeInTheDocument();
-    expect(screen.getByText(/Mar 1/)).toBeInTheDocument();
-    expect(screen.getByText(/May 31, 2026/)).toBeInTheDocument();
+    // The card keeps its dates short, beside its own count; the details sheet has the year.
+    expect(screen.getByText("Mar 1 – May 31 · 6 of 16 kept")).toBeInTheDocument();
   });
 
   it("filters by direction without inventing a total across kinds", async () => {
@@ -582,14 +621,17 @@ describe("GardenPool", () => {
 
     render(<GardenPool pool={pool()} />);
     expect(screen.getByText("3 rides")).toBeInTheDocument();
+    expect(screen.getByText("2 live")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Requests" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Kind" }), "REQUEST");
 
     expect(screen.getByText("3 rides")).toBeInTheDocument();
     expect(screen.queryByText("3 hours")).not.toBeInTheDocument();
+    // The count counts what is shown, never a total across kinds.
+    expect(screen.getByText("1 live")).toBeInTheDocument();
   });
 
-  it("keeps the settled scope available when a direction has no settled rows", async () => {
+  it("keeps Settled one Status choice away, whatever the kind", async () => {
     const user = userEvent.setup();
     mockUseCommitments.mockReturnValue(
       commitmentsResult({
@@ -609,14 +651,17 @@ describe("GardenPool", () => {
     );
 
     render(<GardenPool pool={pool()} />);
-    await user.click(screen.getByRole("button", { name: "Settled (1)" }));
+    const status = screen.getByRole("combobox", { name: "Status" });
+    await user.selectOptions(status, "settled");
     expect(screen.getByText("3 meals")).toBeInTheDocument();
+    expect(screen.getByText("1 settled")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Requests" }));
-    const settled = screen.getByRole("button", { name: "Settled (0)" });
-    expect(settled).toHaveAttribute("aria-pressed", "true");
+    // No settled requests: the choice stays, and says so rather than disappearing.
+    await user.selectOptions(screen.getByRole("combobox", { name: "Kind" }), "REQUEST");
+    expect(status).toHaveValue("settled");
+    expect(screen.getByText("0 settled")).toBeInTheDocument();
 
-    await user.click(settled);
+    await user.selectOptions(status, "all");
     expect(screen.getByText("3 rides")).toBeInTheDocument();
   });
 
@@ -652,18 +697,19 @@ describe("GardenPool", () => {
     expect(screen.getAllByText("Needs you")).toHaveLength(1);
   });
 
-  it("opens two one-word doors from the floating entry, each fixing its direction by route", async () => {
+  it("opens the Offer or Request sheet from the +, each card fixing its direction by route", async () => {
     const user = userEvent.setup();
     mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
 
     render(<GardenPool pool={pool()} />);
 
     // Closed: one entry, no doors, and no form.
-    expect(screen.queryByRole("button", { name: "Offer" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Offer Something/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Offer or Request" }));
-    expect(screen.getByRole("button", { name: "Request" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^Request Something/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "How Promises Work" })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Offer" }));
+    await user.click(screen.getByRole("button", { name: /^Offer Something/ }));
     expect(mockNavigate).toHaveBeenCalledWith("commitments/new?direction=offer");
   });
 
@@ -695,14 +741,16 @@ describe("GardenPool", () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("keeps big inline doors on an empty pool and draws no floating entry", async () => {
+  it("keeps the same + on an empty pool, with no buttons of its own in the view", async () => {
     const user = userEvent.setup();
 
     render(<GardenPool pool={pool()} />);
 
-    expect(screen.getByText("No commitments yet")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Offer or Request" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Make a request" }));
+    expect(screen.getByText("No promises yet")).toBeInTheDocument();
+    expect(screen.getByText("0 live")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Make a request" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Offer or Request" }));
+    await user.click(await screen.findByRole("button", { name: /^Request Something/ }));
     expect(mockNavigate).toHaveBeenCalledWith("commitments/new?direction=request");
   });
 
@@ -728,7 +776,7 @@ describe("GardenPool", () => {
     mockUseCommitmentCycles.mockReturnValue({ cycles: [season] });
     const { unmount } = render(<GardenPool pool={pool()} />);
     expect(screen.queryByRole("group", { name: "Seasons and campaigns" })).toBeNull();
-    expect(screen.getByRole("button", { name: /6 of 16 kept/ })).toHaveClass("w-full");
+    expect(screen.getByRole("button", { name: "Show promises in Season" })).toHaveClass("w-full");
     unmount();
 
     mockUseCommitmentCycles.mockReturnValue({
@@ -738,7 +786,7 @@ describe("GardenPool", () => {
     expect(screen.getByRole("group", { name: "Seasons and campaigns" })).toBeInTheDocument();
   });
 
-  it("opens the pool's own agreement from its season, and the general words only without one", async () => {
+  it("opens the pool's own agreement from the ⓘ beside the count, and the general words only without one", async () => {
     const user = userEvent.setup();
     const season = {
       id: "42161-1",
@@ -816,11 +864,37 @@ describe("GardenPool", () => {
     expect(marker).not.toHaveClass("uppercase");
   });
 
-  it("explains what the pool is for before listing what is in it", () => {
+  it("keeps the pool's agreement behind the ⓘ beside the count, not on the page", () => {
     mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
 
     render(<GardenPool pool={pool()} />);
 
-    expect(screen.getByText(/offer help and ask for it/i)).toBeInTheDocument();
+    expect(screen.queryByText(/offer help and ask for it/i)).toBeNull();
+    expect(screen.getByText("1 live")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "What this pool is for" })).toBeInTheDocument();
+  });
+
+  it("holds the list's place while loading, with no ⓘ to slide as the count arrives", () => {
+    mockUseCommitments.mockReturnValue(commitmentsResult({ isLoading: true }));
+
+    render(<GardenPool pool={pool()} />);
+
+    expect(screen.getByText(/Gathering…/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "What this pool is for" })).toBeNull();
+    expect(document.querySelectorAll("[data-skeleton=commitment-row]")).toHaveLength(4);
+  });
+
+  it("says a failed read lost nothing, in place of the list, and tries again", async () => {
+    const user = userEvent.setup();
+    const refetch = vi.fn();
+    mockUseCommitments.mockReturnValue(commitmentsResult({ isError: true, refetch }));
+
+    render(<GardenPool pool={pool()} />);
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Couldn't load promises");
+    expect(alert).toHaveTextContent("Nothing has been lost.");
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalledOnce();
   });
 });

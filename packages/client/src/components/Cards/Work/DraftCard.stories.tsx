@@ -72,10 +72,6 @@ const meta: Meta<typeof DraftCard> = {
       control: "text",
       description: "Title of the action this draft belongs to. Falls back to 'Untitled Draft'.",
     },
-    gardenName: {
-      control: "text",
-      description: "Name of the garden. Shown as subtitle prefix with a dot separator.",
-    },
     className: {
       control: "text",
       description: "Additional CSS classes for the root card element",
@@ -96,7 +92,6 @@ export const Default: Story = {
   args: {
     draft: draftWithImages,
     actionTitle: "Plant Native Trees",
-    gardenName: "Riverside Commons",
     onResume: () => {},
     onDelete: () => {},
   },
@@ -106,7 +101,6 @@ export const NoImages: Story = {
   args: {
     draft: draftNoImages,
     actionTitle: "Soil Sampling",
-    gardenName: "Urban Farm Co-op",
     onResume: () => {},
     onDelete: () => {},
   },
@@ -124,7 +118,6 @@ export const ReviewStep: Story = {
   args: {
     draft: draftReviewStep,
     actionTitle: "Compost Workshop",
-    gardenName: "Hilltop Garden",
     onResume: () => {},
     onDelete: () => {},
   },
@@ -134,7 +127,6 @@ export const DarkMode: Story = {
   args: {
     draft: draftWithImages,
     actionTitle: "Plant Native Trees",
-    gardenName: "Riverside Commons",
     onResume: () => {},
     onDelete: () => {},
   },
@@ -150,32 +142,29 @@ export const DarkMode: Story = {
 export const Gallery: Story = {
   render: () => (
     <div className="flex flex-col gap-3 max-w-sm">
-      <p className="text-xs text-text-sub-600 font-medium">With images (Step 3/4)</p>
+      <p className="text-xs text-text-sub-600 font-medium">With images (Step 3 of 4)</p>
       <DraftCard
         draft={draftWithImages}
         actionTitle="Plant Native Trees"
-        gardenName="Riverside Commons"
         onResume={() => {}}
         onDelete={() => {}}
       />
 
-      <p className="text-xs text-text-sub-600 font-medium">No images (Step 2/4)</p>
+      <p className="text-xs text-text-sub-600 font-medium">No images (Step 2 of 4)</p>
       <DraftCard
         draft={draftNoImages}
         actionTitle="Soil Sampling"
-        gardenName="Urban Farm Co-op"
         onResume={() => {}}
         onDelete={() => {}}
       />
 
-      <p className="text-xs text-text-sub-600 font-medium">Untitled (Step 1/4)</p>
+      <p className="text-xs text-text-sub-600 font-medium">Untitled (Step 1 of 4)</p>
       <DraftCard draft={draftIntroStep} onResume={() => {}} onDelete={() => {}} />
 
-      <p className="text-xs text-text-sub-600 font-medium">Review step (Step 4/4)</p>
+      <p className="text-xs text-text-sub-600 font-medium">Review step (Step 4 of 4)</p>
       <DraftCard
         draft={draftReviewStep}
         actionTitle="Compost Workshop"
-        gardenName="Hilltop Garden"
         onResume={() => {}}
         onDelete={() => {}}
       />
@@ -187,7 +176,6 @@ export const Interactive: Story = {
   args: {
     draft: draftWithImages,
     actionTitle: "Plant Native Trees",
-    gardenName: "Riverside Commons",
     onResume: () => {},
     onDelete: () => {},
   },
@@ -197,8 +185,8 @@ export const Interactive: Story = {
     // Verify draft badge is present
     await expect(canvas.getByText("Draft")).toBeVisible();
 
-    // Verify step progress badge
-    await expect(canvas.getByText("Step 3/4")).toBeVisible();
+    // The step and the photos on one line
+    await expect(canvas.getByText("Step 3 of 4 · 3 photos")).toBeVisible();
 
     // Verify delete button exists with accessible label
     const deleteButton = canvas.getByRole("button", { name: /delete draft/i });
@@ -213,7 +201,6 @@ export const Mobile: Story = {
   args: {
     draft: draftWithImages,
     actionTitle: "Plant Native Trees",
-    gardenName: "Riverside Commons",
     onResume: () => {},
     onDelete: () => {},
   },

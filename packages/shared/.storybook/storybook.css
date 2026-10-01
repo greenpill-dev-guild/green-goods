@@ -48,6 +48,13 @@
  * readouts, pass/fail chips). Neutral and Storybook-only. */
 @import "./design-system/design-system.css";
 
+/* The client's page gutter, as packages/client/src/index.css defines it, so a
+ * client page (Submit Work, proof) keeps its margins in a story. The client
+ * entrypoint itself is not imported: it owns document-level resets. */
+.padded {
+  @apply mx-4 sm:mx-6 md:mx-12;
+}
+
 /* Admin Storybook parity subset. The shared Storybook preview intentionally
  * avoids importing the full admin app entrypoint because that file owns
  * document-level shell resets. Keep the route tone/material roles here aligned

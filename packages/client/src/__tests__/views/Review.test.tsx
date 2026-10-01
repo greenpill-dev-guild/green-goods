@@ -65,7 +65,8 @@ vi.mock("@/components/Features/Work", () => ({
     media,
     details,
     onMediaError,
-    fulfills,
+    afterHeading,
+    afterDetails,
   }: {
     title: string;
     info: string;
@@ -74,10 +75,16 @@ vi.mock("@/components/Features/Work", () => ({
     media?: string[];
     details: Array<{ label: string; value: string }>;
     onMediaError?: (url: string, index: number) => void;
-    fulfills?: React.ReactNode;
+    afterHeading?: React.ReactNode;
+    afterDetails?: React.ReactNode;
   }) =>
     createElement("div", { "data-testid": "work-view" }, [
       createElement("span", { key: "title", "data-testid": "review-title" }, title),
+      createElement(
+        "div",
+        { key: "after-heading", "data-testid": "review-after-heading" },
+        afterHeading
+      ),
       createElement("span", { key: "info", "data-testid": "review-info" }, info),
       createElement("span", { key: "garden", "data-testid": "review-garden" }, garden?.name),
       createElement("span", { key: "action", "data-testid": "review-action" }, actionTitle),
@@ -107,7 +114,11 @@ vi.mock("@/components/Features/Work", () => ({
         },
         "Trigger media error"
       ),
-      createElement("div", { key: "fulfills", "data-testid": "review-fulfills" }, fulfills),
+      createElement(
+        "div",
+        { key: "after-details", "data-testid": "review-after-details" },
+        afterDetails
+      ),
     ]),
 }));
 
@@ -128,10 +139,8 @@ const messages: Record<string, string> = {
   "app.garden.review.previewFailedTitle": "Some media previews failed",
   "app.garden.review.removeBrokenMedia": "Remove Broken Media",
   "app.garden.review.video": "Video",
-  "app.garden.commitment.fulfills": "Fulfills",
-  "app.garden.commitment.fulfillsValue": "{commitment} · requirement {requirement}",
-  "app.garden.commitment.none": "Not for a Commitment",
-  "app.garden.commitment.cleared": "This work will not be linked to a commitment.",
+  "app.garden.review.staysNote":
+    "It stays on this phone until it lands. If it can't send, it waits in Your Work › Pending.",
 };
 
 const now = Date.now();
@@ -312,37 +321,16 @@ describe("WorkReview", () => {
     expect(screen.getByTestId("detail-Trees Planted")).toHaveTextContent("15");
   });
 
-  it("names the commitment requirement this work will fulfil", () => {
+  it("puts the chosen promise right after the heading and says where the work waits", () => {
     renderReview({
-      commitmentSelection: {
-        key: "9:1",
-        commitmentId: 9n,
-        requirementIndex: 1,
-        title: "Prune the north beds",
-      },
-      onClearCommitment: vi.fn(),
+      pinned: createElement("div", { "data-testid": "pinned" }, "Work for Prune the north beds"),
     });
 
-    expect(screen.getByText("Fulfills")).toBeInTheDocument();
-    expect(screen.getByText("Prune the north beds · requirement 2")).toBeInTheDocument();
-  });
-
-  it("clears commitment context without changing the Work details", () => {
-    const onClearCommitment = vi.fn();
-    renderReview({
-      values: { treeCount: 15 },
-      commitmentSelection: {
-        key: "9:0",
-        commitmentId: 9n,
-        requirementIndex: 0,
-        title: "Prune the north beds",
-      },
-      onClearCommitment,
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Not for a Commitment" }));
-
-    expect(onClearCommitment).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId("detail-Trees Planted")).toHaveTextContent("15");
+    expect(screen.getByTestId("review-after-heading")).toHaveTextContent(
+      "Work for Prune the north beds"
+    );
+    expect(screen.getByTestId("review-after-details")).toHaveTextContent(
+      "It stays on this phone until it lands."
+    );
   });
 });

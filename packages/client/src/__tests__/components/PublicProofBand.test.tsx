@@ -42,13 +42,14 @@ const messages: Record<string, string> = {
   "public.home.proof.worksNote": "Panel checks, soil cores, workshop notes.",
   "public.home.proof.assessments": "Assessments recorded",
   "public.home.proof.assessmentsNote": "Season baselines each Garden sets before the work begins.",
+  "public.impact.proof.unavailable": "Not available right now",
 };
 
 function renderBand(props: {
-  gardens: number;
-  contributors: number;
-  works: number;
-  assessments: number;
+  gardens: number | null;
+  contributors: number | null;
+  works: number | null;
+  assessments: number | null;
   isLoading?: boolean;
 }) {
   return render(
@@ -85,6 +86,14 @@ describe("PublicProofBand", () => {
     expect(screen.getByText("Hands at work")).toBeInTheDocument();
     expect(screen.getByText("Entries logged")).toBeInTheDocument();
     expect(screen.getByText("Assessments recorded")).toBeInTheDocument();
+    expect(screen.queryByText(/first records will appear here/)).toBeNull();
+  });
+
+  it("dashes out a count that could not be read instead of publishing zero", () => {
+    renderBand({ gardens: 13, contributors: 40, works: null, assessments: 2 });
+    expect(screen.getByText("Entries logged")).toBeInTheDocument();
+    expect(screen.getByText("Not available right now")).toBeInTheDocument();
+    expect(screen.queryByText("0")).toBeNull();
     expect(screen.queryByText(/first records will appear here/)).toBeNull();
   });
 

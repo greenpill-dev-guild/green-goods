@@ -47,6 +47,7 @@ vi.mock("../../modules/data/graphql", () => ({
   greenGoodsGraphQL: vi.fn((query) => query),
 }));
 
+import { isGardenPubliclyReachable, isGardenPubliclyVisible } from "../../config/garden-visibility";
 import {
   getActions,
   getGardeners,
@@ -98,6 +99,44 @@ describe("modules/data/greengoods", () => {
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(1);
+    });
+
+    it("keeps a garden the indexer never filled in off the public site, not out of the app", async () => {
+      // The indexer's placeholder for a garden it has seen only in a role or Karma event.
+      const placeholder = {
+        id: "0x1111111111111111111111111111111111111111",
+        chainId: 11155111,
+        tokenAddress: "",
+        tokenID: "0",
+        name: "",
+        description: "",
+        location: "",
+        bannerImage: "",
+        gardeners: [],
+        operators: [],
+        evaluators: [],
+        owners: [],
+        funders: [],
+        communities: [],
+        openJoining: false,
+        createdAt: "1700000000",
+      };
+      const minted = {
+        ...placeholder,
+        id: "0x2222222222222222222222222222222222222222",
+        tokenAddress: "0xGarden123",
+        tokenID: "2",
+        name: "Vida Verde",
+        location: "Brazil",
+      };
+      mockQuery.mockResolvedValue({ data: { Garden: [placeholder, minted] } });
+
+      const [unfilled, filled] = await getGardens(reader);
+
+      // The app and admin still get the garden, under its stand-in name.
+      expect(unfilled).toMatchObject({ name: "Unnamed Garden", location: "Unknown Location" });
+      expect(isGardenPubliclyReachable(unfilled)).toBe(false);
+      expect(isGardenPubliclyVisible(filled)).toBe(true);
     });
 
     it("includes openJoining field from indexer", async () => {
@@ -234,6 +273,32 @@ describe("modules/data/greengoods", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].domainMask).toBe(5);
+    });
+
+    it("leaves a garden curated out of every surface off the list the apps read", async () => {
+      const row = (id: string, name: string) => ({
+        id,
+        chainId: 42161,
+        tokenAddress: "0xGardenToken",
+        tokenID: "1",
+        name,
+        location: "Nigeria",
+        openJoining: true,
+        createdAt: "1700000000",
+      });
+      mockQuery.mockResolvedValue({
+        data: {
+          Garden: [
+            row("0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB", "Greenpill Nigeria"),
+            row("0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3", "TAS HUB"),
+          ],
+          GardenDomains: [],
+        },
+      });
+
+      const result = await getGardens(reader);
+
+      expect(result.map((garden) => garden.name)).toEqual(["TAS HUB"]);
     });
   });
 

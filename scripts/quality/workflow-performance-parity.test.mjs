@@ -251,6 +251,29 @@ test("Supply Chain classifier routes each change class without broad fallthrough
   }
 });
 
+test("pre-push forwards focused proof paths without shell expansion", () => {
+  const hook = read(".husky/pre-push");
+  for (const paths of ["", "client:src/views/example.test.tsx shared:src/**/example.test.ts"]) {
+    const result = spawnSync("sh", ["-c", `
+git() { :; }
+bun() { :; }
+node() { printf '%s\\n' "$@"; }
+${hook}
+`], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, GREEN_GOODS_PUSH_TEST_PATHS: paths },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.stdout.trim().split("\n"), [
+      "🔍 Running the focused ready-for-CI gate...",
+      "scripts/dev/node-cli.js", "scripts/dev/ci-local.js", "--intent", "push",
+      "--reuse-passing-receipts",
+      ...paths.split(" ").filter(Boolean).flatMap((path) => ["--test-path", path]),
+    ]);
+  }
+});
+
 test("local hooks keep commit light and reuse the focused push contract", () => {
   const preCommit = read(".husky/pre-commit");
   const prePush = read(".husky/pre-push");

@@ -7,6 +7,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import { withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { FIXTURE_IMAGE_BANNER } from "../../../../shared/.storybook/fixtures";
+import PublicShell from "../../routes/PublicShell";
 import GardenDetail from "./GardenDetail";
 
 const gardenId: Address = "0x1111111111111111111111111111111111111111";
@@ -69,7 +70,9 @@ const meta = {
     (Story) => (
       <MemoryRouter initialEntries={[`/gardens/${gardenId}`]}>
         <Routes>
-          <Route path="/gardens/:id" element={<Story />} />
+          <Route element={<PublicShell />}>
+            <Route path="/gardens/:id" element={<Story />} />
+          </Route>
         </Routes>
       </MemoryRouter>
     ),
@@ -77,6 +80,42 @@ const meta = {
 } satisfies Meta<typeof GardenDetail>;
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+export const NotFound: Story = {
+  decorators: [
+    withSeededQueryClient([
+      [queryKeys.public.gardens(DEFAULT_CHAIN_ID), []],
+      [
+        queryKeys.public.gardenDetail(gardenId, DEFAULT_CHAIN_ID),
+        {
+          garden: null,
+          fieldNotes: [],
+          contributors: [],
+          assessmentCount: 0,
+          totalFieldNotes: 0,
+          partialData: false,
+          unlisted: false,
+          unavailableSources: { works: false, assessments: false },
+        },
+      ],
+    ]),
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const hero = await canvas.findByRole("region", { name: "Garden not found" });
+    await expect(within(hero).getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(within(hero).queryByRole("link")).not.toBeInTheDocument();
+    const explore = canvas.getByRole("region", { name: "Find a garden to explore" });
+    await expect(within(explore).getByRole("link", { name: "Browse Gardens" })).toHaveAttribute(
+      "href",
+      "/gardens"
+    );
+    const footer = canvasElement.querySelector("footer")!;
+    await expect(footer.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(
+      canvasElement.ownerDocument.defaultView!.innerHeight
+    );
+  },
+};
 
 export const LongDescription: Story = {
   decorators: [seeded(longDescription)],

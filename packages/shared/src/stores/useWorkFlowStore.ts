@@ -32,6 +32,11 @@ export type WorkFlowState = WorkDraftState & {
   draftMissingAttachments: MissingDraftAttachment[];
   draftSaveState: "idle" | "loading" | "saving" | "saved" | "failed";
   draftError: string | null;
+  /**
+   * The person took the promise off this work in this flow, so the draft saves
+   * that. Without it, a page without a promise leaves the draft's own alone.
+   */
+  draftLinkCleared: boolean;
   location?: ApproximateWorkLocation;
   activeTab: WorkTab;
   submissionCompleted: boolean;
@@ -90,6 +95,7 @@ export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
   draftMissingAttachments: [],
   draftSaveState: "loading",
   draftError: null,
+  draftLinkCleared: false,
   location: undefined,
   activeTab: WorkTab.Intro,
   submissionCompleted: false,

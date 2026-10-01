@@ -182,6 +182,20 @@ describe("ImpactPage", () => {
     expect(within(proof).queryByText("0")).toBeNull();
   });
 
+  it("dashes out only the count the stats read could not establish", () => {
+    mockUsePublicStats.mockReturnValue({
+      data: { ...mockStats, fieldNoteCount: null },
+      isLoading: false,
+    });
+    renderView();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    expect(within(proof).getAllByText("Not available right now")).toHaveLength(1);
+    expect(within(proof).getByText("7")).toBeInTheDocument();
+    expect(within(proof).queryByText("30")).toBeNull();
+  });
+
   it("renders evidence cards with their titles in an image-forward grid", () => {
     renderView();
     expect(screen.getByText("Q3 Soil Renewal")).toBeInTheDocument();

@@ -355,6 +355,31 @@ describe("commitment queue executor", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
+  it("holds Add and Send's send while its proof is still queued", async () => {
+    const queueStore = store();
+    queueStore.getJob.mockResolvedValue(job("evidence", { commitmentId: 1n }));
+    const chainReads = reads();
+    const sender = createMockTransactionSender();
+    const send = job("confirmation", {
+      action: "submit",
+      commitmentId: 1n,
+      gardenAddress: GARDEN,
+      afterEvidenceJobId: "job-evidence",
+    });
+
+    await expect(
+      executeCommitmentQueueJob("job-confirmation", send, 42161, sender, {
+        demoActive: () => false,
+        reads: chainReads,
+        store: queueStore,
+      })
+    ).resolves.toEqual({ status: "waiting", reason: "proof-not-landed" });
+
+    expect(queueStore.getJob).toHaveBeenCalledWith("job-evidence");
+    expect(chainReads.hasMembership).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("waits and persists a metadata attempt when publishing fails", async () => {
     const queueStore = store();
     const queued = job(

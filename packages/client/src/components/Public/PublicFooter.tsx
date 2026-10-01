@@ -97,7 +97,7 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
   return (
     <footer
       className={cn(
-        "border-t px-6 py-6 sm:px-10 sm:py-5",
+        "mt-auto border-t px-6 py-6 sm:px-10 sm:py-5",
         isSoil ? "border-static-white/10 bg-editorial-deep" : "border-stroke-soft-200 bg-bg-weak-50"
       )}
     >

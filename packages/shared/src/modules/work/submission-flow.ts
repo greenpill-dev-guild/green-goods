@@ -1,7 +1,8 @@
 import { type NormalizeWorkMediaOptions, normalizeWorkMediaFiles } from "./media-processing";
+import { isGardenHiddenEverywhere } from "../../config/garden-visibility";
 import { WorkTab } from "../../stores/workFlowTypes";
 
-export const WORK_SUBMISSION_TAB_ORDER = [
+const WORK_SUBMISSION_TAB_ORDER = [
   WorkTab.Intro,
   WorkTab.Media,
   WorkTab.Details,
@@ -23,7 +24,12 @@ export interface WorkSubmissionProgress {
 export function canProceedWithWorkSubmission(progress: WorkSubmissionProgress): boolean {
   switch (progress.tab) {
     case WorkTab.Intro:
-      return Boolean(progress.gardenAddress && typeof progress.actionUID === "number");
+      // A garden hidden everywhere is not in the picker, so it is not a choice to proceed with.
+      return Boolean(
+        progress.gardenAddress &&
+          !isGardenHiddenEverywhere(progress.gardenAddress) &&
+          typeof progress.actionUID === "number"
+      );
     case WorkTab.Media:
       return Boolean(
         progress.bypassMediaRequirement || progress.imageCount >= progress.minRequired

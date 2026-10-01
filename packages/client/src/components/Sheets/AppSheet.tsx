@@ -34,6 +34,11 @@ export interface AppSheetProps {
   className?: string;
   contentClassName?: string;
   /**
+   * Names a read-only body that scrolls and makes it focusable, so a keyboard
+   * can scroll it. Tabbed sheets name their panel by the tab instead.
+   */
+  bodyLabel?: string;
+  /**
    * Height tier (DL-014). `compact` sizes to its content up to the half
    * height; `half`, `tall`, and `full` hold 50%, 70%, and 85% of the viewport.
    * Tabbed sheets use `full` so switching tabs never resizes them.
@@ -63,6 +68,7 @@ export const AppSheet: FC<AppSheetProps> = ({
   actions,
   className,
   contentClassName,
+  bodyLabel,
   size,
 }) => {
   const { formatMessage } = useIntl();
@@ -88,7 +94,12 @@ export const AppSheet: FC<AppSheetProps> = ({
           data-testid={`tab-${tab.id}`}
         >
           {tab.icon && (
-            <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4">
+            <span
+              className={cn(
+                "flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4",
+                activeTab === tab.id && pwaSheetStyles.tabActiveIcon
+              )}
+            >
               {tab.icon}
             </span>
           )}
@@ -134,7 +145,9 @@ export const AppSheet: FC<AppSheetProps> = ({
               role: "tabpanel",
               "aria-labelledby": activeTab ? tabId(activeTab) : undefined,
             }
-          : undefined
+          : bodyLabel
+            ? { tabIndex: 0, role: "region", "aria-label": bodyLabel }
+            : undefined
       }
       actions={actions}
     >

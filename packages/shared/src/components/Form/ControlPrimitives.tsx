@@ -69,7 +69,13 @@ Textarea.displayName = "Textarea";
 
 export interface NativeSelectProps
   extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "size">,
-    BaseControlProps {
+    Omit<BaseControlProps, "controlSize"> {
+  /**
+   * The field scale, plus `compact` for filters in a header row: 32px tall,
+   * the height of the compact buttons beside them, with the same 48px tap
+   * area (DL-023).
+   */
+  controlSize?: ControlSize | "compact";
   /**
    * `condensed` is for filters in a header row: a tighter label inset and
    * chevron lane, and a label that ends in an ellipsis when the row is short.

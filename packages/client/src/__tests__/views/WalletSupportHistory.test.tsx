@@ -74,9 +74,9 @@ describe("Celo contributor receipts", () => {
     expect(screen.getByText("Support cancelled")).toBeInTheDocument();
   });
 
-  it("retains a receipt with neutral commitment text when metadata is unavailable", () => {
+  it("retains a receipt with neutral promise text when metadata is unavailable", () => {
     show({ receipts: [{ ...receipt, title: null, metadataUnavailable: true }] });
-    expect(screen.getByText("Commitment 42")).toBeInTheDocument();
+    expect(screen.getByText("Promise 42")).toBeInTheDocument();
     expect(screen.getByText("5 G$")).toBeInTheDocument();
   });
 

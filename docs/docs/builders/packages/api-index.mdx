@@ -19,7 +19,7 @@ generated_from:
   - packages/indexer/package.json
   - packages/shared/package.json
   - packages/shared/src/public-contracts/routes.ts
-source_digest: "sha256:bc3b8c01671e3e12970956fd0a02d92100feb2b0f62894d6ebfd05bd6b7a25a9"
+source_digest: "sha256:23be1eb10d02e42f5fda9b668f3b6094e3dd13dc9641ba3371143be05353404e"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
@@ -243,6 +243,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/client-ui/commitment/proofReadiness` | `./src/hooks/client-ui/commitment/proofReadiness.ts` |
 | @green-goods/shared | `./hooks/client-ui/commitment/useCommitmentComposerController` | `./src/hooks/client-ui/commitment/useCommitmentComposerController.ts` |
 | @green-goods/shared | `./hooks/client-ui/commitment/useGardenCommitmentController` | `./src/hooks/client-ui/commitment/useGardenCommitmentController.ts` |
+| @green-goods/shared | `./hooks/client-ui/commitment/usePendingProof` | `./src/hooks/client-ui/commitment/usePendingProof.ts` |
 | @green-goods/shared | `./hooks/client-ui/commitment/useProofComposerController` | `./src/hooks/client-ui/commitment/useProofComposerController.ts` |
 | @green-goods/shared | `./hooks/client-ui/pool/useGardenPoolController` | `./src/hooks/client-ui/pool/useGardenPoolController.ts` |
 | @green-goods/shared | `./hooks/client-ui/wallet/useCeloWallet` | `./src/hooks/client-ui/wallet/useCeloWallet.ts` |
@@ -255,6 +256,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/commitment-pooling/useCommitmentJobs` | `./src/hooks/commitment-pooling/useCommitmentJobs.ts` |
 | @green-goods/shared | `./hooks/commitment-pooling/useCommitmentPooling` | `./src/hooks/commitment-pooling/useCommitmentPooling.ts` |
 | @green-goods/shared | `./hooks/commitment-pooling/useCommitmentPoolSetupSequence` | `./src/hooks/commitment-pooling/useCommitmentPoolSetupSequence.ts` |
+| @green-goods/shared | `./hooks/commitment-pooling/useCommitmentQueueState` | `./src/hooks/commitment-pooling/useCommitmentQueueState.ts` |
 | @green-goods/shared | `./hooks/commitment-pooling/useCommitmentsInbox` | `./src/hooks/commitment-pooling/useCommitmentsInbox.ts` |
 | @green-goods/shared | `./hooks/commitment-pooling/useCommitmentsToConfirm` | `./src/hooks/commitment-pooling/useCommitmentsToConfirm.ts` |
 | @green-goods/shared | `./hooks/commitment-pooling/useComposeAgainValues` | `./src/hooks/commitment-pooling/useComposeAgainValues.ts` |
@@ -378,9 +380,9 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/vault/vault-helpers` | `./src/hooks/vault/vault-helpers.ts` |
 | @green-goods/shared | `./hooks/work/useAggregatedApprovals` | `./src/hooks/work/useAggregatedApprovals.ts` |
 | @green-goods/shared | `./hooks/work/useDrafts` | `./src/hooks/work/useDrafts.ts` |
+| @green-goods/shared | `./hooks/work/useGardenWorkListView` | `./src/hooks/work/useGardenWorkListView.ts` |
 | @green-goods/shared | `./hooks/work/useMyWorks` | `./src/hooks/work/useMyWorks.ts` |
 | @green-goods/shared | `./hooks/work/useNeedsReview` | `./src/hooks/work/useNeedsReview.ts` |
-| @green-goods/shared | `./hooks/work/usePendingWorksCount` | `./src/hooks/work/usePendingWorksCount.ts` |
 | @green-goods/shared | `./hooks/work/useQueuedWorkActions` | `./src/hooks/work/useQueuedWorkActions.ts` |
 | @green-goods/shared | `./hooks/work/useReviewerGardenIds` | `./src/hooks/work/useReviewerGardenIds.ts` |
 | @green-goods/shared | `./hooks/work/useWorkApproval` | `./src/hooks/work/useWorkApproval.ts` |
@@ -391,6 +393,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/work/useWorkMutation` | `./src/hooks/work/useWorkMutation.ts` |
 | @green-goods/shared | `./hooks/work/useWorks` | `./src/hooks/work/useWorks.ts` |
 | @green-goods/shared | `./hooks/work/useWorkUploads` | `./src/hooks/work/useWorkUploads.ts` |
+| @green-goods/shared | `./hooks/work/useYourWorkCount` | `./src/hooks/work/useYourWorkCount.ts` |
 | @green-goods/shared | `./hooks/yield/useGardenYieldWiringState` | `./src/hooks/yield/useGardenYieldWiringState.ts` |
 | @green-goods/shared | `./hooks/yield/useHarvestDistribution` | `./src/hooks/yield/useHarvestDistribution.ts` |
 | @green-goods/shared | `./hooks/yield/useYieldAllocations` | `./src/hooks/yield/useYieldAllocations.ts` |

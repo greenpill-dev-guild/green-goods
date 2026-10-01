@@ -803,12 +803,22 @@ describe("GardenDetail", () => {
       },
       isLoading: false,
     });
-    renderView("/gardens/missing-garden");
-    expect(screen.getByText("Garden not found")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /browse gardens/i })).toHaveAttribute(
+    renderView("/gardens/missing-garden", "pt");
+    expect(screen.getByRole("heading", { name: "Jardim não encontrado" })).toBeInTheDocument();
+    expect(screen.getByText(pt["public.sharedLink.unavailableHelp"])).toBeInTheDocument();
+    const hero = screen.getByRole("region", { name: "Jardim não encontrado" });
+    expect(within(hero).getByText(pt["public.sharedLink.unavailableHelp"])).toBeInTheDocument();
+    expect(within(hero).queryByRole("link")).not.toBeInTheDocument();
+    const explore = screen.getByRole("region", { name: pt["public.gardenDetail.explore.title"] });
+    expect(within(explore).getByRole("link", { name: "Explorar Jardins" })).toHaveAttribute(
       "href",
       "/gardens"
     );
+    expect(within(explore).getByRole("link", { name: "Solar Community Garden" })).toHaveAttribute(
+      "href",
+      "/gardens/solar-community-garden"
+    );
+    expect(screen.queryByText(pt["public.home.install.title"])).not.toBeInTheDocument();
   });
   it("distinguishes a failed read from a missing Garden", () => {
     // `getGardens` times out in production. Falling through to not-found told
@@ -820,12 +830,23 @@ describe("GardenDetail", () => {
       isError: true,
       refetch,
     });
+    mockUsePublicGardens.mockReturnValue({ data: undefined, isLoading: false, isError: true });
     renderView("/gardens/solar-community-garden");
 
     expect(screen.getByText("This Garden could not be loaded")).toBeInTheDocument();
     expect(screen.queryByText("Garden not found")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    const hero = screen.getByRole("region", { name: "This Garden could not be loaded" });
+    expect(within(hero).queryByRole("link")).not.toBeInTheDocument();
+    const explore = screen.getByRole("region", { name: "Find a garden to explore" });
+    expect(within(explore).getByRole("link", { name: "Browse Gardens" })).toHaveAttribute(
+      "href",
+      "/gardens"
+    );
+    expect(within(explore).getByRole("link", { name: "View Public Evidence" })).toHaveAttribute(
+      "href",
+      "/impact"
+    );
+    fireEvent.click(within(hero).getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalled();
   });
 

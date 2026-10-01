@@ -80,6 +80,8 @@ const mocks = vi.hoisted(() => ({
     pendingActs: new Map(),
     hasPendingCreate: false,
     pendingCreates: [],
+    proofJobs: [],
+    linkedWorkIds: new Set<string>(),
     isUnavailable: false,
     refresh: vi.fn(),
   },
@@ -352,6 +354,8 @@ describe("useGardenCommitmentController", () => {
         key,
         {
           jobId: "failed-1",
+          kind: "workLink" as const,
+          at: 1,
           discardable: true,
           reason: "membershipLost" as const,
           retryable: false,
@@ -374,11 +378,16 @@ describe("useGardenCommitmentController", () => {
       sendFailed: true,
       failedJob: {
         jobId: "failed-1",
+        kind: "workLink",
+        at: 1,
         discardable: true,
         reason: "membershipLost",
         retryable: false,
       },
       pendingAct: null,
+      // No proof from this phone is on its way here.
+      proofSending: false,
+      proofOnItsWay: null,
       isUnavailable: true,
       refresh: mocks.queue.refresh,
     });

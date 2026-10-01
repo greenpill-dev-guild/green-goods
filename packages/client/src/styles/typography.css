@@ -143,9 +143,10 @@
   }
 
   /* Links rendered as shared buttons take their colour from their emphasis, not the link
-     colour; this layer would otherwise outrank the shared controls. */
+     colour; this layer would otherwise outrank the shared controls. A link is text, so it
+     takes the contrast-safe green rather than the bright accent (DL-053). */
   a:where(:not(.gg-button, .gg-icon-button, .gg-chip)) {
-    color: var(--color-primary);
+    color: var(--color-primary-on-surface);
   }
 
   ul {

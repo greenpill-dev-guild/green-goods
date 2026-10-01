@@ -83,7 +83,7 @@
     },
     "packages/admin": {
       "name": "@green-goods/admin",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "@green-goods/shared": "workspace:*",
         "@hookform/resolvers": "5.4.0",
@@ -130,7 +130,7 @@
     },
     "packages/agent": {
       "name": "@green-goods/agent",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "@green-goods/shared": "workspace:*",
         "@huggingface/transformers": "4.2.0",
@@ -154,7 +154,7 @@
     },
     "packages/client": {
       "name": "@green-goods/client",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "@ethereum-attestation-service/eas-sdk": "2.9.1",
         "@green-goods/shared": "workspace:*",
@@ -219,14 +219,14 @@
     },
     "packages/contracts": {
       "name": "@green-goods/contracts",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "@chainlink/contracts-ccip": "^1.6.4",
         "@ethereum-attestation-service/eas-contracts": "1.9.0",
         "@openzeppelin/contracts-5.0.2": "npm:@openzeppelin/contracts@5.0.2",
         "@openzeppelin/contracts-upgradeable": "4.9.6",
         "dotenv": "^16.4.5",
-        "js-yaml": "5.2.2",
+        "js-yaml": "5.4.1",
       },
       "devDependencies": {
         "bun-types": "latest",
@@ -235,7 +235,7 @@
     },
     "packages/indexer": {
       "name": "@green-goods/indexer",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "envio": "3.6.1",
         "viem": "2.55.0",
@@ -258,7 +258,7 @@
     },
     "packages/shared": {
       "name": "@green-goods/shared",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "@green-goods/contracts": "workspace:*",
         "@hypercerts-org/contracts": "^2.0.0-alpha.0",
@@ -6535,6 +6535,8 @@
     "@gql.tada/cli-utils/graphql": ["graphql@16.12.0", "", {}, "sha512-DKKrynuQRne0PNpEbzuEdHlYOMksHSUI8Zc9Unei5gTsMNA2/vMpoMz/yKba50pejK56qj98qM0SjYxAKi13gQ=="],
 
     "@green-goods/contracts/dotenv": ["dotenv@16.6.1", "", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
+
+    "@green-goods/contracts/js-yaml": ["js-yaml@5.4.1", "", { "dependencies": { "argparse": "^2.0.1" }, "bin": { "js-yaml": "bin/js-yaml.mjs" } }, "sha512-28R/k+NAjeuf7+CKlTxWZVExJGwVVLwY06DgEnOMz2gEpfNkDcD7QvyiVPT0xy0XXhU8vHsd4Ot42OOPdJG7dQ=="],
 
     "@hey-api/json-schema-ref-parser/js-yaml": ["js-yaml@4.1.1", "", { "dependencies": { "argparse": "^2.0.1" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA=="],
 
