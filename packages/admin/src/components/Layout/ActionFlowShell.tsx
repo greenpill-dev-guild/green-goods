@@ -25,6 +25,12 @@ export interface ActionFlowShellProps {
   steps?: ActionFlowStep[];
   /** 1-indexed current step (1..steps.length). */
   currentStep?: number;
+  /**
+   * Where the flow writes, for a flow with steps (PRD-1022 D11): at the foot of
+   * the desktop step rail, and as one line under the stepper on narrow screens.
+   * A flow without steps names its target at the top of its body instead.
+   */
+  target?: (placement: "rail" | "line") => ReactNode;
   /** Jump back to an already-completed step (1-indexed). */
   onStepClick?: (step: number) => void;
   /** The run finished: the stepper checks every step and marks none current. */
@@ -73,6 +79,7 @@ export function ActionFlowShell({
   context,
   steps,
   currentStep = 1,
+  target,
   onStepClick,
   complete = false,
   onBack,
@@ -141,6 +148,11 @@ export function ActionFlowShell({
                 complete={complete}
                 orientation="horizontal"
               />
+              {target ? (
+                <div data-region="action-flow-target" className="mt-2">
+                  {target("line")}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -160,6 +172,14 @@ export function ActionFlowShell({
               complete={complete}
               orientation="vertical"
             />
+            {target ? (
+              <div
+                data-region="action-flow-target"
+                className="mt-auto border-t border-stroke-soft pt-4"
+              >
+                {target("rail")}
+              </div>
+            ) : null}
           </aside>
         ) : null}
 

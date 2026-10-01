@@ -66,8 +66,8 @@ describe("buildHubStageModel stageCounts", () => {
     expect(steward.stageCounts.confirm).toBe(3);
     expect(steward.stageVisibility.confirm).toBe(true);
     expect(steward.stages.map((stage) => stage.id)).toEqual([
-      "confirm",
       "work",
+      "confirm",
       "assess",
       "certify",
     ]);

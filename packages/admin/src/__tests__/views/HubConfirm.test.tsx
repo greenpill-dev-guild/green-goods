@@ -120,6 +120,8 @@ function row(overrides: Partial<ConfirmQueueRow> = {}): ConfirmQueueRow {
     gardenName: "Rocinha",
     eligibility: "ORDINARY",
     title: "Prune the north beds",
+    state: { status: "waiting" },
+    groupSize: null,
     ...overrides,
   };
 }
@@ -238,6 +240,41 @@ describe("HubConfirmQueue (W13)", () => {
       ).not.toBeInTheDocument()
     );
     expect(mocks.queue!.acts.confirm).not.toHaveBeenCalled();
+  });
+
+  it("turns a confirmed copy into its outcome in place, each copy of a group on its own row", () => {
+    mocks.queue = queue({
+      rows: [
+        row({
+          state: { status: "confirmed", at: Date.parse("2026-09-30T15:42:00Z") },
+          groupSize: 10,
+        }),
+        row({
+          commitment: commitment({ id: "42161-10", commitmentId: 10n }),
+          groupSize: 10,
+        }),
+        row({
+          commitment: commitment({ id: "42161-11", commitmentId: 11n }),
+          state: { status: "gone" },
+        }),
+      ],
+    });
+    renderQueue();
+
+    const confirmed = screen.getByTestId("hub-confirm-9");
+    expect(within(confirmed).getByText("Confirmed")).toBeInTheDocument();
+    expect(within(confirmed).getByText(/from a group of 10/)).toBeInTheDocument();
+    expect(
+      within(confirmed).queryByRole("button", { name: /confirm kept/i })
+    ).not.toBeInTheDocument();
+    const waiting = screen.getByTestId("hub-confirm-10");
+    expect(within(waiting).getByText(/from a group of 10/)).toBeInTheDocument();
+    expect(within(waiting).getByRole("button", { name: /^confirm kept…$/i })).toBeEnabled();
+    expect(
+      within(screen.getByTestId("hub-confirm-11")).getByText("No longer waiting")
+    ).toBeInTheDocument();
+    // Copies are confirmed one by one: nothing confirms them all at once.
+    expect(screen.queryByRole("button", { name: /confirm all/i })).not.toBeInTheDocument();
   });
 
   it("names the pool a commitment lives in when it is not the acting garden's own", () => {
