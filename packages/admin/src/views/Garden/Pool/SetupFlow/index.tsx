@@ -365,13 +365,15 @@ export function PoolSetupFlow({
           steps={stepConfigs}
           currentStep={stepIndex + 1}
           complete={complete}
+          target={(placement) => <PoolTarget target={target} placement={placement} />}
           onStepClick={(step) => {
             if (!submitting && step - 1 < stepIndex) setStepIndex(step - 1);
           }}
           footer={footer}
         >
           <div ref={stepRef} tabIndex={-1} className="space-y-4 outline-none">
-            <PoolTarget target={target} />
+            {/* The protocol pool keeps its warning in the body: a change there reaches beyond one garden. */}
+            {target.isProtocol ? <PoolTarget target={target} /> : null}
             <FlowStepHeader
               title={stepConfigs[stepIndex]?.title ?? title}
               description={stepConfigs[stepIndex]?.description}

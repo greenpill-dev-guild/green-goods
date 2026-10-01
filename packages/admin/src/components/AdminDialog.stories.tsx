@@ -648,6 +648,40 @@ export const MobileSheetGeometry: Story = {
   },
 };
 
+// Compact content still uses the same edge-to-edge mobile sheet geometry.
+export const MobileConfirmWidth: Story = {
+  tags: ["storybook-ci"],
+  parameters: { viewport: { options: ADMIN_MOBILE_390_VIEWPORT } },
+  globals: { viewport: { value: "adminMobile390x844" } },
+  render: () => (
+    <AdminDialog open onOpenChange={() => undefined} title="Confirm" variant="confirm">
+      <p>Confirm this change?</p>
+    </AdminDialog>
+  ),
+  play: async () => {
+    const surface = await within(document.body).findByRole("dialog");
+    await waitForDialogSettled(surface);
+    const rect = surface.getBoundingClientRect();
+    await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
+    await expect(Math.abs(rect.left)).toBeLessThanOrEqual(VIEWPORT_EDGE_TOLERANCE_PX);
+    await expect(Math.abs(rect.right - document.documentElement.clientWidth)).toBeLessThanOrEqual(
+      VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expect(Math.abs(rect.bottom - document.documentElement.clientHeight)).toBeLessThanOrEqual(
+      VIEWPORT_EDGE_TOLERANCE_PX
+    );
+  },
+};
+
+export const MobilePaletteWidth: Story = {
+  ...MobileConfirmWidth,
+  render: () => (
+    <AdminDialog open onOpenChange={() => undefined} title="Command palette" variant="palette">
+      <input aria-label="Search commands" />
+    </AdminDialog>
+  ),
+};
+
 /**
  * Long-content geometry. Verifies prose wraps (no horizontal overflow inside
  * the body), the body scrolls within the surface, the surface stays within the

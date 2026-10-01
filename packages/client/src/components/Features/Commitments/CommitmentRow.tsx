@@ -17,8 +17,11 @@ export interface CommitmentRowProps {
   onOpen?: (commitmentId: bigint) => void;
 }
 
-/** The row frame the list and its loading placeholders share: 88px, whatever the words. */
-const ROW_FRAME =
+/**
+ * The row frame the list, its group rows and its loading placeholders share:
+ * 88px, whatever the words.
+ */
+export const COMMITMENT_ROW_FRAME =
   "flex h-22 w-full items-start gap-3 rounded-[var(--radius-lg)] border border-s-[3px] border-stroke-soft-200 bg-bg-white-0 px-3 py-2.5 text-left";
 
 /**
@@ -76,7 +79,7 @@ export function CommitmentRow({ row, title, sendFailed, onOpen }: CommitmentRowP
         : {})}
       title={primary}
       className={cn(
-        ROW_FRAME,
+        COMMITMENT_ROW_FRAME,
         "focus:outline-none focus-visible:shadow-button-primary-focus",
         isRequest ? "border-s-information-base" : "border-s-primary"
       )}
@@ -124,7 +127,7 @@ export function CommitmentRow({ row, title, sendFailed, onOpen }: CommitmentRowP
  */
 export function CommitmentRowSkeleton() {
   return (
-    <div className={ROW_FRAME} aria-hidden="true" data-skeleton="commitment-row">
+    <div className={COMMITMENT_ROW_FRAME} aria-hidden="true" data-skeleton="commitment-row">
       <span className="h-8 w-8 shrink-0 rounded-[var(--radius-md)] bg-bg-soft-200" />
       <span className="flex h-full min-w-0 flex-1 flex-col justify-between">
         <span className="block">

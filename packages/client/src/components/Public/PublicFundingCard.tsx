@@ -377,7 +377,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
         onClick={status === "submitting" ? undefined : onClose}
       />
       <div
-        className="relative max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto bg-bg-white-0 p-6 shadow-[var(--shadow-editorial-panel)] sm:max-w-md sm:p-8"
+        className="relative max-h-[calc(100vh-2rem)] w-full max-w-none overflow-y-auto bg-bg-white-0 p-6 shadow-[var(--shadow-editorial-panel)] sm:max-w-md sm:p-8"
         data-component="PublicFundingCard"
         data-status={status}
       >

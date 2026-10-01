@@ -189,7 +189,8 @@ export function CommitmentPeople({
   );
 }
 
-function Fact({
+/** One labelled fact: an icon and its label on the start side, the value on the end. */
+export function Fact({
   icon,
   label,
   value,
