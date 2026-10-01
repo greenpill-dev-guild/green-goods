@@ -174,7 +174,7 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
   - Mobile: bottom sheet with square corners, like every other editorial surface (DL-024). The record drawer above keeps its rounded top.
   - The actions inside these surfaces are the shared buttons (see Buttons and Fields), not square blocks.
   - Labelled title (`aria-labelledby` → `<h2>` id), Escape close, overlay click close, focus moved to the close button on mount.
-  - Mobile-safe width: `max-w-[calc(100vw-2rem)]` clamps the dialog under 375px viewports.
+  - The Actions source dialog spans the full mobile viewport width, with padding inside the sheet. Other dialogs keep their `max-w-[calc(100vw-2rem)]` mobile width cap.
 - **Modals portal to `document.body`.** `.editorial-section-reveal` applies a transform, and a transformed ancestor becomes the containing block for `position: fixed` — a dialog rendered inside a revealed section sizes and scrolls against that section instead of the viewport. `PublicRecordDrawer` and `PublicSourceDialog` portal internally, so a consumer is safe wherever it is rendered. Do not rely on a call site happening to sit outside a transform.
 - Source-morph transitions require unique transition names per item; until that lands, public surfaces fall back to simple fades.
 - All motion respects reduced-motion preferences.

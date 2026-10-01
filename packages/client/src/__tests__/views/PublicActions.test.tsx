@@ -151,6 +151,14 @@ describe("ActionsGallery", () => {
     expect(within(dialog).getByText(mockActions[1].description)).toBeInTheDocument();
   });
 
+  it("uses a full-width mobile sheet and caps its width only on desktop", () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: /Tree Planting/ }));
+    const panel = screen.getByRole("heading", { name: "Tree Planting", level: 2 }).parentElement
+      ?.parentElement?.parentElement;
+    expect(panel).toHaveClass("w-full", "max-w-none", "sm:max-w-2xl");
+  });
+
   it("shows loading skeletons", () => {
     mockUseActions.mockReturnValue({ data: [], isLoading: true });
     const { container } = renderView();
