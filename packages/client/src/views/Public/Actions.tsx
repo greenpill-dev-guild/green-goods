@@ -1,4 +1,3 @@
-import { Button } from "@green-goods/shared/components/Button";
 import type { Action } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -19,7 +18,6 @@ import {
 import { PublicActionCard } from "@/components/Public/PublicActionCard";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
-import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
 import { PublicSourceDialog } from "@/components/Public/PublicSourceDialog";
 import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
@@ -449,33 +447,12 @@ export default function ActionsGallery() {
             <img
               src={activeAction.media[0]}
               alt={activeAction.title}
-              className="w-full rounded-2xl object-cover"
+              className="aspect-[4/3] w-full bg-editorial-warm object-cover"
             />
           ) : null}
           {activeAction.description ? (
             <p className="text-sm text-text-strong-950">{activeAction.description}</p>
           ) : null}
-          <p className="text-xs text-text-soft-400">
-            {formatMessage({
-              id: "public.actions.dialog.participate",
-              defaultMessage:
-                "Install the Green Goods app, join a Garden, and log Work for this Action.",
-            })}
-          </p>
-          <PublicInstallAction>
-            {({ label, href, onClick, disabled, dataInstallAction }) => (
-              <Button asChild className="w-fit">
-                <a
-                  href={href}
-                  onClick={onClick}
-                  aria-disabled={disabled || undefined}
-                  data-install-action={dataInstallAction}
-                >
-                  {label}
-                </a>
-              </Button>
-            )}
-          </PublicInstallAction>
         </PublicSourceDialog>
       ) : null}
     </>

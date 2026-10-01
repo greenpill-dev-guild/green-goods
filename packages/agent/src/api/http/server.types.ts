@@ -2,6 +2,7 @@ import type {
   createProviderProofRegistry,
   Address,
   PublicGardenImpactResponseV1,
+  PublicCommitmentImpactRecord,
   PublicUploadSignRequest,
 } from "@green-goods/shared/public-contracts";
 import type { Hono } from "hono";
@@ -63,6 +64,7 @@ export interface ServerDeps {
   chatMessageRetentionMs?: number;
   publicRateLimiter?: InMemoryPublicRateLimiter;
   publicGardenImpactChainSupported?: (chainId: number) => boolean;
+  publicCommitmentImpactLoader?: (chainId: number) => Promise<PublicCommitmentImpactRecord>;
   publicGardenImpactLoader?: (input: {
     chainId: number;
     gardenAddress: Address;

@@ -93,7 +93,8 @@ export function GardenSelector({
             defaultMessage: "Search by name, slug, or address",
           })}
         />
-        <div className="flex flex-wrap gap-2">
+        {/* Lifted over the field's reserved supporting line, so it lines up with the field. */}
+        <div className="flex flex-wrap gap-2 md:mb-5">
           <AdminButton
             type="button"
             variant="outlined"

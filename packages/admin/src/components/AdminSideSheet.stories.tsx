@@ -23,7 +23,7 @@ const meta: Meta<typeof AdminSideSheet> = {
           "geometry differs.",
           "",
           "**Responsive**: right-docked canvas-embedded panel at >= 640px,",
-          "compact inset bottom sheet below (the mobile notification",
+          "full-width bottom sheet below (the mobile notification",
           "bell keeps its glance-and-dismiss behavior).",
           "",
           "**Scope**: workspace action/detail/creation overlays stay centered",
@@ -125,6 +125,8 @@ export const Default: Story = {
       // Bottom sheet below the sm breakpoint.
       await expect(Math.abs(rect.bottom - vh)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
       await expect(rect.top).toBeGreaterThan(0);
+      await expect(Math.abs(rect.left)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
+      await expect(Math.abs(rect.right - vw)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
     }
   },
 };
@@ -136,7 +138,7 @@ export const MobileBottomSheet: Story = {
     docs: {
       description: {
         story:
-          "Below 640px the side sheet presents as a compact inset bottom sheet — this is how the mobile notification bell renders.",
+          "Below 640px the side sheet spans the full viewport width — this is how the mobile notification bell renders.",
       },
     },
   },
@@ -153,11 +155,10 @@ export const MobileBottomSheet: Story = {
     const vw = document.documentElement.clientWidth;
     const vh = document.documentElement.clientHeight;
 
-    if (vw < SM_BREAKPOINT_PX) {
-      await expect(Math.abs(rect.bottom - vh)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
-      // Docked to the bottom edge, spanning nearly the full width (not the right rail).
-      await expect(rect.width).toBeGreaterThan(vw * 0.9);
-    }
+    await expect(vw).toBeLessThan(SM_BREAKPOINT_PX);
+    await expect(Math.abs(rect.bottom - vh)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
+    await expect(Math.abs(rect.left)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
+    await expect(Math.abs(rect.right - vw)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
   },
 };
 

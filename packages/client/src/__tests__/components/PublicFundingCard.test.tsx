@@ -254,6 +254,16 @@ describe("PublicFundingCard", () => {
     expect(screen.getByText(pathLabel)).toBeInTheDocument();
   });
 
+  it.each(["donate", "endow"] as const)("opens %s as a full-width mobile sheet", (intent) => {
+    renderCard(intent);
+
+    const panel = document.querySelector('[data-component="PublicFundingCard"]');
+    expect(panel).toHaveClass("w-full", "max-w-none", "sm:max-w-md");
+    expect(screen.getByRole("dialog")).toHaveClass("items-end", "p-0", "sm:p-4");
+    expect(mockCookieJarMutate).not.toHaveBeenCalled();
+    expect(mockVaultMutate).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["donate", "Donate $5.00 in DAI", "Wallet rejected the donation", mockCookieJarReset],
     ["endow", "Endow $5.00 in DAI", "Wallet rejected the endowment", mockVaultReset],

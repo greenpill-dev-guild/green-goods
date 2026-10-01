@@ -363,8 +363,10 @@ function InputFieldEditor({
                     onUpdate({ options: updated });
                   }}
                 />
+                {/* mb-5 lifts a control over the field's reserved supporting line, so it centres on the field. */}
                 <AdminIconButton
                   variant="danger"
+                  className="mb-5"
                   onClick={() => removeOption(optIndex)}
                   label={formatMessage(
                     {
@@ -402,6 +404,7 @@ function InputFieldEditor({
               />
               <AdminIconButton
                 variant="filled"
+                className="mb-5"
                 onClick={addOption}
                 label={formatMessage({
                   id: "app.admin.actions.detailsConfig.addOptionPlaceholder",

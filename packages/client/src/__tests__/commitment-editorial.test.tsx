@@ -311,29 +311,27 @@ function poolResult(data: PoolDataFixture, extra: Record<string, unknown> = {}) 
 
 function impactData(
   overrides: Partial<{
-    openPoolCount: bigint | null;
+    commitmentsMade: bigint | null;
     commitmentsFulfilled: bigint | null;
-    commitmentsDue: bigint | null;
-    distinctProviderCount: bigint | null;
     confirmedDisbursementTotal: bigint | null;
+    confirmedDisbursementUsdCents: bigint | null;
     unavailableSources: {
       commitmentPools: boolean;
-      distinctProviders: boolean;
       confirmedSettlement: boolean;
+      fundingValuation: boolean;
     };
   }> = {}
 ) {
   const unavailableSources = overrides.unavailableSources ?? {
     commitmentPools: false,
-    distinctProviders: false,
     confirmedSettlement: false,
+    fundingValuation: false,
   };
   return {
-    openPoolCount: 2n,
+    commitmentsMade: 61n,
     commitmentsFulfilled: 43n,
-    commitmentsDue: 50n,
-    distinctProviderCount: 9n,
-    confirmedDisbursementTotal: 312n * 10n ** 18n,
+    confirmedDisbursementTotal: 3120000n * 10n ** 18n,
+    confirmedDisbursementUsdCents: 31200n,
     partialData: Object.values(unavailableSources).some(Boolean),
     unavailableSources,
     ...overrides,
@@ -1222,128 +1220,103 @@ describe("/impact commitments band", () => {
     );
   });
 
-  it("keeps the open-pool count and the lifetime fulfilled total distinct", () => {
-    withProviders(createElement(PublicCommitmentsBand));
-    expect(markerValue(en["public.pool.impact.openPools.label"])).toBe("2");
-    expect(markerValue(en["public.pool.impact.fulfilled.label"])).toBe("43");
-    const fulfilled = screen
-      .getByText(en["public.pool.impact.fulfilled.label"])
-      .closest("div") as HTMLElement;
-    expect(fulfilled).toHaveTextContent(/Lifetime/);
-    expect(fulfilled.textContent).not.toMatch(/this season/i);
+  it("shows offers and requests, kept commitments, and funding as three distinct counts", () => {
+    const { container } = withProviders(createElement(PublicCommitmentsBand));
+    expect(markerValue(en["public.pool.impact.made.label"])).toBe("61");
+    expect(markerValue(en["public.pool.impact.kept.label"])).toBe("43");
+    expect(markerValue(en["public.pool.impact.support.label"])).toBe("$312.00");
+    expect(container.querySelectorAll("dt")).toHaveLength(3);
+    expect(container.textContent).not.toMatch(/%|open pools|G\$/i);
     expect(mockUsePublicCommitmentImpact).toHaveBeenCalledWith(CHAIN_ID);
   });
 
-  it("publishes the protocol-wide kept rate only from the selector's rate branch", () => {
-    withProviders(createElement(PublicCommitmentsBand));
-    // 43 of 50 due, 9 providers: above threshold, fulfilled / due.
-    expect(markerValue(en["public.pool.impact.kept.label"])).toBe("86%");
+  it("introduces the community story before its figures without em dashes", () => {
+    const { container } = withProviders(createElement(PublicCommitmentsBand));
+    const intro = screen.getByText(en["public.pool.impact.lifecycle"]);
+    const figures = container.querySelector("dl") as HTMLElement;
+    expect(intro.compareDocumentPosition(figures) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Commitments within communities" })
+    ).toBeInTheDocument();
+    expect(container.textContent).not.toContain("—");
   });
 
-  it("shows counts only below the public threshold", () => {
-    mockUsePublicCommitmentImpact.mockReturnValue({
-      data: impactData({ commitmentsFulfilled: 3n, commitmentsDue: 4n, distinctProviderCount: 9n }),
-      isLoading: false,
-    });
-    const { container } = withProviders(createElement(PublicCommitmentsBand));
-    expect(markerValue(en["public.pool.impact.kept.label"])).toBe("3 of 4");
-    expect(container.textContent).not.toMatch(/%/);
-
+  it("labels unavailable sources and never replaces them with zero", () => {
     mockUsePublicCommitmentImpact.mockReturnValue({
       data: impactData({
-        commitmentsFulfilled: 40n,
-        commitmentsDue: 50n,
-        distinctProviderCount: 2n,
-      }),
-      isLoading: false,
-    });
-    const second = withProviders(createElement(PublicCommitmentsBand));
-    expect(second.container.textContent).not.toMatch(/%/);
-  });
-
-  it("shows confirmed support in G$ without implying queued or dispatched arrival", () => {
-    const { container } = withProviders(createElement(PublicCommitmentsBand));
-    expect(markerValue(en["public.pool.impact.support.label"])).toBe("312 G$");
-    expect(container.textContent).not.toMatch(/312000000000000000000/);
-    expect(container.textContent).not.toMatch(/queued|dispatched|pending/i);
-    // "Support arrived" is the only arrival language, and it names the confirmed figure.
-    expect(container.textContent?.match(/arrived/g)).toHaveLength(1);
-  });
-
-  it("renders an em dash for an unavailable aggregate and never a zero", () => {
-    mockUsePublicCommitmentImpact.mockReturnValue({
-      data: impactData({
-        openPoolCount: null,
+        commitmentsMade: null,
         commitmentsFulfilled: null,
-        commitmentsDue: null,
-        distinctProviderCount: null,
         confirmedDisbursementTotal: null,
+        confirmedDisbursementUsdCents: null,
         unavailableSources: {
           commitmentPools: true,
-          distinctProviders: true,
           confirmedSettlement: true,
+          fundingValuation: true,
         },
       }),
       isLoading: false,
     });
     const { container } = withProviders(createElement(PublicCommitmentsBand));
     for (const label of [
-      en["public.pool.impact.openPools.label"],
-      en["public.pool.impact.fulfilled.label"],
+      en["public.pool.impact.made.label"],
       en["public.pool.impact.kept.label"],
       en["public.pool.impact.support.label"],
     ]) {
-      const marker = screen.getByText(label).closest("div") as HTMLElement;
-      expect(within(marker).getByText("—")).toBeInTheDocument();
-      expect(within(marker).getByText(en["public.impact.proof.unavailable"])).toBeInTheDocument();
-      expect(within(marker).queryByText("0")).toBeNull();
+      expect(markerValue(label)).toBe(en["public.impact.proof.unavailable"]);
     }
     expect(container).toHaveTextContent(en["public.pool.impact.partial"]);
+    expect(container.textContent).not.toMatch(/—|\b0\b/);
   });
 
-  it("dashes only the failed source when the settlement read fails", () => {
+  it("keeps commitment figures visible when historical dollar valuation is unavailable", () => {
     mockUsePublicCommitmentImpact.mockReturnValue({
       data: impactData({
-        confirmedDisbursementTotal: null,
+        confirmedDisbursementUsdCents: null,
         unavailableSources: {
           commitmentPools: false,
-          distinctProviders: false,
-          confirmedSettlement: true,
+          confirmedSettlement: false,
+          fundingValuation: true,
         },
       }),
       isLoading: false,
     });
-    withProviders(createElement(PublicCommitmentsBand));
-    expect(markerValue(en["public.pool.impact.openPools.label"])).toBe("2");
-    expect(markerValue(en["public.pool.impact.kept.label"])).toBe("86%");
-    const support = screen
-      .getByText(en["public.pool.impact.support.label"])
-      .closest("div") as HTMLElement;
-    expect(within(support).getByText("—")).toBeInTheDocument();
+    const { container } = withProviders(createElement(PublicCommitmentsBand));
+    expect(markerValue(en["public.pool.impact.made.label"])).toBe("61");
+    expect(markerValue(en["public.pool.impact.kept.label"])).toBe("43");
+    expect(markerValue(en["public.pool.impact.support.label"])).toBe(
+      en["public.impact.proof.unavailable"]
+    );
+    expect(container.textContent).not.toMatch(/G\$|312/);
   });
 
-  it("uses readiness phrasing rather than live zeros before any pool opens", () => {
+  it("uses readiness phrasing before any commitments or funding are recorded", () => {
     mockUsePublicCommitmentImpact.mockReturnValue({
       data: impactData({
-        openPoolCount: 0n,
+        commitmentsMade: 0n,
         commitmentsFulfilled: 0n,
-        commitmentsDue: 0n,
-        distinctProviderCount: 0n,
         confirmedDisbursementTotal: 0n,
+        confirmedDisbursementUsdCents: 0n,
       }),
       isLoading: false,
     });
     const { container } = withProviders(createElement(PublicCommitmentsBand));
-    expect(markerValue(en["public.pool.impact.openPools.label"])).toBe(
-      en["public.pool.impact.noneYet"]
-    );
-    expect(markerValue(en["public.pool.impact.kept.label"])).toBe(
-      en["public.pool.impact.kept.noneDue"]
-    );
-    expect(markerValue(en["public.pool.impact.support.label"])).toBe(
-      en["public.pool.impact.noneYet"]
-    );
+    for (const label of [
+      en["public.pool.impact.made.label"],
+      en["public.pool.impact.kept.label"],
+      en["public.pool.impact.support.label"],
+    ]) {
+      expect(markerValue(label)).toBe(en["public.pool.impact.noneYet"]);
+    }
     expect(container.textContent).not.toMatch(/\b0\b/);
+  });
+
+  it("shows funding below one cent without calling a received transfer empty", () => {
+    mockUsePublicCommitmentImpact.mockReturnValue({
+      data: impactData({ confirmedDisbursementUsdCents: 0n }),
+      isLoading: false,
+    });
+    withProviders(createElement(PublicCommitmentsBand));
+    expect(markerValue(en["public.pool.impact.support.label"])).toBe("<$0.01");
   });
 
   it("never renders a provider address or per-garden ordering", () => {

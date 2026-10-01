@@ -6,6 +6,7 @@ import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminCard } from "@/components/AdminCard";
+import { GroupDialogs } from "./Group/GroupDialogs";
 import { PoolClaimsCard } from "./PoolClaimsCard";
 import {
   type PoolCommitmentFocus,
@@ -20,6 +21,7 @@ import { PoolNotReadyCard } from "./PoolNotReadyCard";
 import { PoolStatsCard } from "./PoolStatsCard";
 import { PoolStatusCard } from "./PoolStatusCard";
 import { PoolStatusCasts } from "./PoolStatusCasts";
+import { currentGroup } from "./poolCommitmentRows";
 import type { ConfirmDialog, CycleDialog, FlowState, ReasonDialog } from "./poolDialogState";
 
 export interface GardenPoolTabProps {
@@ -29,9 +31,10 @@ export interface GardenPoolTabProps {
 }
 
 /**
- * W7, the steward's pool console (uiux-spec §6.2). Two columns: the season
- * and its campaigns, the claims waiting, and the commitments on the left; the
- * pool's own status card on the right. Every act goes through the controller
+ * W7, the steward's pool console (uiux-spec §6.2). Two columns: what needs
+ * the steward, the season and its campaigns, and the promises on the left;
+ * Waiting for approval, Pool Status and Pool Funding on the right, which is
+ * 37.5% of the width (PRD-1025 D8–D10). Every act goes through the controller
  * in shared; every reasoned act through the one reason dialog; every row opens
  * in the Garden workspace's left inspector, route-backed.
  *
@@ -56,15 +59,19 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
   const [cycleDialog, setCycleDialog] = useState<CycleDialog>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fundingOpen, setFundingOpen] = useState(false);
+  // The open group, by key: its counts follow the pool as it refreshes.
+  const [openGroupKey, setOpenGroupKey] = useState<string | null>(null);
   const fundingDetailsButtonRef = useRef<HTMLButtonElement>(null);
   const { model } = pool;
 
   const openCommitment = useCallback(
-    (commitment: CommitmentReadModel) => {
+    (commitment: CommitmentReadModel, focus?: "waiting") => {
       navigate(
-        adminRoutes.gardenPoolCommitment(commitment.commitmentId.toString(), {
-          gardenId: garden.id,
-        })
+        adminRoutes.gardenPoolCommitment(
+          commitment.commitmentId.toString(),
+          { gardenId: garden.id },
+          { focus }
+        )
       );
     },
     [navigate, garden.id]
@@ -72,12 +79,30 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
   const openSeed = useCallback(() => {
     navigate(adminRoutes.gardenPoolSeed({ gardenId: garden.id }));
   }, [navigate, garden.id]);
+  const openSeedFrom = useCallback(
+    (from: CommitmentReadModel) => {
+      navigate(
+        adminRoutes.gardenPoolSeed({ gardenId: garden.id }, { from: from.commitmentId.toString() })
+      );
+    },
+    [navigate, garden.id]
+  );
   const jumpTo = (id: string) => {
     if (typeof document === "undefined") return;
     document.getElementById(id)?.scrollIntoView({ block: "start" });
   };
 
   const casts = <PoolStatusCasts pool={pool} canManage={canManage} />;
+  const fundingCard = (
+    <AdminCard variant="elevated">
+      <PoolFundingSection
+        funding={pool.funding}
+        protocolContext={isProtocolPool}
+        onOpenDetails={() => setFundingOpen(true)}
+        detailsButtonRef={fundingDetailsButtonRef}
+      />
+    </AdminCard>
+  );
   const fundingDialog = (
     <PoolFundingDialog
       open={fundingOpen}
@@ -92,14 +117,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
     return (
       <div className="space-y-4" data-component="GardenPoolReaderView">
         {casts}
-        <AdminCard variant="elevated">
-          <PoolFundingSection
-            funding={pool.funding}
-            protocolContext={isProtocolPool}
-            onOpenDetails={() => setFundingOpen(true)}
-            detailsButtonRef={fundingDetailsButtonRef}
-          />
-        </AdminCard>
+        {fundingCard}
         {fundingDialog}
       </div>
     );
@@ -126,9 +144,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         setScope("open");
         jumpTo("pool-commitments");
       }}
-      onOpenFundingDetails={() => setFundingOpen(true)}
       protocolContext={isProtocolPool}
-      fundingDetailsButtonRef={fundingDetailsButtonRef}
     />
   );
 
@@ -138,6 +154,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
     setFocus(next);
     jumpTo("pool-commitments");
   };
+  const openGroup = openGroupKey ? currentGroup(pool.commitments, pool.titles, openGroupKey) : null;
   const summary =
     !preOpen && !finished ? (
       <PoolStatsCard
@@ -150,8 +167,8 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
             id: "claims",
             count: model.counts.claimsWaiting,
             label: formatMessage({
-              id: "cockpit.garden.pool.summary.claims",
-              defaultMessage: "Claims waiting",
+              id: "cockpit.garden.pool.summary.waiting",
+              defaultMessage: "Waiting for approval",
             }),
             onOpen: () => jumpTo("pool-claims"),
           },
@@ -179,7 +196,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
 
   return (
     <div
-      className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]"
+      className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(18rem,3fr)]"
       data-component="GardenPoolTab"
       data-region="garden-pool"
     >
@@ -204,13 +221,6 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
           />
         )}
 
-        {!preOpen && !finished ? (
-          <PoolClaimsCard
-            console={pool}
-            onDecline={(row) => setReasonDialog({ kind: "decline-claim", row })}
-          />
-        ) : null}
-
         {!preOpen ? (
           <PoolCommitmentsCard
             console={pool}
@@ -219,6 +229,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
             focus={focus}
             onFocusChange={setFocus}
             onOpenCommitment={openCommitment}
+            onOpenGroup={(group) => setOpenGroupKey(group.key)}
             onSeed={openSeed}
             canSeed={canSeed}
             tone={tone}
@@ -226,7 +237,19 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         ) : null}
       </div>
 
-      <aside className="space-y-4">{statusCard}</aside>
+      {/* Asks sit beside their count and never move the list on the left
+          (PRD-1025 D1, D8); on narrow screens this column comes last. */}
+      <aside className="space-y-4">
+        {!preOpen && !finished ? (
+          <PoolClaimsCard
+            console={pool}
+            onDecline={(row) => setReasonDialog({ kind: "decline-claim", row })}
+            onOpen={(row) => openCommitment(row.commitment, "waiting")}
+          />
+        ) : null}
+        {statusCard}
+        {fundingCard}
+      </aside>
 
       <PoolDialogs
         pool={pool}
@@ -244,6 +267,27 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         setCycleDialog={setCycleDialog}
       />
       {fundingDialog}
+      {openGroup ? (
+        <GroupDialogs
+          pool={pool}
+          group={openGroup}
+          title={
+            (openGroup.children[0]?.metadataCID &&
+              pool.titles.get(openGroup.children[0].metadataCID.trim())?.title) ||
+            ""
+          }
+          isProtocol={isProtocolPool}
+          onClose={() => setOpenGroupKey(null)}
+          onOpenCommitment={(commitment) => {
+            setOpenGroupKey(null);
+            openCommitment(commitment);
+          }}
+          onSeedNew={(from) => {
+            setOpenGroupKey(null);
+            openSeedFrom(from);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
