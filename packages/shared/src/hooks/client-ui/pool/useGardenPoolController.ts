@@ -151,6 +151,8 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
   const poolState = pool.state ?? "UNKNOWN";
   return {
     chainId,
+    /** Who is reading, so their own copies stay out of a group row. */
+    viewer: (viewer ?? null) as Address | null,
     isOnline,
     cycles,
     selectedCycleId: activeCycleId,

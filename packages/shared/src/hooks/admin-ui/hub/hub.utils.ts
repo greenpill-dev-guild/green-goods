@@ -104,17 +104,18 @@ export function parseSortDirection(value: string | null): SortDirection {
 // History stage is retired; each record carries its own timeline instead).
 export const PIPELINE_STAGE_CONFIG = [
   {
-    // Commitments waiting on the steward's confirmation (uiux-spec §6.9).
-    id: "confirm" as const,
-    labelId: "cockpit.hub.tab.confirm",
-    defaultMessage: "Confirm",
-    icon: RiShakeHandsLine,
-  },
-  {
     id: "work" as const,
     labelId: "cockpit.hub.tab.work",
     defaultMessage: "Work",
     icon: RiCheckLine,
+  },
+  {
+    // Promises waiting on the steward's confirmation (uiux-spec §6.9), second
+    // on the rail: Work · Confirm · Assess · Certify (PRD-1045).
+    id: "confirm" as const,
+    labelId: "cockpit.hub.tab.confirm",
+    defaultMessage: "Confirm",
+    icon: RiShakeHandsLine,
   },
   {
     id: "assess" as const,
@@ -164,7 +165,7 @@ const STAGE_DESCRIPTIONS: Record<HubPipelineStage, { id: string; defaultMessage:
   },
   confirm: {
     id: "cockpit.hub.confirm.description",
-    defaultMessage: "Commitments kept and waiting for this garden to confirm them.",
+    defaultMessage: "Promises waiting on you to confirm they were kept.",
   },
 };
 

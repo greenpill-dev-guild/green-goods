@@ -1,91 +1,118 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
-import type {
-  SeedTrayLastSend,
-  SeedTrayRow,
-} from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
-import type { Action } from "@green-goods/shared/types/domain";
+import type { SeedTrayRow } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
+import type { Action, Address } from "@green-goods/shared/types/domain";
+import { Fragment, type ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { formatRewardAmount, type RewardUnits } from "./seedRewardAmount";
+import { AdminCardTitle } from "@/components/AdminCard";
+import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
+import { PersonName } from "@/components/PersonName";
 import { SeedTrayList } from "./SeedTrayList";
-import { actionUIDOf, type SeedCycleOption } from "./seedStepModel";
+import { dueDateAfter, formatDueDate, rewardFacts } from "./seedReward";
+import type { SeedStatusView } from "./seedStatus";
+import { actionUIDOf, type SeedCycleOption, type StepId } from "./seedStepModel";
 
-/** The seeding tray as the review step shows it. */
-export interface SeedReviewTray {
-  /** The commitments added so far, beside the one under review. */
-  others: readonly SeedTrayRow[];
-  /** The one under review was sent before and nothing was created for it. */
-  currentNotSent: boolean;
-  /** What the last send left behind, until the tray changes. */
-  lastSend: SeedTrayLastSend | null;
-  /** The pool's commitment limit per person, where it is known. */
+/** The pool's per-person room, as the review warns about it. */
+export interface SeedReviewCapacity {
   cap: number | null;
-  /** How many more open commitments the steward may hold; null while unread. */
   room: number | null;
-  /** One more offer would not fit that room. */
   full: boolean;
-  /** The offers already here do not fit it. */
   over: boolean;
-  /** A send is under way: nothing in the tray may change. */
-  busy: boolean;
-  onEdit: (clientCommitmentId: string) => void;
-  onRemove: (clientCommitmentId: string) => void;
-  onRemoveCurrent: () => void;
 }
 
 export interface SeedStepReviewProps {
   values: CommitmentComposerValues;
-  tray: SeedReviewTray;
+  status: SeedStatusView;
+  /** The answers may still change: nothing of them exists and nothing is sending. */
+  editable: boolean;
+  onEditStep: (step: StepId) => void;
+  /** The other answers in this sitting, beside the one under review. */
+  others: readonly SeedTrayRow[];
+  isLocked: (clientCommitmentId: string) => boolean;
+  onEditRow: (clientCommitmentId: string) => void;
+  onRemoveRow: (clientCommitmentId: string) => void;
   /** The garden's registered actions, for naming garden-work requirements. */
   actions: Action[];
   chainId: number;
   cycleOptions: SeedCycleOption[];
   /** Without a registered protocol pool the Green Goods team fallback reads off. */
   protocolRegistered: boolean;
-  /** The units the declared reward is read in. */
-  rewardUnits: RewardUnits;
+  price: GoodDollarPriceState;
+  capacity: SeedReviewCapacity;
   submitError: string | null;
-  /** The device queue could not be read; seeding will still try. */
+  /** The device queue could not be read; creating will still try. */
   queueUnavailable: boolean;
+  now: number;
 }
 
 /**
- * Step four of the seeding console: the sectioned check a steward reads before
- * the creation is queued, in the same order the steps asked for it. When more
- * than one commitment is being seeded in a sitting, the ones added so far are
- * listed above the one under review, and every one of them is sent together.
+ * Step four of Seed Promises: every answer grouped by the step that asked it,
+ * each section with an Edit, under one status row that keeps its height
+ * through ready, approving, declined, created, sending and partial, so the
+ * sections never move (PRD-1022 D16, screens 05–12). How many times the
+ * wallet asks sits in the footer, beside the button that asks.
  */
 export function SeedStepReview({
   values,
-  tray,
+  status,
+  editable,
+  onEditStep,
+  others,
+  isLocked,
+  onEditRow,
+  onRemoveRow,
   actions,
   chainId,
   cycleOptions,
   protocolRegistered,
-  rewardUnits,
+  price,
+  capacity,
   submitError,
   queueUnavailable,
+  now,
 }: SeedStepReviewProps) {
   const { formatMessage, locale } = useIntl();
-  const rewardAmount = formatRewardAmount(values.considerationAmount, rewardUnits, locale);
+  const count = values.count ?? 1;
+  // Garden work's unit is set to hours, in the steward's language, when the kind is chosen.
+  const unit = values.unitLabel;
   const cycleLabel = cycleOptions.find((option) => option.value === values.cycleId)?.label ?? "—";
-  const section = (heading: string, rows: Array<[string, string]>) => (
-    <div className="space-y-1.5">
-      <p className="label-xs text-text-soft">{heading}</p>
+
+  const section = (
+    step: StepId,
+    heading: string,
+    rows: Array<[string, ReactNode]>,
+    wide = false
+  ) => (
+    <section className={`min-w-0 space-y-1.5 ${wide ? "sm:col-span-2" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <AdminCardTitle as="h4">{heading}</AdminCardTitle>
+        <AdminButton
+          type="button"
+          variant="text"
+          size="sm"
+          disabled={!editable}
+          aria-label={formatMessage(
+            { id: "cockpit.garden.pool.seed.review.editSection", defaultMessage: "Edit {section}" },
+            { section: heading }
+          )}
+          onClick={() => onEditStep(step)}
+        >
+          {formatMessage({ id: "app.common.edit", defaultMessage: "Edit" })}
+        </AdminButton>
+      </div>
       <dl className="space-y-1">
         {rows.map(([label, value]) => (
-          <div key={label} className="flex justify-between gap-3 text-body-md">
-            <dt className="text-text-soft">{label}</dt>
-            <dd className="truncate text-right text-text-strong" title={value}>
-              {value}
-            </dd>
+          <div key={label} className="flex justify-between gap-4 body-sm">
+            <dt className="max-w-[55%] shrink-0 text-text-soft">{label}</dt>
+            <dd className="min-w-0 break-words text-right text-text-strong">{value}</dd>
           </div>
         ))}
       </dl>
-    </div>
+    </section>
   );
+
   const kindLabel =
     values.kind === "GARDEN_WORK"
       ? formatMessage({
@@ -101,233 +128,235 @@ export function SeedStepReview({
             id: "cockpit.garden.pool.seed.kind.seasonCampaign",
             defaultMessage: "Season / campaign commitment",
           });
-
-  // One commitment on its own keeps the wizard's plain failure sentence.
-  const lastSend =
-    tray.lastSend && tray.lastSend.sent + tray.lastSend.left > 1 ? tray.lastSend : null;
+  const directionLabel =
+    values.direction === "REQUEST"
+      ? formatMessage({
+          id: "cockpit.garden.pool.seed.direction.request",
+          defaultMessage: "The pool requests",
+        })
+      : formatMessage({
+          id: "cockpit.garden.pool.seed.direction.offer",
+          defaultMessage: "The pool offers",
+        });
+  const each = `${values.targetUnits} ${unit}`;
+  const confirmers =
+    values.confirmers.length === 0 ? (
+      formatMessage({
+        id: "cockpit.garden.pool.seed.review.ordinary",
+        defaultMessage: "Ordinary rule",
+      })
+    ) : (
+      <>
+        {values.confirmers.map((address, index) => (
+          <Fragment key={address}>
+            {index > 0 ? ", " : null}
+            <PersonName address={address as Address} className="font-normal" />
+          </Fragment>
+        ))}
+        {formatMessage(
+          {
+            id: "cockpit.garden.pool.seed.review.mustConfirm",
+            defaultMessage: " · {threshold} must confirm",
+          },
+          { threshold: values.confirmationThreshold }
+        )}
+      </>
+    );
+  const reward = rewardFacts({ values, count, price, locale, formatMessage });
 
   return (
     <div className="space-y-4" data-testid="seed-review">
-      {lastSend ? (
-        <Alert variant="warning">
-          {formatMessage(
-            {
-              id: "cockpit.garden.pool.seed.tray.left",
-              defaultMessage:
-                "{sent, plural, =0 {Nothing was sent.} one {# commitment was sent.} other {# commitments were sent.}} {left, plural, one {# could not be sent, so nothing was created for it. It is still here to change or try again.} other {# could not be sent, so nothing was created for them. They are still here to change or try again.}}",
-            },
-            { sent: lastSend.sent, left: lastSend.left }
-          )}
-        </Alert>
-      ) : null}
-      <SeedTrayList
-        rows={tray.others}
-        busy={tray.busy}
-        onEdit={tray.onEdit}
-        onRemove={tray.onRemove}
+      <FlowStatusRow
+        tone={status.tone}
+        busy={status.busy}
+        title={status.title}
+        description={status.description}
+        progress={status.progress}
       />
-      {/* The mark stays whether or not others are beside it: the last row left
-          after a send is the one that failed, and it is still promised. */}
-      {tray.others.length > 0 || tray.currentNotSent ? (
-        <div className="flex flex-wrap items-center gap-2" data-testid="seed-tray-current">
-          {tray.others.length > 0 ? (
-            <p className="label-xs text-text-soft">
-              {formatMessage({
-                id: "cockpit.garden.pool.seed.tray.current",
-                defaultMessage: "This one",
-              })}
-            </p>
-          ) : null}
-          {tray.currentNotSent ? (
-            <StatusBadge variant="error" size="sm" className="shrink-0 whitespace-nowrap">
-              {formatMessage({
-                id: "cockpit.garden.pool.seed.tray.notSent",
-                defaultMessage: "Not sent",
-              })}
-            </StatusBadge>
-          ) : null}
-          {/* Nothing to hand back to when this is the only one left. */}
-          {tray.others.length > 0 ? (
-            <AdminButton
-              type="button"
-              variant="text"
-              size="sm"
-              disabled={tray.busy}
-              className="ml-auto"
-              onClick={tray.onRemoveCurrent}
-            >
-              {formatMessage({
-                id: "cockpit.garden.pool.seed.tray.removeCurrent",
-                defaultMessage: "Remove This One",
-              })}
-            </AdminButton>
-          ) : null}
-        </div>
-      ) : null}
-      {section(
-        formatMessage({ id: "cockpit.garden.pool.seed.step.what", defaultMessage: "What" }),
-        [
+      <SeedTrayList
+        rows={others}
+        busy={status.busy}
+        isLocked={isLocked}
+        onEdit={onEditRow}
+        onRemove={onRemoveRow}
+      />
+      <div className="grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-2">
+        {section(
+          "what",
+          formatMessage({ id: "cockpit.garden.pool.seed.step.what", defaultMessage: "What" }),
           [
-            formatMessage({ id: "cockpit.garden.pool.seed.kind", defaultMessage: "Type" }),
-            `${kindLabel} · ${
-              values.direction === "REQUEST"
+            [
+              formatMessage({ id: "cockpit.garden.pool.seed.kind", defaultMessage: "Type" }),
+              `${kindLabel} · ${directionLabel}`,
+            ],
+            [
+              formatMessage({ id: "cockpit.garden.pool.seed.titleField", defaultMessage: "Title" }),
+              values.title,
+            ],
+            [
+              formatMessage({ id: "cockpit.garden.pool.seed.cycle", defaultMessage: "Cycle" }),
+              cycleLabel,
+            ],
+          ]
+        )}
+        {section(
+          "howMuch",
+          formatMessage({
+            id: "cockpit.garden.pool.seed.step.howMuch",
+            defaultMessage: "How Much",
+          }),
+          [
+            [
+              formatMessage({
+                id: "cockpit.garden.pool.seed.review.promises",
+                defaultMessage: "Promises",
+              }),
+              formatMessage(
+                {
+                  id: "cockpit.garden.pool.seed.review.promisesValue",
+                  defaultMessage: "{count, plural, one {1} other {# separate}}",
+                },
+                { count }
+              ),
+            ],
+            [
+              formatMessage({
+                id: "cockpit.garden.pool.seed.review.eachAsks",
+                defaultMessage: "Each asks for",
+              }),
+              each,
+            ],
+            [
+              formatMessage({ id: "cockpit.garden.pool.seed.review.due", defaultMessage: "Due" }),
+              formatMessage(
+                {
+                  id: "cockpit.garden.pool.seed.review.dueValue",
+                  defaultMessage: "{date}{count, plural, one {} other {, for every promise}}",
+                },
+                { date: formatDueDate(dueDateAfter(now, values.dueInDays), locale), count }
+              ),
+            ],
+            [
+              formatMessage({ id: "cockpit.garden.pool.seed.review.team", defaultMessage: "Team" }),
+              values.openTeam
                 ? formatMessage({
-                    id: "cockpit.garden.pool.seed.direction.request",
-                    defaultMessage: "The pool requests",
+                    id: "cockpit.garden.pool.seed.team.open",
+                    defaultMessage: "Open team",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.seed.direction.offer",
-                    defaultMessage: "The pool offers",
+                    id: "cockpit.garden.pool.seed.team.lead",
+                    defaultMessage: "Lead-managed team",
+                  }),
+            ],
+            ...(values.kind === "GARDEN_WORK"
+              ? [
+                  [
+                    formatMessage({
+                      id: "cockpit.garden.pool.seed.requirements",
+                      defaultMessage: "Actions this needs",
+                    }),
+                    values.requirements
+                      .map((row) => {
+                        const action = actions.find(
+                          (entry) => actionUIDOf(entry.id, chainId) === row.actionUID
+                        );
+                        return `${action?.title ?? `#${row.actionUID}`} × ${row.requiredCount}`;
+                      })
+                      .join(" · "),
+                  ] as [string, string],
+                ]
+              : []),
+          ]
+        )}
+        {section(
+          "proof",
+          formatMessage({
+            id: "cockpit.garden.pool.seed.step.proof",
+            defaultMessage: "Proof & Confirmation",
+          }),
+          [
+            [
+              formatMessage({
+                id: "cockpit.garden.pool.seed.confirmers",
+                defaultMessage: "Confirmers",
+              }),
+              confirmers,
+            ],
+            [
+              formatMessage({
+                id: "cockpit.garden.pool.seed.review.fallback",
+                defaultMessage: "Green Goods team fallback",
+              }),
+              protocolRegistered && values.protocolFallbackEnabled
+                ? formatMessage({
+                    id: "cockpit.garden.pool.seed.review.fallbackOn",
+                    defaultMessage: "On · reason required if used",
                   })
-            }`,
-          ],
-          [
-            formatMessage({
-              id: "cockpit.garden.pool.seed.titleField",
-              defaultMessage: "Title",
-            }),
-            values.title,
-          ],
-          [
-            formatMessage({ id: "cockpit.garden.pool.seed.cycle", defaultMessage: "Cycle" }),
-            cycleLabel,
-          ],
-        ]
-      )}
-      {section(
-        formatMessage({
-          id: "cockpit.garden.pool.seed.step.howMuch",
-          defaultMessage: "How Much",
-        }),
-        [
-          [
-            formatMessage({
-              id: "cockpit.garden.pool.seed.unitTarget",
-              defaultMessage: "Unit · target",
-            }),
-            `${values.unitLabel} · ${values.targetUnits}`,
-          ],
-          [
-            formatMessage({
-              id: "cockpit.garden.pool.seed.dueInDays",
-              defaultMessage: "Due in (days)",
-            }),
-            String(values.dueInDays),
-          ],
-          [
-            formatMessage({
-              id: "cockpit.garden.pool.seed.contributorPolicy",
-              defaultMessage: "Contributor policy",
-            }),
-            values.openTeam
-              ? formatMessage({
-                  id: "cockpit.garden.pool.seed.team.open",
-                  defaultMessage: "Open team",
-                })
-              : formatMessage({
-                  id: "cockpit.garden.pool.seed.team.lead",
-                  defaultMessage: "Lead-managed team",
-                }),
-          ],
-          ...(values.kind === "GARDEN_WORK"
-            ? [
+                : formatMessage({
+                    id: "cockpit.garden.pool.seed.review.fallbackOff",
+                    defaultMessage: "Off",
+                  }),
+            ],
+            [
+              formatMessage({
+                id: "cockpit.garden.pool.seed.claimMode",
+                defaultMessage: "Claim mode",
+              }),
+              values.claimMode === "APPROVAL_GATED"
+                ? formatMessage({
+                    id: "cockpit.garden.pool.seed.review.claimGated",
+                    defaultMessage: "Steward-reviewed: each ask waits for your approval",
+                  })
+                : formatMessage({
+                    id: "cockpit.garden.pool.seed.review.claimOpen",
+                    defaultMessage: "Open: anyone in the garden may take one",
+                  }),
+            ],
+          ]
+        )}
+        {section(
+          "proof",
+          formatMessage({ id: "cockpit.garden.pool.seed.rewardRow", defaultMessage: "Reward" }),
+          reward,
+          count <= 1
+        )}
+        {count > 1
+          ? section(
+              "howMuch",
+              formatMessage({
+                id: "cockpit.garden.pool.seed.review.grouping",
+                defaultMessage: "Grouping",
+              }),
+              [
                 [
                   formatMessage({
-                    id: "cockpit.garden.pool.seed.requirements",
-                    defaultMessage: "Actions this needs",
+                    id: "cockpit.garden.pool.seed.review.shownAs",
+                    defaultMessage: "Shown as",
                   }),
-                  values.requirements
-                    .map((row) => {
-                      const action = actions.find(
-                        (entry) => actionUIDOf(entry.id, chainId) === row.actionUID
-                      );
-                      return `${action?.title ?? `#${row.actionUID}`} × ${row.requiredCount}`;
-                    })
-                    .join(" · "),
-                ] as [string, string],
-              ]
-            : []),
-        ]
-      )}
-      {section(
-        formatMessage({
-          id: "cockpit.garden.pool.seed.step.proof",
-          defaultMessage: "Proof & Confirmation",
-        }),
-        [
-          [
-            formatMessage({
-              id: "cockpit.garden.pool.seed.confirmers",
-              defaultMessage: "Confirmers",
-            }),
-            values.confirmers.length === 0
-              ? formatMessage({
-                  id: "cockpit.garden.pool.seed.review.ordinary",
-                  defaultMessage: "Ordinary rule",
-                })
-              : formatMessage(
-                  {
-                    id: "cockpit.garden.pool.seed.review.named",
-                    defaultMessage: "Named group · {threshold} of {count}",
-                  },
-                  { threshold: values.confirmationThreshold, count: values.confirmers.length }
-                ),
-          ],
-          [
-            formatMessage({
-              id: "cockpit.garden.pool.seed.review.fallback",
-              defaultMessage: "Green Goods team fallback",
-            }),
-            protocolRegistered && values.protocolFallbackEnabled
-              ? formatMessage({
-                  id: "cockpit.garden.pool.seed.review.fallbackOn",
-                  defaultMessage: "On · reason required if used",
-                })
-              : formatMessage({
-                  id: "cockpit.garden.pool.seed.review.fallbackOff",
-                  defaultMessage: "Off",
-                }),
-          ],
-          [
-            formatMessage({
-              id: "cockpit.garden.pool.seed.claimMode",
-              defaultMessage: "Claim mode",
-            }),
-            values.claimMode === "APPROVAL_GATED"
-              ? formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.gated",
-                  defaultMessage: "Steward-reviewed",
-                })
-              : formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.open",
-                  defaultMessage: "Open",
-                }),
-          ],
-        ]
-      )}
-      {section(
-        formatMessage({
-          id: "cockpit.garden.pool.seed.rewardRow",
-          defaultMessage: "Reward",
-        }),
-        [
-          [
-            formatMessage({
-              id: "cockpit.garden.pool.seed.rail",
-              defaultMessage: "Reward rail",
-            }),
-            values.considerationRail === "ARBITRUM_EXTERNAL"
-              ? `${formatMessage({ id: "cockpit.garden.pool.seed.rail.external", defaultMessage: "External payout record" })} · ${rewardAmount}`
-              : values.considerationRail === "CELO_SETTLEMENT"
-                ? `${formatMessage({ id: "cockpit.garden.pool.seed.rail.celo", defaultMessage: "Celo G$ settlement" })} · ${rewardAmount}`
-                : formatMessage({
-                    id: "cockpit.garden.pool.seed.rail.none",
-                    defaultMessage: "None",
+                  formatMessage(
+                    {
+                      id: "cockpit.garden.pool.seed.review.shownAsValue",
+                      defaultMessage: "One group: {title} · {count} promises · {each} each",
+                    },
+                    { title: values.title, count, each }
+                  ),
+                ],
+                [
+                  formatMessage({
+                    id: "cockpit.garden.pool.seed.review.eachPromise",
+                    defaultMessage: "Each promise",
                   }),
-          ],
-        ]
-      )}
-      {tray.over ? (
+                  formatMessage({
+                    id: "cockpit.garden.pool.seed.review.eachPromiseValue",
+                    defaultMessage: "Its own take-up, proof, confirmation and history",
+                  }),
+                ],
+              ],
+              true
+            )
+          : null}
+      </div>
+      {capacity.over ? (
         <Alert variant="error">
           {formatMessage(
             {
@@ -335,10 +364,10 @@ export function SeedStepReview({
               defaultMessage:
                 "These offers are more than you can hold at once. You have room for {room, plural, =0 {no more} other {# more}} under the pool's commitment limit of {cap} per person. Remove an offer, change it to a request, or raise the limit in the pool settings.",
             },
-            { room: tray.room ?? 0, cap: tray.cap ?? 0 }
+            { room: capacity.room ?? 0, cap: capacity.cap ?? 0 }
           )}
         </Alert>
-      ) : tray.full && values.direction === "OFFER" ? (
+      ) : capacity.full && values.direction === "OFFER" ? (
         <Alert variant="info">
           {formatMessage(
             {
@@ -346,7 +375,7 @@ export function SeedStepReview({
               defaultMessage:
                 "That is as many offers as you can hold at once: the pool's commitment limit is {cap} per person. A request takes none of that room.",
             },
-            { cap: tray.cap ?? 0 }
+            { cap: capacity.cap ?? 0 }
           )}
         </Alert>
       ) : null}
@@ -359,14 +388,6 @@ export function SeedStepReview({
           })}
         </Alert>
       ) : null}
-      {/* How many times the wallet will ask sits beside the button that asks. */}
-      <p className="body-xs text-text-soft">
-        {formatMessage({
-          id: "cockpit.garden.pool.seed.queueNote",
-          defaultMessage:
-            "If a commitment has to wait, its row stays on the pool tab with Send Now.",
-        })}
-      </p>
     </div>
   );
 }

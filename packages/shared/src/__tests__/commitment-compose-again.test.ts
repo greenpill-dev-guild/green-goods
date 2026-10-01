@@ -158,6 +158,17 @@ describe("composerValuesFromCommitment", () => {
     });
     expect(celo).not.toHaveProperty("considerationSource");
     expect(celo).not.toHaveProperty("considerationToken");
+    // Set in dollars, and not edited since: it starts from the dollars typed.
+    expect(celo).not.toHaveProperty("considerationUsd");
+    const reward = { version: 1 as const, usdCents: "500", goodDollarWei: "25000000" };
+    expect(
+      composerValuesFromCommitment({
+        composer: "steward",
+        commitment: { ...seeded, considerationRail: "CELO_SETTLEMENT" },
+        metadata: { ...words, reward },
+        requirements: [],
+      }).considerationUsd
+    ).toBe("5.00");
   });
 
   it("never copies the new maker into the confirmer group they would have to reach", () => {

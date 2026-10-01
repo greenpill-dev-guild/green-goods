@@ -94,8 +94,6 @@ const sourceMessageTriggerTokens = [
   ...descriptorIdPropNames,
 ];
 const allowedIdenticalLocalizedKeys = new Set([
-  // The account identifier intentionally uses the same compact abbreviation in en/es/pt.
-  "app.account.id",
   "app.admin.nav.cookieJars",
   // Token symbol and network proper name have no words to translate.
   "app.celoWallet.asset",
@@ -104,6 +102,8 @@ const allowedIdenticalLocalizedKeys = new Set([
   // its accessible name uses the translated full domain name.
   "app.gardenIntro.domain.agroShort",
   "cockpit.community.stats.pools",
+  // An amount beside the G$ symbol has no words to translate.
+  "cockpit.garden.pool.reward.inGoodDollars",
   "public.fund.vaults.vaultCount",
   // Vault checkout reuses the product term "Endowment" untranslated, matching the
   // surrounding es/pt vault copy (e.g. "Endowment confirmado."); the app.* namespace

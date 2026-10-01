@@ -4,6 +4,7 @@ import type { CommitmentQueueState } from "../../commitment-pooling/useCommitmen
 import type { CommitmentReasonResolution } from "../../commitment-pooling/useCommitmentReason";
 import type { PoolCharterResolution } from "../../commitment-pooling/usePoolCharter";
 import type { selectCommitmentActPermissions } from "../../../modules/commitment-pooling/commitment-act-permissions";
+import type { ConfirmRowState } from "../../../modules/commitment-pooling/confirm-queue";
 import type {
   CommitmentSeat,
   selectConfirmationEligibility,
@@ -21,9 +22,15 @@ import type {
   PoolClaimRequestRow,
 } from "../../../modules/commitment-pooling/types";
 import type { TxActPhase } from "../../../modules/transactions/act-phase";
+import type {
+  ClaimantStanding,
+  ClaimDecision,
+  ClaimDecisions,
+} from "../../../modules/commitment-pooling/waiting-for-approval";
 import type { Address } from "../../../types/domain";
 import type { EASGardenAssessment } from "../../../types/eas-responses";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
+import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
 import type { PoolFundingSnapshot } from "../../../modules/commitment-pooling/pool-funding";
 import type {
   CommitmentSettlementChainState,
@@ -65,10 +72,16 @@ export interface PoolConsoleActs {
   retryQueued: (jobId: string) => Promise<void>;
   /** Remove a queued creation. The queue refuses one whose send may be on chain. */
   discardQueued: (jobId: string) => Promise<void>;
+  /** Send a group's copies still waiting in this steward's queue, as they were built. */
+  finishCreating: (
+    displayGroupId: string
+  ) => Promise<"sent" | "left" | "none" | "blocked" | "expired">;
 }
 
 /** Where a single-signature act started from a row stands. */
 export type { TxActPhase };
+/** A decision on an ask this visit, shared by the Pool tab and the inspector. */
+export type { ClaimantStanding, ClaimDecision, ClaimDecisions };
 
 export interface PoolConsoleController {
   chainId: number;
@@ -86,16 +99,26 @@ export interface PoolConsoleController {
   cycles: CommitmentCycleRecord[];
   cycleNames: CommitmentCycleNameMap["byCycleId"];
   commitments: CommitmentReadModel[];
+  /** Ids of the promises whose next act is this steward's own ("Needs you"), not an option. */
+  waitingOnYou: ReadonlySet<string>;
   titles: CommitmentMetadataMap["byCID"];
   claims: PoolClaimRequestRow[];
   charter: PoolCharterResolution;
   pauseReason: CommitmentReasonResolution;
   pendingCreates: CommitmentQueueState["pendingCreates"];
+  /** Each display group's copies still waiting in this steward's queue, by job id. */
+  queuedGroupCopies: ReadonlyMap<string, readonly string[]>;
+  /** The group Finish Creating is sending, while it is. */
+  finishingGroupId: string | null;
   queueUnavailable: boolean;
   funding: PoolFundingControllerView;
   acts: PoolConsoleActs;
-  /** Where an Accept started from this claimant's row stands. */
+  /** Where an Approve started from this claimant's row stands, here or in the inspector. */
   claimPhase: (commitmentId: bigint, claimant: Address) => TxActPhase;
+  /** What the steward decided on asks this visit, by `claimActKey`. */
+  claimDecisions: ClaimDecisions;
+  /** An approval is with the wallet or the chain, from this card or the inspector. */
+  claimInFlight: boolean;
   /** Where Resume Pool stands. */
   resumePhase: TxActPhase;
   /** Where the send started from this queued row stands. */
@@ -123,6 +146,10 @@ export interface ConfirmQueueRow {
   /** The pool's garden by name, when the commitment lives outside the confirming garden. */
   poolGardenName?: string | null;
   canDispute?: boolean;
+  /** Where the row stands this visit: waiting, confirmed or queued here, or settled elsewhere. */
+  state: ConfirmRowState;
+  /** Published promises in the group this copy belongs to; null when it belongs to none. */
+  groupSize: number | null;
 }
 
 export interface HubConfirmQueueActs {
@@ -183,6 +210,14 @@ export interface CommitmentDialogController {
   detail: CommitmentDetail | null;
   title: string | null;
   note: string | null;
+  /** The promise's metadata document: its group and the reward as set, when it has them. */
+  metadata: CommitmentMetadataV1 | null;
+  /**
+   * Whether `metadata` can be trusted to say the promise is in no group: it was
+   * read, or there is none to read. False while it loads or when the read failed.
+   * The controller always sets it; a hand-built one that leaves it out reads as known.
+   */
+  metadataKnown?: boolean;
   cycle: CommitmentCycleRecord | null;
   events: CommitmentEventRecord[];
   disputeReason: CommitmentReasonResolution;
@@ -202,8 +237,14 @@ export interface CommitmentDialogController {
   can: ReturnType<typeof selectCommitmentActPermissions>;
   reconciliation: CommitmentWorkReconciliation;
   acts: CommitmentDialogActs;
-  /** Where an Accept started from this claimant's row stands. */
+  /** Where an Approve started from this claimant's row stands, here or on the Pool tab. */
   claimPhase: (claimant: Address) => TxActPhase;
+  /** What the steward decided on asks this visit, by `claimActKey`, shared with the Pool tab. */
+  claimDecisions: ClaimDecisions;
+  /** An approval is with the wallet or the chain, from here or the Pool tab. */
+  claimInFlight: boolean;
+  /** What an asker already holds in the pool and has kept there; null until the pool is read. */
+  claimantStanding: (claimant: Address) => ClaimantStanding | null;
   /** Where Send for Confirmation stands. */
   sendPhase: TxActPhase;
   isActing: boolean;

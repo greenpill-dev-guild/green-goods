@@ -26,6 +26,13 @@ export interface CommitmentRequirementInput {
   requiredCount: number;
 }
 
+/** The module's `ConsiderationRail` ordinals, as `DeclaredConsiderationInput.rail` carries them. */
+export const CONSIDERATION_RAIL_ORDINAL = {
+  NONE: 0,
+  ARBITRUM_EXTERNAL: 1,
+  CELO_SETTLEMENT: 2,
+} as const;
+
 export interface DeclaredConsiderationInput {
   rail: number;
   source: Address;

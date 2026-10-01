@@ -39,7 +39,7 @@ const meta: Meta<typeof SeedCommitmentDialog> = {
     docs: {
       description: {
         component:
-          "W8, the steward's seeding console: a cast of the member composer over the same shared form, with the steward's extras. What → how much → proof & confirmation → sectioned review, then one queued creation. From the review, Add Another Like This keeps that commitment and starts the next from the same answers; the ones added so far are then created together, one wallet confirmation each.",
+          "Seed Promises (PRD-1022 screens 01–12), the steward's seeding flow over the member composer's shared form: What → How Much → Proof & Confirmation → a sectioned Review. One answer can create up to fifty separate promises, each taken up, proven and confirmed on its own, shown as one group. A wallet that can bundle is asked once per ten; any other once per promise, with Try Again for what didn't send. From the Review, Add Another Like This keeps the answer and starts the next from the same one.",
       },
     },
   },

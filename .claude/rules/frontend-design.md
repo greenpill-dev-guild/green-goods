@@ -94,7 +94,7 @@ Entity references in lists (gardens, actions) include small thumbnails — 40px 
 Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). In admin the cockpit scale (`packages/admin/DESIGN.md` § Typography) is:
 
 - `body-sm` 14px body · `body-xs` 12px meta · `label-xs` 12px label (500) · `label-sm` 11px, chips only · `body-md` 16px.
-- `text-title-md font-semibold` (16/24) for card, section, and step titles and metric values · `text-title-lg font-semibold leading-[var(--type-title-lg-lh)]` (22/28) for dialog, sheet, and flow titles and full-page state headings.
+- `text-title-md font-semibold` (16/24) for card and section titles and metric values · `text-title-lg font-semibold leading-[var(--type-title-lg-lh)]` (22/28) for dialog, sheet, flow, and step titles and full-page state headings. A step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063).
 - The `text-body-*`, `text-label-*`, and `text-title-*` aliases are on the scale too.
 
 The named classes are Tailwind utilities, so a weight, leading, or tracking utility adjusts them (`body-sm font-medium`) and responsive variants work (`body-xs sm:body-sm`). `check:design-tokens` fails on a raw size anywhere in `packages/admin/src`, stories included.

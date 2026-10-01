@@ -91,6 +91,12 @@ export const commitmentPoolingKeys = {
   /** The device's own queue, read per account rather than per chain. */
   queueState: (account: string | null | undefined) =>
     ["greengoods", "commitment-pooling", "queue", account?.toLowerCase() ?? null] as const,
+  /**
+   * The copies of each display group still waiting in that queue on a chain.
+   * Under the queue's key, so every refresh of the queue refreshes this too.
+   */
+  queuedGroupCopies: (account: string | null | undefined, chainId: number) =>
+    [...commitmentPoolingKeys.queueState(account), "group-copies", chainId] as const,
   requirements: (chainId: number, commitmentId: bigint | string | number) =>
     [...commitmentPoolingKeys.all(chainId), "requirements", String(commitmentId)] as const,
   contributors: (chainId: number, commitmentId: bigint | string | number) =>

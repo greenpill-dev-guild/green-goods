@@ -45,8 +45,11 @@ import { useGardenAssessments } from "../../assessment/useGardenAssessments";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { toActPhaseReport, useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
+import { isResolvableMetadataCID } from "../../../modules/commitment-pooling/metadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
+import { claimantStanding } from "../../../modules/commitment-pooling/waiting-for-approval";
+import { useClaimDecisions } from "./useClaimDecisions";
 import {
   actPhaseFor,
   claimActKey,
@@ -58,6 +61,7 @@ import {
   useCommitmentActivity,
   useCommitmentCycle,
   useCommitmentPools,
+  useCommitments,
 } from "../../commitment-pooling/useCommitmentPooling";
 import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQueueState";
 import { useCommitmentReason } from "../../commitment-pooling/useCommitmentReason";
@@ -66,6 +70,7 @@ import { useGardenRoles } from "../../roles/useGardenRoles";
 import { useProgressiveInvalidation } from "../../utils/useTimeout";
 import { reviewRefreshOptions } from "../../commitment-pooling/review-refresh";
 import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
+import type { CommitmentClaimRequestRecord } from "../../../modules/commitment-pooling/types-core";
 
 /** `ICommitmentPoolingModule.DisputeResolution`, by code. */
 const DISPUTE_RESOLUTION_CODE = {
@@ -74,6 +79,16 @@ const DISPUTE_RESOLUTION_CODE = {
   CANCELLED: 2,
   EXPIRED: 3,
 } as const;
+
+/** When a person's pending ask was made, so the decision on it holds for that ask alone. */
+function pendingAskAt(
+  asks: readonly CommitmentClaimRequestRecord[] | undefined,
+  claimant: Address
+): number | undefined {
+  return asks?.find(
+    (ask) => ask.state === "PENDING" && ask.claimant.toLowerCase() === claimant.toLowerCase()
+  )?.requestedAt;
+}
 
 export function useCommitmentDialogController(input: {
   chainId: number;
@@ -96,6 +111,12 @@ export function useCommitmentDialogController(input: {
   const poolsQuery = useCommitmentPools({ chainId, garden }, { refreshWhileOpen: true });
   // .at(0) keeps the null honest in the type; [0] would claim a pool always exists.
   const pool = poolsQuery.pools.at(0) ?? null;
+  // The pool's promises, for what each asker already holds and has kept (D4);
+  // the same read as the Pool tab's, so it comes from its cache.
+  const poolCommitments = useCommitments(
+    { chainId, poolId: pool?.poolId },
+    { enabled: pool !== null }
+  );
   const cycleQuery = useCommitmentCycle(
     { chainId, cycleId: commitment?.cycleId ?? 0n },
     { enabled: Boolean(commitment?.cycleId && commitment.cycleId !== 0n), refreshWhileOpen: true }
@@ -113,8 +134,9 @@ export function useCommitmentDialogController(input: {
   );
   const queue = useCommitmentQueueState(viewer);
   const mutation = useCommitmentMutation({ chainId });
-  const claimAct = useTxActPhase();
-  const trackClaim = claimAct.track;
+  // The same line and decisions as the Pool tab's Waiting for approval card.
+  const claimDecisions = useClaimDecisions();
+  const { approve: approveClaim, decline: declineClaim } = claimDecisions;
   // Send for Confirmation goes through the queue, which says whether it landed
   // or stays queued on this device.
   const sendAct = useTxActPhase();
@@ -335,17 +357,26 @@ export function useCommitmentDialogController(input: {
       confirmFallback: (reason: string) =>
         mutation.mutateAsync({ action: "confirmFulfillmentAsFallback", commitmentId, reason }),
       acceptClaim: (claimant: Address) =>
-        trackClaim(claimActKey(commitmentId, claimant), (send) =>
-          mutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send })
-        ),
-      declineClaim: (claimant: Address, reason: string) =>
-        mutation.mutateAsync({
-          action: "declineClaim",
+        approveClaim(
           commitmentId,
           claimant,
-          reason,
-          gardenAddress: garden,
-        }),
+          (send) => mutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send }),
+          pendingAskAt(detailQuery.detail?.claimRequests, claimant)
+        ),
+      declineClaim: (claimant: Address, reason: string) =>
+        declineClaim(
+          commitmentId,
+          claimant,
+          () =>
+            mutation.mutateAsync({
+              action: "declineClaim",
+              commitmentId,
+              claimant,
+              reason,
+              gardenAddress: garden,
+            }),
+          pendingAskAt(detailQuery.detail?.claimRequests, claimant)
+        ),
       syncWorkDecisions: async () => {
         const decisionUIDs = reconciliationDecisionUIDs;
         if (decisionUIDs.length === 0) throw new Error("No approved linked Work is ready to count");
@@ -368,7 +399,8 @@ export function useCommitmentDialogController(input: {
     }),
     [
       mutation,
-      trackClaim,
+      approveClaim,
+      declineClaim,
       trackSend,
       jobs,
       commitmentId,
@@ -408,6 +440,8 @@ export function useCommitmentDialogController(input: {
     detail,
     title: metadata?.title ?? null,
     note: metadata?.note ?? null,
+    metadata: metadata ?? null,
+    metadataKnown: metadata !== null || !isResolvableMetadataCID(commitment?.metadataCID),
     cycle: cycleQuery.cycle,
     events: activity.events,
     disputeReason,
@@ -442,7 +476,14 @@ export function useCommitmentDialogController(input: {
     },
     acts,
     claimPhase: (claimant: Address) =>
-      actPhaseFor(claimAct.phase, claimActKey(commitmentId, claimant)),
+      actPhaseFor(claimDecisions.phase, claimActKey(commitmentId, claimant)),
+    claimDecisions: claimDecisions.decisions,
+    claimInFlight:
+      claimDecisions.phase.status === "signing" || claimDecisions.phase.status === "confirming",
+    claimantStanding: (claimant: Address) =>
+      pool && poolCommitments.data
+        ? claimantStanding(poolCommitments.commitments, claimant, pool.providerOpenCommitmentCap)
+        : null,
     sendPhase: actPhaseFor(sendAct.phase, sendForConfirmationActKey(commitmentId)),
     isActing: mutation.isPending || jobs.isPending,
     isLoading: detailQuery.isLoading || activity.isLoading || poolsQuery.isLoading,
