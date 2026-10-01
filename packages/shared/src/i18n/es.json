@@ -2730,6 +2730,8 @@
   "app.profile": "Perfil",
   "app.profile.account": "Cuenta",
   "app.profile.badges": "Insignias",
+  "app.profile.badges.claim.awaitingMessage": "Tu billetera lo envió para aprobación. La insignia aparece aquí cuando el reclamo se complete.",
+  "app.profile.badges.claim.awaitingTitle": "Reclamo esperando aprobación",
   "app.profile.badges.claim.cancelledMessage": "No se envió nada. Puedes reclamarla cuando quieras.",
   "app.profile.badges.claim.cancelledTitle": "Reclamo cancelado",
   "app.profile.badges.claim.error.alreadyOwned": "Ya tienes esta insignia.",

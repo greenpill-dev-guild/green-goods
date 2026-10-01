@@ -245,11 +245,18 @@ export const ProfileBadges: React.FC = () => {
   const selectedClaim = selectedBadge?.profileStatus === "claimable" ? claimFor(selectedBadge) : {};
   // What the last claim of this badge came to, kept in the dialog so coming
   // back from the wallet finds it. A confirmed claim has landed even before the
-  // badge list catches up, and so has a badge that turned Earned while its
-  // claim was still waiting on the receipt.
+  // badge list catches up. A badge that turned Earned after a claim was tried
+  // has landed too, whatever the claim's own wait reported: the chain is the
+  // record. A Safe-style wallet's claim waits for approval until it executes.
+  const claimTried = Boolean(
+    selectedClaimState &&
+      (selectedClaimState.isPending || selectedClaimState.isError || selectedClaimState.isSuccess)
+  );
+  const claimAwaiting =
+    Boolean(selectedClaimState?.isSuccess) && selectedClaimState?.data?.confirmation === "pending";
   const claimLanded =
-    Boolean(selectedClaimState?.isSuccess) ||
-    (selectedBadge?.profileStatus === "earned" && Boolean(selectedClaimState?.isPending));
+    (Boolean(selectedClaimState?.isSuccess) && !claimAwaiting) ||
+    (selectedBadge?.profileStatus === "earned" && claimTried);
   const claimFailure =
     !claimLanded && selectedClaimState?.isError
       ? describeBadgeClaimError(selectedClaimState.error)
@@ -388,13 +395,20 @@ export const ProfileBadges: React.FC = () => {
       <DialogShell
         open={selectedBadge !== null}
         actions={
-          selectedClaim.action && !claimLanded ? { primary: selectedClaim.action } : undefined
+          selectedClaim.action && !claimLanded && !claimAwaiting
+            ? { primary: selectedClaim.action }
+            : undefined
         }
         onOpenChange={(open) => {
           if (open) return;
-          // A settled claim's message has been read; a claim still waiting keeps
-          // its state so its toast and the badge can still report it.
-          if (selectedClaimState && !selectedClaimState.isPending) selectedClaimState.reset();
+          // A failed or cancelled claim's message has been read. A claim still
+          // waiting, or one that landed or awaits approval before the badge list
+          // shows it Earned, keeps its state, so reopening never offers Claim
+          // for a badge already claimed.
+          const keepsClaim =
+            selectedClaimState?.isPending ||
+            (selectedClaimState?.isSuccess && selectedBadge?.profileStatus !== "earned");
+          if (selectedClaimState && !keepsClaim) selectedClaimState.reset();
           setOpenedBadge(null);
         }}
         title={selectedTitle}
@@ -433,6 +447,13 @@ export const ProfileBadges: React.FC = () => {
                 )}
               >
                 {intl.formatMessage({ id: "app.profile.badges.claim.successMessage" })}
+              </Alert>
+            ) : claimAwaiting ? (
+              <Alert
+                variant="info"
+                title={intl.formatMessage({ id: "app.profile.badges.claim.awaitingTitle" })}
+              >
+                {intl.formatMessage({ id: "app.profile.badges.claim.awaitingMessage" })}
               </Alert>
             ) : selectedClaimState?.isPending ? (
               <p role="status" className="text-xs text-text-sub-600">

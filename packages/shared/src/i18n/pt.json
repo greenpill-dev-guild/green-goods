@@ -2730,6 +2730,8 @@
   "app.profile": "Perfil",
   "app.profile.account": "Conta",
   "app.profile.badges": "Insígnias",
+  "app.profile.badges.claim.awaitingMessage": "Sua carteira enviou para aprovação. A insígnia aparece aqui quando a reivindicação for concluída.",
+  "app.profile.badges.claim.awaitingTitle": "Reivindicação aguardando aprovação",
   "app.profile.badges.claim.cancelledMessage": "Nada foi enviado. Você pode reivindicá-la quando quiser.",
   "app.profile.badges.claim.cancelledTitle": "Reivindicação cancelada",
   "app.profile.badges.claim.error.alreadyOwned": "Você já tem esta insígnia.",

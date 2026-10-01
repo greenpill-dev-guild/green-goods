@@ -178,7 +178,9 @@ function useClaimGreenWillBadge(
         args: [...args],
       });
 
-      return result.hash;
+      // A Safe-style wallet returns before the claim executes; the result says
+      // so, and the claim only counts once it does.
+      return result;
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -188,12 +190,19 @@ function useClaimGreenWillBadge(
       });
       return { toastId };
     },
-    onSuccess: (_hash, _variables, context) => {
+    onSuccess: (result, _variables, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
-      toastService.success({
-        title: formatMessage({ id: "app.profile.badges.claim.successTitle" }, { badge }),
-        message: formatMessage({ id: "app.profile.badges.claim.successMessage" }),
-      });
+      if (result.confirmation === "pending") {
+        toastService.info({
+          title: formatMessage({ id: "app.profile.badges.claim.awaitingTitle" }),
+          message: formatMessage({ id: "app.profile.badges.claim.awaitingMessage" }),
+        });
+      } else {
+        toastService.success({
+          title: formatMessage({ id: "app.profile.badges.claim.successTitle" }, { badge }),
+          message: formatMessage({ id: "app.profile.badges.claim.successMessage" }),
+        });
+      }
       invalidate();
       scheduleFollowUp();
     },

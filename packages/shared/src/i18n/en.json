@@ -2730,6 +2730,8 @@
   "app.profile": "Profile",
   "app.profile.account": "Account",
   "app.profile.badges": "Badges",
+  "app.profile.badges.claim.awaitingMessage": "Your wallet sent it for approval. The badge shows here once the claim goes through.",
+  "app.profile.badges.claim.awaitingTitle": "Claim waiting for approval",
   "app.profile.badges.claim.cancelledMessage": "Nothing was sent. You can claim it whenever you're ready.",
   "app.profile.badges.claim.cancelledTitle": "Claim cancelled",
   "app.profile.badges.claim.error.alreadyOwned": "You already hold this badge.",

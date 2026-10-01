@@ -185,7 +185,10 @@ describe("Display mode — AppBar visibility", () => {
     mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
 
     renderAppBar("/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-    expect(screen.getByTestId("authenticated-nav").className).toMatch(/translate-y-full/);
+    const nav = screen.getByTestId("authenticated-nav");
+    expect(nav.className).toMatch(/translate-y-full/);
+    // Off screen is out of reach: no tab stops or screen-reader links.
+    expect(nav).toHaveAttribute("inert");
   });
 
   it("standalone PWA: any open sheet or dialog hides the bottom nav (DL-015)", () => {
@@ -204,6 +207,7 @@ describe("Display mode — AppBar visibility", () => {
     renderAppBar("/home/profile");
 
     expect(screen.getByTestId("authenticated-nav").className).not.toMatch(/translate-y-full/);
+    expect(screen.getByTestId("authenticated-nav")).not.toHaveAttribute("inert");
     expect(screen.getByRole("link", { name: /home/i }).className).not.toContain("tab-active");
     expect(screen.getByRole("link", { name: /profile/i }).className).toContain("tab-active");
   });

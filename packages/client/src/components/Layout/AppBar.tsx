@@ -64,6 +64,8 @@ export const AppBar = () => {
         "vt-app-bar fixed bottom-0 bg-bg-white-0 border-t border-t-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden flex flex-row justify-evenly items-center w-full py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-nav transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
         shouldHideBar ? "translate-y-full" : "translate-y-0"
       )}
+      // Off screen is out of reach too: no tab stops or screen-reader links.
+      inert={shouldHideBar}
     >
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
         const isHome = path === APP_ROUTES.home;

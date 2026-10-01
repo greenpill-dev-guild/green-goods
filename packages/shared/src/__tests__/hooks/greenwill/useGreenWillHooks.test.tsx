@@ -356,6 +356,24 @@ describe("hooks/greenwill", () => {
     );
   });
 
+  it("says a Safe-style claim waits for approval instead of calling it claimed", async () => {
+    mockSendContractCall.mockResolvedValueOnce({
+      hash: "0xsafe",
+      sponsored: false,
+      confirmation: "pending",
+    });
+
+    const { result } = renderHookWithQueryClient(() => useClaimGenesisBadge());
+    await act(async () => {
+      await result.current.mutateAsync(undefined);
+    });
+
+    expect(mockToast.success).not.toHaveBeenCalled();
+    expect(mockToast.info).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "app.profile.badges.claim.awaitingTitle" })
+    );
+  });
+
   it("stops a claim the badge contract refuses before the wallet opens, and says why", async () => {
     mockSimulateContract.mockRejectedValueOnce(contractRefusal());
 

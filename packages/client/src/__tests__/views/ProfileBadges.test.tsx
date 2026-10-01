@@ -485,6 +485,69 @@ describe("ProfileBadges", () => {
     expect(screen.queryByRole("button", { name: "Claim Genesis" })).not.toBeInTheDocument();
   });
 
+  it("trusts an Earned badge over a claim whose wait failed", async () => {
+    const user = userEvent.setup();
+    // Default data holds Genesis as earned.
+    sharedMocks.useClaimGenesisBadge.mockReturnValue({
+      mutate: mockGenesisClaim,
+      reset: vi.fn(),
+      isPending: false,
+      isSuccess: false,
+      isError: true,
+      error: new Error("timed out waiting for receipt"),
+    });
+
+    render(wrap(createElement(ProfileBadges)));
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent("Genesis badge claimed");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("says a Safe-style claim waits for approval and offers no second claim", async () => {
+    const user = userEvent.setup();
+    sharedMocks.useGreenWillBadges.mockReturnValue(genesisClaimable());
+    sharedMocks.useClaimGenesisBadge.mockReturnValue({
+      mutate: mockGenesisClaim,
+      reset: vi.fn(),
+      isPending: false,
+      isSuccess: true,
+      isError: false,
+      error: null,
+      data: { hash: "0xsafe", sponsored: false, confirmation: "pending" },
+    });
+
+    render(wrap(createElement(ProfileBadges)));
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent("Claim waiting for approval");
+    expect(screen.queryByText("Genesis badge claimed")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Claim Genesis" })).not.toBeInTheDocument();
+  });
+
+  it("keeps a landed claim across closing until the list shows it Earned", async () => {
+    const user = userEvent.setup();
+    const reset = vi.fn();
+    sharedMocks.useGreenWillBadges.mockReturnValue(genesisClaimable());
+    sharedMocks.useClaimGenesisBadge.mockReturnValue({
+      mutate: mockGenesisClaim,
+      reset,
+      isPending: false,
+      isSuccess: true,
+      isError: false,
+      error: null,
+      data: { hash: "0x1234", sponsored: false },
+    });
+
+    render(wrap(createElement(ProfileBadges)));
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
+    await user.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(reset).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
+    expect(screen.queryByRole("button", { name: "Claim Genesis" })).not.toBeInTheDocument();
+  });
+
   it("keeps globally claimable badges hidden when the user is not locally eligible", () => {
     sharedMocks.useGreenWillBadges.mockReturnValueOnce({
       badges: [
