@@ -78,10 +78,29 @@ beforeEach(() => {
   mocks.claim.mockReset();
   mocks.auth = { authMode: "wallet", userName: null };
   mocks.walletEnsName = null;
-  useUsernameChangeStore.setState({ changes: {} });
+  useUsernameChangeStore.setState({ changes: {}, notices: {} });
 });
 
 describe("useUsernameController", () => {
+  it("tells the service worker once a name claimed before a reload is ready", async () => {
+    const postMessage = vi.fn();
+    Object.defineProperty(navigator, "serviceWorker", {
+      value: { controller: { postMessage } },
+      configurable: true,
+    });
+    // Claimed on this device, then the app reloaded while it set up.
+    useUsernameChangeStore.getState().awaitNotice(OWNER, "ines");
+
+    const { result, rerender } = render();
+
+    await waitFor(() => expect(postMessage).toHaveBeenCalledTimes(1));
+    expect(postMessage).toHaveBeenCalledWith({ type: "ENS_REGISTRATION_COMPLETE", slug: "ines" });
+    expect(result.current.card.kind).toBe("ready");
+    expect(useUsernameChangeStore.getState().notices).toEqual({});
+    rerender();
+    expect(postMessage).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the new name only once the release has landed", async () => {
     mocks.release.mockImplementation(async () => {
       // The release hook seeds the old name's status as releasing.

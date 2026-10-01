@@ -21,6 +21,15 @@ const USERNAME_CHANGE_STORAGE_KEY = "gg-username-changes";
 
 interface UsernameChangeStore {
   changes: Record<string, UsernameChange>;
+  /**
+   * A name claimed on this device and not yet ready, so the service worker
+   * still hears once when it is, after a reload or from another screen.
+   */
+  notices: Record<string, string>;
+  /** The claim was sent: tell the service worker once this name is ready. */
+  awaitNotice: (owner: string, slug: string) => void;
+  /** The service worker has heard, or the name no longer applies. */
+  clearNotice: (owner: string) => void;
   /** A release was sent: remember what it releases and what to claim after. */
   begin: (owner: string, change: UsernameChange) => void;
   /** Choose Another clears the new name; a claim form takes its place. */
@@ -33,6 +42,17 @@ export const useUsernameChangeStore = create<UsernameChangeStore>()(
   persist(
     (set) => ({
       changes: {},
+      notices: {},
+      awaitNotice: (owner, slug) =>
+        set((state) => ({ notices: { ...state.notices, [owner.toLowerCase()]: slug } })),
+      clearNotice: (owner) =>
+        set((state) => {
+          const key = owner.toLowerCase();
+          if (!(key in state.notices)) return state;
+          const notices = { ...state.notices };
+          delete notices[key];
+          return { notices };
+        }),
       begin: (owner, change) =>
         set((state) => ({ changes: { ...state.changes, [owner.toLowerCase()]: change } })),
       retarget: (owner, to) =>

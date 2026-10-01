@@ -63,6 +63,11 @@ export function useUsernameController(primaryAddress: Address | undefined) {
   const beginChange = useUsernameChangeStore((state) => state.begin);
   const retargetChange = useUsernameChangeStore((state) => state.retarget);
   const finishChange = useUsernameChangeStore((state) => state.finish);
+  const awaitNotice = useUsernameChangeStore((state) => state.awaitNotice);
+  const clearNotice = useUsernameChangeStore((state) => state.clearNotice);
+  const noticeFor = useUsernameChangeStore((state) =>
+    owner ? (state.notices[owner] ?? null) : null
+  );
   const changeOpen = change !== null && (slug === null || slug === change.from);
   const followed = changeOpen ? change.from : slug;
   const status = useENSRegistrationStatus(followed ?? undefined);
@@ -114,28 +119,31 @@ export function useUsernameController(primaryAddress: Address | undefined) {
     if (staleChange && primaryAddress) finishChange(primaryAddress);
   }, [staleChange, primaryAddress, finishChange]);
 
-  // The service worker hears once when a name claimed here becomes ready.
-  const notified = useRef(false);
-  const claimedReady = claimedSlug !== null && card.kind === "ready";
+  // The service worker hears once when a name claimed on this device becomes
+  // ready. The name waits in the store, so leaving Profile or reloading during
+  // the minutes it takes doesn't lose the notice.
+  const noticeReady = noticeFor !== null && card.kind === "ready" && slug === noticeFor;
   useEffect(() => {
-    if (!claimedReady || notified.current || !claimedSlug) return;
-    notified.current = true;
+    if (!noticeReady || !noticeFor || !primaryAddress) return;
+    clearNotice(primaryAddress);
     navigator.serviceWorker?.controller?.postMessage({
       type: SW_MESSAGE.ENS_REGISTRATION_COMPLETE,
-      slug: claimedSlug,
+      slug: noticeFor,
     });
-  }, [claimedReady, claimedSlug]);
+  }, [noticeReady, noticeFor, primaryAddress, clearNotice]);
 
   /** Claims `name`; true once it landed. The claim hook reports a failure. */
   const claim = useCallback(
     async (name: string) => {
-      notified.current = false;
       setClaiming(name);
       try {
         await claimAsync({ slug: name });
         // The claim hook has seeded the name's status as setting up.
         setClaimedSlug(name);
-        if (primaryAddress) finishChange(primaryAddress);
+        if (primaryAddress) {
+          finishChange(primaryAddress);
+          awaitNotice(primaryAddress, name);
+        }
         return true;
       } catch {
         return false;
@@ -143,7 +151,7 @@ export function useUsernameController(primaryAddress: Address | undefined) {
         setClaiming(null);
       }
     },
-    [claimAsync, finishChange, primaryAddress]
+    [claimAsync, finishChange, awaitNotice, primaryAddress]
   );
 
   /**
