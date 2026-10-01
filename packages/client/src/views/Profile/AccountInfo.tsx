@@ -77,7 +77,7 @@ export const AccountInfo: React.FC = () => {
             </div>
           </Avatar>
           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-            <div className="truncate text-label-md font-medium">
+            <div className="truncate text-sm font-medium">
               {authMode === "passkey"
                 ? intl.formatMessage({
                     id: "app.account.passkey",
@@ -116,7 +116,7 @@ export const AccountInfo: React.FC = () => {
             </Avatar>
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
               {/* Named for what it's for, without Web3 terms (PRD-1026 D3). */}
-              <div className="text-label-md font-medium">
+              <div className="text-sm font-medium">
                 {intl.formatMessage({
                   id: "app.account.accountId",
                   defaultMessage: "Account ID",

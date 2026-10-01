@@ -162,7 +162,7 @@ export function UsernameCard({
           </Avatar>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="min-w-0 text-label-md font-medium text-text-strong-950 [overflow-wrap:anywhere]">
+              <span className="min-w-0 text-sm font-medium text-text-strong-950 [overflow-wrap:anywhere]">
                 {title}
               </span>
               {chip ? (
