@@ -778,8 +778,10 @@ describe("GardenPoolTab (W7)", () => {
       createdAt: 1,
       discardable: true,
     };
+    // The story clock's deadline has passed on this one: give the group a month to go.
+    const inAMonth = BigInt(Math.floor(Date.now() / 1000) + 30 * 86_400);
     mocks.controller = controller({
-      commitments: STORY_GROUP_COPIES.slice(0, 9),
+      commitments: STORY_GROUP_COPIES.slice(0, 9).map((copy) => ({ ...copy, dueDate: inAMonth })),
       titles: STORY_GROUP_TITLES,
       pendingCreates: [
         { ...queued, jobId: "job-copy", title: "Household water survey" },
@@ -799,6 +801,40 @@ describe("GardenPoolTab (W7)", () => {
     await waitFor(() =>
       expect(mocks.controller!.acts.finishCreating).toHaveBeenCalledWith("group-00000001")
     );
+  });
+
+  it("lists a lapsed group's queued copy on its own to discard, with no Finish Creating", () => {
+    mocks.controller = controller({
+      // The group's deadline has passed.
+      commitments: STORY_GROUP_COPIES.slice(0, 9).map((copy) => ({ ...copy, dueDate: 1n })),
+      titles: STORY_GROUP_TITLES,
+      pendingCreates: [
+        {
+          chainId: 42161,
+          poolId: "7",
+          direction: "REQUEST",
+          unitLabel: "survey",
+          targetUnits: "1",
+          waitingForMembership: false,
+          failed: true,
+          createdAt: 1,
+          discardable: true,
+          jobId: "job-copy",
+          title: "Household water survey",
+        },
+      ],
+      queuedGroupCopies: new Map([["group-00000001", ["job-copy"]]]),
+    });
+    renderTab();
+
+    const group = screen.getByTestId("pool-group-group-00000001");
+    expect(
+      within(group).queryByRole("button", { name: /Finish Creating/ })
+    ).not.toBeInTheDocument();
+    const queuedRows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
+    expect(queuedRows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining("Household water survey"),
+    ]);
   });
 
   it("keeps Waiting for approval, Pool Status and Pool Funding in the right column, in that order", () => {

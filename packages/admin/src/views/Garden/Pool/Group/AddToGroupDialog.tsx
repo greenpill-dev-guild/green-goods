@@ -20,6 +20,29 @@ import { addToGroupStatus } from "./addToGroupStatus";
 /** How many a steward usually adds at once, as the seeding flow suggests. */
 const COUNT_CHOICES = [1, 5, 10, 20] as const;
 
+/** Why an Add sent nothing, in the words the dialog shows under it. */
+const REFUSAL = {
+  expired: {
+    id: "cockpit.garden.pool.add.expired",
+    defaultMessage:
+      "This group's deadline has passed, so nothing can join it. Start a new group instead.",
+  },
+  full: {
+    id: "cockpit.garden.pool.add.full",
+    defaultMessage:
+      "{room, plural, =0 {You already hold as many offers as this pool allows at once, so none can be added now.} one {You have room for one more offer under this pool's limit. Choose fewer.} other {You have room for # more offers under this pool's limit. Choose fewer.}}",
+  },
+  "not-creator": {
+    id: "cockpit.garden.pool.add.notCreator",
+    defaultMessage:
+      "Only the steward who created this group can add to it. Start a new group instead.",
+  },
+  blocked: {
+    id: "cockpit.garden.pool.reward.blocked",
+    defaultMessage: "Nothing could be sent from here. Check your wallet, then try again.",
+  },
+} as const;
+
 export interface AddToGroupCounts {
   published: number;
   available: number;
@@ -49,6 +72,8 @@ export interface AddToGroupDialogProps {
   terms: ReadonlyArray<readonly [string, string]>;
   /** Each copy's reward in cents, for the most the group could pay; null with no reward. */
   rewardCents: bigint | null;
+  /** For a group of offers, how many more the steward may hold at once; null otherwise. */
+  offerRoom?: number | null;
 }
 
 /**
@@ -71,10 +96,11 @@ export function AddToGroupDialog({
   counts,
   terms,
   rewardCents,
+  offerRoom = null,
 }: AddToGroupDialogProps) {
   const { formatMessage, locale } = useIntl();
   const fieldsetId = useId();
-  const adding = useAddToGroup({ chainId, owner, group });
+  const adding = useAddToGroup({ chainId, owner, group, offerRoom });
   const [count, setCount] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const { reset } = adding;
@@ -156,30 +182,8 @@ export function AddToGroupDialog({
     setError(null);
     const outcome = await adding.add(count);
     if (outcome === "sent") onAdded(count);
-    else if (outcome === "expired") {
-      setError(
-        formatMessage({
-          id: "cockpit.garden.pool.add.expired",
-          defaultMessage:
-            "This group's deadline has passed, so nothing can join it. Start a new group instead.",
-        })
-      );
-    } else if (outcome === "not-creator") {
-      setError(
-        formatMessage({
-          id: "cockpit.garden.pool.add.notCreator",
-          defaultMessage:
-            "Only the steward who created this group can add to it. Start a new group instead.",
-        })
-      );
-    } else if (outcome === "blocked") {
-      setError(
-        formatMessage({
-          id: "cockpit.garden.pool.reward.blocked",
-          defaultMessage: "Nothing could be sent from here. Check your wallet, then try again.",
-        })
-      );
-    }
+    else if (outcome !== "left")
+      setError(formatMessage(REFUSAL[outcome], { room: offerRoom ?? 0 }));
   };
 
   const footer = (

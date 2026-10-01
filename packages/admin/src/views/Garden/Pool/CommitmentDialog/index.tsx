@@ -86,10 +86,14 @@ function CommitmentRecord({
   const [editingReward, setEditingReward] = useState(false);
   const waitingRef = useRef<HTMLDivElement>(null);
   const loaded = Boolean(dialog.commitment);
-  // Opened from an ask: bring its waiting list into view once the record is read.
+  // The list mounts only once an ask is read, which a cached record may lack.
+  const asksShown = (dialog.detail?.claimRequests?.length ?? 0) > 0;
+  // Opened from an ask: bring its waiting list into view once it is there.
   useEffect(() => {
-    if (focus === "waiting" && loaded) waitingRef.current?.scrollIntoView({ block: "start" });
-  }, [focus, loaded]);
+    if (focus === "waiting" && loaded && asksShown) {
+      waitingRef.current?.scrollIntoView({ block: "start" });
+    }
+  }, [focus, loaded, asksShown]);
   const offlineNote = formatMessage({
     id: "cockpit.garden.pool.offline",
     defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",

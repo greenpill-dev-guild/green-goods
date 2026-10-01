@@ -8,6 +8,8 @@
  * group's waiting copies as they were built, through `creation-send`: each is
  * its queued job, so a copy whose answer was lost is read back from the chain
  * before anything is sent again, and none can become a second commitment.
+ * Past the group's deadline it sends nothing: the chain would still create the
+ * copies, due before anyone could take one up.
  *
  * @module hooks/admin-ui/pool/useFinishCreating
  */
@@ -61,7 +63,7 @@ export interface FinishCreatingController {
   /** Where each of its copies stands, for the row's act line. */
   copies: readonly SeedCopyProgress[] | null;
   /** Send every copy of this group still waiting in the queue. */
-  finish: (displayGroupId: string) => Promise<"sent" | "left" | "none" | "blocked">;
+  finish: (displayGroupId: string) => Promise<"sent" | "left" | "none" | "blocked" | "expired">;
 }
 
 export function useFinishCreating(input: {
@@ -109,6 +111,10 @@ export function useFinishCreating(input: {
         return "blocked";
       }
       if (waiting.length === 0) return "none";
+      const now = BigInt(Math.floor(Date.now() / 1000));
+      if (waiting.some(({ payload }) => payload.dueDate > 0n && payload.dueDate <= now)) {
+        return "expired";
+      }
 
       const latest = new Map<string, SeedCopyProgress>();
       setSendingGroupId(displayGroupId);

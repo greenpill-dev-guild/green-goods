@@ -6155,6 +6155,7 @@
   "cockpit.garden.pool.reward.allKept": "Recompensa se todas forem cumpridas",
   "cockpit.garden.pool.reward.totalFromTo": "{from} → {to}",
   "cockpit.garden.pool.add.expired": "O prazo deste grupo já passou, por isso nada se pode juntar a ele. Começa um grupo novo em vez disso.",
+  "cockpit.garden.pool.add.full": "{room, plural, =0 {Já tens todas as ofertas que este fundo comum permite de cada vez, por isso agora não se pode acrescentar nenhuma.} one {Tens espaço para mais uma oferta dentro do limite deste fundo comum. Escolhe menos.} other {Tens espaço para mais # ofertas dentro do limite deste fundo comum. Escolhe menos.}}",
   "cockpit.garden.pool.add.notCreator": "Só o responsável que criou este grupo pode acrescentar-lhe promessas. Começa um grupo novo em vez disso.",
   "cockpit.garden.pool.reward.blocked": "Não foi possível enviar nada daqui. Verifica a tua carteira e tenta novamente.",
   "cockpit.garden.pool.seed.tryAgainCount": "Tentar novamente ({count})",

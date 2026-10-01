@@ -64,6 +64,8 @@ export type AddToGroupOutcome =
   | "expired"
   /** Someone other than the group's creator: their copies would split from it. */
   | "not-creator"
+  /** More offers than the steward has room for under the pool's at-once limit. */
+  | "full"
   /** Nothing could be read or sent from here. */
   | "blocked";
 
@@ -92,8 +94,14 @@ export function useAddToGroup(input: {
   chainId: number;
   owner: Address | null;
   group: GroupToAddTo | null;
+  /**
+   * For a group of offers, how many more the steward may hold at once in this
+   * pool (`useSeedTrayRoom`): each offer counts against its maker from the
+   * moment it is made. Null for requests, or when the room can't be read.
+   */
+  offerRoom?: number | null;
 }): AddToGroupController {
-  const { chainId, owner, group } = input;
+  const { chainId, owner, group, offerRoom = null } = input;
   const sender = useTransactionSender();
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<CreationSendMode | null>(null);
@@ -194,6 +202,10 @@ export function useAddToGroup(input: {
       let next = setRef.current;
       // A new count, while nothing of the last one exists, is a new addition.
       if (!next || (!seedSetLocked(next.progress) && next.copies.length !== count)) {
+        // The registry refuses an offer past the limit, so ask nothing of the
+        // wallet that can't all land. A Try Again resends copies the room's
+        // queue count already holds.
+        if (offerRoom !== null && count > offerRoom) return "full";
         try {
           const minted = await mint(count);
           if (typeof minted === "string") return minted;

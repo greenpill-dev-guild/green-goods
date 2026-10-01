@@ -163,18 +163,27 @@ describe("an ask in its promise's inspector", () => {
   it("counts what an asker leads and still holds against the pool's limit, and what they kept", () => {
     const led = (onchainState: typeof ines.commitment.onchainState) =>
       commitmentFixture({ onchainState, leadProvider: INES });
+    // Her own offer nobody has taken yet already uses a place under the limit.
+    const offered = commitmentFixture({
+      direction: "OFFER",
+      onchainState: "OFFERED",
+      creator: INES,
+      leadProvider: null,
+    });
     const standing = claimantStanding(
       [
         led("ACCEPTED"),
         led("READY_FOR_CONFIRMATION"),
         led("FULFILLED"),
         led("CANCELLED"),
+        offered,
+        { ...offered, creator: KWAME },
         kwame.commitment,
       ],
       INES,
       3n
     );
-    expect(standing).toEqual({ holding: 2, cap: 3, kept: 1 });
+    expect(standing).toEqual({ holding: 3, cap: 3, kept: 1 });
   });
 });
 

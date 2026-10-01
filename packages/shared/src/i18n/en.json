@@ -6155,6 +6155,7 @@
   "cockpit.garden.pool.reward.allKept": "Reward if all are kept",
   "cockpit.garden.pool.reward.totalFromTo": "{from} → {to}",
   "cockpit.garden.pool.add.expired": "This group's deadline has passed, so nothing can join it. Start a new group instead.",
+  "cockpit.garden.pool.add.full": "{room, plural, =0 {You already hold as many offers as this pool allows at once, so none can be added now.} one {You have room for one more offer under this pool's limit. Choose fewer.} other {You have room for # more offers under this pool's limit. Choose fewer.}}",
   "cockpit.garden.pool.add.notCreator": "Only the steward who created this group can add to it. Start a new group instead.",
   "cockpit.garden.pool.reward.blocked": "Nothing could be sent from here. Check your wallet, then try again.",
   "cockpit.garden.pool.seed.tryAgainCount": "Try Again ({count})",
