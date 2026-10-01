@@ -3,11 +3,12 @@ import { Button } from "@green-goods/shared/components/Button";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { APP_NAME } from "@green-goods/shared/config/app";
 import { useEventListener } from "@green-goods/shared/hooks/utils/useEventListener";
+import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiMenuLine } from "@remixicon/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
@@ -48,12 +49,19 @@ function computeHeaderOpacity(scrollTop: number): number {
   return 1 - scrollTop / HEADER_FADE_DISTANCE_PX;
 }
 
+// Match Radix Content presence, including its closing animation.
+function DrawerScrollLock() {
+  useDocumentScrollLock(true);
+  return null;
+}
+
 export const SiteHeader = () => {
   const intl = useIntl();
   const { pathname } = useLocation();
   const isDesktop = useMediaQuery("(min-width: 48rem)");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [headerOpacity, setHeaderOpacity] = useState(1);
+  const homeLinkRef = useRef<HTMLAnchorElement>(null);
 
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
@@ -107,7 +115,13 @@ export const SiteHeader = () => {
               <div className="mx-auto flex h-16 max-w-7xl items-center justify-between">
                 {/* Logo — image only, h-8 keeps the GG mark at a stable height while w-auto
                 preserves the 16:9 aspect ratio (the source asset is 819x464). */}
-                <Link to="/" viewTransition className="flex items-center" aria-label={APP_NAME}>
+                <Link
+                  ref={homeLinkRef}
+                  to="/"
+                  viewTransition
+                  className="flex items-center"
+                  aria-label={APP_NAME}
+                >
                   <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
                 </Link>
 
@@ -175,7 +189,15 @@ export const SiteHeader = () => {
               id="mobile-nav-drawer"
               aria-modal="true"
               aria-describedby={undefined}
+              onCloseAutoFocus={(event) => {
+                if (isDesktop) {
+                  event.preventDefault();
+                  setHeaderOpacity(1);
+                  homeLinkRef.current?.focus({ preventScroll: true });
+                }
+              }}
             >
+              <DrawerScrollLock />
               <Dialog.Title className="sr-only">
                 {intl.formatMessage({ id: "public.nav.openMenu", defaultMessage: "Open Menu" })}
               </Dialog.Title>

@@ -48,12 +48,28 @@ describe("PublicFooter", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders only the glossary and external utility link set", () => {
+  it("retains core route wayfinding alongside glossary and external utilities", () => {
     renderFooter();
 
     const nav = screen.getByRole("navigation", { name: "Footer links" });
     const labels = Array.from(nav.querySelectorAll("a")).map((a) => a.textContent?.trim());
-    expect(labels).toEqual(["Glossary", "Twitter", "Admin", "Docs", "GitHub"]);
+    expect(labels).toEqual([
+      "Gardens",
+      "Impact",
+      "Fund",
+      "Actions",
+      "Glossary",
+      "Twitter",
+      "Admin",
+      "Docs",
+      "GitHub",
+    ]);
+    for (const route of ["Gardens", "Impact", "Fund", "Actions"]) {
+      expect(screen.getByRole("link", { name: route })).toHaveAttribute(
+        "href",
+        `/${route.toLowerCase()}`
+      );
+    }
     expect(screen.getByRole("link", { name: "Glossary" })).toHaveAttribute("href", "/glossary");
   });
 

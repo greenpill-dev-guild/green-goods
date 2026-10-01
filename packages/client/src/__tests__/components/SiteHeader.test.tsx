@@ -240,6 +240,8 @@ describe("SiteHeader", () => {
     const drawer = screen.getByRole("dialog");
     expect(drawer).toBeInTheDocument();
     expect(drawer.getAttribute("aria-modal")).toBe("true");
+    expect(document.documentElement).toHaveClass("modal-open");
+    expect(document.body.style.position).toBe("fixed");
     // Drawer mirrors the install CTA, not Connect Wallet.
     expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("Connect Wallet")).toBeNull();
@@ -251,6 +253,7 @@ describe("SiteHeader", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.documentElement).not.toHaveClass("modal-open");
   });
 
   it("moves keyboard focus into the drawer and returns it to the trigger on Escape", async () => {
@@ -271,7 +274,7 @@ describe("SiteHeader", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("dismisses the modal when the viewport switches to desktop", () => {
+  it("dismisses the modal and focuses visible wayfinding when switching to desktop", async () => {
     const view = renderHeader();
     fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -284,6 +287,7 @@ describe("SiteHeader", () => {
       </MemoryRouter>
     );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("link", { name: "Green Goods" })).toHaveFocus());
   });
 
   it("renders transparent on home (`/`) so the header floats over the hero image", () => {

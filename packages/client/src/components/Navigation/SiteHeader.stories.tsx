@@ -46,6 +46,8 @@ export const MobileDrawer: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Open Menu" }));
     const drawer = portal.getByRole("dialog", { name: "Open Menu" });
     await expect(drawer).toBeVisible();
+    expect(canvasElement.ownerDocument.documentElement).toHaveClass("modal-open");
+    expect(canvasElement.ownerDocument.body.style.position).toBe("fixed");
     await expect(portal.getByRole("navigation", { name: "Mobile navigation" })).toBeVisible();
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     expect(getComputedStyle(drawer).animationName).toBe(
@@ -56,8 +58,10 @@ export const MobileDrawer: Story = {
     if (!reducedMotion) {
       expect(drawer).toBeInTheDocument();
       expect(getComputedStyle(drawer).animationName).toBe("public-nav-exit");
+      expect(canvasElement.ownerDocument.documentElement).toHaveClass("modal-open");
     }
     await waitFor(() => expect(portal.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(canvasElement.ownerDocument.documentElement).not.toHaveClass("modal-open");
     await expect(canvas.getByRole("button", { name: "Open Menu" })).toHaveFocus();
     await userEvent.click(canvas.getByRole("button", { name: "Open Menu" }));
     await userEvent.click(portal.getByRole("link", { name: "Install App" }));
