@@ -379,7 +379,7 @@ ${commitmentRow({
 ${commitmentRow({
     title: "Saturday tool repair",
     chips: `${chip("Ongoing Offer", "offer")}${chip("Stopped", "plain", { dot: true })}`,
-    meta: "Rui · 5 offered · none open while stopped",
+    meta: "Rui · 5 offered · 1 open now · stopped offering more",
     hotId: "w7.series-row-resting",
     chevron: true,
   })}
