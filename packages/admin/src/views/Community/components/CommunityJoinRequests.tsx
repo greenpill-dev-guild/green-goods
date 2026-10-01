@@ -10,6 +10,7 @@ import {
   type GardenJoinRequestQueueItem,
 } from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
+import { formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import { isCancelledTxError } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine, RiInbox2Line } from "@remixicon/react";
 import { useState } from "react";
@@ -149,7 +150,10 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
             >
               <div className="min-w-0 space-y-2">
                 <div>
-                  <AdminCardTitle as="h4">{request.displayName}</AdminCardTitle>
+                  {/* A request sent under a Green Goods name reads as the username alone. */}
+                  <AdminCardTitle as="h4">
+                    {formatEnsNameForDisplay(request.displayName) ?? request.displayName}
+                  </AdminCardTitle>
                   <EnsAddressText address={request.accountAddress} />
                   <time
                     dateTime={request.requestedAt}
@@ -229,7 +233,7 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
         title={formatMessage({ id: "cockpit.community.joinRequests.declineTitle" })}
         description={formatMessage(
           { id: "cockpit.community.joinRequests.declineDescription" },
-          { name: declining?.displayName ?? "" }
+          { name: formatEnsNameForDisplay(declining?.displayName) ?? "" }
         )}
         confirmLabel={formatMessage({ id: "cockpit.community.joinRequests.confirmDecline" })}
         reasonLabel={formatMessage({ id: "cockpit.community.joinRequests.reason" })}

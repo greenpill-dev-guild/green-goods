@@ -7,7 +7,7 @@ import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGood
 import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiCalendarEventFill,
@@ -55,7 +55,11 @@ const GardenMemberItem = memo(function GardenMemberItem({
     "/images/avatar.png",
     garden?.chainId ?? DEFAULT_CHAIN_ID
   );
-  const identityName = greenGoodsEnsName || member.username || ensName;
+  // A Green Goods name reads as the username alone, without .greengoods.eth.
+  const identityName =
+    formatEnsNameForDisplay(greenGoodsEnsName) ||
+    member.username ||
+    formatEnsNameForDisplay(ensName);
   const displayName =
     identityName ||
     member.email ||
@@ -182,9 +186,9 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
     const title = useMemo(() => {
       if (!selected) return "";
       return (
-        selectedGreenGoodsEnsName ||
+        formatEnsNameForDisplay(selectedGreenGoodsEnsName) ||
         selected.username ||
-        selectedEnsName ||
+        formatEnsNameForDisplay(selectedEnsName) ||
         selected.email ||
         selected.phone ||
         (selected.account ? formatAddress(selected.account) : selected.id)

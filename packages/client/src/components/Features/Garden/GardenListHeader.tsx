@@ -9,6 +9,8 @@ const FILTERS = "flex min-w-[8.5rem] flex-1 items-center justify-end gap-2";
 interface GardenListHeaderProps {
   /** The count, or the offline line. It never gives way (DL-032). */
   status: string;
+  /** What screen readers hear in the status's place, when the status is a bare number. */
+  srStatus?: string;
   /** A control that belongs with the status line, such as the pool's ⓘ, 4px after it. */
   statusAside?: ReactNode;
   /** Compact condensed selects, right-aligned. Only when even their floors don't fit do they wrap. */
@@ -19,12 +21,24 @@ interface GardenListHeaderProps {
  * The header row of a garden tab's list (the Promises and Work tabs): the count
  * with anything that belongs to it, then the filters (DL-032).
  */
-export function GardenListHeader({ status, statusAside, filters }: GardenListHeaderProps) {
+export function GardenListHeader({
+  status,
+  srStatus,
+  statusAside,
+  filters,
+}: GardenListHeaderProps) {
   return (
     <div className={ROW} data-testid="garden-list-header">
       <div className="flex shrink-0 items-center gap-1">
         <p role="status" className="shrink-0 whitespace-nowrap text-sm text-text-sub-600">
-          {status}
+          {srStatus ? (
+            <>
+              <span aria-hidden="true">{status}</span>
+              <span className="sr-only">{srStatus}</span>
+            </>
+          ) : (
+            status
+          )}
         </p>
         {statusAside}
       </div>

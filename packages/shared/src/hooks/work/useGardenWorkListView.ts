@@ -23,7 +23,10 @@ interface GardenWorkTypeOption {
 interface GardenWorkListView {
   /** The work to show, narrowed to the chosen type and in the chosen order. */
   works: Work[];
-  /** The garden's actions that have work in the list, A to Z. */
+  /**
+   * The garden's actions that have work in the list, A to Z. Empty while fewer
+   * than two do, since choosing the only one would show the same list.
+   */
   typeOptions: GardenWorkTypeOption[];
   /** The chosen type, or "all" once the chosen one has nothing left in it. */
   type: string;
@@ -50,8 +53,9 @@ const ORDER: Record<GardenWorkSort, (a: Work, b: Work) => number> = {
 
 /**
  * The Work tab's list for a type and a sort. An action with no work in the list
- * is not offered, and a chosen type that has emptied falls back to all work, so
- * the list never shows nothing while work exists.
+ * is not offered, a single action is not offered either, and a chosen type that
+ * has emptied falls back to all work, so the list never shows nothing while
+ * work exists and Type only appears when it can narrow the list.
  */
 export function selectGardenWorkList(
   works: Work[],
@@ -64,10 +68,11 @@ export function selectGardenWorkList(
     if (number) actionById.set(number, action);
   }
   const withWork = new Set(works.map((work) => String(work.actionUID)));
-  const typeOptions = [...actionById.entries()]
+  const withWorkOptions = [...actionById.entries()]
     .filter(([id]) => withWork.has(id))
     .map(([id, action]) => ({ id, title: action.title }))
     .sort((left, right) => left.title.localeCompare(right.title));
+  const typeOptions = withWorkOptions.length > 1 ? withWorkOptions : [];
   const activeType =
     type !== "all" && typeOptions.some((option) => option.id === type) ? type : "all";
   const shown =

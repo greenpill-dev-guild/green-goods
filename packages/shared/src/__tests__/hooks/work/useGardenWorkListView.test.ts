@@ -34,6 +34,15 @@ describe("selectGardenWorkList", () => {
     expect(view.actionById.get("3")?.title).toBe("Weeding");
   });
 
+  it("offers no type while only one action has work here, so the list stays whole", () => {
+    const planting = WORKS.filter((work) => work.actionUID === 1);
+    const view = selectGardenWorkList(planting, ACTIONS, { type: "1", sort: "pending" });
+
+    expect(view.typeOptions).toEqual([]);
+    expect(view.type).toBe("all");
+    expect(ids(view)).toEqual(["c", "a"]);
+  });
+
   it("orders pending work first by default, newest first within each group", () => {
     const view = selectGardenWorkList(WORKS, ACTIONS, { type: "all", sort: "pending" });
     expect(ids(view)).toEqual(["c", "b", "a", "d"]);

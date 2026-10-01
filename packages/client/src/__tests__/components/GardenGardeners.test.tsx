@@ -16,7 +16,8 @@ vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
   copyToClipboard: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared/utils/app/text", () => ({
+vi.mock("@green-goods/shared/utils/app/text", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/app/text")>()),
   formatAddress: (address: string) => address,
 }));
 
@@ -188,7 +189,9 @@ describe("GardenGardeners", () => {
         <GardenGardeners members={[member]} />
       </TestIntl>
     );
-    expect(screen.getByText("river.greengoods.eth")).toBeInTheDocument();
+    // A Green Goods name shows as the username alone.
+    expect(screen.getByText("river")).toBeInTheDocument();
+    expect(screen.queryByText("river.greengoods.eth")).not.toBeInTheDocument();
     expect(container.querySelector("img")?.getAttribute("src")).toBe(
       "https://images.example/first.webp"
     );

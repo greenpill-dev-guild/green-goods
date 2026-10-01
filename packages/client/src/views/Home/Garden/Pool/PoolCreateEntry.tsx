@@ -55,8 +55,9 @@ function Choice({
  * leaves and comes back through it. The sheet links to Help, where promises are
  * explained, since the tab no longer carries that explanation itself.
  *
- * The + floats above the bottom nav so it is reachable however far the list has
- * scrolled, and it stays when the list is empty (D25). Only members see it
+ * The + floats at the bottom corner so it is reachable however far the list has
+ * scrolled, and it stays when the list is empty (D25). A garden's pages hide the
+ * bottom nav, so it sits 16px above the safe area. Only members see it
  * (D14); the caller decides that.
  */
 export function PoolCreateEntry({ onChoose }: PoolCreateEntryProps) {
@@ -73,7 +74,7 @@ export function PoolCreateEntry({ onChoose }: PoolCreateEntryProps) {
     <>
       <div
         className="fixed right-4 z-nav flex flex-col items-end gap-3"
-        style={{ bottom: "calc(69px + env(safe-area-inset-bottom) + 1rem)" }}
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
         data-component="PoolCreateEntry"
       >
         <button
