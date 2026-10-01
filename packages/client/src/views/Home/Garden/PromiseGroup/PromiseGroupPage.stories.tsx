@@ -121,6 +121,18 @@ export const AtTheLimit: Story = {
   },
 };
 
+/** The pool is paused or closed: the chain refuses a take-up, so the act waits and says why. */
+export const PoolNotOpen: Story = {
+  args: page({ available: 4, inProgress: 3, kept: 3 }, { bar: { act: "takeUp", hold: "closed" } }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "Take Up One" })).toBeDisabled();
+    await expect(
+      canvas.getByText("This pool isn't open for taking promises up right now.")
+    ).toBeVisible();
+  },
+};
+
 /** Availability couldn't be read (c9): unknown with Refresh, never 0, and the group stays. */
 export const AvailabilityUnknown: Story = {
   args: page(

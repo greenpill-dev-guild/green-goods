@@ -7,7 +7,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { type ClaimContext, ClaimContextSheet } from "../Commitment/ClaimContextSheet";
 import { CommitmentDetailState } from "../Commitment/CommitmentDetailShell";
-import { JoinToAct } from "../Commitment/JoinToAct";
+import { JoinToAct, MembershipCheckFailed } from "../Commitment/JoinToAct";
 import { GROUP_ACT_LABEL, PromiseGroupPage } from "./PromiseGroupPage";
 import { TakeUpOneSheet } from "./TakeUpOneSheet";
 
@@ -95,6 +95,9 @@ export function GardenPromiseGroup() {
         join={
           controller.isMember === false ? (
             <JoinToAct garden={controller.garden} isOnline={controller.isOnline} />
+          ) : controller.membershipUnavailable ? (
+            // The read the act turns on failed: say so and offer it again, not an empty bar.
+            <MembershipCheckFailed onRetry={controller.refresh} />
           ) : null
         }
         onBack={back}

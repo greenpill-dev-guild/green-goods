@@ -6456,6 +6456,7 @@
   "app.pool.group.act.takeUpOne": "Aceitar uma",
   "app.pool.group.act.takeUpAnother": "Aceitar outra",
   "app.pool.group.act.askToTakeUpOne": "Pedir para aceitar uma",
+  "app.pool.group.hold.closed": "Este fundo comum não está aberto para aceitar promessas agora.",
   "app.pool.group.hold.limit": "Você tem tantas promessas quanto este fundo comum permite ao mesmo tempo. Terminar uma libera uma vaga.",
   "app.pool.group.hold.none": "Nenhuma está disponível agora",
   "app.pool.group.seeGroup": "Ver o grupo",

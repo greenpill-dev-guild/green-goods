@@ -45,6 +45,7 @@ function controller(overrides: Partial<PromiseGroupController> = {}): PromiseGro
     bar: { act: "takeUp", hold: null },
     cap: null,
     isMember: true,
+    membershipUnavailable: false,
     claimNeedsContext: false,
     claimGardens: { member: [], stewarded: [] },
     garden: null,
@@ -137,6 +138,19 @@ describe("GardenPromiseGroup", () => {
 
     expect(retry).toHaveBeenCalledTimes(1);
     expect(start).not.toHaveBeenCalled();
+  });
+
+  it("offers the membership read again when it failed, rather than an empty bar", async () => {
+    const refresh = vi.fn();
+    mockController.mockReturnValue(
+      controller({ bar: null, isMember: null, membershipUnavailable: true, refresh })
+    );
+    const user = userEvent.setup();
+    render();
+
+    expect(screen.queryByRole("button", { name: "Take Up One" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it("passes the copy a link names, so a reload finds the same group", () => {

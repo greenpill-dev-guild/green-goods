@@ -73,6 +73,8 @@ export interface PromiseGroupController {
   cap: bigint | null;
   /** Whether the reader belongs where a take-up goes; null while it reads. */
   isMember: boolean | null;
+  /** That read failed: say so and offer it again, not an empty bar. `refresh` retries it. */
+  membershipUnavailable: boolean;
   /**
    * The protocol pool: the person chooses who takes it up, themselves through a
    * garden they belong to or a garden they steward, before the take-up sheet.
@@ -111,7 +113,12 @@ export function usePromiseGroupController(input: {
   const poolId = pool?.poolId ?? 0n;
   const poolDetail = useCommitmentPool({ chainId, poolId }, { enabled: Boolean(pool) });
   const commitments = useCommitments({ chainId, poolId }, { enabled: Boolean(pool) });
-  const { byCID, isLoading: metadataLoading } = useCommitmentMetadata(commitments.commitments);
+  const {
+    byCID,
+    isLoading: metadataLoading,
+    isError: metadataFailed = false,
+    retry: retryMetadata,
+  } = useCommitmentMetadata(commitments.commitments);
 
   const group = useMemo(() => {
     if (!displayGroupId) return null;
@@ -144,10 +151,17 @@ export function usePromiseGroupController(input: {
     () => new Set(asks.rows.map((row) => row.claim.commitmentId.toString())),
     [asks.rows]
   );
-  // Take-ups still on this phone: never chosen again, and counted against the limit.
+  // Take-ups still on this phone: never chosen again, and counted against the
+  // limit. Only take-ups: proof or a confirmation queued on a copy the reader
+  // already holds is in the chain's open count already.
   const queued = useMemo(
-    () => new Set([...queue.pendingCommitmentIds].filter((id) => copyIds.has(id))),
-    [queue.pendingCommitmentIds, copyIds]
+    () =>
+      new Set(
+        [...queue.pendingActs]
+          .filter(([id, act]) => act.kind === "claim" && copyIds.has(id))
+          .map(([id]) => id)
+      ),
+    [queue.pendingActs, copyIds]
   );
 
   // On a garden pool a take-up is the person's own, through the route garden.
@@ -200,17 +214,16 @@ export function usePromiseGroupController(input: {
           approvalGated,
           holdsOne: yours.length > 0,
           hasChoice: availabilityKnown ? choice !== null : null,
-          // The limit read here is the person's own. A garden they steward may
-          // still take one up for itself, and the registry holds it to its own.
-          atLimit:
-            !(isProtocolPool && claimGardens.stewarded.length > 0) &&
-            isAtTakeUpLimit({
-              direction: sample.direction,
-              cap: cap ?? undefined,
-              exposures: poolDetail.detail?.providerExposures ?? null,
-              viewer,
-              queued: queued.size,
-            }),
+          // The person's own limit holds for a garden claim too: the steward
+          // who asks for their garden becomes the request's provider.
+          atLimit: isAtTakeUpLimit({
+            direction: sample.direction,
+            cap: cap ?? undefined,
+            exposures: poolDetail.detail?.providerExposures ?? null,
+            viewer,
+            queued: queued.size,
+          }),
+          poolOpen: pool?.state === "OPEN",
         })
       : null;
 
@@ -244,7 +257,8 @@ export function usePromiseGroupController(input: {
   else if (poolLookupFailed || (commitments.isError && commitments.commitments.length === 0))
     status = "error";
   // A group is only readable as one once its copies' metadata has resolved.
-  else if (!group) status = metadataLoading ? "loading" : "notFound";
+  // A group exists only in its copies' words: a read that failed may yet find it.
+  else if (!group) status = metadataLoading ? "loading" : metadataFailed ? "error" : "notFound";
 
   return {
     status,
@@ -258,6 +272,7 @@ export function usePromiseGroupController(input: {
     bar,
     cap: cap && cap > 0n ? cap : null,
     isMember,
+    membershipUnavailable: isMember === null && roles.membershipUnavailable,
     claimNeedsContext: isProtocolPool,
     claimGardens,
     garden:
@@ -287,6 +302,8 @@ export function usePromiseGroupController(input: {
     },
     refresh: () => {
       if (pools.isError) void pools.refetch();
+      if (roles.membershipUnavailable) roles.retryMembership();
+      retryMetadata?.();
       void refetchCommitments();
       if (approvalGated) void refetchAsks();
       queue.refresh();

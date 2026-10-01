@@ -20,6 +20,7 @@ export const GROUP_ACT_LABEL = {
 } as const;
 
 const HOLD_REASON = {
+  closed: "app.pool.group.hold.closed",
   limit: "app.pool.group.hold.limit",
   none: "app.pool.group.hold.none",
   unknown: "app.pool.group.counts.unknown",

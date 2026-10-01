@@ -103,8 +103,14 @@ describe("group browsing", () => {
       "takeUpAnother",
       "limit",
     ],
+    // A paused or closed pool refuses every take-up, whatever else holds.
+    [
+      { approvalGated: false, holdsOne: false, hasChoice: true, atLimit: true, poolOpen: false },
+      "takeUp",
+      "closed",
+    ],
   ] as const)("offers %o as %s, held by %s", (input, act, hold) => {
-    expect(selectGroupTakeUpBar(input)).toEqual({ act, hold });
+    expect(selectGroupTakeUpBar({ poolOpen: true, ...input })).toEqual({ act, hold });
   });
 
   it("holds a request at the pool's at-once limit, but never an offer or an unread count", () => {

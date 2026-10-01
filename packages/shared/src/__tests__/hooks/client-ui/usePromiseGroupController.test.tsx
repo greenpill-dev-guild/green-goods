@@ -57,13 +57,28 @@ const mocks = vi.hoisted(() => ({
   },
   detail: vi.fn(),
   enqueue: vi.fn(),
+  /** The pool's at-once limit and what each provider holds. */
+  limit: null as null | { cap: bigint; held: bigint },
+  pendingActs: new Map<string, { kind: string }>(),
+  metadataFailed: false,
+  retryMetadata: vi.fn(),
+  membershipUnavailable: false,
+  retryMembership: vi.fn(),
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => LINA }));
 vi.mock("../../../hooks/app/useOnlineStatus", () => ({ useOnlineStatus: () => true }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
   useCommitmentPools: () => mocks.pools,
-  useCommitmentPool: () => ({ pool: null, detail: null }),
+  useCommitmentPool: () =>
+    mocks.limit
+      ? {
+          pool: { providerOpenCommitmentCap: mocks.limit.cap },
+          detail: {
+            providerExposures: [{ provider: LINA, openCommitmentCount: mocks.limit.held }],
+          },
+        }
+      : { pool: null, detail: null },
   useCommitments: () => ({
     commitments: mocks.commitments,
     isLoading: false,
@@ -78,6 +93,8 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentMetadata", () => ({
       ["cid-set", { version: 1, title: "Water survey", displayGroup: { version: 1, id: "set-1" } }],
     ]),
     isLoading: false,
+    isError: mocks.metadataFailed,
+    retry: mocks.retryMetadata,
   }),
 }));
 vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
@@ -85,7 +102,8 @@ vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
   useCommitmentQueueState: () => ({
-    pendingCommitmentIds: new Set<string>(),
+    pendingCommitmentIds: new Set(mocks.pendingActs.keys()),
+    pendingActs: mocks.pendingActs,
     isUnavailable: false,
     refresh: vi.fn(),
   }),
@@ -93,9 +111,12 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
 vi.mock("../../../hooks/commitment-pooling/useCommitmentViewerRoles", () => ({
   useCommitmentViewerRoles: () => ({
     claimGardens: mocks.claimGardens,
-    claimGardensKnown: true,
+    // A failed membership read leaves who may take one up unknown.
+    claimGardensKnown: !mocks.membershipUnavailable,
     isMemberHere: mocks.memberHere,
     garden: null,
+    membershipUnavailable: mocks.membershipUnavailable,
+    retryMembership: mocks.retryMembership,
   }),
 }));
 vi.mock("../../../modules/commitment-pooling/data", async (importOriginal) => ({
@@ -119,6 +140,10 @@ describe("usePromiseGroupController", () => {
     mocks.commitments = [copy(11), copy(12)];
     mocks.memberHere = true;
     mocks.claimGardens = { member: [], stewarded: [] };
+    mocks.limit = null;
+    mocks.pendingActs = new Map();
+    mocks.metadataFailed = false;
+    mocks.membershipUnavailable = false;
     mocks.detail.mockImplementation(async (id: bigint) =>
       commitmentDetailFixture({ commitment: copy(Number(id)) })
     );
@@ -190,5 +215,53 @@ describe("usePromiseGroupController", () => {
       mocks.enqueue.mock.calls[0]?.[0].payload
     );
     expect(mocks.enqueue.mock.calls[1]?.[0].payload.commitmentId).toBe(11n);
+  });
+  it("holds the act while the pool isn't open, and at the limit for a steward's garden claim too", () => {
+    mocks.pools.pools = [poolFixture({ garden: ROUTE, state: "PAUSED" })];
+    expect(render().result.current.bar?.hold).toBe("closed");
+
+    // The steward who asks for their garden becomes the request's provider, so
+    // their own limit holds for it.
+    mocks.pools.pools = [poolFixture({ garden: ROUTE, poolType: "PROTOCOL" })];
+    mocks.claimGardens = { member: [], stewarded: [{ address: SHE_STEWARDS, name: "River Farm" }] };
+    mocks.limit = { cap: 1n, held: 1n };
+    expect(render().result.current.bar?.hold).toBe("limit");
+  });
+
+  it("counts only queued take-ups against the limit, not proof on a copy already held", () => {
+    mocks.commitments = [
+      copy(11),
+      copy(12),
+      { ...copy(13), onchainState: "ACCEPTED", derivedState: "ACTIVE", leadProvider: LINA },
+    ];
+    mocks.limit = { cap: 2n, held: 1n };
+    // Proof for the held copy waits on this phone; the chain already counts that copy.
+    mocks.pendingActs = new Map([["13", { kind: "evidence" }]]);
+    expect(render().result.current.bar?.hold).toBeNull();
+
+    mocks.pendingActs = new Map([["11", { kind: "claim" }]]);
+    expect(render().result.current.bar?.hold).toBe("limit");
+  });
+
+  it("reads a failed metadata or membership read as something to retry, never as missing", () => {
+    mocks.metadataFailed = true;
+    mocks.commitments = [{ ...copy(11), metadataCID: "cid-unread" }];
+    const unread = render();
+    expect(unread.result.current.status).toBe("error");
+    act(() => unread.result.current.refresh());
+    expect(mocks.retryMetadata).toHaveBeenCalledTimes(1);
+
+    mocks.metadataFailed = false;
+    mocks.commitments = [copy(11), copy(12)];
+    mocks.pools.pools = [poolFixture({ garden: ROUTE, poolType: "PROTOCOL" })];
+    mocks.membershipUnavailable = true;
+    const { result } = render();
+    expect(result.current).toMatchObject({
+      isMember: null,
+      membershipUnavailable: true,
+      bar: null,
+    });
+    act(() => result.current.refresh());
+    expect(mocks.retryMembership).toHaveBeenCalledTimes(1);
   });
 });

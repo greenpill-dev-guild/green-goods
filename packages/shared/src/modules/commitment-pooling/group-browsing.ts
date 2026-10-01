@@ -13,8 +13,9 @@
  *   (D5), so approving one ask never supersedes asks other copies could take.
  *   A pending ask reserves nothing and changes no count.
  * - The pool's "at once" limit counts whoever provides a promise. Taking up a
- *   request makes the reader its provider; taking up an offer does not, so the
- *   limit never stops an offer.
+ *   request makes the reader its provider, for themselves or for a garden they
+ *   steward alike; taking up an offer does not, so the limit never stops an offer.
+ * - Nothing is taken up while the pool isn't open: the chain refuses it.
  * - Availability that can't be read is unknown, never none.
  * - The reader's own copies stay ordinary rows in the list, each with its own
  *   state, so the group row never says "Yours".
@@ -120,10 +121,10 @@ export function isAtTakeUpLimit(input: {
 export type GroupTakeUpAct = "takeUp" | "takeUpAnother" | "askToTakeUp";
 
 /**
- * Why the act can't be taken now: the pool's at-once limit, availability that
- * can't be read, or nothing left to take.
+ * Why the act can't be taken now: the pool isn't open, the pool's at-once
+ * limit, availability that can't be read, or nothing left to take.
  */
-export type GroupTakeUpHold = "limit" | "unknown" | "none";
+export type GroupTakeUpHold = "closed" | "limit" | "unknown" | "none";
 
 export interface GroupTakeUpBar {
   act: GroupTakeUpAct;
@@ -140,19 +141,23 @@ export function selectGroupTakeUpBar(input: {
   /** Whether a copy is there to choose; null when availability can't be read. */
   hasChoice: boolean | null;
   atLimit: boolean;
+  /** The pool is open: paused, closed or not yet open, the chain refuses a take-up. */
+  poolOpen: boolean;
 }): GroupTakeUpBar {
   const act: GroupTakeUpAct = input.approvalGated
     ? "askToTakeUp"
     : input.holdsOne
       ? "takeUpAnother"
       : "takeUp";
-  const hold: GroupTakeUpHold | null = input.atLimit
-    ? "limit"
-    : input.hasChoice === null
-      ? "unknown"
-      : input.hasChoice
-        ? null
-        : "none";
+  const hold: GroupTakeUpHold | null = !input.poolOpen
+    ? "closed"
+    : input.atLimit
+      ? "limit"
+      : input.hasChoice === null
+        ? "unknown"
+        : input.hasChoice
+          ? null
+          : "none";
   return { act, hold };
 }
 

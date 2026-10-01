@@ -6456,6 +6456,7 @@
   "app.pool.group.act.takeUpOne": "Take Up One",
   "app.pool.group.act.takeUpAnother": "Take Up Another",
   "app.pool.group.act.askToTakeUpOne": "Ask to Take Up One",
+  "app.pool.group.hold.closed": "This pool isn't open for taking promises up right now.",
   "app.pool.group.hold.limit": "You hold as many promises as this pool allows at once. Finishing one frees a place.",
   "app.pool.group.hold.none": "None are available right now",
   "app.pool.group.seeGroup": "See the Group",
