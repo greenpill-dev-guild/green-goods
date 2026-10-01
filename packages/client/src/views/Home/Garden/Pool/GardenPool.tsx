@@ -5,6 +5,7 @@ import {
   type GardenPoolLiveness,
   useGardenPoolController,
 } from "@green-goods/shared/hooks/client-ui/pool/useGardenPoolController";
+import { usePoolPromiseEntries } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroups";
 import {
   type CommitmentCycleRecord,
   type CommitmentPoolRecord,
@@ -16,7 +17,11 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
-import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
+import {
+  CommitmentRow,
+  CommitmentStateLadder,
+  PromiseGroupRow,
+} from "@/components/Features/Commitments";
 import {
   GardenListHeader,
   GardenListHeaderLoading,
@@ -67,6 +72,12 @@ export function GardenPool({ pool }: GardenPoolProps) {
   const { formatMessage } = intl;
   const navigate = useNavigate();
   const controller = useGardenPoolController(pool);
+  // Copies of one set fold into a group row; the reader's own stay ordinary rows.
+  const entries = usePoolPromiseEntries({
+    rows: controller.rows,
+    commitments: controller.commitments.commitments,
+    viewer: controller.viewer,
+  });
   const [charterOpen, setCharterOpen] = useState(false);
   // The last cycle stays drawn while its sheet closes.
   const [details, setDetails] = useState<{ cycle: CommitmentCycleRecord | null; open: boolean }>({
@@ -237,14 +248,28 @@ export function GardenPool({ pool }: GardenPoolProps) {
             ) : null
           ) : (
             <div className="space-y-2">
-              {controller.rows.map((row) => (
-                <CommitmentRow
-                  key={row.commitment.id}
-                  row={row}
-                  title={controller.titleOf(row.commitment.metadataCID)}
-                  onOpen={(id) => navigate(`commitments/${id.toString()}`)}
-                />
-              ))}
+              {entries.map((entry) =>
+                entry.kind === "single" ? (
+                  <CommitmentRow
+                    key={entry.row.commitment.id}
+                    row={entry.row}
+                    title={controller.titleOf(entry.row.commitment.metadataCID)}
+                    onOpen={(id) => navigate(`commitments/${id.toString()}`)}
+                  />
+                ) : (
+                  <PromiseGroupRow
+                    key={entry.group.key}
+                    group={entry.group}
+                    title={controller.titleOf(entry.group.children[0]?.metadataCID)}
+                    availabilityUnknown={controller.commitments.isError}
+                    onOpen={() =>
+                      navigate(
+                        `commitments/group/${encodeURIComponent(entry.group.displayGroupId)}?copy=${entry.group.children[0]?.commitmentId.toString() ?? ""}`
+                      )
+                    }
+                  />
+                )
+              )}
             </div>
           )}
         </CommitmentStateLadder>

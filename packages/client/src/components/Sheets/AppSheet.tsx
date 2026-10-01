@@ -38,6 +38,8 @@ export interface AppSheetProps {
    * can scroll it. Tabbed sheets name their panel by the tab instead.
    */
   bodyLabel?: string;
+  /** Holds the sheet open while an act it started is still in flight. */
+  preventClose?: boolean;
   /**
    * Height tier (DL-014). `compact` sizes to its content up to the half
    * height; `half`, `tall`, and `full` hold 50%, 70%, and 85% of the viewport.
@@ -69,6 +71,7 @@ export const AppSheet: FC<AppSheetProps> = ({
   className,
   contentClassName,
   bodyLabel,
+  preventClose = false,
   size,
 }) => {
   const { formatMessage } = useIntl();
@@ -130,6 +133,7 @@ export const AppSheet: FC<AppSheetProps> = ({
       open={isOpen}
       onClose={onClose}
       size={size}
+      preventClose={preventClose}
       title={header.title}
       description={header.description}
       closeLabel={formatMessage({ id: "app.common.close", defaultMessage: "Close" })}

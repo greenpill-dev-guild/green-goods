@@ -3,509 +3,235 @@
  * @vitest-environment happy-dom
  */
 
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+/**
+ * The Account tab's Username section (PRD-1026): what the card offers in each
+ * state, and the Change Username sheet it opens for each kind of account. The
+ * controller is a stand-in: where the name stands and the change's two steps
+ * are proven in Shared (`username.test.ts`, `useUsernameController.test.tsx`).
+ */
+
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement, type ReactNode } from "react";
+import { createElement } from "react";
 import { IntlProvider } from "react-intl";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Address } from "@green-goods/shared/types/domain";
+import type { UsernameCardState } from "@green-goods/shared/hooks/client-ui/profile/useUsernameController";
 
-const mockUseENSRegistrationStatus = vi.fn((_slug?: string) => undefined);
-const mockMutateAsync = vi.fn();
-const mockReleaseMutateAsync = vi.fn();
-const mockValidateSlug = vi.fn((_slug: string) => ({ valid: true }));
-const mockClipboardWriteText = vi.fn(async () => undefined);
-const mockTrigger = vi.fn(async () => true);
-const mockGetValues = vi.fn(() => "river");
-const mockReset = vi.fn();
+const PRIMARY_ADDRESS = "0x1234567890123456789012345678901234567890" as const;
 
-let mockProtocolMember = true;
-let mockProtocolMemberLoading = false;
-let mockRegistrationData: Record<string, unknown> | undefined;
-let mockSlugValue = "";
-let mockAvailable = true;
-let mockNameLoading = false;
-let mockRegistrationError = false;
-const mockCheckRegistration = vi.fn();
-let mockExistingGreenGoodsEnsName: string | null = null;
-let mockSponsoredReleaseUnavailable = false;
-
-vi.mock("@green-goods/shared/utils/styles/cn", () => ({
-  cn: (...inputs: Array<string | undefined | null | false>) => inputs.filter(Boolean).join(" "),
-}));
-
-vi.mock("@green-goods/shared/utils/blockchain/ens", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@green-goods/shared/utils/blockchain/ens")>()),
-  validateSlug: (slug: string) => mockValidateSlug(slug),
-}));
-
-// The names the account already goes by, which seed the claim.
-const mockNames = vi.hoisted(() => ({
-  authMode: "passkey" as "passkey" | "wallet",
-  userName: null as string | null,
-  walletEnsName: null as string | null,
-}));
-const mockUseSlugForm = vi.hoisted(() => vi.fn());
-vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
-  useAuthState: () => ({ authMode: mockNames.authMode, userName: mockNames.userName }),
-}));
-vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
-  useEnsName: () => ({ data: mockNames.walletEnsName }),
-}));
-
-vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
-  useOnlineStatus: () => true,
-}));
-
-vi.mock("@green-goods/shared/hooks/ens/useProtocolMemberStatus", () => ({
-  useProtocolMemberStatus: () => ({
-    data: mockProtocolMember,
-    isLoading: mockProtocolMemberLoading,
-  }),
-}));
-
-vi.mock("@green-goods/shared/hooks/ens/useSlugForm", () => ({
-  useSlugForm: (suggestedSlug?: string) => {
-    mockUseSlugForm(suggestedSlug);
-    return {
-      watch: (field: string) => (field === "slug" ? mockSlugValue : ""),
-      register: () => ({}),
-      trigger: mockTrigger,
-      getValues: mockGetValues,
-      reset: mockReset,
-      formState: { errors: {}, isDirty: false },
-    };
+const mocks = vi.hoisted(() => ({
+  card: { kind: "ready", slug: "ines" } as UsernameCardState,
+  isOnline: true,
+  changeBySupport: false,
+  typed: "",
+  available: undefined as boolean | undefined,
+  free: {} as Record<string, boolean>,
+  fee: { isSuccess: true, isError: false, data: "500000000000000" as string | null },
+  acts: {
+    claim: vi.fn(async () => true),
+    startChange: vi.fn(async () => undefined),
+    chooseAnother: vi.fn(),
+    checkStatus: vi.fn(),
   },
+  navigate: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared/hooks/ens/useSlugAvailability", () => ({
-  useSlugAvailability: () => ({ data: mockAvailable, isFetching: false }),
-}));
-
-vi.mock("@green-goods/shared/hooks/ens/useENSClaim", () => ({
-  useENSClaim: () => ({
-    mutateAsync: mockMutateAsync,
-    isPending: false,
-  }),
-}));
-
+vi.mock("@green-goods/shared/hooks/client-ui/profile/useUsernameController", async () => {
+  const { useSlugForm } = await import("@green-goods/shared/hooks/ens/useSlugForm");
+  return {
+    useUsernameController: () => {
+      const slugForm = useSlugForm(mocks.typed);
+      return {
+        isOnline: mocks.isOnline,
+        card: mocks.card,
+        currentSlug: "ines",
+        changeBySupport: mocks.changeBySupport,
+        form: {
+          slugForm,
+          typed: slugForm.watch("slug"),
+          available: mocks.available,
+          checking: false,
+        },
+        isCheckingStatus: false,
+        isClaiming: false,
+        isReleasing: false,
+        acts: mocks.acts,
+      };
+    },
+  };
+});
 vi.mock("@green-goods/shared/hooks/ens/useENSReleaseName", () => ({
-  useENSReleaseName: () => ({
-    mutateAsync: mockReleaseMutateAsync,
-    isPending: false,
-    isSponsoredReleaseUnavailable: mockSponsoredReleaseUnavailable,
+  useENSReleaseFee: () => mocks.fee,
+}));
+vi.mock("@green-goods/shared/hooks/ens/useSlugAvailability", () => ({
+  useSlugAvailability: (slug?: string) => ({
+    data: slug ? mocks.free[slug] : undefined,
+    isFetching: false,
   }),
 }));
-
-vi.mock("@green-goods/shared/hooks/ens/useENSRegistrationStatus", () => ({
-  useENSRegistrationStatus: (slug?: string) => {
-    mockUseENSRegistrationStatus(slug);
-    return {
-      data: slug ? mockRegistrationData : undefined,
-      refetch: mockCheckRegistration,
-      isError: mockRegistrationError,
-    };
-  },
-}));
-
-vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
-  useGreenGoodsEnsName: () => ({ data: mockExistingGreenGoodsEnsName, isLoading: mockNameLoading }),
-}));
-
-vi.mock("@green-goods/shared/components/Progress/ENSProgressTimeline", () => ({
-  ENSProgressTimeline: ({ slug, phase }: { slug: string; data: unknown; phase?: string }) =>
-    createElement("div", { "data-testid": "ens-progress", "data-phase": phase }, slug),
-}));
-
-vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", () => ({
-  ConfirmDialog: ({
-    isOpen,
-    onConfirm,
-    title,
-    confirmLabel,
-  }: {
-    isOpen: boolean;
-    onConfirm: () => void;
-    title: string;
-    confirmLabel: string;
-  }) =>
-    isOpen
-      ? createElement(
-          "div",
-          { "data-testid": "confirm-release-dialog", "aria-label": title },
-          createElement(
-            "button",
-            { onClick: onConfirm, "data-testid": "confirm-release-button" },
-            confirmLabel
-          )
-        )
-      : null,
-}));
-
-vi.mock("@/components/Cards", () => ({
-  Card: ({ children }: { children: ReactNode }) => createElement("div", null, children),
-}));
-
-vi.mock("@/components/Display", () => ({
-  Avatar: ({ children }: { children: ReactNode }) => createElement("div", null, children),
+vi.mock("react-router-dom", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-router-dom")>()),
+  useNavigate: () => mocks.navigate,
 }));
 
 import { ENSSection } from "../../views/Profile/ENSSection";
 
-const PRIMARY_ADDRESS = "0x1234567890123456789012345678901234567890" as const;
-
-function ensSection(primaryAddress: Address = PRIMARY_ADDRESS) {
-  return createElement(
-    IntlProvider,
-    { locale: "en", messages: {} },
-    createElement(ENSSection, { primaryAddress })
+function renderSection() {
+  return render(
+    createElement(
+      MemoryRouter,
+      null,
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: {} },
+        createElement(ENSSection, { primaryAddress: PRIMARY_ADDRESS })
+      )
+    )
   );
 }
 
-function renderENSSection(primaryAddress?: Address) {
-  return render(ensSection(primaryAddress));
-}
+const sheet = () => screen.getByTestId("app-sheet");
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.card = { kind: "ready", slug: "ines" };
+  mocks.isOnline = true;
+  mocks.changeBySupport = false;
+  mocks.typed = "";
+  mocks.available = undefined;
+  mocks.free = {};
+  mocks.fee = { isSuccess: true, isError: false, data: "500000000000000" };
+  window.localStorage.clear();
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText: vi.fn(async () => undefined) },
+  });
+});
+
+afterEach(() => {
+  cleanup();
+});
 
 describe("Profile ENSSection", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockProtocolMember = true;
-    mockAvailable = true;
-    mockNameLoading = false;
-    mockRegistrationError = false;
-    mockProtocolMemberLoading = false;
-    mockRegistrationData = undefined;
-    mockSlugValue = "";
-    mockNames.authMode = "passkey";
-    mockNames.userName = null;
-    mockNames.walletEnsName = null;
-    mockExistingGreenGoodsEnsName = null;
-    mockSponsoredReleaseUnavailable = false;
-    mockValidateSlug.mockReturnValue({ valid: true });
-    window.localStorage.clear();
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText: mockClipboardWriteText },
-    });
-    mockMutateAsync.mockResolvedValue({});
-    mockReleaseMutateAsync.mockImplementation(async () => {
-      mockRegistrationData = { status: "pending", release: { owner: PRIMARY_ADDRESS } };
-      return { slug: "forest" };
-    });
-  });
+  it("reads a ready name on one row and opens a wallet's change with its fee and two steps", async () => {
+    renderSection();
+    expect(screen.getByText("ines.greengoods.eth")).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    expect(screen.getByText("People can use this name to find your work.")).toBeInTheDocument();
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+    fireEvent.click(screen.getByRole("button", { name: "Change Username" }));
 
-  it("shows claim form for protocol members without an existing registration", () => {
-    renderENSSection();
-
-    expect(screen.getByText("Username")).toBeInTheDocument();
-    expect(screen.getByText("Your Green Goods name")).toBeInTheDocument();
-    expect(
-      screen.getByText("A personal name people can use to find your work.")
-    ).toBeInTheDocument();
-    expect(screen.getByText("Claim Name")).toBeInTheDocument();
-    expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith(undefined);
-  });
-
-  it.each([
-    ["the username chosen for the passkey", { userName: "Maya K", walletEnsName: null }, "maya-k"],
-    ["the wallet's ENS label", { userName: "user_1726850000", walletEnsName: "maya.eth" }, "maya"],
-    [
-      "nothing when the account has no name",
-      { userName: "user_1726850000", walletEnsName: null },
-      "",
-    ],
-    // Auth keeps the last passkey username after a switch to a wallet.
-    [
-      "the wallet's ENS label over an earlier passkey username",
-      { authMode: "wallet", userName: "Maya K", walletEnsName: "afo.eth" },
-      "afo",
-    ],
-  ] as const)("starts the claim from %s", (_label, names, suggested) => {
-    Object.assign(mockNames, names);
-
-    renderENSSection();
-
-    expect(mockUseSlugForm).toHaveBeenLastCalledWith(suggested);
-  });
-
-  it("replaces its own suggestion when the account changes, never something typed", () => {
-    mockNames.walletEnsName = "maya.eth";
-    mockGetValues.mockReturnValue("maya");
-    const view = renderENSSection();
-
-    mockNames.walletEnsName = "afo.eth";
-    view.rerender(ensSection());
-    expect(mockReset).toHaveBeenCalledWith({ slug: "afo" });
-
-    mockReset.mockClear();
-    mockGetValues.mockReturnValue("typed-name");
-    mockNames.walletEnsName = "kit.eth";
-    view.rerender(ensSection());
-    expect(mockReset).not.toHaveBeenCalled();
-  });
-
-  it("marks the claim unavailable with the join hint for gardeners without a garden", () => {
-    mockProtocolMember = false;
-
-    renderENSSection();
-
-    expect(screen.getByText("Username")).toBeInTheDocument();
-    expect(screen.getByText("Your Green Goods name")).toBeInTheDocument();
-    const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("Not available yet");
-    expect(status).toHaveTextContent("Join a garden to unlock your Green Goods name.");
-    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
-    expect(
-      screen.queryByLabelText("Choose your personal Green Goods name")
-    ).not.toBeInTheDocument();
-  });
-
-  it("keeps the claim hidden until membership has resolved", () => {
-    mockProtocolMember = false;
-    mockProtocolMemberLoading = true;
-
-    renderENSSection();
-
-    expect(screen.queryByText("Username")).not.toBeInTheDocument();
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
-  });
-
-  it("hides claim form after successful ENS claim and shows progress timeline", async () => {
-    const user = userEvent.setup();
-    mockSlugValue = "river";
-    mockGetValues.mockReturnValue("river");
-    mockRegistrationData = { status: "pending" };
-
-    renderENSSection();
-
-    expect(screen.getByText("Claim Name")).toBeInTheDocument();
-
-    await user.click(screen.getByText("Claim Name"));
-
-    await waitFor(() => {
-      expect(mockMutateAsync).toHaveBeenCalledWith({ slug: "river" });
-    });
-    expect(mockReset).toHaveBeenCalled();
-    expect(screen.getByTestId("ens-progress")).toHaveTextContent("river");
-    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
-  });
-
-  it("suppresses a taken result from our own claim before its receipt arrives", async () => {
-    let receive!: () => void;
-    mockMutateAsync.mockImplementationOnce(
-      () =>
-        new Promise<void>((resolve) => {
-          receive = resolve;
-        })
+    const steps = within(sheet()).getByTestId("change-username-steps");
+    expect(within(sheet()).getByText("Your username is ines.greengoods.eth.")).toBeInTheDocument();
+    expect(steps).toHaveTextContent(
+      "Now, your wallet releases ines.greengoods.eth for a 0.0005 ETH fee."
     );
-    mockSlugValue = "river";
-    const user = userEvent.setup();
-    const view = renderENSSection();
-    await user.click(screen.getByRole("button", { name: "Claim Name" }));
-    mockAvailable = false; // The focus refetch sees our own newly reserved name.
-    view.rerender(ensSection());
-    expect(screen.queryByText("This name is already taken")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Name taken")).not.toBeInTheDocument();
-    expect(screen.getByTestId("ens-progress")).toHaveAttribute("data-phase", "submitting");
-    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
-    mockRegistrationData = { status: "pending" };
-    await act(async () => receive());
-    expect(screen.getByTestId("ens-progress")).not.toHaveAttribute("data-phase");
-    await user.click(screen.getByRole("button", { name: "Check status" }));
-    expect(mockCheckRegistration).toHaveBeenCalledOnce();
+    expect(steps).toHaveTextContent("In about 15–20 minutes, your wallet claims the new name.");
+    const submit = within(sheet()).getByTestId("change-username-submit");
+    expect(submit).toBeDisabled();
+
+    mocks.free["ines-duarte"] = true;
+    await userEvent.type(within(sheet()).getByLabelText("New username"), "ines-duarte");
+    expect(steps).toHaveTextContent("your wallet claims ines-duarte.greengoods.eth.");
+    await waitFor(() => expect(submit).toBeEnabled());
+    fireEvent.click(submit);
+
+    await waitFor(() => expect(mocks.acts.startChange).toHaveBeenCalledWith("ines-duarte"));
   });
 
-  it("returns to the editable form when submission is rejected", async () => {
-    mockSlugValue = "river";
-    mockMutateAsync.mockRejectedValueOnce(new Error("User rejected request"));
-    renderENSSection();
-    await userEvent.click(screen.getByRole("button", { name: "Claim Name" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Claim Name" })).toBeEnabled());
-    expect(screen.queryByTestId("ens-progress")).not.toBeInTheDocument();
-  });
+  it("releases nothing while the fee can't be read", async () => {
+    mocks.fee = { isSuccess: false, isError: true, data: null };
+    mocks.free["ines-duarte"] = true;
+    renderSection();
+    fireEvent.click(screen.getByRole("button", { name: "Change Username" }));
+    await userEvent.type(within(sheet()).getByLabelText("New username"), "ines-duarte");
 
-  it("waits for the account's existing name before offering another claim", () => {
-    mockNameLoading = true;
-    mockAvailable = false;
-    mockSlugValue = "river";
-    renderENSSection();
-    expect(screen.queryByText("This name is already taken")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
-    expect(screen.getByTestId("ens-progress")).toHaveAttribute("data-phase", "checking");
-  });
-
-  it("hides claim form when registration is active", async () => {
-    const user = userEvent.setup();
-    mockSlugValue = "forest";
-    mockGetValues.mockReturnValue("forest");
-    mockRegistrationData = { status: "active" };
-
-    renderENSSection();
-
-    await user.click(screen.getByText("Claim Name"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
-    });
-    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
-  });
-
-  it("hides claim form when the address already has a Green Goods ENS name", () => {
-    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
-    mockRegistrationData = { status: "active" };
-
-    renderENSSection();
-
-    expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith("forest");
-    expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
-    expect(screen.getByText("Release Username")).toBeInTheDocument();
-    expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
-    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
-  });
-
-  it("hides release when a stale reverse lookup points to another owner's active name", () => {
-    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
-    mockSlugValue = "canopy";
-    mockRegistrationData = {
-      status: "active",
-      registration: { owner: "0x2345678901234567890123456789012345678901" },
-    };
-
-    renderENSSection();
-
-    expect(screen.queryByRole("button", { name: "Release Username" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Claim Name" })).toBeEnabled();
-  });
-
-  it.each([
-    "pending",
-    "available",
-  ])("can claim again after a release first observed as %s", async (releaseStatus) => {
-    const user = userEvent.setup();
-    mockSlugValue = "forest";
-    mockGetValues.mockReturnValue("forest");
-    mockRegistrationData = { status: "active" };
-    mockReleaseMutateAsync.mockImplementation(async () => {
-      mockRegistrationData = { status: releaseStatus, release: { owner: PRIMARY_ADDRESS } };
-      if (releaseStatus === "available") mockExistingGreenGoodsEnsName = null;
-      return { slug: "forest" };
-    });
-
-    const view = renderENSSection();
-    await user.click(screen.getByRole("button", { name: "Claim Name" }));
-    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
-    view.rerender(ensSection());
-
-    await user.click(screen.getByText("Release Username"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("confirm-release-dialog")).toBeInTheDocument();
-    });
-    expect(mockReleaseMutateAsync).not.toHaveBeenCalled();
-
-    await user.click(screen.getByTestId("confirm-release-button"));
-
-    await waitFor(() => {
-      expect(mockReleaseMutateAsync).toHaveBeenCalled();
-    });
-    if (releaseStatus === "pending") {
-      expect(screen.getByText("Release started")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Check status" })).toBeEnabled();
-    }
-    mockRegistrationData = { status: "available", release: { owner: PRIMARY_ADDRESS } };
-    mockExistingGreenGoodsEnsName = null;
-    view.rerender(ensSection());
-    await waitFor(() => expect(screen.getByRole("button", { name: "Claim Name" })).toBeEnabled());
-    mockGetValues.mockReturnValue("canopy");
-    mockRegistrationData = { status: "pending" };
-    await user.click(screen.getByRole("button", { name: "Claim Name" }));
-    await waitFor(() => expect(mockMutateAsync).toHaveBeenLastCalledWith({ slug: "canopy" }));
-    expect(screen.getByTestId("ens-progress")).toHaveTextContent("canopy");
-    mockExistingGreenGoodsEnsName = "canopy.greengoods.eth";
-    mockRegistrationData = { status: "active" };
-    view.rerender(ensSection());
-    expect(screen.getByRole("button", { name: "Release Username" })).toBeEnabled();
-  });
-
-  it.each([
-    "pending",
-    "timed_out",
-  ])("keeps recovery and retry available for an owned %s name", async (status) => {
-    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
-    mockRegistrationData = { status };
-    const view = renderENSSection();
-    expect(screen.getByRole("button", { name: "Release Username" })).toBeEnabled();
-    await userEvent.click(screen.getByRole("button", { name: "Check status" }));
-    expect(mockCheckRegistration).toHaveBeenCalledOnce();
-    mockSponsoredReleaseUnavailable = true;
-    view.rerender(ensSection());
-    await userEvent.click(screen.getByRole("button", { name: "Request Username Change" }));
-    expect(screen.getByLabelText("Desired username")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Check status" })).toBeEnabled();
-    expect(mockReleaseMutateAsync).not.toHaveBeenCalled();
-  });
-
-  it("offers retry for a failed refresh of a confirmed name", async () => {
-    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
-    mockRegistrationData = { status: "active" };
-    mockRegistrationError = true;
-    renderENSSection();
-    expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Couldn’t check your name. Please try again."
+    expect(within(sheet()).getByTestId("change-username-steps")).toHaveTextContent(
+      "The fee couldn’t be read, so nothing can be released yet."
     );
-    await userEvent.click(screen.getByRole("button", { name: "Check status" }));
-    expect(mockCheckRegistration).toHaveBeenCalledOnce();
+    expect(within(sheet()).getByTestId("change-username-submit")).toBeDisabled();
   });
 
-  it("resumes a restored release without permitting duplicate release", () => {
-    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
-    mockRegistrationData = { status: "pending", release: { owner: PRIMARY_ADDRESS } };
-    renderENSSection();
-    expect(screen.getByRole("button", { name: "Release started" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Check status" })).toBeEnabled();
-    expect(screen.queryByRole("button", { name: "Claim Name" })).not.toBeInTheDocument();
-  });
+  it("prepares a support request for a passkey account's change", async () => {
+    mocks.changeBySupport = true;
+    renderSection();
+    fireEvent.click(screen.getByRole("button", { name: "Change Username" }));
 
-  it("prepares a support request when sponsored release is unavailable", async () => {
-    const user = userEvent.setup();
-    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
-    mockRegistrationData = { status: "active" };
-    mockSponsoredReleaseUnavailable = true;
-
-    renderENSSection();
-
-    const requestButton = screen.getByText("Request Username Change");
-    expect(requestButton).not.toBeDisabled();
     expect(
-      screen.getByText(
-        "Username changes need a hand from support right now. We can either help you release this name or look into recovering it if you've lost access."
+      within(sheet()).getByText(
+        "Your username is ines.greengoods.eth. For passkey accounts, support helps with the change for now."
       )
     ).toBeInTheDocument();
+    await userEvent.type(within(sheet()).getByLabelText("Desired username"), "ines-duarte");
+    await userEvent.type(within(sheet()).getByLabelText("Contact"), "@ines_d");
+    fireEvent.click(within(sheet()).getByRole("button", { name: "Add a Note" }));
+    await userEvent.type(within(sheet()).getByLabelText("Notes"), "New phone");
+    fireEvent.click(within(sheet()).getByRole("button", { name: "Prepare Request" }));
 
-    await user.click(requestButton);
-    await user.type(screen.getByLabelText("Desired username"), "canopy");
-    await user.type(screen.getByLabelText("Contact"), "@alice");
-    await user.click(screen.getByText("Prepare request"));
-
-    expect(mockReleaseMutateAsync).not.toHaveBeenCalled();
-    expect(screen.getByText(/Request ens-change-/)).toBeInTheDocument();
-    expect((screen.getByLabelText("Request details") as HTMLTextAreaElement).value).toContain(
-      "Desired name: canopy"
+    const prepared = await within(sheet()).findByTestId("ens-change-request-prepared");
+    const receipt = within(prepared).getByLabelText("Request details");
+    expect((receipt as HTMLTextAreaElement).value).toContain(
+      "Desired name: ines-duarte.greengoods.eth\nReason: I still use this sign-in\nContact: @ines_d\nNotes: New phone"
     );
+    expect(
+      within(sheet()).getByRole("button", { name: "Open Telegram Support" })
+    ).toBeInTheDocument();
+  });
 
-    const stored = JSON.parse(
-      window.localStorage.getItem("green-goods:ens-username-change-requests") ?? "[]"
-    ) as Array<{ currentSlug: string; desiredSlug: string; owner: string }>;
-    expect(stored[0]).toMatchObject({
-      currentSlug: "forest",
-      desiredSlug: "canopy",
-      owner: PRIMARY_ADDRESS,
-    });
+  it.each([
+    [true, "We couldn’t check your name. Try again in a moment.", "Check Status"],
+    [
+      false,
+      "You’re offline. Your name’s status updates when you’re back online.",
+      "Go Online to Check",
+    ],
+  ])("offers only a new check while the status is unknown (online: %s)", (online, sentence, action) => {
+    mocks.isOnline = online;
+    mocks.card = { kind: "unknown", slug: "ines" };
+    renderSection();
+
+    expect(screen.getByText("Status unknown")).toBeInTheDocument();
+    expect(screen.getByText(sentence)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Change Username" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: action }));
+    expect(mocks.acts.checkStatus).toHaveBeenCalledTimes(online ? 1 : 0);
+  });
+
+  it("asks for the chosen name's claim at step 2, or another name", () => {
+    mocks.card = { kind: "claimable", to: "ines-duarte" };
+    renderSection();
+
+    expect(screen.getByText("ines-duarte.greengoods.eth")).toBeInTheDocument();
+    expect(screen.getByText("Changing · 2 of 2")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Claim ines-duarte" }));
+    expect(mocks.acts.claim).toHaveBeenCalledWith("ines-duarte");
+    fireEvent.click(screen.getByRole("button", { name: "Choose Another" }));
+    expect(mocks.acts.chooseAnother).toHaveBeenCalled();
+  });
+
+  it("claims a first name only once it reads as free", async () => {
+    mocks.card = { kind: "choose", after: "none", taken: null };
+    mocks.typed = "ines";
+    renderSection();
+    const claim = screen.getByRole("button", { name: "Claim Name" });
+    expect(screen.getByText("4/50")).toBeInTheDocument();
+    expect(claim).toBeDisabled();
+
+    mocks.available = true;
+    cleanup();
+    renderSection();
+    fireEvent.click(screen.getByRole("button", { name: "Claim Name" }));
+
+    await waitFor(() => expect(mocks.acts.claim).toHaveBeenCalledWith("ines"));
+  });
+
+  it("sends an account outside every garden to the open gardens", () => {
+    mocks.card = { kind: "locked" };
+    renderSection();
+
+    expect(screen.getByText("Not available yet")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open Gardens" }));
+    expect(mocks.navigate).toHaveBeenCalledWith("/home");
   });
 });

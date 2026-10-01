@@ -16,7 +16,9 @@
 import { useCallback, useMemo } from "react";
 import type { PoolConsoleController } from "./controller.types";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
+import { commitmentNeedsSeat } from "../../../modules/commitment-pooling/acts";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
+import { selectCommitmentSeat } from "../../../modules/commitment-pooling/selectors";
 import {
   actPhaseFor,
   claimActKey,
@@ -47,6 +49,8 @@ import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimReque
 import { usePoolFunding } from "../../commitment-pooling/usePoolFunding";
 import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
+import { useClaimDecisions, useClaimDecisionVisit } from "./useClaimDecisions";
+import { useFinishCreating } from "./useFinishCreating";
 
 /** Queue acts are not mutations, so their failures go through the same handler by hand. */
 const reportQueuedSendError = createMutationErrorHandler({
@@ -57,8 +61,13 @@ const reportQueuedSendError = createMutationErrorHandler({
 export function usePoolConsoleController(input: {
   chainId: number;
   garden: Address;
+  /**
+   * The Pool tab begins a visit; a flow opened over it (Seed Promises) joins
+   * the tab's visit, so its own mount leaves the tab's outcomes in place.
+   */
+  visit?: "begin" | "join";
 }): PoolConsoleController {
-  const { chainId, garden } = input;
+  const { chainId, garden, visit = "begin" } = input;
   const viewer = usePrimaryAddress() ?? undefined;
   const isOnline = useOnlineStatus();
 
@@ -130,6 +139,20 @@ export function usePoolConsoleController(input: {
       }),
     [pool, hasPool, cyclesQuery.cycles, commitmentsQuery.commitments, claimsQuery.rows.length, now]
   );
+  // "Needs you" (PRD-1022 a8): promises whose next act is this steward's own,
+  // not an option they may take, by the seat and act rules the promise page and
+  // the app's pool list use. A request the steward made sits here rather than in
+  // the garden's Confirm queue, which leaves out what the reader is a party to.
+  // The team isn't read at list scope, as in the app's pool list.
+  const waitingOnYou = useMemo(() => {
+    const ids = new Set<string>();
+    if (!viewer) return ids;
+    for (const commitment of commitmentsQuery.commitments) {
+      const seat = selectCommitmentSeat({ commitment, contributors: [], viewer });
+      if (commitmentNeedsSeat({ commitment, seat })) ids.add(commitment.id);
+    }
+    return ids;
+  }, [commitmentsQuery.commitments, viewer]);
 
   const pendingCreates = useMemo(
     () =>
@@ -143,9 +166,11 @@ export function usePoolConsoleController(input: {
 
   const poolMutation = useCommitmentPoolMutation({ chainId });
   const commitmentMutation = useCommitmentMutation({ chainId });
-  // Accept is one signature from a list row: the row follows it to the chain.
-  const claimAct = useTxActPhase();
-  const trackClaim = claimAct.track;
+  // Approve is one signature from a list row: the row follows it to the chain,
+  // on this card and in the inspector alike, and keeps its outcome this visit.
+  useClaimDecisionVisit(chainId, garden, visit === "begin");
+  const claimDecisions = useClaimDecisions();
+  const { approve: approveClaim, decline: declineClaim } = claimDecisions;
   // Resume and a queued row's send are single signatures too: each says where
   // it stands on the card it started from.
   const poolAct = useTxActPhase();
@@ -154,12 +179,26 @@ export function usePoolConsoleController(input: {
   const trackQueued = queuedAct.trackReported;
   const sender = useTransactionSender();
   const refreshQueue = queue.refresh;
+  // A group's copies that didn't send, and the one act that sends them (PRD-1022 D12).
+  const finishing = useFinishCreating({ chainId, owner: viewer ?? null });
+  const finishGroup = finishing.finish;
 
   const requirePool = useCallback(() => {
     if (poolId === undefined) throw new Error("This garden has no commitment pool");
     return poolId;
   }, [poolId]);
 
+  // The ask a decision answers, so a later ask by the same person reads as new.
+  const pendingAsks = claimsQuery.rows;
+  const askedAt = useCallback(
+    (commitmentId: bigint, claimant: Address) =>
+      pendingAsks.find(
+        (row) =>
+          row.claim.commitmentId === commitmentId &&
+          row.claim.claimant.toLowerCase() === claimant.toLowerCase()
+      )?.claim.requestedAt,
+    [pendingAsks]
+  );
   const acts = useMemo(
     () => ({
       pause: (reason: string) =>
@@ -188,17 +227,27 @@ export function usePoolConsoleController(input: {
       expire: (commitmentId: bigint) =>
         commitmentMutation.mutateAsync({ action: "expireCommitment", commitmentId }),
       acceptClaim: (commitmentId: bigint, claimant: Address) =>
-        trackClaim(claimActKey(commitmentId, claimant), (send) =>
-          commitmentMutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send })
-        ),
-      declineClaim: (commitmentId: bigint, claimant: Address, reason: string) =>
-        commitmentMutation.mutateAsync({
-          action: "declineClaim",
+        approveClaim(
           commitmentId,
           claimant,
-          reason,
-          gardenAddress: garden,
-        }),
+          (send) =>
+            commitmentMutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send }),
+          askedAt(commitmentId, claimant)
+        ),
+      declineClaim: (commitmentId: bigint, claimant: Address, reason: string) =>
+        declineClaim(
+          commitmentId,
+          claimant,
+          () =>
+            commitmentMutation.mutateAsync({
+              action: "declineClaim",
+              commitmentId,
+              claimant,
+              reason,
+              gardenAddress: garden,
+            }),
+          askedAt(commitmentId, claimant)
+        ),
       // The admin mounts no queue provider, so nothing sends a queued creation
       // unless the steward does. The row is re-read either way: a failed retry
       // changes what it says.
@@ -211,6 +260,17 @@ export function usePoolConsoleController(input: {
           reportQueuedSendError(error, { gardenAddress: garden, metadata: { act: "retryQueued" } });
         } finally {
           refreshQueue();
+        }
+      },
+      finishCreating: async (displayGroupId: string) => {
+        try {
+          return await finishGroup(displayGroupId);
+        } catch (error) {
+          reportQueuedSendError(error, {
+            gardenAddress: garden,
+            metadata: { act: "finishCreating" },
+          });
+          return "blocked" as const;
         }
       },
       // The queue refuses a row whose send may already be on chain, and a row on
@@ -232,9 +292,12 @@ export function usePoolConsoleController(input: {
     [
       poolMutation,
       commitmentMutation,
-      trackClaim,
+      approveClaim,
+      declineClaim,
+      askedAt,
       trackPool,
       trackQueued,
+      finishGroup,
       requirePool,
       garden,
       sender,
@@ -273,16 +336,22 @@ export function usePoolConsoleController(input: {
     cycles: hasPool ? cyclesQuery.cycles : [],
     cycleNames: cycleNames.byCycleId,
     commitments: commitmentsQuery.commitments,
+    waitingOnYou,
     titles: metadata.byCID,
     claims: claimsQuery.rows,
     charter,
     pauseReason,
     pendingCreates,
+    queuedGroupCopies: finishing.waiting,
+    finishingGroupId: finishing.sendingGroupId,
     queueUnavailable: queue.isUnavailable,
     funding: fundingView,
     acts,
     claimPhase: (commitmentId: bigint, claimant: Address) =>
-      actPhaseFor(claimAct.phase, claimActKey(commitmentId, claimant)),
+      actPhaseFor(claimDecisions.phase, claimActKey(commitmentId, claimant)),
+    claimDecisions: claimDecisions.decisions,
+    claimInFlight:
+      claimDecisions.phase.status === "signing" || claimDecisions.phase.status === "confirming",
     resumePhase: actPhaseFor(poolAct.phase, RESUME_POOL_ACT_KEY),
     queuedPhase: (jobId: string) => actPhaseFor(queuedAct.phase, jobId),
     isActing: poolMutation.isPending || commitmentMutation.isPending,

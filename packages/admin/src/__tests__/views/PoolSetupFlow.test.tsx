@@ -483,7 +483,8 @@ describe("PoolSetupFlow (W11)", () => {
 
   it("names the pool it writes to on every step, and sets the protocol pool apart", async () => {
     const first = renderFlow();
-    expect(within(dialog()).getByText("Rocinha’s pool")).toBeInTheDocument();
+    // At the foot of the step rail, and under the stepper on a narrow screen (PRD-1022 D11).
+    expect(within(dialog()).getAllByText("Rocinha’s pool")).toHaveLength(2);
     first.unmount();
 
     renderFlow({ target: { gardenName: "Green Goods Community Garden", isProtocol: true } });

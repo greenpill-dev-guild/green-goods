@@ -10,7 +10,7 @@ import type {
 import { useHubConfirmQueueController } from "@green-goods/shared/hooks/admin-ui/pool/useHubConfirmQueueController";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
-import { RiShakeHandsLine } from "@remixicon/react";
+import { RiCheckLine, RiShakeHandsLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
@@ -21,6 +21,7 @@ import { CommitmentDialogPanel } from "@/views/Garden/Pool/CommitmentDialog";
 import { ConfirmKeptDialog } from "@/views/Garden/Pool/CommitmentDialog/ConfirmKeptDialog";
 import { GardenPoolTarget } from "@/views/Garden/Pool/PoolTarget";
 import { confirmEligibilityChip, otherPoolGardenLabel } from "@/views/Garden/Pool/poolPresentation";
+import { clockTime, exactTime, isoTime } from "@/views/Garden/Pool/poolTime";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 export interface HubConfirmQueueProps {
@@ -53,7 +54,8 @@ export function HubConfirmQueue({
   onOpenCommitment,
   onCloseCommitment,
 }: HubConfirmQueueProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const queue = useHubConfirmQueueController({ chainId, toConfirm, search: normalizedSearch });
   const [notYet, setNotYet] = useState<ConfirmQueueRow | null>(null);
   const [confirming, setConfirming] = useState<ConfirmQueueRow | null>(null);
@@ -183,6 +185,19 @@ export function HubConfirmQueue({
                       ·{" "}
                       {`${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim()}
                     </span>
+                    {/* A copy from a group is confirmed on its own; the group only names it. */}
+                    {row.groupSize ? (
+                      <span>
+                        ·{" "}
+                        {formatMessage(
+                          {
+                            id: "cockpit.hub.confirm.fromGroup",
+                            defaultMessage: "from a group of {count}",
+                          },
+                          { count: row.groupSize }
+                        )}
+                      </span>
+                    ) : null}
                   </span>
                 </button>
                 <StatusBadge variant={eligibility?.variant ?? "warning"} size="sm">
@@ -201,8 +216,11 @@ export function HubConfirmQueue({
                 />
                 <span className="body-xs text-text-soft">{progressLabel}</span>
               </div>
-              <div className="mt-2 flex flex-wrap justify-end gap-2">
-                {disputed ? (
+              {/* One height through every state: the outcome takes the buttons' place. */}
+              <div className="mt-2 flex min-h-8 flex-wrap items-center justify-end gap-2">
+                {row.state.status !== "waiting" ? (
+                  <ConfirmOutcome state={row.state} />
+                ) : disputed ? (
                   <AdminButton
                     type="button"
                     variant="filled"
@@ -387,5 +405,51 @@ export function HubConfirmQueue({
         ) : null}
       </AdminDialog>
     </div>
+  );
+}
+
+/**
+ * A row's outcome this visit, in place of its buttons, the way Waiting for
+ * approval keeps its decisions: confirmed here with its time, queued on this
+ * device, or settled elsewhere.
+ */
+function ConfirmOutcome({
+  state,
+}: {
+  state: Exclude<ConfirmQueueRow["state"], { status: "waiting" }>;
+}) {
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  if (state.status === "confirmed") {
+    return (
+      <span className="flex items-center gap-2" role="status">
+        <time
+          dateTime={isoTime(state.at)}
+          title={exactTime(intl, state.at)}
+          className="body-xs text-text-soft"
+        >
+          {clockTime(intl, state.at)}
+        </time>
+        <StatusBadge variant="success" size="sm" icon={<RiCheckLine className="h-3 w-3" />}>
+          {formatMessage({
+            id: "cockpit.hub.confirm.outcome.confirmed",
+            defaultMessage: "Confirmed",
+          })}
+        </StatusBadge>
+      </span>
+    );
+  }
+  return (
+    <StatusBadge variant="neutral" size="sm" showIcon={false}>
+      {state.status === "queued"
+        ? formatMessage({
+            id: "cockpit.hub.confirm.outcome.queued",
+            defaultMessage: "Queued on this device",
+          })
+        : formatMessage({
+            id: "cockpit.garden.pool.approvals.gone",
+            defaultMessage: "No longer waiting",
+          })}
+    </StatusBadge>
   );
 }
