@@ -10,6 +10,7 @@ generated_from:
   - packages/admin/package.json
   - packages/agent/package.json
   - packages/agent/src/api/funding/routes.ts
+  - packages/agent/src/api/routes/public-commitment-impact.ts
   - packages/agent/src/api/routes/public-garden-impact.ts
   - packages/agent/src/api/routes/subscribe.ts
   - packages/agent/src/api/routes/upload-sign.ts
@@ -18,11 +19,12 @@ generated_from:
   - packages/indexer/package.json
   - packages/shared/package.json
   - packages/shared/src/public-contracts/routes.ts
-source_digest: "sha256:a57d07b8fb69c27e3a958d4308c2b0661b5680cba0166237a0caf5932b958721"
+source_digest: "sha256:727ce5cfcdfedf2b139e70ab227a0c605ded559732294d11dc4bc09971075c3f"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
   - packages/agent/src/api/funding/routes.ts
+  - packages/agent/src/api/routes/public-commitment-impact.ts
   - packages/agent/src/api/routes/public-garden-impact.ts
   - packages/agent/src/api/routes/subscribe.ts
   - packages/agent/src/api/routes/upload-sign.ts
@@ -44,6 +46,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 
 | Name | Path | Registered methods |
 |---|---|---|
+| commitmentImpact | `/public/commitments/:chainId/impact` | `GET`, `OPTIONS` |
 | fundingIntentProof | `/public/funding-intents/proof` | `OPTIONS`, `POST` |
 | fundingIntentReceipt | `/public/funding-intents/:id` | `GET`, `OPTIONS` |
 | fundingIntents | `/public/funding-intents` | `OPTIONS`, `POST` |

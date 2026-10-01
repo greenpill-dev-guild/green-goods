@@ -32,7 +32,19 @@ export {
   type PublicImpactGardenSource,
   type PublicImpactSlice,
 } from "./public-impact";
-export { buildPublicGardenImpactPath, PUBLIC_AGENT_ROUTES } from "./routes";
+export {
+  buildPublicGardenImpactPath,
+  buildPublicCommitmentImpactPath,
+  PUBLIC_AGENT_ROUTES,
+} from "./routes";
+export {
+  isPublicCommitmentImpactChainSupported,
+  parsePublicCommitmentImpactResponse,
+  serializePublicCommitmentImpact,
+  type PublicCommitmentImpactRecord,
+  type PublicCommitmentImpactResponseV1,
+  type PublicCommitmentImpactUnavailableSources,
+} from "./commitment-impact";
 
 export {
   PUBLIC_UPLOAD_SIGN_ALLOWED_CATEGORIES,
