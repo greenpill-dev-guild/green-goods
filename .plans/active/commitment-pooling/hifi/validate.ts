@@ -1042,6 +1042,34 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
           err.push(`RAIL ${s.id}@${st.id}: flow "${title}" renders steps [${labels}] but @${seen.state} renders [${seen.labels}] — a flow's rail never changes mid-flow`);
       }
     }
+    // Protocol seeding must never turn route visibility or a queued send into
+    // authority or publication. These checks protect the implementation reference.
+    if (s.id === "W12") {
+      for (const st of s.states) {
+        const tokens = domTokens(st.html).hots;
+        const creates = [...tokens].filter((h) => ctx.hots[h]?.calls?.includes("createCommitment"));
+        if ((st.id === "protocol-reader" || st.id === "seed-unbounded") &&
+            (tokens.has("w12.seed") || creates.length > 0))
+          err.push(`PROTOCOL SEED ${st.id}: unauthorized or unbounded creation is actionable`);
+        for (const h of creates) {
+          const meta = ctx.hots[h];
+          if (!meta.pendingSync || !meta.to?.endsWith("-queued"))
+            err.push(`PROTOCOL SEED ${st.id} ${h}: creation must land on a queued overlay`);
+          if (st.id.startsWith("seed-offer") && meta.to !== "screen:W12@seed-offer-queued")
+            err.push(`PROTOCOL SEED ${st.id} ${h}: queued creation must preserve Offer direction`);
+        }
+        if (st.id === "seed-protocol" || st.id === "seed-offer") {
+          const text = stripTags(st.html);
+          if (!text.includes("Season") || !text.includes("Due date"))
+            err.push(`PROTOCOL SEED ${st.id}: review must show season and due date`);
+        }
+        if (/^seed-(?:offer-)?(?:queued|indexing|failed)$/.test(st.id) &&
+            /class="ch ok(?: dot)?"[^>]*>Published</.test(st.html))
+          err.push(`PROTOCOL SEED ${st.id}: publication precedes indexed read-back`);
+      }
+      if (!s.states.some((st) => st.id === "seed-offer" && st.facts?.commitment === "Offered"))
+        err.push("PROTOCOL SEED: Offer direction is missing");
+    }
     // A commitment whose state chip reads Fulfilled is done; offering evidence
     // attach there contradicts both the chip and §5.3, which gates attach to
     // Active / EvidenceSubmitted / PartiallyApproved. Scoped to the CHIP

@@ -23,6 +23,12 @@ import type { StateFacts } from "../types";
 
 const W12_STATES = [
   ["protocol", "Protocol pool"], ["current-garden", "This garden"], ["seed-protocol", "Seed a protocol commitment"],
+  ["protocol-reader", "Other garden steward · read only"], ["protocol-owner", "Module owner"],
+  ["seed-offer", "Seed a protocol offer"], ["seed-unbounded", "Missing lifecycle bound"],
+  ["seed-queued", "Queued offline"], ["seed-indexing", "Waiting for index"],
+  ["seed-failed", "Send failed"], ["seed-published", "Request indexed"],
+  ["seed-offer-published", "Offer indexed"], ["seed-offer-queued", "Offer queued offline"],
+  ["seed-offer-indexing", "Offer waiting for index"], ["seed-offer-failed", "Offer send failed"],
   ["loading", "Loading"], ["read-error", "Read error"],
 ] as const;
 type W12State = (typeof W12_STATES)[number][0];
@@ -55,6 +61,8 @@ function w12(state: W12State): string {
       who: { one: "garden", many: "gardens" },
     }),
   );
+  const canSeed = state !== "protocol-reader";
+  const seedAuthority = state === "protocol-owner" ? "Module owner" : "Root-garden steward";
   const inner =
     state === "current-garden"
       ? acard(
@@ -73,8 +81,8 @@ ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocin
             title: "Methodology survey",
             chips: `${chip("Request", "request")}${chip("Waiting", "warn", { dot: true })}${chip("Garden Claim", "ink")}`,
             meta: "Awka Hub · asked by Leila · Jul 9",
-            decline: hot("w12.decline", btn("Decline…", { kind: "sec", sm: true })),
-            affirm: hot("w12.accept", btn("Accept", { kind: "pri", sm: true })),
+            decline: canSeed ? hot("w12.decline", btn("Decline…", { kind: "sec", sm: true })) : undefined,
+            affirm: canSeed ? hot("w12.accept", btn("Accept", { kind: "pri", sm: true })) : undefined,
           }),
         )}${acard(
           "Confirm Queue",
@@ -93,7 +101,9 @@ ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocin
           `<div class="t-meta">The container the protocol pool's commitments run in.</div>${kv("Scope", "Green Goods protocol pool")}${kv("Member delivery gate", "")}
 <div class="arow">${hot("w12.gate-status", `<div class="grow"><b>Enabled</b> <span class="t-meta">changed by Dana · Aug 2 · proof ref 0x91…4c</span></div>`)}${chip("read only", "plain")}</div>
 ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocinha only. All-garden oversight lives in capability-gated Operations.", "stone"))}
-<div class="actrow">${hot("w12.seed", btn("Seed Commitment", { kind: "sec", sm: true }))}</div>
+${canSeed
+  ? `<div class="actrow">${hot("w12.seed", btn("Seed Commitment", { kind: "sec", sm: true }))}</div>${kv("Seeding authority", seedAuthority)}`
+  : banner("Only a root-garden steward or the module owner can seed the protocol pool. Your role in another garden does not grant this authority.", "stone", "information-line")}
 <div class="t-meta">Prefilled from protocol templates · steward-reviewed by default.</div>`,
           chip("Open", "ok", { dot: true }),
         )}${acard(
@@ -108,7 +118,21 @@ ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocin
   });
   // Seeding is a dialog over the dimmed workspace (interaction-patterns §2) —
   // never an in-content form card.
-  if (state === "seed-protocol") {
+  if (state.startsWith("seed-")) {
+    const offer = state.startsWith("seed-offer");
+    const unbounded = state === "seed-unbounded";
+    const review = state === "seed-protocol" || state === "seed-offer" || unbounded;
+    const published = state === "seed-published" || state === "seed-offer-published";
+    const title = offer ? "Methodology coaching" : "Methodology survey · dry-season round";
+    const terms = `${kv("Kind", "Support service")}${kv("Direction", offer ? "The pool offers · gardens receive" : "The pool requests · gardens provide")}${kv("Title", title)}${kv("Unit · target", offer ? "sessions · 3" : "surveys · 3")}${kv("Season", unbounded ? "No season selected" : "Protocol dry-season round · Open")}${kv("Due date", unbounded ? "Not set" : "Aug 30, 2026")}${kv("Claim mode", "Steward-reviewed · protocol default")}${kv("Confirmers", "2 of 2 protocol stewards")}`;
+    const direction = `<div class="actrow">${hot("w12.seed-request", btn("Request from gardens", { kind: offer ? "sec" : "pri", sm: true }))}${hot("w12.seed-offer", btn("Offer to gardens", { kind: offer ? "pri" : "sec", sm: true }))}</div>`;
+    const queued = banner("Saved on this device, waiting to send. This commitment is not published or claimable yet. Reconnect to continue the same queued creation.", "amber", "time-line");
+    const indexing = banner("The transaction landed. Waiting for the indexed commitment before showing it as published or claimable. Do not seed it again.", "stone", "time-line");
+    const failed = banner("The send failed. Your answers are saved. Retry this queued creation; do not create a second commitment.", "amber", "error-warning-line");
+    const cancel = hot("w12.seed-cancel", btn("Cancel", { kind: "ghost" }));
+    const actions = review
+      ? `${cancel}${unbounded ? btn("Seed This Commitment", { kind: "pri", disabled: true }) : hot(offer ? "w12.seed-offer-confirm" : "w12.seed-confirm", btn("Seed This Commitment", { kind: "pri" }))}`
+      : `${hot("w12.seed-close", btn("Back to pool", { kind: "ghost" }))}${state.endsWith("-failed") ? hot(offer ? "w12.seed-offer-retry" : "w12.seed-retry", btn("Retry send", { kind: "pri" })) : ""}`;
     const behind = adminCanvas("community", "community", {
       screenId: "W12",
       garden: "Rocinha",
@@ -128,10 +152,15 @@ ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocin
       "admin.greengoods.app/community/pools",
       adminDialogM3(behind, "community", {
         title: "Seed a protocol commitment",
-        body: `${kv("Kind", "Protocol request · gardens provide")}${kv("Direction", "The pool requests")}${kv("Title", "Methodology survey · dry-season round")}${kv("Unit · target", "surveys · 3")}${kv("Claim mode", "Steward-reviewed · protocol default")}${kv("Confirmers", "2 of 2 protocol stewards")}
-${banner("Everything arrives prefilled from the protocol templates, published to eligible garden stewards, who claim it for their gardens through steward-reviewed acceptance.", "stone", "information-line")}`,
-        actions: `${hot("w12.seed-cancel", btn("Cancel", { kind: "ghost" }))}${hot("w12.seed-confirm", btn("Seed This Commitment", { kind: "pri" }))}`,
-        closeHot: "w12.seed-cancel",
+        body: `${review ? direction : ""}${terms}${review
+          ? unbounded
+            ? `${banner("Choose an open season or set a due date before seeding. A commitment needs at least one lifecycle bound.", "amber", "error-warning-line")}${hot("w12.seed-fix-bound", btn("Choose season and due date", { kind: "sec", sm: true }))}`
+            : banner("Review the direction and lifecycle bound before seeding. Eligible garden stewards can claim it only after the commitment appears in the index.", "stone", "information-line")
+          : published
+            ? `${chip("Published", "ok", { dot: true })}${banner("The indexed commitment is now visible in the protocol pool and claimable by eligible garden stewards for their gardens.", "stone", "information-line")}`
+            : state.endsWith("-failed") ? failed : state.endsWith("-indexing") ? indexing : queued}`,
+        actions,
+        closeHot: review ? "w12.seed-cancel" : "w12.seed-close",
       }),
     );
   }
@@ -171,7 +200,14 @@ const W12_HOTS: HifiDef["hots"] = {
   "w12.gate-status": { l: "Member delivery gate status", info: "Register #34f: the read-only gate row — enabled/disabled, changed by, date, evidence ref — mirrored from W21@gate-status so the Community workspace answers the delivery-readiness question without leaving it. No toggle renders here; changing the gate is an Operations act." },
   "w12.seed": { l: "Seed a protocol commitment", to: "screen:W12@seed-protocol", info: "The protocol pool makes its own asks and offers to gardens — seeding starts here in the Community workspace, prefilled from protocol templates (register #96)." },
   "w12.seed-cancel": { l: "Cancel protocol seeding", to: "screen:W12", info: "Returns to the protocol pool without creating anything." },
-  "w12.seed-confirm": { l: "Seed this protocol commitment", to: "screen:W12", info: "Console seeding into the protocol pool: createCommitment with the protocol context — steward-reviewed claim mode by default (register #19), protocol stewards as ordinary confirmers.", calls: ["createCommitment"], facts: { pool: "Open" } },
+  "w12.seed-request": { l: "Request from gardens", to: "screen:W12@seed-protocol", info: "Protocol asks gardens to provide a service." },
+  "w12.seed-offer": { l: "Offer to gardens", to: "screen:W12@seed-offer", info: "Protocol provides a service to a claiming garden." },
+  "w12.seed-fix-bound": { l: "Choose a lifecycle bound", to: "screen:W12@seed-protocol", info: "At least one open cycle binding or due date is required. The shared composer always requires a positive dueInDays." },
+  "w12.seed-confirm": { l: "Seed this protocol request", to: "screen:W12@seed-queued", info: "Root-garden steward or module owner only. Queue createCommitment with a lifecycle bound, request direction, and protocol context; publication waits for indexed read-back.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
+  "w12.seed-offer-confirm": { l: "Seed this protocol offer", to: "screen:W12@seed-offer-queued", info: "The same authorized, bounded queued creation with Offer direction. The queue preserves the selected direction on every retry.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
+  "w12.seed-offer-retry": { l: "Retry offer send", to: "screen:W12@seed-offer-queued", info: "Retry the existing Offer job with the same client commitment ID and stored terms.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
+  "w12.seed-close": { l: "Back to pool", to: "screen:W12", info: "Queued creation remains saved and recoverable from the pool; closing never resubmits it." },
+  "w12.seed-retry": { l: "Retry send", to: "screen:W12@seed-queued", info: "Retries the existing queued job and its original client commitment ID; does not create a new commitment.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
 };
 
 // ---------------------------------------------------------------------------
@@ -1341,7 +1377,10 @@ export const SETTLEMENT_DEFS: HifiDef[] = [
     states: W12_STATES.map(([id, label]) => ({
       id,
       label,
-      facts: id === "protocol" || id === "seed-protocol" ? { commitment: "Requested", kind: "SupportService" } satisfies StateFacts : undefined,
+      facts: id === "seed-offer" || id === "seed-offer-published"
+        ? { commitment: "Offered", kind: "SupportService" } satisfies StateFacts
+        : id === "protocol" || id === "protocol-owner" || id === "seed-protocol" || id === "seed-published"
+          ? { commitment: "Requested", kind: "SupportService" } satisfies StateFacts : undefined,
       html: w12(id),
     })) }, hots: { ...adminChromeHots("w12", "community"), ...W12_HOTS } },
   { screen: { id: "W21", title: "W21 · Settlement section (admin)", surface: "admin", frame: "desktop", group: "Admin console",
