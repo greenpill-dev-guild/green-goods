@@ -1,5 +1,4 @@
-import { parseUnits, type Hash } from "viem";
-import { createPublicClientForChain } from "../../config/pimlico";
+import { parseUnits } from "viem";
 import { getCampaignCookieJarPayoutAsset } from "../../utils/cookie-jar-campaign";
 
 const PRICE_DECIMALS = 12;
@@ -10,29 +9,28 @@ const PRICE_READ_CONCURRENCY = 4;
 interface FundingReceipt {
   amount: bigint;
   token: string;
-  transactionHash: Hash;
+  receivedAt: number;
 }
 
 interface ValuationReads {
-  receivedAt: (hash: Hash) => Promise<number>;
   priceAt: (timestamp: number, coin: string) => Promise<unknown>;
 }
 
-function defaultReads(): ValuationReads {
-  const client = createPublicClientForChain(42220);
+function defaultReads(signal?: AbortSignal): ValuationReads {
+  const deadline = AbortSignal.timeout(30000);
   return {
-    receivedAt: async (hash) => {
-      const receipt = await client.getTransactionReceipt({ hash });
-      if (receipt.status !== "success") throw new Error("Funding transfer did not succeed");
-      const block = await client.getBlock({ blockHash: receipt.blockHash });
-      return Number(block.timestamp);
-    },
     priceAt: async (timestamp, coin) => {
       // DefiLlama's historical endpoint returns the nearest recorded USD price.
       // https://api-docs.defillama.com/llms-free.txt
       const response = await fetch(
         `https://coins.llama.fi/prices/historical/${timestamp}/${coin}`,
-        { signal: AbortSignal.timeout(10000) }
+        {
+          signal: AbortSignal.any([
+            deadline,
+            AbortSignal.timeout(10000),
+            ...(signal ? [signal] : []),
+          ]),
+        }
       );
       if (!response.ok) throw new Error(`Historical funding price failed: ${response.status}`);
       return response.json();
@@ -43,31 +41,24 @@ function defaultReads(): ValuationReads {
 /** Value confirmed G$ receipts near their execution time, never at today's price. */
 export async function valueFundingReceiptsUsdCents(
   receipts: readonly FundingReceipt[],
-  reads?: ValuationReads
+  reads?: ValuationReads,
+  signal?: AbortSignal
 ): Promise<bigint> {
   if (receipts.length === 0) return 0n;
   const asset = getCampaignCookieJarPayoutAsset(42220, "gooddollar");
   if (!asset?.address) throw new Error("GoodDollar metadata is unavailable");
   const coin = `celo:${asset.address}`;
-  const source = reads ?? defaultReads();
-  const timestamps = new Map<Hash, Promise<number>>();
+  const source = reads ?? defaultReads(signal);
   const prices = new Map<number, Promise<bigint>>();
   let numerator = 0n;
   for (let offset = 0; offset < receipts.length; offset += PRICE_READ_CONCURRENCY) {
+    signal?.throwIfAborted();
     const values = await Promise.all(
       receipts.slice(offset, offset + PRICE_READ_CONCURRENCY).map(async (receipt) => {
         if (receipt.amount < 0n || receipt.token.toLowerCase() !== asset.address?.toLowerCase()) {
           throw new Error("Funding receipt has an unsupported amount or token");
         }
-        if (!/^0x[0-9a-f]{64}$/i.test(receipt.transactionHash)) {
-          throw new Error("Funding receipt has no execution transaction");
-        }
-        let time = timestamps.get(receipt.transactionHash);
-        if (!time) {
-          time = source.receivedAt(receipt.transactionHash);
-          timestamps.set(receipt.transactionHash, time);
-        }
-        const receivedAt = await time;
+        const receivedAt = receipt.receivedAt;
         if (!Number.isSafeInteger(receivedAt) || receivedAt <= 0) {
           throw new Error("Funding receipt time is unavailable");
         }

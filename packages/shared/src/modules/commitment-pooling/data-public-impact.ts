@@ -1,28 +1,24 @@
-import type { Hash } from "viem";
 import { valueFundingReceiptsUsdCents } from "./funding-valuation";
 import { logger } from "../app/logger";
 import { greenGoodsIndexer } from "../data/graphql-client";
 import { integer, type RawRow } from "./data-core";
+
+import type {
+  PublicCommitmentImpactRecord,
+  PublicCommitmentImpactUnavailableSources,
+} from "../../public-contracts/commitment-impact";
+export type {
+  PublicCommitmentImpactRecord,
+  PublicCommitmentImpactUnavailableSources,
+} from "../../public-contracts/commitment-impact";
 
 interface PublicImpactPoolAggregate {
   commitmentsMade: bigint;
   commitmentsFulfilled: bigint;
 }
 
-export interface PublicCommitmentImpactUnavailableSources {
-  commitmentPools: boolean;
-  confirmedSettlement: boolean;
-  fundingValuation: boolean;
-}
-
-export interface PublicCommitmentImpactRecord {
-  commitmentsMade: bigint | null;
-  commitmentsFulfilled: bigint | null;
-  confirmedDisbursementTotal: bigint | null;
-  confirmedDisbursementUsdCents: bigint | null;
-  partialData: boolean;
-  unavailableSources: PublicCommitmentImpactUnavailableSources;
-}
+const FUNDING_PAGE_SIZE = 100;
+const FUNDING_RECEIPT_LIMIT = 1000;
 
 async function getPoolAggregate(chainId: number): Promise<PublicImpactPoolAggregate> {
   const query = `query PublicCommitmentImpactPools($chainId: Int!) {
@@ -54,6 +50,7 @@ async function getConfirmedSettlementAggregate(chainId: number): Promise<{
   total: bigint;
   usdCents: bigint | null;
 }> {
+  const deadline = AbortSignal.timeout(30000);
   const filter = `chainId: { _eq: $chainId }, state: { _eq: CONFIRMED },
     kind: { _in: [FUNDING, GARDEN_BENEFICIARY] }`;
   const query = `query PublicCommitmentImpactSettlement($chainId: Int!) {
@@ -70,13 +67,14 @@ async function getConfirmedSettlementAggregate(chainId: number): Promise<{
   const total = integer(((aggregate.sum ?? {}) as RawRow).amount);
   if (total === 0n) return { total, usdCents: 0n };
   try {
-    const receipts: { amount: bigint; token: string; transactionHash: Hash }[] = [];
+    const receipts: { amount: bigint; token: string; receivedAt: number }[] = [];
     let after = "";
     while (true) {
+      deadline.throwIfAborted();
       const page = await greenGoodsIndexer.query<{ Disbursement?: RawRow[] }>(
         `query PublicCommitmentFundingReceipts($chainId: Int!, $after: String!) {
-          Disbursement(where: { ${filter}, id: { _gt: $after } }, order_by: { id: asc }, limit: 100) {
-            id amount token celoExecutionTx
+          Disbursement(where: { ${filter}, id: { _gt: $after } }, order_by: { id: asc }, limit: ${FUNDING_PAGE_SIZE}) {
+            id amount token executionKey
           }
         }`,
         { chainId, after },
@@ -85,28 +83,67 @@ async function getConfirmedSettlementAggregate(chainId: number): Promise<{
       if (page.error) throw page.error;
       if (!page.data?.Disbursement) throw new Error("Funding receipts are unavailable");
       const rows = page.data.Disbursement;
-      for (const row of rows) {
+      if (receipts.length + rows.length > FUNDING_RECEIPT_LIMIT) {
+        throw new Error("Funding history exceeds the public valuation limit");
+      }
+      if (rows.length === 0) break;
+      const executionKeys = [
+        ...new Set(
+          rows.map((row) => {
+            if (
+              typeof row.executionKey !== "string" ||
+              !/^0x[0-9a-f]{64}$/i.test(row.executionKey)
+            ) {
+              throw new Error("Funding receipt has no execution key");
+            }
+            return row.executionKey.toLowerCase();
+          })
+        ),
+      ];
+      deadline.throwIfAborted();
+      const executions = await greenGoodsIndexer.query<{ SettlementExecution?: RawRow[] }>(
+        `query PublicCommitmentFundingExecutions($chainId: Int!, $executionKeys: [String!]!) {
+          SettlementExecution(where: {
+            chainId: { _eq: 42220 }, sourceChainId: { _eq: $chainId },
+            status: { _eq: SUCCESS }, executionKey: { _in: $executionKeys }
+          }, limit: ${FUNDING_PAGE_SIZE}) { executionKey txHash createdAt }
+        }`,
+        { chainId, executionKeys },
+        "getPublicCommitmentFundingExecutions"
+      );
+      if (executions.error) throw executions.error;
+      if (!executions.data?.SettlementExecution)
+        throw new Error("Funding executions are unavailable");
+      const receivedAtByKey = new Map<string, number>();
+      for (const execution of executions.data.SettlementExecution) {
         if (
-          typeof row.id !== "string" ||
-          row.id <= after ||
-          typeof row.token !== "string" ||
-          typeof row.celoExecutionTx !== "string"
-        ) {
+          typeof execution.executionKey !== "string" ||
+          typeof execution.txHash !== "string" ||
+          !/^0x[0-9a-f]{64}$/i.test(execution.txHash) ||
+          typeof execution.createdAt !== "number" ||
+          !Number.isSafeInteger(execution.createdAt) ||
+          execution.createdAt <= 0
+        )
+          throw new Error("Funding execution is incomplete");
+        const key = execution.executionKey.toLowerCase();
+        if (receivedAtByKey.has(key)) throw new Error("Funding execution is ambiguous");
+        receivedAtByKey.set(key, execution.createdAt);
+      }
+      for (const row of rows) {
+        if (typeof row.id !== "string" || row.id <= after || typeof row.token !== "string") {
           throw new Error("Funding receipt is incomplete");
         }
+        const receivedAt = receivedAtByKey.get(String(row.executionKey).toLowerCase());
+        if (receivedAt === undefined) throw new Error("Confirmed funding execution is missing");
         after = row.id;
-        receipts.push({
-          amount: integer(row.amount),
-          token: row.token,
-          transactionHash: row.celoExecutionTx as Hash,
-        });
+        receipts.push({ amount: integer(row.amount), token: row.token, receivedAt });
       }
-      if (rows.length < 100) break;
+      if (rows.length < FUNDING_PAGE_SIZE) break;
     }
     if (receipts.reduce((sum, receipt) => sum + receipt.amount, 0n) !== total) {
       throw new Error("Funding receipt history does not match its aggregate");
     }
-    return { total, usdCents: await valueFundingReceiptsUsdCents(receipts) };
+    return { total, usdCents: await valueFundingReceiptsUsdCents(receipts, undefined, deadline) };
   } catch (error) {
     warnUnavailable("fundingValuation", error);
     return { total, usdCents: null };
