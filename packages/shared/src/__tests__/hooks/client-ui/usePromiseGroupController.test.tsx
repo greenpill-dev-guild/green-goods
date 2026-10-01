@@ -198,6 +198,27 @@ describe("usePromiseGroupController", () => {
     });
   });
 
+  it("offers only the take-up contexts the copies' claim type allows", () => {
+    const gardens = {
+      member: [{ address: HER_GARDEN, name: "Her garden" }],
+      stewarded: [{ address: SHE_STEWARDS, name: "The garden she runs" }],
+    };
+    mocks.pools.pools = [poolFixture({ garden: ROUTE, poolType: "PROTOCOL" })];
+    mocks.claimGardens = gardens;
+    mocks.commitments = [11, 12].map((id) => ({ ...copy(id), claimType: "INDIVIDUAL" as const }));
+    expect(render().result.current.claimGardens).toEqual({ member: gardens.member, stewarded: [] });
+
+    mocks.commitments = [11, 12].map((id) => ({ ...copy(id), claimType: "GARDEN" as const }));
+    expect(render().result.current.claimGardens).toEqual({
+      member: [],
+      stewarded: gardens.stewarded,
+    });
+
+    // A garden pool takes one up as the person, which a garden-only copy refuses.
+    mocks.pools.pools = [poolFixture({ garden: ROUTE })];
+    expect(render().result.current.bar).toBeNull();
+  });
+
   it("tries the same copy again after a declined send, in the same context", async () => {
     mocks.enqueue.mockRejectedValueOnce(new Error("User rejected the request."));
     const { result, rerender } = render();

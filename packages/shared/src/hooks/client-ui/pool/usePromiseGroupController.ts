@@ -168,13 +168,25 @@ export function usePromiseGroupController(input: {
   // On the protocol pool it goes through a garden of the reader's own, as the
   // person or for a garden they steward, and they choose which before sending.
   const isProtocolPool = pool?.poolType === "PROTOCOL";
-  const { claimGardens } = roles;
-  const hasClaimGarden = claimGardens.member.length > 0 || claimGardens.stewarded.length > 0;
+  const hasClaimGarden =
+    roles.claimGardens.member.length > 0 || roles.claimGardens.stewarded.length > 0;
+  // The chain refuses a take-up whose kind differs from the claim type every
+  // copy was made with, so only the contexts that type allows are offered.
+  const claimType = sample?.claimType;
+  const claimGardens = useMemo(
+    () => ({
+      member: claimType === "GARDEN" ? [] : roles.claimGardens.member,
+      stewarded: claimType === "INDIVIDUAL" ? [] : roles.claimGardens.stewarded,
+    }),
+    [roles.claimGardens, claimType]
+  );
   const routeContext: GroupTakeUpContext | null =
-    pool && !isProtocolPool && roles.isMemberHere && routeGarden
+    pool && !isProtocolPool && roles.isMemberHere && routeGarden && claimType !== "GARDEN"
       ? { kind: "personal", garden: routeGarden as Address }
       : null;
-  const canTakeUp = isProtocolPool ? hasClaimGarden : routeContext !== null;
+  const canTakeUp = isProtocolPool
+    ? claimGardens.member.length > 0 || claimGardens.stewarded.length > 0
+    : routeContext !== null;
   const isMember: boolean | null = isProtocolPool
     ? hasClaimGarden
       ? true
