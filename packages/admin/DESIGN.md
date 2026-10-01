@@ -140,7 +140,7 @@ Wrappers (24): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminCon
 - `AdminFilterChip` is the compact filter grammar for toggles inside toolbars.
 - Avoid new direct shared `Card` usage in admin route work unless the route is intentionally consuming an existing shared, non-admin surface.
 
-Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; mobile renders as a bottom sheet. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet — right-docked within the canvas chrome bounds on desktop, AdminDialog-identical bottom sheet on mobile — with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
+Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; every mobile variant renders as a full-width bottom sheet, with padding inside the surface. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet — right-docked within the canvas chrome bounds on desktop, AdminDialog-identical full-width bottom sheet on mobile — with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
 
 ---
 
