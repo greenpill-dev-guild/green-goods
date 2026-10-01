@@ -124,13 +124,14 @@ export function useWalletRestoreLifecycle(
           const current = attemptRef.current;
           if (!current || current.mode !== restoringMode || current.failed) return;
           current.failed = true;
+          actor.send({ type: "RESTORE_TIMEOUT" });
           trackAuthWalletRestore({
             authMode: restoringMode,
             outcome: "failed",
             reason: "timeout",
             durationMs: Date.now() - current.startedAt,
+            sessionKept: actor.getSnapshot().matches("authenticated"),
           });
-          actor.send({ type: "RESTORE_TIMEOUT" });
         },
         Math.max(0, RESTORE_TIMEOUT_MS - attempt.activeElapsedMs)
       );
@@ -173,6 +174,66 @@ export function useWalletRestoreLifecycle(
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [actor, beginAttempt, restoringMode, wagmiConfig]);
+
+  // A wallet session kept after a timeout asks the wallet again each time the
+  // app returns or comes back online, until the wallet answers or the member signs out.
+  // Only a wallet connector answers for the wallet; an embedded one does not.
+  const walletAwaitingReconnect =
+    snapshot.matches({ authenticated: "wallet" }) &&
+    !(
+      snapshot.context.externalWalletConnected &&
+      snapshot.context.externalWalletConnectionType === "wallet"
+    );
+  const awaitedReconnectRef = useRef(false);
+
+  useEffect(() => {
+    if (!walletAwaitingReconnect) return;
+    awaitedReconnectRef.current = true;
+    // One attempt per return or reconnection: an attempt the connector never
+    // settles is abandoned by the next one instead of blocking it.
+    let attempt = 0;
+    let inFlight: number | null = null;
+    const retry = () => {
+      if (inFlight === attempt || !canRetryConnector()) return;
+      const current = attempt;
+      inFlight = current;
+      void reconnect(wagmiConfig)
+        .catch((error) => {
+          logger.debug("[AuthProvider] Wallet reconnect retry did not complete", { error });
+        })
+        .finally(() => {
+          if (inFlight === current) inFlight = null;
+        });
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") retry();
+      else attempt += 1;
+    };
+    // The store publishes every check; only the move back online is a reason to ask again.
+    let lastState = connectivityStore.getStatusSnapshot().state;
+    const handleConnectivity = () => {
+      const { state } = connectivityStore.getStatusSnapshot();
+      if (lastState === "offline" && state !== "offline") {
+        attempt += 1;
+        retry();
+      }
+      lastState = state;
+    };
+    const unsubscribeConnectivity = connectivityStore.subscribeStatus(handleConnectivity);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      unsubscribeConnectivity();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [walletAwaitingReconnect, wagmiConfig]);
+
+  useEffect(() => {
+    if (walletAwaitingReconnect || !awaitedReconnectRef.current) return;
+    awaitedReconnectRef.current = false;
+    if (snapshot.matches({ authenticated: "wallet" })) {
+      trackAuthWalletRestore({ authMode: "wallet", outcome: "reconnected" });
+    }
+  }, [walletAwaitingReconnect, snapshot]);
 
   useEffect(() => {
     if (restoringMode || !attemptRef.current) return;

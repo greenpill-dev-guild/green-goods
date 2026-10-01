@@ -201,6 +201,11 @@ const authSetup = setup({
         previousWallet: context.walletAddress,
       });
     },
+
+    /** Log when a wallet misses its restore window and the member stays signed in */
+    logWalletKeptAfterRestoreTimeout: () => {
+      logger.warn("[AuthMachine] Wallet did not reconnect in time; keeping the wallet session.");
+    },
   },
   guards: {
     /** Can retry authentication (max 3 attempts) */
@@ -212,6 +217,9 @@ const authSetup = setup({
     hasRestoringWallet: ({ context }) => context.restoreAuthMode === "wallet",
 
     hasRestoringEmbedded: ({ context }) => context.restoreAuthMode === "embedded",
+
+    /** A wallet identity is known while its connector is away (remembered or in session). */
+    hasRememberedWallet: ({ context }) => context.walletAddress !== null,
 
     hasTrackedWalletConnector: ({ context }) =>
       context.externalWalletConnected && context.externalWalletConnectionType === "wallet",
@@ -512,7 +520,8 @@ export const authMachine = authSetup.createMachine({
         // ─────────────────────────────────────────────────────────────────────────
         wallet: {
           on: {
-            // External wallet disconnected while using wallet auth → sign out
+            // External wallet disconnected while using wallet auth → restore window;
+            // the member stays signed in if the wallet does not come back in time.
             EXTERNAL_WALLET_DISCONNECTED: {
               target: "#auth.restoring.wallet",
               actions: ["logWalletDisconnectedDuringWalletAuth", "trackExternalWalletDisconnected"],
