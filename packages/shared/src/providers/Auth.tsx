@@ -386,7 +386,8 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     }
   }, [actor, walletModalOpen]);
 
-  const { disconnectWallet, releaseWallet, afterWalletRelease } = useWalletDisconnect(wagmiConfig);
+  const { disconnectWallet, releaseWallet, afterWalletRelease, cancelDeferredLogin } =
+    useWalletDisconnect(wagmiConfig);
 
   // ============================================================
   // ACTIONS
@@ -395,7 +396,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   const createAccount = useCallback(
     async (userName: string) => {
       if (!actor) return;
-
+      cancelDeferredLogin(); // A passkey choice drops any wallet login still waiting.
       // Display name is required for new passkey accounts (minimum 3 characters)
       const trimmedName = userName?.trim();
       if (!trimmedName || trimmedName.length < 3) {
@@ -411,13 +412,13 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: trimmedName });
       saveAuthModeToStorage("passkey");
     },
-    [actor, isConnected, disconnectWallet]
+    [actor, isConnected, disconnectWallet, cancelDeferredLogin]
   );
 
   const loginWithPasskey = useCallback(
     async (userName?: string) => {
       if (!actor) return;
-
+      cancelDeferredLogin();
       // Disconnect wallet if connected (switching to passkey)
       if (isConnected) {
         await disconnectWallet();
@@ -434,7 +435,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: finalUserName });
       saveAuthModeToStorage("passkey");
     },
-    [actor, isConnected, disconnectWallet]
+    [actor, isConnected, disconnectWallet, cancelDeferredLogin]
   );
 
   const loginWithWallet = useCallback(() => {
@@ -524,12 +525,12 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
 
   const signOut = useCallback(async () => {
     if (!actor) return;
-    const signedInWithWallet = actor.getSnapshot().context.walletAddress !== null;
+    const session = actor.getSnapshot().context;
 
     actor.send({ type: "SIGN_OUT" });
     // Sign out locally at once; a wallet session also lets go of its wallet,
     // without waiting, so the next wallet login asks for a wallet again.
-    if (signedInWithWallet) releaseWallet();
+    releaseWallet(session);
     clearSessionForSignOut();
     clearRestoreAttempt();
 

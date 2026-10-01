@@ -312,6 +312,34 @@ describe("AuthProvider wallet login bridge", () => {
     expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(opensBefore + 1);
   });
 
+  it("drops a deferred wallet login when the member chooses a passkey instead", async () => {
+    const view = renderAuth();
+    await waitForReady();
+    act(() => view.result.current.loginWithWallet());
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    await waitFor(() => expect(view.result.current.walletAddress).toBe(TEST_WALLET));
+
+    let finishDisconnect = () => {};
+    mocks.mockDisconnect.mockReturnValueOnce(
+      new Promise<undefined>((resolve) => {
+        finishDisconnect = () => resolve(undefined);
+      })
+    );
+    await act(async () => view.result.current.signOut());
+    act(() => view.result.current.loginWithWallet());
+    await act(async () => view.result.current.loginWithPasskey("gardener"));
+    const opensBefore = mocks.mockOpenAppKit.mock.calls.length;
+
+    await act(async () => finishDisconnect());
+    setAccount(disconnectedAccount);
+    view.rerender();
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+
+    expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(opensBefore);
+    expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBe("passkey");
+  });
+
   it("keeps embedded logout local and requires explicit intent to use the connection again", async () => {
     const view = renderAuth();
     await waitForReady();
@@ -707,6 +735,11 @@ describe("AuthProvider wallet login bridge", () => {
       Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
       act(() => document.dispatchEvent(new Event("visibilitychange")));
       expect(mocks.mockReconnect).toHaveBeenCalledTimes(reconnects + 1);
+
+      // Signing out leaves the unrelated embedded connection alone.
+      await act(async () => view.result.current.signOut());
+      expect(view.result.current.isAuthenticated).toBe(false);
+      expect(mocks.mockDisconnect).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }

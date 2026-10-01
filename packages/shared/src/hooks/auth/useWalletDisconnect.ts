@@ -2,6 +2,7 @@ import { disconnect } from "@wagmi/core";
 import { useCallback, useEffect, useRef } from "react";
 
 import { logger } from "../../modules/app/logger";
+import type { AuthContext } from "../../workflows/authMachine.types";
 import { useTimeout } from "../utils/useTimeout";
 
 type WagmiConfig = Parameters<typeof disconnect>[0];
@@ -40,13 +41,29 @@ export function useWalletDisconnect(wagmiConfig: WagmiConfig) {
     }
   }, [wagmiConfig]);
 
-  /** Starts letting go of the wallet a session was signed in with. */
-  const releaseWallet = useCallback(() => {
-    const release: Promise<void> = disconnectWallet().finally(() => {
-      if (releaseRef.current === release) releaseRef.current = null;
-    });
-    releaseRef.current = release;
-  }, [disconnectWallet]);
+  /**
+   * Starts letting go of the wallet a session was signed in with. Only the
+   * wallet's own connection is released, never an unrelated embedded one.
+   */
+  const releaseWallet = useCallback(
+    (
+      session: Pick<
+        AuthContext,
+        "walletAddress" | "externalWalletConnected" | "externalWalletConnectionType"
+      >
+    ) => {
+      const ownsWalletConnection =
+        session.walletAddress !== null &&
+        session.externalWalletConnected &&
+        session.externalWalletConnectionType === "wallet";
+      if (!ownsWalletConnection) return;
+      const release: Promise<void> = disconnectWallet().finally(() => {
+        if (releaseRef.current === release) releaseRef.current = null;
+      });
+      releaseRef.current = release;
+    },
+    [disconnectWallet]
+  );
 
   /**
    * Runs `next` once a pending release settles; false when nothing is pending.
@@ -71,5 +88,10 @@ export function useWalletDisconnect(wagmiConfig: WagmiConfig) {
     [setTimer, clearTimer]
   );
 
-  return { disconnectWallet, releaseWallet, afterWalletRelease };
+  /** Drops any login still waiting on a release, when another sign-in method wins. */
+  const cancelDeferredLogin = useCallback(() => {
+    latestLoginRef.current += 1;
+  }, []);
+
+  return { disconnectWallet, releaseWallet, afterWalletRelease, cancelDeferredLogin };
 }
