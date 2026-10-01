@@ -10,5 +10,6 @@ export function usePublicCommitmentImpact(chainId: number = DEFAULT_CHAIN_ID) {
     queryKey: publicKeys.commitmentImpact(chainId),
     queryFn: ({ signal }) => fetchPublicCommitmentImpact(chainId, signal),
     staleTime: STALE_TIME_RARE,
+    refetchInterval: (query) => (query.state.data?.partialData ? 30_000 : false),
   });
 }

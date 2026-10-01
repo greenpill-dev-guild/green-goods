@@ -1,5 +1,5 @@
 /** @vitest-environment happy-dom */
-import { waitFor } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { usePublicCommitmentImpact } from "../../../hooks/public/usePublicCommitmentImpact";
 import { createTestQueryClient } from "../../test-utils/query-client";
@@ -20,6 +20,7 @@ const response = {
   },
 };
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -64,6 +65,39 @@ describe("public commitment impact transport", () => {
       confirmedDisbursementUsdCents: null,
       partialData: true,
     });
+  });
+
+  it("retries a partial snapshot after 30 seconds and stops once all figures are available", async () => {
+    vi.useFakeTimers();
+    const fetchSnapshot = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          ...response,
+          confirmedDisbursementUsdCents: null,
+          partialData: true,
+          unavailableSources: { ...response.unavailableSources, fundingValuation: true },
+        }),
+      })
+      .mockResolvedValue({ ok: true, json: async () => response });
+    vi.stubGlobal("fetch", fetchSnapshot);
+    const { result, unmount } = renderHookWithQueryClient(() => usePublicCommitmentImpact(42161), {
+      queryClient: createTestQueryClient(),
+    });
+
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    expect(result.current.data?.partialData).toBe(true);
+    await act(async () => vi.advanceTimersByTimeAsync(29_998));
+    expect(fetchSnapshot).toHaveBeenCalledOnce();
+    await act(async () => vi.advanceTimersByTimeAsync(2));
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2);
+    expect(result.current.data?.confirmedDisbursementUsdCents).toBe(1234n);
+    expect(result.current.data?.partialData).toBe(false);
+
+    await act(async () => vi.advanceTimersByTimeAsync(60_000));
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2);
+    unmount();
   });
 
   it.each([
