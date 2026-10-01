@@ -45,7 +45,7 @@ export function MemberRow({
   const { data: ensName } = useEnsName(address);
   const { data: ensAvatar } = useEnsAvatar(address);
 
-  const displayName = ensName || formatAddress(address);
+  const displayName = formatAddress(address, { ensName });
   const initials = (ensName ? ensName.replace(/\.eth$/i, "") : address.slice(2))
     .slice(0, 2)
     .toUpperCase();

@@ -11,7 +11,7 @@ import {
   type GardenJoinRequestQueueItem,
 } from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import { isCancelledTxError } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine, RiGroupLine } from "@remixicon/react";
 import { useState } from "react";
@@ -194,7 +194,10 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
             className="space-y-3 rounded-[var(--radius-lg)] bg-bg-white-0 p-4 shadow-sm"
           >
             <div>
-              <h3 className="text-[1.25rem] font-semibold">{request.displayName}</h3>
+              {/* A request sent under a Green Goods name reads as the username alone. */}
+              <h3 className="text-[1.25rem] font-semibold">
+                {formatEnsNameForDisplay(request.displayName) ?? request.displayName}
+              </h3>
               <p className="font-mono text-xs text-text-sub-600">
                 {formatAddress(request.accountAddress)}
               </p>
