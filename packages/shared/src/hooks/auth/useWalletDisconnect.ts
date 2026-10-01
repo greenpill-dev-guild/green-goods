@@ -21,6 +21,7 @@ const RELEASE_WAIT_MS = 4_000;
  */
 export function useWalletDisconnect(wagmiConfig: WagmiConfig) {
   const releaseRef = useRef<Promise<void> | null>(null);
+  const latestLoginRef = useRef(0);
   const isMountedRef = useRef(true);
   const { set: setTimer, clear: clearTimer } = useTimeout();
 
@@ -47,14 +48,18 @@ export function useWalletDisconnect(wagmiConfig: WagmiConfig) {
     releaseRef.current = release;
   }, [disconnectWallet]);
 
-  /** Runs `next` once a pending release settles; false when nothing is pending. */
+  /**
+   * Runs `next` once a pending release settles; false when nothing is pending.
+   * Only the latest login chosen while waiting goes ahead.
+   */
   const afterWalletRelease = useCallback(
     (next: () => void): boolean => {
       const release = releaseRef.current;
       if (!release) return false;
+      const login = ++latestLoginRef.current;
       let done = false;
       const proceed = () => {
-        if (done || !isMountedRef.current) return;
+        if (done || login !== latestLoginRef.current || !isMountedRef.current) return;
         done = true;
         clearTimer();
         next();

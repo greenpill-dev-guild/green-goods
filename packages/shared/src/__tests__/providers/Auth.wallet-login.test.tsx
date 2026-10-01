@@ -280,6 +280,38 @@ describe("AuthProvider wallet login bridge", () => {
     expect(view.result.current.authMode).toBe("wallet");
   });
 
+  it("goes ahead with only the latest login chosen while the wallet lets go", async () => {
+    const view = renderAuth();
+    await waitForReady();
+    act(() => view.result.current.loginWithWallet());
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    await waitFor(() => expect(view.result.current.walletAddress).toBe(TEST_WALLET));
+
+    let finishDisconnect = () => {};
+    mocks.mockDisconnect.mockReturnValueOnce(
+      new Promise<undefined>((resolve) => {
+        finishDisconnect = () => resolve(undefined);
+      })
+    );
+    await act(async () => view.result.current.signOut());
+    act(() => view.result.current.loginWithWallet());
+    act(() => view.result.current.loginWithEmbedded());
+    const opensBefore = mocks.mockOpenAppKit.mock.calls.length;
+
+    await act(async () => finishDisconnect());
+    setAccount(disconnectedAccount);
+    view.rerender();
+    await waitFor(() => expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(opensBefore + 1));
+
+    // The member's last choice, an embedded login, is the one that proceeds.
+    setAccount({ address: EMBEDDED_WALLET, isConnected: true, connector: embeddedConnector });
+    view.rerender();
+    await waitFor(() => expect(view.result.current.authMode).toBe("embedded"));
+    expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBe("embedded");
+    expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(opensBefore + 1);
+  });
+
   it("keeps embedded logout local and requires explicit intent to use the connection again", async () => {
     const view = renderAuth();
     await waitForReady();
@@ -629,11 +661,16 @@ describe("AuthProvider wallet login bridge", () => {
         expect.objectContaining({ outcome: "failed", reason: "timeout", sessionKept: true })
       );
 
-      // Every return to the app asks the wallet again until it answers.
+      // Every return to the app asks the wallet again until it answers, even
+      // when an earlier attempt never settles.
       const reconnects = mocks.mockReconnect.mock.calls.length;
+      mocks.mockReconnect.mockReturnValueOnce(new Promise<never>(() => {}));
       setVisibility("hidden");
       setVisibility("visible");
       expect(mocks.mockReconnect).toHaveBeenCalledTimes(reconnects + 1);
+      setVisibility("hidden");
+      setVisibility("visible");
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(reconnects + 2);
 
       setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
       view.rerender();
@@ -644,6 +681,32 @@ describe("AuthProvider wallet login bridge", () => {
         authMode: "wallet",
         outcome: "reconnected",
       });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps asking the remembered wallet when only an embedded connector answers", async () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+      actor.stop();
+      actor = createAuthTestActor("wallet", TEST_WALLET);
+      actor.start();
+      mocks.mockGetAuthActor.mockReturnValue(actor);
+      setAccount({ address: EMBEDDED_WALLET, isConnected: true, connector: embeddedConnector });
+
+      const view = renderAuth();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(15_000)));
+      expect(view.result.current.walletAddress).toBe(TEST_WALLET);
+      expect(view.result.current.externalWalletConnected).toBe(true);
+
+      const reconnects = mocks.mockReconnect.mock.calls.length;
+      Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
+      act(() => document.dispatchEvent(new Event("visibilitychange")));
+      Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+      act(() => document.dispatchEvent(new Event("visibilitychange")));
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(reconnects + 1);
     } finally {
       vi.useRealTimers();
     }
