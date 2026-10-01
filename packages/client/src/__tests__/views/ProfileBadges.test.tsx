@@ -82,6 +82,10 @@ vi.mock("@green-goods/shared/hooks/greenwill/useGreenWillBadges", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/greenwill/useClaimGreenWillBadge", () => ({
+  describeBadgeClaimError: () => ({
+    kind: "failed",
+    messageId: "app.profile.badges.claim.error.refused",
+  }),
   useClaimGenesisBadge: sharedMocks.useClaimGenesisBadge,
   useClaimFirstSupportBadge: sharedMocks.useClaimFirstSupportBadge,
   useClaimFirstWorkBadge: sharedMocks.useClaimFirstWorkBadge,
@@ -101,6 +105,11 @@ vi.mock("@green-goods/shared/hooks/ens/useProtocolMemberStatus", () => ({
 
 vi.mock("@remixicon/react", () => ({
   RiAwardLine: (props: any) => createElement("span", { ...props, "data-testid": "icon-award" }),
+  RiAlertLine: (props: any) => createElement("span", props),
+  RiCheckboxCircleLine: (props: any) => createElement("span", props),
+  RiErrorWarningLine: (props: any) => createElement("span", props),
+  RiInformationLine: (props: any) => createElement("span", props),
+  RiLoader4Line: (props: any) => createElement("span", props),
   RiCoinsLine: (props: any) => createElement("span", { ...props, "data-testid": "icon-coins" }),
   RiHammerLine: (props: any) => createElement("span", { ...props, "data-testid": "icon-hammer" }),
   RiSeedlingLine: (props: any) =>
@@ -115,6 +124,54 @@ import { ProfileBadges } from "../../views/Profile/Badges";
 
 const wrap = (el: React.ReactElement) =>
   createElement(MemoryRouter, null, createElement(IntlProvider, { locale: "en", messages }, el));
+
+/** Genesis open to claim and not yet held, as the badge list reads it. */
+const genesisClaimable = () => ({
+  badges: [
+    {
+      id: "def-genesis",
+      chainId: 42161,
+      badgeId: GREENWILL_BADGE_IDS.GENESIS,
+      slug: "genesis",
+      metadataURI: "ipfs://genesis",
+      validator: "0x0000000000000000000000000000000000000001",
+      authorizedIssuer: "0x0000000000000000000000000000000000000002",
+      unlockLock: "0x0000000000000000000000000000000000000003",
+      claimable: true,
+      active: true,
+      holderCount: 4,
+      grantCount: 4,
+      updatedAt: 1710000000,
+      owned: false,
+      claimableNow: true,
+      ownership: null,
+    },
+  ],
+  earnedBadges: [],
+  claimableBadges: [
+    {
+      id: "def-genesis",
+      chainId: 42161,
+      badgeId: GREENWILL_BADGE_IDS.GENESIS,
+      slug: "genesis",
+      metadataURI: "ipfs://genesis",
+      validator: "0x0000000000000000000000000000000000000001",
+      authorizedIssuer: "0x0000000000000000000000000000000000000002",
+      unlockLock: "0x0000000000000000000000000000000000000003",
+      claimable: true,
+      active: true,
+      holderCount: 4,
+      grantCount: 4,
+      updatedAt: 1710000000,
+      owned: false,
+      claimableNow: true,
+      ownership: null,
+    },
+  ],
+  isLoading: false,
+  isError: false,
+  error: null,
+});
 
 describe("ProfileBadges", () => {
   const mockGenesisClaim = vi.fn();
@@ -268,14 +325,17 @@ describe("ProfileBadges", () => {
 
     sharedMocks.useClaimGenesisBadge.mockReturnValue({
       mutate: mockGenesisClaim,
+      reset: vi.fn(),
       isPending: false,
     });
     sharedMocks.useClaimFirstSupportBadge.mockReturnValue({
       mutate: mockFirstSupportClaim,
+      reset: vi.fn(),
       isPending: false,
     });
     sharedMocks.useClaimFirstWorkBadge.mockReturnValue({
       mutate: mockFirstWorkClaim,
+      reset: vi.fn(),
       isPending: false,
     });
     sharedMocks.useMyVaultDeposits.mockReturnValue({
@@ -365,52 +425,8 @@ describe("ProfileBadges", () => {
 
   it("allows claiming the genesis badge when eligible", async () => {
     const user = userEvent.setup();
-    sharedMocks.useGreenWillBadges.mockReturnValueOnce({
-      badges: [
-        {
-          id: "def-genesis",
-          chainId: 42161,
-          badgeId: GREENWILL_BADGE_IDS.GENESIS,
-          slug: "genesis",
-          metadataURI: "ipfs://genesis",
-          validator: "0x0000000000000000000000000000000000000001",
-          authorizedIssuer: "0x0000000000000000000000000000000000000002",
-          unlockLock: "0x0000000000000000000000000000000000000003",
-          claimable: true,
-          active: true,
-          holderCount: 4,
-          grantCount: 4,
-          updatedAt: 1710000000,
-          owned: false,
-          claimableNow: true,
-          ownership: null,
-        },
-      ],
-      earnedBadges: [],
-      claimableBadges: [
-        {
-          id: "def-genesis",
-          chainId: 42161,
-          badgeId: GREENWILL_BADGE_IDS.GENESIS,
-          slug: "genesis",
-          metadataURI: "ipfs://genesis",
-          validator: "0x0000000000000000000000000000000000000001",
-          authorizedIssuer: "0x0000000000000000000000000000000000000002",
-          unlockLock: "0x0000000000000000000000000000000000000003",
-          claimable: true,
-          active: true,
-          holderCount: 4,
-          grantCount: 4,
-          updatedAt: 1710000000,
-          owned: false,
-          claimableNow: true,
-          ownership: null,
-        },
-      ],
-      isLoading: false,
-      isError: false,
-      error: null,
-    });
+    // The dialog reads the live list, so the claimable state holds across renders.
+    sharedMocks.useGreenWillBadges.mockReturnValue(genesisClaimable());
 
     render(wrap(createElement(ProfileBadges)));
 
@@ -418,6 +434,55 @@ describe("ProfileBadges", () => {
     await user.click(screen.getByRole("button", { name: "Claim Genesis" }));
 
     expect(mockGenesisClaim).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a failed claim's reason in the dialog for when the person comes back", async () => {
+    const user = userEvent.setup();
+    sharedMocks.useGreenWillBadges.mockReturnValue(genesisClaimable());
+    sharedMocks.useClaimGenesisBadge.mockReturnValue({
+      mutate: mockGenesisClaim,
+      reset: vi.fn(),
+      isPending: false,
+      isSuccess: false,
+      isError: true,
+      error: new Error("execution reverted"),
+    });
+
+    render(wrap(createElement(ProfileBadges)));
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Couldn't claim Genesis");
+    expect(alert).toHaveTextContent("The badge contract turned this claim down.");
+    // The claim can be tried again.
+    expect(screen.getByRole("button", { name: "Claim Genesis" })).toBeInTheDocument();
+  });
+
+  it("says the badge is claimed once the claim lands, before the list catches up", async () => {
+    const user = userEvent.setup();
+    sharedMocks.useGreenWillBadges.mockReturnValue(genesisClaimable());
+    const genesisClaim = {
+      mutate: mockGenesisClaim,
+      reset: vi.fn(),
+      isPending: true,
+      isSuccess: false,
+      isError: false,
+      error: null,
+    };
+    sharedMocks.useClaimGenesisBadge.mockImplementation(() => genesisClaim);
+
+    const { rerender } = render(wrap(createElement(ProfileBadges)));
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
+    expect(screen.getByRole("status")).toHaveTextContent("If your wallet opens, confirm there.");
+
+    Object.assign(genesisClaim, { isPending: false, isSuccess: true });
+    rerender(wrap(createElement(ProfileBadges)));
+
+    expect(screen.getByRole("status")).toHaveTextContent("Genesis badge claimed");
+    expect(
+      within(screen.getByRole("dialog", { name: "Genesis" })).getByText("Earned")
+    ).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Claim Genesis" })).not.toBeInTheDocument();
   });
 
   it("keeps globally claimable badges hidden when the user is not locally eligible", () => {

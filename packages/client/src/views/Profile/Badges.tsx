@@ -1,9 +1,11 @@
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
+import { Alert } from "@green-goods/shared/components/Alert";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GreenWillBadgeView } from "@green-goods/shared/types/greenwill";
 import { isGreenWillDeployed } from "@green-goods/shared/config/blockchain";
 import {
+  describeBadgeClaimError,
   useClaimFirstSupportBadge,
   useClaimFirstWorkBadge,
   useClaimGenesisBadge,
@@ -111,7 +113,7 @@ function badgeStatusLabel(intl: ReturnType<typeof useIntl>, status: ProfileBadge
 
 export const ProfileBadges: React.FC = () => {
   const intl = useIntl();
-  const [selectedBadge, setSelectedBadge] = useState<ProfileBadgeDisplay | null>(null);
+  const [openedBadge, setOpenedBadge] = useState<ProfileBadgeDisplay | null>(null);
   const primaryAddress = usePrimaryAddress() as Address | null;
   const { data: greenGoodsEnsName } = useGreenGoodsEnsName(primaryAddress);
   const { data: ensName } = useEnsName(primaryAddress);
@@ -154,6 +156,20 @@ export const ProfileBadges: React.FC = () => {
     [available, earned]
   );
   const hasDisplayableBadges = displayBadges.length > 0;
+  // The dialog reads its badge from the live list, so a claim that lands turns
+  // it to Earned while it is open. The copy taken at the tap stands in only
+  // while the badge is briefly in neither list.
+  const selectedBadge = openedBadge
+    ? (displayBadges.find((badge) => badge.slug === openedBadge.slug) ?? openedBadge)
+    : null;
+  const claims = {
+    genesis: genesisClaim,
+    "first-work": firstWorkClaim,
+    "first-support": firstSupportClaim,
+  } as const;
+  const selectedClaimState = selectedBadge
+    ? claims[selectedBadge.slug as keyof typeof claims]
+    : undefined;
 
   const renderBadgeState = (
     title: string,
@@ -227,6 +243,18 @@ export const ProfileBadges: React.FC = () => {
   };
 
   const selectedClaim = selectedBadge?.profileStatus === "claimable" ? claimFor(selectedBadge) : {};
+  // What the last claim of this badge came to, kept in the dialog so coming
+  // back from the wallet finds it. A confirmed claim has landed even before the
+  // badge list catches up, and so has a badge that turned Earned while its
+  // claim was still waiting on the receipt.
+  const claimLanded =
+    Boolean(selectedClaimState?.isSuccess) ||
+    (selectedBadge?.profileStatus === "earned" && Boolean(selectedClaimState?.isPending));
+  const claimFailure =
+    !claimLanded && selectedClaimState?.isError
+      ? describeBadgeClaimError(selectedClaimState.error)
+      : null;
+  const selectedTitle = selectedBadge ? badgeTitle(intl, selectedBadge.slug) : "";
 
   if (!primaryAddress) {
     return renderBadgeState(
@@ -331,7 +359,7 @@ export const ProfileBadges: React.FC = () => {
               key={`${badge.profileStatus}-${badge.badgeId}`}
               type="button"
               data-pressable="card"
-              onClick={() => setSelectedBadge(badge)}
+              onClick={() => setOpenedBadge(badge)}
               className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               aria-label={intl.formatMessage(
                 {
@@ -359,11 +387,17 @@ export const ProfileBadges: React.FC = () => {
 
       <DialogShell
         open={selectedBadge !== null}
-        actions={selectedClaim.action ? { primary: selectedClaim.action } : undefined}
+        actions={
+          selectedClaim.action && !claimLanded ? { primary: selectedClaim.action } : undefined
+        }
         onOpenChange={(open) => {
-          if (!open) setSelectedBadge(null);
+          if (open) return;
+          // A settled claim's message has been read; a claim still waiting keeps
+          // its state so its toast and the badge can still report it.
+          if (selectedClaimState && !selectedClaimState.isPending) selectedClaimState.reset();
+          setOpenedBadge(null);
         }}
-        title={selectedBadge ? badgeTitle(intl, selectedBadge.slug) : ""}
+        title={selectedTitle}
         description={
           selectedBadge
             ? intl.formatMessage(
@@ -381,7 +415,7 @@ export const ProfileBadges: React.FC = () => {
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-bg-weak-50 px-2 py-1 text-xs font-medium text-text-sub-600">
-                {badgeStatusLabel(intl, selectedBadge.profileStatus)}
+                {badgeStatusLabel(intl, claimLanded ? "earned" : selectedBadge.profileStatus)}
               </span>
             </div>
             <p className="text-sm leading-relaxed text-text-sub-600">
@@ -389,6 +423,35 @@ export const ProfileBadges: React.FC = () => {
             </p>
             {selectedClaim.note ? (
               <p className="text-xs text-text-sub-600">{selectedClaim.note}</p>
+            ) : null}
+            {claimLanded ? (
+              <Alert
+                variant="success"
+                title={intl.formatMessage(
+                  { id: "app.profile.badges.claim.successTitle" },
+                  { badge: selectedTitle }
+                )}
+              >
+                {intl.formatMessage({ id: "app.profile.badges.claim.successMessage" })}
+              </Alert>
+            ) : selectedClaimState?.isPending ? (
+              <p role="status" className="text-xs text-text-sub-600">
+                {intl.formatMessage({ id: "app.profile.badges.claim.pendingMessage" })}
+              </p>
+            ) : claimFailure ? (
+              <Alert
+                variant={claimFailure.kind === "cancelled" ? "warning" : "error"}
+                title={
+                  claimFailure.kind === "cancelled"
+                    ? intl.formatMessage({ id: "app.profile.badges.claim.cancelledTitle" })
+                    : intl.formatMessage(
+                        { id: "app.profile.badges.claim.failedTitle" },
+                        { badge: selectedTitle }
+                      )
+                }
+              >
+                {intl.formatMessage({ id: claimFailure.messageId })}
+              </Alert>
             ) : null}
           </div>
         )}

@@ -4,7 +4,14 @@
  */
 
 import { act, waitFor } from "@testing-library/react";
-import { encodeAbiParameters, keccak256, stringToHex, type Address } from "viem";
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  encodeAbiParameters,
+  keccak256,
+  stringToHex,
+  type Address,
+} from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
@@ -23,6 +30,39 @@ const mockGetGreenWillBadgeDefinitions = vi.fn();
 const mockGetGreenWillBadgesByOwner = vi.fn();
 const mockGetGreenWillRecentGrants = vi.fn();
 const mockSendContractCall = vi.fn();
+const mockSimulateContract = vi.fn();
+const mockToast = vi.hoisted(() => ({
+  loading: vi.fn(() => "toast-id"),
+  success: vi.fn(),
+  error: vi.fn(),
+  info: vi.fn(),
+  dismiss: vi.fn(),
+}));
+
+vi.mock("react-intl", () => ({
+  useIntl: () => ({
+    formatMessage: ({ id }: { id: string }, values?: Record<string, unknown>) =>
+      values ? `${id} ${JSON.stringify(values)}` : id,
+  }),
+}));
+
+vi.mock("../../../components/toast", () => ({ toastService: mockToast }));
+
+vi.mock("../../../config/pimlico", () => ({
+  createPublicClientForChain: () => ({
+    simulateContract: (...args: unknown[]) => mockSimulateContract(...args),
+  }),
+}));
+
+/** What viem throws when the chain itself turns a call down. */
+function contractRefusal(errorName?: string) {
+  const revert = new ContractFunctionRevertedError({
+    abi: [],
+    functionName: "claimBadge",
+    message: errorName ? `reverted with ${errorName}` : "execution reverted",
+  });
+  return new BaseError('The contract function "claimBadge" reverted.', { cause: revert });
+}
 
 vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 42161,
@@ -65,6 +105,7 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
 }));
 
 import { queryKeys } from "../../../config/query-keys";
+import { describeBadgeClaimError } from "../../../hooks/greenwill/useClaimGreenWillBadge";
 import {
   useClaimFirstSupportBadge,
   useClaimFirstWorkBadge,
@@ -77,6 +118,7 @@ import {
 describe("hooks/greenwill", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSimulateContract.mockResolvedValue({ result: undefined });
   });
 
   it("loads badge definitions with the default chain", async () => {
@@ -284,6 +326,105 @@ describe("hooks/greenwill", () => {
           ),
         ],
       })
+    );
+  });
+
+  it("checks the claim with the chain before opening the wallet, and says it landed", async () => {
+    mockSendContractCall.mockResolvedValueOnce({ hash: "0x1234", sponsored: false });
+
+    const { result } = renderHookWithQueryClient(() => useClaimGenesisBadge());
+    await act(async () => {
+      await result.current.mutateAsync(undefined);
+    });
+
+    expect(mockSimulateContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: TEST_GREENWILL,
+        functionName: "claimBadge",
+        args: [GENESIS_BADGE_ID, "0x"],
+        account: TEST_USER,
+      })
+    );
+    expect(mockSimulateContract.mock.invocationCallOrder[0]).toBeLessThan(
+      mockSendContractCall.mock.invocationCallOrder[0]
+    );
+    expect(mockToast.dismiss).toHaveBeenCalledWith("toast-id");
+    expect(mockToast.success).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: expect.stringContaining("app.profile.badges.claim.successTitle"),
+      })
+    );
+  });
+
+  it("stops a claim the badge contract refuses before the wallet opens, and says why", async () => {
+    mockSimulateContract.mockRejectedValueOnce(contractRefusal());
+
+    const { result } = renderHookWithQueryClient(() => useClaimGenesisBadge());
+    await act(async () => {
+      await expect(result.current.mutateAsync(undefined)).rejects.toThrow();
+    });
+
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+    expect(mockToast.error).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "app.profile.badges.claim.error.refused" })
+    );
+    await waitFor(() => expect(result.current.isError).toBe(true));
+  });
+
+  it("leaves the decision to the wallet when the check cannot reach the chain", async () => {
+    mockSimulateContract.mockRejectedValueOnce(new Error("fetch failed"));
+    mockSendContractCall.mockResolvedValueOnce({ hash: "0x1234", sponsored: false });
+
+    const { result } = renderHookWithQueryClient(() => useClaimGenesisBadge());
+    await act(async () => {
+      await result.current.mutateAsync(undefined);
+    });
+
+    expect(mockSendContractCall).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats a prompt turned down in the wallet as cancelled, not failed", async () => {
+    mockSendContractCall.mockRejectedValueOnce(new Error("User rejected the request."));
+
+    const { result } = renderHookWithQueryClient(() => useClaimGenesisBadge());
+    await act(async () => {
+      await expect(result.current.mutateAsync(undefined)).rejects.toThrow();
+    });
+
+    expect(mockToast.error).not.toHaveBeenCalled();
+    expect(mockToast.info).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "app.profile.badges.claim.cancelledMessage" })
+    );
+  });
+});
+
+describe("describeBadgeClaimError", () => {
+  it("names the badge contract's own refusals", () => {
+    expect(describeBadgeClaimError(new Error("reverted with BadgeAlreadyOwned"))).toEqual({
+      kind: "failed",
+      messageId: "app.profile.badges.claim.error.alreadyOwned",
+    });
+    expect(describeBadgeClaimError(new Error("Error: NotHatWearer(address,uint256)"))).toEqual({
+      kind: "failed",
+      messageId: "app.profile.badges.claim.error.notEligible",
+    });
+    expect(describeBadgeClaimError(new Error("NoVaultShares")).messageId).toBe(
+      "app.profile.badges.claim.error.supportMissing"
+    );
+  });
+
+  it("reads a reason-less revert as a refusal, not a garden membership problem", () => {
+    expect(describeBadgeClaimError(contractRefusal()).messageId).toBe(
+      "app.profile.badges.claim.error.refused"
+    );
+    expect(describeBadgeClaimError(new Error("execution reverted")).messageId).toBe(
+      "app.profile.badges.claim.error.refused"
+    );
+  });
+
+  it("falls back to a plain failure for anything else", () => {
+    expect(describeBadgeClaimError(new Error("boom")).messageId).toBe(
+      "app.profile.badges.claim.error.unknown"
     );
   });
 });
