@@ -101,6 +101,29 @@ describe("useUsernameController", () => {
     expect(postMessage).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the notice until a service worker controls the page, then tells it once", async () => {
+    const postMessage = vi.fn();
+    // Loaded before the worker took over: there is no controller to tell yet.
+    const container = Object.assign(new EventTarget(), {
+      controller: null as { postMessage: typeof postMessage } | null,
+    });
+    Object.defineProperty(navigator, "serviceWorker", { value: container, configurable: true });
+    useUsernameChangeStore.getState().awaitNotice(OWNER, "ines");
+
+    const { result } = render();
+
+    await waitFor(() => expect(result.current.card.kind).toBe("ready"));
+    expect(useUsernameChangeStore.getState().notices).toEqual({ [OWNER.toLowerCase()]: "ines" });
+
+    container.controller = { postMessage };
+    act(() => {
+      container.dispatchEvent(new Event("controllerchange"));
+    });
+
+    await waitFor(() => expect(postMessage).toHaveBeenCalledTimes(1));
+    expect(useUsernameChangeStore.getState().notices).toEqual({});
+  });
+
   it("keeps the new name only once the release has landed", async () => {
     mocks.release.mockImplementation(async () => {
       // The release hook seeds the old name's status as releasing.

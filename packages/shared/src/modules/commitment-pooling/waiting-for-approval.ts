@@ -167,7 +167,9 @@ const HELD: ReadonlySet<CommitmentReadModel["onchainState"]> = new Set([
 /**
  * The asker's standing as a provider in the pool, for deciding a request (D4):
  * how many promises they lead that are still open, which is what the pool's
- * limit counts, and how many they have kept.
+ * limit counts, and how many they have kept. An offer they made counts from
+ * the moment it is made, before anyone takes it up: the registry commits its
+ * units to its maker then.
  */
 export function claimantStanding(
   commitments: readonly CommitmentReadModel[],
@@ -178,9 +180,13 @@ export function claimantStanding(
   let holding = 0;
   let kept = 0;
   for (const commitment of commitments) {
-    if (commitment.leadProvider?.toLowerCase() !== who) continue;
-    if (HELD.has(commitment.onchainState)) holding += 1;
-    if (commitment.onchainState === "FULFILLED") kept += 1;
+    const leads = commitment.leadProvider?.toLowerCase() === who;
+    const openOffer =
+      commitment.direction === "OFFER" &&
+      commitment.onchainState === "OFFERED" &&
+      (leads || commitment.creator?.toLowerCase() === who);
+    if (openOffer || (leads && HELD.has(commitment.onchainState))) holding += 1;
+    if (leads && commitment.onchainState === "FULFILLED") kept += 1;
   }
   return { holding, cap: Number(cap), kept };
 }

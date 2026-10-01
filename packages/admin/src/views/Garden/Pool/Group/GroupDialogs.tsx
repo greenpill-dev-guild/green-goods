@@ -4,6 +4,7 @@ import { useEnsNames } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
 import { useCommitmentActivity } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import { useSettlementAccount } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
+import { useSeedTrayRoom } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import {
   displayBucketOf,
   selectRewardEdit,
@@ -69,6 +70,14 @@ export function GroupDialogs({
   );
   const takers = inProgress.flatMap((child) => (child.counterparty ? [child.counterparty] : []));
   const ensNames = useEnsNames(takers);
+  // Offers count against their maker from the moment they're made.
+  const room = useSeedTrayRoom({
+    chainId,
+    poolId: pool.poolId,
+    cap: pool.pool?.providerOpenCommitmentCap,
+    viewer,
+    pendingCreates: pool.pendingCreates,
+  });
   if (!first) return null;
 
   const metadata = first.metadataCID ? (pool.titles.get(first.metadataCID.trim()) ?? null) : null;
@@ -166,6 +175,7 @@ export function GroupDialogs({
           counts={group.counts}
           terms={terms}
           rewardCents={rewardCents}
+          offerRoom={first.direction === "OFFER" ? room : null}
         />
       ) : null}
       {step === "edit-reward" && canEditReward && reward.currentWei !== null ? (

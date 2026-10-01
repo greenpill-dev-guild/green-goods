@@ -37,6 +37,7 @@ import { useGreenGoodsEnsName } from "../../ens/useGreenGoodsEnsName";
 import { useProtocolMemberStatus } from "../../ens/useProtocolMemberStatus";
 import { useSlugAvailability } from "../../ens/useSlugAvailability";
 import { useSlugForm } from "../../ens/useSlugForm";
+import { useEventListener } from "../../utils/useEventListener";
 
 export type { UsernameCardState, UsernameChange } from "../../../modules/ens/username";
 
@@ -121,16 +122,23 @@ export function useUsernameController(primaryAddress: Address | undefined) {
 
   // The service worker hears once when a name claimed on this device becomes
   // ready. The name waits in the store, so leaving Profile or reloading during
-  // the minutes it takes doesn't lose the notice.
+  // the minutes it takes doesn't lose the notice, and it waits until a worker
+  // controls the page: a page loaded before one took over can't tell it yet,
+  // and the worker taking over here hears it then.
   const noticeReady = noticeFor !== null && card.kind === "ready" && slug === noticeFor;
+  const [workerTurn, setWorkerTurn] = useState(0);
+  useEventListener(
+    typeof navigator === "undefined" ? undefined : navigator.serviceWorker,
+    "controllerchange",
+    () => setWorkerTurn((turn) => turn + 1)
+  );
   useEffect(() => {
     if (!noticeReady || !noticeFor || !primaryAddress) return;
+    const worker = navigator.serviceWorker?.controller;
+    if (!worker) return;
+    worker.postMessage({ type: SW_MESSAGE.ENS_REGISTRATION_COMPLETE, slug: noticeFor });
     clearNotice(primaryAddress);
-    navigator.serviceWorker?.controller?.postMessage({
-      type: SW_MESSAGE.ENS_REGISTRATION_COMPLETE,
-      slug: noticeFor,
-    });
-  }, [noticeReady, noticeFor, primaryAddress, clearNotice]);
+  }, [noticeReady, noticeFor, primaryAddress, clearNotice, workerTurn]);
 
   /** Claims `name`; true once it landed. The claim hook reports a failure. */
   const claim = useCallback(

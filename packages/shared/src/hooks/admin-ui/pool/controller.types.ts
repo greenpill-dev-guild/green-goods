@@ -73,7 +73,9 @@ export interface PoolConsoleActs {
   /** Remove a queued creation. The queue refuses one whose send may be on chain. */
   discardQueued: (jobId: string) => Promise<void>;
   /** Send a group's copies still waiting in this steward's queue, as they were built. */
-  finishCreating: (displayGroupId: string) => Promise<"sent" | "left" | "none" | "blocked">;
+  finishCreating: (
+    displayGroupId: string
+  ) => Promise<"sent" | "left" | "none" | "blocked" | "expired">;
 }
 
 /** Where a single-signature act started from a row stands. */

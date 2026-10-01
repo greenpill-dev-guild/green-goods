@@ -50,6 +50,11 @@ export interface PoolCommitmentsCardProps {
  * and a group's copies still queued fold into it as "didn't send" with Finish
  * Creating, rather than as queued rows of their own.
  */
+/** A group past its deadline can't be finished; one with none never lapses. */
+function isPastDeadline(dueDate: bigint | null | undefined, now: number): boolean {
+  return Boolean(dueDate) && Number(dueDate) * 1000 <= now;
+}
+
 export function PoolCommitmentsCard({
   console: pool,
   scope,
@@ -98,9 +103,15 @@ export function PoolCommitmentsCard({
     search,
     titleOf,
   });
-  // A group's queued copies are counted on its row, so they leave the queued list.
+  // A group's queued copies are counted on its row, so they leave the queued
+  // list, while it can still finish them. Past its deadline they stay listed on
+  // their own, where Discard clears them.
   const shownGroups = new Set(
-    rows.flatMap((entry) => (entry.kind === "group" ? [entry.displayGroupId] : []))
+    rows.flatMap((entry) =>
+      entry.kind === "group" && !isPastDeadline(entry.children[0]?.dueDate, now)
+        ? [entry.displayGroupId]
+        : []
+    )
   );
   const foldedJobs = new Set(
     [...pool.queuedGroupCopies]
@@ -342,7 +353,11 @@ export function PoolCommitmentsCard({
                     key={entry.key}
                     group={entry}
                     title={titleOf(entry.children[0] as CommitmentReadModel)}
-                    unsent={pool.queuedGroupCopies.get(entry.displayGroupId)?.length ?? 0}
+                    unsent={
+                      shownGroups.has(entry.displayGroupId)
+                        ? (pool.queuedGroupCopies.get(entry.displayGroupId)?.length ?? 0)
+                        : 0
+                    }
                     finishing={pool.finishingGroupId === entry.displayGroupId}
                     finishDisabled={!isOnline || pool.finishingGroupId !== null}
                     onOpen={() => onOpenGroup(entry)}

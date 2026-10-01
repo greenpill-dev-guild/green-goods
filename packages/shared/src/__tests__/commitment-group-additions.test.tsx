@@ -24,6 +24,7 @@ import {
 import { buildCommitmentMetadata } from "../modules/commitment-pooling/metadata";
 import type { SeedCopyProgress } from "../modules/commitment-pooling/seed-sets";
 import type { Address } from "../types/domain";
+import { jobQueue } from "../modules/job-queue/default-instance";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const STEWARD = "0x1111111111111111111111111111111111111111" as Address;
@@ -222,7 +223,11 @@ describe("adding to a group", () => {
 describe("useAddToGroup", () => {
   const inAWeek = () => BigInt(Math.floor(Date.now() / 1000) + 7 * 86_400);
 
-  function setup(overrides: Partial<GroupToAddTo> = {}, owner: Address = STEWARD) {
+  function setup(
+    overrides: Partial<GroupToAddTo> = {},
+    owner: Address = STEWARD,
+    offerRoom: number | null = null
+  ) {
     const group: GroupToAddTo = {
       displayGroupId: "group-00000001",
       dueDate: inAWeek(),
@@ -234,7 +239,9 @@ describe("useAddToGroup", () => {
       gardenAddress: GARDEN,
       ...overrides,
     };
-    const view = renderHookWithProviders(() => useAddToGroup({ chainId: 42161, owner, group }));
+    const view = renderHookWithProviders(() =>
+      useAddToGroup({ chainId: 42161, owner, group, offerRoom })
+    );
     const add = async (count: number) => {
       let outcome: string | undefined;
       await act(async () => {
@@ -285,6 +292,18 @@ describe("useAddToGroup", () => {
     expect(await setup().add(5)).toBe("not-creator");
     expect(send.inputs).toEqual([]);
   });
+
+  it("asks the wallet for no more offers than the steward has room for at once", async () => {
+    const { add } = setup({}, STEWARD, 2);
+    send.script = () => ({ status: "created" });
+
+    // The registry would refuse the third: nothing is asked of the wallet.
+    expect(await add(5)).toBe("full");
+    expect(send.inputs).toEqual([]);
+
+    expect(await add(2)).toBe("sent");
+    expect(send.inputs[0]?.copies).toHaveLength(2);
+  });
 });
 
 describe("useFinishCreating", () => {
@@ -315,5 +334,23 @@ describe("useFinishCreating", () => {
     const [input] = send.inputs;
     expect(input?.copies.map((copy) => copy.clientCommitmentId)).toEqual(["copy-1", "copy-5"]);
     expect(input?.clearable?.("group-00000001")).toBe(false);
+  });
+
+  it("sends nothing once the group's deadline has passed", async () => {
+    const lapsed = job("1", "group-00000001");
+    const lapsedJobs = [{ ...lapsed, payload: { ...lapsed.payload, dueDate: 1n } }] as never;
+    vi.mocked(jobQueue.getJobs).mockResolvedValueOnce(lapsedJobs).mockResolvedValueOnce(lapsedJobs);
+    const view = renderHookWithProviders(() =>
+      useFinishCreating({ chainId: 42161, owner: STEWARD })
+    );
+
+    let outcome: string | undefined;
+    await act(async () => {
+      outcome = await view.result.current.finish("group-00000001");
+    });
+
+    // The chain would create it, due before anyone could take it up.
+    expect(outcome).toBe("expired");
+    expect(send.inputs).toEqual([]);
   });
 });

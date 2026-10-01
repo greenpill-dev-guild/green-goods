@@ -13,7 +13,7 @@ import {
 import { commitmentDialogControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
@@ -505,6 +505,51 @@ describe("CommitmentDialogPanel (W10)", () => {
     );
     fireEvent.click(within(review).getByRole("button", { name: /^confirm kept$/i }));
     await waitFor(() => expect(acts.confirmOrdinary).toHaveBeenCalledTimes(1));
+  });
+
+  it("opens at who asked once the ask is read, even when the record came from the cache first", () => {
+    const scrolled = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrolled;
+    onTestFinished(() => {
+      Element.prototype.scrollIntoView = original;
+    });
+    const record = commitment({
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+      state: "REQUESTED",
+      direction: "REQUEST",
+    });
+    // The cached record predates the ask.
+    mocks.controller = controller({ commitment: record });
+    const view = renderWithProviders(
+      <CommitmentDialogPanel
+        chainId={42161}
+        garden={GARDEN}
+        commitmentId="9"
+        tone="garden"
+        focus="waiting"
+      />
+    );
+    expect(scrolled).not.toHaveBeenCalled();
+
+    mocks.controller = controller({
+      commitment: record,
+      detail: commitmentDetailFixture({
+        commitment: record,
+        claimRequests: [claimFixture({ commitmentId: 9n, claimant: TAKER })],
+      }),
+    });
+    view.rerender(
+      <CommitmentDialogPanel
+        chainId={42161}
+        garden={GARDEN}
+        commitmentId="9"
+        tone="garden"
+        focus="waiting"
+      />
+    );
+    expect(scrolled).toHaveBeenCalledTimes(1);
   });
 
   it("lists who asked, with what a requester holds and has kept, and keeps an answered ask", () => {
