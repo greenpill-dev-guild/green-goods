@@ -109,18 +109,17 @@ describe("Hub workbench routing policy", () => {
     ).toEqual({ kind: "work", id: "route-work" });
   });
 
-  it("falls back from route work to the active work detail", () => {
+  it("closes the inspector after the detail route leaves, despite retained work selection", () => {
     expect(
       resolveHubSheetSelection({
         activeWorkDetailId: "active-work",
         hasSelectedCertification: true,
       })
-    ).toEqual({ kind: "work", id: "active-work" });
+    ).toBeNull();
   });
 
   it.each([
     ["certification route", { routeCertificationId: "certification" }, "certification"],
-    ["selected certification", { hasSelectedCertification: true }, "certification"],
   ] as const)("resolves a %s inspector", (_label, overrides, kind) => {
     expect(
       resolveHubSheetSelection({
@@ -129,6 +128,15 @@ describe("Hub workbench routing policy", () => {
         ...overrides,
       })
     ).toEqual({ kind });
+  });
+
+  it("does not reopen an assessment from retained selection after its route closes", () => {
+    expect(
+      resolveHubSheetSelection({
+        activeWorkDetailId: null,
+        hasSelectedCertification: true,
+      })
+    ).toBeNull();
   });
 
   it("returns no inspector without route or selection state", () => {
