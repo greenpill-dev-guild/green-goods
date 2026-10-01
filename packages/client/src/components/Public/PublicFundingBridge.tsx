@@ -23,11 +23,11 @@ export function PublicFundingBridge() {
     <section
       ref={sectionRef}
       data-revealed={revealed}
-      className="editorial-section-reveal bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
+      className="editorial-section-reveal @container/funding bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
       aria-labelledby="public-funding-bridge-title"
     >
       <div className="mx-auto max-w-7xl">
-        <div className="editorial-cascade grid gap-12 lg:grid-cols-[1fr_1.45fr] lg:gap-24">
+        <div className="editorial-cascade grid gap-12 sm:gap-8 @min-[70rem]:grid-cols-[1fr_1.45fr] @min-[70rem]:gap-24">
           <div>
             <EditorialKicker className="mb-5">
               {formatMessage({
@@ -60,8 +60,8 @@ export function PublicFundingBridge() {
             </div>
           </div>
 
-          <div>
-            <div className="grid gap-10 md:grid-cols-2 md:gap-12">
+          <div className="@container">
+            <div className="grid gap-10 @min-[36rem]:grid-cols-2 @min-[36rem]:gap-8 @min-[70rem]/funding:gap-12">
               <article className="border-t border-stroke-soft-200 pt-6">
                 <EditorialNumeral>1.</EditorialNumeral>
                 <h3 className="mt-4 font-serif text-2xl font-normal leading-[1.05] tracking-[-0.012em] text-text-strong-950 md:text-3xl">

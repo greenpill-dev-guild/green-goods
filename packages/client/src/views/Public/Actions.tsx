@@ -264,7 +264,7 @@ export default function ActionsGallery() {
             </EditorialHeading>
           </header>
 
-          <ul className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+          <ul className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-8 xl:grid-cols-4">
             {DOMAIN_EXPLAINERS.map((domain) => (
               <li key={domain.id} className="flex flex-col gap-4">
                 <span aria-hidden="true" className={cn("h-[3px] w-12", domain.accentClass)} />
