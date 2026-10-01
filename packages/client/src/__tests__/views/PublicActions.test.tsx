@@ -147,6 +147,8 @@ describe("ActionsGallery", () => {
     renderView();
     fireEvent.click(screen.getByRole("button", { name: /Solar Panel Installation/ }));
     const dialog = screen.getByRole("dialog", { name: "Solar Panel Installation" });
+    expect(within(dialog).queryByRole("link", { name: "Install App" })).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(/Install the Green Goods app/)).not.toBeInTheDocument();
     expect(within(dialog).queryByRole("img")).not.toBeInTheDocument();
     expect(within(dialog).getByText(mockActions[1].description)).toBeInTheDocument();
   });

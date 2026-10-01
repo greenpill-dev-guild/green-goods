@@ -123,7 +123,7 @@ Manage Endowments is the only public withdrawal surface in v1. It is wallet-owne
 ## `/actions`
 
 - Domain filter chips (All / Solar / Agro / Education / Waste).
-- `PublicActionCard` grid; cards open `PublicSourceDialog` with media, description, and an `Install App` CTA in the dialog footer.
+- `PublicActionCard` grid; cards open `PublicSourceDialog` with media and description. The Install App CTA belongs in the site header, not action details.
 - No public create or edit controls.
 
 ## Typography
