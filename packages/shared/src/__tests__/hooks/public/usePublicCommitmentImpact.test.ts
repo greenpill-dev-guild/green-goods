@@ -1,161 +1,116 @@
-/**
- * @vitest-environment happy-dom
- */
-
-import { waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+/** @vitest-environment happy-dom */
+import { act, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { usePublicCommitmentImpact } from "../../../hooks/public/usePublicCommitmentImpact";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
-const mocks = vi.hoisted(() => ({ query: vi.fn(), warn: vi.fn() }));
+const response = {
+  version: 1,
+  chainId: 42161,
+  commitmentsMade: "27",
+  commitmentsFulfilled: "12",
+  confirmedDisbursementTotal: "8000000000000000000",
+  confirmedDisbursementUsdCents: "1234",
+  partialData: false,
+  unavailableSources: {
+    commitmentPools: false,
+    confirmedSettlement: false,
+    fundingValuation: false,
+  },
+};
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 
-vi.mock("../../../modules/data/graphql-client", () => ({
-  greenGoodsIndexer: { query: (...args: unknown[]) => mocks.query(...args) },
-}));
-vi.mock("../../../modules/app/logger", () => ({
-  logger: { warn: (...args: unknown[]) => mocks.warn(...args) },
-}));
-vi.mock("../../../config/blockchain", () => ({ DEFAULT_CHAIN_ID: 42161 }));
-
-vi.mock("../../../config/default-chain", () => ({
-  DEFAULT_CHAIN_ID: 42161,
-}));
-
-import { usePublicCommitmentImpact } from "../../../hooks/public/usePublicCommitmentImpact";
-import { getPublicCommitmentImpact } from "../../../modules/commitment-pooling/data-public-impact";
-
-function containsAddressValue(value: unknown): boolean {
-  if (typeof value === "string") return /^0x[0-9a-f]{40}$/i.test(value);
-  if (!value || typeof value !== "object") return false;
-  return Object.values(value).some(containsAddressValue);
-}
-
-describe("public commitment impact reader", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.query.mockImplementation(async (_query, variables, operation) => {
-      if (operation === "getPublicCommitmentImpactPools") {
-        return {
-          data: {
-            CommitmentPool: [{ poolId: "7" }, { poolId: "9" }],
-            CommitmentPool_aggregate: {
-              aggregate: {
-                sum: { commitmentsFulfilled: "12", commitmentsDue: "15" },
-              },
-            },
-            OpenCommitmentPool_aggregate: { aggregate: { count: 2 } },
-          },
-        };
-      }
-      if (operation === "getPublicCommitmentImpactProviders") {
-        expect(variables).toEqual({ chainId: 42161, poolIds: ["7", "9"] });
-        return {
-          data: { CommitmentProviderExposure_aggregate: { aggregate: { count: 4 } } },
-        };
-      }
-      return {
-        data: {
-          Disbursement_aggregate: { aggregate: { sum: { amount: "8000000000000000000" } } },
-        },
-      };
-    });
-  });
-
-  it("returns protocol aggregates without returning provider or settlement rows", async () => {
-    const result = await getPublicCommitmentImpact(42161);
-    const documents = mocks.query.mock.calls.map(([document]) => document).join("\n");
-
-    expect(documents).toContain("CommitmentProviderExposure_aggregate");
-    expect(documents).not.toContain("CommitmentProviderExposure(");
-    expect(documents).not.toContain("Disbursement(");
-    expect(documents).toContain("state: { _eq: CONFIRMED }");
-    // Only G$ that reached a Garden counts as support arrived; consideration,
-    // loan principal, and refunds are paid to people and stay out of the sum.
-    expect(documents).toContain("kind: { _in: [FUNDING, GARDEN_BENEFICIARY] }");
-    expect(documents).toContain("OpenCommitmentPool_aggregate");
-    expect(documents).not.toContain("distinctProviderCount");
-    expect(containsAddressValue(result)).toBe(false);
-    expect(result).toEqual({
-      openPoolCount: 2n,
-      commitmentsFulfilled: 12n,
-      commitmentsDue: 15n,
-      distinctProviderCount: 4n,
-      confirmedDisbursementTotal: 8000000000000000000n,
-      partialData: false,
-      unavailableSources: {
-        commitmentPools: false,
-        distinctProviders: false,
-        confirmedSettlement: false,
-      },
-    });
-  });
-
-  it("keeps other aggregates publishable when the distinct-provider read fails", async () => {
-    mocks.query.mockImplementation(async (_query, _variables, operation) => {
-      if (operation === "getPublicCommitmentImpactPools") {
-        return {
-          data: {
-            CommitmentPool: [{ poolId: "7" }],
-            CommitmentPool_aggregate: {
-              aggregate: {
-                sum: { commitmentsFulfilled: "5", commitmentsDue: "6" },
-              },
-            },
-            OpenCommitmentPool_aggregate: { aggregate: { count: 1 } },
-          },
-        };
-      }
-      if (operation === "getPublicCommitmentImpactProviders") {
-        return { error: new Error("provider aggregate unavailable") };
-      }
-      return {
-        data: { Disbursement_aggregate: { aggregate: { sum: { amount: "20" } } } },
-      };
-    });
-
-    const queryClient = createTestQueryClient();
-    const { result } = renderHookWithQueryClient(() => usePublicCommitmentImpact(), {
-      queryClient,
+describe("public commitment impact transport", () => {
+  it("makes one API request and decodes large integer figures without querying history", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "https://agent.greengoods.app/");
+    const fetchSnapshot = vi.fn().mockResolvedValue({ ok: true, json: async () => response });
+    vi.stubGlobal("fetch", fetchSnapshot);
+    const { result } = renderHookWithQueryClient(() => usePublicCommitmentImpact(42161), {
+      queryClient: createTestQueryClient(),
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    expect(result.current.data).toMatchObject({
-      openPoolCount: 1n,
-      commitmentsFulfilled: 5n,
-      commitmentsDue: 6n,
-      distinctProviderCount: null,
-      confirmedDisbursementTotal: 20n,
-      partialData: true,
-      unavailableSources: { distinctProviders: true },
-    });
-    expect(mocks.warn).toHaveBeenCalledOnce();
+    expect(result.current.data?.confirmedDisbursementTotal).toBe(8000000000000000000n);
+    expect(result.current.data?.confirmedDisbursementUsdCents).toBe(1234n);
+    expect(fetchSnapshot).toHaveBeenCalledOnce();
+    expect(fetchSnapshot).toHaveBeenCalledWith(
+      "https://agent.greengoods.app/public/commitments/42161/impact",
+      { signal: expect.any(AbortSignal) }
+    );
   });
 
-  it("keeps closed-pool history in lifetime totals while counting only open pools", async () => {
-    mocks.query.mockImplementation(async (_query, variables, operation) => {
-      if (operation === "getPublicCommitmentImpactPools") {
-        return {
-          data: {
-            CommitmentPool: [{ poolId: "7" }, { poolId: "9" }],
-            CommitmentPool_aggregate: {
-              aggregate: { sum: { commitmentsFulfilled: "18", commitmentsDue: "22" } },
-            },
-            OpenCommitmentPool_aggregate: { aggregate: { count: 1 } },
-          },
-        };
-      }
-      if (operation === "getPublicCommitmentImpactProviders") {
-        expect(variables).toEqual({ chainId: 42161, poolIds: ["7", "9"] });
-        return { data: { CommitmentProviderExposure_aggregate: { aggregate: { count: 5 } } } };
-      }
-      return { data: { Disbursement_aggregate: { aggregate: { sum: { amount: "20" } } } } };
+  it("preserves counts when the server cannot value funding", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ...response,
+          confirmedDisbursementUsdCents: null,
+          partialData: true,
+          unavailableSources: { ...response.unavailableSources, fundingValuation: true },
+        }),
+      })
+    );
+    const { result } = renderHookWithQueryClient(() => usePublicCommitmentImpact(42161), {
+      queryClient: createTestQueryClient(),
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toMatchObject({
+      commitmentsMade: 27n,
+      confirmedDisbursementUsdCents: null,
+      partialData: true,
+    });
+  });
+
+  it("retries a partial snapshot after 30 seconds and stops once all figures are available", async () => {
+    vi.useFakeTimers();
+    const fetchSnapshot = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          ...response,
+          confirmedDisbursementUsdCents: null,
+          partialData: true,
+          unavailableSources: { ...response.unavailableSources, fundingValuation: true },
+        }),
+      })
+      .mockResolvedValue({ ok: true, json: async () => response });
+    vi.stubGlobal("fetch", fetchSnapshot);
+    const { result, unmount } = renderHookWithQueryClient(() => usePublicCommitmentImpact(42161), {
+      queryClient: createTestQueryClient(),
     });
 
-    await expect(getPublicCommitmentImpact(42161)).resolves.toMatchObject({
-      openPoolCount: 1n,
-      commitmentsFulfilled: 18n,
-      commitmentsDue: 22n,
-      distinctProviderCount: 5n,
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    expect(result.current.data?.partialData).toBe(true);
+    await act(async () => vi.advanceTimersByTimeAsync(29_998));
+    expect(fetchSnapshot).toHaveBeenCalledOnce();
+    await act(async () => vi.advanceTimersByTimeAsync(2));
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2);
+    expect(result.current.data?.confirmedDisbursementUsdCents).toBe(1234n);
+    expect(result.current.data?.partialData).toBe(false);
+
+    await act(async () => vi.advanceTimersByTimeAsync(60_000));
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2);
+    unmount();
+  });
+
+  it.each([
+    { ok: false, json: async () => response },
+    { ok: true, json: async () => ({ ...response, chainId: 11155111 }) },
+    { ok: true, json: async () => ({ ...response, commitmentsMade: "-1" }) },
+    { ok: true, json: async () => ({ ...response, confirmedDisbursementUsdCents: null }) },
+  ])("reports unavailable or malformed responses instead of inventing zeroes", async (wire) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(wire));
+    const { result } = renderHookWithQueryClient(() => usePublicCommitmentImpact(42161), {
+      queryClient: createTestQueryClient(),
     });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.data).toBeUndefined();
   });
 });
