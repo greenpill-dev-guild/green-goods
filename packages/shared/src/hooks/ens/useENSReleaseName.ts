@@ -10,7 +10,7 @@
  * @module hooks/ens/useENSReleaseName
  */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type Address,
   decodeEventLog,
@@ -114,6 +114,29 @@ async function assertSponsoredReleaseFunded(params: {
   if (balance < fee + totalPendingRefunds) {
     throw createENSReleaseError("InsufficientSponsoredBalance");
   }
+}
+
+/**
+ * The ETH fee a wallet pays to release `slug`, in wei as a string, read when
+ * the Change Username sheet opens so the sheet can state it before anything is
+ * signed (PRD-1026 D4). Null where the release is sponsored and the wallet
+ * pays only gas. The release reads the fee again when it sends; this read is
+ * never reused, so a reopened sheet reads it afresh.
+ */
+export function useENSReleaseFee(slug: string | null, enabled: boolean) {
+  const ensAddress = getNetworkContracts(DEFAULT_CHAIN_ID).greenGoodsENS as Address;
+  return useQuery<string | null>({
+    queryKey: ensKeys.releaseFee(slug ?? ""),
+    queryFn: async () => {
+      if (!slug || !isSponsoredENSReleaseUnavailable(ensAddress)) return null;
+      const { publicClient } = createClients(DEFAULT_CHAIN_ID);
+      return (await readReleaseFee(publicClient, ensAddress, slug)).toString();
+    },
+    enabled: enabled && Boolean(slug) && Boolean(ensAddress) && ensAddress !== zeroAddress,
+    staleTime: 0,
+    gcTime: 0,
+    retry: 1,
+  });
 }
 
 export interface ENSReleaseResult {

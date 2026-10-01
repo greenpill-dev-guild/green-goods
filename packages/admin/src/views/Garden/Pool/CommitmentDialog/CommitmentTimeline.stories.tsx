@@ -14,7 +14,7 @@ const meta: Meta<typeof CommitmentTimeline> = {
     docs: {
       description: {
         component:
-          "Everything that has happened to a commitment, newest first, in the words a member would use. Steward language never appears here: a dispute reads as a review.",
+          'Everything that has happened to a commitment, newest first, in the words a member would use. Steward language never appears here: a dispute reads as a review. Each event reads in the viewer\'s own time (PRD-1025 D3): "Today, 3:42 PM", "Yesterday", a weekday this week, then the date and time, with the year only when it isn\'t this one; one "Times in" label names the zone, and hovering a time shows the full moment.',
       },
     },
   },

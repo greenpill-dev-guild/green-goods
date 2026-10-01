@@ -99,6 +99,8 @@ export interface CommitmentReadModel {
   commitmentType?: keyof typeof CommitmentKind | null;
   /** Whether taking this up is open or steward-reviewed. Null until creation is seen. */
   claimMode?: keyof typeof CommitmentClaimMode | null;
+  /** Who may take this up: a person or a garden. Null until creation is seen. */
+  claimType?: keyof typeof CommitmentClaimType | null;
   /**
    * Unix seconds, or null for none. A cycle-scoped commitment without its own
    * date is due at the cycle's end (`selectDueLiveCommitments`).

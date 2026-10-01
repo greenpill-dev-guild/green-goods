@@ -2,12 +2,10 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
-import type { RefObject } from "react";
 import { useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
-import { PoolFundingSection } from "./PoolFundingSection";
 import { poolStatusChip } from "./poolPresentation";
 
 export interface PoolStatusCardProps {
@@ -18,8 +16,6 @@ export interface PoolStatusCardProps {
   onCompostPool: () => void;
   onReopenPool: () => void;
   onReviewLive: () => void;
-  onOpenFundingDetails: () => void;
-  fundingDetailsButtonRef?: RefObject<HTMLButtonElement | null>;
   protocolContext?: boolean;
 }
 
@@ -45,6 +41,7 @@ function Checkline({ done, label }: { done: boolean; label: string }) {
  * the setup facts while a garden is being set up, the one rule a steward
  * consults once it runs (the commitment limit), the charter sentence, and the
  * lifecycle acts. The destructive exit is separated from the safe cluster.
+ * Pool Funding is its own card below this one (PRD-1025 D9).
  */
 export function PoolStatusCard({
   console: pool,
@@ -54,8 +51,6 @@ export function PoolStatusCard({
   onCompostPool,
   onReopenPool,
   onReviewLive,
-  onOpenFundingDetails,
-  fundingDetailsButtonRef,
   protocolContext = false,
 }: PoolStatusCardProps) {
   const { formatMessage } = useIntl();
@@ -224,13 +219,6 @@ export function PoolStatusCard({
               })}
         </Alert>
       ) : null}
-
-      <PoolFundingSection
-        funding={pool.funding}
-        protocolContext={protocolContext}
-        onOpenDetails={onOpenFundingDetails}
-        detailsButtonRef={fundingDetailsButtonRef}
-      />
 
       {running && !model.closure.allowed ? (
         <p className="body-xs text-text-soft" data-slot="close-blocked">
