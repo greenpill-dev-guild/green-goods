@@ -13,10 +13,18 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
+import type { ProofToasts } from "../../../components/Toast/presets/proof";
+import type { EvidenceJobPayload } from "../../../modules/commitment-pooling/jobs";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
 import { hasRecordedSend, isTerminallyFailedJob } from "../../../modules/job-queue/queue-policy";
+import type { Address } from "../../../types/domain";
 import type { Job } from "../../../types/job-queue";
+import type {
+  CommitmentSendReport,
+  useCommitmentJobs,
+} from "../../commitment-pooling/useCommitmentJobs";
+import type { ProofLanding } from "./proof-controller.types";
 import type { ProofContents } from "./proofContents";
 
 /**
@@ -190,7 +198,7 @@ export function followBackgroundProof({
  * only for a send that landed: one still queued, or one that failed, leaves the
  * promise to say where it stands.
  */
-export function followSecondAct({
+function followSecondAct({
   jobId,
   owner,
   byFlush,
@@ -212,4 +220,141 @@ export function followSecondAct({
     followBackgroundProof({ jobId, owner, onEnd, followForMs: 2 * FOLLOW_FOR_MS });
   });
   return async () => (await ended) === "landed";
+}
+
+/**
+ * Queue one prepared proof and follow its feedback beyond the composer.
+ * Form callbacks own their captured draft/scope; send reconciliation outlives it.
+ * False means the queue never admitted the proof and the composer keeps its draft.
+ */
+export async function enqueueProof({
+  jobs,
+  payload,
+  send,
+  withSend,
+  leads,
+  isOnline,
+  toasts,
+  onAdmission,
+  onLanding,
+  onEnqueueSettled,
+  onOpenYourWork,
+}: {
+  jobs: Pick<ReturnType<typeof useCommitmentJobs>, "enqueue" | "sendQueued" | "sendsFromTap">;
+  payload: EvidenceJobPayload;
+  send: Omit<ProofSend, "landed"> & { key: string; owner: Address };
+  withSend: boolean;
+  leads: boolean;
+  isOnline: boolean;
+  toasts: ProofToasts;
+  onAdmission: () => void;
+  onLanding: (landing: ProofLanding) => void;
+  onEnqueueSettled: () => void;
+  onOpenYourWork?: () => void;
+}): Promise<boolean> {
+  // Written by reports; these keep their evolving types through the awaited send.
+  let admittedJobId = null as string | null;
+  let secondActSent = null as (() => Promise<boolean>) | null;
+  let ended = null as "landed" | "declined" | null;
+  let queuedReason = undefined as string | undefined;
+  const onItsWay = () =>
+    startProofSend(send.key, { contents: send.contents, baseline: send.baseline });
+  // The proof is on the record, whatever its second act does next; say sent
+  // only once that act has landed too.
+  const proofLanded = async () => {
+    settleProofSend(send.key, { landed: true });
+    toasts.added({ sent: secondActSent ? await secondActSent() : false, leads });
+  };
+  const sendOver = () => settleProofSend(send.key, { landed: false });
+  // A passkey or embedded sign-in leaves sending to the background flush,
+  // which may pick the proof up immediately, so follow it from admission.
+  const flushSends = !jobs.sendsFromTap && isOnline;
+  const followFlush = (jobId: string) => {
+    onItsWay();
+    followBackgroundProof({
+      jobId,
+      owner: send.owner,
+      onEnd: (outcome) => {
+        if (outcome === "landed") {
+          void proofLanded();
+          return;
+        }
+        sendOver();
+        if (outcome === "declined") toasts.notAdded();
+        else if (outcome === "failed") toasts.couldNotAdd(onOpenYourWork);
+        else toasts.takingLonger();
+      },
+    });
+  };
+  const report = (event: CommitmentSendReport) => {
+    switch (event.stage) {
+      case "admitted":
+        admittedJobId = event.jobId;
+        onAdmission();
+        if (withSend)
+          secondActSent = followSecondAct({
+            jobId: event.followUpJobId ?? null,
+            owner: send.owner,
+            byFlush: flushSends,
+            sendNow: (jobId) => jobs.sendQueued({ jobId, commitmentId: payload.commitmentId }),
+          });
+        if (flushSends) followFlush(event.jobId);
+        return;
+      case "confirming":
+        onItsWay();
+        toasts.confirming();
+        onLanding("sending");
+        return;
+      case "landed":
+        ended = "landed";
+        // Held until the record counts it, even without a confirming stage.
+        onItsWay();
+        onLanding("landed");
+        return;
+      case "declined":
+        ended = "declined";
+        toasts.notAdded();
+        onLanding("declined");
+        return;
+      case "queued":
+        queuedReason = event.reason;
+        onLanding("queued");
+        return;
+    }
+  };
+
+  if (isOnline) toasts.adding({ sendToo: withSend });
+  try {
+    await jobs.enqueue({
+      act: "evidence",
+      payload,
+      report,
+      ...(withSend ? { sendToo: true } : {}),
+    });
+  } catch {
+    onEnqueueSettled();
+    sendOver();
+    if (!admittedJobId) {
+      toasts.dismiss();
+      return false;
+    }
+    toasts.couldNotAdd(onOpenYourWork);
+    onLanding("failed");
+    return true;
+  }
+  onEnqueueSettled();
+
+  if (ended === "landed") void proofLanded();
+  else if (ended === "declined") {
+    // Already said: nothing was sent, and the proof waits on the phone.
+  } else if (!isOnline) toasts.savedOffline();
+  else if (flushSends) {
+    // Followed since admission; the follower says how the flush's send ended.
+  } else {
+    sendOver();
+    if (queuedReason === "awaiting-confirmation") toasts.takingLonger();
+    // Otherwise the wallet send waits its turn; the promise's notice says why.
+    else toasts.dismiss();
+  }
+  return true;
 }

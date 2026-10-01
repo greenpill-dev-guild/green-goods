@@ -14,13 +14,13 @@ import { COMMITMENT_ROW_FRAME } from "./CommitmentRow";
  * progress · 3 kept". Counts that can't be read say so, alone, rather than
  * reading as none or standing on a read that failed (PRD-1029 c9).
  */
-export function groupCountsText(
+function groupCountsParts(
   intl: Pick<IntlShape, "formatMessage">,
   counts: DisplayGroupCounts,
   { unknown = false }: { unknown?: boolean } = {}
-): string {
+): string[] {
   const { formatMessage } = intl;
-  if (unknown) return formatMessage({ id: "app.pool.group.counts.unknown" });
+  if (unknown) return [formatMessage({ id: "app.pool.group.counts.unknown" })];
   const parts = [
     counts.available > 0
       ? formatMessage({ id: "app.pool.group.counts.available" }, { count: counts.available })
@@ -37,7 +37,15 @@ export function groupCountsText(
   if (counts.ended > 0) {
     parts.push(formatMessage({ id: "app.pool.group.counts.ended" }, { count: counts.ended }));
   }
-  return parts.join(" · ");
+  return parts;
+}
+
+export function groupCountsText(
+  intl: Pick<IntlShape, "formatMessage">,
+  counts: DisplayGroupCounts,
+  options: { unknown?: boolean } = {}
+): string {
+  return groupCountsParts(intl, counts, options).join(" · ");
 }
 
 export interface PromiseGroupRowProps {
@@ -73,7 +81,7 @@ export function PromiseGroupRow({
   const primary = title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
   const count = group.counts.published;
   const name = formatMessage({ id: "app.pool.group.row.name" }, { count });
-  const countsLine = groupCountsText(intl, group.counts, { unknown: availabilityUnknown });
+  const countsParts = groupCountsParts(intl, group.counts, { unknown: availabilityUnknown });
   const Element = onOpen ? "button" : "div";
 
   return (
@@ -96,17 +104,22 @@ export function PromiseGroupRow({
         </span>
       </span>
       <span className="flex h-full min-w-0 flex-1 flex-col justify-between">
-        <span className="line-clamp-2 text-sm font-medium leading-5 text-text-strong-950">
+        <span className="line-clamp-2 text-sm font-medium leading-[18px] text-text-strong-950">
           <span className="sr-only">{name}: </span>
           {primary}
         </span>
         <span
-          className="flex h-[22px] min-w-0 items-center text-xs text-text-sub-600"
+          className="flex min-h-7 min-w-0 flex-wrap content-end items-center gap-x-1 text-xs leading-[14px] text-text-sub-600"
           data-availability={availabilityUnknown ? "unknown" : "known"}
         >
-          <span className="min-w-0 truncate" title={countsLine}>
-            {countsLine}
-          </span>
+          {countsParts.map((part, index) => (
+            <span key={part} className="whitespace-nowrap">
+              {index > 0 ? <span aria-hidden="true">{" · "}</span> : null}
+              <span className={index === 0 && !availabilityUnknown ? "font-semibold" : undefined}>
+                {part}
+              </span>
+            </span>
+          ))}
         </span>
       </span>
     </Element>

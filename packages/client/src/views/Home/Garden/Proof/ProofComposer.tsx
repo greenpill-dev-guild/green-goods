@@ -1,4 +1,6 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { isHeicFile, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
 import type { ProofBeat } from "@green-goods/shared/hooks/client-ui/commitment/proofReadiness";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
@@ -91,6 +93,12 @@ export function ProofComposer() {
   // took is still this form.
   const handedOver = useRef(false);
   useEffect(() => {
+    setBeat("media");
+    setPreviewIndex(null);
+    setPromiseOpen(false);
+    handedOver.current = false;
+  }, [commitmentId, controller.viewer]);
+  useEffect(() => {
     if (!controller.landing || handedOver.current) return;
     handedOver.current = true;
     toPromise();
@@ -101,7 +109,13 @@ export function ProofComposer() {
       <ProofState
         kind={controller.status === "ready" ? "loading" : (controller.status as ProofStateKind)}
         onBack={toPromise}
-        onRetry={controller.status === "error" ? () => void controller.refetch() : undefined}
+        onRetry={
+          controller.status === "draftRestoreFailed"
+            ? controller.retryDraftRestore
+            : controller.status === "error"
+              ? () => void controller.refetch()
+              : undefined
+        }
       />
     );
   }
@@ -208,10 +222,21 @@ export function ProofComposer() {
             isRecording={controller.isRecording}
             onToggleRecording={controller.toggleRecording}
             advanceLabel={advanceLabel}
-            canAdvance={readiness.canAdvance}
+            canAdvance={readiness.canAdvance && controller.draftPersistence === "saved"}
             // Only Review sends, so only its act spins while the proof is added.
             isPending={beat === "review" && controller.isPending}
-            blockedReason={blockedReasonId ? formatMessage({ id: blockedReasonId }) : null}
+            blockedReason={
+              controller.draftPersistence !== "saved"
+                ? formatMessage({
+                    id:
+                      controller.draftPersistence === "failed"
+                        ? "app.proof.draft.saveRequired"
+                        : "app.proof.draft.saving",
+                  })
+                : blockedReasonId
+                  ? formatMessage({ id: blockedReasonId })
+                  : null
+            }
             onAdvance={() =>
               beat === "review"
                 ? void controller.submit()
@@ -220,6 +245,18 @@ export function ProofComposer() {
           />
         }
       >
+        {controller.draftPersistence === "failed" ? (
+          <Alert
+            variant="warning"
+            action={
+              <Button type="button" emphasis="secondary" onClick={controller.retryDraftSave}>
+                {formatMessage({ id: "app.proof.draft.saveRetry" })}
+              </Button>
+            }
+          >
+            {formatMessage({ id: "app.proof.draft.saveFailed" })}
+          </Alert>
+        ) : null}
         {beat === "media" ? (
           <ProofMedia
             media={controller.media}

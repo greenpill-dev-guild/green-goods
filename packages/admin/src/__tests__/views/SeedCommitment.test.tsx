@@ -581,6 +581,24 @@ describe("SeedCommitmentDialog", () => {
     expect(mocks.built).toEqual([]);
   });
 
+  it("creates no rewarded payload if the fresh reserve read fails after review", async () => {
+    mocks.settlementActive = true;
+    mocks.price = { status: "ready", price: SHOWN_PRICE, readAt: Date.now() };
+    renderSeed();
+    await toProof();
+    fireEvent.click(within(dialog()).getByRole("radio", { name: /^yes/i }));
+    fireEvent.change(within(dialog()).getByLabelText(/^amount for each/i), {
+      target: { value: "5.00" },
+    });
+    next();
+    await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
+    mocks.readNow.mockRejectedValueOnce(new Error("reserve read reverted"));
+    create();
+    await waitFor(() => expect(mocks.readNow).toHaveBeenCalled());
+    expect(mocks.built).toEqual([]);
+    await waitFor(() => expect(screen.getByTestId("seed-review")).toHaveTextContent(/price/i));
+  });
+
   it("keeps the reward at No until the garden's settlement account is active", async () => {
     renderSeed();
     await toProof();

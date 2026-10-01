@@ -119,6 +119,90 @@ function commitmentPayload(
   };
 }
 
+describe("display-group creation deadline", () => {
+  it.each([
+    { label: "just before", reconciledAt: 1_999, expected: "sent" },
+    { label: "exactly at", reconciledAt: 2_000, expected: "waiting" },
+    { label: "after", reconciledAt: 2_001, expected: "waiting" },
+  ])("checks $label the deadline after fresh identity and membership reads", async (test) => {
+    const clock = vi.spyOn(Date, "now").mockReturnValue(1_000_000);
+    try {
+      const deps = dependencies({
+        hasMembership: vi.fn().mockImplementation(async () => {
+          clock.mockReturnValue(test.reconciledAt * 1000);
+          return true;
+        }),
+      });
+      const result = await executeCommitmentJob(
+        {
+          id: "copy",
+          kind: "commitment",
+          payload: commitmentPayload({
+            dueDate: 2_000n,
+            metadata: {
+              version: 1,
+              title: "Survey",
+              displayGroup: { version: 1, id: "group-00000001" },
+            },
+          }),
+          chainId: 42161,
+          moduleAddress: MODULE,
+          userAddress: HOLDER,
+        },
+        deps
+      );
+      expect(result.status).toBe(test.expected);
+      if (test.expected === "waiting") {
+        expect(result).toEqual({ status: "waiting", reason: "group-deadline-passed" });
+        expect(deps.send).not.toHaveBeenCalled();
+      } else expect(deps.send).toHaveBeenCalledOnce();
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it("blocks a fresh expired child but preserves legacy creation and broadcast recovery", async () => {
+    const payload = commitmentPayload({
+      dueDate: 1n,
+      metadata: { version: 1, title: "Survey", displayGroup: { version: 1, id: "group-00000001" } },
+    });
+    const job: CommitmentJob<"commitment"> = {
+      id: "copy",
+      kind: "commitment",
+      payload,
+      chainId: 42161,
+      moduleAddress: MODULE,
+      userAddress: HOLDER,
+    };
+    const deps = dependencies();
+    await expect(executeCommitmentJob(job, deps)).resolves.toEqual({
+      status: "waiting",
+      reason: "group-deadline-passed",
+    });
+    expect(deps.send).not.toHaveBeenCalled();
+    await expect(
+      executeCommitmentJob({ ...job, submittedTxHash: ZERO_HASH }, deps)
+    ).resolves.toEqual({ status: "waiting", reason: "pending-first-send" });
+    expect(deps.send).not.toHaveBeenCalled();
+    const recovered = dependencies({
+      readCommitmentId: vi.fn().mockResolvedValue(77n),
+      readCommitment: vi.fn().mockResolvedValue({
+        poolId: payload.poolId,
+        creator: HOLDER,
+        creationPayloadHash: hashCommitmentCreationPayload(payload),
+      }),
+    });
+    await expect(executeCommitmentJob(job, recovered)).resolves.toEqual({
+      status: "recovered",
+      entityId: 77n,
+    });
+    expect(recovered.send).not.toHaveBeenCalled();
+    await expect(
+      executeCommitmentJob({ ...job, payload: { ...payload, metadata: undefined } }, deps)
+    ).resolves.toMatchObject({ status: "sent" });
+  });
+});
+
 describe("commitment offline job vocabulary", () => {
   it("contains the six frozen kinds and no online settlement/transfer kind", () => {
     expect(COMMITMENT_JOB_KINDS).toEqual([

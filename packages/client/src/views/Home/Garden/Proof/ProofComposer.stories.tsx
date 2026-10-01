@@ -3,9 +3,12 @@ import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useProofComposerController";
 import { useCommitmentCycle } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
+import { IntlProvider } from "react-intl";
 import { Route, Routes } from "react-router-dom";
-import { expect, mocked, userEvent, within } from "storybook/test";
+import { expect, fn, mocked, userEvent, within } from "storybook/test";
 import {
   AUTUMN_PLANTING,
   JOURNEY_CYCLE_NAMES,
@@ -59,6 +62,23 @@ const atStage = (stage: ProofStage) => () => {
   );
 };
 
+const atRecovery = (kind: "loading" | "restoreFailed" | "saveFailed") => () => {
+  const cleanup = atStage("mediaAdded")();
+  mocked(useProofComposerController).mockReturnValue({
+    ...proofFlowFixture("mediaAdded"),
+    status:
+      kind === "loading"
+        ? "restoringDraft"
+        : kind === "restoreFailed"
+          ? "draftRestoreFailed"
+          : "ready",
+    draftPersistence: kind === "saveFailed" ? "failed" : "saving",
+    retryDraftRestore: fn(),
+    retryDraftSave: fn(),
+  });
+  return cleanup;
+};
+
 type Canvas = ReturnType<typeof within>;
 // A click leaves focus on the forward act, where a finger's tap would not ring it.
 const blur = () => (document.activeElement as HTMLElement | null)?.blur();
@@ -93,6 +113,43 @@ const meta: Meta<typeof ProofComposer> = {
 
 export default meta;
 type Story = StoryObj<typeof ProofComposer>;
+
+const inLocale =
+  (locale: "es" | "pt"): Decorator =>
+  (Story) => (
+    <IntlProvider locale={locale} messages={locale === "es" ? es : pt}>
+      <Story />
+    </IntlProvider>
+  );
+
+const recoveryInLocale =
+  (locale: "es" | "pt", kind: "restoreFailed" | "saveFailed"): Story["play"] =>
+  async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const messages = locale === "es" ? es : pt;
+    if (kind === "restoreFailed") {
+      await expect(canvas.getByText(messages["app.proof.draft.restoreFailed.title"])).toBeVisible();
+      await userEvent.click(
+        canvas.getByRole("button", { name: messages["app.proof.draft.restoreRetry"] })
+      );
+      await expect(
+        mocked(useProofComposerController).mock.results.at(-1)?.value.retryDraftRestore
+      ).toHaveBeenCalledOnce();
+    } else {
+      const remove = messages["app.garden.upload.removeMedia"].replace("{index}", "2");
+      await expect(canvas.getByRole("button", { name: remove })).toBeVisible();
+      await expect(
+        canvas.getByRole("button", { name: messages["app.proof.next.details"] })
+      ).toBeDisabled();
+      await userEvent.click(
+        canvas.getByRole("button", { name: messages["app.proof.draft.saveRetry"] })
+      );
+      await expect(
+        mocked(useProofComposerController).mock.results.at(-1)?.value.retryDraftSave
+      ).toHaveBeenCalledOnce();
+      await expect(canvas.getByRole("button", { name: remove })).toBeVisible();
+    }
+  };
 
 /** Nothing added yet: no tap box; the bar's photo, camera and voice tools add proof (O1). */
 export const Media: Story = {
@@ -263,4 +320,73 @@ export const SigningSend: Story = {
   play: async ({ canvasElement }) => {
     await toReview(within(canvasElement));
   },
+};
+
+/** Reading the device draft: the form waits instead of flashing empty. */
+export const DraftRestoring: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atRecovery("loading"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("status")).toHaveTextContent("Restoring your proof…");
+    await expect(canvas.queryByRole("button", { name: "Details" })).toBeNull();
+  },
+};
+
+/** A rejected read leaves durable content untouched and offers same-key restore. */
+export const DraftRestoreFailed: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atRecovery("restoreFailed"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Couldn’t restore your proof")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Restore draft" }));
+    await expect(
+      mocked(useProofComposerController).mock.results.at(-1)?.value.retryDraftRestore
+    ).toHaveBeenCalledOnce();
+    await expect(canvas.queryByRole("button", { name: "Details" })).toBeNull();
+  },
+};
+
+/** Current media stays available for removal; retry saves current edits, not an old draft. */
+export const DraftSaveFailed: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atRecovery("saveFailed"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "Remove media 2" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Details" })).toBeDisabled();
+    await expect(canvas.getByRole("button", { name: "Details" })).toHaveAccessibleDescription(
+      "Save your latest changes before continuing."
+    );
+    await userEvent.click(canvas.getByRole("button", { name: "Save latest changes" }));
+    await expect(
+      mocked(useProofComposerController).mock.results.at(-1)?.value.retryDraftSave
+    ).toHaveBeenCalledOnce();
+    await expect(canvas.getByRole("button", { name: "Remove media 2" })).toBeVisible();
+  },
+};
+
+export const DraftRestoreFailedSpanish: Story = {
+  ...DraftRestoreFailed,
+  decorators: [inLocale("es")],
+  play: recoveryInLocale("es", "restoreFailed"),
+};
+
+export const DraftRestoreFailedPortuguese: Story = {
+  ...DraftRestoreFailed,
+  decorators: [inLocale("pt")],
+  play: recoveryInLocale("pt", "restoreFailed"),
+};
+
+export const DraftSaveFailedSpanish: Story = {
+  ...DraftSaveFailed,
+  decorators: [inLocale("es")],
+  play: recoveryInLocale("es", "saveFailed"),
+};
+
+export const DraftSaveFailedPortuguese: Story = {
+  ...DraftSaveFailed,
+  decorators: [inLocale("pt")],
+  play: recoveryInLocale("pt", "saveFailed"),
 };

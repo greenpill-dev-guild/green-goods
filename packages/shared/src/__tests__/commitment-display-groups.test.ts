@@ -36,6 +36,8 @@ function record(
 ): GroupableCommitment & { id: string } {
   return {
     id: overrides.id ?? `c${++nextId}`,
+    creationSeen: true,
+    requirements: [],
     chainId: 42161,
     onchainState: "REQUESTED",
     cycleId: 3n,
@@ -55,6 +57,7 @@ function record(
     direction: "REQUEST",
     commitmentType: "SUPPORT_SERVICE",
     claimMode: "OPEN",
+    claimType: "INDIVIDUAL",
     dueDate: 1_790_000_000n,
     requiresAssessment: false,
     contributorPolicy: "LEAD_MANAGED",
@@ -86,16 +89,16 @@ describe("promises shown as groups", () => {
       metadataByCID: metadata,
     });
 
-    expect(entries.map((entry) => entry.kind)).toEqual(["single", "group", "single"]);
+    expect(entries.map((entry) => entry.kind)).toEqual(["single", "group", "single", "single"]);
     const group = entries[1];
     expect(group?.kind === "group" && group.displayGroupId).toBe(WATER);
     expect(group?.kind === "group" && group.counts).toEqual({
-      published: 11,
+      published: 10,
       available: 4,
       inProgress: 3,
       kept: 2,
       ended: 1,
-      other: 1,
+      other: 0,
     });
   });
 
@@ -117,6 +120,64 @@ describe("promises shown as groups", () => {
     expect(
       entries.map((entry) => (entry.kind === "group" ? entry.children.length : "single"))
     ).toEqual([5, 2, 2, 2, 2]);
+  });
+
+  it("requires known matching action/count terms and task content, while ignoring reward records", () => {
+    const documents = new Map(metadata);
+    documents.set("cid-other-task", {
+      ...metadata.get("cid-water")!,
+      note: "Repair the compost bins",
+    });
+    documents.set("cid-new-reward", {
+      ...metadata.get("cid-water")!,
+      reward: { version: 1, usdCents: "700", goodDollarWei: "7000" },
+    });
+    const entries = groupCommitmentsForDisplay({
+      commitments: [
+        ...copies(2, { requirements: [{ actionUID: 44n, requiredCount: 2 }] }),
+        ...copies(2, { requirements: [{ actionUID: 45n, requiredCount: 2 }] }),
+        ...copies(2, { requirements: [{ actionUID: 44n, requiredCount: 3 }] }),
+        ...copies(2, { metadataCID: "cid-other-task" }),
+        ...copies(2, { requirements: null }),
+        ...copies(2, { metadataCID: "cid-new-reward" }),
+        ...copies(2),
+      ],
+      metadataByCID: documents,
+    });
+    expect(
+      entries.map((entry) => (entry.kind === "group" ? entry.children.length : "single"))
+    ).toEqual([2, 2, 2, 2, "single", "single", 4]);
+  });
+
+  it("separates titles and links under one id, including delimiter-like content", () => {
+    const documents = new Map(metadata);
+    documents.set("cid-other-title", { ...metadata.get("cid-water")!, title: "Water | survey" });
+    documents.set("cid-other-link", {
+      ...metadata.get("cid-water")!,
+      links: [{ url: "https://example.com/survey", label: "Field guide" }],
+    });
+    const entries = groupCommitmentsForDisplay({
+      commitments: [
+        ...copies(2),
+        ...copies(2, { metadataCID: "cid-other-title" }),
+        ...copies(2, { metadataCID: "cid-other-link" }),
+      ],
+      metadataByCID: documents,
+    });
+    expect(entries).toHaveLength(3);
+    expect(entries.every((entry) => entry.kind === "group" && entry.children.length === 2)).toBe(
+      true
+    );
+  });
+
+  it("keeps a later metadata document individual even if it carries a familiar group hint", () => {
+    const documents = new Map(metadata);
+    documents.set("cid-water", { ...metadata.get("cid-water")!, version: 2 });
+    expect(
+      groupCommitmentsForDisplay({ commitments: copies(2), metadataByCID: documents }).map(
+        (entry) => entry.kind
+      )
+    ).toEqual(["single", "single"]);
   });
 
   it("shows ordinary rows when the group can't be read", () => {
@@ -144,6 +205,47 @@ describe("promises shown as groups", () => {
       expect(entries.every((entry) => entry.kind === "single")).toBe(true);
       expect(entries).toHaveLength(commitments.length);
     }
+  });
+
+  it.each([
+    { unknown: "unseen creation", terms: { creationSeen: false } },
+    { unknown: "UNKNOWN lifecycle", terms: { onchainState: "UNKNOWN" as const } },
+    { unknown: "missing claim type", terms: { claimType: undefined } },
+    { unknown: "UNKNOWN claim type", terms: { claimType: "UNKNOWN" as const } },
+    { unknown: "missing assessment rule", terms: { requiresAssessment: undefined } },
+    { unknown: "missing fallback rule", terms: { protocolFallbackEnabled: undefined } },
+    { unknown: "missing confirmer list", terms: { confirmers: undefined } },
+    { unknown: "missing threshold", terms: { confirmationThreshold: undefined } },
+    { unknown: "missing deadline", terms: { dueDate: undefined } },
+    { unknown: "missing consideration rail", terms: { considerationRail: undefined } },
+    { unknown: "UNKNOWN consideration rail", terms: { considerationRail: "UNKNOWN" as const } },
+    { unknown: "missing consideration source", terms: { considerationSource: undefined } },
+    { unknown: "missing series sentinel", terms: { commitmentSeriesId: undefined } },
+    { unknown: "missing unit label", terms: { unitLabel: undefined } },
+    { unknown: "missing creator", terms: { creator: undefined } },
+  ])("leaves siblings with $unknown individual instead of inferring compatibility", ({ terms }) => {
+    const entries = groupCommitmentsForDisplay({
+      commitments: copies(2, terms),
+      metadataByCID: metadata,
+    });
+    expect(entries.map((entry) => entry.kind)).toEqual(["single", "single"]);
+  });
+
+  it("groups explicit no-deadline and no-consideration terms without treating false as missing", () => {
+    const entries = groupCommitmentsForDisplay({
+      commitments: copies(2, {
+        dueDate: null,
+        considerationRail: "NONE",
+        considerationSource: null,
+        considerationToken: null,
+        commitmentSeriesId: null,
+        requiresAssessment: false,
+        protocolFallbackEnabled: false,
+      }),
+      metadataByCID: metadata,
+    });
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ kind: "group", counts: { published: 2 } });
   });
 
   it("shows a lone published copy as an ordinary row", () => {

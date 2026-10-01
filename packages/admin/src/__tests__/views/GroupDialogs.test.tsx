@@ -17,6 +17,8 @@ import { buildCommitmentMetadata } from "@green-goods/shared/modules/commitment-
 import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addToGroupRefusal } from "@/views/Garden/Pool/Group/addToGroupStatus";
+import { createIntl } from "react-intl";
+import { editRewardSummary } from "@/views/Garden/Pool/Group/editRewardStatus";
 import { editRewardStatus } from "@/views/Garden/Pool/Group/editRewardStatus";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
@@ -94,7 +96,12 @@ const { EditRewardDialog } = await import("@/views/Garden/Pool/Group/EditRewardD
 const { AddToGroupDialog } = await import("@/views/Garden/Pool/Group/AddToGroupDialog");
 const { SeedMoreDialog } = await import("@/views/Garden/Pool/Group/SeedMoreDialog");
 
-function renderDialog(props: { settlementActive?: boolean } = {}) {
+function renderDialog(
+  props: {
+    settlementActive?: boolean;
+    availableRewards?: readonly { wei: bigint | null; centsAsSet: bigint | null }[];
+  } = {}
+) {
   const onChanged = vi.fn();
   renderWithProviders(
     <EditRewardDialog
@@ -106,7 +113,18 @@ function renderDialog(props: { settlementActive?: boolean } = {}) {
       isProtocol={false}
       title="Compost bin check-ins"
       available={[3n, 4n, 5n, 6n]}
+      availableRewards={
+        props.availableRewards ??
+        Array.from({ length: 4 }, () => ({
+          wei: 23_319_457_863_579_084_743_441n,
+          centsAsSet: 300n,
+        }))
+      }
       takenBy={["Joon Park", "Sofia Mendes"]}
+      takenRewards={[
+        { wei: 23_319_457_863_579_084_743_441n, centsAsSet: 300n },
+        { wei: 23_319_457_863_579_084_743_441n, centsAsSet: 300n },
+      ]}
       currentWei={23_319_457_863_579_084_743_441n}
       currentCentsAsSet={300n}
       settlementActive={props.settlementActive ?? true}
@@ -159,7 +177,7 @@ describe("Edit Reward", () => {
   it("gives every copy nobody has taken the new dollars in G$ at the price read for the change", async () => {
     const { onChanged } = renderDialog();
     expect(screen.getByTestId("edit-reward")).toHaveTextContent(
-      "Joon Park and Sofia Mendes took theirs at $3.00 and keep it."
+      "Joon Park and Sofia Mendes keep the rewards agreed at take-up."
     );
     // It starts at the reward as set, which would change nothing.
     expect(within(dialog()).getByRole("button", { name: "Change 4 Rewards" })).toBeDisabled();
@@ -211,7 +229,6 @@ describe("Edit Reward's summary", () => {
       copies,
       available: copies.length,
       takenBy: [],
-      current: "$3.00",
       formatMessage: ({ defaultMessage }) => defaultMessage,
       formatList: (items) => items.join(", "),
     });
@@ -224,6 +241,85 @@ describe("Edit Reward's summary", () => {
     ["changed", [copy(3n, "changed")], "changed", []],
   ] as const)("reads a %s change, with what Try Again would send", (_, copies, phase, retry) => {
     expect(view([...copies])).toMatchObject({ phase, retry });
+  });
+});
+
+describe("reward totals after earlier edits", () => {
+  it("sums mixed untaken child amounts in the real dialog after a partial earlier edit", () => {
+    mocks.price = { status: "ready", price: SHOWN_PRICE, readAt: Date.now() };
+    renderDialog({
+      availableRewards: [
+        { wei: 23_319_457_863_579_084_743_441n, centsAsSet: 300n },
+        { wei: 23_319_457_863_579_084_743_441n, centsAsSet: 300n },
+        { wei: 38_865_763_105_965_141_239_068n, centsAsSet: 500n },
+        { wei: 38_865_763_105_965_141_239_068n, centsAsSet: 500n },
+      ],
+    });
+    expect(screen.getByTestId("edit-reward")).toHaveTextContent("2 × $3.00 · 2 × $5.00");
+    expect(screen.getByTestId("edit-reward")).toHaveTextContent("up to $22.00");
+    expect(within(dialog()).getByRole("button", { name: "Change 4 Rewards" })).toBeEnabled();
+    fireEvent.change(within(dialog()).getByLabelText(/^amount for each/i), {
+      target: { value: "7.00" },
+    });
+    expect(screen.getByTestId("edit-reward")).toHaveTextContent("up to $22.00 → up to $34.00");
+  });
+  it("shows an unknown available before-total honestly in the real dialog", () => {
+    mocks.price = { status: "ready", price: SHOWN_PRICE, readAt: Date.now() };
+    renderDialog({
+      availableRewards: [
+        { wei: 23_319_457_863_579_084_743_441n, centsAsSet: 300n },
+        { wei: 23_319_457_863_579_084_743_441n, centsAsSet: 300n },
+        { wei: 38_865_763_105_965_141_239_068n, centsAsSet: 500n },
+        { wei: null, centsAsSet: null },
+      ],
+    });
+    expect(screen.getByTestId("edit-reward")).toHaveTextContent("2 × $3.00 · 1 × $5.00 · 1 × —");
+    fireEvent.change(within(dialog()).getByLabelText(/^amount for each/i), {
+      target: { value: "7.00" },
+    });
+    expect(screen.getByTestId("edit-reward")).toHaveTextContent("— → up to $34.00");
+  });
+  const intl = createIntl({ locale: "en", messages: {} });
+  const rows = (
+    taken: Array<{ current: string; readCents: bigint | null; estimated: boolean }>,
+    available: Array<{
+      current: string;
+      readCents: bigint | null;
+      estimated: boolean;
+    }> = Array.from({ length: 4 }, () => ({ current: "$5.00", readCents: 500n, estimated: false }))
+  ) =>
+    editRewardSummary({
+      available,
+      taken,
+      newCents: 700n,
+      formatUsd: (cents) => `$${Number(cents) / 100}.00`,
+      formatMessage: intl.formatMessage,
+    });
+  it("preserves three $3 agreements while four available rewards move from $5 to $7", () => {
+    const summary = rows(
+      Array.from({ length: 3 }, () => ({ current: "$3.00", readCents: 300n, estimated: false }))
+    );
+    expect(summary[1]?.[1]).toBe("3 × $3.00 · unchanged, as agreed");
+    expect(summary[2]?.[1]).toBe("up to $29.00 → up to $37.00");
+  });
+  it("sums distinct taken agreements, labels estimates and refuses unknown totals", () => {
+    const agreements = [
+      { current: "$3.00", readCents: 300n, estimated: false },
+      { current: "about $5.00", readCents: 500n, estimated: true },
+    ];
+    expect(rows(agreements)[1]?.[1]).toBe("1 × $3.00 · 1 × about $5.00 · unchanged, as agreed");
+    expect(rows(agreements)[2]?.[1]).toBe("up to about $28.00 → up to about $36.00");
+    expect(rows([{ current: "10 G$", readCents: null, estimated: true }])[2]?.[1]).toBe("— → —");
+  });
+  it("refuses an unknown available before-total while computing only a known replacement total", () => {
+    const summary = rows(
+      [],
+      [
+        { current: "$5.00", readCents: 500n, estimated: false },
+        { current: "—", readCents: null, estimated: true },
+      ]
+    );
+    expect(summary.at(-1)?.[1]).toBe("— → up to $14.00");
   });
 });
 

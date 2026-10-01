@@ -17,6 +17,8 @@ export type ProofComposerStatus =
   | "error"
   | "notYours"
   | "closed"
+  | "restoringDraft"
+  | "draftRestoreFailed"
   | "ready";
 
 /**
@@ -61,6 +63,11 @@ export interface ProofComposerController {
   isRecording: boolean;
   recordingElapsed: number;
   isPending: boolean;
+  /** Both the latest attachments and words/count metadata have to be durable. */
+  draftPersistence: "saving" | "saved" | "failed";
+  retryDraftRestore: () => void;
+  /** Saves current edits; never reloads older durable files over this form. */
+  retryDraftSave: () => void;
   landing: ProofLanding | null;
   /**
    * D19: whether Review may offer "Send for confirmation too": the reader leads,

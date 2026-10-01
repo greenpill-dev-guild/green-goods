@@ -284,7 +284,12 @@ export function PoolCommitmentsCard({
                     type="button"
                     variant="outlined"
                     size="sm"
-                    disabled={!isOnline || busyJobId !== null}
+                    disabled={
+                      !isOnline ||
+                      busyJobId !== null ||
+                      (!row.hasRecordedSend &&
+                        isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now))
+                    }
                     loading={busyJobId === row.jobId}
                     onClick={() => void runQueued(row.jobId, acts.retryQueued)}
                   >
@@ -301,6 +306,16 @@ export function PoolCommitmentsCard({
                   </AdminButton>
                 </span>
                 <div className="basis-full">
+                  {!row.hasRecordedSend &&
+                  isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now) ? (
+                    <p className="body-xs text-text-soft">
+                      {formatMessage({
+                        id: "cockpit.garden.pool.add.expired",
+                        defaultMessage:
+                          "This group's deadline has passed, so nothing can join it. Start a new group instead.",
+                      })}
+                    </p>
+                  ) : null}
                   <ActPhaseLine
                     phase={pool.queuedPhase(row.jobId)}
                     chainId={pool.chainId}

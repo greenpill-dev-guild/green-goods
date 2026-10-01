@@ -333,6 +333,26 @@ describe("work and approval job executors", () => {
 });
 
 describe("commitment queue executor", () => {
+  it("refuses a fresh expired group creation at the queue send boundary", async () => {
+    const sender = createMockTransactionSender();
+    const queued = job(
+      "commitment",
+      commitmentPayload({
+        dueDate: 1n,
+        metadata: { version: 1, title: "Compost", displayGroup: { version: 1, id: "group-1" } },
+      })
+    );
+
+    await expect(
+      executeCommitmentQueueJob(queued.id, queued, 42161, sender, {
+        demoActive: () => false,
+        reads: reads(),
+        store: store(),
+      })
+    ).resolves.toEqual({ status: "waiting", reason: "group-deadline-passed" });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("never reaches reads or sends while demo pooling is active", async () => {
     const chainReads = reads();
     const sender = createMockTransactionSender();

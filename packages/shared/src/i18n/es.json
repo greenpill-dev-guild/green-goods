@@ -2910,6 +2910,14 @@
   "app.profile.urlCopied": "URL copiada",
   "app.profile.urlCopiedMessage": "URL del perfil copiada al portapapeles",
   "app.proof.beat.details": "Detalles",
+  "app.proof.draft.loading": "Restaurando tu prueba…",
+  "app.proof.draft.restoreFailed.title": "No se pudo restaurar tu prueba",
+  "app.proof.draft.restoreFailed.body": "Tu borrador guardado no se ha reemplazado. Intenta restaurarlo de nuevo antes de continuar.",
+  "app.proof.draft.restoreRetry": "Restaurar borrador",
+  "app.proof.draft.saving": "Guardando esta prueba en tu dispositivo…",
+  "app.proof.draft.saveFailed": "Tus últimos cambios no están guardados en este dispositivo. Mantén esta página abierta e intenta guardarlos de nuevo, o elimina un archivo adjunto para liberar espacio.",
+  "app.proof.draft.saveRetry": "Guardar los últimos cambios",
+  "app.proof.draft.saveRequired": "Guarda tus últimos cambios antes de continuar.",
   "app.proof.beat.media": "Medios",
   "app.proof.blocked.credit": "Nombra al menos a una persona que hizo esto.",
   "app.proof.blocked.nothing": "Primero añade una foto, una nota de voz, un enlace o unas palabras.",
@@ -6488,5 +6496,8 @@
   "app.pool.group.sheet.failed": "No se completó y no cambió nada. Puedes intentarlo de nuevo.",
   "cockpit.hub.confirm.fromGroup": "de un grupo de {count}",
   "cockpit.hub.confirm.outcome.confirmed": "Confirmada",
-  "cockpit.hub.confirm.outcome.queued": "En cola en este dispositivo"
+  "cockpit.hub.confirm.outcome.queued": "En cola en este dispositivo",
+  "cockpit.garden.pool.reward.readyTakenAgreements": "{count, plural, one {{names} conserva la recompensa acordada al asumirla.} other {{names} conservan las recompensas acordadas al asumirlas.}}",
+  "cockpit.garden.pool.reward.takenKeepAgreements": "{amounts} · sin cambios, según lo acordado",
+  "cockpit.garden.pool.group.rewardAgreements": "{available} disponibles a {amount} cada una en G$ · recompensas asumidas: {taken}"
 }

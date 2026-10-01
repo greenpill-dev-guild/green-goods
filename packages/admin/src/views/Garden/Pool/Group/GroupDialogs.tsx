@@ -81,7 +81,7 @@ export function GroupDialogs({
   if (!first) return null;
 
   const metadata = first.metadataCID ? (pool.titles.get(first.metadataCID.trim()) ?? null) : null;
-  const reward = groupReward(group.children, metadata);
+  const reward = groupReward(group.children, pool.titles);
   const terms = groupTerms({
     intl,
     children: group.children,
@@ -98,6 +98,9 @@ export function GroupDialogs({
   const dueMs = Number(first.dueDate ?? 0n) * 1000;
   const template =
     group.children.find((child) => displayBucketOf(child.onchainState) === "available") ?? first;
+  const templateMetadata = template.metadataCID
+    ? (pool.titles.get(template.metadataCID.trim()) ?? null)
+    : null;
   const rewardCents =
     reward.currentWei === null
       ? null
@@ -168,7 +171,7 @@ export function GroupDialogs({
             displayGroupId: group.displayGroupId,
             dueDate: first.dueDate ?? 0n,
             templateCommitmentId: template.commitmentId,
-            metadata: metadata ?? { version: 1, title },
+            metadata: templateMetadata ?? { version: 1, title },
             gardenAddress: garden,
           }}
           title={title}
@@ -199,9 +202,11 @@ export function GroupDialogs({
           isProtocol={isProtocol}
           title={title}
           available={edit.open ? edit.targets.map((child) => child.commitmentId) : []}
+          availableRewards={reward.available}
           takenBy={takers.map((who: Address) =>
             formatEnsAddressName(who, ensNames.get(who.toLowerCase()))
           )}
+          takenRewards={reward.taken}
           currentWei={reward.currentWei}
           currentCentsAsSet={reward.centsAsSet}
           settlementActive={Boolean(settlement.detail?.account?.active)}

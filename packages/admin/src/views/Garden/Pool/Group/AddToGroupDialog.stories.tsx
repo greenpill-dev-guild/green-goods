@@ -1,6 +1,9 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import { buildCommitmentMetadata } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { Meta, StoryObj } from "@storybook/react";
+import { IntlProvider } from "react-intl";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
@@ -59,6 +62,44 @@ export default meta;
 type Story = StoryObj<typeof AddToGroupDialog>;
 
 export const Ready: Story = {};
+
+export const Spanish: Story = {
+  decorators: [
+    (Story) => (
+      <IntlProvider locale="es" messages={es}>
+        <Story />
+      </IntlProvider>
+    ),
+  ],
+  args: {
+    title: "Encuesta sobre el agua en los hogares",
+    terms: [
+      ["Cada una pide", "1 encuesta · El fondo solicita"],
+      ["Vence", "mié, 28 ene 2026, 00:00 UTC"],
+      ["Recompensa", "5,00 US$ cada una en G$ (38.866 G$, el importe del grupo)"],
+      ["Modo de solicitud · confirmadores", "Abierto · Lina Park y 2 más"],
+    ],
+  },
+};
+
+export const Portuguese: Story = {
+  decorators: [
+    (Story) => (
+      <IntlProvider locale="pt" messages={pt}>
+        <Story />
+      </IntlProvider>
+    ),
+  ],
+  args: {
+    title: "Pesquisa sobre a água das famílias",
+    terms: [
+      ["Cada uma pede", "1 pesquisa · O fundo solicita"],
+      ["Prazo", "qua, 28 jan 2026, 00:00 UTC"],
+      ["Recompensa", "US$ 5,00 cada em G$ (38.866 G$, o valor do grupo)"],
+      ["Modo de solicitação · confirmadores", "Aberto · Lina Park e mais 2"],
+    ],
+  },
+};
 
 /** A group without a reward: the comparison leaves the reward row out. */
 export const NoReward: Story = {

@@ -30,10 +30,11 @@ const ROUTE = "0x4444444444444444444444444444444444444444" as Address;
 const HER_GARDEN = "0x5555555555555555555555555555555555555555" as Address;
 const SHE_STEWARDS = "0x6666666666666666666666666666666666666666" as Address;
 
-const copy = (id: number) =>
+const copy = (id: number, claimType: "INDIVIDUAL" | "GARDEN" = "INDIVIDUAL") =>
   commitmentFixture({
     commitmentId: BigInt(id),
     direction: "REQUEST",
+    claimType,
     onchainState: "REQUESTED",
     derivedState: "REQUESTED",
     creator: STEWARD,
@@ -145,7 +146,10 @@ describe("usePromiseGroupController", () => {
     mocks.metadataFailed = false;
     mocks.membershipUnavailable = false;
     mocks.detail.mockImplementation(async (id: bigint) =>
-      commitmentDetailFixture({ commitment: copy(Number(id)) })
+      commitmentDetailFixture({
+        commitment:
+          mocks.commitments.find((record) => record.commitmentId === id) ?? copy(Number(id)),
+      })
     );
     mocks.enqueue.mockResolvedValue("job-1");
   });
@@ -177,6 +181,7 @@ describe("usePromiseGroupController", () => {
 
   it("on the protocol pool, sends nothing until the person chooses who takes it up", async () => {
     mocks.pools.pools = [poolFixture({ garden: ROUTE, poolType: "PROTOCOL" })];
+    mocks.commitments = [copy(11, "GARDEN"), copy(12, "GARDEN")];
     mocks.claimGardens = {
       member: [{ address: HER_GARDEN, name: "Her garden" }],
       stewarded: [{ address: SHE_STEWARDS, name: "The garden she runs" }],
@@ -245,6 +250,7 @@ describe("usePromiseGroupController", () => {
     // their own limit holds for it.
     mocks.pools.pools = [poolFixture({ garden: ROUTE, poolType: "PROTOCOL" })];
     mocks.claimGardens = { member: [], stewarded: [{ address: SHE_STEWARDS, name: "River Farm" }] };
+    mocks.commitments = [copy(11, "GARDEN"), copy(12, "GARDEN")];
     mocks.limit = { cap: 1n, held: 1n };
     expect(render().result.current.bar?.hold).toBe("limit");
   });

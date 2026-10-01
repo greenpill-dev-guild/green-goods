@@ -94,7 +94,7 @@ export interface AdminConfirmDialogProps {
 const sizeClasses: Record<NonNullable<AdminDialogProps["size"]>, string> = {
   sm: "sm:max-w-sm",
   md: "sm:max-w-md",
-  lg: "sm:max-w-2xl lg:max-w-4xl",
+  lg: "sm:max-w-2xl lg:max-w-[880px]",
 };
 
 const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> = {

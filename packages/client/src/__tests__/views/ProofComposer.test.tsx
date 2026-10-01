@@ -133,6 +133,67 @@ describe("ProofComposer", () => {
     expect(screen.queryByRole("button", { name: "Details" })).not.toBeInTheDocument();
   });
 
+  it("offers restoration retry without showing an editable empty proof", async () => {
+    const user = userEvent.setup();
+    controller = proofComposerControllerFixture({
+      status: "draftRestoreFailed",
+      retryDraftRestore: vi.fn(),
+      retryDraftSave: vi.fn(),
+    });
+    render();
+    expect(screen.getByText("Couldn’t restore your proof")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Your saved draft has not been replaced. Try restoring it again before you continue."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Details" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Restore draft" }));
+    expect(controller.retryDraftRestore).toHaveBeenCalledOnce();
+    expect(controller.retryDraftSave).not.toHaveBeenCalled();
+  });
+
+  it("shows retained media and save-latest retry while advance stays disabled", async () => {
+    const user = userEvent.setup();
+    const file = new File(["jpeg-bytes"], "beds.jpg", { type: "image/jpeg" });
+    controller = proofComposerControllerFixture({
+      media: [file],
+      draftPersistence: "failed",
+      retryDraftSave: vi.fn(),
+      retryDraftRestore: vi.fn(),
+      removeMedia: vi.fn(),
+      submit: vi.fn(),
+    });
+    render();
+    expect(screen.getByRole("button", { name: "Remove media 1" })).toBeVisible();
+    expect(forward("Details")).toBeDisabled();
+    expect(forward("Details")).toHaveAccessibleDescription(
+      "Save your latest changes before continuing."
+    );
+    expect(
+      screen.getByText(/Your latest changes are not saved on this device/)
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save latest changes" }));
+    expect(controller.retryDraftSave).toHaveBeenCalledOnce();
+    expect(controller.retryDraftRestore).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Remove media 1" }));
+    expect(controller.removeMedia).toHaveBeenCalledWith(0);
+    expect(controller.submit).not.toHaveBeenCalled();
+  });
+
+  it("names loading restoration and saving as pending, without a false saved claim", () => {
+    controller = proofComposerControllerFixture({ status: "restoringDraft" });
+    const { unmount } = render();
+    expect(screen.getByRole("status")).toHaveTextContent("Restoring your proof…");
+    expect(screen.queryByRole("button", { name: "Details" })).not.toBeInTheDocument();
+    unmount();
+    controller = proofComposerControllerFixture({ draftPersistence: "saving" });
+    render();
+    expect(forward("Details")).toBeDisabled();
+    expect(forward("Details")).toHaveAccessibleDescription("Saving this proof on your device…");
+    expect(screen.queryByRole("button", { name: "Save latest changes" })).not.toBeInTheDocument();
+  });
+
   it("says what the proof holds as it is added, and removes a photo", async () => {
     const user = userEvent.setup();
     controller = { ...controller, note: "", contents: { ...controller.contents, words: false } };

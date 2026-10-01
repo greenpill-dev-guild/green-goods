@@ -74,6 +74,27 @@ describe("today's G$ price", () => {
     });
   });
 
+  it.each([
+    "zero",
+    "revert",
+    "paused",
+  ])("invalidates cached success after %s and recovers on a new success", async (failure) => {
+    const data = { price: PRICE, readAt: 1_000 };
+    const error =
+      failure === "revert"
+        ? new Error("reserve reverted")
+        : await readGoodDollarPrice({
+            client: reader(failure === "zero" ? { price: 0n } : { paused: true }),
+          }).catch((error: unknown) => error);
+    expect(goodDollarPriceState({ data, error, isLoading: false }, 1_001)).toEqual({
+      status: "unavailable",
+      reason: failure === "paused" ? "paused" : "missing",
+    });
+    expect(
+      goodDollarPriceState({ data: { ...data, readAt: 1_002 }, isLoading: false }, 1_003)
+    ).toMatchObject({ status: "ready" });
+  });
+
   const read = { price: PRICE, readAt: 10_000 };
   it.each([
     {

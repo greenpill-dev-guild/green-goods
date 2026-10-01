@@ -1,4 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
+import { IntlProvider } from "react-intl";
 import { expect, fn, userEvent, within } from "storybook/test";
 
 import { CommitmentRow } from "./CommitmentRow";
@@ -46,7 +49,9 @@ export const Available: Story = {
 export const NoneAvailable: Story = {
   args: { group: storyGroup({ available: 0, inProgress: 6, kept: 4 }).group },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText(/^None available · 6 in progress/)).toBeVisible();
+    await expect(within(canvasElement).getByRole("button")).toHaveTextContent(
+      "None available · 6 in progress · 4 kept"
+    );
   },
 };
 
@@ -88,6 +93,40 @@ export const InTheListAfterTakingOne: Story = {
     const canvas = within(canvasElement);
     // A copy just taken up waits on its taker's proof, so its row says so first.
     await expect(canvas.getByText("Needs you")).toBeVisible();
-    await expect(canvas.getByText(/^3 available · 4 in progress · 3 kept/)).toBeVisible();
+    await expect(
+      canvas.getByRole("button", { name: /A group of 10 separate promises/ })
+    ).toHaveTextContent("3 available · 4 in progress · 3 kept");
   },
+};
+
+/** All four counts with long local titles at the same approved 88px row height. */
+export const FourCounts: Story = {
+  args: {
+    group: storyGroup({ available: 4, inProgress: 3, kept: 2, ended: 1 }).group,
+    title: "Household water survey across the whole community garden",
+  },
+};
+
+export const SpanishFourCounts: Story = {
+  ...FourCounts,
+  decorators: [
+    (Story) => (
+      <IntlProvider locale="es" messages={es}>
+        <Story />
+      </IntlProvider>
+    ),
+  ],
+  args: { ...FourCounts.args, title: "Encuesta sobre el agua en los hogares de toda la comunidad" },
+};
+
+export const PortugueseFourCounts: Story = {
+  ...FourCounts,
+  decorators: [
+    (Story) => (
+      <IntlProvider locale="pt" messages={pt}>
+        <Story />
+      </IntlProvider>
+    ),
+  ],
+  args: { ...FourCounts.args, title: "Pesquisa sobre a água das famílias de toda a comunidade" },
 };

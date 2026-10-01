@@ -1,20 +1,13 @@
 /**
- * useCommitmentProofDraft Hook
- *
- * The proof composer's draft: the words from the proof draft store, the files
- * from the draft image table, both under one key. Loaded once when the
- * composer opens, saved as the member works, and cleared the moment the proof
- * is queued or thrown away.
- *
- * Files are saved whole on every change rather than diffed. A proof holds a
- * handful of photos at most, and replacing them is a few IndexedDB writes;
- * tracking which one moved is where a second bug would live.
- *
+ * The proof composer's key-scoped restoration and latest-snapshot durability.
+ * Words stay in the proof store; whole files stay in the existing draft repository.
+ * A failed read never admits an empty autosave, and a failed save keeps the form.
  * @module hooks/commitment-pooling/useCommitmentProofDraft
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { logger } from "../../modules/app/logger";
 import {
   type ProofDraftRepository,
   proofDraftRepository,
@@ -32,17 +25,33 @@ export interface ProofDraftFiles {
   audioNotes: File[];
 }
 
-export interface CommitmentProofDraftHandle {
-  /** The draft's key, or null until the viewer and commitment are known. */
+type DraftWords = Omit<CommitmentProofDraft, "updatedAt" | "files">;
+interface DraftSnapshot {
+  words: DraftWords;
+  files: ProofDraftFiles;
+}
+type PersistenceStatus = "saving" | "saved" | "failed";
+interface DraftScope {
   key: string | null;
-  /** Words and choices as last saved; undefined when there is no draft. */
+  repository: ProofDraftRepository;
+  cancelled: boolean;
+  retired: boolean;
+  revision: number;
+  restoredFiles: ProofDraftFiles | null;
+  durableFiles: ProofDraftFiles | null;
+}
+
+export interface CommitmentProofDraftHandle {
+  key: string | null;
   saved: CommitmentProofDraft | undefined;
-  /** Files as last saved; resolved once after mount. */
+  /** Hidden immediately when the draft key changes. */
   savedFiles: ProofDraftFiles | null;
-  /** False until the files have been read back, so a form does not start empty and then fill. */
+  restoration: "loading" | "restored" | "failed";
   isRestored: boolean;
-  saveWords: (draft: Omit<CommitmentProofDraft, "updatedAt" | "files">) => void;
-  saveFiles: (files: ProofDraftFiles) => Promise<void>;
+  retryRestore: () => void;
+  persistence: { snapshot: DraftSnapshot; status: PersistenceStatus } | null;
+  /** Observe both attachment and words/count persistence, never just the files. */
+  saveSnapshot: (snapshot: DraftSnapshot) => Promise<boolean>;
   clear: () => Promise<void>;
 }
 
@@ -65,94 +74,227 @@ export function useCommitmentProofDraft(input: {
   const saveDraft = useCommitmentProofDraftStore((state) => state.saveDraft);
   const recordFiles = useCommitmentProofDraftStore((state) => state.recordFiles);
   const clearDraft = useCommitmentProofDraftStore((state) => state.clearDraft);
-  const saved = key ? drafts[key] : undefined;
+  const scopeRef = useRef<DraftScope | null>(null);
+  const currentInput = useRef({ key, repository });
+  currentInput.current = { key, repository };
+  const [attempt, setAttempt] = useState(0);
+  const [restoration, setRestoration] = useState<{
+    scope: DraftScope;
+    status: CommitmentProofDraftHandle["restoration"];
+  } | null>(null);
+  const [persistence, setPersistence] = useState<{
+    scope: DraftScope;
+    snapshot: DraftSnapshot;
+    status: PersistenceStatus;
+  } | null>(null);
 
-  const [savedFiles, setSavedFiles] = useState<ProofDraftFiles | null>(null);
-  const [isRestored, setIsRestored] = useState(false);
-  const restoredFor = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!key || restoredFor.current === key) return;
-    restoredFor.current = key;
-    let cancelled = false;
-    void repository.load(key).then((files) => {
-      if (cancelled) return;
-      setSavedFiles({
-        media: files.filter((file) => !file.type.startsWith("audio/")),
-        audioNotes: files.filter((file) => file.type.startsWith("audio/")),
-      });
-      setIsRestored(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [key, repository]);
-
-  const saveWords = useCallback(
-    (draft: Omit<CommitmentProofDraft, "updatedAt" | "files">) => {
-      if (key) saveDraft(key, draft);
-    },
-    [key, saveDraft]
+  const ownsScope = useCallback(
+    (scope: DraftScope) =>
+      scopeRef.current === scope &&
+      !scope.cancelled &&
+      currentInput.current.key === scope.key &&
+      currentInput.current.repository === scope.repository,
+    []
+  );
+  const isCurrent = useCallback(
+    (scope: DraftScope) => ownsScope(scope) && !scope.retired,
+    [ownsScope]
   );
 
-  const saveFiles = useCallback(
-    async (files: ProofDraftFiles) => {
-      if (!key) return;
-      await repository.save(key, [...files.media, ...files.audioNotes]);
-      const videos = files.media.filter((file) => isVideoFile(file)).length;
-      recordFiles(key, {
-        photos: files.media.length - videos,
-        videos,
-        voiceNotes: files.audioNotes.length,
-      });
+  useEffect(() => {
+    const scope: DraftScope = {
+      key,
+      repository,
+      cancelled: false,
+      retired: false,
+      revision: 0,
+      restoredFiles: null,
+      durableFiles: null,
+    };
+    scopeRef.current = scope;
+    setRestoration({ scope, status: "loading" });
+    if (key) {
+      void (async () => {
+        try {
+          const storePersistence = useCommitmentProofDraftStore.persist;
+          if (!storePersistence?.getOptions().storage) throw new Error("Storage unavailable");
+          if (!storePersistence.hasHydrated()) await storePersistence.rehydrate();
+          if (!storePersistence.hasHydrated()) throw new Error("Draft words unavailable");
+          const files = await repository.load(key);
+          if (!isCurrent(scope)) return;
+          scope.durableFiles = {
+            media: files.filter((file) => !file.type.startsWith("audio/")),
+            audioNotes: files.filter((file) => file.type.startsWith("audio/")),
+          };
+          scope.restoredFiles = scope.durableFiles;
+          setRestoration({ scope, status: "restored" });
+        } catch (error) {
+          if (!isCurrent(scope)) return;
+          logger.error("Proof draft restoration failed", {
+            source: "useCommitmentProofDraft",
+            errorName: error instanceof Error ? error.name : "unknown",
+          });
+          setRestoration({ scope, status: "failed" });
+        }
+      })();
+    }
+    return () => {
+      scope.cancelled = true;
+    };
+  }, [attempt, isCurrent, key, repository]);
+
+  const activeRestoration = restoration && ownsScope(restoration.scope) ? restoration : null;
+  const savedIdentity = key ? drafts[key]?.clientEvidenceId : undefined;
+  const isRestored = activeRestoration?.status === "restored";
+  const retryRestore = useCallback(() => {
+    if (activeRestoration?.status !== "failed" || !isCurrent(activeRestoration.scope)) return;
+    setRestoration({ scope: activeRestoration.scope, status: "loading" });
+    setAttempt((current) => current + 1);
+  }, [activeRestoration, isCurrent]);
+
+  const saveSnapshot = useCallback(
+    async (snapshot: DraftSnapshot): Promise<boolean> => {
+      const scope = scopeRef.current;
+      if (
+        !key ||
+        !scope ||
+        scope.key !== key ||
+        scope.repository !== repository ||
+        !isRestored ||
+        !isCurrent(scope)
+      )
+        return false;
+      const revision = ++scope.revision;
+      const latest = () => isCurrent(scope) && scope.revision === revision;
+      setPersistence({ scope, snapshot, status: "saving" });
+      try {
+        if (!useCommitmentProofDraftStore.persist?.getOptions().storage)
+          throw new Error("Storage unavailable");
+        const { media, audioNotes } = snapshot.files;
+        // Typing words does not repeatedly serialize unchanged attachments.
+        if (scope.durableFiles?.media !== media || scope.durableFiles.audioNotes !== audioNotes) {
+          await repository.save(key, [...media, ...audioNotes]);
+          if (!isCurrent(scope)) return false;
+          scope.durableFiles = snapshot.files;
+        }
+        if (!latest()) return false;
+        // The configured store is synchronous localStorage. Await its runtime
+        // result too, so a returning persistence error cannot be fire-and-forgotten.
+        await saveDraft(key, snapshot.words);
+        if (!latest()) return false;
+        const videos = media.filter((file) => isVideoFile(file)).length;
+        await recordFiles(key, {
+          photos: media.length - videos,
+          videos,
+          voiceNotes: audioNotes.length,
+        });
+        if (!latest()) return false;
+        setPersistence({ scope, snapshot, status: "saved" });
+        return true;
+      } catch (error) {
+        if (!isCurrent(scope)) return false;
+        logger.error("Proof draft save failed", {
+          source: "useCommitmentProofDraft",
+          errorName: error instanceof Error ? error.name : "unknown",
+        });
+        if (latest()) setPersistence({ scope, snapshot, status: "failed" });
+        return false;
+      }
     },
-    [key, recordFiles, repository]
+    [isCurrent, isRestored, key, recordFiles, repository, saveDraft]
   );
 
   const clear = useCallback(async () => {
-    if (!key) return;
+    const scope = activeRestoration?.scope;
+    if (
+      !key ||
+      !scope ||
+      !scope.restoredFiles ||
+      scope.key !== key ||
+      scope.repository !== repository ||
+      scope.retired
+    )
+      return;
+    if (
+      savedIdentity &&
+      useCommitmentProofDraftStore.getState().drafts[key]?.clientEvidenceId !== savedIdentity
+    )
+      return;
+    // Queue admission can arrive after navigation. Retire the captured draft,
+    // never whichever key this mounted hook happens to own by then.
+    scope.retired = true;
     clearDraft(key);
     await repository.clear(key);
-  }, [key, clearDraft, repository]);
+  }, [key, clearDraft, activeRestoration?.scope, repository, savedIdentity]);
 
-  return { key, saved, savedFiles, isRestored, saveWords, saveFiles, clear };
+  return {
+    key,
+    saved: key ? drafts[key] : undefined,
+    savedFiles: isRestored ? (activeRestoration.scope.restoredFiles ?? null) : null,
+    restoration: activeRestoration?.status ?? "loading",
+    isRestored,
+    retryRestore,
+    persistence: persistence && ownsScope(persistence.scope) ? persistence : null,
+    saveSnapshot,
+    clear,
+  };
 }
 
-/**
- * Keeps a composer's state and its draft in step: restores the files once
- * they are read back, writes the words on every change, and writes the files
- * when they change. Stops writing the moment the proof is queued, so a
- * cleared draft is not re-saved by the last render.
- */
+/** Restore the whole form before any autosave; retries save the current form. */
 export function useProofDraftSync(
   draft: CommitmentProofDraftHandle,
   input: {
     queued: boolean;
-    words: Omit<CommitmentProofDraft, "updatedAt" | "files">;
+    words: DraftWords;
     files: ProofDraftFiles;
-    onRestore: (files: ProofDraftFiles) => void;
+    onRestore: (files: ProofDraftFiles, words: CommitmentProofDraft | undefined) => void;
   }
-): boolean {
-  const [filesRestored, setFilesRestored] = useState(false);
+): { isRestored: boolean; persistence: PersistenceStatus; retrySave: () => void } {
+  const [restoredFor, setRestoredFor] = useState<{
+    key: string;
+    files: ProofDraftFiles;
+  } | null>(null);
   const { onRestore } = input;
   useEffect(() => {
-    if (!draft.isRestored || filesRestored || !draft.savedFiles) return;
-    setFilesRestored(true);
-    onRestore(draft.savedFiles);
-  }, [draft.isRestored, draft.savedFiles, filesRestored, onRestore]);
+    if (
+      !draft.key ||
+      !draft.isRestored ||
+      !draft.savedFiles ||
+      (restoredFor?.key === draft.key && restoredFor.files === draft.savedFiles)
+    )
+      return;
+    onRestore(draft.savedFiles, draft.saved);
+    setRestoredFor({ key: draft.key, files: draft.savedFiles });
+  }, [draft.key, draft.isRestored, draft.savedFiles, draft.saved, restoredFor, onRestore]);
 
-  const { saveWords, saveFiles } = draft;
+  const isRestored = Boolean(
+    draft.key &&
+      draft.isRestored &&
+      restoredFor?.key === draft.key &&
+      restoredFor.files === draft.savedFiles
+  );
   const { note, links, credited, clientEvidenceId, garden } = input.words;
-  useEffect(() => {
-    if (input.queued) return;
-    saveWords({ note, links, credited, clientEvidenceId, ...(garden ? { garden } : {}) });
-  }, [note, links, credited, clientEvidenceId, garden, input.queued, saveWords]);
-
   const { media, audioNotes } = input.files;
+  const snapshot = useMemo<DraftSnapshot>(
+    () => ({
+      words: { note, links, credited, clientEvidenceId, ...(garden ? { garden } : {}) },
+      files: { media, audioNotes },
+    }),
+    [note, links, credited, clientEvidenceId, garden, media, audioNotes]
+  );
+  const { saveSnapshot } = draft;
   useEffect(() => {
-    if (input.queued || !filesRestored) return;
-    void saveFiles({ media, audioNotes });
-  }, [media, audioNotes, input.queued, filesRestored, saveFiles]);
+    if (input.queued || !isRestored) return;
+    void saveSnapshot(snapshot);
+  }, [input.queued, isRestored, saveSnapshot, snapshot]);
 
-  return filesRestored;
+  const retrySave = useCallback(() => {
+    if (!input.queued && isRestored) void saveSnapshot(snapshot);
+  }, [input.queued, isRestored, saveSnapshot, snapshot]);
+
+  return {
+    isRestored,
+    persistence: draft.persistence?.snapshot === snapshot ? draft.persistence.status : "saving",
+    retrySave,
+  };
 }

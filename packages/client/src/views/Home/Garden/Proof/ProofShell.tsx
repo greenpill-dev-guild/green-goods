@@ -1,6 +1,11 @@
 import { Button } from "@green-goods/shared/components/Button";
 import type { ProofComposerStatus } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
-import { RiSearchLine, RiWifiOffLine, type RemixiconComponentType } from "@remixicon/react";
+import {
+  RiErrorWarningLine,
+  RiSearchLine,
+  RiWifiOffLine,
+  type RemixiconComponentType,
+} from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 
@@ -81,22 +86,39 @@ export function ProofState({
             title={formatMessage({ id: "app.commitments.notReady.title" })}
             description={formatMessage({ id: "app.commitments.notReady.description" })}
           />
-        ) : kind === "error" ? (
+        ) : kind === "error" || kind === "draftRestoreFailed" ? (
           <div className="flex flex-col items-center gap-3">
             <EmptyState
-              icon={<RiWifiOffLine />}
-              title={formatMessage({ id: "app.commitment.error.title" })}
-              description={formatMessage({ id: "app.commitment.error.body" })}
+              icon={kind === "draftRestoreFailed" ? <RiErrorWarningLine /> : <RiWifiOffLine />}
+              title={formatMessage({
+                id:
+                  kind === "draftRestoreFailed"
+                    ? "app.proof.draft.restoreFailed.title"
+                    : "app.commitment.error.title",
+              })}
+              description={formatMessage({
+                id:
+                  kind === "draftRestoreFailed"
+                    ? "app.proof.draft.restoreFailed.body"
+                    : "app.commitment.error.body",
+              })}
             />
             {onRetry ? (
               <Button type="button" onClick={onRetry}>
-                {formatMessage({ id: "app.commitments.retry" })}
+                {formatMessage({
+                  id:
+                    kind === "draftRestoreFailed"
+                      ? "app.proof.draft.restoreRetry"
+                      : "app.commitments.retry",
+                })}
               </Button>
             ) : null}
           </div>
-        ) : kind === "loading" ? (
+        ) : kind === "loading" || kind === "restoringDraft" ? (
           <p className="text-xs text-text-soft-400" role="status">
-            {formatMessage({ id: "app.commitment.loading" })}
+            {formatMessage({
+              id: kind === "restoringDraft" ? "app.proof.draft.loading" : "app.commitment.loading",
+            })}
           </p>
         ) : kind === "closed" ? (
           <EmptyState

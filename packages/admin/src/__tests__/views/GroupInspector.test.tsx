@@ -133,12 +133,123 @@ describe("GroupInspector", () => {
 describe("the group's reward line", () => {
   const intl = createIntl({ locale: "en", messages: {} });
   const now = Number(STORY_NOW) * 1000;
+  it("reads different available rewards from each child's own CID after a partial edit", () => {
+    const children = [
+      { ...GROUP.children[0]!, metadataCID: "five", considerationAmount: 5n },
+      { ...GROUP.children[0]!, metadataCID: "seven", considerationAmount: 7n },
+      { ...GROUP.children[0]!, metadataCID: "missing", considerationAmount: null },
+    ];
+    const metadata = new Map(
+      [
+        ["five", 5],
+        ["seven", 7],
+      ].map(
+        ([cid, amount]) =>
+          [
+            String(cid),
+            {
+              ...STORY_GROUP_METADATA,
+              reward: {
+                version: 1 as const,
+                usdCents: String(Number(amount) * 100),
+                goodDollarWei: String(amount),
+              },
+            },
+          ] as const
+      )
+    );
+    const reward = groupReward(children, metadata);
+    expect(reward.available).toEqual([
+      { wei: 5n, centsAsSet: 500n },
+      { wei: 7n, centsAsSet: 700n },
+      { wei: null, centsAsSet: null },
+    ]);
+    const line = groupTerms({
+      intl,
+      children,
+      metadata: null,
+      reward,
+      price: STORY_PRICE_STATE,
+      setAt: null,
+      now,
+    }).find(([label]) => label === "Reward")?.[1];
+    expect(line).toBe("3 available: 1 × $5.00 · 1 × $7.00 · 1 × —");
+  });
+  it("reads each taken agreement from that child's CID after multiple reward edits", () => {
+    const children = [
+      {
+        ...GROUP.children[0]!,
+        onchainState: "ACCEPTED" as const,
+        metadataCID: "three",
+        considerationAmount: 3n,
+      },
+      {
+        ...GROUP.children[0]!,
+        onchainState: "ACCEPTED" as const,
+        metadataCID: "four",
+        considerationAmount: 4n,
+      },
+      {
+        ...GROUP.children[0]!,
+        onchainState: "REQUESTED" as const,
+        metadataCID: "five",
+        considerationAmount: 5n,
+      },
+    ];
+    const metadata = new Map(
+      [3, 4, 5].map(
+        (amount) =>
+          [
+            ["", "", "", "three", "four", "five"][amount]!,
+            {
+              ...STORY_GROUP_METADATA,
+              reward: {
+                version: 1 as const,
+                usdCents: String(amount * 100),
+                goodDollarWei: String(amount),
+              },
+            },
+          ] as const
+      )
+    );
+    const reward = groupReward(children, metadata);
+    expect(reward).toEqual({
+      currentWei: 5n,
+      centsAsSet: 500n,
+      available: [{ wei: 5n, centsAsSet: 500n }],
+      taken: [
+        { wei: 3n, centsAsSet: 300n },
+        { wei: 4n, centsAsSet: 400n },
+      ],
+    });
+    const line = groupTerms({
+      intl,
+      children,
+      metadata: null,
+      reward,
+      price: STORY_PRICE_STATE,
+      setAt: null,
+      now,
+    }).find(([label]) => label === "Reward")?.[1];
+    expect(line).toBe("1 available at $5.00 each in G$ · taken rewards: 1 × $3.00 · 1 × $4.00");
+    metadata.delete("four");
+    expect(groupReward(children, metadata).taken[1]).toEqual({ wei: 4n, centsAsSet: null });
+  });
   const rewardOf = (metadata: typeof STORY_GROUP_METADATA | null, setAt: number | null) => {
     const terms = groupTerms({
       intl,
       children: GROUP.children,
       metadata,
-      reward: groupReward(GROUP.children, metadata),
+      reward: groupReward(
+        GROUP.children,
+        metadata
+          ? new Map(
+              GROUP.children.flatMap((child) =>
+                child.metadataCID ? [[child.metadataCID, metadata] as const] : []
+              )
+            )
+          : new Map()
+      ),
       price: STORY_PRICE_STATE,
       setAt,
       now,

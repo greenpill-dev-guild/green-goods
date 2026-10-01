@@ -170,7 +170,7 @@ export function GroupInspector({
             )
           : formatMessage({ id: "cockpit.garden.pool.group.kickerPlain", defaultMessage: "Group" })
       }
-      className="sm:max-h-[min(45rem,calc(100dvh-2rem))]"
+      className="max-h-[min(700px,calc(100dvh-1rem))] sm:max-h-[min(720px,calc(100dvh-2rem))]"
       bodyClassName="p-0 sm:flex sm:flex-col sm:overflow-hidden"
       actions={footer}
     >

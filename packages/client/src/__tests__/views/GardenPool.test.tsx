@@ -108,6 +108,20 @@ function commitment(overrides: Record<string, unknown> = {}) {
     targetUnits: 3n,
     poolId: 7n,
     unitLabel: "hours",
+    commitmentSeriesId: null,
+    claimType: "INDIVIDUAL",
+    claimMode: "OPEN",
+    commitmentType: "SUPPORT_SERVICE",
+    contributorPolicy: "LEAD_MANAGED",
+    needUID: null,
+    counterCommitmentId: null,
+    dueDate: null,
+    considerationRail: "NONE",
+    considerationSource: null,
+    considerationToken: null,
+    requiresAssessment: false,
+    confirmationThreshold: 1,
+    protocolFallbackEnabled: false,
     creator: OTHER,
     leadProvider: OTHER,
     counterparty: null,
@@ -299,6 +313,7 @@ describe("GardenPool", () => {
         onchainState,
         derivedState,
         metadataCID: "set-cid",
+        requirements: [],
       })
     );
     const [group] = groupCommitmentsForDisplay({

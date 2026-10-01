@@ -88,19 +88,17 @@ export function goodDollarPriceState(
   read: { data?: GoodDollarPrice; error?: unknown; isLoading: boolean },
   now: number
 ): GoodDollarPriceState {
-  // A paused reserve stops dollar entry at once, whatever an earlier read said.
-  if (read.error instanceof GoodDollarPriceError && read.error.reason === "paused") {
-    return { status: "unavailable", reason: "paused" };
+  // A failed refresh invalidates the earlier rate: cached success must not
+  // enable dollar entry after a zero price, paused reserve or failed RPC read.
+  if (read.error instanceof GoodDollarPriceError) {
+    return { status: "unavailable", reason: read.error.reason };
   }
+  if (read.error) return { status: "unavailable", reason: "missing" };
   if (read.data) {
     return now - read.data.readAt > GOOD_DOLLAR_PRICE_STALE_MS
       ? { status: "unavailable", reason: "stale" }
       : { status: "ready", ...read.data };
   }
-  if (read.error instanceof GoodDollarPriceError) {
-    return { status: "unavailable", reason: read.error.reason };
-  }
-  if (read.error) return { status: "unavailable", reason: "missing" };
   return read.isLoading ? { status: "loading" } : { status: "unavailable", reason: "missing" };
 }
 

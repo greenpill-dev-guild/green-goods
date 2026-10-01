@@ -39,7 +39,7 @@ const METADATA = new Map<string, CommitmentMetadataV1>([
 
 export const STORY_GROUP_NOTE = METADATA.get(CID)?.note ?? null;
 
-type CopyState = "available" | "inProgress" | "kept";
+type CopyState = "available" | "inProgress" | "kept" | "ended";
 
 const STATES: Record<
   CopyState,
@@ -48,6 +48,7 @@ const STATES: Record<
   available: { onchainState: "REQUESTED", derivedState: "REQUESTED", state: "REQUESTED" },
   inProgress: { onchainState: "ACCEPTED", derivedState: "ACTIVE", state: "ACCEPTED" },
   kept: { onchainState: "FULFILLED", derivedState: "FULFILLED", state: "FULFILLED" },
+  ended: { onchainState: "EXPIRED", derivedState: "EXPIRED", state: "EXPIRED" },
 };
 
 function copy(
@@ -61,11 +62,13 @@ function copy(
     chainId: 42161,
     commitmentId: BigInt(id),
     creationSeen: true,
+    requirements: [],
     ...STATES[state],
     approvedUnits: 0n,
     evidenceCount: 0,
     cycleId: null,
     poolId: 7n,
+    commitmentSeriesId: null,
     declaredUnitValue: null,
     declaredValueBasis: null,
     targetUnits: 2n,
@@ -75,6 +78,17 @@ function copy(
     counterparty: null,
     direction: "REQUEST",
     claimMode: "OPEN",
+    claimType: "INDIVIDUAL",
+    commitmentType: "SUPPORT_SERVICE",
+    contributorPolicy: "LEAD_MANAGED",
+    needUID: null,
+    counterCommitmentId: null,
+    considerationRail: "NONE",
+    considerationSource: null,
+    considerationToken: null,
+    requiresAssessment: false,
+    confirmationThreshold: 1,
+    protocolFallbackEnabled: false,
     confirmers: [],
     contributorCount: taker ? 1 : 0,
     contributorsFrozen: false,
@@ -99,14 +113,16 @@ export function storyGroup(input: {
   available: number;
   inProgress?: number;
   kept?: number;
+  ended?: number;
   yours?: "inProgress" | "kept";
   overrides?: Partial<CommitmentReadModel>;
 }): StoryGroup {
-  const { available, inProgress = 0, kept = 0, yours, overrides = {} } = input;
+  const { available, inProgress = 0, kept = 0, ended = 0, yours, overrides = {} } = input;
   const plan: CopyState[] = [
     ...Array<CopyState>(available).fill("available"),
     ...Array<CopyState>(inProgress).fill("inProgress"),
     ...Array<CopyState>(kept).fill("kept"),
+    ...Array<CopyState>(ended).fill("ended"),
   ];
   let yoursGiven = false;
   const copies = plan.map((state, index) => {

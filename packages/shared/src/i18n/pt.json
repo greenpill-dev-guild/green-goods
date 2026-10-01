@@ -2910,6 +2910,14 @@
   "app.profile.urlCopied": "URL copiada",
   "app.profile.urlCopiedMessage": "URL do perfil copiada para a área de transferência",
   "app.proof.beat.details": "Detalhes",
+  "app.proof.draft.loading": "Restaurando sua prova…",
+  "app.proof.draft.restoreFailed.title": "Não foi possível restaurar sua prova",
+  "app.proof.draft.restoreFailed.body": "Seu rascunho salvo não foi substituído. Tente restaurá-lo novamente antes de continuar.",
+  "app.proof.draft.restoreRetry": "Restaurar rascunho",
+  "app.proof.draft.saving": "Salvando esta prova no seu dispositivo…",
+  "app.proof.draft.saveFailed": "Suas últimas alterações não estão salvas neste dispositivo. Mantenha esta página aberta e tente salvar novamente, ou remova um anexo para liberar espaço.",
+  "app.proof.draft.saveRetry": "Salvar as últimas alterações",
+  "app.proof.draft.saveRequired": "Salve suas últimas alterações antes de continuar.",
   "app.proof.beat.media": "Mídia",
   "app.proof.blocked.credit": "Nomeie pelo menos uma pessoa que fez isto.",
   "app.proof.blocked.nothing": "Primeiro adicione uma foto, uma nota de voz, um link ou algumas palavras.",
@@ -6457,7 +6465,7 @@
   "app.pool.group.row.name": "Um grupo de {count} promessas separadas",
   "app.pool.group.counts.available": "{count, plural, one {# disponível} other {# disponíveis}}",
   "app.pool.group.counts.none": "Nenhuma disponível",
-  "app.pool.group.counts.inProgress": "{count} em andamento",
+  "app.pool.group.counts.inProgress": "{count} em curso",
   "app.pool.group.counts.kept": "{count, plural, one {# cumprida} other {# cumpridas}}",
   "app.pool.group.counts.ended": "{count, plural, one {# encerrada} other {# encerradas}}",
   "app.pool.group.counts.unknown": "Disponibilidade desconhecida",
@@ -6488,5 +6496,8 @@
   "app.pool.group.sheet.failed": "Não foi concluído e nada mudou. Você pode tentar de novo.",
   "cockpit.hub.confirm.fromGroup": "de um grupo de {count}",
   "cockpit.hub.confirm.outcome.confirmed": "Confirmada",
-  "cockpit.hub.confirm.outcome.queued": "Em fila neste dispositivo"
+  "cockpit.hub.confirm.outcome.queued": "Em fila neste dispositivo",
+  "cockpit.garden.pool.reward.readyTakenAgreements": "{count, plural, one {{names} mantém a recompensa acordada ao assumir a promessa.} other {{names} mantêm as recompensas acordadas ao assumir as promessas.}}",
+  "cockpit.garden.pool.reward.takenKeepAgreements": "{amounts} · sem alterações, como acordado",
+  "cockpit.garden.pool.group.rewardAgreements": "{available} disponíveis a {amount} cada em G$ · recompensas assumidas: {taken}"
 }

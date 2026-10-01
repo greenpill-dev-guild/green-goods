@@ -50,6 +50,10 @@ export interface PendingCommitmentCreation {
    * of filing a second one.
    */
   discardable: boolean;
+  /** Frozen deadline for a display-group copy; absent on legacy creations. */
+  groupDueDate?: string;
+  /** A recorded send must still be reconciled after the deadline. */
+  hasRecordedSend?: boolean;
   createdAt: number;
 }
 
@@ -234,7 +238,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
         const payload = job.payload as {
           poolId?: bigint | string;
           direction?: number;
-          metadata?: { title?: string };
+          metadata?: { title?: string; displayGroup?: { id: string } };
+          dueDate?: bigint | string;
           unitLabel?: string;
           targetUnits?: bigint | string;
         };
@@ -249,6 +254,12 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           waitingForMembership: !failed && job.meta?.waitingReason === "membership-unavailable",
           failed,
           discardable: isDiscardableJob(job),
+          ...(payload.metadata?.displayGroup && payload.dueDate
+            ? { groupDueDate: String(payload.dueDate) }
+            : {}),
+          // Creations record submittedTxHash in meta; acts use sendCheckpoint.
+          // Discardability also accounts for a broadcast retained in memory.
+          hasRecordedSend: !isDiscardableJob(job),
           createdAt: job.createdAt,
         });
       }

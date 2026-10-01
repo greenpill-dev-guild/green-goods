@@ -25,6 +25,10 @@ type TermsIntl = Pick<IntlShape, "formatMessage" | "formatDate" | "formatDateToP
 export interface GroupReward {
   /** The G$ amount on a copy nobody has taken: what new copies take and Edit Reward changes. */
   currentWei: bigint | null;
+  /** Each untaken copy's current reward, which may differ after a partial edit. */
+  available: readonly { wei: bigint | null; centsAsSet: bigint | null }[];
+  /** Each taken child's immutable agreement, including distinct earlier edits. */
+  taken: readonly { wei: bigint | null; centsAsSet: bigint | null }[];
   /** Its dollars as they were set, while the chain still holds that amount. */
   centsAsSet: bigint | null;
 }
@@ -35,17 +39,38 @@ const isGoodDollarReward = (commitment: CommitmentReadModel) =>
 /** The group's reward now, from a copy nobody has taken, or any copy when none is left. */
 export function groupReward(
   children: readonly CommitmentReadModel[],
-  metadata: CommitmentMetadataV1 | null
+  metadataByCID: ReadonlyMap<string, CommitmentMetadataV1>
 ): GroupReward {
   const source =
     children.find((child) => displayBucketOf(child.onchainState) === "available") ?? children[0];
-  if (!source || !isGoodDollarReward(source)) return { currentWei: null, centsAsSet: null };
+  const metadataOf = (child: CommitmentReadModel) =>
+    child.metadataCID ? metadataByCID.get(child.metadataCID.trim()) : null;
+  const agreementOf = (child: CommitmentReadModel) => ({
+    wei: child.considerationAmount ?? null,
+    centsAsSet: rewardCentsAsSet(metadataOf(child), child.considerationAmount),
+  });
+  const available = children
+    .filter((child) => displayBucketOf(child.onchainState) === "available")
+    .map(agreementOf);
+  const taken = children
+    .filter((child) => {
+      const bucket = displayBucketOf(child.onchainState);
+      return bucket === "inProgress" || bucket === "kept";
+    })
+    .map(agreementOf);
+  if (!source || !isGoodDollarReward(source))
+    return { currentWei: null, centsAsSet: null, available, taken };
   const currentWei = source.considerationAmount ?? null;
-  return { currentWei, centsAsSet: rewardCentsAsSet(metadata, currentWei) };
+  return {
+    currentWei,
+    centsAsSet: rewardCentsAsSet(metadataOf(source), currentWei),
+    available,
+    taken,
+  };
 }
 
 /** A G$ amount in dollars: as set, else about today's rate, else in G$. */
-function rewardText(
+export function rewardText(
   intl: TermsIntl,
   wei: bigint,
   centsAsSet: bigint | null,
@@ -73,7 +98,6 @@ function rewardLine(
   intl: TermsIntl,
   children: readonly CommitmentReadModel[],
   reward: GroupReward,
-  metadata: CommitmentMetadataV1 | null,
   price: GoodDollarPriceState,
   set: { at: number | null; now: number }
 ): string {
@@ -83,14 +107,36 @@ function rewardLine(
   }
   const current = rewardText(intl, reward.currentWei, reward.centsAsSet, price);
   const goodDollars = formatGoodDollars(reward.currentWei, intl.locale);
-  const takenAtOther = children.filter(
-    (child) =>
-      displayBucketOf(child.onchainState) !== "available" &&
-      child.considerationAmount !== reward.currentWei &&
-      (child.considerationAmount ?? 0n) > 0n
-  );
-  const earlier = takenAtOther[0]?.considerationAmount;
-  if (!earlier && reward.centsAsSet !== null && set.at !== null) {
+  const labelOf = (agreement: GroupReward["available"][number]) =>
+    agreement.wei === null ? "—" : rewardText(intl, agreement.wei, agreement.centsAsSet, price);
+  const amountsOf = (agreements: GroupReward["available"]) => {
+    const amounts = new Map<string, number>();
+    for (const agreement of agreements) {
+      const label = labelOf(agreement);
+      amounts.set(label, (amounts.get(label) ?? 0) + 1);
+    }
+    return [...amounts].map(([label, count]) => `${count} × ${label}`).join(" · ");
+  };
+  const mixedAvailable = reward.available.some((agreement) => labelOf(agreement) !== current);
+  const mixed = mixedAvailable || reward.taken.some((agreement) => labelOf(agreement) !== current);
+  if (mixedAvailable) {
+    const sections = [
+      `${intl.formatMessage(
+        { id: "cockpit.garden.pool.reward.availableRow", defaultMessage: "{count} available" },
+        { count: reward.available.length }
+      )}: ${amountsOf(reward.available)}`,
+    ];
+    if (reward.taken.length > 0) {
+      sections.push(
+        `${intl.formatMessage(
+          { id: "cockpit.garden.pool.reward.takenRow", defaultMessage: "{count} taken" },
+          { count: reward.taken.length }
+        )}: ${amountsOf(reward.taken)}`
+      );
+    }
+    return sections.join(" · ");
+  }
+  if (!mixed && reward.centsAsSet !== null && set.at !== null) {
     return intl.formatMessage(
       {
         id: "cockpit.garden.pool.group.rewardEachSet",
@@ -99,7 +145,7 @@ function rewardLine(
       { amount: current, goodDollars, day: dayText(intl, set.at, set.now) }
     );
   }
-  if (!earlier) {
+  if (!mixed) {
     return intl.formatMessage(
       {
         id: "cockpit.garden.pool.group.rewardEach",
@@ -110,17 +156,13 @@ function rewardLine(
   }
   return intl.formatMessage(
     {
-      id: "cockpit.garden.pool.group.rewardChanged",
-      defaultMessage:
-        "{amount} each in G$ for the {available} available ({goodDollars} G$) · {taken} taken at {earlier}",
+      id: "cockpit.garden.pool.group.rewardAgreements",
+      defaultMessage: "{available} available at {amount} each in G$ · taken rewards: {taken}",
     },
     {
       amount: current,
-      goodDollars,
-      available: children.filter((child) => displayBucketOf(child.onchainState) === "available")
-        .length,
-      taken: takenAtOther.length,
-      earlier: rewardText(intl, earlier, rewardCentsAsSet(metadata, earlier), price),
+      available: reward.available.length,
+      taken: amountsOf(reward.taken),
     }
   );
 }
@@ -136,7 +178,7 @@ export function groupTerms(input: {
   setAt: number | null;
   now: number;
 }): Array<[string, string]> {
-  const { intl, children, metadata, reward, price, setAt, now } = input;
+  const { intl, children, reward, price, setAt, now } = input;
   const { formatMessage } = intl;
   const [first] = children;
   if (!first) return [];
@@ -165,7 +207,7 @@ export function groupTerms(input: {
     ],
     [
       formatMessage({ id: "cockpit.garden.pool.group.reward", defaultMessage: "Reward" }),
-      rewardLine(intl, children, reward, metadata, price, { at: setAt, now }),
+      rewardLine(intl, children, reward, price, { at: setAt, now }),
     ],
     [
       formatMessage({

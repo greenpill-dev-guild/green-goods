@@ -18,6 +18,8 @@ import type {
 } from "./types-vocabulary";
 
 export interface CommitmentReadModel {
+  /** Indexed action terms; null/absent while any grouping term remains unread or unknown. */
+  requirements?: readonly { actionUID: bigint; requiredCount: number }[] | null;
   id: string;
   chainId: number;
   commitmentId: bigint;

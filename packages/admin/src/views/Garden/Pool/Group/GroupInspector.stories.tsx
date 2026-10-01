@@ -1,7 +1,9 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import { groupCommitmentsForDisplay } from "@green-goods/shared/modules/commitment-pooling/display-groups";
 import type { Meta, StoryObj } from "@storybook/react";
-import { createIntl } from "react-intl";
+import { createIntl, IntlProvider } from "react-intl";
 import { expect, screen } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../../shared/.storybook/adminFixtures";
 import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
@@ -29,12 +31,12 @@ function groupOf(copies: typeof STORY_GROUP_COPIES) {
   return group;
 }
 
-function termsOf(group: PoolCommitmentGroup, events = STORY_GROUP_EVENTS) {
+function termsOf(group: PoolCommitmentGroup, events = STORY_GROUP_EVENTS, termsIntl = intl) {
   return groupTerms({
-    intl,
+    intl: termsIntl,
     children: group.children,
     metadata: STORY_GROUP_METADATA,
-    reward: groupReward(group.children, STORY_GROUP_METADATA),
+    reward: groupReward(group.children, STORY_GROUP_TITLES),
     price: STORY_PRICE_STATE,
     setAt: groupSetAt(group.children, events),
     now: Number(STORY_NOW) * 1000,
@@ -94,3 +96,33 @@ export const EditRewardOpen: Story = {
 
 /** Without the pool's activity the dates are left out; what the records say still shows. */
 export const WithoutActivity: Story = { args: { events: [], terms: termsOf(SURVEY, []) } };
+
+export const Spanish: Story = {
+  decorators: [
+    (Story) => (
+      <IntlProvider locale="es" messages={es}>
+        <Story />
+      </IntlProvider>
+    ),
+  ],
+  args: {
+    title: "Encuesta sobre el agua en los hogares",
+    cycleName: "Temporada de las primeras lluvias",
+    terms: termsOf(SURVEY, STORY_GROUP_EVENTS, createIntl({ locale: "es", messages: es })),
+  },
+};
+
+export const Portuguese: Story = {
+  decorators: [
+    (Story) => (
+      <IntlProvider locale="pt" messages={pt}>
+        <Story />
+      </IntlProvider>
+    ),
+  ],
+  args: {
+    title: "Pesquisa sobre a água das famílias",
+    cycleName: "Temporada das primeiras chuvas",
+    terms: termsOf(SURVEY, STORY_GROUP_EVENTS, createIntl({ locale: "pt", messages: pt })),
+  },
+};

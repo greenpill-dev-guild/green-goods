@@ -75,9 +75,10 @@ function RetainedWorkInspector() {
     activeWorkDetailId: "retained-work",
     hasSelectedCertification: false,
   });
+  const hasSelection = Boolean(selection);
   const config = useMemo<LeftSheetConfig | null>(
     () =>
-      selection
+      hasSelection
         ? {
             title: "Review retained work",
             content: <p>Canopy transect upload</p>,
@@ -88,7 +89,7 @@ function RetainedWorkInspector() {
             },
           }
         : null,
-    [selection?.kind]
+    [hasSelection]
   );
   useLeftSheetConfig(config);
   return (

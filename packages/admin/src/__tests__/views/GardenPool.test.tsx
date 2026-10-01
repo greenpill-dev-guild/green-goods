@@ -821,6 +821,8 @@ describe("GardenPoolTab (W7)", () => {
           discardable: true,
           jobId: "job-copy",
           title: "Household water survey",
+          groupDueDate: "1",
+          hasRecordedSend: false,
         },
       ],
       queuedGroupCopies: new Map([["group-00000001", ["job-copy"]]]),
@@ -835,6 +837,38 @@ describe("GardenPoolTab (W7)", () => {
     expect(queuedRows.map((row) => row.textContent)).toEqual([
       expect.stringContaining("Household water survey"),
     ]);
+    expect(within(queuedRows[0]).getByRole("button", { name: "Try Again" })).toBeDisabled();
+    expect(within(queuedRows[0]).getByRole("button", { name: "Discard" })).toBeEnabled();
+    expect(queuedRows[0]).toHaveTextContent("This group's deadline has passed");
+  });
+
+  it("keeps recovery available for an expired group creation whose send is recorded", async () => {
+    mocks.controller = controller({
+      pendingCreates: [
+        {
+          chainId: 42161,
+          poolId: "7",
+          direction: "REQUEST",
+          unitLabel: "survey",
+          targetUnits: "1",
+          waitingForMembership: false,
+          failed: true,
+          createdAt: 1,
+          discardable: false,
+          jobId: "recorded-copy",
+          title: "Household water survey",
+          groupDueDate: "1",
+          hasRecordedSend: true,
+        },
+      ],
+    });
+    renderTab();
+    const row = within(screen.getByTestId("pool-queued")).getByRole("listitem");
+    expect(within(row).queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+    fireEvent.click(within(row).getByRole("button", { name: "Try Again" }));
+    await waitFor(() =>
+      expect(mocks.controller!.acts.retryQueued).toHaveBeenCalledWith("recorded-copy")
+    );
   });
 
   it("keeps Waiting for approval, Pool Status and Pool Funding in the right column, in that order", () => {

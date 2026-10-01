@@ -26,13 +26,11 @@ import {
   prepareMediaForUpload,
 } from "../../../modules/work/media-processing";
 import type { Address } from "../../../types/domain";
+import type { CommitmentProofDraft } from "../../../stores/useCommitmentProofDraftStore";
 import { imageCompressor } from "../../../utils/work/image-compression";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
-import {
-  type CommitmentSendReport,
-  useCommitmentJobs,
-} from "../../commitment-pooling/useCommitmentJobs";
+import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
 import {
   useCommitmentProofDraft,
@@ -54,13 +52,7 @@ import type {
   ProofRosterMember,
 } from "./proof-controller.types";
 import { proofContentsOf } from "./proofContents";
-import {
-  followBackgroundProof,
-  followSecondAct,
-  proofSendKey,
-  settleProofSend,
-  startProofSend,
-} from "./proofSend";
+import { enqueueProof, proofSendKey } from "./proofSend";
 import { type ProofBeat, selectProofReadiness, selectSendTooOffered } from "./proofReadiness";
 
 export interface UseProofComposerControllerInput {
@@ -122,20 +114,37 @@ export function useProofComposerController(
   );
   // Once the queue holds the proof, the draft is let go and never saved again.
   const [queued, setQueued] = useState(false);
-  const [clientEvidenceId] = useState(() => draft.saved?.clientEvidenceId ?? crypto.randomUUID());
+  const [clientEvidenceId, setClientEvidenceId] = useState(
+    () => draft.saved?.clientEvidenceId ?? crypto.randomUUID()
+  );
   const [landing, setLanding] = useState<ProofLanding | null>(null);
+  const [formKey, setFormKey] = useState(draft.key);
+  const currentLanding = formKey === draft.key ? landing : null;
   const [sendTooChoice, setSendTooChoice] = useState<boolean | null>(null);
   const submitting = useRef(false);
 
-  const restoreFiles = useCallback((files: { media: File[]; audioNotes: File[] }) => {
-    if (files.media.length > 0) setMedia(files.media);
-    if (files.audioNotes.length > 0) setAudioNotes(files.audioNotes);
-  }, []);
-  useProofDraftSync(draft, {
+  const restoreDraft = useCallback(
+    (files: { media: File[]; audioNotes: File[] }, words: CommitmentProofDraft | undefined) => {
+      setMedia(files.media);
+      setAudioNotes(files.audioNotes);
+      setNote(words?.note ?? "");
+      setLinks(words?.links ?? []);
+      setSelectedCredit((words?.credited as Address[] | null | undefined) ?? null);
+      setClientEvidenceId(words?.clientEvidenceId ?? crypto.randomUUID());
+      setQueued(false);
+      setLanding(null);
+      setFormKey(draft.key);
+      setSendTooChoice(null);
+      setIsProcessing(false);
+      submitting.current = false;
+    },
+    [draft.key]
+  );
+  const draftSync = useProofDraftSync(draft, {
     queued,
     words: { note, links, credited: selectedCredit, clientEvidenceId, garden: routeGarden ?? "" },
     files: { media, audioNotes },
-    onRestore: restoreFiles,
+    onRestore: restoreDraft,
   });
 
   const heic = useDeferredHeicConversion({
@@ -211,17 +220,32 @@ export function useProofComposerController(
     [roster, viewer]
   );
 
-  const pick = useCallback(async (files: FileList | File[] | null) => {
-    if (!files || files.length === 0) return { rejectedCount: 0 };
-    setIsProcessing(true);
-    try {
-      const prepared = await prepareMediaForUpload(Array.from(files), imageCompressor);
-      setMedia((current) => [...current, ...prepared.files]);
-      return { rejectedCount: prepared.rejectedCount };
-    } finally {
-      setIsProcessing(false);
-    }
-  }, []);
+  const composerScope = useRef({ key: draft.key, cancelled: false });
+  if (composerScope.current.key !== draft.key)
+    composerScope.current = { key: draft.key, cancelled: false };
+  useEffect(() => {
+    const scope = composerScope.current;
+    scope.cancelled = false;
+    return () => {
+      scope.cancelled = true;
+    };
+  }, [draft.key]);
+  const pick = useCallback(
+    async (files: FileList | File[] | null) => {
+      if (!draftSync.isRestored || !files || files.length === 0) return { rejectedCount: 0 };
+      const scope = composerScope.current;
+      setIsProcessing(true);
+      try {
+        const prepared = await prepareMediaForUpload(Array.from(files), imageCompressor);
+        if (composerScope.current !== scope || scope.cancelled) return { rejectedCount: 0 };
+        setMedia((current) => [...current, ...prepared.files]);
+        return { rejectedCount: prepared.rejectedCount };
+      } finally {
+        if (composerScope.current === scope && !scope.cancelled) setIsProcessing(false);
+      }
+    },
+    [draftSync.isRestored]
+  );
 
   const removeMedia = useCallback(
     (index: number) => setMedia((current) => current.filter((_, item) => item !== index)),
@@ -243,16 +267,29 @@ export function useProofComposerController(
       links,
     }).reason === "invalid-link";
   const readiness = useCallback(
-    (beat: ProofBeat) =>
-      selectProofReadiness({
+    (beat: ProofBeat) => {
+      const ready = selectProofReadiness({
         beat,
         isProcessing,
         isRecording: recording.isRecording,
         hasAnything,
         creditedCount: credited.length,
         links,
-      }),
-    [credited.length, hasAnything, isProcessing, links, recording.isRecording]
+      });
+      return {
+        ...ready,
+        canAdvance: ready.canAdvance && draftSync.isRestored && draftSync.persistence === "saved",
+      };
+    },
+    [
+      credited.length,
+      hasAnything,
+      isProcessing,
+      links,
+      recording.isRecording,
+      draftSync.isRestored,
+      draftSync.persistence,
+    ]
   );
 
   /**
@@ -275,62 +312,10 @@ export function useProofComposerController(
     )
       return false;
     submitting.current = true;
-    const toasts = createProofToasts(intl.formatMessage);
-    const onOpenYourWork = input.onOpenYourWork;
+    const scope = composerScope.current;
+    const ownsForm = () => composerScope.current === scope && !scope.cancelled;
     const record = detail.commitment;
     const gardenAddress = (record.providerGarden ?? routeGarden) as Address;
-    const withSend = sendToo;
-    const leads = seat === "provider";
-    // Written by the send's reports; typed here, not narrowed to their first values.
-    let admittedJobId = null as string | null;
-    // Add and Send's second act, followed once the queue holds it (followSecondAct).
-    let secondActSent = null as (() => Promise<boolean>) | null;
-    // How the tap's own send ended, when it ended here.
-    let ended = null as "landed" | "declined" | null;
-    let queuedReason = undefined as string | undefined;
-    const land = (to: ProofLanding) => setLanding((current) => current ?? to);
-    const letGo = () => {
-      draftRepository.revoke("proof");
-      setQueued(true);
-      void draft.clear().catch(() => undefined);
-    };
-    // The promise says the proof is on its way, and holds its queue notice,
-    // from the moment it leaves this phone until the send is over.
-    const sendKey = proofSendKey(input.chainId, record.commitmentId, viewer);
-    const onItsWay = () =>
-      startProofSend(sendKey, {
-        contents: proofContentsOf({ media, audioNotes, links, note }),
-        baseline: record.evidenceCount,
-      });
-    // The proof is on the record now, whatever its second act does next; the
-    // toast says sent only once that act has landed too.
-    const proofLanded = async () => {
-      settleProofSend(sendKey, { landed: true });
-      toasts.added({ sent: secondActSent ? await secondActSent() : false, leads });
-    };
-    const sendOver = () => settleProofSend(sendKey, { landed: false });
-    // A passkey or embedded sign-in leaves the send to the background flush,
-    // which may pick the proof up at once, so it is followed from admission.
-    const flushSends = !jobs.sendsFromTap && isOnline && viewer !== null;
-    const followFlush = (jobId: string, owner: Address) => {
-      onItsWay();
-      followBackgroundProof({
-        jobId,
-        owner,
-        onEnd: (outcome) => {
-          if (outcome === "landed") {
-            void proofLanded();
-            return;
-          }
-          sendOver();
-          if (outcome === "declined") toasts.notAdded();
-          else if (outcome === "failed") toasts.couldNotAdd(onOpenYourWork);
-          else toasts.takingLonger();
-        },
-      });
-    };
-
-    if (isOnline) toasts.adding({ sendToo: withSend });
     const payload: EvidenceJobPayload = {
       clientEvidenceId,
       commitmentId: record.commitmentId,
@@ -341,77 +326,34 @@ export function useProofComposerController(
       ...(media.length > 0 ? { media } : {}),
       ...(audioNotes.length > 0 ? { audioNotes } : {}),
     };
-    const report = (event: CommitmentSendReport) => {
-      switch (event.stage) {
-        case "admitted":
-          admittedJobId = event.jobId;
-          letGo();
-          if (withSend)
-            secondActSent = followSecondAct({
-              jobId: event.followUpJobId ?? null,
-              owner: viewer,
-              byFlush: flushSends,
-              sendNow: (jobId) => jobs.sendQueued({ jobId, commitmentId: record.commitmentId }),
-            });
-          if (flushSends) followFlush(event.jobId, viewer);
-          return;
-        case "confirming":
-          onItsWay();
-          toasts.confirming();
-          land("sending");
-          return;
-        case "landed":
-          ended = "landed";
-          // Held until the record counts it, when no confirming stage came first.
-          onItsWay();
-          land("landed");
-          return;
-        case "declined":
-          ended = "declined";
-          toasts.notAdded();
-          land("declined");
-          return;
-        case "queued":
-          queuedReason = event.reason;
-          land("queued");
-          return;
-      }
-    };
-
-    try {
-      await jobs.enqueue({
-        act: "evidence",
-        payload,
-        report,
-        ...(withSend ? { sendToo: true } : {}),
-      });
-    } catch {
-      submitting.current = false;
-      sendOver();
-      if (!admittedJobId) {
-        // Never queued: the proof is still this draft, and the form stays.
-        toasts.dismiss();
-        return false;
-      }
-      toasts.couldNotAdd(onOpenYourWork);
-      land("failed");
-      return true;
-    }
-    submitting.current = false;
-
-    if (ended === "landed") void proofLanded();
-    else if (ended === "declined") {
-      // Already said: nothing was sent, and the proof waits on the phone.
-    } else if (!isOnline) toasts.savedOffline();
-    else if (flushSends) {
-      // Followed since admission; the follower says how the flush's send ended.
-    } else {
-      sendOver();
-      if (queuedReason === "awaiting-confirmation") toasts.takingLonger();
-      // Otherwise the wallet send waits its turn, and the promise's notice says why.
-      else toasts.dismiss();
-    }
-    return true;
+    return enqueueProof({
+      jobs,
+      payload,
+      send: {
+        key: proofSendKey(input.chainId, record.commitmentId, viewer),
+        owner: viewer,
+        contents: proofContentsOf({ media, audioNotes, links, note }),
+        baseline: record.evidenceCount,
+      },
+      withSend: sendToo,
+      leads: seat === "provider",
+      isOnline,
+      toasts: createProofToasts(intl.formatMessage),
+      onOpenYourWork: input.onOpenYourWork,
+      onAdmission: () => {
+        if (ownsForm()) {
+          draftRepository.revoke("proof");
+          setQueued(true);
+        }
+        void draft.clear().catch(() => undefined);
+      },
+      onLanding: (to) => {
+        if (ownsForm()) setLanding((current) => (ownsForm() ? (current ?? to) : current));
+      },
+      onEnqueueSettled: () => {
+        if (ownsForm()) submitting.current = false;
+      },
+    });
   }, [
     audioNotes,
     clientEvidenceId,
@@ -442,10 +384,12 @@ export function useProofComposerController(
   else if (!detail || (seat !== "provider" && seat !== "contributor")) status = "notYours";
   // Once handed over, the refreshed record may read as sent; the view is leaving anyway.
   else if (
-    !landing &&
+    !currentLanding &&
     selectCommitmentActKind({ commitment: detail.commitment, seat }) !== "addProof"
   )
     status = "closed";
+  else if (draft.restoration === "failed") status = "draftRestoreFailed";
+  else if (!draftSync.isRestored) status = "restoringDraft";
 
   // A HEIC photo waiting to convert shows a placeholder, not a preview.
   const imageUrls = draftRepository.previewUrls(
@@ -478,7 +422,10 @@ export function useProofComposerController(
     isRecording: recording.isRecording,
     recordingElapsed: recording.elapsed,
     isPending: jobs.isPending,
-    landing,
+    draftPersistence: draftSync.persistence,
+    retryDraftRestore: draft.retryRestore,
+    retryDraftSave: draftSync.retrySave,
+    landing: currentLanding,
     canSendToo,
     sendToo,
     setSendToo: setSendTooChoice,

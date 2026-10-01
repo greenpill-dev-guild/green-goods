@@ -23,10 +23,21 @@
 
 import { type CommitmentMetadataV1, isResolvableMetadataCID } from "./metadata";
 import type { CommitmentReadModel } from "./types-core";
+import {
+  CommitmentClaimMode,
+  CommitmentClaimType,
+  CommitmentConsiderationRail,
+  CommitmentContributorPolicy,
+  CommitmentDirection,
+  CommitmentKind,
+  CommitmentOnchainState,
+} from "./types-vocabulary";
 
 /** What a record needs for grouping: its words, its state, and the terms that make copies alike. */
 export type GroupableCommitment = Pick<
   CommitmentReadModel,
+  | "requirements"
+  | "creationSeen"
   | "chainId"
   | "onchainState"
   | "cycleId"
@@ -128,47 +139,130 @@ function displayGroupIdOf(
   metadataByCID: ReadonlyMap<string, CommitmentMetadataV1>
 ): string | null {
   if (!isResolvableMetadataCID(record.metadataCID)) return null;
-  return metadataByCID.get(record.metadataCID.trim())?.displayGroup?.id ?? null;
+  const metadata = metadataByCID.get(record.metadataCID.trim());
+  if (
+    !metadata ||
+    metadata.version !== 1 ||
+    typeof metadata.title !== "string" ||
+    (metadata.note !== undefined && typeof metadata.note !== "string") ||
+    (metadata.links !== undefined &&
+      (!Array.isArray(metadata.links) ||
+        !metadata.links.every(
+          (link) =>
+            link &&
+            typeof link.url === "string" &&
+            (link.label === undefined || typeof link.label === "string")
+        ))) ||
+    metadata.displayGroup?.version !== 1 ||
+    typeof metadata.displayGroup.id !== "string"
+  )
+    return null;
+  return metadata.displayGroup.id || null;
 }
 
 const text = (value: unknown) =>
   value === null || value === undefined ? "" : typeof value === "string" ? value : String(value);
+
+const address = (value: unknown) => typeof value === "string" && /^0x[\da-f]{40}$/i.test(value);
+const nullableAddress = (value: unknown) => value === null || address(value);
+const unsigned = (value: unknown) => typeof value === "bigint" && value >= 0n && value < 2n ** 256n;
+const nullableUnsigned = (value: unknown) => value === null || unsigned(value);
+const knownEnum = (value: unknown, values: Record<string, string>) =>
+  typeof value === "string" && value !== "UNKNOWN" && Object.values(values).includes(value);
+
+/** Missing terms cannot establish compatibility; explicit nullable none values can. */
+export function hasKnownDisplayTerms(
+  record: Partial<Record<keyof GroupableCommitment, unknown>>
+): boolean {
+  return (
+    record.creationSeen === true &&
+    knownEnum(record.onchainState, CommitmentOnchainState) &&
+    Number.isSafeInteger(record.chainId) &&
+    Number(record.chainId) > 0 &&
+    unsigned(record.poolId) &&
+    nullableUnsigned(record.cycleId) &&
+    nullableUnsigned(record.commitmentSeriesId) &&
+    address(record.creator) &&
+    knownEnum(record.direction, CommitmentDirection) &&
+    knownEnum(record.commitmentType, CommitmentKind) &&
+    knownEnum(record.claimMode, CommitmentClaimMode) &&
+    knownEnum(record.claimType, CommitmentClaimType) &&
+    knownEnum(record.contributorPolicy, CommitmentContributorPolicy) &&
+    typeof record.unitLabel === "string" &&
+    unsigned(record.targetUnits) &&
+    nullableUnsigned(record.dueDate) &&
+    typeof record.requiresAssessment === "boolean" &&
+    Array.isArray(record.confirmers) &&
+    record.confirmers.every(address) &&
+    Number.isSafeInteger(record.confirmationThreshold) &&
+    Number(record.confirmationThreshold) >= 0 &&
+    typeof record.protocolFallbackEnabled === "boolean" &&
+    knownEnum(record.considerationRail, CommitmentConsiderationRail) &&
+    nullableAddress(record.considerationSource) &&
+    nullableAddress(record.considerationToken) &&
+    (record.needUID === null ||
+      (typeof record.needUID === "string" && /^0x[\da-f]{64}$/i.test(record.needUID))) &&
+    nullableUnsigned(record.counterCommitmentId) &&
+    nullableUnsigned(record.declaredUnitValue) &&
+    (record.declaredValueBasis === null || typeof record.declaredValueBasis === "string") &&
+    Array.isArray(record.requirements) &&
+    record.requirements.every((requirement: unknown) => {
+      if (!requirement || typeof requirement !== "object") return false;
+      const { actionUID, requiredCount } = requirement as Record<string, unknown>;
+      return (
+        unsigned(actionUID) &&
+        Number.isInteger(requiredCount) &&
+        Number(requiredCount) > 0 &&
+        Number(requiredCount) < 2 ** 32
+      );
+    })
+  );
+}
 
 /**
  * The terms that make two copies the same promise to someone taking one up.
  * The reward amount is not among them (Edit Reward), and neither is anything
  * that changes as a copy is taken up or kept.
  */
-function materialTermsKey(record: GroupableCommitment): string {
+function materialTermsKey(record: GroupableCommitment, metadata: CommitmentMetadataV1): string {
   const confirmers = [...(record.confirmers ?? [])].map((a) => a.toLowerCase()).sort();
-  return [
-    record.chainId,
-    record.poolId,
-    record.cycleId,
-    record.creator?.toLowerCase(),
-    record.commitmentSeriesId,
-    record.direction,
-    record.commitmentType,
-    record.claimMode,
-    record.claimType,
-    record.contributorPolicy,
-    record.unitLabel,
-    record.targetUnits,
-    record.dueDate,
-    record.requiresAssessment,
-    confirmers.join(","),
-    record.confirmationThreshold,
-    record.protocolFallbackEnabled,
-    record.considerationRail,
-    record.considerationSource?.toLowerCase(),
-    record.considerationToken?.toLowerCase(),
-    record.needUID,
-    record.counterCommitmentId,
-    record.declaredUnitValue,
-    record.declaredValueBasis,
-  ]
-    .map(text)
-    .join("|");
+  return JSON.stringify(
+    [
+      metadata.title,
+      metadata.note ?? "",
+      JSON.stringify(metadata.links ?? []),
+      JSON.stringify(
+        (record.requirements ?? []).map(({ actionUID, requiredCount }) => [
+          actionUID.toString(),
+          requiredCount,
+        ])
+      ),
+      record.chainId,
+      record.poolId,
+      record.cycleId,
+      record.creator?.toLowerCase(),
+      record.commitmentSeriesId,
+      record.direction,
+      record.commitmentType,
+      record.claimMode,
+      record.claimType,
+      record.contributorPolicy,
+      record.unitLabel,
+      record.targetUnits,
+      record.dueDate,
+      record.requiresAssessment,
+      confirmers.join(","),
+      record.confirmationThreshold,
+      record.protocolFallbackEnabled,
+      record.considerationRail,
+      record.considerationSource?.toLowerCase(),
+      record.considerationToken?.toLowerCase(),
+      record.needUID,
+      record.counterCommitmentId,
+      record.declaredUnitValue,
+      record.declaredValueBasis,
+    ].map(text)
+  );
 }
 
 /**
@@ -186,11 +280,11 @@ export function groupCommitmentsForDisplay<T extends GroupableCommitment>(input:
   const order: Array<{ single: T } | { group: string }> = [];
   for (const record of input.commitments) {
     const displayGroupId = displayGroupIdOf(record, input.metadataByCID);
-    if (!displayGroupId) {
+    if (!displayGroupId || !hasKnownDisplayTerms(record)) {
       order.push({ single: record });
       continue;
     }
-    const key = `${displayGroupId}|${materialTermsKey(record)}`;
+    const key = `${displayGroupId}|${materialTermsKey(record, input.metadataByCID.get(record.metadataCID!.trim())!)}`;
     const existing = groups.get(key);
     if (existing) {
       existing.children.push(record);

@@ -12,7 +12,7 @@
  */
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { logger } from "../../../modules/app/logger";
@@ -119,10 +119,14 @@ export function useAddToGroup(input: {
     [sender, chainId]
   );
 
-  const replaceSet = (next: AdditionSet | null) => {
+  const replaceSet = useCallback((next: AdditionSet | null) => {
     setRef.current = next;
     setSet(next);
-  };
+  }, []);
+  const reset = useCallback(() => {
+    replaceSet(null);
+    setPassIds(null);
+  }, [replaceSet]);
 
   /** The copies of a new addition, fixed once: ids, the group's deadline and terms. */
   const mint = async (count: number): Promise<AdditionSet | AddToGroupOutcome> => {
@@ -190,10 +194,7 @@ export function useAddToGroup(input: {
     pass: passIds ? passIds.flatMap((id) => byId.get(id) ?? []) : null,
     retryCount: current ? copiesToRetry(current).length : 0,
     locked,
-    reset: () => {
-      replaceSet(null);
-      setPassIds(null);
-    },
+    reset,
     add: async (count) => {
       if (!owner || !sender || !group) return "blocked";
       // Every send checks the deadline, a Try Again of copies fixed earlier

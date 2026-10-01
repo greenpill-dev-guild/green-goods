@@ -2910,6 +2910,14 @@
   "app.profile.urlCopied": "URL copied",
   "app.profile.urlCopiedMessage": "Profile URL copied to clipboard",
   "app.proof.beat.details": "Details",
+  "app.proof.draft.loading": "Restoring your proof…",
+  "app.proof.draft.restoreFailed.title": "Couldn’t restore your proof",
+  "app.proof.draft.restoreFailed.body": "Your saved draft has not been replaced. Try restoring it again before you continue.",
+  "app.proof.draft.restoreRetry": "Restore draft",
+  "app.proof.draft.saving": "Saving this proof on your device…",
+  "app.proof.draft.saveFailed": "Your latest changes are not saved on this device. Keep this page open and try saving again, or remove an attachment to free space.",
+  "app.proof.draft.saveRetry": "Save latest changes",
+  "app.proof.draft.saveRequired": "Save your latest changes before continuing.",
   "app.proof.beat.media": "Media",
   "app.proof.blocked.credit": "Name at least one person who did this.",
   "app.proof.blocked.nothing": "Add a photo, a voice note, a link or a few words first.",
@@ -6488,5 +6496,8 @@
   "app.pool.group.sheet.failed": "It didn’t go through, and nothing changed. You can try again.",
   "cockpit.hub.confirm.fromGroup": "from a group of {count}",
   "cockpit.hub.confirm.outcome.confirmed": "Confirmed",
-  "cockpit.hub.confirm.outcome.queued": "Queued on this device"
+  "cockpit.hub.confirm.outcome.queued": "Queued on this device",
+  "cockpit.garden.pool.reward.readyTakenAgreements": "{count, plural, one {{names} keeps the reward agreed at take-up.} other {{names} keep the rewards agreed at take-up.}}",
+  "cockpit.garden.pool.reward.takenKeepAgreements": "{amounts} · unchanged, as agreed",
+  "cockpit.garden.pool.group.rewardAgreements": "{available} available at {amount} each in G$ · taken rewards: {taken}"
 }

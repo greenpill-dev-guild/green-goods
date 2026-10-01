@@ -104,13 +104,14 @@ export function AddToGroupDialog({
   const [count, setCount] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const { reset } = adding;
+  const ownerKey = owner?.toLowerCase() ?? null;
 
   useEffect(() => {
     if (!open) return;
     reset();
     setCount(1);
     setError(null);
-  }, [open, reset]);
+  }, [open, chainId, ownerKey, group.displayGroupId, reset]);
 
   const status = addToGroupStatus({
     mode: adding.mode,
@@ -271,6 +272,7 @@ export function AddToGroupDialog({
           description={status.description}
           progress={status.progress}
           summary={summary}
+          className="min-h-[263px] grid-rows-[108px_auto] sm:min-h-[185px] sm:grid-rows-[50px_auto]"
         />
         <fieldset
           className="min-w-0 space-y-2"

@@ -37,6 +37,35 @@ describe("useCommitmentQueueState", () => {
     vi.clearAllMocks();
   });
 
+  it("distinguishes expired unsent group copies from recorded sends that still need recovery", async () => {
+    const payload = {
+      poolId: 7n,
+      direction: 0,
+      dueDate: 1n,
+      metadata: { title: "Prune", displayGroup: { version: 1, id: "group-1" } },
+    };
+    mocks.getJobs.mockResolvedValue([
+      creation({ id: "unsent", payload }),
+      creation({ id: "recorded", payload, meta: { submittedTxHash: `0x${"44".repeat(32)}` } }),
+      creation({ id: "legacy", payload: { poolId: 7n, direction: 0, dueDate: 1n } }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingCreates).toHaveLength(3));
+    expect(result.current.pendingCreates.find((row) => row.jobId === "unsent")).toMatchObject({
+      groupDueDate: "1",
+      hasRecordedSend: false,
+      discardable: true,
+    });
+    expect(result.current.pendingCreates.find((row) => row.jobId === "recorded")).toMatchObject({
+      groupDueDate: "1",
+      hasRecordedSend: true,
+      discardable: false,
+    });
+    expect(
+      result.current.pendingCreates.find((row) => row.jobId === "legacy")?.groupDueDate
+    ).toBeUndefined();
+  });
+
   it("re-reads the stored job when a flush ends without completing or failing it", async () => {
     // A flush that only parks a creation on its membership preflight rewrites
     // the record without a completed or failed event. The query never goes

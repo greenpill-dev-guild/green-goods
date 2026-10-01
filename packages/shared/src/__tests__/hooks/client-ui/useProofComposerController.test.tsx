@@ -13,6 +13,11 @@ import {
 import { useProofComposerController } from "../../../hooks/client-ui/commitment/useProofComposerController";
 import type { CommitmentJobVariables } from "../../../hooks/commitment-pooling/useCommitmentJobs";
 import type { CommitmentProofDraftHandle } from "../../../hooks/commitment-pooling/useCommitmentProofDraft";
+import type { ProofDraftRepository } from "../../../modules/commitment-pooling/proof-draft-repository";
+import {
+  commitmentProofDraftKey,
+  useCommitmentProofDraftStore,
+} from "../../../stores/useCommitmentProofDraftStore";
 import {
   DEMO_CHAIN_ID,
   DEMO_GARDEN,
@@ -26,6 +31,7 @@ import type {
   CommitmentPoolRecord,
 } from "../../../modules/commitment-pooling/types";
 import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
+import { logger } from "../../../modules/app/logger";
 import type { Job } from "../../../types/job-queue";
 import type { Address } from "../../../types/domain";
 import {
@@ -78,13 +84,17 @@ const mocks = vi.hoisted(() => ({
   sendQueued: vi.fn(async (_input: { jobId: string; commitmentId: bigint }) => "landed"),
   jobsPending: false,
   sendsFromTap: true,
+  realDraft: false,
+  retrySave: vi.fn(),
   draft: {
     key: "proof-key",
     saved: undefined,
     savedFiles: { media: [], audioNotes: [] },
     isRestored: true,
-    saveWords: vi.fn(),
-    saveFiles: vi.fn(async () => undefined),
+    restoration: "restored",
+    retryRestore: vi.fn(),
+    persistence: null,
+    saveSnapshot: vi.fn(async () => true),
     clear: vi.fn(async () => undefined),
   } as CommitmentProofDraftHandle,
   prepare: vi.fn<(files: File[]) => Promise<Prepared>>(),
@@ -146,7 +156,15 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentProofDraft", async (impo
     await importOriginal<
       typeof import("../../../hooks/commitment-pooling/useCommitmentProofDraft")
     >();
-  return { ...actual, useCommitmentProofDraft: () => mocks.draft };
+  return {
+    ...actual,
+    useCommitmentProofDraft: (input: Parameters<typeof actual.useCommitmentProofDraft>[0]) =>
+      mocks.realDraft ? actual.useCommitmentProofDraft(input) : mocks.draft,
+    useProofDraftSync: (...input: Parameters<typeof actual.useProofDraftSync>) =>
+      mocks.realDraft
+        ? actual.useProofDraftSync(...input)
+        : { isRestored: mocks.draft.isRestored, persistence: "saved", retrySave: mocks.retrySave },
+  };
 });
 
 vi.mock("../../../hooks/utils/useAudioRecording", () => ({
@@ -190,13 +208,18 @@ beforeEach(() => {
   mocks.metadata = { version: 1, title: "Restore the tool shed" };
   mocks.jobsPending = false;
   mocks.sendsFromTap = true;
+  mocks.realDraft = false;
+  vi.spyOn(logger, "error").mockImplementation(() => undefined);
+  useCommitmentProofDraftStore.setState({ drafts: {} });
   mocks.draft = {
     key: "proof-key",
     saved: undefined,
     savedFiles: { media: [], audioNotes: [] },
     isRestored: true,
-    saveWords: vi.fn(),
-    saveFiles: vi.fn(async () => undefined),
+    restoration: "restored",
+    retryRestore: vi.fn(),
+    persistence: null,
+    saveSnapshot: vi.fn(async () => true),
     clear: vi.fn(async () => undefined),
   };
   mocks.prepare.mockImplementation(async (files) => ({ files, rejectedCount: 0 }));
@@ -214,7 +237,7 @@ const wrapper = ({ children }: { children: ReactNode }) =>
   createElement(IntlProvider, { locale: "en", messages: {} }, children);
 
 const onOpenYourWork = vi.fn();
-const renderController = () =>
+const renderController = (draftRepository?: ProofDraftRepository) =>
   renderHook(
     () =>
       useProofComposerController({
@@ -222,6 +245,7 @@ const renderController = () =>
         commitmentId: 1001n,
         routeGarden: DEMO_GARDEN,
         onOpenYourWork,
+        ...(draftRepository ? { draftRepository } : {}),
       }),
     { wrapper }
   );
@@ -235,7 +259,10 @@ function readyToSend() {
 
 describe("useProofComposerController", () => {
   // The promise's view of a proof on its way outlives any one screen.
-  afterEach(() => settleProofSend(proofSendKey(DEMO_CHAIN_ID, 1001n, TUNDE), { landed: false }));
+  afterEach(() => {
+    settleProofSend(proofSendKey(DEMO_CHAIN_ID, 1001n, TUNDE), { landed: false });
+    vi.restoreAllMocks();
+  });
 
   it("resolves the status ladder and keeps availability first", () => {
     mocks.query.availability = { status: "unknown-chain" };
@@ -367,6 +394,7 @@ describe("useProofComposerController", () => {
     // Admitted and asking: the proof is safe in the queue, and the page stays still.
     await waitFor(() => expect(mocks.draft.clear).toHaveBeenCalledOnce());
     expect(result.current.landing).toBeNull();
+    expect(result.current.status).toBe("ready");
     expect(onItsWay.result.current).toBeNull();
     expect(mocks.toasts.adding).toHaveBeenCalledWith({ sendToo: false });
     // A second tap while the prompt is open never sends twice.
@@ -667,27 +695,173 @@ describe("useProofComposerController", () => {
     });
   });
 
-  it("restores words, choices, files, and the saved client id", async () => {
+  it("blocks the real controller after a failed read, then restores the full original draft", async () => {
+    mocks.realDraft = true;
     const photo = new File(["photo"], "restored.jpg", { type: "image/jpeg" });
-    mocks.draft = {
-      ...mocks.draft,
-      saved: {
-        note: "Restored words",
-        links: ["https://example.org"],
-        credited: [MARIA],
-        clientEvidenceId: "restored-id",
-        updatedAt: 1,
-      },
-      savedFiles: { media: [photo], audioNotes: [] },
-    };
-    const { result } = renderController();
-
-    await waitFor(() => expect(result.current.media).toEqual([photo]));
-    expect(result.current).toMatchObject({
+    const key = commitmentProofDraftKey({
+      chainId: DEMO_CHAIN_ID,
+      viewer: TUNDE,
+      commitmentId: 1001n,
+    });
+    useCommitmentProofDraftStore.getState().saveDraft(key, {
       note: "Restored words",
       links: ["https://example.org"],
       credited: [MARIA],
       clientEvidenceId: "restored-id",
+    });
+    const repository: ProofDraftRepository = {
+      load: vi.fn().mockRejectedValueOnce(new Error("storage denied")).mockResolvedValue([photo]),
+      save: vi.fn(async () => undefined),
+      clear: vi.fn(async () => undefined),
+      previewUrls: () => [],
+      revoke: () => undefined,
+    };
+    const { result } = renderController(repository);
+
+    await waitFor(() => expect(result.current.status).toBe("draftRestoreFailed"));
+    expect(result.current.readiness("details").canAdvance).toBe(false);
+    await act(async () => expect(await result.current.submit()).toBe(false));
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+    expect(repository.save).not.toHaveBeenCalled();
+    expect(useCommitmentProofDraftStore.getState().drafts[key].note).toBe("Restored words");
+    act(() => result.current.retryDraftRestore());
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    await waitFor(() => expect(result.current.draftPersistence).toBe("saved"));
+    expect(result.current).toMatchObject({
+      media: [photo],
+      note: "Restored words",
+      links: ["https://example.org"],
+      credited: [MARIA],
+      clientEvidenceId: "restored-id",
+    });
+    await act(async () => expect(await result.current.submit()).toBe(true));
+    expect(mocks.enqueue.mock.calls[0][0]).toMatchObject({
+      payload: {
+        clientEvidenceId: "restored-id",
+        media: [photo],
+        note: "Restored words",
+      },
+    });
+    expect(repository.clear).toHaveBeenCalledWith(key);
+  });
+
+  it("blocks advance/send on an unsaved attachment and retries the current in-memory proof", async () => {
+    mocks.realDraft = true;
+    const original = new File(["original"], "original.jpg", { type: "image/jpeg" });
+    const latest = new File(["latest"], "latest.jpg", { type: "image/jpeg" });
+    const repository: ProofDraftRepository = {
+      load: vi.fn(async () => [original]),
+      save: vi
+        .fn()
+        .mockRejectedValueOnce(new DOMException("quota", "QuotaExceededError"))
+        .mockResolvedValue(undefined),
+      clear: vi.fn(async () => undefined),
+      previewUrls: () => [],
+      revoke: () => undefined,
+    };
+    const { result } = renderController(repository);
+    await waitFor(() => expect(result.current.draftPersistence).toBe("saved"));
+    const id = result.current.clientEvidenceId;
+    await act(async () => {
+      await result.current.pick([latest]);
+    });
+    await waitFor(() => expect(result.current.draftPersistence).toBe("failed"));
+    expect(result.current.media).toEqual([original, latest]);
+    expect(result.current.readiness("media").canAdvance).toBe(false);
+    expect(result.current.readiness("review").canAdvance).toBe(false);
+    await act(async () => expect(await result.current.submit()).toBe(false));
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+    act(() => result.current.retryDraftSave());
+    await waitFor(() => expect(result.current.draftPersistence).toBe("saved"));
+    expect(result.current.clientEvidenceId).toBe(id);
+    expect(result.current.media).toEqual([original, latest]);
+    expect(repository.load).toHaveBeenCalledTimes(1);
+    expect(repository.save).toHaveBeenLastCalledWith(expect.any(String), [original, latest]);
+    expect(result.current.readiness("review").canAdvance).toBe(true);
+  });
+
+  it("restores a new mounted key without leaking the old words, identity or admitted state", async () => {
+    mocks.realDraft = true;
+    const firstKey = commitmentProofDraftKey({
+      chainId: DEMO_CHAIN_ID,
+      viewer: TUNDE,
+      commitmentId: 1001n,
+    });
+    const nextKey = commitmentProofDraftKey({
+      chainId: DEMO_CHAIN_ID,
+      viewer: TUNDE,
+      commitmentId: 1002n,
+    });
+    const words = {
+      note: "First proof",
+      links: [],
+      credited: [TUNDE],
+      clientEvidenceId: "first-id",
+    };
+    useCommitmentProofDraftStore.getState().saveDraft(firstKey, words);
+    useCommitmentProofDraftStore.getState().saveDraft(nextKey, {
+      ...words,
+      note: "Next proof",
+      credited: [MARIA],
+      clientEvidenceId: "next-id",
+    });
+    const first = new File(["first"], "first.jpg", { type: "image/jpeg" });
+    const next = new File(["next"], "next.jpg", { type: "image/jpeg" });
+    let finish!: (files: File[]) => void;
+    const waiting = new Promise<File[]>((resolve) => {
+      finish = resolve;
+    });
+    const repository: ProofDraftRepository = {
+      load: vi.fn(async (key) => (key === firstKey ? [first] : waiting)),
+      save: vi.fn(async () => undefined),
+      clear: vi.fn(async () => undefined),
+      previewUrls: () => [],
+      revoke: () => undefined,
+    };
+    const { result, rerender } = renderHook(
+      ({ id }) =>
+        useProofComposerController({
+          chainId: DEMO_CHAIN_ID,
+          commitmentId: id,
+          routeGarden: DEMO_GARDEN,
+          draftRepository: repository,
+        }),
+      { initialProps: { id: 1001n }, wrapper }
+    );
+    await waitFor(() => expect(result.current.draftPersistence).toBe("saved"));
+    act(() => result.current.setSendToo(true));
+    await act(async () => expect(await result.current.submit()).toBe(true));
+    expect(result.current.landing).toBe("sending");
+    mocks.query.detail = commitmentDetailFixture({
+      commitment: { ...detail.commitment, commitmentId: 1002n },
+      contributors: detail.contributors,
+    });
+    rerender({ id: 1002n });
+    expect(result.current.status).toBe("restoringDraft");
+    await act(async () => expect(await result.current.submit()).toBe(false));
+    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+    expect(repository.save).not.toHaveBeenCalledWith(nextKey, expect.anything());
+    expect(useCommitmentProofDraftStore.getState().drafts[nextKey].note).toBe("Next proof");
+    await act(async () => finish([next]));
+    await waitFor(() => expect(result.current.draftPersistence).toBe("saved"));
+    expect(result.current).toMatchObject({
+      status: "ready",
+      media: [next],
+      note: "Next proof",
+      links: [],
+      credited: [MARIA],
+      clientEvidenceId: "next-id",
+      landing: null,
+      sendToo: false,
+    });
+    await act(async () => expect(await result.current.submit()).toBe(true));
+    expect(mocks.enqueue.mock.calls[1][0]).toMatchObject({
+      payload: {
+        commitmentId: 1002n,
+        clientEvidenceId: "next-id",
+        media: [next],
+        note: "Next proof",
+      },
     });
   });
 
@@ -695,5 +869,124 @@ describe("useProofComposerController", () => {
     const { unmount } = renderController();
     unmount();
     expect(mocks.cleanup).toHaveBeenCalledWith("proof");
+  });
+
+  it("reconciles late old-key admission without retiring or landing the new form", async () => {
+    mocks.realDraft = true;
+    const firstKey = commitmentProofDraftKey({
+      chainId: DEMO_CHAIN_ID,
+      viewer: TUNDE,
+      commitmentId: 1001n,
+    });
+    const nextKey = commitmentProofDraftKey({
+      chainId: DEMO_CHAIN_ID,
+      viewer: TUNDE,
+      commitmentId: 1002n,
+    });
+    const words = {
+      note: "First proof",
+      links: [],
+      credited: [TUNDE],
+      clientEvidenceId: "first-id",
+    };
+    useCommitmentProofDraftStore.getState().saveDraft(firstKey, words);
+    useCommitmentProofDraftStore
+      .getState()
+      .saveDraft(nextKey, { ...words, note: "Next proof", clientEvidenceId: "next-id" });
+    const first = new File(["first"], "first.jpg", { type: "image/jpeg" });
+    const next = new File(["next"], "next.jpg", { type: "image/jpeg" });
+    const repository: ProofDraftRepository = {
+      load: vi.fn(async (key) => (key === firstKey ? [first] : [next])),
+      save: vi.fn(async () => undefined),
+      clear: vi.fn(async () => undefined),
+      previewUrls: () => [],
+      revoke: vi.fn(),
+    };
+    let admitFirst!: () => void;
+    let admitNext!: () => void;
+    let signNext!: () => void;
+    const firstAdmission = new Promise<void>((resolve) => {
+      admitFirst = resolve;
+    });
+    const nextAdmission = new Promise<void>((resolve) => {
+      admitNext = resolve;
+    });
+    const nextSignature = new Promise<void>((resolve) => {
+      signNext = resolve;
+    });
+    mocks.enqueue
+      .mockImplementationOnce(async ({ report }) => {
+        await firstAdmission;
+        report?.({ stage: "admitted", jobId: "first-job" });
+        report?.({ stage: "confirming", txHash: "0x1" });
+        report?.({ stage: "landed", txHash: "0x1" });
+        return "first-job";
+      })
+      .mockImplementationOnce(async ({ report }) => {
+        await nextAdmission;
+        report?.({ stage: "admitted", jobId: "next-job" });
+        await nextSignature;
+        report?.({ stage: "confirming", txHash: "0x2" });
+        return "next-job";
+      });
+    const { result, rerender } = renderHook(
+      ({ id }) =>
+        useProofComposerController({
+          chainId: DEMO_CHAIN_ID,
+          commitmentId: id,
+          routeGarden: DEMO_GARDEN,
+          draftRepository: repository,
+        }),
+      { initialProps: { id: 1001n }, wrapper }
+    );
+    await waitFor(() => expect(result.current.draftPersistence).toBe("saved"));
+    let sendingFirst!: Promise<boolean>;
+    act(() => {
+      sendingFirst = result.current.submit();
+    });
+    mocks.query.detail = commitmentDetailFixture({
+      commitment: { ...detail.commitment, commitmentId: 1002n },
+      contributors: detail.contributors,
+    });
+    rerender({ id: 1002n });
+    await waitFor(() => expect(result.current.draftPersistence).toBe("saved"));
+    let sendingNext!: Promise<boolean>;
+    act(() => {
+      sendingNext = result.current.submit();
+    });
+    expect(mocks.enqueue).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      admitFirst();
+      expect(await sendingFirst).toBe(true);
+    });
+    expect(result.current).toMatchObject({
+      status: "ready",
+      landing: null,
+      clientEvidenceId: "next-id",
+      note: "Next proof",
+      media: [next],
+    });
+    expect(repository.clear).toHaveBeenCalledWith(firstKey);
+    expect(repository.clear).not.toHaveBeenCalledWith(nextKey);
+    expect(repository.revoke).not.toHaveBeenCalled();
+    expect(useCommitmentProofDraftStore.getState().drafts[nextKey].clientEvidenceId).toBe(
+      "next-id"
+    );
+    await act(async () => expect(await result.current.submit()).toBe(false));
+    expect(mocks.enqueue).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      admitNext();
+    });
+    await waitFor(() => expect(repository.clear).toHaveBeenCalledWith(nextKey));
+    expect(result.current.status).toBe("ready");
+    expect(result.current.draftPersistence).toBe("saved");
+    expect(result.current.media).toEqual([next]);
+    expect(result.current.landing).toBeNull();
+    await act(async () => {
+      signNext();
+      expect(await sendingNext).toBe(true);
+    });
+    expect(result.current.landing).toBe("sending");
+    expect(repository.clear).toHaveBeenCalledWith(nextKey);
   });
 });

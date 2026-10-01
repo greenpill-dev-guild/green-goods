@@ -17,6 +17,7 @@ import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { GardenPoolTarget } from "../PoolTarget";
 import { formatGoodDollars, formatUsd } from "../poolPresentation";
 import { priceUnavailableReason } from "../Seed/seedReward";
+import { type GroupReward, rewardText } from "./groupTerms";
 import { editRewardStatus, editRewardSummary } from "./editRewardStatus";
 
 /** A term edit is cheap, so up to this many go in one wallet approval (`reward-edit`). */
@@ -34,8 +35,12 @@ export interface EditRewardDialogProps {
   title: string;
   /** The copies nobody has taken: the ones this changes. */
   available: readonly bigint[];
+  /** Current child amounts, including different amounts left by a partial earlier edit. */
+  availableRewards: GroupReward["available"];
   /** Who took theirs, by name: they keep the reward they agreed to. */
   takenBy: readonly string[];
+  /** Each taken copy's own reward; no available-copy amount is assigned to it. */
+  takenRewards: GroupReward["taken"];
   /** Each copy's reward now, in G$ base units. */
   currentWei: bigint;
   /** The dollars it was set in, while the chain still holds that amount (`rewardCentsAsSet`). */
@@ -59,12 +64,15 @@ export function EditRewardDialog({
   isProtocol,
   title,
   available,
+  availableRewards,
   takenBy,
+  takenRewards,
   currentWei,
   currentCentsAsSet,
   settlementActive,
 }: EditRewardDialogProps) {
-  const { formatMessage, locale } = useIntl();
+  const intl = useIntl();
+  const { formatMessage, locale } = intl;
   const fieldsetId = useId();
   const price = useGoodDollarPrice({ enabled: open });
   const reward = useEditReward({ chainId });
@@ -73,11 +81,6 @@ export function EditRewardDialog({
   // The G$ amount of the first change, kept for every Try Again.
   const fixedAmount = useRef<bigint | null>(null);
 
-  const readCents =
-    currentCentsAsSet ??
-    (price.state.status === "ready"
-      ? goodDollarWeiToUsdCents(currentWei, price.state.price)
-      : null);
   const { reset } = reward;
   useEffect(() => {
     if (!open) return;
@@ -87,18 +90,6 @@ export function EditRewardDialog({
     setAmountText(currentCentsAsSet !== null ? usdCentsText(currentCentsAsSet) : "");
   }, [open, reset, currentCentsAsSet]);
 
-  const current =
-    readCents === null
-      ? formatMessage(
-          { id: "cockpit.garden.pool.reward.inGoodDollars", defaultMessage: "{amount} G$" },
-          { amount: formatGoodDollars(currentWei, locale) }
-        )
-      : currentCentsAsSet !== null
-        ? formatUsd(readCents, locale)
-        : formatMessage(
-            { id: "cockpit.garden.pool.reward.about", defaultMessage: "about {amount}" },
-            { amount: formatUsd(readCents, locale) }
-          );
   const listFormat = new Intl.ListFormat(locale, { style: "long", type: "conjunction" });
   const status = editRewardStatus({
     mode: reward.mode,
@@ -106,7 +97,6 @@ export function EditRewardDialog({
     copies: reward.copies,
     available: available.length,
     takenBy,
-    current,
     formatMessage,
     formatList: (items) => listFormat.format(items),
   });
@@ -119,7 +109,11 @@ export function EditRewardDialog({
   const retrying = status.retry.length > 0;
   // The amount starts at the reward as set; asking the wallet to write it again changes nothing.
   const unchanged =
-    !locked && !retrying && currentCentsAsSet !== null && newCents === currentCentsAsSet;
+    !locked &&
+    !retrying &&
+    currentCentsAsSet !== null &&
+    newCents === currentCentsAsSet &&
+    availableRewards.every((agreement) => agreement.wei === currentWei);
   const blocked = !settlementActive
     ? formatMessage({
         id: "cockpit.garden.pool.reward.needsSettlement",
@@ -162,11 +156,24 @@ export function EditRewardDialog({
     }
   };
 
+  const summarizeAgreement = (agreement: GroupReward["taken"][number]) => {
+    const readCents =
+      agreement.centsAsSet ??
+      (agreement.wei !== null && price.state.status === "ready"
+        ? goodDollarWeiToUsdCents(agreement.wei, price.state.price)
+        : null);
+    return {
+      current:
+        agreement.wei === null
+          ? "—"
+          : rewardText(intl, agreement.wei, agreement.centsAsSet, price.state),
+      readCents,
+      estimated: agreement.centsAsSet === null,
+    };
+  };
   const summary = editRewardSummary({
-    available: available.length,
-    taken: takenBy.length,
-    current,
-    readCents,
+    available: availableRewards.map(summarizeAgreement),
+    taken: takenRewards.map(summarizeAgreement),
     newCents,
     formatUsd: (cents) => formatUsd(cents, locale),
     formatMessage,
@@ -289,7 +296,7 @@ export function EditRewardDialog({
         />
         <fieldset
           className="min-w-0 space-y-2"
-          disabled={status.busy || locked}
+          disabled={status.busy || locked || price.state.status !== "ready"}
           aria-labelledby={`${fieldsetId}-title`}
         >
           <AdminCardTitle as="h4" id={`${fieldsetId}-title`}>

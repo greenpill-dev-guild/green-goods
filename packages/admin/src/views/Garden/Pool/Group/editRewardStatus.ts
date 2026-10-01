@@ -46,12 +46,10 @@ export function editRewardStatus(input: {
   available: number;
   /** Who took theirs, by name: they keep their reward. */
   takenBy: readonly string[];
-  /** The reward they took, as the steward reads it: "$3.00". */
-  current: string;
   formatMessage: FormatMessage;
   formatList: (items: string[]) => string;
 }): EditRewardStatus {
-  const { mode, isSending, copies, available, takenBy, current, formatMessage } = input;
+  const { mode, isSending, copies, available, takenBy, formatMessage } = input;
   if (!copies) {
     const names =
       takenBy.length <= 3
@@ -85,11 +83,11 @@ export function editRewardStatus(input: {
             })
           : formatMessage(
               {
-                id: "cockpit.garden.pool.reward.readyTaken",
+                id: "cockpit.garden.pool.reward.readyTakenAgreements",
                 defaultMessage:
-                  "{count, plural, one {{names} took theirs at {current} and keeps it.} other {{names} took theirs at {current} and keep it.}}",
+                  "{count, plural, one {{names} keeps the reward agreed at take-up.} other {{names} keep the rewards agreed at take-up.}}",
               },
-              { count: takenBy.length, names, current }
+              { count: takenBy.length, names }
             ),
     };
   }
@@ -266,50 +264,74 @@ export function editRewardStatus(input: {
  * the available copies from their reward to the new one, the taken ones at
  * theirs, and the most the group could pay once every copy is kept.
  */
+type RewardSummaryAmount = { current: string; readCents: bigint | null; estimated: boolean };
+
 export function editRewardSummary(input: {
-  available: number;
-  taken: number;
-  /** The reward now, as the steward reads it: "$3.00". */
-  current: string;
-  /** The reward now in cents, when it can be read in dollars. */
-  readCents: bigint | null;
+  available: readonly RewardSummaryAmount[];
+  taken: readonly RewardSummaryAmount[];
   /** The new reward in cents, once the steward has typed one. */
   newCents: bigint | null;
   formatUsd: (cents: bigint) => string;
   formatMessage: FormatMessage;
 }): Array<[string, string]> {
-  const { available, taken, current, readCents, newCents, formatUsd, formatMessage } = input;
-  const upTo = (each: bigint | null) =>
-    each === null || readCents === null
+  const { available, taken, newCents, formatUsd, formatMessage } = input;
+  const total = (agreements: readonly RewardSummaryAmount[]) =>
+    agreements.reduce<bigint | null>(
+      (total, agreement) =>
+        total === null || agreement.readCents === null ? null : total + agreement.readCents,
+      0n
+    );
+  const takenTotal = total(taken);
+  const amountsText = (agreements: readonly RewardSummaryAmount[]) => {
+    const amounts = new Map<string, number>();
+    for (const agreement of agreements)
+      amounts.set(agreement.current, (amounts.get(agreement.current) ?? 0) + 1);
+    return [...amounts].map(([amount, count]) => `${count} × ${amount}`).join(" · ");
+  };
+  const upTo = (availableTotal: bigint | null, estimated: boolean) =>
+    availableTotal === null || takenTotal === null
       ? "—"
       : formatMessage(
           { id: "cockpit.garden.pool.reward.upTo", defaultMessage: "up to {amount}" },
-          { amount: formatUsd(each * BigInt(available) + readCents * BigInt(taken)) }
+          {
+            amount:
+              estimated || taken.some((agreement) => agreement.estimated)
+                ? formatMessage(
+                    { id: "cockpit.garden.pool.reward.about", defaultMessage: "about {amount}" },
+                    { amount: formatUsd(availableTotal + takenTotal) }
+                  )
+                : formatUsd(availableTotal + takenTotal),
+          }
         );
   const rows: Array<[string, string]> = [
     [
       formatMessage(
         { id: "cockpit.garden.pool.reward.availableRow", defaultMessage: "{count} available" },
-        { count: available }
+        { count: available.length }
       ),
       formatMessage(
         { id: "cockpit.garden.pool.reward.fromTo", defaultMessage: "{from} → {to} each" },
-        { from: current, to: newCents === null ? "—" : formatUsd(newCents) }
+        {
+          from: available.every((agreement) => agreement.current === available[0]?.current)
+            ? (available[0]?.current ?? "—")
+            : amountsText(available),
+          to: newCents === null ? "—" : formatUsd(newCents),
+        }
       ),
     ],
   ];
-  if (taken > 0) {
+  if (taken.length > 0) {
     rows.push([
       formatMessage(
         { id: "cockpit.garden.pool.reward.takenRow", defaultMessage: "{count} taken" },
-        { count: taken }
+        { count: taken.length }
       ),
       formatMessage(
         {
-          id: "cockpit.garden.pool.reward.takenKeep",
-          defaultMessage: "{amount} each · unchanged, as agreed",
+          id: "cockpit.garden.pool.reward.takenKeepAgreements",
+          defaultMessage: "{amounts} · unchanged, as agreed",
         },
-        { amount: current }
+        { amounts: amountsText(taken) }
       ),
     ]);
   }
@@ -320,7 +342,13 @@ export function editRewardSummary(input: {
     }),
     formatMessage(
       { id: "cockpit.garden.pool.reward.totalFromTo", defaultMessage: "{from} → {to}" },
-      { from: upTo(readCents), to: upTo(newCents) }
+      {
+        from: upTo(
+          total(available),
+          available.some((agreement) => agreement.estimated)
+        ),
+        to: upTo(newCents === null ? null : newCents * BigInt(available.length), false),
+      }
     ),
   ]);
   return rows;

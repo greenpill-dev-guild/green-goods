@@ -541,24 +541,20 @@
   :where(:root:not([data-surface="admin"])) h4,
   :where(:root:not([data-surface="admin"])) h5,
   :where(:root:not([data-surface="admin"])) h6 {
-    font-family: var(--font-family-sans);
+    font-family: inherit;
     color: var(--color-header-text);
   }
 
-  /* `--font-family-sans` is undefined in every build, so this declaration is
-     invalid at computed-value time and resolves to `inherit` — but it still wins
-     the cascade over the components layer. The editorial underline field keeps
-     its serif only because it is excluded here, exactly as the client does. */
+  /* Inherit each surface's face (Inter or the cockpit's Plus Jakarta Sans),
+     preserving the client cascade and the editorial underline field's serif. */
   *:where(:not(.gg-control[data-surface="editorial"])) {
-    font-family: var(--font-family-sans);
+    font-family: inherit;
   }
 
-
-
-
-
-
-
+  /* Client code samples use Tailwind's current monospace stack. */
+  code {
+    @apply font-mono;
+  }
 
   a {
     text-decoration: none;

@@ -395,7 +395,9 @@ function PromiseRewardEdit({
       garden={garden}
       title={title}
       available={[commitmentId]}
+      availableRewards={[{ wei: currentWei, centsAsSet: currentCentsAsSet }]}
       takenBy={[]}
+      takenRewards={[]}
       currentWei={currentWei}
       currentCentsAsSet={currentCentsAsSet}
       settlementActive={Boolean(settlement.detail?.account?.active)}
