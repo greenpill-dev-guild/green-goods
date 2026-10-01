@@ -37,9 +37,9 @@ lead retitled entries.) Round 1 earlier the same day: W7 pool tab restructured �
 
 ## Build snapshot
 
-- 44 registered screens / 535 rendered states in the full source registry
-- 37 presentation-visible hi-fi screens / 528 states: 19 Client PWA (309 states), 16 Admin console (208 states), 2 Editorial website (11 states)
-- 750 registered hotspots
+- 44 registered screens / 560 rendered states in the full source registry
+- 37 presentation-visible hi-fi screens / 553 states: 19 Client PWA (309 states), 16 Admin console (233 states), 2 Editorial website (11 states)
+- 786 registered hotspots
 - 56 validated source flows / 336 scenes; 55 presentation-visible flows / 325 scenes: 23 Client PWA, 30 Admin console, 2 Editorial website
 - 101 component entries / 188 static specimens on the Components tab (46 Client PWA · 38 Steward console · 4 Editorial), every entry anchored at `#components/<id>[@surface]` with shipping citation or net-new note; shipped-palette parity: shipping names lead admin entry titles
 - States are grouped by **frame** in the switcher (2026-08-16 round 7): W2 85 states → 12 frames, W1 33 → 9, W7 31 → 8. Frames are a presentation grouping only — every state keeps its registry entry and §17 accounting, and each screen's default state is unchanged
@@ -365,7 +365,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W9 | Admin console | 5 | pick-member, no-member, capture-kind, capture-fallback, discard |
 | W10 | Admin console | 19 | detail, detail-fallback-eligible, external-fulfilled, fulfilled, contributor-allocation, edit-declared-value, record-payout, fallback-confirm, protocol-fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found, garden-ready, garden-fulfilled, queue-settlement-garden |
 | W11 | Admin console | 18 | setup-how, setup-how-blocked, setup-season, setup-split, setup-open, setup-discard, details, presets, invalid-sum, guard, recognition-policy, campaign-details, campaign-allocation, campaign-open, discard, campaign-discard, setup-failed, open-failed |
-| W12 | Admin console | 17 | protocol, current-garden, seed-protocol, protocol-reader, protocol-owner, seed-offer, seed-unbounded, seed-queued, seed-indexing, seed-failed, seed-published, seed-offer-published, seed-offer-queued, seed-offer-indexing, seed-offer-failed, loading, read-error |
+| W12 | Admin console | 42 | protocol, current-garden, seed-protocol, protocol-reader, protocol-owner, seed-offer, seed-unbounded, seed-queued, seed-indexing, seed-failed, seed-published, seed-offer-published, seed-offer-queued, seed-offer-indexing, seed-offer-failed, seed-offer-unbounded, seed-discarded, seed-offer-discarded, seed-blocked-authority, seed-blocked-pool, seed-blocked-cycle, seed-blocked-conflict, seed-offer-blocked-authority, seed-offer-blocked-pool, seed-offer-blocked-cycle, seed-offer-blocked-conflict, pool-seed-queued, pool-seed-indexing, pool-seed-failed, pool-seed-blocked-authority, pool-seed-blocked-pool, pool-seed-blocked-cycle, pool-seed-blocked-conflict, pool-seed-offer-queued, pool-seed-offer-indexing, pool-seed-offer-failed, pool-seed-offer-blocked-authority, pool-seed-offer-blocked-pool, pool-seed-offer-blocked-cycle, pool-seed-offer-blocked-conflict, loading, read-error |
 | W13 | Admin console | 6 | queue, context-chip, assess, empty, loading, read-error |
 | W14 | Admin console | 10 | baseline, delta, kernel, harvest, offline, attest-failed, duplicate, no-hat, record, discard |
 | W37 | Admin console | 8 | claim, pledged, deposit-recorded, consumed, refund-eligible, loading, not-found, read-error |
