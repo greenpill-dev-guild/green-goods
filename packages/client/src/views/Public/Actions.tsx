@@ -449,7 +449,7 @@ export default function ActionsGallery() {
             <img
               src={activeAction.media[0]}
               alt={activeAction.title}
-              className="w-full rounded-2xl object-cover"
+              className="aspect-[4/3] w-full bg-editorial-warm object-cover"
             />
           ) : null}
           {activeAction.description ? (

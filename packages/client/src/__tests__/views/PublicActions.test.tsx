@@ -4,7 +4,8 @@
  * @vitest-environment happy-dom
  */
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -111,6 +112,43 @@ describe("ActionsGallery", () => {
   it("renders action media when available", () => {
     renderView();
     expect(screen.getByRole("img", { name: "Tree Planting" })).toBeInTheDocument();
+  });
+
+  it.each(["{Enter}", " "])("opens an action with the keyboard (%s)", async (key) => {
+    const user = userEvent.setup();
+    renderView();
+    const card = screen.getByRole("button", { name: /Tree Planting/ });
+    expect(card).toHaveClass("cursor-pointer");
+    // Tab through the domain filters to the first action, without pointer input.
+    for (let step = 0; step < 20 && document.activeElement !== card; step++) await user.tab();
+    expect(card).toHaveFocus();
+    await user.keyboard(key);
+    expect(screen.getByRole("dialog", { name: "Tree Planting" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("reserves square-cornered dialog media before load and after load or failure", () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: /Tree Planting/ }));
+    const dialog = screen.getByRole("dialog", { name: "Tree Planting" });
+    const image = within(dialog).getByRole("img", { name: "Tree Planting" });
+    // happy-dom does not lay out images; rendered geometry is verified in the browser.
+    expect(image).toHaveClass("aspect-[4/3]", "w-full", "object-cover");
+    expect(image).not.toHaveClass("rounded-2xl");
+    for (const event of ["load", "error"]) {
+      fireEvent(image, new Event(event));
+      expect(image).toHaveClass("aspect-[4/3]", "w-full");
+      expect(within(dialog).getByText(mockActions[0].description)).toBeInTheDocument();
+    }
+  });
+
+  it("opens actions without media without an empty image slot", () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: /Solar Panel Installation/ }));
+    const dialog = screen.getByRole("dialog", { name: "Solar Panel Installation" });
+    expect(within(dialog).queryByRole("img")).not.toBeInTheDocument();
+    expect(within(dialog).getByText(mockActions[1].description)).toBeInTheDocument();
   });
 
   it("shows loading skeletons", () => {
