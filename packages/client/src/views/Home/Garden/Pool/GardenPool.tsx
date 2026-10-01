@@ -264,8 +264,7 @@ export function GardenPool({ pool }: GardenPoolProps) {
                     availabilityUnknown={controller.commitments.isError}
                     onOpen={() =>
                       navigate(
-                        `commitments/group/${encodeURIComponent(entry.group.displayGroupId)}`,
-                        { state: { groupKey: entry.group.key } }
+                        `commitments/group/${encodeURIComponent(entry.group.displayGroupId)}?copy=${entry.group.children[0]?.commitmentId.toString() ?? ""}`
                       )
                     }
                   />

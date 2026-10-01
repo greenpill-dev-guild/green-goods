@@ -25,7 +25,7 @@
 import type { Address } from "../../types/domain";
 import type { DisplayEntry, DisplayGroupEntry } from "./display-groups";
 import { selectSeedTrayRoom } from "./seed-tray";
-import { isCommitmentCreator, selectCommitmentSeat } from "./selectors";
+import { isCommitmentCreator, isSameAccount } from "./selectors";
 import type { CommitmentProviderExposureRecord, CommitmentReadModel } from "./types-core";
 
 /** What choosing a copy reads from each one. */
@@ -50,12 +50,15 @@ function isOpenToTakeUp(copy: Pick<GroupCopy, "onchainState" | "derivedState">):
 
 /**
  * Whether the reader took this copy up: they provide a request they answered,
- * or receive an offer they took. A copy they made is theirs to give, not to hold.
+ * or receive an offer they took. A copy they made is theirs to give, not to hold,
+ * and a named confirmer only checks the work, so neither holds a copy.
  */
 export function isViewerCopy(copy: GroupCopy, viewer: Address | null | undefined): boolean {
   if (!viewer || isCommitmentCreator({ commitment: copy, viewer })) return false;
-  const seat = selectCommitmentSeat({ commitment: copy, contributors: [], viewer });
-  return seat === "provider" || seat === "confirmer";
+  return isSameAccount(
+    copy.direction === "REQUEST" ? copy.leadProvider : copy.counterparty,
+    viewer
+  );
 }
 
 export interface CopyChoiceInput {
@@ -190,17 +193,26 @@ export function selectPoolListEntries<R extends { commitment: CommitmentReadMode
 }
 
 /**
- * The group a route names: by its display-group id, and by its key when one id
- * ever splits by terms. Without a key the first entry with the id stands.
+ * The group a route names: by its display-group id, and, when one id ever
+ * splits by terms, by its key or by one of its copies. A copy's id is what a
+ * link carries, since a copy stays in its group however its reward is edited.
+ * Without either the first entry with the id stands.
  */
-export function findDisplayGroup<T>(
+export function findDisplayGroup<T extends { commitmentId: bigint }>(
   entries: readonly DisplayEntry<T>[],
   displayGroupId: string,
-  key?: string | null
+  within: { key?: string | null; copyId?: string | null } = {}
 ): DisplayGroupEntry<T> | null {
   const matches = entries.filter(
     (entry): entry is DisplayGroupEntry<T> =>
       entry.kind === "group" && entry.displayGroupId === displayGroupId
   );
-  return matches.find((entry) => entry.key === key) ?? matches[0] ?? null;
+  return (
+    matches.find((entry) => within.key && entry.key === within.key) ??
+    matches.find((entry) =>
+      entry.children.some((copy) => copy.commitmentId.toString() === within.copyId)
+    ) ??
+    matches[0] ??
+    null
+  );
 }

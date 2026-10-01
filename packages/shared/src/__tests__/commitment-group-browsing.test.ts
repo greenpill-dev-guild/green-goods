@@ -128,12 +128,13 @@ describe("group browsing", () => {
   });
 
   it("folds a set into one row where its first copy stood, counting copies the filters leave out", () => {
+    // The set names the reader to confirm every copy, which gives them none to hold.
     const copies = [
       copy(21),
       copy(22, { onchainState: "ACCEPTED", derivedState: "ACTIVE", leadProvider: LINA }),
       copy(23),
       copy(24, { onchainState: "FULFILLED", derivedState: "FULFILLED", leadProvider: OMAR }),
-    ];
+    ].map((record) => ({ ...record, confirmers: [LINA] }));
     const plain = commitmentFixture({ commitmentId: 30n, metadataCID: "cid-unreadable" });
     const all = [plain, ...copies];
     // Status: live, so the kept copy is not among the rows.
@@ -161,7 +162,7 @@ describe("group browsing", () => {
     });
   });
 
-  it("finds a route's group by its id, and by its key when one id splits by terms", () => {
+  it("finds a route's group by its id, and by its key or a copy when one id splits by terms", () => {
     const entries = groupCommitmentsForDisplay({
       commitments: [copy(41), copy(42), copy(43, { dueDate: 99n }), copy(44, { dueDate: 99n })],
       metadataByCID: metadata,
@@ -169,9 +170,11 @@ describe("group browsing", () => {
     const [first, second] = entries;
 
     expect(findDisplayGroup(entries, "set-1")).toBe(first);
-    expect(findDisplayGroup(entries, "set-1", second?.kind === "group" ? second.key : null)).toBe(
-      second
-    );
+    expect(
+      findDisplayGroup(entries, "set-1", { key: second?.kind === "group" ? second.key : null })
+    ).toBe(second);
+    // A link carries one copy's id, which still finds its own group after a reload.
+    expect(findDisplayGroup(entries, "set-1", { copyId: "44" })).toBe(second);
     expect(findDisplayGroup(entries, "set-2")).toBeNull();
   });
 });

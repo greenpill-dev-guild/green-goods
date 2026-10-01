@@ -3,8 +3,9 @@ import { usePromiseGroupController } from "@green-goods/shared/hooks/client-ui/p
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
+import { type ClaimContext, ClaimContextSheet } from "../Commitment/ClaimContextSheet";
 import { CommitmentDetailState } from "../Commitment/CommitmentDetailShell";
 import { JoinToAct } from "../Commitment/JoinToAct";
 import { GROUP_ACT_LABEL, PromiseGroupPage } from "./PromiseGroupPage";
@@ -15,16 +16,18 @@ export function GardenPromiseGroup() {
   const intl = useIntl();
   const { formatMessage, formatDate } = intl;
   const navigate = useNavigate();
-  const location = useLocation();
+  const [search] = useSearchParams();
   const { id: gardenAddress, groupId } = useParams<{ id: string; groupId: string }>();
-  const groupKey = (location.state as { groupKey?: string } | null)?.groupKey ?? null;
   const controller = usePromiseGroupController({
     chainId: DEFAULT_CHAIN_ID,
     routeGarden: gardenAddress,
     displayGroupId: groupId,
-    groupKey,
+    copyId: search.get("copy"),
   });
   const [sheetOpen, setSheetOpen] = useState(false);
+  // On the protocol pool the person chooses who takes it up before the sheet.
+  const [contextOpen, setContextOpen] = useState(false);
+  const [context, setContext] = useState<ClaimContext | null>(null);
   const { state: takeUpState, reset } = controller.takeUp;
   const back = () => navigate(-1);
   const openCopy = (commitmentId: bigint) =>
@@ -71,6 +74,7 @@ export function GardenPromiseGroup() {
   const closeSheet = () => {
     if (inFlight) return;
     setSheetOpen(false);
+    setContext(null);
     reset();
   };
 
@@ -95,9 +99,25 @@ export function GardenPromiseGroup() {
         }
         onBack={back}
         onRefresh={controller.refresh}
-        onRun={() => setSheetOpen(true)}
+        onRun={() => (controller.claimNeedsContext ? setContextOpen(true) : setSheetOpen(true))}
         onOpenCopy={openCopy}
       />
+      {controller.bar && controller.claimNeedsContext ? (
+        <ClaimContextSheet
+          open={contextOpen}
+          onOpenChange={setContextOpen}
+          memberGardens={controller.claimGardens.member}
+          stewardedGardens={controller.claimGardens.stewarded}
+          approvalGated={controller.bar.act === "askToTakeUp"}
+          isPending={false}
+          continueLabel={formatMessage({ id: "app.common.continue" })}
+          onContinue={(chosen) => {
+            setContext(chosen);
+            setContextOpen(false);
+            setSheetOpen(true);
+          }}
+        />
+      ) : null}
       {controller.bar ? (
         <TakeUpOneSheet
           open={sheetOpen}
@@ -107,8 +127,9 @@ export function GardenPromiseGroup() {
           title={title}
           terms={[units, due].filter(Boolean).join(" · ") || null}
           state={takeUpState}
-          onTakeUp={controller.takeUp.start}
+          onTakeUp={() => controller.takeUp.start(context)}
           onTakeUpNext={controller.takeUp.confirm}
+          onRetry={controller.takeUp.retry}
           onRefresh={() => {
             controller.refresh();
             reset();

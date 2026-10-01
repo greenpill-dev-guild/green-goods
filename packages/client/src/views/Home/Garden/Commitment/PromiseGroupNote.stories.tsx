@@ -31,7 +31,7 @@ const meta: Meta<typeof PromiseGroupLine> = {
       </div>
     ),
   ],
-  args: { count: 10, yours: true, to: "../group/story-water-survey", groupKey: "story" },
+  args: { count: 10, yours: true, to: "../group/story-water-survey?copy=104" },
 };
 
 export default meta;
@@ -44,9 +44,10 @@ export const Yours: Story = {
     await expect(
       canvas.getByText("One of 10 separate promises. Yours is confirmed on its own.")
     ).toBeVisible();
+    // The link names this copy, so the group still opens after a reload.
     await expect(canvas.getByRole("link", { name: "See the Group" })).toHaveAttribute(
       "href",
-      "/home/garden/commitments/group/story-water-survey"
+      "/home/garden/commitments/group/story-water-survey?copy=104"
     );
   },
 };

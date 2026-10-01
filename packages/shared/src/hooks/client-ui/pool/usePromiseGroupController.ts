@@ -6,7 +6,8 @@
  * act, Take Up One (Take Up Another once the reader holds or kept one, Ask to
  * Take Up One in a steward-reviewed group). The act takes one copy the app
  * chooses (`useGroupTakeUp`); availability that can't be read is unknown, and
- * the pool's at-once limit is the only limit stated.
+ * the pool's at-once limit is the only limit stated. On the protocol pool the
+ * person chooses who takes it up first, as on a promise's own page.
  *
  * @module hooks/client-ui/pool/usePromiseGroupController
  */
@@ -43,9 +44,14 @@ import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQ
 import type { InboxCommitment } from "../../commitment-pooling/useCommitmentsInbox";
 import { useCommitmentViewerRoles } from "../../commitment-pooling/useCommitmentViewerRoles";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
-import { type GroupTakeUpState, useGroupTakeUp } from "./useGroupTakeUp";
+import { type GroupTakeUpContext, type GroupTakeUpState, useGroupTakeUp } from "./useGroupTakeUp";
 
-export type { GroupTakeUpBar, GroupTakeUpState };
+export type { GroupTakeUpBar, GroupTakeUpContext, GroupTakeUpState };
+
+interface ClaimGardenOption {
+  address: Address;
+  name: string;
+}
 
 export type PromiseGroupStatus = "loading" | "ready" | "notFound" | "error" | "unavailable";
 
@@ -67,16 +73,24 @@ export interface PromiseGroupController {
   cap: bigint | null;
   /** Whether the reader belongs where a take-up goes; null while it reads. */
   isMember: boolean | null;
+  /**
+   * The protocol pool: the person chooses who takes it up, themselves through a
+   * garden they belong to or a garden they steward, before the take-up sheet.
+   */
+  claimNeedsContext: boolean;
+  claimGardens: { member: ClaimGardenOption[]; stewarded: ClaimGardenOption[] };
   /** The route garden, for the join card. */
   garden: { address: Address; name: string; openJoining: boolean } | null;
   /** The queue can't be read, so nothing is offered that could send twice. */
   queueUnreadable: boolean;
   takeUp: {
     state: GroupTakeUpState;
-    /** Take up the copy the app chooses now. */
-    start: () => void;
+    /** Take up the copy the app chooses now; the protocol pool passes the chosen context. */
+    start: (context?: GroupTakeUpContext | null) => void;
     /** Take up the one offered after the first went elsewhere. */
     confirm: (copyId: bigint) => void;
+    /** Try the same copy again after a send that didn't go through. */
+    retry: () => void;
     reset: () => void;
   };
   refresh: () => void;
@@ -86,10 +100,10 @@ export function usePromiseGroupController(input: {
   chainId: number;
   routeGarden: string | undefined;
   displayGroupId: string | undefined;
-  /** The group's key, when the row that opened it passed one. */
-  groupKey?: string | null;
+  /** A copy in the group, from the link: it tells the group apart if one id splits by terms. */
+  copyId?: string | null;
 }): PromiseGroupController {
-  const { chainId, routeGarden, displayGroupId, groupKey } = input;
+  const { chainId, routeGarden, displayGroupId, copyId } = input;
   const viewer = (usePrimaryAddress() as Address | null) ?? null;
   const isOnline = useOnlineStatus();
   const pools = useCommitmentPools({ chainId, garden: routeGarden as Address | undefined });
@@ -105,8 +119,8 @@ export function usePromiseGroupController(input: {
       commitments: commitments.commitments,
       metadataByCID: byCID,
     });
-    return findDisplayGroup(entries, displayGroupId, groupKey);
-  }, [commitments.commitments, byCID, displayGroupId, groupKey]);
+    return findDisplayGroup(entries, displayGroupId, { copyId });
+  }, [commitments.commitments, byCID, displayGroupId, copyId]);
   const sample = group?.children[0] ?? null;
   const approvalGated = sample?.claimMode === "APPROVAL_GATED";
   const asks = usePoolClaimRequests(
@@ -136,22 +150,19 @@ export function usePromiseGroupController(input: {
     [queue.pendingCommitmentIds, copyIds]
   );
 
-  // A personal take-up goes through the route garden, or on the protocol pool
-  // through a garden of the reader's own, the route garden first.
+  // On a garden pool a take-up is the person's own, through the route garden.
+  // On the protocol pool it goes through a garden of the reader's own, as the
+  // person or for a garden they steward, and they choose which before sending.
   const isProtocolPool = pool?.poolType === "PROTOCOL";
-  const memberGardens = roles.claimGardens.member;
-  const claimGarden = !pool
-    ? null
-    : isProtocolPool
-      ? (memberGardens.find((option) => option.address.toLowerCase() === routeGarden?.toLowerCase())
-          ?.address ??
-        memberGardens[0]?.address ??
-        null)
-      : roles.isMemberHere
-        ? (routeGarden as Address)
-        : null;
+  const { claimGardens } = roles;
+  const hasClaimGarden = claimGardens.member.length > 0 || claimGardens.stewarded.length > 0;
+  const routeContext: GroupTakeUpContext | null =
+    pool && !isProtocolPool && roles.isMemberHere && routeGarden
+      ? { kind: "personal", garden: routeGarden as Address }
+      : null;
+  const canTakeUp = isProtocolPool ? hasClaimGarden : routeContext !== null;
   const isMember: boolean | null = isProtocolPool
-    ? memberGardens.length > 0
+    ? hasClaimGarden
       ? true
       : roles.claimGardensKnown
         ? false
@@ -184,18 +195,22 @@ export function usePromiseGroupController(input: {
     viewer && sample?.creator && sample.creator.toLowerCase() === viewer.toLowerCase()
   );
   const bar =
-    group && sample && viewer && claimGarden && !madeIt
+    group && sample && viewer && canTakeUp && !madeIt
       ? selectGroupTakeUpBar({
           approvalGated,
           holdsOne: yours.length > 0,
           hasChoice: availabilityKnown ? choice !== null : null,
-          atLimit: isAtTakeUpLimit({
-            direction: sample.direction,
-            cap: cap ?? undefined,
-            exposures: poolDetail.detail?.providerExposures ?? null,
-            viewer,
-            queued: queued.size,
-          }),
+          // The limit read here is the person's own. A garden they steward may
+          // still take one up for itself, and the registry holds it to its own.
+          atLimit:
+            !(isProtocolPool && claimGardens.stewarded.length > 0) &&
+            isAtTakeUpLimit({
+              direction: sample.direction,
+              cap: cap ?? undefined,
+              exposures: poolDetail.detail?.providerExposures ?? null,
+              viewer,
+              queued: queued.size,
+            }),
         })
       : null;
 
@@ -210,20 +225,24 @@ export function usePromiseGroupController(input: {
     const regrouped = findDisplayGroup(
       groupCommitmentsForDisplay({ commitments: fresh.data, metadataByCID: byCID }),
       displayGroupId,
-      group?.key ?? groupKey
+      { key: group?.key, copyId }
     );
     return {
       copies: regrouped?.children ?? [],
       askedFor: new Set((freshAsks?.data ?? []).map((row) => row.claim.commitmentId.toString())),
     };
-  }, [approvalGated, byCID, displayGroupId, group?.key, groupKey, refetchAsks, refetchCommitments]);
-  const takeUp = useGroupTakeUp({ chainId, viewer, garden: claimGarden, queued, reread });
+  }, [approvalGated, byCID, copyId, displayGroupId, group?.key, refetchAsks, refetchCommitments]);
+  const takeUp = useGroupTakeUp({ chainId, viewer, queued, reread });
   const { takeUp: send, settle } = takeUp;
+  const takeUpState = takeUp.state;
 
+  // A pool that couldn't be looked up is an error to retry, never a missing group.
+  const poolLookupFailed = pools.isError && !pool;
   let status: PromiseGroupStatus = "ready";
   if (commitments.availability.status !== "available") status = "unavailable";
   else if (pools.isLoading || commitments.isLoading) status = "loading";
-  else if (commitments.isError && commitments.commitments.length === 0) status = "error";
+  else if (poolLookupFailed || (commitments.isError && commitments.commitments.length === 0))
+    status = "error";
   // A group is only readable as one once its copies' metadata has resolved.
   else if (!group) status = metadataLoading ? "loading" : "notFound";
 
@@ -239,6 +258,8 @@ export function usePromiseGroupController(input: {
     bar,
     cap: cap && cap > 0n ? cap : null,
     isMember,
+    claimNeedsContext: isProtocolPool,
+    claimGardens,
     garden:
       roles.garden && !isProtocolPool
         ? {
@@ -249,15 +270,23 @@ export function usePromiseGroupController(input: {
         : null,
     queueUnreadable: queue.isUnavailable,
     takeUp: {
-      state: takeUp.state,
-      start: () => {
-        if (choice) void send(choice.commitmentId);
+      state: takeUpState,
+      start: (chosen) => {
+        const context = isProtocolPool ? (chosen ?? null) : routeContext;
+        if (!context) return;
+        if (choice) void send(choice.commitmentId, context);
         else settle(availabilityKnown ? "none" : "unknown");
       },
-      confirm: (copyId) => void send(copyId),
+      confirm: (next) => {
+        if (takeUpState.step === "taken") void send(next, takeUpState.context);
+      },
+      retry: () => {
+        if (takeUpState.step === "failed") void send(takeUpState.copyId, takeUpState.context);
+      },
       reset: takeUp.reset,
     },
     refresh: () => {
+      if (pools.isError) void pools.refetch();
       void refetchCommitments();
       if (approvalGated) void refetchAsks();
       queue.refresh();

@@ -21,6 +21,8 @@ export interface TakeUpOneSheetProps {
   onTakeUp: () => void;
   /** Take up the copy offered after the first went elsewhere. */
   onTakeUpNext: (copyId: bigint) => void;
+  /** Try the same copy again after a send that didn't go through. */
+  onRetry: () => void;
   onRefresh: () => void;
 }
 
@@ -42,6 +44,7 @@ export function TakeUpOneSheet({
   state,
   onTakeUp,
   onTakeUpNext,
+  onRetry,
   onRefresh,
 }: TakeUpOneSheetProps) {
   const { formatMessage } = useIntl();
@@ -100,7 +103,7 @@ export function TakeUpOneSheet({
     case "failed":
       notice = { variant: "error", body: formatMessage({ id: "app.pool.group.sheet.failed" }) };
       actions = {
-        primary: { label: formatMessage({ id: "app.pool.queued.retry" }), onClick: onTakeUp },
+        primary: { label: formatMessage({ id: "app.pool.queued.retry" }), onClick: onRetry },
         secondary: { label: back, onClick: onClose },
       };
       break;

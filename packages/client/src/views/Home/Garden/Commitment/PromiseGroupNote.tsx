@@ -14,9 +14,8 @@ export interface PromiseGroupLineProps {
   count: number;
   /** The reader took this one up, so it is theirs to finish on its own. */
   yours: boolean;
-  /** Where See the Group goes, relative to this promise's page. */
+  /** Where See the Group goes, relative to this promise's page, naming this copy. */
   to: string;
-  groupKey: string;
 }
 
 /**
@@ -24,7 +23,7 @@ export interface PromiseGroupLineProps {
  * promises, and the reader's is confirmed on its own, with the way back to
  * the group.
  */
-export function PromiseGroupLine({ count, yours, to, groupKey }: PromiseGroupLineProps) {
+export function PromiseGroupLine({ count, yours, to }: PromiseGroupLineProps) {
   const { formatMessage } = useIntl();
   return (
     <div
@@ -39,7 +38,7 @@ export function PromiseGroupLine({ count, yours, to, groupKey }: PromiseGroupLin
         )}
       </p>
       <Button asChild emphasis="tertiary" size="sm">
-        <Link to={to} relative="path" state={{ groupKey }}>
+        <Link to={to} relative="path">
           {formatMessage({ id: "app.pool.group.seeGroup" })}
         </Link>
       </Button>
@@ -60,8 +59,7 @@ export function PromiseGroupNote(props: {
     <PromiseGroupLine
       count={group.count}
       yours={group.yours}
-      to={`../group/${encodeURIComponent(group.displayGroupId)}`}
-      groupKey={group.key}
+      to={`../group/${encodeURIComponent(group.displayGroupId)}?copy=${props.commitment.commitmentId.toString()}`}
     />
   );
 }

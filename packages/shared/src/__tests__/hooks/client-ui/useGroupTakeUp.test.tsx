@@ -46,17 +46,21 @@ const open = (id: number, overrides: Partial<CommitmentReadModel> = {}) =>
 const taken = (id: number) =>
   open(id, { onchainState: "ACCEPTED", derivedState: "ACTIVE", leadProvider: OMAR });
 
+const PERSONAL = { kind: "personal", garden: GARDEN } as const;
+
 function renderTakeUp(reread: () => Promise<unknown>) {
   return renderHookWithProviders(() =>
-    useGroupTakeUp({
-      chainId: 42161,
-      viewer: LINA,
-      garden: GARDEN,
-      queued: new Set(),
-      reread: reread as never,
-    })
+    useGroupTakeUp({ chainId: 42161, viewer: LINA, queued: new Set(), reread: reread as never })
   );
 }
+
+/** The queue took the job, then its send failed with this error. */
+const admittedThenRejected =
+  (error: Error) =>
+  async ({ report }: { report?: (event: { stage: string }) => void }) => {
+    report?.({ stage: "admitted" });
+    throw error;
+  };
 
 describe("useGroupTakeUp", () => {
   beforeEach(() => {
@@ -70,16 +74,25 @@ describe("useGroupTakeUp", () => {
     const reread = vi.fn();
     const { result } = renderTakeUp(reread);
 
-    await act(() => result.current.takeUp(11n));
+    await act(() => result.current.takeUp(11n, PERSONAL));
 
     expect(mocks.detail).toHaveBeenCalledWith(11n);
     expect(mocks.enqueue).toHaveBeenCalledTimes(1);
-    expect(mocks.enqueue).toHaveBeenCalledWith({
-      act: "claim",
-      payload: { commitmentId: 11n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN },
-    });
+    expect(mocks.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        act: "claim",
+        payload: { commitmentId: 11n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN },
+      })
+    );
     expect(reread).not.toHaveBeenCalled();
     expect(result.current.state).toEqual({ step: "done", copyId: 11n });
+
+    // A steward taking one up for their garden sends a garden claim in it.
+    await act(() => result.current.takeUp(11n, { kind: "garden", garden: GARDEN }));
+    expect(mocks.enqueue.mock.calls[1]?.[0].payload).toMatchObject({
+      kind: 0,
+      gardenContext: GARDEN,
+    });
   });
 
   it("asks before choosing another when the chosen copy went first, and sends only on yes", async () => {
@@ -93,12 +106,12 @@ describe("useGroupTakeUp", () => {
     });
     const { result } = renderTakeUp(reread);
 
-    await act(() => result.current.takeUp(11n));
+    await act(() => result.current.takeUp(11n, PERSONAL));
 
-    expect(result.current.state).toEqual({ step: "taken", next: 12n });
+    expect(result.current.state).toEqual({ step: "taken", next: 12n, context: PERSONAL });
     expect(mocks.enqueue).not.toHaveBeenCalled();
 
-    await act(() => result.current.takeUp(12n));
+    await act(() => result.current.takeUp(12n, PERSONAL));
 
     expect(mocks.enqueue).toHaveBeenCalledTimes(1);
     expect(mocks.enqueue.mock.calls[0]?.[0].payload.commitmentId).toBe(12n);
@@ -116,7 +129,7 @@ describe("useGroupTakeUp", () => {
     });
     const { result } = renderTakeUp(reread);
 
-    await act(() => result.current.takeUp(11n));
+    await act(() => result.current.takeUp(11n, PERSONAL));
 
     expect(result.current.state).toEqual({ step: "none" });
     expect(mocks.enqueue).not.toHaveBeenCalled();
@@ -126,23 +139,35 @@ describe("useGroupTakeUp", () => {
     mocks.detail.mockRejectedValueOnce(new Error("indexer unreachable"));
     const { result } = renderTakeUp(vi.fn());
 
-    await act(() => result.current.takeUp(11n));
+    await act(() => result.current.takeUp(11n, PERSONAL));
     expect(result.current.state).toEqual({ step: "unknown" });
 
     mocks.detail.mockResolvedValue(commitmentDetailFixture({ commitment: taken(11) }));
     const failedReread = renderTakeUp(vi.fn().mockResolvedValue(null));
-    await act(() => failedReread.result.current.takeUp(11n));
+    await act(() => failedReread.result.current.takeUp(11n, PERSONAL));
     expect(failedReread.result.current.state).toEqual({ step: "unknown" });
     expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 
-  it("says a refused send didn't go through, holding the sheet on that copy", async () => {
+  it("holds the sheet on the same copy when nothing is queued, and hands a held job to its page", async () => {
     mocks.detail.mockResolvedValue(commitmentDetailFixture({ commitment: open(11) }));
-    mocks.enqueue.mockRejectedValue(new Error("execution reverted"));
+    // Declined at the wallet: the queue drops the job, so Try Again is for this copy.
+    mocks.enqueue.mockImplementationOnce(
+      admittedThenRejected(new Error("User rejected the request."))
+    );
     const { result } = renderTakeUp(vi.fn());
 
-    await act(() => result.current.takeUp(11n));
+    await act(() => result.current.takeUp(11n, PERSONAL));
 
-    await waitFor(() => expect(result.current.state).toEqual({ step: "failed", copyId: 11n }));
+    await waitFor(() =>
+      expect(result.current.state).toEqual({ step: "failed", copyId: 11n, context: PERSONAL })
+    );
+
+    // Any other failure keeps the job on this phone: the copy's own page carries
+    // its Try Again, and nothing here may choose a second copy beside it.
+    mocks.enqueue.mockImplementationOnce(admittedThenRejected(new Error("execution reverted")));
+    await act(() => result.current.takeUp(11n, PERSONAL));
+
+    await waitFor(() => expect(result.current.state).toEqual({ step: "done", copyId: 11n }));
   });
 });

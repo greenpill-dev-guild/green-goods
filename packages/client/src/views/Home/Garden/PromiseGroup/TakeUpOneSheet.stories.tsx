@@ -4,6 +4,11 @@ import { expect, fn, screen, userEvent } from "storybook/test";
 import { STORY_GROUP_TITLE } from "@/components/Features/Commitments/promiseGroupStoryFixtures";
 import { TakeUpOneSheet } from "./TakeUpOneSheet";
 
+const STORY_CONTEXT = {
+  kind: "personal",
+  garden: "0x4444444444444444444444444444444444444444",
+} as const;
+
 /**
  * Taking up one promise from a group (PRD-1029 c3, c3b, c4): a half sheet that
  * repeats what that one promise asks and says the app picks which. It holds
@@ -26,6 +31,7 @@ const meta: Meta<typeof TakeUpOneSheet> = {
     state: { step: "idle" },
     onTakeUp: fn(),
     onTakeUpNext: fn(),
+    onRetry: fn(),
     onRefresh: fn(),
   },
 };
@@ -70,7 +76,7 @@ export const AskInAReviewedGroup: Story = {
 
 /** Somebody got to the chosen one first (c4): nothing was sent, and it asks before another. */
 export const TakenFirst: Story = {
-  args: { state: { step: "taken", next: 105n } },
+  args: { state: { step: "taken", next: 105n, context: STORY_CONTEXT } },
   play: async ({ args }) => {
     await expect(await screen.findByText("Someone got to that one first")).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "Take Up Another" }));
@@ -88,14 +94,16 @@ export const NoneLeft: Story = {
   },
 };
 
-/** The chain refused the send (c4): the failed act's own words, and Try Again. */
+/** The send didn't go through (c4): the failed act's own words, and Try Again for the same one. */
 export const DidNotGoThrough: Story = {
-  args: { state: { step: "failed", copyId: 104n } },
-  play: async () => {
+  args: { state: { step: "failed", copyId: 104n, context: STORY_CONTEXT } },
+  play: async ({ args }) => {
     await expect(
       await screen.findByText("It didn’t go through, and nothing changed. You can try again.")
     ).toBeVisible();
-    await expect(screen.getByRole("button", { name: "Try Again" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    await expect(args.onRetry).toHaveBeenCalledTimes(1);
+    await expect(args.onTakeUp).not.toHaveBeenCalled();
   },
 };
 

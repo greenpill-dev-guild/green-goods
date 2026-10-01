@@ -319,9 +319,8 @@ describe("GardenPool", () => {
     expect(row).toHaveTextContent("4 available · 3 in progress · 3 kept");
     expect(screen.queryAllByRole("progressbar")).toHaveLength(0);
     await user.click(row);
-    expect(mockNavigate).toHaveBeenCalledWith("commitments/group/set-1", {
-      state: { groupKey: group?.kind === "group" ? group.key : undefined },
-    });
+    // The link names its first copy, so a reload still finds this group if its id ever splits.
+    expect(mockNavigate).toHaveBeenCalledWith("commitments/group/set-1?copy=20");
   });
 
   const creation = (overrides: Record<string, unknown> = {}) => ({
