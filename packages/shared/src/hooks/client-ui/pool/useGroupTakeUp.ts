@@ -12,7 +12,7 @@
  */
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { logger } from "../../../modules/app/logger";
@@ -77,6 +77,9 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
   const queryClient = useQueryClient();
   const jobs = useCommitmentJobs({ chainId });
   const [state, setState] = useState<GroupTakeUpState>({ step: "idle" });
+  // One press at a time: a second tap while one is reading or sending must not
+  // sign another copy beside it.
+  const inFlight = useRef(false);
 
   // The copy as the chain has it now, and whether anyone has asked for it.
   const readCopy = useCallback(
@@ -101,57 +104,63 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
 
   const takeUp = useCallback(
     async (copyId: bigint, context: GroupTakeUpContext) => {
-      setState({ step: "checking", copyId });
-      let fresh: Awaited<ReturnType<typeof readCopy>>;
+      if (inFlight.current) return;
+      inFlight.current = true;
       try {
-        fresh = await readCopy(copyId);
-      } catch (error) {
-        logger.warn("[useGroupTakeUp] the chosen copy could not be read again", { error });
-        setState({ step: "unknown" });
-        return;
-      }
-      if (!fresh.copy || !canChooseCopy(fresh.copy, { viewer, askedFor: fresh.askedFor })) {
-        // Somebody got there first. Read the group again and ask before choosing another.
-        const group = await reread().catch((error: unknown) => {
-          logger.warn("[useGroupTakeUp] the group could not be read again", { error });
-          return null;
-        });
-        if (!group) {
+        setState({ step: "checking", copyId });
+        let fresh: Awaited<ReturnType<typeof readCopy>>;
+        try {
+          fresh = await readCopy(copyId);
+        } catch (error) {
+          logger.warn("[useGroupTakeUp] the chosen copy could not be read again", { error });
           setState({ step: "unknown" });
           return;
         }
-        const next = pickCopyToTakeUp(group.copies, {
-          viewer,
-          askedFor: group.askedFor,
-          skip: new Set([...queued, copyId.toString()]),
-        });
-        setState(next ? { step: "taken", next: next.commitmentId, context } : { step: "none" });
-        return;
-      }
-      setState({ step: "sending", copyId });
-      let admitted = false;
-      try {
-        await jobs.enqueue({
-          act: "claim",
-          payload: {
-            commitmentId: copyId,
-            kind: context.kind === "garden" ? CLAIM_TYPE_GARDEN : CLAIM_TYPE_INDIVIDUAL,
-            gardenContext: context.garden,
-            gardenAddress: context.garden,
-          },
-          report: (event) => {
-            if (event.stage === "admitted") admitted = true;
-          },
-        });
-        setState({ step: "done", copyId });
-      } catch (error) {
-        // The queue's own handler has logged and told the person. A declined
-        // prompt drops the job, as does a refusal before the queue took it, so
-        // nothing is held and the sheet offers the same copy again. Any other
-        // failure keeps the job on this phone: the copy's own page carries its
-        // Try Again, and choosing here could send a second copy beside it.
-        if (admitted && !isCancelledTxError(error)) setState({ step: "done", copyId });
-        else setState({ step: "failed", copyId, context });
+        if (!fresh.copy || !canChooseCopy(fresh.copy, { viewer, askedFor: fresh.askedFor })) {
+          // Somebody got there first. Read the group again and ask before choosing another.
+          const group = await reread().catch((error: unknown) => {
+            logger.warn("[useGroupTakeUp] the group could not be read again", { error });
+            return null;
+          });
+          if (!group) {
+            setState({ step: "unknown" });
+            return;
+          }
+          const next = pickCopyToTakeUp(group.copies, {
+            viewer,
+            askedFor: group.askedFor,
+            skip: new Set([...queued, copyId.toString()]),
+          });
+          setState(next ? { step: "taken", next: next.commitmentId, context } : { step: "none" });
+          return;
+        }
+        setState({ step: "sending", copyId });
+        let admitted = false;
+        try {
+          await jobs.enqueue({
+            act: "claim",
+            payload: {
+              commitmentId: copyId,
+              kind: context.kind === "garden" ? CLAIM_TYPE_GARDEN : CLAIM_TYPE_INDIVIDUAL,
+              gardenContext: context.garden,
+              gardenAddress: context.garden,
+            },
+            report: (event) => {
+              if (event.stage === "admitted") admitted = true;
+            },
+          });
+          setState({ step: "done", copyId });
+        } catch (error) {
+          // The queue's own handler has logged and told the person. A declined
+          // prompt drops the job, as does a refusal before the queue took it, so
+          // nothing is held and the sheet offers the same copy again. Any other
+          // failure keeps the job on this phone: the copy's own page carries its
+          // Try Again, and choosing here could send a second copy beside it.
+          if (admitted && !isCancelledTxError(error)) setState({ step: "done", copyId });
+          else setState({ step: "failed", copyId, context });
+        }
+      } finally {
+        inFlight.current = false;
       }
     },
     [jobs, queued, readCopy, reread, viewer]

@@ -95,6 +95,27 @@ describe("useGroupTakeUp", () => {
     });
   });
 
+  it("ignores a second press while the first is still reading, so only one copy is sent", async () => {
+    let finishRead: () => void = () => {};
+    mocks.detail.mockReturnValue(
+      new Promise((resolve) => {
+        finishRead = () => resolve(commitmentDetailFixture({ commitment: open(11) }));
+      })
+    );
+    const { result } = renderTakeUp(vi.fn());
+
+    await act(async () => {
+      const first = result.current.takeUp(11n, PERSONAL);
+      const second = result.current.takeUp(11n, PERSONAL);
+      finishRead();
+      await Promise.all([first, second]);
+    });
+
+    expect(mocks.detail).toHaveBeenCalledTimes(1);
+    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+    expect(result.current.state).toEqual({ step: "done", copyId: 11n });
+  });
+
   it("asks before choosing another when the chosen copy went first, and sends only on yes", async () => {
     mocks.detail.mockImplementation(async (id: bigint) =>
       commitmentDetailFixture({ commitment: id === 11n ? taken(11) : open(Number(id)) })
