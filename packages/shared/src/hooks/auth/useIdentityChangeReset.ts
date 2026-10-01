@@ -21,7 +21,11 @@
  * What stays, because it belongs to the device or keeps its own rules:
  * language, debug mode, install and shell flags (the offline banner, the admin
  * sidebar), the media policy, the reading cache's shared reads, the admin's
- * last garden (keyed by chain and address), and drafts and queued work. The
+ * last garden (keyed by chain and address), drafts and queued work, and a
+ * username change in flight (`useUsernameChangeStore`). That change is keyed by
+ * its owner on the default chain, where names live: its release is already on
+ * the chain, the next account never reads it, and only the same account coming
+ * back can claim the name it chose and hear once that it is ready. The
  * commitment drafts and queued jobs are keyed by their owner; the admin's
  * create-garden and create-assessment drafts and a hypercert mint in flight
  * live in this tab's session storage and keep their own rules, since clearing

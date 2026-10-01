@@ -8,8 +8,35 @@ import type {
   CreationSendMode,
   SeedCopyProgress,
 } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
+import type {
+  CommitmentCycleRecord,
+  CommitmentPoolRecord,
+  CommitmentReadModel,
+} from "@green-goods/shared/modules/commitment-pooling/types-core";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { FlowStatusTone } from "@/components/Layout/FlowStatusRow";
 import { type CreationPassState, creationPass } from "../Seed/creationPass";
+import type { AddToGroupRefusal } from "./SeedMoreDialog";
+
+/**
+ * Why Add to This Group is closed, if it is. Every copy keeps the group's
+ * deadline, pool and cycle, and the chain creates into an open pool and an open
+ * cycle only, so a closed one would ask the wallet for a send it refuses. Only
+ * the group's creator adds to it, so it stays one group.
+ */
+export function addToGroupRefusal(input: {
+  first: Pick<CommitmentReadModel, "creator" | "cycleId" | "dueDate">;
+  poolState: CommitmentPoolRecord["state"] | undefined;
+  cycle: Pick<CommitmentCycleRecord, "state"> | undefined;
+  viewer: Address | null | undefined;
+  now: number;
+}): AddToGroupRefusal | null {
+  const { first, viewer } = input;
+  if (Number(first.dueDate ?? 0n) * 1000 <= input.now) return "expired";
+  const cycleOpen = !first.cycleId || input.cycle?.state === "OPEN";
+  if (input.poolState !== "OPEN" || !cycleOpen) return "closed";
+  return viewer && first.creator?.toLowerCase() === viewer.toLowerCase() ? null : "not-creator";
+}
 
 type FormatMessage = (
   descriptor: { id: string; defaultMessage: string },

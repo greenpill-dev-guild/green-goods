@@ -17,12 +17,17 @@ const DECLINED = () => new Error("User rejected the request.");
 /** $4.00 at the reserve's 2026-09-30 price. */
 const FOUR_DOLLARS = 31_092_610_484_772_112_991_254n;
 
-function wallet(options: { bundles: boolean; decline?: (call: ContractCall) => boolean }) {
+function wallet(options: {
+  bundles: boolean;
+  decline?: (call: ContractCall) => boolean;
+  /** A Safe-style wallet: it hands back an id with no receipt to check. */
+  pending?: boolean;
+}) {
   const asked: ContractCall[][] = [];
   const answer = async (calls: ContractCall[]) => {
     asked.push(calls);
     if (calls.some((call) => options.decline?.(call))) throw DECLINED();
-    return { hash: TX, sponsored: false };
+    return { hash: TX, sponsored: false, ...(options.pending ? { confirmation: "pending" } : {}) };
   };
   const sender = {
     authMode: "wallet",
@@ -85,6 +90,20 @@ describe("Edit Reward", () => {
       [4n, "not-changed"],
       [5n, "changed"],
     ]);
+  });
+
+  it("never reads a change a Safe-style wallet can't confirm yet as made", async () => {
+    for (const bundles of [true, false]) {
+      const { sender } = wallet({ bundles, pending: true });
+
+      const ended = await edit(sender, [3n, 4n]);
+
+      // Not changed, and possibly changed later: Try Again sets the same amount, which is safe.
+      expect(ended).toEqual([
+        { commitmentId: 3n, status: "not-changed", miss: "failed", txHash: TX },
+        { commitmentId: 4n, status: "not-changed", miss: "failed", txHash: TX },
+      ]);
+    }
   });
 
   it("records no reward as the None rail with nothing named, the only shape the contract accepts", () => {

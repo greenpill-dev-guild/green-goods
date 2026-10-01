@@ -16,6 +16,7 @@ import type { RewardEditProgress } from "@green-goods/shared/hooks/admin-ui/pool
 import { buildCommitmentMetadata } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { addToGroupRefusal } from "@/views/Garden/Pool/Group/addToGroupStatus";
 import { editRewardStatus } from "@/views/Garden/Pool/Group/editRewardStatus";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
@@ -259,6 +260,33 @@ describe("Add to This Group", () => {
 });
 
 describe("Seed More Like This", () => {
+  it("closes adding past the deadline, in a pool or cycle not taking promises, and to others", () => {
+    const CREATOR = "0x1111111111111111111111111111111111111111" as const;
+    const now = 1_790_000_000_000;
+    const first = { creator: CREATOR, cycleId: 4n, dueDate: BigInt(now / 1000 + 86_400) };
+    const open = {
+      first,
+      poolState: "OPEN" as const,
+      cycle: { state: "OPEN" as const },
+      viewer: CREATOR,
+      now,
+    };
+
+    expect(addToGroupRefusal(open)).toBeNull();
+    expect(addToGroupRefusal({ ...open, now: now + 2 * 86_400_000 })).toBe("expired");
+    // The chain creates into an open pool and an open cycle only.
+    expect(addToGroupRefusal({ ...open, poolState: "PAUSED" })).toBe("closed");
+    expect(addToGroupRefusal({ ...open, cycle: { state: "RECONCILED" } })).toBe("closed");
+    expect(addToGroupRefusal({ ...open, cycle: undefined })).toBe("closed");
+    // A group in no cycle needs only the pool open.
+    expect(
+      addToGroupRefusal({ ...open, first: { ...first, cycleId: null }, cycle: undefined })
+    ).toBeNull();
+    expect(
+      addToGroupRefusal({ ...open, viewer: "0x2222222222222222222222222222222222222222" })
+    ).toBe("not-creator");
+  });
+
   it("leaves only a new group once adding is closed, and says why", () => {
     const onContinue = vi.fn();
     renderWithProviders(

@@ -45,6 +45,7 @@ import { useGardenAssessments } from "../../assessment/useGardenAssessments";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { toActPhaseReport, useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
+import { isResolvableMetadataCID } from "../../../modules/commitment-pooling/metadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
 import { claimantStanding } from "../../../modules/commitment-pooling/waiting-for-approval";
@@ -440,6 +441,7 @@ export function useCommitmentDialogController(input: {
     title: metadata?.title ?? null,
     note: metadata?.note ?? null,
     metadata: metadata ?? null,
+    metadataKnown: metadata !== null || !isResolvableMetadataCID(commitment?.metadataCID),
     cycle: cycleQuery.cycle,
     events: activity.events,
     disputeReason,

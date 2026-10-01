@@ -578,6 +578,12 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(editReward()).not.toBeInTheDocument();
     grouped.unmount();
 
+    // A document still loading, or one that couldn't be read, may name a group.
+    mocks.controller = controller({ commitment: untaken, metadataKnown: false });
+    const unread = renderPanel();
+    expect(editReward()).not.toBeInTheDocument();
+    unread.unmount();
+
     // Once taken, the chain has locked the reward.
     mocks.controller = controller({ commitment: { ...untaken, onchainState: "ACCEPTED" } });
     renderPanel();

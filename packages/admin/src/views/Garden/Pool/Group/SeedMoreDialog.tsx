@@ -7,7 +7,7 @@ import { AdminDialog } from "@/components/AdminDialog";
 export type SeedMoreChoice = "add" | "new";
 
 /** Why adding to this group is closed, when it is. */
-export type AddToGroupRefusal = "expired" | "not-creator";
+export type AddToGroupRefusal = "expired" | "closed" | "not-creator";
 
 export interface SeedMoreDialogProps {
   open: boolean;
@@ -17,7 +17,10 @@ export interface SeedMoreDialogProps {
   title: string;
   /** The group's deadline, written out in full. */
   due: string;
-  /** Adding keeps the group one row only before its deadline, and only for its creator. */
+  /**
+   * Adding keeps the group one row only before its deadline, while its pool and
+   * cycle take new promises, and only for its creator.
+   */
   addRefusal: AddToGroupRefusal | null;
 }
 
@@ -95,20 +98,26 @@ export function SeedMoreDialog({
                       id: "cockpit.garden.pool.seedMore.addExpired",
                       defaultMessage: "Its deadline has passed, so nothing can join it now.",
                     })
-                  : addRefusal === "not-creator"
+                  : addRefusal === "closed"
                     ? formatMessage({
-                        id: "cockpit.garden.pool.seedMore.addNotCreator",
+                        id: "cockpit.garden.pool.seedMore.addClosed",
                         defaultMessage:
-                          "Only the steward who created it can add to it and keep it one group.",
+                          "Its pool, season or campaign isn't taking new promises, so nothing can join it now.",
                       })
-                    : formatMessage(
-                        {
-                          id: "cockpit.garden.pool.seedMore.addHint",
+                    : addRefusal === "not-creator"
+                      ? formatMessage({
+                          id: "cockpit.garden.pool.seedMore.addNotCreator",
                           defaultMessage:
-                            "Same terms and the same deadline, {due}. Only the number changes.",
-                        },
-                        { due }
-                      ),
+                            "Only the steward who created it can add to it and keep it one group.",
+                        })
+                      : formatMessage(
+                          {
+                            id: "cockpit.garden.pool.seedMore.addHint",
+                            defaultMessage:
+                              "Same terms and the same deadline, {due}. Only the number changes.",
+                          },
+                          { due }
+                        ),
             },
             {
               value: "new",

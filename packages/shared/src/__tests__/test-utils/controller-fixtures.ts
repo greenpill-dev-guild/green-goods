@@ -479,6 +479,7 @@ export function commitmentDialogControllerFixture(
     claimInFlight: false,
     claimantStanding: () => null,
     metadata: null,
+    metadataKnown: true,
     sendPhase: { status: "idle" },
     isActing: false,
     isLoading: false,

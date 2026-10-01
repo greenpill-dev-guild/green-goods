@@ -205,6 +205,12 @@ export interface CommitmentDialogController {
   note: string | null;
   /** The promise's metadata document: its group and the reward as set, when it has them. */
   metadata: CommitmentMetadataV1 | null;
+  /**
+   * Whether `metadata` can be trusted to say the promise is in no group: it was
+   * read, or there is none to read. False while it loads or when the read failed.
+   * The controller always sets it; a hand-built one that leaves it out reads as known.
+   */
+  metadataKnown?: boolean;
   cycle: CommitmentCycleRecord | null;
   events: CommitmentEventRecord[];
   disputeReason: CommitmentReasonResolution;

@@ -122,10 +122,12 @@ function CommitmentRecord({
   const stage = stageIndex(commitment.onchainState, commitment.evidenceCount);
   const asks = detail?.claimRequests ?? [];
   // A promise in a group changes its reward from the group; one on its own, here,
-  // while nobody has taken it (the chain locks a reward at take-up).
+  // while nobody has taken it (the chain locks a reward at take-up). Only a read
+  // document can say it stands alone: one still loading, or unread, may be a copy.
   const rewardWei = commitment.considerationAmount ?? 0n;
   const canEditReward =
     dialog.isLocalSteward &&
+    dialog.metadataKnown !== false &&
     !dialog.metadata?.displayGroup &&
     (commitment.onchainState === "OFFERED" || commitment.onchainState === "REQUESTED") &&
     commitment.considerationRail === "CELO_SETTLEMENT" &&
