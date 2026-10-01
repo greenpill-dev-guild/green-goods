@@ -188,6 +188,9 @@ export function useAddToGroup(input: {
     },
     add: async (count) => {
       if (!owner || !sender || !group) return "blocked";
+      // Every send checks the deadline, a Try Again of copies fixed earlier
+      // included: past it, a copy would be due before anyone could take it up.
+      if (group.dueDate <= BigInt(Math.floor(Date.now() / 1000))) return "expired";
       let next = setRef.current;
       // A new count, while nothing of the last one exists, is a new addition.
       if (!next || (!seedSetLocked(next.progress) && next.copies.length !== count)) {

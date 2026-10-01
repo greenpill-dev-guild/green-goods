@@ -264,6 +264,21 @@ describe("useAddToGroup", () => {
     expect(first![0]!.payload.metadataCID).toBe("bafy-group-document");
   });
 
+  it("checks the deadline again on Try Again, and sends nothing once it has passed", async () => {
+    const soon = BigInt(Math.floor(Date.now() / 1000) + 60);
+    const { add } = setup({ dueDate: soon });
+    send.script = () => ({ status: "not-sent", miss: "failed" });
+    expect(await add(3)).toBe("left");
+
+    const later = vi.spyOn(Date, "now").mockReturnValue((Number(soon) + 1) * 1000);
+    try {
+      expect(await add(3)).toBe("expired");
+    } finally {
+      later.mockRestore();
+    }
+    expect(send.inputs).toHaveLength(1);
+  });
+
   it("adds nothing once the deadline has passed, or for a steward who didn't create the group", async () => {
     expect(await setup({ dueDate: 1n }).add(5)).toBe("expired");
     chain.creator = OTHER;
