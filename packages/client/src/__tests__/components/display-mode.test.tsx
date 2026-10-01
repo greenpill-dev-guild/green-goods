@@ -181,6 +181,13 @@ describe("Display mode — AppBar visibility", () => {
     expect(screen.getByTestId("authenticated-nav").className).toMatch(/translate-y-full/);
   });
 
+  it("standalone PWA: a garden's own page hides the bottom nav, since it owns its chrome", () => {
+    mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
+
+    renderAppBar("/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    expect(screen.getByTestId("authenticated-nav").className).toMatch(/translate-y-full/);
+  });
+
   it("standalone PWA: any open sheet or dialog hides the bottom nav (DL-015)", () => {
     mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
     mockUseUIStore.mockImplementation((selector: (s: any) => any) =>
@@ -196,6 +203,7 @@ describe("Display mode — AppBar visibility", () => {
 
     renderAppBar("/home/profile");
 
+    expect(screen.getByTestId("authenticated-nav").className).not.toMatch(/translate-y-full/);
     expect(screen.getByRole("link", { name: /home/i }).className).not.toContain("tab-active");
     expect(screen.getByRole("link", { name: /profile/i }).className).toContain("tab-active");
   });
