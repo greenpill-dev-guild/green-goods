@@ -3,33 +3,26 @@ import {
   useCommitmentComposerForm,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
 import { STORY_ANA, STORY_JOAO, STORY_MARIA } from "../poolStoryFixtures";
-import { SeedConfirmerList, type SeedConfirmerListProps } from "./SeedConfirmerList";
+import {
+  SeedConfirmerList,
+  type SeedConfirmerListProps,
+  type SeedMember,
+} from "./SeedConfirmerList";
 
-/**
- * The list reads and writes the real composer form, and the console holds the
- * address being typed so it survives a step change.
- */
+const MEMBERS: SeedMember[] = [
+  { address: STORY_MARIA, role: "steward" },
+  { address: STORY_JOAO, role: "gardener" },
+  { address: STORY_ANA, role: "gardener" },
+  { address: "0x4444444444444444444444444444444444444444", role: "gardener" },
+  { address: "0x5555555555555555555555555555555555555555", role: "evaluator" },
+  { address: "0x6666666666666666666666666666666666666666", role: "owner" },
+];
+
+/** The list reads and writes the real composer form, as the flow does. */
 function SeedConfirmerListWithForm(args: SeedConfirmerListProps) {
   const form = useCommitmentComposerForm(args.values);
-  const [draft, setDraft] = useState(args.confirmerDraft);
-  return (
-    <SeedConfirmerList
-      {...args}
-      form={form}
-      values={form.watch()}
-      confirmerDraft={draft}
-      onConfirmerDraftChange={setDraft}
-      onAddConfirmer={() => {
-        form.setValue("confirmers", [...form.getValues("confirmers"), draft.trim()], {
-          shouldDirty: true,
-          shouldValidate: true,
-        });
-        setDraft("");
-      }}
-    />
-  );
+  return <SeedConfirmerList {...args} form={form} values={form.watch()} />;
 }
 
 const meta: Meta<typeof SeedConfirmerList> = {
@@ -40,7 +33,7 @@ const meta: Meta<typeof SeedConfirmerList> = {
     docs: {
       description: {
         component:
-          "Who confirms a seeded commitment. Naming nobody leaves the ordinary rule in place, which reads one way for an offer and another for a request. Naming people turns on the threshold, and the contract keeps the lead and every contributor out of that group.",
+          "Who confirms a seeded promise (PRD-1022 D8, D15). Chosen people show as removable chips in one row that wraps only after many. People come from the garden in one tap, or from one field that takes a name.eth or an address. Naming nobody leaves the ordinary rule in place.",
       },
     },
   },
@@ -48,7 +41,7 @@ const meta: Meta<typeof SeedConfirmerList> = {
     values: { ...COMMITMENT_COMPOSER_DEFAULTS, direction: "OFFER" },
     busy: false,
     errorOf: () => undefined,
-    confirmerDraft: "",
+    members: MEMBERS,
   },
   render: (args) => <SeedConfirmerListWithForm {...args} />,
   decorators: [
@@ -69,12 +62,24 @@ export const NobodyNamedOnARequest: Story = {
   args: { values: { ...COMMITMENT_COMPOSER_DEFAULTS, direction: "REQUEST" } },
 };
 
-export const NamedGroup: Story = {
+/** Chosen people take only their own width; the garden's others stay one tap away. */
+export const ChosenAsChips: Story = {
   args: {
     values: {
       ...COMMITMENT_COMPOSER_DEFAULTS,
       confirmers: [STORY_MARIA, STORY_JOAO, STORY_ANA],
       confirmationThreshold: 2,
+    },
+  },
+};
+
+/** Many chosen: the chips wrap onto a second row only now. */
+export const ManyChosen: Story = {
+  args: {
+    values: {
+      ...COMMITMENT_COMPOSER_DEFAULTS,
+      confirmers: MEMBERS.map((member) => member.address),
+      confirmationThreshold: 3,
     },
   },
 };
@@ -92,3 +97,5 @@ export const ThresholdAboveTheGroup: Story = {
         : undefined,
   },
 };
+
+export const NoMembersToSuggest: Story = { args: { members: [] } };

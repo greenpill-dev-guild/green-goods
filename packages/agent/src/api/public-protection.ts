@@ -7,6 +7,7 @@ export type PublicRouteClass =
   | "funding_proof"
   | "receipt_read"
   | "garden_impact_read"
+  | "commitment_impact_read"
   | "upload_sign"
   | "profile_avatar_read"
   | "profile_avatar_batch_read"
@@ -54,6 +55,7 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   funding_proof: { limit: 10, windowMs: 10 * 60 * 1000 },
   receipt_read: { limit: 60, windowMs: 10 * 60 * 1000 },
   garden_impact_read: { limit: 120, windowMs: 10 * 60 * 1000 },
+  commitment_impact_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   upload_sign: { limit: 20, windowMs: 60 * 1000 },
   profile_avatar_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   // Member lists fetch photos in batches; a separate budget keeps them from locking out the editor.

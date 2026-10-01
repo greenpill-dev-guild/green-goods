@@ -37,6 +37,14 @@ export interface CommitmentMetadataMap {
   byCID: Map<string, CommitmentMetadataV1>;
   /** True while any CID is still being read. */
   isLoading: boolean;
+  /**
+   * A read failed rather than held nothing usable, so an absent CID may yet
+   * resolve. Only a caller whose answer turns on the words needs it, such as a
+   * group that exists only in them.
+   */
+  isError?: boolean;
+  /** Read the CIDs that failed again. */
+  retry?: () => void;
 }
 
 export function useCommitmentMetadata(
@@ -68,12 +76,20 @@ export function useCommitmentMetadata(
   return useMemo(() => {
     const byCID = new Map<string, CommitmentMetadataV1>();
     let isLoading = false;
+    const failed = results.filter((result) => result.isError);
     results.forEach((result, index) => {
       const cid = cids[index];
       if (result.isLoading) isLoading = true;
       if (cid && result.data) byCID.set(cid, result.data);
     });
-    return { byCID, isLoading };
+    return {
+      byCID,
+      isLoading,
+      isError: failed.length > 0,
+      retry: () => {
+        for (const result of failed) void result.refetch();
+      },
+    };
   }, [results, cids]);
 }
 

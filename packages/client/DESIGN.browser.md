@@ -90,7 +90,7 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 ## `/impact`
 
 - Aggregate counts (`Total Assessments` / `Total Gardens` / `Total Contributors`).
-- § 02 Commitments band between the proof markers and the cycle: header and record both on the linen (2026-08-25 panel supersession) — four protocol-wide aggregates — Gardens with open pools, commitments fulfilled (lifetime), commitments kept (a share only above the ≥ 5 due / ≥ 3 providers threshold, counts below it), and CCIP-confirmed G$ support — with the lifecycle sentence and `See the Gardens` as the record's hairline footer line. No per-garden table or ordering; a failed figure is an em dash, never `0`.
+- § 02 Commitments band between the proof markers and the cycle: header and record both on the linen. "Commitments within communities" introduces the community story before three lifetime figures: commitments made (offers plus requests), commitments kept (confirmed fulfilled count), and funding received in US dollars. Funding uses historical G$ prices near each confirmed transfer's Celo execution time, never the current rate; missing receipt evidence or reliable historical prices leaves that figure unavailable. The three figures stack on phones and sit side by side from `md`. `See the Gardens` closes the record. No open-pool count, percentage, per-garden table, or ordering. This band labels unavailable figures in words and uses no em dashes in its copy.
 - Evidence cards from `usePublicImpactEvidence`. Cards open `PublicEvidenceDialog` (a `PublicRecordDrawer` composition) with a readable Assessment summary and an EAS reference link when available.
 - Honest states: loading, empty, EAS-unavailable, `partialData`, `sourceLimitReached` (the v1 caps are 50 Gardens / 100 records, sliced locally page-by-page).
 - No Hypercert gallery placeholder, no Karma GAP claims.
@@ -123,7 +123,7 @@ Manage Endowments is the only public withdrawal surface in v1. It is wallet-owne
 ## `/actions`
 
 - Domain filter chips (All / Solar / Agro / Education / Waste).
-- `PublicActionCard` grid; cards open `PublicSourceDialog` with media, description, and an `Install App` CTA in the dialog footer.
+- `PublicActionCard` grid; cards open `PublicSourceDialog` with media and description. The Install App CTA belongs in the site header, not action details.
 - No public create or edit controls.
 
 ## Typography
@@ -174,7 +174,7 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
   - Mobile: bottom sheet with square corners, like every other editorial surface (DL-024). The record drawer above keeps its rounded top.
   - The actions inside these surfaces are the shared buttons (see Buttons and Fields), not square blocks.
   - Labelled title (`aria-labelledby` → `<h2>` id), Escape close, overlay click close, focus moved to the close button on mount.
-  - Mobile-safe width: `max-w-[calc(100vw-2rem)]` clamps the dialog under 375px viewports.
+  - Every mobile bottom sheet spans the full viewport width, with padding inside the sheet. Width caps apply only to desktop dialogs and side panels.
 - **Modals portal to `document.body`.** `.editorial-section-reveal` applies a transform, and a transformed ancestor becomes the containing block for `position: fixed` — a dialog rendered inside a revealed section sizes and scrolls against that section instead of the viewport. `PublicRecordDrawer` and `PublicSourceDialog` portal internally, so a consumer is safe wherever it is rendered. Do not rely on a call site happening to sit outside a transform.
 - Source-morph transitions require unique transition names per item; until that lands, public surfaces fall back to simple fades.
 - All motion respects reduced-motion preferences.

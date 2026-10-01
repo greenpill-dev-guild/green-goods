@@ -115,10 +115,17 @@ export const AccountInfo: React.FC = () => {
               </div>
             </Avatar>
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              {/* Named for what it's for, without Web3 terms (PRD-1026 D3). */}
               <div className="text-label-md font-medium">
                 {intl.formatMessage({
-                  id: "app.account.id",
-                  defaultMessage: "ID",
+                  id: "app.account.accountId",
+                  defaultMessage: "Account ID",
+                })}
+              </div>
+              <div className="text-xs text-text-sub-600">
+                {intl.formatMessage({
+                  id: "app.account.accountIdLine",
+                  defaultMessage: "Support or a steward may ask for it.",
                 })}
               </div>
               <AddressCopy address={primaryAddress as Address} size="compact" />

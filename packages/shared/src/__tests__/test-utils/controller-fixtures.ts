@@ -235,6 +235,7 @@ const poolActs: PoolConsoleActs = {
   declineClaim: successfulTransaction,
   retryQueued: async () => undefined,
   discardQueued: async () => undefined,
+  finishCreating: async () => "sent",
 };
 
 type PoolConsoleFixtureOverrides = Omit<Partial<PoolConsoleController>, "pool" | "poolId"> & {
@@ -270,11 +271,14 @@ export function poolConsoleControllerFixture(
     cycles,
     cycleNames: new Map(),
     commitments,
+    waitingOnYou: new Set(),
     titles: new Map(),
     claims,
     charter: { charter: null, isLoading: false, isUnavailable: false },
     pauseReason: { reason: null, isLoading: false, isUnavailable: false },
     pendingCreates: [],
+    queuedGroupCopies: new Map(),
+    finishingGroupId: null,
     queueUnavailable: false,
     funding: {
       snapshot: null,
@@ -289,6 +293,8 @@ export function poolConsoleControllerFixture(
     },
     acts: poolActs,
     claimPhase: () => ({ status: "idle" }),
+    claimDecisions: {},
+    claimInFlight: false,
     resumePhase: { status: "idle" },
     queuedPhase: () => ({ status: "idle" }),
     isActing: false,
@@ -324,6 +330,8 @@ export function hubConfirmQueueControllerFixture(
           title: null,
           poolGarden: row.poolGarden,
           canDispute: row.canDispute,
+          state: { status: "waiting" },
+          groupSize: null,
         })
       )
     ),
@@ -336,6 +344,8 @@ export function hubConfirmQueueControllerFixture(
         title: null,
         poolGarden: row.poolGarden,
         canDispute: row.canDispute,
+        state: { status: "waiting" },
+        groupSize: null,
       })
     ),
     ...(toConfirm.disputed ?? []).map(
@@ -347,6 +357,8 @@ export function hubConfirmQueueControllerFixture(
         title: null,
         poolGarden: row.garden,
         canDispute: true,
+        state: { status: "waiting" },
+        groupSize: null,
       })
     ),
   ];
@@ -469,6 +481,11 @@ export function commitmentDialogControllerFixture(
     },
     acts: dialogActs,
     claimPhase: () => ({ status: "idle" }),
+    claimDecisions: {},
+    claimInFlight: false,
+    claimantStanding: () => null,
+    metadata: null,
+    metadataKnown: true,
     sendPhase: { status: "idle" },
     isActing: false,
     isLoading: false,

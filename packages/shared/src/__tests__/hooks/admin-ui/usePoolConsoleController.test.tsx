@@ -351,6 +351,42 @@ describe("usePoolConsoleController", () => {
     expect(mocks.queueState).toHaveBeenCalledWith(TUNDE);
   });
 
+  it("marks the promises whose next act is the steward's own, not the ones they may choose", () => {
+    const queryClient = testQueryClient();
+    const request = { poolId: POOL_ID, cycleId: CYCLE_ID, direction: "REQUEST" as const };
+    // The steward asked for it and the proof is in: only they can confirm it.
+    const toConfirm = commitmentFixture({
+      ...request,
+      commitmentId: 2001n,
+      creator: TUNDE,
+      leadProvider: MARIA,
+      counterparty: MARIA,
+      onchainState: "READY_FOR_CONFIRMATION",
+    });
+    // Someone else's request: the steward has no part in it.
+    const theirs = commitmentFixture({
+      ...request,
+      commitmentId: 2002n,
+      creator: MARIA,
+      leadProvider: MARIA,
+      counterparty: MARIA,
+      onchainState: "READY_FOR_CONFIRMATION",
+    });
+    // The steward's own request nobody has taken: withdrawing it is a choice, not a need.
+    const untaken = commitmentFixture({
+      ...request,
+      commitmentId: 2003n,
+      creator: TUNDE,
+      leadProvider: null,
+      onchainState: "REQUESTED",
+    });
+    seedControllerQueries(queryClient, { commitments: [toConfirm, theirs, untaken] });
+
+    const { result } = renderController(queryClient);
+
+    expect([...result.current.waitingOnYou]).toEqual([toConfirm.id]);
+  });
+
   it("keeps the due timer through re-renders and offers expiry after the due second", async () => {
     vi.useFakeTimers();
     const dateNow = vi.spyOn(Date, "now").mockReturnValue(NOW * 1000);

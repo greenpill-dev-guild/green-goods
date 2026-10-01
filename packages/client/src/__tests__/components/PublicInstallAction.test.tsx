@@ -65,6 +65,7 @@ import {
 } from "../../components/Public/PublicInstallAction";
 
 import { PublicInstallCta } from "../../components/Public/PublicInstallCta";
+import { PublicInstallDialog } from "../../components/Public/PublicInstallDialog";
 
 const CHROME_INTENT =
   "intent://www.greengoods.app/#Intent;scheme=https;package=com.android.chrome;end";
@@ -149,6 +150,30 @@ describe("PublicInstallAction", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllEnvs();
+  });
+
+  it.each([
+    "desktopQr",
+    "mobileSteps",
+    "braveInstall",
+  ] as const)("keeps the %s install sheet full width on mobile with a desktop width cap", (mode) => {
+    render(
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: {}, onError: () => {} },
+        createElement(PublicInstallDialog, {
+          open: true,
+          mode,
+          launchUrl: "https://www.greengoods.app/",
+          guidance: mockUseInstallGuidance(),
+          onOpenChange: vi.fn(),
+        })
+      )
+    );
+    expect(screen.getByRole("dialog")).toHaveClass("w-full", "max-w-none", "bottom-0");
+    expect(screen.getByRole("dialog")).toHaveClass(
+      mode === "desktopQr" ? "sm:max-w-[44rem]" : "sm:max-w-lg"
+    );
   });
 
   it("intercepts the install tap on Brave/Android and surfaces the Chrome dialog", () => {
