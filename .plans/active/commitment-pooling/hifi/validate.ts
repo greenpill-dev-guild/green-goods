@@ -1047,7 +1047,7 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     if (s.id === "W12") {
       const requiredStates = ["protocol-reader", "protocol-owner", "seed-protocol", "seed-offer", "seed-unbounded", "seed-offer-unbounded", "seed-published", "seed-offer-published", "seed-discarded", "seed-offer-discarded"];
       for (const prefix of ["seed", "seed-offer"])
-        for (const stage of ["queued", "indexing", "failed", "blocked-authority", "blocked-pool", "blocked-cycle", "blocked-conflict"])
+        for (const stage of ["queued", "indexing", "failed", "blocked-authority", "blocked-membership", "blocked-pool", "blocked-cycle", "blocked-conflict"])
           requiredStates.push(`${prefix}-${stage}`, `pool-${prefix}-${stage}`);
       for (const id of requiredStates)
         if (!s.states.some(st => st.id === id)) err.push(`PROTOCOL SEED: required state ${id} missing`);
@@ -1066,6 +1066,16 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
           err.push(`PROTOCOL SEED ${st.id}: unauthorized or unbounded creation is actionable`);
         if (st.id === "protocol-reader" && ["w12.confirm-row", "w12.accept", "w12.decline"].some(h => tokens.has(h)))
           err.push("PROTOCOL SEED: read-only viewer has a write-detail path");
+        if (st.id === "protocol-owner") {
+          if (tokens.has("w12.confirm-row")) err.push("PROTOCOL SEED: module ownership is not confirmation authority");
+          if (!tokens.has("w12.accept") || !tokens.has("w12.decline")) err.push("PROTOCOL SEED: module owner must retain claim management");
+        }
+        if (st.id.startsWith("seed-") && st.id.endsWith("-blocked-authority") && !stripTags(st.html).includes("NotPoolSteward"))
+          err.push("PROTOCOL SEED: authority error must be NotPoolSteward");
+        if (st.id.startsWith("seed-") && st.id.endsWith("-blocked-membership") && !stripTags(st.html).includes("UnauthorizedCaller"))
+          err.push("PROTOCOL SEED: membership error must be UnauthorizedCaller");
+        if (st.id.startsWith("seed-") && st.id.endsWith("-failed") && (!stripTags(st.html).includes("outcome is unknown") || !stripTags(st.html).includes("creator and creation key")))
+          err.push("PROTOCOL SEED: timeout must reconcile the unknown outcome before resending");
         if (st.id.startsWith("seed-offer") && !stripTags(st.html).includes("Claiming garden’s eligible stewards"))
           err.push(`PROTOCOL SEED ${st.id}: Offer confirmation must belong to the recipient garden`);
         if (st.id.endsWith("-unbounded")) {

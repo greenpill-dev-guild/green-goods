@@ -30,17 +30,24 @@ for (const s of screen(good).states.filter(s => s.id.startsWith("seed-offer"))) 
 for (const id of ["protocol-reader", "protocol-owner", "seed-unbounded", "seed-offer-unbounded"])
   assert(!/data-hot="w12\.(?:seed|seed-confirm|seed-offer-confirm)"/.test(state(good, id).html));
 assert(!state(good, "protocol-reader").html.includes('data-hot="w12.confirm-row"'));
+assert(!state(good, "protocol-owner").html.includes('data-hot="w12.confirm-row"'));
+for (const hot of ["w12.accept", "w12.decline"])
+  assert(state(good, "protocol-owner").html.includes(`data-hot="${hot}"`));
 for (const prefix of ["seed", "seed-offer"]) {
   const unbounded = `${prefix}-unbounded`;
   assert(state(good, unbounded).html.includes("No season selected"));
   assert(state(good, unbounded).html.includes("Not set"));
   assert(state(good, unbounded).html.includes("disabled"));
-  for (const stage of ["queued", "indexing", "failed", "blocked-authority", "blocked-pool", "blocked-cycle", "blocked-conflict"]) {
+  for (const stage of ["queued", "indexing", "failed", "blocked-authority", "blocked-membership", "blocked-pool", "blocked-cycle", "blocked-conflict"]) {
     const id = `${prefix}-${stage}`;
     rejects(`missing ${id}`, c => { screen(c).states = screen(c).states.filter(s => s.id !== id); }, `required state ${id} missing`);
     rejects(`missing pool row for ${id}`, c => { state(c, `pool-${id}`).html = state(c, `pool-${id}`).html.replace(`data-hot="w12.${id}-open"`, ""); }, "saved job cannot be reopened");
   }
-  for (const [cause, code] of [["authority", "UnauthorizedCaller"], ["pool", "PoolNotInState"], ["cycle", "CycleNotAcceptingCommitments"], ["conflict", "CommitmentCreationRequestConflict"]]) {
+  assert(state(good, `${prefix}-failed`).html.includes("outcome is unknown"));
+  assert(state(good, `${prefix}-failed`).html.includes("creator and creation key"));
+  rejects(`timeout ${prefix} guarantees unsent`, c => { state(c, `${prefix}-failed`).html = state(c, `${prefix}-failed`).html.replace("outcome is unknown", "definitely unsent"); }, "timeout must reconcile");
+  rejects(`revoked steward ${prefix} wrong cause`, c => { state(c, `${prefix}-blocked-authority`).html = state(c, `${prefix}-blocked-authority`).html.replace("NotPoolSteward", "UnauthorizedCaller"); }, "authority error must be NotPoolSteward");
+  for (const [cause, code] of [["authority", "NotPoolSteward"], ["membership", "UnauthorizedCaller"], ["pool", "PoolNotInState"], ["cycle", "CycleNotAcceptingCommitments"], ["conflict", "CommitmentCreationRequestConflict"]]) {
     const id = `${prefix}-blocked-${cause}`;
     assert(state(good, id).html.includes(code));
     rejects(`terminal ${id} loses discard`, c => { state(c, id).html = state(c, id).html.replace(`data-hot="w12.${prefix === "seed-offer" ? "seed-offer" : "seed"}-discard"`, ""); }, "terminal failure must explain");
@@ -56,4 +63,8 @@ for (const id of ["w12.seed-retry", "w12.seed-offer-retry"])
 rejects("Offer retry changes direction", c => { c.hots["w12.seed-offer-retry"].to = "screen:W12@seed-queued"; }, "must preserve Offer direction");
 rejects("immediate publication", c => { c.hots["w12.seed-confirm"].to = "screen:W12@seed-published"; }, "creation must land on a queued overlay");
 rejects("queued Published chip", c => { state(c, "seed-offer-queued").html += '<span class="ch ok dot">Published</span>'; }, "publication precedes indexed");
+
+
+rejects("owner confirmation authority", c => { state(c, "protocol-owner").html += '<button data-hot="w12.confirm-row">Confirm</button>'; }, "module ownership is not confirmation authority");
+rejects("owner loses claims capability", c => { state(c, "protocol-owner").html = state(c, "protocol-owner").html.replace('data-hot="w12.accept"', ""); }, "module owner must retain claim management");
 console.log(`Protocol seeding: positive authority/direction/recovery assertions and ${checks} negative checks passed`);

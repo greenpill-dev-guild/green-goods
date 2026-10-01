@@ -22,11 +22,12 @@ import type { StateFacts } from "../types";
 // ---------------------------------------------------------------------------
 
 const W12_JOB_STATES = [
-  "seed-queued", "seed-indexing", "seed-failed", "seed-blocked-authority", "seed-blocked-pool", "seed-blocked-cycle", "seed-blocked-conflict",
-  "seed-offer-queued", "seed-offer-indexing", "seed-offer-failed", "seed-offer-blocked-authority", "seed-offer-blocked-pool", "seed-offer-blocked-cycle", "seed-offer-blocked-conflict",
+  "seed-queued", "seed-indexing", "seed-failed", "seed-blocked-authority", "seed-blocked-membership", "seed-blocked-pool", "seed-blocked-cycle", "seed-blocked-conflict",
+  "seed-offer-queued", "seed-offer-indexing", "seed-offer-failed", "seed-offer-blocked-authority", "seed-offer-blocked-membership", "seed-offer-blocked-pool", "seed-offer-blocked-cycle", "seed-offer-blocked-conflict",
 ] as const;
 const W12_TERMINAL_ERRORS: Record<string, { code: string; message: string }> = {
-  authority: { code: "UnauthorizedCaller", message: "Your root-garden authority or membership is no longer valid. Restore the required role before creating a new commitment." },
+  authority: { code: "NotPoolSteward", message: "Your root-garden steward/owner Hat is no longer valid. Restore the required pool role before creating a new commitment." },
+  membership: { code: "UnauthorizedCaller", message: "Module ownership remains valid, but your root-garden membership was lost. Restore membership before seeding this service." },
   pool: { code: "PoolNotInState", message: "The protocol pool is no longer open. Wait for it to reopen, then review a new creation." },
   cycle: { code: "CycleNotAcceptingCommitments", message: "The selected season is no longer open. Choose an open season or use a due date for a new creation." },
   conflict: { code: "CommitmentCreationRequestConflict", message: "This creation key belongs to different terms. Read the existing commitment before preparing a new creation with a fresh key." },
@@ -75,8 +76,12 @@ function w12(state: W12State): string {
       who: { one: "garden", many: "gardens" },
     }),
   );
-  const canSeed = state !== "protocol-reader" && state !== "protocol-owner" && !state.endsWith("-blocked-authority") && !state.endsWith("-blocked-pool");
-  const canConfirm = state !== "protocol-reader" && !state.endsWith("-blocked-authority");
+  const hasPoolAuthority = state !== "protocol-reader" && !state.endsWith("-blocked-authority");
+  const ownerOnly = state === "protocol-owner" || state.endsWith("-blocked-membership");
+  const poolOpen = !state.endsWith("-blocked-pool");
+  const canSeed = hasPoolAuthority && !ownerOnly && poolOpen;
+  const canManageClaims = hasPoolAuthority && poolOpen;
+  const canConfirm = hasPoolAuthority && !ownerOnly && poolOpen;
   const seedAuthority = "Root-garden steward or owner · root-garden member";
   const savedJob = state.startsWith("pool-seed-") ? state.slice(5) : null;
   const savedOffer = savedJob?.startsWith("seed-offer") ?? false;
@@ -106,8 +111,8 @@ ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocin
             title: "Methodology survey",
             chips: `${chip("Request", "request")}${chip("Waiting", "warn", { dot: true })}${chip("Garden Claim", "ink")}`,
             meta: "Awka Hub · asked by Leila · Jul 9",
-            decline: canSeed ? hot("w12.decline", btn("Decline…", { kind: "sec", sm: true })) : undefined,
-            affirm: canSeed ? hot("w12.accept", btn("Accept", { kind: "pri", sm: true })) : undefined,
+            decline: canManageClaims ? hot("w12.decline", btn("Decline…", { kind: "sec", sm: true })) : undefined,
+            affirm: canManageClaims ? hot("w12.accept", btn("Accept", { kind: "pri", sm: true })) : undefined,
           }),
         )}${acard(
           "Confirm Queue",
@@ -158,7 +163,7 @@ ${canSeed
     const direction = `<div class="actrow">${hot(unbounded ? "w12.seed-unbounded-request" : "w12.seed-request", btn("Request from gardens", { kind: offer ? "sec" : "pri", sm: true }))}${hot(unbounded ? "w12.seed-unbounded-offer" : "w12.seed-offer", btn("Offer to gardens", { kind: offer ? "pri" : "sec", sm: true }))}</div>`;
     const queued = banner("Saved on this device, waiting to send. This commitment is not published or claimable yet. Reconnect to continue the same queued creation.", "amber", "time-line");
     const indexing = banner("The transaction landed. Waiting for the indexed commitment before showing it as published or claimable. Do not seed it again.", "stone", "time-line");
-    const failed = banner("The network request timed out before a transaction was submitted. Your answers are saved. Retry the same queued creation; do not create a second commitment.", "amber", "error-warning-line");
+    const failed = banner("The send timed out; its outcome is unknown. Your answers and creation key are saved. Retry first checks the creator and creation key for an existing commitment. If found, recover it and wait for the index; resend the same job only if no commitment exists. Do not create a second commitment.", "amber", "error-warning-line");
     const cancel = hot("w12.seed-cancel", btn("Cancel", { kind: "ghost" }));
     const actions = review
       ? `${cancel}${unbounded ? btn("Seed This Commitment", { kind: "pri", disabled: true }) : hot(offer ? "w12.seed-offer-confirm" : "w12.seed-confirm", btn("Seed This Commitment", { kind: "pri" }))}`
@@ -249,9 +254,9 @@ const W12_HOTS: HifiDef["hots"] = {
   "w12.seed-fix-bound": { l: "Choose a lifecycle bound", to: "screen:W12@seed-protocol", info: "At least one open cycle binding or due date is required. The shared composer always requires a positive dueInDays." },
   "w12.seed-confirm": { l: "Seed this protocol request", to: "screen:W12@seed-queued", info: "Root-garden steward/owner, or module owner with root-garden membership. Queue createCommitment with a lifecycle bound, request direction, and protocol context; publication waits for indexed read-back.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
   "w12.seed-offer-confirm": { l: "Seed this protocol offer", to: "screen:W12@seed-offer-queued", info: "The same authorized, bounded queued creation with Offer direction. The queue preserves the selected direction on every retry.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
-  "w12.seed-offer-retry": { l: "Retry offer send", to: "screen:W12@seed-offer-queued", info: "Retry the existing Offer job with the same client commitment ID and stored terms.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
+  "w12.seed-offer-retry": { l: "Retry offer send", to: "screen:W12@seed-offer-queued", info: "Reconcile creator and creation key first; recover an existing Offer or resend only if absent, using the same client commitment ID and stored terms.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
   "w12.seed-close": { l: "Back to pool", to: "screen:W12", info: "Return to the pool without submitting a creation. Pending jobs use their own close-and-reopen path." },
-  "w12.seed-retry": { l: "Retry send", to: "screen:W12@seed-queued", info: "Retries the existing queued job and its original client commitment ID; does not create a new commitment.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
+  "w12.seed-retry": { l: "Retry send", to: "screen:W12@seed-queued", info: "Reconcile creator and creation key first; recover an existing Request or resend only if absent, preserving the original client commitment ID and terms.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
 };
 
 // ---------------------------------------------------------------------------
