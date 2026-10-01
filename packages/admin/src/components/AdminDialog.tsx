@@ -121,12 +121,7 @@ const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> =
 export const ADMIN_FLOW_DIALOG_CLASS =
   "min-h-[90dvh] sm:min-h-0 sm:h-[85dvh] sm:!max-w-3xl lg:!max-w-5xl";
 
-const compactMobileSheetClasses = cn(
-  "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
-  "sm:bottom-auto sm:top-1/2 sm:max-h-[calc(100dvh-2rem)] sm:-translate-y-1/2"
-);
-
-const fullWidthMobileSheetClasses = cn(
+const mobileSheetClasses = cn(
   "fixed inset-x-0 bottom-0 z-modal flex max-h-[calc(100dvh-1rem)] w-[100dvw] max-w-none flex-col",
   "sm:inset-x-auto sm:left-1/2 sm:bottom-auto sm:top-1/2 sm:w-full sm:max-h-[calc(100dvh-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2"
 );
@@ -216,7 +211,6 @@ export function AdminDialog({
   // structured header (icon/title/description) is suppressed and the title is
   // kept screen-reader-only for the Radix dialog a11y contract.
   const hasStructuredHeader = variant !== "palette" && variant !== "flow";
-  const hasFullWidthMobileSheet = variant === "standard" || variant === "flow";
   const iconNode =
     typeof Icon === "function" ? (
       <Icon className="h-6 w-6 text-[rgb(var(--m3-on-surface-variant))]" />
@@ -253,9 +247,8 @@ export function AdminDialog({
           data-instant-exit={instantExit || undefined}
           role={role}
           className={cn(
-            // Mobile: standard + flow are true full-width action sheets; compact
-            // surfaces (confirm + palette) keep the inset sheet. Desktop centers all.
-            hasFullWidthMobileSheet ? fullWidthMobileSheetClasses : compactMobileSheetClasses,
+            // Every mobile variant spans the viewport; desktop sizing remains variant-specific.
+            mobileSheetClasses,
             "rounded-t-[var(--m3-shape-lg)] sm:rounded-[var(--m3-shape-lg)]",
             // Surface
             "bg-[rgb(var(--m3-surface-container-high))]",
