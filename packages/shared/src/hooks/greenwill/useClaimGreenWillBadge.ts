@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import {
   type Address,
@@ -135,6 +135,10 @@ function useClaimGreenWillBadge(
     INDEXER_LAG_SCHEDULE_MS
   );
   const badge = formatMessage({ id: titleId });
+  // Whether this claim reached the chain. A failure after that (a receipt wait
+  // that timed out) may still land, so ownership keeps being read; a refusal
+  // before the wallet or a cancelled prompt never sent anything.
+  const broadcastRef = useRef(false);
   // Tracking only: the person reads the badge's own sentence, below.
   const trackError = createMutationErrorHandler({
     source: "useClaimGreenWillBadge",
@@ -171,12 +175,20 @@ function useClaimGreenWillBadge(
         });
       }
 
-      const result = await sender.sendContractCall({
-        address: greenWillAddress,
-        abi: GreenWillABI,
-        functionName: "claimBadge",
-        args: [...args],
-      });
+      broadcastRef.current = false;
+      const result = await sender.sendContractCall(
+        {
+          address: greenWillAddress,
+          abi: GreenWillABI,
+          functionName: "claimBadge",
+          args: [...args],
+        },
+        {
+          onBroadcast: async () => {
+            broadcastRef.current = true;
+          },
+        }
+      );
 
       // A Safe-style wallet returns before the claim executes; the result says
       // so, and the claim only counts once it does.
@@ -222,10 +234,21 @@ function useClaimGreenWillBadge(
           message: formatMessage({ id: failure.messageId }),
         });
       }
-      // A claim that failed after it was sent may still have landed; read again.
+      // A claim that failed after it was sent may still land; keep reading.
       invalidate();
+      if (broadcastRef.current) scheduleFollowUp();
     },
   });
+
+  // A claim's result belongs to the account that made it: switching accounts
+  // must not show another account's claim as landed.
+  const { reset } = mutation;
+  const claimAccountRef = useRef(primaryAddress);
+  useEffect(() => {
+    if (claimAccountRef.current === primaryAddress) return;
+    claimAccountRef.current = primaryAddress;
+    reset();
+  }, [primaryAddress, reset]);
 
   return useSafeMutation(mutation);
 }

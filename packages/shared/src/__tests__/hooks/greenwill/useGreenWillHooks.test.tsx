@@ -78,9 +78,11 @@ vi.mock("../../../modules/data/greenwill", () => ({
   getGreenWillRecentGrants: (...args: unknown[]) => mockGetGreenWillRecentGrants(...args),
 }));
 
+const mockAccount = vi.hoisted(() => ({ primaryAddress: "" as string }));
+
 vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({
-    primaryAddress: TEST_USER,
+    primaryAddress: mockAccount.primaryAddress,
   }),
 }));
 
@@ -118,6 +120,8 @@ import {
 describe("hooks/greenwill", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
+    mockAccount.primaryAddress = TEST_USER;
     mockSimulateContract.mockResolvedValue({ result: undefined });
   });
 
@@ -271,7 +275,9 @@ describe("hooks/greenwill", () => {
         address: TEST_GREENWILL,
         functionName: "claimBadge",
         args: [GENESIS_BADGE_ID, "0x"],
-      })
+      }),
+      // The send reports when it reached the chain.
+      expect.objectContaining({ onBroadcast: expect.any(Function) })
     );
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: queryKeys.greenWill.ownership(TEST_USER.toLowerCase(), TEST_CHAIN_ID),
@@ -295,7 +301,9 @@ describe("hooks/greenwill", () => {
         address: TEST_GREENWILL,
         functionName: "claimBadge",
         args: [FIRST_WORK_BADGE_ID, encodeAbiParameters([{ type: "bytes32" }], [TEST_WORK_UID])],
-      })
+      }),
+      // The send reports when it reached the chain.
+      expect.objectContaining({ onBroadcast: expect.any(Function) })
     );
   });
 
@@ -325,7 +333,9 @@ describe("hooks/greenwill", () => {
             [TEST_GARDEN, TEST_ASSET]
           ),
         ],
-      })
+      }),
+      // The send reports when it reached the chain.
+      expect.objectContaining({ onBroadcast: expect.any(Function) })
     );
   });
 
@@ -372,6 +382,85 @@ describe("hooks/greenwill", () => {
     expect(mockToast.info).toHaveBeenCalledWith(
       expect.objectContaining({ title: "app.profile.badges.claim.awaitingTitle" })
     );
+  });
+
+  it("keeps reading ownership after a claim that failed once it was sent", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockSendContractCall.mockImplementationOnce(
+      async (_call: unknown, options?: { onBroadcast?: (hash: string) => Promise<void> }) => {
+        await options?.onBroadcast?.("0xsent");
+        throw new Error("Timed out while waiting for transaction receipt");
+      }
+    );
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHookWithQueryClient(() => useClaimGenesisBadge(), { queryClient });
+    await act(async () => {
+      await expect(result.current.mutateAsync(undefined)).rejects.toThrow();
+    });
+    const afterFailure = invalidateSpy.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
+    });
+
+    expect(invalidateSpy.mock.calls.length).toBeGreaterThan(afterFailure);
+  });
+
+  it("reads ownership once, not on a schedule, when nothing was sent", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockSimulateContract.mockRejectedValueOnce(contractRefusal());
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHookWithQueryClient(() => useClaimGenesisBadge(), { queryClient });
+    await act(async () => {
+      await expect(result.current.mutateAsync(undefined)).rejects.toThrow();
+    });
+    const afterFailure = invalidateSpy.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
+    });
+
+    expect(invalidateSpy.mock.calls.length).toBe(afterFailure);
+  });
+
+  it("drops a claim's result when the account changes", async () => {
+    mockSendContractCall.mockResolvedValueOnce({ hash: "0x1234", sponsored: false });
+
+    const { result, rerender } = renderHookWithQueryClient(() => useClaimGenesisBadge());
+    await act(async () => {
+      await result.current.mutateAsync(undefined);
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    mockAccount.primaryAddress = "0x1111111111111111111111111111111111111112";
+    rerender(undefined);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(false));
+    expect(result.current.isIdle).toBe(true);
+  });
+
+  it("re-reads ownership while a sent claim awaits execution, and stops once it is owned", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockGetGreenWillBadgeDefinitions.mockResolvedValue([]);
+    mockGetGreenWillBadgesByOwner.mockResolvedValue([]);
+
+    renderHookWithQueryClient(() =>
+      useGreenWillBadges(TEST_USER, { awaitBadgeIds: [GENESIS_BADGE_ID] })
+    );
+    await waitFor(() => expect(mockGetGreenWillBadgesByOwner).toHaveBeenCalledTimes(1));
+
+    mockGetGreenWillBadgesByOwner.mockResolvedValue([{ badgeId: GENESIS_BADGE_ID }]);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(31_000);
+    });
+    expect(mockGetGreenWillBadgesByOwner).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(61_000);
+    });
+    expect(mockGetGreenWillBadgesByOwner).toHaveBeenCalledTimes(2);
   });
 
   it("stops a claim the badge contract refuses before the wallet opens, and says why", async () => {

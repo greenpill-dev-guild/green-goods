@@ -2,7 +2,7 @@ import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import type { Address } from "@green-goods/shared/types/domain";
-import type { GreenWillBadgeView } from "@green-goods/shared/types/greenwill";
+import { GREENWILL_BADGE_IDS, type GreenWillBadgeView } from "@green-goods/shared/types/greenwill";
 import { isGreenWillDeployed } from "@green-goods/shared/config/blockchain";
 import {
   describeBadgeClaimError,
@@ -120,12 +120,24 @@ export const ProfileBadges: React.FC = () => {
   const { data: isProtocolMember = false } = useProtocolMemberStatus(primaryAddress ?? undefined);
   const { data: works = [] } = useMyOnlineWorks({ limit: 1 });
   const { deposits = [] } = useMyVaultDeposits(primaryAddress ?? undefined);
-  const { badges, earnedBadges, isLoading, isError } = useGreenWillBadges(
-    primaryAddress ?? undefined
-  );
   const genesisClaim = useClaimGenesisBadge();
   const firstWorkClaim = useClaimFirstWorkBadge();
   const firstSupportClaim = useClaimFirstSupportBadge();
+  // A claim a Safe-style wallet sent for approval: ownership keeps being read
+  // until it executes, so the dialog turns to claimed without a reload.
+  const awaitBadgeIds = (
+    [
+      [genesisClaim, GREENWILL_BADGE_IDS.GENESIS],
+      [firstWorkClaim, GREENWILL_BADGE_IDS.FIRST_WORK],
+      [firstSupportClaim, GREENWILL_BADGE_IDS.FIRST_SUPPORT],
+    ] as const
+  )
+    .filter(([claim]) => claim.isSuccess && claim.data?.confirmation === "pending")
+    .map(([, badgeId]) => badgeId);
+  const { badges, earnedBadges, isLoading, isError } = useGreenWillBadges(
+    primaryAddress ?? undefined,
+    { awaitBadgeIds }
+  );
 
   const preferredEnsName = greenGoodsEnsName || ensName;
   const badgeIdentity = primaryAddress

@@ -521,6 +521,11 @@ describe("ProfileBadges", () => {
     await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
 
     expect(screen.getByRole("status")).toHaveTextContent("Claim waiting for approval");
+    // Ownership keeps being read until the Safe executes the claim.
+    expect(sharedMocks.useGreenWillBadges).toHaveBeenLastCalledWith(
+      "0x1234567890abcdef1234567890abcdef12345678",
+      { awaitBadgeIds: [GREENWILL_BADGE_IDS.GENESIS] }
+    );
     expect(screen.queryByText("Genesis badge claimed")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Claim Genesis" })).not.toBeInTheDocument();
   });
