@@ -86,6 +86,7 @@ vi.mock("../../workflows/authServices", () => ({
 
 const TEST_WALLET = "0x0000000000000000000000000000000000000001" as Hex;
 const EMBEDDED_WALLET = "0x0000000000000000000000000000000000000002" as Hex;
+const OTHER_WALLET = "0x0000000000000000000000000000000000000003" as Hex;
 
 type AccountState = {
   address?: Hex;
@@ -202,6 +203,8 @@ describe("AuthProvider wallet login bridge", () => {
     queryClient.setQueryData(["greengoods", "works", "merged", "garden"], ["private-draft"]);
     localStorage.setItem("__rq_pc__", "persisted-reads");
     const deleteDatabase = vi.spyOn(indexedDB, "deleteDatabase");
+    // Offline, letting go of a WalletConnect session never finishes.
+    mocks.mockDisconnect.mockReturnValueOnce(new Promise<undefined>(() => {}));
     await act(async () => {
       await view.result.current.signOut();
     });
@@ -215,17 +218,16 @@ describe("AuthProvider wallet login bridge", () => {
     expect(localStorage.getItem("__rq_pc__")).toBe("persisted-reads");
     expect(deleteDatabase).not.toHaveBeenCalled();
     expect(mocks.mockClearServiceWorkerCaches).not.toHaveBeenCalled();
-    expect(mocks.mockDisconnect).not.toHaveBeenCalled();
+    // Sign-out started letting go of the wallet but did not wait for it.
+    expect(mocks.mockDisconnect).toHaveBeenCalledTimes(1);
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(view.result.current.walletAddress).toBeNull();
     expect(view.result.current.authMode).toBeNull();
     view.rerender();
     expect(view.result.current.isAuthenticated).toBe(false);
-    // Reuse the still-connected wallet only after explicit login intent. There
-    // is no pending transport disconnect that can invalidate the new session.
+    // The wallet signed out of is never silently reused by the next wallet login.
     act(() => view.result.current.loginWithWallet());
-    await waitFor(() => expect(view.result.current.isAuthenticated).toBe(true));
-    expect(mocks.mockDisconnect).not.toHaveBeenCalled();
+    expect(view.result.current.isAuthenticated).toBe(false);
     fetchSpy.mockRestore();
     deleteDatabase.mockRestore();
     queryClient.clear();
@@ -239,6 +241,43 @@ describe("AuthProvider wallet login bridge", () => {
     expect(mocks.mockGetAuthActor).not.toHaveBeenCalled();
 
     view.unmount();
+  });
+
+  it("lets go of the wallet on sign-out so the next wallet login asks for a wallet", async () => {
+    const view = renderAuth();
+    await waitForReady();
+    act(() => view.result.current.loginWithWallet());
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    await waitFor(() => expect(view.result.current.walletAddress).toBe(TEST_WALLET));
+    expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(1);
+
+    let finishDisconnect = () => {};
+    mocks.mockDisconnect.mockReturnValueOnce(
+      new Promise<undefined>((resolve) => {
+        finishDisconnect = () => resolve(undefined);
+      })
+    );
+    await act(async () => view.result.current.signOut());
+    expect(view.result.current.isAuthenticated).toBe(false);
+    expect(mocks.mockDisconnect).toHaveBeenCalledTimes(1);
+
+    // Still letting go: the login waits rather than reusing the signed-out wallet.
+    act(() => view.result.current.loginWithWallet());
+    expect(view.result.current.isAuthenticated).toBe(false);
+    expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(1);
+
+    await act(async () => finishDisconnect());
+    setAccount(disconnectedAccount);
+    view.rerender();
+    await waitFor(() => expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(2));
+    expect(view.result.current.isAuthenticated).toBe(false);
+
+    // The member can pick a different wallet, or the same one again.
+    setAccount({ address: OTHER_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    await waitFor(() => expect(view.result.current.walletAddress).toBe(OTHER_WALLET));
+    expect(view.result.current.authMode).toBe("wallet");
   });
 
   it("keeps embedded logout local and requires explicit intent to use the connection again", async () => {
@@ -435,6 +474,7 @@ describe("AuthProvider wallet login bridge", () => {
         await vi.advanceTimersByTimeAsync(15_000);
       });
 
+      // With no remembered address there is no identity to keep.
       expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
       expect(view.result.current.isReady).toBe(true);
       expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith(
@@ -442,6 +482,7 @@ describe("AuthProvider wallet login bridge", () => {
           authMode: "wallet",
           outcome: "failed",
           reason: "timeout",
+          sessionKept: false,
         })
       );
       expect(JSON.stringify(mocks.mockTrackWalletRestore.mock.calls)).not.toContain(TEST_WALLET);
@@ -489,10 +530,28 @@ describe("AuthProvider wallet login bridge", () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(15_000);
       });
-      expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
+      // The remembered wallet stays signed in once the window ends.
+      expect(actor.getSnapshot().matches({ authenticated: "wallet" })).toBe(true);
+      expect(view.result.current.isReady).toBe(true);
+      expect(view.result.current.walletAddress).toBe(TEST_WALLET);
       expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith(
-        expect.objectContaining({ authMode: "wallet", outcome: "failed", reason: "timeout" })
+        expect.objectContaining({
+          authMode: "wallet",
+          outcome: "failed",
+          reason: "timeout",
+          sessionKept: true,
+        })
       );
+
+      // Kept, it asks the wallet again when the connection comes back, not on every check.
+      const reconnects = mocks.mockReconnect.mock.calls.length;
+      await act(async () => void (await connectivityStore.check()));
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(reconnects);
+      Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+      await act(async () => void (await connectivityStore.check()));
+      Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+      await act(async () => void (await connectivityStore.check()));
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(reconnects + 1);
     } finally {
       Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
       await connectivityStore.check();
@@ -531,6 +590,60 @@ describe("AuthProvider wallet login bridge", () => {
       act(() => document.dispatchEvent(new Event("visibilitychange")));
 
       expect(mocks.mockReconnect).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // PRD-1001: Take This Up on a phone sends the member to the wallet app, the
+  // WalletConnect session drops there, and the wallet does not answer in time.
+  it("keeps a wallet member signed in when the wallet drops while they sign in it", async () => {
+    vi.useFakeTimers();
+    const setVisibility = (value: "hidden" | "visible") => {
+      Object.defineProperty(document, "visibilityState", { configurable: true, value });
+      act(() => document.dispatchEvent(new Event("visibilitychange")));
+    };
+    const settle = (ms = 0) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
+    try {
+      const view = renderAuth();
+      await settle();
+      act(() => view.result.current.loginWithWallet());
+      setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+      view.rerender();
+      await settle();
+      expect(view.result.current.authMode).toBe("wallet");
+
+      setVisibility("hidden");
+      setAccount(disconnectedAccount);
+      view.rerender();
+      await settle(4 * 60_000);
+      setVisibility("visible");
+      await settle(15_000);
+
+      expect(view.result.current.isAuthenticated).toBe(true);
+      expect(view.result.current.isReady).toBe(true);
+      expect(view.result.current.authMode).toBe("wallet");
+      expect(view.result.current.walletAddress).toBe(TEST_WALLET);
+      expect(view.result.current.externalWalletConnected).toBe(false);
+      expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: "failed", reason: "timeout", sessionKept: true })
+      );
+
+      // Every return to the app asks the wallet again until it answers.
+      const reconnects = mocks.mockReconnect.mock.calls.length;
+      setVisibility("hidden");
+      setVisibility("visible");
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(reconnects + 1);
+
+      setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+      view.rerender();
+      await settle();
+      expect(view.result.current.externalWalletConnected).toBe(true);
+      expect(view.result.current.walletAddress).toBe(TEST_WALLET);
+      expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith({
+        authMode: "wallet",
+        outcome: "reconnected",
+      });
     } finally {
       vi.useRealTimers();
     }

@@ -120,6 +120,18 @@ WalletConnect) has not been run; it rides the solo Stage A gate. On 2026-09-27 t
 the restore-path change if it confirms, moved to PRD-1001, so its result goes there rather than to
 this lane's Linear child, which is Done. The restore path is unchanged.
 
+2026-10-01, PRD-1001: the sign-out reproduces in production telemetry, three of three cases
+(21 Sept join request, 24 Sept rehearsal Take This Up, 25 Sept ask to take up), all on Android.
+Each time the wallet connection dropped while the member was in the wallet app, the restore
+window started, and `RESTORE_TIMEOUT` signed the member out exactly 15 s of visible time after
+return (on 24 Sept after a page reload, through the startup restore). The fix keeps a remembered
+wallet signed in when the window ends (`authStartupState.ts`), asks the wallet again on each return
+or reconnection (`useWalletRestoreLifecycle.ts`), and records `session_kept` and `reconnected` in
+`auth_wallet_restore`. The provider also stopped missing a disconnect that directly follows a manual
+wallet login. Separately, signing out of a wallet session now lets go of the wallet, so the next
+wallet login asks for a wallet instead of reusing the last one (`useWalletDisconnect.ts`). The
+Rabby Mobile phone walk remains owed for acceptance.
+
 ## RED and GREEN evidence
 
 RED at `c17a03b46` with the new tests: the hook's module did not exist, and
