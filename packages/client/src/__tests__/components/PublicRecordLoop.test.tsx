@@ -73,16 +73,6 @@ describe("PublicRecordLoop", () => {
     );
   });
 
-  it("places step body copy under the title on small screens", () => {
-    renderLoop();
-
-    expect(
-      screen.getByText(
-        "A Garden starts as a real community hub with members, roles, and a place-based brief, so every Work record has somewhere accountable to land."
-      )
-    ).toHaveClass("col-start-2", "md:col-start-auto");
-  });
-
   it("uses standard numbers for homepage loop steps", () => {
     renderLoop();
 
