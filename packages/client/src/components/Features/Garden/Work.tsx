@@ -158,7 +158,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
             })
       : null;
 
-    // Type and Sort narrow and order the list (D31); Pending first is today's order.
+    // Type and Sort narrow and order the list (D31); Pending is today's order.
     const view = useGardenWorkListView(works, actions);
     const typeAllLabel = intl.formatMessage({ id: "app.garden.work.type.all" });
     const sortLabel = (sort: GardenWorkSort) => intl.formatMessage({ id: SORT_LABEL_IDS[sort] });
@@ -175,10 +175,16 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
       if (readsHistory && !isLoadingOlder) loadOlderWork?.();
     }, [readsHistory, isLoadingOlder, loadOlderWork]);
     // While a saved copy stands in for live data, its line takes the count's place.
+    // The count is the bare number, so the filters beside it have room; screen
+    // readers still hear what it counts.
+    const countLine = intl.formatMessage(
+      { id: "app.garden.work.count" },
+      { count: view.works.length }
+    );
     const status = readsHistory
       ? intl.formatMessage({ id: "app.garden.work.loading" })
-      : (context ??
-        intl.formatMessage({ id: "app.garden.work.count" }, { count: view.works.length }));
+      : (context ?? intl.formatNumber(view.works.length));
+    const srStatus = readsHistory || context ? undefined : countLine;
 
     // Loading keeps the loaded layout (D28): the header row with the loading line
     // where the count lands and a placeholder where each filter goes, then cards
@@ -207,23 +213,26 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
       );
     }
 
+    // Type appears only when the work here spans two or more actions.
     const filters = hasRows ? (
       <>
-        <NativeSelect
-          aria-label={intl.formatMessage({ id: "app.garden.work.type.label" })}
-          controlSize="compact"
-          density="condensed"
-          className="w-auto min-w-16 max-w-48 field-sizing-content"
-          value={view.type}
-          onChange={(event) => view.setType(event.target.value)}
-        >
-          <option value="all">{typeAllLabel}</option>
-          {view.typeOptions.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.title}
-            </option>
-          ))}
-        </NativeSelect>
+        {view.typeOptions.length > 0 ? (
+          <NativeSelect
+            aria-label={intl.formatMessage({ id: "app.garden.work.type.label" })}
+            controlSize="compact"
+            density="condensed"
+            className="w-auto min-w-16 max-w-48 field-sizing-content"
+            value={view.type}
+            onChange={(event) => view.setType(event.target.value)}
+          >
+            <option value="all">{typeAllLabel}</option>
+            {view.typeOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.title}
+              </option>
+            ))}
+          </NativeSelect>
+        ) : null}
         <NativeSelect
           aria-label={intl.formatMessage({ id: "app.garden.work.sort.label" })}
           controlSize="compact"
@@ -245,7 +254,9 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
     // sheet placement), so switching tabs never moves the icon and title.
     return (
       <div>
-        {hasRows || context ? <GardenListHeader status={status} filters={filters} /> : null}
+        {hasRows || context ? (
+          <GardenListHeader status={status} srStatus={srStatus} filters={filters} />
+        ) : null}
         <ul
           ref={ref}
           onScroll={handleScroll}
