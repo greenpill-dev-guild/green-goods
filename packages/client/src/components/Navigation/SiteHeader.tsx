@@ -1,9 +1,11 @@
+import "./SiteHeader.css";
 import { Button } from "@green-goods/shared/components/Button";
 import { IconButton } from "@green-goods/shared/components/IconButton";
-import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { APP_NAME } from "@green-goods/shared/config/app";
 import { useEventListener } from "@green-goods/shared/hooks/utils/useEventListener";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
+import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiMenuLine } from "@remixicon/react";
 import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
@@ -49,6 +51,7 @@ function computeHeaderOpacity(scrollTop: number): number {
 export const SiteHeader = () => {
   const intl = useIntl();
   const { pathname } = useLocation();
+  const isDesktop = useMediaQuery("(min-width: 48rem)");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [headerOpacity, setHeaderOpacity] = useState(1);
 
@@ -65,22 +68,11 @@ export const SiteHeader = () => {
     },
     { passive: true }
   );
-  useDocumentScrollLock(isDrawerOpen);
 
-  // Close drawer on route change.
+  // A hidden desktop drawer must not retain modal focus or scroll lock.
   useEffect(() => {
     setIsDrawerOpen(false);
-  }, [pathname]);
-
-  // Close drawer on Escape key.
-  useEffect(() => {
-    if (!isDrawerOpen) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsDrawerOpen(false);
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isDrawerOpen]);
+  }, [pathname, isDesktop]);
 
   // Drawer pins the header fully visible regardless of scroll position; the
   // user opened it deliberately and needs to read its CTAs.
@@ -99,7 +91,7 @@ export const SiteHeader = () => {
         fallbackLabel,
         onInstallFallbackClick,
       }) => (
-        <>
+        <Dialog.Root open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
           <header
             className={cn(
               "fixed inset-x-0 top-0 z-sticky border-0 bg-transparent transition-opacity duration-[var(--spring-effects-fast-duration)] ease-out",
@@ -158,45 +150,36 @@ export const SiteHeader = () => {
                   </Button>
 
                   {/* Mobile hamburger: light ink over the hero image */}
-                  <IconButton
-                    onClick={() => setIsDrawerOpen(true)}
-                    className="text-static-white/90 hover:bg-static-white/10 hover:text-static-white md:hidden"
-                    aria-label={intl.formatMessage({
-                      id: "public.nav.openMenu",
-                      defaultMessage: "Open Menu",
-                    })}
-                    aria-expanded={isDrawerOpen}
-                    aria-controls="mobile-nav-drawer"
-                    icon={<RiMenuLine aria-hidden="true" />}
-                  />
+                  <Dialog.Trigger asChild>
+                    <IconButton
+                      className="text-static-white/90 hover:bg-static-white/10 hover:text-static-white md:hidden"
+                      aria-label={intl.formatMessage({
+                        id: "public.nav.openMenu",
+                        defaultMessage: "Open Menu",
+                      })}
+                      aria-expanded={isDrawerOpen}
+                      aria-controls="mobile-nav-drawer"
+                      icon={<RiMenuLine aria-hidden="true" />}
+                    />
+                  </Dialog.Trigger>
                 </div>
               </div>
             </div>
           </header>
 
-          {/* Mobile drawer overlay */}
-          {isDrawerOpen && (
-            <div
-              className="fixed inset-0 z-overlay md:hidden"
-              role="dialog"
-              aria-modal="true"
+          {/* Radix retains the surface through its CSS exit animation and owns focus. */}
+          <Dialog.Portal>
+            <Dialog.Overlay className="public-nav-scrim fixed inset-0 z-overlay bg-static-black/40 md:hidden" />
+            <Dialog.Content
+              className="public-nav-drawer fixed inset-y-0 left-0 z-overlay w-72 bg-bg-white-0 shadow-xl focus:outline-none md:hidden"
               id="mobile-nav-drawer"
+              aria-modal="true"
+              aria-describedby={undefined}
             >
-              <button
-                type="button"
-                data-pressable="scrim"
-                className="absolute inset-0 bg-static-black/40"
-                onClick={() => setIsDrawerOpen(false)}
-                aria-label={intl.formatMessage({
-                  id: "public.nav.closeMenu",
-                  defaultMessage: "Close Menu",
-                })}
-              />
-
-              <nav
-                className="absolute inset-y-0 left-0 flex w-72 flex-col bg-bg-white-0 shadow-xl"
-                aria-label="Mobile navigation"
-              >
+              <Dialog.Title className="sr-only">
+                {intl.formatMessage({ id: "public.nav.openMenu", defaultMessage: "Open Menu" })}
+              </Dialog.Title>
+              <nav className="flex h-full flex-col" aria-label="Mobile navigation">
                 <div className="flex h-16 items-center justify-between border-b border-stroke-soft-200 px-4">
                   <Link
                     to="/"
@@ -207,14 +190,15 @@ export const SiteHeader = () => {
                   >
                     <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
                   </Link>
-                  <IconButton
-                    onClick={() => setIsDrawerOpen(false)}
-                    aria-label={intl.formatMessage({
-                      id: "public.nav.closeMenu",
-                      defaultMessage: "Close Menu",
-                    })}
-                    icon={<RiCloseLine aria-hidden="true" />}
-                  />
+                  <Dialog.Close asChild>
+                    <IconButton
+                      aria-label={intl.formatMessage({
+                        id: "public.nav.closeMenu",
+                        defaultMessage: "Close Menu",
+                      })}
+                      icon={<RiCloseLine aria-hidden="true" />}
+                    />
+                  </Dialog.Close>
                 </div>
 
                 <div className="flex flex-1 flex-col gap-1 p-4">
@@ -224,6 +208,7 @@ export const SiteHeader = () => {
                       <Link
                         key={path}
                         to={path}
+                        onClick={closeDrawer}
                         viewTransition
                         className={cn(
                           "rounded-lg px-3 py-3 text-base transition-colors",
@@ -265,9 +250,9 @@ export const SiteHeader = () => {
                   ) : null}
                 </div>
               </nav>
-            </div>
-          )}
-        </>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
       )}
     </PublicInstallAction>
   );
