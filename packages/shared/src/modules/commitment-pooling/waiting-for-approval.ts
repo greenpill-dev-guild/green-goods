@@ -28,6 +28,12 @@ export interface ClaimDecision {
   commitmentId: string;
   /** When it landed, in milliseconds. */
   at: number;
+  /**
+   * When the decided ask was made, in seconds. After a decline the same person
+   * may ask again, and the index keeps one row per person, so the decision
+   * holds only for the ask it answered.
+   */
+  requestedAt?: number;
 }
 
 /** Decisions by `claimActKey`. */
@@ -87,12 +93,18 @@ export function reconcileWaitingVisit(
 /** This visit's decision on an ask, or an approval that closed it; null when neither. */
 function decidedHere(
   key: string,
-  commitmentId: bigint,
+  claim: Pick<CommitmentClaimRequestRecord, "commitmentId" | "requestedAt">,
   decisions: ClaimDecisions
 ): WaitingRowState | null {
   const decision = decisions[key];
-  if (decision) return { status: decision.kind, at: decision.at };
-  const promise = commitmentId.toString();
+  // A decision answers the ask it was made on; a later ask by the same person waits.
+  if (
+    decision &&
+    (decision.requestedAt === undefined || decision.requestedAt === claim.requestedAt)
+  ) {
+    return { status: decision.kind, at: decision.at };
+  }
+  const promise = claim.commitmentId.toString();
   const chosen = Object.values(decisions).find(
     (other) => other.kind === "approved" && other.commitmentId === promise
   );
@@ -114,7 +126,7 @@ export function waitingRowState(
   input: { live: ReadonlySet<string>; decisions: ClaimDecisions; phase: TxActPhase }
 ): WaitingRowState {
   return (
-    decidedHere(entry.key, entry.row.claim.commitmentId, input.decisions) ??
+    decidedHere(entry.key, entry.row.claim, input.decisions) ??
     onTheLine(input.phase) ??
     (input.live.has(entry.key) ? { status: "waiting", isNew: entry.isNew } : { status: "gone" })
   );
@@ -129,11 +141,7 @@ export function askState(
   claim: CommitmentClaimRequestRecord,
   input: { decisions: ClaimDecisions; phase: TxActPhase }
 ): WaitingRowState {
-  const here = decidedHere(
-    claimActKey(claim.commitmentId, claim.claimant),
-    claim.commitmentId,
-    input.decisions
-  );
+  const here = decidedHere(claimActKey(claim.commitmentId, claim.claimant), claim, input.decisions);
   if (here) return here;
   const at = (claim.resolvedAt ?? claim.updatedAt) * 1000;
   if (claim.state === "ACCEPTED") return { status: "approved", at };

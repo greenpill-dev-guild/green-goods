@@ -55,6 +55,7 @@ import {
 } from "../../../modules/commitment-pooling/seed-tray";
 import {
   copiesToRetry,
+  countPlacedOffers,
   mintSeedSet,
   type SeedCopyProgress,
   seedSetClearableAfter,
@@ -128,6 +129,8 @@ export interface SeedTrayController {
   pass: readonly SeedCopyProgress[] | null;
   /** How many copies a Try Again would send: the ones that didn't send. */
   retryCount: number;
+  /** Offer copies the pool's room already counts, created or queued (`countPlacedOffers`). */
+  placedOffers: number;
   /** Some of the form's row exists, or may: its answers can't change. */
   currentLocked: boolean;
   /** Some of this row exists, or may: it can be neither edited nor removed. */
@@ -270,6 +273,12 @@ export function useSeedTray(input: {
   };
 
   const retryCount = copies ? copiesToRetry(copies).length : 0;
+  const placedOffers = countPlacedOffers(
+    tray.rows.map((row) => ({
+      direction: row.values.direction,
+      progress: sets.get(row.clientCommitmentId)?.progress ?? [],
+    }))
+  );
 
   return {
     others,
@@ -279,6 +288,7 @@ export function useSeedTray(input: {
     copies,
     pass,
     retryCount,
+    placedOffers,
     currentLocked: isLocked(tray.currentId),
     isLocked,
     restart: () => {

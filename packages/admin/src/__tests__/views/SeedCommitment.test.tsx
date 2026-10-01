@@ -91,6 +91,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/useSeedTray", async (importOrig
       copies,
       pass: copies,
       retryCount: copies?.filter((copy) => copy.status === "not-sent").length ?? 0,
+      placedOffers: 0,
       currentLocked: locked,
       isLocked: () => locked,
       restart: () => {

@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   chunkCopies,
   copiesToRetry,
+  countPlacedOffers,
+  selectSeedSetCapacity,
   countSeedCopies,
   mintGroupAddition,
   mintSeedSet,
@@ -104,6 +106,31 @@ describe("copies of a set", () => {
       inFlight: 1,
     });
     expect(copiesToRetry(pass).map((row) => row.status)).toEqual(["not-sent"]);
+  });
+
+  it("needs room on a Try Again only for the offer copies that didn't send", () => {
+    // Ten offers against a limit of ten: two were created and three wait in the
+    // queue, so the room left is five, and a Try Again sends the other five.
+    const offers = {
+      direction: "OFFER" as const,
+      progress: [
+        ...Array.from({ length: 2 }, () => copy("created")),
+        ...Array.from({ length: 3 }, () => copy("later")),
+        ...Array.from({ length: 5 }, () => copy("not-sent", "failed")),
+      ],
+    };
+    const requests = { direction: "REQUEST" as const, progress: [copy("created")] };
+    const placed = countPlacedOffers([offers, requests]);
+    const rows = [{ direction: "OFFER" as const, count: 10 }];
+
+    expect(placed).toBe(5);
+    expect(selectSeedSetCapacity({ room: 5, rows, placed })).toEqual({
+      offers: 5,
+      full: true,
+      over: false,
+    });
+    // Counting every copy again would read the tray as over the limit.
+    expect(selectSeedSetCapacity({ room: 5, rows }).over).toBe(true);
   });
 
   it("bundles copies ten at a time, in order", () => {

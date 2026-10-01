@@ -22,12 +22,19 @@ export interface ClaimDecisionActs {
   /** The approval running or last settled, keyed to its ask. */
   phase: TxActPhase;
   decisions: ClaimDecisions;
+  /** `requestedAt` names the ask decided, when the caller has it (`ClaimDecision`). */
   approve: <T>(
     commitmentId: bigint,
     claimant: Address,
-    act: (send: ActSendCallbacks) => Promise<T>
+    act: (send: ActSendCallbacks) => Promise<T>,
+    requestedAt?: number
   ) => Promise<T>;
-  decline: <T>(commitmentId: bigint, claimant: Address, act: () => Promise<T>) => Promise<T>;
+  decline: <T>(
+    commitmentId: bigint,
+    claimant: Address,
+    act: () => Promise<T>,
+    requestedAt?: number
+  ) => Promise<T>;
 }
 
 export function useClaimDecisions(): ClaimDecisionActs {
@@ -40,7 +47,8 @@ export function useClaimDecisions(): ClaimDecisionActs {
     async <T>(
       commitmentId: bigint,
       claimant: Address,
-      act: (send: ActSendCallbacks) => Promise<T>
+      act: (send: ActSendCallbacks) => Promise<T>,
+      requestedAt?: number
     ): Promise<T> => {
       const key = claimActKey(commitmentId, claimant);
       step({ type: "start", key });
@@ -48,7 +56,12 @@ export function useClaimDecisions(): ClaimDecisionActs {
         const result = await act({
           onBroadcast: async (hash) => step({ type: "broadcast", key, hash }),
         });
-        decide(key, { kind: "approved", commitmentId: commitmentId.toString(), at: Date.now() });
+        decide(key, {
+          kind: "approved",
+          commitmentId: commitmentId.toString(),
+          at: Date.now(),
+          requestedAt,
+        });
         return result;
       } catch (error) {
         step({ type: "failed", key });
@@ -59,12 +72,18 @@ export function useClaimDecisions(): ClaimDecisionActs {
   );
 
   const decline = useCallback(
-    async <T>(commitmentId: bigint, claimant: Address, act: () => Promise<T>): Promise<T> => {
+    async <T>(
+      commitmentId: bigint,
+      claimant: Address,
+      act: () => Promise<T>,
+      requestedAt?: number
+    ): Promise<T> => {
       const result = await act();
       decide(claimActKey(commitmentId, claimant), {
         kind: "declined",
         commitmentId: commitmentId.toString(),
         at: Date.now(),
+        requestedAt,
       });
       return result;
     },
@@ -76,11 +95,13 @@ export function useClaimDecisions(): ClaimDecisionActs {
 
 /**
  * Begins a visit to a pool's tab: decisions from an earlier visit, or another
- * pool, are cleared. The Pool tab calls it; the inspector only joins a visit.
+ * pool, are cleared. The Pool tab calls it; the inspector, and a flow opened
+ * over the tab, only join the visit (`begins: false`), so opening one never
+ * clears the outcomes the tab is showing.
  */
-export function useClaimDecisionVisit(chainId: number, garden: Address): void {
+export function useClaimDecisionVisit(chainId: number, garden: Address, begins = true): void {
   const beginVisit = useClaimDecisionStore((state) => state.beginVisit);
   useEffect(() => {
-    beginVisit(`${chainId}:${garden.toLowerCase()}`);
-  }, [beginVisit, chainId, garden]);
+    if (begins) beginVisit(`${chainId}:${garden.toLowerCase()}`);
+  }, [beginVisit, begins, chainId, garden]);
 }

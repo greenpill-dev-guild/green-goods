@@ -81,7 +81,8 @@ export function SeedCommitmentDialog({
 }: SeedCommitmentDialogProps) {
   const { formatMessage } = useIntl();
   const noteId = useId();
-  const pool = usePoolConsoleController({ chainId, garden });
+  // The Pool tab stays mounted behind this flow and owns the visit.
+  const pool = usePoolConsoleController({ chainId, garden, visit: "join" });
   // Seeding into the protocol pool (the Green Goods Community Garden's own):
   // requests default to steward review. The pool says which it is, so the
   // context holds wherever the flow is opened from.
@@ -182,6 +183,7 @@ export function SeedCommitmentDialog({
   const capacity = selectSeedSetCapacity({
     room,
     rows: [...tray.others.map((row) => row.values), values],
+    placed: tray.placedOffers,
   });
   const cap = pool.pool ? Number(pool.pool.providerOpenCommitmentCap) : null;
   const members = useMemo(

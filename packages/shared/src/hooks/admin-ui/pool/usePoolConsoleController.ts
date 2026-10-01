@@ -61,8 +61,13 @@ const reportQueuedSendError = createMutationErrorHandler({
 export function usePoolConsoleController(input: {
   chainId: number;
   garden: Address;
+  /**
+   * The Pool tab begins a visit; a flow opened over it (Seed Promises) joins
+   * the tab's visit, so its own mount leaves the tab's outcomes in place.
+   */
+  visit?: "begin" | "join";
 }): PoolConsoleController {
-  const { chainId, garden } = input;
+  const { chainId, garden, visit = "begin" } = input;
   const viewer = usePrimaryAddress() ?? undefined;
   const isOnline = useOnlineStatus();
 
@@ -163,7 +168,7 @@ export function usePoolConsoleController(input: {
   const commitmentMutation = useCommitmentMutation({ chainId });
   // Approve is one signature from a list row: the row follows it to the chain,
   // on this card and in the inspector alike, and keeps its outcome this visit.
-  useClaimDecisionVisit(chainId, garden);
+  useClaimDecisionVisit(chainId, garden, visit === "begin");
   const claimDecisions = useClaimDecisions();
   const { approve: approveClaim, decline: declineClaim } = claimDecisions;
   // Resume and a queued row's send are single signatures too: each says where
@@ -183,6 +188,17 @@ export function usePoolConsoleController(input: {
     return poolId;
   }, [poolId]);
 
+  // The ask a decision answers, so a later ask by the same person reads as new.
+  const pendingAsks = claimsQuery.rows;
+  const askedAt = useCallback(
+    (commitmentId: bigint, claimant: Address) =>
+      pendingAsks.find(
+        (row) =>
+          row.claim.commitmentId === commitmentId &&
+          row.claim.claimant.toLowerCase() === claimant.toLowerCase()
+      )?.claim.requestedAt,
+    [pendingAsks]
+  );
   const acts = useMemo(
     () => ({
       pause: (reason: string) =>
@@ -211,18 +227,26 @@ export function usePoolConsoleController(input: {
       expire: (commitmentId: bigint) =>
         commitmentMutation.mutateAsync({ action: "expireCommitment", commitmentId }),
       acceptClaim: (commitmentId: bigint, claimant: Address) =>
-        approveClaim(commitmentId, claimant, (send) =>
-          commitmentMutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send })
+        approveClaim(
+          commitmentId,
+          claimant,
+          (send) =>
+            commitmentMutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send }),
+          askedAt(commitmentId, claimant)
         ),
       declineClaim: (commitmentId: bigint, claimant: Address, reason: string) =>
-        declineClaim(commitmentId, claimant, () =>
-          commitmentMutation.mutateAsync({
-            action: "declineClaim",
-            commitmentId,
-            claimant,
-            reason,
-            gardenAddress: garden,
-          })
+        declineClaim(
+          commitmentId,
+          claimant,
+          () =>
+            commitmentMutation.mutateAsync({
+              action: "declineClaim",
+              commitmentId,
+              claimant,
+              reason,
+              gardenAddress: garden,
+            }),
+          askedAt(commitmentId, claimant)
         ),
       // The admin mounts no queue provider, so nothing sends a queued creation
       // unless the steward does. The row is re-read either way: a failed retry
@@ -270,6 +294,7 @@ export function usePoolConsoleController(input: {
       commitmentMutation,
       approveClaim,
       declineClaim,
+      askedAt,
       trackPool,
       trackQueued,
       finishGroup,

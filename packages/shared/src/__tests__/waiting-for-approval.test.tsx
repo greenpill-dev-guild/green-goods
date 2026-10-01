@@ -85,6 +85,34 @@ describe("the visit's rows", () => {
     ]);
   });
 
+  it("holds a decline to the ask it answered: the same person asking again waits", () => {
+    const declined = {
+      [claimRowKey(lena)]: {
+        kind: "declined" as const,
+        commitmentId: "7",
+        at: 2_000,
+        requestedAt: lena.claim.requestedAt,
+      },
+    };
+    const first = reconcileWaitingVisit(EMPTY_WAITING_VISIT, [lena]);
+    // The index keeps one row per person, so the new ask replaces the declined one.
+    const again = { ...lena, claim: { ...lena.claim, requestedAt: lena.claim.requestedAt + 60 } };
+    const later = reconcileWaitingVisit(first, [again]);
+    const live = new Set([claimRowKey(lena)]);
+
+    expect(waitingRowState(first.entries[0]!, { ...none, live, decisions: declined })).toEqual({
+      status: "declined",
+      at: 2_000,
+    });
+    expect(waitingRowState(later.entries[0]!, { ...none, live, decisions: declined })).toEqual({
+      status: "waiting",
+      isNew: false,
+    });
+    expect(askState(again.claim, { decisions: declined, phase: IDLE_ACT_PHASE })).toMatchObject({
+      status: "waiting",
+    });
+  });
+
   it("puts an approval in flight, or one that failed, on its own row, which still waits", () => {
     const [entry] = reconcileWaitingVisit(EMPTY_WAITING_VISIT, [ines]).entries;
     const live = new Set([claimRowKey(ines)]);
@@ -181,6 +209,15 @@ describe("decisions shared by the card and the inspector", () => {
     });
     expect(result.current.phase).toEqual({ status: "failed", key: claimRowKey(ines) });
     expect(result.current.decisions).toEqual({});
+  });
+
+  it("keeps the tab's decisions when a flow opened over it joins the visit", async () => {
+    const { result } = renderHook(() => useClaimDecisions());
+    await act(() => result.current.decline(7n, LENA, async () => "0xdef"));
+
+    const seedFlow = renderHook(() => useClaimDecisionVisit(42161, GARDEN, false));
+    expect(result.current.decisions[claimRowKey(lena)]?.kind).toBe("declined");
+    seedFlow.unmount();
   });
 
   it("starts each visit to a pool's tab with nothing decided", async () => {

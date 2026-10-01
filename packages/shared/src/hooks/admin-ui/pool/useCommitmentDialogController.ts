@@ -69,6 +69,7 @@ import { useGardenRoles } from "../../roles/useGardenRoles";
 import { useProgressiveInvalidation } from "../../utils/useTimeout";
 import { reviewRefreshOptions } from "../../commitment-pooling/review-refresh";
 import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
+import type { CommitmentClaimRequestRecord } from "../../../modules/commitment-pooling/types-core";
 
 /** `ICommitmentPoolingModule.DisputeResolution`, by code. */
 const DISPUTE_RESOLUTION_CODE = {
@@ -77,6 +78,16 @@ const DISPUTE_RESOLUTION_CODE = {
   CANCELLED: 2,
   EXPIRED: 3,
 } as const;
+
+/** When a person's pending ask was made, so the decision on it holds for that ask alone. */
+function pendingAskAt(
+  asks: readonly CommitmentClaimRequestRecord[] | undefined,
+  claimant: Address
+): number | undefined {
+  return asks?.find(
+    (ask) => ask.state === "PENDING" && ask.claimant.toLowerCase() === claimant.toLowerCase()
+  )?.requestedAt;
+}
 
 export function useCommitmentDialogController(input: {
   chainId: number;
@@ -345,18 +356,25 @@ export function useCommitmentDialogController(input: {
       confirmFallback: (reason: string) =>
         mutation.mutateAsync({ action: "confirmFulfillmentAsFallback", commitmentId, reason }),
       acceptClaim: (claimant: Address) =>
-        approveClaim(commitmentId, claimant, (send) =>
-          mutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send })
+        approveClaim(
+          commitmentId,
+          claimant,
+          (send) => mutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send }),
+          pendingAskAt(detailQuery.detail?.claimRequests, claimant)
         ),
       declineClaim: (claimant: Address, reason: string) =>
-        declineClaim(commitmentId, claimant, () =>
-          mutation.mutateAsync({
-            action: "declineClaim",
-            commitmentId,
-            claimant,
-            reason,
-            gardenAddress: garden,
-          })
+        declineClaim(
+          commitmentId,
+          claimant,
+          () =>
+            mutation.mutateAsync({
+              action: "declineClaim",
+              commitmentId,
+              claimant,
+              reason,
+              gardenAddress: garden,
+            }),
+          pendingAskAt(detailQuery.detail?.claimRequests, claimant)
         ),
       syncWorkDecisions: async () => {
         const decisionUIDs = reconciliationDecisionUIDs;

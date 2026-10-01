@@ -165,18 +165,44 @@ export function countSeedCopies(copies: readonly SeedCopyProgress[]): SeedCopyCo
 }
 
 /**
+ * Offer copies of this sitting the room already counts: a created one through
+ * the chain's count of open commitments, and one waiting to finish through the
+ * queue. A Try Again needs room only for the rest.
+ */
+export function countPlacedOffers(
+  rows: readonly {
+    direction: "OFFER" | "REQUEST";
+    progress: readonly Pick<SeedCopyProgress, "status">[];
+  }[]
+): number {
+  return rows
+    .filter((row) => row.direction === "OFFER")
+    .reduce(
+      (sum, row) =>
+        sum +
+        row.progress.filter((copy) => copy.status === "created" || copy.status === "later").length,
+      0
+    );
+}
+
+/**
  * Whether the tray fits the steward's room under the pool's per-person limit
  * of open commitments. Only an offer uses any: its creator provides it, so
  * every copy counts the moment it is created. A request counts against
- * whoever takes it up, later.
+ * whoever takes it up, later. `placed` are the tray's offer copies the room
+ * already counts (`countPlacedOffers`), so a retry isn't counted twice.
  */
 export function selectSeedSetCapacity(input: {
   room: number | null;
   rows: readonly { direction: "OFFER" | "REQUEST"; count?: number }[];
+  placed?: number;
 }): { offers: number; full: boolean; over: boolean } {
-  const offers = input.rows
-    .filter((row) => row.direction === "OFFER")
-    .reduce((sum, row) => sum + Math.max(1, row.count ?? 1), 0);
+  const offers = Math.max(
+    0,
+    input.rows
+      .filter((row) => row.direction === "OFFER")
+      .reduce((sum, row) => sum + Math.max(1, row.count ?? 1), 0) - (input.placed ?? 0)
+  );
   const { room } = input;
   return {
     offers,
