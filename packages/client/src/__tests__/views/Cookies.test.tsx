@@ -75,20 +75,6 @@ vi.mock("@green-goods/shared/components/Alert", async () => {
   };
 });
 
-vi.mock("@green-goods/shared/components/Button", async () => {
-  return {
-    Button: ({
-      children,
-      loading: _loading,
-      ...props
-    }: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) => (
-      <button type="button" {...props}>
-        {children}
-      </button>
-    ),
-  };
-});
-
 vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", () => ({
   classifyTxError: (error: Error | null) => ({
     severity: "error",
@@ -301,6 +287,27 @@ describe("CookiesPage", () => {
       );
     });
     expect(container.querySelector(".animate-pulse")).toBeNull();
+    const cards = container.querySelectorAll("[data-editorial-skeleton-layout='cookie-jar']");
+    expect(cards).toHaveLength(3);
+    for (const card of cards) {
+      expect(
+        card.querySelector("[data-editorial-skeleton-layout='jar-actions']")
+      ).toBeInTheDocument();
+      expect(card.querySelectorAll("[data-skeleton-action]")).toHaveLength(2);
+      expect(card).toHaveAttribute("aria-hidden", "true");
+    }
+  });
+
+  it("reserves the inline claim and deposit layout while a listed jar loads", async () => {
+    mockUseCampaignCookieJar.mockReturnValue({ jar: null, isLoading: true, error: null });
+    renderPage("/cookies");
+
+    const card = await screen.findByRole("article", { name: "Earth Week" });
+    expect(
+      card.querySelector("[data-editorial-skeleton-layout='jar-actions']")
+    ).toBeInTheDocument();
+    expect(card.querySelectorAll("[data-skeleton-action]")).toHaveLength(2);
+    expect(within(card).queryByRole("button")).toBeNull();
   });
 
   it("claims a fixed cookie amount for an eligible wallet", async () => {
@@ -354,6 +361,14 @@ describe("CookiesPage", () => {
 
     expect(within(card).getByRole("button", { name: "Claim Cookie" })).toBeInTheDocument();
     expect(within(card).getByRole("button", { name: "Deposit" })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Claim Cookie" })).toHaveAttribute(
+      "data-emphasis",
+      "primary"
+    );
+    expect(within(card).getByRole("button", { name: "Deposit" })).toHaveAttribute(
+      "data-emphasis",
+      "secondary"
+    );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -401,6 +416,21 @@ describe("CookiesPage", () => {
 
     expect(await screen.findByText(/wallet is not on the list yet/i));
     expect(screen.getByRole("button", { name: "Claim Cookie" })).toBeDisabled();
+  });
+
+  it.each([
+    [{ isPaused: true, isEligible: false }, /Claims are paused/],
+    [{ isEligible: false, balance: 0n }, /wallet is not on the list yet/],
+    [{ balance: 0n, totalWithdrawn: 1n }, /needs funds before claims/],
+    [{ totalWithdrawn: 1n, nextClaimAt: 1700000000 }, /already claimed from this jar/],
+  ])("preserves the claim notice priority for case %#", async (state, notice) => {
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: { ...eligibleJar, ...state },
+      isLoading: false,
+      error: null,
+    });
+    renderPage("/cookies");
+    expect(await screen.findByText(notice)).toBeInTheDocument();
   });
 
   it("announces and clears precision errors through the real amount input without submitting", async () => {

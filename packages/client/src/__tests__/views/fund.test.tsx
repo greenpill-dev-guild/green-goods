@@ -646,6 +646,23 @@ describe("FundPage", () => {
       2
     );
     expect(container.querySelector(".animate-pulse")).toBeNull();
+    const cards = container.querySelectorAll("[data-editorial-skeleton-layout='vault-asset']");
+    expect(cards).toHaveLength(2);
+    for (const card of cards) {
+      expect(card.querySelectorAll("dl > div")).toHaveLength(5);
+    }
+  });
+
+  it("reserves both Donate and Endow actions while funding destinations load", () => {
+    mockUsePublicGardens.mockReturnValue({ data: [], isLoading: true });
+    const { container } = renderView();
+
+    const rows = container.querySelectorAll("[data-editorial-skeleton-layout='list-row']");
+    expect(rows).toHaveLength(4);
+    for (const row of rows) {
+      expect(row.querySelectorAll("[data-skeleton-action]")).toHaveLength(2);
+    }
+    expect(screen.queryByRole("button", { name: "Donate" })).toBeNull();
   });
 
   it("keeps the asset cards visible with an error message when the metrics fetch fails", () => {
