@@ -12,7 +12,9 @@
  * that runs several calls as one transaction is asked once; any other wallet
  * is asked once per copy, and declining one leaves only that one as it was.
  * Setting a reward to the amount it already has changes nothing, so trying
- * again is always safe.
+ * again is always safe. A Safe-style wallet can hand back an id with no
+ * receipt to check: the change may still run, or never, so it reads as not
+ * confirmed, never as changed.
  *
  * @module modules/commitment-pooling/reward-edit
  */
@@ -51,6 +53,9 @@ export function goodDollarConsideration(amount: bigint): DeclaredConsiderationIn
     ? { rail: CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT, source: zero, token: zero, amount }
     : { rail: CONSIDERATION_RAIL_ORDINAL.NONE, source: zero, token: zero, amount: 0n };
 }
+
+/** A send the wallet took but nobody can confirm yet: not changed, and possibly changed later. */
+const UNCONFIRMED = { status: "not-changed", miss: "failed" } as const;
 
 function missOf(error: unknown): SeedCopyMiss {
   const { kind } = classifyTxError(error);
@@ -111,7 +116,10 @@ export async function sendRewardEdit(input: {
           },
         });
         for (const commitmentId of ids) {
-          tell(commitmentId, { status: "changed", txHash: result.hash });
+          tell(commitmentId, {
+            ...(result.confirmation === "pending" ? UNCONFIRMED : { status: "changed" }),
+            txHash: result.hash,
+          });
         }
       } catch (error) {
         const miss = missOf(error);
@@ -125,7 +133,10 @@ export async function sendRewardEdit(input: {
         const result = await sender.sendContractCall(callFor(commitmentId), {
           onBroadcast: async (hash) => tell(commitmentId, { status: "confirming", txHash: hash }),
         });
-        tell(commitmentId, { status: "changed", txHash: result.hash });
+        tell(commitmentId, {
+          ...(result.confirmation === "pending" ? UNCONFIRMED : { status: "changed" }),
+          txHash: result.hash,
+        });
       } catch (error) {
         tell(commitmentId, { status: "not-changed", miss: missOf(error) });
       }

@@ -57,8 +57,10 @@ export function useWaitingForApproval(pool: WaitingSource): WaitingForApproval {
   const [visit, setVisit] = useState({ pool: pooled, read: "", ...EMPTY_WAITING_VISIT });
   // Only a settled read moves the visit: the first read takes the asks already
   // waiting, and each later one appends what is new. Taken while rendering,
-  // so a row never flashes in after the card has drawn without it.
-  const read = pool.claims.map(claimRowKey).join("|");
+  // so a row never flashes in after the card has drawn without it. When was
+  // asked is part of the read: after a decline the same person may ask again
+  // under the same key, and that ask must replace the declined one.
+  const read = pool.claims.map((row) => `${claimRowKey(row)}@${row.claim.requestedAt}`).join("|");
   if (!pool.isLoading && (visit.pool !== pooled || visit.read !== read || !visit.started)) {
     const from = visit.pool === pooled ? visit : EMPTY_WAITING_VISIT;
     setVisit({ pool: pooled, read, ...reconcileWaitingVisit(from, pool.claims) });
@@ -73,7 +75,11 @@ export function useWaitingForApproval(pool: WaitingSource): WaitingForApproval {
       key: entry.key,
       row,
       phase,
-      state: waitingRowState(entry, { live: liveKeys, decisions: pool.claimDecisions, phase }),
+      // Read against the ask as it stands now, so a decision holds only for the ask it answered.
+      state: waitingRowState(
+        { ...entry, row },
+        { live: liveKeys, decisions: pool.claimDecisions, phase }
+      ),
     };
   });
   const waiting = rows.filter((row) => isStillWaiting(row.state)).length;

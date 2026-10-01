@@ -42,8 +42,8 @@
           "packages/shared/src/__tests__/hooks/auth/useIdentityChangeReset.test.ts"
         ]
       },
-      "reviewedAt": "2026-09-30",
-      "evidenceFingerprint": "sha256:ec46a8308c7e142e76fdb692dd6faeb5edb86394fd5705d1c6d596f5df89000d"
+      "reviewedAt": "2026-10-01",
+      "evidenceFingerprint": "sha256:3978c38b6c45ae06c5c11220a5f5f1925efe748f0adaa917cf1e9158feb659fc"
     },
     {
       "id": "shared-work-provider-command",

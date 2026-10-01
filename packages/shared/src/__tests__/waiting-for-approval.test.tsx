@@ -14,6 +14,7 @@ import { useClaimDecisions, useClaimDecisionVisit } from "../hooks/admin-ui/pool
 import { useWaitingForApproval } from "../hooks/admin-ui/pool/useWaitingForApproval";
 import {
   askState,
+  type ClaimDecisions,
   claimantStanding,
   claimRowKey,
   EMPTY_WAITING_VISIT,
@@ -236,13 +237,13 @@ describe("decisions shared by the card and the inspector", () => {
 describe("useWaitingForApproval", () => {
   function source(
     claims: PoolClaimRequestRow[],
-    overrides: { isLoading?: boolean; garden?: Address } = {}
+    overrides: { isLoading?: boolean; garden?: Address; decisions?: ClaimDecisions } = {}
   ) {
     return {
       chainId: 42161,
       garden: overrides.garden ?? GARDEN,
       claims,
-      claimDecisions: {},
+      claimDecisions: overrides.decisions ?? {},
       claimPhase: vi.fn(() => IDLE_ACT_PHASE),
       isLoading: overrides.isLoading ?? false,
     };
@@ -263,6 +264,32 @@ describe("useWaitingForApproval", () => {
     rerender(source([ines, kwame, lena]));
     expect(result.current.rows[2]?.state).toEqual({ status: "waiting", isNew: true });
     expect(result.current).toMatchObject({ waiting: 3, decided: 0 });
+  });
+
+  it("lets the same person's new ask after a decline wait, in the row the declined one held", () => {
+    const decisions: ClaimDecisions = {
+      [claimRowKey(lena)]: {
+        kind: "declined",
+        commitmentId: "7",
+        at: 2_000,
+        requestedAt: lena.claim.requestedAt,
+      },
+    };
+    const { result, rerender } = renderHook((props) => useWaitingForApproval(props), {
+      initialProps: source([ines, lena], { decisions }),
+    });
+    expect(result.current.rows[1]?.state).toEqual({ status: "declined", at: 2_000 });
+
+    // The index keeps one row per person: the new ask comes back under the same key.
+    const again = { ...lena, claim: { ...lena.claim, requestedAt: lena.claim.requestedAt + 60 } };
+    rerender(source([ines, again], { decisions }));
+
+    expect(result.current.rows.map((row) => row.key)).toEqual([
+      claimRowKey(ines),
+      claimRowKey(lena),
+    ]);
+    expect(result.current.rows[1]?.state).toEqual({ status: "waiting", isNew: false });
+    expect(result.current.rows[1]?.row.claim.requestedAt).toBe(again.claim.requestedAt);
   });
 
   it("keeps an ask that left as a row for the visit, and starts over for another pool", () => {

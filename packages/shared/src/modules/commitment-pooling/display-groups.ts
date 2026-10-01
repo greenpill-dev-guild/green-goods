@@ -46,6 +46,7 @@ export type GroupableCommitment = Pick<
   | "direction"
   | "commitmentType"
   | "claimMode"
+  | "claimType"
   | "dueDate"
   | "requiresAssessment"
   | "contributorPolicy"
@@ -149,6 +150,7 @@ function materialTermsKey(record: GroupableCommitment): string {
     record.direction,
     record.commitmentType,
     record.claimMode,
+    record.claimType,
     record.contributorPolicy,
     record.unitLabel,
     record.targetUnits,

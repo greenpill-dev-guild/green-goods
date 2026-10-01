@@ -6217,6 +6217,7 @@
   "cockpit.garden.pool.seedMore.add": "Adicionar a este grupo",
   "cockpit.garden.pool.seedMore.addExpired": "O prazo já passou, por isso já nada se pode juntar a ele.",
   "cockpit.garden.pool.seedMore.addNotCreator": "Só o responsável que o criou pode acrescentar-lhe promessas e mantê-lo como um só grupo.",
+  "cockpit.garden.pool.seedMore.addClosed": "O fundo comum, a temporada ou a campanha não aceita promessas novas, por isso já nada se pode juntar a ele.",
   "cockpit.garden.pool.seedMore.addHint": "Mesmas condições e o mesmo prazo, {due}. Só muda o número.",
   "cockpit.garden.pool.seedMore.new": "Começar um grupo novo",
   "cockpit.garden.pool.seedMore.newHint": "Parte destas condições. Podes alterar o que quiseres, incluindo o prazo. Aparece como um grupo à parte.",

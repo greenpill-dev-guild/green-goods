@@ -106,6 +106,8 @@ describe("promises shown as groups", () => {
         ...copies(2, { metadataCID: "cid-compost" }),
         ...copies(2, { dueDate: 1_790_086_400n }),
         ...copies(2, { claimMode: "APPROVAL_GATED" }),
+        // Only a garden may take these up: another promise, even under the same id.
+        ...copies(2, { claimType: "GARDEN" }),
         // Edit Reward changed the untaken copies' amount: still the same group.
         ...copies(2, { considerationAmount: 40_000n } as Partial<GroupableCommitment>),
       ],
@@ -114,7 +116,7 @@ describe("promises shown as groups", () => {
 
     expect(
       entries.map((entry) => (entry.kind === "group" ? entry.children.length : "single"))
-    ).toEqual([5, 2, 2, 2]);
+    ).toEqual([5, 2, 2, 2, 2]);
   });
 
   it("shows ordinary rows when the group can't be read", () => {

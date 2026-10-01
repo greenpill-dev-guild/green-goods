@@ -18,6 +18,7 @@ import type { PoolCommitmentGroup } from "../poolCommitmentRows";
 import { cycleName } from "../poolPresentation";
 import { exactTime } from "../poolTime";
 import { AddToGroupDialog } from "./AddToGroupDialog";
+import { addToGroupRefusal } from "./addToGroupStatus";
 import { EditRewardDialog } from "./EditRewardDialog";
 import { GroupInspector } from "./GroupInspector";
 import { groupSetAt } from "./groupInspectorModel";
@@ -95,12 +96,13 @@ export function GroupDialogs({
         (price.state.status === "ready"
           ? goodDollarWeiToUsdCents(reward.currentWei, price.state.price)
           : null));
-  const addRefusal =
-    dueMs <= Date.now()
-      ? ("expired" as const)
-      : viewer && first.creator?.toLowerCase() === viewer.toLowerCase()
-        ? null
-        : ("not-creator" as const);
+  const addRefusal = addToGroupRefusal({
+    first,
+    poolState: pool.pool?.state,
+    cycle,
+    viewer,
+    now: Date.now(),
+  });
   const done = (message: string) => {
     toastService.success({ title: message });
     setStep("inspect");

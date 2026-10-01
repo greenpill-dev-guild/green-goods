@@ -8,7 +8,8 @@
  * up from here. The chain stays the record of the names; this only remembers
  * the choice, on this device.
  *
- * One change per account, keyed by its lowercased address.
+ * One change per account, keyed by its lowercased address. It stays when
+ * another account signs in on the device (`useIdentityChangeReset` says why).
  *
  * @module stores/useUsernameChangeStore
  */
