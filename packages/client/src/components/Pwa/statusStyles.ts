@@ -15,7 +15,9 @@ export interface PwaStatusStyle {
 
 export const pwaStatusStyles = {
   primary: {
-    text: "text-primary",
+    // Text takes the contrast-safe role; the bright accent stays on icons,
+    // dots and bars (DL-053).
+    text: "text-primary-on-surface",
     icon: "text-primary",
     surface: "bg-primary-alpha-10",
     border: "border-primary-alpha-24",
@@ -73,7 +75,8 @@ export const pwaStatusStyles = {
     surface: "bg-error-lighter",
     border: "border-error-light",
     dot: "bg-error-base",
-    badge: "bg-error-base text-static-white",
+    // A red fill that carries a word or number takes the action red (DL-053).
+    badge: "bg-error-action text-static-white",
     progress: "bg-error-base",
     spinnerBorder: "border-t-error-base",
     focus:

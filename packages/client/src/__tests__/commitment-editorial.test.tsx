@@ -16,7 +16,7 @@
  * Renders against the real `en` catalog so every key the surfaces use is
  * proven to exist; the localization test swaps in the `es` catalog.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import en from "@green-goods/shared/i18n/en";

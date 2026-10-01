@@ -7,7 +7,7 @@
  * - Avoids fake stagger offsets while keeping varied card sizes.
  * - Falls back gracefully when fewer than four are available.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";

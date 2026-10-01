@@ -184,8 +184,8 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
               align="start"
               sideOffset={4}
               // Inline, not a `z-*` utility: the popover portals to document.body and
-              // has to clear a host dialog surface at `z-modal`, and admin/client
-              // Tailwind content scans do not reach packages/shared/src.
+              // has to clear a host dialog surface at `z-modal`, and the named z-index
+              // scale has no step between `z-modal` and `z-toast`.
               style={{ zIndex: "calc(var(--z-modal) + 1)" }}
               className={cn(
                 "rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-lg",

@@ -4,23 +4,67 @@ import { Button } from "@green-goods/shared/components/Button";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { jobQueue } from "@green-goods/shared/modules/job-queue/default-instance";
 import { useJobQueue } from "@green-goods/shared/providers/JobQueue";
-import { RiDeleteBinLine, RiRefreshLine, RiSendPlaneLine } from "@remixicon/react";
-import { useState } from "react";
+import {
+  RiAlertLine,
+  RiDeleteBinLine,
+  RiLoader4Line,
+  RiRefreshLine,
+  RiSendPlaneLine,
+  RiTimeLine,
+} from "@remixicon/react";
+import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 
-const ACT_LABEL_IDS: Partial<Record<PendingCommitmentAct["kind"], string>> = {
-  claim: "app.commitment.queue.act.claim",
-  evidence: "app.commitment.queue.act.evidence",
-  workLink: "app.commitment.queue.act.workLink",
-  confirmation: "app.commitment.queue.act.confirmation",
-};
+interface NoticeCopy {
+  tone: "warning" | "info";
+  icon: ReactNode;
+  titleId: string;
+  bodyId: string;
+}
 
-/** What the row says for each reason the queue gives; any other reason reads as waiting. */
-const STATUS_IDS: Partial<Record<string, string>> = {
-  "membership-unavailable": "app.commitment.queue.act.waitingMembership",
-  "awaiting-confirmation": "app.commitment.queue.act.confirming",
-  "send-intent-expired": "app.commitment.queue.act.notSent",
-};
+const ICON = "h-5 w-5 flex-shrink-0";
+
+/** What the notice says for each state; any reason the queue gives besides these reads as waiting. */
+function noticeCopy(act: PendingCommitmentAct, inFlight: boolean): NoticeCopy {
+  if (inFlight) {
+    return {
+      tone: "warning",
+      icon: <RiLoader4Line className={`${ICON} animate-spin`} aria-hidden="true" />,
+      titleId: "app.commitment.queue.notice.sending.title",
+      bodyId: "app.commitment.queue.notice.sending.body",
+    };
+  }
+  switch (act.waitingReason) {
+    case "awaiting-confirmation":
+      return {
+        tone: "info",
+        icon: <RiRefreshLine className={ICON} aria-hidden="true" />,
+        titleId: "app.commitment.queue.notice.checking.title",
+        bodyId: "app.commitment.queue.notice.checking.body",
+      };
+    case "send-intent-expired":
+      return {
+        tone: "warning",
+        icon: <RiAlertLine className={ICON} aria-hidden="true" />,
+        titleId: "app.commitment.queue.notice.notSent.title",
+        bodyId: "app.commitment.queue.notice.notSent.body",
+      };
+    case "membership-unavailable":
+      return {
+        tone: "warning",
+        icon: <RiTimeLine className={ICON} aria-hidden="true" />,
+        titleId: "app.commitment.queue.notice.membership.title",
+        bodyId: "app.commitment.queue.notice.membership.body",
+      };
+    default:
+      return {
+        tone: "warning",
+        icon: <RiTimeLine className={ICON} aria-hidden="true" />,
+        titleId: "app.commitment.queue.notice.waiting.title",
+        bodyId: "app.commitment.queue.notice.waiting.body",
+      };
+  }
+}
 
 export interface QueuedActRowProps {
   act: PendingCommitmentAct;
@@ -40,14 +84,15 @@ export interface QueuedActRowProps {
 }
 
 /**
- * An act taken on this phone that has not reached the chain, drawn where the
- * act bar would be.
+ * An act taken on this phone that has not reached the chain, drawn at the top
+ * of the promise.
  *
  * A wallet reader has no background flush: what the queue parks stays parked
  * until they send it themselves, and a screen that only said "waiting" hid
- * the button and left them nothing to press. The row names the act, says why
- * it waits, and offers the two ways out, the same pair the pool tab gives a
- * queued creation.
+ * the button and left them nothing to press. The notice says what state the
+ * act is in and why in two lines, then offers the two ways out full width, the
+ * same pair the pool tab gives a queued creation (D24, D30). The page's History
+ * names the act.
  */
 export function QueuedActRow({
   act,
@@ -58,26 +103,13 @@ export function QueuedActRow({
   onDiscard,
 }: QueuedActRowProps) {
   const { formatMessage } = useIntl();
-  const actLabel = formatMessage({
-    id: ACT_LABEL_IDS[act.kind] ?? "app.commitment.queue.act.generic",
-  });
-  const statusId = inFlight
-    ? "app.commitment.queue.act.sending"
-    : ((act.waitingReason && STATUS_IDS[act.waitingReason]) ?? "app.commitment.queue.act.waiting");
+  const copy = noticeCopy(act, inFlight);
   // A send on record is checked, not sent again, so the button says so.
   const confirming = act.waitingReason === "awaiting-confirmation";
   const locked = isBusy || inFlight;
-  return (
-    <Alert variant="warning" className="p-3">
-      <p
-        data-component="QueuedActRow"
-        data-kind={act.kind}
-        data-reason={act.waitingReason ?? ""}
-        data-in-flight={inFlight ? "true" : "false"}
-      >
-        {formatMessage({ id: statusId }, { act: actLabel })}
-      </p>
-      <div className={onDiscard ? "mt-3 grid grid-cols-2 gap-2" : "mt-3 grid grid-cols-1 gap-2"}>
+  const actions = (
+    <>
+      <div className={onDiscard ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
         {onDiscard ? (
           <Button
             type="button"
@@ -113,6 +145,25 @@ export function QueuedActRow({
           {formatMessage({ id: "app.commitment.queue.discardFailed" })}
         </p>
       ) : null}
+    </>
+  );
+
+  return (
+    <Alert
+      variant={copy.tone}
+      layout="stacked"
+      icon={copy.icon}
+      title={formatMessage({ id: copy.titleId })}
+      action={actions}
+    >
+      <p
+        data-component="QueuedActRow"
+        data-kind={act.kind}
+        data-reason={act.waitingReason ?? ""}
+        data-in-flight={inFlight ? "true" : "false"}
+      >
+        {formatMessage({ id: copy.bodyId })}
+      </p>
     </Alert>
   );
 }

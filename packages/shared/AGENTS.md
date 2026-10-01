@@ -49,7 +49,11 @@ Read `.claude/skills/design/implementation.md` before frontend work.
 - Visible consumer changes follow root [`AGENTS.md` § Browser Evidence](../../AGENTS.md#browser-evidence):
   label the engine and session behind the proof, and if the authenticated Brave path is
   unavailable, record that proof as pending and continue with labeled evidence.
-- **Tailwind v4 gotcha**: utility classes authored in shared JSX (`mx-4`, `w-max`, `self-center`, etc.) are not in admin/client content scans and silently fail to generate in consuming apps. They will look correct in Storybook and broken in the running app. Use inline styles or CSS custom properties for layout in shared components, or apply the utility class in the consumer's JSX. Verify layout in the consuming app as well as Storybook.
+- **Tailwind scanning**: the client and admin entry stylesheets declare `@source` for shared
+  TypeScript source, without tests, mocks or stories, so utility classes written in shared
+  components generate in both apps. A class that appears only in a story, test or mock does
+  not ship. Storybook scans more than either app (every story, plus admin and client source),
+  so verify layout in the consuming app as well as Storybook.
 
 ## Validation
 

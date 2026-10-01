@@ -7,7 +7,7 @@
  * - Drawer: opens, closes on Escape, mirrors nav + Install/Open App
  * - Wallet connect is intentionally absent from public header chrome
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";

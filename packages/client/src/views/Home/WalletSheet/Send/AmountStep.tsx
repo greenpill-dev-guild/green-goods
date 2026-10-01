@@ -94,7 +94,7 @@ export function AmountStep({
                           : token.symbol}
                       </span>
                       {token.confersGovernance ? (
-                        <span className="inline-flex rounded-full bg-primary-base/10 px-1.5 py-0.5 text-[10px] font-medium text-primary-base">
+                        <span className="inline-flex rounded-full bg-primary-base/10 px-1.5 py-0.5 text-[10px] font-medium text-primary-on-surface">
                           {formatMessage({ id: "app.send.token.governanceTag" })}
                         </span>
                       ) : null}

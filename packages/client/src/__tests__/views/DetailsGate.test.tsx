@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+// jsdom pin (happy-dom A/B): asserts group names such as "Species Planted*"; happy-dom's computed style gives a span no display, so Testing Library puts a space before the required marker.
 
 import { useWorkForm } from "@green-goods/shared/hooks/work/useWorkForm";
 import type { WorkInput } from "@green-goods/shared/types/domain";

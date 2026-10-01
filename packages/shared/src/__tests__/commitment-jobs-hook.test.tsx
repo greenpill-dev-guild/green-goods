@@ -28,12 +28,18 @@ const mocks = vi.hoisted(() => ({
   addJob: vi.fn(),
   processJob: vi.fn(),
   retryJob: vi.fn(),
+  discardJob: vi.fn(),
   viewer: "0x1111111111111111111111111111111111111111" as string | null,
   sender: null as { authMode: "wallet" | "passkey" | "embedded" } | null,
 }));
 
 vi.mock("../modules/job-queue/default-instance", () => ({
-  jobQueue: { addJob: mocks.addJob, processJob: mocks.processJob, retryJob: mocks.retryJob },
+  jobQueue: {
+    addJob: mocks.addJob,
+    processJob: mocks.processJob,
+    retryJob: mocks.retryJob,
+    discardJob: mocks.discardJob,
+  },
 }));
 vi.mock("../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => mocks.viewer }));
 vi.mock("../hooks/blockchain/useTransactionSender", () => ({
@@ -179,11 +185,37 @@ describe("useCommitmentJobs", () => {
 
       await jobs().current.enqueue({ ...confirm, report });
 
+      // The queue holds the act before any prompt opens, so a view can tell a
+      // durable act from one that never got that far.
       expect(report.mock.calls.map(([event]) => event)).toEqual([
+        { stage: "admitted", jobId: "job-1" },
         { stage: "wallet" },
         { stage: "confirming", txHash: "0xabc" },
         { stage: "landed", txHash: "0xabc" },
       ]);
+    });
+
+    it("keeps a declined proof for the person to send, where any other act is dropped", async () => {
+      mocks.sender = { authMode: "wallet" };
+      mocks.processJob.mockResolvedValue({ success: false, error: "User rejected the request" });
+      const proof = {
+        act: "evidence",
+        payload: {
+          clientEvidenceId: "proof-1",
+          commitmentId: 9n,
+          creditedContributors: [],
+          gardenAddress: GARDEN,
+        },
+      } as const;
+      const report = vi.fn();
+
+      // The composer has let go of its draft by now: the queue is the proof's home.
+      await expect(jobs().current.enqueue({ ...proof, report })).resolves.toBe("job-1");
+      expect(report).toHaveBeenLastCalledWith({ stage: "declined" });
+      expect(mocks.discardJob).not.toHaveBeenCalled();
+
+      await expect(jobs().current.enqueue(confirm)).rejects.toThrow(/rejected/i);
+      expect(mocks.discardJob).toHaveBeenCalledWith("job-1");
     });
 
     it.each([
@@ -210,6 +242,93 @@ describe("useCommitmentJobs", () => {
 
       expect(mocks.retryJob).toHaveBeenCalledWith("job-1");
       expect(report).toHaveBeenLastCalledWith(last);
+    });
+
+    describe("Add and Send", () => {
+      const proof = {
+        act: "evidence",
+        payload: {
+          clientEvidenceId: "proof-1",
+          commitmentId: 9n,
+          creditedContributors: [],
+          gardenAddress: GARDEN,
+        },
+        sendToo: true,
+      } as const;
+
+      it("queues the send with the proof, to go after it, before any prompt opens", async () => {
+        mocks.sender = { authMode: "wallet" };
+        mocks.addJob.mockResolvedValueOnce("job-1").mockResolvedValueOnce("job-2");
+        const report = vi.fn();
+
+        await jobs().current.enqueue({ ...proof, report });
+
+        expect(mocks.addJob).toHaveBeenLastCalledWith(
+          "confirmation",
+          {
+            action: "submit",
+            commitmentId: 9n,
+            gardenAddress: GARDEN,
+            afterEvidenceJobId: "job-1",
+          },
+          VIEWER,
+          { chainId: 42161 }
+        );
+        expect(report.mock.calls[0]?.[0]).toEqual({
+          stage: "admitted",
+          jobId: "job-1",
+          followUpJobId: "job-2",
+        });
+        // Only the proof goes from this tap.
+        expect(mocks.processJob).toHaveBeenCalledOnce();
+        expect(mocks.processJob).toHaveBeenCalledWith("job-1", expect.anything());
+      });
+
+      it.each([
+        // That send stands, so there is nothing to take back.
+        [
+          "the queue already holds another send for the promise",
+          "offline_job_identity_conflict:confirmation:submit:9",
+          0,
+        ],
+        ["the proof is already on its way and can't be taken back", "QuotaExceededError", 1],
+      ] as const)("still adds the proof alone when %s", async (_case, refusal, takeBacks) => {
+        mocks.addJob.mockResolvedValueOnce("job-1").mockRejectedValueOnce(new Error(refusal));
+        mocks.discardJob.mockResolvedValue(false);
+        const report = vi.fn();
+
+        await expect(jobs().current.enqueue({ ...proof, report })).resolves.toBe("job-1");
+        expect(report.mock.calls[0]?.[0]).toEqual({ stage: "admitted", jobId: "job-1" });
+        expect(mocks.discardJob).toHaveBeenCalledTimes(takeBacks);
+      });
+
+      it("takes the proof back out when its send can't be queued, so Add and Send never quietly becomes Add", async () => {
+        mocks.addJob
+          .mockResolvedValueOnce("job-1")
+          .mockRejectedValueOnce(new Error("QuotaExceededError"));
+        mocks.discardJob.mockResolvedValue(true);
+        const report = vi.fn();
+
+        await expect(jobs().current.enqueue({ ...proof, report })).rejects.toThrow(
+          "QuotaExceededError"
+        );
+        // Never admitted: the form keeps its draft.
+        expect(mocks.discardJob).toHaveBeenCalledWith("job-1");
+        expect(report).not.toHaveBeenCalled();
+        expect(mocks.processJob).not.toHaveBeenCalled();
+      });
+
+      it.each([
+        [{ authMode: "wallet" }, "landed", 1],
+        [{ authMode: "passkey" }, "queued", 0],
+      ] as const)("sends the queued send as a %o tap", async (sender, outcome, sends) => {
+        mocks.sender = sender;
+
+        await expect(jobs().current.sendQueued({ jobId: "job-2", commitmentId: 9n })).resolves.toBe(
+          outcome
+        );
+        expect(mocks.processJob).toHaveBeenCalledTimes(sends);
+      });
     });
 
     it("never lets a report that throws turn an act that landed into a failure", async () => {

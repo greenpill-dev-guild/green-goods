@@ -12,7 +12,7 @@ const domTestFiles = "src/**/*.{test,spec}.{jsx,tsx}";
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: "jsdom",
+    environment: "happy-dom",
     setupFiles: ["./src/__tests__/setupTests.ts"],
     globals: true,
     server: {
@@ -91,7 +91,11 @@ export default defineConfig({
         extends: true,
         test: {
           name: "dom",
-          environment: "jsdom",
+          // happy-dom sets up and drives a test DOM faster than jsdom. On 2026-09-29 four
+          // alternating full runs retired 1.065T and 1.059T instructions against 1.544T and 1.538T
+          // with jsdom (-31%) and took 23.1 and 24.8 s against 30.7 and 35.9 s, with identical
+          // results. Files that need jsdom behaviour pin it with a docblock that says which.
+          environment: "happy-dom",
           include: [domTestFiles],
         },
       },

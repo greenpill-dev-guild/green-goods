@@ -2617,3 +2617,33 @@ test("every file a certified seam fingerprints selects test-quality", () => {
   );
   assert.deepEqual(unrouted, [], "Add each fingerprinted seam file to the test-quality rule in scripts/data/validation-policy.json");
 });
+
+test("every dated plan report selects immutable-plan-reports in the push gate", async () => {
+  // CI's Guidance integrity job rejects an edit, deletion or rename of a dated report. The push gate
+  // must run the same check, or an appended section passes locally and fails after the push.
+  const { isDatedPlanReport } = await import("./check-immutable-plan-reports.mjs");
+  const push = (changedPath) => ids(selectValidation({ intent: "push", changedPaths: [changedPath] }));
+  const tracked = execFileSync("git", ["ls-files", ".plans"], { cwd: repositoryRoot, encoding: "utf8" })
+    .split("\n")
+    .filter(isDatedPlanReport);
+  assert.ok(tracked.length > 0, "the repository keeps dated plan reports");
+  const shapes = [
+    ".plans/active/example-hub/reports/2026-09-28-snapshot-08-follow-up.md",
+    ".plans/backlog/example-hub/reports/review-2026-08-10.md",
+    ".plans/archive/example-hub/reports/nested/audit-2026-08-09.md",
+    ".plans/ideas/example-hub/reports/2026-01-02.md",
+  ];
+  for (const path of shapes) assert.ok(isDatedPlanReport(path), `the check classifies ${path}`);
+  const unrouted = [...tracked, ...shapes].filter((path) => !push(path).includes("immutable-plan-reports"));
+  assert.deepEqual(unrouted, [], "Route each dated report to immutable-plan-reports in scripts/data/validation-policy.json");
+
+  // The check's own code runs it; a hub's living files and other scripts do not.
+  assert.ok(push("scripts/quality/check-immutable-plan-reports.mjs").includes("immutable-plan-reports"));
+  for (const path of [
+    ".plans/active/test-budget-and-ci-speed/plan.todo.md",
+    ".plans/active/test-budget-and-ci-speed/status.json",
+    "scripts/quality/select-validation.mjs",
+  ]) {
+    assert.ok(!push(path).includes("immutable-plan-reports"), path);
+  }
+});

@@ -10,6 +10,7 @@ import { jobQueueDB } from "./db";
 import { hasRecordedSend, recordsSends } from "./queue-policy";
 import { type Hex } from "viem";
 import {
+  commitmentJobPrerequisite,
   executeCommitmentJob,
   toCommitmentJob,
   type CommitmentCreationPayload,
@@ -156,6 +157,14 @@ export async function executeCommitmentQueueJob(
   const chainReads = deps.reads ?? createCommitmentChainReads({ chainId, moduleAddress });
   if (recordsSends(job.kind) && (hasRecordedSend(job) || retainedWorkBroadcastReference(jobId))) {
     return settleActSend(jobId, job, chainId, sender, store, chainReads, deps);
+  }
+  // Add and Send's second act goes after its proof: sent first, it would settle
+  // the team before the proof and its credit were on the record. A proof that
+  // landed has left the queue; one that was discarded took this send with it.
+  const proofJobId = commitmentJobPrerequisite(job.kind, job.payload);
+  if (proofJobId) {
+    const proof = await store.getJob(proofJobId);
+    if (proof && !proof.synced) return { status: "waiting", reason: "proof-not-landed" };
   }
   const publishEvidence = deps.publishEvidence ?? publishPendingEvidence;
   const published =

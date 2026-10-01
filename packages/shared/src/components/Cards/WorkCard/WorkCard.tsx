@@ -108,8 +108,8 @@ export interface WorkCardProps extends WorkCardVariantProps {
 
 /**
  * Compact list thumbnail: its height follows the compact row and aspect-ratio keeps it square,
- * so the row owns the size and a future row-height change cannot leave a gap (DL-034). Inline
- * because shared utility classes are not in the client's Tailwind scan.
+ * so the row owns the size and a future row-height change cannot leave a gap (DL-034). The
+ * inline styles predate the client build scanning shared source; utilities would work too.
  */
 const COMPACT_CARD_STYLE: React.CSSProperties = { height: 88 };
 const COMPACT_THUMBNAIL_STYLE: React.CSSProperties = { height: "100%", aspectRatio: "1 / 1" };
@@ -376,5 +376,41 @@ export const WorkCard: React.FC<WorkCardProps> = ({
     </>
   );
 };
+
+/**
+ * The compact card's frame with nothing in it, for a list that is still loading:
+ * the square thumbnail, the title line with its 22px pill, the meta line and the
+ * count line, so the cards that arrive land where these stood (D28). It reads
+ * the same frame constants as the card, so the two cannot drift apart.
+ */
+export function WorkCardSkeleton() {
+  return (
+    <div
+      aria-hidden="true"
+      data-skeleton="work-card"
+      className={cn(
+        workCardVariants({ variant: "compact", interactive: false }),
+        getStatusBorderClass("offline")
+      )}
+      style={COMPACT_CARD_STYLE}
+    >
+      <div className="shrink-0 bg-bg-soft-200" style={COMPACT_THUMBNAIL_STYLE} />
+      <div className="flex min-w-0 flex-1 flex-col px-3 py-2">
+        <div className="flex items-start justify-between gap-2">
+          <span className="flex h-6 min-w-0 flex-1 items-center">
+            <span className="h-3.5 w-2/3 rounded bg-bg-soft-200" />
+          </span>
+          <span className="block h-[22px] w-[68px] shrink-0 rounded-full bg-bg-soft-200" />
+        </div>
+        <div className="mt-0.5 flex h-4 items-center">
+          <span className="h-2.5 w-1/2 rounded bg-bg-soft-200" />
+        </div>
+        <div className="mt-1 flex h-4 items-center">
+          <span className="h-2.5 w-8 rounded bg-bg-soft-200" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export { workCardVariants };

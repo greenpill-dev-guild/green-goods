@@ -1,10 +1,12 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { RemixiconComponentType } from "@remixicon/react";
+import type { ReactNode } from "react";
 import { Card, type CardRootProps } from "../Card";
 
 interface FormCardProps {
   label: string;
-  value: string;
+  /** Usually words; names and links render as their own elements. */
+  value: ReactNode;
   Icon?: RemixiconComponentType;
 }
 

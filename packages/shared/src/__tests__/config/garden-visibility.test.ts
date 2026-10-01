@@ -16,9 +16,13 @@ import {
   isGardenPubliclyReachable,
   isGardenPubliclyVisible,
   isGardenUnlisted,
+  UNKNOWN_GARDEN_LOCATION,
+  UNNAMED_GARDEN_NAME,
 } from "../../config/garden-visibility";
 
 const LIVE_GARDEN_COOP = "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8";
+const GREENPILL_NIGERIA = "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB";
+const TAS_HUB = "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3";
 const COMMUNITY_GARDEN = "0xf401f34378384713222d1d21f63359cc4E8a858a";
 const AIYELOJA = "0xF7b892886998DAe960D64a9db488336684F137A0";
 const MAMA_GARDENS = "0x35077CaF6fBef1d5677d318a198C9c47C61bb976";
@@ -49,6 +53,11 @@ describe("config/garden-visibility", () => {
   describe("isGardenHiddenEverywhere", () => {
     it("hides the coop garden from every surface", () => {
       expect(isGardenHiddenEverywhere(LIVE_GARDEN_COOP)).toBe(true);
+    });
+
+    it("hides Greenpill Nigeria from every surface, but not TAS HUB, the pilot garden in Nigeria", () => {
+      expect(isGardenHiddenEverywhere(GREENPILL_NIGERIA)).toBe(true);
+      expect(isGardenHiddenEverywhere(TAS_HUB)).toBe(false);
     });
 
     it("matches regardless of address casing", () => {
@@ -91,11 +100,15 @@ describe("config/garden-visibility", () => {
     it("hides placeholder gardens with neither name nor location", () => {
       expect(isGardenPubliclyVisible(garden(VIDA_VERDE, "", ""))).toBe(false);
       expect(isGardenPubliclyVisible(garden(VIDA_VERDE, "   ", "  "))).toBe(false);
+      expect(
+        isGardenPubliclyVisible(garden(VIDA_VERDE, UNNAMED_GARDEN_NAME, UNKNOWN_GARDEN_LOCATION))
+      ).toBe(false);
     });
 
     it("keeps a garden with only one of name or location", () => {
       expect(isGardenPubliclyVisible(garden(VIDA_VERDE, "Vida Verde", ""))).toBe(true);
       expect(isGardenPubliclyVisible(garden(VIDA_VERDE, "", "Brazil"))).toBe(true);
+      expect(isGardenPubliclyVisible(garden(VIDA_VERDE, UNNAMED_GARDEN_NAME, "Brazil"))).toBe(true);
     });
 
     it("treats null and undefined metadata as absent", () => {

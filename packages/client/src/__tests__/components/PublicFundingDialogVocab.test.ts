@@ -9,7 +9,7 @@
  * the moment it lands, even when the offending key is orphaned from the
  * component graph but still ships in the bundle.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, expect, it } from "vitest";

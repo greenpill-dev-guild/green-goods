@@ -8,7 +8,7 @@
  * - /vaults route renders within PublicShell
  * - No bottom nav (AppBar) visible in browser mode
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { fireEvent, render, screen } from "@testing-library/react";

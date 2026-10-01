@@ -7,7 +7,7 @@
  * re-render (closing the nested image viewer, a photo failing to load) yanked
  * focus out of wherever the reader had put it.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";

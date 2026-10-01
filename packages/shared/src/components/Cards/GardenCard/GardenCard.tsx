@@ -185,7 +185,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                 isMinimalSelection
                   ? "min-w-0 truncate text-label-md font-semibold transition-colors"
                   : "flex items-center text-lg font-semibold transition-colors line-clamp-1",
-                selected && "text-primary"
+                selected && "text-primary-on-surface"
               )}
               title={garden.name}
             >

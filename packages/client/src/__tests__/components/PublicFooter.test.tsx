@@ -4,7 +4,7 @@
  * Locks the restored provenance line, external utility links (Twitter, Admin,
  * Docs, GitHub), and neutral-by-default footer link styling.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";

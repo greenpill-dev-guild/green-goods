@@ -7,7 +7,7 @@
  * rather than reading the form back, that a draft survives leaving, and that
  * the whole thing works with no signal.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import userEvent from "@testing-library/user-event";

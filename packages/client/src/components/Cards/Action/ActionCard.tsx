@@ -66,7 +66,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
           <h5
             className={cn(
               "min-w-0 truncate text-label-md font-semibold",
-              selected && "text-primary"
+              selected && "text-primary-on-surface"
             )}
             title={action.title}
           >

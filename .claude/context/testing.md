@@ -25,10 +25,11 @@ policy).
 
 - Shared, client, and admin use inherited `node` and `dom` projects: DOM-free `.test.ts`
   suites run in Node, while `.test.tsx` and documented DOM exceptions run in a DOM: happy-dom
-  in Shared and admin, jsdom in client. Keep coverage at the root config, never inside a project.
-- A Shared or admin DOM test that depends on jsdom behaviour pins it with
-  `@vitest-environment jsdom` and a comment saying which behaviour, such as authored inline style
-  values, `Storage.prototype` spies, or `MessagePort` identity.
+  in all three. Keep coverage at the root config, never inside a project.
+- A DOM test that depends on jsdom behaviour pins it with `@vitest-environment jsdom` and a
+  comment saying which behaviour, such as authored inline style values, `Storage.prototype` spies,
+  `MessagePort` identity, or an accessible name joined from adjacent inline elements (happy-dom
+  gives a span no computed display, so Testing Library adds a space between them).
 - Shared's Node tests that mock and stub nothing share one module graph in
   `node-shared-graph` (`isolate: false`; mocks, globals and env restored after each test).
   A file that mocks, stubs, assigns globals directly, resets modules, uses IndexedDB, or
@@ -76,7 +77,11 @@ Three habits keep the suite from spreading into small files:
 - When a change adds more test lines than source lines, say so in one line of the pull request body
   or commit message, with the reason.
 - Run the focused file while you work (`bun run test <path>` in the package). Package-wide runs take
-  the machine-wide test lease, so a second one waits for the first.
+  the machine-wide test lease, so a second one waits for the first. A local `CI=true` run, such as a
+  hand-run Coverage Nightly, takes it too; only a GitHub runner skips it. A checkout whose branch
+  predates the lease (`d1bc5d86e`) runs suites without it, so merge develop into an old worktree
+  branch before running package-wide suites there. A leased run waits up to five minutes for such
+  runs, naming each, then starts on half the machine.
 
 ## Critical paths (deepest coverage in `packages/shared/src/`)
 

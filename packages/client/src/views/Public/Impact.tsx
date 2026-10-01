@@ -233,15 +233,15 @@ export default function ImpactPage() {
     key: string,
     label: string,
     note: string,
-    value: number,
+    value: number | null,
     fromStats = true
   ): PublicProofMarker => ({
     key,
     label,
     note,
     loading: fromStats && stats.isLoading,
-    unavailable: fromStats && statsUnavailable,
-    ...(value > 0 ? { value: formatNumber(value) } : { phrase: notPublicYet }),
+    unavailable: fromStats && (statsUnavailable || value === null),
+    ...(value !== null && value > 0 ? { value: formatNumber(value) } : { phrase: notPublicYet }),
   });
   const proofMarkers: PublicProofMarker[] = [
     proofMarker(

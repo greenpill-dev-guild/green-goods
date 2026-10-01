@@ -11,7 +11,7 @@
  * are stubbed too — this suite is about the section landmarks, and
  * `PublicGardenDetail.test.tsx` covers the composed page.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";

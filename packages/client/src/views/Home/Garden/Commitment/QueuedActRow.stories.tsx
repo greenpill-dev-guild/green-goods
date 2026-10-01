@@ -20,7 +20,7 @@ const meta: Meta<typeof QueuedActRow> = {
   title: "Client/Commitments/QueuedActRow",
   component: QueuedActRow,
   tags: ["autodocs", "storybook-ci"],
-  parameters: { layout: "padded" },
+  parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "mobile" } },
   args: {
     act: claim,

@@ -811,6 +811,28 @@ test("a check finds package binaries without the caller putting node_modules/.bi
   assert.ok(entries.includes(join(dirname(dirname(import.meta.dirname)), "node_modules/.bin")));
 });
 
+test("the immutable report check judges the range its plan compared", async () => {
+  // CI hands the check the push's previous head or the pull request's base. Locally the check fell
+  // back to origin/develop, which a pull request into another branch does not compare against, so
+  // the gate passes the base its own plan used. An explicit base still wins, and no other check
+  // receives the variable.
+  const seen = {};
+  const runCheck = async (check, { environment }) => {
+    seen[check.id] = environment;
+    return { ok: true, exitCode: 0, durationSeconds: 0.01 };
+  };
+  const input = plan(["immutable-plan-reports", "test-quality"]);
+  await executePlan(input, { runCheck, environment: {} });
+  assert.equal(seen["immutable-plan-reports"].PLAN_REPORTS_BASE_REF, input.base);
+  assert.equal(seen["test-quality"].PLAN_REPORTS_BASE_REF, undefined);
+
+  for (const explicit of [{ PLAN_REPORTS_BASE_REF: "origin/main" }, { GUIDANCE_BASE_REF: "origin/main" }]) {
+    await executePlan(input, { runCheck, environment: explicit });
+    assert.equal(seen["immutable-plan-reports"].PLAN_REPORTS_BASE_REF, explicit.PLAN_REPORTS_BASE_REF);
+    assert.equal(seen["immutable-plan-reports"].GUIDANCE_BASE_REF, explicit.GUIDANCE_BASE_REF);
+  }
+});
+
 test("legacy and selector arguments remain parseable", () => {
   const parsed = parseArguments([
     "--quick",

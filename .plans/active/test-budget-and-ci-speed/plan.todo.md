@@ -2,7 +2,7 @@
 
 **Feature Slug**: `test-budget-and-ci-speed`
 **Stage**: active
-**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshots 07 and 08 are published. The snapshot 08 follow-up (D10, through `23a8d1ffb`) and D11 (Admin happy-dom and the MSW removal) are on `origin/develop`
+**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshots 07 and 08 are published. The snapshot 08 follow-up (D10, through `23a8d1ffb`), D11 (Admin happy-dom and the MSW removal) and D12 (Client happy-dom) are on `origin/develop`, as are the push gate's dated-report routing (`57916fed7`) and D13 (the test lease). The post-release plan (D14) is recorded in § After the release; nothing in it starts before the 2.0.0 release, and snapshot 09 on 2026-10-05 goes first
 **Created**: 2026-09-19
 **Last Updated**: 2026-09-29
 
@@ -91,6 +91,9 @@ Three recent published Shared runs have both shards green. They provide observat
 | D9 (2026-09-28): prune CodeQL's unreachable overlay-base databases hourly; keep overlay analysis on | Decided by Afo, from three options | Pull-request analyses restore only the newest database, and overlay keeps them near 2 minutes instead of 7 while the rulesets wait for CodeQL. The free org plan cannot buy more cache. The 21 unreachable databases were deleted by hand; the workflow is PR #945 |
 | D10 (2026-09-28): address snapshot 08's items 2, 3, 5, 6 and 7 with the page's recommendations | Decided by Afo | Dispatch the CodeQL prune by hand; speed up what Admin's tests import rather than add a Shared shard; add the vault history's exactly-full page; finish the helper codemod; fix `canonicalJobPayload` instead of the SDK, end the Data Saver override with its session, and move the import-seam case into `check-source-structure.js` |
 | D11 (2026-09-29): happy-dom for Admin, and remove MSW | Decided by Afo | Admin's DOM project moves to happy-dom, already a root dev dependency, with the same bar as D2; the unused MSW server, its Shared export and the root `msw` pin go, which changes the lockfile |
+| D12 (2026-09-29): happy-dom for Client | Decided by Afo | Client, the last package on jsdom, moves to happy-dom with the same bar as D2 and D11; happy-dom is already a root dev dependency |
+| D13 (2026-09-29): harden the test lease and record why a worktree gate skipped it | Decided by Afo (options B and C) | A local `CI=true` run takes the lease, and a leased run waits for Vitest runs that hold none. Catching old worktree branches up with `develop` (option A) stays with each branch's owner |
+| D14 (2026-09-29): record the post-release plan in this hub and start it after the 2.0.0 release | Decided by Afo | A review of scorecard version 22 found four items still open, two closed items the page still shows as open and two open items with no row. The ten-row plan is in § After the release, with the evidence in `reports/2026-09-29-post-release-plan.md`; the restart, the worktree removal and the setup-debt row need Afo, Dependabot #948 needs dependency approval, and the Linear sync needs authorization |
 
 ## Ordered work
 
@@ -165,19 +168,65 @@ Admin and MSW removal.
 The D11 evidence went into the dated 2026-09-28 report in `30bfcf9fb`, against the plan skill's
 rule that dated reports are immutable, and CI's Guidance integrity job failed on that head. It
 stays there: restoring the report would be a second edit, which the same check rejects on the next
-push. The local push gate did not select `immutable-plan-reports` for the edit.
+push. The local push gate did not select `immutable-plan-reports` for the edit; it has since `57916fed7`.
+
+## Client happy-dom (2026-09-29)
+
+Afo chose it after D11 (D12). One commit on `develop`; evidence in
+[its report](reports/2026-09-29-client-happy-dom.md).
+
+| Done | Work | Evidence |
+|---|---|---|
+| [x] | Client's DOM project runs in happy-dom (`46be0573a`); three files stay on jsdom, one for a `Storage.prototype` spy and two for accessible names joined from adjacent inline elements. Instructions −31% and Vitest time −28% in A B B A, identical names and results in all six runs, coverage unchanged | Report |
+
+## Test lease gaps (2026-09-29)
+
+Afo asked why a worktree's push gate ran without the lease, then chose to harden the lease and
+record the answer (D13). Evidence in [its report](reports/2026-09-29-test-lease-gaps.md).
+
+| Done | Work | Evidence |
+|---|---|---|
+| [x] | Diagnosed: the worktree's branch predates the lease (`d1bc5d86e`), so its gate and suites carry no lease code; 33 of 34 worktrees were in that state on September 29 | Report § Why |
+| [x] | A local `CI=true` run takes the lease; only a GitHub runner skips it (`e0046ac17`) | Report § Fixes |
+| [x] | A leased run waits up to five minutes for Vitest runs that hold no lease, naming them, then starts on half the machine (`09ada5970`) | Report § Fixes |
+
+## After the release (planned 2026-09-29)
+
+Afo asked for a review of the Velocity Scorecard (version 22) and a plan for what it still lists as
+open, then chose to record the plan here and start it after the 2.0.0 release (D14). The
+[post-release plan report](reports/2026-09-29-post-release-plan.md) holds the evidence, read on
+September 29 at `22592595d`, including the worktree lists; this table is the checklist. Snapshot 09
+goes first because its reading decides row 7. Rows marked *call* need Afo before anyone builds them.
+
+| Done | Order | Work | Who | Proof |
+|---|---|---|---|---|
+| [ ] | 1 | Snapshot 09 on October 5: fill the fourteen pending CI fields on snapshots 07 and 08 from the September 28 to October 5 window; job medians for Admin · Test, Client · Test, both Shared shards, Storybook and Admin Playwright, divided by the test-body bucket; recheck the Actions cache total, the prune's cadence and the lease bound | a session | Snapshot 09 published; no `pending` field left on 07 or 08 |
+| [ ] | 2 | Restart the laptop, then the worker test: on an idle machine, four full Shared runs at the default worker count and four at `VITEST_MAX_WORKERS=5`, recording Vitest `Duration` and the `tests` bucket; size the lease's worker cap from the result | Afo restarts (*call*); a session measures | The fourth run within 20% of the first at one of the two counts |
+| [ ] | 3 | Worktree cleanup: `git worktree prune` for the three dead registrations; remove the 26 merged, idle worktrees the report lists, after a fresh `lsof` check; the four branches with unmerged work merge `develop` from their owning sessions, `feature/agent-reporting-core` first | Afo authorizes (*call*); a session and the branch owners | `git merge-base --is-ancestor d1bc5d86e <head>` holds for every worktree left |
+| [ ] | 4 | Scorecard version 23: mark the order-flaky test closed and CodeQL holding, give the contracts row its new reason, replace the worktree line with the report's split, add rows for the setup debt and for Storybook and Admin Playwright | a session | The page matches the report |
+| [ ] | 5 | Dependabot #948 (js-yaml in `packages/contracts`): regenerate `bun.lock` on its branch or close it and bump by hand within the release-age gate. It cannot prove the production-tree cache, because `bun.lock` is one of the cache key's inputs | needs approval as a dependency change | PR green and merged, or closed with the bump landed |
+| [ ] | 6 | Contracts pull-request path: read the Unit Tests log of the next contracts pull request that changes none of the cache key's inputs | waits for such a PR | `Cache restored` for `foundry-release-production-*` |
+| [ ] | 7 | After snapshot 09: if Storybook or Admin Playwright lead the gate, measure them next; if the Shared shards lead, stop optimising the gate | decide after 09 | Job p50 of the leader |
+| [ ] | 8 | Setup debt (183 `toHaveClass` assertions, 152 heavy-mock files): leave for the December re-measure unless a batch rides along with feature work; no new rule | Afo (*call*) | Counts in December |
+| [ ] | 9 | `linear-sync` for PRD-835 (architecture hub) | needs Linear write authorization | Hub and Linear agree |
+| [ ] | 10 | December: redraw the 36-file sample and rerun the nineteen faults | a session | A new snapshot |
 
 ## Current handoff
 
 The snapshot 08 follow-up reached `develop` at `23a8d1ffb`, and D11 in `9703b5402` and
-`1c6948d50`. Next:
+`1c6948d50`, D12 in `46be0573a`, and D13 in `e0046ac17` and `09ada5970`, which reached `origin`
+inside another session's push at `58d442042`. On September 29 Afo reviewed the scorecard's open
+items and chose to park the rest until after the 2.0.0 release (D14): the checklist is in
+§ After the release and the evidence in the
+[post-release plan report](reports/2026-09-29-post-release-plan.md). Next, in order:
 
-- the CodeQL prune's hourly schedule (`37 * * * *`) fired once, at 02:42 UTC on September 29, in
-  the nine and a half hours after it merged; its push trigger ran on each `develop` push and
-  passed. Check the schedule again with snapshot 09;
-- the seven-day CI window from 2026-09-28 (snapshot 09, Oct 5), for the job medians, the CI Gate
-  median and the red rates that snapshots 07 and 08 leave pending; Admin · Test runs happy-dom
-  from D11's push on;
+- snapshot 09 on 2026-10-05: the seven-day CI window from 2026-09-28, which fills the fourteen
+  fields snapshots 07 and 08 leave pending; Admin · Test runs happy-dom from D11's push on and
+  Client · Test from D12's, so the window also shows whether they dropped on the runner. Recheck
+  the CodeQL prune there: its hourly schedule (`37 * * * *`) fired at 02:42, 10:06 and 16:36 UTC
+  on September 29 and 00:43 UTC on September 30, and its push trigger runs on each `develop` push;
+- the laptop restart and worker test, then the worktree cleanup, both Afo's calls; the report
+  lists the 26 removable worktrees and the four branches whose owners merge `develop`;
 - `linear-sync` for PRD-835 (architecture hub), in a pass that may write to Linear.
 
 The earlier instructions below are historical.

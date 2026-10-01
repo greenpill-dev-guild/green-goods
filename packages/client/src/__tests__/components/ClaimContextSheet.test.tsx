@@ -1,7 +1,7 @@
 /**
  * The claim-context sheet keeps the reader's choice while its lists refresh.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";

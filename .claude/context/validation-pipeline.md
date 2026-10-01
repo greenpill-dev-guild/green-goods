@@ -164,14 +164,21 @@ The focused path may be inferred when the changed file is itself a direct test. 
 chooses changed-path format/lint, direct behavior proof, and owner-package typecheck/build only when
 an interface, route, generated artifact, or runtime composition moved. It also runs the repository
 checks CI applies to those paths: `test-quality` for tests, test helpers and files a certified seam
-fingerprints; `docs-generated` for every input of `scripts/docs/generate.mjs` and `docs/`; and
-`docs-authority` for any script, configuration or guide outside Plan Hubs. Ordinary Shared
+fingerprints; `docs-generated` for every input of `scripts/docs/generate.mjs` and `docs/`;
+`docs-authority` for any script, configuration or guide outside Plan Hubs; and
+`immutable-plan-reports` for Plan Hub reports, over the plan's own commits and working tree, because
+CI rejects any edit, deletion or rename of a dated report. Ordinary Shared
 implementation changes do not run complete Client, Admin, or Agent suites locally; those remain CI
 responsibilities.
 
 Comparison scope comes from the live PR base when available, otherwise `origin/develop`. A
 successful exact post-commit receipt is reusable by the pre-push hook. Commit, working-tree,
 command, policy, toolchain, or environment drift invalidates it.
+
+When direct proof needs explicit paths, pass the same whitespace-separated `surface:path` entries
+to the hook through `GREEN_GOODS_PUSH_TEST_PATHS`, for example:
+`GREEN_GOODS_PUSH_TEST_PATHS="client:src/__tests__/views/PublicGardenDetail.test.tsx shared:src/__tests__/i18n/locale-coverage.test.ts" git push origin <branch>`.
+The hook forwards each entry as `--test-path` and retains every selected gate.
 
 Pre-commit runs `lint-staged` only. Pre-push runs this ready-for-CI gate. Per-file formatting and
 critical-surface warnings may run during editing, but package-wide validation is owned by the

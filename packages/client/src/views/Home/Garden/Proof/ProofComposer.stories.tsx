@@ -1,233 +1,266 @@
-import type { Address } from "@green-goods/shared/types/domain";
-import type { CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
-import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
-import { expect, fn, within } from "storybook/test";
-import { withClientAppRuntime } from "../../../../../../shared/.storybook/decorators";
-import { ProofDetails } from "./ProofDetails";
-import { ProofMedia } from "./ProofMedia";
-import { ProofReview } from "./ProofReview";
-import { ProofShell, ProofState } from "./ProofShell";
+import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useProofComposerController";
+import { useCommitmentCycle } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import type { Decorator, Meta, StoryObj } from "@storybook/react";
+import { Route, Routes } from "react-router-dom";
+import { expect, mocked, userEvent, within } from "storybook/test";
+import {
+  AUTUMN_PLANTING,
+  JOURNEY_CYCLE_NAMES,
+  JOURNEY_GARDEN,
+  JOURNEY_NAMES,
+  PROMISE_PAGE_SEEDS,
+  type ProofStage,
+  proofFlowFixture,
+} from "../../../../../../shared/.storybook/clientJourneyFixtures";
+import {
+  withAppPage,
+  withClientAppRuntime,
+  withProofToast,
+  withRouter,
+  withSeededQueryClient,
+} from "../../../../../../shared/.storybook/decorators";
+import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
+import { ProofComposer } from "./ProofComposer";
 
-const VIEWER = "0x1111111111111111111111111111111111111111" as Address;
-const LEAD = "0x2222222222222222222222222222222222222222" as Address;
+/** The flow reads its garden and promise from the route, as the app mounts it. */
+const withProofRoute: Decorator = (Story) => (
+  <Routes>
+    <Route path="/home/:id/commitments/:commitmentId/proof" element={<Story />} />
+  </Routes>
+);
 
-function commitment(overrides: Partial<CommitmentReadModel> = {}): CommitmentReadModel {
-  return {
-    id: "42161-9",
-    chainId: 42161,
-    commitmentId: 9n,
-    creationSeen: true,
-    onchainState: "ACCEPTED",
-    derivedState: "ACTIVE",
-    state: "ACCEPTED",
-    approvedUnits: 0n,
-    evidenceCount: 0,
-    cycleId: null,
-    declaredUnitValue: null,
-    declaredValueBasis: null,
-    targetUnits: 3n,
-    unitLabel: "hours",
-    creator: LEAD,
-    leadProvider: LEAD,
-    counterparty: VIEWER,
-    direction: "OFFER",
-    commitmentType: "SUPPORT_SERVICE",
-    confirmers: [],
-    contributorCount: 2,
-    contributorsFrozen: false,
-    ...overrides,
-  };
-}
+/** The controller for one frame, and the names and season its promise sheet reads. */
+const atStage = (stage: ProofStage) => () => {
+  mocked(useProofComposerController).mockReturnValue(proofFlowFixture(stage));
+  mocked(useCommitmentCycle).mockReturnValue({
+    cycle: AUTUMN_PLANTING,
+  } as unknown as ReturnType<typeof useCommitmentCycle>);
+  mocked(useGardens).mockReturnValue({
+    data: [{ id: JOURNEY_GARDEN, name: "Riverside Commons Garden" }],
+  } as unknown as ReturnType<typeof useGardens>);
+  mocked(useActions).mockReturnValue({ data: [] } as unknown as ReturnType<typeof useActions>);
+  mocked(useGreenGoodsEnsName).mockImplementation(
+    (address) =>
+      ({ data: address ? (JOURNEY_NAMES[address.toLowerCase()] ?? null) : null }) as ReturnType<
+        typeof useGreenGoodsEnsName
+      >
+  );
+  mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
+  return resetHookMocks(
+    useProofComposerController,
+    useCommitmentCycle,
+    useGardens,
+    useActions,
+    useGreenGoodsEnsName,
+    useEnsName
+  );
+};
 
-function photo(name: string): File {
-  return new File([new Uint8Array([137, 80, 78, 71])], name, { type: "image/png" });
-}
-
-const ROSTER = [
-  { address: LEAD, isLead: true },
-  { address: VIEWER, isLead: false },
-];
+type Canvas = ReturnType<typeof within>;
+// A click leaves focus on the forward act, where a finger's tap would not ring it.
+const blur = () => (document.activeElement as HTMLElement | null)?.blur();
+const toDetails = async (canvas: Canvas) => {
+  await userEvent.click(canvas.getByRole("button", { name: "Details" }));
+  blur();
+};
+const toReview = async (canvas: Canvas) => {
+  await toDetails(canvas);
+  await userEvent.click(canvas.getByRole("button", { name: "Review Proof" }));
+  blur();
+};
 
 /**
- * The proof composer, beat by beat: what was done, who did it and the words
- * that go with it, then the review that says what adding it will do. Proof is
- * queued offline like work; the queued screen says so in the reader's actual
- * conditions.
+ * Adding proof, in Submit Work's page (D6, D16): Media, Details and Review with
+ * the promise pinned under the heading, and Submit Work's bar. Amara leads the
+ * fence repair and Dele helps; fictional data from the design frames.
  */
-const meta: Meta = {
+const meta: Meta<typeof ProofComposer> = {
   title: "Client/Commitments/ProofComposer",
-  tags: ["autodocs", "storybook-ci"],
+  component: ProofComposer,
   parameters: { layout: "fullscreen" },
-  globals: { viewport: { value: "mobile" } },
-  // TopNav reads the queue for its offline state, so the shell needs the
-  // client runtime around it, as the AppBar story does.
   decorators: [
-    (Story) => (
-      <div className="flex h-[720px] flex-col bg-bg-white-0">
-        <Story />
-      </div>
-    ),
+    withProofRoute,
+    withRouter([`/home/${JOURNEY_GARDEN}/commitments/9/proof`]),
+    withSeededQueryClient([...JOURNEY_CYCLE_NAMES, ...PROMISE_PAGE_SEEDS]),
+    withAppPage,
+    // The top bar reads the queue for its offline state.
     withClientAppRuntime,
   ],
 };
 
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof ProofComposer>;
 
-export const MediaEmpty: Story = {
-  render: () => (
-    <ProofShell onBack={fn()} progress={1}>
-      <ProofMedia
-        media={[]}
-        audioNotes={[]}
-        isProcessing={false}
-        isRecording={false}
-        recordingElapsed={0}
-        onPick={fn()}
-        onRemoveMedia={fn()}
-        onRemoveAudio={fn()}
-        onPreview={fn()}
-      />
-    </ProofShell>
-  ),
+/** Nothing added yet: no tap box; the bar's photo, camera and voice tools add proof (O1). */
+export const Media: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("media"),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Show what was done")).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "Show What Was Done" })).toBeVisible();
+    await expect(canvas.getByRole("status")).toHaveTextContent("Nothing added yet");
+    // The heading leads and the promise follows it (O9).
+    const heading = canvas.getByRole("heading", { name: "Show What Was Done" });
+    const pinned = canvas.getByTestId("pinned-promise");
+    await expect(
+      heading.compareDocumentPosition(pinned) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    for (const tool of ["Choose from Your Photos", "Take a Photo", "Record a voice note"]) {
+      await expect(canvas.getByRole("button", { name: tool })).toBeVisible();
+    }
+    await expect(canvas.getByRole("button", { name: "Details" })).toBeEnabled();
   },
 };
 
-export const MediaAttached: Story = {
-  render: () => (
-    <ProofShell onBack={fn()} progress={1}>
-      <ProofMedia
-        media={[photo("beds.png"), photo("compost.png")]}
-        audioNotes={[new File([new Uint8Array([0])], "note.webm", { type: "audio/webm" })]}
-        isProcessing={false}
-        isRecording={false}
-        recordingElapsed={0}
-        onPick={fn()}
-        onRemoveMedia={fn()}
-        onRemoveAudio={fn()}
-        onPreview={fn()}
-      />
-    </ProofShell>
-  ),
+/** Two photos and a voice note: the pill turns green and says what counts. */
+export const MediaAdded: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("mediaAdded"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("status")).toHaveTextContent(
+      "Proof added: 2 photos, 1 voice note"
+    );
+    await expect(canvas.getByRole("button", { name: "Remove media 2" })).toBeVisible();
+  },
 };
 
-export const MediaRecording: Story = {
-  render: () => (
-    <ProofShell onBack={fn()} progress={1}>
-      <ProofMedia
-        media={[photo("beds.png")]}
-        audioNotes={[]}
-        isProcessing={false}
-        isRecording
-        recordingElapsed={42}
-        onPick={fn()}
-        onRemoveMedia={fn()}
-        onRemoveAudio={fn()}
-        onPreview={fn()}
-      />
-    </ProofShell>
-  ),
+/** Recording a voice note: the tool fills with the error colour, and Details waits. */
+export const Recording: Story = {
+  beforeEach: atStage("recording"),
 };
 
-function DetailsDemo({ linkInvalid = false }: { linkInvalid?: boolean }) {
-  const [credited, setCredited] = useState<Address[]>([VIEWER]);
-  const [note, setNote] = useState("Turned the north beds and mulched the paths.");
-  const [links, setLinks] = useState<string[]>([]);
-  return (
-    <ProofShell onBack={fn()} progress={2}>
-      <ProofDetails
-        roster={ROSTER}
-        credited={credited}
-        onToggleCredit={(address) =>
-          setCredited((current) =>
-            current.includes(address)
-              ? current.filter((entry) => entry !== address)
-              : [...current, address]
-          )
-        }
-        viewer={VIEWER}
-        note={note}
-        onNote={setNote}
-        links={links}
-        onLinks={setLinks}
-        linkInvalid={linkInvalid}
-      />
-    </ProofShell>
-  );
-}
-
+/** Details: who did this, a few words with a hint that tells the truth, and links. */
 export const Details: Story = {
-  render: () => <DetailsDemo />,
+  tags: ["storybook-ci"],
+  beforeEach: atStage("details"),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Who did this, and anything to add")).toBeVisible();
-    const credits = canvas.getAllByRole("checkbox");
-    await expect(credits).toHaveLength(2);
+    await toDetails(canvas);
+    await expect(canvas.getByRole("heading", { name: "Enter Details" })).toBeVisible();
+    await expect(
+      canvas.getByText("Optional: you already added 2 photos and 1 voice note.")
+    ).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Review Proof" })).toBeEnabled();
   },
 };
 
-export const DetailsInvalidLink: Story = {
-  render: () => <DetailsDemo linkInvalid />,
+/** Nothing added: the hint turns amber and Review Proof waits, saying why. */
+export const DetailsEmpty: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("detailsEmpty"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await toDetails(canvas);
+    const review = canvas.getByRole("button", { name: "Review Proof" });
+    await expect(review).toBeDisabled();
+    await expect(review).toHaveAccessibleDescription(
+      "Add a photo, a voice note, a link or a few words first."
+    );
+  },
 };
 
+/** A link on its own is proof enough. */
+export const DetailsLink: Story = {
+  beforeEach: atStage("detailsLink"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await toDetails(canvas);
+    await expect(canvas.getByText("Optional: your link is enough.")).toBeVisible();
+  },
+};
+
+/** Back later: the pinned card opens the promise's latest state without leaving the step. */
+export const ProofForSheet: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("details"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await toDetails(canvas);
+    await userEvent.click(canvas.getByRole("button", { name: /^Proof for / }));
+    const page = within(canvasElement.ownerDocument.body);
+    const body = await page.findByRole("region", { name: "Promise details" });
+    // A read-only body that scrolls takes focus, so a keyboard can scroll it.
+    await expect(body).toHaveAttribute("tabindex", "0");
+    await expect(within(body).getByRole("region", { name: "Where this stands" })).toBeVisible();
+  },
+};
+
+/** Review: Submit Work's sections, then what happens next; with a team the switch starts off. */
 export const Review: Story = {
-  render: () => (
-    <ProofShell onBack={fn()} progress={3}>
-      <ProofReview
-        commitment={commitment()}
-        title="Compost delivery to the beds"
-        mediaCount={2}
-        audioCount={1}
-        note="Turned the north beds and mulched the paths."
-        links={["https://example.org/album"]}
-        credited={[VIEWER, LEAD]}
-        isOnline
-      />
-    </ProofShell>
-  ),
+  tags: ["storybook-ci"],
+  beforeEach: atStage("review"),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Before you add this")).toBeVisible();
+    await toReview(canvas);
+    await expect(canvas.getByRole("heading", { name: "Review Proof" })).toBeVisible();
+    const send = canvas.getByRole("switch", { name: "Send for confirmation too" });
+    await expect(send).not.toBeChecked();
+    await expect(canvas.getByRole("button", { name: "Add This Proof" })).toBeEnabled();
   },
 };
 
+/** Also sending it: the act reads Add and Send, and the line says it takes two signatures. */
+export const ReviewSend: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("reviewSend"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await toReview(canvas);
+    await expect(canvas.getByRole("switch", { name: "Send for confirmation too" })).toBeChecked();
+    await expect(canvas.getByRole("button", { name: "Add and Send" })).toBeVisible();
+    await expect(
+      canvas.getByText("You'll be asked to sign twice: once for the proof, once to send it.")
+    ).toBeVisible();
+  },
+};
+
+/** Dele's review: anyone on the team adds proof, only the lead sends, so no switch. */
+export const ReviewTeammate: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("reviewTeammate"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await toReview(canvas);
+    await expect(canvas.queryByRole("switch")).toBeNull();
+    await expect(canvas.getByText(/leads this one and sends it to/)).toBeVisible();
+  },
+};
+
+/** Offline: the existing warning over the same Review. */
 export const ReviewOffline: Story = {
-  render: () => (
-    <ProofShell onBack={fn()} progress={3}>
-      <ProofReview
-        commitment={commitment({ direction: "REQUEST", commitmentType: "DOMAIN_IMPACT" })}
-        title="Prune the north beds"
-        mediaCount={1}
-        audioCount={0}
-        note=""
-        links={[]}
-        credited={[VIEWER]}
-        isOnline={false}
-      />
-    </ProofShell>
-  ),
+  beforeEach: atStage("reviewOffline"),
+  play: async ({ canvasElement }) => {
+    await toReview(within(canvasElement));
+  },
 };
 
-export const Queued: Story = {
-  render: () => <ProofState kind="queued" isOnline onBack={fn()} />,
+/** Add This Proof: the page stays still, the act spins, and the toast says what is happening. */
+export const Signing: Story = {
+  tags: ["storybook-ci"],
+  decorators: [withProofToast("adding")],
+  beforeEach: atStage("signing"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await toReview(canvas);
+    await expect(canvas.getByRole("button", { name: /Add This Proof/ })).toHaveAttribute(
+      "aria-busy",
+      "true"
+    );
+    await expect(
+      await within(canvasElement.ownerDocument.body).findByText("Adding proof…")
+    ).toBeVisible();
+  },
 };
 
-export const QueuedOffline: Story = {
-  render: () => <ProofState kind="queued" isOnline={false} onBack={fn()} />,
-};
-
-export const NotYours: Story = {
-  render: () => <ProofState kind="notYours" isOnline onBack={fn()} />,
-};
-
-export const Confirmed: Story = {
-  render: () => <ProofState kind="confirmed" isOnline onBack={fn()} />,
-};
-
-export const Failed: Story = {
-  render: () => <ProofState kind="failed" isOnline onBack={fn()} />,
+/** Add and Send: the same, and the toast says there are two signatures. */
+export const SigningSend: Story = {
+  decorators: [withProofToast("addingSendToo")],
+  beforeEach: atStage("signingSend"),
+  play: async ({ canvasElement }) => {
+    await toReview(within(canvasElement));
+  },
 };

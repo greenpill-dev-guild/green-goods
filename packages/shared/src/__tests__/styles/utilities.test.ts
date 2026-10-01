@@ -96,8 +96,9 @@ describe("shared utilities.css", () => {
 });
 
 describe("PwaSheet layout contract", () => {
-  // Tailwind v4 does not scan packages/shared, so the sheet's geometry must be
-  // attribute-driven CSS here rather than utility classes on the JSX.
+  // The sheet's geometry is attribute-driven CSS here, in the components layer,
+  // rather than utility classes on the JSX, so a consumer's panelClassName
+  // utilities override it.
   const rule = (slot: string) =>
     new RegExp(`\\[data-component="PwaSheet"\\]\\[data-slot="${slot}"\\]\\s*\\{([^}]*)\\}`);
   const declarations = (slot: string) => utilitiesContent.match(rule(slot))?.[1] ?? "";

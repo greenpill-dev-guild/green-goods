@@ -44,6 +44,19 @@ export function commitmentJobIdentity(kind: string, payload: unknown): string | 
 }
 
 /**
+ * The queued job this one goes after, when it has one. Add and Send's send for
+ * confirmation waits for the proof it was queued with: sent first, it would
+ * settle the team before the proof and its credit were on the record.
+ */
+export function commitmentJobPrerequisite(kind: string, payload: unknown): string | null {
+  if (kind !== "confirmation" || !payload || typeof payload !== "object") return null;
+  const value = payload as Record<string, unknown>;
+  return value.action === "submit" && typeof value.afterEvidenceJobId === "string"
+    ? value.afterEvidenceJobId
+    : null;
+}
+
+/**
  * The payload as text that tells a bigint from its decimal string, for comparing a queued job with
  * a new one. Each value is read from its holder: `JSON.stringify` applies a value's `toJSON` before
  * the replacer sees it, and `@hypercerts-org/sdk` sets `BigInt.prototype.toJSON` when it loads, so

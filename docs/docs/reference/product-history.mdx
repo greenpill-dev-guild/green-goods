@@ -41,3 +41,11 @@ A March 2026 proposal explored using verifiable credentials for geographic Garde
 ## Passkey recovery hardening {#passkey-recovery-hardening}
 
 A March 2026 proposal explored production passkey-server topology, relying-party and origin rules, account-first recovery, and second-device access. The durable release constraints were carried into the `account-recovery-hardening` Plan Hub; the original proposal is retained through Git history.
+
+## v1.2.2 - September 2026 {#v122}
+
+**Passkey sign-in can approve actions again**
+
+- **Passkey accounts** — if you sign in with a passkey, approving an action (joining a garden, submitting work) no longer fails with a prompt that appears to time out. Sign-in itself was always working; it was the approval step that could not find your saved passkey. Once the app updates, your existing passkey and your account work as before — there is nothing to re-register.
+
+Full notes: [GitHub Releases](https://github.com/greenpill-dev-guild/green-goods/releases).

@@ -8,7 +8,7 @@
  * - `?garden=` stale resolution renders a non-blocking message.
  * - The Garden section exposes the public Manage Endowments panel text button.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { act, render, screen, waitFor, within } from "@testing-library/react";

@@ -7,6 +7,11 @@ import { parseBaseArgs, resolveGitBase, runGit } from "../lib/git-guardrails.mjs
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), "../..");
 const datedReportPattern = /^\.plans\/(?:[^/]+\/)*reports\/(?:[^/]+\/)*[^/]*\d{4}-\d{2}-\d{2}.*\.md$/;
+
+/** Whether a repository path is a dated Plan Hub report, which never changes once it exists. */
+export function isDatedPlanReport(path) {
+  return datedReportPattern.test(path);
+}
 const liveReportPattern = /^\.plans\/(active|backlog|ideas)\/([^/]+)\/reports\/(.+)$/;
 const archivedReportPattern = /^\.plans\/archive\/([^/]+)\/reports\/(.+)$/;
 
@@ -92,7 +97,7 @@ export function immutableReportViolations(entries) {
       const hubOfEntry = hubPrefixPattern.exec(historicalPath);
       if (hubOfEntry && retiredHubs.has(hubOfEntry[1])) continue;
     }
-    if (datedReportPattern.test(historicalPath)) {
+    if (isDatedPlanReport(historicalPath)) {
       failures.push(`${entry.status}: ${historicalPath}`);
     }
   }

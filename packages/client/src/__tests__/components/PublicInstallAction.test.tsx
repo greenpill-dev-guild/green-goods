@@ -6,7 +6,7 @@
  * shortcut. The component uses the async `useIsBraveBrowser` signal to warn and
  * steer to Chrome before the install proceeds.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";

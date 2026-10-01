@@ -1,6 +1,6 @@
 /**
  * ENSSection Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
