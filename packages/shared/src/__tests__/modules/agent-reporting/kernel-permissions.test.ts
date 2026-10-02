@@ -87,6 +87,23 @@ describe("Kernel reporting permission", () => {
     expect(first.getIdentifier()).not.toBe(other.getIdentifier());
     expect(await first.getEnableData("0x00000000000000000000000000000000000000ca")).toMatch(/^0x/);
   });
+
+  it("changes permission identity when the owner's expiry or submission limit changes", async () => {
+    const input = policy("0x00000000000000000000000000000000000000c2");
+    const original = await grantPermissionValidator(offline, { ...input, signer });
+    const shorter = await grantPermissionValidator(offline, {
+      ...input,
+      signer,
+      policy: { ...input.policy, validUntil: NOW + 60_000 },
+    });
+    const fewer = await grantPermissionValidator(offline, {
+      ...input,
+      signer,
+      policy: { ...input.policy, maxSubmissions: 1 },
+    });
+    expect(shorter.getIdentifier()).not.toBe(original.getIdentifier());
+    expect(fewer.getIdentifier()).not.toBe(original.getIdentifier());
+  });
 });
 
 describe("owner revocation descriptor", () => {

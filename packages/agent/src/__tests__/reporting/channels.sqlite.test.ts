@@ -79,4 +79,35 @@ describe("chat channels", () => {
       errorCode: "channel_unavailable",
     });
   });
+
+  it("continues accepting delivery status while the source channel is paused", () => {
+    setControl(harness.core, channelControl("telegram"), false, {
+      actor: "operator",
+      reason: "pause",
+    });
+    expect(acceptChannelEvent(harness.core, message("paused-message"))).toEqual({
+      status: "channel_closed",
+    });
+    expect(
+      acceptChannelEvent(harness.core, {
+        kind: "delivery_status",
+        providerRealm: "telegram:bot-1",
+        eventId: "paused-status",
+        providerMessageId: "out-1",
+        status: "delivered",
+        occurredAt: 0,
+      })
+    ).toMatchObject({ status: "accepted" });
+  });
+
+  it("refuses media fetches for realms without an available adapter", async () => {
+    const routed = routeChannels(new Map());
+    await expect(
+      routed.mediaFetcher.fetch(
+        "telegram:bot-1",
+        { providerMediaId: "media-1" },
+        { maxBytes: 1024, timeoutMs: 1000 }
+      )
+    ).rejects.toThrow();
+  });
 });

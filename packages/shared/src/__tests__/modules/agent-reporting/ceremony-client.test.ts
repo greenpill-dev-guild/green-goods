@@ -66,20 +66,36 @@ describe("ceremony client", () => {
     expect((submit?.init.headers as Record<string, string>)["x-gg-csrf"]).toBe("csrf-1");
   });
 
-  it("surfaces typed failures and refuses malformed bodies", async () => {
+  it("surfaces the Agent's typed failure and HTTP status", async () => {
+    const { client } = recorder([{ status: 404, body: { ok: false, errorCode: "unavailable" } }]);
+    await expect(client.draft("draft-1")).rejects.toMatchObject({
+      code: "unavailable",
+      status: 404,
+    });
+  });
+
+  it("refuses malformed successful response bodies", async () => {
     const { client } = recorder([
-      { status: 404, body: { ok: false, errorCode: "unavailable" } },
       {
         status: 200,
         body: { ok: true, operation: { operationId: "op", envelope: "not an envelope" } },
       },
     ]);
-    await expect(client.draft("draft-1")).rejects.toMatchObject({
-      code: "unavailable",
-      status: 404,
-    });
     const malformed = client.operation("op");
     await expect(malformed).rejects.toBeInstanceOf(CeremonyError);
     await expect(malformed).rejects.toMatchObject({ code: "malformed" });
+  });
+
+  it("maps a dropped connection to a retryable network failure without exposing transport text", async () => {
+    const client = new CeremonyClient({
+      fetch: async () => {
+        throw new TypeError("private provider detail");
+      },
+    });
+    await expect(client.draft("draft-1")).rejects.toMatchObject({
+      code: "network",
+      status: 0,
+      message: "Ceremony request failed: network",
+    });
   });
 });

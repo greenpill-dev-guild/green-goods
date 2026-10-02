@@ -1,6 +1,6 @@
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHookWithProviders } from "../../test-utils";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { ACCOUNT, FakeAgent } from "./fake-agent";
 
 vi.mock("wagmi", () => ({
@@ -28,6 +28,20 @@ beforeEach(() => {
 });
 
 describe("account recovery page", () => {
+  it.each([
+    ["account_verified", "code"],
+    ["channel_verified", "confirm"],
+    ["applied", "applied"],
+  ] as const)("resumes the server's %s step at %s without advancing it", async (step, stage) => {
+    agent.recovery = step;
+    const { result } = renderHookWithProviders(() =>
+      useAgentReportingRecovery("request-0123456789abcdef", { client: agent.client() })
+    );
+    await act(() => result.current.start());
+    expect(result.current).toMatchObject({ stage, recoveredAccount: ACCOUNT });
+    expect(agent.requests("POST", "/challenges/ch-1/proof")).toEqual([]);
+    expect(agent.requests("POST", "/recovery/ch-1/confirm")).toEqual([]);
+  });
   it("moves the account only after the proof, the chat's code and an explicit confirmation", async () => {
     const { result } = renderHookWithProviders(() =>
       useAgentReportingRecovery("request-0123456789abcdef", { client: agent.client() })

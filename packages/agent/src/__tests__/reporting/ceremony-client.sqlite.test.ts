@@ -164,3 +164,4 @@ describe("browser ceremony client against the Agent API", () => {
     expect(await page.applyRecovery(challenge.challengeId)).toMatchObject({ state: "applied" });
   });
 });
+// TEST-QUALITY: allow-small-test-file - These two browser-client journeys own the SQLite HTTP wire contract for publication and recovery; pure client tests cannot exercise cookies, stores or route composition.

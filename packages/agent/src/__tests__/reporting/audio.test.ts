@@ -77,6 +77,14 @@ describe.skipIf(!hasFfmpeg)("voice normalization with ffmpeg", () => {
     });
   });
 
+  it("refuses unsupported MIME types before attempting local decoding", async () => {
+    const missing = createAudioTools({ ffprobe: "/nonexistent/ffprobe" });
+    expect(await missing.normalize(wav(1), "audio/unknown")).toEqual({
+      ok: false,
+      reason: "unreadable",
+    });
+  });
+
   it("treats a file that is not the declared container as unreadable", async () => {
     expect(await tools.normalize(wav(1), "audio/ogg")).toEqual({ ok: false, reason: "unreadable" });
     expect(

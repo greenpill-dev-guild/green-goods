@@ -6,18 +6,32 @@ import {
 import { acceptsChatReports } from "../../../modules/agent-reporting/gardens";
 
 describe("gardens that accept chat reports", () => {
-  it("takes every initialized garden the app shows, including ones kept off the public website", () => {
-    const aGarden = "0x00000000000000000000000000000000000000a1";
-    expect(acceptsChatReports({ address: aGarden, initialized: true })).toBe(true);
-    expect(acceptsChatReports({ address: aGarden, initialized: false })).toBe(false);
-
-    const [hidden] = GARDENS_HIDDEN_EVERYWHERE;
-    const [editorialOnly] = GARDENS_HIDDEN_FROM_EDITORIAL;
-    expect(
-      acceptsChatReports({ address: hidden?.address.toLowerCase() ?? "", initialized: true })
-    ).toBe(false);
-    expect(acceptsChatReports({ address: editorialOnly?.address ?? "", initialized: true })).toBe(
-      true
-    );
+  it.each([
+    {
+      label: "initialized visible garden",
+      address: "0x00000000000000000000000000000000000000a1",
+      initialized: true,
+      expected: true,
+    },
+    {
+      label: "uninitialized garden",
+      address: "0x00000000000000000000000000000000000000a1",
+      initialized: false,
+      expected: false,
+    },
+    {
+      label: "garden hidden everywhere",
+      address: GARDENS_HIDDEN_EVERYWHERE[0]!.address.toLowerCase(),
+      initialized: true,
+      expected: false,
+    },
+    {
+      label: "garden hidden only from editorial",
+      address: GARDENS_HIDDEN_FROM_EDITORIAL[0]!.address,
+      initialized: true,
+      expected: true,
+    },
+  ])("handles $label", ({ address, initialized, expected }) => {
+    expect(acceptsChatReports({ address, initialized })).toBe(expected);
   });
 });

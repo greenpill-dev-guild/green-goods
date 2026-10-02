@@ -32,12 +32,22 @@ describe("buildWorkMetadataPayload", () => {
     );
   });
 
-  it("writes v2 only when both a known domain and an Action slug are supplied", () => {
-    expect(
-      buildWorkMetadataPayload({ ...base, domain: Domain.AGRO, actionSlug: "planting" }).version
-    ).toBe("work_metadata_v2");
-    expect(
-      buildWorkMetadataPayload({ ...base, domain: null, actionSlug: "planting" }).version
-    ).toBe("work_metadata");
+  it.each([
+    {
+      label: "known domain and slug",
+      domain: Domain.AGRO,
+      actionSlug: "planting",
+      version: "work_metadata_v2",
+    },
+    { label: "null domain", domain: null, actionSlug: "planting", version: "work_metadata" },
+    {
+      label: "missing domain",
+      domain: undefined,
+      actionSlug: "planting",
+      version: "work_metadata",
+    },
+    { label: "missing slug", domain: Domain.AGRO, actionSlug: undefined, version: "work_metadata" },
+  ])("selects the schema for $label", ({ domain, actionSlug, version }) => {
+    expect(buildWorkMetadataPayload({ ...base, domain, actionSlug }).version).toBe(version);
   });
 });

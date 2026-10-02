@@ -3,7 +3,7 @@ import { encodeFunctionData } from "viem";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildReportingProofMessage } from "../../../modules/agent-reporting/proof";
 import type { ContractCall, TransactionSender } from "../../../modules/transactions/types";
-import { renderHookWithProviders } from "../../test-utils";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { ACCOUNT, FakeAgent, OTHER_ACCOUNT, TX_HASH, workEnvelope } from "./fake-agent";
 
 const mocks = vi.hoisted(() => ({
