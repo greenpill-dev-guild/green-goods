@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-10-02T08:24:00.000Z"
+    "updated_at": "2026-10-02T09:09:30Z"
   },
   "links": {
     "brief": "brief.md",
@@ -90,7 +90,7 @@
         },
         "note": "PR #2 on feature/agent-reporting-core; see handoffs/claude-state-api.md"
       },
-      "blocked_reason": "Current-head integration proof and the stage-specific live gates remain open; the lane remains in progress rather than certified complete."
+      "blocked_reason": "Local critical integration validation passed. Deployed transport/provider, authenticated signing and conditional Kernel live acceptance remain open; the lane is not certified complete."
     },
     "ui": {
       "owner": "codex",
@@ -115,7 +115,7 @@
         },
         "note": "PR #2 ceremony hooks and pages; see handoffs/claude-ui.md"
       },
-      "blocked_reason": "Current-head integration proof and the stage-specific live gates remain open; the lane remains in progress rather than certified complete."
+      "blocked_reason": "Local critical integration validation passed. Deployed transport/provider, authenticated signing and conditional Kernel live acceptance remain open; the lane is not certified complete."
     },
     "contracts": {
       "owner": "codex",
@@ -132,7 +132,7 @@
         "status": "pending",
         "red": {},
         "green": {},
-        "note": "New guard source and focused contract checks exist; final current-head receipt and recorded proof are still pending. The lane is not complete and the verified registry remains empty."
+        "note": "Nine SingleAttestationPolicy unit tests and the complete 2,100-test Solidity gate passed at 202333ca6831e2e5d3bceae32a4c0894519ab019. No new RED receipt is recorded; live Kernel deployment/pins/budgets and integrated execution/replay/revocation proof remain open. The lane is not complete and the verified registry remains empty."
       }
     },
     "qa_pass_1": {
@@ -391,6 +391,14 @@
       "lane": null,
       "status": "scope_amended",
       "note": "Implement the user-authorized Telegram-first readiness changes and resolve the existing PR stack. Code gates and live deployment/model/account/Office/Kernel checks remain distinct; no production deployment, wallet signing or chain broadcast."
+    },
+    {
+      "timestamp": "2026-10-02T09:09:30Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "implementation_validated",
+      "branch": "feature/agent-reporting-telegram",
+      "note": "Complete selected critical local push gate passed at 202333ca6831e2e5d3bceae32a4c0894519ab019; current handoff records the clean validated-path and evidence-only diff receipt. Storybook desktop/mobile proof is layout only. Core/scope PRs are mergeable with current-head CI green; final Telegram push/CI and live acceptance follow. No deployment or chain broadcast."
     }
   ],
   "taxonomy": {

@@ -3,7 +3,7 @@
 **Updated:** 2026-10-02
 **Owner:** Codex; Afolabi owns live testing and deployment
 **Branch:** `feature/agent-reporting-telegram` (PR #949, stacked on #934 and #864)
-**State:** implementation and integration validation in progress; deployment unrun
+**State:** implementation and complete local integration validation passed; deployment and live acceptance unrun
 
 This is the current execution handoff. It supersedes the laptop polling demo in the
 [earlier Telegram handoff](claude-telegram-channel.md). Keep the production bot in webhook
@@ -25,7 +25,9 @@ the production bot token: that would displace its webhook.
 - New reporting databases enable intake, documents, model processing, publication and Telegram.
   Existing operator decisions survive upgrades. Voice and WhatsApp stay off.
 - Kernel reporting remains limited to five publications in 24 hours, for one garden and channel.
-  Review is a separate permission and needs its own effects/work-reference proof. No grant is
+  Review is a separate permission and needs its own effects/work-reference proof.
+  Per-grant keys use encrypted software custody; the executor can decrypt them. This is not
+  non-exportable KMS custody, and no owner key is held by the Agent. No grant is
   offered until the deployed module registry, full cost budget and signer custody gates pass.
 
 ## Models and root environment
@@ -115,7 +117,10 @@ including those from other applications; the confirmation discloses this before 
 ## Aiyeloja two-account acceptance
 
 Use Aiyeloja Family Garden `0xF7b892886998DAe960D64a9db488336684F137A0` on Arbitrum One.
-Recheck actual roles for both accounts at the start of the session.
+Recheck actual roles for both accounts at the start of the session. The Telegram acceptance
+assumes two Telegram identities, one wallet each: a private chat pairs with one wallet.
+If both wallets use one Telegram account, run the steward review in the existing PWA until
+a second Telegram identity is available; that does not establish the steward Telegram flow.
 
 - Gardener: text plus photo, missing-field question, correction, account pairing, exact owner
   publication, durable receipt and return to chat. Declining a signature must leave a usable draft.
@@ -129,8 +134,20 @@ Recheck actual roles for both accounts at the start of the session.
 - WhatsApp needs access restored **and its live transport adapter**. The dual-channel identity
   architecture and synthetic tests do not constitute a deployed WhatsApp integration.
 
-## Validation receipt
+## Validation Receipt
 
-Pending the final integration commit and current-head gate. Focused development runs and
-Storybook (Codex in-app browser) desktop/mobile evidence are recorded by the implementation team;
-they are not authenticated wallet/passkey proof or live model/Telegram proof.
+- **Tested implementation commit SHA:** `202333ca6831e2e5d3bceae32a4c0894519ab019`
+- **Run at (UTC):** `2026-10-02T09:09:30Z`
+- **Exact command(s):** `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:packages/shared/src/__tests__/modules/agent-reporting/grants.test.ts`
+- **Result:** complete selected critical plan passed: package typechecks/tests/builds, 2,100 Solidity tests, contract release verification, docs, design/Storybook, source structure, supply chain, validation policy and immutable-report checks. Agent SQLite acceptance includes 116 passing tests. A first run failed only on the handoff's slash-command wording; the corrected commit passed the complete rerun.
+- **Validated paths:** all repository implementation, dependency, configuration and validation paths outside `.plans`, represented by `. ':!.plans'`.
+- **Worktree identity command and result:** `git status --porcelain=v1 --untracked-files=all -- . ':!.plans'` → empty output; clean validated paths.
+- **Evidence-only diff command and result (if applicable):** `git diff --exit-code 202333ca6831e2e5d3bceae32a4c0894519ab019..HEAD -- . ':!.plans'` → exit code 0; no validated-path changes. The follow-up commit records plan evidence only.
+- **Evidence-only worktree-status command and result (if applicable):** `git status --porcelain=v1 --untracked-files=all -- . ':!.plans'` → empty output; clean validated paths.
+
+Rendered proof is **Storybook (Codex in-app browser)** on 2026-10-02: review at
+1280×900 desktop and 375×812 mobile; no horizontal overflow; visible buttons at least 48px.
+Grant, permission-removal confirmation, recovery and uncertain-send states were also inspected.
+This is layout evidence, not authenticated wallet/passkey signing, live model quality or Telegram
+production proof. Screenshots use synthetic garden content. Current-head GitHub CI follows the
+normal push; the PR body records its live status. The feature hub remains active for the live gates.

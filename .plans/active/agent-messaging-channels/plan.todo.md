@@ -18,13 +18,14 @@ Current implementation checklist:
 - [x] Render responsive PWA ceremonies and permission management at desktop/mobile widths.
 - [x] Preserve multiple active channel links for the same proven account, with channel-scoped unlink/recovery.
 - [x] Enable new-database Telegram text/photo reporting and prepare remote routes, controls and bot menu.
-- [ ] Run focused negative/failure proof, selected integration gates and rendered proof; update PR stack without merging.
+- [x] Run focused negative/failure proof, the complete selected critical gate and rendered proof.
+- [x] Prepare the resolved PR stack; local gates pass and current-head CI is tracked in the PR body.
 - [x] Record deployment/key/operator runbook and outstanding live signing, chain, provider and WhatsApp evidence.
 
 Reuse decisions: extend existing reporting config/media converters, identity-store/bindings,
 Kernel permission builder and ceremony hooks, and Client CeremonyFrame/PermissionsPage.
-These own their existing capabilities; no new wallet architecture, custody system, app shell
-or parallel reporting API is needed.
+These own their existing capabilities; no new wallet architecture, app shell
+or parallel reporting API is needed. Per-grant software custody extends the existing keyring boundary.
 
 > **Latest user alignment:** API harness first; document/photo/spreadsheet support required.
 > OpenAI is the selected content-processing provider. The current prototype supports existing
@@ -70,7 +71,7 @@ or parallel reporting API is needed.
 
 **Stage:** `active`
 
-**Status:** `ACTIVE — PR #2 (reporting core) and PR #3 (Telegram channel) in draft; Astra review, live gates and the WhatsApp account pending`
+**Status:** `ACTIVE — implementation and local critical validation passed; draft PR stack, current-head CI and live deployment/provider/signing/WhatsApp gates remain tracked in the current handoff`
 
 **Created:** 2026-04-17
 
