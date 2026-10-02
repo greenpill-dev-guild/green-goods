@@ -149,7 +149,7 @@ describe("recovery", () => {
     });
   });
 
-  it("refuses an account that is not linked, a wrong code and a forwarded link", async () => {
+  it("refuses an account that is not linked without suspending the owner's chat", async () => {
     await linkedOwnerWithDraft();
     const browser = await startRecovery();
     // An unrelated account learns nothing and suspends nothing.
@@ -157,7 +157,10 @@ describe("recovery", () => {
     expect(one("SELECT count(*) AS n FROM channel_bindings WHERE status = 'suspended'")).toEqual({
       n: 0,
     });
+  });
 
+  it("refuses a wrong code and a forwarded browser link", async () => {
+    await linkedOwnerWithDraft();
     const owner = await startRecovery();
     await owner.prove(adaAccount);
     const wrong = await owner.request("POST", `/messaging/recovery/${owner.challengeId}/channel`, {

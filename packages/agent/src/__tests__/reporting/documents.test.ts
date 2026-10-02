@@ -45,8 +45,11 @@ function pdf(pages: number): Uint8Array {
 describe.skipIf(!available("pdfinfo"))("document tools with Poppler", () => {
   const tools = createDocumentTools();
 
-  it("counts pages and refuses documents over the page budget", async () => {
+  it("counts pages within the document budget", async () => {
     expect(await tools.inspectPdf(pdf(3))).toEqual({ ok: true, pages: 3 });
+  });
+
+  it("refuses documents over the page budget", async () => {
     expect(await tools.inspectPdf(pdf(21))).toEqual({
       ok: false,
       reason: "too_many_pages",
