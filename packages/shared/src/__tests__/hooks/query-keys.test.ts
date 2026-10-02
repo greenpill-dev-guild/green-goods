@@ -6,7 +6,6 @@
  * across package boundaries. Avoid mirroring every literal array shape.
  */
 
-import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 import { readContractQueryKey, readContractsQueryKey } from "wagmi/query";
 import {
@@ -24,6 +23,7 @@ import {
 import type { Address } from "../../types/domain";
 import type { AttestationFilters } from "../../types/hypercerts";
 import { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI } from "../../utils/blockchain/abis/cookie-jar";
+import { createTestQueryClient } from "../test-utils/query-client";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
@@ -347,7 +347,7 @@ describe("queryInvalidation", () => {
       () => queryInvalidation.onCampaignCookieJarChanged(TEST_JAR, TEST_USER, TEST_CHAIN_ID),
     ],
   ])("refreshes the jar's onchain state after a %s", (_action, buildKeys) => {
-    const client = new QueryClient();
+    const client = createTestQueryClient();
     const jarStateKey = readContractsQueryKey({
       contracts: [
         {
@@ -369,7 +369,7 @@ describe("queryInvalidation", () => {
   // A campaign jar's title and description are a single read of the factory, which wagmi keys
   // under a different root than the jar's own multicall.
   it("refreshes a campaign jar's metadata after it is updated", () => {
-    const client = new QueryClient();
+    const client = createTestQueryClient();
     const metadataKey = readContractQueryKey({
       address: TEST_FACTORY,
       abi: COOKIE_JAR_FACTORY_ABI,
@@ -408,5 +408,28 @@ describe("queryInvalidation", () => {
         queryKeys.drafts.images(TEST_DRAFT_ID),
       ])
     );
+  });
+});
+
+// The marketplace approvals hook runs only with a steward (`enabled: Boolean(steward)`), but its
+// key must stay stable and type-safe without one: it takes an empty-string sentinel instead.
+describe("marketplace approvals query key safety", () => {
+  it("produces a stable key with a valid steward", () => {
+    const key = queryKeys.marketplace.approvals("0xAbC123", 11155111);
+    expect(key).toEqual(["greengoods", "marketplace", "approvals", "0xAbC123", 11155111]);
+  });
+
+  it("produces a key with sentinel when steward is undefined", () => {
+    // After fix: passing empty string sentinel instead of steward!
+    const sentinel = "";
+    const key = queryKeys.marketplace.approvals(sentinel, 11155111);
+    expect(key).toEqual(["greengoods", "marketplace", "approvals", "", 11155111]);
+    // The key is stable and type-safe -- no non-null assertion needed
+  });
+
+  it("sentinel key differs from valid steward key", () => {
+    const validKey = queryKeys.marketplace.approvals("0xAbC", 1);
+    const sentinelKey = queryKeys.marketplace.approvals("", 1);
+    expect(validKey).not.toEqual(sentinelKey);
   });
 });

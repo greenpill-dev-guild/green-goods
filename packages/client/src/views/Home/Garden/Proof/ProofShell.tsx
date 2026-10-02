@@ -1,20 +1,36 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { RiSearchLine, RiWifiOffLine } from "@remixicon/react";
+import type { ProofComposerStatus } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
+import {
+  RiErrorWarningLine,
+  RiSearchLine,
+  RiWifiOffLine,
+  type RemixiconComponentType,
+} from "@remixicon/react";
+import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 
+import { FormInfo } from "@/components/Cards";
 import { EmptyState, FormProgress } from "@/components/Communication";
 import { TopNav } from "@/components/Navigation";
 
 export interface ProofShellProps {
-  children: React.ReactNode;
   onBack: () => void;
-  /** Which beat is showing, 1-based; absent outside the composer's beats. */
-  progress?: number;
-  bar?: React.ReactNode;
+  /** Which step is showing, 1-based. */
+  progress: number;
+  /** The step's heading card, which leads the page. */
+  heading: { title: string; info: ReactNode; Icon: RemixiconComponentType };
+  /** The promise this proof is for, pinned under the top bar once the heading scrolls away. */
+  pinned: ReactNode;
+  bar: ReactNode;
+  children: ReactNode;
 }
 
-/** The proof composer's chrome: back, the three-beat progress, a body, a bar. */
-export function ProofShell({ children, onBack, progress, bar }: ProofShellProps) {
+/**
+ * The proof flow's page, drawn as Submit Work's is (D16): the top bar with the
+ * named steps, the step's heading card, the promise pinned after it (O9), the
+ * step, and the fixed bar.
+ */
+export function ProofShell({ onBack, progress, heading, pinned, bar, children }: ProofShellProps) {
   const { formatMessage } = useIntl();
   const steps = [
     formatMessage({ id: "app.proof.beat.media" }),
@@ -23,98 +39,101 @@ export function ProofShell({ children, onBack, progress, bar }: ProofShellProps)
   ];
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      <TopNav onBackClick={onBack}>
-        {progress ? <FormProgress currentStep={progress} steps={steps} /> : null}
+    <>
+      <TopNav onBackClick={onBack} overlay>
+        <FormProgress currentStep={progress} steps={steps} />
       </TopNav>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <div className="flex flex-1 flex-col gap-4 p-4 pb-24">
-          <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
-            {formatMessage({ id: "app.proof.title" })}
-          </p>
+      <form
+        className="relative py-6 pt-20 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
+        onSubmit={(event) => event.preventDefault()}
+      >
+        <div className="padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+          <FormInfo title={heading.title} info={heading.info} Icon={heading.Icon} />
+          {pinned}
           {children}
         </div>
-      </div>
+      </form>
       {bar}
-    </div>
+    </>
   );
 }
 
-export type ProofStateKind = "unavailable" | "loading" | "notYours" | "queued" | "error" | "closed";
+export type ProofStateKind = Exclude<ProofComposerStatus, "ready">;
 
 /**
- * Every screen the composer shows that is not the form. Proof belongs to the
- * people doing the work, so anyone else reads a plain answer rather than a
- * form the chain would refuse; and once the proof is queued the screen says
- * what happens next in the reader's actual conditions. A read that failed is
- * its own answer, with a way to try again.
+ * Every screen the proof flow shows that is not a step. Proof belongs to the
+ * people doing the work, so anyone else reads a plain answer rather than a form
+ * the chain would refuse; a read that failed is its own answer, with a way to
+ * try again.
  */
 export function ProofState({
   kind,
-  isOnline,
   onBack,
   onRetry,
 }: {
   kind: ProofStateKind;
-  isOnline: boolean;
   onBack: () => void;
   onRetry?: () => void;
 }) {
   const { formatMessage } = useIntl();
   return (
-    <ProofShell onBack={onBack}>
-      {kind === "unavailable" ? (
-        <EmptyState
-          icon={<RiWifiOffLine />}
-          title={formatMessage({ id: "app.commitments.notReady.title" })}
-          description={formatMessage({ id: "app.commitments.notReady.description" })}
-        />
-      ) : kind === "error" ? (
-        <div className="flex flex-col items-center gap-3">
+    <>
+      <TopNav onBackClick={onBack} overlay />
+      <div className="padded flex flex-col gap-4 pt-20 pb-6">
+        {kind === "unavailable" ? (
           <EmptyState
             icon={<RiWifiOffLine />}
-            title={formatMessage({ id: "app.commitment.error.title" })}
-            description={formatMessage({ id: "app.commitment.error.body" })}
+            title={formatMessage({ id: "app.commitments.notReady.title" })}
+            description={formatMessage({ id: "app.commitments.notReady.description" })}
           />
-          {onRetry ? (
-            <Button type="button" onClick={onRetry}>
-              {formatMessage({ id: "app.commitments.retry" })}
-            </Button>
-          ) : null}
-        </div>
-      ) : kind === "loading" ? (
-        <p className="text-xs text-text-soft-400" role="status">
-          {formatMessage({ id: "app.commitment.loading" })}
-        </p>
-      ) : kind === "closed" ? (
-        <EmptyState
-          icon={<RiSearchLine />}
-          title={formatMessage({ id: "app.proof.closed.title" })}
-          description={formatMessage({ id: "app.proof.closed.body" })}
-        />
-      ) : kind === "notYours" ? (
-        <EmptyState
-          icon={<RiSearchLine />}
-          title={formatMessage({ id: "app.proof.notYours.title" })}
-          description={formatMessage({ id: "app.proof.notYours.body" })}
-        />
-      ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-          <h1 className="text-lg font-medium text-text-strong-950">
+        ) : kind === "error" || kind === "draftRestoreFailed" ? (
+          <div className="flex flex-col items-center gap-3">
+            <EmptyState
+              icon={kind === "draftRestoreFailed" ? <RiErrorWarningLine /> : <RiWifiOffLine />}
+              title={formatMessage({
+                id:
+                  kind === "draftRestoreFailed"
+                    ? "app.proof.draft.restoreFailed.title"
+                    : "app.commitment.error.title",
+              })}
+              description={formatMessage({
+                id:
+                  kind === "draftRestoreFailed"
+                    ? "app.proof.draft.restoreFailed.body"
+                    : "app.commitment.error.body",
+              })}
+            />
+            {onRetry ? (
+              <Button type="button" onClick={onRetry}>
+                {formatMessage({
+                  id:
+                    kind === "draftRestoreFailed"
+                      ? "app.proof.draft.restoreRetry"
+                      : "app.commitments.retry",
+                })}
+              </Button>
+            ) : null}
+          </div>
+        ) : kind === "loading" || kind === "restoringDraft" ? (
+          <p className="text-xs text-text-soft-400" role="status">
             {formatMessage({
-              id: isOnline ? "app.proof.queued.title" : "app.proof.queued.offlineTitle",
-            })}
-          </h1>
-          <p className="max-w-sm text-sm text-text-sub-600">
-            {formatMessage({
-              id: isOnline ? "app.proof.queued.body" : "app.proof.queued.offlineBody",
+              id: kind === "restoringDraft" ? "app.proof.draft.loading" : "app.commitment.loading",
             })}
           </p>
-          <Button type="button" onClick={onBack} className="mt-2">
-            {formatMessage({ id: "app.proof.queued.back" })}
-          </Button>
-        </div>
-      )}
-    </ProofShell>
+        ) : kind === "closed" ? (
+          <EmptyState
+            icon={<RiSearchLine />}
+            title={formatMessage({ id: "app.proof.closed.title" })}
+            description={formatMessage({ id: "app.proof.closed.body" })}
+          />
+        ) : (
+          <EmptyState
+            icon={<RiSearchLine />}
+            title={formatMessage({ id: "app.proof.notYours.title" })}
+            description={formatMessage({ id: "app.proof.notYours.body" })}
+          />
+        )}
+      </div>
+    </>
   );
 }

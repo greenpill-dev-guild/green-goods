@@ -1,15 +1,25 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import type { PoolFundingControllerView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type {
   PoolFundingSnapshot,
   PoolFundingState,
 } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
+import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import { useRef, useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PoolFundingDialog } from "@/views/Garden/Pool/PoolFundingDialog";
 import { PoolFundingSection } from "@/views/Garden/Pool/PoolFundingSection";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
+
+const price = vi.hoisted(() => ({ state: { status: "loading" } as GoodDollarPriceState }));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useGoodDollarPrice", () => ({
+  useGoodDollarPrice: () => ({ state: price.state, readNow: vi.fn() }),
+}));
+
+/** One cent per G$, so the dollars are easy to read off the G$ amounts. */
+const CENT_PER_G: GoodDollarPriceState = { status: "ready", price: 10n ** 16n, readAt: 0 };
 
 const SAFE = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
@@ -101,18 +111,28 @@ function FundingDetailsHarness() {
 }
 
 describe("PoolFundingSection", () => {
-  it("shows the canonical Safe, balance, committed amount, available amount, and readiness", () => {
+  beforeEach(() => {
+    price.state = { status: "unavailable", reason: "missing" };
+  });
+
+  it("reads what is available in dollars first, with G$ beside it, then the Safe and committed", () => {
+    price.state = CENT_PER_G;
     renderSection();
     expect(screen.getByRole("heading", { name: "Pool Funding" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /0x1111…1111/i })).toHaveAttribute(
-      "href",
-      expect.stringContaining(`/address/${SAFE}`)
-    );
-    expect(screen.getByText("1,000 G$")).toBeInTheDocument();
-    expect(screen.getByText("200 G$")).toBeInTheDocument();
-    expect(screen.getByText("697 G$")).toBeInTheDocument();
+    expect(screen.getByText("$6.97")).toBeInTheDocument();
+    expect(screen.getByText("about 697 G$")).toBeInTheDocument();
+    expect(screen.getByText("$10.00 in the Safe · $2.00 committed")).toBeInTheDocument();
     expect(screen.getByText("Healthy")).toBeInTheDocument();
     expect(screen.getByText("Settlement ready")).toBeInTheDocument();
+    // The Safe's address and explorer link live in the details dialog.
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("reads the amounts in G$ while there is no price to convert them at", () => {
+    renderSection();
+    expect(screen.getByText("697 G$")).toBeInTheDocument();
+    expect(screen.getByText("1,000 G$ in the Safe · 200 G$ committed")).toBeInTheDocument();
+    expect(screen.queryByText(/^about/)).not.toBeInTheDocument();
   });
 
   it("keeps initial loading stable and never renders a temporary zero", () => {
@@ -220,7 +240,7 @@ describe("PoolFundingSection", () => {
 
   it("returns keyboard focus to the details trigger when the dialog closes", async () => {
     renderWithProviders(<FundingDetailsHarness />);
-    const trigger = screen.getByRole("button", { name: "View Funding Details" });
+    const trigger = screen.getByRole("button", { name: "View Details" });
     fireEvent.click(trigger);
     const dialog = screen.getByRole("dialog", { name: "Pool Funding Details" });
     fireEvent.keyDown(dialog, { key: "Escape" });
@@ -229,6 +249,22 @@ describe("PoolFundingSection", () => {
 });
 
 describe("PoolFundingDialog", () => {
+  it("names the Safe the pool pays from, with its explorer link", () => {
+    renderWithProviders(
+      <PoolFundingDialog
+        open
+        onOpenChange={() => undefined}
+        funding={fundingView()}
+        tone="garden"
+      />
+    );
+    const dialog = screen.getByRole("dialog", { name: "Pool Funding Details" });
+    expect(within(dialog).getByRole("link", { name: /0x1111…1111/i })).toHaveAttribute(
+      "href",
+      expect.stringContaining(`/address/${SAFE}`)
+    );
+  });
+
   it("separates G$ liquidity from the native CELO network-fee reserve", () => {
     renderWithProviders(
       <PoolFundingDialog

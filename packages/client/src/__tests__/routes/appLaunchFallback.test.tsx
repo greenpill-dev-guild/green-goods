@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 import { cleanup, render } from "@testing-library/react";
 import { StrictMode } from "react";
 import { IntlProvider } from "react-intl";

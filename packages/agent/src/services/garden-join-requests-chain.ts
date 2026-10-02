@@ -1,6 +1,13 @@
 import type { Address } from "@green-goods/shared/types";
 import { GARDEN_ACCOUNT_ROLE_ABI } from "@green-goods/shared/utils/blockchain/abis/garden";
-import { createPublicClient, http, type Chain } from "viem";
+import {
+  createPublicClient,
+  fallback,
+  http,
+  HttpRequestError,
+  TimeoutError,
+  type Chain,
+} from "viem";
 
 export interface GardenJoinRequestChainReader {
   isMember(gardenAddress: Address, accountAddress: Address): Promise<boolean>;
@@ -13,7 +20,30 @@ export function createGardenJoinRequestChainReader(options: {
   chain: Chain;
   rpcUrl: string;
 }): GardenJoinRequestChainReader {
-  const client = createPublicClient({ chain: options.chain, transport: http(options.rpcUrl) });
+  const primary = new URL(options.rpcUrl);
+  const isLocal =
+    primary.hostname === "localhost" ||
+    primary.hostname === "[::1]" ||
+    primary.hostname.startsWith("127.");
+  const publicRpc = options.chain.rpcUrls.default.http[0];
+  // These are public, read-only contract checks. A rate-limited provider must not
+  // strand a request before persistence. Never mix local fork state with live state.
+  const urls =
+    !isLocal && publicRpc && new URL(publicRpc).href !== primary.href
+      ? [options.rpcUrl, publicRpc]
+      : [options.rpcUrl];
+  const client = createPublicClient({
+    chain: options.chain,
+    transport: fallback(
+      urls.map((url) => http(url, { timeout: 2_000, retryCount: 0 })),
+      {
+        retryCount: 0,
+        // Contract reverts and RPC validation errors remain authoritative failures.
+        shouldThrow: (error) =>
+          !(error instanceof HttpRequestError || error instanceof TimeoutError),
+      }
+    ),
+  });
   const read = (
     gardenAddress: Address,
     accountAddress: Address,

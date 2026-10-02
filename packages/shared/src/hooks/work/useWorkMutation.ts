@@ -219,8 +219,11 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         })
       );
       origin.outcome = outcome;
+      // A changed draft must not hide a completed send from its caller: that
+      // caller still owns scheduling the original commitment link. Only UI
+      // effects belong to the current draft; account ownership remains required.
+      if (ownsSession(origin)) lastSubmissionOutcomeRef.current = outcome;
       if (ownsFlow(origin)) {
-        lastSubmissionOutcomeRef.current = outcome;
         setLastSubmissionOutcome(outcome);
       }
       return outcome.txHash;
@@ -424,6 +427,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
 
       showWorkSubmissionFailure(error, {
+        allowOfflineQueue,
         intl,
         authMode,
         actionUID,

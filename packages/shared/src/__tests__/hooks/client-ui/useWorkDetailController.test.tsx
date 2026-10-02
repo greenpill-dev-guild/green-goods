@@ -1,12 +1,14 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Action } from "../../../types/domain";
 
 const mocks = vi.hoisted(() => ({
+  actions: [] as Action[],
   canManageGarden: vi.fn(),
   isUserAddress: vi.fn(),
   navigateToTop: vi.fn(),
@@ -67,7 +69,7 @@ vi.mock("../../../components/Toast/toast.service", () => ({
 }));
 
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
-  useActions: () => ({ data: [] }),
+  useActions: () => ({ data: mocks.actions }),
   useGardens: () => ({
     data: [{ id: "garden-1" }],
     isLoading: false,
@@ -131,6 +133,9 @@ vi.mock("../../../hooks/work/useWorks", () => ({
 
 import { useWorkDetailController } from "../../../hooks/client-ui/work/useWorkDetailController";
 import { useUIStore } from "../../../stores/useUIStore";
+import { createMockAction } from "../../test-utils/mock-factories";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function RouterWrapper({ children }: { children: ReactNode }) {
   return createElement(
@@ -183,6 +188,7 @@ function OlderWorkWrapper({ children }: { children: ReactNode }) {
 describe("useWorkDetailController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.actions = [];
     mocks.userId = "0x1111111111111111111111111111111111111111";
     mocks.approvalParams = null;
     mocks.canManageGarden.mockReturnValue(false);
@@ -300,6 +306,19 @@ describe("useWorkDetailController", () => {
     mocks.isUserAddress.mockReturnValue(false);
     const viewer = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
     expect(viewer.result.current.viewingMode).toBe("viewer");
+  });
+
+  // Action times are milliseconds, as getActions stores them.
+  it.each([
+    ["expired", "has passed", -DAY_MS, true],
+    ["open", "is still ahead", DAY_MS, false],
+  ] as const)("treats the action as %s when its end time %s", (_state, _when, endOffsetMs, expired) => {
+    mocks.actions = [
+      createMockAction({ id: "11155111-action-1", endTime: Date.now() + endOffsetMs }),
+    ];
+    const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+    expect(result.current.isActionExpired).toBe(expired);
   });
 
   it("owns the route fallback for back navigation", () => {

@@ -8,8 +8,11 @@
  * whose editorial cards, dialogs, and panels are square. There is no shape
  * prop. Heights ride the field scale (DL-023): lg 48, md 44, sm 40, compact 32,
  * and the two short sizes keep a 48px hit area. The styles live in shared
- * `theme.css` as `.gg-button[data-*]` rules because Tailwind does not scan
- * `packages/shared/src/` from the app builds.
+ * `theme.css` as `.gg-button[data-*]` rules that read `--gg-button-*` tokens,
+ * so a surface restyles its buttons by setting tokens, not props: the app's
+ * corner and weight tokens sit on `:root`, the website overrides them through
+ * `:root:has([data-site="website"])`, and the cockpit sets its own, plus the
+ * size metrics, in admin's `index.css`.
  *
  * A loading button stays focusable: it is `aria-disabled` and `aria-busy` and
  * ignores activation, a form submit included, instead of dropping focus through

@@ -19,6 +19,7 @@ export {
   parseActionUID,
 } from "./action/parsers";
 export { defaultTemplate, instructionTemplates } from "./action/templates";
+export { hasActionEnded, msUntilActionWindowChange } from "./action/window";
 export {
   ACTION_INSTRUCTIONS_SCHEMA_VERSION,
   ACTION_TRANSLATION_LOCALES,

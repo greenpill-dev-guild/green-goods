@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 /**
@@ -89,6 +89,11 @@ describe("useActionOperations", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // clearAllMocks keeps a test's mockReturnValue, so put back the toast default that runs the
+    // write; otherwise a test that made it throw decides what the next test sees.
+    vi.mocked(useToastAction).mockReturnValue({
+      executeWithToast: vi.fn(async (fn) => fn()),
+    } as any);
 
     // Default: wallet not connected
     vi.mocked(useAccount).mockReturnValue({

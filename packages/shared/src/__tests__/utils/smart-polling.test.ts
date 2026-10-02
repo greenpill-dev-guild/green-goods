@@ -1,7 +1,7 @@
 /**
  * Tests for smart polling with early exit
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

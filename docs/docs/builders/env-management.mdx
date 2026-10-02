@@ -8,8 +8,8 @@ owner: docs
 last_verified: 2026-08-30
 feature_status: Live
 source_of_truth:
-  - .env.schema
-  - .env.template
+  - env.schema
+  - env.template
   - scripts/dev/env-template-init.js
   - scripts/dev/env-sync.js
   - scripts/dev/env-check.js
@@ -43,7 +43,7 @@ Run `bun run env:check` for schema validation and `bun run dev:health` for local
 The health command's advanced profiles (`--profile upload`, for example) explain capability-specific
 blockers. The default local stack needs Docker and indexer credentials; it targets live Arbitrum.
 
-`.env.schema` owns variable requirements. `.env.template` contains references, not secret values.
+`env.schema` owns variable requirements. `env.template` contains references, not secret values.
 Never place secrets in docs, logs, fixtures, package-level files, or generated projections.
 Setup reruns preserve the existing `.env`; setup does not merge or repair it.
 

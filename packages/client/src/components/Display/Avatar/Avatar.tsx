@@ -6,7 +6,7 @@ import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 
 const avatarVariants = tv({
-  base: "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
+  base: "relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full",
   variants: {
     variant: {
       primary: "",

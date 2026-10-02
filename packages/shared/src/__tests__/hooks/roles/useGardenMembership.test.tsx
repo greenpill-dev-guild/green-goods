@@ -1,10 +1,10 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useGardenMembership } from "../../../hooks/roles/useGardenMembership";
-import { renderHookWithProviders } from "../../test-utils";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const mocks = vi.hoisted(() => ({ read: vi.fn() }));
 

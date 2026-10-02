@@ -156,10 +156,12 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
                 onChange({ ...config, needed: updated });
               }}
             />
+            {/* mb-5 lifts a control over the field's reserved supporting line, so it centres on the field. */}
             <AdminIconButton
               variant="danger"
               onClick={() => removeNeeded(index)}
               label={removeShotLabel(index + 1)}
+              className="mb-5"
             >
               <RiCloseLine />
             </AdminIconButton>
@@ -187,7 +189,13 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               defaultMessage: "e.g., Front view, Side view",
             })}
           />
-          <AdminButton type="button" size="sm" onClick={addNeeded} leadingIcon={<RiAddLine />}>
+          <AdminButton
+            type="button"
+            size="sm"
+            onClick={addNeeded}
+            leadingIcon={<RiAddLine />}
+            className="mb-5"
+          >
             {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
           </AdminButton>
         </div>
@@ -222,6 +230,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               variant="danger"
               onClick={() => removeOptional(index)}
               label={removeShotLabel(index + 1)}
+              className="mb-5"
             >
               <RiCloseLine />
             </AdminIconButton>
@@ -249,7 +258,13 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               defaultMessage: "e.g., Close-up, Detail shot",
             })}
           />
-          <AdminButton type="button" size="sm" onClick={addOptional} leadingIcon={<RiAddLine />}>
+          <AdminButton
+            type="button"
+            size="sm"
+            onClick={addOptional}
+            leadingIcon={<RiAddLine />}
+            className="mb-5"
+          >
             {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
           </AdminButton>
         </div>

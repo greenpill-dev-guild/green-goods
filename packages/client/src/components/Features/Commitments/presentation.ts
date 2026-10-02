@@ -54,23 +54,30 @@ export function presentState(state: CommitmentDerivedState): StatePresentation {
  *
  * Direction decides the verb and seat decides the side, which is why both are
  * needed: a provider on an Offer made it, a provider on a Request answered one.
+ * Once a promise is kept, the work it describes is done, so the sentences that
+ * say it is still happening move to the past.
  */
 export function relationshipLabelId(
   seat: CommitmentSeat | null,
-  direction: CommitmentReadModel["direction"]
+  direction: CommitmentReadModel["direction"],
+  { kept = false }: { kept?: boolean } = {}
 ): string | null {
   const isRequest = direction === "REQUEST";
   switch (seat) {
     case "provider":
       return isRequest
-        ? "app.commitments.relationship.providerOnRequest"
+        ? kept
+          ? "app.commitments.relationship.providerOnRequestKept"
+          : "app.commitments.relationship.providerOnRequest"
         : "app.commitments.relationship.providerOnOffer";
     case "confirmer":
       return isRequest
         ? "app.commitments.relationship.confirmerOnRequest"
         : "app.commitments.relationship.confirmerOnOffer";
     case "contributor":
-      return "app.commitments.relationship.contributor";
+      return kept
+        ? "app.commitments.relationship.contributorKept"
+        : "app.commitments.relationship.contributor";
     default:
       return null;
   }

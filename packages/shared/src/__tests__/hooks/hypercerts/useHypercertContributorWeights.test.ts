@@ -1,6 +1,6 @@
 /**
  * useHypercertContributorWeights Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests that contributor weights are correctly derived from
  * selected attestations via the buildContributorWeights function.

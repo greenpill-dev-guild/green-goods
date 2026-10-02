@@ -1,6 +1,6 @@
 /**
  * AccountInfo passkey recovery note tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen } from "@testing-library/react";

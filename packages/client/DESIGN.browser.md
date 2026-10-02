@@ -99,7 +99,7 @@ Stacks gracefully on mobile. Schedule-a-Call lives in `PublicGetInTouch` above t
 
 An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog over the `/gardens` grid — an accident of an unrelated homepage-polish commit, not a decision — which cost the page its footer, gave an editorial long-read a nested scroll container, and left the return trip to the archive undefined.
 
-- `PublicEditorialHero variant="banner"`. Image is the Garden's own `bannerImage`, falling back to `getPublicHeroImage("gardens")`. Location is the kicker, name is the H1, description is the lede. A quiet `← All Gardens` sits in the hero's `actions` slot.
+- `PublicEditorialHero variant="banner"`. Image is the Garden's own `bannerImage`, falling back to `getPublicHeroImage("gardens")`. The hero card shows the Garden name first, followed by the location in regular sentence-case body text with normal letter spacing. Reserve two lines for the location and let longer names wrap without clipping; never style it as a kicker or eyebrow. The hero contains these identity details only; it has no description preview or expansion controls. A quiet text link, `← All Gardens`, sits directly below the overlapping hero card, without extra section-top whitespace. The full description appears once, always visible in the page body under “About this garden,” before the record strip. Long text wraps naturally; it does not change the hero card.
 - Four-cell record strip under the hero: **Entries · Hands at work · Assessments · Certificates**. Do not widen it — the commitment-pooling section brings its own counts.
 - Single-column numbered sections: **§ 01 Field notes → § 02 Commitments → § 03 Impact Certificates → § 04 Stewards**. No side rail; only the transactional `/fund` carries one, and the dialect treats boxed rails as chrome.
 - § 02 Commitments is the Garden's record across seasons and campaigns. Header and body both compose directly on the canvas in the page's own grammar — headers on linen, hairline dividers, § 01-style stat rows (the 2026-08-25 supersession of the PR-748 `EditorialPanel` body; no section on this page is card-wrapped). The record reads: the pool-state sentence beside the lifetime **Commitments made · Kept · Kept rate** (the rate only when `selectPublicPromiseKeptRate` publishes it), then the open Season and Campaigns beside the pool-wide exact-label units, then the finished cycles newest first, then the line that ties fulfilled commitments to § 03. A section body, not a rail. Never pause reasons, providers, addresses, cancelled or disputed counts, or rankings.
@@ -113,7 +113,7 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 ## `/impact`
 
 - Aggregate counts (`Total Assessments` / `Total Gardens` / `Total Contributors`).
-- § 02 Commitments band between the proof markers and the cycle: header and record both on the linen (2026-08-25 panel supersession) — four protocol-wide aggregates — Gardens with open pools, commitments fulfilled (lifetime), commitments kept (a share only above the ≥ 5 due / ≥ 3 providers threshold, counts below it), and CCIP-confirmed G$ support — with the lifecycle sentence and `See the Gardens` as the record's hairline footer line. No per-garden table or ordering; a failed figure is an em dash, never `0`.
+- § 02 Commitments band between the proof markers and the cycle: header and record both on the linen. "Commitments within communities" introduces the community story before three lifetime figures: commitments made (offers plus requests), commitments kept (confirmed fulfilled count), and funding received in US dollars. Funding uses historical G$ prices near each confirmed transfer's Celo execution time, never the current rate; missing receipt evidence or reliable historical prices leaves that figure unavailable. The three figures stack on phones and sit side by side from `md`. `See the Gardens` closes the record. No open-pool count, percentage, per-garden table, or ordering. This band labels unavailable figures in words and uses no em dashes in its copy.
 - Evidence cards from `usePublicImpactEvidence`. Cards open `PublicEvidenceDialog` (a `PublicRecordDrawer` composition) with a readable Assessment summary and an EAS reference link when available.
 - Honest states: loading, empty, EAS-unavailable, `partialData`, `sourceLimitReached` (the v1 caps are 50 Gardens / 100 records, sliced locally page-by-page).
 - No Hypercert gallery placeholder, no Karma GAP claims.
@@ -146,7 +146,7 @@ Manage Endowments is the only public withdrawal surface in v1. It is wallet-owne
 ## `/actions`
 
 - Domain filter chips (All / Solar / Agro / Education / Waste).
-- `PublicActionCard` grid; cards open `PublicSourceDialog` with media, description, and an `Install App` CTA in the dialog footer.
+- `PublicActionCard` grid; cards open `PublicSourceDialog` with media and description. The Install App CTA belongs in the site header, not action details.
 - No public create or edit controls.
 
 ## Typography
@@ -197,7 +197,7 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
   - Mobile: bottom sheet with square corners, like every other editorial surface (DL-024). The record drawer above keeps its rounded top.
   - The actions inside these surfaces are the shared buttons (see Buttons and Fields), not square blocks.
   - Labelled title (`aria-labelledby` → `<h2>` id), Escape close, overlay click close, focus moved to the close button on mount.
-  - Mobile-safe width: `max-w-[calc(100vw-2rem)]` clamps the dialog under 375px viewports.
+  - Every mobile bottom sheet spans the full viewport width, with padding inside the sheet. Width caps apply only to desktop dialogs and side panels.
 - **Modals portal to `document.body`.** `.editorial-section-reveal` applies a transform, and a transformed ancestor becomes the containing block for `position: fixed` — a dialog rendered inside a revealed section sizes and scrolls against that section instead of the viewport. `PublicRecordDrawer` and `PublicSourceDialog` portal internally, so a consumer is safe wherever it is rendered. Do not rely on a call site happening to sit outside a transform.
 - Source-morph transitions require unique transition names per item; until that lands, public surfaces fall back to simple fades.
 - All motion respects reduced-motion preferences.

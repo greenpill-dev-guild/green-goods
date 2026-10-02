@@ -90,7 +90,7 @@ AI design tools should map output to these exports. Full palette lives in the pr
 - Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)
 - Dialogs: `DialogShell` (client / shared default; admin dashboard dialogs use `AdminDialog`)
 - Cards / status: `Card`, `StatCard`, `StatusBadge`, `Alert`
-- Primitives: `Button`, `Skeleton`, `Spinner`, `FileUploadField`, `ListPrimitives`, `Surface`, `SyncStatusBar`, `AddressDisplay`, `DomainBadge`
+- Primitives: `Button`, `Skeleton`, `Spinner`, `FileUploadField`, `ListPrimitives`, `Surface`, `AddressDisplay`, `DomainBadge`
 
 Full palettes with file paths live in `prompt-contract.md` and `client-prompt-contract.md`.
 

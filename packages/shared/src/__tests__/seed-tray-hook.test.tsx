@@ -1,34 +1,69 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 /**
  * useSeedTray — the seeding tray bound to the wizard's one form.
  *
  * The form only ever holds one row. What this proves is what happens to the
- * rows it is not holding: their answers survive the form being handed another
- * row, a late default never overwrites a copied answer, and a row is sent under
- * the id it was given however many times it takes.
+ * rows it is not holding (their answers survive the form being handed another
+ * row, and a late default never overwrites a copied answer), and what a Create
+ * fixes: each copy's id, the set's one deadline and group, and the payload a
+ * retry sends again. How copies are sent is `creation-send`'s, proven over the
+ * real queue in its own test; here it is scripted.
  */
 
-import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { type SeedTrayRow, useSeedTray } from "../hooks/admin-ui/pool/useSeedTray";
+import { useSeedTray, type SeedCopyTerms } from "../hooks/admin-ui/pool/useSeedTray";
 import {
   applyLateComposerDefaults,
   type CommitmentComposerValues,
   useCommitmentComposerForm,
 } from "../hooks/commitment-pooling/useCommitmentComposerForm";
-import type { CommitmentSendReport } from "../hooks/commitment-pooling/useCommitmentJobs";
+import type { CreationCopy, CreationSendInput } from "../modules/commitment-pooling/creation-send";
+import type { SeedCopyProgress } from "../modules/commitment-pooling/seed-sets";
+import type { Address } from "../types/domain";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
-type CreateRow = (
-  row: SeedTrayRow,
-  report: (event: CommitmentSendReport) => void
-) => Promise<unknown>;
+const send = vi.hoisted(() => ({
+  script: (copy: CreationCopy): Partial<SeedCopyProgress> => ({ status: "created" }),
+  calls: [] as CreationCopy[][],
+}));
 
-function setup(createRow: CreateRow = vi.fn(async () => "job")) {
-  const view = renderHook(() => {
+vi.mock("../modules/commitment-pooling/creation-send", () => ({
+  creationSendMode: vi.fn(async () => "bundle"),
+  sendCreationCopies: vi.fn(async (input: CreationSendInput) => {
+    send.calls.push([...input.copies]);
+    return input.copies.map((copy) => {
+      const progress = {
+        clientCommitmentId: copy.clientCommitmentId,
+        txHash: null,
+        jobId: null,
+        status: "created",
+        ...send.script(copy),
+      } as SeedCopyProgress;
+      input.onCopy?.(progress);
+      return progress;
+    });
+  }),
+}));
+vi.mock("../modules/job-queue/default-instance", () => ({ jobQueue: {} }));
+vi.mock("../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => ({ authMode: "wallet" }),
+}));
+
+const STEWARD = "0x1111111111111111111111111111111111111111" as Address;
+
+function setup() {
+  const buildCopy = vi.fn((values: CommitmentComposerValues, copy: SeedCopyTerms) => ({
+    clientCommitmentId: copy.clientCommitmentId,
+    dueDate: copy.dueDate,
+    title: values.title,
+    displayGroupId: copy.displayGroup?.id ?? null,
+  })) as unknown as ReturnType<typeof vi.fn> & Parameters<typeof useSeedTray>[0]["buildCopy"];
+  const view = renderHookWithProviders(() => {
     const form = useCommitmentComposerForm({ kind: "SEASON_CAMPAIGN" });
-    return { form, tray: useSeedTray({ form, createRow }) };
+    return { form, tray: useSeedTray({ form, chainId: 42161, owner: STEWARD, buildCopy }) };
   });
   const write = (answers: Partial<CommitmentComposerValues>) =>
     act(() => {
@@ -38,10 +73,25 @@ function setup(createRow: CreateRow = vi.fn(async () => "job")) {
         });
       }
     });
-  return { view, write, createRow };
+  const create = async () => {
+    let outcome: string | undefined;
+    await act(async () => {
+      outcome = await view.result.current.tray.sendAll();
+    });
+    return outcome;
+  };
+  return { view, write, create, buildCopy };
 }
 
 const rides = { title: "Market rides", unitLabel: "rides", targetUnits: 4 };
+const surveys = { title: "Household water survey", unitLabel: "survey", targetUnits: 1, count: 10 };
+const payloadOf = (copy: CreationCopy) =>
+  copy.payload as unknown as { dueDate: bigint; title: string; displayGroupId: string | null };
+
+beforeEach(() => {
+  send.calls = [];
+  send.script = () => ({ status: "created" });
+});
 
 describe("useSeedTray", () => {
   it("adds another like this: the row is kept and its answers carry over as the steward's own", async () => {
@@ -62,17 +112,14 @@ describe("useSeedTray", () => {
   });
 
   it("moves nothing while the answers in the form break the composer's rules", async () => {
-    const { view, createRow } = setup();
+    const { view, create, buildCopy } = setup();
 
     await act(() => view.result.current.tray.addAnother());
-    let outcome: string | undefined;
-    await act(async () => {
-      outcome = await view.result.current.tray.sendAll();
-    });
 
     expect(view.result.current.tray.others).toEqual([]);
-    expect(outcome).toBe("invalid");
-    expect(createRow).not.toHaveBeenCalled();
+    expect(await create()).toBe("invalid");
+    expect(buildCopy).not.toHaveBeenCalled();
+    expect(send.calls).toEqual([]);
   });
 
   it("takes an earlier row back into the form and keeps the one that was there", async () => {
@@ -95,70 +142,84 @@ describe("useSeedTray", () => {
     expect(view.result.current.tray.size).toBe(1);
   });
 
-  it("keeps the last pass, row by row, until the steward puts it away", async () => {
-    const createRow = vi.fn<CreateRow>(async (row, report) => {
-      if (row.values.title === "Clinic rides") throw new Error("execution reverted");
-      report({ stage: "landed", txHash: "0xabc" });
-    });
-    const { view, write } = setup(createRow);
-    expect(view.result.current.tray.pass).toBeNull();
-    write(rides);
-    await act(() => view.result.current.tray.addAnother());
-    write({ title: "Clinic rides" });
+  it("fixes a row's copies at its first Create: an id each, one deadline and one group", async () => {
+    const { view, write, create, buildCopy } = setup();
+    write(surveys);
+    expect(view.result.current.tray.size).toBe(10);
 
-    await act(async () => {
-      await view.result.current.tray.sendAll();
-    });
+    expect(await create()).toBe("sent");
 
-    expect(view.result.current.tray.pass).toEqual([
-      expect.objectContaining({ title: "Market rides", status: "created", txHash: "0xabc" }),
-      expect.objectContaining({ title: "Clinic rides", status: "not-sent", txHash: null }),
-    ]);
-    act(() => view.result.current.tray.clearPass());
-    expect(view.result.current.tray.pass).toBeNull();
-    // Putting the pass away keeps the row that was not sent, ready to send again.
-    expect(view.result.current.tray.currentNotSent).toBe(true);
+    const [copies] = send.calls;
+    expect(copies).toHaveLength(10);
+    expect(new Set(copies!.map((copy) => copy.clientCommitmentId)).size).toBe(10);
+    expect(new Set(copies!.map((copy) => payloadOf(copy).dueDate)).size).toBe(1);
+    const groups = new Set(copies!.map((copy) => payloadOf(copy).displayGroupId));
+    expect(groups.size).toBe(1);
+    expect([...groups][0]).toEqual(expect.any(String));
+    expect(buildCopy).toHaveBeenCalledTimes(10);
+    expect(view.result.current.tray.copies?.map((copy) => copy.status)).toEqual(
+      Array(10).fill("created")
+    );
   });
 
-  it("sends each row under the id it was given, keeps what failed, and sends that one again as itself", async () => {
-    const sentIds: string[] = [];
-    const createRow = vi.fn(async (row: SeedTrayRow) => {
-      sentIds.push(row.clientCommitmentId);
-      if (row.values.title === "Clinic rides" && sentIds.length <= 3) {
-        throw new Error("execution reverted");
-      }
-    });
-    const { view, write } = setup(createRow);
+  it("retries only the copies that didn't send, with the payloads they were built with", async () => {
+    const { view, write, create, buildCopy } = setup();
+    write(surveys);
+    let failing = 3;
+    send.script = () =>
+      failing-- > 0 ? { status: "not-sent", miss: "declined" } : { status: "created" };
+
+    expect(await create()).toBe("left");
+    expect(view.result.current.tray.retryCount).toBe(3);
+
+    expect(await create()).toBe("sent");
+    const [first, retry] = send.calls;
+    expect(retry).toEqual(first!.slice(0, 3));
+    // Nothing rebuilt: a retry sends what the first Create fixed, deadline included.
+    expect(buildCopy).toHaveBeenCalledTimes(10);
+    expect(view.result.current.tray.retryCount).toBe(0);
+    // The wallet is asked about the retried three, not the whole set.
+    expect(view.result.current.tray.pass?.map((copy) => copy.clientCommitmentId)).toEqual(
+      retry!.map((copy) => copy.clientCommitmentId)
+    );
+  });
+
+  it("locks a row once some of it exists: its answers can't be changed or removed", async () => {
+    const { view, write, create } = setup();
     write(rides);
     await act(() => view.result.current.tray.addAnother());
-    write({ title: "Clinic rides" });
-    await act(() => view.result.current.tray.addAnother());
-    write({ title: "School rides" });
+    write({ ...surveys });
+    send.script = (copy) =>
+      payloadOf(copy).title === "Market rides" ? { status: "created" } : { status: "later" };
+    await create();
+    const [marketRow] = view.result.current.tray.others;
 
-    let outcome: string | undefined;
-    await act(async () => {
-      outcome = await view.result.current.tray.sendAll();
-    });
+    expect(view.result.current.tray.currentLocked).toBe(true);
+    expect(view.result.current.tray.isLocked(marketRow!.clientCommitmentId)).toBe(true);
+    act(() => view.result.current.tray.remove(marketRow!.clientCommitmentId));
+    act(() => view.result.current.tray.removeCurrent());
+    expect(view.result.current.tray.others).toHaveLength(1);
+    expect(view.result.current.tray.size).toBe(11);
+  });
 
-    expect(outcome).toBe("left");
-    expect(createRow.mock.calls.map(([row]) => row.values.title)).toEqual([
-      "Market rides",
-      "Clinic rides",
-      "School rides",
+  it("keeps a row's answers editable while nothing of it exists", async () => {
+    const { view, write, create, buildCopy } = setup();
+    write({ ...surveys, count: 2 });
+    send.script = () => ({ status: "not-sent", miss: "declined" });
+    await create();
+    expect(view.result.current.tray.currentLocked).toBe(false);
+    const declined = send.calls[0]!.map((copy) => copy.clientCommitmentId);
+
+    write({ title: "Rain barrel survey" });
+    send.script = () => ({ status: "created" });
+    expect(await create()).toBe("sent");
+
+    const rebuilt = send.calls[1]!;
+    expect(rebuilt.map((copy) => payloadOf(copy).title)).toEqual([
+      "Rain barrel survey",
+      "Rain barrel survey",
     ]);
-    const { form, tray } = view.result.current;
-    expect(tray.lastSend).toEqual({ sent: 2, left: 1 });
-    expect(tray.size).toBe(1);
-    expect(tray.currentNotSent).toBe(true);
-    // The row that is left is the one in the form, ready to be changed or sent again.
-    expect(form.getValues("title")).toBe("Clinic rides");
-
-    await act(async () => {
-      outcome = await view.result.current.tray.sendAll();
-    });
-    expect(outcome).toBe("sent");
-    // The same id as its first send: a second send can never be a second commitment.
-    expect(sentIds[3]).toBe(sentIds[1]);
-    expect(new Set(sentIds.slice(0, 3)).size).toBe(3);
+    expect(rebuilt.map((copy) => copy.clientCommitmentId)).not.toEqual(declined);
+    expect(buildCopy).toHaveBeenCalledTimes(4);
   });
 });

@@ -3,6 +3,8 @@ import {
   COMMITMENT_TITLE_MAX_LENGTH,
   COMMITMENT_UNIT_LABEL_MAX_LENGTH,
 } from "../../../modules/commitment-pooling/metadata";
+import type { Action } from "../../../types/domain";
+import { hasActionEnded } from "../../../utils/action/window";
 import {
   type CommitmentComposerValues,
   commitmentComposerSchema,
@@ -23,6 +25,7 @@ export type ComposerBlockedReason =
   | "count"
   | "action"
   | "rowCount"
+  | "closedAction"
   | "noteTooLong"
   | null;
 
@@ -64,11 +67,37 @@ function selectReason(beat: ComposerBeat, values: CommitmentComposerValues): Com
   return null;
 }
 
-/** Pure schema-backed validity and human-readable blocking reason for one beat. */
+/**
+ * The chosen actions whose window has ended by `now`, in the order they were
+ * chosen. A commitment naming one could never be kept.
+ */
+export function selectClosedActionUIDs(
+  values: CommitmentComposerValues,
+  actions: readonly Action[],
+  chainId: number,
+  now: number
+): string[] {
+  if (values.kind !== "GARDEN_WORK") return [];
+  return values.requirements
+    .map((row) => row.actionUID)
+    .filter((uid) => {
+      const action = actions.find((candidate) => candidate.id === `${chainId}-${uid}`);
+      return action !== undefined && hasActionEnded(action, now);
+    });
+}
+
+/**
+ * Pure schema-backed validity and human-readable blocking reason for one beat.
+ * A chosen action that has closed stops the beat that chose it and placement.
+ */
 export function selectBeatValidity(
   beat: ComposerBeat,
-  values: CommitmentComposerValues
+  values: CommitmentComposerValues,
+  closedActionUIDs: readonly string[] = []
 ): ComposerBeatValidity {
+  if ((beat === "howMuch" || beat === "review") && closedActionUIDs.length > 0) {
+    return { canAdvance: false, reason: "closedAction" };
+  }
   const fields: readonly (keyof CommitmentComposerValues)[] = BEAT_FIELDS[beat];
   if (fields.length === 0) return { canAdvance: true, reason: null };
   const result = commitmentComposerSchema.safeParse(values);

@@ -189,9 +189,9 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
         // Tier 2e: Floating FAB layer for tablet (600–1023px) and mobile (<600px).
         // Hidden at >=1024px per audit §5.4.4 — desktop puts inline header actions
         // in the page header instead.
-        // Inline-style position: Tailwind v4 does not scan packages/shared/src/
-        // from admin/client builds, so `fixed`, `inset-x-0`, `bottom-[…]`, `z-nav`,
-        // and `px-4` would silently fail to generate. See CLAUDE.md "Known Gotchas".
+        // Inline-style position, from before the app builds scanned shared source.
+        // Utilities (`fixed`, `inset-x-0`, `bottom-[…]`, `z-nav`, `px-4`) would work
+        // here too.
         <div
           style={{
             position: "fixed",
@@ -229,10 +229,10 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           data-component="NavigationBar"
           data-slot="desktop"
           data-state="visible"
-          // Inline style for `position: fixed; bottom; left; right; z-index` per
-          // CLAUDE.md "Known Gotchas" — Tailwind v4 doesn't scan packages/shared
-          // from admin/client builds, so positional utilities can silently fail
-          // to compile. Bottom offset reads the admin sheet-system token (single
+          // Inline style for `position: fixed; bottom; left; right; z-index`, from
+          // before the app builds scanned shared source, and for
+          // `--admin-nav-item-count`, which comes from the slot list at runtime.
+          // Bottom offset reads the admin sheet-system token (single
           // source of truth shared with the sheet-clearance calc); the 20px
           // default preserves the handoff contract for any non-admin consumer.
           style={desktopNavStyle}
@@ -266,9 +266,9 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           data-component="NavigationBar"
           data-slot="mobile"
           data-state="visible"
-          // Inline-style position: admin/client builds do not scan shared JSX for
-          // arbitrary `bottom-[...]` or `inset-x-*` classes. Keep only the visual
-          // treatment in classes so Storybook stays close to the shared source.
+          // Inline-style position, from before the app builds scanned shared
+          // source. The position classes below carry the same values, so either
+          // one alone would place the bar.
           style={{
             position: "fixed",
             left: "0.75rem",

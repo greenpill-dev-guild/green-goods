@@ -6,7 +6,7 @@
  * - Editorial header + featured row + browse with search input.
  * - Cards link to `/gardens/<slug>` (slug, not id).
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";

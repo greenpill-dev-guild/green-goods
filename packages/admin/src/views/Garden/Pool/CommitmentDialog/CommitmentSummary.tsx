@@ -1,12 +1,9 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { useIntl } from "react-intl";
-import {
-  commitmentStateChip,
-  directionLabel,
-  formatUnixDate,
-  shortAddress,
-} from "../poolPresentation";
+import { CommitmentPeople } from "../CommitmentPeople";
+import { commitmentStateChip, directionLabel } from "../poolPresentation";
+import { dueDateText } from "../poolTime";
 import { type FallbackPath, STAGES, stageLabels } from "./commitmentDialogPresentation";
 
 /**
@@ -30,7 +27,8 @@ export function CommitmentSummary({
   /** Where the record stands on STAGES, or -1 once it has left the lifecycle. */
   stage: number;
 }) {
-  const { formatMessage, locale } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const chip = commitmentStateChip(commitment, formatMessage);
   const labels = stageLabels(commitment.direction, formatMessage);
 
@@ -61,21 +59,21 @@ export function CommitmentSummary({
         <h3 className="text-title-md font-semibold text-text-strong" title={title}>
           {title}
         </h3>
-        <p className="body-sm text-text-soft">
-          {[
-            commitment.counterparty
-              ? `${shortAddress(commitment.creator)} → ${shortAddress(commitment.counterparty)}`
-              : shortAddress(commitment.creator),
-            `${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim(),
-            commitment.dueDate
-              ? formatMessage(
-                  { id: "cockpit.garden.pool.row.due", defaultMessage: "due {date}" },
-                  { date: formatUnixDate(commitment.dueDate, locale, "—") }
-                )
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
+        {/* Who it is between, in the pool row's words, then what it asks and when. */}
+        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 body-sm text-text-soft">
+          <CommitmentPeople commitment={commitment} className="body-sm" />
+          <span>
+            · {`${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim()}
+          </span>
+          {commitment.dueDate ? (
+            <span>
+              ·{" "}
+              {formatMessage(
+                { id: "cockpit.garden.pool.row.due", defaultMessage: "due {date}" },
+                { date: dueDateText(intl, Number(commitment.dueDate) * 1000, Date.now()) }
+              )}
+            </span>
+          ) : null}
         </p>
         {note ? <p className="body-sm text-text-sub">{note}</p> : null}
       </header>

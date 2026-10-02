@@ -1,16 +1,17 @@
 /**
  * useWorkApprovals Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the work approvals query hook including memoization stability,
  * type correctness, and query key usage.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -64,21 +65,6 @@ import { useWorkApprovals } from "../../../hooks/work/useWorkApprovals";
 
 const TEST_CHAIN_ID = 11155111;
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-}
-
 // ============================================
 // Tests
 // ============================================
@@ -88,7 +74,7 @@ describe("useWorkApprovals", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockQueryFn.mockResolvedValue({ data: null, error: null });
     mockGetWorksByUIDs.mockResolvedValue([]);
   });
@@ -101,8 +87,8 @@ describe("useWorkApprovals", () => {
     it("uses queryKeys.workApprovals.byAttester directly without fallback", async () => {
       const attesterAddress = MOCK_ADDRESSES.steward;
 
-      const { result } = renderHook(() => useWorkApprovals(attesterAddress), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(attesterAddress), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -116,8 +102,8 @@ describe("useWorkApprovals", () => {
     });
 
     it("does not enable query when attester address is undefined", () => {
-      const { result } = renderHook(() => useWorkApprovals(undefined), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(undefined), {
+        queryClient,
       });
 
       expect(result.current.isLoading).toBe(false);
@@ -139,8 +125,8 @@ describe("useWorkApprovals", () => {
         },
       });
 
-      const { result } = renderHook(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -171,8 +157,8 @@ describe("useWorkApprovals", () => {
         { id: workUID, gardenAddress: MOCK_ADDRESSES.garden, title: "Restored trail", media },
       ]);
 
-      const { result } = renderHook(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
+        queryClient,
       });
 
       await waitFor(() => expect(result.current.completedApprovals).toHaveLength(1));
@@ -224,9 +210,12 @@ describe("useWorkApprovals", () => {
 
       queryClient.setQueryData(queryKey, mockApprovals);
 
-      const { result, rerender } = renderHook(() => useWorkApprovals(attesterAddress), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result, rerender } = renderHookWithQueryClient(
+        () => useWorkApprovals(attesterAddress),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.approvals.length).toBe(2);
@@ -298,8 +287,8 @@ describe("useWorkApprovals", () => {
 
       queryClient.setQueryData(queryKey, mockApprovals);
 
-      const { result } = renderHook(() => useWorkApprovals(attesterAddress), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(attesterAddress), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -349,8 +338,8 @@ describe("useWorkApprovals", () => {
 
       queryClient.setQueryData(queryKey, mockApprovals);
 
-      const { result } = renderHook(() => useWorkApprovals(attesterAddress), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(attesterAddress), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -370,8 +359,8 @@ describe("useWorkApprovals", () => {
     it("returns empty arrays on query error without throwing", async () => {
       mockQueryFn.mockRejectedValue(new Error("Network error"));
 
-      const { result } = renderHook(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
+        queryClient,
       });
 
       await waitFor(() => {

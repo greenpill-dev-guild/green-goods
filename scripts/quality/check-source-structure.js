@@ -131,7 +131,7 @@ export const FROZEN_ALLOWLIST = {
   "packages/client/src/components/Public/Vault/VaultCheckoutDialog.tsx": 1171,
   "packages/client/src/components/Public/Vault/VaultManagePositionsPanel.tsx": 923,
   "packages/client/src/components/Public/atoms/EditorialAtoms.tsx": 538,
-  "packages/client/src/views/Garden/Media.tsx": 728,
+  "packages/client/src/views/Garden/Media.tsx": 720,
   "packages/client/src/views/Public/Fund.tsx": 775,
   "packages/client/src/views/Public/Impact.tsx": 627,
   "packages/contracts/src/modules/Gardens.sol": 914,
@@ -139,7 +139,7 @@ export const FROZEN_ALLOWLIST = {
   "packages/contracts/src/modules/Octant.sol": 769,
   "packages/contracts/src/resolvers/Yield.sol": 899,
   "packages/contracts/src/tokens/Garden.sol": 502,
-  "packages/shared/src/components/Toast/toast.service.tsx": 799,
+  "packages/shared/src/components/Toast/toast.service.tsx": 776,
   "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 568,
   "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts": 727,
   "packages/shared/src/hooks/index.ts": 604,
@@ -464,6 +464,90 @@ function namingViolation(root, filePath) {
   };
 }
 
+// Import seams keep a test from loading whole subtrees it never uses: Admin and Client reach Shared
+// only through declared leaves, and Shared reaches its own modules through leaves rather than
+// high-fanout barrels. They cover every Admin and Client file, tests and stories included, and
+// Shared's production files other than the barrels themselves.
+const EXACT_SHARED_ROOT =
+  /(?:from\s+|import\s*\(|import\s+|vi\.(?:mock|importActual)\s*\()\s*["']@green-goods\/shared["']/;
+const BROAD_CONSUMER_BARREL =
+  /@green-goods\/shared\/(?:components|config|constants|hooks|i18n|mocks|modules|profile-avatar|providers|public-contracts|stores|testing|types|utils|workflows)(?=["'])/;
+const SHARED_SPECIFIER =
+  /(?:from\s+|import\s*\(\s*|import\s+|vi\.(?:mock|importActual)\s*\(\s*)["'](@green-goods\/shared(?:\/[^"']+)?)["']/g;
+const MOCKED_SPECIFIER = /vi\.(?:mock|importActual)\s*\(\s*["']([^"']+)["']/g;
+const DEEP_RELATIVE_SHARED_SOURCE =
+  /(?:from\s+|import\s*\(|vi\.(?:mock|importActual)\s*\()\s*["'][^"']*shared\/src\//;
+const SHARED_INTERNAL_BARREL =
+  /from\s+["'][^"']*\/(?:config(?:\/query-keys)?|hooks|modules(?:\/data\/ipfs|\/job-queue|\/marketplace)?|public-contracts(?:\/saved-offers)?|utils(?:\/blockchain\/abis)?)["']/;
+const QUERY_KEY_REGISTRY = /from\s+["'][^"']*config\/query-keys\/registry["']/;
+const DEFAULT_CHAIN_FROM_BLOCKCHAIN = /DEFAULT_CHAIN_ID[^\n]*from\s+["'][^"']*config\/blockchain["']/;
+
+function withoutComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+}
+
+function isSharedBarrelOrTestFile(filePath) {
+  return (
+    /\/(?:__tests__|__mocks__)\//.test(filePath) ||
+    /\.(?:test|spec|stories)\.(?:ts|tsx)$/.test(filePath) ||
+    filePath.endsWith("/index.ts")
+  );
+}
+
+function importSeamViolations(root, filePaths, sharedExportKeys) {
+  const violations = [];
+  const violation = (filePath, check, message) =>
+    violations.push({
+      id: `import-seam:${filePath}:${check}`,
+      rule: "import-seam",
+      path: filePath,
+      baselineEligible: false,
+      message: `${filePath}: ${message}`,
+    });
+  for (const filePath of filePaths) {
+    if (!/\.(?:ts|tsx)$/.test(filePath) || !existsSync(resolve(root, filePath))) continue;
+    const consumer = /^packages\/(?:admin|client)\/src\//.test(filePath);
+    const shared = filePath.startsWith("packages/shared/src/") && !isSharedBarrelOrTestFile(filePath);
+    if (!consumer && !shared) continue;
+    const source = withoutComments(readSource(root, filePath));
+    if (EXACT_SHARED_ROOT.test(source)) {
+      violation(
+        filePath,
+        "shared-root",
+        consumer ? "import a declared Shared leaf, not the package root" : "Shared must not import its own package root",
+      );
+    }
+    if (shared) {
+      if (QUERY_KEY_REGISTRY.test(source)) {
+        violation(filePath, "query-key-registry", "import the domain query-key leaf, not the registry");
+      }
+      if (SHARED_INTERNAL_BARREL.test(source)) {
+        violation(filePath, "internal-barrel", "import an internal leaf instead of a high-fanout barrel");
+      }
+      if (DEFAULT_CHAIN_FROM_BLOCKCHAIN.test(source)) {
+        violation(filePath, "default-chain", "import DEFAULT_CHAIN_ID from config/default-chain");
+      }
+      continue;
+    }
+    if (BROAD_CONSUMER_BARREL.test(source)) {
+      violation(filePath, "broad-barrel", "do not restore a broad Shared barrel");
+    }
+    if (DEEP_RELATIVE_SHARED_SOURCE.test(source)) {
+      violation(filePath, "deep-relative", "reach Shared through its package exports, not a relative path");
+    }
+    // Production files' imports are the shared-import rule's; this adds tests, stories and mocks.
+    const specifiers = isStructurePolicyFile(filePath)
+      ? [...source.matchAll(MOCKED_SPECIFIER)].map((match) => match[1])
+      : [...source.matchAll(SHARED_SPECIFIER)].map((match) => match[1]);
+    for (const specifier of new Set(specifiers)) {
+      if (!isDeclaredSharedSpecifier(specifier, sharedExportKeys)) {
+        violation(filePath, `undeclared:${specifier}`, `${specifier} is not a declared @green-goods/shared export`);
+      }
+    }
+  }
+  return violations;
+}
+
 export function collectStructureViolations({
   root,
   filePaths,
@@ -575,6 +659,7 @@ export function collectStructureViolations({
     }
   }
 
+  violations.push(...importSeamViolations(root, filePaths, sharedExportKeys));
   return violations.sort((left, right) => left.id.localeCompare(right.id));
 }
 

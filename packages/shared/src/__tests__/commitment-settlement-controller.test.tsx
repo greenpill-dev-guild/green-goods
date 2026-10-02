@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,7 +13,7 @@ import {
   commitmentFixture,
   contributorFixture,
 } from "./test-utils/commitment-pooling-fixtures";
-import { renderHookWithProviders } from "./test-utils";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const PAYER = "0xf401f34378384713222d1d21f63359cc4e8a858a" as Address;
 const PROVIDER = "0xf7b892886998dae960d64a9db488336684f137a0" as Address;

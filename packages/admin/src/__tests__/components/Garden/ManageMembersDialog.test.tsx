@@ -115,6 +115,12 @@ describe("components/Garden/ManageMembersDialog", () => {
     await user.type(search, "owner");
     expect(screen.getAllByTestId("address-display")).toHaveLength(1);
     expect(screen.getByText(OWNER.slice(0, 10))).toBeInTheDocument();
+
+    // A member without an ENS name is printed in the row's short form; typing it as shown finds them.
+    await user.clear(search);
+    await user.type(search, "0x44...444");
+    expect(screen.getAllByTestId("address-display")).toHaveLength(1);
+    expect(screen.getByText(GARDENER_A.slice(0, 10))).toBeInTheDocument();
   });
 
   it("starts from its member address on every opening and every member change", async () => {

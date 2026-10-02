@@ -1,7 +1,7 @@
 /**
  * Public vault crowdfunding route tests.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { VaultDepositStageError } from "@green-goods/shared/hooks/vault/vault-helpers";

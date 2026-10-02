@@ -1058,7 +1058,7 @@ function buildExecutionSubLaneLinearRecord(status, laneName, lane, project, team
     action: issue ? "update" : "create",
     issue,
     parentId: parentIssue,
-    parentRef: parentIssue ? null : null,
+    parentRef: null,
     title: linearLaneTitle(status, laneName),
     team,
     state: linearStateForLane(status, lane),
@@ -1101,6 +1101,23 @@ function linearLaneIsActionable(status, laneName) {
   return false;
 }
 
+// Record fields the hub may leave unrecorded (null).
+const OPTIONAL_LINEAR_RECORD_FIELDS = new Set(["parentId", "parentRef", "project", "milestone", "dueDate"]);
+
+// An update record leaves out an optional field the hub does not record, so
+// the applier keeps its current Linear value; a null would read as "clear it"
+// and could strip a parent, milestone, due date, or project set in Linear. A
+// create record keeps the null: the new issue starts without that field.
+function omitUnrecordedFieldsFromUpdate(record) {
+  if (record.action !== "update") {
+    return record;
+  }
+
+  return Object.fromEntries(
+    Object.entries(record).filter(([field, value]) => value !== null || !OPTIONAL_LINEAR_RECORD_FIELDS.has(field)),
+  );
+}
+
 function buildLinearSyncManifest(status) {
   const normalized = refreshLaneStatuses(structuredClone(status));
   const warnings = [];
@@ -1119,7 +1136,7 @@ function buildLinearSyncManifest(status) {
     warnings.push("Plan is missing Linear parent issue.");
   }
 
-  const parent = {
+  const parent = omitUnrecordedFieldsFromUpdate({
     action: parentIssue ? "update" : "create",
     issue: parentIssue,
     title: `${normalized.feature.title} roadmap`,
@@ -1129,7 +1146,7 @@ function buildLinearSyncManifest(status) {
     labels: linearLabelsForStatus(normalized, LINEAR_PARENT_ACTIVITY_LABEL),
     project,
     description: buildLinearParentDescription(normalized, laneSyncMode),
-  };
+  });
 
   const executionSubLanes = executionSubLanesForLinear(normalized);
   const canonicalLaneNames = executionSubLanes.length > 0
@@ -1176,7 +1193,7 @@ function buildLinearSyncManifest(status) {
     ? []
     : executionSubLanes.map(([laneName, lane]) =>
       buildExecutionSubLaneLinearRecord(normalized, laneName, lane, project, team, priority));
-  const lanes = [...executionLanes, ...canonicalLanes];
+  const lanes = [...executionLanes, ...canonicalLanes].map(omitUnrecordedFieldsFromUpdate);
 
   return {
     version: 1,
@@ -1245,6 +1262,45 @@ function validateLinearSchedule(status, laneLinear, path, errors) {
   }
 }
 
+// A tracker is an umbrella Linear issue that sits directly under the hub's
+// parent and groups some execution sub-lanes. `linear.trackers` maps a name to
+// its issue; a synced sub-lane may name a recorded tracker as its parentIssue,
+// so the manifest parents that lane under the tracker. The manifest never
+// writes the tracker issue itself.
+function linearTrackerEntries(linear) {
+  const trackers = linear?.trackers;
+  if (!trackers || typeof trackers !== "object" || Array.isArray(trackers)) {
+    return [];
+  }
+
+  return Object.entries(trackers)
+    .map(([name, issue]) => [name, normalizedLinearIssue(issue)])
+    .filter(([, issue]) => issue);
+}
+
+function validateLinearTrackers(linear, errors) {
+  const trackers = linear.trackers;
+  if (trackers === undefined || trackers === null) {
+    return;
+  }
+  if (typeof trackers !== "object" || Array.isArray(trackers)) {
+    errors.push("linear.trackers must be an object when present");
+    return;
+  }
+
+  const canonicalParent = canonicalLinearParentIssue(linear);
+  for (const [name, issue] of Object.entries(trackers)) {
+    if (!EXECUTION_SUB_LANE_NAME.test(name)) {
+      errors.push(`linear.trackers has invalid key "${name}"`);
+    }
+    if (!hasText(issue)) {
+      errors.push(`linear.trackers.${name} must be a Linear issue identifier`);
+    } else if (issue.trim() === canonicalParent) {
+      errors.push(`linear.trackers.${name} cannot reuse the canonical parent issue`);
+    }
+  }
+}
+
 function validateLinear(status, errors) {
   const linear = status.linear;
   if (linear === undefined) {
@@ -1280,6 +1336,7 @@ function validateLinear(status, errors) {
 
   validateLinearDateMap(linear.milestones, "linear.milestones", errors);
   validateLinearDateMap(linear.operationalCheckpoints, "linear.operationalCheckpoints", errors);
+  validateLinearTrackers(linear, errors);
 
   if (linear.lanes === undefined || linear.lanes === null) {
     return;
@@ -1338,6 +1395,16 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
       } else {
         issueOwners.set(issue, `linear.lanes.${laneName}`);
       }
+    }
+  }
+  const trackers = linearTrackerEntries(status.linear);
+  const trackerIssues = new Set(trackers.map(([, issue]) => issue));
+  for (const [trackerName, issue] of trackers) {
+    const previousOwner = issueOwners.get(issue);
+    if (previousOwner) {
+      errors.push(`linear.trackers.${trackerName} duplicates ${issue} already used by ${previousOwner}`);
+    } else {
+      issueOwners.set(issue, `linear.trackers.${trackerName}`);
     }
   }
   for (const [laneName, lane] of Object.entries(subLanes)) {
@@ -1444,9 +1511,11 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
         errors.push(
           `execution_sub_lanes.${laneName}.linear.parentIssue cannot be set without a canonical linear.parentIssue`,
         );
-      } else if (parentIssue !== canonicalParent) {
+      } else if (parentIssue !== canonicalParent && !trackerIssues.has(parentIssue)) {
         errors.push(
-          `execution_sub_lanes.${laneName}.linear.parentIssue must match canonical parent ${canonicalParent} or be null`,
+          trackerIssues.size === 0
+            ? `execution_sub_lanes.${laneName}.linear.parentIssue must match canonical parent ${canonicalParent} or be null`
+            : `execution_sub_lanes.${laneName}.linear.parentIssue must match canonical parent ${canonicalParent} or an issue in linear.trackers, or be null`,
         );
       }
     }

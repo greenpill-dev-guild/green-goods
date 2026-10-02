@@ -1,12 +1,13 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useGardenWorkspaceController } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
+import enMessages from "@green-goods/shared/i18n/en";
+import { createTestQueryClient } from "@green-goods/shared/testing/query-client";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, Route, RouterProvider, Routes, createMemoryRouter } from "react-router-dom";
+import { createMemoryRouter, MemoryRouter, Route, RouterProvider, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useGardenWorkspaceController } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
-import enMessages from "@green-goods/shared/i18n/en";
 import type { GardenSettingsFormState } from "@/components/Garden/GardenSettingsEditor";
 import { GardenWorkspaceContent } from "./components/GardenWorkspaceContent";
 import { SubmitWorkPanel } from "./SubmitWork";
@@ -286,12 +287,7 @@ vi.mock("@/components/Garden/GardenSettingsEditor", () => ({
 }));
 
 function TestProviders({ children }: { children: ReactNode }) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
+  const queryClient = createTestQueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>

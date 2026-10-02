@@ -1,24 +1,25 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import test from "node:test";
 
 import { clearRepositoryLocalGitVariables, fixtureGitEnvironment } from "../lib/dev-shared.js";
 import { FROZEN_ALLOWLIST } from "../quality/check-source-structure.js";
-import { resolveGitInputs } from "../quality/select-validation.mjs";
+import { resolveGitInputs, selectValidation } from "../quality/select-validation.mjs";
 import {
   applyCompatibilityFilters,
   arbitrumForkAvailable,
   buildLocalValidationPlan,
   capabilityRecoveryHint,
+  checkEnvironment,
   executePlan,
+  ignoredConfigurationFingerprint,
   isPinnedCiNodeVersion,
   isSupportedCiNodeVersion,
   loadPassingReceiptStore,
   parseArguments,
-  resolveVitestBatchEnvironment,
   runCommandCheck,
   savePassingReceiptStore,
   validateAttestation,
@@ -131,6 +132,7 @@ function plan(checks, status = "ready") {
     testPaths: {},
     requestedChecks: [],
     environment: { profile: "test", toolchain: {}, capabilities: {} },
+    receiptPolicy: { reuseAllowed: true },
     checks: checks.map((id) => ({
       id,
       command: `run ${id}`,
@@ -596,27 +598,239 @@ test("persisted receipt store rejects tampered receipt inputs", async (t) => {
   assert.equal(loadPassingReceiptStore(path).size, 0);
 });
 
-test("critical plans never store or reuse passing receipts", async () => {
-  const receiptStore = new Map();
-  const critical = plan(["contracts-test"]);
-  critical.risk = "critical";
-  critical.checks[0].mandatory = true;
-  let calls = 0;
+test("receipts are reused in push and never by the strict gates, at every risk", async () => {
+  const runTwice = async (input) => {
+    const receiptStore = new Map();
+    const runs = [];
+    const execute = async () => {
+      let count = 0;
+      const result = await executePlan(input, {
+        reusePassingReceipts: true,
+        receiptStore,
+        runCheck: async () => {
+          count += 1;
+          return { ok: true, exitCode: 0 };
+        },
+      });
+      runs.push(count);
+      return result;
+    };
+    await execute();
+    const second = await execute();
+    return { runs, second, receiptStore };
+  };
+  const byRisk = [
+    ["routine", "docs/docs/builders/quality/test-cases.mdx", {}],
+    ["sensitive", "packages/agent/src/services/analytics.ts", { agent: ["src/__tests__/analytics.test.ts"] }],
+    ["critical", "packages/shared/src/hooks/work/useWorkMutation.ts", { shared: ["src/hooks/work/useWorkMutation.test.ts"] }],
+  ];
+  for (const [risk, changedPath, testPaths] of byRisk) {
+    for (const intent of ["readiness", "ship", "merge", "release"]) {
+      const strict = selectValidation({ intent, changedPaths: [changedPath] });
+      assert.equal(strict.risk, risk, `${intent}: ${changedPath}`);
+      const { runs, second, receiptStore } = await runTwice(strict);
+      assert.ok(runs[0] > 0, `${intent}: ${changedPath} ran nothing`);
+      assert.deepEqual(runs, [runs[0], runs[0]], `${intent}: ${changedPath} reused a receipt`);
+      assert.equal(second.results.some((result) => result.reused), false, `${intent}: ${changedPath}`);
+      assert.equal(receiptStore.size, 0, `${intent}: ${changedPath}`);
+    }
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const result = await executePlan(critical, {
+    const push = selectValidation({ intent: "push", changedPaths: [changedPath], testPaths });
+    assert.equal(push.status, "ready", changedPath);
+    const { runs, second } = await runTwice(push);
+    assert.ok(runs[0] > 0, `push: ${changedPath} ran nothing`);
+    assert.equal(runs[1], 0, `push: ${changedPath} reran an exact pass`);
+    assert.ok(second.results.every((result) => result.reused), `push: ${changedPath}`);
+  }
+
+  // Any input, toolchain or command change is a new fingerprint and runs the check again.
+  const push = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/src/hooks/work/useWorkMutation.ts"],
+    testPaths: { shared: ["src/hooks/work/useWorkMutation.test.ts"] },
+  });
+  const store = new Map();
+  let reruns = 0;
+  const run = (input) =>
+    executePlan(input, {
       reusePassingReceipts: true,
-      receiptStore,
+      receiptStore: store,
       runCheck: async () => {
-        calls += 1;
+        reruns += 1;
         return { ok: true, exitCode: 0 };
       },
     });
-    assert.equal(result.status, "passed");
+  await run(push);
+  for (const drifted of [
+    { ...push, head: "head-2" },
+    { ...push, workingCopyFingerprint: "working-copy-2" },
+    { ...push, policyVersion: push.policyVersion + 1 },
+    { ...push, environment: { ...push.environment, toolchain: { node: "22.22.2" } } },
+    { ...push, checks: push.checks.map((check) => ({ ...check, command: `${check.command} --x` })) },
+  ]) {
+    const before = reruns;
+    await run(drifted);
+    assert.ok(reruns > before, `a drifted plan must rerun its checks: ${JSON.stringify(Object.keys(drifted))}`);
   }
 
-  assert.equal(calls, 2);
-  assert.equal(receiptStore.size, 0);
+  // A plan that does not say reuse is allowed runs everything fresh.
+  const unstated = { ...plan(["first"]), receiptPolicy: undefined };
+  const { runs } = await runTwice(unstated);
+  assert.deepEqual(runs, [1, 1]);
+});
+
+test("a receipt covers the environment a check runs with, not only the plan", async () => {
+  const receiptStore = new Map();
+  let runs = 0;
+  const run = (environment) =>
+    executePlan(plan(["shared-test"]), {
+      reusePassingReceipts: true,
+      receiptStore,
+      environment,
+      ignoredConfiguration: "sha256:config-1",
+      runCheck: async () => {
+        runs += 1;
+        return { ok: true, exitCode: 0 };
+      },
+    });
+  const shell = { HOME: "/home/dev", VITEST_MAX_WORKERS: "1", PATH: "/usr/bin", SHLVL: "1" };
+  await run(shell);
+  assert.equal((await run(shell)).results[0].reused, true);
+  assert.equal(runs, 1);
+
+  // Changing an inherited variable reruns the check, and so does a new one.
+  await run({ ...shell, VITEST_MAX_WORKERS: "9" });
+  await run({ ...shell, NODE_OPTIONS: "--max-old-space-size=512" });
+  assert.equal(runs, 3);
+
+  // A real `git push` through Husky's shim: git prepends its exec path, the shim sources
+  // ~/.config/husky/init.sh (which commonly exports NVM_DIR) and prepends node_modules/.bin, the
+  // hook prepends tool directories, two more shells count themselves, and the gate arrives through
+  // a different re-exec wrapper. None of that changes a check.
+  const hook = {
+    ...shell,
+    PATH: "node_modules/.bin:/opt/homebrew/opt/git/libexec/git-core:/Users/dev/.bun/bin:/usr/bin",
+    GIT_EXEC_PATH: "/opt/homebrew/opt/git/libexec/git-core",
+    NVM_DIR: "/Users/dev/.nvm",
+    SHLVL: "3",
+    GREEN_GOODS_NODE_CLI_COMPAT_REEXEC: "1",
+    NODE: "/Users/dev/.local/share/mise/installs/node/22.22.1/bin/node",
+    npm_node_execpath: "/Users/dev/.local/share/mise/installs/node/22.22.1/bin/node",
+  };
+  assert.equal((await run(hook)).results[0].reused, true);
+  // The hook loads nvm itself under bash when a .nvmrc exists; `nvm use` then sets its own
+  // variables and moves MANPATH. The pinned Node is fingerprinted as the toolchain.
+  const nvmLoaded = {
+    ...hook,
+    NVM_BIN: "/Users/dev/.nvm/versions/node/v22.22.1/bin",
+    NVM_INC: "/Users/dev/.nvm/versions/node/v22.22.1/include/node",
+    NVM_CD_FLAGS: "-q",
+    MANPATH: "/Users/dev/.nvm/versions/node/v22.22.1/share/man:/usr/share/man",
+  };
+  assert.equal((await run(nvmLoaded)).results[0].reused, true);
+  assert.equal(runs, 3);
+
+  // The store keeps a digest of the environment, never its values.
+  await run({ ...shell, SECRET_TOKEN: "do-not-store-me" });
+  assert.equal(JSON.stringify([...receiptStore.values()]).includes("do-not-store-me"), false);
+});
+
+test("a receipt covers the git-ignored root .env files that builds and tests read", async (t) => {
+  const root = mkdtempSync(join(tmpdir(), "validation-ignored-config-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(join(root, "README.md"), "not configuration\n");
+  const empty = ignoredConfigurationFingerprint(root);
+  writeFileSync(join(root, ".env"), "VITE_CHAIN_ID=11155111\n");
+  const first = ignoredConfigurationFingerprint(root);
+  writeFileSync(join(root, "README.md"), "still not configuration\n");
+  assert.equal(ignoredConfigurationFingerprint(root), first);
+  writeFileSync(join(root, ".env"), "VITE_CHAIN_ID=42161\n");
+  const edited = ignoredConfigurationFingerprint(root);
+  writeFileSync(join(root, ".env.local"), "VITE_USE_HASH_ROUTER=true\n");
+  const local = ignoredConfigurationFingerprint(root);
+  assert.equal(new Set([empty, first, edited, local]).size, 4);
+
+  const receiptStore = new Map();
+  let runs = 0;
+  const run = (ignoredConfiguration) =>
+    executePlan(plan(["client-build"]), {
+      reusePassingReceipts: true,
+      receiptStore,
+      environment: {},
+      ignoredConfiguration,
+      runCheck: async () => {
+        runs += 1;
+        return { ok: true, exitCode: 0 };
+      },
+    });
+  await run(first);
+  await run(first);
+  await run(edited);
+  assert.equal(runs, 2);
+});
+
+test("a changed variable reruns a real command instead of replaying its pass", async () => {
+  // The probe fails only with PROBE=9. A receipt made with PROBE=1 must not stand in for it.
+  const probe = plan(["probe"]);
+  probe.checks[0].command = `node -e "process.exit(process.env.PROBE === '9' ? 42 : 0)"`;
+  const receiptStore = new Map();
+  const execute = (PROBE) =>
+    executePlan(probe, {
+      reusePassingReceipts: true,
+      receiptStore,
+      environment: { ...process.env, PROBE },
+      ignoredConfiguration: "sha256:config-1",
+    });
+  assert.equal((await execute("1")).status, "passed");
+  const changed = await execute("9");
+  assert.equal(changed.status, "failed");
+  assert.equal(changed.results[0].exitCode, 42);
+});
+
+test("a check finds package binaries without the caller putting node_modules/.bin on PATH", async (t) => {
+  // design-guardrails calls `design.md` and fork-fixtures-test calls `vitest` by name, as package
+  // scripts do. Husky's shim puts node_modules/.bin on PATH, so they passed in the hook and failed
+  // with exit 127 in a manual run of the same gate.
+  const packageDirectory = mkdtempSync(join(tmpdir(), "validation-package-bin-"));
+  t.after(() => rmSync(packageDirectory, { recursive: true, force: true }));
+  mkdirSync(join(packageDirectory, "node_modules/.bin"), { recursive: true });
+  const probe = join(packageDirectory, "node_modules/.bin/gg-package-probe");
+  writeFileSync(probe, "#!/bin/sh\nexit 0\n");
+  chmodSync(probe, 0o755);
+  const shellPath = (process.env.PATH ?? "")
+    .split(delimiter)
+    .filter((entry) => !entry.includes("node_modules/.bin"))
+    .join(delimiter);
+  const check = { id: "package-probe", command: "gg-package-probe", cwd: packageDirectory };
+  const environment = checkEnvironment(check, { ...process.env, PATH: shellPath });
+  const result = await runCommandCheck(check, { captureOutput: true, environment });
+  assert.equal(result.exitCode, 0);
+  // Hoisted binaries live at the repository root, and the check's own directory comes first.
+  const entries = environment.PATH.split(delimiter);
+  assert.equal(entries[0], join(packageDirectory, "node_modules/.bin"));
+  assert.ok(entries.includes(join(dirname(dirname(import.meta.dirname)), "node_modules/.bin")));
+});
+
+test("the immutable report check judges the range its plan compared", async () => {
+  // CI hands the check the push's previous head or the pull request's base. Locally the check fell
+  // back to origin/develop, which a pull request into another branch does not compare against, so
+  // the gate passes the base its own plan used. An explicit base still wins, and no other check
+  // receives the variable.
+  const seen = {};
+  const runCheck = async (check, { environment }) => {
+    seen[check.id] = environment;
+    return { ok: true, exitCode: 0, durationSeconds: 0.01 };
+  };
+  const input = plan(["immutable-plan-reports", "test-quality"]);
+  await executePlan(input, { runCheck, environment: {} });
+  assert.equal(seen["immutable-plan-reports"].PLAN_REPORTS_BASE_REF, input.base);
+  assert.equal(seen["test-quality"].PLAN_REPORTS_BASE_REF, undefined);
+
+  for (const explicit of [{ PLAN_REPORTS_BASE_REF: "origin/main" }, { GUIDANCE_BASE_REF: "origin/main" }]) {
+    await executePlan(input, { runCheck, environment: explicit });
+    assert.equal(seen["immutable-plan-reports"].PLAN_REPORTS_BASE_REF, explicit.PLAN_REPORTS_BASE_REF);
+    assert.equal(seen["immutable-plan-reports"].GUIDANCE_BASE_REF, explicit.GUIDANCE_BASE_REF);
+  }
 });
 
 test("legacy and selector arguments remain parseable", () => {
@@ -812,200 +1026,37 @@ test("the push gate judges a moved file at its new path as a modified file", asy
   assert.doesNotMatch(result.output, /settled\.ts/);
 });
 
-// Independent package suites declare a concurrency group in the policy. Only
-// checks adjacent in plan order may batch, so printed order and the stop rule
-// survive untouched.
-function groupedPlan(specs) {
-  const base = plan(specs.map((spec) => spec.id));
-  base.checks = base.checks.map((check, index) => ({
-    ...check,
-    ...(specs[index].group ? { concurrencyGroup: specs[index].group } : {}),
-    ...(specs[index].blocked ? { state: "blocked", blockedBy: ["toolchain.node"] } : {}),
-  }));
-  return base;
-}
-
-function overlapTracker() {
-  const state = {
-    active: 0,
-    peak: 0,
-    captured: new Map(),
-    environments: new Map(),
-    order: [],
-  };
-  const runCheck = async (check, options = {}) => {
-    state.order.push(check.id);
-    state.captured.set(check.id, options.captureOutput === true);
-    state.environments.set(check.id, options.environment);
-    state.active += 1;
-    state.peak = Math.max(state.peak, state.active);
-    await new Promise((resolve) => setTimeout(resolve, 15));
-    state.active -= 1;
-    return { ok: true, exitCode: 0, durationSeconds: 0.01 };
-  };
-  return { state, runCheck };
-}
-
-test("adjacent checks sharing a concurrency group run together", async () => {
-  const { state, runCheck } = overlapTracker();
-  const result = await executePlan(
-    groupedPlan([
-      { id: "client-test", group: "package-tests-surface" },
-      { id: "admin-test", group: "package-tests-surface" },
-    ]),
-    { runCheck },
-  );
-
-  assert.equal(result.status, "passed");
-  assert.equal(state.peak, 2);
-  assert.equal(state.captured.get("client-test"), true);
-  assert.equal(state.captured.get("admin-test"), true);
-});
-
-test("batched package tests receive a worker cap divided by batch size", () => {
-  const environment = resolveVitestBatchEnvironment(
-    [
-      { id: "client-test" },
-      { id: "admin-test" },
-    ],
-    {
-      cpus: 10,
-      totalMemoryBytes: 16 * GIBIBYTE,
-      ci: false,
-    },
-  );
-
-  assert.deepEqual(environment, { VITEST_MAX_WORKERS: "4" });
-});
-
-test("batched worker environment leaves CI unchanged and preserves explicit overrides", () => {
-  const batch = [{ id: "client-test" }, { id: "admin-test" }];
-  const resources = {
-    cpus: 10,
-    totalMemoryBytes: 16 * GIBIBYTE,
-    ci: true,
-  };
-
-  assert.deepEqual(resolveVitestBatchEnvironment(batch, resources), {});
-  assert.deepEqual(
-    resolveVitestBatchEnvironment(batch, {
-      ...resources,
-      explicitMaxWorkers: "3",
-    }),
-    { VITEST_MAX_WORKERS: "3" },
-  );
-});
-
-test("every member of a concurrent test batch receives the resolved worker environment", async () => {
-  const { state, runCheck } = overlapTracker();
-  await executePlan(
-    groupedPlan([
-      { id: "client-test", group: "package-tests-surface" },
-      { id: "admin-test", group: "package-tests-surface" },
-    ]),
-    {
-      runCheck,
-      resolveBatchEnvironment: () => ({ VITEST_MAX_WORKERS: "2" }),
-    },
-  );
-
-  assert.deepEqual(state.environments.get("client-test"), {
-    VITEST_MAX_WORKERS: "2",
+test("package suites in a real plan run one at a time, leaving worker sizing to the test lease", async () => {
+  // A checkpoint on a Shared utility selects Shared, Client, Admin and Agent suites back to back.
+  const input = selectValidation({
+    intent: "checkpoint",
+    changedPaths: ["packages/shared/src/utils/time.ts"],
   });
-  assert.deepEqual(state.environments.get("admin-test"), {
-    VITEST_MAX_WORKERS: "2",
-  });
-});
+  const suites = input.checks.filter((check) => check.id.endsWith("-test")).map((check) => check.id);
+  assert.deepEqual(suites, ["shared-test", "client-test", "admin-test", "agent-test"]);
 
-test("different groups, ungrouped checks, and blocked members never batch", async () => {
-  for (const specs of [
-    [
-      { id: "shared-test", group: "package-tests-core" },
-      { id: "client-test", group: "package-tests-surface" },
-    ],
-    [{ id: "format" }, { id: "client-test", group: "package-tests-surface" }],
-    [
-      { id: "client-test", group: "package-tests-surface" },
-      { id: "admin-test", group: "package-tests-surface", blocked: true },
-    ],
-  ]) {
-    const { state, runCheck } = overlapTracker();
-    await executePlan(groupedPlan(specs), { runCheck });
-    assert.equal(state.peak, 1, JSON.stringify(specs));
-  }
-});
-
-test("a check running alone still streams instead of capturing", async () => {
-  const { state, runCheck } = overlapTracker();
-  await executePlan(groupedPlan([{ id: "format" }]), { runCheck });
-  assert.equal(state.captured.get("format"), false);
-});
-
-test("a failing batch reports every member and stops the checks after it", async () => {
-  const started = [];
-  const result = await executePlan(
-    groupedPlan([
-      { id: "client-test", group: "package-tests-surface" },
-      { id: "admin-test", group: "package-tests-surface" },
-      { id: "docs-build" },
-    ]),
-    {
-      runCheck: async (check) => {
-        started.push(check.id);
-        const ok = check.id !== "client-test";
-        return { ok, exitCode: ok ? 0 : 3, durationSeconds: 0.01 };
-      },
+  const state = { active: 0, peak: 0, order: [], options: [] };
+  const result = await executePlan(input, {
+    runCheck: async (check, options = {}) => {
+      state.order.push(check.id);
+      state.options.push(options);
+      state.active += 1;
+      state.peak = Math.max(state.peak, state.active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      state.active -= 1;
+      return { ok: true, exitCode: 0, durationSeconds: 0.01 };
     },
-  );
-
-  assert.equal(result.status, "failed");
-  assert.equal(result.exitCode, 3);
-  // both in-flight members report, and nothing after the batch starts
-  assert.deepEqual([...started].sort(), ["admin-test", "client-test"]);
-  assert.deepEqual(
-    result.results.map((entry) => entry.id),
-    ["client-test", "admin-test"],
-  );
-});
-
-test("concurrency can be turned off without changing results", async () => {
-  const { state, runCheck } = overlapTracker();
-  const result = await executePlan(
-    groupedPlan([
-      { id: "client-test", group: "package-tests-surface" },
-      { id: "admin-test", group: "package-tests-surface" },
-    ]),
-    { runCheck, concurrency: false },
-  );
-
+  });
   assert.equal(result.status, "passed");
   assert.equal(state.peak, 1);
-  assert.deepEqual(state.order, ["client-test", "admin-test"]);
-});
-
-test("a reusable receipt keeps its member out of the batch", async () => {
-  const receiptStore = new Map();
-  const grouped = groupedPlan([
-    { id: "client-test", group: "package-tests-surface" },
-    { id: "admin-test", group: "package-tests-surface" },
-  ]);
-
-  await executePlan(grouped, {
-    reusePassingReceipts: true,
-    receiptStore,
-    runCheck: async () => ({ ok: true, exitCode: 0, durationSeconds: 0.01 }),
-  });
-
-  const { state, runCheck } = overlapTracker();
-  const second = await executePlan(grouped, {
-    reusePassingReceipts: true,
-    receiptStore,
-    runCheck,
-  });
-
-  assert.equal(second.status, "passed");
-  assert.equal(state.peak, 0);
-  assert.ok(second.results.every((entry) => entry.reused === true));
+  assert.deepEqual(state.order, input.checks.map((check) => check.id));
+  // Each suite gets the environment its receipt fingerprints, and the runner sizes no workers.
+  assert.ok(
+    state.options.every(
+      (options) =>
+        options.environment.VITEST_MAX_WORKERS === process.env.VITEST_MAX_WORKERS && !options.captureOutput,
+    ),
+  );
 });
 
 // Regression: the plan inherited its blocked status even after the compatibility
@@ -1137,4 +1188,17 @@ test("a toolchain blocker a surviving check still needs keeps the plan blocked",
 
   assert.equal(filtered.checks[0].state, "blocked");
   assert.equal(filtered.status, "blocked");
+});
+
+test("local gate checks mark themselves so package suites still take the machine test lease", async () => {
+  const result = await runCommandCheck(
+    {
+      id: "shared-test",
+      command: `node -e "process.stdout.write([process.env.CI, process.env.GREEN_GOODS_LOCAL_GATE].join(' '))"`,
+      cwd: ".",
+    },
+    { captureOutput: true },
+  );
+  assert.equal(result.ok, true);
+  assert.equal(result.output, "true 1");
 });

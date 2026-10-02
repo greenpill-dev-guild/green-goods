@@ -180,7 +180,7 @@ const Home: React.FC = () => {
     (action: ArrivalActionKind) => {
       switch (action) {
         case "openWorkDashboardDrafts":
-          openWorkDashboard("drafts");
+          openWorkDashboard("pending", "editing");
           return;
         case "openWorkDashboardPending":
           openWorkDashboard("pending");

@@ -91,25 +91,31 @@ function buildRpcResponse(payload: JsonRpcPayload, ownerAddress: string = MOCK_R
  * Admin role resolution reads DeploymentRegistry before the cockpit becomes
  * ready. Leaving that request on the public Alchemy demo endpoint makes CI
  * depend on external latency and can hold the loading state until the test
- * timeout. Keep the route shared so every clean-room browser fixture returns
- * the same contract-read responses.
+ * timeout. Include the canonical PublicNode endpoint so queued-work simulation
+ * never sends fixture gardens to the real chain. Keep the route shared so
+ * every clean-room browser fixture returns the same contract-read responses.
  */
 export async function mockSepoliaRpc(target: BrowserContext | Page) {
-  await target.route("https://eth-sepolia.g.alchemy.com/**", async (route) => {
-    const rawBody = route.request().postData();
-    const payload = rawBody
-      ? (JSON.parse(rawBody) as JsonRpcPayload | JsonRpcPayload[])
-      : { id: 1 };
-    const response = Array.isArray(payload)
-      ? payload.map((entry) => buildRpcResponse(entry))
-      : buildRpcResponse(payload);
+  await target.route(
+    (url) =>
+      url.hostname === "eth-sepolia.g.alchemy.com" ||
+      url.hostname === "ethereum-sepolia.publicnode.com",
+    async (route) => {
+      const rawBody = route.request().postData();
+      const payload = rawBody
+        ? (JSON.parse(rawBody) as JsonRpcPayload | JsonRpcPayload[])
+        : { id: 1 };
+      const response = Array.isArray(payload)
+        ? payload.map((entry) => buildRpcResponse(entry))
+        : buildRpcResponse(payload);
 
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(response),
-    });
-  });
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(response),
+      });
+    }
+  );
 }
 
 function getGraphQLQueryText(route: Route): string {

@@ -11,6 +11,7 @@ import { deleteWorkDraft } from "../../modules/work/draft-lifecycle";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWorkPreviewUrls } from "./useWorkImages";
+import { isGardenHiddenEverywhere } from "../../config/garden-visibility";
 import { isHeicFile } from "../../modules/work/work-attachments";
 import { computeFirstIncompleteStep, draftDB } from "../../modules/job-queue/draft-db";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
@@ -211,9 +212,15 @@ export function useDrafts() {
       await draftDB.setActiveDraft(userAddress, chainId, draftId);
       checkCurrent();
 
-      // Load draft data into WorkFlowStore
+      // Load draft data into WorkFlowStore. A garden curated out of every
+      // surface is not restored: the garden picker no longer offers it, so the
+      // draft keeps its work and opens at the garden choice.
+      const gardenAddress =
+        draft.gardenAddress && isGardenHiddenEverywhere(draft.gardenAddress)
+          ? null
+          : draft.gardenAddress;
       const store = useWorkFlowStore.getState();
-      store.setGardenAddress(draft.gardenAddress);
+      store.setGardenAddress(gardenAddress);
       store.setActionUID(draft.actionUID);
       store.setFeedback(draft.feedback);
       store.setDetails(draft.details ?? {});
@@ -235,7 +242,10 @@ export function useDrafts() {
       setActiveDraftId(draftId);
 
       // Calculate and return the first incomplete step
-      const firstIncomplete = computeFirstIncompleteStep(draft, images.length > 0);
+      const firstIncomplete = computeFirstIncompleteStep(
+        { ...draft, gardenAddress },
+        images.length > 0
+      );
       const targetTab = draftStepToWorkTab(firstIncomplete);
       store.setActiveTab(targetTab);
 

@@ -4,13 +4,13 @@
  * The cockpit control scale is 28 / 32 / 36 / 40 / 44:
  *   buttons 28 (sm) / 32 (md) / 40 (lg) · fields 44 on touch widths and 40 from
  *   640px (DL-030) · toolbar pills 36 · inline field 32 (button-row axis) ·
- *   chips 32 · identity pill 36.
+ *   chips 32 · identity pill 36 · list rows from 44, growing with their content.
  * Shell chrome (AppBar, FAB, nav dock) is deliberately outside this scale.
  *
  * Heights are class-level contracts (h-* / min-h-*) because jsdom cannot
  * measure layout; the classes ARE the shipped geometry.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { readFileSync } from "node:fs";
@@ -19,6 +19,7 @@ import { RiAddLine } from "@remixicon/react";
 import { describe, expect, it } from "vitest";
 import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminInlineField } from "@/components/AdminInlineField";
+import { AdminListRow } from "@/components/AdminListRow";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
 import { AdminTextField } from "@/components/AdminTextField";
@@ -83,6 +84,19 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(container).toHaveClass("min-h-11", "sm:min-h-10");
     const input = screen.getByRole("textbox", { name: "Garden name" });
     expect(input).toHaveClass("text-body-lg", "sm:text-body-md", "pt-5", "sm:pt-4");
+  });
+
+  it("list rows grow with their content above the 44px floor, never on a button tier", () => {
+    render(
+      <AdminListRow>
+        <span>Canopy baseline</span>
+        <span>Sep 23, 2026</span>
+      </AdminListRow>
+    );
+
+    const row = screen.getByRole("button", { name: /Canopy baseline/ });
+    expect(row).toHaveClass("block", "w-full", "min-h-11");
+    expect(row.className).not.toMatch(/(^|\s)h-(7|8|10)(\s|$)/);
   });
 
   it("the inline field shares the 32px md-button axis", () => {

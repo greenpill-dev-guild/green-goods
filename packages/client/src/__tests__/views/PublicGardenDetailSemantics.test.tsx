@@ -11,7 +11,7 @@
  * are stubbed too — this suite is about the section landmarks, and
  * `PublicGardenDetail.test.tsx` covers the composed page.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";
@@ -180,6 +180,7 @@ const messages: Record<string, string> = {
   "public.gardenDetail.notFoundHelp": "The link may be stale.",
   "public.gardenDetail.backToGardens": "Browse Gardens",
   "public.gardenDetail.backToArchive": "All Gardens",
+  "public.gardenDetail.description.heading": "About this garden",
   "public.gardenDetail.place.empty": "Garden narrative will appear here.",
   "public.gardenDetail.support": "Support This Garden",
   "public.gardenDetail.evidence.cta": "View Public Evidence",
@@ -224,10 +225,11 @@ function renderView(route = "/gardens/solar-community-garden") {
 }
 
 describe("GardenDetail section semantics (P3-4)", () => {
-  it("wraps each public-record section in a <section aria-labelledby=...>", () => {
+  it("wraps the description and each public-record section in a labelled section", () => {
     const { container } = renderView();
 
     const expected = [
+      ["public-garden-description-title", "About this garden"],
       ["public-garden-detail-notes", "Latest field notes"],
       ["public-garden-detail-commitments", "This Garden is preparing its pool"],
       ["public-garden-detail-certificates", "Impact Certificates"],
@@ -246,6 +248,7 @@ describe("GardenDetail section semantics (P3-4)", () => {
     // which carries the Garden name.
     const h2Texts = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent ?? "");
     expect(h2Texts).toEqual([
+      "About this garden",
       "Latest field notes",
       "This Garden is preparing its pool",
       "Impact Certificates",
@@ -259,7 +262,7 @@ describe("GardenDetail section semantics (P3-4)", () => {
     // Ordinals stay stable between Gardens: § 02 commitments renders its
     // pre-launch state rather than disappearing, so it has a defined
     // neighbour on both sides regardless of what this Garden has published.
-    expect(container.querySelectorAll("section[aria-labelledby]")).toHaveLength(4);
+    expect(container.querySelectorAll("section[aria-labelledby]")).toHaveLength(5);
     expect(screen.getByText("No field notes yet.")).toBeInTheDocument();
     expect(screen.getByText("No Impact Certificates yet.")).toBeInTheDocument();
   });

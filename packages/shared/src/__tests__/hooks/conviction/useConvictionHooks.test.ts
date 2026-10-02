@@ -1,6 +1,6 @@
 /**
  * Conviction Voting Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests subgraph data mapping, query key construction, and address normalization
  * in the conviction voting query hooks.
@@ -9,10 +9,11 @@
  * modules/data/gardens.ts. This file mocks that module boundary.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_POOL = "0x1111111111111111111111111111111111111111";
@@ -66,12 +67,6 @@ import { useMemberVotingPower } from "../../../hooks/conviction/useMemberVotingP
 import { useRegisteredHypercerts } from "../../../hooks/conviction/useRegisteredHypercerts";
 import type { Address } from "../../../types/domain";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 // ============================================
 // useMemberVotingPower
 // ============================================
@@ -81,9 +76,7 @@ describe("useMemberVotingPower", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("maps subgraph MemberPower data correctly", async () => {
@@ -98,9 +91,9 @@ describe("useMemberVotingPower", () => {
       ],
     });
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () => useMemberVotingPower(TEST_POOL as Address, TEST_VOTER as Address),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -130,9 +123,9 @@ describe("useMemberVotingPower", () => {
       allocations: [],
     });
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () => useMemberVotingPower(mixedCasePool as Address, mixedCaseVoter as Address),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -145,9 +138,12 @@ describe("useMemberVotingPower", () => {
   });
 
   it("returns default values when pool address is undefined", async () => {
-    const { result } = renderHook(() => useMemberVotingPower(undefined, TEST_VOTER as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useMemberVotingPower(undefined, TEST_VOTER as Address),
+      {
+        queryClient,
+      }
+    );
 
     expect(mockGetMemberPower).not.toHaveBeenCalled();
     expect(result.current.power).toEqual({
@@ -159,9 +155,12 @@ describe("useMemberVotingPower", () => {
   });
 
   it("returns default values when voter address is undefined", async () => {
-    const { result } = renderHook(() => useMemberVotingPower(TEST_POOL as Address, undefined), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useMemberVotingPower(TEST_POOL as Address, undefined),
+      {
+        queryClient,
+      }
+    );
 
     expect(mockGetMemberPower).not.toHaveBeenCalled();
     expect(result.current.power.isEligible).toBe(false);
@@ -175,9 +174,9 @@ describe("useMemberVotingPower", () => {
       allocations: [],
     });
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () => useMemberVotingPower(TEST_POOL as Address, TEST_VOTER as Address),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -187,12 +186,12 @@ describe("useMemberVotingPower", () => {
   });
 
   it("respects enabled option", () => {
-    renderHook(
+    renderHookWithQueryClient(
       () =>
         useMemberVotingPower(TEST_POOL as Address, TEST_VOTER as Address, {
           enabled: false,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     expect(mockGetMemberPower).not.toHaveBeenCalled();
@@ -201,9 +200,9 @@ describe("useMemberVotingPower", () => {
   it("returns default power on subgraph error", async () => {
     mockGetMemberPower.mockRejectedValueOnce(new Error("Subgraph error"));
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () => useMemberVotingPower(TEST_POOL as Address, TEST_VOTER as Address),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -226,9 +225,7 @@ describe("useHypercertConviction", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("maps subgraph ConvictionWeight data correctly", async () => {
@@ -237,9 +234,12 @@ describe("useHypercertConviction", () => {
       { hypercertId: 20n, weight: 1500n },
     ]);
 
-    const { result } = renderHook(() => useHypercertConviction(TEST_POOL as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useHypercertConviction(TEST_POOL as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -258,9 +258,12 @@ describe("useHypercertConviction", () => {
     const mixedCase = "0xAbCdEf1234567890AbCdEf1234567890AbCdEf12";
     mockGetConvictionWeights.mockResolvedValueOnce([]);
 
-    const { result } = renderHook(() => useHypercertConviction(mixedCase as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useHypercertConviction(mixedCase as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -268,8 +271,8 @@ describe("useHypercertConviction", () => {
   });
 
   it("returns empty weights when pool address is undefined", () => {
-    const { result } = renderHook(() => useHypercertConviction(undefined), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useHypercertConviction(undefined), {
+      queryClient,
     });
 
     expect(mockGetConvictionWeights).not.toHaveBeenCalled();
@@ -279,9 +282,12 @@ describe("useHypercertConviction", () => {
   it("returns empty weights on subgraph error", async () => {
     mockGetConvictionWeights.mockRejectedValueOnce(new Error("Subgraph timeout"));
 
-    const { result } = renderHook(() => useHypercertConviction(TEST_POOL as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useHypercertConviction(TEST_POOL as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.weights).toEqual([]);
@@ -290,9 +296,12 @@ describe("useHypercertConviction", () => {
   it("handles single weight result", async () => {
     mockGetConvictionWeights.mockResolvedValueOnce([{ hypercertId: 42n, weight: 9999n }]);
 
-    const { result } = renderHook(() => useHypercertConviction(TEST_POOL as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useHypercertConviction(TEST_POOL as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -310,17 +319,18 @@ describe("useRegisteredHypercerts", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("returns registered hypercert IDs from subgraph", async () => {
     mockGetRegisteredHypercerts.mockResolvedValueOnce([100n, 200n, 300n]);
 
-    const { result } = renderHook(() => useRegisteredHypercerts(TEST_POOL as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useRegisteredHypercerts(TEST_POOL as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -331,9 +341,12 @@ describe("useRegisteredHypercerts", () => {
     const mixedCase = "0xAbCdEf1234567890AbCdEf1234567890AbCdEf12";
     mockGetRegisteredHypercerts.mockResolvedValueOnce([]);
 
-    const { result } = renderHook(() => useRegisteredHypercerts(mixedCase as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useRegisteredHypercerts(mixedCase as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -344,8 +357,8 @@ describe("useRegisteredHypercerts", () => {
   });
 
   it("returns empty array when pool address is undefined", () => {
-    const { result } = renderHook(() => useRegisteredHypercerts(undefined), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useRegisteredHypercerts(undefined), {
+      queryClient,
     });
 
     expect(mockGetRegisteredHypercerts).not.toHaveBeenCalled();
@@ -355,9 +368,12 @@ describe("useRegisteredHypercerts", () => {
   it("returns empty array on subgraph error", async () => {
     mockGetRegisteredHypercerts.mockRejectedValueOnce(new Error("Network error"));
 
-    const { result } = renderHook(() => useRegisteredHypercerts(TEST_POOL as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useRegisteredHypercerts(TEST_POOL as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.hypercertIds).toEqual([]);
@@ -366,9 +382,12 @@ describe("useRegisteredHypercerts", () => {
   it("handles empty proposals from subgraph", async () => {
     mockGetRegisteredHypercerts.mockResolvedValueOnce([]);
 
-    const { result } = renderHook(() => useRegisteredHypercerts(TEST_POOL as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useRegisteredHypercerts(TEST_POOL as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.hypercertIds).toEqual([]);
@@ -384,17 +403,15 @@ describe("useConvictionStrategies", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("returns strategy addresses from subgraph", async () => {
     mockGetConvictionStrategies.mockResolvedValueOnce([TEST_POOL]);
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () => useConvictionStrategies(TEST_GARDEN as Address, TEST_COMMUNITY as Address),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -406,9 +423,9 @@ describe("useConvictionStrategies", () => {
     const mixedCaseCommunity = "0xAbCdEf1234567890AbCdEf1234567890AbCdEf12";
     mockGetConvictionStrategies.mockResolvedValueOnce([]);
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () => useConvictionStrategies(TEST_GARDEN as Address, mixedCaseCommunity as Address),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -420,9 +437,12 @@ describe("useConvictionStrategies", () => {
   });
 
   it("returns empty strategies when garden address is undefined", () => {
-    const { result } = renderHook(() => useConvictionStrategies(undefined, undefined), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useConvictionStrategies(undefined, undefined),
+      {
+        queryClient,
+      }
+    );
 
     expect(mockGetConvictionStrategies).not.toHaveBeenCalled();
     expect(result.current.strategies).toEqual([]);
@@ -433,9 +453,12 @@ describe("useConvictionStrategies", () => {
     mockFetchHatsModuleAddress.mockResolvedValueOnce("0x4444444444444444444444444444444444444444");
     mockReadContract.mockResolvedValueOnce([TEST_POOL]);
 
-    const { result } = renderHook(() => useConvictionStrategies(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useConvictionStrategies(TEST_GARDEN as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -447,9 +470,12 @@ describe("useConvictionStrategies", () => {
   it("returns empty strategies via RPC when no HatsModule configured", async () => {
     mockFetchHatsModuleAddress.mockResolvedValueOnce(null);
 
-    const { result } = renderHook(() => useConvictionStrategies(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useConvictionStrategies(TEST_GARDEN as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -460,9 +486,9 @@ describe("useConvictionStrategies", () => {
   it("returns empty on subgraph error", async () => {
     mockGetConvictionStrategies.mockRejectedValueOnce(new Error("Subgraph unavailable"));
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () => useConvictionStrategies(TEST_GARDEN as Address, TEST_COMMUNITY as Address),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -476,9 +502,9 @@ describe("useConvictionStrategies", () => {
       "0x5555555555555555555555555555555555555555",
     ]);
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () => useConvictionStrategies(TEST_GARDEN as Address, TEST_COMMUNITY as Address),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

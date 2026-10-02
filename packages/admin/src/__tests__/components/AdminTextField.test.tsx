@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { AdminSelect, AdminTextArea, AdminTextField } from "@/components/AdminTextField";
@@ -28,6 +28,16 @@ describe("AdminTextField", () => {
 
     expect(screen.getByText("Search")).toHaveClass("top-0.5", "leading-4");
     expect(control).toHaveClass("pt-5", "pb-1", "leading-5");
+  });
+});
+
+describe("the filled field's active indicator", () => {
+  it("sits inside the container, so focusing a field never moves what sits below it", () => {
+    render(<AdminTextField label="Name" />);
+
+    const indicator = document.querySelector('[data-region="active-indicator"]');
+    expect(indicator?.parentElement).toHaveAttribute("data-region", "field-container");
+    expect(indicator).toHaveClass("absolute", "bottom-0");
   });
 });
 

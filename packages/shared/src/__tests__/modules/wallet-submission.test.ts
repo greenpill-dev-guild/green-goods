@@ -1,13 +1,14 @@
 /**
  * Tests for wallet submission module
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Must mock before imports
 vi.mock("@wagmi/core", () => ({
+  getBlock: vi.fn(),
   getWalletClient: vi.fn(),
   getPublicClient: vi.fn(),
   waitForTransactionReceipt: vi.fn(),
@@ -121,7 +122,7 @@ import {
 } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import * as encoders from "../../utils/eas/encoders";
-import { mock } from "../test-utils";
+import { mock } from "../test-utils/render-helpers";
 
 describe("wallet-submission", () => {
   const mockWalletClient: Partial<WalletClient> = {
@@ -226,6 +227,50 @@ describe("wallet-submission", () => {
         {},
         { hash: "0xTransactionHash", chainId: mockChainId }
       );
+    });
+
+    it("keeps the chain's head with the intent it records before the wallet prompt, and never a stale one", async () => {
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
+        "0xTransactionHash" as `0x${string}`
+      );
+      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
+      const onCheckpoint = vi.fn(async (_checkpoint: object) => undefined);
+      const send = (draft: WorkDraft) =>
+        submitWorkDirectly(draft, "0xGardenAddress", 123, "Test Action", mockChainId, mockImages, {
+          onCheckpoint,
+        });
+
+      // A lost answer is then timed on the chain's clock, whatever the device's does.
+      mock(wagmiCore.getBlock).mockResolvedValue({ number: 100n, timestamp: 1_234n } as any);
+      await send({ ...mockWorkDraft, uploadCheckpoint: undefined });
+      expect(onCheckpoint).toHaveBeenCalledWith(
+        expect.objectContaining({
+          broadcastPending: true,
+          intentBlock: 100n,
+          intentChainTime: 1_234,
+        })
+      );
+
+      // A head kept from an earlier try never stands in for one the chain cannot give now.
+      onCheckpoint.mockClear();
+      mock(wagmiCore.getBlock).mockRejectedValue(new Error("rpc unavailable"));
+      await send({
+        ...mockWorkDraft,
+        uploadCheckpoint: {
+          submittedAt: "2026-09-09T00:00:00Z",
+          files: {},
+          intentBlock: 7n,
+          intentChainTime: 1,
+          idleBlock: 5n,
+        },
+      });
+      const intent = onCheckpoint.mock.calls[0]?.[0];
+      expect(intent).toMatchObject({ broadcastPending: true });
+      expect(intent).not.toHaveProperty("intentChainTime");
+      expect(intent).not.toHaveProperty("intentBlock");
+      expect(intent).not.toHaveProperty("idleBlock");
     });
 
     it("should throw error when wallet is not connected", async () => {

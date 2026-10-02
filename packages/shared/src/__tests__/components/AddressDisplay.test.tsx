@@ -1,15 +1,14 @@
 /**
  * AddressDisplay Tests
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "../../types";
+import { createTestWrapper } from "../test-utils/render-helpers";
 
 const mockUseEnsName = vi.fn();
 
@@ -18,29 +17,12 @@ vi.mock("../../hooks/blockchain/useEnsName", () => ({
 }));
 
 import { AddressDisplay } from "../../components/AddressDisplay";
-import enMessages from "../../i18n/en.json";
 
 const TEST_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678" as Address;
 const SHORT_TEST_ADDRESS = "0x12...678";
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-    },
-  });
-}
-
 function renderAddressDisplay(ui: React.ReactElement) {
-  const queryClient = createQueryClient();
-
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <IntlProvider locale="en" messages={enMessages}>
-        {ui}
-      </IntlProvider>
-    </QueryClientProvider>
-  );
+  return render(ui, { wrapper: createTestWrapper() });
 }
 
 describe("AddressDisplay", () => {

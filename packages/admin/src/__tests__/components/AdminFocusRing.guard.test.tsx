@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Focus-ring role guard — Cockpit M3 1a (PRD-644 round 2).
  *
@@ -11,11 +11,13 @@
  * canonical role so the class strings cannot silently regress.
  */
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it, vi } from "vitest";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { AdminInlineField } from "@/components/AdminInlineField";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminTextField } from "@/components/AdminTextField";
-import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "../test-utils";
 
 const TONE_FOCUS_RING = "--tone-focus-ring";
@@ -55,5 +57,20 @@ describe("admin focus-ring role", () => {
     expect(ringContainer.className).toContain("ring-2");
     expect(ringContainer.className).toContain(TONE_FOCUS_RING);
     expect(ringContainer.className).not.toContain("--tone-on-surface-accent");
+  });
+
+  it("no elevation token voids the focus ring that shares its box-shadow", () => {
+    // Tailwind joins an elevation shadow arbitrary and ring utilities into one
+    // box-shadow list, and `none` inside a list voids the whole declaration.
+    const tokens = readFileSync(resolve(__dirname, "../../styles/admin-m3-tokens.css"), "utf-8");
+    const value = (level: string) =>
+      Array.from(tokens.matchAll(new RegExp(`--m3-elevation-${level}:\\s*([^;]+);`, "g")), (m) =>
+        m[1].trim()
+      );
+
+    expect(value("\\d+").length).toBeGreaterThan(0);
+    expect(value("\\d+")).not.toContain("none");
+    // Light and dark level 0: a transparent zero shadow, as Tailwind's shadow-none sets.
+    expect(value("0")).toEqual(["0 0 transparent", "0 0 transparent"]);
   });
 });

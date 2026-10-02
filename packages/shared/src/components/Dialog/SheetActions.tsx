@@ -9,8 +9,9 @@
  * primary rightmost and a tertiary text action at the start.
  *
  * Layout lives in shared `utilities.css` as `[data-component="SheetActions"]`
- * attribute rules: Tailwind does not scan `packages/shared/src/` from the app
- * builds, so utilities authored here would not generate.
+ * attribute rules, beside the rules for the surfaces that host the bar:
+ * DialogShell and ConfirmDialog set its padding from their own selectors, and
+ * child selectors size the buttons inside it.
  *
  * The DOM keeps the stacked reading order (primary, secondary, tertiary), so
  * keyboard and screen-reader order match the phone layout. `steps` renders

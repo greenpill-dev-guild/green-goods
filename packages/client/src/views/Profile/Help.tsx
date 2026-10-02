@@ -40,6 +40,11 @@ const faqCategories: FaqCategory[] = [
     ],
   },
   {
+    // What the Promises tab used to explain on the page now lives here (D10).
+    id: "promises",
+    topics: ["whatArePromises", "offerOrRequest", "takingUp", "confirming", "seasonsAndCampaigns"],
+  },
+  {
     id: "documentingWork",
     topics: [
       "whoCanSubmitWork",
@@ -54,7 +59,7 @@ const faqCategories: FaqCategory[] = [
   },
   {
     id: "fundsWallet",
-    topics: ["walletDrawer", "cookieJars", "sendingFunds", "pools"],
+    topics: ["walletDrawer", "cookieJars", "sendingFunds"],
   },
   {
     id: "account",

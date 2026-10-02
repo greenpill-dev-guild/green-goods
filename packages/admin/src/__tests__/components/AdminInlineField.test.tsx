@@ -5,7 +5,7 @@
  * `--error-dark`, a `shake-error` class with no definition in admin CSS, and
  * un-inset supporting text. These pin the M3-family contract instead.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { AdminInlineField } from "@/components/AdminInlineField";

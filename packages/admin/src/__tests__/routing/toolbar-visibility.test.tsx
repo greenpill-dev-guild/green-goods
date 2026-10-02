@@ -1,6 +1,6 @@
 /**
  * Toolbar Visibility Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * RED phase — verifies that CanvasLayout correctly filters NavigationBar
  * slots based on useEffectiveToolbarPermissions return values.

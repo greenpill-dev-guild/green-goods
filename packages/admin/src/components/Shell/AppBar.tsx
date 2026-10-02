@@ -15,10 +15,10 @@ import { useIntl } from "react-intl";
 // ----------------------------------------------------------------------------
 // Admin fork of the shared Canvas AppBar (Cockpit M3, finished — 1a).
 //
-// Forked so the bar's styling lives in JSX that admin's Tailwind content scan
-// reaches, ending the remote overrides in admin-m3-overrides.css. Behavior
-// (slots, refresh registration, sheet context) is unchanged; the props stay
-// shared-typed via the GardenChip node the layout passes in.
+// Forked so the bar's styling lives in admin's own JSX, ending the remote
+// overrides in admin-m3-overrides.css. Behavior (slots, refresh registration,
+// sheet context) is unchanged; the props stay shared-typed via the GardenChip
+// node the layout passes in.
 //
 // Anatomy (1a Hub mockup): 56px bar, transparent over the canvas wash.
 // Right side is a row of 40px round icon buttons — hover is the neutral

@@ -19,6 +19,13 @@ export interface PoolLifecycleNoticeProps {
   pool: CommitmentPoolRecord;
   /** Rendered above a still-browsable list rather than in place of it. */
   inline?: boolean;
+  /**
+   * Stewards the pool's garden. Only a steward can finish setting a pool up,
+   * from the steward dashboard, so only a steward reads what it still needs.
+   * Null while the role is unknown: then the notice says only what is true for
+   * anyone.
+   */
+  isSteward?: boolean | null;
 }
 
 /**
@@ -29,7 +36,11 @@ export interface PoolLifecycleNoticeProps {
  * keeps its history, and a composted one can be reopened by the garden's
  * stewards. Which of those is true changes what a member should do next.
  */
-export function PoolLifecycleNotice({ pool, inline = false }: PoolLifecycleNoticeProps) {
+export function PoolLifecycleNotice({
+  pool,
+  inline = false,
+  isSteward = null,
+}: PoolLifecycleNoticeProps) {
   const { formatMessage } = useIntl();
   const state = pool.state ?? "UNKNOWN";
   // The pause reason is a CID the stewards pinned; the member reads the words,
@@ -66,9 +77,15 @@ export function PoolLifecycleNotice({ pool, inline = false }: PoolLifecycleNotic
         <EmptyState
           icon={notice.icon}
           title={formatMessage({ id: `app.pool.state.${notice.key}.title` })}
-          description={formatMessage({ id: `app.pool.state.${notice.key}.body` })}
+          description={formatMessage({
+            // A member can do nothing about the setup, so they read one sentence.
+            id:
+              state === "NOT_READY" && isSteward === false
+                ? "app.pool.notReady.member"
+                : `app.pool.state.${notice.key}.body`,
+          })}
         />
-        {state === "NOT_READY" ? (
+        {state === "NOT_READY" && isSteward === true ? (
           // What a pool needs before it takes anything, in the words the
           // stewards' own setup uses. A qualifying starting assessment is also
           // required on chain, but the app has no selector for it yet, so the
@@ -87,6 +104,11 @@ export function PoolLifecycleNotice({ pool, inline = false }: PoolLifecycleNotic
               label={formatMessage({ id: "app.pool.readiness.cap" })}
             />
           </ul>
+        ) : null}
+        {state === "NOT_READY" && isSteward === true ? (
+          <p className="text-xs text-text-sub-600">
+            {formatMessage({ id: "app.pool.notReady.stewardSetup" })}
+          </p>
         ) : null}
         {state === "CLOSED" || state === "COMPOSTED" ? (
           <section className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">

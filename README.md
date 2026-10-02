@@ -86,7 +86,7 @@ bun run dev
 
 Host setup installs dependencies and reports the environment steps; it does not create
 a secret-filled `.env`. Use `node scripts/dev/env-template-init.js` only if no template exists.
-Keep personal credentials in the root `.env` and shared references in `.env.template`.
+Keep personal credentials in the root `.env` and shared references in `env.template`.
 
 **Default development uses live Arbitrum**, with local client, admin, agent, and indexer
 services. It does not start Anvil. Wallet and passkey confirmations can send real transactions.

@@ -46,10 +46,16 @@ export const authStartupStates = {
         on: {
           EXTERNAL_WALLET_CONNECTED: { actions: "trackExternalWalletConnected" },
           EXTERNAL_WALLET_DISCONNECTED: { actions: "trackExternalWalletDisconnected" },
-          RESTORE_TIMEOUT: {
-            target: "#auth.unauthenticated",
-            actions: "clearWalletAuth",
-          },
+          // A wallet that does not answer in time keeps a remembered member signed
+          // in: the address stays readable and the wallet is asked again on return.
+          RESTORE_TIMEOUT: [
+            {
+              guard: "hasRememberedWallet",
+              target: "#auth.authenticated.wallet",
+              actions: "logWalletKeptAfterRestoreTimeout",
+            },
+            { target: "#auth.unauthenticated", actions: "clearWalletAuth" },
+          ],
           SIGN_OUT: {
             target: "#auth.unauthenticated",
             actions: "clearAllAuthState",

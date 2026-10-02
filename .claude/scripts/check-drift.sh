@@ -180,32 +180,32 @@ done
 echo "  $PASS_COUNT commands OK"
 PASS_COUNT=0
 
-# ── 6. .env.schema exists and has key variables ───────────────────
+# ── 6. env.schema exists and has key variables ───────────────────
 
 echo ""
 echo "== Environment =="
 
-if [ -f ".env.schema" ]; then
+if [ -f "env.schema" ]; then
   for var in VITE_CHAIN_ID VITE_API_BASE_URL VITE_PINATA_GATEWAY_URL PINATA_JWT_OP_REF PINATA_JWT; do
-    if grep -q "$var" .env.schema 2>/dev/null; then
+    if grep -q "$var" env.schema 2>/dev/null; then
       pass
     else
-      drift "$var not found in .env.schema"
+      drift "$var not found in env.schema"
     fi
   done
-  if grep -Fq 'PINATA_JWT=if($PINATA_JWT_OP_REF, op($PINATA_JWT_OP_REF),' .env.schema 2>/dev/null; then
+  if grep -Fq 'PINATA_JWT=if($PINATA_JWT_OP_REF, op($PINATA_JWT_OP_REF),' env.schema 2>/dev/null; then
     pass
   else
-    drift "PINATA_JWT in .env.schema does not derive from PINATA_JWT_OP_REF"
+    drift "PINATA_JWT in env.schema does not derive from PINATA_JWT_OP_REF"
   fi
-  if grep -q "VITE_STORACHA" .env.schema 2>/dev/null; then
-    drift "Stale VITE_STORACHA variable found in .env.schema"
+  if grep -q "VITE_STORACHA" env.schema 2>/dev/null; then
+    drift "Stale VITE_STORACHA variable found in env.schema"
   else
     pass
   fi
   echo "  $PASS_COUNT env vars OK"
 else
-  drift ".env.schema not found at repo root"
+  drift "env.schema not found at repo root"
 fi
 
 # ── Summary ────────────────────────────────────────────────────────

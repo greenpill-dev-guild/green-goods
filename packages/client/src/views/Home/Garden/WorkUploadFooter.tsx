@@ -1,11 +1,11 @@
-import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import type { Work } from "@green-goods/shared/types/domain";
-import { RiRefreshLine, RiUploadCloudLine } from "@remixicon/react";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type FC, useState } from "react";
 import { useIntl } from "react-intl";
 import { readQueuedWorkState } from "@/components/Cards/Work/queuedWorkCopy";
+import { canDiscardQueuedWork, workUploadGroup } from "@/components/Cards/Work/workUploadGroup";
 
 export interface WorkUploadFooterProps {
   work: Work;
@@ -21,34 +21,13 @@ export interface WorkUploadFooterProps {
   isDiscarding: boolean;
 }
 
-type FooterGroup = "waiting" | "preparing" | "attention" | "failed" | "sent";
-
-function footerGroup(submissionState: string | undefined): FooterGroup {
-  switch (submissionState) {
-    case "blocked":
-    case "photo-needs-attention":
-      return "attention";
-    case "retry-required":
-    case "reverted":
-      return "failed";
-    case "preparing":
-    case "photo-pending":
-      return "preparing";
-    case "awaiting-confirmation":
-    case "checking-submission":
-    case "sending":
-      return "sent";
-    default:
-      return "waiting";
-  }
-}
-
 /**
- * The actions for the gardener's own queued work, under the work detail page.
- * Waiting work can be uploaded here. Work that needs
- * attention can be prepared again or discarded. Work whose upload failed can be
- * uploaded now, and work already sent can be checked again. The header above
- * says where the work stands (queuedWorkExplanation), so nothing here repeats it.
+ * The acts for the gardener's own queued work, fixed under its page (D24): two
+ * equal halves on one row, Discard on the left and the primary on the right,
+ * or one full-width act when discarding isn't safe. Waiting work uploads here;
+ * work that needs attention is tried again; failed work uploads again; work
+ * already sent is checked again. The notice in the page says why (D30), so
+ * nothing here repeats it.
  */
 export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
   work,
@@ -65,10 +44,8 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
   const intl = useIntl();
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const state = readQueuedWorkState(work.metadata);
-  const group = footerGroup(state.submissionState);
-  // A reverted send left a transaction behind, so only an unsent failure can be discarded.
-  const canDiscard =
-    group === "attention" || (group === "failed" && state.submissionState !== "reverted");
+  const group = workUploadGroup(state.submissionState);
+  const canDiscard = canDiscardQueuedWork(state.submissionState, { isOnline, pausedForDataSaver });
 
   const primary = (() => {
     switch (group) {
@@ -102,7 +79,6 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
             size="lg"
             loading={isTryingAgain}
             className="w-full"
-            leadingIcon={<RiRefreshLine className="h-5 w-5" aria-hidden="true" />}
             data-testid="work-try-again"
           >
             {intl.formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
@@ -117,13 +93,6 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
             loading={isRetrying}
             disabled={!isOnline && !isRetrying}
             className="w-full"
-            leadingIcon={
-              group === "failed" ? (
-                <RiUploadCloudLine className="h-5 w-5" aria-hidden="true" />
-              ) : (
-                <RiRefreshLine className="h-5 w-5" aria-hidden="true" />
-              )
-            }
             data-testid="work-send-now"
           >
             {group === "sent"
@@ -147,7 +116,6 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
             loading={isRetrying}
             disabled={!isOnline && !isRetrying}
             className="w-full"
-            leadingIcon={<RiUploadCloudLine className="h-5 w-5" aria-hidden="true" />}
             data-testid="work-send-now"
           >
             {intl.formatMessage({ id: "app.home.work.uploadNow", defaultMessage: "Upload now" })}
@@ -158,39 +126,33 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
 
   return (
     <>
-      <Alert
-        variant={group === "attention" || group === "failed" ? "warning" : "info"}
-        className="fixed left-0 right-0 bottom-0 z-sticky overflow-hidden rounded-t-[var(--radius-lg)] border-t p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+      <div
+        data-component="FixedBar"
+        className="fixed bottom-0 left-0 right-0 z-sticky border-t border-stroke-soft-200 bg-bg-white-0 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
         <div
-          className="mx-auto flex max-w-screen-sm flex-col gap-3"
+          className={cn(
+            "mx-auto grid max-w-screen-sm gap-2",
+            canDiscard ? "grid-cols-2" : "grid-cols-1"
+          )}
           data-testid="work-upload-footer"
         >
-          <div className="flex flex-col gap-2">
-            {primary}
-            {canDiscard && (
-              <Button
-                emphasis="secondary"
-                tone="danger"
-                size="lg"
-                className="w-full"
-                onClick={() => setConfirmingDiscard(true)}
-                data-testid="work-discard"
-              >
-                {intl.formatMessage({ id: "app.uploads.discard", defaultMessage: "Discard" })}
-              </Button>
-            )}
-          </div>
-          {!isOnline && (group === "waiting" || group === "preparing") && (
-            <p className="text-center text-xs">
-              {intl.formatMessage({
-                id: "app.home.work.offlineNotice",
-                defaultMessage: "You're offline. Upload this work once you're connected.",
-              })}
-            </p>
+          {canDiscard && (
+            <Button
+              emphasis="secondary"
+              tone="danger"
+              size="lg"
+              className="w-full"
+              disabled={isRetrying || isTryingAgain || isDiscarding}
+              onClick={() => setConfirmingDiscard(true)}
+              data-testid="work-discard"
+            >
+              {intl.formatMessage({ id: "app.uploads.discard", defaultMessage: "Discard" })}
+            </Button>
           )}
+          {primary}
         </div>
-      </Alert>
+      </div>
       <ConfirmDialog
         isOpen={confirmingDiscard}
         onClose={() => setConfirmingDiscard(false)}

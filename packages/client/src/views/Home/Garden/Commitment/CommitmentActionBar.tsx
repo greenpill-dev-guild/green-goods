@@ -15,9 +15,8 @@ export interface CommitmentActionBarProps {
   blockedReasonId?: string | null;
   onRun: () => void;
   /**
-   * A rarer act that belongs to the same seat, on its own row beneath the
-   * primary: every act lives in the bar, and two rows is not three buttons on
-   * one line.
+   * A second act that belongs to the same seat (Link Work beside Add Proof). The
+   * two share one row, the primary rightmost; only this pair ever shares the bar.
    */
   secondary?: { labelId: string; onRun: () => void; disabled?: boolean } | null;
 }
@@ -31,8 +30,12 @@ export interface CommitmentActionBarProps {
  * already in flight, for the one act that genuinely needs the network, and for
  * a queue the phone cannot read, which is not the same as an empty one.
  *
- * The act is the page's primary (the error fill when destructive) and the rarer
- * act its secondary, both at the page-level lg size (DL-023, DL-026).
+ * The act is the page's primary (the error fill when destructive) and the second
+ * act its secondary, both at the page-level lg size (DL-023, DL-026). Paired,
+ * they share one row with the primary on the right, DL-016's order (D11). Each
+ * starts at half the row and never shrinks below its label, so when a label
+ * doesn't fit (Portuguese on a 360px phone) both take full rows, the primary on
+ * top. The primary comes first in the markup, so it is also read first.
  */
 export function CommitmentActionBar({
   act,
@@ -57,32 +60,37 @@ export function CommitmentActionBar({
           {formatMessage({ id: reasonId })}
         </p>
       ) : null}
-      <Button
-        type="button"
-        size="lg"
-        tone={act.destructive ? "danger" : "default"}
-        onClick={onRun}
-        loading={isPending}
-        disabled={unavailable}
-        data-component="CommitmentActionBar"
-        data-act={act.kind}
-        className="w-full"
+      <div
+        className="flex flex-row-reverse flex-wrap gap-2"
+        data-component="CommitmentActionBarRow"
       >
-        {formatMessage({ id: act.labelId })}
-      </Button>
-      {secondary ? (
         <Button
           type="button"
-          emphasis="secondary"
           size="lg"
-          onClick={secondary.onRun}
-          disabled={isPending || unavailable || secondary.disabled}
-          data-component="CommitmentActionBarSecondary"
-          className="mt-2 w-full"
+          tone={act.destructive ? "danger" : "default"}
+          onClick={onRun}
+          loading={isPending}
+          disabled={unavailable}
+          data-component="CommitmentActionBar"
+          data-act={act.kind}
+          className={secondary ? "min-w-max grow basis-[calc(50%-0.25rem)]" : "w-full"}
         >
-          {formatMessage({ id: secondary.labelId })}
+          {formatMessage({ id: act.labelId })}
         </Button>
-      ) : null}
+        {secondary ? (
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="lg"
+            onClick={secondary.onRun}
+            disabled={isPending || unavailable || secondary.disabled}
+            data-component="CommitmentActionBarSecondary"
+            className="min-w-max grow basis-[calc(50%-0.25rem)]"
+          >
+            {formatMessage({ id: secondary.labelId })}
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }

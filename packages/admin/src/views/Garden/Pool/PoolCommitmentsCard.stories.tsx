@@ -7,8 +7,15 @@ import {
   type PoolCommitmentScope,
   PoolCommitmentsCard,
 } from "./PoolCommitmentsCard";
-import { STORY_COMMITMENTS, storyCommitment } from "./poolStoryCommitments";
-import { storyPoolConsole } from "./poolStoryFixtures";
+import { STORY_COMMITMENTS, STORY_TITLES, storyCommitment } from "./poolStoryCommitments";
+import {
+  STORY_GROUP_COPIES,
+  STORY_GROUP_ID,
+  STORY_GROUP_TITLES,
+  storyPoolConsole,
+} from "./poolStoryFixtures";
+
+const GROUP_TITLES = new Map([...STORY_TITLES, ...STORY_GROUP_TITLES]);
 
 /** The card owns no filter state; the story does, so the chips work. */
 function PoolCommitmentsCardWithScope(props: ComponentProps<typeof PoolCommitmentsCard>) {
@@ -35,12 +42,13 @@ const meta: Meta<typeof PoolCommitmentsCard> = {
     docs: {
       description: {
         component:
-          "One commitments card for the whole pool: search, the Open · Confirmed · Past chips, a Past due chip for live rows the chain would let anyone expire, a Needs recovery chip for those and the disputed ones, and rows that open in the left inspector. Expire now… is outlined where it sits; the red is for the confirm inside its dialog.",
+          "One Promises card for the whole pool: search, the Open · Confirmed · Past chips, a Past due chip for live rows the chain would let anyone expire, a Needs recovery chip for those and the disputed ones, and rows that open in the left inspector. Copies made together are one group row that opens the group's inspector (PRD-1022 D3), and a group's copy that didn't send folds into it with Finish Creating (n); Past due and Needs recovery still name each promise on its own. Expire now… is outlined where it sits; the red is for the confirm inside its dialog.",
       },
     },
   },
   args: {
     onOpenCommitment: () => undefined,
+    onOpenGroup: () => undefined,
     onSeed: () => undefined,
     canSeed: true,
     scope: "open",
@@ -59,6 +67,46 @@ export const Open: Story = {
     await expect(await canvas.findByText("Prune the north beds")).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "Confirmed" }));
     await expect(await canvas.findByText("Repair the greenhouse")).toBeVisible();
+  },
+};
+
+/** Ten copies made together, five days in: one group row among the pool's own. */
+export const WithGroup: Story = {
+  args: {
+    console: storyPoolConsole({
+      commitments: [...STORY_COMMITMENTS, ...STORY_GROUP_COPIES],
+      titles: GROUP_TITLES,
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Household water survey")).toBeVisible();
+  },
+};
+
+/** Nine created and one waiting in the steward's queue: the row offers Finish Creating (1). */
+export const GroupDidNotSendOne: Story = {
+  args: {
+    console: storyPoolConsole({
+      commitments: [...STORY_COMMITMENTS, ...STORY_GROUP_COPIES.slice(0, 9)],
+      titles: GROUP_TITLES,
+      queuedGroupCopies: new Map([[STORY_GROUP_ID, ["job-copy"]]]),
+      pendingCreates: [
+        {
+          jobId: "job-copy",
+          chainId: 42161,
+          poolId: "7",
+          direction: "REQUEST",
+          title: "Household water survey",
+          unitLabel: "survey",
+          targetUnits: "1",
+          waitingForMembership: false,
+          discardable: true,
+          failed: true,
+          createdAt: daysAgo(0) * 1000,
+        },
+      ],
+    }),
   },
 };
 

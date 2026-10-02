@@ -3,18 +3,11 @@ import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
 import React from "react";
-import { type IntlShape, useIntl } from "react-intl";
+import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
+import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import type { WorkCardPresentation } from "@/components/Cards/Work/WorkCard";
 import { EmptyState, Loader } from "@/components/Communication";
-
-/** A time for today's saves, a short date for older ones (matches the garden Work tab). */
-function formatSavedAt(intl: IntlShape, timestamp: number): string {
-  const saved = new Date(timestamp);
-  return saved.toDateString() === new Date().toDateString()
-    ? intl.formatTime(saved, { hour: "numeric", minute: "2-digit" })
-    : intl.formatDate(saved, { month: "short", day: "numeric" });
-}
 
 interface WorkListMessages {
   itemCount: { id: string; defaultMessage: string };
@@ -59,7 +52,13 @@ interface WorkListHeaderProps {
  * The one header row every Work Dashboard tab shares: status line and compact
  * Refresh on the left, filters on the right (DL-032). The row keeps the height
  * of a tab that has a filter, so a tab without one (Drafts) starts its list at
- * the same place.
+ * the same place, and it never shrinks when the list below it scrolls.
+ *
+ * An action (Upload all) sits beside Refresh at normal phone sizes.
+ * When the row is short of room the filters give way first, down to their 4rem
+ * minimum; only then does the action's label truncate. The status line never
+ * truncates. At narrow widths or enlarged text, controls wrap into additional
+ * rows so actions remain readable and reachable.
  */
 export const WorkListHeader: React.FC<WorkListHeaderProps> = ({
   statusText,
@@ -71,49 +70,50 @@ export const WorkListHeader: React.FC<WorkListHeaderProps> = ({
 }) => {
   const intl = useIntl();
   return (
-    <div
-      className={`mb-4 flex min-h-14 gap-2 px-4 pt-4 ${actions ? "items-start" : "items-center"}`}
-      data-testid="work-list-header"
-    >
+    <div className="@container shrink-0">
       <div
-        className={
-          actions
-            ? "flex min-w-0 flex-1 flex-wrap items-center gap-0.5"
-            : "flex shrink-0 items-center gap-0.5"
-        }
-        data-testid="work-list-actions"
+        className="mb-4 flex min-h-14 shrink-0 items-center gap-2 px-4 pt-4 @max-[20rem]:flex-wrap"
+        data-testid="work-list-header"
       >
-        {statusText ? (
-          <p
-            role="status"
-            className="whitespace-nowrap text-sm text-text-sub-600"
-            title={statusText}
-          >
-            {statusText}
-          </p>
-        ) : null}
-        {onRefresh ? (
-          <IconButton
-            className="shrink-0"
-            size="compact"
-            aria-label={
-              isFetching
-                ? intl.formatMessage({
-                    id: "app.common.refreshing",
-                    defaultMessage: "Refreshing...",
-                  })
-                : (refreshLabel ??
-                  intl.formatMessage({ id: "app.common.refresh", defaultMessage: "Refresh" }))
-            }
-            icon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
-            loading={isFetching}
-            onClick={onRefresh}
-          />
-        ) : null}
-        {actions}
-      </div>
-      <div className={actions ? "flex shrink-0 justify-end" : "flex min-w-0 flex-1 justify-end"}>
-        {children}
+        <div
+          className={
+            actions
+              ? // Leaves the filter its 4rem minimum and the 0.5rem gap.
+                "flex min-w-0 max-w-[calc(100%-4.5rem)] shrink-0 items-center gap-0.5 @max-[20rem]:w-full @max-[20rem]:max-w-full @max-[20rem]:flex-wrap @max-[20rem]:[&>button]:shrink-0"
+              : "flex shrink-0 items-center gap-0.5 @max-[20rem]:w-full @max-[20rem]:flex-wrap"
+          }
+          data-testid="work-list-actions"
+        >
+          {statusText ? (
+            <p
+              role="status"
+              className="shrink-0 whitespace-nowrap text-sm text-text-sub-600 @max-[20rem]:shrink @max-[20rem]:whitespace-normal"
+              title={statusText}
+            >
+              {statusText}
+            </p>
+          ) : null}
+          {onRefresh ? (
+            <IconButton
+              className="shrink-0"
+              size="compact"
+              aria-label={
+                isFetching
+                  ? intl.formatMessage({
+                      id: "app.common.refreshing",
+                      defaultMessage: "Refreshing...",
+                    })
+                  : (refreshLabel ??
+                    intl.formatMessage({ id: "app.common.refresh", defaultMessage: "Refresh" }))
+              }
+              icon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+              loading={isFetching}
+              onClick={onRefresh}
+            />
+          ) : null}
+          {actions}
+        </div>
+        <div className="flex min-w-0 flex-1 justify-end">{children}</div>
       </div>
     </div>
   );
@@ -142,7 +142,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
       ? null
       : isOffline && savedAt
         ? intl.formatMessage(
-            { id: "app.workDashboard.offlineSaved", defaultMessage: "Offline · {when}" },
+            { id: "app.offline.savedAt", defaultMessage: "Offline · {when}" },
             { when: formatSavedAt(intl, savedAt) }
           )
         : items.length > 0

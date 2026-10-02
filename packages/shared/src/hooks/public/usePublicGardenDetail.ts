@@ -3,14 +3,17 @@
  *
  * Composes:
  *   - **Envio indexer** (`getGardens`): garden record + role addresses.
- *   - **EAS** (`getWorks`): every public field note for the garden. The caller
- *     owns the visible window (see `fieldNotes`).
+ *   - **EAS** (`getWorks`, then `readApprovedWorks`): the garden's approved
+ *     field notes. Pending and rejected work is not public. The caller owns
+ *     the visible window (see `fieldNotes`).
  *   - **EAS** (`getGardenAssessments`): evaluator-attestation count, used by
  *     the "Verified Site" badge on the public detail page.
  *
  * Both EAS reads are best-effort, and a failed read returns an empty list. That
  * is indistinguishable from a genuinely empty garden, so failures are reported
- * on `partialData` / `unavailableSources` rather than only logged.
+ * on `partialData` / `unavailableSources` rather than only logged. A decision
+ * that cannot be read counts as a failed works read: its work stays off the
+ * page, and the page cannot claim the notes it shows are all there are.
  *
  * No auth path. The slug parameter accepts either a derived slug ("pacific-
  * northwest-conservatory") or a raw garden address (fallback when the slug
@@ -34,13 +37,14 @@ import { useQuery } from "@tanstack/react-query";
 
 import { getEASConfig } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { isGardenPubliclyVisible } from "../../config/garden-visibility";
+import { isGardenPubliclyReachable, isGardenUnlisted } from "../../config/garden-visibility";
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { getAssessmentSchemas } from "../../modules/assessment/schemas";
 import { logger } from "../../modules/app/logger";
 import { getGardenAssessments, getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
+import { readApprovedWorks } from "../../modules/work/work-list";
 import type { Address, Garden } from "../../types/domain";
 import type { EASWork } from "../../types/eas-responses";
 import { isZeroBytes32 } from "../../utils/blockchain/bytes";
@@ -50,6 +54,7 @@ export interface PublicFieldNote {
   id: string;
   title: string;
   feedback: string;
+  metadata: string;
   media: string[];
   gardenerAddress: Address;
   gardenAddress: Address;
@@ -90,6 +95,11 @@ export interface PublicGardenDetail {
   /** True when either EAS read failed. Same name and meaning as `usePublicImpactEvidence`. */
   partialData: boolean;
   unavailableSources: PublicGardenUnavailableSources;
+  /**
+   * The garden is kept out of the public lists but opens by its own link. The
+   * page says so and asks crawlers not to index it.
+   */
+  unlisted: boolean;
 }
 
 export interface UsePublicGardenDetailOptions {
@@ -101,6 +111,7 @@ function adaptWorkToFieldNote(work: EASWork): PublicFieldNote {
     id: work.id,
     title: work.title,
     feedback: work.feedback,
+    metadata: work.metadata,
     media: work.media,
     gardenerAddress: work.gardenerAddress,
     gardenAddress: work.gardenAddress,
@@ -120,17 +131,22 @@ export function usePublicGardenDetail(
     queryKey: publicKeys.gardenDetail(lookup || "none", chainId),
     enabled: lookup.length > 0,
     queryFn: async (): Promise<PublicGardenDetail> => {
-      // Resolve against the public set only. Without this, a garden curated
-      // off the archive would still render a full detail page at its own URL,
-      // which is the leak the curation is meant to close.
-      const gardens = (await getGardens()).filter(isGardenPubliclyVisible);
+      // Resolve against the reachable set. A garden hidden everywhere has no
+      // page at all; one kept off the lists still opens by its own link, and
+      // says it is unlisted (decision § 1 row 36 of the pooling QA plan).
+      const gardens = (await getGardens()).filter(isGardenPubliclyReachable);
+      // Names are steward-editable, so a slug can collide. A listed garden
+      // keeps its slug; an unlisted one answers to it only when no listed
+      // garden does and no other unlisted one shares it.
+      const bySlug = gardens.filter(
+        (g) => publicGardenHelpers.deriveSlug(g.name ?? "", g.id).toLowerCase() === lookup
+      );
+      const unlistedBySlug = bySlug.filter(isGardenUnlisted);
 
       const matched =
         gardens.find((g) => g.id.toLowerCase() === lookup) ??
-        gardens.find(
-          (g) => publicGardenHelpers.deriveSlug(g.name ?? "", g.id).toLowerCase() === lookup
-        ) ??
-        null;
+        bySlug.find((g) => !isGardenUnlisted(g)) ??
+        (unlistedBySlug.length === 1 ? unlistedBySlug[0] : null);
 
       if (!matched) {
         return {
@@ -141,6 +157,7 @@ export function usePublicGardenDetail(
           totalFieldNotes: 0,
           partialData: false,
           unavailableSources: { works: false, assessments: false },
+          unlisted: false,
         };
       }
 
@@ -150,21 +167,25 @@ export function usePublicGardenDetail(
       // failed read means "we don't know", and a public page that renders it
       // as 0 states something it cannot support.
       const [worksResult, assessmentsResult] = await Promise.allSettled([
-        getWorks(matched.id, chainId),
+        getWorks(matched.id, chainId).then((works) => readApprovedWorks(works, chainId)),
         getGardenAssessments(matched.id, chainId),
       ]);
 
-      const allWorks = worksResult.status === "fulfilled" ? worksResult.value : [];
+      const publicWorks = worksResult.status === "fulfilled" ? worksResult.value.works : [];
       const assessments = assessmentsResult.status === "fulfilled" ? assessmentsResult.value : [];
 
-      // A rejected read is not the only way to not-know. Both readers return a
+      // A rejected read is not the only way to not-know. A work whose decision
+      // could not be read is left out (`partial`), and both readers return a
       // fulfilled `[]` when their schema UID is unset on this chain, which
       // `allSettled` cannot distinguish from a genuinely empty garden — and a
       // page that renders that as 0 states something it cannot support, which
       // is the whole point of these flags.
       const easConfig = getEASConfig(chainId);
       const unavailableSources: PublicGardenUnavailableSources = {
-        works: worksResult.status === "rejected" || isZeroBytes32(easConfig.WORK.uid),
+        works:
+          worksResult.status === "rejected" ||
+          worksResult.value.partial ||
+          isZeroBytes32(easConfig.WORK.uid),
         assessments:
           assessmentsResult.status === "rejected" || getAssessmentSchemas(easConfig).length === 0,
       };
@@ -185,7 +206,7 @@ export function usePublicGardenDetail(
       // Sort newest first. No cap: the query key carries no page size, so a
       // caller that wanted more than a hook-side slice could never get it
       // without a second fetch. The full set is already in memory here.
-      const sortedWorks = [...allWorks].sort((a, b) => b.createdAt - a.createdAt);
+      const sortedWorks = [...publicWorks].sort((a, b) => b.createdAt - a.createdAt);
       const fieldNotes = sortedWorks.map(adaptWorkToFieldNote);
 
       // Tally contributor activity over the FULL work set (not just the
@@ -210,6 +231,7 @@ export function usePublicGardenDetail(
         totalFieldNotes: fieldNotes.length,
         partialData: unavailableSources.works || unavailableSources.assessments,
         unavailableSources,
+        unlisted: isGardenUnlisted(matched),
       };
     },
     staleTime: STALE_TIME_RARE,

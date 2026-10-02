@@ -1,12 +1,14 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import {
   createFakeSmartAccountClient,
   createFakeWagmiDeps,
   createMockContractCall,
+} from "../../../__tests__/test-utils/transaction-fakes";
+import {
   describeConformance,
   type ConformanceLaw,
-} from "@green-goods/shared/testing";
+} from "../../../__tests__/test-utils/conformance";
 import { fakePreparedUserOperation } from "../../../__tests__/test-utils/transaction-fakes";
 import { expect, vi } from "vitest";
 import type { Hex } from "viem";

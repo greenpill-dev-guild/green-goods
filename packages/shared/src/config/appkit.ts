@@ -115,7 +115,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
 
   if (!projectId) {
     logger.warn(
-      "[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Set it in .env (or in .env.template + run `bun run env:sync` for team-shared 1Password resolution)."
+      "[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Set it in .env (or in env.template + run `bun run env:sync` for team-shared 1Password resolution)."
     );
   }
 

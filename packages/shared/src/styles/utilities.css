@@ -347,8 +347,8 @@
      AppSheet `size`, the Your Work shell). `compact` sizes to its content and
      stops at the half height, so a confirmation never shows empty space under
      its buttons; `half`, `tall`, and `full` hold their height whatever the
-     content, which scrolls inside. Attribute selectors keep the tiers out of
-     Tailwind's scan: they apply to shared and client sheets alike. */
+     content, which scrolls inside. One attribute names the tier on shared and
+     client sheets alike, and each rule pairs a vh fallback with its dvh value. */
   [data-sheet-size="compact"] {
     height: auto;
     max-height: 50vh;
@@ -586,10 +586,9 @@
 }
 
 /* ── Dialog surface radius ──
- * Tailwind v4 doesn't scan packages/shared/src/ from admin/client builds, so
- * bare utilities like `rounded-xl` applied to JSX inside shared dialog
- * primitives silently fail to generate. Drive the radius from the attribute
- * selector so it works regardless of scan coverage. These surfaces only mount
+ * One attribute rule gives both centered dialog surfaces their corner; it
+ * predates the app builds scanning shared source. It is unlayered, so it also
+ * outranks a rounded utility on the surface. These surfaces only mount
  * centered (>= 640px); the bottom sheet's top-only rounding lives with the
  * PwaSheet layout below. */
 [data-component="DialogShell"][data-slot="surface"],
@@ -598,11 +597,10 @@
 }
 
 /* ── PwaSheet layout ──
- * Same scan gap: the sheet's geometry is attribute-driven instead of utility
- * classes on its JSX (`touch-none`, `cursor-grab`, and the drag-handle tint
- * were measured missing from the client bundle). Scoped to @layer components
- * so a consumer's `panelClassName` utilities and unlayered package CSS still
- * override these defaults; inline `panelStyle` wins over everything. Heights
+ * The sheet's geometry is attribute-driven instead of utility classes on its
+ * JSX, scoped to @layer components so a consumer's `panelClassName` utilities
+ * and unlayered package CSS still override these defaults; inline
+ * `panelStyle` wins over everything. Heights
  * come from the `[data-sheet-size]` tiers in the utilities layer above; every
  * sheet names one, so the surface itself sets no cap. */
 @layer components {
@@ -879,12 +877,11 @@
   }
 }
 
-/* ── Image preview: constraints the utilities can't carry ──
- * Same scan gap as the dialog radius above. `max-w-full max-h-full` on the
- * photo and `left-4` on the previous-image arrow are authored in shared JSX and
- * therefore never generate in the admin or client bundle — the first measured
- * as `max-height: none`, which let a 1422px portrait render at natural size
- * inside a 683px frame and clip.
+/* ── Image preview: constraints both variants share ──
+ * These key on the component, not on `data-variant`: the photo stays inside
+ * its frame (uncapped, a 1422px portrait rendered at natural size inside a
+ * 683px frame and clipped), and the arrows sit at the sides, centered
+ * vertically.
  *
  * Only surface-neutral rules live here. The public site's editorial dressing
  * for `data-variant="editorial"` lives in the client's own editorial.css,
@@ -907,11 +904,9 @@
 }
 
 /* The installed-app dialect: filled round controls floating over a full-bleed
- * photo. Written here for the same reason as the rules above — measured in the
- * built bundles, `sm:flex` and `object-contain` were absent from admin, so the
- * Hub's evidence viewer had permanently hidden zoom controls and stretched
- * every photo out of aspect. `btn-icon` and `tap-feedback` stay on the JSX;
- * they are real CSS in this file already. */
+ * photo. It keys on `data-variant="app"`, as the editorial dialect keys on its
+ * own variant in the client's editorial.css. The controls are the shared
+ * IconButton, repainted below for the dark chrome. */
 [data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="panel"] {
   position: relative;
   width: 100%;
@@ -961,10 +956,9 @@
   transform: scale(1.1);
 }
 
-/* The translucent fill and white ink were both absent from the built bundles,
- * so the controls rendered as opaque circles with grey icons instead of the
- * chrome the design intends. `btn-icon` supplies the box; the palette
- * belongs here. */
+/* Over the photo the controls take a translucent white fill and white ink
+ * instead of IconButton's secondary palette. IconButton supplies the box;
+ * the palette belongs here. */
 [data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="control"] {
   border-radius: var(--radius-full);
   border-color: rgb(var(--static-white) / 0.25);

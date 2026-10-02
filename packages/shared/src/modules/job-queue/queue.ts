@@ -1,10 +1,14 @@
 import type { Address } from "../../types/domain";
 import type { Job, JobKindMap } from "../../types/job-queue";
-import { canonicalJobPayload, commitmentJobIdentity } from "../commitment-pooling/job-identity";
+import {
+  canonicalJobPayload,
+  commitmentJobIdentity,
+  commitmentJobPrerequisite,
+} from "../commitment-pooling/job-identity";
 import { JobMaintenance } from "./job-maintenance";
 import { createJobProcessor } from "./process-job";
 import type { FlushContext, FlushResult, JobQueueDependencies, JobQueueHandle } from "./ports";
-import { isTerminallyFailedJob } from "./queue-policy";
+import { isTerminallyFailedJob, payloadWithoutSendRecord } from "./queue-policy";
 import { createQueueReaders } from "./queue-readers";
 import { createJobRecovery } from "./job-recovery";
 
@@ -43,22 +47,35 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
       return result;
     }
 
+    // A job that goes after another in this pass (Add and Send's send after its
+    // proof) is taken once that one has landed, and left untried when it has not.
+    // Tried first, it would be held back as waiting well after its proof landed.
+    const unsent = new Set(jobs.map((job) => job.id));
+    const waitsInPass = (job: Job) =>
+      unsent.has(commitmentJobPrerequisite(job.kind, job.payload) ?? "");
+    const ordered = [...jobs.filter((job) => !waitsInPass(job)), ...jobs.filter(waitsInPass)];
+
     let processed = 0;
     let failed = 0;
     let skipped = 0;
-    for (let index = 0; index < jobs.length; index += 1) {
-      const job = jobs[index];
-      try {
-        const result = await deps.scheduler.schedule(() => processJob(job.id, context));
-        if (result.success) processed += 1;
-        else if (result.skipped) skipped += 1;
-        else failed += 1;
-      } catch (error) {
-        failed += 1;
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        deps.events.emit("job:failed", { jobId: job.id, job, error: errorMessage });
+    for (let index = 0; index < ordered.length; index += 1) {
+      const job = ordered[index];
+      if (waitsInPass(job)) skipped += 1;
+      else {
+        try {
+          const result = await deps.scheduler.schedule(() => processJob(job.id, context));
+          if (result.success) {
+            processed += 1;
+            unsent.delete(job.id);
+          } else if (result.skipped) skipped += 1;
+          else failed += 1;
+        } catch (error) {
+          failed += 1;
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          deps.events.emit("job:failed", { jobId: job.id, job, error: errorMessage });
+        }
       }
-      if ((index + 1) % 3 === 0 && index + 1 < jobs.length) await deps.scheduler.yield();
+      if ((index + 1) % 3 === 0 && index + 1 < ordered.length) await deps.scheduler.yield();
     }
     const result = { processed, failed, skipped };
     deps.events.emit("queue:sync-completed", { result });
@@ -84,7 +101,10 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
             !isTerminallyFailedJob(job) && commitmentJobIdentity(job.kind, job.payload) === identity
         );
         if (existing) {
-          if (canonicalJobPayload(existing.payload) !== canonicalJobPayload(persistedPayload)) {
+          if (
+            canonicalJobPayload(payloadWithoutSendRecord(existing)) !==
+            canonicalJobPayload(persistedPayload)
+          ) {
             throw new Error(`offline_job_identity_conflict:${identity}`);
           }
           return existing.id;

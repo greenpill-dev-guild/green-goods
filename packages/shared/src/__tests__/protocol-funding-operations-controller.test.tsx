@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useProtocolFundingOperationsController } from "../hooks/admin-ui/pool/useProtocolFundingOperationsController";
 import type { PoolFundingSnapshot } from "../modules/commitment-pooling/pool-funding";
 import type { Address } from "../types/domain";
-import { renderHookWithProviders } from "./test-utils";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const PROTOCOL = "0xf401f34378384713222d1d21f63359cc4e8a858a" as Address;
 const TARGET = "0xf7b892886998dae960d64a9db488336684f137a0" as Address;

@@ -2,6 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
+import { Helmet } from "react-helmet-async";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
@@ -31,6 +32,12 @@ export default function WorkDetail() {
 
   return (
     <>
+      {/* A note from an unlisted garden is as unlisted as its garden's page. */}
+      {data?.unlisted ? (
+        <Helmet>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+      ) : null}
       <article className="mx-auto max-w-3xl px-6 pb-16 pt-32 sm:px-10" aria-busy={isLoading}>
         <Link
           to={`/gardens/${encodeURIComponent(id ?? "")}`}

@@ -73,8 +73,8 @@ Phase 3b dedupe catches the other's records if both ran.
   `defect`, `polish`, `decision`, `investigate`, `catalog`, or `environment`. Write the `catalog`
   observations to `tmp/qa-triage/<slug>/catalog-feedback.md` — they feed the next catalog change
   and never reach Linear; at Phase 7 copy the file, de-attributed (no verdicts, no tester names),
-  into the plan hub that owns the next catalog change (today `.plans/active/qa-runs/`) before the
-  workspace is removed, so cleanup cannot lose it. A note that says "major regression", "major blocker", or "completely
+  into the plan hub that owns the next catalog change (the hub of the feature whose behaviour those
+  cases test) before the workspace is removed, so cleanup cannot lose it. A note that says "major regression", "major blocker", or "completely
   broken" proposes Urgent for its cluster; the priority stays derived until the gate confirms.
 - **Phases 3-5** — `defect` and `polish` observations cluster into slices: same catalog area +
   same suspected seam, split past 3 Test IDs or a package boundary, ordered by priority. The

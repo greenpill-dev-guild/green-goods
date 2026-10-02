@@ -24,11 +24,17 @@ export function useHubConfirmStage(input: {
   garden: Address | null;
   /** The reader stewards that garden, which is what the tab follows. */
   canManage: boolean;
+  /** Only the visible Confirm stage polls; inactive stages retain cached counts. */
+  active: boolean;
 }) {
-  const { navigate, hubContext, garden, canManage } = input;
+  const { navigate, hubContext, garden, canManage, active } = input;
   const chainId = useCurrentChain();
   const viewer = usePrimaryAddress() ?? undefined;
-  const everyGarden = useCommitmentsToConfirm({ chainId, viewer });
+  const everyGarden = useCommitmentsToConfirm({
+    chainId,
+    viewer,
+    refreshWhileOpen: active && canManage,
+  });
   const toConfirm = useMemo(
     () => ({ ...selectToConfirmForGarden(everyGarden, garden), isSteward: canManage }),
     [everyGarden, garden, canManage]

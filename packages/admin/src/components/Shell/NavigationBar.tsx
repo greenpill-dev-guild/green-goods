@@ -11,9 +11,9 @@ import { FabButton } from "./FabButton";
 // ----------------------------------------------------------------------------
 // Admin fork of the shared Canvas NavigationBar (Cockpit M3, finished — 1a).
 //
-// Forked so the cockpit's nav styling lives in JSX that admin's Tailwind
-// content scan reaches, ending the descendant-selector overrides that
-// previously restyled the shared component from admin-m3-overrides.css.
+// Forked so the cockpit's nav styling lives in admin's own JSX, ending the
+// descendant-selector overrides that previously restyled the shared component
+// from admin-m3-overrides.css.
 // Behavior (speed dial, keyboard navigation, breakpoints, role-based slots)
 // is unchanged from the shared component; the props/types stay shared so the
 // two cannot drift structurally. The FAB + speed dial live in ./FabButton.

@@ -1,12 +1,13 @@
 /**
  * useGardenRoles Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import type { QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // Mock external dependencies
 const mockReadContract = vi.fn();
@@ -27,17 +28,8 @@ const MOCK_USER = "0x2222222222222222222222222222222222222222";
 describe("useGardenRoles", () => {
   let queryClient: QueryClient;
 
-  const createWrapper =
-    () =>
-    ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children);
-
   beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
-    });
+    queryClient = createTestQueryClient();
     vi.clearAllMocks();
   });
 
@@ -53,8 +45,8 @@ describe("useGardenRoles", () => {
       return false;
     });
 
-    const { result } = renderHook(() => useGardenRoles(MOCK_GARDEN, MOCK_USER), {
-      wrapper: createWrapper(),
+    const { result } = renderHookWithQueryClient(() => useGardenRoles(MOCK_GARDEN, MOCK_USER), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -68,8 +60,8 @@ describe("useGardenRoles", () => {
   it("returns all roles when all checks succeed", async () => {
     mockReadContract.mockResolvedValue(true);
 
-    const { result } = renderHook(() => useGardenRoles(MOCK_GARDEN, MOCK_USER), {
-      wrapper: createWrapper(),
+    const { result } = renderHookWithQueryClient(() => useGardenRoles(MOCK_GARDEN, MOCK_USER), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -89,8 +81,8 @@ describe("useGardenRoles", () => {
   it("returns empty roles when contract calls fail", async () => {
     mockReadContract.mockRejectedValue(new Error("Contract error"));
 
-    const { result } = renderHook(() => useGardenRoles(MOCK_GARDEN, MOCK_USER), {
-      wrapper: createWrapper(),
+    const { result } = renderHookWithQueryClient(() => useGardenRoles(MOCK_GARDEN, MOCK_USER), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -101,8 +93,8 @@ describe("useGardenRoles", () => {
   });
 
   it("returns empty roles when disabled", () => {
-    const { result } = renderHook(() => useGardenRoles(undefined, undefined), {
-      wrapper: createWrapper(),
+    const { result } = renderHookWithQueryClient(() => useGardenRoles(undefined, undefined), {
+      queryClient,
     });
 
     expect(result.current.roles).toEqual([]);

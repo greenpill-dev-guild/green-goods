@@ -175,7 +175,6 @@ export {
   StepIndicator,
   Surface,
   Switch,
-  SyncStatusBar,
   surfaceCardVariants,
   surfaceVariants,
   Textarea,

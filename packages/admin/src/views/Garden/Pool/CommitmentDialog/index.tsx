@@ -1,8 +1,10 @@
 import type { DisputeResolutionKey } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useCommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/useCommitmentDialogController";
+import { useSettlementAccount } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
+import { rewardCentsAsSet } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { Address } from "@green-goods/shared/types/domain";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { CommitmentActions } from "./CommitmentActions";
@@ -21,6 +23,7 @@ import {
   CommitmentReasonDialogs,
 } from "./CommitmentReasonDialogs";
 import { CommitmentExpireDialog } from "../CommitmentExpireDialog";
+import { EditRewardDialog } from "../Group/EditRewardDialog";
 import { GardenPoolTarget } from "../PoolTarget";
 import { CommitmentRecovery } from "./CommitmentRecovery";
 import { CommitmentResolveDialog } from "./CommitmentResolveDialog";
@@ -45,6 +48,8 @@ export interface CommitmentDialogPanelProps {
    * has a seeding wizard passes it, and only the pool's stewards are offered it.
    */
   onSeedAnother?: (commitmentId: string) => void;
+  /** Open at the waiting list, as a Waiting for approval row does (PRD-1025 D4). */
+  focus?: "waiting";
 }
 
 /**
@@ -71,12 +76,24 @@ function CommitmentRecord({
   commitmentId,
   tone,
   onSeedAnother,
+  focus,
 }: Omit<CommitmentDialogPanelProps, "commitmentId"> & { commitmentId: bigint }) {
   const { formatMessage } = useIntl();
   const dialog = useCommitmentDialogController({ chainId, garden, commitmentId });
   const [open, setOpen] = useState<OpenDialog>(null);
   const [resolution, setResolution] = useState<DisputeResolutionKey>("RESTORE_PREVIOUS");
   const [assessmentUID, setAssessmentUID] = useState<string | null>(null);
+  const [editingReward, setEditingReward] = useState(false);
+  const waitingRef = useRef<HTMLDivElement>(null);
+  const loaded = Boolean(dialog.commitment);
+  // The list mounts only once an ask is read, which a cached record may lack.
+  const asksShown = (dialog.detail?.claimRequests?.length ?? 0) > 0;
+  // Opened from an ask: bring its waiting list into view once it is there.
+  useEffect(() => {
+    if (focus === "waiting" && loaded && asksShown) {
+      waitingRef.current?.scrollIntoView({ block: "start" });
+    }
+  }, [focus, loaded, asksShown]);
   const offlineNote = formatMessage({
     id: "cockpit.garden.pool.offline",
     defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
@@ -107,7 +124,18 @@ function CommitmentRecord({
   // cannot say which garden a write lands in.
   const target = <GardenPoolTarget chainId={chainId} garden={garden} record={title} />;
   const stage = stageIndex(commitment.onchainState, commitment.evidenceCount);
-  const pendingClaims = (detail?.claimRequests ?? []).filter((claim) => claim.state === "PENDING");
+  const asks = detail?.claimRequests ?? [];
+  // A promise in a group changes its reward from the group; one on its own, here,
+  // while nobody has taken it (the chain locks a reward at take-up). Only a read
+  // document can say it stands alone: one still loading, or unread, may be a copy.
+  const rewardWei = commitment.considerationAmount ?? 0n;
+  const canEditReward =
+    dialog.isLocalSteward &&
+    dialog.metadataKnown !== false &&
+    !dialog.metadata?.displayGroup &&
+    (commitment.onchainState === "OFFERED" || commitment.onchainState === "REQUESTED") &&
+    commitment.considerationRail === "CELO_SETTLEMENT" &&
+    rewardWei > 0n;
   const fallbackPath =
     confirmation.allowed && confirmation.path !== "ORDINARY" ? confirmation.path : null;
   const evidenceOnly =
@@ -164,16 +192,21 @@ function CommitmentRecord({
         />
       ) : null}
 
-      {pendingClaims.length > 0 ? (
-        <CommitmentClaims
-          claims={pendingClaims}
-          chainId={chainId}
-          can={can}
-          acts={acts}
-          phaseFor={dialog.claimPhase}
-          actDisabled={actDisabled}
-          onOpenDialog={setOpen}
-        />
+      {asks.length > 0 ? (
+        <div ref={waitingRef} className="scroll-mt-4">
+          <CommitmentClaims
+            claims={asks}
+            direction={commitment.direction}
+            chainId={chainId}
+            can={can}
+            acts={acts}
+            phaseFor={dialog.claimPhase}
+            decisions={dialog.claimDecisions}
+            standingOf={dialog.claimantStanding}
+            actDisabled={actDisabled || dialog.claimInFlight}
+            onOpenDialog={setOpen}
+          />
+        </div>
       ) : null}
 
       {(detail?.contributors.length ?? 0) > 0 ? (
@@ -198,7 +231,19 @@ function CommitmentRecord({
             ? () => onSeedAnother(commitment.commitmentId.toString())
             : undefined
         }
+        onEditReward={canEditReward ? () => setEditingReward(true) : undefined}
       />
+      {canEditReward && editingReward ? (
+        <PromiseRewardEdit
+          onClose={() => setEditingReward(false)}
+          chainId={chainId}
+          garden={garden}
+          title={title}
+          commitmentId={commitment.commitmentId}
+          currentWei={rewardWei}
+          currentCentsAsSet={rewardCentsAsSet(dialog.metadata, rewardWei)}
+        />
+      ) : null}
 
       <CommitmentReasonDialogs
         open={open}
@@ -319,5 +364,43 @@ function CommitmentRecord({
         }}
       />
     </div>
+  );
+}
+
+/** Edit Reward on one promise, reading its garden's settlement account only while it is open. */
+function PromiseRewardEdit({
+  onClose,
+  chainId,
+  garden,
+  title,
+  commitmentId,
+  currentWei,
+  currentCentsAsSet,
+}: {
+  onClose: () => void;
+  chainId: number;
+  garden: Address;
+  title: string;
+  commitmentId: bigint;
+  currentWei: bigint;
+  currentCentsAsSet: bigint | null;
+}) {
+  const settlement = useSettlementAccount({ chainId, garden });
+  return (
+    <EditRewardDialog
+      open
+      onClose={onClose}
+      onChanged={onClose}
+      chainId={chainId}
+      garden={garden}
+      title={title}
+      available={[commitmentId]}
+      availableRewards={[{ wei: currentWei, centsAsSet: currentCentsAsSet }]}
+      takenBy={[]}
+      takenRewards={[]}
+      currentWei={currentWei}
+      currentCentsAsSet={currentCentsAsSet}
+      settlementActive={Boolean(settlement.detail?.account?.active)}
+    />
   );
 }

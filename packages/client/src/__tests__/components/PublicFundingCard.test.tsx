@@ -1,7 +1,7 @@
 /**
  * PublicFundingCard interaction regressions.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen, waitFor } from "@testing-library/react";
@@ -252,6 +252,16 @@ describe("PublicFundingCard", () => {
     renderCard(intent);
 
     expect(screen.getByText(pathLabel)).toBeInTheDocument();
+  });
+
+  it.each(["donate", "endow"] as const)("opens %s as a full-width mobile sheet", (intent) => {
+    renderCard(intent);
+
+    const panel = document.querySelector('[data-component="PublicFundingCard"]');
+    expect(panel).toHaveClass("w-full", "max-w-none", "sm:max-w-md");
+    expect(screen.getByRole("dialog")).toHaveClass("items-end", "p-0", "sm:p-4");
+    expect(mockCookieJarMutate).not.toHaveBeenCalled();
+    expect(mockVaultMutate).not.toHaveBeenCalled();
   });
 
   it.each([

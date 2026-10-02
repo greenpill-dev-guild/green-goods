@@ -59,8 +59,8 @@ describe("hub.workbenchModel", () => {
       hypercerts: [],
     });
 
-    expect(model.stages.map((stage) => stage.id)).toEqual(["confirm", "work", "assess", "certify"]);
-    expect(model.fallbackStage).toBe("confirm");
+    expect(model.stages.map((stage) => stage.id)).toEqual(["work", "confirm", "assess", "certify"]);
+    expect(model.fallbackStage).toBe("work");
     expect(model.stageCounts.confirm).toBe(2);
   });
 

@@ -149,6 +149,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
     if (!isCurrentScope(operationScope)) return null;
     const operationId = ++latestRequestOperationRef.current;
     setStatusState({ isLoading: true, error: null });
+    setHasCheckedStatus(false);
     try {
       const proof = await signProof("read_self");
       const response = await gardenJoinRequestTransport.mine(gardenAddress!, proof);
@@ -176,6 +177,8 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
       const finishRequestMutation = beginRequestMutation(operationScope);
       const operationId = ++latestRequestOperationRef.current;
       setMutationState({ isLoading: true, error: null });
+      setHasCheckedStatus(false);
+      setStatusState(IDLE_ASYNC_STATE);
       try {
         const proof = await signProof("create", {
           displayName: input.displayName.trim().replace(/\s+/g, " "),

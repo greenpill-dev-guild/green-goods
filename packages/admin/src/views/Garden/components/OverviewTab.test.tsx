@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { GardenActivityEvent } from "@green-goods/shared/types/garden-detail";
@@ -10,6 +10,12 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { OverviewTab } from "./OverviewTab";
+
+vi.mock("@green-goods/shared/hooks/action/useAction", () => ({
+  useActionsByUID: () => [
+    { id: "42161-7", slug: "agro.harvest_yield", title: "Harvest & Yield Record", inputs: [] },
+  ],
+}));
 
 const karmaIntegration = {
   status: {
@@ -111,12 +117,19 @@ describe("OverviewTab", () => {
     ).toBeTruthy();
   });
 
-  it("localizes canonical work titles and relative times in Portuguese", () => {
+  it.each([
+    false,
+    true,
+  ])("localizes work titles and relative times, generated title: %s", (hasGeneratedTitle) => {
     const activity: GardenActivityEvent[] = [
       {
         id: "work-harvest",
         category: "work",
-        title: "Harvest & Yield Record - 2026-07-08T12:34:00.000Z",
+        actionUID: 7,
+        title: hasGeneratedTitle
+          ? "Trabalho sem título"
+          : "Harvest & Yield Record - 2026-07-08T12:34:00.000Z",
+        hasGeneratedTitle,
         description: "Aprovado · 8 de jul. de 2026",
         timestamp: Date.now() - 31 * DAY_MS,
         itemId: "work-harvest",

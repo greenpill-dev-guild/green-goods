@@ -138,6 +138,57 @@ async function submitForGarden(
 }
 
 describe("garden join request public API", () => {
+  it.each([
+    "isOpenJoining",
+    "isMember",
+  ] as const)("keeps a transient %s failure before persistence and allows a fresh signed retry", async (boundary) => {
+    const { app, store, chainReader } = createApp();
+    chainReader[boundary].mockRejectedValueOnce(new Error("RPC temporarily unavailable"));
+    const create = vi.spyOn(store, "create");
+    const failed = await submit(app);
+    expect(failed.status).toBe(503);
+    expect(await failed.json()).toMatchObject({ errorCode: "request_not_saved" });
+    expect(create).not.toHaveBeenCalled();
+    const mine = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      headers: headers(proof("read_self")),
+    });
+    expect(await mine.json()).toEqual({ ok: true, request: null });
+    const saved = await submit(app);
+    expect(saved.status).toBe(201);
+    const retry = await submit(app);
+    expect(retry.status).toBe(200);
+    expect((await retry.json()).request.id).toBe((await saved.json()).request.id);
+    expect(
+      (await store.listPending(GARDEN, { nowIso: new Date(NOW).toISOString() })).items
+    ).toHaveLength(1);
+  });
+
+  it("reconciles a store failure after persistence without creating a second pending request", async () => {
+    const { app, store } = createApp();
+    const persist = store.create.bind(store);
+    vi.spyOn(store, "create").mockImplementationOnce(async (input) => {
+      await persist(input);
+      throw new Error("Response lost after commit");
+    });
+    const failed = await submit(app);
+    expect(failed.status).toBe(503);
+    expect(await failed.json()).toMatchObject({ errorCode: "provider_unavailable" });
+    const unsigned = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      headers: { origin: ORIGIN },
+    });
+    expect(unsigned.status).toBe(400);
+    const mine = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      headers: headers(proof("read_self")),
+    });
+    expect((await mine.json()).request).toMatchObject({ id: "request-1", state: "pending" });
+    const retry = await submit(app);
+    expect(retry.status).toBe(200);
+    expect((await retry.json()).request.id).toBe("request-1");
+    expect(
+      (await store.listPending(GARDEN, { nowIso: new Date(NOW).toISOString() })).items
+    ).toHaveLength(1);
+  });
+
   it("creates a request and returns only non-sensitive state to the applicant", async () => {
     const { app } = createApp();
     const created = await submit(app);

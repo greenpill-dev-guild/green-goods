@@ -1,6 +1,6 @@
 /**
  * WorkCard Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * The card's title is display only: it never shows the timestamps older submissions appended.
  */

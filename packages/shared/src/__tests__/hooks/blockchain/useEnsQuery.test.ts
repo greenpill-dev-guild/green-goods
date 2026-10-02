@@ -1,15 +1,16 @@
 /**
  * useEnsQuery Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the generic ENS query hook that underpins useEnsName, useEnsAddress, etc.
  * Validates input normalization, validator-based enabling, and caching behavior.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // Mock wagmi (some modules may import it transitively)
 vi.mock("wagmi", () => ({
@@ -32,23 +33,6 @@ type EnsResolver = (
 // Test helpers
 // ============================================
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        gcTime: 0,
-      },
-    },
-  });
-}
-
 // ============================================
 // Tests
 // ============================================
@@ -58,7 +42,7 @@ describe("useEnsQuery", () => {
   let mockResolver: ReturnType<typeof vi.fn<EnsResolver>>;
 
   beforeEach(() => {
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockResolver = vi.fn<EnsResolver>();
   });
 
@@ -70,9 +54,12 @@ describe("useEnsQuery", () => {
     it("lowercases and trims input before resolving", async () => {
       mockResolver.mockResolvedValue("vitalik.eth");
 
-      renderHook(() => useEnsQuery("  0xABCDEF  ", mockResolver, ["test", "ens", "0xabcdef"]), {
-        wrapper: createWrapper(queryClient),
-      });
+      renderHookWithQueryClient(
+        () => useEnsQuery("  0xABCDEF  ", mockResolver, ["test", "ens", "0xabcdef"]),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(mockResolver).toHaveBeenCalledWith("0xabcdef", {});
@@ -80,9 +67,9 @@ describe("useEnsQuery", () => {
     });
 
     it("does not call resolver when input is null", async () => {
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () => useEnsQuery(null, mockResolver, ["test", "ens", "null"]),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       // Query should not be enabled
@@ -93,9 +80,9 @@ describe("useEnsQuery", () => {
     });
 
     it("does not call resolver when input is undefined", async () => {
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () => useEnsQuery(undefined, mockResolver, ["test", "ens", "undefined"]),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       await waitFor(() => {
@@ -105,9 +92,12 @@ describe("useEnsQuery", () => {
     });
 
     it("does not call resolver when input is empty string", async () => {
-      const { result } = renderHook(() => useEnsQuery("", mockResolver, ["test", "ens", "empty"]), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useEnsQuery("", mockResolver, ["test", "ens", "empty"]),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.fetchStatus).toBe("idle");
@@ -124,12 +114,12 @@ describe("useEnsQuery", () => {
     it("disables query when validator returns false", async () => {
       const alwaysFalse = vi.fn().mockReturnValue(false);
 
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () =>
           useEnsQuery("0xabc", mockResolver, ["test", "ens", "invalid"], {
             validator: alwaysFalse,
           }),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       await waitFor(() => {
@@ -143,12 +133,12 @@ describe("useEnsQuery", () => {
       const alwaysTrue = vi.fn().mockReturnValue(true);
       mockResolver.mockResolvedValue("resolved-value");
 
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () =>
           useEnsQuery("0xabc", mockResolver, ["test", "ens", "valid"], {
             validator: alwaysTrue,
           }),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       await waitFor(() => {
@@ -161,9 +151,9 @@ describe("useEnsQuery", () => {
     it("enables query without validator if input is valid", async () => {
       mockResolver.mockResolvedValue("no-validator-result");
 
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () => useEnsQuery("valid-input", mockResolver, ["test", "ens", "no-validator"]),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       await waitFor(() => {
@@ -178,12 +168,12 @@ describe("useEnsQuery", () => {
 
   describe("enabled option", () => {
     it("respects explicit enabled=false even with valid input", async () => {
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () =>
           useEnsQuery("valid-input", mockResolver, ["test", "ens", "disabled"], {
             enabled: false,
           }),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       await waitFor(() => {
@@ -196,13 +186,13 @@ describe("useEnsQuery", () => {
       const alwaysFalse = vi.fn().mockReturnValue(false);
       mockResolver.mockResolvedValue("forced-enabled");
 
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () =>
           useEnsQuery("input", mockResolver, ["test", "ens", "force-enabled"], {
             enabled: true,
             validator: alwaysFalse,
           }),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       await waitFor(() => {
@@ -219,9 +209,9 @@ describe("useEnsQuery", () => {
     it("returns resolved value on success", async () => {
       mockResolver.mockResolvedValue("resolved-name");
 
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () => useEnsQuery("0xaddr", mockResolver, ["test", "ens", "success"]),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       await waitFor(() => {
@@ -233,9 +223,9 @@ describe("useEnsQuery", () => {
     it("returns null when resolver returns null", async () => {
       mockResolver.mockResolvedValue(null);
 
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () => useEnsQuery("0xnoname", mockResolver, ["test", "ens", "null-result"]),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       await waitFor(() => {
@@ -247,9 +237,9 @@ describe("useEnsQuery", () => {
     it("sets error state when resolver rejects", async () => {
       mockResolver.mockRejectedValue(new Error("Network timeout"));
 
-      const { result } = renderHook(
+      const { result } = renderHookWithQueryClient(
         () => useEnsQuery("0xfail", mockResolver, ["test", "ens", "error"]),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       await waitFor(() => {
@@ -267,9 +257,12 @@ describe("useEnsQuery", () => {
     it("uses default stale time of STALE_TIME_RARE (300_000ms)", async () => {
       mockResolver.mockResolvedValue("cached-value");
 
-      renderHook(() => useEnsQuery("0xaddr", mockResolver, ["test", "ens", "stale-default"]), {
-        wrapper: createWrapper(queryClient),
-      });
+      renderHookWithQueryClient(
+        () => useEnsQuery("0xaddr", mockResolver, ["test", "ens", "stale-default"]),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(mockResolver).toHaveBeenCalledOnce();
@@ -277,9 +270,12 @@ describe("useEnsQuery", () => {
 
       // Second render should use cache (stale time not elapsed)
       const resolver2 = vi.fn();
-      renderHook(() => useEnsQuery("0xaddr", resolver2, ["test", "ens", "stale-default"]), {
-        wrapper: createWrapper(queryClient),
-      });
+      renderHookWithQueryClient(
+        () => useEnsQuery("0xaddr", resolver2, ["test", "ens", "stale-default"]),
+        {
+          queryClient,
+        }
+      );
 
       // The second resolver should not be called because data is fresh
       expect(resolver2).not.toHaveBeenCalled();
@@ -288,12 +284,12 @@ describe("useEnsQuery", () => {
     it("accepts custom stale time", async () => {
       mockResolver.mockResolvedValue("value");
 
-      renderHook(
+      renderHookWithQueryClient(
         () =>
           useEnsQuery("0xaddr", mockResolver, ["test", "ens", "custom-stale"], {
             staleTime: 1000,
           }),
-        { wrapper: createWrapper(queryClient) }
+        { queryClient }
       );
 
       await waitFor(() => {

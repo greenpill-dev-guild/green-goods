@@ -23,7 +23,7 @@ import {
   EditorialListRowSkeleton,
   EditorialLinkArrow,
   EditorialNumeral,
-  EditorialSkeleton,
+  EditorialVaultAssetCardSkeleton,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
@@ -159,19 +159,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
         ) : showSkeleton ? (
           <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2" aria-hidden="true">
             {[0, 1].map((index) => (
-              <div
-                key={index}
-                className="border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)]"
-              >
-                <EditorialSkeleton className="h-3 w-28" />
-                <EditorialSkeleton className="mt-4 h-8 w-36" />
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  <EditorialSkeleton className="h-4" />
-                  <EditorialSkeleton className="h-4" />
-                  <EditorialSkeleton className="h-4" />
-                  <EditorialSkeleton className="h-4" />
-                </div>
-              </div>
+              <EditorialVaultAssetCardSkeleton key={index} />
             ))}
           </div>
         ) : (

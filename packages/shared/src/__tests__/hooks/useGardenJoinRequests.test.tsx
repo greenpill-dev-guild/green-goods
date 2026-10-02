@@ -125,6 +125,38 @@ describe("useGardenJoinRequests", () => {
     expect(result.current.statusState).toEqual({ isLoading: false, error: null });
   });
 
+  it("invalidates an earlier absent result after an uncertain send until a signed read reconciles it", async () => {
+    mocks.mine.mockResolvedValueOnce({ ok: true, request: null });
+    const { result } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    await act(async () => {
+      await result.current.checkStatus();
+    });
+    expect(result.current.hasCheckedStatus).toBe(true);
+    mocks.create.mockRejectedValueOnce(
+      new GardenJoinRequestTransportError("Lost response", 503, "provider_unavailable", true)
+    );
+    await act(async () => {
+      await expect(
+        result.current.submitRequest({ displayName: "Maya", requestedVia: "garden_detail" })
+      ).rejects.toMatchObject({ outcomeUnknown: true });
+    });
+    expect(result.current.hasCheckedStatus).toBe(false);
+    mocks.mine.mockRejectedValueOnce(new Error("Temporary status failure"));
+    await act(async () => {
+      await expect(result.current.checkStatus()).rejects.toThrow();
+    });
+    expect(result.current.hasCheckedStatus).toBe(false);
+    await act(async () => {
+      await result.current.checkStatus();
+    });
+    expect(result.current.request).toEqual(selfResponse.request);
+    expect(result.current.hasCheckedStatus).toBe(true);
+    expect(mocks.mine).toHaveBeenLastCalledWith(
+      GARDEN_A,
+      expect.objectContaining({ action: "read_self", signature: "0x1234" })
+    );
+  });
+
   it("clears a loaded queue when the signed-in account changes", async () => {
     const { result, rerender } = renderHook(() => useGardenJoinRequests(GARDEN_A));
     await act(async () => {

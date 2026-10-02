@@ -181,7 +181,7 @@ export function CanvasLayout() {
             {/* Account / notification inspector — the three global AppBar
                 surfaces (Profile, Settings, Notifications) render as an
                 AdminSideSheet: right-docked within the canvas chrome bounds on
-                desktop, compact inset bottom sheet on mobile (where only the
+                desktop, full-width bottom sheet on mobile (where only the
                 notification bell can open it — Profile/Settings live in the
                 Profile tab there). The same orchestrator contentId drives
                 open/close. Tone is the neutral steward "hub" accent: this is

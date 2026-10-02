@@ -150,6 +150,7 @@ function ProtocolOperations({
     chainId,
     viewer: (primaryAddress ?? undefined) as Address | undefined,
     includeProtocolFallback: true,
+    refreshWhileOpen: true,
   });
   // Only the cross-garden rows the team was asked to step into. A reader who
   // also stewards ordinary gardens carries those gardens' own confirmations

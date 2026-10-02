@@ -1,13 +1,14 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
-import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { useEnsAvatar } from "@green-goods/shared/hooks/blockchain/useEnsAvatar";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
+import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
+import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiCalendarEventFill,
   RiFileCopyLine,
@@ -18,7 +19,7 @@ import {
 } from "@remixicon/react";
 import { forwardRef, memo, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { List, type RowComponentProps } from "react-window";
+import { List, type RowComponentProps, useDynamicRowHeight } from "react-window";
 import { Badge, EmptyState } from "@/components/Communication";
 import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
@@ -49,24 +50,27 @@ const GardenMemberItem = memo(function GardenMemberItem({
   const intl = useIntl();
   const { data: greenGoodsEnsName } = useGreenGoodsEnsName(member.account);
   const { data: ensName } = useEnsName(member.account);
-  const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(member.account);
-  const preferredEnsName = greenGoodsEnsName || ensName;
-  const displayName =
+  const avatar = useResolvedProfileAvatar(
+    member.account,
+    "/images/avatar.png",
+    garden?.chainId ?? DEFAULT_CHAIN_ID
+  );
+  // A Green Goods name reads as the username alone, without .greengoods.eth.
+  const identityName =
+    formatEnsNameForDisplay(greenGoodsEnsName) ||
     member.username ||
+    formatEnsNameForDisplay(ensName);
+  const displayName =
+    identityName ||
     member.email ||
     member.phone ||
-    (member.account ? formatAddress(member.account, { ensName: preferredEnsName }) : null) ||
+    (member.account ? formatAddress(member.account) : null) ||
     intl.formatMessage({
       id: "app.garden.gardeners.unknownUser",
       description: "Unknown User",
     });
-  const subline = member.account
-    ? formatAddress(member.account, { variant: "card", ensName: preferredEnsName })
-    : member.email || member.phone || "";
-
-  // Priority: uploaded avatar > ENS avatar > fallback
-  const avatarSrc = member.avatar || ensAvatar || "/images/avatar.png";
-  const showLoading = !member.avatar && isLoadingAvatar;
+  const subline =
+    member.account && identityName ? formatAddress(member.account, { variant: "card" }) : "";
 
   return (
     <button
@@ -95,12 +99,19 @@ const GardenMemberItem = memo(function GardenMemberItem({
         </Badge>
       ) : null}
       <Avatar className="w-10 h-10">
-        {showLoading ? (
+        {avatar.isLoading ? (
           <AvatarSkeleton />
         ) : (
           <>
-            <AvatarImage src={avatarSrc} alt="Profile" loading="lazy" decoding="async" />
-            <AvatarFallback />
+            <AvatarImage
+              src={avatar.avatarUri ?? undefined}
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+            <AvatarFallback>
+              <RiUserLine aria-hidden="true" />
+            </AvatarFallback>
           </>
         )}
       </Avatar>
@@ -113,11 +124,26 @@ const GardenMemberItem = memo(function GardenMemberItem({
             {subline}
           </span>
         ) : null}
-        <span className="text-xs text-text-sub-600 flex items-center gap-1">
-          <RiCalendarEventFill className="w-3.5 h-3.5 text-primary" />
-          {intl.formatMessage({ id: "app.garden.gardeners.registered", description: "Registered" })}
-          : {new Date(member.registeredAt || garden?.createdAt || Date.now()).toDateString()}
-        </span>
+        {member.isGardener ? (
+          <span className="text-xs text-text-sub-600 flex items-center gap-1">
+            <RiCalendarEventFill className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+            {intl.formatMessage({
+              id: "app.garden.gardeners.registered",
+              defaultMessage: "Gardener since",
+            })}
+            :{" "}
+            {member.registeredAt
+              ? intl.formatDate(member.registeredAt, {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })
+              : intl.formatMessage({
+                  id: "app.garden.gardeners.dateUnknown",
+                  defaultMessage: "Unknown",
+                })}
+          </span>
+        ) : null}
       </div>
     </button>
   );
@@ -141,7 +167,7 @@ function GardenMemberRow({
   if (!member) return null;
 
   return (
-    <div {...ariaAttributes} style={style} className="px-0.5">
+    <div {...ariaAttributes} style={style} className="px-0.5 pb-4">
       <GardenMemberItem member={member} garden={garden} onClick={() => onSelect(member)} />
     </div>
   );
@@ -151,6 +177,8 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
   ({ members, garden, canManageRequests = false }, ref) => {
     const intl = useIntl();
     const shouldVirtualize = members.length > 40;
+    // Include the card's natural height and its gap, including wrapped translations.
+    const rowHeight = useDynamicRowHeight({ defaultRowHeight: 90 });
     const [selected, setSelected] = useState<GardenMember | null>(null);
     const { data: selectedGreenGoodsEnsName } = useGreenGoodsEnsName(selected?.account);
     const { data: selectedEnsName } = useEnsName(selected?.account);
@@ -158,30 +186,30 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
     const title = useMemo(() => {
       if (!selected) return "";
       return (
+        formatEnsNameForDisplay(selectedGreenGoodsEnsName) ||
         selected.username ||
+        formatEnsNameForDisplay(selectedEnsName) ||
         selected.email ||
         selected.phone ||
-        (selected.account
-          ? formatAddress(selected.account, { ensName: selectedPreferredEnsName })
-          : selected.id)
+        (selected.account ? formatAddress(selected.account) : selected.id)
       );
-    }, [selected, selectedPreferredEnsName]);
+    }, [selected, selectedGreenGoodsEnsName, selectedEnsName]);
 
     const copy = async (val?: string) => {
       if (!val) return;
-      try {
-        await copyToClipboard(val);
-        toastService.success({
-          title: intl.formatMessage({ id: "app.toast.copied", defaultMessage: "Copied" }),
-        });
-      } catch {
+      const copiedOk = await copyToClipboard(val);
+      if (!copiedOk) {
         toastService.error({
           title: intl.formatMessage({
             id: "app.toast.copyFailed",
             defaultMessage: "Copy failed",
           }),
         });
+        return;
       }
+      toastService.success({
+        title: intl.formatMessage({ id: "app.toast.copied", defaultMessage: "Copied" }),
+      });
     };
 
     return (
@@ -197,7 +225,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
               defaultHeight={600}
               rowComponent={GardenMemberRow}
               rowCount={members.length}
-              rowHeight={64}
+              rowHeight={rowHeight}
               rowProps={{ members, garden, onSelect: setSelected }}
               style={{ height: 600, width: "100%" }}
             />
