@@ -107,7 +107,7 @@ including those from other applications; the confirmation discloses this before 
    Enable the intended Telegram controls explicitly if an earlier database has them paused.
 6. Verify the existing bot's webhook points to `https://agent.greengoods.app/webhook/telegram`.
    The bot remains `@green_goods_bot`. No BotFather update or token rotation is needed:
-   startup refreshes its private `/start`, `/status`, `/help` menu. Groups retain the existing path.
+   startup refreshes its private menu with the Telegram commands `start`, `status`, and `help`. Groups retain the existing path.
 7. For delegation, deploy the new guard separately, record the code hash, verify the entire pinned
    Kernel/SDK/policy stack, measure gas/cost caps, prove adversarial execution and independent
    revocation, then add the verified registry entry. Source tests alone do not authorize activation.
