@@ -142,8 +142,8 @@ a second Telegram identity is available; that does not establish the steward Tel
 - **Result:** complete selected critical plan passed: package typechecks/tests/builds, 2,100 Solidity tests, contract release verification, docs, design/Storybook, source structure, supply chain, validation policy and immutable-report checks. Agent SQLite acceptance includes 116 passing tests. A first run failed only on the handoff's slash-command wording; the corrected commit passed the complete rerun.
 - **Validated paths:** all repository implementation, dependency, configuration and validation paths outside `.plans`, represented by `. ':!.plans'`.
 - **Worktree identity command and result:** `git status --porcelain=v1 --untracked-files=all -- . ':!.plans'` → empty output; clean validated paths.
-- **Evidence-only diff command and result (if applicable):** `git diff --exit-code 202333ca6831e2e5d3bceae32a4c0894519ab019..HEAD -- . ':!.plans'` → exit code 0; no validated-path changes. The follow-up commit records plan evidence only.
-- **Evidence-only worktree-status command and result (if applicable):** `git status --porcelain=v1 --untracked-files=all -- . ':!.plans'` → empty output; clean validated paths.
+- **Evidence-only diff command and result (if applicable):** Not applicable
+- **Evidence-only worktree-status command and result (if applicable):** Not applicable
 
 Rendered proof is **Storybook (Codex in-app browser)** on 2026-10-02: review at
 1280×900 desktop and 375×812 mobile; no horizontal overflow; visible buttons at least 48px.
@@ -151,3 +151,13 @@ Grant, permission-removal confirmation, recovery and uncertain-send states were 
 This is layout evidence, not authenticated wallet/passkey signing, live model quality or Telegram
 production proof. Screenshots use synthetic garden content. Current-head GitHub CI follows the
 normal push; the PR body records its live status. The feature hub remains active for the live gates.
+
+## CI follow-up: Storybook asset input
+
+GitHub CI at `bd3162c28148ae4e712e955fb0de2dc49ab8fcee` caught the new Client logo
+read missing from the design deployment input list. The existing regression test reproduced it:
+`node --test scripts/ops/vercel-ignore.test.mjs` failed with
+`design reads packages/client/public/icon.png`. The build-input list now includes that exact file;
+the same test passes. This source follow-up is outside the earlier receipt's evidence-only reuse.
+The normal pre-push gate validates the new complete head; the PR body records that head and its
+current GitHub CI status. No fixture, workflow requirement or skip rule was weakened.
