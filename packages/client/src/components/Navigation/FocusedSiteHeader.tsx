@@ -18,7 +18,7 @@ export function FocusedSiteHeader() {
       <div className="px-6 sm:px-10">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between">
           <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
-          <Button emphasis="tertiary" size="sm" onClick={() => setHelpOpen(true)}>
+          <Button emphasis="tertiary" size="lg" onClick={() => setHelpOpen(true)}>
             {intl.formatMessage({ id: "public.reporting.help.label", defaultMessage: "Help" })}
           </Button>
         </div>

@@ -1,4 +1,4 @@
-import { type Address, type Hex, isAddress, isAddressEqual, isHex } from "viem";
+import { type Address, type Hex, isAddress, isAddressEqual } from "viem";
 import { reportingDigest } from "./canonical";
 
 /**
@@ -30,6 +30,10 @@ export interface GrantPolicy {
   maxSubmissions: number;
   /** Cumulative gas units; set from measured calls before any grant is offered. */
   gasCap: number;
+  /** Native-token cost in wei; separate from the server's gas-unit reservation. */
+  gasCostCapWei?: string;
+  approvedPaymaster?: Address;
+  singleCallPolicy?: Address;
 }
 
 export type GrantPolicyIssue =
@@ -73,6 +77,25 @@ export function grantPolicyDigest(policy: GrantPolicy): Hex {
   });
 }
 
+/** A saved recovery record must describe the very authority the owner is about to install. */
+export function descriptorMatchesPolicy(
+  descriptor: RevocationDescriptor,
+  policy: GrantPolicy,
+  permissionId: Hex
+): boolean {
+  return (
+    descriptor.chainId === policy.chainId &&
+    descriptor.account.toLowerCase() === policy.account.toLowerCase() &&
+    descriptor.signerAddress.toLowerCase() === policy.signerAddress.toLowerCase() &&
+    descriptor.moduleRef === policy.moduleRef &&
+    descriptor.gardenAddress.toLowerCase() === policy.gardenAddress.toLowerCase() &&
+    descriptor.purpose === policy.purpose &&
+    descriptor.validUntil === policy.validUntil &&
+    descriptor.permissionId === permissionId &&
+    descriptor.policyDigest === grantPolicyDigest(policy)
+  );
+}
+
 /**
  * Non-secret facts an owner needs to find and remove a permission without the Agent: saved before
  * enablement, exportable, and always revalidated against the pinned module allowlist and chain.
@@ -99,6 +122,14 @@ export interface PermissionModuleEntry {
   chainId: number;
   validatorAddress: Address;
   validatorCodeHash: Hex;
+  /** Deployment facts added only after adversarial chain and independent owner-revocation proof. */
+  singleCallPolicy?: Address;
+  singleCallPolicyCodeHash?: Hex;
+  approvedPaymaster?: Address;
+  gasCostCapsWei?: Record<GrantPurpose, string>;
+  measuredGasUnitsPerSubmission?: number;
+  /** Separate review effects/work-reference restriction gate. Reporting never implies this. */
+  reviewSupported?: boolean;
 }
 
 /**
@@ -120,13 +151,19 @@ export function revocationDescriptorIssues(
     typeof d === "object" &&
     d.version === 1 &&
     Number.isSafeInteger(d.chainId) &&
+    d.kernelVersion === "0.3.1" &&
+    d.entryPointVersion === "0.7" &&
     [d.account, d.validatorAddress, d.signerAddress, d.gardenAddress].every(
       (value) => typeof value === "string" && isAddress(value)
     ) &&
     typeof d.permissionId === "string" &&
-    isHex(d.permissionId) &&
+    /^0x[0-9a-fA-F]{8}$/.test(d.permissionId) &&
     typeof d.validatorCodeHash === "string" &&
-    isHex(d.validatorCodeHash) &&
+    /^0x[0-9a-fA-F]{64}$/.test(d.validatorCodeHash) &&
+    typeof d.policyDigest === "string" &&
+    /^0x[0-9a-fA-F]{64}$/.test(d.policyDigest) &&
+    Number.isSafeInteger(d.validUntil) &&
+    (d.validUntil as number) > 0 &&
     (d.purpose === "reporting" || d.purpose === "review") &&
     typeof d.moduleRef === "string";
   if (!wellFormed) return ["malformed"];

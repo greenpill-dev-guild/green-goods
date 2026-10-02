@@ -35,6 +35,13 @@ describe("review rules", () => {
     expect(reviewIssues(base, STEWARD)).toEqual([]);
   });
 
+  it("refuses overlong feedback without changing the existing review", () => {
+    const prior = withFeedback(base, "Existing steward feedback")!;
+    expect(withFeedback(prior, "x".repeat(2_001))).toBeNull();
+    expect(prior.feedback).toBe("Existing steward feedback");
+    expect(withFeedback(prior, "x".repeat(2_000))?.feedback).toHaveLength(2_000);
+  });
+
   it("publishes a HUMAN verification with empty review notes, never an AGENT flag", () => {
     const approved = withFeedback(
       withConfidence(withDecision(base, "approve"), Confidence.MEDIUM)!,

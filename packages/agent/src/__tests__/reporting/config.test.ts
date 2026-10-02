@@ -1,7 +1,7 @@
 import { arbitrum } from "viem/chains";
 import { describe, expect, it } from "vitest";
 import { startReporting } from "../../runtime/reporting-startup";
-import { loadReportingConfig } from "../../services/reporting/config";
+import { loadReportingConfig, loadReportingProviders } from "../../services/reporting/config";
 
 /** Reporting configuration holds only secrets; its key list is what turns reporting on. */
 const key = (fill: number) => Buffer.alloc(32, fill).toString("base64");
@@ -11,6 +11,18 @@ const keys = { AGENT_REPORTING_KEYS: `k1:${key(1)}` };
 const base = { isProduction: true, dataDir: "/data" };
 
 describe("reporting configuration", () => {
+  it("loads pinned provider-only evaluation without enabling reporting or requiring wrapping keys", () => {
+    const env = {
+      AGENT_REPORTING_OPENAI_API_KEY: "openai-eval",
+      AGENT_REPORTING_JEV_API_KEY: "jev-eval",
+    };
+    expect(loadReportingProviders(env).openai?.model).toBe("gpt-4.1-mini-2025-04-14");
+    expect(loadReportingProviders(env).interpretation).toMatchObject({
+      provider: "jev",
+      model: "jev-1.13.0",
+    });
+    expect(loadReportingConfig(env, base)).toBeNull();
+  });
   it("keeps reporting data beside the Agent database, on the Agent's volume", () => {
     const config = loadReportingConfig(
       { ...keys, AGENT_REPORTING_DB_PATH: "data/elsewhere.db" },
@@ -46,7 +58,11 @@ describe("reporting configuration", () => {
       AGENT_REPORTING_JEV_API_KEY: "jev-live",
       AGENT_REPORTING_OPENAI_MODEL: "unreviewed-model",
     };
-    const unpinned = loadReportingConfig(withKeys, base);
+    const unpinned = loadReportingConfig(withKeys, base, {
+      extraction: null,
+      transcription: null,
+      jev: null,
+    });
     expect(unpinned?.openai).toBeNull();
     expect(unpinned?.interpretation).toEqual({ provider: "none" });
 
@@ -62,6 +78,27 @@ describe("reporting configuration", () => {
       transcriptionModel: null,
     });
     expect(pinned?.interpretation).toMatchObject({ provider: "jev", model: "reviewed-jev" });
+  });
+
+  it("uses reproducible provider versions with keys and ignores model environment overrides", () => {
+    const config = loadReportingConfig(
+      {
+        ...keys,
+        AGENT_REPORTING_OPENAI_API_KEY: "sk-test",
+        AGENT_REPORTING_JEV_API_KEY: "jev-test",
+        AGENT_REPORTING_OPENAI_MODEL: "floating-alias",
+        AGENT_REPORTING_TRANSCRIPTION_MODEL: "floating-transcription",
+        AGENT_REPORTING_JEV_MODEL: "jev-latest",
+      },
+      base
+    );
+    expect(config?.openai).toMatchObject({
+      model: "gpt-4.1-mini-2025-04-14",
+      transcriptionModel: "gpt-4o-mini-transcribe-2025-12-15",
+    });
+    expect(config?.interpretation).toMatchObject({ provider: "jev", model: "jev-1.13.0" });
+    expect(loadReportingConfig(keys, base)?.openai).toBeNull();
+    expect(loadReportingConfig(keys, base)?.interpretation).toEqual({ provider: "none" });
   });
 
   it("does not start reporting before a chat channel is available", () => {

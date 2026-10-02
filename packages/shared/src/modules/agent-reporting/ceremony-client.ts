@@ -14,6 +14,8 @@ import {
   reportingErrorSchema,
   type ResourceView,
   resourceViewSchema,
+  grantResponseSchema,
+  type GrantView,
 } from "./api-contract";
 
 /**
@@ -186,5 +188,31 @@ export class CeremonyClient {
 
   applyRecovery(challengeId: string) {
     return this.request("POST", `/recovery/${challengeId}/confirm`, recoveryStepSchema);
+  }
+
+  async proposeGrant(): Promise<GrantView> {
+    return (await this.request("POST", "/execution-grants", grantResponseSchema)).grant;
+  }
+  async grant(grantId: string): Promise<GrantView> {
+    return (await this.request("GET", `/execution-grants/${grantId}`, grantResponseSchema)).grant;
+  }
+  async approveGrant(
+    grant: Pick<GrantView, "grantId" | "version" | "policyDigest">,
+    enableReference: `0x${string}`
+  ): Promise<GrantView> {
+    return (
+      await this.request(
+        "POST",
+        `/execution-grants/${grant.grantId}/approval`,
+        grantResponseSchema,
+        {
+          body: {
+            expectedVersion: grant.version,
+            policyDigest: grant.policyDigest,
+            enableReference,
+          },
+        }
+      )
+    ).grant;
   }
 }

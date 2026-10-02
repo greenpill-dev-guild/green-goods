@@ -149,7 +149,7 @@ async function main(): Promise<void> {
   if (config.telegramRuntimeDisabled) {
     logger.info("Telegram runtime disabled; starting local HTTP API only");
   } else {
-    await registerSlashCommands(bot).catch((err) => {
+    await registerSlashCommands(bot, Boolean(telegramReporting)).catch((err) => {
       logger.warn({ err }, "Failed to register slash commands; continuing");
     });
   }

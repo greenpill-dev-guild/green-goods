@@ -54,6 +54,11 @@ const files = [
 
 const assetFiles = [
   {
+    from: "packages/client/public/icon.png",
+    to: "icon.png",
+    role: "Client header mark",
+  },
+  {
     from: "docs/static/img/green-goods-logo.png",
     to: "green-goods-logo.png",
     role: "Storybook chrome logo",

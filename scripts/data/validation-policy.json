@@ -1415,6 +1415,11 @@
         "packages/shared/src/hooks/admin-ui/pool/useSeedTray.ts",
         "packages/shared/src/hooks/admin-ui/pool/useSettlementOperationsController.ts",
         "packages/shared/src/hooks/admin-ui/useAdminAccessState.ts",
+        "packages/shared/src/hooks/agent-reporting/useAgentReportingCeremony.ts",
+        "packages/shared/src/hooks/agent-reporting/useAgentReportingPermissions.ts",
+        "packages/shared/src/hooks/agent-reporting/useAgentReportingRecovery.ts",
+        "packages/shared/src/hooks/agent-reporting/useCeremonyAccount.ts",
+        "packages/shared/src/hooks/agent-reporting/useGrantInstallation.ts",
         "packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts",
         "packages/shared/src/hooks/blockchain/useContractTxSender.ts",
         "packages/shared/src/hooks/blockchain/useSendToken.ts",
@@ -1477,6 +1482,8 @@
         "packages/shared/src/hooks/yield/useAllocateYield.ts",
         "packages/shared/src/hooks/yield/useHarvestDistribution.ts",
         "packages/shared/src/modules/action/action-operation-command.ts",
+        "packages/shared/src/modules/agent-reporting/ceremony-send.ts",
+        "packages/shared/src/modules/agent-reporting/kernel-executor.ts",
         "packages/shared/src/modules/assessment/create-assessment-command.ts",
         "packages/shared/src/modules/commitment-pooling/creation-send.ts",
         "packages/shared/src/modules/commitment-pooling/reward-edit.ts",
@@ -1491,6 +1498,16 @@
         "packages/shared/src/modules/transactions/passkey-sender.ts",
         "packages/shared/src/modules/transactions/wallet-sender.ts",
         "packages/shared/src/providers/AuthGate.tsx"
+      ],
+      "risk": "critical",
+      "checks": ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]
+    },
+    {
+      "id": "reporting-permission-payloads",
+      "note": "These data-only builders define the owner's Kernel permission install and independent revoke calls. Their authorization payloads are critical even though they do not themselves invoke a signing or sending primitive.",
+      "exact": [
+        "packages/shared/src/modules/agent-reporting/kernel-permissions.ts",
+        "packages/shared/src/modules/agent-reporting/permission-management.ts"
       ],
       "risk": "critical",
       "checks": ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]

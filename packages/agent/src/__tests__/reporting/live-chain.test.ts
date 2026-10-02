@@ -118,10 +118,14 @@ describe("live chain adapter", () => {
     ).toBe("unsupported");
   });
 
-  it("maps a missing receipt to null and rethrows transport failures", async () => {
+  it("maps a missing receipt to null", async () => {
     const hash = keccak256(toHex("tx"));
     const missing = chainWith(() => null);
     expect(await missing.transactionReceipt(42161, hash)).toBeNull();
+  });
+
+  it("rethrows receipt transport failures so retry can distinguish them from a missing receipt", async () => {
+    const hash = keccak256(toHex("tx"));
     const down = chainWith(() => {
       throw new Error("rpc unavailable");
     });

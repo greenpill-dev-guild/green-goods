@@ -1,3 +1,4 @@
+import type { useAgentReportingPermissions } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingPermissions";
 import type { AgentReportingCeremony } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingCeremony";
 import type { AgentReportingRecovery } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingRecovery";
 import type { MessageDescriptor } from "react-intl";
@@ -60,6 +61,40 @@ export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
       id: "public.reporting.review.body",
       defaultMessage:
         "This is exactly what will be published on-chain for {garden}. It can't be edited once it is published.",
+    },
+  },
+  grant_ready: {
+    title: { id: "public.reporting.grant.title", defaultMessage: "Allow bounded reporting" },
+    body: {
+      id: "public.reporting.grant.body",
+      defaultMessage:
+        "Check the garden, time window and limits below. Your wallet or passkey will ask you to install this permission.",
+    },
+  },
+  grant_signing: {
+    title: { id: "public.reporting.grant.signingTitle", defaultMessage: "Confirm the permission" },
+    body: {
+      id: "public.reporting.grant.signingBody",
+      defaultMessage: "Approve the permission in your wallet or passkey prompt.",
+    },
+  },
+  grant_submitted: {
+    title: { id: "public.reporting.grant.submittedTitle", defaultMessage: "Permission sent" },
+    body: {
+      id: "public.reporting.grant.submittedBody",
+      defaultMessage:
+        "Waiting for the network to confirm. Keep using your chat; don't install it again.",
+    },
+  },
+  grant_active: {
+    title: {
+      id: "public.reporting.grant.activeTitle",
+      defaultMessage: "Reporting permission active",
+    },
+    body: {
+      id: "public.reporting.grant.activeBody",
+      defaultMessage:
+        "The assistant can publish within these limits after you confirm each report in chat. You can remove permissions from the reporting permissions page.",
     },
   },
   signing: {
@@ -160,7 +195,7 @@ export const RECOVERY_COPY: Record<AgentReportingRecovery["stage"], Copy> = {
     body: {
       id: "public.reporting.recovery.confirm.body",
       defaultMessage:
-        "Your old chat loses access, its open pages close and reporting permissions pause. Unfinished reports move with you.",
+        "Your previous chat on this channel loses access. Other connected channels keep their conversations. Open pages close and reporting permissions pause. Unfinished reports from the replaced chat move here.",
     },
   },
   applying: {
@@ -241,3 +276,41 @@ export const CAUTIONS = new Set<keyof typeof FAILURE_COPY>([
   "rate_limited",
   "offline",
 ]);
+
+export const PERMISSION_FAILURE_COPY: Record<
+  NonNullable<ReturnType<typeof useAgentReportingPermissions>["error"]>,
+  MessageDescriptor
+> = {
+  unsupported_account: {
+    id: "public.reporting.permissions.error.unsupported",
+    defaultMessage:
+      "This account doesn't support these permissions. You can still sign each report yourself.",
+  },
+  invalid_descriptor: {
+    id: "public.reporting.permissions.error.invalid",
+    defaultMessage:
+      "That saved record can't be used here. Paste the complete record exported from this page.",
+  },
+  wrong_account: {
+    id: "public.reporting.permissions.error.account",
+    defaultMessage: "This record belongs to another account. Connect that account to continue.",
+  },
+  dependency_unavailable: {
+    id: "public.reporting.permissions.error.connection",
+    defaultMessage: "The network couldn't be reached. Check your connection and try again.",
+  },
+  declined: {
+    id: "public.reporting.permissions.error.declined",
+    defaultMessage: "The request was declined. Your permissions haven't changed.",
+  },
+  outcome_unknown: {
+    id: "public.reporting.permissions.error.unknown",
+    defaultMessage:
+      "The network hasn't confirmed whether permissions changed. Check again before sending another request.",
+  },
+  remaining_permissions: {
+    id: "public.reporting.permissions.error.remaining",
+    defaultMessage:
+      "Newer permissions remain active. Check them and approve another removal if you want to stop them too.",
+  },
+};

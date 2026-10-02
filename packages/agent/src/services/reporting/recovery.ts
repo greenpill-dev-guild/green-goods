@@ -1,18 +1,25 @@
 import type { BrowserChallenge, ProofResult } from "./browser-access";
 import { withdrawConsent } from "./consent";
-import { type ContinuationRequest, hashSecret, issueContinuation } from "./continuations";
+import {
+  type ContinuationRequest,
+  hashSecret,
+  issueContinuation,
+  requestById,
+} from "./continuations";
 import type { TurnWriter } from "./coordinator/writer";
 import { conversationRealm, participantWriter } from "./notify";
-import { activeAccount, audit } from "./participants";
+import { activeAccount, attachProvisionalChannel, audit, bindingForSubject } from "./participants";
+import { destinationAvailable, recoverySources } from "./recovery-channels";
 import type { ReportingCore } from "./runtime";
 import { revokeParticipantSessions } from "./sessions";
 
 /**
- * Moving an existing account to a new chat, started from the new chat and proven twice: the
+ * Replacing one channel's chat, started from the new chat and proven twice: the
  * owner signs with the account already linked elsewhere, then types the code sent to the new chat
  * into the same browser. Replacement commits once, at the epoch observed when the owner proved the
  * account, so of two concurrent recoveries only one can win. The old chat loses access, browser
- * sessions end and reporting permissions pause; unfinished drafts follow the owner.
+ * sessions end and reporting permissions pause; that channel's unfinished drafts follow the owner.
+ * Other channels keep their bindings, consent and conversations at the newly fenced epoch.
  */
 const MAX_CODE_ATTEMPTS = 5;
 
@@ -99,7 +106,7 @@ export function verifyRecoveryProof(
   const owner = core.db
     .query(
       `SELECT a.id, a.participant_id, p.identity_epoch FROM account_bindings a JOIN participants p ON p.id = a.participant_id
-       WHERE a.chain_id = $chain AND a.account_address = $account AND a.status = 'active'`
+       WHERE a.chain_id = $chain AND a.account_address = $account AND a.status = 'active' AND p.status = 'active'`
     )
     .get({ chain: core.settings.chainId, account: proof.account }) as {
     id: string;
@@ -114,13 +121,33 @@ export function verifyRecoveryProof(
   ) {
     return { ok: false, errorCode: "forbidden" };
   }
+  const sources = recoverySources(core, owner.participant_id, recovery.new_channel_subject_id);
+  const target = bindingForSubject(core, recovery.new_channel_subject_id);
+  if (
+    target?.bindingId !== request.bindingId ||
+    target.participantId !== request.participantId ||
+    target.identityEpoch !== request.identityEpoch
+  )
+    return { ok: false, errorCode: "conflict" };
+  if (sources.subjects.length === 0) return { ok: false, errorCode: "forbidden" };
+  if (
+    !destinationAvailable(
+      core,
+      owner.participant_id,
+      recovery.new_channel_subject_id,
+      recovery.new_conversation_id,
+      sources
+    )
+  )
+    return { ok: false, errorCode: "conflict" };
   const now = core.clock.now();
   const consumed = core.db
     .query(
       `UPDATE browser_challenges SET state = 'proof_verified', verified_account = $account, verified_account_kind = $kind,
-         verified_at = $now WHERE id = $id AND state = 'issued' AND expires_at > $now`
+         verified_at = $now WHERE id = $id AND state = 'issued' AND expires_at > $now
+         AND EXISTS (SELECT 1 FROM continuation_requests WHERE id = $request AND state = 'open' AND expires_at > $now)`
     )
-    .run({ id: challenge.id, account: proof.account, kind: proof.kind, now });
+    .run({ id: challenge.id, request: request.id, account: proof.account, kind: proof.kind, now });
   if (consumed.changes !== 1) return { ok: false, errorCode: "conflict" };
   const code = core.ids.code(6);
   core.db
@@ -135,7 +162,7 @@ export function verifyRecoveryProof(
       epoch: owner.identity_epoch,
       code: hashSecret(code),
     });
-  suspendOldAccess(core, owner.participant_id);
+  suspendOldAccess(core, owner.participant_id, sources.subjects);
   participantWriter(core, {
     participantId: request.participantId as string,
     conversationId: recovery.new_conversation_id,
@@ -145,13 +172,14 @@ export function verifyRecoveryProof(
   return { ok: true, state: "proof_verified" };
 }
 
-function suspendOldAccess(core: ReportingCore, participantId: string): void {
+function suspendOldAccess(core: ReportingCore, participantId: string, subjects: string[]): void {
   const now = core.clock.now();
-  core.db
-    .query(
-      "UPDATE channel_bindings SET status = 'suspended' WHERE participant_id = $participant AND status = 'active'"
-    )
-    .run({ participant: participantId });
+  for (const subject of subjects)
+    core.db
+      .query(
+        "UPDATE channel_bindings SET status = 'suspended' WHERE participant_id = $participant AND channel_subject_id = $subject AND status = 'active'"
+      )
+      .run({ participant: participantId, subject });
   revokeParticipantSessions(core, participantId);
   core.db
     .query(
@@ -204,6 +232,27 @@ export function applyRecovery(core: ReportingCore, challenge: BrowserChallenge):
   if (recovery.state !== "channel_verified" || recovery.expires_at <= core.clock.now())
     return { ok: false, errorCode: "conflict" };
   const participantId = recovery.participant_id as string;
+  const target = bindingForSubject(core, recovery.new_channel_subject_id);
+  const request = requestById(core, recovery.request_id);
+  if (
+    !request ||
+    target?.bindingId !== request.bindingId ||
+    target.participantId !== request.participantId ||
+    target.identityEpoch !== request.identityEpoch
+  )
+    return { ok: false, errorCode: "conflict" };
+  const sources = recoverySources(core, participantId, recovery.new_channel_subject_id);
+  if (
+    !target ||
+    !destinationAvailable(
+      core,
+      participantId,
+      recovery.new_channel_subject_id,
+      recovery.new_conversation_id,
+      sources
+    )
+  )
+    return { ok: false, errorCode: "conflict" };
   const now = core.clock.now();
   const moved = core.db
     .query(
@@ -218,41 +267,52 @@ export function applyRecovery(core: ReportingCore, challenge: BrowserChallenge):
     return { ok: false, errorCode: "conflict" };
   }
   const epoch = (recovery.expected_epoch as number) + 1;
-  const oldSubjects = core.db
-    .query(
-      "SELECT channel_subject_id FROM channel_bindings WHERE participant_id = $participant AND status IN ('active','suspended')"
-    )
-    .all({ participant: participantId }) as Array<{ channel_subject_id: string }>;
-  core.db
-    .query(
-      `UPDATE channel_bindings SET status = 'replaced', ended_at = $now
-       WHERE (participant_id = $participant AND status IN ('provisional','active','suspended'))
-          OR (channel_subject_id = $subject AND status IN ('provisional','active','suspended'))`
-    )
-    .run({ participant: participantId, subject: recovery.new_channel_subject_id, now });
-  // The old chat is no longer this owner's; it would start over with a fresh notice.
-  for (const { channel_subject_id } of oldSubjects) {
-    withdrawConsent(core, channel_subject_id, ["processing", "voice"], "relinked");
-  }
-  core.db
-    .query(
-      `INSERT INTO channel_bindings (id, participant_id, channel_subject_id, status, identity_epoch, verified_at, created_at)
-       VALUES ($id, $participant, $subject, 'active', $epoch, $now, $now)`
-    )
-    .run({
-      id: core.ids.id(),
-      participant: participantId,
-      subject: recovery.new_channel_subject_id,
-      epoch,
-      now,
-    });
-  for (const table of ["work_drafts", "review_intents"]) {
+  for (const subject of sources.subjects)
     core.db
       .query(
-        `UPDATE ${table} SET conversation_id = $conversation WHERE participant_id = $participant AND lifecycle = 'open'`
+        `UPDATE channel_bindings SET status = 'replaced', ended_at = $now
+       WHERE participant_id = $participant AND channel_subject_id = $subject AND status IN ('active','suspended')`
       )
-      .run({ conversation: recovery.new_conversation_id, participant: participantId });
+      .run({ participant: participantId, subject, now });
+  // The old chat is no longer this owner's; it would start over with a fresh notice.
+  for (const subject of sources.subjects) {
+    withdrawConsent(core, subject, ["processing", "voice"], "relinked");
   }
+  if (
+    !attachProvisionalChannel(core, {
+      participantId: target.participantId,
+      canonicalParticipantId: participantId,
+      subjectId: recovery.new_channel_subject_id,
+      requestId: recovery.request_id,
+    })
+  ) {
+    // Preconditions were checked before the epoch transition, inside the same transaction.
+    throw new Error("Recovery target could not be consolidated");
+  }
+  core.db
+    .query(
+      `UPDATE channel_bindings SET identity_epoch = $epoch
+       WHERE participant_id = $participant AND status IN ('provisional','active')`
+    )
+    .run({
+      participant: participantId,
+      epoch,
+    });
+  core.db
+    .query("UPDATE channel_bindings SET status = 'active', verified_at = $now WHERE id = $id")
+    .run({ id: target.bindingId, now });
+  for (const table of ["work_drafts", "review_intents"])
+    for (const conversation of sources.conversations) {
+      core.db
+        .query(
+          `UPDATE ${table} SET conversation_id = $conversation WHERE participant_id = $participant AND lifecycle = 'open' AND conversation_id = $oldConversation`
+        )
+        .run({
+          conversation: recovery.new_conversation_id,
+          participant: participantId,
+          oldConversation: conversation,
+        });
+    }
   core.db
     .query(
       `UPDATE continuation_requests SET state = CASE WHEN id = $request THEN 'completed' ELSE 'revoked' END,

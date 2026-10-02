@@ -80,6 +80,8 @@ export interface ReportingRuntimeOptions {
     gasCap: number;
     gasPerSubmission: number;
     permissionIdFor: GrantDeps["permissionIdFor"];
+    createSigner?: GrantDeps["createSigner"];
+    descriptorFor?: GrantDeps["descriptorFor"];
   };
   /** Operator switches for a new database; only the loopback driver starts any of them on. */
   initialControls?: Readonly<Record<ControlName, boolean>>;
@@ -131,6 +133,8 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
         signerAddress: delegation.sender.signerAddress,
         gasCap: delegation.gasCap,
         permissionIdFor: delegation.permissionIdFor,
+        ...(delegation.createSigner ? { createSigner: delegation.createSigner } : {}),
+        ...(delegation.descriptorFor ? { descriptorFor: delegation.descriptorFor } : {}),
       }
     : null;
   const jobs: Partial<Record<JobKind, JobHandler>> = {

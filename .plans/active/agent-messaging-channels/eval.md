@@ -1,5 +1,20 @@
 # Messaging architecture acceptance
 
+> **Current proof boundary, 2 October:** source implementation and focused synthetic checks
+> cover the Telegram menu/defaults, strict provider adapters and pinned snapshots, bounded
+> DOCX/XLSX conversion, two-channel pairing/recovery, responsive ceremonies, durable Kernel
+> installation and independent owner removal. Final current-head validation is recorded in
+> the [implementation handoff](handoffs/codex-telegram-readiness.md). Real provider quality,
+> Office conversion/isolation on Fly, authenticated wallet/passkey prompts, Telegram delivery,
+> deployed proxy/privacy headers and integrated Kernel execution remain live gates. No fixture,
+> Storybook rendering or ABI unit test is evidence for those live gates.
+>
+> Run provider-only synthetic evaluation from the repository root with
+> `bun --env-file=.env packages/agent/src/__tests__/reporting/driver/walkthrough.ts --models`.
+> It records per-call model identity, source/quantity expectations, latency, usage, fallbacks
+> and estimated OpenAI text cost. It does not test photo/PDF/table/voice quality, estimate Jev
+> billing, start Telegram, or publish on chain. Missing credentials fail before driver startup.
+
 > **Accepted review decisions, 26 September:** Afolabi ([afo@wefa.world](mailto:afo@wefa.world)) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs are reconciled locally; the tracker/start gate remains before implementation. Durable terminal outcomes, dispatch-time publication controls, stable identity under key rotation and deployed privacy/configuration proof are required. See [current delivery](plan.todo.md#current-build-sequence) and [failure/operations contracts](technical-brief.md#11-failure-and-recovery-contract). No runtime proof or task dispatch is claimed.
 
 

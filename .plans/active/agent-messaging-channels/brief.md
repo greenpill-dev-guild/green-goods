@@ -1,10 +1,18 @@
-# WhatsApp impact reporting
+# Telegram-first impact reporting
+
+> **Current execution, 2 October:** the user authorized implementing Telegram-first remote
+> reporting, pinned model baselines, Office conversion, responsive PWA ceremonies, bounded
+> delegated publishing and independent owner removal, and simultaneous Telegram/WhatsApp
+> links. Deployment and actual keys/signing remain for the live session. The current
+> [runbook and implementation handoff](handoffs/codex-telegram-readiness.md) supersedes
+> conflicting historical target and polling-demo notes below. WhatsApp still needs its live
+> transport adapter after access returns; dual-channel identity tests do not prove that adapter.
 
 > **Accepted review decisions, 26 September:** Afolabi ([afo@wefa.world](mailto:afo@wefa.world)) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs are reconciled locally; the tracker/start gate remains before implementation. Durable terminal outcomes, dispatch-time publication controls, stable identity under key rotation and deployed privacy/configuration proof are required. See [current delivery](plan.todo.md#current-build-sequence) and [failure/operations contracts](technical-brief.md#11-failure-and-recovery-contract). No runtime proof or task dispatch is claimed.
 
 
-**Status:** ACTIVE architecture work; implementation lanes remain blocked and unproven.
-**Last updated:** 26 September 2026
+**Status:** ACTIVE implementation; integration validation and live gates remain open.
+**Last updated:** 2 October 2026
 **Product:** Green Goods. WEFA operates the initial WhatsApp integration.
 
 **Current architecture:** [Technical brief, dependencies, state machines, ERD and sequences](technical-brief.md).

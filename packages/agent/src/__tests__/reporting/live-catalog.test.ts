@@ -112,6 +112,13 @@ describe("live Action catalog", () => {
     expect(await instance.eligibleActions(TAS, NOW)).toEqual({ ok: false, reason: "unavailable" });
   });
 
+  it("keeps readable eligible Actions when another instruction gateway read fails", async () => {
+    const { instance } = catalog([row(1), row(2)], { "bafy-instructions-1": published });
+    const result = await instance.eligibleActions(TAS, NOW);
+    if (!result.ok) throw new Error("expected the readable Action");
+    expect(result.actions.map((action) => action.definition.actionUID)).toEqual([1]);
+  });
+
   it("caches a good list but still rechecks each Action's dates", async () => {
     const { instance, indexerCalls } = catalog([row(1, { endTime: String(NOW / 1000 + 60) })], {
       "bafy-instructions-1": published,

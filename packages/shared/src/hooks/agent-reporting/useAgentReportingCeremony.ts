@@ -1,4 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import {
+  grantInstallationState,
+  resumeGrantInstallation,
+  useGrantInstallation,
+} from "./useGrantInstallation";
 import { useCallback, useRef, useState } from "react";
 import { agentReportingKeys } from "../../config/query-keys/agent-reporting";
 import type {
@@ -7,6 +12,7 @@ import type {
   ChallengeResponse,
   OperationView,
   ResourceView,
+  GrantView,
 } from "../../modules/agent-reporting/api-contract";
 import { CeremonyClient, CeremonyError } from "../../modules/agent-reporting/ceremony-client";
 import {
@@ -14,10 +20,7 @@ import {
   type EnvelopeSendResult,
   sendPreparedEnvelope,
 } from "../../modules/agent-reporting/ceremony-send";
-import {
-  type EnvelopeIssue,
-  resolveReportingDeployment,
-} from "../../modules/agent-reporting/envelope";
+import { resolveReportingDeployment } from "../../modules/agent-reporting/envelope";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useAsyncEffect } from "../utils/useAsyncEffect";
@@ -28,31 +31,17 @@ import {
   readCeremony,
   writeCeremony,
 } from "./ceremony-storage";
-import { type CeremonyStage, issuesFor, PURPOSES, stageForOperation } from "./ceremony-stage";
-import { type CeremonyAccount, useCeremonyAccount } from "./useCeremonyAccount";
+import {
+  type AgentReportingCeremony,
+  type CeremonyStage,
+  issuesFor,
+  PURPOSES,
+  stageForOperation,
+  stageForGrant,
+} from "./ceremony-stage";
+import { useCeremonyAccount } from "./useCeremonyAccount";
 
-/**
- * Drives the publish and review pages: open this browser's challenge only after an explicit
- * action, prove the account, pair it through the chat when needed, then show the exact frozen
- * publication and send it only when the person asks. Nothing is signed on page load, the
- * envelope is checked independently before the wallet sees it, and an unknown send result is
- * reported as uncertain so the Agent reconciles it from the chain.
- */
-export interface AgentReportingCeremony extends Omit<CeremonyAccount, "prove"> {
-  stage: CeremonyStage;
-  purpose: ChallengeResponse["purpose"] | null;
-  channelLabel: string | null;
-  pairingCode: string | null;
-  sessionAccount: AccessResponse["account"] | null;
-  resource: ResourceView | null;
-  operation: OperationView | null;
-  issues: EnvelopeIssue[];
-  error: CeremonyFailure | null;
-  start: () => Promise<void>;
-  prove: () => Promise<void>;
-  publish: () => Promise<void>;
-  leave: () => Promise<void>;
-}
+export type { AgentReportingCeremony } from "./ceremony-stage";
 
 const POLL_MS = 3_000;
 
@@ -78,6 +67,7 @@ export function useAgentReportingCeremony(
     access: null as AccessResponse | null,
     resource: null as ResourceView | null,
     operation: null as OperationView | null,
+    grant: null as GrantView | null,
     error: null as CeremonyFailure | null,
   });
   const stateRef = useRef(state);
@@ -110,7 +100,14 @@ export function useAgentReportingCeremony(
       const { purpose, resourceKind, resourceId } = access.scope;
       update({ access, purpose, error: null });
       if (purpose === "grant_reporting" || purpose === "grant_review") {
-        return update({ stage: "unsupported" });
+        try {
+          const grant = await client.proposeGrant();
+          return update({ grant, stage: stageForGrant(grant.state) });
+        } catch (error) {
+          if (error instanceof CeremonyError && error.code === "unsupported_scope")
+            return update({ stage: "unsupported" });
+          throw error;
+        }
       }
       if (!resourceId || (resourceKind !== "draft" && resourceKind !== "review")) {
         return update({ stage: "unavailable" });
@@ -162,6 +159,11 @@ export function useAgentReportingCeremony(
         if (!isMounted()) return;
         if (access.accessId !== stored.accessId) return clearCeremony(requestId);
         const pending = stored.pendingReport;
+        const unresolvedGrant = await resumeGrantInstallation(client, requestId, stored);
+        if (unresolvedGrant) {
+          if (isMounted()) update({ access, purpose: access.scope.purpose, ...unresolvedGrant });
+          return;
+        }
         if (pending) {
           // Same idempotency key and body: a replay is safe, a conflict means it already landed.
           await client
@@ -171,7 +173,9 @@ export function useAgentReportingCeremony(
         }
         if (isMounted()) await loadResource(access);
       } catch {
-        clearCeremony(requestId);
+        if (stored.pendingGrant) {
+          if (isMounted()) update({ stage: "grant_submitted", error: "outcome_unknown" });
+        } else clearCeremony(requestId);
       }
     },
     [client, requestId]
@@ -179,12 +183,15 @@ export function useAgentReportingCeremony(
 
   const polling =
     state.stage === "pairing" ||
+    state.stage === "grant_submitted" ||
     ((state.stage === "loading" || state.stage === "submitted") && Boolean(state.operation));
   useQuery({
     queryKey:
-      state.stage === "pairing"
-        ? agentReportingKeys.challenge(challengeRef.current ?? "none")
-        : agentReportingKeys.operation(state.operation?.operationId ?? "none"),
+      state.stage === "grant_submitted"
+        ? agentReportingKeys.grant(state.grant?.grantId ?? "none")
+        : state.stage === "pairing"
+          ? agentReportingKeys.challenge(challengeRef.current ?? "none")
+          : agentReportingKeys.operation(state.operation?.operationId ?? "none"),
     enabled: polling,
     refetchInterval: options.pollMs ?? POLL_MS,
     gcTime: 0,
@@ -194,6 +201,11 @@ export function useAgentReportingCeremony(
         const challenge = await client.challenge(challengeRef.current);
         if (challenge.state !== "proof_verified") await afterChallenge(challenge);
         return challenge.state;
+      }
+      if (stateRef.current.stage === "grant_submitted" && stateRef.current.grant) {
+        const grant = await client.grant(stateRef.current.grant.grantId);
+        update(grantInstallationState(requestId, grant));
+        return grant.state;
       }
       const operationId = stateRef.current.operation?.operationId;
       if (!operationId) return null;
@@ -302,8 +314,17 @@ export function useAgentReportingCeremony(
     const access = stateRef.current.access;
     clearCeremony(requestId);
     if (access) await client.endAccess(access.accessId).catch(() => undefined);
-    update({ stage: "intro", access: null, resource: null, operation: null });
+    update({ stage: "intro", access: null, resource: null, operation: null, grant: null });
   }, [client, requestId, update]);
+
+  const installGrant = useGrantInstallation({
+    account: account.account,
+    client,
+    requestId,
+    sender,
+    stateRef,
+    update,
+  });
 
   return {
     ...account,
@@ -314,11 +335,13 @@ export function useAgentReportingCeremony(
     sessionAccount: state.access?.account ?? null,
     resource: state.resource,
     operation: state.operation,
+    grant: state.grant,
     issues: issuesFor(state.operation),
     error: state.error,
     start,
     prove,
     publish,
+    installGrant,
     leave,
   };
 }

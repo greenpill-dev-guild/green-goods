@@ -109,6 +109,27 @@ function openTelegramChannel(): void {
 const sentTexts = () => api.messages().map((message) => String(message.text));
 
 describe("Telegram reporting on the existing bot", () => {
+  it("applies a channel pause and resume to the same running bot without capturing legacy replies", async () => {
+    openTelegramChannel();
+    const telegraf = bot();
+    await telegraf.handleUpdate(direct({ text: "/start" }));
+    await drainThroughTelegram();
+    expect(legacy.direct).not.toHaveBeenCalled();
+
+    setControl(harness.core, channelControl("telegram"), false, {
+      actor: "operator",
+      reason: "pause",
+    });
+    await telegraf.handleUpdate(direct({ text: "/status" }));
+    expect(legacy.direct).toHaveBeenCalledTimes(1);
+    expect(sentTexts().at(-1)).toBe("Handled by the bot");
+    expect(harness.core.db.query("SELECT count(*) AS n FROM inbox_events").get()).toEqual({ n: 1 });
+
+    openTelegramChannel();
+    await telegraf.handleUpdate(direct({ text: "/status" }));
+    expect(legacy.direct).toHaveBeenCalledTimes(1);
+    expect(harness.core.db.query("SELECT count(*) AS n FROM inbox_events").get()).toEqual({ n: 2 });
+  });
   it("takes private chats only while the channel is on and always leaves groups to the bot", async () => {
     const telegraf = bot();
     await telegraf.handleUpdate(direct({ text: "Hello" }));

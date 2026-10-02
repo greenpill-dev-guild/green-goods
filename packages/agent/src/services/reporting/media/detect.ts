@@ -107,7 +107,7 @@ function inspectOffice(bytes: Uint8Array): DetectedType {
   ) {
     return { kind: "unsupported", reason: "archive_limits" };
   }
-  if ([...names].some((name) => /(^|\/)(vbaProject\.bin|activeX\/)/i.test(name))) {
+  if ([...names].some((name) => /(^|\/)(vbaProject\.bin|activeX\/|embeddings\/)/i.test(name))) {
     return { kind: "unsupported", reason: "macro_enabled" };
   }
   const types = entries.find((entry) => entry.name === "[Content_Types].xml");
@@ -126,7 +126,7 @@ function inspectOffice(bytes: Uint8Array): DetectedType {
     } catch {
       return { kind: "unsupported", reason: "corrupt" };
     }
-    if (/TargetMode\s*=\s*"External"/i.test(rels)) {
+    if (/TargetMode\s*=\s*["']External["']/i.test(rels)) {
       return { kind: "unsupported", reason: "external_content" };
     }
   }

@@ -5,7 +5,8 @@ import type { ReportingCore } from "./runtime";
  * Participants, channel bindings and account bindings are separate because channel possession is
  * not signing authority and a person may replace a phone. A provisional participant owns drafts
  * from the moment processing consent is given; pairing activates the binding and records the
- * proven account. Every function expects the caller's transaction.
+ * proven account. Telegram and WhatsApp may share that proven participant while each conversation
+ * keeps its own draft. Every function expects the caller's transaction.
  */
 export interface ParticipantBinding {
   participantId: string;
@@ -140,6 +141,131 @@ export function participantEpoch(core: ReportingCore, participantId: string): nu
     .get({ id: participantId }) as { identity_epoch: number } | null;
   if (!row) throw new Error("Participant does not exist");
   return row.identity_epoch;
+}
+
+/** A channel family, not a bot/business realm: replacing a Telegram bot still needs recovery. */
+export function subjectChannel(core: ReportingCore, subjectId: string): string | null {
+  const row = core.db
+    .query("SELECT provider_realm FROM channel_subjects WHERE id = $id")
+    .get({ id: subjectId }) as { provider_realm: string } | null;
+  return row?.provider_realm.split(":")[0] ?? null;
+}
+
+/**
+ * After wallet proof and same-chat pairing, attach a new channel to the wallet's existing person.
+ * Only a provisional person with this one channel and no signing history can be consolidated.
+ * Conversation IDs and binding IDs stay stable; the existing person's locale remains authoritative.
+ * The caller owns the transaction and must already have matched the verified browser's code.
+ */
+export function attachProvisionalChannel(
+  core: ReportingCore,
+  input: {
+    participantId: string;
+    canonicalParticipantId: string;
+    subjectId: string;
+    requestId: string;
+  }
+): boolean {
+  const { participantId, canonicalParticipantId, subjectId, requestId } = input;
+  const binding = bindingForSubject(core, subjectId);
+  const provisional = core.db
+    .query("SELECT status FROM participants WHERE id = $id")
+    .get({ id: participantId }) as { status: string } | null;
+  const canonical = core.db
+    .query("SELECT status, identity_epoch FROM participants WHERE id = $id")
+    .get({ id: canonicalParticipantId }) as { status: string; identity_epoch: number } | null;
+  const channel = subjectChannel(core, subjectId);
+  if (
+    !channel ||
+    provisional?.status !== "provisional" ||
+    canonical?.status !== "active" ||
+    binding?.participantId !== participantId ||
+    binding.bindingStatus !== "provisional"
+  )
+    return false;
+  const established = core.db
+    .query(`SELECT 1 FROM account_bindings WHERE participant_id = $participant
+    UNION ALL SELECT 1 FROM execution_grants WHERE participant_id = $participant
+    UNION ALL SELECT 1 FROM app_access_grants WHERE participant_id = $participant
+    UNION ALL SELECT 1 FROM review_intents WHERE participant_id = $participant
+    UNION ALL SELECT 1 FROM channel_bindings WHERE participant_id = $participant AND channel_subject_id <> $subject
+    UNION ALL SELECT 1 FROM work_drafts d WHERE d.participant_id = $participant AND
+      (d.author_account_id IS NOT NULL OR EXISTS (SELECT 1 FROM execution_operations o WHERE o.draft_id = d.id))
+    LIMIT 1`)
+    .get({ participant: participantId, subject: subjectId });
+  if (established) return false;
+  const recovering = core.db
+    .query(`SELECT 1 FROM recovery_requests WHERE participant_id = $participant
+    AND state IN ('account_verified','channel_verified','confirmed') AND expires_at > $now`)
+    .get({ participant: canonicalParticipantId, now: core.clock.now() });
+  // The recovery applying this exact request is already authorized; another pending move is not.
+  if (
+    recovering &&
+    !core.db
+      .query(`SELECT 1 FROM recovery_requests WHERE request_id = $request
+    AND participant_id = $participant AND state = 'channel_verified'`)
+      .get({ request: requestId, participant: canonicalParticipantId })
+  )
+    return false;
+  const existingChannels = core.db
+    .query(`SELECT s.provider_realm FROM channel_bindings b
+    JOIN channel_subjects s ON s.id = b.channel_subject_id
+    WHERE b.participant_id = $participant AND b.status IN ('provisional','active','suspended')`)
+    .all({ participant: canonicalParticipantId }) as Array<{ provider_realm: string }>;
+  if (existingChannels.some((row) => row.provider_realm.split(":")[0] === channel)) return false;
+  const collision = core.db
+    .query(`SELECT 1 FROM work_drafts p JOIN work_drafts c ON c.conversation_id = p.conversation_id
+    WHERE p.participant_id = $provisional AND c.participant_id = $canonical AND p.lifecycle = 'open' AND c.lifecycle = 'open'`)
+    .get({ provisional: participantId, canonical: canonicalParticipantId });
+  if (collision) return false;
+  const params = {
+    provisional: participantId,
+    canonical: canonicalParticipantId,
+    subject: subjectId,
+  };
+  for (const table of ["consent_records", "source_entries", "conversation_prompts"]) {
+    core.db
+      .query(`UPDATE ${table} SET participant_id = $canonical
+      WHERE participant_id = $provisional AND channel_subject_id = $subject`)
+      .run(params);
+  }
+  for (const table of ["work_drafts", "media_assets"]) {
+    core.db
+      .query(`UPDATE ${table} SET participant_id = $canonical WHERE participant_id = $provisional
+      AND conversation_id IN (SELECT conversation_id FROM inbox_events WHERE channel_subject_id = $subject)`)
+      .run(params);
+  }
+  core.db
+    .query(`UPDATE delivery_outbox SET participant_id = $canonical,
+    identity_epoch = CASE WHEN channel_binding_id IS NOT NULL THEN $epoch ELSE identity_epoch END
+    WHERE participant_id = $provisional AND channel_subject_id = $subject`)
+    .run({ ...params, epoch: canonical.identity_epoch });
+  core.db
+    .query(`UPDATE continuation_requests SET participant_id = $canonical, identity_epoch = $epoch
+    WHERE participant_id = $provisional AND channel_subject_id = $subject`)
+    .run({ ...params, epoch: canonical.identity_epoch });
+  // Other verified browser candidates signed the provisional epoch. They must prove again.
+  core.db
+    .query(`UPDATE browser_challenges SET state = 'superseded' WHERE state IN ('issued','proof_verified')
+    AND request_id <> $request AND request_id IN (SELECT id FROM continuation_requests WHERE channel_subject_id = $subject)`)
+    .run({ request: requestId, subject: subjectId });
+  core.db
+    .query(`UPDATE continuation_requests SET state = 'revoked'
+    WHERE channel_subject_id = $subject AND id <> $request AND state = 'open'`)
+    .run({ request: requestId, subject: subjectId });
+  core.db
+    .query(`UPDATE channel_bindings SET participant_id = $canonical, identity_epoch = $epoch
+    WHERE id = $id AND status = 'provisional'`)
+    .run({
+      id: binding.bindingId,
+      canonical: canonicalParticipantId,
+      epoch: canonical.identity_epoch,
+    });
+  core.db
+    .query("UPDATE participants SET status = 'deleted', updated_at = $now WHERE id = $id")
+    .run({ id: participantId, now: core.clock.now() });
+  audit(core, "channel_attached", { kind: "participant", id: canonicalParticipantId }, { channel });
+  return true;
 }
 
 export function setParticipantLocale(

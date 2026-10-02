@@ -11,12 +11,13 @@ import { confirmationById } from "./confirmations";
 import { readControl } from "./controls";
 import { inTransaction } from "./database";
 import { grantById, grantUsability, type GrantRecord, liveGrant } from "./grants-store";
-import { type ClaimedJob, enqueueJob } from "./jobs";
+import { type ClaimedJob } from "./jobs";
 import { type OperationSubject, operationSubject } from "./operation-subjects";
 import { type OperationRecord, operationById, setOperationState } from "./operations";
 import { audit, participantEpoch } from "./participants";
 import type { ReportingCore } from "./runtime";
 import type { JobOutcome } from "./worker";
+import { grantOriginMatches, PAUSED, signedContext, submitSigned } from "./delegated-submit";
 
 /**
  * The restricted executor for delegated publication. It reads a confirmed operation from its own
@@ -32,6 +33,8 @@ export interface DelegatedSender {
   sign(input: {
     grant: GrantRecord;
     envelope: PublicationEnvelope;
+    nonceRef?: string;
+    onPrepared?: (nonce: bigint) => Promise<void>;
   }): Promise<{ userOperationHash: Hex; signedOperation: string }>;
   submit(
     signedOperation: string
@@ -48,15 +51,11 @@ export interface DelegatedDeps {
 }
 
 const done: JobOutcome = { status: "done" };
-const PAUSED: JobOutcome = {
-  status: "retry",
-  errorCode: "publication_paused",
-  delayMs: 5 * 60_000,
-};
 
 type Reservation =
   | { kind: "reserved"; attemptId: string }
   | { kind: "paused" }
+  | { kind: "nonce_pending" }
   /** Consent or confirmation no longer holds; the consent path already stopped the report. */
   | { kind: "skipped" }
   /** The grant stopped being usable while the executor waited, for the named reason. */
@@ -85,59 +84,32 @@ function returnToOwner(
   return done;
 }
 
-function signedContext(attemptId: string): string {
-  return `execution_attempts.signed:${attemptId}`;
-}
-
-async function submitSigned(
-  deps: DelegatedDeps,
-  operationId: string,
-  attemptId: string
-): Promise<JobOutcome> {
-  const { core } = deps;
-  const row = core.db
-    .query("SELECT signed_operation_ciphertext FROM execution_attempts WHERE id = $id")
-    .get({ id: attemptId }) as { signed_operation_ciphertext: string | null } | null;
-  if (!row?.signed_operation_ciphertext) return done;
-  const signed = core.keyring.open(row.signed_operation_ciphertext, signedContext(attemptId));
-  let result: Awaited<ReturnType<DelegatedSender["submit"]>>;
-  try {
-    result = await deps.sender.submit(signed);
-  } catch {
-    result = { accepted: false, retryable: false, errorCode: "submit_unknown" };
-  }
-  inTransaction(core.db, () => {
-    updateAttempt(core, attemptId, {
-      state: result.accepted ? "broadcast" : "uncertain",
-      ...(result.accepted ? {} : { reasonCode: result.errorCode ?? "submit_failed" }),
-    });
-    setOperationState(core, operationId, "reconciling");
-    const operation = operationById(core, operationId);
-    if (operation)
-      operationSubject(core, operation)?.advance(
-        result.accepted ? "BROADCAST" : "OUTCOME_UNCERTAIN",
-        false
-      );
-    // Whether or not the bundler answered, the chain decides; nothing is signed again.
-    enqueueJob(core, {
-      kind: "reconcile_operation",
-      subjectId: operationId,
-      dedupeKey: `reconcile:${attemptId}`,
-      maxAttempts: 40,
-    });
-  });
-  return done;
-}
-
 export async function executeDelegated(deps: DelegatedDeps, job: ClaimedJob): Promise<JobOutcome> {
   const { core } = deps;
   const current = operationById(core, job.subjectId);
   if (!current || current.authorizationMode !== "delegated" || !current.envelope) return done;
 
-  // A signed attempt from before a restart is resubmitted as the same bytes, even while paused:
-  // its first submission may already have landed, and identical bytes cannot publish twice.
+  // A restart may reconcile old bytes; sending them still requires current authority.
   const previous = latestAttempt(core, current.id);
   if (previous?.state === "signed") return submitSigned(deps, current.id, previous.id);
+  if (previous?.state === "reserved" && previous.grantId) {
+    const reservedGrant = grantById(core, previous.grantId);
+    const reservedSubject = operationSubject(core, current);
+    if (!readControl(core, "publication").enabled) return PAUSED;
+    if (
+      !reservedGrant ||
+      !reservedSubject ||
+      reservedGrant.state !== "active" ||
+      core.clock.now() < reservedGrant.validAfter ||
+      core.clock.now() >= reservedGrant.validUntil ||
+      reservedGrant.identityEpoch !== participantEpoch(core, reservedSubject.participantId) ||
+      !grantOriginMatches(core, reservedGrant, reservedSubject)
+    )
+      return done;
+    // No bytes can leave the signer until signed state/ciphertext/hash are durable. A crashed
+    // reservation therefore resumes the same attempt and persisted nonce, without another budget.
+    return signReserved(deps, current, previous.id, reservedGrant, reservedSubject);
+  }
   if (current.state !== "prepared") return done;
 
   const envelope = current.envelope;
@@ -151,6 +123,8 @@ export async function executeDelegated(deps: DelegatedDeps, job: ClaimedJob): Pr
     gardenAddress: current.gardenAddress,
   });
   if (!grant) return returnToOwner(core, current, subject, "no_grant");
+  if (!grantOriginMatches(core, grant, subject))
+    return returnToOwner(core, current, subject, "channel_changed");
   const epoch = participantEpoch(core, subject.participantId);
   const refusal =
     grantUsability(grant, { identityEpoch: epoch, now: core.clock.now() }) ??
@@ -182,6 +156,12 @@ export async function executeDelegated(deps: DelegatedDeps, job: ClaimedJob): Pr
   }
 
   const reservation = inTransaction(core.db, (): Reservation => {
+    const pending = core.db
+      .query(
+        "SELECT id FROM execution_attempts WHERE execution_grant_id = $grant AND state IN ('reserved','signed','broadcast','uncertain') LIMIT 1"
+      )
+      .get({ grant: grant.id });
+    if (pending) return { kind: "nonce_pending" };
     const confirmation = confirmationById(core, current.confirmationId);
     if (!readControl(core, "publication").enabled) return { kind: "paused" };
     if (!confirmation || !subject.consented(confirmation.summaryDigest)) return { kind: "skipped" };
@@ -219,14 +199,42 @@ export async function executeDelegated(deps: DelegatedDeps, job: ClaimedJob): Pr
     return { kind: "reserved", attemptId: attempt.attempt.id };
   });
   if (reservation.kind === "paused") return PAUSED;
+  if (reservation.kind === "nonce_pending")
+    return { status: "retry", errorCode: "grant_nonce_pending", delayMs: 30_000 };
   if (reservation.kind === "unusable")
     return returnToOwner(core, current, subject, reservation.reason);
   if (reservation.kind === "skipped") return done;
   const reserved = reservation.attemptId;
 
+  return signReserved(deps, current, reserved, grant, subject);
+}
+
+async function signReserved(
+  deps: DelegatedDeps,
+  current: OperationRecord,
+  reserved: string,
+  grant: GrantRecord,
+  subject: OperationSubject
+): Promise<JobOutcome> {
+  const { core } = deps;
   let signed: { userOperationHash: Hex; signedOperation: string };
   try {
-    signed = await deps.sender.sign({ grant: grantById(core, grant.id) as GrantRecord, envelope });
+    const savedNonce = core.db
+      .query("SELECT nonce_ref FROM execution_attempts WHERE id = $id")
+      .get({ id: reserved }) as { nonce_ref: string | null };
+    signed = await deps.sender.sign({
+      grant: grantById(core, grant.id) as GrantRecord,
+      envelope: current.envelope as PublicationEnvelope,
+      ...(savedNonce.nonce_ref ? { nonceRef: savedNonce.nonce_ref } : {}),
+      onPrepared: async (nonce) => {
+        const changed = core.db
+          .query(
+            "UPDATE execution_attempts SET nonce_ref = $nonce WHERE id = $id AND state = 'reserved' AND (nonce_ref IS NULL OR nonce_ref = $nonce)"
+          )
+          .run({ id: reserved, nonce: nonce.toString() });
+        if (changed.changes !== 1) throw new Error("Nonce reservation changed");
+      },
+    });
   } catch {
     // Nothing left the executor: the reservation is released and the report waits for the owner.
     inTransaction(core.db, () => {

@@ -2,13 +2,13 @@ import {
   buildReportSummary,
   reportSummaryDigest,
 } from "@green-goods/shared/modules/agent-reporting";
-import { pairFromChat } from "../browser-access";
+import { pairFromChat } from "../channel-pairing";
 import { issueContinuation } from "../continuations";
 import { commitDraft } from "../drafts";
 import { enqueueJob } from "../jobs";
 import { conversationRealm } from "../notify";
 import { upsertOperation } from "../operations";
-import { activeAccount } from "../participants";
+import { activeAccount, bindingForSubject } from "../participants";
 import { resolvePrompt } from "../prompts";
 import { commitLifecycle, lifecycleState } from "./draft-commit";
 import { recordDraftConfirmation } from "./report-commands";
@@ -25,8 +25,11 @@ export function handlePairing(writer: TurnWriter, code: string): void {
   const result = pairFromChat(core, ctx.subjectId, ctx.binding.participantId, code);
   if (result.status === "no_match") return writer.say("link.pairFailed");
   if (result.status === "account_taken") return writer.say("link.accountTaken");
+  ctx.binding = bindingForSubject(core, ctx.subjectId);
+  if (!ctx.binding) throw new Error("Paired channel binding is missing");
   ctx.account = activeAccount(core, ctx.binding.participantId, core.settings.chainId);
-  writer.ctx.binding = { ...ctx.binding, bindingStatus: "active" };
+  ctx.locale = ctx.binding.locale ?? ctx.locale;
+  if (ctx.draft) ctx.draft = { ...ctx.draft, participantId: ctx.binding.participantId };
   writer.say("link.paired", { account: result.account });
   const draft = ctx.draft;
   if (draft && lifecycleState(draft) === "authority") {

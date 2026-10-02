@@ -17,6 +17,7 @@ import path from "path";
 import { type Context, session, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
 import { agentMessage, type AgentLocale, type AgentMessageKey } from "../i18n";
+import { registerTelegramCommands } from "./telegram-commands";
 import { loggers } from "../services/logger";
 import type {
   ChatType,
@@ -574,13 +575,6 @@ function privateDmCommands(locale: AgentLocale): Array<{ command: string; descri
   }));
 }
 
-export async function registerSlashCommands(bot: Telegraf): Promise<void> {
-  const scope = { type: "all_private_chats" } as const;
-  for (const locale of ["en", "es", "pt"] as const) {
-    const language = locale === "en" ? {} : { language_code: locale };
-    await bot.telegram.setMyCommands(privateDmCommands(locale), { scope, ...language });
-  }
-  // Explicitly clear the group autocomplete menu so retired /bug + /idea
-  // commands and any historical state are removed.
-  await bot.telegram.setMyCommands([], { scope: { type: "all_group_chats" } });
+export function registerSlashCommands(bot: Telegraf, reportingAvailable = false): Promise<void> {
+  return registerTelegramCommands(bot, reportingAvailable, privateDmCommands);
 }

@@ -76,7 +76,8 @@ export function routeChannels(
 
 /**
  * Starts reporting when this Agent has its key list and at least one chat channel's credentials.
- * Nothing reaches people until an operator turns on a channel and intake.
+ * New databases start ready for Telegram intake. Existing operator pauses are preserved, provider
+ * keys are needed for models, and voice still requires an operator switch and separate consent.
  */
 export function startReporting(input: {
   env: Record<string, string | undefined>;

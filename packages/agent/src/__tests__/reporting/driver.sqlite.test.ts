@@ -22,3 +22,4 @@ describe("loopback reporting driver", () => {
     }
   });
 });
+// TEST-QUALITY: allow-small-test-file - One full HTTP walkthrough owns driver composition, shutdown and report/review orchestration; its assertions cannot join individual coordinator suites.

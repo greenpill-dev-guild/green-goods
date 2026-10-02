@@ -6,7 +6,7 @@ import { Helmet } from "react-helmet-async";
 import { type MessageDescriptor, useIntl } from "react-intl";
 
 /**
- * Layout shared by the reporting ceremony pages: one narrow column, one step at a time. The page
+ * Command surface, solid material: one step at a time using the PWA's field-tool primitives. The page
  * is never indexed, never sends a referrer, and its title never carries the chat link.
  */
 export function CeremonyFrame({
@@ -29,7 +29,7 @@ export function CeremonyFrame({
   const intl = useIntl();
   return (
     <section
-      className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-10 sm:px-6 sm:py-14"
+      className="@container mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-6 px-4 py-6 font-sans sm:px-6 sm:py-10"
       aria-labelledby="ceremony-title"
     >
       <Helmet>
@@ -42,20 +42,23 @@ export function CeremonyFrame({
         <meta name="robots" content="noindex, nofollow" />
         <meta name="referrer" content="no-referrer" />
       </Helmet>
-      <header className="flex flex-col gap-3">
+      <header className="flex min-w-0 flex-col gap-3">
         {channel ? (
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+          <p className="text-sm font-medium text-text-sub-600">
             {intl.formatMessage(
               { id: "public.reporting.eyebrow", defaultMessage: "From your {channel} chat" },
               { channel }
             )}
           </p>
         ) : null}
-        <h1 id="ceremony-title" className="text-2xl font-semibold text-text-strong-950">
+        <h1
+          id="ceremony-title"
+          className="break-words text-[22px] font-semibold leading-7 text-text-strong-950"
+        >
           {intl.formatMessage(title, values)}
         </h1>
         {body ? (
-          <p className="text-sm leading-[1.55] text-text-sub-600">
+          <p className="max-w-prose text-sm leading-6 text-text-sub-600">
             {intl.formatMessage(body, values)}
           </p>
         ) : null}
@@ -66,7 +69,11 @@ export function CeremonyFrame({
           {intl.formatMessage(error.message)}
         </Alert>
       ) : null}
-      {actions ? <div className="flex flex-col gap-3 sm:flex-row">{actions}</div> : null}
+      {actions ? (
+        <div className="flex min-w-0 flex-col gap-3 border-t border-stroke-soft-200 pt-4 pb-[env(safe-area-inset-bottom)] [&>.gg-button]:w-full sm:flex-row sm:flex-wrap sm:items-center sm:[&>.gg-button]:w-auto">
+          {actions}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -97,7 +104,7 @@ export function AccountStep({
             defaultMessage: "Sign to continue",
           })}
         </Button>
-        <p className="self-center text-sm text-text-sub-600">
+        <p className="min-w-0 self-center break-words text-sm text-text-sub-600" title={account}>
           {intl.formatMessage(
             { id: "public.reporting.connect.as", defaultMessage: "Connected as {account}" },
             { account: formatAddress(account) }

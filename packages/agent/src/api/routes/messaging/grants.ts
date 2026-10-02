@@ -1,5 +1,7 @@
 import type { Hono } from "hono";
 import * as z from "zod";
+import { gardenLabel } from "../../../services/reporting/coordinator/prompting";
+import type { ReportingCore } from "../../../services/reporting/runtime";
 import { loadDraft } from "../../../services/reporting/drafts";
 import { grantById, type GrantRecord } from "../../../services/reporting/grants-store";
 import { approveGrant, proposeGrant, pauseGrant } from "../../../services/reporting/grants";
@@ -12,11 +14,12 @@ const approvalSchema = z.object({
   enableReference: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
 });
 
-function view(grant: GrantRecord) {
+function view(grant: GrantRecord, core: ReportingCore) {
   return {
     ok: true as const,
     grant: {
       grantId: grant.id,
+      gardenLabel: gardenLabel(core.gardens, grant.gardenAddress),
       purpose: grant.purpose,
       state: grant.state,
       version: grant.version,
@@ -24,6 +27,9 @@ function view(grant: GrantRecord) {
       policyDigest: grant.policyDigest,
       permissionId: grant.permissionId,
       submissionsUsed: grant.submissionsReserved + grant.submissionsConsumed,
+      revocationDescriptor: grant.revocationDescriptor
+        ? JSON.parse(grant.revocationDescriptor)
+        : null,
     },
   };
 }
@@ -47,7 +53,7 @@ export function registerGrantRoutes(app: Hono, deps: MessagingRouteDeps): void {
         : loadDraft(core, resourceId)?.content.garden?.address;
     if (!garden) return failure(c, "unavailable");
     const result = await proposeGrant({ core, chain: deps.chain, ...deps.grants }, session, garden);
-    return result.ok ? c.json(view(result.grant), 201) : failure(c, result.errorCode);
+    return result.ok ? c.json(view(result.grant, deps.core()), 201) : failure(c, result.errorCode);
   });
 
   app.get("/messaging/execution-grants/:id", (c) => {
@@ -55,7 +61,7 @@ export function registerGrantRoutes(app: Hono, deps: MessagingRouteDeps): void {
     if (!session) return failure(c, "access_required");
     const grant = grantById(deps.core(), c.req.param("id"));
     return grant && grant.accountBindingId === session.accountBindingId
-      ? c.json(view(grant))
+      ? c.json(view(grant, deps.core()))
       : failure(c, "unavailable");
   });
 
@@ -71,7 +77,7 @@ export function registerGrantRoutes(app: Hono, deps: MessagingRouteDeps): void {
       policyDigest: body.policyDigest,
       enableReference: body.enableReference as `0x${string}`,
     });
-    return result.ok ? c.json(view(result.grant)) : failure(c, result.errorCode);
+    return result.ok ? c.json(view(result.grant, deps.core())) : failure(c, result.errorCode);
   });
 
   app.post("/messaging/execution-grants/:id/pause", (c) => {
@@ -82,6 +88,6 @@ export function registerGrantRoutes(app: Hono, deps: MessagingRouteDeps): void {
     if (!grant || grant.accountBindingId !== session.accountBindingId)
       return failure(c, "unavailable");
     pauseGrant(core, grant.id, session.participantId);
-    return c.json(view(grantById(core, grant.id) as GrantRecord));
+    return c.json(view(grantById(core, grant.id) as GrantRecord, core));
   });
 }

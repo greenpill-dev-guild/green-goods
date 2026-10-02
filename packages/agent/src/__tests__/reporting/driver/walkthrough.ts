@@ -5,8 +5,10 @@
  * and transport are fixtures, so the transcript shows orchestration, never live compatibility.
  *
  *   bun run --cwd packages/agent reporting:walkthrough
+ *   bun --env-file=.env packages/agent/src/__tests__/reporting/driver/walkthrough.ts --models
+ * The second command sends only six synthetic text cases to the pinned providers and prints
+ * metrics. It never starts this HTTP driver or sends anything to a chat or a chain.
  */
-import { DRIVER_API_TOKEN, startDriver } from "./server";
 
 interface Message {
   index: number;
@@ -82,6 +84,7 @@ class Browser {
 }
 
 export async function runWalkthrough(base: string, log: Log = console.log): Promise<Message[]> {
+  const { DRIVER_API_TOKEN } = await import("./server");
   let seen = 0;
   let counter = 0;
   const transcript: Message[] = [];
@@ -252,11 +255,28 @@ export async function runWalkthrough(base: string, log: Log = console.log): Prom
 }
 
 if (import.meta.main) {
-  const driver = await startDriver({ port: 0 });
-  try {
-    await runWalkthrough(driver.url);
-    console.log("\nWalkthrough complete (fixture chain, fixture wallets, recorded transport).");
-  } finally {
-    await driver.stop();
+  const args = process.argv.slice(2);
+  if (args.length === 1 && args[0] === "--models") {
+    const { runModelEvaluation } = await import("./model-evaluation");
+    try {
+      const report = await runModelEvaluation(process.env);
+      console.log(JSON.stringify(report, null, 2));
+      if (!report.qualityPassed) process.exitCode = 1;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : "Model evaluation could not start");
+      process.exitCode = 1;
+    }
+  } else if (args.length) {
+    console.error("Usage: reporting:walkthrough [--models]");
+    process.exitCode = 1;
+  } else {
+    const { startDriver } = await import("./server");
+    const driver = await startDriver({ port: 0 });
+    try {
+      await runWalkthrough(driver.url);
+      console.log("\nWalkthrough complete (fixture chain, fixture wallets, recorded transport).");
+    } finally {
+      await driver.stop();
+    }
   }
 }

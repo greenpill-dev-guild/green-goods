@@ -1,5 +1,31 @@
 # Messaging integration delivery proposal
 
+> **2 October implementation scope:** the user authorized conflict resolution across PRs
+> #864/#934/#949, Telegram-first remote readiness, enabled reporting defaults, pinned live
+> models and root environment setup, Office conversion, completion of bounded Kernel
+> delegated publishing and owner revocation, responsive Client PWA ceremonies, and simultaneous
+> Telegram/WhatsApp account links. Deployment and WhatsApp provisioning remain human tasks
+> for the next live session. Two existing Aiyeloja accounts exercise gardener and steward roles.
+> This supersedes historical disabled/deferred implementation scope; it does not claim live proof.
+
+Current implementation checklist:
+
+- [x] Resolve develop conflicts in isolated scope/core checkouts and integrate locally into Telegram.
+- [x] Pin provider snapshots and declare optional root environment entries.
+- [ ] Supply real root environment references and evaluate/optimize with live providers.
+- [x] Install and wire bounded Office conversion with native-text recovery.
+- [x] Complete browser Kernel grants, live executor wiring and Agent-independent owner revocation.
+- [x] Render responsive PWA ceremonies and permission management at desktop/mobile widths.
+- [x] Preserve multiple active channel links for the same proven account, with channel-scoped unlink/recovery.
+- [x] Enable new-database Telegram text/photo reporting and prepare remote routes, controls and bot menu.
+- [ ] Run focused negative/failure proof, selected integration gates and rendered proof; update PR stack without merging.
+- [x] Record deployment/key/operator runbook and outstanding live signing, chain, provider and WhatsApp evidence.
+
+Reuse decisions: extend existing reporting config/media converters, identity-store/bindings,
+Kernel permission builder and ceremony hooks, and Client CeremonyFrame/PermissionsPage.
+These own their existing capabilities; no new wallet architecture, custody system, app shell
+or parallel reporting API is needed.
+
 > **Latest user alignment:** API harness first; document/photo/spreadsheet support required.
 > OpenAI is the selected content-processing provider. The current prototype supports existing
 > EOAs and Kernel passkey accounts. Passkey-first onboarding and optional Profile wallet linking
@@ -48,7 +74,7 @@
 
 **Created:** 2026-04-17
 
-**Last updated:** 2026-09-29
+**Last updated:** 2026-10-02
 
 **Specification:** [current technical brief](technical-brief.md), with [earlier slice context](spec.md)
 

@@ -30,16 +30,16 @@ export const CONTROL_NAMES: readonly ControlName[] = [
   ...REPORTING_CHANNELS.map(channelControl),
 ];
 
-/** A new database starts with everything off but replies; each switch is an operator decision. */
+/** Telegram-first rollout defaults. Existing decisions survive upgrades; voice needs a separate opt-in. */
 export const INITIAL_CONTROLS: Readonly<Record<ControlName, boolean>> = {
-  intake: false,
-  model_processing: false,
-  documents: false,
+  intake: true,
+  model_processing: true,
+  documents: true,
   voice: false,
-  publication: false,
+  publication: true,
   outbound_messages: true,
   channel_whatsapp: false,
-  channel_telegram: false,
+  channel_telegram: true,
 };
 
 export interface ControlState {

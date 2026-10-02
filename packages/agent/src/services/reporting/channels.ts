@@ -2,7 +2,8 @@
  * The chat channels reports can arrive on. A provider realm names its channel before the colon
  * (`whatsapp:<phone-number-id>`, `telegram:<bot-id>`). Each channel has an adapter in the runtime,
  * available when this Agent has the channel's credentials, and an operator control,
- * `channel_<name>`, that starts off: a channel takes reports only while an operator has it on.
+ * `channel_<name>`. Telegram starts enabled for new reporting databases; WhatsApp starts off.
+ * A channel takes reports only while its persisted operator control is on.
  */
 export const REPORTING_CHANNELS = ["whatsapp", "telegram"] as const;
 

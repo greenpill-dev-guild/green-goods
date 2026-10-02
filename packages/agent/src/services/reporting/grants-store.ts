@@ -109,6 +109,10 @@ function toGrant(row: GrantRow | null): GrantRecord | null {
 }
 
 export function grantById(core: ReportingCore, id: string): GrantRecord | null {
+  core.db
+    .query(`UPDATE execution_grants SET state = 'expired', version = version + 1, updated_at = $now
+    WHERE id = $id AND valid_until <= $now AND state IN ('proposed','owner_authorization_pending','enabling','reconciling_setup','active','paused')`)
+    .run({ id, now: core.clock.now() });
   return toGrant(
     core.db.query("SELECT * FROM execution_grants WHERE id = $id").get({ id }) as GrantRow | null
   );
@@ -119,7 +123,7 @@ export function liveGrant(
   core: ReportingCore,
   input: { accountBindingId: string; purpose: GrantPurpose; chainId: number; gardenAddress: string }
 ): GrantRecord | null {
-  return toGrant(
+  const record = toGrant(
     core.db
       .query(
         `SELECT * FROM execution_grants
@@ -133,6 +137,7 @@ export function liveGrant(
         garden: input.gardenAddress.toLowerCase(),
       }) as GrantRow | null
   );
+  return record ? grantById(core, record.id) : null;
 }
 
 export type GrantUnusable = "missing" | "not_active" | "expired" | "exhausted" | "epoch_changed";
@@ -143,6 +148,7 @@ export function grantUsability(
   input: { identityEpoch: number; now: number }
 ): GrantUnusable | null {
   if (!grant) return "missing";
+  if (grant.state === "expired") return "expired";
   if (grant.state !== "active") return "not_active";
   if (input.now < grant.validAfter || input.now >= grant.validUntil) return "expired";
   if (grant.submissionsReserved + grant.submissionsConsumed >= grant.maxSubmissions)

@@ -4,6 +4,8 @@ import type { AgentReportingCeremony } from "@green-goods/shared/hooks/agent-rep
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { useIntl } from "react-intl";
 import { AccountStep, CeremonyFrame } from "./CeremonyFrame";
+import { GrantSummary } from "./GrantSummary";
+import { PublicationSummary } from "./PublicationSummary";
 import { CAUTIONS, CEREMONY_COPY, FAILURE_COPY } from "./messages";
 
 type CeremonyViewProps = Pick<
@@ -14,6 +16,7 @@ type CeremonyViewProps = Pick<
   | "pairingCode"
   | "resource"
   | "operation"
+  | "grant"
   | "issues"
   | "error"
   | "account"
@@ -23,77 +26,85 @@ type CeremonyViewProps = Pick<
   | "start"
   | "prove"
   | "publish"
+  | "installGrant"
   | "leave"
->;
+> & {
+  /** Story fixtures can provide local media; production uses the session-scoped API. */
+  evidenceUrl?: (assetId: string) => string;
+};
 
-const WAITING = new Set(["pairing", "loading", "submitted"]);
-const SESSION = new Set(["review", "submitted", "published", "not_sent", "failed"]);
-
-/** The exact publication, line by line, as the Agent froze it. */
-function PublicationSummary({
-  resource,
-}: {
-  resource: NonNullable<CeremonyViewProps["resource"]>;
-}) {
-  const intl = useIntl();
-  const lines = resource.lines.filter((line) => line.value.trim() !== "");
-  return (
-    <div className="border border-stroke-soft-200 bg-bg-weak-50">
-      <div className="border-b border-stroke-soft-200 px-4 py-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
-          {resource.gardenLabel}
-        </p>
-        <p className="mt-1 text-base font-semibold text-text-strong-950">{resource.title}</p>
-      </div>
-      <dl className="divide-y divide-stroke-soft-200">
-        {lines.map((line) => (
-          <div key={line.label} className="grid gap-1 px-4 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
-            <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
-              {line.label}
-            </dt>
-            <dd className="break-words text-sm text-text-strong-950">{line.value}</dd>
-          </div>
-        ))}
-      </dl>
-      {resource.evidence.length > 0 ? (
-        <p className="border-t border-stroke-soft-200 px-4 py-3 text-sm text-text-sub-600">
-          {intl.formatMessage(
-            {
-              id: "public.reporting.review.evidence",
-              defaultMessage:
-                "{count, plural, one {# photo or file} other {# photos or files}} attached",
-            },
-            { count: resource.evidence.length }
-          )}
-        </p>
-      ) : null}
-    </div>
-  );
-}
+const WAITING = new Set(["pairing", "loading", "submitted", "grant_submitted"]);
+const SESSION = new Set([
+  "review",
+  "submitted",
+  "published",
+  "not_sent",
+  "failed",
+  "grant_ready",
+  "grant_submitted",
+  "grant_active",
+]);
 
 export function CeremonyView(props: CeremonyViewProps) {
   const intl = useIntl();
-  const { stage, resource, operation } = props;
+  const { stage, resource, operation, grant } = props;
   const copy = CEREMONY_COPY[stage];
   const isReview = props.purpose === "review_decision";
+  const isGrant = props.purpose === "grant_reporting" || props.purpose === "grant_review";
   // Publishing and reviewing take two signatures; say so before the first one.
-  const twoSignatures = props.purpose === "publish_work" || isReview;
-  const signer = operation?.envelope?.accountAddress ?? null;
+  const twoSignatures = props.purpose === "publish_work" || isReview || isGrant;
+  const signer = grant?.policy.account ?? operation?.envelope?.accountAddress ?? null;
   const wrongAccount =
-    stage === "review" && signer !== null && props.account?.toLowerCase() !== signer.toLowerCase();
+    (stage === "review" || stage === "grant_ready") &&
+    signer !== null &&
+    props.account?.toLowerCase() !== signer.toLowerCase();
   const title =
     stage === "review" && isReview
       ? {
           id: "public.reporting.review.decisionTitle",
           defaultMessage: "Check and record your decision",
         }
-      : copy.title;
+      : stage === "grant_ready" && grant?.purpose === "review"
+        ? { id: "public.reporting.grant.reviewTitle", defaultMessage: "Allow bounded reviews" }
+        : stage === "grant_active" && grant?.purpose === "review"
+          ? {
+              id: "public.reporting.grant.reviewActiveTitle",
+              defaultMessage: "Review permission active",
+            }
+          : copy.title;
 
   return (
     <CeremonyFrame
       channel={props.channelLabel}
-      title={title}
-      body={copy.body}
+      title={
+        props.error === "outcome_unknown"
+          ? {
+              id: "public.reporting.uncertain.title",
+              defaultMessage: "Checking whether the request was sent",
+            }
+          : title
+      }
+      body={
+        props.error === "outcome_unknown"
+          ? {
+              id: "public.reporting.uncertain.body",
+              defaultMessage:
+                "The result isn't confirmed yet. Don't send it again while Green Goods checks the network.",
+            }
+          : stage === "unsupported" && isGrant
+            ? {
+                id: "public.reporting.grant.unsupported",
+                defaultMessage:
+                  "A safe assistant permission isn't available for this account yet. Return to your chat to sign this report or decision with your own wallet or passkey.",
+              }
+            : stage === "grant_active" && grant?.purpose === "review"
+              ? {
+                  id: "public.reporting.grant.reviewActiveBody",
+                  defaultMessage:
+                    "The assistant can record your review decisions within these limits after you confirm each decision in chat. You can remove permissions from the reporting permissions page.",
+                }
+              : copy.body
+      }
       values={{ garden: resource?.gardenLabel ?? "" }}
       error={
         props.error
@@ -138,6 +149,33 @@ export function CeremonyView(props: CeremonyViewProps) {
                   })}
             </Button>
           ) : null}
+          {stage === "grant_ready" || stage === "grant_signing" ? (
+            <Button
+              size="lg"
+              loading={stage === "grant_signing"}
+              disabled={!grant || wrongAccount || props.issues.length > 0}
+              onClick={() => void props.installGrant()}
+            >
+              {intl.formatMessage(
+                grant?.purpose === "review"
+                  ? { id: "public.reporting.grant.allowReview", defaultMessage: "Allow Reviews" }
+                  : {
+                      id: "public.reporting.grant.allowReporting",
+                      defaultMessage: "Allow Reporting",
+                    }
+              )}
+            </Button>
+          ) : null}
+          {isGrant && stage !== "grant_signing" ? (
+            <Button size="lg" emphasis="secondary" asChild>
+              <a href="/agent/reporting/permissions" target="_blank" rel="noopener noreferrer">
+                {intl.formatMessage({
+                  id: "public.reporting.grant.manage",
+                  defaultMessage: "Manage Permissions",
+                })}
+              </a>
+            </Button>
+          ) : null}
           {SESSION.has(stage) ? (
             <Button size="lg" emphasis="tertiary" onClick={() => void props.leave()}>
               {intl.formatMessage({
@@ -149,22 +187,31 @@ export function CeremonyView(props: CeremonyViewProps) {
         </>
       }
     >
-      {twoSignatures && (stage === "connect" || stage === "proving" || stage === "review") ? (
-        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-          {stage === "review"
+      {twoSignatures &&
+      (stage === "connect" ||
+        stage === "proving" ||
+        stage === "review" ||
+        stage === "grant_ready") ? (
+        <p className="rounded-xl bg-bg-weak-50 px-4 py-3 text-sm font-medium text-text-sub-600">
+          {stage === "grant_ready"
             ? intl.formatMessage({
-                id: "public.reporting.step.publish",
-                defaultMessage: "Signature 2 of 2: publish",
+                id: "public.reporting.step.install",
+                defaultMessage: "Signature 2 of 2: allow permission",
               })
-            : intl.formatMessage({
-                id: "public.reporting.step.prove",
-                defaultMessage: "Signature 1 of 2: prove the account",
-              })}
+            : stage === "review"
+              ? intl.formatMessage({
+                  id: "public.reporting.step.publish",
+                  defaultMessage: "Signature 2 of 2: publish",
+                })
+              : intl.formatMessage({
+                  id: "public.reporting.step.prove",
+                  defaultMessage: "Signature 1 of 2: prove the account",
+                })}
         </p>
       ) : null}
       {stage === "pairing" && props.pairingCode ? (
         <p
-          className="border border-stroke-soft-200 bg-bg-weak-50 px-4 py-6 text-center font-mono text-4xl font-semibold tracking-[0.3em] text-text-strong-950"
+          className="rounded-2xl border border-stroke-soft-200 bg-bg-weak-50 px-4 py-6 text-center font-mono text-3xl font-semibold tracking-[0.2em] text-text-strong-950 sm:text-4xl"
           aria-label={props.pairingCode.split("").join(" ")}
         >
           {props.pairingCode}
@@ -172,9 +219,9 @@ export function CeremonyView(props: CeremonyViewProps) {
       ) : null}
       {(stage === "review" || stage === "signing") && resource ? (
         <>
-          <PublicationSummary resource={resource} />
+          <PublicationSummary resource={resource} evidenceUrl={props.evidenceUrl} />
           {signer ? (
-            <p className="text-sm text-text-sub-600">
+            <p className="min-w-0 break-words text-sm text-text-sub-600" title={signer}>
               {intl.formatMessage(
                 { id: "public.reporting.review.signer", defaultMessage: "From account {account}" },
                 { account: formatAddress(signer) }
@@ -182,14 +229,30 @@ export function CeremonyView(props: CeremonyViewProps) {
             </p>
           ) : null}
           {wrongAccount ? (
-            <p className="text-sm text-text-strong-950">
+            <p role="alert" className="text-sm text-text-strong-950">
               {intl.formatMessage(FAILURE_COPY.wrong_account)}
             </p>
           ) : null}
         </>
       ) : null}
+      {grant && stage.startsWith("grant_") ? (
+        <>
+          <GrantSummary grant={grant} />
+          <p className="break-words text-sm text-text-sub-600" title={grant.policy.account}>
+            {intl.formatMessage(
+              { id: "public.reporting.review.signer", defaultMessage: "From account {account}" },
+              { account: formatAddress(grant.policy.account) }
+            )}
+          </p>
+        </>
+      ) : null}
+      {stage === "grant_ready" && wrongAccount ? (
+        <p role="alert" className="text-sm text-text-strong-950">
+          {intl.formatMessage(FAILURE_COPY.wrong_account)}
+        </p>
+      ) : null}
       {WAITING.has(stage) ? (
-        <div className="flex items-center gap-3 text-sm text-text-sub-600">
+        <div role="status" className="flex items-center gap-3 text-sm text-text-sub-600">
           <Spinner size="sm" />
           {intl.formatMessage({
             id: "public.reporting.waiting",

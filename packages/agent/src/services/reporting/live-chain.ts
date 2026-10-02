@@ -1,4 +1,9 @@
 import { getEASConfig, getEasGraphqlUrl } from "@green-goods/shared/config/blockchain";
+import type { PermissionModuleEntry } from "@green-goods/shared/modules/agent-reporting";
+import {
+  createPermissionReader,
+  KERNEL_PERMISSION_ABI,
+} from "@green-goods/shared/modules/agent-reporting/kernel-permissions";
 import { GARDEN_ACCOUNT_ROLE_ABI } from "@green-goods/shared/utils/blockchain/abis/garden";
 import {
   ActionRegistryABI,
@@ -21,6 +26,7 @@ import {
   TransactionReceiptNotFoundError,
   type Transport,
   zeroHash,
+  keccak256,
 } from "viem";
 import type {
   AccountKind,
@@ -64,6 +70,7 @@ export interface LiveChainOptions {
   fetch?: typeof fetch;
   /** Replaces the RPC transport; tests use it to answer JSON-RPC calls directly. */
   transport?: Transport;
+  delegationModules?: readonly PermissionModuleEntry[];
 }
 
 const lower = (value: string) => value.toLowerCase() as Addr;
@@ -296,10 +303,39 @@ export function createLiveReportingChain(options: LiveChainOptions): ReportingCh
 
     work: decodeWork,
 
-    async permissionInstalled() {
-      // Reading a Kernel permission's enforceable state is part of the unproven module spike;
-      // refusing here keeps a grant from ever reading as active on this adapter.
-      throw new PermissionStateUnavailableError();
+    async permissionInstalled(chainId, account, permissionId) {
+      const module = options.delegationModules?.find((entry) => entry.chainId === chainId);
+      if (!module?.singleCallPolicy || !module.singleCallPolicyCodeHash)
+        throw new PermissionStateUnavailableError();
+      const reader = createPermissionReader(
+        client as unknown as Parameters<typeof createPermissionReader>[0]
+      );
+      await reader.assertKernel(account as Addr);
+      const view = await reader.permission(account as Addr, permissionId);
+      if (
+        !view.active ||
+        view.signerAddress.toLowerCase() !== module.validatorAddress.toLowerCase()
+      )
+        return false;
+      const guardCode = await client.getCode({ address: module.singleCallPolicy });
+      const signerCode = await client.getCode({ address: module.validatorAddress });
+      if (
+        !guardCode ||
+        !signerCode ||
+        keccak256(guardCode) !== module.singleCallPolicyCodeHash ||
+        keccak256(signerCode) !== module.validatorCodeHash
+      )
+        throw new PermissionStateUnavailableError();
+      const config = await client.readContract({
+        address: account as Addr,
+        abi: KERNEL_PERMISSION_ABI,
+        functionName: "permissionConfig",
+        args: [permissionId],
+      });
+      return config.policyData.some(
+        (policy) =>
+          `0x${policy.slice(-40)}`.toLowerCase() === module.singleCallPolicy?.toLowerCase()
+      );
     },
   };
 }

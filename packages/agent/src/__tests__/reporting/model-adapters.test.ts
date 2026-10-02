@@ -6,6 +6,7 @@ import {
 } from "../../services/reporting/interpretation";
 import { extractWithOpenAI } from "../../services/reporting/model-extraction";
 import { routeWithJev } from "../../services/reporting/model-routing";
+import { transcribeVoice } from "../../services/reporting/media/transcribe";
 
 /**
  * Provider adapters against recorded response shapes, with fetch replaced. These prove request
@@ -227,5 +228,53 @@ describe("combined interpreter", () => {
       models: ["jev"],
     });
     expect(createModelInterpreter({ route: null, extract: null })).toBeNull();
+  });
+});
+
+describe("OpenAI voice transcription", () => {
+  const config = {
+    apiKey: "sk-test",
+    baseUrl: "https://openai.test/v1",
+    model: "gpt-4.1-mini-2025-04-14",
+    transcriptionModel: "gpt-4o-mini-transcribe-2025-12-15",
+  };
+
+  it("sends a bounded normalized WAV to the pinned JSON endpoint with a supported language hint", async () => {
+    const { calls, fetchStub } = recorder({ text: "  Planted twelve seedlings.  " });
+    expect(
+      await transcribeVoice(
+        { ...config, fetch: fetchStub },
+        { wav: new Uint8Array([1, 2, 3]), locale: "pt-BR" },
+        signal()
+      )
+    ).toEqual({ model: config.transcriptionModel, text: "Planted twelve seedlings." });
+    const form = calls[0]?.init.body as FormData;
+    expect(calls[0]?.url).toBe("https://openai.test/v1/audio/transcriptions");
+    expect(form.get("model")).toBe("gpt-4o-mini-transcribe-2025-12-15");
+    expect(form.get("response_format")).toBe("json");
+    expect(form.get("language")).toBe("pt");
+    expect((form.get("file") as File).name).toBe("voice-note.wav");
+    expect((form.get("file") as File).type).toBe("audio/wav");
+    expect((form.get("file") as File).size).toBe(3);
+  });
+
+  it("omits unsupported language hints and reports malformed or unavailable responses", async () => {
+    const malformed = recorder({ unrelated: true });
+    await expect(
+      transcribeVoice(
+        { ...config, fetch: malformed.fetchStub },
+        { wav: new Uint8Array([1]), locale: "yo" },
+        signal()
+      )
+    ).rejects.toMatchObject({ reason: "malformed" });
+    expect((malformed.calls[0]?.init.body as FormData).has("language")).toBe(false);
+    const unavailable = recorder({}, 429);
+    await expect(
+      transcribeVoice(
+        { ...config, fetch: unavailable.fetchStub },
+        { wav: new Uint8Array([1]), locale: "en" },
+        signal()
+      )
+    ).rejects.toMatchObject({ reason: "provider_error" });
   });
 });

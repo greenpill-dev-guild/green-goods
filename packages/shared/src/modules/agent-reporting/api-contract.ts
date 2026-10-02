@@ -262,3 +262,58 @@ export type AttemptResponse = z.infer<typeof attemptResponseSchema>;
 export type OutcomeRequest = z.infer<typeof outcomeRequestSchema>;
 export type AttemptOutcome = z.infer<typeof outcomeSchema>;
 export type RecoveryStep = z.infer<typeof recoveryStepSchema>;
+
+const grantPolicySchema = z.object({
+  version: z.literal(1),
+  purpose: z.enum(["reporting", "review"]),
+  chainId: z.number().int(),
+  account: address,
+  gardenAddress: address,
+  easAddress: address,
+  schemaUID: digest,
+  signerAddress: address,
+  moduleRef: z.string(),
+  validAfter: z.number().int(),
+  validUntil: z.number().int(),
+  maxSubmissions: z.number().int().min(1).max(5),
+  gasCap: z.number().int().positive(),
+  gasCostCapWei: z
+    .string()
+    .regex(/^[1-9][0-9]*$/)
+    .optional(),
+  approvedPaymaster: address.optional(),
+  singleCallPolicy: address.optional(),
+});
+export const grantResponseSchema = z.object({
+  ok: z.literal(true),
+  grant: z.object({
+    grantId: z.string(),
+    gardenLabel: z.string().optional(),
+    purpose: z.enum(["reporting", "review"]),
+    state: z.string(),
+    version: z.number().int(),
+    policy: grantPolicySchema,
+    policyDigest: digest,
+    permissionId: hex.nullable(),
+    submissionsUsed: z.number().int(),
+    revocationDescriptor: z
+      .object({
+        version: z.literal(1),
+        chainId: z.number().int(),
+        account: address,
+        kernelVersion: z.literal("0.3.1"),
+        entryPointVersion: z.literal("0.7"),
+        moduleRef: z.string(),
+        validatorAddress: address,
+        validatorCodeHash: digest,
+        permissionId: hexOf(/^0x[0-9a-fA-F]{8}$/, "Expected permission ID"),
+        signerAddress: address,
+        purpose: z.enum(["reporting", "review"]),
+        gardenAddress: address,
+        validUntil: z.number().int().positive(),
+        policyDigest: digest,
+      })
+      .nullable(),
+  }),
+});
+export type GrantView = z.infer<typeof grantResponseSchema>["grant"];

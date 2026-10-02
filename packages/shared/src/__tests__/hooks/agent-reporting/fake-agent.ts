@@ -1,5 +1,6 @@
 import type {
   ChallengeResponse,
+  GrantView,
   OperationView,
   RecoveryStep,
 } from "../../../modules/agent-reporting/api-contract";
@@ -59,6 +60,8 @@ export class FakeAgent {
   recoveryCode = "271828";
   /** Outcome POSTs to lose before they reach the Agent, as a dropped connection would. */
   dropOutcomes = 0;
+  grant: GrantView | null = null;
+  dropGrantApprovals = 0;
   operation: OperationView = {
     operationId: "op-1",
     kind: "work",
@@ -142,6 +145,11 @@ export class FakeAgent {
     }
     if (method === "POST" && path === "/access") return ok(this.access());
     if (method === "GET" && path === "/access/current") return ok(this.access());
+    if (path.startsWith("/execution-grants") && this.grant) {
+      if (path.endsWith("/approval"))
+        this.grant = { ...this.grant, state: "enabling", version: this.grant.version + 1 };
+      return ok({ ok: true, grant: this.grant });
+    }
     if (method === "GET" && path === "/drafts/d-1") {
       return ok({
         ok: true,
@@ -214,6 +222,10 @@ export class FakeAgent {
     });
     if (path.endsWith("/outcome") && this.dropOutcomes > 0) {
       this.dropOutcomes -= 1;
+      throw new TypeError("Failed to fetch");
+    }
+    if (path.endsWith("/approval") && this.dropGrantApprovals > 0) {
+      this.dropGrantApprovals -= 1;
       throw new TypeError("Failed to fetch");
     }
     const { status, value } = this.route(init.method ?? "GET", path, body);

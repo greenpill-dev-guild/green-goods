@@ -65,16 +65,17 @@ FROM oven/bun:${BUN_VERSION}-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Document and audio tools, pinned to the Debian trixie base of this image. Poppler backs
-# agent-reporting PDF inspection (the `documents` operator control) and ffmpeg/ffprobe back
-# voice-note normalization (the `voice` control); each control starts off and stays off until its
-# fixtures pass in this image.
-# LibreOffice is not installed: conversion needs the Writer and Calc components, not only
-# libreoffice-core. Without it, Word files are read as native text, pending that package decision.
+# Media tools pinned to this image's Debian trixie release. Office conversion uses both Writer
+# and Calc in a bubblewrap namespace with prlimit bounds; it never falls back to an unsandboxed
+# process. Conversion fails closed when the runtime host lacks user-namespace support.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       poppler-utils=25.03.0-5+deb13u4 \
       ffmpeg=7:7.1.5-0+deb13u1 \
+      libreoffice-writer=4:25.2.3-2+deb13u7 \
+      libreoffice-calc=4:25.2.3-2+deb13u7 \
+      bubblewrap=0.12.0-1~deb13u1 \
+      util-linux=2.41.5-0+deb13u1 \
     && rm -rf /var/lib/apt/lists/* \
     && pdfinfo -v \
     && ffmpeg -hide_banner -version | head -n 1 \

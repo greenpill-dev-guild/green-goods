@@ -1,4 +1,12 @@
-import type { ChallengeResponse, OperationView } from "../../modules/agent-reporting/api-contract";
+import type { CeremonyAccount } from "./useCeremonyAccount";
+import type { CeremonyFailure } from "./ceremony-storage";
+import type {
+  AccessResponse,
+  ChallengeResponse,
+  GrantView,
+  OperationView,
+  ResourceView,
+} from "../../modules/agent-reporting/api-contract";
 import {
   type EnvelopeIssue,
   envelopeIssues,
@@ -21,7 +29,11 @@ export type CeremonyStage =
   | "not_sent"
   | "failed"
   | "unavailable"
-  | "unsupported";
+  | "unsupported"
+  | "grant_ready"
+  | "grant_signing"
+  | "grant_submitted"
+  | "grant_active";
 
 const ACTIVE_ATTEMPTS = new Set(["reserved", "wallet_pending", "signed", "broadcast", "uncertain"]);
 // Permission grants and recovery have their own pages; this one links, publishes and reviews.
@@ -29,6 +41,8 @@ export const PURPOSES = new Set<ChallengeResponse["purpose"]>([
   "link_account",
   "publish_work",
   "review_decision",
+  "grant_reporting",
+  "grant_review",
 ]);
 
 export function stageForOperation(operation: OperationView | null): CeremonyStage {
@@ -66,4 +80,31 @@ export function issuesFor(operation: OperationView | null): EnvelopeIssue[] {
   } catch {
     return ["wrong_chain"];
   }
+}
+
+export function stageForGrant(state: string): CeremonyStage {
+  if (state === "active") return "grant_active";
+  if (["owner_authorization_pending", "proposed"].includes(state)) return "grant_ready";
+  if (["enabling", "reconciling_setup"].includes(state)) return "grant_submitted";
+  return state === "paused" || state === "failed" ? "failed" : "unavailable";
+}
+
+/** Browser-scoped proof and publication flow; signing requires an explicit owner action.
+ * Frozen envelopes are checked locally; the chain reconciles every uncertain send. */
+export interface AgentReportingCeremony extends Omit<CeremonyAccount, "prove"> {
+  stage: CeremonyStage;
+  purpose: ChallengeResponse["purpose"] | null;
+  channelLabel: string | null;
+  pairingCode: string | null;
+  sessionAccount: AccessResponse["account"] | null;
+  resource: ResourceView | null;
+  operation: OperationView | null;
+  grant: GrantView | null;
+  issues: EnvelopeIssue[];
+  error: CeremonyFailure | null;
+  start: () => Promise<void>;
+  prove: () => Promise<void>;
+  publish: () => Promise<void>;
+  installGrant: () => Promise<void>;
+  leave: () => Promise<void>;
 }

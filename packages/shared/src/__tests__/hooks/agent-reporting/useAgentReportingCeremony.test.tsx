@@ -2,15 +2,45 @@ import { act, waitFor } from "@testing-library/react";
 import { encodeFunctionData } from "viem";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildReportingProofMessage } from "../../../modules/agent-reporting/proof";
+import { grantPolicyDigest } from "../../../modules/agent-reporting/grants";
+import type { GrantView } from "../../../modules/agent-reporting/api-contract";
+import { readCeremony, writeCeremony } from "../../../hooks/agent-reporting/ceremony-storage";
+import { resumeGrantInstallation } from "../../../hooks/agent-reporting/useGrantInstallation";
 import type { ContractCall, TransactionSender } from "../../../modules/transactions/types";
-import { renderHookWithProviders } from "../../test-utils";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { ACCOUNT, FakeAgent, OTHER_ACCOUNT, TX_HASH, workEnvelope } from "./fake-agent";
 
 const mocks = vi.hoisted(() => ({
   account: "0x00000000000000000000000000000000000000a1" as `0x${string}`,
   signMessage: vi.fn(async (_args: { message: string }) => `0x${"11".repeat(65)}` as `0x${string}`),
   sender: null as TransactionSender | null,
+  installCall: vi.fn(async () => ({
+    address: "0x00000000000000000000000000000000000000a1",
+    abi: [],
+    functionName: "installValidations",
+    args: [],
+    value: 0n,
+  })),
 }));
+
+vi.mock("../../../modules/agent-reporting/kernel-permissions", () => ({
+  grantInstallCall: mocks.installCall,
+}));
+vi.mock("../../../modules/agent-reporting/grants", async (load) => {
+  const original = await load<typeof import("../../../modules/agent-reporting/grants")>();
+  return {
+    ...original,
+    revocationDescriptorIssues: (descriptor: unknown) =>
+      original.revocationDescriptorIssues(descriptor, [
+        {
+          moduleRef: "fixture-module",
+          chainId: 42161,
+          validatorAddress: "0x00000000000000000000000000000000000000d1",
+          validatorCodeHash: `0x${"aa".repeat(32)}`,
+        },
+      ]),
+  };
+});
 
 vi.mock("wagmi", () => ({ useSignMessage: () => ({ signMessageAsync: mocks.signMessage }) }));
 vi.mock("../../../providers/Auth", () => ({
@@ -70,13 +100,72 @@ beforeEach(() => {
   mocks.account = ACCOUNT;
   mocks.sender = null;
   mocks.signMessage.mockClear();
+  mocks.installCall.mockClear();
   window.sessionStorage.clear();
+  window.localStorage.clear();
 });
 
 afterEach(() => {
   window.sessionStorage.clear();
+  window.localStorage.clear();
 });
 
+function grantFixture(): GrantView {
+  const policy: GrantView["policy"] = {
+    version: 1,
+    purpose: "reporting",
+    chainId: 42161,
+    account: ACCOUNT,
+    gardenAddress: "0x00000000000000000000000000000000000000c2",
+    easAddress: "0x00000000000000000000000000000000000000e1",
+    schemaUID: `0x${"ab".repeat(32)}`,
+    signerAddress: "0x00000000000000000000000000000000000000f1",
+    moduleRef: "fixture-module",
+    validAfter: 1_800_000_000_000,
+    validUntil: 1_800_086_400_000,
+    maxSubmissions: 5,
+    gasCap: 500_000,
+  };
+  const policyDigest = grantPolicyDigest(policy);
+  return {
+    grantId: "g-1",
+    gardenLabel: "Aiyeloja family garden",
+    purpose: "reporting",
+    state: "owner_authorization_pending",
+    version: 1,
+    policy,
+    policyDigest,
+    permissionId: "0x12345678",
+    submissionsUsed: 0,
+    revocationDescriptor: {
+      version: 1,
+      chainId: 42161,
+      account: ACCOUNT,
+      kernelVersion: "0.3.1",
+      entryPointVersion: "0.7",
+      moduleRef: "fixture-module",
+      validatorAddress: "0x00000000000000000000000000000000000000d1",
+      validatorCodeHash: `0x${"aa".repeat(32)}`,
+      permissionId: "0x12345678",
+      signerAddress: policy.signerAddress,
+      purpose: "reporting",
+      gardenAddress: policy.gardenAddress,
+      validUntil: policy.validUntil,
+      policyDigest,
+    },
+  };
+}
+
+async function reachGrant(result: ReturnType<typeof render>["result"]) {
+  agent.purpose = "grant_reporting";
+  agent.grant ??= grantFixture();
+  await act(() => result.current.start());
+  await act(() => result.current.prove());
+  await waitFor(() => expect(result.current.stage).toBe("grant_ready"));
+}
+
+/** @direct-test-subject ../../../hooks/agent-reporting/useAgentReportingCeremony.ts
+ * @direct-test-subject ../../../hooks/agent-reporting/useGrantInstallation.ts */
 describe("reporting ceremony page", () => {
   it("asks for nothing until the person continues, then signs the Agent's exact proof message", async () => {
     const { result } = render();
@@ -208,5 +297,117 @@ describe("reporting ceremony page", () => {
       "GET /access/current",
       "GET /drafts/d-1",
     ]);
+  });
+
+  it("persists a sender result without callback and retries the same installation reference after reload", async () => {
+    wallet("send");
+    mocks.sender!.sendContractCall = async () => ({ hash: TX_HASH, sponsored: false });
+    agent.dropGrantApprovals = 1;
+    const first = render();
+    await reachGrant(first.result);
+    await act(() => first.result.current.installGrant());
+    expect(readCeremony("request-0123456789abcdef")?.pendingGrant?.enableReference).toBe(TX_HASH);
+    first.unmount();
+    const { result } = render();
+    await waitFor(() => expect(result.current.stage).toBe("grant_submitted"));
+    expect(
+      agent.requests("POST", "/execution-grants/g-1/approval").map((r) => r.body?.enableReference)
+    ).toEqual([TX_HASH, TX_HASH]);
+    expect(readCeremony("request-0123456789abcdef")?.pendingGrant).toBeUndefined();
+    expect(mocks.installCall).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the first UserOperation reference when receipt and API delivery differ", async () => {
+    wallet("send");
+    const userOperationHash = `0x${"ef".repeat(32)}` as const;
+    mocks.sender!.sendContractCall = async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcastReference?.({ kind: "user-operation", hash: userOperationHash });
+      return { hash: TX_HASH, sponsored: false };
+    };
+    agent.dropGrantApprovals = 3;
+    const first = render();
+    await reachGrant(first.result);
+    await act(() => first.result.current.installGrant());
+    first.unmount();
+    expect(
+      await resumeGrantInstallation(
+        agent.client(),
+        "request-0123456789abcdef",
+        readCeremony("request-0123456789abcdef")!
+      )
+    ).toMatchObject({ stage: "grant_submitted", error: "outcome_unknown" });
+    agent.dropGrantApprovals = 1;
+    const { result } = render();
+    await waitFor(() => expect(result.current.error).toBe("outcome_unknown"));
+    expect(readCeremony("request-0123456789abcdef")?.pendingGrant?.enableReference).toBe(
+      userOperationHash
+    );
+    await act(() => result.current.installGrant());
+    expect(mocks.installCall).toHaveBeenCalledTimes(1);
+    expect(
+      agent.requests("POST", "/execution-grants/g-1/approval").map((r) => r.body?.enableReference)
+    ).toEqual([userOperationHash, userOperationHash, userOperationHash, userOperationHash]);
+  });
+
+  it("rejects an account or module substituted in the recovery descriptor before asking the owner", async () => {
+    const calls = wallet("send");
+    const { result } = render();
+    agent.grant = grantFixture();
+    agent.grant.revocationDescriptor!.account = OTHER_ACCOUNT;
+    await reachGrant(result);
+    await act(() => result.current.installGrant());
+    expect(result.current.error).toBe("envelope_mismatch");
+    expect(mocks.installCall).not.toHaveBeenCalled();
+    expect(calls).toEqual([]);
+  });
+
+  it("ends installation polling when chain reconciliation reports a paused grant", async () => {
+    wallet("send");
+    const { result } = render();
+    await reachGrant(result);
+    await act(() => result.current.installGrant());
+    agent.grant = { ...agent.grant!, state: "paused" };
+    await waitFor(() => expect(result.current.stage).toBe("failed"));
+    expect(result.current.error).toBe("paused");
+  });
+  it.each([
+    ["active", "grant_active", null],
+    ["paused", "failed", "paused"],
+    ["failed", "failed", null],
+    ["expired", "unavailable", "expired"],
+    ["revoked", "unavailable", "changed"],
+  ] as const)("clears undelivered setup uncertainty when the exact grant is authoritatively %s", async (state, stage, error) => {
+    const grant = grantFixture();
+    agent.grant = { ...grant, state };
+    agent.dropGrantApprovals = 1;
+    writeCeremony("request-0123456789abcdef", {
+      accessId: "acc-1",
+      pendingGrant: {
+        grantId: grant.grantId,
+        version: grant.version,
+        policyDigest: grant.policyDigest,
+        enableReference: TX_HASH,
+      },
+    });
+    expect(
+      await resumeGrantInstallation(
+        agent.client(),
+        "request-0123456789abcdef",
+        readCeremony("request-0123456789abcdef")!
+      )
+    ).toMatchObject({ stage, error });
+    expect(readCeremony("request-0123456789abcdef")?.pendingGrant).toBeUndefined();
+  });
+  it("never offers an expired proposal to the owner's wallet", async () => {
+    const calls = wallet("send");
+    agent.grant = grantFixture();
+    agent.grant.policy.validAfter = 1;
+    agent.grant.policy.validUntil = 2;
+    const { result } = render();
+    await reachGrant(result);
+    await act(() => result.current.installGrant());
+    expect(result.current).toMatchObject({ stage: "unavailable", error: "expired" });
+    expect(calls).toEqual([]);
   });
 });

@@ -16,7 +16,7 @@ export const EN_REPORTING_COPY = {
     "You've stopped the assistant. I won't read new messages until you send START. Published reports stay public; unpublished drafts are being removed. Support: {support}",
   "consent.deleted":
     "Your unpublished drafts and files are being deleted. Published reports stay public on chain and IPFS and can't be removed. Support: {support}",
-  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
+  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• Stewards: send REVIEW to see work waiting for review.\n• To connect your account, open the verification link I send and return here with PAIR followed by its six-digit code. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
   "intake.paused":
     "Reporting is paused for maintenance. Your message is saved and I'll reply when it resumes. Support: {support}",
   "media.photoAdded": "Photo added to your report.",
@@ -52,6 +52,10 @@ export const EN_REPORTING_COPY = {
     "Some sheets, rows or columns in your spreadsheet were hidden, so I left them out.",
   "media.partial":
     "I could only read part of that file. Please check the summary carefully before confirming.",
+  "media.wordNative":
+    "I read the Word document's text, but couldn't read its pictures or charts. Please check the summary before confirming.",
+  "media.spreadsheetNative":
+    "I read the spreadsheet's visible cells, but couldn't read its pictures or charts. Please check the summary before confirming.",
   "report.askGarden": "Which garden is this report for?",
   "report.gardensUnavailable":
     "I can't load the list of gardens right now. Your message is saved; please send another message in a few minutes. Support: {support}",

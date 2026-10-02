@@ -191,7 +191,7 @@ describe("limits", () => {
 });
 
 describe("spreadsheets", () => {
-  async function workbook(): Promise<Uint8Array> {
+  async function workbook(hidden = true): Promise<Uint8Array> {
     const book = new ExcelJS.Workbook();
     const sheet = book.addWorksheet("Planting");
     sheet.addRow(["Plot", "Seedlings"]);
@@ -199,9 +199,11 @@ describe("spreadsheets", () => {
     sheet.addRow(["South", 4]);
     sheet.addRow(["East", 3]);
     sheet.addRow(["Total", { formula: "SUM(B2:B4)", result: 99 }]);
-    const secret = book.addWorksheet("Budget");
-    secret.state = "hidden";
-    secret.addRow(["Salary", 1000]);
+    if (hidden) {
+      const secret = book.addWorksheet("Budget");
+      secret.state = "hidden";
+      secret.addRow(["Salary", 1000]);
+    }
     return new Uint8Array(await book.xlsx.writeBuffer());
   }
 
@@ -256,6 +258,61 @@ describe("spreadsheets", () => {
     const sent = JSON.stringify(openai.requests[0]);
     expect(sent).toContain("Planting!B2\\t5");
     expect(sent).not.toContain("Salary");
+    expect(harness.documents.conversions).toBe(0);
+    expect(sent).not.toContain('"type":"input_file"');
+  });
+
+  it("includes a bounded Excel PDF preview and still computes values from the native cells", async () => {
+    await plantingDraft();
+    harness.documents.converts = true;
+    const openai = scriptedOpenAI([
+      {
+        observations: [],
+        uncertain: [],
+        facts: [
+          {
+            field: "details.seedlings",
+            value: 999,
+            page: null,
+            cell: null,
+            sumRange: "Planting!B2:B4",
+            original: "Seedlings",
+            unit: "seedlings",
+          },
+        ],
+      },
+    ]);
+    harness.openai = openai.config;
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "office preview" });
+    const replies = await send(
+      "sheet-preview",
+      await workbook(false),
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    expect(harness.documents.conversions).toBe(1);
+    expect(draft()?.content.details.seedlings).toBe(12);
+    expect(JSON.stringify(openai.requests[0])).toContain("spreadsheet-preview.pdf");
+    expect(replies).not.toContain(
+      "I read the spreadsheet's visible cells, but couldn't read its pictures or charts. Please check the summary before confirming."
+    );
+  });
+
+  it("keeps native Excel cells and names the limitation when the preview exceeds the page budget", async () => {
+    await plantingDraft();
+    harness.documents.converts = true;
+    harness.documents.pages.set("converted", { ok: false, reason: "too_many_pages", pages: 21 });
+    const openai = scriptedOpenAI([{ observations: [], uncertain: [], facts: [] }]);
+    harness.openai = openai.config;
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "office budget" });
+    const replies = await send(
+      "sheet-overlong",
+      await workbook(false),
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    expect(JSON.stringify(openai.requests[0])).not.toContain("spreadsheet-preview.pdf");
+    expect(replies).toContain(
+      "I read the spreadsheet's visible cells, but couldn't read its pictures or charts. Please check the summary before confirming."
+    );
   });
 });
 
@@ -316,7 +373,7 @@ describe("documents", () => {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     );
     expect(replies).toContain(
-      "I could only read part of that file. Please check the summary carefully before confirming."
+      "I read the Word document's text, but couldn't read its pictures or charts. Please check the summary before confirming."
     );
     expect(harness.documents.conversions).toBe(0);
   });
@@ -325,12 +382,15 @@ describe("documents", () => {
     await plantingDraft();
     harness.documents.converts = true;
     modelOn([]);
-    await send(
+    const replies = await send(
       "doc-2",
       docx(),
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     );
     expect(harness.documents.conversions).toBe(1);
+    expect(replies).not.toContain(
+      "I could only read part of that file. Please check the summary carefully before confirming."
+    );
     expect(
       harness.core.db.query("SELECT state FROM media_assets WHERE asset_kind = 'docx'").get()
     ).toEqual({ state: "ready" });

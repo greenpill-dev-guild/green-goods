@@ -1,5 +1,30 @@
 # Green Goods — WhatsApp impact reporting
 
+> **2 October implementation amendment:** Telegram is the current live-test transport, using
+> the existing bot in webhook mode and the deployed Client ceremony origin. New databases
+> enable Telegram text/photo/document reporting, publication and model processing; stored
+> operator pauses survive. Model baselines are pinned to `gpt-4.1-mini-2025-04-14`,
+> `gpt-4o-mini-transcribe-2025-12-15`, and `jev-1.13.0`; live quality/cost evaluation requires
+> credentials. Voice and WhatsApp stay off. See the current
+> [implementation and live-session handoff](handoffs/codex-telegram-readiness.md).
+>
+> Standard Kernel CallPolicy admits batches, and GasPolicy omits paymaster gas from its
+> allowance. The accepted bounded grant therefore adds `SingleAttestationPolicy`: one
+> canonical zero-value call, no message signing, permanent permission retirement, the exact
+> approved paymaster, and a cumulative cap on the complete EntryPoint 0.7 gas prefund in wei.
+> Timestamp, call scope, rate limit and GasPolicy remain separate checks. This new module is
+> not a resolver upgrade. Deployment, bytecode pins, measured budgets and integrated chain
+> proof are required before populating the verified registry. Per-grant signing keys use a
+> separate wrapping ring and private sealed files; this software custody is not non-exportable
+> KMS custody. Independent owner nonce invalidation removes all non-root permissions and the
+> browser explains that broader effect before signing.
+>
+> A proven account can own active links on both Telegram and WhatsApp. A second channel
+> requires its own same-chat pairing and an otherwise provisional identity; established
+> identities never merge. Replacing one provider's chat preserves the other provider's
+> conversations and drafts, while browser sessions and execution permissions are conservatively
+> invalidated or paused. Responsive browser views use the Client PWA system and private previews.
+
 **Date:** 26 September 2026
 **Product:** Green Goods
 **WhatsApp operating organization:** WEFA during the initial integration

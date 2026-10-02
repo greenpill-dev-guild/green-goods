@@ -83,6 +83,101 @@ async function grantInBrowser(): Promise<TestBrowser> {
 }
 
 describe("Kernel reporting grant", () => {
+  it("keeps signed bytes reserved across a paused restart and submits them only after resuming", async () => {
+    await confirmedKernelReport();
+    await harness.press(ADA, "Allow reporting in chat");
+    const sign = harness.sender.sign.bind(harness.sender);
+    harness.sender.sign = async (...args) => {
+      const signed = await sign(...args);
+      setControl(harness.core, "publication", false, {
+        actor: "operator",
+        reason: "pause after signing",
+      });
+      return signed;
+    };
+    await grantInBrowser();
+    await harness.drain();
+    expect(harness.sender.signed).toBe(1);
+    expect(harness.sender.submitted).toBe(0);
+    expect(one("SELECT state FROM execution_attempts")).toEqual({ state: "signed" });
+    harness.restart();
+    harness.clock.advance(5 * 60_000);
+    await harness.drain();
+    expect(harness.sender.submitted).toBe(0);
+    setControl(harness.core, "publication", true, {
+      actor: "operator",
+      reason: "resume signed attempt",
+    });
+    harness.clock.advance(5 * 60_000);
+    await harness.drain();
+    expect(harness.sender.signed).toBe(1);
+    expect(harness.sender.submitted).toBe(1);
+  });
+
+  it("rechecks publication after awaited role reads immediately before submitting signed bytes", async () => {
+    await confirmedKernelReport();
+    await harness.press(ADA, "Allow reporting in chat");
+    const roles = harness.chain.gardenRoles.bind(harness.chain);
+    harness.chain.gardenRoles = async (...args) => {
+      const value = await roles(...args);
+      if (harness.sender.signed > 0)
+        setControl(harness.core, "publication", false, {
+          actor: "operator",
+          reason: "pause during send preflight",
+        });
+      return value;
+    };
+    await grantInBrowser();
+    await harness.drain();
+    expect(harness.sender.signed).toBe(1);
+    expect(harness.sender.submitted).toBe(0);
+    expect(one("SELECT submissions_reserved, submissions_consumed FROM execution_grants")).toEqual({
+      submissions_reserved: 1,
+      submissions_consumed: 0,
+    });
+  });
+  it("blocks a signed operation when account recovery advances identity during awaited preflight", async () => {
+    await confirmedKernelReport();
+    await harness.press(ADA, "Allow reporting in chat");
+    const roles = harness.chain.gardenRoles.bind(harness.chain);
+    harness.chain.gardenRoles = async (...args) => {
+      const value = await roles(...args);
+      if (harness.sender.signed > 0)
+        harness.core.db.query("UPDATE participants SET identity_epoch = identity_epoch + 1").run();
+      return value;
+    };
+    await grantInBrowser();
+    await harness.drain();
+    expect(harness.sender.signed).toBe(1);
+    expect(harness.sender.submitted).toBe(0);
+    expect(one("SELECT submissions_reserved, submissions_consumed FROM execution_grants")).toEqual({
+      submissions_reserved: 1,
+      submissions_consumed: 0,
+    });
+  });
+  it("expires setup during a permission read instead of announcing an active grant", async () => {
+    await confirmedKernelReport();
+    await harness.press(ADA, "Allow reporting in chat");
+    const permission = harness.chain.permissionInstalled.bind(harness.chain);
+    harness.chain.permissionInstalled = async (...args) => {
+      const installed = await permission(...args);
+      harness.clock.advance(24 * 60 * 60_000);
+      return installed;
+    };
+    const browser = await grantInBrowser();
+    await harness.drain();
+    const grant = one<{ id: string; state: string }>("SELECT id, state FROM execution_grants");
+    expect(grant.state).toBe("expired");
+    // Session lifetime has also elapsed; the persisted lifecycle remains inspectable independently.
+    expect((await browser.request("GET", `/messaging/execution-grants/${grant.id}`)).status).toBe(
+      401
+    );
+    expect(harness.sender.signed).toBe(0);
+    expect(
+      harness.transport.sent.some((sent) => sent.message.text.startsWith("Reporting in chat is on"))
+    ).toBe(false);
+  });
+
   it("offers a bounded grant, verifies installation, then publishes the waiting report without another signature", async () => {
     const offer = await confirmedKernelReport();
     expect(offer[0]).toContain("up to 5 reports in 24 hours, reports only, revocable any time");

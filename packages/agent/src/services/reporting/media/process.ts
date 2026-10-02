@@ -113,7 +113,7 @@ function limitationFor(core: ReportingCore, detected: DetectedType): Limitation 
   return null;
 }
 
-/** Turns a detected file into what the model may see, converting Word files when LibreOffice is available. */
+/** Prepares bounded Office/PDF content while keeping spreadsheet values anchored to native cells. */
 async function sourceFor(
   deps: MediaDeps,
   detected: DetectedType,
@@ -130,6 +130,34 @@ async function sourceFor(
     if (excluded.hiddenSheets.length || excluded.hiddenRows || excluded.hiddenColumns)
       warnings.push("hidden_content_excluded");
     warnings.push(...read.table.warnings);
+    if (
+      detected.kind === "xlsx" &&
+      deps.openai &&
+      readControl(deps.core, "model_processing").enabled
+    ) {
+      // PDF charts can reveal values from hidden cells even when those cells are not printed.
+      // Keep native visible-cell reading whenever hidden content exists or documents are paused.
+      if (
+        readControl(deps.core, "documents").enabled &&
+        !warnings.includes("hidden_content_excluded")
+      ) {
+        try {
+          const pdf = await deps.tools.convertToPdf(bytes, "xlsx");
+          const inspected = await deps.tools.inspectPdf(pdf);
+          if (inspected.ok) {
+            warnings.push("converted_from_xlsx");
+            return {
+              kind: "table",
+              table: read.table,
+              preview: { bytes: pdf, pages: inspected.pages },
+            };
+          }
+        } catch (error) {
+          if (!(error instanceof LocalToolError)) throw error;
+        }
+      }
+      warnings.push("spreadsheet_visuals_not_read");
+    }
     return { kind: "table", table: read.table };
   }
   let pdf = detected.kind === "pdf" ? bytes : null;

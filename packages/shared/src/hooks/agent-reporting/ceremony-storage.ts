@@ -10,6 +10,12 @@ import { CeremonyError } from "../../modules/agent-reporting/ceremony-client";
 export interface StoredCeremony {
   accessId?: string;
   pendingReport?: { operationId: string; request: OutcomeRequest };
+  pendingGrant?: {
+    grantId: string;
+    version: number;
+    policyDigest: `0x${string}`;
+    enableReference: `0x${string}`;
+  };
 }
 
 const key = (requestId: string) => `gg-agent-reporting:${requestId}`;

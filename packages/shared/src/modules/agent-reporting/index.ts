@@ -119,6 +119,7 @@ export type {
   OutcomeRequest,
   ReportingErrorCode,
   ResourceView,
+  GrantView,
 } from "./api-contract";
 export {
   accessResponseSchema,
@@ -141,3 +142,4 @@ export { ATTEST_SELECTOR, attestCallFailures, attestWordRules } from "./call-pol
 export type { CeremonyClientOptions } from "./ceremony-client";
 export { CeremonyClient, CeremonyError } from "./ceremony-client";
 export { REPORTING_SUPPORT_CONTACT } from "./support";
+export type { KernelPermissionView } from "./permission-management";

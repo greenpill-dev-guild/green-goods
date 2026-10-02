@@ -22,6 +22,41 @@ function indexer(responses: Array<unknown[] | "down">) {
 }
 
 describe("live garden directory", () => {
+  it("keeps an empty directory when the first indexer read fails", async () => {
+    const { fetchStub } = indexer(["down"]);
+    const gardens = createLiveGardenDirectory({
+      indexerUrl: "https://indexer.test",
+      chainId: 42161,
+      fetch: fetchStub,
+    });
+    await expect(gardens.refresh(0)).rejects.toThrow(/503/);
+    expect(gardens.list()).toEqual([]);
+  });
+
+  it("shares concurrent refreshes instead of issuing duplicate indexer reads", async () => {
+    const { requests, fetchStub } = indexer([[garden("A1", "TAS")]]);
+    const gardens = createLiveGardenDirectory({
+      indexerUrl: "https://indexer.test",
+      chainId: 42161,
+      fetch: fetchStub,
+    });
+    const first = gardens.refresh(0);
+    const second = gardens.refresh(0);
+    expect(first).toBe(second);
+    await Promise.all([first, second]);
+    expect(requests()).toBe(1);
+    expect(gardens.list().map((entry) => entry.label)).toEqual(["TAS"]);
+  });
+
+  it("rejects a malformed indexer list rather than treating it as an empty garden set", async () => {
+    const gardens = createLiveGardenDirectory({
+      indexerUrl: "https://indexer.test",
+      chainId: 42161,
+      fetch: (async () => Response.json({ data: { Garden: {} } })) as unknown as typeof fetch,
+    });
+    await expect(gardens.refresh(0)).rejects.toThrow(/no garden list/);
+    expect(gardens.list()).toEqual([]);
+  });
   it("lists every garden that accepts reports by name and keeps the last list while the indexer is down", async () => {
     const { requests, fetchStub } = indexer([
       [

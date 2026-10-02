@@ -85,14 +85,15 @@ export function RecoveryView(props: RecoveryViewProps) {
     >
       {stage === "code" ? (
         <form
-          className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          className="flex min-w-0 flex-col gap-3"
+          method="post"
           onSubmit={(event) => {
             event.preventDefault();
             void submitCode();
           }}
         >
           <FormField
-            className="flex-1"
+            className="min-w-0"
             htmlFor={codeId}
             required
             label={intl.formatMessage({
@@ -105,15 +106,17 @@ export function RecoveryView(props: RecoveryViewProps) {
           >
             <TextInput
               id={codeId}
+              name="recoveryCode"
               value={code}
               onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
               inputMode="numeric"
               autoComplete="one-time-code"
               pattern="\d{6}"
               maxLength={6}
+              enterKeyHint="done"
               required
               invalid={props.error === "wrong_code"}
-              className="font-mono tracking-[0.3em]"
+              className="text-base font-mono tracking-[0.3em]"
             />
           </FormField>
           <Button size="lg" type="submit" loading={checking} disabled={code.length !== 6}>

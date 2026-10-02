@@ -193,7 +193,22 @@ function commitInTransaction(
         });
   if (result.transcript) writer.say("voice.heard", { transcript: clip(result.transcript.text) });
   if (result.warnings.includes("hidden_content_excluded")) writer.say("media.hiddenExcluded");
-  if (result.warnings.some((warning) => warning !== "hidden_content_excluded"))
+  if (result.extraction && result.warnings.includes("docx_visuals_not_read"))
+    writer.say("media.wordNative");
+  if (result.extraction && result.warnings.includes("spreadsheet_visuals_not_read"))
+    writer.say("media.spreadsheetNative");
+  if (
+    result.warnings.some(
+      (warning) =>
+        ![
+          "hidden_content_excluded",
+          "converted_from_docx",
+          "converted_from_xlsx",
+          "docx_visuals_not_read",
+          "spreadsheet_visuals_not_read",
+        ].includes(warning)
+    )
+  )
     writer.say("media.partial");
   const pending = core.db
     .query(

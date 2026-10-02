@@ -9,6 +9,7 @@ import { createModelInterpreter } from "../services/reporting/interpretation";
 import type { JobKind } from "../services/reporting/jobs";
 import { createLiveReportingCatalog } from "../services/reporting/live-catalog";
 import { createLiveReportingChain } from "../services/reporting/live-chain";
+import { createLiveDelegation } from "../services/reporting/live-delegation";
 import { createLiveGardenDirectory } from "../services/reporting/live-gardens";
 import { extractWithOpenAI } from "../services/reporting/model-extraction";
 import { routeWithJev } from "../services/reporting/model-routing";
@@ -37,7 +38,17 @@ export function createLiveReportingRuntime(input: {
   jobs?: (core: ReportingCore) => Partial<Record<JobKind, JobHandler>>;
 }): ReportingRuntime {
   const { config } = input;
-  const chain = createLiveReportingChain({ chain: input.chain, rpcUrl: input.rpcUrl });
+  const delegation = createLiveDelegation({
+    config,
+    chain: input.chain,
+    rpcUrl: input.rpcUrl,
+    env: process.env,
+  });
+  const chain = createLiveReportingChain({
+    chain: input.chain,
+    rpcUrl: input.rpcUrl,
+    delegationModules: delegation.delegationModules,
+  });
   const indexerUrl = getIndexerUrl(
     { VITE_ENVIO_INDEXER_URL: process.env.VITE_ENVIO_INDEXER_URL },
     false
@@ -58,6 +69,7 @@ export function createLiveReportingRuntime(input: {
   });
   return createReportingRuntime({
     config,
+    ...delegation,
     chainId: input.chainId,
     chain,
     gardens: createLiveGardenDirectory({ indexerUrl, chainId: input.chainId }),

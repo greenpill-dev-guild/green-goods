@@ -1,4 +1,15 @@
-import { createPublicClient, custom, type Hex } from "viem";
+import {
+  concatHex,
+  createPublicClient,
+  custom,
+  decodeAbiParameters,
+  padHex,
+  size,
+  sliceHex,
+  type Hex,
+} from "viem";
+import { createKernelAccount } from "@zerodev/sdk";
+import { getEntryPoint, KERNEL_V3_1 } from "@zerodev/sdk/constants";
 import { privateKeyToAccount } from "viem/accounts";
 import { arbitrum } from "viem/chains";
 import { describe, expect, it } from "vitest";
@@ -38,6 +49,9 @@ function policy(garden: Hex): { policy: GrantPolicy; scope: AttestScope } {
       validUntil: NOW + GRANT_LIMITS.reporting.durationMs,
       maxSubmissions: GRANT_LIMITS.reporting.maxSubmissions,
       gasCap: 2_000_000,
+      gasCostCapWei: "1000000000000000",
+      approvedPaymaster: "0x0000000000000000000000000000000000000a11",
+      singleCallPolicy: "0x0000000000000000000000000000000000000a12",
     },
     scope: {
       purpose: "reporting",
@@ -58,15 +72,63 @@ const offline = createPublicClient({
 });
 
 describe("Kernel reporting permission", () => {
+  it("uses the exact pinned SDK single-call encoding accepted by the Solidity guard vector", async () => {
+    const grant = policy("0x00000000000000000000000000000000000000c2");
+    const validator = await grantPermissionValidator(offline, { ...grant, signer });
+    const account = await createKernelAccount(offline, {
+      address: grant.policy.account,
+      entryPoint: getEntryPoint("0.7"),
+      kernelVersion: KERNEL_V3_1,
+      plugins: { regular: validator },
+    });
+    const encoded = await account.encodeCalls([
+      { to: "0x0000000000000000000000000000000000000ea5", value: 0n, data: "0x12345678" },
+    ]);
+    expect(encoded.toLowerCase()).toBe(
+      "0xe9ae5c530000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000380000000000000000000000000000000000000ea50000000000000000000000000000000000000000000000000000000000000000123456780000000000000000"
+    );
+  });
   it("encodes a call policy for the EAS attest shape with the grant window and count", () => {
     const { policy: grant, scope } = policy("0x00000000000000000000000000000000000000c2");
-    const [call, window, submissions] = grantPolicies(grant, scope);
+    const [call, window, submissions, gas, single] = grantPolicies(grant, scope);
     const callData = call?.getPolicyData().toLowerCase() ?? "";
     expect(callData).toContain(deployment.easAddress.slice(2).toLowerCase());
     expect(callData).toContain(ATTEST_SELECTOR.slice(2));
     expect(callData).toContain(deployment.work.schemaUID.slice(2).toLowerCase());
     expect(window?.getPolicyData()).toBeDefined();
     expect(submissions?.getPolicyData()).toBeDefined();
+    expect(gas?.policyParams).toMatchObject({
+      type: "gas",
+      allowed: 1000000000000000n,
+      enforcePaymaster: true,
+      allowedPaymaster: grant.approvedPaymaster,
+    });
+    expect(single?.getPolicyInfoInBytes().toLowerCase()).toContain(
+      grant.singleCallPolicy?.slice(2).toLowerCase()
+    );
+  });
+
+  it("produces the exact guard installation bytes Kernel prepends to the SDK policy data", async () => {
+    const grant = policy("0x00000000000000000000000000000000000000c2");
+    const validator = await grantPermissionValidator(offline, { ...grant, signer });
+    const [enabled] = decodeAbiParameters(
+      [{ type: "bytes[]" }],
+      await validator.getEnableData(grant.policy.account)
+    );
+    const single = enabled[4]!;
+    expect(sliceHex(single, 2, 22).toLowerCase()).toBe(
+      grant.policy.singleCallPolicy!.toLowerCase()
+    );
+    // Official Kernel v3.1 _installPermission prepends right-padded bytes32(permissionId)
+    // to the policy bytes after its 22-byte flags/address prefix.
+    const installed = concatHex([
+      padHex(validator.getIdentifier(), { size: 32, dir: "right" }),
+      sliceHex(single, 22),
+    ]);
+    expect(size(installed)).toBe(96);
+    expect(
+      decodeAbiParameters([{ type: "uint128" }, { type: "address" }], sliceHex(installed, 32))
+    ).toEqual([BigInt(grant.policy.gasCostCapWei!), grant.policy.approvedPaymaster]);
   });
 
   it("builds a validator offline whose identity changes with the granted garden", async () => {

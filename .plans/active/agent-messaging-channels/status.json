@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-09-30T05:13:00.000Z"
+    "updated_at": "2026-10-02T08:24:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -28,10 +28,11 @@
     "final_brief_validation": "reports/2026-09-26-final-brief-validation.md",
     "accepted_review_decisions": "reports/2026-09-26-accepted-review-decisions.md",
     "reporting_core_capability_record": "reports/2026-09-27-reporting-core-capability-record.md",
-    "telegram_first_whatsapp_outlook": "reports/2026-09-29-telegram-first-whatsapp-outlook.md"
+    "telegram_first_whatsapp_outlook": "reports/2026-09-29-telegram-first-whatsapp-outlook.md",
+    "telegram_readiness": "handoffs/codex-telegram-readiness.md"
   },
   "notes": [
-    "CURRENT EXECUTION CONTRACT: technical-brief.md sections 11–12, plan.todo.md Current build sequence and the current handoffs. Remaining notes preserve chronological decisions; later user decisions supersede historical scope statements.",
+    "CURRENT EXECUTION CONTRACT: the 2026-10-02 amendment in technical-brief.md, the current implementation checklist in plan.todo.md, and handoffs/codex-telegram-readiness.md. Earlier dated notes are historical; later user decisions supersede them.",
     "RESR-75 was accepted on 2026-09-21. The gate is cleared for the Buildathon prototype slice only; it does not authorize production data collection, a pilot provider decision, reporting delegation, custodial accounts, or any SMS work.",
     "Scope-locked 2026-09-21: WhatsApp only; Meta Cloud API direct on the test number, not Twilio; no custodial wallets and no delegation; test garden with team and invited testers; no production data and no success claim.",
     "A1 (Nigeria, English, TAS) is the pilot setting, not product scope. O2 is resolved as Meta direct for the prototype and stays open for the pilot. Both are corrected in spec.md section 1.",
@@ -62,16 +63,17 @@
     "Latest user decisions: OpenAI selected for all content processing; Jev retained for typed decisions; automatic Office-to-PDF/image conversion included. Browser routes selected as /agent/reporting/:requestId and /agent/reporting/recover/:requestId. Entire passkey-first onboarding plus optional Profile wallet model is future-only; current prototype uses existing EOA/Kernel accounts. Removed speculative account_usage field and corrected sign-in wireframe. Documentation only; runtime lanes remain blocked, with no installs or tracker writes.",
     "Final brief review 2026-09-26: closed three documentation gap classes (domain/proof persistence, ceremony/recovery APIs and retry/handoff semantics, current delivery/acceptance authority). User accepted 24h/5 reporting and 1h/5 review grants, 24h pre-consent and 7-day inactive draft expiry plus post-publication source cleanup. Technical brief section 12 owns current implementation sequence; older dispatch is historical. Runtime/custody/provider/chain gates remain unproven; no implementation or tracker writes.",
     "User accepted PR-review remedies: Afolabi (afo@wefa.world) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs replace the historical dispatch and obsolete hook commands. Durable terminal outcomes, dispatch-time pause controls, stable subject identity/HMAC alias rotation, exclusive operation parents, root schema and deployed edge proof are required. Local scope is reconciled; tracker/start-gate reconciliation remains before dispatch. Synthetic transport fixtures are required; live Telegram remains optional. No runtime build, external message or tracker write occurred.",
-    "PR #864 follow-up: confirmed Action snapshots own offchain field validation; updates during a pending send cannot be promised to invalidate an onchain transaction. Current acceptance requires both signing race cases. Delegation stays disabled until section 9.3 owner revocation passes with Agent/proxy/database unavailable, including old signed operations and enable-authorization replay. Client ceremonies use a focused PublicShell/SiteHeader variant; static /agent/reporting/permissions reuses the ceremony view for independent revocation. No runtime implementation or proof is claimed."
+    "PR #864 follow-up: confirmed Action snapshots own offchain field validation; updates during a pending send cannot be promised to invalidate an onchain transaction. Current acceptance requires both signing race cases. Delegation stays disabled until section 9.3 owner revocation passes with Agent/proxy/database unavailable, including old signed operations and enable-authorization replay. Client ceremonies use a focused PublicShell/SiteHeader variant; static /agent/reporting/permissions reuses the ceremony view for independent revocation. No runtime implementation or proof is claimed.",
+    "2026-10-02 user-authorized implementation: resolve #864/#934/#949 conflicts, prepare deployed Telegram webhook/browser flow, enable new-database reporting defaults, pin provider snapshots, add bounded Office conversion, complete bounded Kernel grant source and independent owner removal, use responsive Client PWA views, and attach both Telegram and WhatsApp to one proven account. Codex owns integration. Deployment, actual keys/live-model evaluation, authenticated signing, Fly conversion/isolation and integrated Kernel deployment/pins/budgets remain live gates. WhatsApp needs access and its transport adapter. No production deployment or chain broadcast occurred."
   ],
   "lanes": {
     "state_api": {
-      "owner": "claude",
+      "owner": "codex",
       "status": "in_progress",
-      "branch": "feature/agent-reporting-core",
+      "branch": "feature/agent-reporting-telegram",
       "depends_on": [],
-      "handoff": "handoffs/claude-state-api.md",
-      "handoff_note": "Opus 5.5: current Shared reporting rules/exports, Agent harness/coordinator, SQLite identity/draft/operation stores, Meta/media/model adapters, grants, durable failure outcomes, receipt/outbox/cleanup and operating controls. Story clarification and fixed-field proof belong here. Follow current plan slices, not historical steps. Preserve confirmed Action snapshots across pending sends and reconcile externally revoked permissions.",
+      "handoff": "handoffs/codex-telegram-readiness.md",
+      "handoff_note": "Current Telegram-first implementation and integration proof are owned by Codex; the handoff records exact scope, live gates, key setup, API flow and the two-account acceptance session. Earlier lane evidence remains historical.",
       "skill_tags": ["data-layer", "testing", "web3"],
       "manual_blocked": false,
       "ready_when_dependencies_met": false,
@@ -88,15 +90,15 @@
         },
         "note": "PR #2 on feature/agent-reporting-core; see handoffs/claude-state-api.md"
       },
-      "blocked_reason": "Complete tracker/start-gate reconciliation and record the first bounded implementation slice; builder is assigned. Live gates remain stage-specific and do not block the synthetic harness."
+      "blocked_reason": "Current-head integration proof and the stage-specific live gates remain open; the lane remains in progress rather than certified complete."
     },
     "ui": {
-      "owner": "claude",
+      "owner": "codex",
       "status": "in_progress",
-      "branch": "feature/agent-reporting-core",
+      "branch": "feature/agent-reporting-telegram",
       "depends_on": [],
-      "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "Opus 5.5: platform-neutral existing-account ceremony routes, proposed useAgentReportingCeremony/useAgentReportingRecovery Shared hooks, prepared-envelope execution and durable outcome retries, deployment/header/log proof and PWA design controls. No composer hydration or first-run enrollment. Include canonical PublicShell/SiteHeader composition and independently available owner revocation before enabling delegation.",
+      "handoff": "handoffs/codex-telegram-readiness.md",
+      "handoff_note": "Current Telegram-first implementation and integration proof are owned by Codex; the handoff records exact scope, live gates, key setup, API flow and the two-account acceptance session. Earlier lane evidence remains historical.",
       "skill_tags": ["ui", "react", "web3"],
       "manual_blocked": false,
       "ready_when_dependencies_met": false,
@@ -113,24 +115,24 @@
         },
         "note": "PR #2 ceremony hooks and pages; see handoffs/claude-ui.md"
       },
-      "blocked_reason": "Complete tracker/start-gate reconciliation and record the first bounded implementation slice; builder is assigned. Live gates remain stage-specific and do not block the synthetic harness. Delegation enablement additionally requires the Agent-independent owner revocation proof in technical brief section 9.3."
+      "blocked_reason": "Current-head integration proof and the stage-specific live gates remain open; the lane remains in progress rather than certified complete."
     },
     "contracts": {
-      "owner": "unassigned",
-      "status": "n/a",
-      "branch": null,
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "feature/agent-reporting-telegram",
       "depends_on": [],
-      "handoff": "handoffs/contracts.md",
-      "handoff_note": "No contract change in this slice. WorkResolver and WorkApprovalResolver are unchanged; the gardener signs with their own passkey or EOA account. If any step turns out to need a contract change, stop that step and re-plan in contract, shared, indexer, application order.",
+      "handoff": "handoffs/codex-telegram-readiness.md",
+      "handoff_note": "SingleAttestationPolicy adds a canonical single-call and full-prefund cost boundary to the existing permission stack. It does not change WorkResolver or WorkApprovalResolver. Deployment, bytecode pins, measured budgets and integrated negative/revocation proof gate registry activation.",
       "skill_tags": ["contracts"],
       "manual_blocked": false,
       "ready_when_dependencies_met": false,
       "tdd": {
-        "mode": "not_applicable",
+        "mode": "required",
         "status": "pending",
         "red": {},
         "green": {},
-        "note": "No contract change in this slice. The gardener signs with their own passkey or EOA account, and WorkResolver and WorkApprovalResolver are untouched. If any step turns out to need a contract change, stop that step and re-plan in contract, shared, indexer, application order rather than editing a resolver inside the prototype."
+        "note": "New guard source and focused contract checks exist; final current-head receipt and recorded proof are still pending. The lane is not complete and the verified registry remains empty."
       }
     },
     "qa_pass_1": {
@@ -151,7 +153,7 @@
       "branch": null,
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "handoff_note": "Astra: independent review of every completed checkpoint and integrated prototype; current technical brief sections 11–12 own acceptance. Auth, crash/retry, identity rotation, privacy, operating switches and conditional Kernel grants are in scope.",
+      "handoff_note": "Astra: independent review of every completed checkpoint and integrated prototype; current technical brief sections 11\u201312 own acceptance. Auth, crash/retry, identity rotation, privacy, operating switches and conditional Kernel grants are in scope.",
       "skill_tags": ["testing", "review", "contracts"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,
@@ -382,6 +384,13 @@
       "status": "in_progress",
       "branch": "feature/agent-reporting-telegram",
       "note": "WhatsApp account disabled; PR #3 adds the Telegram channel on the existing bot. The state_api lane itself stays on PR #2; see handoffs/claude-telegram-channel.md"
+    },
+    {
+      "at": "2026-10-02T08:24:00.000Z",
+      "by": "codex",
+      "lane": null,
+      "status": "scope_amended",
+      "note": "Implement the user-authorized Telegram-first readiness changes and resolve the existing PR stack. Code gates and live deployment/model/account/Office/Kernel checks remain distinct; no production deployment, wallet signing or chain broadcast."
     }
   ],
   "taxonomy": {

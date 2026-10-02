@@ -14,7 +14,7 @@ import { commitLifecycle, lifecycleState } from "./coordinator/draft-commit";
 import { gardenLabel } from "./coordinator/prompting";
 import { inTransaction } from "./database";
 import { loadDraft } from "./drafts";
-import { grantById, type GrantRecord } from "./grants-store";
+import { grantById, liveGrant, type GrantRecord } from "./grants-store";
 import { type ClaimedJob, enqueueJob } from "./jobs";
 import { participantWriter } from "./notify";
 import { upsertOperation } from "./operations";
@@ -40,6 +40,8 @@ export interface GrantDeps {
   gasCap: number;
   /** Permission identifier the owner will install for this policy (Kernel adapter). */
   permissionIdFor: (policy: GrantPolicy) => Promise<Hex>;
+  createSigner?: () => Promise<{ signerAddress: Hex; signerKeyRef: string }>;
+  descriptorFor?: (policy: GrantPolicy, permissionId: Hex) => string;
 }
 
 export type GrantError =
@@ -66,14 +68,34 @@ export async function proposeGrant(
     !purpose ||
     session.accountKind !== "kernel" ||
     !module ||
-    !isDelegationAvailable(core.settings.chainId, deps.modules)
+    !isDelegationAvailable(core.settings.chainId, deps.modules) ||
+    (purpose === "review" && Boolean(module?.singleCallPolicy) && !module?.reviewSupported)
   ) {
     return { ok: false, errorCode: "unsupported_scope" };
   }
   const garden = findGarden(core.gardens, gardenAddress);
   if (!garden) return { ok: false, errorCode: "unavailable" };
   const now = core.clock.now();
+  const existing = liveGrant(core, {
+    accountBindingId: session.accountBindingId,
+    purpose,
+    chainId: core.settings.chainId,
+    gardenAddress: garden.address,
+  });
+  if (existing?.state === "expired") return { ok: true, grant: existing };
+  if (existing)
+    return existing.channelBindingId === session.request.bindingId &&
+      existing.validUntil > now &&
+      existing.state !== "paused"
+      ? { ok: true, grant: existing }
+      : { ok: false, errorCode: "conflict" };
   const schema = purpose === "reporting" ? deps.deployment.work : deps.deployment.review;
+  const signer = deps.createSigner
+    ? await deps.createSigner()
+    : {
+        signerAddress: deps.signerAddress,
+        signerKeyRef: `signer:${deps.signerAddress.toLowerCase()}`,
+      };
   const policy: GrantPolicy = {
     version: 1,
     purpose,
@@ -82,21 +104,31 @@ export async function proposeGrant(
     gardenAddress: garden.address,
     easAddress: deps.deployment.easAddress,
     schemaUID: schema.schemaUID,
-    signerAddress: deps.signerAddress,
+    signerAddress: signer.signerAddress,
     moduleRef: module.moduleRef,
     validAfter: now,
     validUntil: now + GRANT_LIMITS[purpose].durationMs,
     maxSubmissions: GRANT_LIMITS[purpose].maxSubmissions,
     gasCap: deps.gasCap,
+    ...(module.singleCallPolicy ? { singleCallPolicy: module.singleCallPolicy } : {}),
+    ...(module.approvedPaymaster ? { approvedPaymaster: module.approvedPaymaster } : {}),
+    ...(module.gasCostCapsWei ? { gasCostCapWei: module.gasCostCapsWei[purpose] } : {}),
   };
   if (grantPolicyIssues(policy).length > 0) return { ok: false, errorCode: "unsupported_scope" };
   const permissionId = await deps.permissionIdFor(policy);
+  if (core.clock.now() >= policy.validUntil) return { ok: false, errorCode: "unavailable" };
+  const descriptor = deps.descriptorFor?.(policy, permissionId) ?? null;
   return inTransaction(core.db, () => {
     const binding = core.db
       .query(
-        "SELECT id FROM channel_bindings WHERE participant_id = $participant AND status = 'active'"
+        `SELECT id FROM channel_bindings WHERE id = $binding AND participant_id = $participant
+         AND channel_subject_id = $subject AND status = 'active'`
       )
-      .get({ participant: session.participantId }) as { id: string } | null;
+      .get({
+        binding: session.request.bindingId,
+        participant: session.participantId,
+        subject: session.request.subjectId,
+      }) as { id: string } | null;
     if (!binding) return { ok: false as const, errorCode: "forbidden" as const };
     const id = core.ids.id();
     try {
@@ -105,9 +137,9 @@ export async function proposeGrant(
           `INSERT INTO execution_grants
              (id, purpose, participant_id, account_binding_id, channel_binding_id, identity_epoch, chain_id, garden_address,
               module_ref, permission_id, signer_key_ref, signer_address, policy_digest, policy_json, valid_after, valid_until,
-              max_submissions, gas_cap, state, created_at, updated_at)
+              max_submissions, gas_cap, revocation_descriptor, state, created_at, updated_at)
            VALUES ($id, $purpose, $participant, $account, $binding, $epoch, $chain, $garden, $module, $permission, $signerRef,
-                   $signer, $digest, $policy, $after, $until, $max, $gas, 'owner_authorization_pending', $now, $now)`
+                   $signer, $digest, $policy, $after, $until, $max, $gas, $descriptor, 'owner_authorization_pending', $now, $now)`
         )
         .run({
           id,
@@ -120,8 +152,9 @@ export async function proposeGrant(
           garden: garden.address,
           module: module.moduleRef,
           permission: permissionId,
-          signerRef: `signer:${deps.signerAddress.toLowerCase()}`,
-          signer: deps.signerAddress.toLowerCase(),
+          signerRef: signer.signerKeyRef,
+          signer: signer.signerAddress.toLowerCase(),
+          descriptor,
           digest: grantPolicyDigest(policy),
           policy: JSON.stringify(policy),
           after: policy.validAfter,
@@ -151,8 +184,23 @@ export function approveGrant(
     if (!grant || grant.accountBindingId !== session.accountBindingId) {
       return { ok: false as const, errorCode: "unavailable" as const };
     }
+    if (
+      grant.channelBindingId !== session.request.bindingId ||
+      purposeOf(session) !== grant.purpose
+    ) {
+      return { ok: false as const, errorCode: "forbidden" as const };
+    }
     if (grant.policyDigest !== input.policyDigest)
       return { ok: false as const, errorCode: "stale_revision" as const };
+    const enabled = core.db
+      .query("SELECT enable_reference FROM execution_grants WHERE id = $id")
+      .get({ id: grant.id }) as { enable_reference: string | null };
+    if (
+      ["enabling", "active"].includes(grant.state) &&
+      enabled.enable_reference === input.enableReference
+    ) {
+      return { ok: true as const, grant };
+    }
     const moved = core.db
       .query(
         `UPDATE execution_grants SET state = 'enabling', enable_reference = $reference, version = version + 1, updated_at = $now
@@ -206,11 +254,12 @@ export async function reconcileGrant(deps: GrantDeps, job: ClaimedJob): Promise<
   } catch {
     return { status: "retry", errorCode: "dependency_unavailable", delayMs: 30_000 };
   }
+  if (grantById(core, grant.id)?.state !== "enabling") return { status: "done" };
   if (!installed) return { status: "retry", errorCode: "permission_pending", delayMs: 30_000 };
   inTransaction(core.db, () => {
     const moved = core.db
       .query(
-        "UPDATE execution_grants SET state = 'active', version = version + 1, updated_at = $now WHERE id = $id AND state = 'enabling'"
+        "UPDATE execution_grants SET state = 'active', version = version + 1, updated_at = $now WHERE id = $id AND state = 'enabling' AND valid_after <= $now AND valid_until > $now"
       )
       .run({ id: grant.id, now: core.clock.now() });
     if (moved.changes !== 1) return;
