@@ -1,6 +1,6 @@
 /**
  * createTransactionSender Factory Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the factory function that creates the correct TransactionSender
  * implementation based on authMode and available clients.

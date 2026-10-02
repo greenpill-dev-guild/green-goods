@@ -402,4 +402,43 @@ describe("the steward's extras on the same composer", () => {
       }).success
     ).toBe(true);
   });
+
+  // The steward types dollars; the G$ amount is only fixed at Create, so until
+  // then the dollars are what must hold up.
+  it.each([
+    { usd: "5.00", valid: true },
+    { usd: "$12", valid: true },
+    { usd: "0", valid: false },
+    { usd: "", valid: false },
+    { usd: "5.001", valid: false },
+  ])("takes a G$ reward in dollars: $usd is valid $valid", ({ usd, valid }) => {
+    const parsed = commitmentComposerSchema.safeParse({
+      ...values,
+      considerationRail: "CELO_SETTLEMENT",
+      considerationUsd: usd,
+      considerationAmount: "",
+    });
+    expect(parsed.success).toBe(valid);
+    if (!parsed.success) {
+      expect(parsed.error.issues).toEqual([
+        expect.objectContaining({
+          path: ["considerationUsd"],
+          message: COMMITMENT_COMPOSER_ERROR_IDS.considerationUsd,
+        }),
+      ]);
+    }
+  });
+
+  it("asks how many separate commitments, from one to the sending's limit", () => {
+    for (const [count, valid] of [
+      [1, true],
+      [50, true],
+      [0, false],
+      [51, false],
+      [2.5, false],
+      [undefined, true],
+    ] as const) {
+      expect(commitmentComposerSchema.safeParse({ ...values, count }).success).toBe(valid);
+    }
+  });
 });

@@ -208,7 +208,11 @@ export const Tokens: Story = {
         </div>
         <TokenTable
           tokens={[
-            { name: "--m3-elevation-0", expected: "none" },
+            {
+              name: "--m3-elevation-0",
+              expected: "0 0 transparent",
+              note: "transparent, never none, so rings on the same element still draw",
+            },
             { name: "--m3-elevation-1", note: "cards and filled buttons at rest" },
             { name: "--m3-elevation-2", note: "hover step, dialogs over their scrim" },
             { name: "--admin-chrome-shadow", note: "floating nav dock and FAB only" },

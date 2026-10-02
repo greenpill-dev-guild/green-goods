@@ -5,7 +5,7 @@
  * opens a popover dropdown for multi-garden selection, and handles
  * garden and "Create Garden" interactions.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen, within } from "@testing-library/react";

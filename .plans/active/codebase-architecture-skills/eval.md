@@ -68,6 +68,11 @@ specialist review matrix.
 `coverage_ratchet` is due `2026-09-22`. Raise every supported configured metric by two points and
 update parity expectations in the same change. If measured coverage cannot support the increase,
 record the evidence and blocker; do not archive this hub or describe the ratchet as complete.
+
+Closed on 2026-09-28 by Afo's decision D3 (recorded in `test-budget-and-ci-speed`): no two-point raise.
+The eleven measured critical-path floors (seven Shared, two Client, two Admin) replace the ratchet,
+and the global floors and the parity arrays stay unchanged. This closes the checkpoint, not the hub:
+the agent workflow reliability follow-up keeps `state_api` in progress.
 ## Agent workflow reliability pilot — 2026-09-26
 
 Apply this rubric to the next normally authorized task in each category. Do not create extra

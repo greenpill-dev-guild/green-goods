@@ -11,6 +11,8 @@ import type {
   WorkInput,
 } from "../../types/domain";
 
+import { localizeInputs, localizeRecordedInputs } from "./input-translations";
+
 export const ACTION_INSTRUCTIONS_SCHEMA_VERSION = "action_instructions_v2" as const;
 export const DEFAULT_ACTION_CONTENT_LOCALE: ActionContentLocale = "en";
 export const ACTION_TRANSLATION_LOCALES = [
@@ -377,35 +379,30 @@ export function getReviewedActionTranslation(
   return record?.status === "reviewed" && hasActionTranslationContent(record.data) ? record : null;
 }
 
-function getInputTranslation(
-  translations: ActionInstructionInputTranslation[] | undefined,
-  key: string
-) {
-  return translations?.find((translation) => translation.key === key);
-}
-
-function localizeInputs(
-  inputs: WorkInput[],
-  translations: ActionInstructionInputTranslation[] | undefined
-): WorkInput[] {
-  return inputs.map((input) => {
-    const translated = getInputTranslation(translations, input.key);
-    return {
-      ...input,
-      title: translated?.title || input.title,
-      placeholder: translated?.placeholder || input.placeholder,
-      optionLabels: translated?.options,
-      bandLabels: translated?.bands,
-      repeaterFields: input.repeaterFields
-        ? localizeInputs(input.repeaterFields, translated?.repeaterFields)
-        : undefined,
-    };
-  });
-}
-
 function applyArrayFallback(source: string[] | undefined, translated: string[] | undefined) {
   if (!source) return undefined;
   return source.map((item, index) => translated?.[index] || item);
+}
+
+/** Public evidence must not invent labels or fall back to another language. */
+export function getLocalizedWorkInputs(
+  action:
+    | Pick<
+        Action,
+        "instructions" | "instructionsFallback" | "inputs" | "defaultLocale" | "translations"
+      >
+    | null
+    | undefined,
+  details: Record<string, unknown>,
+  locale: string
+): WorkInput[] | null {
+  if (!action?.instructions || action.instructionsFallback) return null;
+  const language = locale.split("-")[0];
+  const needsTranslation = language !== (action.defaultLocale ?? DEFAULT_ACTION_CONTENT_LOCALE);
+  const translated = getReviewedActionTranslation(action.translations, language)?.data.uiConfig
+    ?.details?.inputs;
+
+  return localizeRecordedInputs(action.inputs, details, translated, needsTranslation);
 }
 
 export function localizeAction(action: Action, locale: string | undefined): Action {

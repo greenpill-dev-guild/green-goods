@@ -1,128 +1,84 @@
-import type { Address } from "@green-goods/shared/types/domain";
-import type { CommitmentCycleRecord } from "@green-goods/shared/commitment-pooling";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, within } from "storybook/test";
+import {
+  AUTUMN_PLANTING,
+  JOURNEY_CYCLE_NAMES,
+  JOURNEY_CYCLES,
+} from "../../../../../../shared/.storybook/clientJourneyFixtures";
 import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
 import { CycleRail } from "./CycleRail";
 
-const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address;
-const SPRING_CID = "bafyspring";
-const WORKDAY_CID = "bafyworkday";
-// Noon UTC so the rendered dates do not drift across the viewer's timezone.
-const MAR_1 = 1_772_366_400n;
-const MAY_31 = 1_780_228_800n;
-const APR_12 = 1_775_995_200n;
-
-function cycle(overrides: Partial<CommitmentCycleRecord> = {}): CommitmentCycleRecord {
-  return {
-    id: "42161-3",
-    chainId: 42161,
-    cycleId: 3n,
-    seedSeen: true,
-    poolId: 7n,
-    poolEntityId: "42161-7",
-    garden: GARDEN,
-    gardenId: GARDEN,
-    cycleType: "SEASON",
-    state: "OPEN",
-    startTime: MAR_1,
-    endTime: MAY_31,
-    metadataCID: SPRING_CID,
-    gardenersBps: 0,
-    treasuryBps: 0,
-    operatorBps: 0,
-    evaluatorBps: 0,
-    communityBps: 0,
-    funderBps: 0,
-    equalParticipationBps: 0,
-    verifiedContributionBps: 0,
-    liveCommitmentCount: 4n,
-    commitmentsAccepted: 4n,
-    commitmentsReadyForConfirmation: 1n,
-    commitmentsFulfilled: 2n,
-    commitmentsCancelled: 0n,
-    commitmentsExpired: 0n,
-    commitmentsDisputed: 0n,
-    commitmentsDue: 1n,
-    openCommitmentCount: 2n,
-    createdAt: 1_772_000_000,
-    updatedAt: 1_772_000_000,
-    ...overrides,
-  };
-}
-
-const season = cycle();
-const campaign = cycle({
-  id: "42161-4",
-  cycleId: 4n,
-  cycleType: "CAMPAIGN",
-  startTime: APR_12,
-  endTime: APR_12,
-  metadataCID: WORKDAY_CID,
-  liveCommitmentCount: 1n,
-  commitmentsFulfilled: 0n,
-  openCommitmentCount: 1n,
-});
-
-/** The cycle names live behind CIDs; the seeded cache stands in for the gateway. */
-const cycleNameKey = (cid: string) =>
-  ["greengoods", "commitment-pooling", "cycle-metadata", cid] as const;
-
 /**
- * The seasons and campaigns a pool is running, as a horizontal rail. Kind is
- * told by its own word and glyph, never by colour alone, and each slide's
- * counts are its own: a season and a campaign are never summed.
+ * The seasons and campaigns a pool is running, as a horizontal rail. Seasons are
+ * amber and campaigns sky, each with its glyph, its kind in that colour and a
+ * 12px state pill. Tapping a card shows only its promises; its ⓘ opens the
+ * details. Each card's counts are its own: a season and a campaign are never summed.
  */
 const meta: Meta<typeof CycleRail> = {
   title: "Client/Commitments/CycleRail",
   component: CycleRail,
   tags: ["autodocs", "storybook-ci"],
   globals: { viewport: { value: "mobile" } },
-  decorators: [
-    withSeededQueryClient([
-      [cycleNameKey(SPRING_CID), { status: "resolved", name: "Spring 2026" }],
-      [cycleNameKey(WORKDAY_CID), { status: "resolved", name: "Community work day" }],
-    ]),
-    (Story) => (
-      <div className="max-w-sm p-4">
-        <Story />
-      </div>
-    ),
-  ],
-  args: { cycles: [season, campaign], selectedCycleId: null, onSelect: fn() },
+  parameters: { layout: "fullscreen" },
+  decorators: [withSeededQueryClient(JOURNEY_CYCLE_NAMES)],
+  args: {
+    cycles: JOURNEY_CYCLES,
+    selectedCycleId: null,
+    onSelect: fn(),
+    onShowDetails: fn(),
+  },
 };
 
 export default meta;
 type Story = StoryObj<typeof CycleRail>;
 
 export const SeasonAndCampaign: Story = {
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Spring 2026")).toBeVisible();
-    await expect(canvas.getByText("Community work day")).toBeVisible();
+    await expect(canvas.getByText("Autumn Planting 2026")).toBeVisible();
+    await expect(canvas.getByText("Seed Swap Weekend")).toBeVisible();
+    // The state pill is the 12px pill, the size of the kind word beside it.
+    const pill = canvas.getAllByRole("status")[0];
+    await expect(pill.getBoundingClientRect().height).toBe(22);
+    await expect(getComputedStyle(pill).fontSize).toBe("12px");
+    canvas.getByRole("button", { name: "About Autumn Planting 2026" }).click();
+    await expect(args.onShowDetails).toHaveBeenCalledWith(AUTUMN_PLANTING);
   },
 };
 
-export const SeasonSelected: Story = {
-  args: { selectedCycleId: 3n },
+/** One season is one card at full width, with no rail to scroll. */
+export const OneSeason: Story = {
+  args: { cycles: [AUTUMN_PLANTING] },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const pressed = canvas
-      .getAllByRole("button")
-      .filter((b) => b.getAttribute("aria-pressed") === "true");
-    await expect(pressed).toHaveLength(1);
+    await expect(canvas.queryByRole("group", { name: "Seasons and campaigns" })).toBeNull();
+    await expect(canvas.getByRole("button", { name: "About Autumn Planting 2026" })).toBeVisible();
+  },
+};
+
+/** Tapped, a card turns green with a check; tapping it again shows every promise. */
+export const SeasonSelected: Story = {
+  args: { selectedCycleId: AUTUMN_PLANTING.cycleId },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const pressed = canvas.getByRole("button", {
+      name: "Showing Autumn Planting 2026. Show all promises",
+    });
+    await expect(pressed).toHaveAttribute("aria-pressed", "true");
+    pressed.click();
+    await expect(args.onSelect).toHaveBeenCalledWith(null);
   },
 };
 
 export const UnnamedCycle: Story = {
-  args: { cycles: [cycle({ metadataCID: null })] },
+  args: { cycles: [{ ...AUTUMN_PLANTING, metadataCID: null }] },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Season")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Show promises in Season" })).toBeVisible();
   },
 };
 
-/** An empty rail draws nothing at all; the pool tab has no gap to explain. */
+/** An empty rail draws nothing at all; the tab has no gap to explain. */
 export const NoCycles: Story = {
   args: { cycles: [] },
   play: async ({ canvasElement }) => {

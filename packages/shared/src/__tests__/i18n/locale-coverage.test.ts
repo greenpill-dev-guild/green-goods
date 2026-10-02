@@ -102,6 +102,8 @@ const allowedIdenticalLocalizedKeys = new Set([
   // its accessible name uses the translated full domain name.
   "app.gardenIntro.domain.agroShort",
   "cockpit.community.stats.pools",
+  // An amount beside the G$ symbol has no words to translate.
+  "cockpit.garden.pool.reward.inGoodDollars",
   "public.fund.vaults.vaultCount",
   // Vault checkout reuses the product term "Endowment" untranslated, matching the
   // surrounding es/pt vault copy (e.g. "Endowment confirmado."); the app.* namespace
@@ -109,8 +111,9 @@ const allowedIdenticalLocalizedKeys = new Set([
   "public.vaults.cardEndow.positionHolder",
   "public.vaults.cardEndow.status.deposit",
   // Portuguese keeps "Offline" as the product uses it elsewhere ("Offline · Salvo {when}"),
-  // and the dashboard's compact line drops "Saved" in every language, English included.
-  "app.workDashboard.offlineSaved",
+  // and the compact line Your Work and a garden's Promises share drops "Saved" in every
+  // language, English included.
+  "app.offline.savedAt",
 ]);
 const allowedIdenticalProductValues = new Set([
   "%",

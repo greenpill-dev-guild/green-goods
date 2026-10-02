@@ -1,6 +1,6 @@
 /**
  * HubWorkCard Component Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen, fireEvent } from "@testing-library/react";

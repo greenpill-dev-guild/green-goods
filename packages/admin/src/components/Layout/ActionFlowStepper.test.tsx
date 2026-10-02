@@ -11,15 +11,42 @@ const STEPS: ActionFlowStep[] = [
   { id: "review", title: "Review" },
 ];
 
-function renderStepper(currentStep: number) {
+function renderStepper(
+  currentStep: number,
+  complete = false,
+  orientation: "horizontal" | "vertical" = "horizontal"
+) {
   return render(
     <IntlProvider locale="en" messages={enMessages}>
-      <ActionFlowStepper steps={STEPS} currentStep={currentStep} />
+      <ActionFlowStepper
+        steps={STEPS}
+        currentStep={currentStep}
+        complete={complete}
+        orientation={orientation}
+      />
     </IntlProvider>
   );
 }
 
 describe("ActionFlowStepper", () => {
+  // With no step current and every check hidden from assistive tech, only a
+  // status that was already mounted announces a run finishing in place.
+  it.each([
+    "horizontal",
+    "vertical",
+  ] as const)("checks every step, marks none current, and announces it when the run completes (%s)", (orientation) => {
+    const { rerender } = renderStepper(4, false, orientation);
+    expect(screen.getByRole("status")).toHaveTextContent("");
+
+    rerender(
+      <IntlProvider locale="en" messages={enMessages}>
+        <ActionFlowStepper steps={STEPS} currentStep={4} complete orientation={orientation} />
+      </IntlProvider>
+    );
+    expect(document.querySelector('[aria-current="step"]')).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("All 4 steps done");
+  });
+
   it("renders the orientation label naming the current step", () => {
     renderStepper(2);
     // "Step {current} of {total} · {label}" — the journey anchor near the dots.

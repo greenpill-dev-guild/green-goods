@@ -1,6 +1,6 @@
 /**
  * useWorkImages Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the work images hook including IndexedDB persistence (load/save),
  * isMounted guard for async cleanup (Rule 3), Zustand store integration,

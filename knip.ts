@@ -37,7 +37,7 @@ const config: KnipConfig = {
         // importer and the declaration sit in different workspaces.
         "vite-plugin-mkcert",
         // Pinned for version alignment with the tools that resolve them:
-        // graphql arrives through msw, lighthouse through @lhci/cli.
+        // graphql arrives through gql.tada, lighthouse through @lhci/cli.
         "graphql",
         "lighthouse",
       ],

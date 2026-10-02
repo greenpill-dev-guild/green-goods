@@ -34,6 +34,7 @@ import { publicBrowserCorsPreflight, publicBrowserCorsResponse } from "./http/pu
 import { trackGardenJoinRequestEvent } from "../services/analytics";
 import { GardenJoinRequestRateLimitPressure } from "../services/garden-join-requests";
 import { registerPublicGardenImpactRoutes } from "./routes/public-garden-impact";
+import { registerPublicCommitmentImpactRoutes } from "./routes/public-commitment-impact";
 
 const log = loggers.api;
 
@@ -172,6 +173,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   registerMessageRoutes(app, routeContext);
   registerSubscribeRoutes(app, routeContext);
   registerPublicGardenImpactRoutes(app, routeContext);
+  registerPublicCommitmentImpactRoutes(app, routeContext);
   registerProfileAvatarRoutes(app, {
     ...routeContext,
     profileAvatarStore: deps.profileAvatarStore ?? createSqliteProfileAvatarStore(),

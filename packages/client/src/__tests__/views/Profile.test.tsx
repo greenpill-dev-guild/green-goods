@@ -13,6 +13,14 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
 
+let mockGreenGoodsName: string | null = null;
+let mockRegistration: { status: string; registration?: { owner: string } } | undefined;
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: mockGreenGoodsName }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useENSRegistrationStatus", () => ({
+  useENSRegistrationStatus: () => ({ data: mockRegistration }),
+}));
 // Mock @green-goods/shared
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
@@ -122,6 +130,8 @@ const wrap = (el: React.ReactElement) =>
 describe("Profile View", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGreenGoodsName = null;
+    mockRegistration = undefined;
   });
 
   afterEach(() => {
@@ -134,6 +144,22 @@ describe("Profile View", () => {
     expect(screen.getByTestId("user-profile")).toBeInTheDocument();
     // With no ENS and no profile.name, falls back to the passkey account's chosen username.
     expect(screen.getByTestId("display-name")).toHaveTextContent("alice");
+  });
+
+  it("updates the header only after the Green Goods name resolves to this account", () => {
+    mockGreenGoodsName = "river.greengoods.eth";
+    mockRegistration = { status: "pending" };
+    const view = render(wrap(createElement(Profile)));
+    expect(screen.getByTestId("display-name")).toHaveTextContent("alice");
+    mockRegistration = {
+      status: "active",
+      registration: { owner: "0x9999999999999999999999999999999999999999" },
+    };
+    view.rerender(wrap(createElement(Profile)));
+    expect(screen.getByTestId("display-name")).toHaveTextContent("alice");
+    mockRegistration.registration!.owner = "0x1234567890abcdef1234567890abcdef12345678";
+    view.rerender(wrap(createElement(Profile)));
+    expect(screen.getByTestId("display-name")).toHaveTextContent("river");
   });
 
   it("renders avatar with default image when no profile image", () => {

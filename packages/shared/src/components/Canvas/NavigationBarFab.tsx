@@ -227,16 +227,12 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       )}
 
       {/*
-        FAB button. Colour is delivered via inline style, not Tailwind utilities:
-        this component lives in packages/shared, which the admin/client builds do
-        NOT scan, so `bg-[…]`/`text-[…]`/`border-[…]` colour utilities silently
-        fail to generate there (CLAUDE.md "Known Gotchas") — that was the
-        dark-icon-on-tone-background bug. Same reason the layer positioning below
-        uses inline style. Tokens resolve correctly in light + dark; the focus-ring
-        colour and icon-rotation transition live in admin CSS keyed on
-        [data-slot="fab-button"]. Shadows and the decorative 35%-white border stay
-        as class utilities (Storybook fidelity); in admin the shadow comes from
-        --admin-chrome-shadow and the border falls back to currentColor.
+        FAB button. Colour is delivered via inline style, as is the dismiss
+        backdrop's positioning below; both predate the app builds scanning shared
+        source, and utilities would work here too. Tokens resolve correctly in
+        light + dark. Shadows and the decorative 35%-white border are class
+        utilities. Admin renders its own fork of this button
+        (packages/admin/src/components/Shell/FabButton.tsx).
       */}
       <button
         ref={fabButtonRef}

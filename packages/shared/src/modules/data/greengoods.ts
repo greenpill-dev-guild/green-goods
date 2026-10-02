@@ -1,5 +1,9 @@
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { isGardenHiddenEverywhere } from "../../config/garden-visibility";
+import {
+  UNKNOWN_GARDEN_LOCATION,
+  UNNAMED_GARDEN_NAME,
+  withoutHiddenGardens,
+} from "../../config/garden-visibility";
 import {
   type Action,
   type ActionContentLocale,
@@ -8,17 +12,20 @@ import {
   type Address,
   Domain,
   type Garden,
-  type GardenerCard,
   type WorkInput,
 } from "../../types/domain";
+import { assertRecordedInputDefinitions } from "../../utils/action/input-validation";
+import { defaultTemplate, instructionTemplates } from "../../utils/action/templates";
 import {
   markStaleActionTranslations,
   normalizeActionTranslations,
 } from "../../utils/action/translations";
-import { defaultTemplate, instructionTemplates } from "../../utils/action/templates";
 import { logger } from "../app/logger";
 import { greenGoodsGraphQL, type ResultOf } from "./graphql";
-import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
+import { type GraphQLReader, greenGoodsIndexer } from "./graphql-client";
+
+export { getGardeners } from "./gardener-reader";
+
 import { parseIndexerCapital } from "./indexer-capitals";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs/resolve";
 
@@ -142,7 +149,7 @@ function normalizeInstructionConfig(
   };
 }
 
-function getActionInstructionFallback(slug: string): ActionInstructionConfig {
+export function getActionInstructionFallback(slug: string): ActionInstructionConfig {
   const template = instructionTemplates[slug] ?? defaultTemplate;
   return cloneInstructionConfig(template);
 }
@@ -173,27 +180,30 @@ function parseActionInstructionCandidate(
   };
 }
 
-async function parseInstructionMetadata(
+export async function parseInstructionMetadata(
   data: Blob | string,
-  fallbackConfig: ActionInstructionConfig
+  fallbackConfig: ActionInstructionConfig,
+  requireInputs = false
 ): Promise<ParsedActionInstructionMetadata> {
-  if (typeof data === "string") {
-    return parseActionInstructionCandidate(JSON.parse(data), fallbackConfig);
+  const text = typeof data === "string" ? data : data instanceof Blob ? await data.text() : null;
+  if (text !== null) {
+    const candidate = JSON.parse(text);
+    if (requireInputs) assertRecordedInputDefinitions(candidate);
+    return parseActionInstructionCandidate(candidate, fallbackConfig);
   }
-  if (data instanceof Blob) {
-    const text = await data.text();
-    return parseActionInstructionCandidate(JSON.parse(text), fallbackConfig);
-  }
+  if (requireInputs) throw new Error("Action instructions are unavailable");
   return { config: cloneInstructionConfig(fallbackConfig) };
 }
 
 /** Fetches action definitions from the indexer and enriches media + UI config. */
-export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Promise<Action[]> {
+export async function getActions(
+  reader: GraphQLReader = greenGoodsIndexer,
+  { chainId = DEFAULT_CHAIN_ID, actionIds }: { chainId?: number; actionIds?: string[] } = {}
+): Promise<Action[]> {
   try {
-    const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
-      query Actions($chainId: Int!) {
-        Action(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 100) {
+      query Actions($where: Action_bool_exp!) {
+        Action(where: $where, order_by: {createdAt: desc}, limit: 100) {
           id
           chainId
           startTime
@@ -209,7 +219,11 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
       }
     `);
 
-    const { data, error } = await reader.query(QUERY, { chainId }, "getActions");
+    const { data, error } = await reader.query(
+      QUERY,
+      { where: { chainId: { _eq: chainId }, ...(actionIds ? { id: { _in: actionIds } } : {}) } },
+      "getActions"
+    );
 
     if (error) throw error;
 
@@ -369,9 +383,9 @@ export function gardenFromRow(garden: IndexerGardenRow, domainMask: number): Gar
     chainId: garden.chainId,
     tokenAddress: garden.tokenAddress as Address,
     tokenID: BigInt(garden.tokenID),
-    name: garden.name || "Unnamed Garden",
+    name: garden.name || UNNAMED_GARDEN_NAME,
     description: garden.description || "",
-    location: garden.location || "Unknown Location",
+    location: garden.location || UNKNOWN_GARDEN_LOCATION,
     bannerImage,
     gardeners: (garden.gardeners || []) as Address[],
     // The indexer field keeps the deployed `operators` wire name.
@@ -412,53 +426,13 @@ export async function getGardens(reader: GraphQLReader = greenGoodsIndexer): Pro
     // Curated out of every surface — see config/garden-visibility.ts. Filtering
     // here rather than per-view keeps the PWA and admin consistent with the
     // website for gardens that should not exist anywhere in Green Goods.
-    const visibleGardens = data.Garden.filter((garden) => !isGardenHiddenEverywhere(garden.id));
+    const visibleGardens = withoutHiddenGardens(data.Garden);
 
     return visibleGardens.map((garden) =>
       gardenFromRow(garden, domainMap.get(garden.id.toLowerCase()) ?? 0)
     );
   } catch (error) {
     logger.error("[getGardens] Failed to fetch gardens", { error });
-    throw error;
-  }
-}
-
-/** Retrieves gardener registrations for operator views. */
-export async function getGardeners(
-  reader: GraphQLReader = greenGoodsIndexer
-): Promise<GardenerCard[]> {
-  try {
-    const chainId = DEFAULT_CHAIN_ID;
-    const QUERY = greenGoodsGraphQL(/* GraphQL */ `
-      query Gardeners($chainId: Int!) {
-        Gardener(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 200) {
-          id
-          chainId
-          createdAt
-          firstGarden
-        }
-      }
-    `);
-
-    const { data, error } = await reader.query(QUERY, { chainId }, "getGardeners");
-
-    if (error) throw error;
-    if (!data || !Array.isArray(data.Gardener)) {
-      throw new Error("Gardener indexer response is missing the list");
-    }
-
-    return data.Gardener.map((gardener) => ({
-      id: gardener.id,
-      registeredAt: gardener.createdAt ? (gardener.createdAt as number) * 1000 : Date.now(),
-      account: gardener.id as Address, // Smart account address is the ID
-      email: undefined,
-      phone: undefined,
-      location: "",
-      username: gardener.id.slice(0, 8), // Use short address as username
-      avatar: undefined,
-    }));
-  } catch (error) {
-    logger.error("[getGardeners] Failed to fetch gardeners", { error });
     throw error;
   }
 }

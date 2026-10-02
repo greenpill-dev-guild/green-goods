@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -12,7 +12,7 @@ import { useAdminStore, type Garden } from "../../../stores/useAdminStore";
 import { GardenChip } from "../../../components/Canvas/GardenChip";
 import { useGardenUrlSync } from "../../../hooks/navigation/useGardenUrlSync";
 import { compareAddresses } from "../../../utils/blockchain/address";
-import { createTestQueryClient } from "../../test-utils";
+import { createTestQueryClient } from "../../test-utils/query-client";
 
 const TEST_GARDENS: Garden[] = [
   {

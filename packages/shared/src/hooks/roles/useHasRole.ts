@@ -12,22 +12,11 @@ import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { roleKeys } from "../../config/query-keys/identity";
 
 export interface UseHasRoleResult {
+  /** False until the chain says yes, and after a failed read. */
   hasRole: boolean;
   isLoading: boolean;
+  /** Set when the read failed: then `hasRole` is false because the answer is unknown. */
   error?: Error | null;
-}
-
-async function fetchHasRole(
-  gardenAddress: Address,
-  userAddress: Address,
-  role: GardenRole,
-  chainId: number
-): Promise<boolean> {
-  try {
-    return await readGardenRole(gardenAddress, userAddress, role, chainId);
-  } catch {
-    return false;
-  }
 }
 
 export function useHasRole(
@@ -41,7 +30,7 @@ export function useHasRole(
   const query = useQuery({
     queryKey: roleKeys.hasRole(gardenAddress ?? undefined, userAddress ?? undefined, role),
     queryFn: () =>
-      fetchHasRole(gardenAddress as Address, userAddress as Address, role as GardenRole, chainId),
+      readGardenRole(gardenAddress as Address, userAddress as Address, role as GardenRole, chainId),
     enabled,
     staleTime: STALE_TIME_MEDIUM,
     retry: false,

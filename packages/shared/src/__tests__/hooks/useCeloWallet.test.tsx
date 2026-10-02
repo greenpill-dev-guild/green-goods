@@ -1,10 +1,11 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { tokensKeys } from "../../config/query-keys/tokens";
 import { CELO_G_DOLLAR_TOKEN } from "../../config/tokens";
 import { useCeloWallet } from "../../hooks/client-ui/wallet/useCeloWallet";
-import { createTestQueryClient, renderHookWithProviders } from "../test-utils";
+import { createTestQueryClient } from "../test-utils/query-client";
+import { renderHookWithProviders } from "../test-utils/render-helpers";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111";
 const mocks = vi.hoisted(() => ({

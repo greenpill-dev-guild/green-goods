@@ -20,6 +20,60 @@ const proof: GardenJoinProofEnvelope = {
 };
 
 describe("garden join request transport", () => {
+  it("does not turn a malformed status response into an absent request", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ ok: true }))
+    );
+    await expect(
+      gardenJoinRequestTransport.mine(
+        GARDEN,
+        { ...proof, action: "read_self" },
+        "https://agent.example"
+      )
+    ).rejects.toMatchObject({ outcomeUnknown: false });
+  });
+  it.each([
+    ["request_not_saved", false],
+    ["provider_unavailable", true],
+    ["internal_error", true],
+    [undefined, true],
+  ])("classifies a create 503 with %s as outcomeUnknown=%s", async (errorCode, outcomeUnknown) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ ok: false, errorCode }, { status: 503 }))
+    );
+    await expect(
+      gardenJoinRequestTransport.create(
+        GARDEN,
+        { displayName: "Maya", requestedVia: "garden_detail" },
+        proof,
+        "https://agent.example"
+      )
+    ).rejects.toMatchObject({ status: 503, outcomeUnknown });
+  });
+
+  it.each([
+    "not json",
+    "null",
+    '{"ok":false}',
+    '{"ok":true}',
+    '{"ok":true,"request":null}',
+  ])("treats an unreadable successful create response as uncertain: %s", async (body) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(body, { status: 201 }))
+    );
+    await expect(
+      gardenJoinRequestTransport.create(
+        GARDEN,
+        { displayName: "Maya", requestedVia: "garden_detail" },
+        proof,
+        "https://agent.example"
+      )
+    ).rejects.toMatchObject({ outcomeUnknown: true });
+  });
+
   it("maps stable and local transport failures to locale message descriptors", () => {
     expect(
       gardenJoinRequestErrorMessage(

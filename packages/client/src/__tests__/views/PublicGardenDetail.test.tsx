@@ -13,15 +13,16 @@
  * - Support CTA links to `/fund?garden=<slug>`.
  * - Localized not-found state.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import pt from "@green-goods/shared/i18n/pt";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import type { Address } from "viem";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111" as Address;
 const GARDENER = "0x2222222222222222222222222222222222222222" as Address;
@@ -48,6 +49,12 @@ function makeNote(index: number) {
     id: `0xnote${index}`,
     title: `Field note ${index}`,
     feedback: `What happened on day ${index}`,
+    metadata: JSON.stringify({
+      schemaVersion: "work_metadata_v2",
+      timeSpentMinutes: 90,
+      details: { seedlingsPlanted: 12 },
+      tags: ["community"],
+    }),
     media: index % 2 === 0 ? [`https://example.com/photo-${index}.jpg`] : [],
     gardenerAddress: GARDENER,
     gardenAddress: GARDEN_ID,
@@ -59,6 +66,12 @@ function makeNote(index: number) {
 const mockUsePublicGardens = vi.fn();
 const mockUsePublicGardenDetail = vi.fn();
 const mockUseHypercerts = vi.fn();
+const mockUseAction = vi.fn();
+const mockUseWorkMetadata = vi.fn((raw?: string) => ({
+  metadata: raw ? JSON.parse(raw) : null,
+  status: "success",
+  retryFetch: vi.fn(),
+}));
 const mockUsePublicGardenPool = vi.fn();
 const mockUseApp = vi.fn();
 
@@ -68,6 +81,14 @@ vi.mock("@green-goods/shared/hooks/public/usePublicGardens", async (importOrigin
     usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
   };
 });
+
+vi.mock("@green-goods/shared/hooks/work/useWorkMetadata", () => ({
+  useWorkMetadata: (raw?: string) => mockUseWorkMetadata(raw),
+}));
+
+vi.mock("@green-goods/shared/hooks/action/useAction", () => ({
+  useAction: (...args: unknown[]) => mockUseAction(...args),
+}));
 
 vi.mock("@green-goods/shared/hooks/public/usePublicGardenDetail", async (importOriginal) => {
   return {
@@ -93,8 +114,13 @@ vi.mock("@green-goods/shared/providers/App", async (importOriginal) => {
 vi.mock("@green-goods/shared/components/AddressDisplay", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    AddressDisplay: ({ address }: { address: Address }) =>
-      createElement("button", { type: "button", "data-testid": "address" }, address),
+    AddressDisplay: ({
+      address,
+      interactive = true,
+    }: {
+      address: Address;
+      interactive?: boolean;
+    }) => createElement(interactive ? "button" : "span", { "data-testid": "address" }, address),
   };
 });
 
@@ -163,8 +189,10 @@ const messages: Record<string, string> = {
   "public.gardenDetail.notFoundHelp": "The link may be stale.",
   "public.gardenDetail.backToGardens": "Browse Gardens",
   "public.gardenDetail.backToArchive": "All Gardens",
+  "public.gardenDetail.description.heading": "About this garden",
   "public.gardenDetail.place.empty": "Garden narrative will appear here.",
   "public.gardenDetail.support": "Support This Garden",
+  "public.gardenDetail.unlisted": "This Garden is not in the public lists.",
   "public.gardenDetail.evidence.cta": "View Public Evidence",
   "public.gardenDetail.stats.entries": "Entries",
   "public.gardenDetail.stats.handsAtWork": "Hands at work",
@@ -186,6 +214,13 @@ const messages: Record<string, string> = {
   "public.gardenDetail.notes.unavailable": "Field notes could not be loaded right now.",
   "public.gardenDetail.notes.mediaAlt": "Photo logged with {title}",
   "public.gardenDetail.notes.noDescription": "No description was logged.",
+  "public.gardenDetail.notes.detail.seedlingsPlanted": "Seedlings planted",
+  "public.gardenDetail.notes.detail.soilType": "Soil type",
+  "public.gardenDetail.notes.details": "Recorded details",
+  "public.gardenDetail.notes.timeSpent": "Time spent",
+  "public.gardenDetail.notes.tags": "Tags",
+  "public.gardenDetail.notes.plantTypes": "Plant types",
+  "public.gardenDetail.notes.plantCount": "Plant count",
   "public.gardenDetail.notes.sourceLabel": "View attestation",
   "public.gardenDetail.certificates.heading": "Impact Certificates",
   "public.gardenDetail.certificates.helper": "Bundles of approved Work.",
@@ -211,6 +246,7 @@ function detailResult(
     works: boolean;
     assessments: boolean;
     isLoading: boolean;
+    unlisted: boolean;
   }> = {}
 ) {
   const fieldNotes = overrides.fieldNotes ?? [makeNote(0), makeNote(1)];
@@ -233,19 +269,20 @@ function detailResult(
         works: Boolean(overrides.works),
         assessments: Boolean(overrides.assessments),
       },
+      unlisted: Boolean(overrides.unlisted),
     },
     isLoading: Boolean(overrides.isLoading),
   };
 }
 
-function renderView(route = "/gardens/solar-community-garden") {
+function renderView(route = "/gardens/solar-community-garden", locale: "en" | "pt" = "en") {
   return render(
     createElement(
       MemoryRouter,
       { initialEntries: [route] },
       createElement(
         IntlProvider,
-        { locale: "en", messages },
+        { locale, messages: locale === "pt" ? pt : messages },
         createElement(
           Routes,
           null,
@@ -257,11 +294,21 @@ function renderView(route = "/gardens/solar-community-garden") {
 }
 
 describe("GardenDetail", () => {
+  afterEach(() => vi.restoreAllMocks());
   beforeEach(() => {
     vi.clearAllMocks();
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
     mockUsePublicGardenDetail.mockReturnValue(detailResult());
     mockUseHypercerts.mockReturnValue({ hypercerts: [], isLoading: false });
+    mockUseAction.mockReturnValue({
+      data: {
+        inputs: [
+          { key: "seedlingsPlanted", title: "Seedlings planted", type: "number", options: [] },
+        ],
+        instructions: "ipfs://action-fixture",
+      },
+      refetch: vi.fn(),
+    });
     // Pre-launch: no pool registered for this Garden.
     mockUsePublicGardenPool.mockReturnValue({
       data: {
@@ -287,7 +334,36 @@ describe("GardenDetail", () => {
 
   it("renders the Garden name as the editorial h1", () => {
     renderView();
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Solar Community Garden");
+    const title = screen.getByRole("heading", { level: 1 });
+    expect(title).toHaveTextContent("Solar Community Garden");
+    const location = screen.getByText("Austin, TX");
+    expect(title.compareDocumentPosition(location) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // A listed Garden says nothing about lists, and crawlers may index it.
+    expect(screen.queryByText("This Garden is not in the public lists.")).toBeNull();
+    expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
+  });
+
+  it("offers no Support link until it knows the Garden is listed", () => {
+    // Opened by its own link on a slow connection: the archive has no card for it yet.
+    mockUsePublicGardens.mockReturnValue({ data: [], isLoading: false });
+    mockUsePublicGardenDetail.mockReturnValue({ data: undefined, isLoading: true });
+    renderView();
+    expect(screen.queryByRole("link", { name: "Support This Garden" })).toBeNull();
+  });
+
+  it("says an unlisted Garden is not in the public lists, and keeps crawlers off it", async () => {
+    mockUsePublicGardenDetail.mockReturnValue(detailResult({ unlisted: true }));
+    renderView();
+
+    expect(screen.getByText("This Garden is not in the public lists.")).toBeInTheDocument();
+    // The funding list leaves it out, so the page offers no way into it.
+    expect(screen.queryByRole("link", { name: "Support This Garden" })).toBeNull();
+    await waitFor(() => {
+      expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+        "content",
+        "noindex"
+      );
+    });
   });
 
   it("resolves the Garden by slug", () => {
@@ -344,6 +420,38 @@ describe("GardenDetail", () => {
     expect(within(entries).getByText("2")).toBeInTheDocument();
   });
 
+  it.each([
+    "A neighborhood garden.",
+    "A long garden narrative with field context. ".repeat(30).trim(),
+  ])("shows the full description once in the body without hero controls: %s", (description) => {
+    mockUsePublicGardenDetail.mockReturnValue({
+      ...detailResult(),
+      data: { ...detailResult().data, garden: { ...detailResult().data.garden, description } },
+    });
+    renderView();
+
+    const hero = screen.getByRole("region", { name: "Solar Community Garden" });
+    expect(within(hero).getByText("Austin, TX")).toBeVisible();
+    expect(within(hero).queryByText(description)).not.toBeInTheDocument();
+    expect(within(hero).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(hero).queryByRole("link")).not.toBeInTheDocument();
+    const about = screen.getByRole("region", { name: "About this garden" });
+    expect(within(about).getByText(description)).toBeVisible();
+    expect(screen.getAllByText(description)).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: /See more|Show less/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /All Gardens/ })).toHaveAttribute("href", "/gardens");
+  });
+
+  it("keeps the missing-description message in the body", () => {
+    mockUsePublicGardenDetail.mockReturnValue({
+      ...detailResult(),
+      data: { ...detailResult().data, garden: { ...detailResult().data.garden, description: "" } },
+    });
+    renderView();
+    const about = screen.getByRole("region", { name: "About this garden" });
+    expect(within(about).getByText("Garden narrative will appear here.")).toBeVisible();
+  });
+
   it("pages the note grid locally without asking the hook for more", () => {
     const notes = Array.from({ length: 14 }, (_, i) => makeNote(i));
     mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: notes }));
@@ -363,6 +471,232 @@ describe("GardenDetail", () => {
     }
   });
 
+  it("does not load note metadata or actions until a note opens", () => {
+    renderView();
+    expect(mockUseWorkMetadata).not.toHaveBeenCalled();
+    expect(mockUseAction).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
+    expect(mockUseWorkMetadata).toHaveBeenCalledWith(makeNote(0).metadata);
+    expect(mockUseAction).toHaveBeenCalledWith(1, 42161, makeNote(0).id);
+  });
+
+  it("uses the exact action’s Portuguese labels even when it is outside the recent catalog", () => {
+    mockUseAction.mockReturnValue({
+      data: {
+        id: "42161-1",
+        instructions: "ipfs://action-fixture",
+        title: "Planting",
+        inputs: [
+          { key: "seedlingsPlanted", title: "Seedlings Planted", options: [] },
+          { key: "soilType", title: "Soil Type", options: ["clay"] },
+        ],
+        translations: {
+          pt: {
+            status: "reviewed",
+            data: {
+              title: "Plantio",
+              uiConfig: {
+                details: {
+                  inputs: [
+                    { key: "seedlingsPlanted", title: "Mudas registradas" },
+                    { key: "soilType", title: "Solo observado", options: { clay: "Argila" } },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const note = makeNote(0);
+    note.metadata = JSON.stringify({
+      details: { seedlingsPlanted: 12, soilType: "clay" },
+    });
+    mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [note] }));
+    renderView("/gardens/solar-community-garden", "pt");
+
+    fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
+    expect(mockUseAction).toHaveBeenCalledWith(note.actionUID, 42161, note.id);
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Mudas registradas")).toBeInTheDocument();
+    expect(within(dialog).getByText("Solo observado")).toBeInTheDocument();
+    expect(within(dialog).getByText("Argila")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Seedlings Planted")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("clay")).not.toBeInTheDocument();
+  });
+
+  it("renders repeater rows with translated child labels and options", () => {
+    mockUseAction.mockReturnValue({
+      data: {
+        id: "42161-1",
+        instructions: "ipfs://action-fixture",
+        title: "Waste Sorting",
+        inputs: [
+          {
+            key: "categoryBreakdown",
+            title: "Category Breakdown",
+            type: "repeater",
+            repeaterFields: [
+              { key: "category", title: "Category", options: ["Plastic", "Glass"] },
+              { key: "weightKg", title: "Weight (kg)", options: [] },
+            ],
+          },
+        ],
+        translations: {
+          pt: {
+            status: "reviewed",
+            data: {
+              title: "Triagem de resíduos",
+              uiConfig: {
+                details: {
+                  inputs: [
+                    {
+                      key: "categoryBreakdown",
+                      title: "Separação por categoria",
+                      repeaterFields: [
+                        {
+                          key: "category",
+                          title: "Categoria",
+                          options: { Plastic: "Plástico", Glass: "Vidro" },
+                        },
+                        { key: "weightKg", title: "Peso (kg)" },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const note = makeNote(0);
+    note.metadata = JSON.stringify({
+      details: {
+        categoryBreakdown: [
+          { category: "Plastic", weightKg: 15 },
+          { category: "Glass", weightKg: 8 },
+        ],
+      },
+    });
+    mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [note] }));
+    renderView("/gardens/solar-community-garden", "pt");
+
+    fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Separação por categoria")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Categoria: Plástico, Peso (kg): 15; Categoria: Vidro, Peso (kg): 8")
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText(/\{\"category\"/)).not.toBeInTheDocument();
+  });
+
+  it("withholds detail keys absent from the historical action", () => {
+    const note = makeNote(0);
+    note.metadata = JSON.stringify({ details: { seedlingsPlanted: 12, soilType: "clay" } });
+    mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [note] }));
+    renderView("/gardens/solar-community-garden", "pt");
+
+    fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByText(pt["public.gardenDetail.notes.detailsUnavailable"])
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText("clay")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["pending", { data: undefined, isPending: true, fetchStatus: "fetching" }],
+    ["failed", { data: undefined, isError: true }],
+    ["missing", { data: null }],
+    ["missing instructions", { data: { inputs: [] } }],
+    [
+      "missing reviewed translation",
+      {
+        data: {
+          instructions: "ipfs://action-fixture",
+          inputs: [{ key: "soilType", title: "Soil", options: ["clay"] }],
+        },
+      },
+    ],
+    [
+      "missing option translation",
+      {
+        data: {
+          instructions: "ipfs://action-fixture",
+          inputs: [{ key: "soilType", title: "Soil", options: ["clay"] }],
+          translations: {
+            pt: {
+              status: "reviewed",
+              data: { uiConfig: { details: { inputs: [{ key: "soilType", title: "Solo" }] } } },
+            },
+          },
+        },
+      },
+    ],
+    [
+      "instruction fallback",
+      { data: { inputs: [], instructions: "ipfs://action-fixture", instructionsFallback: true } },
+    ],
+  ])("withholds untranslated action-specific values when lookup is %s", (_, query) => {
+    const refetch = vi.fn();
+    mockUseAction.mockReturnValue({ ...query, refetch });
+    const note = makeNote(0);
+    note.metadata = JSON.stringify({ timeSpentMinutes: 90, details: { soilType: "clay" } });
+    mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [note] }));
+    renderView("/gardens/solar-community-garden", "pt");
+    fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("1h 30m")).toBeInTheDocument();
+    expect(within(dialog).queryByText("clay")).not.toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        pt[
+          "isPending" in query
+            ? "public.gardenDetail.notes.detailsLoading"
+            : "public.gardenDetail.notes.detailsUnavailable"
+        ]
+      )
+    ).toBeInTheDocument();
+    if ("isError" in query) {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: pt["public.gardenDetail.retry"] })
+      );
+      expect(refetch).toHaveBeenCalledOnce();
+    } else {
+      expect(
+        within(dialog).queryByRole("button", { name: pt["public.gardenDetail.retry"] })
+      ).not.toBeInTheDocument();
+      expect(refetch).not.toHaveBeenCalled();
+    }
+  });
+
+  it("preserves numeric units in both top-level and repeater details", () => {
+    mockUseAction.mockReturnValue({
+      data: {
+        instructions: "ipfs://action-fixture",
+        inputs: [
+          { key: "amount", title: "Amount", type: "number", unit: "kg" },
+          {
+            key: "rows",
+            title: "Rows",
+            type: "repeater",
+            repeaterFields: [{ key: "amount", title: "Amount", type: "number", unit: "kg" }],
+          },
+        ],
+      },
+    });
+    const note = makeNote(0);
+    note.metadata = JSON.stringify({ details: { amount: 2, rows: [{ amount: 3 }] } });
+    mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [note] }));
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Amount (kg)")).toBeInTheDocument();
+    expect(within(dialog).getByText("Amount (kg): 3")).toBeInTheDocument();
+  });
+
   it("opens a note in the source dialog and returns focus to its tile", () => {
     renderView();
     const tile = screen.getByRole("button", { name: /Field note 0/ });
@@ -370,6 +704,11 @@ describe("GardenDetail", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("What happened on day 0")).toBeInTheDocument();
+    expect(within(dialog).getByRole("heading", { name: "Recorded details" })).toBeInTheDocument();
+    expect(within(dialog).getByText("1h 30m")).toBeInTheDocument();
+    expect(within(dialog).getByText("Seedlings planted")).toBeInTheDocument();
+    expect(within(dialog).getByText("12")).toBeInTheDocument();
+    expect(within(dialog).getByText("community")).toBeInTheDocument();
     // Chain-aware: the link resolves against the same chain the notes came from.
     expect(within(dialog).getByRole("link", { name: "View attestation" })).toHaveAttribute(
       "href",
@@ -428,7 +767,7 @@ describe("GardenDetail", () => {
 
   it("never nests an interactive element inside a note tile", () => {
     const { container } = renderView();
-    // The tile is itself a button. AddressDisplay is not usable inside it.
+    // The tile is itself a button. Its author uses AddressDisplay's plain variant.
     expect(container.querySelectorAll("button button")).toHaveLength(0);
     expect(container.querySelectorAll("a button, button a")).toHaveLength(0);
   });
@@ -464,12 +803,22 @@ describe("GardenDetail", () => {
       },
       isLoading: false,
     });
-    renderView("/gardens/missing-garden");
-    expect(screen.getByText("Garden not found")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /browse gardens/i })).toHaveAttribute(
+    renderView("/gardens/missing-garden", "pt");
+    expect(screen.getByRole("heading", { name: "Jardim não encontrado" })).toBeInTheDocument();
+    expect(screen.getByText(pt["public.sharedLink.unavailableHelp"])).toBeInTheDocument();
+    const hero = screen.getByRole("region", { name: "Jardim não encontrado" });
+    expect(within(hero).getByText(pt["public.sharedLink.unavailableHelp"])).toBeInTheDocument();
+    expect(within(hero).queryByRole("link")).not.toBeInTheDocument();
+    const explore = screen.getByRole("region", { name: pt["public.gardenDetail.explore.title"] });
+    expect(within(explore).getByRole("link", { name: "Explorar Jardins" })).toHaveAttribute(
       "href",
       "/gardens"
     );
+    expect(within(explore).getByRole("link", { name: "Solar Community Garden" })).toHaveAttribute(
+      "href",
+      "/gardens/solar-community-garden"
+    );
+    expect(screen.queryByText(pt["public.home.install.title"])).not.toBeInTheDocument();
   });
   it("distinguishes a failed read from a missing Garden", () => {
     // `getGardens` times out in production. Falling through to not-found told
@@ -481,12 +830,23 @@ describe("GardenDetail", () => {
       isError: true,
       refetch,
     });
+    mockUsePublicGardens.mockReturnValue({ data: undefined, isLoading: false, isError: true });
     renderView("/gardens/solar-community-garden");
 
     expect(screen.getByText("This Garden could not be loaded")).toBeInTheDocument();
     expect(screen.queryByText("Garden not found")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    const hero = screen.getByRole("region", { name: "This Garden could not be loaded" });
+    expect(within(hero).queryByRole("link")).not.toBeInTheDocument();
+    const explore = screen.getByRole("region", { name: "Find a garden to explore" });
+    expect(within(explore).getByRole("link", { name: "Browse Gardens" })).toHaveAttribute(
+      "href",
+      "/gardens"
+    );
+    expect(within(explore).getByRole("link", { name: "View Public Evidence" })).toHaveAttribute(
+      "href",
+      "/impact"
+    );
+    fireEvent.click(within(hero).getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalled();
   });
 

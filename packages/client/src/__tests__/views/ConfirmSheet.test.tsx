@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { ResolvedEvidence } from "@green-goods/shared/commitment-pooling";

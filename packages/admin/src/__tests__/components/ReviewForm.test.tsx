@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { Address, Work } from "@green-goods/shared/types/domain";
@@ -8,15 +8,21 @@ import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ReviewForm } from "@/views/Garden/WorkDetail/ReviewForm";
 
-const { mockApprovalMutation, mockPrimaryAddress, mockParseAndFormatError, mockToastError } =
-  vi.hoisted(() => ({
-    mockApprovalMutation: {
-      mutateAsync: vi.fn(),
-    },
-    mockPrimaryAddress: vi.fn(),
-    mockParseAndFormatError: vi.fn(),
-    mockToastError: vi.fn(),
-  }));
+const {
+  mockApprovalMutation,
+  mockPrimaryAddress,
+  mockProtocolName,
+  mockParseAndFormatError,
+  mockToastError,
+} = vi.hoisted(() => ({
+  mockApprovalMutation: {
+    mutateAsync: vi.fn(),
+  },
+  mockPrimaryAddress: vi.fn(),
+  mockProtocolName: vi.fn(),
+  mockParseAndFormatError: vi.fn(),
+  mockToastError: vi.fn(),
+}));
 
 vi.mock("@green-goods/shared/components/Audio/AudioRecorder", () => ({
   AudioRecorder: () => <div data-testid="audio-recorder" />,
@@ -53,6 +59,9 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
 
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: undefined }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: (address: Address) => mockProtocolName(address),
 }));
 
 vi.mock("@green-goods/shared/hooks/work/useWorkApproval", () => ({
@@ -92,7 +101,9 @@ vi.mock("@green-goods/shared/types/domain", () => ({
 }));
 
 vi.mock("@green-goods/shared/utils/app/text", () => ({
-  formatAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
+  formatAddress: (address: string, options?: { ensName?: string | null }) =>
+    options?.ensName?.replace(/\.greengoods\.eth$/, "") ??
+    `${address.slice(0, 6)}...${address.slice(-4)}`,
 }));
 
 vi.mock("@green-goods/shared/utils/blockchain/address", async (importOriginal) => {
@@ -192,6 +203,7 @@ describe("ReviewForm", () => {
     mockToastError.mockReset();
 
     mockPrimaryAddress.mockReturnValue("0x9999999999999999999999999999999999999999");
+    mockProtocolName.mockReset().mockReturnValue({ data: null });
   });
 
   it("keeps verification method implicit for huma steward reviews", async () => {
@@ -340,5 +352,13 @@ describe("ReviewForm", () => {
     expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
     expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("names the actual submitter with their registered protocol name", () => {
+    mockProtocolName.mockReturnValue({ data: "river.greengoods.eth" });
+    renderReviewForm();
+
+    expect(screen.getByText(/river will see this decision/)).toBeInTheDocument();
+    expect(mockProtocolName).toHaveBeenCalledWith(TEST_WORK.gardenerAddress);
   });
 });

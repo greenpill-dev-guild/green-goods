@@ -1,6 +1,6 @@
 /**
  * Prefetch Utility Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the ensureBaseLists and ensureHomeData prefetch functions.
  * These use the module-level queryClient to warm the cache with

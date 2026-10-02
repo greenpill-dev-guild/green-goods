@@ -1,6 +1,6 @@
 /**
  * useEventListener Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests event listener attachment, cleanup, null target handling,
  * and the convenience wrappers (useWindowEvent, useDocumentEvent).

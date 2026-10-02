@@ -513,6 +513,39 @@ describe("WorkDetail view", () => {
     expect(onNavigateToBase).toHaveBeenCalledTimes(1);
   });
 
+  it("clears the inspector descriptor when the route closes with retained work", () => {
+    const props = {
+      routeSheetContentId: "work-detail:0xWork",
+      routeWorkId: "0xWork",
+      routeCertificationId: undefined,
+      activeWorkDetailId: "0xWork",
+      selectedWork: mockUseWorks().works[0],
+      selectedCertification: undefined,
+      isResolvingSelection: false,
+      canManage: true,
+      hubContext: { gardenId: "0xGarden", sort: "newest" as const },
+      closeTo: "/hub/work?gardenId=0xGarden&sort=newest",
+      onNavigateToBase: vi.fn(),
+      onBeforeClose: vi.fn(),
+    };
+    const rendered = renderWithIntl("en", React.createElement(HubSheetDescriptor, props));
+    expect(mockUseRouteBackedLeftSheetConfig.mock.calls.at(-1)?.[0]).not.toBeNull();
+
+    rendered.rerender(
+      React.createElement(IntlProvider, {
+        locale: "en",
+        messages,
+        children: React.createElement(HubSheetDescriptor, {
+          ...props,
+          routeWorkId: undefined,
+          routeSheetContentId: null,
+        }),
+      })
+    );
+
+    expect(mockUseRouteBackedLeftSheetConfig.mock.calls.at(-1)?.[0]).toBeNull();
+  });
+
   it("records a privacy-safe presentation failure separately after transaction success", () => {
     const onSuccess = vi.fn();
     const rendered = renderWithIntl(

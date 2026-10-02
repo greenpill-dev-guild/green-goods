@@ -24,6 +24,8 @@ interface WorkDetailsProps {
   register: UseFormRegister<WorkFormData>;
   control: Control<WorkFormData>;
   setValue?: UseFormSetValue<WorkFormData>;
+  /** The promise this work is for, after the heading (O9). */
+  pinned?: React.ReactNode;
 }
 
 function getNumberRegisterOptions() {
@@ -168,6 +170,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
   control,
   inputs,
   setValue,
+  pinned,
 }) => {
   const intl = useIntl();
   const { locationEnabled, locationStatus, handleLocationToggle } = useWorkLocation(
@@ -225,6 +228,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
     // Fields sit 8px apart; each one already reserves two lines for its hint or error below.
     <div className="flex flex-col gap-2">
       <FormInfo title={detailsTitle} info={detailsDescription} Icon={RiFileFill} className="mb-2" />
+      {pinned}
 
       {/* Time Spent Input - Always shown as a default field */}
       <FormInput

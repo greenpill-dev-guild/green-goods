@@ -348,14 +348,14 @@ function checkContractSubmodules() {
 }
 
 function checkOpReadiness() {
-  const templatePath = path.join(projectRoot, ".env.template");
+  const templatePath = path.join(projectRoot, "env.template");
   const opRefKeys = templateOpRefs(templatePath);
 
   if (opRefKeys.length === 0) {
     add(
       "info",
-      "No 1Password refs in .env.template",
-      ".env values are direct (or .env.template doesn't exist yet). Skipping op signin check.",
+      "No 1Password refs in env.template",
+      ".env values are direct (or env.template doesn't exist yet). Skipping op signin check.",
       "",
       { check: "op:template-refs" }
     );
@@ -368,7 +368,7 @@ function checkOpReadiness() {
     add(
       "fail",
       "1Password CLI is not installed",
-      `${opRefKeys.length} op:// refs in .env.template require resolution.`,
+      `${opRefKeys.length} op:// refs in env.template require resolution.`,
       "Install the 1Password CLI from https://1password.com/downloads/command-line/, then run `bun run env:sync`.",
       { check: "op:cli" }
     );
@@ -382,7 +382,7 @@ function checkOpReadiness() {
   add(
     "info",
     "1Password CLI present",
-    `${opRefKeys.length} op:// ref(s) in .env.template will be resolved by \`bun run env:sync\` (Touch ID prompts then).`,
+    `${opRefKeys.length} op:// ref(s) in env.template will be resolved by \`bun run env:sync\` (Touch ID prompts then).`,
     "",
     { check: "op:cli-present" }
   );
@@ -397,7 +397,7 @@ function checkEnvSchemaCompleteness() {
   if (envCheck.status === 0) {
     add(
       "pass",
-      ".env satisfies .env.schema",
+      ".env satisfies env.schema",
       (envCheck.stdout || "").trim() || "All required keys present and non-empty.",
       "",
       { check: "env:schema-complete" }
@@ -405,9 +405,9 @@ function checkEnvSchemaCompleteness() {
   } else {
     add(
       "fail",
-      ".env is incomplete vs .env.schema",
+      ".env is incomplete vs env.schema",
       (envCheck.stderr || envCheck.stdout || "").trim().split("\n").slice(0, 5).join(" "),
-      "Run `bun run env:sync` to materialize from .env.template, or fill missing keys in .env directly.",
+      "Run `bun run env:sync` to materialize from env.template, or fill missing keys in .env directly.",
       { check: "env:schema-complete" }
     );
   }
@@ -415,7 +415,7 @@ function checkEnvSchemaCompleteness() {
 
 function checkEnv() {
   const envPath = path.join(projectRoot, ".env");
-  const schemaPath = path.join(projectRoot, ".env.schema");
+  const schemaPath = path.join(projectRoot, "env.schema");
   const envFile = parseEnvFile(envPath);
   const schema = parseEnvFile(schemaPath);
 
@@ -491,7 +491,7 @@ function checkEnv() {
       requiredLevel(["upload"]),
       "Pinata upload signing credential missing",
       "Image reads can use public gateways, but upload-capable QA will fail.",
-      "Set PINATA_JWT in root .env, or in .env.template as `PINATA_JWT=op://Vault/Item/credential` and run `bun run env:sync`.",
+      "Set PINATA_JWT in root .env, or in env.template as `PINATA_JWT=op://Vault/Item/credential` and run `bun run env:sync`.",
       { check: "env:pinata" }
     );
   }
@@ -524,7 +524,7 @@ function checkEnv() {
         "fail",
         "Envio API token missing for live-indexer mirror",
         "The local mirror can start without it, but live Arbitrum catch-up may stall or lag beyond the smoke threshold.",
-        "Set ENVIO_API_TOKEN in root .env, or set ENVIO_API_TOKEN_OP_REF in .env.template and run `bun run env:sync`.",
+        "Set ENVIO_API_TOKEN in root .env, or set ENVIO_API_TOKEN_OP_REF in env.template and run `bun run env:sync`.",
         { check: "env:envio-api-token" }
       );
     }
@@ -849,9 +849,9 @@ function printText() {
   console.log("- Production local mirror: production-backed local dev plus Docker and Envio v3 generated types.");
 
   console.log("\nSecret policy");
-  console.log("- `.env` is materialized from `.env.template` via `bun run env:sync` (runs `op inject`).");
+  console.log("- `.env` is materialized from `env.template` via `bun run env:sync` (runs `op inject`).");
   console.log("- Direct root `.env` values are fine for personal local-only credentials.");
-  console.log("- Shared team secrets: edit `.env.template` with `op://Vault/Item/field` refs.");
+  console.log("- Shared team secrets: edit `env.template` with `op://Vault/Item/field` refs.");
 
   console.log("\nRecommended entrypoints");
   console.log("- First clone: npm run setup");

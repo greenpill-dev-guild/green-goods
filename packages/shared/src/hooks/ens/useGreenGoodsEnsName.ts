@@ -73,7 +73,9 @@ export function useGreenGoodsEnsName(address?: Address | null) {
           address: normalizedAddress,
           chainId: DEFAULT_CHAIN_ID,
         });
-        return null;
+        // Keep the last known name on a failed observation, including an
+        // outgoing release whose receiver record has not cleared yet.
+        throw error;
       }
     },
     enabled: Boolean(normalizedAddress && ensAddress && ensAddress !== zeroAddress),

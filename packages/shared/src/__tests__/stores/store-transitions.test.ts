@@ -124,6 +124,7 @@ describe("store domain transitions", () => {
       draftDeleting: false,
       draftSaveState: "idle",
       draftError: null,
+      draftLinkCleared: false,
       location: undefined,
       activeTab: WorkTab.Intro,
       submissionCompleted: false,

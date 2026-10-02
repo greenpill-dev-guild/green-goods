@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+// jsdom pin (happy-dom A/B): asserts the tab name "Open4"; happy-dom's computed style gives a span no display, so Testing Library joins the label and count with a space.
 
 import { act, fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

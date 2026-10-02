@@ -1,5 +1,5 @@
-// @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+// @vitest-environment happy-dom
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -60,6 +60,21 @@ describe("public shared work", () => {
       "href",
       `/home/${garden}/work/${work}`
     );
+  });
+  it("keeps crawlers off a note from an unlisted garden, as its garden page does", async () => {
+    show({
+      garden: { name: "Community Garden" },
+      fieldNotes: [note],
+      unavailableSources: { works: false },
+      unlisted: true,
+    });
+    expect(screen.getByRole("heading", { name: "Planting trees", level: 1 })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+        "content",
+        "noindex"
+      );
+    });
   });
   it("titles the field note without the timestamps its stored title carries", () => {
     show({

@@ -766,15 +766,6 @@ const CLIENT_ENTRIES: Entry[] = [
     ],
   },
   {
-    id: "sync-bar", title: "Sync bar", family: "feedback", covers: ["syncBar"],
-    kit: `syncBar(text)`,
-    ship: "packages/shared/src/components/SyncStatusBar.tsx:16",
-    drift: "Shipping SyncStatusBar has three states (offline / syncing / pending) with per-state icons and a Sync All action for wallet users (packages/shared/src/components/SyncStatusBar.tsx:42). This strip draws one queued state.",
-    rule: "The queued-jobs strip sits above the AppBar and never blocks content; counts stay honest to the queue.",
-    usedIn: /class="syncbar/,
-    specs: [{ label: "queued", html: kit.syncBar("2 items waiting to sync") }],
-  },
-  {
     id: "skeleton", title: "Skeleton", family: "feedback", covers: ["skeleton"],
     kit: `skeleton({title, avatar, lines})`,
     ship: "packages/shared/src/components/Skeleton.tsx:34",

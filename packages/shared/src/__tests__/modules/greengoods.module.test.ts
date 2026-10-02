@@ -47,6 +47,7 @@ vi.mock("../../modules/data/graphql", () => ({
   greenGoodsGraphQL: vi.fn((query) => query),
 }));
 
+import { isGardenPubliclyReachable, isGardenPubliclyVisible } from "../../config/garden-visibility";
 import {
   getActions,
   getGardeners,
@@ -98,6 +99,44 @@ describe("modules/data/greengoods", () => {
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(1);
+    });
+
+    it("keeps a garden the indexer never filled in off the public site, not out of the app", async () => {
+      // The indexer's placeholder for a garden it has seen only in a role or Karma event.
+      const placeholder = {
+        id: "0x1111111111111111111111111111111111111111",
+        chainId: 11155111,
+        tokenAddress: "",
+        tokenID: "0",
+        name: "",
+        description: "",
+        location: "",
+        bannerImage: "",
+        gardeners: [],
+        operators: [],
+        evaluators: [],
+        owners: [],
+        funders: [],
+        communities: [],
+        openJoining: false,
+        createdAt: "1700000000",
+      };
+      const minted = {
+        ...placeholder,
+        id: "0x2222222222222222222222222222222222222222",
+        tokenAddress: "0xGarden123",
+        tokenID: "2",
+        name: "Vida Verde",
+        location: "Brazil",
+      };
+      mockQuery.mockResolvedValue({ data: { Garden: [placeholder, minted] } });
+
+      const [unfilled, filled] = await getGardens(reader);
+
+      // The app and admin still get the garden, under its stand-in name.
+      expect(unfilled).toMatchObject({ name: "Unnamed Garden", location: "Unknown Location" });
+      expect(isGardenPubliclyReachable(unfilled)).toBe(false);
+      expect(isGardenPubliclyVisible(filled)).toBe(true);
     });
 
     it("includes openJoining field from indexer", async () => {
@@ -235,6 +274,32 @@ describe("modules/data/greengoods", () => {
       expect(result).toHaveLength(1);
       expect(result[0].domainMask).toBe(5);
     });
+
+    it("leaves a garden curated out of every surface off the list the apps read", async () => {
+      const row = (id: string, name: string) => ({
+        id,
+        chainId: 42161,
+        tokenAddress: "0xGardenToken",
+        tokenID: "1",
+        name,
+        location: "Nigeria",
+        openJoining: true,
+        createdAt: "1700000000",
+      });
+      mockQuery.mockResolvedValue({
+        data: {
+          Garden: [
+            row("0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB", "Greenpill Nigeria"),
+            row("0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3", "TAS HUB"),
+          ],
+          GardenDomains: [],
+        },
+      });
+
+      const result = await getGardens(reader);
+
+      expect(result.map((garden) => garden.name)).toEqual(["TAS HUB"]);
+    });
   });
 
   describe("getGarden", () => {
@@ -296,6 +361,59 @@ describe("modules/data/greengoods", () => {
   });
 
   describe("getActions", () => {
+    it("fetches selected actions before applying the recent-catalog limit", async () => {
+      const rows = Array.from({ length: 101 }, (_, index) => ({
+        id: `42161-${101 - index}`,
+        chainId: 42161,
+        title: `Action ${101 - index}`,
+        slug: "agro.planting_event",
+        instructions: null,
+        capitals: [],
+        media: [],
+        domain: "AGRO",
+        createdAt: String(101 - index),
+      }));
+      mockQuery.mockImplementationOnce(async (query, variables) => {
+        expect(query).toContain("Action(where: $where");
+        expect(variables.where).toEqual({ chainId: { _eq: 42161 } });
+        return { data: { Action: rows.slice(0, 100) } };
+      });
+      const recent = await getActions(reader, { chainId: 42161 });
+      expect(recent).toHaveLength(100);
+      expect(recent.some((action) => action.id === "42161-1")).toBe(false);
+
+      mockQuery.mockImplementationOnce(async (query, variables) => {
+        expect(query).toContain("Action(where: $where");
+        expect(variables.where).toEqual({
+          chainId: { _eq: 42161 },
+          id: { _in: ["42161-1"] },
+        });
+        return {
+          data: {
+            Action: rows.filter((row) => variables.where.id._in.includes(row.id)).slice(0, 100),
+          },
+        };
+      });
+      const result = await getActions(reader, { chainId: 42161, actionIds: ["42161-1"] });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ id: "42161-1", title: "Action 1" });
+      expect(result[0].inputs).toEqual(
+        instructionTemplates["agro.planting_event"].uiConfig.details.inputs
+      );
+
+      const actionIds = ["42161-1", "42161-2"];
+      mockQuery.mockImplementationOnce(async (_query, variables) => {
+        expect(variables.where).toEqual({
+          chainId: { _eq: 42161 },
+          id: { _in: actionIds },
+        });
+        return { data: { Action: rows.filter((row) => actionIds.includes(row.id)) } };
+      });
+      const selected = await getActions(reader, { chainId: 42161, actionIds });
+      expect(selected.map((action) => action.id)).toEqual(["42161-2", "42161-1"]);
+      expect(mockQuery).toHaveBeenCalledTimes(3);
+    });
+
     it("surfaces missing or unknown indexer domains instead of coercing them to solar", () => {
       expect(parseIndexerDomain("SOLAR")).toBe(Domain.SOLAR);
       expect(parseIndexerDomain("UNKNOWN")).toBeNull();
@@ -367,6 +485,8 @@ describe("modules/data/greengoods", () => {
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(1);
       expect(result[0].title).toBe("Planting Trees");
+      // Consumers compare the window with Date.now(), so it comes back in milliseconds.
+      expect(result[0]).toMatchObject({ startTime: 1_700_000_000_000, endTime: 1_800_000_000_000 });
     });
 
     it("surfaces unrecognized indexer domains as null instead of coercing to SOLAR", async () => {

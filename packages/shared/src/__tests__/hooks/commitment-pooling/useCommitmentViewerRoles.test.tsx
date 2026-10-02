@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -26,6 +26,15 @@ const mocks = vi.hoisted(() => ({
   gardensError: false,
   refetchGardens: vi.fn(),
   membership: { isMember: false as boolean | null, isLoading: false, isError: false },
+  /** One garden's chain read, where it differs from `membership`. */
+  membershipByGarden: new Map<
+    string,
+    { isMember: boolean | null; isLoading: boolean; isError: boolean }
+  >(),
+  /** Gardens the reader stewards, by lowercased id. */
+  managed: new Set<string>(),
+  /** The host's own record, read when the garden list does not hold it. */
+  hostRecord: null as RosterGarden | null,
   refetchMembership: vi.fn(),
 }));
 
@@ -34,7 +43,10 @@ vi.mock("../../../hooks/roles/useHasRole", () => ({
 }));
 
 vi.mock("../../../hooks/roles/useGardenMembership", () => ({
-  useGardenMembership: () => ({ ...mocks.membership, refetch: mocks.refetchMembership }),
+  useGardenMembership: (garden?: string) => ({
+    ...((garden && mocks.membershipByGarden.get(garden.toLowerCase())) || mocks.membership),
+    refetch: mocks.refetchMembership,
+  }),
 }));
 
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
@@ -47,8 +59,20 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
   }),
 }));
 
+vi.mock("../../../hooks/garden/useGardenRecord", () => ({
+  useGardenRecord: (_garden: string | null, { enabled = true }: { enabled?: boolean } = {}) => ({
+    data: enabled ? mocks.hostRecord : undefined,
+    isLoading: false,
+    isSuccess: enabled,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+}));
+
 vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
-  useGardenPermissions: () => ({ canManageGarden: () => false }),
+  useGardenPermissions: () => ({
+    canManageGarden: (garden: { id: string }) => mocks.managed.has(garden.id.toLowerCase()),
+  }),
 }));
 
 function roles(routeGarden: string = HOST, poolGarden: string = HOST) {
@@ -71,6 +95,9 @@ describe("useCommitmentViewerRoles", () => {
     mocks.refetchGardens = vi.fn();
     mocks.refetchMembership = vi.fn();
     mocks.membership = { isMember: false, isLoading: false, isError: false };
+    mocks.membershipByGarden = new Map();
+    mocks.managed = new Set();
+    mocks.hostRecord = null;
     mocks.gardens = [
       { id: HOST, name: "Host Garden", gardeners: [], stewards: [] },
       { id: OTHER, name: "Other Garden", gardeners: [], stewards: [] },
@@ -108,7 +135,52 @@ describe("useCommitmentViewerRoles", () => {
     ];
     const { result } = roles();
     expect(result.current.isMemberHere).toBe(true);
-    expect(result.current.claimGardens.member).toEqual([{ address: OTHER, name: "Other Garden" }]);
+    expect(result.current.claimGardens.member).toEqual([
+      { address: HOST, name: "Host Garden" },
+      { address: OTHER, name: "Other Garden" },
+    ]);
+  });
+
+  it("offers the host for a personal claim on its own chain read, and never for a garden claim", () => {
+    // The reader's only role is in the host, and they steward it.
+    mocks.membership = { isMember: true, isLoading: false, isError: false };
+    mocks.managed = new Set([HOST.toLowerCase()]);
+    const { result } = roles();
+    expect(result.current.claimGardens.member).toEqual([{ address: HOST, name: "Host Garden" }]);
+    // The contract refuses the host as a garden claim's context.
+    expect(result.current.claimGardens.stewarded).toEqual([]);
+    expect(result.current.claimGardensKnown).toBe(true);
+  });
+
+  it("asks the host itself when the commitment opens through another garden's route", () => {
+    const answer = (isMember: boolean | null, isLoading = false) => ({
+      isMember,
+      isLoading,
+      isError: false,
+    });
+    mocks.membershipByGarden = new Map([
+      [HOST.toLowerCase(), answer(true)],
+      [OTHER.toLowerCase(), answer(false)],
+    ]);
+    expect(roles(OTHER, HOST).result.current.claimGardens.member).toEqual([
+      { address: HOST, name: "Host Garden" },
+    ]);
+
+    // A chain denial for the host outranks a stale roster naming the reader there.
+    mocks.gardens = [
+      { id: HOST, name: "Host Garden", gardeners: [VIEWER], stewards: [] },
+      { id: OTHER, name: "Other Garden", gardeners: [], stewards: [] },
+    ];
+    mocks.membershipByGarden.set(HOST.toLowerCase(), answer(false));
+    expect(roles(OTHER, HOST).result.current.claimGardens.member).toEqual([]);
+
+    // Until the host's own read answers, an empty list does not yet mean none.
+    mocks.gardens = [
+      { id: HOST, name: "Host Garden", gardeners: [], stewards: [] },
+      { id: OTHER, name: "Other Garden", gardeners: [], stewards: [] },
+    ];
+    mocks.membershipByGarden.set(HOST.toLowerCase(), answer(null, true));
+    expect(roles(OTHER, HOST).result.current.claimGardensKnown).toBe(false);
   });
 
   it("trusts a completed chain denial over a stale roster, and a fresh join over both", () => {
@@ -142,7 +214,27 @@ describe("useCommitmentViewerRoles", () => {
     expect(result.current.claimGardens.member).toEqual([]);
   });
 
-  it("keeps membership unknown when the garden list fails, and reads both again on retry", () => {
+  it("reads the host on its own when it sits past the newest gardens the list holds", () => {
+    // The list holds only the newest gardens, and the protocol's own may sit past it.
+    mocks.gardens = [{ id: OTHER, name: "Other Garden", gardeners: [], stewards: [] }];
+    mocks.hostRecord = { id: HOST, name: "Host Garden", gardeners: [], stewards: [] };
+    mocks.membershipByGarden = new Map([
+      [HOST.toLowerCase(), { isMember: true, isLoading: false, isError: false }],
+      [OTHER.toLowerCase(), { isMember: false, isLoading: false, isError: false }],
+    ]);
+
+    const { result } = roles(OTHER, HOST);
+    expect(result.current.claimGardens.member).toEqual([{ address: HOST, name: "Host Garden" }]);
+    expect(result.current.claimGardensKnown).toBe(true);
+
+    // A read that settles with no record cannot name the option: the reader can try again.
+    mocks.hostRecord = null;
+    const missing = roles(OTHER, HOST);
+    expect(missing.result.current.claimGardensKnown).toBe(false);
+    expect(missing.result.current.membershipUnavailable).toBe(true);
+  });
+
+  it("keeps membership unknown when the garden list fails, and reads them all again on retry", () => {
     // A failed query stops loading and returns no list; that is not "a member of none".
     mocks.gardensError = true;
     const { result } = roles();
@@ -151,7 +243,8 @@ describe("useCommitmentViewerRoles", () => {
     expect(result.current.membershipUnavailable).toBe(true);
     result.current.retryMembership();
     expect(mocks.refetchGardens).toHaveBeenCalledTimes(1);
-    expect(mocks.refetchMembership).toHaveBeenCalledTimes(1);
+    // The route's chain read and the host's.
+    expect(mocks.refetchMembership).toHaveBeenCalledTimes(2);
   });
 
   it("keeps membership unknown when the chain's role read fails and the roster says no", () => {

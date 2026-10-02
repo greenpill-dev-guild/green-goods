@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { PERSIST_MAX_AGE } from "../../config/query-persistence";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

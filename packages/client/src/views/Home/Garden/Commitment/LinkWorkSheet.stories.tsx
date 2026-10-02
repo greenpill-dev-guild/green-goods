@@ -124,7 +124,7 @@ export const NoWorkYet: Story = {
         "You have no work in this garden to link yet. Submit work from the Garden tab first."
       )
     ).toBeVisible();
-    const rows = within(screen.getByRole("list", { name: "Commitment requirements" }));
+    const rows = within(screen.getByRole("list", { name: "Promise requirements" }));
     await userEvent.click(rows.getByRole("button", { name: "Submit work for requirement 2" }));
     await expect(args.onSubmitRequirement).toHaveBeenCalledOnce();
     await expect(screen.getByRole("button", { name: "Link This Work" })).toBeDisabled();

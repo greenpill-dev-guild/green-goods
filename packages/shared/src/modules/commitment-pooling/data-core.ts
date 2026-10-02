@@ -234,6 +234,7 @@ export function mapCommitment(row: RawRow): CommitmentReadModel {
     direction: row.direction as CommitmentReadModel["direction"],
     commitmentType: row.commitmentType as CommitmentReadModel["commitmentType"],
     claimMode: row.claimMode as CommitmentReadModel["claimMode"],
+    claimType: (row.claimType ?? null) as CommitmentReadModel["claimType"],
     dueDate: optionalInteger(row.dueDate),
     requiresAssessment: typeof row.requiresAssessment === "boolean" ? row.requiresAssessment : null,
     assessmentUID: string(row.assessmentUID),

@@ -160,7 +160,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     assertEnvParity({
       app: "admin",
       env: process.env,
-      schemaPath: resolve(rootDir, ".env.schema"),
+      schemaPath: resolve(rootDir, "env.schema"),
     });
     assertSentryDsnResolvable({ app: "admin", sentryDsn, env: process.env });
   }

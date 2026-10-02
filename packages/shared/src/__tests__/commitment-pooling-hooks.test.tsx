@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
@@ -27,7 +27,8 @@ import {
   usePoolParticipationSummary,
 } from "../hooks/commitment-pooling/useCommitmentPooling";
 import { useCommitmentPoolingAvailability } from "../hooks/commitment-pooling/useCommitmentPoolingAvailability";
-import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
+import { createTestQueryClient } from "./test-utils/query-client";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111";
 const VIEWER = "0x2222222222222222222222222222222222222222";
@@ -44,7 +45,7 @@ const mocks = await vi.hoisted(async () => ({
   } as unknown,
   moduleAddress: "0x6bb5b0fd70b6771b0e955fef37f8bd2ce911470a",
   senderAvailable: true,
-  sender: (await import("@green-goods/shared/testing")).createMockTransactionSender(),
+  sender: (await import("./test-utils/transaction-fakes")).createMockTransactionSender(),
   mutationErrorHandler: vi.fn(),
   pinCommitmentReason: vi.fn(),
   roles: vi.fn(),

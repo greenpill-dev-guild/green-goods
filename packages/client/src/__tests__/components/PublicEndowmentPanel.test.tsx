@@ -5,7 +5,7 @@
  * to connect, active endowments lead with support totals, and withdrawals stay
  * inline on the asset row.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";

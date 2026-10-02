@@ -116,6 +116,8 @@ export function ManageMembersDialog({
       [
         person.address,
         formatAddress(person.address),
+        // The short form each row prints when the member has no ENS name.
+        formatAddress(person.address, { variant: "card" }),
         ensNames.get(person.address.toLowerCase()) ?? "",
         ...person.roles.flatMap((role) => {
           const label = getRoleLabel(role, formatMessage);

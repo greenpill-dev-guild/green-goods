@@ -1,6 +1,6 @@
 /**
  * Cookie Jar Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * A garden jar only accepts setting changes from the garden account, so the per-claim limit
  * and cooldown hooks must send `GardenAccount.execute(jar, 0, calldata, 0)`, never a call
@@ -14,6 +14,7 @@ import { IntlProvider } from "react-intl";
 import { encodeFunctionData } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { COOKIE_JAR_ABI } from "../../../utils/blockchain/abis/cookie-jar";
+import { createTestQueryClient } from "../../test-utils/query-client";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
@@ -26,7 +27,7 @@ const TEST_TX_HASH = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef12
 
 const mocks = await vi.hoisted(async () => ({
   senderAvailable: true,
-  sender: (await import("@green-goods/shared/testing")).createMockTransactionSender({
+  sender: (await import("../../test-utils/transaction-fakes")).createMockTransactionSender({
     result: {
       hash: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
       sponsored: true,
@@ -135,12 +136,6 @@ function createWrapper(queryClient: QueryClient) {
   };
 }
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-}
-
 async function expectRejectedMutation<TVariables>(
   queryClient: QueryClient,
   useHook: () => UseMutationResult<`0x${string}`, Error, TVariables, { toastId: string }>,
@@ -169,7 +164,7 @@ describe("cookie jar setting hooks", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mocks.senderAvailable = true;
     mocks.sender.sendContractCall.mockResolvedValue({
       hash: TEST_TX_HASH as `0x${string}`,

@@ -33,6 +33,11 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
   const errorCode = error instanceof GardenJoinRequestTransportError ? error.errorCode : undefined;
 
   switch (errorCode) {
+    case "request_not_saved":
+      return {
+        id: "app.garden.joinRequest.error.notSaved",
+        defaultMessage: "This attempt did not save a request. Please try again.",
+      };
     case "already_member":
       return {
         id: "app.garden.joinRequest.error.alreadyMember",
@@ -173,8 +178,28 @@ async function request<T>(
         failure?.message ?? "The garden request could not be completed.",
         response.status,
         failure?.errorCode,
-        response.status >= 500
+        init.method !== "GET" &&
+          response.status >= 500 &&
+          failure?.errorCode !== "request_not_saved"
       );
+    }
+    if (!payload || typeof payload !== "object" || !("ok" in payload) || payload.ok !== true) {
+      throw new Error("Invalid garden request response.");
+    }
+    if (proof?.action === "create" || proof?.action === "read_self") {
+      const record = "request" in payload ? payload.request : undefined;
+      const emptyStatus = proof.action === "read_self" && record === null;
+      if (
+        !emptyStatus &&
+        (!record ||
+          typeof record !== "object" ||
+          !("id" in record) ||
+          typeof record.id !== "string" ||
+          !("state" in record) ||
+          !["pending", "welcomed", "declined"].includes(String(record.state)))
+      ) {
+        throw new Error("Invalid garden request status.");
+      }
     }
     return payload as T;
   } catch (error) {

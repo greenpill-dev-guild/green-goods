@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -184,9 +184,9 @@ describe("PwaSheet", () => {
         <p>Body</p>
       </PwaSheet>
     );
-    // Tailwind does not scan packages/shared, so the geometry must come from
-    // the [data-component="PwaSheet"] rules in utilities.css, never from
-    // classes authored here.
+    // The geometry comes from the component-layer [data-component="PwaSheet"]
+    // rules in utilities.css, never from classes authored here, so the
+    // consumer's panelClassName is the panel's only class and overrides them.
     expect(screen.getByRole("dialog").getAttribute("class")).toBe("consumer-panel");
     expect(screen.getByTestId("pwa-sheet-overlay")).not.toHaveAttribute("class");
     expect(screen.getByTestId("pwa-sheet-drag-handle")).not.toHaveAttribute("class");

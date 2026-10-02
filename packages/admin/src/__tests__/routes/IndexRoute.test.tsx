@@ -1,6 +1,6 @@
 /**
  * IndexRoute Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * IndexRoute replaces the old CanvasLayout home-state ladder. It must
  * render exactly one of:

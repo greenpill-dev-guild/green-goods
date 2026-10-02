@@ -2,9 +2,12 @@ import { track } from "./posthog";
 
 export interface AuthWalletRestoreEvent {
   authMode: "wallet" | "embedded";
-  outcome: "started" | "delayed" | "success" | "failed";
+  /** `reconnected`: a wallet kept signed in after a timeout answered again. */
+  outcome: "started" | "delayed" | "success" | "failed" | "reconnected";
   reason?: "timeout";
   durationMs?: number;
+  /** On a timeout, whether the remembered wallet stayed signed in. */
+  sessionKept?: boolean;
 }
 
 /** Records aggregate restore health without the current user or wallet identity. */
@@ -16,6 +19,7 @@ export function trackAuthWalletRestore(event: AuthWalletRestoreEvent): void {
       outcome: event.outcome,
       reason: event.reason,
       duration_ms: event.durationMs,
+      session_kept: event.sessionKept,
     },
     { anonymizeIdentity: true, includeSessionId: false }
   );

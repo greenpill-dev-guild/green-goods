@@ -1,6 +1,6 @@
 /**
  * useEligibleAdminGardens Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";

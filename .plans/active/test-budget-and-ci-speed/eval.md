@@ -1,5 +1,54 @@
 # Evaluation and completion evidence
 
+## Current checkpoint — 2026-09-28 (snapshot 08 follow-up, local)
+
+Items 2, 3, 5, 6 and 7 of scorecard snapshot 08 (D10) are eight local commits on `develop`,
+`1a3afcb52..f156aef6c`, not pushed. The
+[follow-up report](reports/2026-09-28-snapshot-08-follow-up.md) holds the commands and numbers.
+
+- **Behaviour fixes, each RED first.** `e03f3ebb9`: under a patched `BigInt.prototype.toJSON`,
+  `canonicalJobPayload` returned `"9"` for `9n`; GREEN 10/10. `e82d6d9c5`: the next session
+  prepared under Data Saver; GREEN 13/13. `1edb10426`: fault f3 now fails 1 of 55 related tests.
+  `b1c40eb3b`: FormWizard's old barrel import fails the new `import-seam` rule on the real tree.
+- **Admin.** All eight full-suite runs passed 135 files and 1,109 tests. viem external: −9% wall
+  and −28% import on a lightly loaded machine. All four Admin changes: −40% wall and −54% import
+  at load 42 to 56.
+- **Codemod.** 45 files kept identical names and results; the full Shared suite passed (545 files,
+  6,100 tests).
+- **Limits.** The push gate has not run: other sessions' uncommitted edits fail
+  `test-quality` Check 5 on two seams this pass does not touch. The CodeQL prune's first push-run
+  and the Admin CI number wait for the push.
+
+## Checkpoint — 2026-09-28 (closeout push)
+
+The range `d7cf681ec..fca76d585` is on `origin/develop`. The
+[closeout report](reports/2026-09-28-closeout-push.md) holds every command, time and run link.
+
+- **Push gate.** The manual critical gate at `8e05497f6` (365 paths, 32 checks) passed in 461 s,
+  the first real-world sample for outcome 1. Its hook reused nothing and took 230 s. After
+  `627149a4d` and `fca76d585`, the same plan from a plain shell passed in 217 s without
+  receipts and in 2.1 s with all 32. The hooks of the two fix-forward pushes reused every receipt
+  (4.6 and 4.9 s).
+- **Gate fixes.** Both have a failing proof first. `627149a4d`: RED, a hook-shaped environment
+  reran; GREEN, runner tests 40/40 and validation-system test 348/348. `fca76d585`: RED, exit 127
+  for a binary only in `node_modules/.bin`; GREEN, exit 0, runner tests 41/41 and
+  validation-system test 349/349.
+- **CI.** Each head started exactly its expected workflows, and every run finished green; a
+  direct push has no CI Gate run.
+- **Step 3.** Shared shards at `8e05497f6`: jobs 168 s and 146 s, Vitest 128.92 s and 116.66 s,
+  730.7 worker-seconds.
+- **Step 5.** Coverage Nightly
+  [36483127896](https://github.com/greenpill-dev-guild/green-goods/actions/runs/36483127896) at
+  `627149a4d` passed every floor.
+- **Lease.** On a quiet machine (13.8 GB of swap in use), the waiting run named its holder and
+  started within a second of the release. The timing bound was missed: 111 s against 90 s.
+- **Limits.** These are single runs, not medians; the seven-day window starts 2026-09-28. The
+  selector replay was not re-run at the final head.
+
+## Checkpoint — 2026-09-27
+
+The remaining local implementation and fresh evidence are recorded in [Snapshot 06](reports/2026-09-26-snapshot-06.md). Shared full coverage passed all floors (5,876 tests). Full Client validation remains blocked by DetailsGate timeouts; focused runs passed with both original and restored runtime source. The proposed table refactor awaits scope approval. The dated sections below retain historical results; their dirty-locale, Apple Git and original browser-policy statements do not describe the current checkout or policy.
+
 ## Preparation and plan validation
 
 Preparation is a source/measurement refresh, not a full audit rerun. The [dated report](reports/2026-09-19-preparation.md) records source identity, inventory method, open PR heads, CI and coverage references, target dispositions and limits.
@@ -28,7 +77,7 @@ Render `bun run check --plan -- --intent <intent>` for actual changed paths firs
 | Helpers | Before/after JSON reports with identical names and zero failures; preserve retry/cache/provider semantics; list exclusions |
 | Deletion | Same-fault surviving test or verified absence of callers; targeted suite passes; staged-module/direct-proof registry protections retained |
 | Store contract | Both adapters run common cases; SQLite covers withdrawal, expiry/sweep, stale revisions, pending cap, encryption and persistence |
-| Layout | Real subject geometry/interactions and faithful boot-document fixture; required authenticated Brave evidence. Similar markup in a story is not equivalent proof. |
+| Layout | Real subject geometry/interactions and faithful boot-document fixture; select the evidence class using current AGENTS.md. Similar markup in a story is not equivalent proof. |
 | File merge | Baseline/registry exclusions checked; same-subject cases retained; bun run check --only test-quality |
 | Ratio summary | Informational output handles additions, deletions and zero-source changes; cannot fail the required gate |
 

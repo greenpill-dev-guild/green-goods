@@ -1,6 +1,6 @@
 /**
  * useConvictionWeightAllocator integration tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Round-trip coverage for the optimistic-state container that drives the
  * WeightAllocator: mirroring server state, debouncing saves, computing signed

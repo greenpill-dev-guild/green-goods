@@ -114,3 +114,14 @@ describe("GRAPHQL_TIMEOUT_MS", () => {
     expect(GRAPHQL_TIMEOUT_MS).toBe(12_000);
   });
 });
+
+describe("modules/graphql-client", () => {
+  it("creates EAS client and indexer", () => {
+    const client = createEasClient();
+    expect(client).toBeDefined();
+    expect(typeof client.query).toBe("function");
+
+    expect(greenGoodsIndexer).toBeDefined();
+    expect(typeof greenGoodsIndexer.query).toBe("function");
+  });
+});

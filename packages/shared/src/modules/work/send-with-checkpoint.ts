@@ -16,6 +16,7 @@
 
 import type { Hex } from "viem";
 import type { SendCheckpoint } from "../../types/job-queue";
+import { logger } from "../app/logger";
 import {
   type BroadcastReference,
   type ContractCall,
@@ -24,8 +25,16 @@ import {
   type TransactionSender,
   type TxResult,
 } from "../transactions/types";
+import { intentHead } from "../job-queue/send-chain-reads";
 import { classifySendFailure } from "./send-outcome";
-import { forgetWorkBroadcast, rememberWorkBroadcast } from "./work-confirmation";
+import {
+  AwaitingWorkConfirmation,
+  forgetWorkBroadcast,
+  reconcileWorkTransaction,
+  rememberTransactionReplaced,
+  rememberWorkBroadcast,
+  retainedWorkBroadcastReference,
+} from "./work-confirmation";
 
 /** Applies a change to the send record of every job the call carries, and persists it. */
 export type RecordSend = (
@@ -39,6 +48,13 @@ export interface CheckpointedSend {
   jobIds: readonly string[];
   /** Must reject when a write fails: nothing may be sent without its intent on record. */
   record: RecordSend;
+  /**
+   * The chain's head, kept with the intent: read at the last point before the
+   * send can reach the network, so a prompt left open never ages it.
+   */
+  readChainHead?: () => Promise<{ number: bigint; timestamp: number }>;
+  /** A head read before the send, kept when the one at the intent cannot be read. */
+  headBeforeSend?: Pick<SendCheckpoint, "intentBlock" | "intentChainTime">;
   assertOwnership?: () => void | Promise<void>;
   now?: () => number;
 }
@@ -57,6 +73,8 @@ export async function sendWithCheckpoint({
   call,
   jobIds,
   record,
+  readChainHead,
+  headBeforeSend,
   assertOwnership,
   now = Date.now,
 }: CheckpointedSend): Promise<CheckpointedSendResult> {
@@ -65,6 +83,21 @@ export async function sendWithCheckpoint({
   let broadcastKnown = false;
   let transactionRecorded = false;
   let carriedByOperation = false;
+  // The chain's head is read once, at the last point before the send can reach
+  // the network: after a passkey's prompt, so a prompt left open never ages it.
+  // Every record carries it, even the hash a sender only returns.
+  let head: Pick<SendCheckpoint, "intentBlock" | "intentChainTime"> | undefined;
+  let headRead = false;
+  const readHead = async () => {
+    if (headRead) return;
+    headRead = true;
+    head = (await intentHead(readChainHead)) ?? headBeforeSend;
+  };
+  const write: RecordSend = (next) =>
+    record((current) => {
+      const send = next(current);
+      return send && head ? { ...send, ...head } : send;
+    });
 
   // Every reference is kept in memory before it is written, so a failed write
   // never turns a retry into a second send.
@@ -73,7 +106,7 @@ export async function sendWithCheckpoint({
     carriedByOperation ||= reference.kind === "user-operation";
     transactionRecorded ||= reference.kind === "transaction";
     for (const id of jobIds) rememberWorkBroadcast(id, reference);
-    await record((current) => ({
+    await write((current) => ({
       ...current,
       broadcast: reference,
       broadcastPending: false,
@@ -85,7 +118,7 @@ export async function sendWithCheckpoint({
     if (!carriedByOperation) return onBroadcastReference({ kind: "transaction", hash });
     broadcastKnown = true;
     transactionRecorded = true;
-    await record((current) => ({ ...current, transactionHash: hash, broadcastPending: false }));
+    await write((current) => ({ ...current, transactionHash: hash, broadcastPending: false }));
   };
 
   try {
@@ -94,9 +127,10 @@ export async function sendWithCheckpoint({
       onBeforeBroadcast: async (reference) => {
         await assertOwnership?.();
         carriedByOperation ||= reference?.kind === "user-operation";
+        await readHead();
         const at = new Date(now()).toISOString();
         intentAttempted = true;
-        await record(() => ({
+        await write(() => ({
           broadcastPending: true,
           broadcastPendingAt: at,
           ...(reference ? { broadcast: reference } : {}),
@@ -106,24 +140,102 @@ export async function sendWithCheckpoint({
       onBroadcastReference,
       onBroadcast,
     });
-    // Older and custom senders only expose the hash on return.
-    if (!transactionRecorded) await onBroadcast(result.hash);
+    // Older and custom senders only expose the hash on return. Nothing marked the
+    // point before it went out, and a head read now could follow its own block,
+    // so only the head read before the send is kept.
+    if (!transactionRecorded) {
+      if (!headRead) {
+        headRead = true;
+        head = headBeforeSend;
+      }
+      await onBroadcast(result.hash);
+    }
     return { status: "sent", hash: result.hash, confirmation: result.confirmation };
   } catch (error) {
     if (error instanceof TransactionRevertedError) return { status: "reverted", error };
     if (error instanceof TransactionReplacementError && error.code === "transaction_cancelled") {
       // The wallet confirmed replacement by a cancellation transaction. The
       // original call cannot be included, so its checkpoint may be retried.
-      await record(() => undefined);
+      await write(() => undefined);
       for (const id of jobIds) forgetWorkBroadcast(id);
       return { status: "not-sent", cancelled: true, error };
+    }
+    if (error instanceof TransactionReplacementError && error.code === "transaction_replaced") {
+      // Another call took this transaction's place, so it can never be
+      // included. Whether that call did the same thing is unknown until the
+      // caller inspects what landed, so the record stays and says so. The mark
+      // is remembered first: storage that refuses it only loses it on reload.
+      for (const id of jobIds) rememberTransactionReplaced(id);
+      try {
+        await write((current) => ({ ...current, transactionReplaced: true }));
+      } catch (markError) {
+        logger.warn("[SendCheckpoint] Could not mark a replaced transaction", {
+          jobIds,
+          error: markError,
+        });
+      }
+      return { status: "may-have-sent", error };
     }
     const failure = classifySendFailure(error, { intentRecorded, broadcastKnown });
     if (failure.kind === "may-have-sent") return { status: "may-have-sent", error };
     // Cleared even when the intent only half landed: a call that carries several
     // jobs may have written some of them before one write failed.
-    if (intentAttempted) await record(() => undefined);
+    if (intentAttempted) await write(() => undefined);
     for (const id of jobIds) forgetWorkBroadcast(id);
     return { status: "not-sent", cancelled: failure.cancelled, error };
   }
+}
+
+/**
+ * Settle a send already on record instead of sending it again: a transaction by
+ * its receipt, a UserOperation through the sender's own reconcile, and an
+ * intent no receipt can answer through the caller's `settleStranded`. A revert
+ * clears the record through `clear`, so the call may be sent again; a send
+ * still on its way throws `AwaitingWorkConfirmation`. A transaction no receipt
+ * answers is waited on, unless the caller settles it by `settleUnanswered`.
+ */
+export async function settleRecordedSend(input: {
+  jobId: string;
+  checkpoint: SendCheckpoint | undefined;
+  chainId: number;
+  sender: TransactionSender;
+  reconcile?: typeof reconcileWorkTransaction;
+  /** Removes the record from the job and persists it. */
+  clear: () => Promise<void>;
+  /** The transaction that landed, or a waiting or reopened error. */
+  settleStranded: (pendingHash: Hex) => Promise<Hex>;
+  /**
+   * The transaction that landed, for a transaction no receipt answers (a
+   * Safe's own id never produces one), or a waiting error. Absence alone must
+   * never reopen the send, since the Safe may still be collecting signatures:
+   * only proof the transaction can never be included may.
+   */
+  settleUnanswered?: (transactionHash: Hex) => Promise<Hex>;
+}): Promise<Hex> {
+  const { checkpoint, jobId } = input;
+  const broadcast = checkpoint?.broadcast ?? retainedWorkBroadcastReference(jobId);
+  let transactionHash =
+    checkpoint?.transactionHash ?? (broadcast?.kind === "transaction" ? broadcast.hash : undefined);
+  let state: "confirmed" | "reverted" | "unresolved" = "unresolved";
+  if (broadcast?.kind === "user-operation" && !transactionHash) {
+    const result = await input.sender.reconcileBroadcast?.(broadcast);
+    state = result?.status ?? "unresolved";
+    if (result?.status === "confirmed") transactionHash = result.transactionHash;
+  } else if (transactionHash) {
+    state = await (input.reconcile ?? reconcileWorkTransaction)(transactionHash, input.chainId);
+  }
+  if (state === "confirmed") return transactionHash!;
+  if (state === "reverted") {
+    // Nothing was recorded on chain, so the call may be sent again.
+    const revertedHash = transactionHash ?? broadcast?.hash ?? "0x";
+    forgetWorkBroadcast(jobId);
+    await input.clear();
+    throw new TransactionRevertedError(revertedHash);
+  }
+  if (transactionHash) {
+    // A transaction hash may be a Safe transaction still collecting signatures.
+    if (!input.settleUnanswered) throw new AwaitingWorkConfirmation(transactionHash);
+    return input.settleUnanswered(transactionHash);
+  }
+  return input.settleStranded(broadcast?.hash ?? "0x");
 }

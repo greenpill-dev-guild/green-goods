@@ -131,6 +131,7 @@ export function useHubWorkbenchController() {
       hubContext,
       garden: (selectedGarden?.id as Address | undefined) ?? null,
       canManage,
+      active: requestedStage === "confirm",
     });
 
   const { stage, stages, stageCounts } = useMemo(

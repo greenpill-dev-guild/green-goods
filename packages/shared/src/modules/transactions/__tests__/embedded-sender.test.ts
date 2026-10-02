@@ -1,6 +1,6 @@
 /**
  * EmbeddedSender Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the embedded wallet transaction sender that targets EIP-5792
  * sendCalls with paymaster capability. Since wagmi experimental APIs
@@ -15,8 +15,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createFakeWagmiDeps,
   createMockContractCall,
-  MOCK_TX_HASH,
-} from "@green-goods/shared/testing";
+} from "../../../__tests__/test-utils/transaction-fakes";
+import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import type { ContractCall } from "../types";
 import { EmbeddedSender, type EmbeddedSenderDeps } from "../embedded-sender";
 

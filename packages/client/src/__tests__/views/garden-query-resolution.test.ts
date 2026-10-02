@@ -8,7 +8,7 @@
  * imports through the test transformer (the historic `fund.test.tsx` route
  * does not load in this worktree environment).
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, expect, it, vi } from "vitest";

@@ -5,7 +5,7 @@
  * This is the work submission flow view at /garden.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -53,6 +53,7 @@ const mockSelectLinkIntent = vi.fn();
 const mockClearLinkIntent = vi.fn();
 const mockIntroProps = vi.fn();
 const mockReviewProps = vi.fn();
+const mockWorkForSheetProps = vi.fn();
 let mockActiveTab = "Intro";
 interface MockWorkLinkIntent {
   commitmentId: bigint;
@@ -70,6 +71,11 @@ const mockRefetchCommitmentLinkChoices = vi.fn();
 const mockRetryLinkOnly = vi.fn();
 let mockHasPendingLinkRecovery = false;
 let mockLinkSchedulingSucceeded = false;
+let mockLinkSchedulingWorkSent: boolean | null = null;
+let mockIsSchedulingDependentLink = false;
+let mockIsQueueingDependentLink = false;
+let mockDraftSaveState: "saving" | "saved" | "failed" | undefined;
+const mockDraftRetry = vi.fn().mockResolvedValue(undefined);
 const mockActions = [
   {
     id: "action-1",
@@ -135,6 +141,9 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
       showDraftSheet: false,
       handleContinueDraft: vi.fn(),
       startFresh: vi.fn(),
+      saveState: mockDraftSaveState,
+      missingAttachments: [],
+      retry: mockDraftRetry,
     },
     ensureWorkSubmissionJourneyId: mockWorkFlowState.ensureWorkSubmissionJourneyId,
     exit: vi.fn(),
@@ -148,9 +157,11 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     commitmentLinkChoicesLoading: false,
     commitmentLinkChoicesError: null,
     refetchCommitmentLinkChoices: mockRefetchCommitmentLinkChoices,
-    isSchedulingDependentLink: false,
+    isSchedulingDependentLink: mockIsSchedulingDependentLink,
+    isQueueingDependentLink: mockIsQueueingDependentLink,
     linkSchedulingError: mockHasPendingLinkRecovery ? new Error("queue unavailable") : null,
     linkSchedulingSucceeded: mockLinkSchedulingSucceeded,
+    linkSchedulingWorkSent: mockLinkSchedulingWorkSent,
     hasPendingLinkRecovery: mockHasPendingLinkRecovery,
     retryLinkOnly: mockRetryLinkOnly,
     clearLinkIntent: mockClearLinkIntent,
@@ -196,9 +207,17 @@ vi.mock("../../views/Garden/Details", () => ({
 }));
 
 vi.mock("../../views/Garden/Review", () => ({
-  WorkReview: (props: unknown) => {
+  WorkReview: (props: { pinned?: React.ReactNode }) => {
     mockReviewProps(props);
-    return createElement("div", { "data-testid": "work-review" }, "Review Step");
+    return createElement("div", { "data-testid": "work-review" }, "Review Step", props.pinned);
+  },
+}));
+
+// The promise sheet reads the promise; here it only reports what it was handed.
+vi.mock("../../views/Garden/WorkForSheet", () => ({
+  WorkForSheet: (props: { open: boolean }) => {
+    mockWorkForSheetProps(props);
+    return props.open ? createElement("div", { role: "dialog" }, "Promise sheet") : null;
   },
 }));
 
@@ -217,7 +236,8 @@ vi.mock("@/components/Sheets", () => ({
   DraftSheet: () => null,
 }));
 
-vi.mock("@/components/Features/Work", () => ({
+vi.mock("@/components/Features/Work", async (importOriginal) => ({
+  ...(await importOriginal()),
   WorkViewSkeleton: () => createElement("div", { "data-testid": "work-skeleton" }),
 }));
 
@@ -247,10 +267,16 @@ const messages = {
   "app.garden.submit.tab.review.label": "Upload Work",
   "app.garden.unknown": "Unknown Garden",
   "app.action.selected": "Selected Action",
+  "app.commitment.pinned.workFor": "Work for",
+  "app.commitment.pinned.open": "{label} {title}. Open the promise",
   "app.garden.commitment.linkSchedulingError":
-    "Your work was submitted, but its commitment link could not be queued.",
-  "app.garden.commitment.linkScheduled": "Work submitted. Its commitment link is queued.",
+    "Your work was submitted, but its link to the promise could not be queued.",
+  "app.garden.commitment.linkScheduling": "Work submitted. Queueing its link to the promise…",
+  "app.garden.commitment.linkScheduled": "Work submitted. Its link to the promise is queued.",
   "app.garden.commitment.retryLink": "Retry Link",
+  "app.garden.draft.saving": "Saving…",
+  "app.garden.draft.failed": "Could not save or restore this work.",
+  "app.garden.draft.retry": "Retry",
 };
 
 const renderWithProviders = (initialRoute = "/home/garden") => {
@@ -283,10 +309,31 @@ describe("Garden (Work) View", () => {
     mockCommitmentLinkChoices = [];
     mockHasPendingLinkRecovery = false;
     mockLinkSchedulingSucceeded = false;
+    mockLinkSchedulingWorkSent = null;
+    mockIsSchedulingDependentLink = false;
+    mockIsQueueingDependentLink = false;
+    mockDraftSaveState = undefined;
   });
 
   afterEach(() => {
     cleanup();
+  });
+
+  it("says a draft is saving to screen readers only, so the step never moves (D29)", () => {
+    mockDraftSaveState = "saving";
+    renderWithProviders();
+
+    const saving = screen.getAllByRole("status").find((status) => status.textContent === "Saving…");
+    expect(saving).toHaveClass("sr-only");
+  });
+
+  it("keeps a failed draft save on screen with a way to try again", () => {
+    mockDraftSaveState = "failed";
+    renderWithProviders();
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not save or restore this work.");
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(mockDraftRetry).toHaveBeenCalledOnce();
   });
 
   it("renders without crashing", () => {
@@ -395,7 +442,7 @@ describe("Garden (Work) View", () => {
     expect(mockSelectLinkIntent).toHaveBeenCalledWith(choice);
   });
 
-  it("clears the Review Fulfills context through the submission controller", () => {
+  it("names the chosen promise on the step and unlinks the work from its sheet", () => {
     mockActiveTab = "Review";
     mockLinkIntent = {
       commitmentId: 9n,
@@ -408,13 +455,22 @@ describe("Garden (Work) View", () => {
     };
     renderWithProviders();
 
-    const props = mockReviewProps.mock.lastCall?.[0] as {
-      commitmentSelection: { title: string };
-      onClearCommitment: () => void;
-    };
-    expect(props.commitmentSelection.title).toBe("Repair tool handles");
-    props.onClearCommitment();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Work for Repair tool handles. Open the promise" })
+    );
+    expect(screen.getByRole("dialog")).toHaveTextContent("Promise sheet");
+
+    const sheet = mockWorkForSheetProps.mock.lastCall?.[0] as { onUnlink: () => void };
+    sheet.onUnlink();
     expect(mockClearLinkIntent).toHaveBeenCalledTimes(1);
+  });
+
+  it("pins no promise when the work isn't for one", () => {
+    mockActiveTab = "Review";
+    renderWithProviders();
+
+    expect(screen.queryByTestId("pinned-promise")).toBeNull();
+    expect(mockWorkForSheetProps).not.toHaveBeenCalled();
   });
 
   it("retries only the dependent commitment link after Work submission succeeds", () => {
@@ -422,6 +478,7 @@ describe("Garden (Work) View", () => {
     mockSelection.actionUID = 1;
     mockSelection.gardenAddress = "garden-1";
     mockHasPendingLinkRecovery = true;
+    mockLinkSchedulingWorkSent = true;
 
     renderWithProviders();
 
@@ -431,13 +488,53 @@ describe("Garden (Work) View", () => {
     expect(mockRetryLinkOnly).toHaveBeenCalledTimes(1);
   });
 
-  it("announces when the dependent commitment link is safely queued", () => {
-    mockLinkSchedulingSucceeded = true;
+  it.each([
+    ["while the Work is still being sent", false],
+    ["once the Work was sent", true],
+  ] as const)("says the Work was submitted only %s", (_phase, queueing) => {
+    mockActiveTab = "Review";
+    mockSelection.actionUID = 1;
+    mockSelection.gardenAddress = "garden-1";
+    mockIsSchedulingDependentLink = true;
+    mockIsQueueingDependentLink = queueing;
 
     renderWithProviders();
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Work submitted. Its commitment link is queued."
+    expect(screen.getByRole("button", { name: "Upload Work" })).toBeDisabled();
+    if (queueing) {
+      expect(screen.getByText(/Queueing its link to the promise/)).toBeInTheDocument();
+    } else {
+      expect(screen.queryByText(/Work submitted/)).toBeNull();
+    }
+  });
+
+  it("keeps queued Work and a failed link truthful", () => {
+    mockHasPendingLinkRecovery = true;
+    mockLinkSchedulingWorkSent = false;
+    renderWithProviders();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Your work is saved on this device, but its link to the promise could not be queued."
+    );
+    expect(screen.queryByText(/Your work was submitted/)).toBeNull();
+  });
+
+  it("keeps queued Work truthful after its dependent link is queued", () => {
+    mockLinkSchedulingSucceeded = true;
+    mockLinkSchedulingWorkSent = false;
+    renderWithProviders();
+    expect(screen.getAllByRole("status").map((status) => status.textContent)).toContain(
+      "Work saved on this device. Its link to the promise is queued."
+    );
+  });
+
+  it("announces when the dependent commitment link is safely queued after Work was sent", () => {
+    mockLinkSchedulingSucceeded = true;
+    mockLinkSchedulingWorkSent = true;
+
+    renderWithProviders();
+
+    expect(screen.getAllByRole("status").map((status) => status.textContent)).toContain(
+      "Work submitted. Its link to the promise is queued."
     );
   });
 });

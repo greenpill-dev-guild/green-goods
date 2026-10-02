@@ -1,6 +1,6 @@
 /**
  * useGardenCookieJars Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the 3-step multicall chain:
  *   1. Fetch jar addresses from CookieJarModule
@@ -10,7 +10,7 @@
 
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createTestWrapper } from "../../test-utils";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x2222222222222222222222222222222222222222";

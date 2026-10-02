@@ -14,10 +14,9 @@ import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import { getAddress, isAddress } from "viem";
 import {
+  EditorialCookieJarCardSkeleton,
   EditorialHeading,
   EditorialKicker,
-  EditorialMediaCardSkeleton,
-  EditorialSkeleton,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
 import { PublicCookieJarCard } from "@/components/Public/PublicCookieJarCard";
@@ -114,15 +113,11 @@ function statusPriority(status: CookieJarStatus): number {
   }
 }
 
-function CookiesSectionSkeleton() {
+function CookiesSectionSkeleton({ isConnected }: { isConnected: boolean }) {
   return (
     <div className="grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-3">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="flex flex-col gap-4 border-t border-stroke-soft-200 pt-5">
-          <EditorialSkeleton className="h-4 w-20 rounded-full" />
-          <EditorialMediaCardSkeleton mediaClassName="aspect-[4/3]" />
-          <EditorialSkeleton className="mt-2 h-24 w-full" />
-        </div>
+        <EditorialCookieJarCardSkeleton key={i} isConnected={isConnected} />
       ))}
     </div>
   );
@@ -342,7 +337,7 @@ function CookiesCampaignSurface() {
 
         <div className="mt-10">
           {isCampaignListLoading ? (
-            <CookiesSectionSkeleton />
+            <CookiesSectionSkeleton isConnected={isConnected} />
           ) : sortedCampaigns.length === 0 ? (
             <div className="max-w-2xl border-t border-stroke-soft-200 pt-6">
               <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">

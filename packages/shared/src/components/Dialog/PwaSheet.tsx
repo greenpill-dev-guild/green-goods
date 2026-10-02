@@ -24,13 +24,10 @@
  * body, so the sheet's buttons stay at its bottom edge whatever its height.
  *
  * Layout lives in shared `utilities.css` as `[data-component="PwaSheet"]`
- * attribute rules, not as utility classes on this JSX: Tailwind v4 does not
- * scan `packages/shared/src/` from the admin/client builds, so utilities
- * authored here silently fail to generate in the installed app (the drag
- * handle tint and `touch-none` were measured missing from the client
- * bundle). The rules sit in `@layer components`, so a consumer's
- * `panelClassName` utilities and unlayered package CSS still override them;
- * inline `panelStyle` wins over everything.
+ * attribute rules, not as utility classes on this JSX, so the geometry stays
+ * a set of overridable defaults: the rules sit in `@layer components`, where
+ * a consumer's `panelClassName` utilities and unlayered package CSS still
+ * override them; inline `panelStyle` wins over everything.
  *
  * Open/close uses named CSS keyframes (`dialogSlideInFromBottom` /
  * `dialogSlideOutToBottom` for the panel, `scrimFadeIn` / `scrimFadeOut` for

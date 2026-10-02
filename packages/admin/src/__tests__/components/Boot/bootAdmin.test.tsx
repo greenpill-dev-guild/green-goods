@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Admin boot resilience: the root receives visible content whether the
  * optional services succeed or throw, and a failure to load or render the

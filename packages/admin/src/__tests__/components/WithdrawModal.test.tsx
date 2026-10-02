@@ -1,6 +1,6 @@
+import type { GardenVault } from "@green-goods/shared/types/vaults";
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { GardenVault } from "@green-goods/shared/types/vaults";
 import { renderWithProviders, screen, userEvent } from "../test-utils";
 
 const { mockParseUnits } = vi.hoisted(() => ({ mockParseUnits: vi.fn() }));
@@ -18,53 +18,8 @@ vi.mock("@green-goods/shared/components/Alert", () => ({
     React.createElement("div", { role: "alert" }, children),
 }));
 
-vi.mock("@green-goods/shared/components/Button", () => ({
-  Button: ({
-    children,
-    className: _className,
-    size: _size,
-    variant: _variant,
-    ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    size?: string;
-    variant?: string;
-  }) => React.createElement("button", props, children),
-}));
-
 vi.mock("@green-goods/shared/components/feedback/TxInlineFeedback", () => ({
   TxInlineFeedback: () => null,
-}));
-
-vi.mock("@green-goods/shared/components/Form/ControlPrimitives", () => ({
-  TextInput: ({
-    invalid: _invalid,
-    surface: _surface,
-    ...props
-  }: React.InputHTMLAttributes<HTMLInputElement> & {
-    invalid?: boolean;
-    surface?: string;
-  }) => React.createElement("input", props),
-}));
-
-vi.mock("@green-goods/shared/components/Form/FormFieldWrapper", () => ({
-  FormField: ({
-    children,
-    error,
-    htmlFor,
-    label,
-  }: {
-    children: React.ReactNode;
-    error?: string;
-    htmlFor: string;
-    label: string;
-  }) =>
-    React.createElement(
-      "div",
-      null,
-      React.createElement("label", { htmlFor }, label),
-      children,
-      error ? React.createElement("p", null, error) : null
-    ),
 }));
 
 vi.mock("@green-goods/shared/components/Vault/AssetSelector", () => ({
@@ -145,30 +100,8 @@ vi.mock("@green-goods/shared/utils/blockchain/vaults", () => ({
   },
 }));
 
-vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", () => ({
-  classifyTxError: () => ({
-    kind: "error",
-    severity: "error" as const,
-    titleKey: "app.tx.error",
-    messageKey: "app.tx.errorMessage",
-    rawMessage: "",
-  }),
-  isMeaningfulTxErrorMessage: () => false,
-}));
-
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-}));
-
-vi.mock("wagmi", () => ({
-  useReadContracts: () => ({
-    data: [
-      { result: 1n, status: "success" }, // maxRedeem
-      { result: 1n, status: "success" }, // maxWithdraw
-      { result: 1n, status: "success" }, // previewWithdraw
-      { result: 6, status: "success" }, // share decimals
-    ],
-  }),
 }));
 
 vi.mock("@/components/AdminDialog", () => ({

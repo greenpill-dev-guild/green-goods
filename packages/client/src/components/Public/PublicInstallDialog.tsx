@@ -102,7 +102,7 @@ export function PublicInstallDialog({
         <Dialog.Overlay className="public-install-overlay fixed inset-0 z-overlay bg-static-black/45" />
         <Dialog.Content
           className={cn(
-            "public-install-sheet fixed z-modal max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-1.5rem)] overflow-hidden border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 shadow-[var(--shadow-editorial-panel)] focus:outline-none",
+            "public-install-sheet fixed z-modal max-h-[calc(100vh-2rem)] w-full max-w-none overflow-hidden border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 shadow-[var(--shadow-editorial-panel)] focus:outline-none",
             "bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2",
             isDesktopQr ? "sm:max-w-[44rem]" : "sm:max-w-lg"
           )}

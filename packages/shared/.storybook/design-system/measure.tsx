@@ -257,6 +257,24 @@ export function readToken(name: string, element: Element = document.documentElem
   return getComputedStyle(element).getPropertyValue(name).trim() || "∅";
 }
 
+/**
+ * The rings an element's computed box-shadow actually draws: parts with no
+ * offset or blur, a positive spread, and a visible colour. A shadow list the
+ * browser rejects computes to `none` and draws no ring at all.
+ */
+export function drawnRings(element: Element): string[] {
+  const shadow = getComputedStyle(element).boxShadow;
+  if (shadow === "none") return [];
+  return Array.from(
+    shadow.matchAll(/(rgba?\([^)]*\))\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px/g)
+  )
+    .filter(([, color, x, y, blur, spread]) => {
+      const alpha = color.startsWith("rgba") ? Number(color.slice(color.lastIndexOf(",") + 1, -1)) : 1;
+      return alpha > 0 && Number(x) === 0 && Number(y) === 0 && Number(blur) === 0 && Number(spread) > 0;
+    })
+    .map(([part]) => part);
+}
+
 const DEFAULT_TARGET =
   'button, a[href], input, select, textarea, [role="tab"], [role="switch"], [role="button"]';
 

@@ -84,6 +84,7 @@ import type {
   ToConfirmRow,
 } from "./commitments-to-confirm.types";
 import { useProtocolPool } from "./useProtocolPool";
+import { reviewRefreshOptions } from "./review-refresh";
 
 export type {
   CommitmentsToConfirm,
@@ -111,6 +112,7 @@ export function useCommitmentsToConfirm({
   chainId,
   viewer,
   includeProtocolFallback = false,
+  refreshWhileOpen = false,
 }: {
   chainId: number;
   viewer?: Address;
@@ -120,6 +122,8 @@ export function useCommitmentsToConfirm({
    * protocol pool console, because those rows come from other gardens.
    */
   includeProtocolFallback?: boolean;
+  /** Keep the steward's visible review queue current across other sessions. */
+  refreshWhileOpen?: boolean;
 }): CommitmentsToConfirm {
   const availability = useCommitmentPoolingAvailability({ chainId });
   const { data: gardens = [] } = useGardens(chainId);
@@ -146,6 +150,7 @@ export function useCommitmentsToConfirm({
     // Only a steward has a tab to fill, so a plain member never asks at all.
     enabled: availability.status === "available" && Boolean(viewer) && stewarded.length > 0,
     staleTime: STALE_TIME_MEDIUM,
+    ...reviewRefreshOptions(refreshWhileOpen),
   });
   const ownIds = useMemo(
     () => new Set((own.data ?? []).map((row) => row.commitmentId.toString())),
@@ -164,6 +169,7 @@ export function useCommitmentsToConfirm({
     queryFn: () => getViewerConfirmedCommitmentIds({ chainId, viewer: viewer as Address }),
     enabled: availability.status === "available" && Boolean(viewer) && stewarded.length > 0,
     staleTime: STALE_TIME_MEDIUM,
+    ...reviewRefreshOptions(refreshWhileOpen),
   });
   const confirmedIds = useMemo(() => new Set(confirmed.data ?? []), [confirmed.data]);
 
@@ -171,7 +177,7 @@ export function useCommitmentsToConfirm({
   // are different questions, and only the pool's garden may dispute or
   // resolve (`GuardLib.isPoolSteward`), so the queue reads the registered
   // pools once rather than guessing from the confirming garden.
-  const poolsQuery = useCommitmentPools({ chainId });
+  const poolsQuery = useCommitmentPools({ chainId }, { refreshWhileOpen });
   const { poolGardens, stewardedSet } = useMemo(() => {
     const poolGardens = new Map<string, Address>();
     for (const pool of poolsQuery.pools) {
@@ -197,6 +203,7 @@ export function useCommitmentsToConfirm({
         queryFn: () => getCommitments(input),
         enabled: availability.status === "available",
         staleTime: STALE_TIME_MEDIUM,
+        ...reviewRefreshOptions(refreshWhileOpen),
       };
     }),
   });
@@ -213,6 +220,7 @@ export function useCommitmentsToConfirm({
           queryFn: () => getFallbackConfirmationCandidates(input),
           enabled: availability.status === "available",
           staleTime: STALE_TIME_MEDIUM,
+          ...reviewRefreshOptions(refreshWhileOpen),
         };
       }),
       ...(readProtocol
@@ -225,6 +233,7 @@ export function useCommitmentsToConfirm({
                 getFallbackConfirmationCandidates({ chainId, protocolFallbackEnabled: true }),
               enabled: availability.status === "available",
               staleTime: STALE_TIME_MEDIUM,
+              ...reviewRefreshOptions(refreshWhileOpen),
             },
           ]
         : []),
@@ -253,6 +262,7 @@ export function useCommitmentsToConfirm({
         queryFn: () => getCommitments(input),
         enabled: availability.status === "available",
         staleTime: STALE_TIME_MEDIUM,
+        ...reviewRefreshOptions(refreshWhileOpen),
       };
     }),
   });

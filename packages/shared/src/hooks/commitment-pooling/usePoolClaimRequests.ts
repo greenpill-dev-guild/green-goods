@@ -14,11 +14,12 @@ import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { getPoolClaimRequests } from "../../modules/commitment-pooling/data";
 import { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
+import { reviewRefreshOptions } from "./review-refresh";
 
 export function usePoolClaimRequests(
   input: { chainId: number; poolId: bigint; state?: string },
   /** A caller that may not know the pool yet gates here; the key stays the same. */
-  options: { enabled?: boolean } = {}
+  options: { enabled?: boolean; refreshWhileOpen?: boolean } = {}
 ) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
@@ -26,6 +27,7 @@ export function usePoolClaimRequests(
     queryFn: () => getPoolClaimRequests(input),
     enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
+    ...reviewRefreshOptions(options.refreshWhileOpen === true),
   });
   return { ...query, rows: query.data ?? [], availability };
 }

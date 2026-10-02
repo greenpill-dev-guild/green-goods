@@ -103,10 +103,12 @@ before PR approval; local proof alone does not establish merge readiness.
 ### Change Criticality
 
 - **Critical:** contract source and release tooling; shared Auth, JobQueue, Work providers and
-  modules; auth/work/vault/blockchain mutation hooks. Read every touched line and retain the
-  selector's complete critical override.
+  modules, workflows, and auth/work/vault hooks; and any other Shared code that signs, sends a
+  transaction, moves funds, or changes auth, session or queue state. Read every touched line and
+  retain the selector's complete critical override.
 - **Sensitive:** Agent runtime, indexer lifecycle/retry behavior, plan evidence, validation or
-  migration tooling, admin workflow state, and client journeys. Inspect failure and recovery.
+  migration tooling, admin workflow state, client journeys, and read-only Shared hooks that left
+  the critical tier. Inspect failure and recovery.
 - **Routine:** documentation, stories, cleanup, and test-only refactors without runtime changes,
   unless the changed guidance or command introduces sensitive consumer risk.
 

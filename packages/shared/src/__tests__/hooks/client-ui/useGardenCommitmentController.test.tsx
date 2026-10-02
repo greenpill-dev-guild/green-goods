@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -80,6 +80,8 @@ const mocks = vi.hoisted(() => ({
     pendingActs: new Map(),
     hasPendingCreate: false,
     pendingCreates: [],
+    proofJobs: [],
+    linkedWorkIds: new Set<string>(),
     isUnavailable: false,
     refresh: vi.fn(),
   },
@@ -136,6 +138,11 @@ vi.mock("../../../hooks/roles/useGardenMembership", () => ({
     isError: false,
     refetch: vi.fn(),
   }),
+}));
+
+vi.mock("../../../hooks/garden/useGardenRecord", () => ({
+  // Every host these tests use is in the garden list, so its own read never runs.
+  useGardenRecord: () => ({ data: undefined, isLoading: false, isError: false, refetch: vi.fn() }),
 }));
 
 vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
@@ -295,10 +302,16 @@ describe("useGardenCommitmentController", () => {
     expect(result.current.ownRequest?.state).toBe("DECLINED");
     expect(result.current.pendingClaimRequests.map((request) => request.claimant)).toEqual([MARIA]);
     expect(result.current.linkableWorks.map((entry) => entry.id)).toEqual(["0xaaaa"]);
+    // The reader stewards the host, so it counts for a personal claim there.
     expect(result.current.roles).toMatchObject({
       stewardsPoolGarden: true,
       counterpartyGarden: MARIA,
-      claimGardens: { member: [{ address: MARIA, name: "Provider Garden" }] },
+      claimGardens: {
+        member: [
+          { address: DEMO_GARDEN, name: "Host Garden" },
+          { address: MARIA, name: "Provider Garden" },
+        ],
+      },
     });
   });
 
@@ -341,6 +354,8 @@ describe("useGardenCommitmentController", () => {
         key,
         {
           jobId: "failed-1",
+          kind: "workLink" as const,
+          at: 1,
           discardable: true,
           reason: "membershipLost" as const,
           retryable: false,
@@ -363,11 +378,16 @@ describe("useGardenCommitmentController", () => {
       sendFailed: true,
       failedJob: {
         jobId: "failed-1",
+        kind: "workLink",
+        at: 1,
         discardable: true,
         reason: "membershipLost",
         retryable: false,
       },
       pendingAct: null,
+      // No proof from this phone is on its way here.
+      proofSending: false,
+      proofOnItsWay: null,
       isUnavailable: true,
       refresh: mocks.queue.refresh,
     });
@@ -534,7 +554,7 @@ describe("useGardenCommitmentController", () => {
     expect(result.current.actKind).toBe("takeUp");
   });
 
-  it("on the protocol pool, offers Take This Up to a member of any other garden and to nobody else", () => {
+  it("on the protocol pool, offers Take This Up to a member of any garden, the host by its own chain read", () => {
     mocks.commitmentQuery.detail = commitmentDetailFixture({
       commitment: commitmentFixture({
         derivedState: "OFFERED",
@@ -547,7 +567,7 @@ describe("useGardenCommitmentController", () => {
     });
     mocks.pool = poolFixture({ poolType: "PROTOCOL", garden: DEMO_GARDEN });
     mocks.roleAnswers = new Map();
-    // Membership in the host garden never counts: the host is not a claim context.
+    // The chain denies a role in the host, so the roster's stale entry there never counts.
     mocks.gardens = [
       { id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] },
       { id: MARIA, name: "Provider Garden", gardeners: [], stewards: [] },
@@ -573,11 +593,21 @@ describe("useGardenCommitmentController", () => {
     rerender();
     expect(result.current.actKind).toBe("takeUp");
     expect(result.current.membership.isMember).toBe(true);
+
+    // A role in the host alone, read from chain, opens a personal claim there.
+    mocks.gardens = [
+      { id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] },
+      { id: MARIA, name: "Provider Garden", gardeners: [], stewards: [] },
+    ];
+    mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:gardener`, true]]);
+    rerender();
+    expect(result.current.actKind).toBe("takeUp");
+    expect(result.current.membership.isMember).toBe(true);
   });
 
   it("withholds Take This Up while the pool type is unknown, even from a member", () => {
-    // Guessing "garden" before the pool reads would offer a host member a
-    // personal claim that a protocol pool refuses (GardenClaimMustBeExternal).
+    // Who may take it up, and whether the take-up needs a context, both turn
+    // on the pool's type, so a guess before the pool reads offers the wrong act.
     mocks.commitmentQuery.detail = commitmentDetailFixture({
       commitment: commitmentFixture({
         derivedState: "OFFERED",

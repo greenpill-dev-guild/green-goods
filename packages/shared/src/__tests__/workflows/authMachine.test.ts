@@ -15,7 +15,8 @@ import {
   type AuthInput,
   type PasskeySessionResult,
 } from "../../workflows/authMachine";
-import { createMockP256Credential, flushPromises, MOCK_ADDRESSES } from "../test-utils";
+import { createMockP256Credential, MOCK_ADDRESSES } from "../test-utils/mock-factories";
+import { flushPromises } from "../test-utils/render-helpers";
 
 // ============================================================================
 // MOCK SETUP (before imports that use localStorage)
@@ -486,6 +487,50 @@ describe("workflows/authMachine", () => {
       });
 
       expect(actor.getSnapshot().matches({ authenticated: "wallet" })).toBe(true);
+    });
+
+    // PRD-1001: a wallet that drops while the member signs in their wallet app,
+    // and never answers the reconnect window, must not end the member's session.
+    it("keeps a wallet member signed in when the wallet does not come back in time", async () => {
+      const actor = await startAndSettle(createTestMachine());
+      const gardener = MOCK_ADDRESSES.gardener as `0x${string}`;
+      actor.send({ type: "LOGIN_WALLET" });
+      actor.send({
+        type: "EXTERNAL_WALLET_CONNECTED",
+        address: gardener,
+        connectionType: "wallet",
+      });
+      actor.send({ type: "EXTERNAL_WALLET_DISCONNECTED", connectionType: "wallet" });
+
+      actor.send({ type: "RESTORE_TIMEOUT" });
+
+      expect(actor.getSnapshot().matches({ authenticated: "wallet" })).toBe(true);
+      expect(actor.getSnapshot().context.walletAddress).toBe(gardener);
+      expect(actor.getSnapshot().context.externalWalletConnected).toBe(false);
+
+      actor.send({
+        type: "EXTERNAL_WALLET_CONNECTED",
+        address: gardener,
+        connectionType: "wallet",
+      });
+
+      expect(actor.getSnapshot().matches({ authenticated: "wallet" })).toBe(true);
+      expect(actor.getSnapshot().context.externalWalletConnected).toBe(true);
+    });
+
+    it.each([
+      ["a remembered wallet stays signed in", MOCK_ADDRESSES.gardener, { authenticated: "wallet" }],
+      ["a wallet with no remembered address signs out", undefined, "unauthenticated"],
+    ] as const)("on a startup restore timeout, %s", async (_case, restoreAddress, expected) => {
+      const actor = await startAndSettle(createTestMachine(), {
+        restoreAuthMode: "wallet",
+        restoreAddress: restoreAddress as `0x${string}` | undefined,
+      });
+
+      actor.send({ type: "RESTORE_TIMEOUT" });
+
+      expect(actor.getSnapshot().matches(expected)).toBe(true);
+      expect(actor.getSnapshot().context.walletAddress).toBe(restoreAddress ?? null);
     });
 
     it("keeps explicit sign-out final while a wallet is restoring", async () => {

@@ -1,6 +1,6 @@
 /**
  * PageTransition Tests — close-then-navigate sheet orchestration
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { readFileSync } from "node:fs";

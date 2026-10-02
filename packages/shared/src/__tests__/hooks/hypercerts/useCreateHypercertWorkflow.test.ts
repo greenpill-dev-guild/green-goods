@@ -1,6 +1,6 @@
 /**
  * useCreateHypercertWorkflow Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests wizard step navigation and per-step validation logic
  * for the 4-step hypercert creation workflow.

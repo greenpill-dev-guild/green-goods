@@ -1,15 +1,15 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import type { QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { encodeAbiParameters, encodeEventTopics } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OCTANT_MODULE_ABI } from "../../../utils/blockchain/abis/octant";
 import { YIELD_SPLITTER_ABI } from "../../../utils/blockchain/abis/yield";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const GARDEN = "0x1111111111111111111111111111111111111111" as const;
 const ASSET = "0x2222222222222222222222222222222222222222" as const;
@@ -74,23 +74,6 @@ const toastService = {
 };
 
 vi.mock("../../../components/toast", () => ({ toastService }));
-
-const messages = {
-  "app.yield.harvestDistribution.inProgress": "Completing yield distribution",
-  "app.yield.harvestDistribution.success": "Yield distributed",
-  "app.yield.harvestDistribution.waiting": "Yield harvested and waiting",
-  "app.yield.harvestDistribution.submitted": "Transaction submitted",
-  "app.yield.harvestDistribution.pending": "Distribution still pending",
-};
-
-function wrapper(queryClient: QueryClient) {
-  return ({ children }: { children: ReactNode }) =>
-    createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      createElement(IntlProvider, { locale: "en", messages }, children)
-    );
-}
 
 function configureSnapshot({ shares = 10n, pending = 0n, converted = 10n, threshold = 7n } = {}) {
   mockReadContract.mockImplementation((_config: unknown, request: { functionName: string }) => {
@@ -190,9 +173,7 @@ describe("useHarvestDistribution", () => {
     // depends on how many queued sends the previous test consumed.
     mockSendContractCall.mockReset();
     mockGetReceipt.mockReset();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
     configureSnapshot();
     mockSendContractCall
       .mockResolvedValueOnce({ hash: HARVEST_HASH, sponsored: false })
@@ -205,9 +186,7 @@ describe("useHarvestDistribution", () => {
   });
 
   it("confirms harvest before sending splitYield and returns exact event amounts", async () => {
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -255,9 +234,7 @@ describe("useHarvestDistribution", () => {
   it("does not split when harvest fails", async () => {
     mockSendContractCall.mockReset();
     mockSendContractCall.mockRejectedValueOnce(new Error("user rejected"));
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await expect(
@@ -283,9 +260,7 @@ describe("useHarvestDistribution", () => {
   it("stops after a non-canonical Safe harvest submission", async () => {
     mockSendContractCall.mockReset();
     mockSendContractCall.mockResolvedValueOnce({ hash: "safe-proposal-123", sponsored: false });
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -307,9 +282,7 @@ describe("useHarvestDistribution", () => {
   it("stops after a non-canonical Safe distribution submission", async () => {
     mockSendContractCall.mockReset();
     mockSendContractCall.mockResolvedValueOnce({ hash: "safe-proposal-456", sponsored: false });
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -333,9 +306,7 @@ describe("useHarvestDistribution", () => {
   it("treats a standalone split failure as an error, not confirmed-harvest partial success", async () => {
     mockSendContractCall.mockReset();
     mockSendContractCall.mockRejectedValueOnce(new Error("split reverted"));
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await expect(
@@ -357,9 +328,7 @@ describe("useHarvestDistribution", () => {
 
   it("reports waiting and does not split below the effective threshold", async () => {
     configureSnapshot({ shares: 2n, converted: 2n, threshold: 7n });
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -385,9 +354,7 @@ describe("useHarvestDistribution", () => {
       .mockResolvedValueOnce({ hash: HARVEST_HASH, sponsored: false })
       .mockRejectedValueOnce(new Error("split reverted"))
       .mockResolvedValueOnce({ hash: SPLIT_HASH, sponsored: false });
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
     const base = {
       gardenAddress: GARDEN,
       assetAddress: ASSET,
@@ -427,9 +394,7 @@ describe("useHarvestDistribution", () => {
           : { logs: [yieldAccumulatedLog(5n)] }
       )
     );
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -462,9 +427,7 @@ describe("useHarvestDistribution", () => {
         ? Promise.resolve({ logs: [harvestTriggeredLog()] })
         : Promise.reject(new Error("rpc unavailable"))
     );
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -489,9 +452,7 @@ describe("useHarvestDistribution", () => {
     mockSendContractCall.mockReset();
     mockSendContractCall.mockResolvedValueOnce({ hash: SPLIT_HASH, sponsored: false });
     mockGetReceipt.mockRejectedValue(new Error("rpc unavailable"));
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -520,9 +481,7 @@ describe("useHarvestDistribution", () => {
         hash === HARVEST_HASH ? { logs: [harvestReportFailedLog()] } : { logs: [yieldSplitLog()] }
       )
     );
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -554,9 +513,7 @@ describe("useHarvestDistribution", () => {
     mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
       Promise.resolve({ logs: hash === HARVEST_HASH ? [] : [yieldSplitLog()] })
     );
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -586,9 +543,7 @@ describe("useHarvestDistribution", () => {
         ? Promise.reject(new Error("rpc unavailable"))
         : Promise.resolve({ logs: [yieldSplitLog()] })
     );
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -616,9 +571,7 @@ describe("useHarvestDistribution", () => {
     mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
       Promise.resolve({ logs: hash === HARVEST_HASH ? [harvestTriggeredLog()] : [] })
     );
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -641,9 +594,7 @@ describe("useHarvestDistribution", () => {
     mockSendContractCall.mockReset();
     mockSendContractCall.mockResolvedValueOnce({ hash: SPLIT_HASH, sponsored: false });
     mockGetReceipt.mockResolvedValue({ logs: [] });
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await expect(
@@ -671,9 +622,7 @@ describe("useHarvestDistribution", () => {
           : { logs: [yieldSplitLog()] }
       )
     );
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -700,9 +649,7 @@ describe("useHarvestDistribution", () => {
     // the < comparison and reach splitYield(), which reverts NoVaultShares.
     configureSnapshot({ shares: 0n, pending: 0n, converted: 0n, threshold: 0n });
     mockSendContractCall.mockReset();
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -724,9 +671,7 @@ describe("useHarvestDistribution", () => {
 
   it("invalidates direct reads plus vault, yield, and Cookie Jar state", async () => {
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
-    const { result } = renderHook(() => useHarvestDistribution(), {
-      wrapper: wrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useHarvestDistribution(), { queryClient });
 
     await act(async () => {
       await result.current.mutateAsync({

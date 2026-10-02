@@ -1,7 +1,10 @@
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import type { WorkUploadCheckpoint } from "../../types/domain";
 import type { TransactionSender } from "../transactions/types";
+import { logger } from "../app/logger";
 import { jobQueueDB } from "../job-queue/db";
+import { holdWorkClaims } from "../job-queue/work-claims";
+import { holdingSend } from "../job-queue/send-guards";
 import { MAX_RETRIES } from "../job-queue/queue-policy";
 import { jobQueueEventBus } from "../job-queue/event-bus";
 import { convertQueuedHeicMedia } from "../job-queue/job-media-conversion";
@@ -53,7 +56,33 @@ function rejectTerminalWork(job: Job | undefined) {
     throw new Error(job.lastError ?? "submission-requires-retry");
 }
 
+/** Another holder has the work, another window's Upload all for one; it stays queued for them. */
+function heldElsewhere(queued: QueuedWorkSubmission, ports: SubmitWorkPorts): SubmitWorkOutcome {
+  logger.warn("[submitWork] Another holder has this work; it stays queued", {
+    jobId: queued.jobId,
+  });
+  return queuedOutcome(queued, ports.sender);
+}
+
+/**
+ * Admits the work durably, then sends it while the connection holds. Admission
+ * wakes background preparation, which would otherwise claim the work first and
+ * leave it for Upload all, so preparation is held back until this Submit has
+ * sent the work or left it queued; it then prepares whatever is left.
+ */
 export async function submitAdmittedWork(
+  input: ResolvedSubmitWorkCommand,
+  ports: SubmitWorkPorts
+): Promise<SubmitWorkOutcome> {
+  const resumePreparation = await ports.suspendPreparation();
+  try {
+    return await admitAndSend(input, ports);
+  } finally {
+    resumePreparation();
+  }
+}
+
+async function admitAndSend(
   input: ResolvedSubmitWorkCommand,
   ports: SubmitWorkPorts
 ): Promise<SubmitWorkOutcome> {
@@ -106,6 +135,7 @@ export async function submitAdmittedWork(
         result.error === "submission-ownership-changed"
       )
         throw new Error(result.error);
+      if (result.error === "already-processing") return heldElsewhere(queued, ports);
     }
     return result.success && result.txHash
       ? ({
@@ -119,7 +149,8 @@ export async function submitAdmittedWork(
         } as SubmitWorkOutcome);
   }
   const claim = await acquireWorkJobs([queued.jobId]);
-  if (!claim) return queuedOutcome(queued, ports.sender);
+  if (!claim) return heldElsewhere(queued, ports);
+  const stopHolding = holdWorkClaims([claim]);
   try {
     const job = await jobQueueDB.getJob(queued.jobId);
     if (!job || job.synced) {
@@ -174,26 +205,28 @@ export async function submitAdmittedWork(
       await input.onCheckpoint?.(value).catch(() => undefined);
     };
     try {
-      const txHash = await ports.direct.submitWork(
-        {
-          ...input,
-          images,
-          assertOwnership,
-          onCheckpoint: persist,
-          onBroadcast: async (hash) => {
-            rememberWorkBroadcast(job.id, hash);
-            await persist({
-              submittedAt: new Date().toISOString(),
-              files: {},
-              ...payload.uploadCheckpoint,
-              transactionHash: hash,
-              broadcast: { kind: "transaction", hash },
-              broadcastPending: false,
-            });
-            await input.onBroadcast?.(hash).catch(() => undefined);
+      const txHash = await holdingSend(job.id, () =>
+        ports.direct.submitWork(
+          {
+            ...input,
+            images,
+            assertOwnership,
+            onCheckpoint: persist,
+            onBroadcast: async (hash) => {
+              rememberWorkBroadcast(job.id, hash);
+              await persist({
+                submittedAt: new Date().toISOString(),
+                files: {},
+                ...payload.uploadCheckpoint,
+                transactionHash: hash,
+                broadcast: { kind: "transaction", hash },
+                broadcastPending: false,
+              });
+              await input.onBroadcast?.(hash).catch(() => undefined);
+            },
           },
-        },
-        ports.onWalletStage
+          ports.onWalletStage
+        )
       );
       await jobQueueDB.storeClientWorkIdMapping(input.clientWorkId, txHash, job.id);
       await jobQueueDB.markJobSynced(job.id, txHash);
@@ -219,8 +252,11 @@ export async function submitAdmittedWork(
         broadcastKnown: Boolean(checkpoint?.transactionHash || checkpoint?.broadcast),
       });
       if (failure.kind === "not-sent" && checkpoint?.broadcastPending) {
+        // Nothing was sent: the intent goes, with the chain's head kept for it.
         delete checkpoint.broadcastPending;
         delete checkpoint.broadcastPendingAt;
+        delete checkpoint.intentBlock;
+        delete checkpoint.intentChainTime;
         await jobQueueDB.updateJob(job);
       }
       if (failure.kind === "not-sent" && failure.cancelled) {
@@ -246,6 +282,7 @@ export async function submitAdmittedWork(
       throw error;
     }
   } finally {
+    stopHolding();
     await claim.release();
   }
 }

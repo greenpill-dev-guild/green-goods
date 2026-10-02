@@ -105,10 +105,10 @@ export function PublicGetInTouch() {
     <section
       ref={sectionRef}
       data-revealed={revealed}
-      className="editorial-section-reveal bg-editorial-deep px-6 py-20 sm:px-10 md:py-28"
+      className="editorial-section-reveal @container bg-editorial-deep px-6 py-20 sm:px-10 md:py-28"
       aria-labelledby="public-get-in-touch-title"
     >
-      <div className="editorial-cascade mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1.1fr] lg:gap-24">
+      <div className="editorial-cascade mx-auto grid max-w-7xl gap-12 sm:gap-8 @min-[70rem]:grid-cols-[1fr_1.1fr] @min-[70rem]:gap-24">
         <div>
           <EditorialKicker tone="dark" className="mb-5">
             {formatMessage({

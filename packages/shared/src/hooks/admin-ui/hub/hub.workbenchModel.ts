@@ -100,12 +100,10 @@ export function selectHubStageContent(stage: HubPipelineStage): HubStageContentK
 export function resolveHubSheetSelection({
   routeWorkId,
   routeCertificationId,
-  activeWorkDetailId,
-  hasSelectedCertification,
 }: HubSheetSelectionInput): HubSheetSelection {
-  const workId = routeWorkId ?? activeWorkDetailId;
-  if (workId) return { kind: "work", id: workId };
-  if (routeCertificationId || hasSelectedCertification) return { kind: "certification" };
+  // Selection snapshots can outlive navigation; only the route owns visibility.
+  if (routeWorkId) return { kind: "work", id: routeWorkId };
+  if (routeCertificationId) return { kind: "certification" };
   return null;
 }
 

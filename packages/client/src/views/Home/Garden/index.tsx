@@ -1,9 +1,9 @@
-import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import { Button } from "@green-goods/shared/components/Button";
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
@@ -37,7 +37,6 @@ import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
-import { ConvictionSheet, EndowmentSheet } from "@/components/Sheets";
 import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
@@ -48,6 +47,7 @@ import {
   JoinGardenButton,
 } from "@/components/Features";
 import { StandardTabs, TopNav } from "@/components/Navigation";
+import { ConvictionSheet, EndowmentSheet } from "@/components/Sheets";
 import { buildGardenTabs } from "./gardenTabs";
 import { GardenPool } from "./Pool";
 import { shareGarden } from "./shareGarden";
@@ -113,8 +113,6 @@ export const Garden: React.FC = () => {
       }
     }
 
-    const fallbackRegisteredAt = garden.createdAt ?? Date.now();
-
     return orderedAddresses.map((address) => {
       const normalized = address.toLowerCase();
       const match = allGardeners.find((g) => g.account?.toLowerCase() === normalized);
@@ -126,7 +124,7 @@ export const Garden: React.FC = () => {
         email: match?.email || undefined,
         phone: match?.phone || undefined,
         avatar: match?.avatar || undefined,
-        registeredAt: match?.registeredAt ?? fallbackRegisteredAt,
+        registeredAt: match?.registeredAt ?? null,
         isSteward: stewardSet.has(normalized),
         isGardener: gardenerSet.has(normalized),
       };

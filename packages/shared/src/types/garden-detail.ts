@@ -26,6 +26,9 @@ export interface GardenActivityEvent {
   timestamp: number;
   href?: string;
   itemId?: string;
+  actionUID?: number;
+  /** The stored Work title was an application placeholder, not authored copy. */
+  hasGeneratedTitle?: boolean;
 }
 
 export interface RoleDirectoryEntry {

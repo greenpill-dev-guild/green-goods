@@ -1,6 +1,6 @@
 /**
  * useHypercertAllowlist Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests allowlist distribution sync: recalculates when contributors
  * or distribution mode change, respects custom mode, and avoids

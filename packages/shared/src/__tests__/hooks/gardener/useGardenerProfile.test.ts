@@ -1,16 +1,16 @@
 /**
  * useGardenerProfile Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the on-chain gardener profile management hook:
  * query state, full profile update, and individual field mutations.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import type { QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const TEST_SMART_ACCOUNT = "0x1111111111111111111111111111111111111111" as `0x${string}`;
 const TEST_TX_HASH = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
@@ -82,22 +82,6 @@ vi.mock("../../../config/query-keys", () => ({
 
 import { useGardenerProfile } from "../../../hooks/gardener/useGardenerProfile";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      createElement(IntlProvider, { locale: "en", messages: {} }, children)
-    );
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-}
-
 // ============================================
 // Test Suite
 // ============================================
@@ -107,15 +91,13 @@ describe("useGardenerProfile", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockSendTransaction.mockResolvedValue(TEST_TX_HASH);
   });
 
   describe("query state", () => {
     it("returns null profile initially (placeholder query)", async () => {
-      const { result } = renderHook(() => useGardenerProfile(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -126,9 +108,7 @@ describe("useGardenerProfile", () => {
     });
 
     it("provides loading and error states", () => {
-      const { result } = renderHook(() => useGardenerProfile(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
 
       expect(typeof result.current.isLoading).toBe("boolean");
       expect(typeof result.current.refetch).toBe("function");
@@ -137,9 +117,7 @@ describe("useGardenerProfile", () => {
 
   describe("updateProfile mutation", () => {
     it("encodes setProfile call and sends gasless transaction", async () => {
-      const { result } = renderHook(() => useGardenerProfile(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
 
       await act(async () => {
         result.current.updateProfile({
@@ -165,9 +143,7 @@ describe("useGardenerProfile", () => {
     });
 
     it("provides isUpdating state", () => {
-      const { result } = renderHook(() => useGardenerProfile(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
 
       expect(result.current.isUpdating).toBe(false);
     });
@@ -175,45 +151,35 @@ describe("useGardenerProfile", () => {
 
   describe("individual field mutations", () => {
     it("provides updateName function", () => {
-      const { result } = renderHook(() => useGardenerProfile(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
 
       expect(typeof result.current.updateName).toBe("function");
       expect(result.current.isUpdatingName).toBe(false);
     });
 
     it("provides updateBio function", () => {
-      const { result } = renderHook(() => useGardenerProfile(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
 
       expect(typeof result.current.updateBio).toBe("function");
       expect(result.current.isUpdatingBio).toBe(false);
     });
 
     it("provides updateLocation function", () => {
-      const { result } = renderHook(() => useGardenerProfile(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
 
       expect(typeof result.current.updateLocation).toBe("function");
       expect(result.current.isUpdatingLocation).toBe(false);
     });
 
     it("provides updateImage function", () => {
-      const { result } = renderHook(() => useGardenerProfile(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
 
       expect(typeof result.current.updateImage).toBe("function");
       expect(result.current.isUpdatingImage).toBe(false);
     });
 
     it("sends individual field update transaction", async () => {
-      const { result } = renderHook(() => useGardenerProfile(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
 
       await act(async () => {
         result.current.updateName("New Name");
@@ -229,9 +195,7 @@ describe("useGardenerProfile", () => {
     it("handles transaction failure in updateProfile", async () => {
       mockSendTransaction.mockRejectedValue(new Error("Gas estimation failed"));
 
-      const { result } = renderHook(() => useGardenerProfile(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
 
       await act(async () => {
         result.current.updateProfile({

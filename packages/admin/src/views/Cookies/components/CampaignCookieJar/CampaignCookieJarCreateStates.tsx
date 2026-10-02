@@ -248,7 +248,13 @@ export function CampaignCookieJarSubmittedState({
                 : undefined
             }
           />
-          <AdminButton type="button" onClick={onUseManualAddress} disabled={!manualAddress}>
+          {/* Lifted over the field's reserved supporting line, so it lines up with the field. */}
+          <AdminButton
+            type="button"
+            onClick={onUseManualAddress}
+            disabled={!manualAddress}
+            className="md:mb-5"
+          >
             {formatMessage({
               id: "cockpit.community.cookies.useCreatedJar",
               defaultMessage: "Use jar address",

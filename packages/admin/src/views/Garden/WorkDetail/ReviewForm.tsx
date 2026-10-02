@@ -5,6 +5,7 @@ import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives"
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import { useWorkApproval } from "@green-goods/shared/hooks/work/useWorkApproval";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
@@ -25,7 +26,7 @@ import { AdminButton } from "@/components/AdminButton";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
 import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
-import { ReviewSummary, workApprovalSchema, type WorkApprovalFormData } from "./helpers";
+import { ReviewSummary, type WorkApprovalFormData, workApprovalSchema } from "./helpers";
 
 const REJECT_REASON_SUGGESTION_IDS = [
   "app.work.detail.rejectDialog.suggestion.photos",
@@ -58,7 +59,11 @@ export function ReviewForm({
   const { formatMessage } = useIntl();
   const primaryAddress = usePrimaryAddress();
   const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
-  const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, gardenerEnsName);
+  const { data: gardenerProtocolName } = useGreenGoodsEnsName(work.gardenerAddress);
+  const gardenerDisplayName = formatEnsAddressName(
+    work.gardenerAddress,
+    gardenerProtocolName || gardenerEnsName
+  );
 
   const workTitle = localizeCanonicalActionTitle(
     toWorkDisplayTitle(work.title, formatMessage({ id: "app.admin.work.untitledWork" })),

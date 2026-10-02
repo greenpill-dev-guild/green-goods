@@ -47,7 +47,10 @@ export async function authenticateGardenJoinRequest(
   const chainId = ctx.deps.gardenJoinRequestChainId;
   const verifier = ctx.deps.gardenJoinRequestSignatureVerifier;
   if (!chainId || !verifier) {
-    return { ok: false, response: gardenJoinRequestsUnavailable(c, ctx) };
+    return {
+      ok: false,
+      response: gardenJoinRequestsUnavailable(c, ctx, expectedAction === "create"),
+    };
   }
   const validation = validateGardenJoinProofEnvelope(
     decodeGardenJoinAuthorization(c.req.header("authorization")),
@@ -101,7 +104,10 @@ export async function authenticateGardenJoinRequest(
     return { ok: true, proof: validation.value };
   } catch (error) {
     reportGardenJoinRequestUnavailable(expectedAction, "signature_verification", error);
-    return { ok: false, response: gardenJoinRequestsUnavailable(c, ctx) };
+    return {
+      ok: false,
+      response: gardenJoinRequestsUnavailable(c, ctx, expectedAction === "create"),
+    };
   }
 }
 
@@ -150,12 +156,18 @@ export function reportGardenJoinRequestUnavailable(
   logger.error({ operation, stage, errorName }, "Garden join request operation unavailable");
 }
 
-export function gardenJoinRequestsUnavailable(c: Context, ctx: GardenJoinRequestRouteContext) {
+export function gardenJoinRequestsUnavailable(
+  c: Context,
+  ctx: GardenJoinRequestRouteContext,
+  createNotAttempted = false
+) {
   return gardenJoinRequestFailure(
     c,
     ctx,
-    "provider_unavailable",
-    "Garden join requests are unavailable right now.",
+    createNotAttempted ? "request_not_saved" : "provider_unavailable",
+    createNotAttempted
+      ? "This attempt did not save a request. Please try again."
+      : "Garden join requests are unavailable right now.",
     503
   );
 }

@@ -45,7 +45,13 @@ export function SeedStepWhat({
               defaultMessage: "Type",
             })}
             value={field.value}
-            onChange={field.onChange}
+            onChange={(kind) => {
+              field.onChange(kind);
+              // Garden work is counted in hours; the actions are what is approved.
+              if (kind === "GARDEN_WORK") {
+                form.setValue("unitLabel", "hours", { shouldDirty: true, shouldValidate: true });
+              }
+            }}
             options={[
               {
                 value: "SEASON_CAMPAIGN",

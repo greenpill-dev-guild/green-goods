@@ -1,6 +1,6 @@
 /**
  * CanvasLayout Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type React from "react";

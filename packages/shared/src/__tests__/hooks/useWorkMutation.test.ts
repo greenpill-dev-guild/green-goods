@@ -4,7 +4,7 @@ vi.mock("../../modules/job-queue/draft-db", () => ({
   draftDB: { getDraft: vi.fn(), updateDraft: vi.fn() },
 }));
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * useWorkMutation Hook Tests
  *
@@ -18,6 +18,7 @@ import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const workMutationStoreMocks = vi.hoisted(() => ({
+  activeDraftId: null as string | null,
   openWorkDashboard: vi.fn(),
   setSubmissionCompleted: vi.fn(),
   ensureWorkSubmissionJourneyId: vi.fn(() => "journey-123"),
@@ -84,6 +85,7 @@ vi.mock("../../stores/useUIStore", () => ({
 vi.mock("../../stores/useWorkFlowStore", () => ({
   useWorkFlowStore: {
     getState: vi.fn(() => ({
+      activeDraftId: workMutationStoreMocks.activeDraftId,
       setSubmissionCompleted: workMutationStoreMocks.setSubmissionCompleted,
       ensureWorkSubmissionJourneyId: workMutationStoreMocks.ensureWorkSubmissionJourneyId,
     })),
@@ -201,12 +203,12 @@ import { connectivityStore } from "../../stores/connectivity";
 import {
   createMockAction,
   createMockFiles,
-  createMockTransactionSender,
   createMockWorkDraft,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
-  mock,
-} from "../test-utils";
+} from "../test-utils/mock-factories";
+import { createMockTransactionSender } from "../test-utils/transaction-fakes";
+import { mock } from "../test-utils/render-helpers";
 
 describe("hooks/work/useWorkMutation", () => {
   let queryClient: QueryClient;
@@ -221,6 +223,7 @@ describe("hooks/work/useWorkMutation", () => {
   };
 
   beforeEach(() => {
+    workMutationStoreMocks.activeDraftId = null;
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -251,6 +254,36 @@ describe("hooks/work/useWorkMutation", () => {
     actions: [createMockAction({ id: "1" })],
     userAddress: MOCK_ADDRESSES.user,
   };
+
+  it("keeps the sent outcome available for linking when the active draft changes", async () => {
+    let finish!: (hash: `0x${string}`) => void;
+    const pendingSend = new Promise<`0x${string}`>((resolve) => {
+      finish = resolve;
+    });
+    vi.mocked(submitWorkDirectly).mockReturnValueOnce(pendingSend);
+    const onSuccess = vi.fn();
+    workMutationStoreMocks.activeDraftId = "original-draft";
+    const { result } = renderHook(() => useWorkMutation({ ...defaultOptions, onSuccess }), {
+      wrapper: createWrapper(),
+    });
+    let submitting!: Promise<unknown>;
+    act(() => {
+      submitting = result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    await waitFor(() => expect(submitWorkDirectly).toHaveBeenCalled());
+    workMutationStoreMocks.activeDraftId = "different-draft";
+    await act(async () => {
+      finish("0xsent");
+      await submitting;
+    });
+    expect(result.current.getLastSubmissionOutcome()).toMatchObject({
+      kind: "direct",
+      txHash: "0xsent",
+      clientWorkId: expect.any(String),
+    });
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(workMutationStoreMocks.setSubmissionCompleted).not.toHaveBeenCalled();
+  });
 
   it("does not retire the new account's draft when an earlier wallet request completes", async () => {
     let finish!: (hash: `0x${string}`) => void;

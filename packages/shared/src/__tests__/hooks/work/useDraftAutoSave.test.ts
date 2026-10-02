@@ -1,10 +1,9 @@
-/** @vitest-environment jsdom */
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+/** @vitest-environment happy-dom */
 import { act, cleanup, renderHook } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import { useDraftAutoSave, useDraftSaveStatus } from "../../../hooks/work/useDraftAutoSave";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mocks = vi.hoisted(() => ({ save: vi.fn(), persistent: vi.fn() }));
 vi.mock("../../../hooks/auth/useUser", () => ({
@@ -18,13 +17,8 @@ vi.mock("../../../modules/job-queue/draft-db", () => ({
 vi.mock("../../../utils/storage/quota", () => ({ requestPersistentStorageOnce: mocks.persistent }));
 const emptyImages: File[] = [];
 const base = { gardenAddress: null, actionUID: null, feedback: "draft", details: {} };
-let queryClient: QueryClient;
-function wrapper({ children }: { children: ReactNode }) {
-  return createElement(QueryClientProvider, { client: queryClient }, children);
-}
 
 beforeEach(() => {
-  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   vi.useFakeTimers();
   mocks.save.mockReset().mockResolvedValue({ id: "saved" });
   useWorkFlowStore.getState().reset();
@@ -42,7 +36,7 @@ afterEach(() => {
 describe("complete draft autosave", () => {
   it("does not write before hydration", async () => {
     useWorkFlowStore.setState({ draftHydrated: false });
-    const { result } = renderHook(() => useDraftAutoSave(base, emptyImages), { wrapper });
+    const { result } = renderHookWithQueryClient(() => useDraftAutoSave(base, emptyImages));
     await act(async () => {
       await result.current.saveOnExit();
       await vi.advanceTimersByTimeAsync(1000);
@@ -50,9 +44,9 @@ describe("complete draft autosave", () => {
     expect(mocks.save).not.toHaveBeenCalled();
   });
   it("saves the initial snapshot and debounces subsequent text edits", async () => {
-    const { rerender } = renderHook(
+    const { rerender } = renderHookWithQueryClient(
       ({ feedback }) => useDraftAutoSave({ ...base, feedback }, emptyImages),
-      { wrapper, initialProps: { feedback: "first" } }
+      { initialProps: { feedback: "first" } }
     );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
@@ -73,9 +67,9 @@ describe("complete draft autosave", () => {
   it("includes audio, updates the shared resumed ID, and propagates storage failure", async () => {
     useWorkFlowStore.setState({ activeDraftId: "resumed" });
     const audioNotes = [new File(["audio"], "note.webm", { type: "audio/webm" })];
-    const { result, rerender } = renderHook(
+    const { result, rerender } = renderHookWithQueryClient(
       ({ feedback }) => useDraftAutoSave({ ...base, feedback, audioNotes }, emptyImages),
-      { wrapper, initialProps: { feedback: "draft" } }
+      { initialProps: { feedback: "draft" } }
     );
     await act(async () => {
       await result.current.saveOnExit();
@@ -97,9 +91,9 @@ describe("complete draft autosave", () => {
           release = resolve;
         })
     );
-    const { result, rerender } = renderHook(
+    const { result, rerender } = renderHookWithQueryClient(
       ({ feedback }) => useDraftAutoSave({ ...base, feedback }, emptyImages),
-      { wrapper, initialProps: { feedback: "first" } }
+      { initialProps: { feedback: "first" } }
     );
     let first!: Promise<string | null>;
     await act(async () => {
@@ -122,7 +116,7 @@ describe("complete draft autosave", () => {
           release = () => resolve({ id: "saved" });
         })
     );
-    const { result } = renderHook(() => useDraftAutoSave(base, emptyImages), { wrapper });
+    const { result } = renderHookWithQueryClient(() => useDraftAutoSave(base, emptyImages));
 
     let first!: Promise<string | null>;
     let second!: Promise<string | null>;
@@ -140,7 +134,7 @@ describe("complete draft autosave", () => {
     expect(mocks.save).toHaveBeenCalledTimes(1);
   });
   it("does not rewrite a snapshot that is already saved", async () => {
-    const { result } = renderHook(() => useDraftAutoSave(base, emptyImages), { wrapper });
+    const { result } = renderHookWithQueryClient(() => useDraftAutoSave(base, emptyImages));
 
     await act(async () => {
       await result.current.saveOnExit();
@@ -150,9 +144,9 @@ describe("complete draft autosave", () => {
     expect(mocks.save).toHaveBeenCalledTimes(1);
   });
   it("cancels a delayed text save after discard", async () => {
-    const { rerender } = renderHook(
+    const { rerender } = renderHookWithQueryClient(
       ({ feedback }) => useDraftAutoSave({ ...base, feedback }, emptyImages),
-      { wrapper, initialProps: { feedback: "one" } }
+      { initialProps: { feedback: "one" } }
     );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
