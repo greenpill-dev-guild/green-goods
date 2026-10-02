@@ -5,7 +5,7 @@ import {
   type QueryKey,
 } from "@tanstack/react-query";
 import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { IntlProvider } from "react-intl";
+import { IntlProvider, type IntlShape, useIntl } from "react-intl";
 import {
   createMemoryRouter,
   MemoryRouter,
@@ -16,6 +16,9 @@ import { useGlobals } from "storybook/preview-api";
 import { custom } from "viem";
 import { WagmiProvider, createConfig, mock } from "wagmi";
 import { arbitrum, arbitrumSepolia, mainnet, sepolia } from "wagmi/chains";
+import toast from "react-hot-toast";
+import { createProofToasts } from "../src/components/Toast/presets/proof";
+import { ToastViewport } from "../src/components/Toast/ToastViewport";
 import { JobQueueProvider } from "../src/providers/JobQueue";
 import { WorkProvider } from "../src/providers/Work";
 import { AppContext, supportedLanguages } from "../src/providers/App";
@@ -444,6 +447,17 @@ export const withSignedOutAuth: Decorator = (Story, context) => (
 );
 
 /**
+ * An installed-app screen, edge to edge on the app's white ground. The preview
+ * pads every story and paints its own neutral; a page captured beside a design
+ * frame has to fill the viewport the way the client draws it.
+ */
+export const withAppPage: Decorator = (Story) => (
+  <div className="-m-[var(--gg-space-md)] min-h-dvh bg-bg-white-0 text-text-strong-950">
+    <Story />
+  </div>
+);
+
+/**
  * Client runtime harness for protected PWA/client stories that render the real
  * shell widgets. It mirrors the auth + queue + work providers used by
  * `AppShell` while keeping wallet reads mocked and inert.
@@ -518,4 +532,62 @@ export function withSelectedAdminGarden(garden: AdminStoreGarden): Decorator {
 
     return <Story {...context} />;
   };
+}
+
+/** The proof toast a frame shows, raised through the real preset. */
+export type ProofToastMoment =
+  | "adding"
+  | "addingSendToo"
+  | "confirming"
+  | "added"
+  | "sent"
+  | "savedOffline"
+  | "notAdded"
+  | "takingLonger"
+  | "couldNotAdd";
+
+/**
+ * One toast held in place over a frame. The app's toasts leave after a few
+ * seconds; a frame holds its moment, so the same toast is raised again in
+ * place before it would go, and is gone at once when the story ends.
+ */
+function HeldToast({ show }: { show: (formatMessage: IntlShape["formatMessage"]) => void }) {
+  const { formatMessage } = useIntl();
+  useEffect(() => {
+    show(formatMessage);
+    const hold = window.setInterval(() => show(formatMessage), 1500);
+    return () => {
+      window.clearInterval(hold);
+      toast.remove();
+    };
+  }, [formatMessage, show]);
+  return <ToastViewport toastOptions={{ style: { borderRadius: "var(--radius-md)" } }} />;
+}
+
+/** A client page with one toast over it, raised through the app's own call. */
+export function withHeldToast(show: (formatMessage: IntlShape["formatMessage"]) => void): Decorator {
+  return (Story) => (
+    <>
+      <Story />
+      <HeldToast show={show} />
+    </>
+  );
+}
+
+function showProofToast(moment: ProofToastMoment, formatMessage: IntlShape["formatMessage"]) {
+  const toasts = createProofToasts(formatMessage);
+  if (moment === "adding") toasts.adding({ sendToo: false });
+  else if (moment === "addingSendToo") toasts.adding({ sendToo: true });
+  else if (moment === "confirming") toasts.confirming();
+  else if (moment === "added") toasts.added({ sent: false, leads: true });
+  else if (moment === "sent") toasts.added({ sent: true, leads: true });
+  else if (moment === "savedOffline") toasts.savedOffline();
+  else if (moment === "notAdded") toasts.notAdded();
+  else if (moment === "takingLonger") toasts.takingLonger();
+  else toasts.couldNotAdd(() => undefined);
+}
+
+/** A client page with one proof toast over it, where the app's viewport draws it. */
+export function withProofToast(moment: ProofToastMoment): Decorator {
+  return withHeldToast((formatMessage) => showProofToast(moment, formatMessage));
 }

@@ -273,6 +273,15 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
             </form>
           )}
           {/* Results sit under the form: above it, each one pushed the fields down. */}
+          {!join.request ? (
+            <p className="text-sm text-text-sub-600">
+              {formatMessage({
+                id: "app.garden.joinRequest.signingExplanation",
+                defaultMessage:
+                  "Sending a request or checking its status asks you to sign a message to verify your account. This does not send a transaction or cost a fee.",
+              })}
+            </p>
+          ) : null}
           <div aria-live="polite" className="space-y-3">
             {successMessage ? (
               <p className="rounded-[var(--radius-md)] bg-success-lighter p-3 text-sm text-success-dark">
@@ -301,7 +310,12 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
             ) : null}
           </div>
 
-          {join.hasCheckedStatus && !join.request ? (
+          {join.hasCheckedStatus &&
+          !join.request &&
+          !outcomeUnknown &&
+          !join.mutationState.isLoading &&
+          !join.statusState.isLoading &&
+          !join.statusState.error ? (
             <p className="text-sm text-text-sub-600" aria-live="polite">
               {formatMessage({
                 id: "app.garden.joinRequest.none",

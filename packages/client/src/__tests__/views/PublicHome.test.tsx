@@ -5,7 +5,7 @@
  * - Desktop renders only `Explore Gardens`.
  * - Mobile renders the install CTA first, then `Explore Gardens` second.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen } from "@testing-library/react";

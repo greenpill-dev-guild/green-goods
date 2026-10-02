@@ -9,7 +9,7 @@
  */
 
 import type { Job, WorkJobPayload } from "../../types/job-queue";
-import type { WorkLinkJobPayload } from "../commitment-pooling/jobs";
+import { commitmentJobPrerequisite, type WorkLinkJobPayload } from "../commitment-pooling/jobs";
 import { forgetWorkBroadcast, retainedWorkBroadcast } from "../work/work-confirmation";
 import type { JobQueueEvents, JobQueueExecutionClaims, JobQueueStore } from "./ports";
 import { hasRecordedSend } from "./queue-policy";
@@ -111,6 +111,24 @@ export function createJobRecovery(
               const error = "identity_conflict:source-work-terminal";
               await store.markJobTerminalFailed(dependent.id, error);
               events.emit("job:failed", { jobId: dependent.id, job: dependent, error });
+            }
+          }
+        }
+        // Add and Send's second act goes with its proof. It waited for the proof,
+        // so nothing of it was ever sent, and there is nothing left to send after.
+        if (job.kind === "evidence" && store.getJobs) {
+          const sends = await store.getJobs({
+            userAddress: job.userAddress,
+            kind: "confirmation",
+            synced: false,
+          });
+          for (const send of sends) {
+            if (
+              commitmentJobPrerequisite(send.kind, send.payload) === jobId &&
+              isDiscardableJob(send)
+            ) {
+              await store.deleteJob(send.id);
+              events.emit("job:failed", { jobId: send.id, job: send, error: "discarded" });
             }
           }
         }

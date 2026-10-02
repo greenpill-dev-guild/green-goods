@@ -49,6 +49,7 @@ import {
   EMBEDDED_ADDRESS_KEY,
   getAuthMode,
   getEmbeddedAddress,
+  getLastAccount,
   getStoredCredential,
   getStoredRpId,
   getStoredSmartAccountAddress,
@@ -59,6 +60,7 @@ import {
   SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
   setAuthMode,
   setEmbeddedAddress,
+  setLastAccount,
   setSignedOutSentinel,
   setStoredCredential,
   setStoredRpId,
@@ -207,6 +209,21 @@ describe("modules/auth/session", () => {
     it("ignores malformed persisted connector state", () => {
       mockLocalStorage.setItem("wagmi.store", "not-json");
       expect(getStoredWalletAddress()).toBeNull();
+    });
+  });
+
+  describe("last account", () => {
+    it("remembers the last account in lower case, through sign-out, and reads nothing else as one", () => {
+      expect(getLastAccount()).toBeNull();
+      setLastAccount("0xA11cE00000000000000000000000000000000001");
+      expect(getLastAccount()).toBe("0xa11ce00000000000000000000000000000000001");
+
+      // Sign-out keeps it, so the next account can be told apart.
+      clearActiveSessionAuth();
+      expect(getLastAccount()).toBe("0xa11ce00000000000000000000000000000000001");
+
+      mockLocalStorage.setItem("greengoods_last_account", "not-an-address");
+      expect(getLastAccount()).toBeNull();
     });
   });
 

@@ -131,6 +131,19 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
     }
   }
 
+  // Reconciliation above always wins: an already-created child or a send
+  // still awaiting its receipt stays recoverable after the frozen deadline.
+  if (job.kind === "commitment") {
+    const payload = job.payload as CommitmentCreationPayload;
+    if (
+      payload.metadata?.displayGroup &&
+      payload.dueDate > 0n &&
+      payload.dueDate <= BigInt(Math.floor(Date.now() / 1000))
+    ) {
+      return { status: "waiting", reason: "group-deadline-passed" };
+    }
+  }
+
   const txHash = await dependencies.send({
     kind: job.kind,
     payload: job.payload as CommitmentJobPayloadMap[CommitmentJobKind],

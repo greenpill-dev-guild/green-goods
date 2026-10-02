@@ -7,6 +7,7 @@ import {
 import type { Meta, StoryObj } from "@storybook/react";
 import { useFieldArray } from "react-hook-form";
 import { STORYBOOK_ADMIN_ACTIONS } from "../../../../../../shared/.storybook/adminFixtures";
+import { STORYBOOK_NOW_SECONDS } from "../../../../../../shared/.storybook/fixtures";
 import { SeedStepHowMuch, type SeedStepHowMuchProps } from "./SeedStepHowMuch";
 
 // The garden's registered actions, keyed the way the registry keys them: only a
@@ -14,6 +15,8 @@ import { SeedStepHowMuch, type SeedStepHowMuchProps } from "./SeedStepHowMuch";
 const SEED_ACTIONS: Action[] = STORYBOOK_ADMIN_ACTIONS.map((action, index) => ({
   ...action,
   id: `${DEFAULT_CHAIN_ID}-${index + 1}`,
+  startTime: action.startTime * 1_000,
+  endTime: action.endTime * 1_000,
 }));
 
 /** The step reads and writes the real composer form, exactly as the console does. */
@@ -33,7 +36,7 @@ const meta: Meta<typeof SeedStepHowMuch> = {
     docs: {
       description: {
         component:
-          "Step two of the seeding console. What is being counted (a unit of at most 24 characters, counted as the steward types) and how much of it, when it is due, who may contribute, and for garden work the approved actions it is kept by.",
+          "Step two of Seed Promises (PRD-1022 screens 02–03): two plainly named questions. How many separate promises to create, and what each one asks for: a unit of at most 24 characters and its amount, when it is due, who may contribute, and for garden work the approved actions it is kept by. The total under them keeps one height, and turns into a soft check when both numbers are above one.",
       },
     },
   },
@@ -50,6 +53,8 @@ const meta: Meta<typeof SeedStepHowMuch> = {
     errorOf: () => undefined,
     actions: SEED_ACTIONS,
     chainId: DEFAULT_CHAIN_ID,
+    now: STORYBOOK_NOW_SECONDS * 1_000,
+    cap: 3,
   },
   render: (args) => <SeedStepHowMuchWithForm {...args} />,
   decorators: [
@@ -65,6 +70,34 @@ export default meta;
 type Story = StoryObj<typeof SeedStepHowMuch>;
 
 export const KeptByProof: Story = {};
+
+/** Ten separate promises at one survey each: ten surveys, each kept on its own. */
+export const TenSeparate: Story = {
+  args: {
+    values: {
+      ...COMMITMENT_COMPOSER_DEFAULTS,
+      kind: "SERVICE",
+      unitLabel: "survey",
+      targetUnits: 1,
+      dueInDays: 14,
+      count: 10,
+    },
+  },
+};
+
+/** Ten promises of ten surveys each: the total asks, in the same height, and offers the fix. */
+export const TotalCheck: Story = {
+  args: {
+    values: {
+      ...COMMITMENT_COMPOSER_DEFAULTS,
+      kind: "SERVICE",
+      unitLabel: "survey",
+      targetUnits: 10,
+      dueInDays: 14,
+      count: 10,
+    },
+  },
+};
 
 export const GardenWork: Story = {
   args: {
@@ -96,3 +129,19 @@ export const MissingUnitAndTarget: Story = {
 };
 
 export const Queuing: Story = { args: { busy: true } };
+
+export const ClosedChosenAction: Story = {
+  args: {
+    values: {
+      ...COMMITMENT_COMPOSER_DEFAULTS,
+      kind: "GARDEN_WORK",
+      unitLabel: "plots",
+      targetUnits: 4,
+      requirements: [{ actionUID: "1", requiredCount: 3 }],
+    },
+    actions: SEED_ACTIONS.map((action, index) =>
+      index === 0 ? { ...action, endTime: STORYBOOK_NOW_SECONDS * 1_000 - 1 } : action
+    ),
+    now: STORYBOOK_NOW_SECONDS * 1_000,
+  },
+};

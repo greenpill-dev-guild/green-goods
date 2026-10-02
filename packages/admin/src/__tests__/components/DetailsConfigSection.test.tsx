@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { ActionInstructionConfig } from "@green-goods/shared/types/domain";

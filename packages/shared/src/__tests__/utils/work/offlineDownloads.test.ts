@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const media = vi.hoisted(() => ({
   createUrl: vi.fn((_file: File, _owner: string) => "blob:verified-original"),
@@ -50,7 +50,11 @@ it("downloads a verified original through a local blob and releases its bytes", 
     expect.any(File),
     expect.stringContaining("work-download-")
   );
-  expect(media.createUrl.mock.calls[0][0].size).toBe(13);
+  // The file holds the original's bytes. jsdom's File turned Node's Blob into the 13 characters of
+  // "[object Blob]", which the old assertion checked instead.
+  const downloaded = media.createUrl.mock.calls[0][0];
+  expect(downloaded.size).toBe("original-bytes".length);
+  await expect(downloaded.text()).resolves.toBe("original-bytes");
   await vi.advanceTimersByTimeAsync(1_000);
   expect(media.cleanupUrls).toHaveBeenCalledTimes(1);
 });

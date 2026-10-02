@@ -70,7 +70,7 @@ export function FieldNotesSection({
         <SectionEmpty
           message={formatMessage({
             id: "public.gardenDetail.notes.empty",
-            defaultMessage: "No field notes yet. They appear when Work is submitted.",
+            defaultMessage: "No field notes yet. They appear when Work is approved.",
           })}
         />
       ) : (
@@ -118,14 +118,16 @@ export function FieldNotesSection({
         </>
       )}
 
-      <FieldNoteDialog
-        chainId={chainId}
-        note={openNote}
-        onClose={() => {
-          setOpenNote(null);
-          triggerRef.current?.focus();
-        }}
-      />
+      {openNote ? (
+        <FieldNoteDialog
+          chainId={chainId}
+          note={openNote}
+          onClose={() => {
+            setOpenNote(null);
+            triggerRef.current?.focus();
+          }}
+        />
+      ) : null}
     </Section>
   );
 }

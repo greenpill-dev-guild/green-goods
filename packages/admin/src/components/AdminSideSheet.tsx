@@ -55,8 +55,7 @@ const closeButtonClasses = cn(
  *   rounded all around, and slides in from the right edge.
  *   Width reuses the `--canvas-right-sheet-width` token (one width for every
  *   sheet — per-content widths read as inconsistent chrome).
- * - <640px: compact inset bottom sheet, so the notification bell keeps today's
- *   glance-and-dismiss behavior while workspace AdminDialogs can use full width.
+ * - <640px: full-width bottom sheet, with padding owned by its content.
  *
  * Content contract: children own the body — panels compose `SheetBody`
  * (scrolling middle) and optionally `SheetFooter` (pinned bottom bar) inside
@@ -123,9 +122,9 @@ export function AdminSideSheet({
           data-mobile="sheet"
           data-instant-exit={instantExit || undefined}
           className={cn(
-            // Mobile: compact inset bottom sheet. Desktop ≥640px:
+            // Mobile: full-width bottom sheet. Desktop ≥640px:
             // right-docked below AppBar and extended to the viewport bottom.
-            "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
+            "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-none -translate-x-1/2 flex-col",
             "rounded-t-[var(--m3-shape-lg)]",
             "sm:top-[var(--admin-sheet-top)] sm:right-[var(--admin-sheet-side-inset)] sm:bottom-[var(--admin-sheet-bottom)] sm:left-auto sm:max-h-none sm:max-w-none sm:translate-x-0",
             "sm:w-[var(--admin-side-sheet-width)]",

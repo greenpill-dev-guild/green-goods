@@ -22,9 +22,12 @@ import { commitmentPoolingKeys } from "../../config/query-keys/commitment-poolin
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
-import { isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
+import { hasRecordedSend, isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
 import type { CommitmentJobKind } from "../../modules/commitment-pooling/job-types";
-import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/jobs";
+import {
+  COMMITMENT_JOB_KINDS,
+  commitmentJobPrerequisite,
+} from "../../modules/commitment-pooling/jobs";
 import type { Job } from "../../types/job-queue";
 import type { Address } from "../../types/domain";
 
@@ -47,6 +50,10 @@ export interface PendingCommitmentCreation {
    * of filing a second one.
    */
   discardable: boolean;
+  /** Frozen deadline for a display-group copy; absent on legacy creations. */
+  groupDueDate?: string;
+  /** A recorded send must still be reconciled after the deadline. */
+  hasRecordedSend?: boolean;
   createdAt: number;
 }
 
@@ -75,6 +82,9 @@ export type CommitmentFailureReason =
 
 export interface FailedCommitmentJob {
   jobId: string;
+  kind: CommitmentJobKind;
+  /** When it last tried, so the promise's history can place the line. */
+  at: number;
   discardable: boolean;
   /** A terminal cause safe to explain without exposing queue internals. */
   reason: CommitmentFailureReason | null;
@@ -101,6 +111,13 @@ export interface CommitmentQueueState {
   hasPendingCreate: boolean;
   /** Every creation still on this phone, failed ones included, newest first. */
   pendingCreates: PendingCommitmentCreation[];
+  /** Proof still on this phone, failed ones included, newest first: Your Work lists it. */
+  proofJobs: Job[];
+  /**
+   * Queued work that a queued link ties to a promise, by its job id and its
+   * client work id, so Your Work can mark it "For a promise".
+   */
+  linkedWorkIds: ReadonlySet<string>;
   /**
    * The queue could not be read. Distinct from "nothing is queued": a surface
    * that treats a failed read as an empty queue re-enables an act already
@@ -143,6 +160,20 @@ function explainTerminalFailure(
  * who is reading, and a second identity source is a second thing that can
  * disagree about it.
  */
+/**
+ * Why an act still on this phone waits. A send on record is the answer
+ * whatever the stored reason says: the reason can outlive the record, and the
+ * record is what keeps the act from being dropped or sent twice. An act the
+ * person declined, or whose lost send was reopened, waits for their own send:
+ * nothing was sent, so it reads as a send that never went.
+ */
+function pendingActWaitingReason(job: Job): string | null {
+  if (hasRecordedSend(job)) return "awaiting-confirmation";
+  if (job.meta?.requiresExplicitSend) return "send-intent-expired";
+  const reason = job.meta?.waitingReason;
+  return typeof reason === "string" && reason !== "awaiting-confirmation" ? reason : null;
+}
+
 export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueueState {
   const queryClient = useQueryClient();
   const queryKey = useMemo(() => commitmentPoolingKeys.queueState(viewer), [viewer]);
@@ -183,18 +214,32 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     const failedJobs = new Map<string, FailedCommitmentJob>();
     const pendingActs = new Map<string, PendingCommitmentAct>();
     const pendingCreates: PendingCommitmentCreation[] = [];
+    const proofJobs: Job[] = [];
+    const linkedWorkIds = new Set<string>();
     let failedCount = 0;
     let hasPendingCreate = false;
+    // Add and Send's send waits behind its proof. Until the proof lands the
+    // promise speaks for the proof, so the send holds the acts but not the notice.
+    const queuedIds = new Set(jobs.filter((job) => !job.synced).map((job) => job.id));
+    const waitsForQueuedProof = (job: Job) =>
+      queuedIds.has(commitmentJobPrerequisite(job.kind, job.payload) ?? "");
 
     for (const job of jobs) {
       if (job.synced) continue;
+      if (job.kind === "evidence") proofJobs.push(job);
+      if (job.kind === "workLink") {
+        const link = job.payload as { sourceWorkJobId?: string; clientWorkId?: string };
+        if (link.sourceWorkJobId) linkedWorkIds.add(link.sourceWorkJobId);
+        if (link.clientWorkId) linkedWorkIds.add(link.clientWorkId);
+      }
       const commitmentId = commitmentIdOf(job);
       const failed = isTerminallyFailedJob(job);
       if (job.kind === "commitment") {
         const payload = job.payload as {
           poolId?: bigint | string;
           direction?: number;
-          metadata?: { title?: string };
+          metadata?: { title?: string; displayGroup?: { id: string } };
+          dueDate?: bigint | string;
           unitLabel?: string;
           targetUnits?: bigint | string;
         };
@@ -209,6 +254,12 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           waitingForMembership: !failed && job.meta?.waitingReason === "membership-unavailable",
           failed,
           discardable: isDiscardableJob(job),
+          ...(payload.metadata?.displayGroup && payload.dueDate
+            ? { groupDueDate: String(payload.dueDate) }
+            : {}),
+          // Creations record submittedTxHash in meta; acts use sendCheckpoint.
+          // Discardability also accounts for a broadcast retained in memory.
+          hasRecordedSend: !isDiscardableJob(job),
           createdAt: job.createdAt,
         });
       }
@@ -218,6 +269,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           failedCommitmentIds.add(commitmentId);
           failedJobs.set(commitmentId, {
             jobId: job.id,
+            kind: job.kind as CommitmentJobKind,
+            at: job.lastAttemptAt ?? job.createdAt,
             discardable: isDiscardableJob(job),
             ...explainTerminalFailure(job.lastError),
           });
@@ -226,17 +279,18 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       }
       if (commitmentId) {
         pendingCommitmentIds.add(commitmentId);
+        if (waitsForQueuedProof(job)) continue;
         pendingActs.set(commitmentId, {
           jobId: job.id,
           kind: job.kind as CommitmentJobKind,
-          waitingReason:
-            typeof job.meta?.waitingReason === "string" ? job.meta.waitingReason : null,
+          waitingReason: pendingActWaitingReason(job),
           discardable: isDiscardableJob(job),
           createdAt: job.createdAt,
         });
       } else if (job.kind === "commitment") hasPendingCreate = true;
     }
     pendingCreates.sort((left, right) => right.createdAt - left.createdAt);
+    proofJobs.sort((left, right) => right.createdAt - left.createdAt);
 
     return {
       pendingCommitmentIds,
@@ -246,6 +300,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       pendingActs,
       hasPendingCreate,
       pendingCreates,
+      proofJobs,
+      linkedWorkIds,
       isUnavailable: Boolean(viewer) && query.isError,
       refresh,
     };

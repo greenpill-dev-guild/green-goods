@@ -101,12 +101,12 @@ export function PublicRecordLoop() {
               <Link
                 to={to}
                 viewTransition
-                className="group grid grid-cols-[3rem_1fr] gap-4 border-t border-stroke-soft-200 py-7 transition-colors hover:bg-bg-white-0/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:grid-cols-[5rem_1fr] sm:gap-8 md:grid-cols-[7rem_1.1fr_1fr] md:gap-12"
+                className="group grid grid-cols-[3rem_1fr] gap-4 border-t border-stroke-soft-200 py-7 transition-colors hover:bg-bg-white-0/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-x-6 xl:grid-cols-[7rem_1.1fr_1fr] xl:gap-12"
               >
                 <span className="pt-2">
                   <EditorialNumeral>{numeral}</EditorialNumeral>
                 </span>
-                <h3 className="flex min-w-0 items-baseline gap-3 font-serif text-2xl font-normal leading-[1.05] tracking-[-0.018em] text-text-strong-950 group-hover:text-primary-action md:text-4xl">
+                <h3 className="flex min-w-0 items-baseline gap-3 font-serif text-2xl font-normal leading-[1.05] tracking-[-0.018em] text-text-strong-950 group-hover:text-primary-action sm:justify-between md:text-3xl xl:justify-start xl:text-4xl">
                   <span className="min-w-0">
                     {formatMessage({ id: titleId, defaultMessage: defaultTitle })}
                   </span>
@@ -117,7 +117,7 @@ export function PublicRecordLoop() {
                     →
                   </span>
                 </h3>
-                <p className="col-start-2 min-w-0 text-sm leading-[1.6] text-text-sub-600 md:col-start-auto md:text-base">
+                <p className="col-start-2 min-w-0 max-w-prose text-sm leading-[1.6] text-text-sub-600 md:text-base xl:col-start-auto">
                   {formatMessage({ id: bodyId, defaultMessage: defaultBody })}
                 </p>
               </Link>

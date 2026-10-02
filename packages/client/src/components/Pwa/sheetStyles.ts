@@ -8,6 +8,7 @@ export interface PwaSheetStyle {
   tabs: string;
   tabTrigger: string;
   tabActive: string;
+  tabActiveIcon: string;
   tabInactive: string;
   tabBadge: string;
   tabIndicator: string;
@@ -22,8 +23,9 @@ export const pwaSheetStyles = {
     "transition-opacity duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
   tabs: "flex border-b border-stroke-soft-200 flex-shrink-0 bg-bg-weak-50",
   tabTrigger:
-    "flex min-h-11 items-center justify-center gap-1 px-1.5 py-2.5 text-xs font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:py-3 sm:text-label-sm focus:outline-none focus-visible:shadow-button-primary-focus active:text-primary",
+    "flex min-h-11 items-center justify-center gap-1 px-1.5 py-2.5 text-xs font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:py-3 sm:text-label-sm focus:outline-none focus-visible:shadow-button-primary-focus active:text-primary-on-surface",
   tabActive: `${pwaStatusStyles.primary.text} ${pwaStatusStyles.primary.surface}`,
+  tabActiveIcon: pwaStatusStyles.primary.icon,
   tabInactive: pwaStatusStyles.neutral.text,
   tabBadge: pwaStatusStyles.primary.badge,
   tabIndicator: pwaStatusStyles.primary.progress,

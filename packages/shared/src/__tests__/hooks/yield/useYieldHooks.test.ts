@@ -1,15 +1,15 @@
 /**
  * Yield Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests useAllocateYield mutation and useYieldAllocations query hooks.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import type { QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
@@ -108,21 +108,6 @@ vi.mock("../../../modules/app/logger", () => ({
   },
 }));
 
-const messages: Record<string, string> = {
-  "app.yield.allocating": "Allocating yield...",
-  "app.yield.allocateSuccess": "Yield allocated successfully",
-};
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      createElement(IntlProvider, { locale: "en", messages }, children)
-    );
-  };
-}
-
 // Dynamic imports after mocks
 const { useAllocateYield } = await import("../../../hooks/yield/useAllocateYield");
 const { useYieldAllocations } = await import("../../../hooks/yield/useYieldAllocations");
@@ -136,17 +121,13 @@ describe("useAllocateYield", () => {
     vi.clearAllMocks();
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("sends splitYield tx to YieldSplitter", async () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
 
-    const { result } = renderHook(() => useAllocateYield(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useAllocateYield(), { queryClient });
 
     await act(async () => {
       result.current.mutate({
@@ -170,9 +151,7 @@ describe("useAllocateYield", () => {
   it("shows toast lifecycle on success", async () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
 
-    const { result } = renderHook(() => useAllocateYield(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useAllocateYield(), { queryClient });
 
     await act(async () => {
       result.current.mutate({
@@ -193,9 +172,7 @@ describe("useAllocateYield", () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useAllocateYield(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useAllocateYield(), { queryClient });
 
     await act(async () => {
       result.current.mutate({
@@ -217,9 +194,7 @@ describe("useAllocateYield", () => {
   it("calls error handler on tx failure", async () => {
     mockWriteContractAsync.mockRejectedValueOnce(new Error("user rejected"));
 
-    const { result } = renderHook(() => useAllocateYield(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useAllocateYield(), { queryClient });
 
     await act(async () => {
       result.current.mutate({
@@ -249,9 +224,7 @@ describe("useYieldAllocations", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("fetches and transforms yield allocations from indexer", async () => {
@@ -272,8 +245,8 @@ describe("useYieldAllocations", () => {
       },
     });
 
-    const { result } = renderHook(() => useYieldAllocations(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useYieldAllocations(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     // Wait for actual data (not placeholder) — placeholderData: [] makes isSuccess true immediately
@@ -290,8 +263,8 @@ describe("useYieldAllocations", () => {
   });
 
   it("returns empty array when garden address is undefined", () => {
-    const { result } = renderHook(() => useYieldAllocations(undefined), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useYieldAllocations(undefined), {
+      queryClient,
     });
 
     expect(mockQuery).not.toHaveBeenCalled();
@@ -301,8 +274,8 @@ describe("useYieldAllocations", () => {
   it("propagates indexer error to React Query error state", async () => {
     mockQuery.mockResolvedValueOnce({ error: new Error("Indexer down") });
 
-    const { result } = renderHook(() => useYieldAllocations(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useYieldAllocations(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -312,8 +285,8 @@ describe("useYieldAllocations", () => {
   });
 
   it("respects enabled option", () => {
-    renderHook(() => useYieldAllocations(TEST_GARDEN as Address, { enabled: false }), {
-      wrapper: createWrapper(queryClient),
+    renderHookWithProviders(() => useYieldAllocations(TEST_GARDEN as Address, { enabled: false }), {
+      queryClient,
     });
 
     expect(mockQuery).not.toHaveBeenCalled();
@@ -322,8 +295,8 @@ describe("useYieldAllocations", () => {
   it("returns empty array when indexer returns null data", async () => {
     mockQuery.mockResolvedValueOnce({ data: null });
 
-    const { result } = renderHook(() => useYieldAllocations(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useYieldAllocations(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -335,8 +308,8 @@ describe("useYieldAllocations", () => {
       data: { YieldAllocation: [] },
     });
 
-    const { result } = renderHook(() => useYieldAllocations(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useYieldAllocations(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -371,8 +344,8 @@ describe("useYieldAllocations", () => {
       },
     });
 
-    const { result } = renderHook(() => useYieldAllocations(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useYieldAllocations(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     // Wait for actual data (not placeholder) — placeholderData: [] makes isSuccess true immediately
@@ -397,16 +370,18 @@ describe("useYieldAllocations", () => {
       txHash: "0xabc123",
     };
     mockQuery.mockResolvedValueOnce({ data: { YieldAllocation: [row, row] } });
-    const full = renderHook(() => useYieldAllocations(TEST_GARDEN as Address, { limit: 2 }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const full = renderHookWithProviders(
+      () => useYieldAllocations(TEST_GARDEN as Address, { limit: 2 }),
+      { queryClient }
+    );
     await waitFor(() => expect(full.result.current.allocations).toHaveLength(2));
     expect(full.result.current.atLimit).toBe(true);
 
     mockQuery.mockResolvedValueOnce({ data: { YieldAllocation: [row] } });
-    const partial = renderHook(() => useYieldAllocations(TEST_GARDEN as Address, { limit: 3 }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const partial = renderHookWithProviders(
+      () => useYieldAllocations(TEST_GARDEN as Address, { limit: 3 }),
+      { queryClient }
+    );
     await waitFor(() => expect(partial.result.current.allocations).toHaveLength(1));
     expect(partial.result.current.atLimit).toBe(false);
   });
@@ -416,8 +391,8 @@ describe("useYieldAllocations", () => {
       data: { YieldAllocation: [] },
     });
 
-    renderHook(() => useYieldAllocations(TEST_GARDEN as Address, { limit: 5 }), {
-      wrapper: createWrapper(queryClient),
+    renderHookWithProviders(() => useYieldAllocations(TEST_GARDEN as Address, { limit: 5 }), {
+      queryClient,
     });
 
     await waitFor(() => expect(mockQuery).toHaveBeenCalled());
@@ -437,9 +412,7 @@ describe("useAllocateYield — additional coverage", () => {
     vi.clearAllMocks();
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("normalizes addresses in onSuccess for cache invalidation", async () => {
@@ -448,9 +421,7 @@ describe("useAllocateYield — additional coverage", () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useAllocateYield(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useAllocateYield(), { queryClient });
 
     await act(async () => {
       result.current.mutate({

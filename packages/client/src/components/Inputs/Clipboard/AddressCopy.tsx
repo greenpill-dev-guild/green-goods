@@ -39,21 +39,22 @@ export function AddressCopy({
   const displayValue = formatAddress(address, { variant, ensName });
 
   const handleCopy = async () => {
-    try {
-      await copyToClipboard(address);
-      setCopied(true);
-      scheduleCopiedReset(() => setCopied(false), 2000);
-      toastService.success({
-        title: intl.formatMessage({
-          id: "app.toast.addressCopied",
-          defaultMessage: "Address copied",
-        }),
-      });
-    } catch {
+    const copiedOk = await copyToClipboard(address);
+    if (!copiedOk) {
+      setCopied(false);
       toastService.error({
         title: intl.formatMessage({ id: "app.toast.copyFailed", defaultMessage: "Copy failed" }),
       });
+      return;
     }
+    setCopied(true);
+    scheduleCopiedReset(() => setCopied(false), 2000);
+    toastService.success({
+      title: intl.formatMessage({
+        id: "app.toast.addressCopied",
+        defaultMessage: "Address copied",
+      }),
+    });
   };
 
   const sizeClasses = size === "compact" ? "px-3 py-2 min-h-[40px]" : "px-4 py-3 min-h-[48px]";
@@ -77,7 +78,7 @@ export function AddressCopy({
           {icon ? <span className="text-primary">{icon}</span> : null}
           <span className="font-mono text-xs sm:text-sm">{displayValue}</span>
         </span>
-        <span className="flex items-center gap-1 text-xs font-medium text-primary">
+        <span className="flex items-center gap-1 text-xs font-medium text-primary-on-surface">
           {copied ? <RiCheckLine className="h-4 w-4" /> : <RiFileCopyLine className="h-4 w-4" />}
           <span>
             {copied

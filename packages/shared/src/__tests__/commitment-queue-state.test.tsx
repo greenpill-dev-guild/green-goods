@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,7 +7,7 @@ import { useCommitmentQueueState } from "../hooks/commitment-pooling/useCommitme
 import { jobQueueEventBus } from "../modules/job-queue/event-bus";
 import type { Job } from "../types/job-queue";
 import type { Address } from "../types/domain";
-import { renderHookWithProviders } from "./test-utils";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as Address;
 
@@ -35,6 +35,35 @@ function creation(overrides: Partial<Job> = {}): Job {
 describe("useCommitmentQueueState", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("distinguishes expired unsent group copies from recorded sends that still need recovery", async () => {
+    const payload = {
+      poolId: 7n,
+      direction: 0,
+      dueDate: 1n,
+      metadata: { title: "Prune", displayGroup: { version: 1, id: "group-1" } },
+    };
+    mocks.getJobs.mockResolvedValue([
+      creation({ id: "unsent", payload }),
+      creation({ id: "recorded", payload, meta: { submittedTxHash: `0x${"44".repeat(32)}` } }),
+      creation({ id: "legacy", payload: { poolId: 7n, direction: 0, dueDate: 1n } }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingCreates).toHaveLength(3));
+    expect(result.current.pendingCreates.find((row) => row.jobId === "unsent")).toMatchObject({
+      groupDueDate: "1",
+      hasRecordedSend: false,
+      discardable: true,
+    });
+    expect(result.current.pendingCreates.find((row) => row.jobId === "recorded")).toMatchObject({
+      groupDueDate: "1",
+      hasRecordedSend: true,
+      discardable: false,
+    });
+    expect(
+      result.current.pendingCreates.find((row) => row.jobId === "legacy")?.groupDueDate
+    ).toBeUndefined();
   });
 
   it("re-reads the stored job when a flush ends without completing or failing it", async () => {
@@ -75,6 +104,8 @@ describe("useCommitmentQueueState", () => {
     await waitFor(() => expect(result.current.failedCount).toBe(1));
     expect(result.current.failedJobs.get("9")).toEqual({
       jobId: "link-1",
+      kind: "workLink",
+      at: expect.any(Number),
       discardable: true,
       reason: "membershipLost",
       retryable: false,
@@ -102,5 +133,74 @@ describe("useCommitmentQueueState", () => {
     });
     // A creation names no commitment yet, so it is a pending create, not an act.
     expect(result.current.pendingActs.size).toBe(1);
+  });
+
+  it("holds Discard back from an act whose send is on record, and says it is confirming", async () => {
+    // The transaction may still land; dropping the job would lose its only
+    // local record, so the row confirms it instead.
+    mocks.getJobs.mockResolvedValue([
+      creation({
+        id: "claim-2",
+        kind: "claim",
+        payload: {
+          commitmentId: 9n,
+          gardenAddress: VIEWER,
+          sendCheckpoint: { broadcastPending: false, transactionHash: `0x${"44".repeat(32)}` },
+        },
+        attempts: 1,
+        lastError: "receipt timeout",
+      }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingActs.has("9")).toBe(true));
+    expect(result.current.pendingActs.get("9")).toMatchObject({
+      discardable: false,
+      waitingReason: "awaiting-confirmation",
+    });
+  });
+
+  it("reads a declined proof as a send that never went, so the promise offers it again", async () => {
+    // Nothing was sent, and no flush sends it without the person: the notice
+    // says the signature was cancelled and offers Send Now and Discard.
+    mocks.getJobs.mockResolvedValue([
+      creation({
+        id: "proof-1",
+        kind: "evidence",
+        payload: { commitmentId: 9n, clientEvidenceId: "proof-1" },
+        meta: { requiresExplicitSend: true },
+        attempts: 1,
+        lastError: "User rejected the request",
+      }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingActs.has("9")).toBe(true));
+    expect(result.current.pendingActs.get("9")).toMatchObject({
+      kind: "evidence",
+      discardable: true,
+      waitingReason: "send-intent-expired",
+    });
+  });
+
+  it("leaves the promise to its proof while Add and Send's send waits behind it", async () => {
+    const proof = creation({
+      id: "proof-1",
+      kind: "evidence",
+      payload: { commitmentId: 9n, clientEvidenceId: "proof-1" },
+    });
+    const send = creation({
+      id: "send-1",
+      kind: "confirmation",
+      payload: { action: "submit", commitmentId: 9n, afterEvidenceJobId: "proof-1" },
+    });
+    mocks.getJobs.mockResolvedValueOnce([proof, send]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingActs.get("9")?.jobId).toBe("proof-1"));
+
+    // Landed, the proof has left the queue, and the send is what the promise holds.
+    mocks.getJobs.mockResolvedValueOnce([send]);
+    jobQueueEventBus.emit("queue:sync-completed", {
+      result: { processed: 1, failed: 0, skipped: 0 },
+    });
+    await waitFor(() => expect(result.current.pendingActs.get("9")?.jobId).toBe("send-1"));
   });
 });

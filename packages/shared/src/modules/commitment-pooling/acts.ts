@@ -136,7 +136,7 @@ export function selectCommitmentActKind(input: CommitmentActInput): CommitmentAc
   if (PRE_ACCEPTANCE.has(phase)) {
     // Direction already names the creator, so they read as provider on an Offer
     // and confirmer on a Request. Either way the act is to take it back.
-    if (seat === "provider" || seat === "confirmer") return "withdraw";
+    if (input.isCreator && (seat === "provider" || seat === "confirmer")) return "withdraw";
     // Taking up is for the garden's own people. A visitor reads the record and
     // is offered nothing, rather than an act the chain will refuse.
     if (input.isMember !== true) return null;

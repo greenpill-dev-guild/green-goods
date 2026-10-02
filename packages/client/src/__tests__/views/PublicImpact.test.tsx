@@ -8,7 +8,7 @@
  * - Honest states: loading, empty, EAS error, partialData,
  *   sourceLimitReached.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -180,6 +180,20 @@ describe("ImpactPage", () => {
     expect(within(proof).getAllByText("Not available right now")).toHaveLength(3);
     expect(within(proof).getAllByText("Not public yet")).toHaveLength(1);
     expect(within(proof).queryByText("0")).toBeNull();
+  });
+
+  it("dashes out only the count the stats read could not establish", () => {
+    mockUsePublicStats.mockReturnValue({
+      data: { ...mockStats, fieldNoteCount: null },
+      isLoading: false,
+    });
+    renderView();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    expect(within(proof).getAllByText("Not available right now")).toHaveLength(1);
+    expect(within(proof).getByText("7")).toBeInTheDocument();
+    expect(within(proof).queryByText("30")).toBeNull();
   });
 
   it("renders evidence cards with their titles in an image-forward grid", () => {

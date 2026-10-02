@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { commitmentDialogControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";

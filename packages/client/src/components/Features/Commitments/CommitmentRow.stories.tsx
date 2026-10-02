@@ -73,12 +73,57 @@ export const ProviderNeedsYou: Story = {
   },
 };
 
+/** Named, with nothing waiting on the reader and no seat: the units take the qualifier. */
 export const Named: Story = {
-  args: { row: row(), title: "Compost delivery to the beds" },
+  args: { row: row({ seat: null, needsYou: false }), title: "Compost delivery to the beds" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Compost delivery to the beds")).toBeVisible();
     await expect(canvas.getByText("3 hours")).toBeVisible();
+  },
+};
+
+/**
+ * One 88px row whatever it says: a long title takes two lines, and the 12px pill
+ * and one qualifier share the line under it.
+ */
+export const LongTitleNeedsYou: Story = {
+  args: {
+    row: row({
+      commitment: commitment({ direction: "REQUEST", creator: OTHER, counterparty: OTHER }),
+    }),
+    title: "Repair the north fence panel by the compost bays before the first frost",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const rowElement = canvas.getByRole("button", { name: /Repair the north fence panel/ });
+    await expect(rowElement.getBoundingClientRect().height).toBe(88);
+    const titleElement = within(rowElement).getByText(/Repair the north fence panel/);
+    await expect(titleElement.getBoundingClientRect().height).toBeLessThanOrEqual(40);
+    await expect(within(rowElement).getByRole("status").getBoundingClientRect().height).toBe(22);
+    await expect(canvas.getByText("Needs you")).toBeVisible();
+  },
+};
+
+/** A request carries the information edge; an offer, the primary one (DL-052). */
+export const Request: Story = {
+  args: {
+    row: row({
+      commitment: commitment({
+        direction: "REQUEST",
+        derivedState: "REQUESTED",
+        onchainState: "REQUESTED",
+        unitLabel: "rides",
+      }),
+      needsYou: false,
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: /3 rides/ })).toHaveAttribute(
+      "data-direction",
+      "REQUEST"
+    );
   },
 };
 
@@ -108,8 +153,10 @@ export const OnTheTeam: Story = {
     }),
   },
   play: async ({ canvasElement }) => {
+    // Team size lives on the promise; the row says how the reader is involved.
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("3 people on the team")).toBeVisible();
+    await expect(canvas.getByText("You are helping with this")).toBeVisible();
+    await expect(canvas.queryByText("3 people on the team")).not.toBeInTheDocument();
   },
 };
 

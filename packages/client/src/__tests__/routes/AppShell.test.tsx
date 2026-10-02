@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";

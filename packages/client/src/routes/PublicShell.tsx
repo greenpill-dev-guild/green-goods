@@ -301,7 +301,7 @@ export default function PublicShell() {
     // dialogs that portal out of this shell.
     <div className="flex min-h-screen flex-col bg-bg-white-0" data-site="website">
       <SiteHeader />
-      <main className="vt-main flex-1">
+      <main className="vt-main flex flex-1 flex-col">
         <Outlet />
       </main>
     </div>

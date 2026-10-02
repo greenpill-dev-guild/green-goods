@@ -4,7 +4,7 @@
  * Covers the reusable canvas layout primitives:
  * workbench row, empty shell, and responsive FAB behavior.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";

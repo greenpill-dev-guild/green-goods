@@ -1,6 +1,6 @@
 /**
  * Conviction Voting Mutation Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests mutation hooks (write operations) and error paths for query hooks.
  * Covers: useSetConvictionStrategies, useAllocateHypercertSupport,
@@ -14,11 +14,11 @@
  * - Query invalidation after mutations triggers subgraph refetch
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import type { QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_POOL = "0x1111111111111111111111111111111111111111";
@@ -130,34 +130,6 @@ vi.mock("../../../utils/blockchain/address", () => ({
   normalizeAddress: (addr: string) => addr.toLowerCase(),
 }));
 
-// i18n messages used by conviction hooks
-const messages: Record<string, string> = {
-  "app.conviction.saving": "Updating strategies...",
-  "app.conviction.saveSuccess": "Conviction strategies updated",
-  "app.conviction.settingDecay": "Updating decay rate...",
-  "app.conviction.setDecaySuccess": "Decay rate updated",
-  "app.conviction.settingPointsPerVoter": "Updating points per voter...",
-  "app.conviction.setPointsPerVoterSuccess": "Points per voter updated",
-  "app.conviction.settingRoleHatIds": "Updating role hat IDs...",
-  "app.conviction.setRoleHatIdsSuccess": "Role hat IDs updated",
-  "app.signal.allocating": "Allocating support...",
-  "app.signal.allocateSuccess": "Support allocation updated",
-  "app.signal.registering": "Registering hypercert...",
-  "app.signal.registerSuccess": "Hypercert registered",
-  "app.signal.removing": "Removing hypercert...",
-  "app.signal.removeSuccess": "Hypercert removed",
-};
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      createElement(IntlProvider, { locale: "en", messages }, children)
-    );
-  };
-}
-
 // Dynamic imports after mocks
 const { useSetConvictionStrategies } = await import(
   "../../../hooks/conviction/useSetConvictionStrategies"
@@ -190,18 +162,14 @@ describe("useSetConvictionStrategies", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("sends setConvictionStrategies tx through HatsModule", async () => {
     mockFetchHatsModuleAddress.mockResolvedValueOnce(TEST_HATS_MODULE);
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
 
-    const { result } = renderHook(() => useSetConvictionStrategies(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetConvictionStrategies(), { queryClient });
 
     await act(async () => {
       result.current.mutate({
@@ -235,9 +203,7 @@ describe("useSetConvictionStrategies", () => {
   it("throws when garden has no HatsModule configured", async () => {
     mockFetchHatsModuleAddress.mockResolvedValueOnce(null);
 
-    const { result } = renderHook(() => useSetConvictionStrategies(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetConvictionStrategies(), { queryClient });
 
     await act(async () => {
       result.current.mutate({
@@ -260,9 +226,7 @@ describe("useSetConvictionStrategies", () => {
     mockFetchHatsModuleAddress.mockResolvedValueOnce(TEST_HATS_MODULE);
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
 
-    const { result } = renderHook(() => useSetConvictionStrategies(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetConvictionStrategies(), { queryClient });
 
     await act(async () => {
       result.current.mutate({
@@ -293,9 +257,7 @@ describe("useSetConvictionStrategies", () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useSetConvictionStrategies(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetConvictionStrategies(), { queryClient });
 
     await act(async () => {
       result.current.mutate({
@@ -322,16 +284,14 @@ describe("useAllocateHypercertSupport", () => {
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
     mockUser.primaryAddress = TEST_VOTER;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("sends allocateSupport tx to pool address", async () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
 
-    const { result } = renderHook(() => useAllocateHypercertSupport(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useAllocateHypercertSupport(), {
+      queryClient,
     });
 
     await act(async () => {
@@ -356,8 +316,8 @@ describe("useAllocateHypercertSupport", () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useAllocateHypercertSupport(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useAllocateHypercertSupport(), {
+      queryClient,
     });
 
     await act(async () => {
@@ -382,8 +342,8 @@ describe("useAllocateHypercertSupport", () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useAllocateHypercertSupport(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useAllocateHypercertSupport(), {
+      queryClient,
     });
 
     await act(async () => {
@@ -406,8 +366,8 @@ describe("useAllocateHypercertSupport", () => {
   it("calls error handler on tx failure", async () => {
     mockWriteContractAsync.mockRejectedValueOnce(new Error("user rejected"));
 
-    const { result } = renderHook(() => useAllocateHypercertSupport(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useAllocateHypercertSupport(), {
+      queryClient,
     });
 
     await act(async () => {
@@ -437,8 +397,8 @@ describe("useAllocateHypercertSupport", () => {
       sendTransaction: mockSendTransaction,
     };
 
-    const { result } = renderHook(() => useAllocateHypercertSupport(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useAllocateHypercertSupport(), {
+      queryClient,
     });
 
     await act(async () => {
@@ -470,17 +430,13 @@ describe("useRegisterHypercert", () => {
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
     mockUser.primaryAddress = TEST_VOTER;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("sends registerHypercert tx", async () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
 
-    const { result } = renderHook(() => useRegisterHypercert(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useRegisterHypercert(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: TEST_POOL as Address, hypercertId: 42n });
@@ -502,9 +458,7 @@ describe("useRegisterHypercert", () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useRegisterHypercert(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useRegisterHypercert(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: poolAddress as Address, hypercertId: 1n });
@@ -523,9 +477,7 @@ describe("useRegisterHypercert", () => {
   it("calls error handler on failure", async () => {
     mockWriteContractAsync.mockRejectedValueOnce(new Error("tx failed"));
 
-    const { result } = renderHook(() => useRegisterHypercert(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useRegisterHypercert(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: TEST_POOL as Address, hypercertId: 1n });
@@ -544,17 +496,13 @@ describe("useDeregisterHypercert", () => {
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
     mockUser.primaryAddress = TEST_VOTER;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("sends deregisterHypercert tx", async () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
 
-    const { result } = renderHook(() => useDeregisterHypercert(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useDeregisterHypercert(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: TEST_POOL as Address, hypercertId: 99n });
@@ -575,9 +523,7 @@ describe("useDeregisterHypercert", () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useDeregisterHypercert(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useDeregisterHypercert(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: poolAddress as Address, hypercertId: 1n });
@@ -602,18 +548,14 @@ describe("useSetDecay", () => {
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
     mockUser.primaryAddress = TEST_VOTER;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("sends setDecay tx and invalidates pool config queries", async () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useSetDecay(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetDecay(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: TEST_POOL as Address, newDecay: 950000n });
@@ -644,17 +586,13 @@ describe("useSetPointsPerVoter", () => {
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
     mockUser.primaryAddress = TEST_VOTER;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("sends setPointsPerVoter tx", async () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
 
-    const { result } = renderHook(() => useSetPointsPerVoter(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetPointsPerVoter(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: TEST_POOL as Address, newPoints: 500n });
@@ -679,17 +617,13 @@ describe("useSetRoleHatIds", () => {
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
     mockUser.primaryAddress = TEST_VOTER;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("sends setRoleHatIds tx", async () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
 
-    const { result } = renderHook(() => useSetRoleHatIds(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetRoleHatIds(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: TEST_POOL as Address, hatIds: [1n, 2n, 3n] });
@@ -718,17 +652,15 @@ describe("Query hooks — subgraph error paths", () => {
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
     mockUser.primaryAddress = TEST_VOTER;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("useMemberVotingPower returns isError when subgraph query fails", async () => {
     mockGetMemberPower.mockRejectedValueOnce(new Error("Subgraph unavailable"));
 
-    const { result } = renderHook(
+    const { result } = renderHookWithProviders(
       () => useMemberVotingPower(TEST_POOL as Address, TEST_VOTER as Address),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -743,8 +675,8 @@ describe("Query hooks — subgraph error paths", () => {
   it("useHypercertConviction returns isError when subgraph query fails", async () => {
     mockGetConvictionWeights.mockRejectedValueOnce(new Error("Subgraph timeout"));
 
-    const { result } = renderHook(() => useHypercertConviction(TEST_POOL as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithProviders(() => useHypercertConviction(TEST_POOL as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -754,9 +686,10 @@ describe("Query hooks — subgraph error paths", () => {
   it("useRegisteredHypercerts returns isError when subgraph query fails", async () => {
     mockGetRegisteredHypercerts.mockRejectedValueOnce(new Error("Network error"));
 
-    const { result } = renderHook(() => useRegisteredHypercerts(TEST_POOL as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(
+      () => useRegisteredHypercerts(TEST_POOL as Address),
+      { queryClient }
+    );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.hypercertIds).toEqual([]);
@@ -765,9 +698,9 @@ describe("Query hooks — subgraph error paths", () => {
   it("useConvictionStrategies returns isError when subgraph query fails", async () => {
     mockGetConvictionStrategies.mockRejectedValueOnce(new Error("Subgraph error"));
 
-    const { result } = renderHook(
+    const { result } = renderHookWithProviders(
       () => useConvictionStrategies(TEST_GARDEN as Address, TEST_COMMUNITY as Address),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -782,9 +715,9 @@ describe("Query hooks — subgraph error paths", () => {
       allocations: [],
     });
 
-    const { result } = renderHook(
+    const { result } = renderHookWithProviders(
       () => useMemberVotingPower(TEST_POOL as Address, TEST_VOTER as Address),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -806,17 +739,13 @@ describe("useSetDecay — error path", () => {
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
     mockUser.primaryAddress = TEST_VOTER;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("calls error handler on tx failure", async () => {
     mockWriteContractAsync.mockRejectedValueOnce(new Error("tx reverted"));
 
-    const { result } = renderHook(() => useSetDecay(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetDecay(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: TEST_POOL as Address, newDecay: 950000n });
@@ -841,17 +770,13 @@ describe("useSetPointsPerVoter — error path and invalidation", () => {
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
     mockUser.primaryAddress = TEST_VOTER;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("calls error handler on tx failure", async () => {
     mockWriteContractAsync.mockRejectedValueOnce(new Error("gas estimation failed"));
 
-    const { result } = renderHook(() => useSetPointsPerVoter(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetPointsPerVoter(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: TEST_POOL as Address, newPoints: 500n });
@@ -866,9 +791,7 @@ describe("useSetPointsPerVoter — error path and invalidation", () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useSetPointsPerVoter(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetPointsPerVoter(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: TEST_POOL as Address, newPoints: 1000n });
@@ -892,17 +815,13 @@ describe("useSetRoleHatIds — error path and invalidation", () => {
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
     mockUser.primaryAddress = TEST_VOTER;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("calls error handler on tx failure", async () => {
     mockWriteContractAsync.mockRejectedValueOnce(new Error("unauthorized"));
 
-    const { result } = renderHook(() => useSetRoleHatIds(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetRoleHatIds(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: TEST_POOL as Address, hatIds: [1n, 2n] });
@@ -917,9 +836,7 @@ describe("useSetRoleHatIds — error path and invalidation", () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useSetRoleHatIds(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useSetRoleHatIds(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: TEST_POOL as Address, hatIds: [10n, 20n] });
@@ -943,17 +860,13 @@ describe("useDeregisterHypercert — error path", () => {
     mockUser.authMode = "wallet";
     mockUser.smartAccountClient = null;
     mockUser.primaryAddress = TEST_VOTER;
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("calls error handler on tx failure", async () => {
     mockWriteContractAsync.mockRejectedValueOnce(new Error("tx failed"));
 
-    const { result } = renderHook(() => useDeregisterHypercert(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useDeregisterHypercert(), { queryClient });
 
     await act(async () => {
       result.current.mutate({ poolAddress: TEST_POOL as Address, hypercertId: 42n });

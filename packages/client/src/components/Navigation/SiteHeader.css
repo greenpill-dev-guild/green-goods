@@ -1,0 +1,43 @@
+/* Radix presence waits for these animations before removing the public drawer. */
+@keyframes public-nav-enter {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes public-nav-exit {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+.public-nav-drawer[data-state="open"] {
+  animation: public-nav-enter var(--spring-spatial-duration) var(--spring-spatial-easing);
+}
+
+.public-nav-drawer[data-state="closed"] {
+  animation: public-nav-exit var(--spring-spatial-exit-duration) var(--spring-spatial-exit-easing);
+}
+
+.public-nav-scrim[data-state="open"] {
+  animation: public-nav-scrim-enter var(--spring-effects-duration) var(--spring-effects-easing);
+}
+
+.public-nav-scrim[data-state="closed"] {
+  animation: public-nav-scrim-exit var(--spring-effects-fast-duration) var(--spring-effects-fast-easing);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-nav-drawer[data-state],
+  .public-nav-scrim[data-state] {
+    animation: none;
+  }
+}
+
+@keyframes public-nav-scrim-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes public-nav-scrim-exit {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}

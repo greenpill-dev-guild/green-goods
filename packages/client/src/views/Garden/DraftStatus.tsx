@@ -1,6 +1,13 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { useIntl } from "react-intl";
 import type { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
+
+/**
+ * The draft's own news. Loading and saving pass in a moment, so they are said
+ * to screen readers only and never push the step down (D29); saving drafts
+ * stays invisible (DESIGN.pwa.md). A failure, or an attachment that can't be
+ * read, stays on screen with what to do about it.
+ */
 export function DraftStatus({
   draft,
   submissionCompleted,
@@ -11,14 +18,11 @@ export function DraftStatus({
   const intl = useIntl();
   return (
     <>
-      {!submissionCompleted &&
-        draft.saveState &&
-        draft.saveState !== "idle" &&
-        draft.saveState !== "saved" && (
-          <div role="status" aria-live="polite" className="text-sm text-text-sub-600">
-            {intl.formatMessage({ id: `app.garden.draft.${draft.saveState}` })}
-          </div>
-        )}
+      <p role="status" aria-live="polite" className="sr-only">
+        {!submissionCompleted && (draft.saveState === "loading" || draft.saveState === "saving")
+          ? intl.formatMessage({ id: `app.garden.draft.${draft.saveState}` })
+          : null}
+      </p>
       {draft.missingAttachments?.map((attachment) => (
         <div key={attachment.id} role="alert">
           <p>

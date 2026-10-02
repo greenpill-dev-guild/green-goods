@@ -12,6 +12,7 @@ import {
   selectDueLiveCommitments,
   selectNextDueBoundary,
   selectOrdinaryConfirmationReachable,
+  selectOrdinaryConfirmer,
 } from "../modules/commitment-pooling/steward-selectors";
 
 const CREATOR = "0x1111111111111111111111111111111111111111" as const;
@@ -120,6 +121,45 @@ describe("selectOrdinaryConfirmationReachable", () => {
         activeContributors: [],
       })
     ).toBe(false);
+  });
+});
+
+describe("selectOrdinaryConfirmer", () => {
+  const taken = {
+    confirmers: [] as `0x${string}`[],
+    counterpartyKind: "INDIVIDUAL" as const,
+    creator: CREATOR,
+    counterparty: TAKER,
+    activeContributors: [TAKER],
+  };
+
+  it("names the one account a page can say confirms it, and no one for a group or a garden", () => {
+    // A Request's creator confirms it; on a Request the taker is stored as the counterparty.
+    expect(selectOrdinaryConfirmer({ ...taken, direction: "REQUEST" })).toBe(CREATOR);
+    expect(
+      selectOrdinaryConfirmer({ ...taken, direction: "OFFER", activeContributors: [CREATOR] })
+    ).toBe(TAKER);
+    expect(
+      selectOrdinaryConfirmer({ ...taken, direction: "REQUEST", confirmers: [NAMED_A] })
+    ).toBeNull();
+    expect(
+      selectOrdinaryConfirmer({
+        ...taken,
+        direction: "OFFER",
+        counterpartyKind: "GARDEN",
+        counterparty: GARDEN,
+      })
+    ).toBeNull();
+  });
+
+  it("names no one once that account joined the team, since a fallback decides", () => {
+    expect(
+      selectOrdinaryConfirmer({
+        ...taken,
+        direction: "REQUEST",
+        activeContributors: [TAKER, CREATOR.toUpperCase() as typeof CREATOR],
+      })
+    ).toBeNull();
   });
 });
 
@@ -245,7 +285,17 @@ describe("selectNextDueBoundary", () => {
     ).toBe(500n);
   });
 
-  it("is null once nothing live is still ahead of now", () => {
+  it("includes a row due this second so the clock can wake when expiry becomes valid", () => {
+    expect(
+      selectNextDueBoundary({
+        commitments: [live(100n), live(101n)],
+        cycleEndTimes: new Map(),
+        now: 100n,
+      })
+    ).toBe(100n);
+  });
+
+  it("is null once every live due date has passed", () => {
     expect(
       selectNextDueBoundary({
         commitments: [live(50n), { onchainState: "FULFILLED", cycleId: null, dueDate: 900n }],

@@ -15,6 +15,7 @@ import {
   useCommitmentComposerDraftStore,
 } from "../../../stores/useCommitmentComposerDraftStore";
 import type { Address } from "../../../types/domain";
+import { isActionOpen, msUntilActionWindowChange } from "../../../utils/action/window";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useActions, useGardens } from "../../blockchain/useBaseLists";
@@ -32,6 +33,8 @@ import {
 } from "../../commitment-pooling/useCommitmentPooling";
 import { useComposeAgainValues } from "../../commitment-pooling/useComposeAgainValues";
 import { useHasRole } from "../../roles/useHasRole";
+import { useTimeout } from "../../utils/useTimeout";
+import { selectClosedActionUIDs } from "./composerBeats";
 import type {
   CommitmentComposerAccess,
   CommitmentComposerController,
@@ -125,6 +128,24 @@ export function useCommitmentComposerController(
   const isDirty = form.formState.isDirty;
   const [placed, setPlaced] = useState(false);
 
+  // Action windows are read against a clock that ticks when the next action
+  // opens or ends, so the offered actions and the chosen rows stay true while
+  // the composer sits open.
+  const { set: setWindowTimer, clear: clearWindowTimer } = useTimeout();
+  const [now, setNow] = useState(() => Date.now());
+  const openActions = useMemo(
+    () => actions.filter((action) => isActionOpen(action, now)),
+    [actions, now]
+  );
+  const closedActionUIDs = selectClosedActionUIDs(values, actions, input.chainId, now);
+  useEffect(() => {
+    const delay = msUntilActionWindowChange(actions, now);
+    if (delay === null) return;
+    // Waits for the change itself, however long ago `now` last ticked.
+    setWindowTimer(() => setNow(Date.now()), Math.max(0, now + delay - Date.now()));
+    return clearWindowTimer;
+  }, [actions, now, setWindowTimer, clearWindowTimer]);
+
   useEffect(() => {
     if (draftDecision !== "decided" || values.cycleId === "0") return;
     if (openCycles.some((cycle) => cycle.cycleId.toString() === values.cycleId)) return;
@@ -160,6 +181,8 @@ export function useCommitmentComposerController(
 
   const resumeDraft = () => {
     setResumed(Boolean(savedDraft));
+    // A saved draft is read against today: an action it names may have closed since.
+    setNow(Date.now());
     if (savedDraft) {
       form.reset({
         ...form.getValues(),
@@ -178,6 +201,13 @@ export function useCommitmentComposerController(
   const poolOpen = pool?.state === "OPEN";
   const place = async (): Promise<boolean> => {
     if (!pool || !poolOpen || !viewer || !garden) return false;
+    // Placement reads the time itself rather than the last tick: the contract
+    // takes a requirement whose action has closed, and no Work could keep it.
+    const placedAt = Date.now();
+    if (selectClosedActionUIDs(values, actions, input.chainId, placedAt).length > 0) {
+      setNow(placedAt);
+      return false;
+    }
     try {
       await jobs.enqueue({
         act: "create",
@@ -187,7 +217,7 @@ export function useCommitmentComposerController(
           poolId: pool.poolId,
           creator: viewer,
           gardenAddress: garden,
-          nowSeconds: Math.floor(Date.now() / 1000),
+          nowSeconds: Math.floor(placedAt / 1000),
         }),
       });
       if (draftKey) clearDraft(draftKey);
@@ -215,6 +245,8 @@ export function useCommitmentComposerController(
     form,
     values,
     actions,
+    openActions,
+    closedActionUIDs,
     openCycles,
     cycleNames: cycleNames.byCycleId,
     gardenName,

@@ -1,6 +1,7 @@
 import enMessages from "@green-goods/shared/i18n/en";
+import { createTestQueryClient } from "@green-goods/shared/testing/query-client";
 import { type Action, Domain } from "@green-goods/shared/types/domain";
-import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { onlineManager, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
@@ -536,12 +537,7 @@ function setNavigatorOnline(isOnline: boolean) {
 }
 
 function TestProviders({ children }: { children: ReactNode }) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
+  const queryClient = createTestQueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>

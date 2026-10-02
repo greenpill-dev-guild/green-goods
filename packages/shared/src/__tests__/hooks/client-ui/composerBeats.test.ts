@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   COMPOSER_BEATS,
   selectBeatValidity,
+  selectClosedActionUIDs,
 } from "../../../hooks/client-ui/commitment/composerBeats";
 import { COMMITMENT_COMPOSER_DEFAULTS } from "../../../hooks/commitment-pooling/useCommitmentComposerForm";
 import type { CommitmentComposerValues } from "../../../hooks/commitment-pooling/useCommitmentComposerForm";
+import { createMockAction } from "../../test-utils/mock-factories";
 
 const valid = {
   ...COMMITMENT_COMPOSER_DEFAULTS,
@@ -55,5 +57,41 @@ describe("selectBeatValidity", () => {
     expect(
       selectBeatValidity(beat, { ...valid, ...overrides } as CommitmentComposerValues)
     ).toEqual({ canAdvance, reason });
+  });
+
+  it("stops the beat that chose an action and placement, not the others, once it closes", () => {
+    const values = {
+      ...valid,
+      kind: "GARDEN_WORK",
+      requirements: [{ actionUID: "4", requiredCount: 1 }],
+    } as CommitmentComposerValues;
+    const closed = { canAdvance: false, reason: "closedAction" };
+
+    expect(selectBeatValidity("howMuch", values, ["4"])).toEqual(closed);
+    expect(selectBeatValidity("review", values, ["4"])).toEqual(closed);
+    expect(selectBeatValidity("details", values, ["4"])).toEqual({
+      canAdvance: true,
+      reason: null,
+    });
+  });
+});
+
+describe("selectClosedActionUIDs", () => {
+  it("lists the chosen garden-work actions whose window has ended, in the order chosen", () => {
+    const now = Date.now();
+    const actions = [
+      createMockAction({ id: "42161-4", endTime: now - 1 }),
+      createMockAction({ id: "42161-5", endTime: now - 1 }),
+      createMockAction({ id: "42161-6" }),
+    ];
+    const values = {
+      ...valid,
+      kind: "GARDEN_WORK",
+      // 7 is not in the loaded list, so nothing says it has closed.
+      requirements: ["5", "6", "4", "7"].map((actionUID) => ({ actionUID, requiredCount: 1 })),
+    } as CommitmentComposerValues;
+
+    expect(selectClosedActionUIDs(values, actions, 42161, now)).toEqual(["5", "4"]);
+    expect(selectClosedActionUIDs({ ...values, kind: "SERVICE" }, actions, 42161, now)).toEqual([]);
   });
 });

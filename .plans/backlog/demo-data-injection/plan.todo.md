@@ -57,9 +57,10 @@ Wrap `getPublicGardenPool`, `getPublicCommitmentImpact` and the four unwrapped c
 
 ### Rung 3 — an MSW browser worker in dev  ·  `ui` + `state_api`
 
-msw 2.14.6 is already a root dependency, used node-side only in
-`packages/shared/src/__mocks__/server/server.ts`. `__mocks__/browser/` is jsdom shims, not a
-`setupWorker`.
+msw is no longer a dependency. Its only user, an unused node-side GraphQL server in
+`packages/shared/src/__mocks__/server/server.ts`, was removed with the root `msw` pin on
+2026-09-29, so this rung would add msw back as a new dependency. `__mocks__/browser/` is jsdom
+shims, not a `setupWorker`.
 
 - One interception point could answer any indexer GraphQL query from fixtures, covering non-pooling
   surfaces too.

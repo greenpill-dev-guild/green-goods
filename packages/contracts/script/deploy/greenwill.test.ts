@@ -136,6 +136,26 @@ describe("GreenWillDeployer", () => {
     expect(plan.badges.firstSupport.rule).toBe("VaultShares");
   });
 
+  it("points the Genesis validator at Hats Protocol, not the Green Goods HatsModule", () => {
+    const plan = deployer.buildDeploymentPlan(options());
+
+    expect(plan.badges.genesis.validator).toBe("0x3bc1A0Ad72417f2d411118085256fC53CBdDd137");
+    expect(plan.badges.genesis.validator).not.toBe(ADDRESS.hatsModule);
+  });
+
+  it("refuses a Genesis validator that is the HatsModule, which cannot answer isWearerOfHat", () => {
+    writeDeployment(tmpDir, {
+      greenWillConfig: {
+        owner: ADDRESS.owner,
+        deployer: ADDRESS.deployer,
+        genesisHatId: "42",
+        hatsProtocol: ADDRESS.hatsModule,
+      },
+    });
+
+    expect(() => deployer.buildDeploymentPlan(options())).toThrow(/must be Hats Protocol/);
+  });
+
   it("accepts the production Genesis Hats role id in hex form", () => {
     writeDeployment(tmpDir, {
       greenWillConfig: {

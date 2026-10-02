@@ -295,7 +295,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           enum) — kept submittable in their own group, never under a named tab. */}
       {unknownActions.length > 0 && (
         <>
-          <p className="label-md text-text-sub-600">
+          <p className="text-paragraph-md tracking-normal text-text-sub-600">
             {intl.formatMessage({ id: "app.domain.tab.unknown", defaultMessage: "Other" })}
           </p>
           <Carousel opts={{ align: "start" }}>

@@ -7,7 +7,9 @@
  * UserOperation and a wallet approves one transaction. The send is recorded on
  * every item before it can reach the network: a lost answer is confirmed later,
  * never sent twice. A call the chain would refuse is split to find the items it
- * refuses; those are flagged and the rest stay ready.
+ * refuses; those are flagged and the rest stay ready. The call holds each item's
+ * send lock until its answer (`send-guards`), and an item another tab holds is
+ * left to that tab.
  *
  * Nothing here knows what a work or a decision is. Each kind says what
  * attestation it becomes (upload-kinds.ts) and where it keeps its send record
@@ -16,6 +18,7 @@
  * @module modules/work/upload-queued-work
  */
 
+import type { Hex } from "viem";
 import type { EASConfig } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
 import type { Job, SendCheckpoint } from "../../types/job-queue";
@@ -26,6 +29,7 @@ import {
 import { logger } from "../app/logger";
 import type { ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
 import { sendCheckpointOf, writeSendCheckpoint } from "../job-queue/queue-policy";
+import { holdingSends } from "../job-queue/send-guards";
 import type { saveUnderClaim, WorkClaim } from "../job-queue/work-claims";
 import type { ContractCall, TransactionSender } from "../transactions/types";
 import { sendWithCheckpoint } from "./send-with-checkpoint";
@@ -53,7 +57,7 @@ export type UploadOutcome =
 
 export interface UploadQueuedWorkPorts {
   confirmOnline(): Promise<boolean>;
-  suspendPreparation(): () => void;
+  suspendPreparation(): Promise<() => void>;
   listJobs(userAddress: Address): Promise<Job[]>;
   getJob(id: string): Promise<Job | undefined>;
   acquire(ids: string[]): Promise<Map<string, WorkClaim>>;
@@ -68,6 +72,10 @@ export interface UploadQueuedWorkPorts {
   simulate(call: ContractCall, chainId: number, account: Address): Promise<void>;
   processJob(jobId: string, context: ProcessJobContext): Promise<ProcessJobResult>;
   now(): number;
+  /** The nonce a transaction used, read off it while the network holds it; null once it does not. */
+  readTransactionNonce?(hash: Hex, chainId: number): Promise<number | null>;
+  /** The chain's latest block and its time, in seconds. */
+  readChainHead?(chainId: number): Promise<{ number: bigint; timestamp: number }>;
 }
 
 interface ChunkItem {
@@ -101,7 +109,7 @@ export async function uploadQueuedWork(
   ports: UploadQueuedWorkPorts
 ): Promise<UploadOutcome> {
   if (!(await ports.confirmOnline())) return { status: "connection-unconfirmed" };
-  const resumePreparation = ports.suspendPreparation();
+  const resumePreparation = await ports.suspendPreparation();
   let sent = 0;
   let flagged = 0;
   const { chainId, sender } = input;
@@ -151,13 +159,62 @@ export async function uploadQueuedWork(
     return accepted;
   };
 
+  /**
+   * Keep the nonce the call's transaction used on every item it carries, read
+   * off the transaction while the network holds it. Only that nonce can later
+   * show another transaction took it, and a lost call waits without it.
+   */
+  const keepTransactionNonce = async (items: ChunkItem[]) => {
+    const hash = sendCheckpointOf(items[0].job)?.transactionHash;
+    if (!hash || !ports.readTransactionNonce) return;
+    try {
+      const nonce = await ports.readTransactionNonce(hash, chainId);
+      if (nonce === null) return;
+      for (const item of items) {
+        await ports.save(item.claim, item.job.id, (stored) => {
+          const send = sendCheckpointOf(stored);
+          if (send?.transactionHash === hash)
+            writeSendCheckpoint(stored, { ...send, transactionNonce: { hash, nonce } });
+        });
+      }
+    } catch (error) {
+      logger.warn("[UploadAll] Could not keep the nonce the call's transaction used", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
   const sendChunk = async (ids: string[]): Promise<{ stop?: ChunkStop; error?: unknown }> => {
     const claims = await ports.acquire(ids);
     const stopHolding = ports.hold([...claims.values()]);
-    let items: ChunkItem[] = [];
     let confirmedItems: ChunkItem[] = [];
     try {
-      for (const [id, claim] of claims) {
+      // Each item's send is held from here until its answer. One another tab
+      // holds is mid-send there, perhaps frozen with its prompt open, so it is
+      // left to that tab.
+      return await holdingSends([...claims.keys()], (held) => sendHeld(held));
+    } finally {
+      stopHolding();
+      await Promise.allSettled([...claims.values()].map((claim) => claim.release()));
+      // The queue confirms each sent item and finishes it the way every send finishes.
+      // One it cannot finish now keeps its recorded send for the next confirmation pass.
+      for (const { job } of confirmedItems) {
+        await ports.processJob(job.id, explicitSend).catch((error: unknown) => {
+          logger.warn("[UploadAll] Sent item will be confirmed later", {
+            jobId: job.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+      }
+    }
+
+    async function sendHeld(
+      held: readonly string[]
+    ): Promise<{ stop?: ChunkStop; error?: unknown }> {
+      let items: ChunkItem[] = [];
+      for (const id of held) {
+        const claim = claims.get(id);
+        if (!claim) continue;
         const job = await ports.getJob(id);
         if (!job || queuedUploadStatus(job).state !== "ready") continue;
         try {
@@ -201,10 +258,14 @@ export async function uploadQueuedWork(
         if (items.length === 0) return {};
       }
 
+      const { readChainHead } = ports;
       const result = await sendWithCheckpoint({
         sender,
         call: { ...callOf(items), chainId },
         jobIds: items.map(({ job }) => job.id),
+        // Read just before the intent, after any prompt: every item the call
+        // carries is then timed on the chain's clock if the answer is lost.
+        readChainHead: readChainHead && (() => readChainHead(chainId)),
         record: (next) => recordAll(items, next),
         now: ports.now,
       });
@@ -214,6 +275,9 @@ export async function uploadQueuedWork(
           confirmedItems = items;
           return {};
         case "may-have-sent":
+          // Its receipt did not come: keep the nonce the transaction used while
+          // the network still holds it.
+          await keepTransactionNonce(items);
           return { stop: "send-unconfirmed" };
         case "not-sent":
           return result.cancelled ? { stop: "declined" } : { stop: "failed", error: result.error };
@@ -228,19 +292,6 @@ export async function uploadQueuedWork(
             for (const item of accepted) await flag(item, "reverted").catch(() => undefined);
           return { stop: "reverted", error: result.error };
         }
-      }
-    } finally {
-      stopHolding();
-      await Promise.allSettled([...claims.values()].map((claim) => claim.release()));
-      // The queue confirms each sent item and finishes it the way every send finishes.
-      // One it cannot finish now keeps its recorded send for the next confirmation pass.
-      for (const { job } of confirmedItems) {
-        await ports.processJob(job.id, explicitSend).catch((error: unknown) => {
-          logger.warn("[UploadAll] Sent item will be confirmed later", {
-            jobId: job.id,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        });
       }
     }
   };

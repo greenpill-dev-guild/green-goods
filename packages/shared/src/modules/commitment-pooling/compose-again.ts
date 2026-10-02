@@ -17,8 +17,9 @@
 
 import type { CommitmentComposerValues } from "../../hooks/commitment-pooling/useCommitmentComposerForm";
 import type { Address } from "../../types/domain";
+import { usdCentsText } from "../wallet/good-dollar-price";
 import { isSameAccount } from "./selectors";
-import type { CommitmentMetadataV1 } from "./metadata";
+import { type CommitmentMetadataV1, rewardCentsAsSet } from "./metadata";
 import type { CommitmentReadModel, CommitmentRequirementRecord } from "./types";
 
 /** Which composer will show the result: the member's, or the steward's seeding wizard. */
@@ -95,6 +96,10 @@ function stewardExtras(input: ComposeAgainInput): Partial<CommitmentComposerValu
   if ((rail === "ARBITRUM_EXTERNAL" || rail === "CELO_SETTLEMENT") && amount) {
     extras.considerationRail = rail;
     extras.considerationAmount = amount.toString();
+    // A reward set in dollars starts from those dollars, converted again at the
+    // next Create, rather than from its G$ at whatever today's rate makes them.
+    const cents = rail === "CELO_SETTLEMENT" ? rewardCentsAsSet(input.metadata, amount) : null;
+    if (cents !== null) extras.considerationUsd = usdCentsText(cents);
     // A Celo settlement stores zero-address sentinels and the module supplies the
     // real Safe and token, so only an external rail carries its own.
     if (rail === "ARBITRUM_EXTERNAL") {
@@ -135,7 +140,10 @@ export function composerValuesFromCommitment(
     if (metadata.note) values.note = metadata.note;
     values.links = (metadata.links ?? []).map((link) => link.url);
   }
-  if (commitment.unitLabel) values.unitLabel = commitment.unitLabel;
+  // Garden work is counted in hours, as both composers set it and neither asks;
+  // an earlier record may carry another unit, which no field would show.
+  if (kind === "GARDEN_WORK") values.unitLabel = "hours";
+  else if (commitment.unitLabel) values.unitLabel = commitment.unitLabel;
   if (commitment.targetUnits > 0n && commitment.targetUnits <= BigInt(Number.MAX_SAFE_INTEGER)) {
     values.targetUnits = Number(commitment.targetUnits);
   }

@@ -6,7 +6,7 @@
 - Execution sub-lane: state_api
 - Owner: Codex
 - Branch signal: feature/commitment-pooling-api-modules
-- Current state: core, Saved Offer, and settlement source implementation complete; runtime availability remains blocked only on human-owned hosted Envio deployment/full-sync/read-back and production Saved Offer configuration. **One open amendment (2026-08-18): the seat gap below — nine queried fields do not reach `CommitmentReadModel`, and `selectCommitmentSeat()` does not exist, so the client UI cannot tell who is reading a commitment.**
+- Current state: complete. The hub closed this lane on 2026-09-27 to match PRD-723 (Done on 2026-09-06). The Validation Receipt below records a 2026-08-23 run at `8fd331198`, a commit no branch reaches, so its evidence-only diff cannot be rerun. The lane's source is on `develop` from `260de8d9b`, the seat amendment landed in `d1b8ea042`, and the hosted indexer has read back live since 2026-08-27. Production Saved Offer configuration and live wallet evidence stay with `human-release-ops.md` and `codex-gardener-celo-wallets.md`.
 - Linear context: PRD-723 (state/API lane) under parent PRD-650
 
 Concurrent agents share this repository. Stay inside this lane's named shared/state paths,
@@ -324,8 +324,9 @@ state, not optional follow-up coverage.
 - The five `usePoolMemberHistory` disclosure cases and client/admin raw-entity boundary test pass.
 - RED provenance and the final targeted/typecheck/critical-surface GREEN receipt are recorded above
   and in `status.json`; the source lane is complete.
-- Shared reads and mutations remain deliberately disabled by the chain-scoped capability ledger
-  until the human-owned hosted Envio deploy, fresh full sync, and live query read-back succeed.
+- Shared reads and mutations stayed disabled by the chain-scoped capability ledger until the hosted
+  Envio deploy, full sync, and live query read-back succeeded; the ledger has marked Arbitrum One
+  available since the read-back on 2026-08-27.
 - Composite Garden live cutover, production Saved Offer root-environment configuration, and live
   AA/Celo evidence remain owned by `human-release-ops.md`; none is implied by source GREEN.
 

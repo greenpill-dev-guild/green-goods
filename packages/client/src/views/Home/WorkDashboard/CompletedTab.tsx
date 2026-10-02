@@ -101,7 +101,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
               id: "app.workDashboard.completedFilter.label",
               defaultMessage: "Completed work filter",
             })}
-            controlSize="sm"
+            controlSize="compact"
             density="condensed"
             className="w-auto min-w-16 max-w-48 field-sizing-content"
             value={completedFilter}

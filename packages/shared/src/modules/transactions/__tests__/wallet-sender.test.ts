@@ -1,6 +1,6 @@
 /**
  * WalletSender Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the external wallet transaction sender that uses wagmi's
  * writeContractAsync, with Safe wallet non-canonical hash handling.
@@ -13,8 +13,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createFakeWagmiDeps,
   createMockContractCall,
-  MOCK_TX_HASH,
-} from "@green-goods/shared/testing";
+} from "../../../__tests__/test-utils/transaction-fakes";
+import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import { TransactionRevertedError, type ContractCall } from "../types";
 import { WalletSender, type WalletSenderDeps } from "../wallet-sender";
 

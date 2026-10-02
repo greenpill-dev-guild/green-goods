@@ -38,7 +38,7 @@ Apply these settings in GitHub after the repo-backed rollout files are merged. T
 - [ ] Keep automatic Copilot review enabled even on protected paths, but preserve human merge authority for:
   - `.github/workflows/**`, `.github/copilot-instructions.md`, `.github/instructions/**`, `.github/dependabot.yml`, `.github/CODEOWNERS`
   - `AGENTS.md`, `packages/*/AGENTS.md`, `.codex/**`, `.claude/**`, `CLAUDE.md`
-  - `.env*`
+  - `.env*`, `env.schema`, `env.template`
   - `packages/contracts/src/**`, `packages/contracts/test/**`, `packages/contracts/script/**`, `packages/contracts/deployments/**`, `packages/contracts/config/**`
   - `packages/indexer/schema.graphql`, `packages/indexer/config.yaml`
   - `scripts/contracts/verify-production.sh`

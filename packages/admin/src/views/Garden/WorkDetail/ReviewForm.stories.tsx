@@ -1,8 +1,11 @@
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, userEvent, within } from "storybook/test";
-import { FIXTURE_IMAGE_AGROFORESTRY, daysAgo } from "../../../../../shared/.storybook/fixtures";
+import { expect, fn, mocked, userEvent, within } from "storybook/test";
 import { withAdminIdentity } from "../../../../../shared/.storybook/decorators";
+import { daysAgo, FIXTURE_IMAGE_AGROFORESTRY } from "../../../../../shared/.storybook/fixtures";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { ReviewForm } from "./ReviewForm";
 
 const GARDENER = "0x1111111111111111111111111111111111111111" as Address;
@@ -65,6 +68,19 @@ export default meta;
 type Story = StoryObj<typeof ReviewForm>;
 
 export const Actionable: Story = {};
+
+export const PublishedSubmitterName: Story = {
+  beforeEach: () => {
+    mocked(useEnsName).mockReturnValue({ data: "ordinary.eth" } as ReturnType<typeof useEnsName>);
+    mocked(useGreenGoodsEnsName).mockReturnValue({ data: "river.greengoods.eth" } as ReturnType<
+      typeof useGreenGoodsEnsName
+    >);
+    return resetHookMocks(useEnsName, useGreenGoodsEnsName);
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText(/river will see this decision/)).toBeVisible();
+  },
+};
 
 export const NoPermission: Story = {
   args: {

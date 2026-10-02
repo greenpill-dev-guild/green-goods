@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 /**
  * useTxActPhase.trackReported: an act that says how it ended. A job-queue send

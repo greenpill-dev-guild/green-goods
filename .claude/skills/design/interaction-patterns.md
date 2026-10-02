@@ -87,6 +87,11 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
 - **Completion lands somewhere real**: the workspace that owns the result, showing the result.
   Success is visible state change plus a quiet confirmation, never a dead end. (Brief: success
   feedback; admin never celebrates — quiet checkmark rule.)
+- **A sending flow holds still (DL-072).** Its status row (`FlowStatusRow`) keeps one height
+  through ready, approving, declined, created, sending, and partial, and the sections below it
+  never move. A dialog that sends without steps (Add to This Group, Edit Reward) keeps one
+  summary at the top whose first lines carry that state while the comparison under them stays
+  put. The line that says how often the wallet will ask sits in the footer only.
 
 ## 4. Layout
 
@@ -94,8 +99,10 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   side navigation rails.** Within a workspace tab, use a **two-column split** when the tab earns
   it: left column (majority width) carries focused actions and high-level objects; a right rail
   (~300–340px) carries container status, quick actions, and activity/updates. Decided for the
-  pool tab 2026-08-16 (DL-008). Collapse to one column below ~900px — rail content stacks after the left
-  column, nothing disappears. (web.dev responsive; brief: no hidden critical data.)
+  pool tab 2026-08-16 (DL-008). The Pool tab's rail is now 37.5% wide (at least 18rem) and
+  holds Waiting for approval, then Pool Status, then Pool Funding (DL-068). Collapse to one
+  column below ~900px — rail content stacks after the left column, nothing disappears.
+  (web.dev responsive; brief: no hidden critical data.)
 - **On phones, a tab's alert card leads.** Below 768px the rail stacks after the main column,
   except the Attention Needed card, which leads above it, so the steward's next task is the first
   thing on screen (DL-051, amending DL-008's collapse order for that one card). Proof:
@@ -125,8 +132,15 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
 - **Scopes, not sibling cards.** Past-due, lapsed, ongoing, and confirmed are *filters* of one
   list. Giving each its own card is how one promise list became six differently-designed queues
   (2026-08-16). A queue earns a separate card only when it holds a different **object** —
-  claims are requests to take up a promise, so they get their own conditional card; "past due"
+  asks to take up a promise are requests, not promises, so they get their own card; "past due"
   is the same promise under a filter.
+- **The approval card is always there (DL-067).** While a pool is open, Waiting for approval
+  sits at the top of the Pool tab's rail whether or not anyone is waiting, with one quiet
+  "Nothing waiting for approval." line when empty, so asks arriving and leaving never move the
+  Promises list. Its rows are decision rows of one height (who and when, then what for, one line
+  each; the name keeps its length and the age gives way first), with Decline… and Approve. A
+  decided row keeps its place with its outcome until the steward leaves the tab, here and
+  wherever a steward decides in a list (a commitment's waiting list, the Hub's Confirm queue).
 - **A card is titled by its subject.** When a card is about one object, that object heads the
   card — title, chips, counts, and its one act in the header — rather than a generic title with
   the object stacked beneath as a second header. Peers list below a quiet section divider whose
@@ -175,6 +189,12 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   [useGardenDerivedState.ts](../../../packages/shared/src/hooks/garden/useGardenDerivedState.ts)
   and the rows of `ManageMembersDialog`. Three counts that disagree teach stewards to trust none
   of them.
+- **A commitment row's edge tells its direction (DL-052).** A 3px edge on the row's inline start
+  marks offers in the primary tone and requests in the information tone. The state chip is
+  unchanged, and the direction word stays where the chip does not already say it, so direction
+  never rests on colour alone. Markers such as "Needs you" sit at the 12px label size in sentence
+  case. Proof: `CommitmentRow` in
+  [CommitmentRow.tsx](../../../packages/client/src/components/Features/Commitments/CommitmentRow.tsx).
 - **Banners teach once; chips carry state.** Repeating per-row conditions (past due, expired,
   lapsed) as info banners is a defect — encode them in chips + meta. Reserve banners for one-time
   context the user genuinely lacks. (Refactoring UI: emphasis is a budget.)

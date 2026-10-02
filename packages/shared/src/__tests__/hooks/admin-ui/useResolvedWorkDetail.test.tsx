@@ -1,4 +1,4 @@
-import { createMockGarden, createMockWork } from "@green-goods/shared/testing";
+import { createMockGarden, createMockWork } from "../../test-utils/mock-factories";
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useResolvedWorkDetail } from "../../../hooks/admin-ui/garden/useResolvedWorkDetail";

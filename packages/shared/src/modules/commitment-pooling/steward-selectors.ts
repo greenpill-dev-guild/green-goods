@@ -58,10 +58,9 @@ export function selectDueLiveCommitments<
 }
 
 /**
- * The earliest moment a live commitment becomes past due, or null when none
- * will. `selectDueLiveCommitments` answers against a fixed `now`, so a console
- * left open would never notice a row falling due; this is what it schedules
- * against instead of polling.
+ * The earliest due second that has not passed yet, or null when none remains.
+ * Include a deadline equal to `now`: expiry becomes valid in the next second,
+ * and the clock needs that boundary to schedule its next wakeup.
  */
 export function selectNextDueBoundary<
   T extends Pick<CommitmentReadModel, "onchainState" | "cycleId" | "dueDate">,
@@ -79,7 +78,7 @@ export function selectNextDueBoundary<
         : commitment.cycleId !== null && commitment.cycleId !== 0n
           ? (input.cycleEndTimes.get(commitment.cycleId.toString()) ?? null)
           : null;
-    if (due === null || due === 0n || due <= input.now) continue;
+    if (due === null || due === 0n || due < input.now) continue;
     if (next === null || due < next) next = due;
   }
   return next;
@@ -119,6 +118,35 @@ export function selectOrdinaryConfirmationReachable(input: {
   if (input.direction === "REQUEST") return Boolean(input.creator) && !onRoster(input.creator);
   if (input.counterpartyKind === "GARDEN") return true;
   return Boolean(input.counterparty) && !onRoster(input.counterparty);
+}
+
+/**
+ * The one account whose confirmation ordinarily keeps a commitment, by the same
+ * rule: a Request's creator, or the person who took up an Offer, while they stay
+ * off the team. Null when a named group confirms, when a garden took up the
+ * Offer (its stewards confirm), or when that account joined and a fallback would
+ * decide: no single account speaks for any of those.
+ */
+export function selectOrdinaryConfirmer(input: {
+  confirmers: readonly Address[];
+  direction: CommitmentReadModel["direction"];
+  counterpartyKind: CommitmentReadModel["counterpartyKind"];
+  creator: Address | null | undefined;
+  counterparty: Address | null | undefined;
+  activeContributors: readonly Address[];
+}): Address | null {
+  if (input.confirmers.length > 0) return null;
+  const account =
+    input.direction === "REQUEST"
+      ? input.creator
+      : input.counterpartyKind === "GARDEN"
+        ? null
+        : input.counterparty;
+  if (!account) return null;
+  const joined = input.activeContributors.some((contributor) =>
+    isSameAccount(contributor, account)
+  );
+  return joined ? null : account;
 }
 
 // The act-permission half lives beside this one for file-length reasons; it

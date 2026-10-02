@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Queue confirmation sync: one pass that confirms queued work and decisions
  * that were already sent. Upload all sends; this pass never does.

@@ -198,8 +198,12 @@ export const TopNav: React.FC<TopNavProps> = ({
         />
       )}
 
-      <div className="absolute left-0 top-0 w-full h-full flex flex-row justify-between items-center py-6">
-        <div className="flex flex-row gap-4 justify-center grow">{children}</div>
+      {/* The middle starts clear of the back button's 48px hit area. The spacer
+          after it mirrors the back button so the middle centres on the screen,
+          and it gives way first when a flow's step names need the room. */}
+      <div className="absolute inset-y-0 left-16 right-6 flex flex-row items-center py-6">
+        <div className="flex min-w-0 flex-auto flex-row justify-center gap-4">{children}</div>
+        <div aria-hidden="true" className="w-10 shrink-[100]" />
       </div>
 
       <div className="flex grow" />

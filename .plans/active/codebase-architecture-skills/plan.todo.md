@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE`
 **Created**: `2026-08-24`
-**Last Updated**: `2026-08-24`
+**Last Updated**: `2026-09-28`
 **Historical predecessor**: `module-seams-and-velocity`, closed `completed` on 2026-08-24 — see the [archive ledger](../../ARCHIVE.md); the hub itself lives only in Git history.
 **Coordination boundary**: `../client-structure-and-agent-guides/` owns AGENTS/CLAUDE consolidation.
 
@@ -22,6 +22,7 @@
 | 8 | Keep coverage scheduled/manual and separate from direct proof. | Fast loops and architecture certification answer different questions. |
 | 9 | Apply Matt Pocock's concepts, not his output mechanics. | Green Goods retains its own workflow, safety, and tracking contracts. |
 | 10 | Keep the hub active through the 2026-09-22 coverage checkpoint. | A future ratchet is tracked, not silently marked complete. |
+| 11 | Close the 2026-09-22 two-point ratchet without raising any global floor (Afo, 2026-09-28, D3 in `test-budget-and-ci-speed`). | The eleven measured critical-path floors replace it; global floors and parity arrays stay unchanged. |
 
 ## Requirements Coverage
 
@@ -36,7 +37,7 @@
 | Builder documentation alignment | `state_api` | 7 | complete |
 | Ship, push, and exact-SHA coverage evidence | `qa_pass_1` | 8 | complete |
 | Independent seam/readiness review | `qa_pass_2` | 9 | complete |
-| Two-point coverage ratchet review | `state_api` | 10 | due 2026-09-22 |
+| Two-point coverage ratchet review | `state_api` | 10 | closed 2026-09-28 by decision 11 (no raise) |
 
 ## Implementation Steps
 
@@ -52,8 +53,9 @@
 8. [x] Run scoped checks and the exact-path Ship Gate, commit directly on `develop`, refresh and safely
    push, dispatch coverage for the integration SHA, and record the receipt.
 9. [x] Run a fresh read-only module-seams/readiness review over the committed range and close findings.
-10. On 2026-09-22, raise supported coverage floors by two points with matching parity updates; if
-    evidence is insufficient, record the blocker and keep the hub active.
+10. [x] Closed on 2026-09-28 by decision 11 instead of the scheduled two-point raise: the eleven
+    measured critical-path floors replace the ratchet, and global floors and parity arrays stay
+    unchanged ([test-budget hub](../test-budget-and-ci-speed/plan.todo.md), D3).
 
 ## Deferred Candidate Cards
 

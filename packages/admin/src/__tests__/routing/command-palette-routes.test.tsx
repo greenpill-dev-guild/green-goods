@@ -1,6 +1,6 @@
 /**
  * Command Palette Routes Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * RED phase — verifies that CommandPalette has the correct static
  * routes, handles account sheet actions via custom event, navigates on

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { GARDENS_HIDDEN_EVERYWHERE } from "../../config/garden-visibility";
 import {
   adjacentWorkSubmissionTab,
   canProceedWithWorkSubmission,
@@ -34,6 +35,13 @@ describe("work submission flow", () => {
     expect(
       canProceedWithWorkSubmission({ ...base, tab: WorkTab.Review, isMutationPending: true })
     ).toBe(false);
+  });
+
+  it("keeps the garden step closed while the chosen garden is hidden everywhere", () => {
+    const gardenAddress = GARDENS_HIDDEN_EVERYWHERE[0].address;
+    expect(canProceedWithWorkSubmission({ ...base, tab: WorkTab.Intro, gardenAddress })).toBe(
+      false
+    );
   });
 
   it("normalizes submission media through the shared media contract", async () => {

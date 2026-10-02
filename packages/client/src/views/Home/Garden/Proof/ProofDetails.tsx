@@ -3,6 +3,7 @@ import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Button } from "@green-goods/shared/components/Button";
 import { Textarea, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { IconButton } from "@green-goods/shared/components/IconButton";
+import type { ProofRosterMember } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { MAX_EVIDENCE_LINKS } from "@green-goods/shared/commitment-pooling";
@@ -10,10 +11,11 @@ import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 
-export interface ProofRosterMember {
-  address: Address;
-  isLead: boolean;
-}
+/** What the note's hint says, from what the proof already holds. */
+export type NoteHint =
+  | { kind: "needed" }
+  | { kind: "linkEnough"; count: number }
+  | { kind: "alreadyAdded"; summary: string };
 
 export interface ProofDetailsProps {
   /** The active roster: the only people who may be credited. */
@@ -23,10 +25,14 @@ export interface ProofDetailsProps {
   viewer: Address | null;
   note: string;
   onNote: (value: string) => void;
+  noteHint: NoteHint;
   links: string[];
   onLinks: (value: string[]) => void;
   linkInvalid: boolean;
 }
+
+const CHIP =
+  "shrink-0 rounded-full bg-bg-weak-50 px-2 py-0.5 text-[10px] font-medium text-text-sub-600";
 
 /**
  * Who did this, and the words that go with it.
@@ -34,7 +40,9 @@ export interface ProofDetailsProps {
  * Credit is a labelled, bounded choice over the active roster, never an
  * invisible default: the first proof that credits someone gives them their
  * share of recognition, so the list is shown in full and the member ticks it.
- * The signed-in member is preselected visibly when they are on the roster.
+ * The signed-in member is preselected visibly when they are on the roster. The
+ * note's hint tells the truth for this proof: needed when nothing else was
+ * added, optional otherwise, and why.
  */
 export function ProofDetails({
   roster,
@@ -43,6 +51,7 @@ export function ProofDetails({
   viewer,
   note,
   onNote,
+  noteHint,
   links,
   onLinks,
   linkInvalid,
@@ -62,13 +71,18 @@ export function ProofDetails({
     onLinks([...links, url]);
     setPendingLink("");
   };
+  const hint =
+    noteHint.kind === "needed"
+      ? formatMessage({ id: "app.proof.details.noteHint.needed" })
+      : noteHint.kind === "linkEnough"
+        ? formatMessage({ id: "app.proof.details.noteHint.linkEnough" }, { count: noteHint.count })
+        : formatMessage(
+            { id: "app.proof.details.noteHint.alreadyAdded" },
+            { summary: noteHint.summary }
+          );
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-lg font-medium text-text-strong-950">
-        {formatMessage({ id: "app.proof.details.legend" })}
-      </h1>
-
+    <>
       <fieldset>
         <legend className="text-sm font-medium text-text-strong-950">
           {formatMessage({ id: "app.proof.details.credit" })}
@@ -85,7 +99,6 @@ export function ProofDetails({
             {roster.map((member) => {
               const selected = isCredited(member.address);
               const isYou = viewer?.toLowerCase() === member.address.toLowerCase();
-              const id = `proof-credit-${member.address.toLowerCase()}`;
               return (
                 <li
                   key={member.address}
@@ -100,7 +113,6 @@ export function ProofDetails({
                     display beside it is itself interactive and cannot sit inside
                     a label. */}
                   <input
-                    id={id}
                     type="checkbox"
                     checked={selected}
                     onChange={() => onToggleCredit(member.address)}
@@ -111,14 +123,15 @@ export function ProofDetails({
                     className="h-5 w-5 shrink-0 accent-[var(--color-primary)]"
                   />
                   <span className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-                    <AddressDisplay address={member.address} />
+                    {/* A choice of who to credit, not an identity card: the name only. */}
+                    <AddressDisplay address={member.address} interactive={false} />
                     {member.isLead ? (
-                      <span className="shrink-0 rounded-full bg-bg-weak-50 px-2 py-0.5 text-[10px] font-medium text-text-sub-600">
+                      <span className={CHIP}>
                         {formatMessage({ id: "app.proof.details.lead" })}
                       </span>
                     ) : null}
                     {isYou ? (
-                      <span className="shrink-0 rounded-full bg-bg-weak-50 px-2 py-0.5 text-[10px] font-medium text-text-sub-600">
+                      <span className={CHIP}>
                         {formatMessage({ id: "app.commitment.people.you" })}
                       </span>
                     ) : null}
@@ -141,13 +154,23 @@ export function ProofDetails({
           maxLength={2000}
           placeholder={formatMessage({ id: "app.proof.details.notePlaceholder" })}
           onChange={(event) => onNote(event.target.value)}
+          aria-describedby="proof-note-hint"
           className="mt-1.5"
         />
+        <p
+          id="proof-note-hint"
+          className={cn(
+            "mt-1.5 text-xs",
+            noteHint.kind === "needed" ? "text-warning-dark" : "text-text-sub-600"
+          )}
+        >
+          {hint}
+        </p>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-text-strong-950" htmlFor="proof-link">
-          {formatMessage({ id: "app.compose.details.linkLabel" })}
+          {formatMessage({ id: "app.proof.details.linksLabel" })}
         </label>
         <div className="mt-1.5 flex gap-2">
           <TextInput
@@ -173,7 +196,7 @@ export function ProofDetails({
             leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
             className="shrink-0"
           >
-            {formatMessage({ id: "app.compose.details.addLink" })}
+            {formatMessage({ id: "app.proof.details.addLink" })}
           </Button>
         </div>
         {linkInvalid ? (
@@ -205,6 +228,6 @@ export function ProofDetails({
           </ul>
         ) : null}
       </div>
-    </div>
+    </>
   );
 }

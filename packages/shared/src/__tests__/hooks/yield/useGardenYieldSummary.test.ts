@@ -1,16 +1,18 @@
 /**
  * useGardenYieldSummary Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the garden-scoped yield summary hook that fetches ALL yield allocations
  * (no limit) and aggregates them client-side. Verifies the bug fix for
  * Community tab undercounting yield after 20 allocation events.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { act, createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
+import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
@@ -45,12 +47,6 @@ const { useGardenYieldSummary } = await import("../../../hooks/yield/useGardenYi
 
 import type { Address } from "../../../types/domain";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 function createDeferredPromise<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((innerResolve) => {
@@ -64,14 +60,12 @@ describe("useGardenYieldSummary", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("returns empty summary when garden address is undefined", () => {
-    const { result } = renderHook(() => useGardenYieldSummary(undefined), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenYieldSummary(undefined), {
+      queryClient,
     });
 
     expect(mockGetGardenYieldAllocations).not.toHaveBeenCalled();
@@ -105,9 +99,12 @@ describe("useGardenYieldSummary", () => {
       },
     ]);
 
-    const { result } = renderHook(() => useGardenYieldSummary(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useGardenYieldSummary(TEST_GARDEN as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.summary.allocationCount).toBe(2));
 
@@ -143,9 +140,12 @@ describe("useGardenYieldSummary", () => {
 
     mockGetGardenYieldAllocations.mockReturnValueOnce(deferred.promise);
 
-    const { result } = renderHook(() => useGardenYieldSummary(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useGardenYieldSummary(TEST_GARDEN as Address),
+      {
+        queryClient,
+      }
+    );
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.summary).toEqual({
@@ -207,9 +207,12 @@ describe("useGardenYieldSummary", () => {
       },
     ]);
 
-    const { result } = renderHook(() => useGardenYieldSummary(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useGardenYieldSummary(TEST_GARDEN as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.summary.allocationCount).toBe(2));
 
@@ -237,8 +240,8 @@ describe("useGardenYieldSummary", () => {
     const mixedCaseGarden = "0xAbCdEf1234567890AbCdEf1234567890AbCdEf12";
     mockGetGardenYieldAllocations.mockResolvedValueOnce([]);
 
-    renderHook(() => useGardenYieldSummary(mixedCaseGarden as Address), {
-      wrapper: createWrapper(queryClient),
+    renderHookWithQueryClient(() => useGardenYieldSummary(mixedCaseGarden as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(mockGetGardenYieldAllocations).toHaveBeenCalled());
@@ -250,9 +253,12 @@ describe("useGardenYieldSummary", () => {
   });
 
   it("respects enabled: false option", () => {
-    renderHook(() => useGardenYieldSummary(TEST_GARDEN as Address, { enabled: false }), {
-      wrapper: createWrapper(queryClient),
-    });
+    renderHookWithQueryClient(
+      () => useGardenYieldSummary(TEST_GARDEN as Address, { enabled: false }),
+      {
+        queryClient,
+      }
+    );
 
     expect(mockGetGardenYieldAllocations).not.toHaveBeenCalled();
   });
@@ -260,9 +266,12 @@ describe("useGardenYieldSummary", () => {
   it("returns empty summary when data function returns empty array", async () => {
     mockGetGardenYieldAllocations.mockResolvedValueOnce([]);
 
-    const { result } = renderHook(() => useGardenYieldSummary(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useGardenYieldSummary(TEST_GARDEN as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -275,9 +284,12 @@ describe("useGardenYieldSummary", () => {
   it("propagates error from data function", async () => {
     mockGetGardenYieldAllocations.mockRejectedValueOnce(new Error("Indexer down"));
 
-    const { result } = renderHook(() => useGardenYieldSummary(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useGardenYieldSummary(TEST_GARDEN as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
@@ -303,9 +315,12 @@ describe("useGardenYieldSummary", () => {
 
     mockGetGardenYieldAllocations.mockResolvedValueOnce(allocations);
 
-    const { result } = renderHook(() => useGardenYieldSummary(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useGardenYieldSummary(TEST_GARDEN as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.summary.allocationCount).toBe(25));
 
@@ -324,9 +339,12 @@ describe("useGardenYieldSummary", () => {
   it("uses correct query key with garden address and chain ID", async () => {
     mockGetGardenYieldAllocations.mockResolvedValueOnce([]);
 
-    const { result } = renderHook(() => useGardenYieldSummary(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useGardenYieldSummary(TEST_GARDEN as Address),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 

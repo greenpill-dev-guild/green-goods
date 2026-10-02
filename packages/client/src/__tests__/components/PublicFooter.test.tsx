@@ -4,7 +4,7 @@
  * Locks the restored provenance line, external utility links (Twitter, Admin,
  * Docs, GitHub), and neutral-by-default footer link styling.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";
@@ -48,24 +48,29 @@ describe("PublicFooter", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the public route wayfinding links first", () => {
+  it("retains core route wayfinding alongside glossary and external utilities", () => {
     renderFooter();
 
-    const expectedRoutes: [string, string][] = [
-      ["Gardens", "/gardens"],
-      ["Impact", "/impact"],
-      ["Fund", "/fund"],
-      ["Actions", "/actions"],
-    ];
-    for (const [name, href] of expectedRoutes) {
-      expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
-    }
-
-    // The header fades out below the fold, so the footer owns wayfinding:
-    // route links must lead the row, before the utility/external set.
     const nav = screen.getByRole("navigation", { name: "Footer links" });
     const labels = Array.from(nav.querySelectorAll("a")).map((a) => a.textContent?.trim());
-    expect(labels.slice(0, 4)).toEqual(["Gardens", "Impact", "Fund", "Actions"]);
+    expect(labels).toEqual([
+      "Gardens",
+      "Impact",
+      "Fund",
+      "Actions",
+      "Glossary",
+      "Twitter",
+      "Admin",
+      "Docs",
+      "GitHub",
+    ]);
+    for (const route of ["Gardens", "Impact", "Fund", "Actions"]) {
+      expect(screen.getByRole("link", { name: route })).toHaveAttribute(
+        "href",
+        `/${route.toLowerCase()}`
+      );
+    }
+    expect(screen.getByRole("link", { name: "Glossary" })).toHaveAttribute("href", "/glossary");
   });
 
   it("renders external utility links", () => {

@@ -68,8 +68,8 @@ export function PoolFundingDialogFinancialSections({
           />
           <Fact
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.available",
-              defaultMessage: "Available for new commitments",
+              id: "cockpit.garden.pool.funding.availablePromises",
+              defaultMessage: "Available for new promises",
             })}
             value={amount(snapshot?.available ?? null)}
           />

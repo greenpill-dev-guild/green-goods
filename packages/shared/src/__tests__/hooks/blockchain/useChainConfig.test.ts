@@ -1,6 +1,6 @@
 /**
  * Chain Configuration Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the pure function wrappers in useChainConfig.ts.
  * These hooks delegate to config/blockchain.ts, so we mock that module

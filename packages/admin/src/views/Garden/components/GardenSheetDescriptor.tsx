@@ -42,6 +42,8 @@ export function GardenSheetDescriptor({
   const chainId = useCurrentChain();
   // `/garden/pool/seed?from=<id>`: seed another like that commitment.
   const seedFrom = parseCommitmentRouteId(searchParams.get("from") ?? "");
+  // `/garden/pool/<id>?focus=waiting`: open the commitment at its waiting list.
+  const poolFocus = searchParams.get("focus") === "waiting" ? "waiting" : undefined;
 
   const config = useMemo<LeftSheetConfig | null>(() => {
     if (hypercertId) {
@@ -65,6 +67,7 @@ export function GardenSheetDescriptor({
             chainId={chainId}
             garden={gardenAddress as Address}
             commitmentId={poolCommitmentId}
+            focus={poolFocus}
             tone="garden"
             onSeedAnother={(from) =>
               navigate(adminRoutes.gardenPoolSeed({ gardenId: gardenAddress }, { from }))
@@ -87,6 +90,7 @@ export function GardenSheetDescriptor({
     navigate,
     poolCloseTo,
     poolCommitmentId,
+    poolFocus,
   ]);
 
   useLeftSheetConfig(config);

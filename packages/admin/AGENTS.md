@@ -97,7 +97,11 @@ Read `.claude/skills/design/implementation.md` before frontend work.
 - Visible changes follow root [`AGENTS.md` § Browser Evidence](../../AGENTS.md#browser-evidence):
   label the engine and session behind the proof, and if the authenticated Brave path is
   unavailable, record that proof as pending and continue with labeled evidence.
-- **Tailwind v4 gotcha**: admin's content scan does not reach `packages/shared/src/`, so a shared component that uses utility classes in its JSX may render off-center, missing padding, or wrong width in admin even when it looks fine in Storybook. Before debugging the shared component, check `packages/shared/AGENTS.md` → "Package Notes" — the fix is a fork into `packages/admin/src/components/Shell/` (the Canvas shell pattern) or inline styles inside the shared component, not utility classes in shared JSX.
+- **Tailwind scanning**: `src/index.css` declares `@source` for shared TypeScript source, so
+  utility classes in shared components generate in admin (see `packages/shared/AGENTS.md` →
+  "Package Notes"). If a shared component still renders differently in admin than in
+  Storybook, check the cascade first: unlayered rules in admin's M3 and layout stylesheets
+  beat Tailwind utilities.
 
 ## Validation
 

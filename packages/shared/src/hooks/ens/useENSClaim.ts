@@ -19,6 +19,7 @@ import {
   zeroAddress,
 } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
+import { useIntl } from "react-intl";
 
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -105,6 +106,7 @@ export interface ENSClaimResult {
 }
 
 export function useENSClaim() {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const { authMode, smartAccountClient } = useAuth();
   const { address: walletAddress } = useAccount();
@@ -189,9 +191,13 @@ export function useENSClaim() {
         hash: txHash,
         timeout: TX_RECEIPT_TIMEOUT_MS,
       });
+      if (receipt.status !== "success") {
+        throw new Error("Name registration transaction reverted");
+      }
 
       let ccipMessageId: string | null = null;
       for (const log of receipt.logs) {
+        if (log.address.toLowerCase() !== ensAddress.toLowerCase()) continue;
         try {
           const decoded = decodeEventLog({
             abi: GreenGoodsENSABI,
@@ -209,18 +215,28 @@ export function useENSClaim() {
 
       return { slug, ccipMessageId, submittedAt: Date.now(), txHash };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      await queryClient.cancelQueries({ queryKey: ensKeys.all });
       // Seed registration status query with initial "pending" data
       queryClient.setQueryData(ensKeys.registrationStatus(data.slug), {
         status: "pending" as const,
-        ccipMessageId: data.ccipMessageId,
+        ccipMessageId: data.ccipMessageId ?? undefined,
         submittedAt: data.submittedAt,
       });
       queryClient.invalidateQueries({ queryKey: ensKeys.all });
 
       toastService.success({
-        title: "Name registration started",
-        description: `${data.slug}.greengoods.eth will be active in ~15-20 minutes.`,
+        title: intl.formatMessage({
+          id: "ens.claim.received",
+          defaultMessage: "Name registration started",
+        }),
+        description: intl.formatMessage(
+          {
+            id: "ens.claim.receivedDescription",
+            defaultMessage: "Request received for {name}. Check its progress in your profile.",
+          },
+          { name: `${data.slug}.greengoods.eth` }
+        ),
       });
     },
     onError: (error) => {

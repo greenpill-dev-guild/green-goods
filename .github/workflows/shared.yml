@@ -8,10 +8,11 @@ on:
       - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
-      - ".env.schema"
+      - "env.schema"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/shared.yml"
       - "scripts/quality/check-source-structure.js"
+      - "scripts/lib/vitest-shared-graph.mjs"
       - "packages/shared/**"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
@@ -21,10 +22,11 @@ on:
       - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
-      - ".env.schema"
+      - "env.schema"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/shared.yml"
       - "scripts/quality/check-source-structure.js"
+      - "scripts/lib/vitest-shared-graph.mjs"
       - "packages/shared/**"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
@@ -56,11 +58,12 @@ jobs:
               "package.json",
               "bun.lock",
               "biome.json",
-              ".env.schema",
+              "env.schema",
               ".github/actions/setup-js/action.yml",
               ".github/workflows/shared.yml",
               "scripts/dev/package-commands.mjs",
               "scripts/quality/check-source-structure.js",
+              "scripts/lib/vitest-shared-graph.mjs",
             ]);
             const prefixes = [
               "packages/contracts/abis/",

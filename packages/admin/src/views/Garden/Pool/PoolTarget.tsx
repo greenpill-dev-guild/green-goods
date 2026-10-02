@@ -20,6 +20,13 @@ interface PoolTargetProps {
   record?: string;
   /** Who the act concerns, when that is not the steward (a claimant, say). */
   party?: { label: string; value: ReactNode };
+  /**
+   * Where it sits: first in a dialog's body (`block`, today's place), at the foot
+   * of a flow's step rail (`rail`), or as one line under the stepper on narrow
+   * screens (`line`), PRD-1022 D11. A protocol-pool flow keeps its warning in
+   * the body as well.
+   */
+  placement?: "block" | "rail" | "line";
 }
 
 /**
@@ -30,8 +37,44 @@ interface PoolTargetProps {
  * it is about to change, so it says. The protocol pool is set apart as a
  * warning, because a change there reaches beyond one garden.
  */
-export function PoolTarget({ target, record, party }: PoolTargetProps) {
+export function PoolTarget({ target, record, party, placement = "block" }: PoolTargetProps) {
   const { formatMessage } = useIntl();
+  if (placement !== "block") {
+    const name = target.isProtocol
+      ? formatMessage({
+          id: "cockpit.garden.pool.target.protocolName",
+          defaultMessage: "the Green Goods protocol pool",
+        })
+      : formatMessage(
+          { id: "cockpit.garden.pool.target.garden", defaultMessage: "{garden}’s pool" },
+          { garden: target.gardenName }
+        );
+    const kind = target.isProtocol ? "protocol" : "garden";
+    if (placement === "line") {
+      return (
+        <p
+          data-component="PoolTarget"
+          data-kind={kind}
+          data-placement="line"
+          className="truncate body-xs text-text-soft"
+          title={name}
+        >
+          {formatMessage(
+            { id: "cockpit.garden.pool.target.line", defaultMessage: "Writing to {target}" },
+            { target: <span className="font-semibold text-text-strong">{name}</span> }
+          )}
+        </p>
+      );
+    }
+    return (
+      <dl data-component="PoolTarget" data-kind={kind} data-placement="rail" className="min-w-0">
+        <dt className="label-xs text-text-soft">
+          {formatMessage({ id: "cockpit.garden.pool.target.label", defaultMessage: "Writing to" })}
+        </dt>
+        <dd className="break-words body-sm font-semibold text-text-strong">{name}</dd>
+      </dl>
+    );
+  }
   const partyRow = party ? (
     <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
       <dt className="label-xs text-text-soft">{party.label}</dt>

@@ -87,11 +87,52 @@ Adjust the test paths to the files the implementation touches.
 The What step's taxonomy (W4-1), the action rail (W4-2), any change to the writes the setup
 sequence sends, and the app composer.
 
+## Implementation notes (2026-09-27)
+
+- The reward question is read from the rail the draft holds (`rewardAnswerOf`), and an answer sets
+  it (`railForRewardAnswer`): No means none, Yes keeps a chosen rail or starts on the external one,
+  which every garden can use. The rail choices under Yes drop None.
+- Choosing garden work sets the unit to hours in `SeedStepWhat`, as the member composer does, and
+  `stepFieldsFor` stops the How Much step asking it; the schema and the payload are unchanged.
+- The chip lists moved from the member composer into
+  `packages/shared/src/modules/commitment-pooling/metadata.ts`, beside the unit's limit, and both
+  composers read them there. Each chip group is labelled "Suggestions for" its field.
+- `ActionFlowStepper` and `ActionFlowShell` take `complete`. The setup flow passes its finished run,
+  and the seed flow a pass with no row left unsent. A done run offers no jump back.
+- The filled field's indicator now sits inside its container, so its height no longer changes on
+  focus. `AdminSelect` and `AdminTextArea` share that anatomy.
+- `directionEdgeClass` in `poolPresentation.ts` gives pool and tray rows the app row's edge.
+- The setup model's `stepBlockedReason` names the first thing a step still needs, and
+  `isStepValid` follows from it; offline says to connect. The seed model's `seedBlockedReason`
+  names why Seed is off. Both footers print the reason where their progress sits.
+
+## RED and GREEN evidence
+
+RED at `c17a03b46` with the new and changed tests, in `packages/admin`, `bun run test --` over
+`seedStepModel`, `SeedStepHowMuch`, `ActionFlowStepper`, `AdminTextField`, the new `FlowFooters`
+and `poolPresentation` tests: ten failed, each as the gap predicts. The step model had no unit rule
+for garden work, no reward mapping and no seed reason; How Much had no chips and no hours fact; the
+stepper had no done state; the indicator sat outside the container; neither footer said why; the
+setup model had no reasons; and the rows had no edge. GREEN at `5070ad612`: those suites and the
+seed and setup flow suites pass. The seed flow's tests now answer the reward question before
+reaching a rail.
+
 ## Unblock evidence
 
-RED and GREEN recorded; the pairs approved by Afo; PR merged; sub-lane `completed`; Linear child
-Done.
+The lane closes when RED and GREEN are recorded, Afo approves the pairs, the PR merges, the sub-lane
+is `completed`, and the Linear child is Done. As of 2026-09-27 all of these hold: Afo approved the
+pairs, #927 merged as `127ae1376`, the sub-lane is `completed`, and PRD-992 is Done. The focused
+field was measured at 1280 from static Storybook builds in headless Chromium: before the change the
+filled field's container grew from 41px to 42px on focus, and on develop it stays at 40px, so nothing
+below it moves.
 
 ## Validation Receipt
 
-Pending.
+- Tested implementation commit SHA: `5070ad612` (on `fix/seed-wizard-questions`)
+- Run at (UTC): `2026-09-27T08:22:49Z` to `2026-09-27T08:26:47Z`, with the targeted suites, typechecks and checks run on the same tree just before its commit
+- Exact command(s): in `packages/admin`, `bun run test`, then `bun run test -- src/__tests__/components/CreateAssessmentDialog.test.tsx src/__tests__/views/CommitmentDialog.test.tsx`; before the commit, `bun run test --` over the eight seed, setup, stepper, field, footer and row suites, `bun run --cwd packages/admin typecheck` and `-- --scope tests`, `bun run --cwd packages/client typecheck`, `bun run --cwd packages/shared typecheck -- --scope full`, `bun --bun run oxlint packages/admin/src packages/client/src packages/shared/src --deny-warnings`, `bun run check --only design-tokens`, `bun run check --only react-patterns` and `SOURCE_STRUCTURE_BASE_REF=origin/develop node scripts/quality/check-source-structure.js`
+- Result: admin 1,058 passed of 1,061 in the full run; the three that timed out at 10 seconds under a load average near 46 passed alone (35 tests in their two files). `SubmitWork.submit.test.tsx` cannot load its module mocks in a worktree with linked dependencies, W3-B's as well, and passes on an installed tree (19 tests); PR CI runs it. The eight targeted suites passed 93 tests; every typecheck, oxlint, the design-token and controls checks, and source structure passed. The local pre-push gate was skipped at the owner's direction; PR CI runs the full suites.
+- Validated paths: the non-plan paths `5070ad612` changes against `c17a03b46`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <the validated paths>` → empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 5070ad612 -- <the validated paths>` → exit 0 before the story commit, which changes only stories, and this handoff commit
+- Rendered proof: Storybook, headless Chromium, built from this branch (after) and from develop at `956a85121`, the same tree as `7fdc87f78`, whose admin is unchanged since (before), at 375 and 1280 in light and dark: `admin-pool-seedstepproof--ordinary-rule`, `admin-pool-seedrewardsection--no-reward` and `--external-payout`, `admin-pool-seedstephowmuch--kept-by-proof` and `--garden-work`, `admin-shell-actionflowstepper--completed` and the new `--run-done`, `admin-primitives-admintextfield--state-catalog`, `admin-pool-poolcommitmentscard--open`, `admin-pool-seedtraylist--three-rows-one-not-sent`, `admin-pool-setupflowfooter--incomplete`, and the new `admin-pool-seedflowfooter--pool-not-open`. Sent to Afo as contact sheets. Focus measurement, 2026-09-27 at 10:45Z: headless Chromium (Playwright) at 1280 × 900 with outside network refused, on `admin-primitives-admintextfield--filled`, reading the field container's height before and after focusing its input. In a static build of develop at `c17a03b46`, before this lane, the container grew from 41px to 42px; in a static build of `8f9d4759f`, whose `AdminTextField.tsx` matches `127ae1376`, it stays at 40px.

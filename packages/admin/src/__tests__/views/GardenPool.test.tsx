@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type {
@@ -42,6 +42,40 @@ vi.mock("@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController"
 
 vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", () => ({
   usePoolConsoleController: () => mocks.controller!,
+}));
+
+// This view proves pool actions; name resolution has its own coverage.
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: null }),
+  useEnsNames: () => new Map(),
+}));
+// A group's inspector reads the pool's activity and the settlement account;
+// the facts proven here are the pool console's own.
+vi.mock(
+  "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling")
+    >()),
+    useCommitmentActivity: () => ({ events: [] }),
+  })
+);
+vi.mock(
+  "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("@green-goods/shared/hooks/commitment-pooling/useSettlementQueries")
+    >()),
+    useSettlementAccount: () => ({ detail: null }),
+  })
+);
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: null }),
+}));
+
+// Pool Funding reads dollars at today's G$ price; the facts here are the pool's.
+vi.mock("@green-goods/shared/hooks/blockchain/useGoodDollarPrice", () => ({
+  useGoodDollarPrice: () => ({ state: { status: "loading" }, readNow: vi.fn() }),
 }));
 
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
@@ -92,6 +126,9 @@ vi.mock(
 );
 
 const { GardenPoolTab } = await import("@/views/Garden/Pool");
+const { STORY_GROUP_COPIES, STORY_GROUP_TITLES } = await import(
+  "@/views/Garden/Pool/poolStoryGroups"
+);
 const { default: GardenView } = await import("@/views/Garden");
 
 const NOW = 1_756_000_000n;
@@ -201,6 +238,35 @@ function commitment(overrides: Partial<CommitmentReadModel> = {}): CommitmentRea
   });
 }
 
+/** Someone asking to take up commitment 2, still pending. */
+function pendingClaim(): PoolConsoleController["claims"][number] {
+  return {
+    claim: {
+      id: `42161-2-${CLAIMANT}`,
+      chainId: 42161,
+      commitmentId: 2n,
+      claimant: CLAIMANT,
+      requestSeen: true,
+      requestedBy: CLAIMANT,
+      claimType: "INDIVIDUAL",
+      gardenContext: null,
+      state: "PENDING",
+      reasonCID: null,
+      resolutionCode: null,
+      requestedAt: 1_700_000_000,
+      resolvedAt: null,
+      updatedAt: 1_700_000_100,
+    },
+    commitment: commitment({
+      id: "42161-2",
+      commitmentId: 2n,
+      onchainState: "REQUESTED",
+      state: "REQUESTED",
+      metadataCID: "bafy-2",
+    }),
+  };
+}
+
 type ControllerOverrides = Omit<Partial<PoolConsoleController>, "pool" | "poolId"> & {
   pool?: CommitmentPoolRecord | null;
   poolId?: bigint;
@@ -221,6 +287,7 @@ function controller(overrides: ControllerOverrides = {}): PoolConsoleController 
     declineClaim: vi.fn().mockResolvedValue("0x1"),
     retryQueued: vi.fn().mockResolvedValue(undefined),
     discardQueued: vi.fn().mockResolvedValue(undefined),
+    finishCreating: vi.fn().mockResolvedValue("sent"),
   };
   const poolRecord = overrides.pool === undefined ? pool() : overrides.pool;
   const cycles = overrides.cycles ?? [cycle()];
@@ -509,37 +576,11 @@ describe("GardenPoolTab (W7)", () => {
         isLoading: false,
         isUnavailable: false,
       },
-      claims: [
-        {
-          claim: {
-            id: `42161-2-${CLAIMANT}`,
-            chainId: 42161,
-            commitmentId: 2n,
-            claimant: CLAIMANT,
-            requestSeen: true,
-            requestedBy: CLAIMANT,
-            claimType: "INDIVIDUAL",
-            gardenContext: null,
-            state: "PENDING",
-            reasonCID: null,
-            resolutionCode: null,
-            requestedAt: 1_700_000_000,
-            resolvedAt: null,
-            updatedAt: 1_700_000_100,
-          },
-          commitment: commitment({
-            id: "42161-2",
-            commitmentId: 2n,
-            onchainState: "REQUESTED",
-            state: "REQUESTED",
-            metadataCID: "bafy-2",
-          }),
-        },
-      ],
+      claims: [pendingClaim()],
     });
     renderTab();
     expect(screen.getByText(/seasonal flooding, back after the rains/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^accept$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^approve$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^pause/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /resume pool/i }));
     await waitFor(() => expect(mocks.controller!.acts.resume).toHaveBeenCalled());
@@ -573,7 +614,7 @@ describe("GardenPoolTab (W7)", () => {
     mocks.controller = controller({
       pendingCreates: [
         { ...queued, jobId: "job-a", title: "Compost workshop" },
-        { ...queued, jobId: "job-b", title: "Seed swap" },
+        { ...queued, jobId: "job-b", title: "Seed swap", direction: "REQUEST" as const },
       ],
       queuedPhase: (jobId: string) =>
         jobId === "job-b" ? { status: "signing", key: "job-b" } : { status: "idle" },
@@ -582,43 +623,20 @@ describe("GardenPoolTab (W7)", () => {
     const rows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
     expect(within(rows[0]).queryByText("Confirm in your wallet.")).not.toBeInTheDocument();
     expect(within(rows[1]).getByText("Confirm in your wallet.")).toBeInTheDocument();
+    // A queued row wears its direction's edge before the index has it.
+    expect(rows[0]).toHaveClass("border-s-primary-base");
+    expect(rows[1]).toHaveClass("border-s-information-base");
   });
 
-  it("accepts a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
+  it("approves a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
     mocks.controller = controller({
-      claims: [
-        {
-          claim: {
-            id: `42161-2-${CLAIMANT}`,
-            chainId: 42161,
-            commitmentId: 2n,
-            claimant: CLAIMANT,
-            requestSeen: true,
-            requestedBy: CLAIMANT,
-            claimType: "INDIVIDUAL",
-            gardenContext: null,
-            state: "PENDING",
-            reasonCID: null,
-            resolutionCode: null,
-            requestedAt: 1_700_000_000,
-            resolvedAt: null,
-            updatedAt: 1_700_000_100,
-          },
-          commitment: commitment({
-            id: "42161-2",
-            commitmentId: 2n,
-            onchainState: "REQUESTED",
-            state: "REQUESTED",
-            metadataCID: "bafy-2",
-          }),
-        },
-      ],
+      claims: [pendingClaim()],
       titles: new Map([["bafy-2", { version: 1, title: "Ride to the market on Saturday" }]]),
     });
     renderTab();
     const claims = screen.getByTestId("pool-claims");
-    expect(within(claims).getByText("Ride to the market on Saturday")).toBeInTheDocument();
-    fireEvent.click(within(claims).getByRole("button", { name: /^accept$/i }));
+    expect(within(claims).getByText("Offer · Ride to the market on Saturday")).toBeInTheDocument();
+    fireEvent.click(within(claims).getByRole("button", { name: /^approve$/i }));
     await waitFor(() =>
       expect(mocks.controller!.acts.acceptClaim).toHaveBeenCalledWith(2n, CLAIMANT)
     );
@@ -710,10 +728,10 @@ describe("GardenPoolTab (W7)", () => {
     });
     renderTab();
     const stats = screen.getByRole("list", { name: /what needs you/i });
-    // No claim waits, so its zero is text rather than a way in.
-    expect(within(stats).getByText(/claims waiting/i)).toBeInTheDocument();
+    // Nobody waits, so its zero is text rather than a way in.
+    expect(within(stats).getByText(/waiting for approval/i)).toBeInTheDocument();
     expect(
-      within(stats).queryByRole("button", { name: /claims waiting/i })
+      within(stats).queryByRole("button", { name: /waiting for approval/i })
     ).not.toBeInTheDocument();
 
     const list = screen.getByTestId("pool-commitments");
@@ -725,6 +743,150 @@ describe("GardenPoolTab (W7)", () => {
     fireEvent.click(within(stats).getByRole("button", { name: /1\s*past due/i }));
     expect(within(list).queryByTestId("pool-commitment-2")).not.toBeInTheDocument();
     expect(within(list).getByTestId("pool-commitment-3")).toBeInTheDocument();
+  });
+
+  it("folds copies made together into one group row, which opens the group's inspector", async () => {
+    mocks.controller = controller({
+      commitments: [commitment(), ...STORY_GROUP_COPIES],
+      titles: new Map([
+        ["bafy-1", { version: 1, title: "Prune the north beds" }],
+        ...STORY_GROUP_TITLES,
+      ]),
+    });
+    renderTab();
+    const group = screen.getByTestId("pool-group-group-00000001");
+    expect(group).toHaveTextContent(/10 promises/);
+    expect(group).toHaveTextContent(/4 available.*3 in progress.*2 kept.*1 ended/);
+    // The copies are the group's: none is a row of its own.
+    expect(screen.queryByTestId("pool-commitment-21")).not.toBeInTheDocument();
+    expect(screen.getByTestId("pool-commitment-1")).toBeInTheDocument();
+
+    fireEvent.click(within(group).getByRole("button", { name: /household water survey/i }));
+    const inspector = await screen.findByRole("dialog", { name: "Household water survey" });
+    expect(within(inspector).getByText("4 not taken up yet")).toBeInTheDocument();
+  });
+
+  it("counts a group's queued copy on its row as didn't send, with Finish Creating, not as a queued row", async () => {
+    const queued = {
+      chainId: 42161,
+      poolId: "7",
+      direction: "REQUEST" as const,
+      unitLabel: "survey",
+      targetUnits: "1",
+      waitingForMembership: false,
+      failed: true,
+      createdAt: 1,
+      discardable: true,
+    };
+    // The story clock's deadline has passed on this one: give the group a month to go.
+    const inAMonth = BigInt(Math.floor(Date.now() / 1000) + 30 * 86_400);
+    mocks.controller = controller({
+      commitments: STORY_GROUP_COPIES.slice(0, 9).map((copy) => ({ ...copy, dueDate: inAMonth })),
+      titles: STORY_GROUP_TITLES,
+      pendingCreates: [
+        { ...queued, jobId: "job-copy", title: "Household water survey" },
+        { ...queued, jobId: "job-own", title: "Seed swap" },
+      ],
+      queuedGroupCopies: new Map([["group-00000001", ["job-copy"]]]),
+    });
+    renderTab();
+    const group = screen.getByTestId("pool-group-group-00000001");
+    expect(group).toHaveTextContent(/9 created.*1 didn’t send/);
+    const queuedRows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
+    expect(queuedRows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining("Seed swap"),
+    ]);
+
+    fireEvent.click(within(group).getByRole("button", { name: "Finish Creating (1)" }));
+    await waitFor(() =>
+      expect(mocks.controller!.acts.finishCreating).toHaveBeenCalledWith("group-00000001")
+    );
+  });
+
+  it("lists a lapsed group's queued copy on its own to discard, with no Finish Creating", () => {
+    mocks.controller = controller({
+      // The group's deadline has passed.
+      commitments: STORY_GROUP_COPIES.slice(0, 9).map((copy) => ({ ...copy, dueDate: 1n })),
+      titles: STORY_GROUP_TITLES,
+      pendingCreates: [
+        {
+          chainId: 42161,
+          poolId: "7",
+          direction: "REQUEST",
+          unitLabel: "survey",
+          targetUnits: "1",
+          waitingForMembership: false,
+          failed: true,
+          createdAt: 1,
+          discardable: true,
+          jobId: "job-copy",
+          title: "Household water survey",
+          groupDueDate: "1",
+          hasRecordedSend: false,
+        },
+      ],
+      queuedGroupCopies: new Map([["group-00000001", ["job-copy"]]]),
+    });
+    renderTab();
+
+    const group = screen.getByTestId("pool-group-group-00000001");
+    expect(
+      within(group).queryByRole("button", { name: /Finish Creating/ })
+    ).not.toBeInTheDocument();
+    const queuedRows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
+    expect(queuedRows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining("Household water survey"),
+    ]);
+    expect(within(queuedRows[0]).getByRole("button", { name: "Try Again" })).toBeDisabled();
+    expect(within(queuedRows[0]).getByRole("button", { name: "Discard" })).toBeEnabled();
+    expect(queuedRows[0]).toHaveTextContent("This group's deadline has passed");
+  });
+
+  it("keeps recovery available for an expired group creation whose send is recorded", async () => {
+    mocks.controller = controller({
+      pendingCreates: [
+        {
+          chainId: 42161,
+          poolId: "7",
+          direction: "REQUEST",
+          unitLabel: "survey",
+          targetUnits: "1",
+          waitingForMembership: false,
+          failed: true,
+          createdAt: 1,
+          discardable: false,
+          jobId: "recorded-copy",
+          title: "Household water survey",
+          groupDueDate: "1",
+          hasRecordedSend: true,
+        },
+      ],
+    });
+    renderTab();
+    const row = within(screen.getByTestId("pool-queued")).getByRole("listitem");
+    expect(within(row).queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+    fireEvent.click(within(row).getByRole("button", { name: "Try Again" }));
+    await waitFor(() =>
+      expect(mocks.controller!.acts.retryQueued).toHaveBeenCalledWith("recorded-copy")
+    );
+  });
+
+  it("keeps Waiting for approval, Pool Status and Pool Funding in the right column, in that order", () => {
+    mocks.controller = controller({
+      claims: [pendingClaim()],
+      titles: new Map([["bafy-2", { version: 1, title: "Ride to the market on Saturday" }]]),
+    });
+    renderTab();
+    const aside = screen.getByRole("complementary");
+    const cards = Array.from(aside.querySelectorAll("[data-component]"), (node) =>
+      node.getAttribute("data-component")
+    ).filter((name) =>
+      ["PoolClaimsCard", "PoolStatusCard", "PoolFundingSection"].includes(name ?? "")
+    );
+    expect(cards).toEqual(["PoolClaimsCard", "PoolStatusCard", "PoolFundingSection"]);
+    // The promises stay on the left, so nothing on the right moves them.
+    expect(within(aside).queryByTestId("pool-commitments")).not.toBeInTheDocument();
+    expect(screen.getByTestId("pool-commitments")).toBeInTheDocument();
   });
 
   it("says on its status card when the pool is the protocol's", () => {

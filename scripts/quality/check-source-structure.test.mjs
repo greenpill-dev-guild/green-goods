@@ -295,3 +295,57 @@ test("allows capability consumers, pure state dependencies and comments describi
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("rejects imports that bypass the import seams, in tests and mocks too", () => {
+  const files = {
+    "packages/admin/src/__tests__/root.test.tsx": 'vi.mock("@green-goods/shared", () => ({}));',
+    "packages/client/src/views/Garden.tsx": 'import { useGarden } from "@green-goods/shared/hooks";',
+    "packages/admin/src/__tests__/undeclared.test.tsx": 'vi.mock("@green-goods/shared/hooks/garden/useMissing");',
+    "packages/client/src/views/Deep.stories.tsx": 'import { cn } from "../../../shared/src/utils/styles/cn";',
+    "packages/shared/src/components/Form/Wizard.tsx": 'import { useTimeout } from "../../hooks";',
+    "packages/shared/src/modules/data/pools.ts": 'import { queryKeys } from "../../config/query-keys/registry";',
+    "packages/shared/src/utils/app/chain.ts": 'import { DEFAULT_CHAIN_ID } from "../../config/blockchain";',
+    "packages/shared/src/stores/useSelf.ts": 'import { logger } from "@green-goods/shared";',
+  };
+  const root = fixture(files);
+  try {
+    const seams = audit(root, Object.keys(files), { sharedExportKeys: new Set([".", "./hooks/auth/*"]) })
+      .filter((finding) => finding.rule === "import-seam")
+      .map((finding) => finding.id);
+    assert.deepEqual(seams, [
+      "import-seam:packages/admin/src/__tests__/root.test.tsx:shared-root",
+      "import-seam:packages/admin/src/__tests__/undeclared.test.tsx:undeclared:@green-goods/shared/hooks/garden/useMissing",
+      "import-seam:packages/client/src/views/Deep.stories.tsx:deep-relative",
+      "import-seam:packages/client/src/views/Garden.tsx:broad-barrel",
+      "import-seam:packages/shared/src/components/Form/Wizard.tsx:internal-barrel",
+      "import-seam:packages/shared/src/modules/data/pools.ts:query-key-registry",
+      "import-seam:packages/shared/src/stores/useSelf.ts:shared-root",
+      "import-seam:packages/shared/src/utils/app/chain.ts:default-chain",
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("accepts leaf imports, and leaves Shared's own barrels, tests and commented examples alone", () => {
+  const files = {
+    "packages/admin/src/__tests__/leaf.test.tsx": [
+      'import { renderHook } from "@testing-library/react";',
+      'vi.mock("@green-goods/shared/hooks/auth/useAuth");',
+      '// vi.mock("@green-goods/shared");',
+    ].join("\n"),
+    "packages/client/src/views/Leaf.tsx": 'import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";',
+    "packages/shared/src/components/Form/Wizard.tsx": 'import { useTimeout } from "../../hooks/utils/useTimeout";',
+    "packages/shared/src/hooks/index.ts": 'export * from "../utils";',
+    "packages/shared/src/__tests__/hooks.test.ts": 'import { useTimeout } from "../hooks";',
+    "packages/shared/src/utils/app/chain.ts": 'import { DEFAULT_CHAIN_ID } from "../../config/default-chain";',
+  };
+  const root = fixture(files);
+  try {
+    const seams = audit(root, Object.keys(files), { sharedExportKeys: new Set([".", "./hooks/auth/*"]) })
+      .filter((finding) => finding.rule === "import-seam");
+    assert.deepEqual(seams, []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

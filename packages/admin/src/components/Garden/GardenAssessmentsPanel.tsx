@@ -22,6 +22,8 @@ interface GardenAssessmentsPanelProps {
   error: Error | null | undefined;
   gardenId: string;
   chainId: number;
+  /** The assessment the steward opened; its row is ringed and announced as current. */
+  selectedItem?: string;
 }
 
 export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
@@ -30,6 +32,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
   error,
   gardenId,
   chainId,
+  selectedItem,
 }) => {
   const { formatMessage } = useIntl();
 
@@ -68,7 +71,10 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
             {assessments.map((assessment) => (
               <div
                 key={assessment.id}
-                className="flex items-center justify-between rounded-lg bg-bg-weak p-3"
+                aria-current={assessment.id === selectedItem ? "true" : undefined}
+                className={`flex items-center justify-between rounded-lg bg-bg-weak p-3 ${
+                  assessment.id === selectedItem ? "ring-1 ring-primary-base" : ""
+                }`}
               >
                 <div className="flex min-w-0 flex-1 items-center space-x-3">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-feature-lighter">

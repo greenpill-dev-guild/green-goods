@@ -13,15 +13,25 @@ import {
   hashSeriesCreationPayload,
   hashWorkLinkPayload,
 } from "../../modules/commitment-pooling/jobs";
+import { encodeAbiParameters, encodeEventTopics } from "viem";
 import { createCommitmentChainReads } from "../../modules/job-queue/commitment-chain-reads";
+import { CommitmentPoolingModuleABI } from "../../utils/blockchain/contracts";
 import { executeApprovalJob } from "../../modules/job-queue/approval-executor";
-import { executeCommitmentQueueJob, executeWorkJob } from "../../modules/job-queue/job-executors";
+import { executeCommitmentQueueJob } from "../../modules/job-queue/job-executors";
+import { executeWorkJob } from "../../modules/job-queue/work-executor";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { createJobExecutorRegistry } from "../../modules/job-queue/executor-registry";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
+import { sendLockName, stubWebLocks } from "../test-utils/web-locks";
 import { PendingHeicConversionError } from "../../modules/work/work-attachments";
+import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
+import { hasRecordedSend, sendCheckpointOf } from "../../modules/job-queue/queue-policy";
+import { WorkSendCancelledError } from "../../modules/work/send-outcome";
+import { intentHead } from "../../modules/job-queue/send-chain-reads";
+import { StrandedSendReopened } from "../../modules/work/stranded-intent";
+import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
 
 // An untitled job looks its action up; keep that lookup off the network.
 vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
@@ -323,6 +333,26 @@ describe("work and approval job executors", () => {
 });
 
 describe("commitment queue executor", () => {
+  it("refuses a fresh expired group creation at the queue send boundary", async () => {
+    const sender = createMockTransactionSender();
+    const queued = job(
+      "commitment",
+      commitmentPayload({
+        dueDate: 1n,
+        metadata: { version: 1, title: "Compost", displayGroup: { version: 1, id: "group-1" } },
+      })
+    );
+
+    await expect(
+      executeCommitmentQueueJob(queued.id, queued, 42161, sender, {
+        demoActive: () => false,
+        reads: reads(),
+        store: store(),
+      })
+    ).resolves.toEqual({ status: "waiting", reason: "group-deadline-passed" });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("never reaches reads or sends while demo pooling is active", async () => {
     const chainReads = reads();
     const sender = createMockTransactionSender();
@@ -341,6 +371,31 @@ describe("commitment queue executor", () => {
       )
     ).resolves.toEqual({ status: "waiting", reason: "demo-mode" });
 
+    expect(chainReads.hasMembership).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("holds Add and Send's send while its proof is still queued", async () => {
+    const queueStore = store();
+    queueStore.getJob.mockResolvedValue(job("evidence", { commitmentId: 1n }));
+    const chainReads = reads();
+    const sender = createMockTransactionSender();
+    const send = job("confirmation", {
+      action: "submit",
+      commitmentId: 1n,
+      gardenAddress: GARDEN,
+      afterEvidenceJobId: "job-evidence",
+    });
+
+    await expect(
+      executeCommitmentQueueJob("job-confirmation", send, 42161, sender, {
+        demoActive: () => false,
+        reads: chainReads,
+        store: queueStore,
+      })
+    ).resolves.toEqual({ status: "waiting", reason: "proof-not-landed" });
+
+    expect(queueStore.getJob).toHaveBeenCalledWith("job-evidence");
     expect(chainReads.hasMembership).not.toHaveBeenCalled();
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
@@ -506,7 +561,8 @@ describe("commitment queue executor", () => {
 
     expect(publishEvidence).toHaveBeenCalledOnce();
     expect(sender.sendContractCall).toHaveBeenCalledWith(
-      expect.objectContaining({ functionName: "attachEvidence" })
+      expect.objectContaining({ functionName: "attachEvidence" }),
+      expect.anything()
     );
   });
 
@@ -648,9 +704,13 @@ describe("commitment queue executor", () => {
       })
     ).resolves.toEqual({ status: "complete", txHash: MOCK_TX_HASH });
     expect((queued.payload as { resolvedWorkUID?: string }).resolvedWorkUID).toBeUndefined();
-    expect(queueStore.updateJob).not.toHaveBeenCalled();
+    // The send is recorded on the stored job; the resolved UID never is.
+    for (const [persisted] of queueStore.updateJob.mock.calls) {
+      expect((persisted as Job).payload).not.toHaveProperty("resolvedWorkUID");
+    }
     expect(sender.sendContractCall).toHaveBeenCalledWith(
-      expect.objectContaining({ functionName: "linkWork", args: [1n, HASH, 0, HASH] })
+      expect.objectContaining({ functionName: "linkWork", args: [1n, HASH, 0, HASH] }),
+      expect.anything()
     );
   });
 
@@ -730,6 +790,514 @@ describe("commitment queue executor", () => {
   });
 });
 
+describe("commitment acts record their sends", () => {
+  // Each test names its own job: a broadcast the queue keeps in memory is keyed by id.
+  const takeUp = (id: string) =>
+    job(
+      "claim",
+      { commitmentId: 7n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN },
+      { id }
+    );
+
+  it("holds a take-up whose receipt was lost and confirms it without sending again", async () => {
+    const claim = takeUp("claim-receipt-lost");
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(HASH);
+      throw new Error("receipt timeout");
+    });
+    const jobStore = store();
+    const reconcile = vi.fn().mockResolvedValue("unresolved");
+    // The chain's head goes with the intent: nothing this send did can predate it.
+    // It is read again just before the intent, after any prompt, so a prompt left
+    // open never ages it.
+    const readChainHead = vi
+      .fn()
+      .mockResolvedValueOnce({ number: 100n, timestamp: 1_234 })
+      .mockResolvedValue({ number: 101n, timestamp: 1_240 });
+    // The nonce comes off the transaction itself once it is out: the wallet
+    // may know sends this network does not, so a count read before the prompt
+    // is only a floor.
+    const readTransactionNonce = vi.fn().mockResolvedValue(7);
+    const deps = {
+      demoActive: () => false,
+      reads: { ...reads(), readChainHead, readTransactionNonce },
+      store: jobStore,
+      reconcile,
+    };
+
+    await expect(executeCommitmentQueueJob(claim.id, claim, 42161, sender, deps)).resolves.toEqual({
+      status: "waiting",
+      reason: "awaiting-confirmation",
+    });
+    // The stored job says the send is out, so no screen offers to drop it.
+    expect(sendCheckpointOf(claim)).toMatchObject({
+      transactionHash: HASH,
+      intentChainTime: 1_240,
+      intentBlock: 101n,
+      transactionNonce: { hash: HASH, nonce: 7 },
+    });
+    expect(readTransactionNonce).toHaveBeenCalledWith(HASH);
+    expect(jobStore.updateJob).toHaveBeenCalledWith(claim);
+    expect(isDiscardableJob(claim)).toBe(false);
+
+    // Later runs read the receipt; nothing is sent twice.
+    await expect(executeCommitmentQueueJob(claim.id, claim, 42161, sender, deps)).resolves.toEqual({
+      status: "waiting",
+      reason: "awaiting-confirmation",
+    });
+    reconcile.mockResolvedValue("confirmed");
+    await expect(executeCommitmentQueueJob(claim.id, claim, 42161, sender, deps)).resolves.toEqual({
+      status: "complete",
+      txHash: HASH,
+    });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the intent when the answer is lost before any reference, and never sends blind", async () => {
+    const claim = takeUp("claim-answer-lost");
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      throw new Error("connection lost");
+    });
+    const settleStrandedIntent = vi.fn().mockRejectedValue(new AwaitingWorkConfirmation("0x"));
+    const deps = { demoActive: () => false, reads: reads(), store: store(), settleStrandedIntent };
+
+    await expect(executeCommitmentQueueJob(claim.id, claim, 42161, sender, deps)).resolves.toEqual({
+      status: "waiting",
+      reason: "awaiting-confirmation",
+    });
+    expect(hasRecordedSend(claim)).toBe(true);
+    expect(isDiscardableJob(claim)).toBe(false);
+
+    // A later run asks the chain whether it landed instead of sending again.
+    await executeCommitmentQueueJob(claim.id, claim, 42161, sender, deps);
+    expect(settleStrandedIntent).toHaveBeenCalledWith(claim, 42161, "0x");
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("offers a stranded act again once the chain shows it never landed", async () => {
+    const claim = takeUp("claim-reopened");
+    claim.payload = {
+      ...claim.payload,
+      sendCheckpoint: { broadcastPending: true, broadcastPendingAt: new Date(0).toISOString() },
+    } as typeof claim.payload;
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const settleStrandedIntent = vi.fn().mockRejectedValue(new StrandedSendReopened());
+
+    await expect(
+      executeCommitmentQueueJob(claim.id, claim, 42161, sender, {
+        demoActive: () => false,
+        reads: reads(),
+        store: store(),
+        settleStrandedIntent,
+      })
+    ).resolves.toEqual({ status: "waiting", reason: "send-intent-expired" });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["claim", { commitmentId: 7n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN }],
+    [
+      "evidence",
+      {
+        clientEvidenceId: "proof",
+        commitmentId: 7n,
+        cid: "bafy-proof",
+        creditedContributors: [USER],
+        gardenAddress: GARDEN,
+      },
+    ],
+    [
+      "workLink",
+      {
+        clientOperationId: "operation",
+        commitmentId: 7n,
+        workUID: HASH,
+        requirementIndex: 0,
+        operationKey: HASH,
+        gardenAddress: GARDEN,
+      },
+    ],
+    ["confirmation", { action: "confirm", commitmentId: 7n, gardenAddress: GARDEN }],
+  ])("settles a recorded %s by receipt, by UserOperation or from the chain, never sending again", async (kind, payload) => {
+    // A first Safe proposal is not a completed act; a fresh copy after reload
+    // must still reconcile it rather than create a second proposal.
+    const safeSender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(safeSender.sendContractCall).mockResolvedValue({
+      hash: HASH,
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const pendingSafe = job(kind, payload, { id: `${kind}-safe-first-send` });
+    const safeDeps = {
+      demoActive: () => false,
+      reads: reads(),
+      store: store(),
+      reconcile: vi.fn().mockResolvedValue("unresolved"),
+      settleStrandedIntent: vi.fn().mockRejectedValue(new AwaitingWorkConfirmation(HASH)),
+    };
+    await expect(
+      executeCommitmentQueueJob(pendingSafe.id, pendingSafe, 42161, safeSender, safeDeps)
+    ).resolves.toEqual({ status: "waiting", reason: "awaiting-confirmation" });
+    expect(isDiscardableJob(pendingSafe)).toBe(false);
+    const reloadedSafe = structuredClone(pendingSafe);
+    await expect(
+      executeCommitmentQueueJob(reloadedSafe.id, reloadedSafe, 42161, safeSender, safeDeps)
+    ).resolves.toEqual({ status: "waiting", reason: "awaiting-confirmation" });
+    expect(safeSender.sendContractCall).toHaveBeenCalledOnce();
+    safeDeps.reconcile.mockResolvedValue("confirmed");
+    await expect(
+      executeCommitmentQueueJob(reloadedSafe.id, reloadedSafe, 42161, safeSender, safeDeps)
+    ).resolves.toEqual({ status: "complete", txHash: HASH });
+    expect(safeSender.sendContractCall).toHaveBeenCalledOnce();
+
+    const operation = `0x${"cd".repeat(32)}` as const;
+    // A Safe's own transaction id: no receipt ever answers it.
+    const safeId = `0x${"5a".repeat(20)}` as const;
+    const sender = createMockTransactionSender({ authMode: "passkey" });
+    sender.reconcileBroadcast = vi
+      .fn()
+      .mockResolvedValue({ status: "confirmed", transactionHash: HASH });
+    const recorded = (id: string, sendCheckpoint: object) =>
+      job(kind, { ...payload, sendCheckpoint }, { id: `${kind}-${id}` });
+    const byReceipt = recorded("by-receipt", { broadcastPending: false, transactionHash: HASH });
+    const byOperation = recorded("by-operation", {
+      broadcastPending: false,
+      broadcast: { kind: "user-operation", chainId: 42161, hash: operation },
+    });
+    const stranded = recorded("stranded", {
+      broadcastPending: true,
+      broadcastPendingAt: new Date(0).toISOString(),
+    });
+    const unanswered = recorded("unanswered", { broadcastPending: false, transactionHash: safeId });
+    const settleStrandedIntent = vi.fn().mockResolvedValue(HASH);
+    const deps = {
+      demoActive: () => false,
+      reads: reads(),
+      store: store(),
+      reconcile: vi.fn(async (hash: string) => (hash === HASH ? "confirmed" : "unresolved")),
+      settleStrandedIntent,
+    };
+
+    for (const act of [byReceipt, byOperation, stranded, unanswered]) {
+      await expect(executeCommitmentQueueJob(act.id, act, 42161, sender, deps)).resolves.toEqual({
+        status: "complete",
+        txHash: HASH,
+      });
+    }
+    expect(deps.reconcile).toHaveBeenCalledWith(HASH, 42161);
+    expect(sender.reconcileBroadcast).toHaveBeenCalledOnce();
+    expect(settleStrandedIntent).toHaveBeenCalledWith(stranded, 42161, "0x");
+    // Settled by the act's landing on chain, under the id the wallet gave.
+    expect(settleStrandedIntent).toHaveBeenCalledWith(unanswered, 42161, safeId);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("holds its send while the prompt is open, and leaves an act to a tab still holding one", async () => {
+    const held = new Set<string>();
+    stubWebLocks(held);
+    const heldDuringSend: string[] = [];
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      heldDuringSend.push(...held);
+      await options?.onBroadcast?.(HASH);
+      return { hash: HASH, sponsored: false };
+    });
+    const deps = { demoActive: () => false, reads: reads(), store: store() };
+
+    try {
+      const sent = takeUp("claim-holds-lock");
+      await expect(executeCommitmentQueueJob(sent.id, sent, 42161, sender, deps)).resolves.toEqual({
+        status: "complete",
+        txHash: HASH,
+      });
+      expect(heldDuringSend).toEqual([sendLockName(sent.id)]);
+      expect(held.size).toBe(0);
+
+      const elsewhere = takeUp("claim-held-elsewhere");
+      held.add(sendLockName(elsewhere.id));
+      await expect(
+        executeCommitmentQueueJob(elsewhere.id, elsewhere, 42161, sender, deps)
+      ).rejects.toThrow("submission-ownership-changed");
+      expect(sender.sendContractCall).toHaveBeenCalledOnce();
+      expect(hasRecordedSend(elsewhere)).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("offers a lost act again only when no tab holds its send and its account has nothing waiting", async () => {
+    // Long past the grace window, and the chain holds no sign of it.
+    const lost = (id: string) => {
+      const act = takeUp(id);
+      act.payload = {
+        ...act.payload,
+        sendCheckpoint: { broadcastPending: true, broadcastPendingAt: new Date(0).toISOString() },
+      } as typeof act.payload;
+      return act;
+    };
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const hasPendingTransaction = vi.fn().mockResolvedValue(false);
+    const userOperationMayLand = vi.fn().mockResolvedValue(false);
+    const deps = {
+      demoActive: () => false,
+      reads: { ...reads(), hasPendingTransaction, userOperationMayLand },
+      store: store(),
+      lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
+    };
+    const settle = (act: ReturnType<typeof lost>) =>
+      executeCommitmentQueueJob(act.id, act, 42161, sender, deps);
+    const held = new Set<string>();
+
+    try {
+      // Without Web Locks nothing can say whether another tab's prompt is open.
+      vi.stubGlobal("navigator", {});
+      await expect(settle(lost("claim-no-locks"))).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+
+      stubWebLocks(held);
+      const holding = lost("claim-still-held");
+      held.add(sendLockName(holding.id));
+      await expect(settle(holding)).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+      // A transaction the network holds but has not mined may be the lost send.
+      hasPendingTransaction.mockResolvedValueOnce(true);
+      await expect(settle(lost("claim-account-busy"))).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+      expect(hasPendingTransaction).toHaveBeenCalledWith(USER);
+      // A passkey send's pending state lives at its bundler, not in the account's nonce.
+      const operation = `0x${"0e".repeat(32)}` as const;
+      const queued = lost("claim-operation-queued");
+      queued.payload = {
+        ...queued.payload,
+        sendCheckpoint: {
+          broadcastPending: true,
+          broadcastPendingAt: new Date(0).toISOString(),
+          broadcast: { kind: "user-operation", chainId: 42161, hash: operation },
+        },
+      } as typeof queued.payload;
+      userOperationMayLand.mockResolvedValueOnce(true);
+      await expect(settle(queued)).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+      expect(userOperationMayLand).toHaveBeenCalledWith(operation);
+      await expect(settle(lost("claim-released"))).resolves.toEqual({
+        status: "waiting",
+        reason: "send-intent-expired",
+      });
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("waits out a lost act that kept the chain's time on the chain's clock, whichever way the device's clock moved", async () => {
+    // The device's clock ran two hours fast when the send was recorded and has
+    // since been set right, so by the device the send has not happened yet.
+    const intentAt = Math.floor(Date.now() / 1000) - 45 * 60;
+    const lost = (id: string) => {
+      const act = takeUp(id);
+      act.payload = {
+        ...act.payload,
+        sendCheckpoint: {
+          broadcastPending: true,
+          broadcastPendingAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(),
+          intentChainTime: intentAt,
+          intentBlock: 100n,
+        },
+      } as typeof act.payload;
+      return act;
+    };
+    const readChainHead = vi.fn();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const deps = {
+      demoActive: () => false,
+      reads: {
+        ...reads(),
+        readChainHead,
+        hasPendingTransaction: vi.fn().mockResolvedValue(false),
+        userOperationMayLand: vi.fn().mockResolvedValue(false),
+      },
+      store: store(),
+      lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
+    };
+    const settle = (act: ReturnType<typeof lost>) =>
+      executeCommitmentQueueJob(act.id, act, 42161, sender, deps);
+    stubWebLocks(new Set());
+
+    try {
+      // Ten minutes after the send on the chain's clock, its window holds it.
+      readChainHead.mockResolvedValueOnce({ number: 100n, timestamp: intentAt + 10 * 60 });
+      await expect(settle(lost("claim-window-open"))).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+      // Past the window on the chain's clock, with nothing holding it, the head is
+      // kept: the act is offered again once the indexer has passed that block.
+      readChainHead.mockResolvedValue({ number: 200n, timestamp: intentAt + 31 * 60 });
+      const passed = lost("claim-window-passed");
+      await expect(settle(passed)).resolves.toEqual({
+        status: "waiting",
+        reason: "awaiting-confirmation",
+      });
+      expect(sendCheckpointOf(passed)?.idleBlock).toBe(200n);
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("offers a transaction on record again only once another took its nonce", async () => {
+    // Long past the grace window, no receipt, and the chain holds no sign of the act.
+    const unanswered = (id: string, nonce?: number, extra: Record<string, unknown> = {}) => {
+      const act = takeUp(id);
+      act.payload = {
+        ...act.payload,
+        sendCheckpoint: {
+          broadcastPending: false,
+          broadcastPendingAt: new Date(0).toISOString(),
+          broadcast: { kind: "transaction", hash: HASH },
+          transactionHash: HASH,
+          ...(nonce === undefined ? {} : { transactionNonce: { hash: HASH, nonce } }),
+          ...extra,
+        },
+      } as typeof act.payload;
+      return act;
+    };
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const transactionSuperseded = vi.fn().mockResolvedValue(false);
+    // The network no longer holds the transaction, so its nonce cannot be read now.
+    const readTransactionNonce = vi.fn().mockResolvedValue(null);
+    const deps = {
+      demoActive: () => false,
+      reads: {
+        ...reads(),
+        hasPendingTransaction: vi.fn().mockResolvedValue(false),
+        transactionSuperseded,
+        readTransactionNonce,
+      },
+      store: store(),
+      reconcile: vi.fn().mockResolvedValue("unresolved"),
+      lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
+    };
+    const settle = (act: ReturnType<typeof unanswered>) =>
+      executeCommitmentQueueJob(act.id, act, 42161, sender, deps);
+    const waiting = { status: "waiting", reason: "awaiting-confirmation" };
+    stubWebLocks(new Set());
+
+    try {
+      // Its nonce unspent, or unreadable, the signed transaction may still land.
+      await expect(settle(unanswered("claim-nonce-unspent", 5))).resolves.toEqual(waiting);
+      expect(transactionSuperseded).toHaveBeenCalledWith(HASH, USER, 5);
+      transactionSuperseded.mockRejectedValueOnce(new Error("rpc down"));
+      await expect(settle(unanswered("claim-nonce-unread", 5))).resolves.toEqual(waiting);
+      // A record without the nonce cannot show it: it completes only by landing.
+      transactionSuperseded.mockClear();
+      await expect(settle(unanswered("claim-no-nonce"))).resolves.toEqual(waiting);
+      expect(transactionSuperseded).not.toHaveBeenCalled();
+      // Nor can a count read before the prompt, or a nonce read off another hash:
+      // the transaction may use a later nonce the wallet knew and this network did not.
+      await expect(
+        settle(unanswered("claim-floor-only", undefined, { intentNonce: 5 }))
+      ).resolves.toEqual(waiting);
+      await expect(
+        settle(
+          unanswered("claim-other-hash", undefined, {
+            transactionNonce: { hash: `0x${"cd".repeat(32)}`, nonce: 5 },
+          })
+        )
+      ).resolves.toEqual(waiting);
+      expect(transactionSuperseded).not.toHaveBeenCalled();
+      // While the network holds it, the settle pass keeps the nonce it used.
+      readTransactionNonce.mockResolvedValueOnce(9);
+      const held = unanswered("claim-held");
+      await expect(settle(held)).resolves.toEqual(waiting);
+      expect(sendCheckpointOf(held)).toMatchObject({ transactionNonce: { hash: HASH, nonce: 9 } });
+      expect(transactionSuperseded).toHaveBeenCalledWith(HASH, USER, 9);
+
+      transactionSuperseded.mockResolvedValue(true);
+      const spent = unanswered("claim-nonce-spent", 5);
+      await expect(settle(spent)).resolves.toEqual({
+        status: "waiting",
+        reason: "send-intent-expired",
+      });
+      expect(hasRecordedSend(spent)).toBe(false);
+      expect(isDiscardableJob(spent)).toBe(true);
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("clears the intent when the person declines, and waits for their own tap to ask again", async () => {
+    const claim = takeUp("claim-declined");
+    const declined = new WorkSendCancelledError();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      throw declined;
+    });
+    const jobStore = store();
+    // What each write stored, so the flag is known to have reached storage.
+    const stored: Array<Job["meta"]> = [];
+    jobStore.updateJob.mockImplementation(async (written: Job) => {
+      stored.push({ ...written.meta });
+    });
+
+    await expect(
+      executeCommitmentQueueJob(claim.id, claim, 42161, sender, {
+        demoActive: () => false,
+        reads: reads(),
+        store: jobStore,
+      })
+    ).rejects.toBe(declined);
+    expect(hasRecordedSend(claim)).toBe(false);
+    expect(isDiscardableJob(claim)).toBe(true);
+    // A background flush passes it by until the person sends it themselves.
+    expect(stored.at(-1)).toMatchObject({ requiresExplicitSend: true });
+  });
+
+  it("asks the chain before recording an intent, so a refused act fails at once", async () => {
+    // A wallet estimates inside its own send, after the intent: without this a
+    // refusal would read as a send that may have gone out.
+    const claim = takeUp("claim-refused");
+    const refused = new Error("NotEligibleClaimant");
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const simulateSend = vi.fn().mockRejectedValue(refused);
+
+    await expect(
+      executeCommitmentQueueJob(claim.id, claim, 42161, sender, {
+        demoActive: () => false,
+        reads: { ...reads(), simulateSend },
+        store: store(),
+      })
+    ).rejects.toBe(refused);
+    expect(simulateSend).toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "claimCommitment", account: USER })
+    );
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(hasRecordedSend(claim)).toBe(false);
+  });
+});
+
+describe("the chain's head a send keeps", () => {
+  it("gives up on a chain slow to say, so a signed send never waits on it", async () => {
+    const never = () => new Promise<{ number: bigint; timestamp: number }>(() => undefined);
+    await expect(intentHead(never, 5)).resolves.toBeUndefined();
+  });
+});
+
 describe("commitment chain reads", () => {
   it("binds contract reads to the configured module, chain, and wagmi config", async () => {
     const readContract = vi.fn(async (_config, request: { functionName: string }) => {
@@ -791,6 +1359,219 @@ describe("commitment chain reads", () => {
     });
 
     await expect(chainReads.hasMembership?.(GARDEN, USER)).resolves.toBeNull();
+  });
+
+  it("reads the chain's head: its latest block and that block's time", async () => {
+    const getBlock = vi.fn().mockResolvedValue({ number: 100n, timestamp: 1_700_000_000n });
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      getBlock: getBlock as never,
+      config: {} as Config,
+    });
+
+    await expect(chainReads.readChainHead?.()).resolves.toEqual({
+      number: 100n,
+      timestamp: 1_700_000_000,
+    });
+    expect(getBlock).toHaveBeenCalledWith(expect.anything(), { chainId: 42161 });
+  });
+
+  it("confirms a take-up by its request or acceptance event, in its receipt's block", async () => {
+    const GARDEN_B = "0x9999999999999999999999999999999999999999" as Address;
+    const requested = encodeEventTopics({
+      abi: CommitmentPoolingModuleABI,
+      eventName: "ClaimRequested",
+      args: { commitmentId: 7n, claimant: USER, requestedBy: USER },
+    });
+    const requestLog = (gardenContext: Address) => ({
+      address: MODULE,
+      topics: requested,
+      data: encodeAbiParameters(
+        [{ type: "uint8" }, { type: "address" }, { type: "uint64" }],
+        [1, gardenContext, 1_700_000_000n]
+      ),
+    });
+    const acceptLog = {
+      address: MODULE,
+      topics: encodeEventTopics({
+        abi: CommitmentPoolingModuleABI,
+        eventName: "CommitmentAccepted",
+        args: { commitmentId: 7n, claimant: USER, counterparty: USER },
+      }),
+      data: encodeAbiParameters(
+        [
+          { type: "uint8" },
+          { type: "address" },
+          { type: "address" },
+          { type: "address" },
+          { type: "address" },
+        ],
+        [1, GARDEN, USER, GARDEN, GARDEN]
+      ),
+    };
+    const getTransactionReceipt = vi.fn();
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      getTransactionReceipt: getTransactionReceipt as never,
+      config: {} as Config,
+    });
+    const claim = {
+      commitmentId: 7n,
+      claimant: USER,
+      requestedBy: USER,
+      kind: 1,
+      gardenContext: GARDEN,
+    };
+    const receipt = (logs: object[]) => ({ status: "success", blockNumber: 101n, logs });
+
+    getTransactionReceipt.mockResolvedValueOnce(receipt([requestLog(GARDEN)]));
+    await expect(chainReads.transactionMadeClaim?.(MOCK_TX_HASH, claim)).resolves.toBe(101n);
+    getTransactionReceipt.mockResolvedValueOnce(receipt([acceptLog]));
+    await expect(chainReads.transactionMadeClaim?.(MOCK_TX_HASH, claim)).resolves.toBe(101n);
+    // The same person's request through another garden is not this take-up.
+    getTransactionReceipt.mockResolvedValueOnce(receipt([requestLog(GARDEN_B)]));
+    await expect(chainReads.transactionMadeClaim?.(MOCK_TX_HASH, claim)).resolves.toBeNull();
+  });
+
+  it("asks the bundler whether a UserOperation may still land", async () => {
+    const getUserOperationStatus = vi.fn();
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      getUserOperationStatus,
+      config: {} as Config,
+    });
+    // Only an operation the bundler never held, or refused, can no longer land.
+    for (const [status, mayLand] of [
+      ["not_found", false],
+      ["rejected", false],
+      ["not_submitted", true],
+      ["submitted", true],
+      ["included", true],
+    ] as const) {
+      getUserOperationStatus.mockResolvedValueOnce({ status, transactionHash: null });
+      await expect(chainReads.userOperationMayLand?.(HASH)).resolves.toBe(mayLand);
+    }
+    expect(getUserOperationStatus).toHaveBeenCalledWith(HASH);
+  });
+
+  it("reads a waiting transaction from the account's pending nonce", async () => {
+    const getTransactionCount = vi.fn(async (_config: unknown, request: { blockTag: string }) =>
+      request.blockTag === "pending" ? 5 : 4
+    );
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      getTransactionCount: getTransactionCount as never,
+      config: {} as Config,
+    });
+
+    await expect(chainReads.hasPendingTransaction?.(USER)).resolves.toBe(true);
+    expect(getTransactionCount).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ address: USER, blockTag: "pending", chainId: 42161 })
+    );
+    getTransactionCount.mockImplementation(async () => 4);
+    await expect(chainReads.hasPendingTransaction?.(USER)).resolves.toBe(false);
+  });
+
+  it("reads a transaction as superseded only once its signer's mined nonce has passed it", async () => {
+    const state = { code: undefined as string | undefined, mined: 6, held: false };
+    const notFound = Object.assign(new Error("Transaction not found"), {
+      name: "TransactionNotFoundError",
+    });
+    const getTransaction = vi.fn(async () => {
+      if (state.held) return { hash: HASH, nonce: 5 };
+      throw notFound;
+    });
+    const getBytecode = vi.fn(async () => state.code);
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      getBytecode: getBytecode as never,
+      getTransaction: getTransaction as never,
+      getTransactionCount: vi.fn(async (_config: unknown, request: { blockTag: string }) =>
+        request.blockTag === "pending" ? 7 : state.mined
+      ) as never,
+      config: {} as Config,
+    });
+    const superseded = () => chainReads.transactionSuperseded?.(HASH, USER, 5);
+
+    // The nonce a transaction used comes off the transaction while the network holds it.
+    state.held = true;
+    await expect(chainReads.readTransactionNonce?.(HASH)).resolves.toBe(5);
+    state.held = false;
+    await expect(chainReads.readTransactionNonce?.(HASH)).resolves.toBeNull();
+    // The account has no code, so the hash is a transaction it signed, and the
+    // network dropped it while its nonce went to another.
+    await expect(superseded()).resolves.toBe(true);
+    expect(getBytecode).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ address: USER, chainId: 42161 })
+    );
+    expect(getTransaction).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ hash: HASH, chainId: 42161 })
+    );
+    // Its nonce unspent, the signed transaction may still land.
+    state.mined = 5;
+    await expect(superseded()).resolves.toBe(false);
+    state.mined = 6;
+    // The network still holds it.
+    state.held = true;
+    await expect(superseded()).resolves.toBe(false);
+    state.held = false;
+    // A Safe's id, or any send from an account with code, never reads as superseded.
+    state.code = "0x6080";
+    await expect(superseded()).resolves.toBe(false);
+    state.code = undefined;
+    // Any other failure is no answer.
+    getTransaction.mockRejectedValueOnce(new Error("rpc down"));
+    await expect(superseded()).rejects.toThrow("rpc down");
+  });
+
+  it("confirms a work link by the key its WorkLinked event carries", async () => {
+    const OTHER_KEY = `0x${"99".repeat(32)}` as const;
+    const workLinked = (operationKey: `0x${string}`, emitter: Address = MODULE) => ({
+      address: emitter,
+      topics: encodeEventTopics({
+        abi: CommitmentPoolingModuleABI,
+        eventName: "WorkLinked",
+        args: { commitmentId: 7n, workUID: HASH, contributor: USER },
+      }),
+      data: encodeAbiParameters(
+        [{ type: "uint16" }, { type: "address" }, { type: "bytes32" }],
+        [0, USER, operationKey]
+      ),
+    });
+    const getTransactionReceipt = vi.fn().mockResolvedValue({
+      status: "success",
+      logs: [workLinked(OTHER_KEY), workLinked(HASH)],
+    });
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      getTransactionReceipt: getTransactionReceipt as never,
+      config: {} as Config,
+    });
+    const link = { commitmentId: 7n, workUID: HASH, operationKey: HASH, linker: USER };
+
+    await expect(chainReads.transactionMadeWorkLink?.(MOCK_TX_HASH, link)).resolves.toBe(true);
+    expect(getTransactionReceipt).toHaveBeenCalledWith(expect.anything(), {
+      hash: MOCK_TX_HASH,
+      chainId: 42161,
+    });
+    // Another linker, or the same event from another contract, is not this link.
+    await expect(
+      chainReads.transactionMadeWorkLink?.(MOCK_TX_HASH, { ...link, linker: GARDEN })
+    ).resolves.toBe(false);
+    getTransactionReceipt.mockResolvedValue({
+      status: "success",
+      logs: [workLinked(HASH, GARDEN)],
+    });
+    await expect(chainReads.transactionMadeWorkLink?.(MOCK_TX_HASH, link)).resolves.toBe(false);
   });
 });
 
@@ -1101,21 +1882,23 @@ describe("settling a send whose answer was lost", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
-  it("never settles an unresolved transaction hash, which may be a Safe transaction", async () => {
+  it("settles a transaction no receipt answers, such as a Safe's own id, by the work's landing", async () => {
+    // A Safe's own transaction id: no receipt ever answers it.
+    const safeId = `0x${"5a".repeat(20)}` as const;
     const work = stranded({
-      broadcast: { kind: "transaction", hash: HASH },
-      transactionHash: HASH,
+      broadcast: { kind: "transaction", hash: safeId },
+      transactionHash: safeId,
     });
     const sender = createMockTransactionSender({ authMode: "wallet" });
-    const settleStrandedIntent = vi.fn();
+    const settleStrandedIntent = vi.fn().mockResolvedValue(LANDED);
 
     await expect(
       executeWorkJob(work.id, work, 11155111, sender, {
         settleStrandedIntent,
         reconcile: vi.fn().mockResolvedValue("unresolved"),
       })
-    ).rejects.toThrow("awaiting-confirmation");
-    expect(settleStrandedIntent).not.toHaveBeenCalled();
+    ).resolves.toBe(LANDED);
+    expect(settleStrandedIntent).toHaveBeenCalledWith(work, 11155111, safeId);
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 });
@@ -1177,26 +1960,30 @@ describe("sending a decision once", () => {
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
   });
 
-  it("confirms a recorded transaction by its receipt, and never gives up on an unresolved one", async () => {
+  it("confirms a recorded transaction by its receipt, and settles an unresolved one by its landing", async () => {
     const sender = createMockTransactionSender();
     const settleStrandedIntent = vi.fn();
     const confirmed = sendDeps({
       reconcile: vi.fn().mockResolvedValue("confirmed"),
       settleStrandedIntent,
     });
-    const unresolved = sendDeps({
-      reconcile: vi.fn().mockResolvedValue("unresolved"),
-      settleStrandedIntent,
-    });
 
     await expect(
       executeApprovalJob(decision({ transactionHash: LANDED }), 11155111, sender, confirmed)
     ).resolves.toBe(LANDED);
-    // A transaction hash may be a Safe transaction still collecting signatures.
-    await expect(
-      executeApprovalJob(decision({ transactionHash: LANDED }), 11155111, sender, unresolved)
-    ).rejects.toThrow("awaiting-confirmation");
     expect(settleStrandedIntent).not.toHaveBeenCalled();
+
+    // A Safe's own transaction id: no receipt ever answers it, so the decision's
+    // landing settles it. Its absence alone never reopens it.
+    const safeId = `0x${"5a".repeat(20)}` as const;
+    const safe = decision({ transactionHash: safeId });
+    settleStrandedIntent.mockResolvedValue(LANDED);
+    const unresolved = sendDeps({
+      reconcile: vi.fn().mockResolvedValue("unresolved"),
+      settleStrandedIntent,
+    });
+    await expect(executeApprovalJob(safe, 11155111, sender, unresolved)).resolves.toBe(LANDED);
+    expect(settleStrandedIntent).toHaveBeenCalledWith(safe, 11155111, safeId);
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
@@ -1243,5 +2030,334 @@ describe("sending a decision once", () => {
     expect(approval.payload.sendCheckpoint).toBeUndefined();
     expect(approval.meta?.requiresExplicitSend).toBe(true);
     expect(deps.persist).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("work and decisions keep the send rules commitment acts follow", () => {
+  const OPERATION = `0x${"0e".repeat(32)}` as const;
+  const LONG_AGO = new Date(0).toISOString();
+  type Send = Omit<NonNullable<WorkJobPayload["uploadCheckpoint"]>, "submittedAt" | "files">;
+
+  const workWith = (id: string, record?: Send) =>
+    job<WorkJobPayload>(
+      "work",
+      {
+        actionUID: 3,
+        gardenAddress: GARDEN,
+        feedback: "Done",
+        clientWorkId: `client-${id}`,
+        uploadCheckpoint: { submittedAt: LONG_AGO, files: {}, ...record },
+      },
+      { id }
+    );
+  const decisionWith = (id: string, record?: Send) =>
+    job<ApprovalJobPayload>(
+      "approval",
+      {
+        actionUID: 7,
+        workUID: HASH,
+        gardenAddress: GARDEN,
+        gardenerAddress: USER,
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+        ...(record ? { sendCheckpoint: record } : {}),
+      },
+      { id }
+    );
+  /** How each kind is made, and how its executor is run with shared test doubles. */
+  const kinds = [
+    {
+      kind: "work",
+      make: workWith,
+      run: (queued: Job, sender: ReturnType<typeof createMockTransactionSender>, deps = {}) =>
+        executeWorkJob(queued.id, queued as Job<WorkJobPayload>, 42161, sender, {
+          images: vi.fn().mockResolvedValue([]),
+          simulate: vi.fn().mockResolvedValue(undefined),
+          encodeWork: vi.fn().mockResolvedValue(HASH),
+          easConfig: EAS_CONFIG,
+          ...deps,
+        }),
+    },
+    {
+      kind: "decision",
+      make: decisionWith,
+      run: (queued: Job, sender: ReturnType<typeof createMockTransactionSender>, deps = {}) =>
+        executeApprovalJob(queued as Job<ApprovalJobPayload>, 42161, sender, {
+          encodeApproval: vi.fn().mockReturnValue(HASH),
+          easConfig: EAS_CONFIG,
+          persist: vi.fn().mockResolvedValue(undefined),
+          ...deps,
+        }),
+    },
+  ] as const;
+
+  it.each(
+    kinds
+  )("holds a $kind's send while the prompt is open, and leaves one another tab holds", async ({
+    kind,
+    make,
+    run,
+  }) => {
+    const held = new Set<string>();
+    stubWebLocks(held);
+    const heldDuringSend: string[] = [];
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      heldDuringSend.push(...held);
+      await options?.onBroadcast?.(HASH);
+      return { hash: HASH, sponsored: false };
+    });
+
+    try {
+      const sent = make(`${kind}-holds-lock`);
+      await expect(run(sent, sender)).resolves.toBe(HASH);
+      expect(heldDuringSend).toEqual([sendLockName(sent.id)]);
+      expect(held.size).toBe(0);
+
+      // Another tab is mid-send, perhaps frozen with its prompt open.
+      const elsewhere = make(`${kind}-held-elsewhere`);
+      held.add(sendLockName(elsewhere.id));
+      await expect(run(elsewhere, sender)).rejects.toThrow("submission-ownership-changed");
+      expect(sender.sendContractCall).toHaveBeenCalledOnce();
+      expect(hasRecordedSend(elsewhere)).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it.each(
+    kinds
+  )("keeps the nonce a $kind's transaction used once its receipt does not come", async ({
+    kind,
+    make,
+    run,
+  }) => {
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(HASH);
+      throw new Error("receipt timeout");
+    });
+    // Read off the transaction itself while the network holds it: the wallet
+    // may know sends this network does not, so a count read before is a floor.
+    const readTransactionNonce = vi.fn().mockResolvedValue(7);
+    const queued = make(`${kind}-receipt-lost`);
+
+    await expect(run(queued, sender, { reads: { readTransactionNonce } })).rejects.toBeInstanceOf(
+      AwaitingWorkConfirmation
+    );
+    expect(sendCheckpointOf(queued)).toMatchObject({
+      transactionHash: HASH,
+      transactionNonce: { hash: HASH, nonce: 7 },
+    });
+    expect(readTransactionNonce).toHaveBeenCalledWith(HASH);
+    expect(isDiscardableJob(queued)).toBe(false);
+  });
+
+  it.each(
+    kinds
+  )("keeps the chain's head with a $kind's intent, and sends without it when the chain cannot say", async ({
+    kind,
+    make,
+    run,
+  }) => {
+    const steps: string[] = [];
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      // A passkey signs before its intent: a prompt left open must not age the head.
+      steps.push("signed");
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(HASH);
+      return { hash: HASH, sponsored: false };
+    });
+    // A lost send is then timed on the chain's clock, whatever the device's clock does.
+    const kept = make(`${kind}-keeps-head`);
+    const readChainHead = vi.fn(async () => {
+      steps.push("head read");
+      return { number: 100n, timestamp: 1_234 };
+    });
+    await expect(run(kept, sender, { reads: { readChainHead } })).resolves.toBe(HASH);
+    expect(sendCheckpointOf(kept)).toMatchObject({ intentBlock: 100n, intentChainTime: 1_234 });
+    expect(steps).toEqual(["signed", "head read"]);
+
+    // The lookup falls back to the device's clock, so a failed read never stops the send.
+    const unread = make(`${kind}-head-unread`);
+    const failing = vi.fn().mockRejectedValue(new Error("rpc unavailable"));
+    await expect(run(unread, sender, { reads: { readChainHead: failing } })).resolves.toBe(HASH);
+    expect(sendCheckpointOf(unread)).toMatchObject({ transactionHash: HASH });
+    expect(sendCheckpointOf(unread)?.intentChainTime).toBeUndefined();
+  });
+
+  it.each(
+    kinds
+  )("offers a lost $kind again only when no tab holds it, its account has nothing waiting and its bundler cannot land it", async ({
+    kind,
+    make,
+    run,
+  }) => {
+    // Long past the grace window, and EAS, caught up, holds no sign of it.
+    const lost = (id: string) =>
+      make(`${kind}-${id}`, { broadcastPending: true, broadcastPendingAt: LONG_AGO });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    sender.reconcileBroadcast = vi.fn().mockResolvedValue({ status: "unresolved" });
+    const hasPendingTransaction = vi.fn().mockResolvedValue(false);
+    const userOperationMayLand = vi.fn().mockResolvedValue(false);
+    const deps = {
+      reads: { hasPendingTransaction, userOperationMayLand },
+      lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
+    };
+    const held = new Set<string>();
+
+    try {
+      // Without Web Locks nothing can say whether another tab's prompt is open.
+      vi.stubGlobal("navigator", {});
+      await expect(run(lost("no-locks"), sender, deps)).rejects.toBeInstanceOf(
+        AwaitingWorkConfirmation
+      );
+
+      stubWebLocks(held);
+      const holding = lost("still-held");
+      held.add(sendLockName(holding.id));
+      await expect(run(holding, sender, deps)).rejects.toBeInstanceOf(AwaitingWorkConfirmation);
+      // A transaction the network holds but has not mined may be the lost send.
+      hasPendingTransaction.mockResolvedValueOnce(true);
+      await expect(run(lost("account-busy"), sender, deps)).rejects.toBeInstanceOf(
+        AwaitingWorkConfirmation
+      );
+      expect(hasPendingTransaction).toHaveBeenCalledWith(USER);
+      // A passkey send's pending state lives at its bundler, not in the account's nonce.
+      const queued = make(`${kind}-operation-queued`, {
+        broadcastPending: true,
+        broadcastPendingAt: LONG_AGO,
+        broadcast: { kind: "user-operation", hash: OPERATION },
+      });
+      userOperationMayLand.mockResolvedValueOnce(true);
+      await expect(run(queued, sender, deps)).rejects.toBeInstanceOf(AwaitingWorkConfirmation);
+      expect(userOperationMayLand).toHaveBeenCalledWith(OPERATION);
+
+      const released = lost("released");
+      await expect(run(released, sender, deps)).rejects.toBeInstanceOf(StrandedSendReopened);
+      expect(hasRecordedSend(released)).toBe(false);
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it.each(
+    kinds
+  )("waits out a lost $kind that kept the chain's time on the chain's clock, whichever way the device's clock moved", async ({
+    kind,
+    make,
+    run,
+  }) => {
+    // The device's clock ran two hours fast when the send was recorded and has
+    // since been set right, so by the device the send has not happened yet.
+    const intentAt = Math.floor(Date.now() / 1000) - 45 * 60;
+    const lost = (id: string) =>
+      make(`${kind}-${id}`, {
+        broadcastPending: true,
+        broadcastPendingAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(),
+        intentChainTime: intentAt,
+      });
+    const readChainHead = vi.fn();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const deps = {
+      reads: {
+        readChainHead,
+        hasPendingTransaction: vi.fn().mockResolvedValue(false),
+        userOperationMayLand: vi.fn().mockResolvedValue(false),
+      },
+      lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
+    };
+    stubWebLocks(new Set());
+
+    try {
+      // Ten minutes after the send on the chain's clock, its window holds it.
+      readChainHead.mockResolvedValueOnce({ number: 100n, timestamp: intentAt + 10 * 60 });
+      await expect(run(lost("window-open"), sender, deps)).rejects.toBeInstanceOf(
+        AwaitingWorkConfirmation
+      );
+      // Past the window on the chain's clock, with nothing holding it, the head is
+      // kept: the send is offered again once the indexer has passed that block.
+      readChainHead.mockResolvedValue({ number: 200n, timestamp: intentAt + 31 * 60 });
+      const passed = lost("window-passed");
+      await expect(run(passed, sender, deps)).rejects.toBeInstanceOf(AwaitingWorkConfirmation);
+      expect(sendCheckpointOf(passed)?.idleBlock).toBe(200n);
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it.each(
+    kinds
+  )("offers a $kind's transaction on record again only once it can never be included", async ({
+    kind,
+    make,
+    run,
+  }) => {
+    // Long past the grace window, no receipt, and EAS, caught up, holds no sign of it.
+    const unanswered = (id: string, extra: Partial<Send> = {}) =>
+      make(`${kind}-${id}`, {
+        broadcastPending: false,
+        broadcastPendingAt: LONG_AGO,
+        broadcast: { kind: "transaction", hash: HASH },
+        transactionHash: HASH,
+        ...extra,
+      });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const transactionSuperseded = vi.fn().mockResolvedValue(false);
+    // The network no longer holds the transaction, so its nonce cannot be read now.
+    const readTransactionNonce = vi.fn().mockResolvedValue(null);
+    const deps = {
+      reads: {
+        hasPendingTransaction: vi.fn().mockResolvedValue(false),
+        transactionSuperseded,
+        readTransactionNonce,
+      },
+      reconcile: vi.fn().mockResolvedValue("unresolved"),
+      lookUpLanded: vi.fn().mockResolvedValue({ status: "absent" }),
+    };
+    stubWebLocks(new Set());
+
+    try {
+      // Its nonce unspent, or unreadable, the signed transaction may still land.
+      const unspent = unanswered("nonce-unspent", { transactionNonce: { hash: HASH, nonce: 5 } });
+      await expect(run(unspent, sender, deps)).rejects.toBeInstanceOf(AwaitingWorkConfirmation);
+      expect(transactionSuperseded).toHaveBeenCalledWith(HASH, USER, 5);
+      // A record without the nonce cannot show it: it completes only by landing.
+      transactionSuperseded.mockClear();
+      await expect(run(unanswered("no-nonce"), sender, deps)).rejects.toBeInstanceOf(
+        AwaitingWorkConfirmation
+      );
+      expect(transactionSuperseded).not.toHaveBeenCalled();
+      // While the network holds it, the settle pass keeps the nonce it used.
+      readTransactionNonce.mockResolvedValueOnce(9);
+      const heldByNetwork = unanswered("held");
+      await expect(run(heldByNetwork, sender, deps)).rejects.toBeInstanceOf(
+        AwaitingWorkConfirmation
+      );
+      expect(sendCheckpointOf(heldByNetwork)).toMatchObject({
+        transactionNonce: { hash: HASH, nonce: 9 },
+      });
+
+      // The wallet saw it replaced, and nothing landed in its place.
+      const replaced = unanswered("replaced", { transactionReplaced: true });
+      await expect(run(replaced, sender, deps)).rejects.toBeInstanceOf(StrandedSendReopened);
+      expect(hasRecordedSend(replaced)).toBe(false);
+
+      // Another transaction took its nonce.
+      transactionSuperseded.mockResolvedValue(true);
+      const spent = unanswered("nonce-spent", { transactionNonce: { hash: HASH, nonce: 5 } });
+      await expect(run(spent, sender, deps)).rejects.toBeInstanceOf(StrandedSendReopened);
+      expect(hasRecordedSend(spent)).toBe(false);
+      expect(isDiscardableJob(spent)).toBe(true);
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

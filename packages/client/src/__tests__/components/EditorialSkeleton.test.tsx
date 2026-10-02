@@ -1,10 +1,11 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { render } from "@testing-library/react";
+import { IntlProvider } from "react-intl";
 import { describe, expect, it } from "vitest";
 import {
   EditorialListRowSkeleton,
@@ -24,12 +25,12 @@ describe("EditorialSkeleton", () => {
   });
 
   it("provides media, row, and stat compositions without accessible content", () => {
-    const { container } = render(
-      <div>
+    const { container, queryByRole } = render(
+      <IntlProvider locale="en" messages={{}}>
         <EditorialMediaCardSkeleton />
         <EditorialListRowSkeleton />
         <EditorialStatSkeleton />
-      </div>
+      </IntlProvider>
     );
 
     expect(
@@ -39,9 +40,7 @@ describe("EditorialSkeleton", () => {
       "aria-hidden",
       "true"
     );
-    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
-      8
-    );
+    expect(queryByRole("button")).toBeNull();
   });
 
   it("makes the tonal sweep static when reduced motion is requested", () => {

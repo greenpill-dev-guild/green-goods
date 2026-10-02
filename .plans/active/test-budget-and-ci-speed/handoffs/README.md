@@ -8,6 +8,8 @@ Keep lane handoffs short and factual. Use one file per lane:
 - `claude-qa-pass-1.md`
 - `codex-qa-pass-2.md`
 
+Review handoffs sit beside them: `astra-review.md` is the velocity follow-through review (2026-09-28).
+
 Each handoff should capture:
 
 1. What changed

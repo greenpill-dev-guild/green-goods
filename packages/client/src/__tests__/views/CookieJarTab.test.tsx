@@ -1,6 +1,6 @@
 /**
  * CookieJarTab Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { Address } from "@green-goods/shared/types/domain";

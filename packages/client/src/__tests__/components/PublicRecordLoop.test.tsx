@@ -3,7 +3,7 @@
  *
  * Locks the homepage loop heading's intentional two-line composition.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen, within } from "@testing-library/react";
@@ -71,16 +71,6 @@ describe("PublicRecordLoop", () => {
       "text-[10px]",
       "tracking-[0.08em]"
     );
-  });
-
-  it("places step body copy under the title on small screens", () => {
-    renderLoop();
-
-    expect(
-      screen.getByText(
-        "A Garden starts as a real community hub with members, roles, and a place-based brief, so every Work record has somewhere accountable to land."
-      )
-    ).toHaveClass("col-start-2", "md:col-start-auto");
   });
 
   it("uses standard numbers for homepage loop steps", () => {

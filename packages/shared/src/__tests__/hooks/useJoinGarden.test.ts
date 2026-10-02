@@ -4,8 +4,8 @@
  * Tests for joining gardens with openJoining enabled.
  */
 
-import { QueryClient } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import type { QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock wagmi
@@ -120,23 +120,17 @@ import {
 import { trackContractError } from "../../modules/app/error-tracking";
 import {
   createMockSmartAccountClient,
-  createTestWrapper,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
-} from "../test-utils";
+} from "../test-utils/mock-factories";
+import { createTestQueryClient } from "../test-utils/query-client";
+import { renderHookWithProviders } from "../test-utils/render-helpers";
 
 describe("hooks/garden/useJoinGarden", () => {
   let queryClient: QueryClient;
 
-  const createWrapper = () => createTestWrapper(queryClient);
-
   beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    queryClient = createTestQueryClient();
     vi.clearAllMocks();
     mockFetchHatsModuleAddress.mockResolvedValue(undefined);
 
@@ -212,9 +206,7 @@ describe("hooks/garden/useJoinGarden", () => {
         eoa: null,
       });
 
-      const { result } = renderHook(() => useJoinGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithProviders(() => useJoinGarden(), { queryClient });
 
       await act(async () => {
         await expect(result.current.joinGarden(MOCK_ADDRESSES.garden)).resolves.toBe(MOCK_TX_HASH);
@@ -231,9 +223,7 @@ describe("hooks/garden/useJoinGarden", () => {
         eoa: null,
       });
 
-      const { result } = renderHook(() => useJoinGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithProviders(() => useJoinGarden(), { queryClient });
 
       let txHash: string | undefined;
       await act(async () => {
@@ -255,9 +245,7 @@ describe("hooks/garden/useJoinGarden", () => {
         eoa: null,
       });
 
-      const { result } = renderHook(() => useJoinGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithProviders(() => useJoinGarden(), { queryClient });
 
       let txHash: string | undefined;
       await act(async () => {
@@ -279,9 +267,7 @@ describe("hooks/garden/useJoinGarden", () => {
         eoa: null,
       });
 
-      const { result } = renderHook(() => useJoinGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithProviders(() => useJoinGarden(), { queryClient });
 
       await act(async () => {
         try {
@@ -306,7 +292,7 @@ describe("hooks/garden/useJoinGarden", () => {
         eoa: null,
       });
 
-      return renderHook(() => useJoinGarden(), { wrapper: createWrapper() });
+      return renderHookWithProviders(() => useJoinGarden(), { queryClient });
     };
 
     it("records a declined prompt as cancelled, not a conversion failure", async () => {
@@ -371,9 +357,7 @@ describe("hooks/garden/useJoinGarden", () => {
         eoa: null,
       });
 
-      const { result } = renderHook(() => useJoinGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithProviders(() => useJoinGarden(), { queryClient });
 
       expect(result.current.isJoining).toBe(false);
 

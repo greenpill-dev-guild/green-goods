@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 /**
  * useCommitmentJobs over the real queue, for a wallet reader.
@@ -20,7 +20,7 @@ import {
 import type { JobExecution, JobQueueHandle } from "../modules/job-queue/ports";
 import { createJobQueue } from "../modules/job-queue/queue";
 import type { Address } from "../types/domain";
-import { renderHookWithProviders } from "./test-utils";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 import {
   createInMemoryJobQueueStore,
   createJobQueueDependencies,
@@ -129,6 +129,29 @@ describe("useCommitmentJobs over the real queue, signed in with a wallet", () =>
     await expect(jobs.current.enqueue(confirm)).resolves.toEqual(expect.any(String));
     expect(executors.execute).toHaveBeenCalledTimes(2);
     expect(await store.getJobs({ userAddress: VIEWER })).toEqual([]);
+  });
+
+  it("keeps a declined proof on the phone with its identity, for the person to send or discard", async () => {
+    const { store, jobs } = setUp(async () => {
+      throw new Error("User rejected the request");
+    });
+
+    await expect(
+      jobs.current.enqueue({
+        act: "evidence",
+        payload: {
+          clientEvidenceId: "proof-1",
+          commitmentId: 9n,
+          creditedContributors: [VIEWER],
+          gardenAddress: GARDEN,
+          note: "Posts replaced",
+        },
+      })
+    ).resolves.toEqual(expect.any(String));
+
+    const [kept] = await store.getJobs({ userAddress: VIEWER });
+    expect(kept?.kind).toBe("evidence");
+    expect(kept?.payload).toMatchObject({ clientEvidenceId: "proof-1", note: "Posts replaced" });
   });
 
   it("keeps an act the queue is holding, one it judged final, and one that may have been sent", async () => {

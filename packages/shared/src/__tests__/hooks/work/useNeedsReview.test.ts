@@ -1,19 +1,20 @@
 /**
  * useNeedsReview Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Pins how the review list is built from each garden's paged read: others'
  * pending work only, unknown statuses kept out, decisions made on this device
  * counted as reviewed at once, and a saved list kept while offline.
  */
 
-import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { onlineManager, type QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { worksKeys } from "../../../config/query-keys/work";
 import type { Address } from "../../../types/domain";
 import type { EASWorkListRow } from "../../../types/eas-responses";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const CHAIN_ID = 42161;
 const VIEWER = "0xabc0000000000000000000000000000000000001" as Address;
@@ -62,13 +63,13 @@ function row(
 describe("hooks/work/useNeedsReview", () => {
   let queryClient: QueryClient;
 
-  function wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
+  function renderNeedsReview() {
+    return renderHookWithQueryClient(() => useNeedsReview([GARDEN], VIEWER), { queryClient });
   }
 
   beforeEach(() => {
     mockReadWorkList.mockReset();
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient = createTestQueryClient();
   });
 
   afterEach(() => {
@@ -83,7 +84,7 @@ describe("hooks/work/useNeedsReview", () => {
       row("approved", OTHER, { approved: true }),
     ]);
 
-    const { result } = renderHook(() => useNeedsReview([GARDEN], VIEWER), { wrapper });
+    const { result } = renderNeedsReview();
 
     await waitFor(() => expect(result.current.ready).toBe(true));
     expect(result.current.works.map((work) => work.id)).toEqual(["others-pending"]);
@@ -94,7 +95,7 @@ describe("hooks/work/useNeedsReview", () => {
   it("keeps a work whose status is unknown out of the list and does not claim a count", async () => {
     mockReadWorkList.mockResolvedValue([row("unread", OTHER)]);
 
-    const { result } = renderHook(() => useNeedsReview([GARDEN], VIEWER), { wrapper });
+    const { result } = renderNeedsReview();
 
     await waitFor(() => expect(result.current.isFetching).toBe(false));
     expect(result.current.works).toEqual([]);
@@ -107,7 +108,7 @@ describe("hooks/work/useNeedsReview", () => {
       Array.from({ length: 51 }, (_, index) => row(`reviewed-${index}`, OTHER, { approved: true }))
     );
 
-    const { result } = renderHook(() => useNeedsReview([GARDEN], VIEWER), { wrapper });
+    const { result } = renderNeedsReview();
 
     await waitFor(() => expect(result.current.isFetching).toBe(false));
     expect(result.current.works).toEqual([]);
@@ -120,7 +121,7 @@ describe("hooks/work/useNeedsReview", () => {
       { ...row("decided", OTHER), status: "approved", _isPending: false, _txHash: "0xabc" },
     ]);
 
-    const { result } = renderHook(() => useNeedsReview([GARDEN], VIEWER), { wrapper });
+    const { result } = renderNeedsReview();
 
     await waitFor(() => expect(result.current.ready).toBe(true));
     expect(result.current.works).toEqual([]);
@@ -135,7 +136,7 @@ describe("hooks/work/useNeedsReview", () => {
       { ...row("queued", OTHER), status: "rejected", _isPending: true },
     ]);
 
-    const { result } = renderHook(() => useNeedsReview([GARDEN], VIEWER), { wrapper });
+    const { result } = renderNeedsReview();
 
     await waitFor(() => expect(result.current.ready).toBe(true));
     expect(result.current.works).toEqual([]);
@@ -148,7 +149,7 @@ describe("hooks/work/useNeedsReview", () => {
       updatedAt: Date.now() - 60_000,
     });
 
-    const { result } = renderHook(() => useNeedsReview([GARDEN], VIEWER), { wrapper });
+    const { result } = renderNeedsReview();
 
     expect(result.current.works.map((work) => work.id)).toEqual(["saved"]);
     expect(result.current.savedAt).toBeGreaterThan(0);
@@ -157,7 +158,7 @@ describe("hooks/work/useNeedsReview", () => {
 
   it("reports a failed refresh and keeps showing the last good read", async () => {
     mockReadWorkList.mockResolvedValueOnce([row("still-pending", OTHER, null)]);
-    const { result } = renderHook(() => useNeedsReview([GARDEN], VIEWER), { wrapper });
+    const { result } = renderNeedsReview();
     await waitFor(() => expect(result.current.ready).toBe(true));
 
     mockReadWorkList.mockRejectedValueOnce(new Error("indexer timeout"));

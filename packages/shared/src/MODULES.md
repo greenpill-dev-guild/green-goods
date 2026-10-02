@@ -39,7 +39,7 @@ i18n catalogs, and Storybook-backed UI primitives.
 | `@green-goods/shared/styles/theme.css` | Supported | Direct theme stylesheet |
 | `@green-goods/shared/styles/utilities.css` | Supported | Direct utilities stylesheet |
 | `@green-goods/shared/testing` | Supported | Shared test utilities |
-| `@green-goods/shared/mocks` | Supported | MSW/browser/server mocks |
+| `@green-goods/shared/mocks` | Supported | Browser, Node and server mocks |
 | `@green-goods/shared/mocks/browser` | Supported | Browser mock entrypoint |
 | `@green-goods/shared/mocks/server` | Supported | Server mock entrypoint |
 | `@green-goods/shared/__tests__/setupTests.base` | Operational | Test bootstrap helper |

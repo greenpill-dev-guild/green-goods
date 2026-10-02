@@ -8,7 +8,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders as render } from "../test-utils";
+import { renderWithProviders as render } from "../test-utils/render-helpers";
 
 // Mock dependencies
 vi.mock("@green-goods/shared/utils", () => ({

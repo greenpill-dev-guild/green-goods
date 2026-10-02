@@ -1,15 +1,14 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Address, Garden } from "../../../types/domain";
 import type { KarmaIntegrationProjection } from "../../../types/karma";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const GARDEN = "0x1111111111111111111111111111111111111111" as Address;
 const OWNER = "0x2222222222222222222222222222222222222222" as Address;
@@ -104,22 +103,6 @@ const garden: Garden = {
   createdAt: 1,
 };
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      createElement(IntlProvider, { locale: "en", messages: {}, children })
-    );
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-}
-
 function mockSuccessfulReads() {
   mocks.getProjection.mockResolvedValue(projection);
   mocks.readContract.mockImplementation(async (_config, request) => {
@@ -138,10 +121,7 @@ describe("useKarmaIntegration query and mutation seams", () => {
   });
 
   it("reads the canonical account slug and exposes its profile URL", async () => {
-    const queryClient = createQueryClient();
-    const { result } = renderHook(() => useKarmaIntegration(garden), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useKarmaIntegration(garden));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -160,10 +140,7 @@ describe("useKarmaIntegration query and mutation seams", () => {
       if (request.functionName === "ownerOf") return OWNER;
       throw new Error(`Unexpected read: ${request.functionName}`);
     });
-    const queryClient = createQueryClient();
-    const { result } = renderHook(() => useKarmaIntegration(garden), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useKarmaIntegration(garden));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -178,10 +155,7 @@ describe("useKarmaIntegration query and mutation seams", () => {
       if (request.functionName === "ownerOf") return OWNER;
       throw new Error(`Unexpected read: ${request.functionName}`);
     });
-    const queryClient = createQueryClient();
-    const { result } = renderHook(() => useKarmaIntegration(garden), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useKarmaIntegration(garden));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -199,11 +173,9 @@ describe("useKarmaIntegration query and mutation seams", () => {
     mocks.sendContractCall
       .mockResolvedValueOnce({ hash: `0x${"66".repeat(32)}`, sponsored: false })
       .mockRejectedValueOnce(partialFailure);
-    const queryClient = createQueryClient();
+    const queryClient = createTestQueryClient();
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
-    const { result } = renderHook(() => useKarmaIntegration(garden), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useKarmaIntegration(garden), { queryClient });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     await act(async () => {

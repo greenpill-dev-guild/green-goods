@@ -15,7 +15,7 @@ import {
   type CreateAssessmentForm,
   createAssessmentMachine,
 } from "../../workflows/createAssessment";
-import { flushPromises } from "../test-utils";
+import { flushPromises } from "../test-utils/render-helpers";
 
 // ============================================
 // Test Helpers

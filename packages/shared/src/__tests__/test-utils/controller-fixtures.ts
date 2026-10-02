@@ -119,6 +119,8 @@ export function gardenCommitmentControllerFixture(
       sendFailed: false,
       failedJob: null,
       pendingAct: null,
+      proofSending: false,
+      proofOnItsWay: null,
       isUnavailable: false,
       refresh: () => undefined,
     },
@@ -168,8 +170,19 @@ export function proofComposerControllerFixture(
       { address: TUNDE, isLead: true },
       { address: MARIA, isLead: false },
     ],
+    seat: "provider",
+    stewards: [],
+    leads: true,
     media,
     audioNotes,
+    // Counted here rather than by the controller's module, which loads the queue.
+    contents: {
+      photos: media.filter((file) => !file.type.startsWith("video/")).length,
+      videos: media.filter((file) => file.type.startsWith("video/")).length,
+      voiceNotes: audioNotes.length,
+      links: links.length,
+      words: note.trim().length > 0,
+    },
     note,
     setNote: () => undefined,
     links,
@@ -180,6 +193,13 @@ export function proofComposerControllerFixture(
     isRecording,
     recordingElapsed: 0,
     isPending: false,
+    landing: null,
+    draftPersistence: "saved",
+    retryDraftRestore: () => undefined,
+    retryDraftSave: () => undefined,
+    canSendToo: false,
+    sendToo: false,
+    setSendToo: () => undefined,
     linkInvalid: false,
     imageUrls: [],
     heicStateOf: () => undefined,
@@ -218,6 +238,7 @@ const poolActs: PoolConsoleActs = {
   declineClaim: successfulTransaction,
   retryQueued: async () => undefined,
   discardQueued: async () => undefined,
+  finishCreating: async () => "sent",
 };
 
 type PoolConsoleFixtureOverrides = Omit<Partial<PoolConsoleController>, "pool" | "poolId"> & {
@@ -253,11 +274,14 @@ export function poolConsoleControllerFixture(
     cycles,
     cycleNames: new Map(),
     commitments,
+    waitingOnYou: new Set(),
     titles: new Map(),
     claims,
     charter: { charter: null, isLoading: false, isUnavailable: false },
     pauseReason: { reason: null, isLoading: false, isUnavailable: false },
     pendingCreates: [],
+    queuedGroupCopies: new Map(),
+    finishingGroupId: null,
     queueUnavailable: false,
     funding: {
       snapshot: null,
@@ -272,6 +296,8 @@ export function poolConsoleControllerFixture(
     },
     acts: poolActs,
     claimPhase: () => ({ status: "idle" }),
+    claimDecisions: {},
+    claimInFlight: false,
     resumePhase: { status: "idle" },
     queuedPhase: () => ({ status: "idle" }),
     isActing: false,
@@ -307,6 +333,8 @@ export function hubConfirmQueueControllerFixture(
           title: null,
           poolGarden: row.poolGarden,
           canDispute: row.canDispute,
+          state: { status: "waiting" },
+          groupSize: null,
         })
       )
     ),
@@ -319,6 +347,8 @@ export function hubConfirmQueueControllerFixture(
         title: null,
         poolGarden: row.poolGarden,
         canDispute: row.canDispute,
+        state: { status: "waiting" },
+        groupSize: null,
       })
     ),
     ...(toConfirm.disputed ?? []).map(
@@ -330,6 +360,8 @@ export function hubConfirmQueueControllerFixture(
         title: null,
         poolGarden: row.garden,
         canDispute: true,
+        state: { status: "waiting" },
+        groupSize: null,
       })
     ),
   ];
@@ -452,6 +484,11 @@ export function commitmentDialogControllerFixture(
     },
     acts: dialogActs,
     claimPhase: () => ({ status: "idle" }),
+    claimDecisions: {},
+    claimInFlight: false,
+    claimantStanding: () => null,
+    metadata: null,
+    metadataKnown: true,
     sendPhase: { status: "idle" },
     isActing: false,
     isLoading: false,

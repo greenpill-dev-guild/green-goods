@@ -147,3 +147,35 @@ export async function getWorkDecisionsSince(
     }))
     .filter(({ decision }) => decision.workUID.toLowerCase() === input.workUID.toLowerCase());
 }
+
+const INDEXED_BLOCK_QUERY = easGraphQL(/* GraphQL */ `
+  query EasIndexedBlock {
+    serviceStats(where: { name: { equals: "latestAttestationBlockNum" } }) {
+      name
+      value
+    }
+  }
+`);
+
+/**
+ * The last block whose attestations EAS's indexer has written, or null when it
+ * keeps no such mark. The indexer writes a block range's attestations before it
+ * moves this mark, so every attestation at or below it can already be read.
+ */
+export async function getEasIndexedBlock(
+  chainId: number,
+  reader: GraphQLReader = createEasClient(chainId)
+): Promise<bigint | null> {
+  const operation = "getEasIndexedBlock";
+  const { data, error } = await reader.query(INDEXED_BLOCK_QUERY, {}, operation);
+  const stats: unknown = data?.serviceStats;
+  if (error || !Array.isArray(stats)) {
+    throw new EASFetchError(
+      `Failed to read how far EAS has indexed: ${error?.message ?? "Invalid service stats response"}`,
+      operation,
+      error
+    );
+  }
+  const value = (stats[0] as { value?: unknown } | undefined)?.value;
+  return typeof value === "string" && /^\d+$/.test(value) ? BigInt(value) : null;
+}

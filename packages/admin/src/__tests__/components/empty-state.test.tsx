@@ -1,6 +1,6 @@
 /**
  * Empty State Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * The unauthenticated / no-eligible-gardens home shell now lives in
  * IndexRoute (mounted at "/"), not CanvasLayout. These tests render

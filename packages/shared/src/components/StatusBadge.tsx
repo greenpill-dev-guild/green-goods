@@ -23,11 +23,24 @@ import { cn } from "../utils/styles/cn";
  */
 export type ConvictionStatus = "accruing" | "passing" | "funded" | "withdrawn" | "expired";
 
+/**
+ * `xs` is the 12px pill (22px tall) for dense rows and cards, such as a promise
+ * row or a season card, where it sits beside 12px words; `sm` and `md` suit
+ * status blocks and headers.
+ */
+type StatusBadgeSize = "xs" | "sm" | "md";
+
+const TEXT_SIZE: Record<StatusBadgeSize, string> = {
+  xs: "text-label-xs",
+  sm: "text-label-sm",
+  md: "text-label-md",
+};
+
 interface WorkStatusBadgeProps {
   status: WorkDisplayStatus;
   className?: string;
   showIcon?: boolean;
-  size?: "sm" | "md";
+  size?: StatusBadgeSize;
   /** Use semantic CSS variable tokens (admin) vs hardcoded colors (client) */
   variant?: "semantic" | "default";
 }
@@ -39,7 +52,7 @@ type GenericStatusVariant = (typeof GENERIC_STATUS_VARIANTS)[number];
 interface GenericStatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   className?: string;
   showIcon?: boolean;
-  size?: "sm" | "md";
+  size?: StatusBadgeSize;
   variant?: GenericStatusVariant;
   icon?: React.ReactNode;
   status?: never;
@@ -49,7 +62,7 @@ interface GenericStatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> 
 interface ConvictionStatusBadgeProps {
   className?: string;
   showIcon?: boolean;
-  size?: "sm" | "md";
+  size?: StatusBadgeSize;
   /** One of the five conviction-voting states. Auto-supplies icon + label. */
   convictionStatus: ConvictionStatus;
   /** Override the auto-supplied label (e.g. for translation). */
@@ -369,7 +382,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   ...props
 }) => {
   const intl = useIntl();
-  const textSize = size === "sm" ? "text-label-sm" : "text-label-md";
+  const textSize = TEXT_SIZE[size];
   const resolvedProps = { className, showIcon, size, variant, ...props } as StatusBadgeProps;
 
   if (isWorkStatusProps(resolvedProps)) {

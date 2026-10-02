@@ -16,6 +16,8 @@ export const tokensKeys = {
     ["greengoods", "tokens", "balances", account, chainId] as const,
   celoBalance: (account: string) =>
     ["greengoods", "tokens", "celoBalance", account.toLowerCase(), 42220] as const,
+  /** Today's G$ price in dollars, from GoodDollar's reserve on Celo. */
+  goodDollarPrice: () => ["greengoods", "tokens", "goodDollarPrice", 42220] as const,
   transferFee: (
     account: string,
     chainId: number,

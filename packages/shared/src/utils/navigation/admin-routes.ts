@@ -206,12 +206,19 @@ export const adminRoutes = {
       from: options?.from,
     });
   },
-  /** One commitment, opened in the pool tab's inspector (§6.7). */
-  gardenPoolCommitment(commitmentId: string, context?: AdminGardenRouteContext) {
-    return buildAdminHref(
-      `/garden/pool/${encodeSegment(commitmentId)}`,
-      buildGardenContextSearch(context)
-    );
+  /**
+   * One commitment, opened in the pool tab's inspector (§6.7); `focus: "waiting"`
+   * opens it at its waiting list, as a Waiting for approval row does (PRD-1025 D4).
+   */
+  gardenPoolCommitment(
+    commitmentId: string,
+    context?: AdminGardenRouteContext,
+    options?: { focus?: "waiting" }
+  ) {
+    return buildAdminHref(`/garden/pool/${encodeSegment(commitmentId)}`, {
+      ...buildGardenContextSearch(context),
+      focus: options?.focus,
+    });
   },
   gardenCreate() {
     return "/garden/create";

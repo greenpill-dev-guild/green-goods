@@ -1,14 +1,20 @@
 /**
  * usePublicGardenDetail Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import { createMockGarden, createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import {
+  approveEveryWork,
+  createMockGarden,
+  createMockWork,
+  createMockWorkApproval,
+  MOCK_ADDRESSES,
+} from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -21,15 +27,18 @@ vi.mock("../../../modules/data/greengoods", () => ({
 
 const mockGetWorks = vi.fn();
 const mockGetGardenAssessments = vi.fn();
+const mockReadWorkApprovalsForWorks = vi.fn();
 vi.mock("../../../modules/data/eas", () => ({
   getWorks: (...args: unknown[]) => mockGetWorks(...args),
   getGardenAssessments: (...args: unknown[]) => mockGetGardenAssessments(...args),
+  readWorkApprovalsForWorks: (...args: unknown[]) => mockReadWorkApprovalsForWorks(...args),
 }));
 
 const CONFIGURED_UID = "0x1111111111111111111111111111111111111111111111111111111111111111";
 const ZERO_UID = `0x${"0".repeat(64)}`;
 const mockEasConfig = vi.fn(() => ({
   WORK: { uid: CONFIGURED_UID },
+  WORK_APPROVAL: { uid: CONFIGURED_UID },
   ASSESSMENT: { uid: CONFIGURED_UID },
 }));
 vi.mock("../../../config/blockchain", () => ({
@@ -47,21 +56,6 @@ import { usePublicGardenDetail } from "../../../hooks/public/usePublicGardenDeta
 // Helpers
 // ============================================
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-      mutations: { retry: false },
-    },
-  });
-}
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 // ============================================
 // Tests
 // ============================================
@@ -71,21 +65,25 @@ describe("usePublicGardenDetail", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockGetGardens.mockResolvedValue([]);
     mockGetWorks.mockResolvedValue([]);
     mockGetGardenAssessments.mockResolvedValue([]);
+    mockReadWorkApprovalsForWorks.mockImplementation(async (workUIDs: string[]) =>
+      approveEveryWork(workUIDs)
+    );
     // clearAllMocks drops the factory implementation; both schemas are
     // configured unless a test says otherwise.
     mockEasConfig.mockReturnValue({
       WORK: { uid: CONFIGURED_UID },
+      WORK_APPROVAL: { uid: CONFIGURED_UID },
       ASSESSMENT: { uid: CONFIGURED_UID },
     });
   });
 
   it("does not fetch when no slug or address is provided", async () => {
-    const { result } = renderHook(() => usePublicGardenDetail(undefined), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(undefined), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -103,9 +101,12 @@ describe("usePublicGardenDetail", () => {
 
     mockGetGardens.mockResolvedValue([garden]);
 
-    const { result } = renderHook(() => usePublicGardenDetail(MOCK_ADDRESSES.garden), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => usePublicGardenDetail(MOCK_ADDRESSES.garden),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -113,6 +114,56 @@ describe("usePublicGardenDetail", () => {
 
     expect(result.current.data?.garden?.id).toBe(garden.id);
     expect(result.current.data?.garden?.name).toBe("Riparian Restoration");
+    expect(result.current.data?.unlisted).toBe(false);
+  });
+
+  it("resolves a slug a listed garden shares to the listed garden, whichever comes first", async () => {
+    const communityGarden = "0xf401f34378384713222d1d21f63359cc4E8a858a";
+    const listed = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Shared Name" });
+    mockGetGardens.mockResolvedValue([
+      createMockGarden({ id: communityGarden, name: "Shared Name" }),
+      listed,
+    ]);
+
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail("shared-name"), {
+      queryClient,
+    });
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+    expect(result.current.data?.garden?.id).toBe(listed.id);
+    expect(result.current.data?.unlisted).toBe(false);
+  });
+
+  it("opens an unlisted garden by its own link, and never one hidden everywhere", async () => {
+    // Curated addresses from config/garden-visibility: the editorial tier, then the other.
+    const communityGarden = "0xf401f34378384713222d1d21f63359cc4E8a858a";
+    const liveGardenCoop = "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8";
+    mockGetGardens.mockResolvedValue([
+      createMockGarden({ id: communityGarden, name: "Green Goods Community Garden" }),
+      createMockGarden({ id: liveGardenCoop, name: "Live Garden Coop" }),
+    ]);
+
+    const { result } = renderHookWithQueryClient(
+      () => usePublicGardenDetail(communityGarden.toLowerCase()),
+      { queryClient }
+    );
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+    expect(result.current.data?.garden?.id).toBe(communityGarden);
+    expect(result.current.data?.unlisted).toBe(true);
+
+    const { result: hidden } = renderHookWithQueryClient(
+      () => usePublicGardenDetail(liveGardenCoop),
+      {
+        queryClient,
+      }
+    );
+    await waitFor(() => {
+      expect(hidden.current.isSuccess).toBe(true);
+    });
+    expect(hidden.current.data?.garden).toBeNull();
   });
 
   it("resolves a garden by slug derived from name", async () => {
@@ -123,9 +174,12 @@ describe("usePublicGardenDetail", () => {
 
     mockGetGardens.mockResolvedValue([garden]);
 
-    const { result } = renderHook(() => usePublicGardenDetail("pacific-northwest-conservatory"), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => usePublicGardenDetail("pacific-northwest-conservatory"),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -139,8 +193,8 @@ describe("usePublicGardenDetail", () => {
       createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Other" }),
     ]);
 
-    const { result } = renderHook(() => usePublicGardenDetail("nonexistent-slug"), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail("nonexistent-slug"), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -171,6 +225,7 @@ describe("usePublicGardenDetail", () => {
       gardenAddress: garden.id as `0x${string}`,
       gardenerAddress: MOCK_ADDRESSES.user as `0x${string}`,
       createdAt: 1_700_001_000,
+      metadata: '{"details":{"seedlingsPlanted":12}}',
     });
     const offGardenWork = createMockWork({
       id: "work-other",
@@ -202,8 +257,8 @@ describe("usePublicGardenDetail", () => {
       },
     ]);
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -214,8 +269,61 @@ describe("usePublicGardenDetail", () => {
     expect(data?.fieldNotes).toHaveLength(2);
     // Most recent first
     expect(data?.fieldNotes[0]?.id).toBe("work-2");
+    expect(data?.fieldNotes[0]?.metadata).toBe(work2.metadata);
     expect(data?.contributors).toHaveLength(2);
     expect(data?.assessmentCount).toBe(1);
+  });
+
+  it("shows only approved field notes, and counts hands at work from them", async () => {
+    const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "approved", gardenerAddress: MOCK_ADDRESSES.gardener }),
+      createMockWork({ id: "pending", gardenerAddress: MOCK_ADDRESSES.user }),
+      createMockWork({ id: "rejected", gardenerAddress: MOCK_ADDRESSES.smartAccount }),
+    ]);
+    mockReadWorkApprovalsForWorks.mockResolvedValue({
+      approvals: [
+        createMockWorkApproval({ id: "a-1", workUID: "approved", approved: true }),
+        createMockWorkApproval({ id: "a-2", workUID: "rejected", approved: false }),
+      ],
+      failedWorkUIDs: [],
+    });
+
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data?.fieldNotes.map((note) => note.id)).toEqual(["approved"]);
+    expect(result.current.data?.totalFieldNotes).toBe(1);
+    expect(result.current.data?.contributors).toEqual([
+      { address: MOCK_ADDRESSES.gardener.toLowerCase(), fieldNoteCount: 1 },
+    ]);
+    expect(result.current.data?.unavailableSources.works).toBe(false);
+  });
+
+  it("reports the works source unavailable when a decision cannot be read", async () => {
+    // The page must not claim the approved notes it shows are all there are.
+    const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "read" }),
+      createMockWork({ id: "unread" }),
+    ]);
+    mockReadWorkApprovalsForWorks.mockResolvedValue({
+      approvals: [createMockWorkApproval({ id: "a-1", workUID: "read" })],
+      failedWorkUIDs: ["unread"],
+    });
+
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data?.fieldNotes.map((note) => note.id)).toEqual(["read"]);
+    expect(result.current.data?.partialData).toBe(true);
+    expect(result.current.data?.unavailableSources.works).toBe(true);
   });
 
   it("returns every field note so callers can page locally", async () => {
@@ -233,8 +341,8 @@ describe("usePublicGardenDetail", () => {
     );
     mockGetWorks.mockResolvedValue(works);
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -251,8 +359,8 @@ describe("usePublicGardenDetail", () => {
     mockGetWorks.mockRejectedValue(new Error("EAS unavailable"));
     mockGetGardenAssessments.mockResolvedValue([]);
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -275,8 +383,8 @@ describe("usePublicGardenDetail", () => {
     mockGetWorks.mockResolvedValue([]);
     mockGetGardenAssessments.mockRejectedValue(new Error("EAS unavailable"));
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -299,11 +407,12 @@ describe("usePublicGardenDetail", () => {
     mockGetGardenAssessments.mockResolvedValue([]);
     mockEasConfig.mockReturnValue({
       WORK: { uid: ZERO_UID },
+      WORK_APPROVAL: { uid: CONFIGURED_UID },
       ASSESSMENT: { uid: CONFIGURED_UID },
     });
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -323,8 +432,8 @@ describe("usePublicGardenDetail", () => {
     mockGetWorks.mockResolvedValue([]);
     mockGetGardenAssessments.mockResolvedValue([]);
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicGardenDetail(garden.id), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -337,9 +446,12 @@ describe("usePublicGardenDetail", () => {
   it("propagates garden indexer fetch failure", async () => {
     mockGetGardens.mockRejectedValue(new Error("Indexer down"));
 
-    const { result } = renderHook(() => usePublicGardenDetail(MOCK_ADDRESSES.garden), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => usePublicGardenDetail(MOCK_ADDRESSES.garden),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
@@ -359,10 +471,13 @@ describe("usePublicGardenDetail", () => {
     });
     mockGetGardens.mockResolvedValueOnce([firstGarden, secondGarden]);
 
-    const { result, rerender } = renderHook(({ lookup }) => usePublicGardenDetail(lookup), {
-      initialProps: { lookup: firstGarden.id },
-      wrapper: createWrapper(queryClient),
-    });
+    const { result, rerender } = renderHookWithQueryClient(
+      ({ lookup }) => usePublicGardenDetail(lookup),
+      {
+        initialProps: { lookup: firstGarden.id },
+        queryClient,
+      }
+    );
     await waitFor(() => expect(result.current.data?.garden?.name).toBe("First Garden"));
 
     let resolveSecondRead: (gardens: Array<typeof firstGarden>) => void = () => {};

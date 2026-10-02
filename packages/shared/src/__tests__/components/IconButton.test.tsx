@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { fireEvent, render, screen } from "@testing-library/react";

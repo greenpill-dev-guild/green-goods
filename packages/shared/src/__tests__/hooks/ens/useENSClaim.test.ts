@@ -8,6 +8,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
+import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockSendTransaction = vi.fn();
@@ -138,7 +139,11 @@ function createTestWrapper() {
   return {
     queryClient,
     wrapper: ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children),
+      createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(IntlProvider, { locale: "en", messages: {} }, children)
+      ),
   };
 }
 
@@ -171,7 +176,7 @@ describe("useENSClaim", () => {
     );
     mockEstimateGas.mockResolvedValue(400000n);
     mockEstimateFeesPerGas.mockResolvedValue({ maxFeePerGas: 25000000n });
-    mockWaitForTransactionReceipt.mockResolvedValue({ logs: [] });
+    mockWaitForTransactionReceipt.mockResolvedValue({ status: "success", logs: [] });
     mockDefaultReadContract();
   });
 
@@ -179,6 +184,24 @@ describe("useENSClaim", () => {
     queryClients.forEach((queryClient) => queryClient.clear());
     queryClients.clear();
     vi.restoreAllMocks();
+  });
+
+  it.each([
+    "wallet",
+    "passkey",
+  ] as const)("rejects a reverted %s receipt without seeding progress", async (mode) => {
+    mockAuthMode = mode;
+    mockSendTransaction.mockResolvedValue(MOCK_TX_HASH);
+    mockWalletSendTransaction.mockResolvedValue(MOCK_TX_HASH);
+    mockWaitForTransactionReceipt.mockResolvedValueOnce({ status: "reverted", logs: [] });
+    const { wrapper, queryClient } = createTestWrapper();
+    const { result } = renderHook(() => useENSClaim(), { wrapper });
+    result.current.mutate({ slug: "alice" });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(queryClient.getQueryData(queryKeys.ens.registrationStatus("alice"))).toBeUndefined();
+    expect(toastService.success).not.toHaveBeenCalled();
+    expect(toastService.error).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
   });
 
   describe("passkey user flow (sponsored)", () => {

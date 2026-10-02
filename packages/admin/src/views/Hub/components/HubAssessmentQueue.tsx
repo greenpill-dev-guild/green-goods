@@ -3,12 +3,13 @@ import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStat
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { HubActionSummary } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
-import { HubWorkCard } from "./HubWorkCard";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
+import { HubWorkCard } from "./HubWorkCard";
 
 interface HubAssessmentQueueProps {
   items: Work[];
@@ -39,7 +40,8 @@ function HubAssessmentQueueItem({
 }: HubAssessmentQueueItemProps) {
   const { formatMessage } = useIntl();
   const { data: ensName } = useEnsName(work.gardenerAddress);
-  const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, ensName);
+  const { data: protocolName } = useGreenGoodsEnsName(work.gardenerAddress);
+  const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, protocolName || ensName);
 
   return (
     <HubWorkCard

@@ -39,7 +39,7 @@ while IFS= read -r file; do
   [ -n "$file" ] || continue
 
   if is_secret_env_path "$file"; then
-    block 'Do not edit secret .env files from Codex. Use .env.schema, .env.example, or ask the user for the specific non-secret change.'
+    block 'Do not edit secret .env files from Codex. Use env.schema and env.template, or ask the user for the specific non-secret change.'
   fi
 
   if printf '%s' "$file" | grep -qE '(^|/)packages/[^/]+/\.env($|\.)'; then

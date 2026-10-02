@@ -190,6 +190,67 @@ export const DefaultSurfaceSizes: Story = {
   },
 };
 
+/**
+ * Header-row filters take the compact size: a 32px face, the height of the
+ * compact buttons beside them, sized to the chosen option with the condensed
+ * density's 64px floor (DL-032). The select keeps the 48px tap area (DL-023):
+ * its own box takes the taps above and below the face, so the row still lays
+ * out a 32px control.
+ */
+export const CompactHeaderFilters: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <section className="w-[360px] max-w-full bg-bg-white-0 p-4 text-text-strong-950">
+      <div className="flex min-h-10 items-center gap-2" data-testid="header-row">
+        <p className="shrink-0 whitespace-nowrap text-sm text-text-sub-600">7 live</p>
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          <NativeSelect
+            aria-label="Status"
+            controlSize="compact"
+            density="condensed"
+            className="w-auto min-w-16 max-w-48 field-sizing-content"
+            defaultValue="live"
+          >
+            <option value="live">Live</option>
+            <option value="settled">Settled</option>
+            <option value="all">All</option>
+          </NativeSelect>
+          <NativeSelect
+            aria-label="Kind"
+            controlSize="compact"
+            density="condensed"
+            className="w-auto min-w-16 max-w-48 field-sizing-content"
+            defaultValue="all"
+          >
+            <option value="all">All kinds</option>
+            <option value="offers">Offers</option>
+            <option value="requests">Requests</option>
+          </NativeSelect>
+        </div>
+      </div>
+    </section>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const select = canvas.getByRole("combobox", { name: "Status" });
+    const style = getComputedStyle(select);
+    const box = select.getBoundingClientRect();
+    const borderTop = Number.parseFloat(style.borderTopWidth);
+    const face = box.height - borderTop - Number.parseFloat(style.borderBottomWidth);
+
+    await expect(face).toBe(32);
+    await expect(box.height).toBe(48);
+    // The row lays out a 32px control, so the 40px header row keeps its height.
+    await expect(canvas.getByTestId("header-row").getBoundingClientRect().height).toBe(40);
+    // A tap 6px above the visible face still lands on the select.
+    const hit = canvasElement.ownerDocument.elementFromPoint(
+      box.left + box.width / 2,
+      box.top + borderTop - 6
+    );
+    await expect(hit).toBe(select);
+  },
+};
+
 export const FocusedTopInputMobile: Story = {
   parameters: {
     viewport: { defaultViewport: "mobile1" },

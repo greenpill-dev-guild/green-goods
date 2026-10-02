@@ -1,4 +1,4 @@
-import { createMockWork } from "@green-goods/shared/testing";
+import { createMockWork } from "../../test-utils/mock-factories";
 import { describe, expect, it } from "vitest";
 import {
   filterAssessmentQueue,

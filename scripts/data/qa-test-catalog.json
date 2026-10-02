@@ -669,6 +669,31 @@
       "source": "qa-readiness-catalog-2026-09-21"
     },
     {
+      "id": "PUB-060",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "content",
+      "area": "Gardens",
+      "scenario": "An unlisted garden opens by its own link and says it is unlisted",
+      "preconditions": [
+        "The public link of a garden kept off the public lists, such as Green Goods Community Garden"
+      ],
+      "steps": [
+        "Open the garden's public page by its own link",
+        "Read the foot of the hero card and the actions at the foot of the page",
+        "In the browser's developer tools, find the robots meta tag in the page head",
+        "Open the Gardens archive and the Fund page, and look for the garden in each"
+      ],
+      "expected": "The page opens with the garden's record and one quiet line, This Garden is not in the public lists, and offers no Support This Garden link; the page head carries a robots meta tag with content noindex; the archive and the Fund page's list still leave the garden out",
+      "evidence": "Screenshots of the page with the line, of the robots tag in the page head, and of the archive and the Fund list without the garden",
+      "role": "none",
+      "tags": ["garden-records"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-rehearsal-followups-2026-09-27"
+    },
+    {
       "id": "PUB-028",
       "tab": "Public Website",
       "platform": "Desktop Browser",
@@ -2424,8 +2449,11 @@
       "role": "gardener",
       "tags": ["my-work", "draft"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-runs-pwa-split-2026-09-07"
+      "status": "retired",
+      "source": "qa-runs-pwa-split-2026-09-07",
+      "retiredOn": "2026-10-01",
+      "retiredReason": "Your Work now unifies drafts with other Pending items and exposes them through Editing, rather than a separate Draft tab; its row actions and counts need a current check.",
+      "replacedBy": ["PWA-136"]
     },
     {
       "id": "PWA-075",
@@ -3193,6 +3221,250 @@
       "source": "prd-990"
     },
     {
+      "id": "PWA-126",
+      "priority": "P1",
+      "kind": "transaction",
+      "scenario": "A take-up whose confirmation is lost waits as sent, and is never dropped or sent twice",
+      "preconditions": [
+        "Signed in with a wallet",
+        "A member of the garden, on an offered commitment"
+      ],
+      "steps": [
+        "Press Take This Up",
+        "While the wallet asks, set the page offline in DevTools, then approve in the wallet",
+        "Read the row above the status band",
+        "Go back online, reload, and press Check Again"
+      ],
+      "expected": "Offline, the row says the take-up has left this phone and is waiting for the network to confirm it, with Check Again and no Discard; after the reload it says the same; Check Again confirms it without a second wallet prompt, the band moves to the accepted state and the row clears",
+      "evidence": "Screenshot of the row while offline and of the screen after Check Again",
+      "role": "gardener",
+      "tags": ["commitments", "queue", "tx"],
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "area": "Commitments",
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-996"
+    },
+    {
+      "id": "PWA-127",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Work",
+      "scenario": "A wallet Work prompt held open past one minute cannot be sent or discarded from another tab",
+      "preconditions": ["Two tabs signed in to the same wallet account", "A valid Work draft"],
+      "steps": [
+        "Start Upload Work in the first tab and leave its wallet prompt open for more than one minute",
+        "In the second tab open the queued Work and inspect Upload, Discard and Try Again",
+        "Answer the first prompt, then check the Work from both tabs"
+      ],
+      "expected": "The second tab never offers a second send or Discard while the first prompt can still broadcast; after the first answer the one Work is reconciled once",
+      "evidence": "Screenshots of the queued row in both tabs and the final Work state",
+      "role": "gardener",
+      "tags": ["work-submission", "queue", "wallet", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-128",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Work",
+      "scenario": "A lost Work confirmation that was approved is found without another send",
+      "preconditions": [
+        "Wallet account with a valid Work draft",
+        "A paired tester controls the wallet prompt"
+      ],
+      "steps": [
+        "Start Upload Work and approve in the wallet while the app tab is closed",
+        "Reopen the app and inspect the queued row",
+        "Press Check Again after the indexer catches up"
+      ],
+      "expected": "The row remains held until the Work is found; it clears as submitted with no second wallet prompt or duplicate Work",
+      "evidence": "Screenshots of the held row and final Work detail",
+      "role": "gardener",
+      "tags": ["work-submission", "queue", "recovery", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-129",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Work",
+      "scenario": "A lost Work send rejected after tab close reopens only after the chain-clock wait and a later look",
+      "preconditions": [
+        "Wallet account with a valid Work draft",
+        "A paired tester controls the wallet prompt"
+      ],
+      "steps": [
+        "Start Upload Work, close the app tab, then reject in the wallet",
+        "Reopen the app and check before the 30-minute window ends",
+        "After the window and indexer catch-up, Check Again once, then on a later look inspect Try Again",
+        "Press Try Again and answer one wallet prompt"
+      ],
+      "expected": "The Work stays held through the wait and first absence look; only the later look offers retry, and one retry sends one Work",
+      "evidence": "Timestamped screenshots of the held, retryable and final states",
+      "role": "gardener",
+      "tags": ["work-submission", "queue", "recovery", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-130",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "A lost approval decision that was sent is found without another send",
+      "preconditions": [
+        "A service commitment ready for an eligible confirmer",
+        "Wallet account and paired wallet-prompt control"
+      ],
+      "steps": [
+        "Approve the decision in the wallet while the app tab is closed",
+        "Reopen the commitment and inspect the queued act row",
+        "Press Check Again after the indexer catches up"
+      ],
+      "expected": "The decision stays held until the chain result is found; it settles once and never asks for another signature",
+      "evidence": "Screenshots of the held row and settled commitment",
+      "role": "steward",
+      "tags": ["commitments", "queue", "recovery", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-131",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "A lost approval decision rejected after tab close reopens only after the chain-clock wait and a later look",
+      "preconditions": [
+        "A service commitment ready for an eligible confirmer",
+        "Wallet account and paired wallet-prompt control"
+      ],
+      "steps": [
+        "Begin the decision, close the app tab, then reject the wallet prompt",
+        "Reopen and Check Again before 30 minutes have passed",
+        "After the chain-clock window and indexer catch-up, Check Again, then look once more",
+        "Use Send Now and answer one wallet prompt"
+      ],
+      "expected": "The decision stays held through the wait and first absence look; only the later look offers Send Now, and it sends exactly once",
+      "evidence": "Timestamped screenshots of the held, retryable and settled states",
+      "role": "steward",
+      "tags": ["commitments", "queue", "recovery", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-132",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Account",
+      "scenario": "Changing accounts on one device isolates queued Work, commitment acts and send records",
+      "preconditions": [
+        "Two test accounts with separate queued drafts or acts on one browser device"
+      ],
+      "steps": [
+        "With account A, park Work and a commitment act, and leave any send record unresolved",
+        "Sign out and sign in as account B; inspect Home filters, the same gardens, Work and commitment queues",
+        "Reload B, then sign out and return to A; reload A"
+      ],
+      "expected": "B starts with default filters and fresh garden state and cannot see, send or discard A’s queued items; each same-account reload retains its own state and A’s work returns only for A",
+      "evidence": "Private session notes without account names or addresses",
+      "role": "gardener",
+      "tags": ["auth", "queue", "account"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-133",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Commitments",
+      "scenario": "A named confirmer who did not create an untaken offer cannot withdraw it",
+      "preconditions": ["Untaken offer with a named confirmer distinct from its creator"],
+      "steps": [
+        "Open the offer as the named confirmer and inspect the action bar",
+        "Open it as the creator and inspect the action bar"
+      ],
+      "expected": "The named confirmer can read the offer but has no Withdraw This action; only the creator is offered withdrawal",
+      "evidence": "Screenshots of the two action bars without account identifiers",
+      "role": "gardener",
+      "tags": ["commitments", "permissions"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-134",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Work",
+      "scenario": "A locally queued linked Work is described as saved until it is sent",
+      "preconditions": [
+        "A garden-work commitment with a matching requirement",
+        "A Work draft linked to that requirement"
+      ],
+      "steps": [
+        "Make the connection unconfirmed and press Upload Work",
+        "Read the message after the Work and link enter their queues",
+        "If link queueing fails, read the error and press Retry Link"
+      ],
+      "expected": "Success and error text say the Work is saved on this device, not submitted; the link can be retried without submitting Work twice, and the commitment reads it as submitted only after Work sends",
+      "evidence": "Screenshots of the saved message, retry message and eventual submitted state",
+      "role": "gardener",
+      "tags": ["work-submission", "commitments", "offline", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-135",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Commitments",
+      "scenario": "A chosen action that expires while the composer is open stops placement",
+      "preconditions": [
+        "Garden-work composer with a required action near the end of its Work window"
+      ],
+      "steps": [
+        "Choose the action while it is still open and leave the composer on How Much or Review",
+        "After the action window ends, read the requirement and placement control",
+        "Try to place the commitment"
+      ],
+      "expected": "The action is named as closed, placement is blocked before a create job is queued, and the draft remains editable so another action can be chosen",
+      "evidence": "Screenshots before and after the action closes",
+      "role": "gardener",
+      "tags": ["commitments", "actions", "time"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
       "id": "PWA-103",
       "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
@@ -3259,8 +3531,11 @@
       "role": "gardener",
       "tags": ["commitments", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-10-01",
+      "retiredReason": "Proof requires at least one photo, video, voice note, valid web link or non-empty words, with a credited gardener; a media-only minimum no longer defines readiness.",
+      "replacedBy": ["PWA-137"]
     },
     {
       "id": "PWA-088",
@@ -6248,6 +6523,32 @@
       "source": "steward-cockpit-ux-2026-09-25"
     },
     {
+      "id": "ADM-189",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden · Pool",
+      "scenario": "Seed rows with closed actions stay out of the queue, including tray retries",
+      "preconditions": [
+        "Steward with manage rights",
+        "A garden action whose Work window is ending"
+      ],
+      "steps": [
+        "Open Seed a Commitment and choose Garden work",
+        "Inspect the Action chooser after the action closes",
+        "Prepare a tray row while an action is open, then let it close before Create All or a retry",
+        "Review the result and edit the unsent row"
+      ],
+      "expected": "Closed actions are absent from new choices and a selected one is named as closed; the closed row is never queued, while other valid rows may continue, and the unsent row remains editable",
+      "evidence": "Screenshots of the closed choice and unsent row",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment", "actions", "time"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
       "id": "ADM-057",
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
@@ -6590,7 +6891,7 @@
         "Steward with manage rights on a garden whose settlement account is active, so Celo G$ settlement can be chosen"
       ],
       "steps": [
-        "Run the seed wizard to its Proof & Confirmation step and open Advanced: declared reward",
+        "Run the seed wizard to its Proof & Confirmation step and answer Yes to Declare a reward",
         "Choose Celo G$ settlement and type 10 in Amount (G$)",
         "Try an amount with more than 18 decimal places, then type 10 again and go on to the review",
         "Read the reward on the review and cancel out"
@@ -6616,7 +6917,7 @@
         "The address of a 6-decimal ERC-20 token on the pool's chain, such as USDC, and an address it is paid from"
       ],
       "steps": [
-        "Run the seed wizard to its Proof & Confirmation step, open Advanced: declared reward, and choose External payout record",
+        "Run the seed wizard to its Proof & Confirmation step, answer Yes to Declare a reward, and choose External payout record",
         "Read the amount field, then enter the token address and the Paid from address and read it again",
         "Type 2.5, go on to the review, and read the reward",
         "Cancel out"
@@ -6976,8 +7277,11 @@
       "role": "steward",
       "tags": ["garden-pool", "commitment", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-readiness-catalog-2026-09-21"
+      "status": "retired",
+      "source": "qa-readiness-catalog-2026-09-21",
+      "retiredOn": "2026-10-01",
+      "retiredReason": "Creation signing depends on wallet capability: atomic bundles of up to ten promises or one prompt per promise; unconditional sequential prompt counts no longer describe this flow.",
+      "replacedBy": ["ADM-190"]
     },
     {
       "id": "ADM-130",
@@ -7055,14 +7359,15 @@
       "scenario": "Declining one wallet prompt in a batch skips that commitment only",
       "preconditions": [
         "Steward with manage rights, signed in with a wallet",
+        "A wallet without atomic bundle support; the Review note says it asks once per promise",
         "The seed wizard open on its review with three commitments in the sitting: compose one, press Add Another Like This and change the title, twice"
       ],
       "steps": [
-        "Press Create All (3)",
-        "Reject the first wallet prompt, confirm the second, and reject the third",
-        "Read the wizard, press Back to Review, and read the review and the pool's list"
+        "Press Create 3 Promises",
+        "Reject the first wallet prompt, confirm the second and reject the third",
+        "Read the partial result and the retained answers on Review, then inspect the pool list"
       ],
-      "expected": "The wallet asks about every commitment, whatever was rejected before it; the wizard stays open on 1 commitment created and 2 not sent, with nothing created for them; back on the review it says 1 commitment was sent and 2 could not be sent, so nothing was created for them; both are still there marked Not sent, one under Added so far and one as This one; the confirmed one appears in the list; the button reads Create All (2)",
+      "expected": "The wallet asks about every promise in this individual pass, whatever was rejected before it. The dialog reports one created and two that did not send; the confirmed promise appears once in the pool list. The two unsent promises retain their answers and original identities for Try Again (2); the already-created promise stays locked and is not included in that retry. No promise is created for either declined request.",
       "evidence": "Screenshots of the review after the batch and of the list",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
@@ -7080,11 +7385,12 @@
       "scenario": "A commitment left Not sent is sent again as itself and lands once",
       "preconditions": [
         "Steward with manage rights, signed in with a wallet",
+        "A wallet without atomic bundle support; the Review note says it asks once per promise",
         "The seed wizard still open with commitments marked Not sent (ADM-131)"
       ],
       "steps": [
-        "Press Create All (2) and confirm both wallet prompts",
-        "Read the wizard, press Done, and read the pool's list"
+        "Press Try Again (2) and confirm both individual wallet prompts",
+        "Read the completed result, press Done and inspect the pool list"
       ],
       "expected": "Each remaining commitment is sent and the wizard ends on them as Created; every title from the sitting appears in the list exactly once, with no second copy of the one sent earlier",
       "evidence": "Screenshot of the list with each title once",
@@ -7117,8 +7423,11 @@
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-design-audit-wave-1-2026-09-23"
+      "status": "retired",
+      "source": "qa-design-audit-wave-1-2026-09-23",
+      "retiredOn": "2026-10-01",
+      "retiredReason": "Creation progress distinguishes atomic bundle requests from individual wallet prompts and reports current per-copy outcomes; the fixed two-prompt progress and transaction-row UI are superseded.",
+      "replacedBy": ["ADM-191"]
     },
     {
       "id": "ADM-133",
@@ -10004,6 +10313,117 @@
       "retiredReason": "Cross Surface dissolved in catalog v2; behavior at real data volume is covered per surface",
       "replacedBy": ["PUB-003", "ADM-031"],
       "source": "drive-test-cases-2025-12"
+    },
+    {
+      "id": "PWA-136",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Work",
+      "scenario": "Resume and discard saved work drafts from Your Work Pending and its Editing filter",
+      "preconditions": [
+        "Two saved work drafts, one with a photo and filled garden, action and details",
+        "Another non-draft item in Your Work Pending so Editing can be distinguished from All"
+      ],
+      "steps": [
+        "Open Your Work from the Home header and read the Pending tab",
+        "Choose Editing and read both draft rows and the count",
+        "Resume the draft with a photo and inspect the restored wizard",
+        "Return to Pending, choose Editing and press Discard on the other draft",
+        "Cancel the draft confirmation once, then confirm it"
+      ],
+      "expected": "Drafts share Pending with other unfinished items; Editing shows only saved work and proof drafts, with the two work drafts counted and marked Draft. Resume restores the chosen draft's garden, action, media and details. Discard asks for confirmation; Cancel keeps that draft, while confirming removes that draft and its attachments and updates the count without changing the other draft or non-draft pending item.",
+      "evidence": "Screenshots of Pending and Editing, the restored wizard and the discard confirmation",
+      "role": "gardener",
+      "tags": ["my-work", "draft"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-integration-corrections-2026-10-01"
+    },
+    {
+      "id": "PWA-137",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Proof accepts photos, video, voice, links or words and blocks empty or invalid content",
+      "preconditions": [
+        "A commitment awaiting proof with a gardener entitled to add evidence",
+        "One valid sample for each content type: photo, video, voice note, http(s) link and non-empty words"
+      ],
+      "steps": [
+        "Open Add Proof and read the Media, Details and Review steps",
+        "Continue past Media with no attachment; leave Details empty and try to continue to Review",
+        "Try each content type on its own, removing the previous sample, and keep at least one gardener credited",
+        "Remove all credit once, try an invalid link once, then restore valid content and credit",
+        "Preview and remove photo, video and voice samples, then add the chosen proof",
+        "Interrupt one submission before it is admitted to the queue; correct the visible failure and submit once"
+      ],
+      "expected": "Media can be skipped; Details cannot advance with no content, whitespace-only words, no credited gardener or an invalid link. One photo, video, voice note, valid web link or non-empty words satisfies the content minimum without requiring another type. Add, preview and remove preserve the chosen content; a failed submission keeps the composer and its answers, while a successful submission admits one proof and shows its honest queue state.",
+      "evidence": "Screenshots of the empty and invalid gates, each single-content Review, the credited gardeners and the failure/recovery state",
+      "role": "gardener",
+      "tags": ["commitments", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-integration-corrections-2026-10-01"
+    },
+    {
+      "id": "ADM-190",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Seed several independent promises with the prompt count matched to wallet capability",
+      "preconditions": [
+        "Steward with manage rights, signed in with a wallet",
+        "An open pool with room for the chosen promise count",
+        "Wallets with and without atomic bundle support, with each capability recorded for the walk"
+      ],
+      "steps": [
+        "Run Seed Promises to Review for one promise and press Add Another Like This",
+        "Verify the answers were kept, change the title and return to Review",
+        "Read the total and wallet note, then press Create 2 Promises and answer the wallet requests",
+        "Repeat the two-promise pass with the other wallet capability",
+        "With the bundling wallet, repeat with eleven independent promises and read the note and requests",
+        "Press Done after each completed pass and inspect the pool list"
+      ],
+      "expected": "Add Another Like This keeps the answers and Review includes both promises. For two promises, an atomic-capable wallet is asked once for both; a wallet without that capability is asked twice, one per promise. Atomic requests contain at most ten, so eleven promises use two requests. The note predicts the actual request count, and each created child exists once with its own lifecycle even when compatible children appear as one display group. Done closes the dialog.",
+      "evidence": "Screenshots of Review and wallet-count notes for both capabilities, the eleven-promise bundle boundary, and the resulting pool entries",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-integration-corrections-2026-10-01"
+    },
+    {
+      "id": "ADM-191",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Creation progress follows bundle requests or individual prompts and reports the final promise count",
+      "preconditions": [
+        "Steward with manage rights, signed in with a wallet",
+        "Seed Promises open on Review with two promises: compose one, press Add Another Like This and change the title",
+        "Wallets with and without atomic bundle support, with each capability recorded for the walk"
+      ],
+      "steps": [
+        "With the bundling wallet, press Create 2 Promises and read the dialog while its single request is open",
+        "Approve the request and read the creating and final outcome states",
+        "Repeat with the non-bundling wallet, reading the first and second prompt states and created count as each completes",
+        "Press Done and inspect both independent promises in the pool list"
+      ],
+      "expected": "The bundling pass names two promises in one wallet request, then waits for chain confirmation before reporting them created; it does not invent a second prompt. The individual pass identifies the current prompt out of two and increases the created count as each child lands. Answers and editing controls stay locked while a pass is in flight. Both paths finish with two promises created and no duplicate child; Done closes the dialog. Creation is reported only after the corresponding chain result, never from approval alone.",
+      "evidence": "Screenshots of the bundle and individual prompt states, confirmation wait, final count and pool entries",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment", "queue", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-integration-corrections-2026-10-01"
     }
   ]
 }

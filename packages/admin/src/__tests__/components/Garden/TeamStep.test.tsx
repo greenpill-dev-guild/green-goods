@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { default as enMessages } from "@green-goods/shared/i18n/en.json";

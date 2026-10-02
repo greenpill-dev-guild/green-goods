@@ -4,7 +4,7 @@
  * Tests for the hypercert minting progress indicator component.
  * Covers status display, step progression, and error/success states.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { MintingState } from "@green-goods/shared/stores/useHypercertWizardStore";

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Generate .env.template from .env.schema.
+ * Generate env.template from env.schema.
  *
- * .env.template is the team-shared source of truth: keys + 1Password refs
+ * env.template is the team-shared source of truth: keys + 1Password refs
  * (op://Vault/Item/field) for shared secrets, plain values for non-secrets.
  *
  * `bun run env:sync` then runs `op inject` against this template to produce .env.
@@ -17,7 +17,7 @@
  *                    schema key that matches an item title in that vault. Without this
  *                    flag, sensitive keys get YOUR_VAULT placeholders you must edit.
  *   --field <name>   Field name within each 1Password item (default: credential).
- *   --force          Overwrite an existing .env.template.
+ *   --force          Overwrite an existing env.template.
  */
 
 import fs from "node:fs";
@@ -28,8 +28,8 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
-const schemaPath = path.join(projectRoot, ".env.schema");
-const templatePath = path.join(projectRoot, ".env.template");
+const schemaPath = path.join(projectRoot, "env.schema");
+const templatePath = path.join(projectRoot, "env.template");
 
 function parseArgs(argv) {
   const opts = { vault: "", field: "credential", force: false };
@@ -51,12 +51,12 @@ function parseArgs(argv) {
 const opts = parseArgs(process.argv.slice(2));
 
 if (!fs.existsSync(schemaPath)) {
-  console.error("error: .env.schema not found at", schemaPath);
+  console.error("error: env.schema not found at", schemaPath);
   process.exit(1);
 }
 
 if (fs.existsSync(templatePath) && !opts.force) {
-  console.error("error: .env.template already exists. Pass --force to overwrite, or remove and rerun.");
+  console.error("error: env.template already exists. Pass --force to overwrite, or remove and rerun.");
   process.exit(1);
 }
 
@@ -85,8 +85,8 @@ if (opts.vault) {
 const schemaText = fs.readFileSync(schemaPath, "utf8");
 
 const lines = [];
-lines.push("# .env.template — team-shared source of truth for environment variables.");
-lines.push("# Generated from .env.schema. Edit this file to:");
+lines.push("# env.template — team-shared source of truth for environment variables.");
+lines.push("# Generated from env.schema. Edit this file to:");
 lines.push("#   - replace placeholder values with 1Password refs (Vault/Item/field) for shared secrets");
 lines.push("#   - keep plain values for non-secret defaults (URLs, ports, feature flags)");
 lines.push("# Then run `bun run env:sync` to materialize .env via the inject step.");
@@ -150,7 +150,7 @@ for (const rawLine of schemaText.split(/\r?\n/)) {
       opRefCount += 1;
     } else {
       // Conditional or non-resolvable substitution. Leave empty with a comment so the dev decides.
-      lines.push(`# TODO: ${key} used a varlock expression in .env.schema (${value.slice(0, 40)}...).`);
+      lines.push(`# TODO: ${key} used a varlock expression in env.schema (${value.slice(0, 40)}...).`);
       lines.push(`# Set a real value, a 1Password ref using the op-scheme URI, or leave empty for app fallback.`);
       lines.push(`${key}=`);
     }
@@ -174,7 +174,7 @@ if (placeholderCount > 0) {
 console.log("");
 console.log("Next steps:");
 if (placeholderCount > 0) {
-  console.log("  1. Edit .env.template — replace op://YOUR_VAULT/... placeholders with real refs");
+  console.log("  1. Edit env.template — replace op://YOUR_VAULT/... placeholders with real refs");
   console.log("  2. Run `bun run env:sync` to materialize .env");
 } else {
   console.log("  1. Run `bun run env:sync` to materialize .env");

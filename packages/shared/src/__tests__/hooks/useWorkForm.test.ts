@@ -1,13 +1,19 @@
 /**
- * useWorkForm + buildWorkFormSchema Tests
+ * useWorkForm module tests
  *
  * Validates dynamic Zod schema generation from WorkInput[] config,
- * replacing hardcoded planting fields.
+ * replacing hardcoded planting fields, and the location consent hook.
  */
 
-import { describe, expect, it } from "vitest";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { useForm } from "react-hook-form";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { buildWorkFormSchema } from "../../hooks/work/useWorkForm";
+import {
+  buildWorkFormSchema,
+  useWorkLocation,
+  type WorkFormData,
+} from "../../hooks/work/useWorkForm";
 import type { WorkInput } from "../../types/domain";
 import { instructionTemplates } from "../../utils/action/templates";
 
@@ -362,5 +368,36 @@ describe("hooks/work/useWorkForm", () => {
     ).toEqual({ lat: 12.346, lng: -23.457 });
     expect(schema.parse({ location: undefined }).location).toBeUndefined();
     expect(schema.safeParse({ location: { lat: 91, lng: 0 } }).success).toBe(false);
+  });
+});
+
+describe("work location consent", () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("rounds before entering form state and clears on opt-out", () => {
+    let capture!: PositionCallback;
+    const getCurrentPosition = vi.fn((callback: PositionCallback) => {
+      capture = callback;
+    });
+    vi.stubGlobal("navigator", { geolocation: { getCurrentPosition } });
+    const { result } = renderHook(() => {
+      const form = useForm<WorkFormData>();
+      return { form, location: useWorkLocation(form.control, form.setValue) };
+    });
+    expect(getCurrentPosition).not.toHaveBeenCalled();
+    act(() => result.current.location.handleLocationToggle());
+    act(() =>
+      capture({
+        coords: { latitude: 12.345678, longitude: -34.567891, accuracy: 1 },
+      } as GeolocationPosition)
+    );
+    expect(result.current.form.getValues("location")).toEqual({ lat: 12.346, lng: -34.568 });
+    act(() => result.current.location.handleLocationToggle());
+    expect(result.current.form.getValues("location")).toBeUndefined();
+    expect(getCurrentPosition).toHaveBeenCalledOnce();
   });
 });

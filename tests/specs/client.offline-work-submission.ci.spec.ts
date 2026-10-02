@@ -101,14 +101,16 @@ test.describe("Offline Work Submission CI Tests", () => {
     await uploadButton.click();
 
     // The submission is queued, not failed: the dashboard opens on it and the
-    // sync bar counts it while still offline.
+    // Home badge counts it while still offline.
     const dashboard = page.getByRole("dialog");
     await expect(dashboard).toBeVisible({ timeout: 15000 });
     // Exactly one queued submission. Offline the header line reads "Offline · {time}"
-    // once any read has been saved, so count the work itself rather than the header.
-    await expect(dashboard.getByText("You submitted")).toHaveCount(1, { timeout: 15000 });
-    await expect(dashboard.getByText("You submitted")).toBeVisible();
-    await expect(dashboard.getByText("To upload", { exact: true })).toBeVisible();
+    // once any read has been saved, so count the Pending rows waiting to upload instead,
+    // each with its pill and the line saying what happens once connected.
+    const queued = dashboard.locator('[data-component="PendingCard"][data-kind="upload"]');
+    await expect(queued).toHaveCount(1, { timeout: 15000 });
+    await expect(queued.getByText("To upload", { exact: true })).toBeVisible();
+    await expect(queued).toContainText("Uploads when you're connected");
     // The dashboard is a modal sheet: while it is open the page, the offline bar
     // included, is hidden from assistive tech, so look for the bar itself.
     await expect(
@@ -124,25 +126,25 @@ test.describe("Offline Work Submission CI Tests", () => {
 
     await dashboard.getByTestId("app-sheet-close").click();
     await expect(dashboard).toBeHidden();
-    await expect(page.getByText("Offline: 1 item saved on this device")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Review uploads" })).toBeEnabled();
+    await page.getByRole("link", { name: /Home/ }).click();
+    const yourWork = page.getByTestId("work-dashboard-button");
+    await expect(yourWork).toBeEnabled();
+    await expect(page.getByRole("link", { name: /Home/ })).toContainText("1");
 
     // Reconnect: nothing sends on its own. The work stays queued behind Upload all,
-    // neither dropped nor duplicated, and Review uploads opens it.
+    // neither dropped nor duplicated, and Your Work opens it.
     await context.setOffline(false);
     await expect(page.getByRole("status", { name: "App is back online" })).toBeVisible({
       timeout: 10000,
     });
-    await expect(page.getByText("1 item waiting to upload")).toBeVisible({ timeout: 15000 });
-    await page.getByRole("button", { name: "Review uploads" }).click();
+    await expect(page.getByRole("link", { name: /Home/ })).toContainText("1");
+    await yourWork.click();
     await expect(dashboard).toBeVisible({ timeout: 15000 });
-    await expect(dashboard.getByText("You submitted")).toHaveCount(1, { timeout: 15000 });
-    await expect(dashboard.getByText("To upload", { exact: true })).toBeVisible();
-    // Background preparation starts once the connection is confirmed; CI has no upload
-    // signer, so the work keeps preparing unless the probe finds the connection unsteady.
-    await expect(page.getByTestId("upload-all")).toHaveText(
-      /^(Preparing uploads…|Upload all \(1\))$/
-    );
+    await expect(queued).toHaveCount(1, { timeout: 15000 });
+    await expect(queued.getByText("To upload", { exact: true })).toBeVisible();
+    // Background preparation starts once the connection is confirmed. The fixture has
+    // no media-upload service, so the work remains queued with the preparation action.
+    await expect(page.getByTestId("upload-all")).toHaveText("Upload all");
     await attachScreenshot(page, "reconnect-review-uploads");
   });
 });

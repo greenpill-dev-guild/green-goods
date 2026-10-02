@@ -1,9 +1,21 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 let connectivityStore: typeof import("../../stores/connectivity")["connectivityStore"];
 beforeAll(async () => {
   ({ connectivityStore } = await import("../../stores/connectivity"));
 });
+
+// A probe request that never answers but, like fetch, rejects once its signal aborts. Stopping the
+// probe then settles it; a request that ignored the abort kept the store's probe pending past the
+// test, and the next test's probes waited behind it.
+const unanswered = (_url: string, init?: RequestInit) =>
+  new Promise<Response>((_, reject) => {
+    init?.signal?.addEventListener(
+      "abort",
+      () => reject(new DOMException("The operation was aborted.", "AbortError")),
+      { once: true }
+    );
+  });
 
 let stop: (() => void) | undefined;
 const onlineHint = (value: boolean) =>
@@ -68,7 +80,7 @@ it("does not declare the device offline for an individual HTTP service failure",
 
 it("keeps queries online while two failed probes mark the connection degraded", async () => {
   vi.useFakeTimers();
-  const request = vi.fn(() => new Promise<Response>(() => {}));
+  const request = vi.fn(unanswered);
   vi.stubGlobal("fetch", request);
   stop = connectivityStore.configureProbe("/connectivity-check.txt");
   await vi.advanceTimersByTimeAsync(6_000);
@@ -100,10 +112,7 @@ it("keeps a later offline event authoritative over a delayed successful response
 });
 
 it("does not confirm the connection before the probe has answered", async () => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(() => new Promise<Response>(() => {}))
-  );
+  vi.stubGlobal("fetch", vi.fn(unanswered));
   stop = connectivityStore.configureProbe("/connectivity-check.txt");
   // The boot state and the pending-probe state both read "online".
   expect(connectivityStore.getStatusSnapshot().state).toBe("online");
@@ -122,10 +131,7 @@ it("confirms the connection only while the last probe answer is recent", async (
 
 it("never confirms an unstable connection", async () => {
   vi.useFakeTimers();
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(() => new Promise<Response>(() => {}))
-  );
+  vi.stubGlobal("fetch", vi.fn(unanswered));
   stop = connectivityStore.configureProbe("/connectivity-check.txt");
   await vi.advanceTimersByTimeAsync(6_000);
   expect(connectivityStore.getStatusSnapshot().state).toBe("degraded");

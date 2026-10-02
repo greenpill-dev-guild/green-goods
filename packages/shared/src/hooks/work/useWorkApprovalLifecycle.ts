@@ -106,7 +106,11 @@ function writePendingWorkApproval(record: PendingWorkApproval): void {
   }
 }
 
-function clearPendingWorkApproval(): void {
+/**
+ * Forget the approval whose receipt is being waited on. Also called when a
+ * different account signs in, so its recovery never resumes under their name.
+ */
+export function clearPendingWorkApproval(): void {
   try {
     getStorage()?.removeItem(PENDING_WORK_APPROVAL_STORAGE_KEY);
   } catch {

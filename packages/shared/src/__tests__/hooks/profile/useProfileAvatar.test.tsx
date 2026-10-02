@@ -1,10 +1,9 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "../../../types/domain";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const CHAIN_ID = 42161;
 const ADDRESS_A = "0x1111111111111111111111111111111111111111" as Address;
@@ -70,18 +69,7 @@ function createDeferred<T>() {
 }
 
 describe("useProfileAvatarEditor", () => {
-  let queryClient: QueryClient;
-
-  const wrapper = ({ children }: { children: ReactNode }) =>
-    createElement(QueryClientProvider, { client: queryClient }, children);
-
   beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
     mocks.address = ADDRESS_A;
     mocks.clearDraft.mockReset();
     mocks.loadDraft.mockReset();
@@ -104,7 +92,7 @@ describe("useProfileAvatarEditor", () => {
       address === ADDRESS_A ? firstLoad.promise : Promise.resolve(createDraft(ADDRESS_B))
     );
 
-    const { result, rerender } = renderHook(() => useProfileAvatarEditor(CHAIN_ID), { wrapper });
+    const { result, rerender } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
 
     await waitFor(() => expect(mocks.loadDraft).toHaveBeenCalledWith(CHAIN_ID, ADDRESS_A));
 
@@ -125,7 +113,7 @@ describe("useProfileAvatarEditor", () => {
   it("discards a draft whose stored identity does not match the active account", async () => {
     mocks.loadDraft.mockResolvedValue(createDraft(ADDRESS_B));
 
-    const { result } = renderHook(() => useProfileAvatarEditor(CHAIN_ID), { wrapper });
+    const { result } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
 
     await waitFor(() => expect(mocks.loadDraft).toHaveBeenCalledWith(CHAIN_ID, ADDRESS_A));
     await act(async () => {
@@ -161,7 +149,7 @@ describe("useProfileAvatarEditor", () => {
       }
     );
 
-    const { result, rerender } = renderHook(() => useProfileAvatarEditor(CHAIN_ID), { wrapper });
+    const { result, rerender } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
     await waitFor(() => expect(mocks.loadDraft).toHaveBeenCalledWith(CHAIN_ID, ADDRESS_A));
 
     let publishPromise!: Promise<unknown>;
@@ -216,7 +204,7 @@ describe("useProfileAvatarEditor", () => {
       }
     );
 
-    const { result, rerender } = renderHook(() => useProfileAvatarEditor(CHAIN_ID), { wrapper });
+    const { result, rerender } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
     await waitFor(() => expect(mocks.loadDraft).toHaveBeenCalledWith(CHAIN_ID, ADDRESS_A));
 
     let publishPromise!: Promise<unknown>;
@@ -247,7 +235,7 @@ describe("useProfileAvatarEditor", () => {
       Promise.resolve(address === ADDRESS_B ? createDraft(ADDRESS_B) : createDraft(ADDRESS_A))
     );
 
-    const { result, rerender } = renderHook(() => useProfileAvatarEditor(CHAIN_ID), { wrapper });
+    const { result, rerender } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
     await waitFor(() => expect(result.current.draft?.address).toBe(ADDRESS_A));
 
     let discardPromise!: Promise<void>;

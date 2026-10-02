@@ -1,9 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect } from "storybook/test";
+import { MemoryRouter } from "react-router-dom";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import { PublicGardenRow } from "../PublicGardenRow";
+import "../../../styles/editorial.css";
 import {
+  EditorialCookieJarCardSkeleton,
   EditorialListRowSkeleton,
   EditorialMediaCardSkeleton,
   EditorialSkeleton,
   EditorialStatSkeleton,
+  EditorialVaultAssetCardSkeleton,
 } from "./EditorialSkeleton";
 
 const meta: Meta<typeof EditorialSkeleton> = {
@@ -90,4 +97,59 @@ export const ReducedMotion: Story = {
     ),
   ],
   render: () => <EditorialMediaCardSkeleton />,
+};
+
+/** Compare the real Fund row against its placeholder at narrow and desktop widths. */
+export const FundingRowFootprints: Story = {
+  render: () => (
+    <MemoryRouter>
+      <div className="space-y-8 bg-bg-weak-50 p-5" data-site="website">
+        {[271, 360, 600].map((width) => (
+          <div key={width} data-proof-width={width} className="grid max-w-full" style={{ width }}>
+            <EditorialListRowSkeleton />
+            <PublicGardenRow
+              garden={
+                {
+                  id: "0x1111111111111111111111111111111111111111",
+                  address: "0x1111111111111111111111111111111111111111",
+                  slug: "community-garden",
+                  name: "Community Garden",
+                  description: "",
+                  location: "Local garden",
+                  bannerImage: "",
+                  contributorCount: 2,
+                  actionCount: 3,
+                  lastActivityAt: 0,
+                  stewards: [],
+                  evaluators: [],
+                } satisfies PublicGardenSummary
+              }
+              onSupport={() => {}}
+            />
+          </div>
+        ))}
+      </div>
+    </MemoryRouter>
+  ),
+  play: async ({ canvasElement }) => {
+    for (const frame of canvasElement.querySelectorAll("[data-proof-width]")) {
+      const skeleton = frame.querySelector("[data-editorial-skeleton-layout='list-row']")!;
+      const card = frame.querySelector("[data-component='PublicGardenRow']")!;
+      await expect(skeleton.getBoundingClientRect().width).toBe(card.getBoundingClientRect().width);
+      await expect(skeleton.getBoundingClientRect().height).toBe(
+        card.getBoundingClientRect().height
+      );
+      await expect(skeleton.querySelectorAll("[data-skeleton-action]")).toHaveLength(2);
+    }
+  },
+};
+
+export const CookieJarAndVaultCards: Story = {
+  render: () => (
+    <div data-site="website" className="grid items-start gap-8 bg-bg-weak-50 p-5 md:grid-cols-3">
+      <EditorialCookieJarCardSkeleton isConnected />
+      <EditorialCookieJarCardSkeleton isConnected={false} />
+      <EditorialVaultAssetCardSkeleton />
+    </div>
+  ),
 };

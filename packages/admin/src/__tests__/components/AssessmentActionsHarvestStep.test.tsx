@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";

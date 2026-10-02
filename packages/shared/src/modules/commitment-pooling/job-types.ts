@@ -26,6 +26,13 @@ export interface CommitmentRequirementInput {
   requiredCount: number;
 }
 
+/** The module's `ConsiderationRail` ordinals, as `DeclaredConsiderationInput.rail` carries them. */
+export const CONSIDERATION_RAIL_ORDINAL = {
+  NONE: 0,
+  ARBITRUM_EXTERNAL: 1,
+  CELO_SETTLEMENT: 2,
+} as const;
+
 export interface DeclaredConsiderationInput {
   rail: number;
   source: Address;
@@ -140,7 +147,17 @@ export type WorkLinkJobPayload = WorkLinkJobPayloadBase &
   );
 
 export type ConfirmationJobPayload =
-  | ({ action: "submit"; commitmentId: bigint } & MembershipGatedJobPayload)
+  | ({
+      action: "submit";
+      commitmentId: bigint;
+      /**
+       * Add and Send: the evidence job of the proof this send goes after. It is
+       * queued with that proof, so it outlives the screen that asked for it (an
+       * offline add, a reload, a try the queue repeats), and it waits until the
+       * proof has landed.
+       */
+      afterEvidenceJobId?: string;
+    } & MembershipGatedJobPayload)
   | ({ action: "confirm"; commitmentId: bigint } & MembershipGatedJobPayload);
 
 export interface CommitmentJobPayloadMap {
@@ -168,6 +185,7 @@ export type CommitmentJobExecutionResult =
   | {
       status: "waiting";
       reason:
+        | "group-deadline-passed"
         | "series-not-materialized"
         | "membership-unavailable"
         | "pending-first-send"

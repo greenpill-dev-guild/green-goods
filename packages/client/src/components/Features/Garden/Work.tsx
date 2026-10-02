@@ -1,13 +1,21 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { WorkCardSkeleton } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
+import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useActiveOfflineGarden } from "@green-goods/shared/hooks/offline/useOfflineContent";
+import {
+  type GardenWorkSort,
+  useGardenWorkListView,
+} from "@green-goods/shared/hooks/work/useGardenWorkListView";
 import type { Action, Work } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiInboxLine, RiRefreshLine } from "@remixicon/react";
-import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "react";
-import { type IntlShape, useIntl } from "react-intl";
+import React, { forwardRef, memo, type UIEvent, useCallback, useEffect } from "react";
+import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
-import { EmptyState, Loader } from "@/components/Communication";
+import { EmptyState } from "@/components/Communication";
+import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
+import { GardenListHeader, GardenListHeaderLoading } from "./GardenListHeader";
 
 interface GardenWorkProps {
   actions: Action[];
@@ -34,17 +42,19 @@ interface GardenWorkProps {
   handleScroll?: (event: UIEvent<HTMLUListElement>) => void;
 }
 
-/** A time for today's saves, a short date for older ones. */
-function formatSavedAt(intl: IntlShape, timestamp: number): string {
-  const saved = new Date(timestamp);
-  return saved.toDateString() === new Date().toDateString()
-    ? intl.formatTime(saved, { hour: "numeric", minute: "2-digit" })
-    : intl.formatDate(saved, { month: "short", day: "numeric" });
-}
+/** A phone shows about five cards; loading shows as many placeholders. */
+const SKELETON_CARDS = 5;
+const GRID = "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 w-full";
+const SORT_LABEL_IDS: Record<GardenWorkSort, string> = {
+  pending: "app.garden.work.sort.pending",
+  newest: "app.garden.work.sort.newest",
+  oldest: "app.garden.work.sort.oldest",
+};
+const SORT_ORDER: GardenWorkSort[] = ["pending", "newest", "oldest"];
 
 interface WorkListProps {
-  works: Work[];
-  actions: Action[];
+  sorted: Work[];
+  actionById: Map<string, Action>;
 }
 
 interface WorkListItemProps {
@@ -86,25 +96,8 @@ const WorkListItem = memo(function WorkListItem({
   );
 });
 
-const WorkList = ({ works, actions }: WorkListProps) => {
+const WorkList = ({ sorted, actionById }: WorkListProps) => {
   const navigate = useNavigateToTop();
-
-  const actionById = useMemo(() => {
-    const map = new Map<string, Action>();
-    for (const a of actions) {
-      const idPart = String(a.id).split("-").pop();
-      if (idPart) map.set(idPart, a);
-    }
-    return map;
-  }, [actions]);
-  const sorted = useMemo(() => {
-    return [...works].sort((a, b) => {
-      if (a.status === "pending" && b.status !== "pending") return -1;
-      if (a.status !== "pending" && b.status === "pending") return 1;
-      return b.createdAt - a.createdAt;
-    });
-  }, [works]);
-
   return sorted.map((_, index) => (
     <WorkListItem
       key={sorted[index].id}
@@ -165,116 +158,206 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
             })
       : null;
 
+    // Type and Sort narrow and order the list (D31); Pending is today's order.
+    const view = useGardenWorkListView(works, actions);
+    const typeAllLabel = intl.formatMessage({ id: "app.garden.work.type.all" });
+    const sortLabel = (sort: GardenWorkSort) => intl.formatMessage({ id: SORT_LABEL_IDS[sort] });
+    // Oldest first needs the garden's whole history, since its oldest work is on
+    // the last page: the rest is read before the list is shown in that order.
+    const loadOlderWork = readState?.loadOlderWork;
+    const readsHistory =
+      view.sort === "oldest" &&
+      hasRows &&
+      !isOffline &&
+      Boolean(readState?.hasOlderWork && loadOlderWork);
+    const isLoadingOlder = Boolean(readState?.isLoadingOlder);
+    useEffect(() => {
+      if (readsHistory && !isLoadingOlder) loadOlderWork?.();
+    }, [readsHistory, isLoadingOlder, loadOlderWork]);
+    // While a saved copy stands in for live data, its line takes the count's place.
+    // The count is the bare number, so the filters beside it have room; screen
+    // readers still hear what it counts.
+    const countLine = intl.formatMessage(
+      { id: "app.garden.work.count" },
+      { count: view.works.length }
+    );
+    const status = readsHistory
+      ? intl.formatMessage({ id: "app.garden.work.loading" })
+      : (context ?? intl.formatNumber(view.works.length));
+    const srStatus = readsHistory || context ? undefined : countLine;
+
+    // Loading keeps the loaded layout (D28): the header row with the loading line
+    // where the count lands and a placeholder where each filter goes, then cards
+    // in the work card's own frame, so nothing moves when the list arrives.
+    if (isLoading) {
+      return (
+        <div>
+          <GardenListHeaderLoading
+            label={intl.formatMessage({ id: "app.garden.work.loading" })}
+            srLabel={intl.formatMessage({ id: "app.garden.work.loadingDetail" })}
+            placeholders={[typeAllLabel, sortLabel("pending")]}
+          />
+          <ul
+            ref={ref}
+            onScroll={handleScroll}
+            className={`${GRID} animate-pulse`}
+            aria-hidden="true"
+          >
+            {Array.from({ length: SKELETON_CARDS }, (_, index) => (
+              <li key={index}>
+                <WorkCardSkeleton />
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+
+    // Type appears only when the work here spans two or more actions.
+    const filters = hasRows ? (
+      <>
+        {view.typeOptions.length > 0 ? (
+          <NativeSelect
+            aria-label={intl.formatMessage({ id: "app.garden.work.type.label" })}
+            controlSize="compact"
+            density="condensed"
+            className="w-auto min-w-16 max-w-48 field-sizing-content"
+            value={view.type}
+            onChange={(event) => view.setType(event.target.value)}
+          >
+            <option value="all">{typeAllLabel}</option>
+            {view.typeOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.title}
+              </option>
+            ))}
+          </NativeSelect>
+        ) : null}
+        <NativeSelect
+          aria-label={intl.formatMessage({ id: "app.garden.work.sort.label" })}
+          controlSize="compact"
+          density="condensed"
+          className="w-auto min-w-16 max-w-48 field-sizing-content"
+          value={view.sort}
+          onChange={(event) => view.setSort(event.target.value as GardenWorkSort)}
+        >
+          {SORT_ORDER.map((sort) => (
+            <option key={sort} value={sort}>
+              {sortLabel(sort)}
+            </option>
+          ))}
+        </NativeSelect>
+      </>
+    ) : null;
+
     // Full-tab states share the Pool tab's anchor (the focal region plus the
     // sheet placement), so switching tabs never moves the icon and title.
     return (
-      <ul
-        ref={ref}
-        onScroll={handleScroll}
-        className={
-          !isEmpty && !hasError && !isLoading
-            ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 w-full"
-            : "flex flex-col items-center justify-center w-full"
-        }
-      >
-        {context && (
-          <li className="col-span-full w-full min-w-0 text-sm text-text-sub-600" role="status">
-            <p className="truncate" title={context}>
-              {context}
-            </p>
-          </li>
-        )}
-        {isLoading && (
-          <li className="flex items-center justify-center p-8">
-            <Loader />
-          </li>
-        )}
+      <div>
+        {hasRows || context ? (
+          <GardenListHeader status={status} srStatus={srStatus} filters={filters} />
+        ) : null}
+        <ul
+          ref={ref}
+          onScroll={handleScroll}
+          className={
+            !isEmpty && !hasError ? GRID : "flex flex-col items-center justify-center w-full"
+          }
+        >
+          {hasError && (
+            <li className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
+              <EmptyState
+                placement="sheet"
+                tone="error"
+                icon={<RiErrorWarningLine />}
+                title={intl.formatMessage({
+                  id: "app.garden.work.errorLoadingWorks",
+                  defaultMessage: "Error loading works",
+                })}
+                action={
+                  onRefresh && !isOffline ? (
+                    <Button
+                      type="button"
+                      onClick={onRefresh}
+                      loading={isFetching}
+                      leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+                    >
+                      {isFetching
+                        ? intl.formatMessage({
+                            id: "app.common.refreshing",
+                            defaultMessage: "Refreshing...",
+                          })
+                        : intl.formatMessage({
+                            id: "app.common.tryAgain",
+                            defaultMessage: "Try Again",
+                          })}
+                    </Button>
+                  ) : null
+                }
+              />
+            </li>
+          )}
 
-        {hasError && (
-          <li className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
-            <EmptyState
-              placement="sheet"
-              tone="error"
-              icon={<RiErrorWarningLine />}
-              title={intl.formatMessage({
-                id: "app.garden.work.errorLoadingWorks",
-                defaultMessage: "Error loading works",
-              })}
-              action={
-                onRefresh && !isOffline ? (
-                  <Button
-                    type="button"
-                    onClick={onRefresh}
-                    loading={isFetching}
-                    leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
-                  >
-                    {isFetching
-                      ? intl.formatMessage({
-                          id: "app.common.refreshing",
-                          defaultMessage: "Refreshing...",
-                        })
-                      : intl.formatMessage({
-                          id: "app.common.tryAgain",
-                          defaultMessage: "Try Again",
-                        })}
-                  </Button>
-                ) : null
-              }
-            />
-          </li>
-        )}
+          {isEmpty && (
+            <li className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
+              <EmptyState
+                placement="sheet"
+                icon={<RiInboxLine />}
+                title={intl.formatMessage({
+                  id: "app.garden.work.noWork",
+                  defaultMessage: "No work yet, get started by submitting new work.",
+                })}
+                action={
+                  onRefresh && !isOffline ? (
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      onClick={onRefresh}
+                      loading={isFetching}
+                      leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+                    >
+                      {isFetching
+                        ? intl.formatMessage({
+                            id: "app.common.refreshing",
+                            defaultMessage: "Refreshing...",
+                          })
+                        : intl.formatMessage({
+                            id: "app.common.refresh",
+                            defaultMessage: "Refresh",
+                          })}
+                    </Button>
+                  ) : null
+                }
+              />
+            </li>
+          )}
 
-        {isEmpty && (
-          <li className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
-            <EmptyState
-              placement="sheet"
-              icon={<RiInboxLine />}
-              title={intl.formatMessage({
-                id: "app.garden.work.noWork",
-                defaultMessage: "No work yet, get started by submitting new work.",
-              })}
-              action={
-                onRefresh && !isOffline ? (
-                  <Button
-                    type="button"
-                    emphasis="secondary"
-                    onClick={onRefresh}
-                    loading={isFetching}
-                    leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
-                  >
-                    {isFetching
-                      ? intl.formatMessage({
-                          id: "app.common.refreshing",
-                          defaultMessage: "Refreshing...",
-                        })
-                      : intl.formatMessage({
-                          id: "app.common.refresh",
-                          defaultMessage: "Refresh",
-                        })}
-                  </Button>
-                ) : null
-              }
-            />
-          </li>
-        )}
-
-        {hasRows && <WorkList works={works} actions={actions} />}
-        {hasRows && readState?.hasOlderWork && !isOffline && readState.loadOlderWork && (
-          <li className="col-span-full flex justify-center">
-            <Button
-              type="button"
-              emphasis="secondary"
-              loading={readState.isLoadingOlder}
-              onClick={readState.loadOlderWork}
-            >
-              {intl.formatMessage({
-                id: "app.garden.work.showOlder",
-                defaultMessage: "Show older work",
-              })}
-            </Button>
-          </li>
-        )}
-      </ul>
+          {readsHistory ? (
+            Array.from({ length: SKELETON_CARDS }, (_, index) => (
+              <li key={index} className="animate-pulse" aria-hidden="true">
+                <WorkCardSkeleton />
+              </li>
+            ))
+          ) : hasRows ? (
+            <WorkList sorted={view.works} actionById={view.actionById} />
+          ) : null}
+          {hasRows && !readsHistory && readState?.hasOlderWork && !isOffline && loadOlderWork && (
+            <li className="col-span-full flex justify-center">
+              <Button
+                type="button"
+                emphasis="secondary"
+                loading={readState.isLoadingOlder}
+                onClick={loadOlderWork}
+              >
+                {intl.formatMessage({
+                  id: "app.garden.work.showOlder",
+                  defaultMessage: "Show older work",
+                })}
+              </Button>
+            </li>
+          )}
+        </ul>
+      </div>
     );
   }
 );

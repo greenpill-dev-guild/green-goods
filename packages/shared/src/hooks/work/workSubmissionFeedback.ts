@@ -2,6 +2,8 @@ import type { IntlShape } from "react-intl";
 import type { UseWorkMutationOptions } from "./useWorkMutation.types";
 import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
+import { WorkSendCancelledError } from "../../modules/work/send-outcome";
+import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import {
   trackWorkSubmissionFailed,
   trackWorkWalletRequestExpired,
@@ -22,7 +24,9 @@ export function showWorkSubmissionFailure(
     chainId,
     imageCount,
     workSubmissionJourneyId,
+    allowOfflineQueue,
   }: Pick<UseWorkMutationOptions, "authMode" | "actionUID" | "gardenAddress"> & {
+    allowOfflineQueue: boolean;
     intl: IntlShape;
     chainId: number;
     imageCount: number;
@@ -39,6 +43,37 @@ export function showWorkSubmissionFailure(
   // This ensures tracking sees the real error, not the user-friendly formatted message.
   const originalError =
     error instanceof Error && error.cause instanceof Error ? error.cause : error;
+
+  // The send boundary has proved this was declined before broadcast. Keep the
+  // durable work available for retry without reporting a contract failure.
+  if (
+    originalError instanceof WorkSendCancelledError ||
+    (phase === "transaction" && isCancelledTxError(originalError))
+  ) {
+    walletProgressToasts.dismiss();
+    trackWorkSubmissionFailed({
+      actionUID: actionUID ?? 0,
+      error: "UserRejected",
+      authMode,
+      imageCount,
+      workSubmissionJourneyId,
+      chainId,
+      submissionPhase: "transaction",
+      parsedErrorFamily: "UserRejected",
+    });
+    toastService.info({
+      id: "work-upload",
+      title: intl.formatMessage({ id: "app.work.sendCancelled.title" }),
+      message: intl.formatMessage({
+        id:
+          allowOfflineQueue || originalError instanceof WorkSendCancelledError
+            ? "app.work.sendCancelled.message"
+            : "app.errors.blockchain.userRejected.message",
+      }),
+      context: "work upload",
+    });
+    return;
+  }
 
   // Parse contract error for user-friendly message
   const { title, message, parsed } = parseAndFormatError(originalError);

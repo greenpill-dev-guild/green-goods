@@ -32,7 +32,8 @@ import {
   trackStorageWarning,
 } from "./job-analytics";
 import { executeApprovalJob } from "./approval-executor";
-import { executeCommitmentQueueJob, executeWorkJob } from "./job-executors";
+import { executeCommitmentQueueJob } from "./job-executors";
+import { executeWorkJob } from "./work-executor";
 import { createBrowserJobQueueLifecycle } from "./lifecycle";
 import { mediaResourceManager } from "./media-resource-manager";
 import type { JobExecution, JobQueueDependencies } from "./ports";

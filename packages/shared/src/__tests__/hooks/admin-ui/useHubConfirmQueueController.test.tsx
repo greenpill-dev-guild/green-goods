@@ -1,6 +1,6 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
-import { act, renderHook } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useHubConfirmQueueController } from "../../../hooks/admin-ui/pool/useHubConfirmQueueController";
@@ -14,6 +14,7 @@ import {
 } from "../../../modules/commitment-pooling/demo/demo-builders";
 import type { HexString } from "../../../modules/commitment-pooling/types";
 import { commitmentFixture, toConfirmFixture } from "../../test-utils/commitment-pooling-fixtures";
+import { renderHookWithProviders as renderHook } from "../../test-utils/render-helpers";
 
 type Enqueue = (input: CommitmentJobInput) => Promise<string>;
 type Mutate = (input: CommitmentMutationInput) => Promise<HexString>;
@@ -25,6 +26,12 @@ const mocks = vi.hoisted(() => ({
   enqueue: vi.fn<Enqueue>(),
   mutate: vi.fn<Mutate>(),
   metadata: vi.fn(),
+  poolCommitments: vi.fn(),
+}));
+
+vi.mock("../../../modules/commitment-pooling/data", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../modules/commitment-pooling/data")>()),
+  getCommitments: (input: unknown) => mocks.poolCommitments(input),
 }));
 
 vi.mock("../../../hooks/app/useOnlineStatus", () => ({
@@ -182,6 +189,71 @@ describe("useHubConfirmQueueController", () => {
       act: "confirm",
       commitmentId: ordinary.commitmentId,
       gardenAddress: TUNDE,
+      report: expect.any(Function),
+    });
+  });
+
+  it("holds a row confirmed here as its outcome for the visit, and one settled elsewhere as gone", async () => {
+    mocks.enqueue.mockImplementation(async (input) => {
+      (input as { report?: (event: { stage: string }) => void }).report?.({ stage: "landed" });
+      return "job-123";
+    });
+    const full = confirmationInput();
+    const { result, rerender } = renderHook(
+      ({ toConfirm }) =>
+        useHubConfirmQueueController({ chainId: DEMO_CHAIN_ID, toConfirm, search: "" }),
+      { initialProps: { toConfirm: full } }
+    );
+
+    await act(async () => {
+      await result.current.acts.confirm(result.current.rows[0]!);
+    });
+    // The next read no longer lists the confirmed promise, nor the fallback settled elsewhere.
+    rerender({ toConfirm: toConfirmFixture({ ...full, groups: [], fallback: [] }) });
+
+    expect(
+      result.current.rows.map((row) => [row.commitment.commitmentId, row.state.status])
+    ).toEqual([
+      [1001n, "confirmed"],
+      [1002n, "gone"],
+      [1003n, "waiting"],
+    ]);
+  });
+
+  it("names each copy from a group by its group's size, one row per copy", async () => {
+    const copies = [1001n, 1011n, 1012n].map((commitmentId) =>
+      commitmentFixture({ commitmentId, metadataCID: "bafy-set" })
+    );
+    const setRows = [copies[0]!, copies[1]!].map((copy) => ({
+      commitment: { ...copy, onchainState: "READY_FOR_CONFIRMATION" as const },
+      seat: "confirmer" as const,
+      needsYou: true,
+      poolGarden: MARIA,
+      canDispute: false,
+    }));
+    mocks.metadata.mockReturnValue({
+      byCID: new Map([
+        [
+          "bafy-set",
+          { version: 1, title: "Water survey", displayGroup: { version: 1, id: "set-1" } },
+        ],
+      ]),
+      isLoading: false,
+    });
+    mocks.poolCommitments.mockResolvedValue(copies);
+    const toConfirm = toConfirmFixture({
+      groups: [{ garden: TUNDE, gardenName: "River Garden", rows: setRows }],
+      fallback: [],
+      disputed: [],
+    });
+    const { result } = renderHook(() =>
+      useHubConfirmQueueController({ chainId: DEMO_CHAIN_ID, toConfirm, search: "" })
+    );
+
+    await waitFor(() => expect(result.current.rows.map((row) => row.groupSize)).toEqual([3, 3]));
+    expect(mocks.poolCommitments).toHaveBeenCalledWith({
+      chainId: DEMO_CHAIN_ID,
+      poolId: copies[0]!.poolId,
     });
   });
 
