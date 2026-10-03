@@ -19,6 +19,34 @@ describe("adminRoutes", () => {
     expect(adminRoutes.hubWork(legacyContext)).toBe("/hub/work?sort=newest");
   });
 
+  // A work opened from the Approved scope closes back onto it, so the scope
+  // rides the list and detail links; Pending is the bare URL.
+  it.each([
+    [
+      "the Approved list",
+      () => adminRoutes.hubWork({ sort: "newest", scope: "approved" }),
+      "/hub/work?sort=newest&scope=approved",
+    ],
+    [
+      "a work opened from Approved",
+      () => adminRoutes.hubWorkDetail("work-123", { sort: "newest", scope: "approved" }),
+      "/hub/work/work-123?sort=newest&scope=approved",
+    ],
+    [
+      "the Pending list",
+      () => adminRoutes.hubWork({ sort: "newest", scope: "pending" }),
+      "/hub/work?sort=newest",
+    ],
+  ] as const)("carries the Work scope in the link to %s", (_label, build, expected) => {
+    expect(build()).toBe(expected);
+  });
+
+  it("opens an assessment's record under the Assessments tab", () => {
+    expect(adminRoutes.hubAssessDetail("0xabc/1", { gardenId: "0xgarden" })).toBe(
+      "/hub/assess/0xabc%2F1?gardenId=0xgarden"
+    );
+  });
+
   it("encodes Hub confirm commitment ids as path segments", () => {
     expect(adminRoutes.hubConfirmDetail("allocation:0xabc/1")).toBe(
       "/hub/confirm/allocation%3A0xabc%2F1"
