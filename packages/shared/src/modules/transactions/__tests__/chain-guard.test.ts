@@ -175,6 +175,28 @@ describe("ensureWagmiWalletChain", () => {
     );
   });
 
+  // AppKit's own switch and the read after it take time as well, so the wallet
+  // can change hands before the second request.
+  it("asks the caller again before the second request, and makes none when it is refused", async () => {
+    const { config, connector, on } = wallet();
+    appKitThat(async (network) => {
+      on.connector = network.id;
+    });
+    const refusal = new Error("submission-ownership-changed");
+    const beforeSwitch = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(refusal);
+
+    await expect(ensureWagmiWalletChain(config, ARBITRUM, "write", beforeSwitch)).rejects.toBe(
+      refusal
+    );
+
+    expect(beforeSwitch).toHaveBeenCalledTimes(2);
+    expect(connector.switchChain).not.toHaveBeenCalled();
+    // AppKit was asked and left the wallet where it was, so the switch is still recorded.
+    expect(mocks.trackSwitch).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ outcome: "failed", via: "appkit" })
+    );
+  });
+
   it("refuses to continue when the wallet still reports the old network after switching", async () => {
     const { config, connector } = wallet();
     connector.switchChain.mockResolvedValueOnce({ id: ARBITRUM });
@@ -304,6 +326,24 @@ describe("ensureWagmiWalletChain", () => {
     ]);
 
     expect(connector.switchChain).toHaveBeenCalledOnce();
+  });
+
+  // A caller's answer can take a while (a work claim being renewed). A switch
+  // that ends meanwhile makes what this caller read out of date.
+  it("reads the wallet again, and does not ask it twice, when another switch ends while a caller is answering", async () => {
+    const { config, connector } = wallet();
+    let answer = () => {};
+    const slow = vi.fn(() => new Promise<void>((resolve) => (answer = resolve)));
+
+    const waiting = ensureWagmiWalletChain(config, ARBITRUM, "write", slow);
+    await vi.waitFor(() => expect(slow).toHaveBeenCalledOnce());
+    await ensureWagmiWalletChain(config, ARBITRUM);
+    answer();
+    await waiting;
+
+    expect(connector.switchChain).toHaveBeenCalledOnce();
+    // The wallet is on the network by the second read, so nobody is asked again.
+    expect(slow).toHaveBeenCalledOnce();
   });
 });
 

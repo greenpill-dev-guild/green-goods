@@ -210,7 +210,8 @@ async function switchWallet(
   config: Config,
   walletChainId: number,
   targetChainId: number,
-  reason: WalletNetworkSwitchReason
+  reason: WalletNetworkSwitchReason,
+  beforeSwitch?: () => void | Promise<void>
 ): Promise<void> {
   let via: WalletNetworkSwitch["via"] | undefined;
   const ask = async (step: WalletNetworkSwitch) => {
@@ -246,6 +247,9 @@ async function switchWallet(
     if (stillOn !== undefined && first.via === "appkit") {
       // AppKit moves only its own selection when it holds no account for the
       // wallet. The wallet itself is still elsewhere, so ask it through wagmi.
+      // AppKit's switch and the read after it took time, so the caller says
+      // again who this is for before the wallet is asked.
+      await beforeSwitch?.();
       await ask(switchThroughWagmi(config, targetChainId));
       stillOn = await writableNetworkOtherThan(config, targetChainId);
     }
@@ -265,8 +269,9 @@ async function switchWallet(
   report("switched");
 }
 
-/** Switches under way, by wallet and by the network asked for. */
-const switching = new WeakMap<Config, Map<number, Promise<void>>>();
+/** One wallet's switches: those under way, by the network asked for, and how many have ended. */
+type WalletSwitches = { underWay: Map<number, Promise<void>>; ended: number };
+const switches = new WeakMap<Config, WalletSwitches>();
 
 /**
  * Put the connected wallet on `targetChainId` before it is asked to sign or
@@ -281,10 +286,12 @@ const switching = new WeakMap<Config, Map<number, Promise<void>>>();
  * the network never waits on anyone else's switch.
  *
  * `beforeSwitch` is the caller's last word on who the switch is for. Reading
- * the wallet's networks takes time, and the switch acts on whichever wallet
- * holds the connection by then. The check runs after that read and right
- * before the wallet is asked to move, so a wallet that took the connection
- * over in between is refused, not switched or prompted. Throwing stops it.
+ * the wallet's networks takes time, and a request acts on whichever wallet
+ * holds the connection by then. The check runs after each read and right
+ * before each request that asks the wallet to move, so a wallet that took the
+ * connection over in between is refused, not switched or prompted. Throwing
+ * stops it. A request that callers share asks the one that started it; the
+ * others answered as they joined.
  */
 export async function ensureWagmiWalletChain(
   config: Config,
@@ -296,18 +303,29 @@ export async function ensureWagmiWalletChain(
   // is being opened wagmi reports "not connected", yet a write still goes
   // through the wallet that is.
   if (!getAccount(config).connector) return;
+  const known: WalletSwitches = switches.get(config) ?? { underWay: new Map(), ended: 0 };
+  switches.set(config, known);
+  const endedBefore = known.ended;
   const walletChainId = await writableNetworkOtherThan(config, targetChainId);
   if (walletChainId === undefined) return;
   await beforeSwitch?.();
 
-  const underWay = switching.get(config) ?? new Map<number, Promise<void>>();
-  switching.set(config, underWay);
-  let request = underWay.get(targetChainId);
+  // Nothing is awaited between the caller's answer and the request.
+  let request = known.underWay.get(targetChainId);
   if (!request) {
-    request = switchWallet(config, walletChainId, targetChainId, reason).finally(() => {
-      underWay.delete(targetChainId);
-    });
-    underWay.set(targetChainId, request);
+    // The caller's answer can take a while. A switch that ended since the
+    // wallet was read may already have moved it, so it is read again and not
+    // asked twice.
+    if (known.ended !== endedBefore) {
+      return ensureWagmiWalletChain(config, targetChainId, reason, beforeSwitch);
+    }
+    request = switchWallet(config, walletChainId, targetChainId, reason, beforeSwitch).finally(
+      () => {
+        known.underWay.delete(targetChainId);
+        known.ended += 1;
+      }
+    );
+    known.underWay.set(targetChainId, request);
   }
   await request;
 }
