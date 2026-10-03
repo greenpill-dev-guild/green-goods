@@ -251,6 +251,33 @@ describe("reporting ceremony page", () => {
     await waitFor(() => expect(result.current.stage).toBe("published"));
   });
 
+  it("keeps checking a send it can't confirm and shows the chain's answer once it settles", async () => {
+    mocks.sender = {
+      authMode: "wallet",
+      supportsSponsorship: false,
+      supportsBatching: false,
+      async sendContractCall(_call, options) {
+        await options?.onBeforeBroadcast?.();
+        throw new Error("The wallet stopped responding.");
+      },
+    };
+    const { result } = render();
+    await reachReview(result);
+    await act(() => result.current.publish());
+    expect(result.current.stage).toBe("submitted");
+    expect(result.current.error).toBe("outcome_unknown");
+    const checks = agent.requests("GET", "/operations/op-1").length;
+    await waitFor(() =>
+      expect(agent.requests("GET", "/operations/op-1").length).toBeGreaterThan(checks)
+    );
+    expect(result.current.error).toBe("outcome_unknown");
+
+    agent.operation = { ...agent.operation, state: "published", transactionHash: TX_HASH };
+    await waitFor(() => expect(result.current.stage).toBe("published"));
+    expect(result.current.error).toBeNull();
+    expect(agent.requests("POST", "/operations/op-1/attempts")).toHaveLength(1);
+  });
+
   it("reports a declined wallet prompt as not sent", async () => {
     wallet("decline");
     const { result } = render();

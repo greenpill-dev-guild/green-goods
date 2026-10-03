@@ -180,10 +180,13 @@ export function useAgentReportingCeremony(
     [client, requestId]
   );
 
+  // An unknown outcome is checked until the chain answers, whichever stage it surfaced in.
   const polling =
     state.stage === "pairing" ||
     state.stage === "grant_submitted" ||
-    ((state.stage === "loading" || state.stage === "submitted") &&
+    ((state.stage === "loading" ||
+      state.stage === "submitted" ||
+      state.error === "outcome_unknown") &&
       Boolean(state.operation || state.grant));
   useQuery({
     queryKey:
@@ -210,7 +213,14 @@ export function useAgentReportingCeremony(
       const operationId = stateRef.current.operation?.operationId;
       if (!operationId) return null;
       const operation = await client.operation(operationId);
-      update({ operation, stage: stageForOperation(operation) });
+      const stage = stageForOperation(operation);
+      // Only a final answer from the chain settles an unknown outcome; until then it stays.
+      const settled = stage === "published" || stage === "failed" || stage === "not_sent";
+      update({
+        operation,
+        stage,
+        ...(settled && stateRef.current.error === "outcome_unknown" ? { error: null } : {}),
+      });
       return operation.state;
     },
   });
