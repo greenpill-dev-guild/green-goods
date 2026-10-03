@@ -123,9 +123,6 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   });
   const take = listWindow.data;
   const online = useQuery(gardenWorkListQuery(queryClient, gardenId, chainId));
-  // Offline, the restored screen read is the downloaded copy: background
-  // preparation fills this same query, so there is no second source to consult.
-  const remoteData = online.data?.slice(0, take);
   const hasOlderWork = (online.data?.length ?? 0) > take;
   const loadOlderWork = useCallback(() => {
     if (!isOnline) return;
@@ -170,14 +167,21 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   // `combine` keeps one array identity until a metadata read actually changes;
   // without it every render rebuilt the list and re-rendered each work card.
   const metadataByWork = useQueries({
-    queries: (remoteData ?? []).map((work) => ({
+    queries: (online.data?.slice(0, take) ?? []).map((work) => ({
       queryKey: worksKeys.metadata(work.metadata.trim()),
       enabled: false,
     })),
     combine: (results) =>
       results.map((result) => result.data as { clientWorkId?: string } | undefined),
   });
-  const { works, unknownIds, retainedIds } = useMemo(() => {
+  const { remoteData, works, unknownIds, retainedIds } = useMemo(() => {
+    // Offline, the restored screen read is the downloaded copy: background
+    // preparation fills this same query, so there is no second source to consult.
+    // The window is cut here, inside the memo, so it and every row keep one
+    // identity until the read or its size changes. Cut during render, a fresh
+    // slice rebuilt each row on every render, and a screen that keeps a row in
+    // state from an effect, as the admin work detail does, re-rendered without end.
+    const remoteData = online.data?.slice(0, take);
     const metadataByKey = new Map(
       (remoteData ?? []).map((work, index) => [work.metadata.trim(), metadataByWork[index]])
     );
@@ -220,12 +224,14 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       );
     }
     return {
+      remoteData,
       works: rows.sort((a, b) => b.createdAt - a.createdAt),
       unknownIds: resolved.unknownIds,
       retainedIds: resolved.retainedIds,
     };
   }, [
-    remoteData,
+    online.data,
+    take,
     projection.data,
     overlay.data,
     queuedJobs,
