@@ -408,11 +408,17 @@ describe("readyWalletClient", () => {
     expect(client.account.address).toBe(OWNER);
   });
 
-  it("refuses a wallet that changed hands before asking it to change network", async () => {
+  it("refuses a wallet that changed hands, or that shows no address, before asking it to change network", async () => {
     const { config, connector } = wallet();
     vi.mocked(getWagmiConfig).mockReturnValue(config);
 
     await expect(readyWalletClient(ARBITRUM, SOMEONE_ELSE)).rejects.toMatchObject({
+      code: "account_mismatch",
+    });
+
+    // A connection that shows no address cannot be the one the act was prepared for.
+    (config.state.connections.get("wallet") as unknown as { accounts: string[] }).accounts = [];
+    await expect(readyWalletClient(ARBITRUM, OWNER)).rejects.toMatchObject({
       code: "account_mismatch",
     });
     expect(connector.switchChain).not.toHaveBeenCalled();

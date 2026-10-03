@@ -354,12 +354,14 @@ export async function ensureAppKitWalletChain(
  */
 export async function readyWalletClient(chainId: number, account?: Address) {
   const config = getWagmiConfig();
-  const assertSigner = () => {
-    const connected = getAccount(config).address;
-    if (account && connected) assertWalletAccount(account, connected);
-  };
-  assertSigner();
-  await ensureWagmiWalletChain(config, chainId, "write", assertSigner);
+  // With no wallet connected there is no address to compare, and wagmi says so below.
+  const connected = getAccount(config).address;
+  if (account && connected) assertWalletAccount(account, connected);
+  await ensureWagmiWalletChain(config, chainId, "write", () => {
+    // The guard asks this only of a wallet it is about to move. One that shows
+    // no address is not the one the act was prepared for either.
+    if (account) assertWalletAccount(account, getAccount(config).address);
+  });
   return getWalletClient(config, { chainId, account });
 }
 
