@@ -5584,7 +5584,7 @@
       "scenario": "Certification flow does not overpromise transaction state",
       "preconditions": ["Admin role available"],
       "steps": [
-        "Open /hub/certify/create, or an assessment's record on /hub/assess",
+        "Open /hub/certify/create, or open an assessment's record on /hub/assess and press Create Hypercert",
         "Inspect actions"
       ],
       "expected": "Disabled/loading/error states are explicit before transaction",
@@ -10527,7 +10527,8 @@
       "area": "Hub",
       "scenario": "An evaluator sees Assessments and Hypercerts, and no Work tab",
       "preconditions": [
-        "Signed in as an evaluator of the garden who is neither an owner nor a steward"
+        "Signed in as an evaluator of the garden who is neither an owner nor a steward",
+        "The garden has at least one assessment"
       ],
       "steps": [
         "Open /hub and read the tab rail",
