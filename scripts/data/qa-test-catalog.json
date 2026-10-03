@@ -5509,7 +5509,7 @@
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
-      "area": "Hub · Assess",
+      "area": "Hub · Assessments",
       "scenario": "Assessment create flow gates invalid input",
       "preconditions": ["Admin role available"],
       "steps": [
@@ -5531,7 +5531,7 @@
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Hub · Assess",
+      "area": "Hub · Assessments",
       "scenario": "Submit an assessment end to end from the admin",
       "preconditions": ["Steward session with a garden that can be assessed"],
       "steps": [
@@ -5554,7 +5554,7 @@
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
-      "area": "Hub · Assess",
+      "area": "Hub · Assessments",
       "scenario": "Record a starting assessment for the test Garden",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
@@ -5580,10 +5580,13 @@
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
-      "area": "Hub · Certify",
+      "area": "Hub · Hypercerts",
       "scenario": "Certification flow does not overpromise transaction state",
       "preconditions": ["Admin role available"],
-      "steps": ["Open /hub/certify/create or assessment detail", "Inspect actions"],
+      "steps": [
+        "Open /hub/certify/create, or an assessment's record on /hub/assess",
+        "Inspect actions"
+      ],
       "expected": "Disabled/loading/error states are explicit before transaction",
       "evidence": "Screenshot",
       "role": "steward",
@@ -5598,14 +5601,14 @@
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Hub · Certify",
+      "area": "Hub · Hypercerts",
       "scenario": "Mint a hypercert from an assessment",
       "preconditions": [
         "Steward with manage rights",
         "A garden with approved work attestations and an assessment"
       ],
       "steps": [
-        "Open /hub/certify, open the assessment, and press Create Hypercert",
+        "Open /hub/assess, open the assessment, and press Create Hypercert",
         "Select attestations, fill the metadata, and set the distribution",
         "Press Mint Hypercert and keep the tab open",
         "Read the hypercert on /garden/impact"
@@ -10424,6 +10427,120 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-integration-corrections-2026-10-01"
+    },
+    {
+      "id": "ADM-192",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Hub · Work",
+      "scenario": "Work tab keeps approved work under an Approved scope",
+      "preconditions": [
+        "Steward with manage rights",
+        "A garden with pending work and approved work"
+      ],
+      "steps": [
+        "Open /hub/work and read the Pending and Approved chips beside the search",
+        "Press Approved, open an approved work, and close it",
+        "Press Pending"
+      ],
+      "expected": "Pending lists work waiting for review and Approved lists approved work, each card marked with its state; the Work tab's count stays the pending count in both scopes; closing a work opened from Approved returns to Approved; no tab presents approved work as an assessment queue",
+      "evidence": "Screenshots of both scopes",
+      "role": "steward",
+      "tags": ["hub", "work", "work-queue"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "ADM-193",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Hub · Assessments",
+      "scenario": "Assessments tab lists the garden's assessments and opens each record",
+      "preconditions": ["Steward of a garden with at least two assessments"],
+      "steps": [
+        "Open /hub/assess and read the list and the tab rail",
+        "Open an assessment and read its record",
+        "Follow View Assessment on EAS Explorer, then close the record"
+      ],
+      "expected": "Every assessment of the selected garden is listed newest first with its domain and reporting period, and the tab carries no count; the record shows the description, domain, reporting period, location, author and date, links to the attestation, and offers Create Hypercert; the Assessments tab stays selected behind the open record",
+      "evidence": "Screenshots of the list and an open record",
+      "role": "steward",
+      "tags": ["hub", "assess", "assessment"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "ADM-194",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Hub · Hypercerts",
+      "scenario": "Hypercerts tab lists the garden's minted hypercerts",
+      "preconditions": [
+        "Steward of a garden with at least one minted hypercert and one assessment"
+      ],
+      "steps": ["Open /hub/certify and read the list and the tab rail", "Open a hypercert"],
+      "expected": "Minted hypercerts are listed newest first with their mint date and work scopes; no assessment appears as ready to certify, and the tab carries no count; opening a hypercert shows its record on /garden/impact",
+      "evidence": "Screenshots of the list and the opened hypercert",
+      "role": "steward",
+      "tags": ["hub", "certify", "hypercert"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "ADM-195",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "content",
+      "area": "Hub",
+      "scenario": "Empty Assessments and Hypercerts tabs say what they hold and when they are needed",
+      "preconditions": ["Steward of a garden with no assessments and no hypercerts"],
+      "steps": [
+        "Open /hub/assess and read the empty state",
+        "Open /hub/certify and read the empty state",
+        "Type a word nothing matches into the search",
+        "Repeat in Spanish and Portuguese"
+      ],
+      "expected": "Assessments says what an assessment records, that one is written when a period opens, and that it is optional and never holds up a season, and offers Create Assessment; Hypercerts says what a hypercert is and when to create one, and offers Create Hypercert; a search that finds nothing says so and offers Clear Search, never the empty-tab copy; all of it reads in each language",
+      "evidence": "Screenshots of both empty states per language",
+      "role": "steward",
+      "tags": ["hub", "empty-state"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "ADM-196",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Hub",
+      "scenario": "An evaluator sees Assessments and Hypercerts, and no Work tab",
+      "preconditions": [
+        "Signed in as an evaluator of the garden who is neither an owner nor a steward"
+      ],
+      "steps": [
+        "Open /hub and read the tab rail",
+        "Open an assessment's record",
+        "Open Hypercerts"
+      ],
+      "expected": "The rail shows Assessments and Hypercerts and no Work tab, and /hub lands on Assessments; Create Assessment is offered; an assessment's record and the Hypercerts tab offer no Create Hypercert, and the record says only garden owners and stewards can create the hypercert",
+      "evidence": "Screenshots of the rail and the record",
+      "role": "any",
+      "tags": ["hub", "permissions"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
     }
   ]
 }

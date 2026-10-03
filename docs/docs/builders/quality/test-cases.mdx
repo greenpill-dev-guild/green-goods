@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:1c2da9f8e175ebd3bef7e7fb4ed6bf2fab2b7be15648a34fae036ab63fff85c1"
+source_digest: "sha256:5b44badf8672bfce942dfe4dc25a28038b0d7eb5413619921f4e6081c16f3e13"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -364,8 +364,8 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-002` | Journey | App-wide | Primary admin direct routes reload | Screenshot set or notes |
 | `ADM-003` | Journey | App-wide | Unauthenticated admin state is clear | Screenshot |
 | `ADM-004` | Journey | Hub · Work | Work queue/detail state is usable | Screenshot |
-| `ADM-005` | Journey | Hub · Assess | Assessment create flow gates invalid input | Screenshot or video |
-| `ADM-006` | Journey | Hub · Certify | Certification flow does not overpromise transaction state | Screenshot |
+| `ADM-005` | Journey | Hub · Assessments | Assessment create flow gates invalid input | Screenshot or video |
+| `ADM-006` | Journey | Hub · Hypercerts | Certification flow does not overpromise transaction state | Screenshot |
 | `ADM-007` | Journey | Community · Endowment | Endowment and vault routes are role-gated and readable | Screenshot |
 | `ADM-012` | Transaction | Hub · Work | Full review decision path completes with actions visible | Screen recording; screenshot of the action region at ~1084x637 |
 | `ADM-018` | Transaction | Hub · Work | Decision integrity: no double decisions, honest tx failure | Screenshots of the blocked second decision and the failure state |
@@ -375,7 +375,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-042` | Transaction | Hub · Confirm | Confirm the protocol Request after its Work is approved | Screenshot of the Fulfilled protocol Request |
 | `ADM-043` | Transaction | Garden · Settlement | Settle earned G$ compensation from the protocol to the Garden | Screenshot of the Garden beneficiary and completed settlement or visible gate |
 | `ADM-044` | Transaction | Garden · Settlement | Settle the Garden's contributor payout to the member | Screenshot of the member recipient and completed payout or visible gate |
-| `ADM-046` | Transaction | Hub · Assess | Submit an assessment end to end from the admin | Screen recording of the submission and a screenshot of the recorded assessment |
+| `ADM-046` | Transaction | Hub · Assessments | Submit an assessment end to end from the admin | Screen recording of the submission and a screenshot of the recorded assessment |
 | `ADM-048` | Transaction | Garden · Settings | Save garden name, description, and location, one wallet confirmation each, and resume a stopped save | Screenshots of the mid-run error and the saved state |
 | `ADM-052` | Transaction | Community · Members | Batch-add members by address, ENS name, and clipboard paste | Screenshots of the staged list and the updated directory |
 | `ADM-053` | Transaction | Community · Members | Remove one role from a member, with confirmation | Screenshots of the confirmation and the directory afterwards |
@@ -388,7 +388,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-075` | Transaction | Garden · Commitment | Send a commitment for confirmation from the inspector | Screenshots of the inspector and the confirm queue |
 | `ADM-077` | Transaction | Garden · Commitment | Raise a dispute with a reason from the inspector | Screenshots of the dispute dialog and the disputed band |
 | `ADM-084` | Transaction | Garden · Settlement | Prepare the garden payout on a garden-beneficiary plan | Screenshot of the disbursements table |
-| `ADM-106` | Transaction | Hub · Certify | Mint a hypercert from an assessment | Recording of the mint and a screenshot of the hypercert |
+| `ADM-106` | Transaction | Hub · Hypercerts | Mint a hypercert from an assessment | Recording of the mint and a screenshot of the hypercert |
 | `ADM-109` | Transaction | Garden · Settlement | Prepare a contributor payout on a contributor-consideration plan | Screenshot of the disbursements table |
 | `ADM-110` | Transaction | Garden · Commitment | Confirm as garden fallback with a reason when ordinary confirmation is unreachable | Screenshots of the fallback dialog and the Kept state |
 | `ADM-111` | Transaction | Garden · Commitment | Confirm for the Green Goods team on a commitment that allows it | Screenshots of the team fallback dialog and the Kept state |
@@ -407,7 +407,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-145` | Transaction | Hub · Confirm | Confirm Kept… reviews the commitment before confirming it | Screenshots of the review and of the commitment afterwards |
 | `ADM-157` | Journey | Garden · Pool | A declared G$ reward is typed and reviewed in G$ | Screenshots of the field and of the review |
 
-### P1 (87) {#admin-dashboard-p1}
+### P1 (92) {#admin-dashboard-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -420,7 +420,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-030` | Transaction | Hub · Work | Admin submit-work wizard with review-step edit jumps and offline queueing | Screenshot of review step |
 | `ADM-031` | Journey | Hub · Work | Hub queue at volume: full scroll, search/sort, deep item open and return | Recording of scroll return |
 | `ADM-033` | Transaction | Garden · Lifecycle | First-run: zero-garden steward sees an honest no-access state; a deployer gets the create funnel | Screenshot of empty state |
-| `ADM-037` | Transaction | Hub · Assess | Record a starting assessment for the test Garden | Screenshot of the recorded assessment with the Garden identity visible |
+| `ADM-037` | Transaction | Hub · Assessments | Record a starting assessment for the test Garden | Screenshot of the recorded assessment with the Garden identity visible |
 | `ADM-045` | Transaction | Community · Coordination | Queue a discretionary protocol-to-garden treasury top-up | Screenshot of the queue confirmation naming the Garden, and the resulting balance or visible gate |
 | `ADM-049` | Transaction | Garden · Settings | Upload a garden banner, then remove it with undo | Screenshots of the preview, the staged removal, and the cleared banner |
 | `ADM-050` | Transaction | Garden · Settings | Toggle open joining and set the gardener cap | Screenshots of the settings and the app's join control |
@@ -498,6 +498,11 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-189` | Journey | Garden · Pool | Seed rows with closed actions stay out of the queue, including tray retries | Screenshots of the closed choice and unsent row |
 | `ADM-190` | Transaction | Garden · Pool | Seed several independent promises with the prompt count matched to wallet capability | Screenshots of Review and wallet-count notes for both capabilities, the eleven-promise bundle boundary, and the resulting pool entries |
 | `ADM-191` | Transaction | Garden · Pool | Creation progress follows bundle requests or individual prompts and reports the final promise count | Screenshots of the bundle and individual prompt states, confirmation wait, final count and pool entries |
+| `ADM-192` | Journey | Hub · Work | Work tab keeps approved work under an Approved scope | Screenshots of both scopes |
+| `ADM-193` | Journey | Hub · Assessments | Assessments tab lists the garden's assessments and opens each record | Screenshots of the list and an open record |
+| `ADM-194` | Journey | Hub · Hypercerts | Hypercerts tab lists the garden's minted hypercerts | Screenshots of the list and the opened hypercert |
+| `ADM-195` | Content & vocabulary | Hub | Empty Assessments and Hypercerts tabs say what they hold and when they are needed | Screenshots of both empty states per language |
+| `ADM-196` | Journey | Hub | An evaluator sees Assessments and Hypercerts, and no Work tab | Screenshots of the rail and the record |
 
 ### P2 (35) {#admin-dashboard-p2}
 
