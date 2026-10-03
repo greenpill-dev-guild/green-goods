@@ -269,8 +269,15 @@ async function switchWallet(
   report("switched");
 }
 
-/** One wallet's switches: those under way, by the network asked for, and how many have ended. */
-type WalletSwitches = { underWay: Map<number, Promise<void>>; ended: number };
+/**
+ * One wallet's switches: the ones under way and the last one to end, by the
+ * network asked for, and how many have ended.
+ */
+type WalletSwitches = {
+  underWay: Map<number, Promise<void>>;
+  last: Map<number, { ended: number; switched: Promise<void> }>;
+  ended: number;
+};
 const switches = new WeakMap<Config, WalletSwitches>();
 
 /**
@@ -282,8 +289,9 @@ const switches = new WeakMap<Config, WalletSwitches>();
  * wallet afterwards.
  *
  * Callers that need the same switch at the same time share one request, so the
- * wallet is asked once and each of them gets its answer. A wallet already on
- * the network never waits on anyone else's switch.
+ * wallet is asked once and each of them gets its answer, including a caller
+ * that was still answering `beforeSwitch` when the request ended. A wallet
+ * already on the network never waits on anyone else's switch.
  *
  * `beforeSwitch` is the caller's last word on who the switch is for. Reading
  * the wallet's networks takes time, and a request acts on whichever wallet
@@ -303,7 +311,11 @@ export async function ensureWagmiWalletChain(
   // is being opened wagmi reports "not connected", yet a write still goes
   // through the wallet that is.
   if (!getAccount(config).connector) return;
-  const known: WalletSwitches = switches.get(config) ?? { underWay: new Map(), ended: 0 };
+  const known: WalletSwitches = switches.get(config) ?? {
+    underWay: new Map(),
+    last: new Map(),
+    ended: 0,
+  };
   switches.set(config, known);
   const endedBefore = known.ended;
   const walletChainId = await writableNetworkOtherThan(config, targetChainId);
@@ -313,18 +325,21 @@ export async function ensureWagmiWalletChain(
   // Nothing is awaited between the caller's answer and the request.
   let request = known.underWay.get(targetChainId);
   if (!request) {
-    // The caller's answer can take a while. A switch that ended since the
-    // wallet was read may already have moved it, so it is read again and not
-    // asked twice.
     if (known.ended !== endedBefore) {
+      // The caller's answer can take a while, and a switch has ended since the
+      // wallet was read. One to this network was this caller's switch as well:
+      // its refusal is shared, and the wallet is not asked again. Otherwise the
+      // wallet may have moved, so it is read again.
+      const last = known.last.get(targetChainId);
+      if (last && last.ended > endedBefore) await last.switched;
       return ensureWagmiWalletChain(config, targetChainId, reason, beforeSwitch);
     }
-    request = switchWallet(config, walletChainId, targetChainId, reason, beforeSwitch).finally(
-      () => {
-        known.underWay.delete(targetChainId);
-        known.ended += 1;
-      }
-    );
+    const switched = switchWallet(config, walletChainId, targetChainId, reason, beforeSwitch);
+    request = switched.finally(() => {
+      known.underWay.delete(targetChainId);
+      known.ended += 1;
+      known.last.set(targetChainId, { ended: known.ended, switched });
+    });
     known.underWay.set(targetChainId, request);
   }
   await request;

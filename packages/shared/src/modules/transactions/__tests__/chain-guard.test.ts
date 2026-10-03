@@ -329,20 +329,31 @@ describe("ensureWagmiWalletChain", () => {
   });
 
   // A caller's answer can take a while (a work claim being renewed). A switch
-  // that ends meanwhile makes what this caller read out of date.
-  it("reads the wallet again, and does not ask it twice, when another switch ends while a caller is answering", async () => {
-    const { config, connector } = wallet();
+  // to the same network that ends meanwhile was this caller's switch as well.
+  it.each([
+    ["moved the wallet: it is read again and found there", false],
+    ["was declined: the caller gets that refusal", true],
+  ])("never asks the wallet twice when another caller's switch ended while this one was answering and %s", async (_how, declined) => {
+    const { config, connector } = wallet({ type: "injected" });
+    if (declined) {
+      connector.switchChain.mockRejectedValueOnce(
+        new UserRejectedRequestError(new Error("User rejected the request."))
+      );
+    }
     let answer = () => {};
-    const slow = vi.fn(() => new Promise<void>((resolve) => (answer = resolve)));
+    const slow = vi
+      .fn<() => Promise<void>>()
+      .mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)))
+      .mockResolvedValue(undefined);
 
     const waiting = ensureWagmiWalletChain(config, ARBITRUM, "write", slow);
     await vi.waitFor(() => expect(slow).toHaveBeenCalledOnce());
-    await ensureWagmiWalletChain(config, ARBITRUM);
+    const ended = await ensureWagmiWalletChain(config, ARBITRUM).catch((refusal) => refusal);
     answer();
-    await waiting;
 
+    if (declined) await expect(waiting).rejects.toBe(ended);
+    else await expect(waiting).resolves.toBeUndefined();
     expect(connector.switchChain).toHaveBeenCalledOnce();
-    // The wallet is on the network by the second read, so nobody is asked again.
     expect(slow).toHaveBeenCalledOnce();
   });
 });
