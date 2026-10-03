@@ -8,6 +8,7 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useScrollToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
+import { useGardenAssessmentRecords } from "@green-goods/shared/hooks/assessment/useGardenAssessmentRecords";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import {
   useActions,
@@ -87,11 +88,12 @@ export const Garden: React.FC = () => {
   // Addresses arrive in either case: the list is checksummed, the indexer's
   // pool and work rows are lowercase, and a link may be typed. One garden.
   const garden = allGardens.find((g) => g.id.toLowerCase() === gardenIdParam?.toLowerCase());
-  const gardenStatus: "error" | "success" | "pending" = gardensError
-    ? "error"
-    : garden
-      ? "success"
-      : "pending";
+  // Read only once the reader opens Insights: an EAS read, then two IPFS files
+  // per assessment, is too much to spend on a tab most visits never open.
+  const { records: assessmentRecords, status: assessmentStatus } = useGardenAssessmentRecords(
+    activeTab === GardenTab.Insights ? garden?.id : undefined,
+    chainId
+  );
   const { data: allGardeners = [] } = useGardeners();
   const { data: actions = [] } = useActions(chainId);
   const workRead = useWorks(gardenIdParam || "", { offline: true });
@@ -259,7 +261,7 @@ export const Garden: React.FC = () => {
     );
   }
 
-  const { name, bannerImage, location, createdAt, assessments, description } = garden;
+  const { name, bannerImage, location, createdAt, description } = garden;
   const foundedLabel = `${intl.formatMessage({ id: "app.home.founded" })} ${new Date(createdAt).toLocaleDateString()}`;
 
   // Restore scroll position when switching tabs
@@ -286,8 +288,8 @@ export const Garden: React.FC = () => {
       case GardenTab.Insights:
         return (
           <GardenAssessments
-            assessmentFetchStatus={gardensLoading ? "pending" : gardenStatus}
-            assessments={assessments}
+            assessmentFetchStatus={assessmentStatus}
+            records={assessmentRecords}
             description={description}
           />
         );

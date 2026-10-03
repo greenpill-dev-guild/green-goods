@@ -42,6 +42,7 @@ export type QueryKey =
   | typeof queryKeys.assessments.all
   | ReturnType<typeof queryKeys.assessments.byChain>
   | ReturnType<typeof queryKeys.assessments.byGarden>
+  | ReturnType<typeof queryKeys.assessments.detail>
   | typeof queryKeys.conviction.all
   | ReturnType<typeof queryKeys.conviction.strategies>
   | ReturnType<typeof queryKeys.conviction.registeredHypercerts>

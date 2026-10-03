@@ -5,12 +5,13 @@ import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useLocalizedEventTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
 import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
+import { formatReportingPeriod } from "@green-goods/shared/utils/time";
 import { RiFileList3Line, RiMedalLine, RiSearchLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { assessmentDomainLabelId, formatReportingPeriod } from "../assessmentDisplay";
+import { assessmentDomainLabelId } from "../assessmentDisplay";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 // The Hub's two record tabs (DL-082): the garden's assessments and its minted
