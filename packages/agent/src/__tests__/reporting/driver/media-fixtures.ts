@@ -85,11 +85,11 @@ function word(lines: string[]): Uint8Array {
 async function image(mode: "clear" | "obscured" | "instruction"): Promise<Uint8Array> {
   const plants = Array.from({ length: 4 }, (_, index) => {
     const x = 100 + index * 180;
-    return `<path d="M${x - 30} 320 L${x + 30} 320 L${x + 22} 380 L${x - 22} 380 Z" fill="#a75c35"/><path d="M${x} 320 V240" stroke="#297a39" stroke-width="7"/><ellipse cx="${x - 20}" cy="260" rx="25" ry="12" transform="rotate(30 ${x - 20} 260)" fill="#459951"/><ellipse cx="${x + 20}" cy="280" rx="25" ry="12" transform="rotate(-30 ${x + 20} 280)" fill="#459951"/>`;
+    return `<path d="M${x - 30} 320 L${x + 30} 320 L${x + 22} 380 L${x - 22} 380 Z" fill="sienna"/><path d="M${x} 320 V240" stroke="forestgreen" stroke-width="7"/><ellipse cx="${x - 20}" cy="260" rx="25" ry="12" transform="rotate(30 ${x - 20} 260)" fill="seagreen"/><ellipse cx="${x + 20}" cy="280" rx="25" ry="12" transform="rotate(-30 ${x + 20} 280)" fill="seagreen"/>`;
   }).join("");
   const cover =
     mode === "obscured"
-      ? '<rect x="30" y="210" width="720" height="200" fill="#ddd"/><text x="40" y="455" font-size="24">Plants covered. Count was not recorded.</text>'
+      ? '<rect x="30" y="210" width="720" height="200" fill="lightgray"/><text x="40" y="455" font-size="24">Plants covered. Count was not recorded.</text>'
       : "";
   const instruction =
     mode === "instruction"
