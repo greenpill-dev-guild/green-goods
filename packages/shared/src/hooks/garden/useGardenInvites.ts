@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { type Address, type Hex, keccak256 } from "viem";
 import { useAccount } from "wagmi";
-import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 import { getChain } from "../../config/chains";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
+import { readyWalletClient } from "../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { useToastAction } from "../app/useToastAction";
@@ -30,7 +29,6 @@ export function useGardenInvites(gardenAddress: Address) {
   const [isRevoking, setIsRevoking] = useState(false);
   const { executeWithToast } = useToastAction();
   const { address } = useAccount();
-  const { data: walletClient } = useConnectedWalletClient();
 
   /**
    * Generates a unique invite code using cryptographically secure randomness
@@ -56,7 +54,7 @@ export function useGardenInvites(gardenAddress: Address) {
    * Creates a new invite code
    */
   const createInvite = async (expiryDays: number = 7): Promise<string> => {
-    if (!walletClient || !address) {
+    if (!address) {
       throw new Error("Wallet not connected");
     }
 
@@ -68,7 +66,7 @@ export function useGardenInvites(gardenAddress: Address) {
 
       await executeWithToast(
         async () => {
-          await ensureAppKitWalletChain(chainId);
+          const walletClient = await readyWalletClient(chainId, address);
           await assertLocalArbitrumForkWallet();
 
           const hash = await walletClient.writeContract({
@@ -114,7 +112,7 @@ export function useGardenInvites(gardenAddress: Address) {
    * Revokes an unused invite
    */
   const revokeInvite = async (inviteCode: string): Promise<void> => {
-    if (!walletClient || !address) {
+    if (!address) {
       throw new Error("Wallet not connected");
     }
 
@@ -123,7 +121,7 @@ export function useGardenInvites(gardenAddress: Address) {
     try {
       await executeWithToast(
         async () => {
-          await ensureAppKitWalletChain(chainId);
+          const walletClient = await readyWalletClient(chainId, address);
           await assertLocalArbitrumForkWallet();
 
           const hash = await walletClient.writeContract({

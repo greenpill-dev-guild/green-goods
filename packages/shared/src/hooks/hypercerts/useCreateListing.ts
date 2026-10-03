@@ -10,7 +10,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { type Address, encodeFunctionData } from "viem";
-import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 import { toastService } from "../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
@@ -23,7 +22,7 @@ import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../modules/transactions/local-fork-safety";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
+import { readyWalletClient } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { CreateListingParams } from "../../types/hypercerts";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
@@ -52,7 +51,6 @@ export interface UseCreateListingResult {
 
 export function useCreateListing(gardenAddress?: Address): UseCreateListingResult {
   const { smartAccountClient, smartAccountAddress, eoaAddress } = useAuth();
-  const { data: walletClient } = useConnectedWalletClient();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const [step, setStep] = useState<ListingStep>("idle");
@@ -88,11 +86,11 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
       setStep("signing");
       logger.info("[useCreateListing] Requesting EIP-712 signature", { signer, chainId });
 
-      if (!walletClient) {
-        throw new Error("Wallet client not available for signing");
-      }
-      await ensureAppKitWalletChain(chainId);
-      const signature = await signMakerAsk(makerAsk, walletClient, chainId);
+      const signature = await signMakerAsk(
+        makerAsk,
+        await readyWalletClient(chainId, signer),
+        chainId
+      );
 
       // Step 3: Register on-chain via HypercertsModule.listForYield()
       setStep("registering");
@@ -137,8 +135,8 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
           calls: [{ to: moduleAddress, data: callData, value: 0n }],
         });
         await smartAccountClient.getUserOperationReceipt({ hash });
-      } else if (walletClient) {
-        await ensureAppKitWalletChain(chainId);
+      } else {
+        const walletClient = await readyWalletClient(chainId, signer);
         await assertLocalArbitrumForkWallet();
 
         const txHash = await walletClient.sendTransaction({
@@ -151,8 +149,6 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
           hash: txHash,
           timeout: TX_RECEIPT_TIMEOUT_MS,
         });
-      } else {
-        throw new Error("No wallet available for transaction");
       }
 
       setStep("done");

@@ -136,7 +136,7 @@ describe("createAssessment", () => {
     const { getEASConfig } = await import("../../config/blockchain");
     const config = getEASConfig(chainId);
     const defaultPorts = createDefaultCreateAssessmentPorts({
-      walletClient: {} as Parameters<typeof createDefaultCreateAssessmentPorts>[0]["walletClient"],
+      account: "0x3333333333333333333333333333333333333333",
       reportEvidenceFailures: vi.fn(),
       reportMetricsFailure: vi.fn(),
     });

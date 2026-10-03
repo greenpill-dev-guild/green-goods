@@ -1,4 +1,10 @@
-import { ConnectorChainMismatchError, type Config } from "@wagmi/core";
+import {
+  ConnectorAccountNotFoundError,
+  ConnectorChainMismatchError,
+  ConnectorNotConnectedError,
+  getWalletClient,
+  type Config,
+} from "@wagmi/core";
 import { BaseError, ChainMismatchError, SwitchChainError, UserRejectedRequestError } from "viem";
 import { arbitrum } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,9 +21,11 @@ vi.mock("../../app/walletNetworkSwitchAnalytics", () => ({
   trackWalletNetworkSwitch: mocks.trackSwitch,
 }));
 
+import { getWagmiConfig } from "../../../config/appkit";
 import { refusedForWalletNetwork } from "../../../utils/errors/wallet-network-refusal";
 import {
   ensureWagmiWalletChain,
+  readyWalletClient,
   retryOnWalletChainMismatch,
   walletSwitchesQuietly,
 } from "../chain-guard";
@@ -304,6 +312,69 @@ describe("walletSwitchesQuietly", () => {
 
     const browser = wallet({ type: "injected", session });
     await expect(walletSwitchesQuietly(browser.config, ARBITRUM)).resolves.toBe(false);
+  });
+});
+
+describe("readyWalletClient", () => {
+  const OWNER = "0x1111111111111111111111111111111111111111";
+  const SOMEONE_ELSE = "0x2222222222222222222222222222222222222222";
+
+  // Regression: the write hooks took their client from wagmi at render. wagmi
+  // hands out none while the connector's network and the stored one differ, so
+  // those hooks stopped with "not connected" before any guard could switch.
+  it("switches first, then hands back a client on the act's network for the address it was prepared for", async () => {
+    const { config, connector } = wallet({ stored: ARBITRUM, connector: CELO });
+    vi.mocked(getWagmiConfig).mockReturnValue(config);
+    // What wagmi answers for this wallet before the guard has run.
+    await expect(getWalletClient(config, { chainId: ARBITRUM })).rejects.toBeInstanceOf(
+      ConnectorChainMismatchError
+    );
+
+    const client = await readyWalletClient(ARBITRUM, OWNER);
+
+    expect(connector.switchChain).toHaveBeenCalledOnce();
+    expect(client.chain.id).toBe(ARBITRUM);
+    expect(client.account.address).toBe(OWNER);
+  });
+
+  it("refuses a wallet that changed hands before asking it to change network", async () => {
+    const { config, connector } = wallet();
+    vi.mocked(getWagmiConfig).mockReturnValue(config);
+
+    await expect(readyWalletClient(ARBITRUM, SOMEONE_ELSE)).rejects.toMatchObject({
+      code: "account_mismatch",
+    });
+    expect(connector.switchChain).not.toHaveBeenCalled();
+  });
+
+  it("gives no client for an address the wallet dropped while its switch was open", async () => {
+    const { config, connector, on } = wallet();
+    vi.mocked(getWagmiConfig).mockReturnValue(config);
+    connector.switchChain.mockImplementationOnce(async ({ chainId }) => {
+      on.connector = chainId;
+      on.provider = chainId;
+      const connection = config.state.connections.get("wallet") as unknown as {
+        accounts: string[];
+      };
+      connection.accounts = [SOMEONE_ELSE];
+      return { id: chainId };
+    });
+
+    await expect(readyWalletClient(ARBITRUM, OWNER)).rejects.toBeInstanceOf(
+      ConnectorAccountNotFoundError
+    );
+  });
+
+  it("fails as not connected when no wallet is, without asking anything", async () => {
+    const { config, connector } = wallet();
+    (config.state as { status: string }).status = "disconnected";
+    (config.state as { current: string | null }).current = null;
+    vi.mocked(getWagmiConfig).mockReturnValue(config);
+
+    await expect(readyWalletClient(ARBITRUM, OWNER)).rejects.toBeInstanceOf(
+      ConnectorNotConnectedError
+    );
+    expect(connector.getChainId).not.toHaveBeenCalled();
   });
 });
 

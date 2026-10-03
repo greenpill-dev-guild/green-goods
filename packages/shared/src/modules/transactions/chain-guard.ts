@@ -1,4 +1,10 @@
-import { ConnectorNotConnectedError, getAccount, switchChain, type Config } from "@wagmi/core";
+import {
+  ConnectorNotConnectedError,
+  getAccount,
+  getWalletClient,
+  switchChain,
+  type Config,
+} from "@wagmi/core";
 import { getWagmiConfig, peekAppKit } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -302,6 +308,29 @@ export async function ensureAppKitWalletChain(
   targetChainId: number = DEFAULT_CHAIN_ID
 ): Promise<void> {
   await ensureWagmiWalletChain(getWagmiConfig(), targetChainId);
+}
+
+/**
+ * The connected wallet's client for one act on `chainId`, taken when the act
+ * runs and only after the guard has put the wallet on that network.
+ *
+ * Write hooks take their client here, not from wagmi at render. wagmi's
+ * `useWalletClient` hands out no client while the connector's network and the
+ * one wagmi stored for the connection differ, so a hook that waited on it
+ * stopped with "not connected" before its guard could switch anything.
+ *
+ * `account` is the address the act was prepared for: its checks, its
+ * simulation, its form. Who signs is checked first, so a wallet swapped in
+ * since then is refused before it is asked to change network, and the client
+ * that comes back signs as that address or not at all. A wallet that is not
+ * connected throws wagmi's `ConnectorNotConnectedError`.
+ */
+export async function readyWalletClient(chainId: number, account?: Address) {
+  const config = getWagmiConfig();
+  const connected = getAccount(config).address;
+  if (account && connected) assertWalletAccount(account, connected);
+  await ensureWagmiWalletChain(config, chainId);
+  return getWalletClient(config, { chainId, account });
 }
 
 /**

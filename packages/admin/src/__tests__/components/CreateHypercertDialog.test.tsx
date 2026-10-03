@@ -61,7 +61,6 @@ vi.mock("@green-goods/shared/hooks/hypercerts/useAttestations", () => ({
 vi.mock("wagmi", () => ({
   useAccount: () => ({ address: OPERATOR, isConnected: true, isConnecting: false }),
   useReadContract: () => ({ data: 1 }),
-  useWalletClient: () => ({ data: undefined }),
 }));
 
 const authContextValue: AuthContextValue = {

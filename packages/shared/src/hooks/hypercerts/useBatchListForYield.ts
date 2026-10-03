@@ -9,7 +9,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { type Address, encodeFunctionData, type Hex } from "viem";
-import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
@@ -25,7 +24,7 @@ import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../modules/transactions/local-fork-safety";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
+import { readyWalletClient } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { CreateListingParams } from "../../types/hypercerts";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
@@ -52,7 +51,6 @@ const INITIAL_PROGRESS: BatchProgress = { total: 0, signed: 0, status: "idle" };
 
 export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYieldResult {
   const { smartAccountClient, smartAccountAddress, eoaAddress } = useAuth();
-  const { data: walletClient } = useConnectedWalletClient();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState<BatchProgress>(INITIAL_PROGRESS);
@@ -64,8 +62,7 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
 
       const signer = (smartAccountAddress || eoaAddress) as Address;
       if (!signer) throw new Error("Connect a wallet first");
-      if (!walletClient) throw new Error("Wallet client not available for signing");
-      await ensureAppKitWalletChain(chainId);
+      const signingClient = await readyWalletClient(chainId, signer);
 
       const readiness = assertMarketplaceReady(chainId);
       const moduleAddress = readiness.addresses.hypercertsModule;
@@ -108,7 +105,7 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
           throw new Error(`Order #${i + 1} validation failed: ${validation.errors.join(", ")}`);
         }
 
-        const signature = await signMakerAsk(makerAsk, walletClient, chainId);
+        const signature = await signMakerAsk(makerAsk, signingClient, chainId);
 
         hypercertIds.push(params.hypercertId);
         makerAskStructs.push({
@@ -154,7 +151,9 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
         await smartAccountClient.getUserOperationReceipt({ hash });
       } else {
         const publicClient = createPublicClientForChain(chainId);
-        await ensureAppKitWalletChain(chainId);
+        // Every signature above was a wallet prompt, so the wallet is readied
+        // again for the send.
+        const walletClient = await readyWalletClient(chainId, signer);
         await assertLocalArbitrumForkWallet();
 
         const txHash = await walletClient.sendTransaction({

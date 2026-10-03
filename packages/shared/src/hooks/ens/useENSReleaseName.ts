@@ -20,7 +20,6 @@ import {
   zeroAddress,
 } from "viem";
 import { useAccount } from "wagmi";
-import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -28,7 +27,7 @@ import { getChain } from "../../config/chains";
 import { ensKeys } from "../../config/query-keys/identity";
 import { logger } from "../../modules/app/logger";
 import type { ENSRegistrationData } from "../../types/domain";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
+import { readyWalletClient } from "../../modules/transactions/chain-guard";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
@@ -152,7 +151,6 @@ export function useENSReleaseName() {
   const queryClient = useQueryClient();
   const { authMode, smartAccountClient } = useAuth();
   const { address: walletAddress } = useAccount();
-  const { data: walletClient } = useConnectedWalletClient();
   const isPasskeyUser = authMode === "passkey";
   const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);
   const ensAddress = contracts.greenGoodsENS as Address;
@@ -201,7 +199,7 @@ export function useENSReleaseName() {
           to: ensAddress,
           data,
         });
-      } else if (walletClient && walletAddress) {
+      } else if (walletAddress) {
         owner = walletAddress;
         slug = (await publicClient.readContract({
           address: ensAddress,
@@ -240,7 +238,7 @@ export function useENSReleaseName() {
           }
           throw error;
         }
-        await ensureAppKitWalletChain(DEFAULT_CHAIN_ID);
+        const walletClient = await readyWalletClient(DEFAULT_CHAIN_ID, owner);
         await assertLocalArbitrumForkWallet();
 
         txHash = await walletClient.sendTransaction({
