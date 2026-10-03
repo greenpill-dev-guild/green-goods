@@ -1,3 +1,4 @@
+import { DOMAIN_METRICS } from "@green-goods/shared/config/domain";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -13,118 +14,6 @@ const CYNEFIN_SLUGS: Record<CynefinPhase, string> = {
   [CynefinPhase.COMPLICATED]: "complicated",
   [CynefinPhase.COMPLEX]: "complex",
   [CynefinPhase.CHAOTIC]: "chaotic",
-};
-
-/** Domain metric keys (stable identifiers) mapped to i18n label/unit keys */
-const DOMAIN_METRIC_KEYS: Record<Domain, { key: string; labelId: string; unitId: string }[]> = {
-  [Domain.SOLAR]: [
-    {
-      key: "kwhGenerated",
-      labelId: "app.admin.assessment.strategyKernel.metric.energyGenerated",
-      unitId: "app.admin.assessment.strategyKernel.unit.kwh",
-    },
-    {
-      key: "panelsInstalled",
-      labelId: "app.admin.assessment.strategyKernel.metric.panelsInstalled",
-      unitId: "app.admin.assessment.strategyKernel.unit.panels",
-    },
-    {
-      key: "hubsOnboarded",
-      labelId: "app.admin.assessment.strategyKernel.metric.hubsOnboarded",
-      unitId: "app.admin.assessment.strategyKernel.unit.hubs",
-    },
-    {
-      key: "batteryCapacityKwh",
-      labelId: "app.admin.assessment.strategyKernel.metric.batteryCapacity",
-      unitId: "app.admin.assessment.strategyKernel.unit.kwh",
-    },
-    {
-      key: "householdsServed",
-      labelId: "app.admin.assessment.strategyKernel.metric.householdsServed",
-      unitId: "app.admin.assessment.strategyKernel.unit.households",
-    },
-  ],
-  [Domain.AGRO]: [
-    {
-      key: "treesPlanted",
-      labelId: "app.admin.assessment.strategyKernel.metric.treesPlanted",
-      unitId: "app.admin.assessment.strategyKernel.unit.trees",
-    },
-    {
-      key: "areaCoveredHa",
-      labelId: "app.admin.assessment.strategyKernel.metric.areaCovered",
-      unitId: "app.admin.assessment.strategyKernel.unit.ha",
-    },
-    {
-      key: "yieldKg",
-      labelId: "app.admin.assessment.strategyKernel.metric.harvestYield",
-      unitId: "app.admin.assessment.strategyKernel.unit.kg",
-    },
-    {
-      key: "speciesCount",
-      labelId: "app.admin.assessment.strategyKernel.metric.speciesDiversity",
-      unitId: "app.admin.assessment.strategyKernel.unit.species",
-    },
-    {
-      key: "waterUsageLiters",
-      labelId: "app.admin.assessment.strategyKernel.metric.waterUsage",
-      unitId: "app.admin.assessment.strategyKernel.unit.liters",
-    },
-  ],
-  [Domain.EDU]: [
-    {
-      key: "participantsCount",
-      labelId: "app.admin.assessment.strategyKernel.metric.participants",
-      unitId: "app.admin.assessment.strategyKernel.unit.people",
-    },
-    {
-      key: "sessionsDelivered",
-      labelId: "app.admin.assessment.strategyKernel.metric.sessionsDelivered",
-      unitId: "app.admin.assessment.strategyKernel.unit.sessions",
-    },
-    {
-      key: "hoursDelivered",
-      labelId: "app.admin.assessment.strategyKernel.metric.hoursDelivered",
-      unitId: "app.admin.assessment.strategyKernel.unit.hours",
-    },
-    {
-      key: "materialsDistributed",
-      labelId: "app.admin.assessment.strategyKernel.metric.materialsDistributed",
-      unitId: "app.admin.assessment.strategyKernel.unit.items",
-    },
-    {
-      key: "completionRate",
-      labelId: "app.admin.assessment.strategyKernel.metric.completionRate",
-      unitId: "app.admin.assessment.strategyKernel.unit.percent",
-    },
-  ],
-  [Domain.WASTE]: [
-    {
-      key: "wasteCollectedKg",
-      labelId: "app.admin.assessment.strategyKernel.metric.wasteCollected",
-      unitId: "app.admin.assessment.strategyKernel.unit.kg",
-    },
-    {
-      key: "areaCleanedM2",
-      labelId: "app.admin.assessment.strategyKernel.metric.areaCleaned",
-      unitId: "app.admin.assessment.strategyKernel.unit.m2",
-    },
-    {
-      key: "recycledKg",
-      labelId: "app.admin.assessment.strategyKernel.metric.materialRecycled",
-      unitId: "app.admin.assessment.strategyKernel.unit.kg",
-    },
-    {
-      key: "compostKg",
-      labelId: "app.admin.assessment.strategyKernel.metric.compostProduced",
-      unitId: "app.admin.assessment.strategyKernel.unit.kg",
-    },
-    {
-      key: "participantsCount",
-      labelId: "app.admin.assessment.strategyKernel.metric.volunteers",
-      unitId: "app.admin.assessment.strategyKernel.unit.people",
-    },
-  ],
 };
 
 /** Default messages for metric labels */
@@ -172,7 +61,7 @@ const UNIT_DEFAULTS: Record<string, string> = {
 
 /** Resolve domain metrics with i18n labels; none until a known domain is chosen. */
 function resolveDomainMetrics(intl: IntlShape, domain: Domain | null) {
-  const keys = domain === null ? [] : DOMAIN_METRIC_KEYS[domain];
+  const keys = domain === null ? [] : DOMAIN_METRICS[domain];
   return keys.map((m) => ({
     key: m.key,
     label: intl.formatMessage({
