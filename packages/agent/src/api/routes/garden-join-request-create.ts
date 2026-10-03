@@ -1,3 +1,4 @@
+import { createGardenJoinRequestBudget } from "./garden-join-request-budget";
 import {
   GARDEN_JOIN_REQUEST_RETENTION_MS,
   toGardenJoinRequestSelfRecord,
@@ -28,6 +29,10 @@ export async function handleCreateGardenJoinRequest(
   c: Context,
   ctx: GardenJoinRequestRouteContext
 ) {
+  ctx = {
+    ...ctx,
+    budget: createGardenJoinRequestBudget(ctx.deps.now ?? Date.now, c.req.raw.signal),
+  };
   const preflight = prepareGardenJoinRequest(c, ctx);
   if (!preflight.ok) return preflight.response;
   const preAuthRateError = checkRateLimit(c, ctx.deps, "join_request_create", preflight.garden);
@@ -56,7 +61,9 @@ export async function handleCreateGardenJoinRequest(
   });
   if (!authenticated.ok) {
     void trackCreateRejected(
-      authenticated.response.status >= 500 ? "service_unavailable" : "authentication_failed"
+      authenticated.response.status >= 500 ? "service_unavailable" : "authentication_failed",
+      false,
+      "signature_verification"
     );
     return authenticated.response;
   }
@@ -84,7 +91,15 @@ export async function handleCreateGardenJoinRequest(
   // Which dependency the request was waiting on, so a 503 names its cause.
   let stage: CreateStage = "open_joining_read";
   try {
-    if (await chain.isOpenJoining(preflight.garden)) {
+    const [opening, membership] = await ctx.budget!.run(() =>
+      Promise.allSettled([
+        chain.isOpenJoining(preflight.garden),
+        chain.isMember(preflight.garden, authenticated.proof.accountAddress),
+      ])
+    );
+    if (opening.status === "rejected") throw opening.reason;
+    const openJoining = opening.value;
+    if (openJoining) {
       void trackCreateRejected("open_joining", authenticated.proof.factory !== undefined);
       return gardenJoinRequestFailure(
         c,
@@ -95,7 +110,8 @@ export async function handleCreateGardenJoinRequest(
       );
     }
     stage = "membership_read";
-    if (await chain.isMember(preflight.garden, authenticated.proof.accountAddress)) {
+    if (membership.status === "rejected") throw membership.reason;
+    if (membership.value) {
       void trackCreateRejected("already_member", authenticated.proof.factory !== undefined);
       return gardenJoinRequestFailure(
         c,
@@ -120,7 +136,7 @@ export async function handleCreateGardenJoinRequest(
     }
     gardenRateLimitReserved = true;
     stage = "proof_claim";
-    if (!(await claimGardenJoinRequestProof(store, authenticated.proof))) {
+    if (!(await ctx.budget!.run(() => claimGardenJoinRequestProof(store, authenticated.proof)))) {
       releaseMaterialRateLimit(ctx.deps, "join_request_create_garden", preflight.garden);
       gardenRateLimitReserved = false;
       void trackCreateRejected("proof_replayed", authenticated.proof.factory !== undefined);
@@ -133,6 +149,7 @@ export async function handleCreateGardenJoinRequest(
       );
     }
     const now = ctx.deps.now?.() ?? Date.now();
+    ctx.budget!.assertRemaining();
     stage = "store_create";
     const result = await store.create({
       gardenAddress: preflight.garden,
@@ -185,7 +202,12 @@ export async function handleCreateGardenJoinRequest(
   }
 }
 
-type CreateStage = "open_joining_read" | "membership_read" | "proof_claim" | "store_create";
+type CreateStage =
+  | "signature_verification"
+  | "open_joining_read"
+  | "membership_read"
+  | "proof_claim"
+  | "store_create";
 
 function trackCreateRejected(
   errorClass:
