@@ -350,6 +350,7 @@ export function useHubWorkbenchController() {
     gardenError: error,
     worksError,
     assessmentsError,
+    assessmentCount: assessments.length,
     hypercertsError,
     hypercertCount: hypercerts.length,
   });

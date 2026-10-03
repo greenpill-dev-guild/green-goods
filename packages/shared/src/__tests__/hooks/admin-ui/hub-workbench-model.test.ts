@@ -75,6 +75,7 @@ describe("hasHubStageDataError", () => {
     gardenError: null,
     worksError: null,
     assessmentsError: null,
+    assessmentCount: 0,
     hypercertsError: null,
     hypercertCount: 0,
   };
@@ -97,10 +98,16 @@ describe("hasHubStageDataError", () => {
       false,
     ],
     [
-      "a failed assessment read marks the Assessments tab",
+      "a failed assessment read with nothing to show marks the Assessments tab",
       "assess",
       { assessmentsError: failed },
       true,
+    ],
+    [
+      "a failed refresh keeps the assessments already read",
+      "assess",
+      { assessmentsError: failed, assessmentCount: 2 },
+      false,
     ],
     [
       "a failed assessment read leaves the Work tab reviewable",
