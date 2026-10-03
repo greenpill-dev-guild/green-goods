@@ -251,8 +251,10 @@ describe("WalletSender", () => {
 
       expect(mockDeps.ensureWalletChain).toHaveBeenNthCalledWith(1, TEST_CALL.chainId, "write");
       expect(mockDeps.ensureWalletChain).toHaveBeenNthCalledWith(2, TEST_CALL.chainId, "retry");
-      // A switch prompt can stay open long enough for the account to change.
-      expect(assertOwnership).toHaveBeenCalledTimes(2);
+      // Who signs is asked before and after each network check: a wallet swapped
+      // in is refused before any switch, and a switch prompt can stay open long
+      // enough for the account to change.
+      expect(assertOwnership).toHaveBeenCalledTimes(4);
       expect(mockWriteContractAsync).toHaveBeenCalledTimes(2);
       // One send intent: the refused attempt never reached the wallet.
       expect(onBeforeBroadcast).toHaveBeenCalledOnce();
@@ -386,11 +388,17 @@ describe("WalletSender", () => {
       );
     });
 
-    it("refuses an empty batch and a batch across two chains before asking", async () => {
+    it("refuses an empty batch, one across two chains, and one quoted for another account, before asking", async () => {
       await expect(sender.sendAtomicBatch([])).rejects.toThrow("Cannot send empty batch");
       await expect(
         sender.sendAtomicBatch([TEST_CALL, { ...SECOND_CALL, chainId: 42220 }])
       ).rejects.toThrow("An atomic batch runs on one chain");
+      // A wallet that took the connection over is not asked to change network first.
+      batchDeps.getAccount = () => ({ address: "0x2222222222222222222222222222222222222222" });
+      await expect(
+        sender.sendAtomicBatch([{ ...TEST_CALL, account: VALID_RECIPIENT }, SECOND_CALL])
+      ).rejects.toMatchObject({ code: "account_mismatch" });
+      expect(trace).toEqual([]);
       expect(batchDeps.sendCalls).not.toHaveBeenCalled();
     });
   });

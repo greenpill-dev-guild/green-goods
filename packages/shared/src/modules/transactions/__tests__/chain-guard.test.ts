@@ -271,7 +271,24 @@ describe("ensureWagmiWalletChain", () => {
 });
 
 describe("walletSwitchesQuietly", () => {
-  it("is quiet for a WalletConnect session holding an account on the network, and never for a browser wallet", async () => {
+  // A session can hold a different address on each network. Switching to one
+  // of those would change who signs, so it is never done without being asked.
+  it("is not quiet when the session holds another address on the network", async () => {
+    const session = {
+      namespaces: {
+        eip155: {
+          accounts: [
+            `eip155:${CELO}:0x1111111111111111111111111111111111111111`,
+            `eip155:${ARBITRUM}:0x2222222222222222222222222222222222222222`,
+          ],
+        },
+      },
+    };
+
+    await expect(walletSwitchesQuietly(wallet({ session }).config, ARBITRUM)).resolves.toBe(false);
+  });
+
+  it("is quiet for a WalletConnect session holding the connected address on the network, and never for a browser wallet", async () => {
     // WalletConnect's provider decides from the session's accounts; `chains` is optional.
     const session = {
       namespaces: {

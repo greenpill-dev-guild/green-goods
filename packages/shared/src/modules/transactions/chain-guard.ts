@@ -306,21 +306,23 @@ export async function ensureAppKitWalletChain(
 
 /**
  * Whether moving this wallet to `chainId` needs no prompt: a WalletConnect
- * session that holds an account on that network. WalletConnect's provider
- * decides the same way, from the session's accounts and not its optional
- * `chains` list, and then switches on the app's side. Any other network, and
- * every browser wallet, asks the person.
+ * session that holds the connected address on that network. WalletConnect's
+ * provider decides from the session's accounts and not its optional `chains`
+ * list, and then switches on the app's side. A session can hold a different
+ * address on each network, and switching to one of those would change who
+ * signs, so only the connected address counts. Any other network, and every
+ * browser wallet, asks the person.
  */
 export async function walletSwitchesQuietly(config: Config, chainId: number): Promise<boolean> {
-  const { connector } = getAccount(config);
-  if (connector?.type !== "walletConnect") return false;
+  const { address, connector } = getAccount(config);
+  if (connector?.type !== "walletConnect" || !address) return false;
   try {
     const provider = (await connector.getProvider?.()) as
       | { session?: { namespaces?: Record<string, { accounts?: string[] }> } }
       | undefined;
-    const onChain = `eip155:${chainId}:`;
+    const sameAddressOnChain = `eip155:${chainId}:${address}`.toLowerCase();
     return Object.values(provider?.session?.namespaces ?? {}).some((namespace) =>
-      namespace.accounts?.some((account) => account.startsWith(onChain))
+      namespace.accounts?.some((account) => account.toLowerCase() === sameAddressOnChain)
     );
   } catch (error) {
     logger.warn("Could not read the WalletConnect session's accounts", {

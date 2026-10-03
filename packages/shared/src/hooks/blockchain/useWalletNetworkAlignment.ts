@@ -10,9 +10,10 @@
  * nothing here tells them about it or asks them to change it.
  *
  * The move exists for one reason. After it, wagmi, AppKit and the wallet's
- * provider agree, so the few writes that take a wallet client from wagmi find
- * one. Only a WalletConnect session that holds an account on the network is
- * moved, because that switch happens on the app's side. A wallet that would
+ * provider agree, so anything that asks wagmi for the wallet without naming a
+ * network (a message signature, for one) finds it. Only a WalletConnect session
+ * that holds the connected address on the network is moved, because that switch
+ * happens on the app's side and leaves who signs unchanged. A wallet that would
  * show a prompt is left alone until an act needs it.
  *
  * @module hooks/blockchain/useWalletNetworkAlignment
@@ -30,10 +31,18 @@ import { useUser } from "../auth/useUser";
 import { useAsyncEffect } from "../utils/useAsyncEffect";
 import { useCurrentChain } from "./useChainConfig";
 
-async function alignQuietly(config: Config, targetChainId: number): Promise<void> {
+async function alignQuietly(
+  config: Config,
+  targetChainId: number,
+  stillThisWallet: () => boolean
+): Promise<void> {
   try {
     if ((await walletNetworkOtherThan(config, targetChainId)) === undefined) return;
     if (!(await walletSwitchesQuietly(config, targetChainId))) return;
+    // The guard acts on whichever wallet holds the connection now. One that took
+    // it over while this one was being read was never judged quiet, so it is
+    // left to its own run.
+    if (!stillThisWallet()) return;
     await ensureWagmiWalletChain(config, targetChainId, "sign-in");
   } catch (error) {
     // The guard has already reported the refusal. The wallet's next act
@@ -55,7 +64,10 @@ export function useWalletNetworkAlignment(): void {
   // The connection coming up: sign-in, a reload, a dropped wallet answering
   // again, or another wallet or account taking the connection over while wagmi
   // stays connected.
-  useAsyncEffect(async () => {
-    if (connected) await alignQuietly(config, targetChainId);
-  }, [connected, address, connector?.uid, config, targetChainId]);
+  useAsyncEffect(
+    async ({ isMounted }) => {
+      if (connected) await alignQuietly(config, targetChainId, isMounted);
+    },
+    [connected, address, connector?.uid, config, targetChainId]
+  );
 }

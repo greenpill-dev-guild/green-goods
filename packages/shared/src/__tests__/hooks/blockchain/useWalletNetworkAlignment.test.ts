@@ -130,6 +130,36 @@ describe("useWalletNetworkAlignment", () => {
     await waitFor(() => expect(mocks.ensureWagmiWalletChain).toHaveBeenCalledOnce());
   });
 
+  // Regression: a run for one wallet went on to switch after another wallet had
+  // taken the connection over, so a browser wallet could be prompted at sign-in.
+  it("drops its move when another wallet takes the connection over while the first is being read", async () => {
+    walletOn(CELO);
+    let answerFirst: (quiet: boolean) => void = () => undefined;
+    mocks.walletSwitchesQuietly
+      .mockReturnValueOnce(
+        new Promise<boolean>((resolve) => {
+          answerFirst = resolve;
+        })
+      )
+      .mockResolvedValue(false);
+    const { rerender } = renderHook(() => useWalletNetworkAlignment());
+    await waitFor(() => expect(mocks.walletSwitchesQuietly).toHaveBeenCalledOnce());
+
+    // A browser wallet, which would prompt, now holds the connection.
+    mocks.account = {
+      status: "connected",
+      chainId: ARBITRUM,
+      address: "0x2222222222222222222222222222222222222222",
+      connector: { uid: "browser-wallet" },
+    };
+    rerender();
+    await waitFor(() => expect(mocks.walletSwitchesQuietly).toHaveBeenCalledTimes(2));
+    answerFirst(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mocks.ensureWagmiWalletChain).not.toHaveBeenCalled();
+  });
+
   it("keeps a failed move to itself: the next act switches, or says why it cannot", async () => {
     walletOn(CELO);
     mocks.ensureWagmiWalletChain.mockRejectedValue(new Error("Network switch rejected"));

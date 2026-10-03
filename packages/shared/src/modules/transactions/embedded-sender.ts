@@ -80,17 +80,29 @@ export class EmbeddedSender implements TransactionSender {
       ensureWagmiWalletChain(this.config, chainId, reason);
   }
 
-  /** What must hold before the wallet is asked: its network, the fork check, and who signs. */
+  /** Who signs: the account the call was quoted for, and the act's own ownership check. */
+  private async assertSigner(call: ContractCall, options: TransactionSendOptions): Promise<void> {
+    if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
+    await options.assertOwnership?.();
+  }
+
+  /**
+   * What must hold before the wallet is asked: who signs, its network, and the
+   * fork check. Who signs comes first, so a wallet that took the connection
+   * over while the act was being prepared is refused before it is asked to
+   * change network. It is asked again once the wallet is on the network,
+   * because a switch prompt can stay open long enough for the account to change.
+   */
   private async readyWallet(
     call: ContractCall,
     chainId: number,
     options: TransactionSendOptions,
     reason: WalletNetworkSwitchReason
   ): Promise<void> {
+    await this.assertSigner(call, options);
     await this.deps.ensureWalletChain?.(chainId, reason);
     await this.deps.assertWriteSafety?.();
-    if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
-    await options.assertOwnership?.();
+    await this.assertSigner(call, options);
   }
 
   async sendContractCall(
