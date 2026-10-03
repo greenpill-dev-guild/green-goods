@@ -7,9 +7,12 @@ import {
 } from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import type { UserRole } from "@green-goods/shared/hooks/gardener/useRole";
-import { resolveCampaignCookieJarsRoute } from "@green-goods/shared/utils/navigation/admin-routes";
+import {
+  adminRoutes,
+  resolveCampaignCookieJarsRoute,
+} from "@green-goods/shared/utils/navigation/admin-routes";
 import type { ComponentType } from "react";
-import { Navigate, type RouteObject, useLocation } from "react-router-dom";
+import { Navigate, type RouteObject, useLocation, useParams } from "react-router-dom";
 import RequireRole from "@/routes/RequireRole";
 import RequireCommunityAccess from "@/routes/RequireCommunityAccess";
 
@@ -60,6 +63,21 @@ function IndexRedirect({ kind }: { kind: AdminIndexRedirectKind }) {
 function PreserveSearchRedirect({ pathname }: { pathname: string }) {
   const location = useLocation();
   return <Navigate to={{ pathname, search: location.search }} replace />;
+}
+
+/**
+ * An assessment's record opens under the Assessments tab (DL-082). A link to
+ * its former address under Certify still opens it there.
+ */
+function AssessmentRecordRedirect() {
+  const { assessmentId = "" } = useParams<{ assessmentId: string }>();
+  const location = useLocation();
+  return (
+    <Navigate
+      to={{ pathname: adminRoutes.hubAssessDetail(assessmentId), search: location.search }}
+      replace
+    />
+  );
 }
 
 /**
@@ -117,6 +135,10 @@ export const adminCanvasRoutes: RouteObject[] = [
             index: true,
             lazy: hubView,
           },
+          {
+            path: ":assessmentId",
+            lazy: hubView,
+          },
         ],
       },
       {
@@ -147,7 +169,7 @@ export const adminCanvasRoutes: RouteObject[] = [
           },
           {
             path: ":assessmentId",
-            lazy: hubView,
+            element: <AssessmentRecordRedirect />,
           },
         ],
       },

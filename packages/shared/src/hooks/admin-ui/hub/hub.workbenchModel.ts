@@ -1,4 +1,4 @@
-import type { Domain, GardenAssessment } from "../../../types/domain";
+import type { Domain } from "../../../types/domain";
 import type { AdminSheetSide } from "../navigation/sheetRegistry";
 import {
   type HubPipelineStage,
@@ -6,6 +6,7 @@ import {
   parseCertificationContentId,
   parseSortDirection,
   parseWorkDetailContentId,
+  parseWorkScope,
   resolvePipelineStageFromPath,
   type SortDirection,
   SUBMIT_WORK_CONTENT_ID,
@@ -17,22 +18,20 @@ type WorkStatusLike = {
   status?: string;
 };
 
-type HypercertLike = {
-  id: string;
-};
-
 export interface HubStageModelInput {
   requestedStage: HubPipelineStage;
+  /** Owners and stewards: the Work stage, where submissions are reviewed. */
   canManage: boolean;
-  canAssess: boolean;
-  canCertify: boolean;
+  /**
+   * Owners, stewards and evaluators, the people who can create an assessment:
+   * the Assessments and Hypercerts stages.
+   */
+  canReview: boolean;
   /** The reader stewards at least one garden: the Confirm stage exists only then. */
   canConfirm?: boolean;
   /** Ordinary plus fallback rows waiting on the reader (useCommitmentsToConfirm). */
   confirmCount?: number;
   works: WorkStatusLike[];
-  assessments: Pick<GardenAssessment, "id">[];
-  hypercerts: HypercertLike[];
 }
 
 export interface HubRouteSelectionInput {
@@ -54,6 +53,7 @@ export interface HubRouteSheetInput {
 export interface HubRouteStateInput {
   pathname: string;
   sortParam: string | null;
+  scopeParam?: string | null;
   routedWorkIdParam?: string;
   routedAssessmentIdParam?: string;
   activeContentId: string | null;
@@ -122,6 +122,7 @@ export function buildActionTitleMap(actions: ActionTitleLike[]) {
 export function resolveHubRouteState({
   pathname,
   sortParam,
+  scopeParam,
   routedWorkIdParam,
   routedAssessmentIdParam,
   activeContentId,
@@ -147,6 +148,7 @@ export function resolveHubRouteState({
     routeSheetSide,
     routeWorkId,
     sortDirection: parseSortDirection(sortParam),
+    workScope: parseWorkScope(scopeParam),
   };
 }
 
@@ -169,26 +171,24 @@ export function buildHubWorkspaceState({
 export function buildHubStageModel({
   requestedStage,
   canManage,
-  canAssess,
-  canCertify,
+  canReview,
   canConfirm = false,
   confirmCount = 0,
   works,
-  assessments,
-  hypercerts,
 }: HubStageModelInput) {
-  const certifiedAssessmentIds = new Set(hypercerts.map((hypercert) => hypercert.id));
+  // A count on the rail means "waiting on you", so only the two queues carry
+  // one. Assessments and Hypercerts list records, which wait on no one.
   const stageCounts: Record<HubPipelineStage, number | undefined> = {
     work: works.filter((work) => work.status === "pending").length,
-    assess: works.filter((work) => work.status === "approved").length,
-    certify: assessments.filter((assessment) => !certifiedAssessmentIds.has(assessment.id)).length,
+    assess: undefined,
+    certify: undefined,
     confirm: confirmCount,
   };
 
   const stageVisibility: Record<HubPipelineStage, boolean> = {
     work: canManage,
-    assess: canAssess,
-    certify: canCertify,
+    assess: canReview,
+    certify: canReview,
     confirm: canConfirm,
   };
 
@@ -257,14 +257,45 @@ export function resolveHubRouteSheet({
 export function getHubResultCount(
   stage: HubPipelineStage,
   counts: {
-    pendingWorks: number;
-    assessmentQueue: number;
-    certificationQueue: number;
+    works: number;
+    assessments: number;
+    hypercerts: number;
     confirmQueue?: number;
   }
 ): number {
-  if (stage === "work") return counts.pendingWorks;
-  if (stage === "assess") return counts.assessmentQueue;
-  if (stage === "certify") return counts.certificationQueue;
+  if (stage === "work") return counts.works;
+  if (stage === "assess") return counts.assessments;
+  if (stage === "certify") return counts.hypercerts;
   return counts.confirmQueue ?? 0;
+}
+
+/**
+ * Whether the open stage's list could not be read. A failed read is not an
+ * empty list, so the stage says so instead of "none yet". Each stage answers
+ * for its own read: a work outage must not hide assessments that loaded, nor
+ * the reverse. A garden that could not be read fails every stage. The two
+ * record tabs say so only while they have nothing already read to show, so a
+ * refresh that fails in the background keeps the records on screen. The Work
+ * tab still says so on any failed work read: whether a review queue may show
+ * rows it could not refresh is a separate decision, left as it was. The
+ * Confirm stage reads its own queue and reports its own failures.
+ *
+ * It takes each read's error as it comes, so a caller has nothing to combine.
+ */
+export function hasHubStageDataError(
+  stage: HubPipelineStage,
+  read: {
+    gardenError: unknown;
+    worksError: unknown;
+    assessmentsError: unknown;
+    assessmentCount: number;
+    hypercertsError: unknown;
+    hypercertCount: number;
+  }
+): boolean {
+  if (read.gardenError) return true;
+  if (stage === "work") return Boolean(read.worksError);
+  if (stage === "assess") return Boolean(read.assessmentsError) && read.assessmentCount === 0;
+  if (stage === "certify") return Boolean(read.hypercertsError) && read.hypercertCount === 0;
+  return false;
 }

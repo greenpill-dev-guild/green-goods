@@ -116,7 +116,7 @@ const ADMIN_ROUTE_SHEET_REGISTRY: RouteSheetRegistryEntry[] = [
     side: "left",
     parse: parseCertificationContentId,
     isRestorable: (assessmentId, pathname) =>
-      pathname.startsWith("/hub/certify/") && getLastPathSegment(pathname) === assessmentId,
+      pathname.startsWith("/hub/assess/") && getLastPathSegment(pathname) === assessmentId,
   },
   {
     kind: "exact",

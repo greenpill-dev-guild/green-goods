@@ -336,6 +336,12 @@ export async function getHypercertClaims(
   });
 }
 
+/**
+ * Reads a garden's minted hypercerts from the indexer, newest first.
+ *
+ * Rejects when the read fails. A garden with no hypercerts resolves to an empty
+ * list, so a caller can tell "could not load" from "none yet".
+ */
 export async function getGardenHypercerts(
   gardenId: string,
   chainId: number,
@@ -358,7 +364,7 @@ export async function getGardenHypercerts(
       limit,
       error: error instanceof Error ? error.message : String(error),
     });
-    return [];
+    throw error;
   }
 
   const items = (data as { Hypercert?: unknown[] } | undefined)?.Hypercert;

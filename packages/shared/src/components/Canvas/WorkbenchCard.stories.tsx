@@ -61,6 +61,22 @@ export const Pending: Story = {
 };
 
 /**
+ * A record with no lifecycle of its own, such as an assessment or a minted
+ * hypercert, carries no status pill: the eyebrow names its kind and the chips
+ * its facts.
+ */
+export const RecordWithoutStatus: Story = {
+  args: {
+    eyebrow: "Agroforestry",
+    title: "Eastern ridge baseline",
+    description: "Where the ridge stands before the planting season, and what the season aims for.",
+    meta: ["Jul 1 – Sep 30, 2026", "2 days ago"],
+    statusLabel: undefined,
+    statusTone: undefined,
+  },
+};
+
+/**
  * The registry grid — the consuming view authors the `grid-cols-*` container
  * and decides the columns; the card fills each cell with `h-full`.
  */
