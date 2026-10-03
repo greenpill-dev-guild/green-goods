@@ -6,7 +6,7 @@ describe("join request presentation activity", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it("dispatches immediately and keeps a fast result readable for600ms", async () => {
+  it("dispatches immediately and keeps a fast result readable for 600ms", async () => {
     const operation = vi.fn(async () => "saved");
     const { result } = renderHook(() => useGardenJoinRequestActivity("a"));
     let response!: ReturnType<typeof result.current.run<string>>;

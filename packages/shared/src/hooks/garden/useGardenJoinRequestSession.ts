@@ -53,7 +53,7 @@ export function useGardenJoinRequestSession(
     initialData: EMPTY,
     gcTime: 5 * 60_000,
   });
-  const query = client.getQueryCache().find({ queryKey: key, exact: true })!;
+  const query = client.getQueryCache().build<unknown>(client, { queryKey: key });
   const privateSession = sessions.get(query) ?? { operation: 0 };
   sessions.set(query, privateSession);
   function isCurrentScope(scope: string) {
