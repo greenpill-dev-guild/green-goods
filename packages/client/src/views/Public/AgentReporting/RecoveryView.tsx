@@ -15,16 +15,9 @@ import {
 import { useId, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 import { FlowForward } from "@/components/Features/Work";
-import {
-  AccountActions,
-  AccountLine,
-  ActContext,
-  BarStatus,
-  BLOCKED_ID,
-  type CeremonyHeading,
-  CeremonyFrame,
-  StageNotice,
-} from "./CeremonyFrame";
+import { AccountActions, AccountLine } from "./CeremonyActs";
+import { ActContext, BarStatus } from "./CeremonyBar";
+import { BLOCKED_ID, type CeremonyHeading, CeremonyFrame, StageNotice } from "./CeremonyFrame";
 import {
   CAUTIONS,
   CEREMONY_COPY,

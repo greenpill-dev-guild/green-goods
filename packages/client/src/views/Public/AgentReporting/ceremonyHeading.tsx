@@ -13,7 +13,8 @@ import {
   RiUserFollowLine,
 } from "@remixicon/react";
 import type { IntlShape, MessageDescriptor } from "react-intl";
-import { AccountLine, type CeremonyHeading } from "./CeremonyFrame";
+import { AccountLine } from "./CeremonyActs";
+import type { CeremonyHeading } from "./CeremonyFrame";
 import type { CeremonyScreen } from "./ceremonyScreen";
 import { CEREMONY_COPY, SENT_HEADINGS } from "./messages";
 

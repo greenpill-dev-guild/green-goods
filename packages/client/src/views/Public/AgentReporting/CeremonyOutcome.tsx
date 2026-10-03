@@ -7,7 +7,8 @@ import {
 } from "@remixicon/react";
 import type { ReactNode } from "react";
 import type { IntlShape, MessageDescriptor } from "react-intl";
-import { BarStatus, StageNotice } from "./CeremonyFrame";
+import { BarStatus } from "./CeremonyBar";
+import { StageNotice } from "./CeremonyFrame";
 import type { CeremonyScreen } from "./ceremonyScreen";
 import { CEREMONY_COPY, FAILURE_COPY } from "./messages";
 

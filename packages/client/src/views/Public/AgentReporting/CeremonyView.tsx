@@ -2,16 +2,9 @@ import type { AgentReportingCeremony } from "@green-goods/shared/hooks/agent-rep
 import { type ReactNode, useId } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 import { FlowForward } from "@/components/Features/Work";
-import {
-  AccountActions,
-  AccountLine,
-  ActContext,
-  BLOCKED_ID,
-  type CeremonyNotice,
-  CeremonyFrame,
-  ManagePermissionsLink,
-  SignOutButton,
-} from "./CeremonyFrame";
+import { AccountActions, AccountLine, ManagePermissionsLink, SignOutButton } from "./CeremonyActs";
+import { ActContext } from "./CeremonyBar";
+import { BLOCKED_ID, type CeremonyNotice, CeremonyFrame } from "./CeremonyFrame";
 import { barStanding, OutcomeNotice } from "./CeremonyOutcome";
 import { ceremonyHeading } from "./ceremonyHeading";
 import { readCeremonyScreen } from "./ceremonyScreen";

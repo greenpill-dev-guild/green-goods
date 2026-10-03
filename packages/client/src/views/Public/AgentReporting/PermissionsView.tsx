@@ -9,13 +9,9 @@ import { RiLoader4Line, RiShieldKeyholeLine, RiTimeLine } from "@remixicon/react
 import { useId, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 import { EmptyState } from "@/components/Communication";
-import {
-  AccountLine,
-  ActContext,
-  CeremonyFrame,
-  ConnectActions,
-  PairedActs,
-} from "./CeremonyFrame";
+import { AccountLine, ConnectActions } from "./CeremonyActs";
+import { ActContext, PairedActs } from "./CeremonyBar";
+import { CeremonyFrame } from "./CeremonyFrame";
 import { PERMISSION_FAILURE_COPY as ERRORS } from "./messages";
 import { PermissionList } from "./PermissionList";
 
