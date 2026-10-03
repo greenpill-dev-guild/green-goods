@@ -90,9 +90,12 @@ vi.mock("../../../modules/data/ipfs/upload", () => ({
 }));
 
 // The wallet client comes from the guard when the workflow signs, not from wagmi at render.
+// The network check and its retry run for real in the command test, so here they pass through.
 vi.mock("../../../modules/transactions/chain-guard", () => ({
   ensureAppKitWalletChain: mocks.ensureChain,
   readyWalletClient: mocks.readyWalletClient,
+  retryOnWalletChainMismatch: (request: () => Promise<unknown>) => request(),
+  WalletChainMismatchError: Error,
 }));
 
 vi.mock("../../../modules/app/analytics-events", () => ({
@@ -393,7 +396,10 @@ describe("useCreateAssessmentWorkflow", () => {
     expect(beforeUploads).toBeLessThan(mocks.uploadFile.mock.invocationCallOrder[0]);
     expect(afterUploads).toBeGreaterThan(mocks.uploadJson.mock.invocationCallOrder[1]);
     expect(afterUploads).toBeLessThan(mocks.easAttest.mock.invocationCallOrder[0]);
-    expect(mocks.browserProviderConstructor).toHaveBeenCalledWith(mocks.walletClient?.transport);
+    // ethers is handed the readied wallet, behind the check on what it sends.
+    const [[givenToEthers]] = mocks.browserProviderConstructor.mock.calls;
+    await givenToEthers.request({ method: "eth_accounts" });
+    expect(mocks.walletClient?.transport.request).toHaveBeenCalledWith({ method: "eth_accounts" });
     expect(mocks.easConstructor).toHaveBeenCalledWith(EAS_ADDRESS);
     expect(mocks.easConnect).toHaveBeenCalledWith({ address: OPERATOR_ADDRESS });
     expect(mocks.easAttest).toHaveBeenCalledWith({

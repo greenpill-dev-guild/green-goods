@@ -6,7 +6,12 @@ import type { Address, AssessmentWorkflowParams } from "../../types/domain";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../data/ipfs/upload";
-import { ensureAppKitWalletChain, readyWalletClient } from "../transactions/chain-guard";
+import {
+  ensureAppKitWalletChain,
+  readyWalletClient,
+  retryOnWalletChainMismatch,
+  WalletChainMismatchError,
+} from "../transactions/chain-guard";
 
 const DOMAIN_MAP: Record<string, number> = {
   solar: 0,
@@ -195,11 +200,36 @@ export function createDefaultCreateAssessmentPorts(input: {
    * uploads, so a wallet that cannot sign stops the work early, and again when
    * the attestation is sent: the uploads can run for minutes, long enough for
    * the wallet to have moved network or changed hands.
+   *
+   * Every other wallet write goes through viem, which asks the wallet its
+   * network right before `eth_sendTransaction` and refuses any other. ethers
+   * and the EAS SDK send on whichever network the wallet is on, so the wallet
+   * they are handed makes that check itself. ethers reports what a wallet
+   * throws as an error of its own, so `onRefusal` is told the reason.
    */
-  const connectEas = async (): Promise<EAS> => {
+  const connectEas = async (
+    onRefusal?: (refusal: WalletChainMismatchError) => void
+  ): Promise<EAS> => {
     if (chain === null || !easAddress) throw new Error("Assessment sender was not prepared");
-    const walletClient = await readyWalletClient(chain, input.account);
-    const provider = new ethers.BrowserProvider(walletClient.transport as Eip1193Provider);
+    const sendOn = chain;
+    const walletClient = await readyWalletClient(sendOn, input.account);
+    const wallet = walletClient.transport as Eip1193Provider;
+    const provider = new ethers.BrowserProvider({
+      request: async (request) => {
+        if (request.method === "eth_sendTransaction") {
+          const walletChainId = Number(await wallet.request({ method: "eth_chainId" }));
+          if (walletChainId !== sendOn) {
+            const refusal = new WalletChainMismatchError({
+              targetChainId: sendOn,
+              walletChainId: Number.isSafeInteger(walletChainId) ? walletChainId : undefined,
+            });
+            onRefusal?.(refusal);
+            throw refusal;
+          }
+        }
+        return wallet.request(request);
+      },
+    });
     const eas = new EAS(easAddress);
     eas.connect(await provider.getSigner(walletClient.account.address));
     return eas;
@@ -229,17 +259,38 @@ export function createDefaultCreateAssessmentPorts(input: {
         await connectEas();
       },
       attest: async ({ schemaUid, gardenId, encodedData }) => {
-        const eas = await connectEas();
-        const transaction: Transaction<string> = await eas.attest({
-          schema: schemaUid,
-          data: {
-            recipient: gardenId,
-            expirationTime: 0n,
-            revocable: false,
-            data: encodedData,
+        let refusal: WalletChainMismatchError | undefined;
+        const connect = () => {
+          refusal = undefined;
+          return connectEas((refused) => {
+            refusal = refused;
+          });
+        };
+        let eas = await connect();
+        // A refusal comes before the wallet is asked to send. Nothing was
+        // signed, so the wallet is readied again and one more attempt cannot
+        // send twice.
+        return retryOnWalletChainMismatch(
+          async () => {
+            const transaction: Transaction<string> = await eas.attest({
+              schema: schemaUid,
+              data: {
+                recipient: gardenId,
+                expirationTime: 0n,
+                revocable: false,
+                data: encodedData,
+              },
+            });
+            try {
+              return await transaction.wait();
+            } catch (error) {
+              throw refusal ?? error;
+            }
           },
-        });
-        return transaction.wait();
+          async () => {
+            eas = await connect();
+          }
+        );
       },
     },
     documents: {
