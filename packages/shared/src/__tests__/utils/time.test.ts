@@ -438,4 +438,17 @@ describe("formatReportingPeriod", () => {
   ])("reads a period with $label as not set", ({ start, end }) => {
     expect(formatReportingPeriod(reader("en"), start, end)).toBeNull();
   });
+
+  // The attestation holds each end as a uint256, far wider than a date. Handed
+  // one a calendar cannot hold, the range formatter fails: it prints the raw
+  // number, or throws where intl errors are set to throw.
+  it.each([
+    { label: "both ends", start: 1.157e77, end: 1.158e77 },
+    { label: "the end", start: JUL_1_2026, end: 1.158e77 },
+  ])("reads a period with $label beyond any calendar as not set", ({ start, end }) => {
+    const formatDateTimeRange = vi.fn();
+
+    expect(formatReportingPeriod({ formatDateTimeRange }, start, end)).toBeNull();
+    expect(formatDateTimeRange).not.toHaveBeenCalled();
+  });
 });

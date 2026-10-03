@@ -512,7 +512,9 @@ export function getCurrentTimezone(): string {
  * An assessment's reporting period as one date range in the reader's language,
  * or null when either end is missing. Create Assessment stores each end as UTC
  * midnight of the calendar day the author picked, so the range is read in UTC:
- * a reader west of it would otherwise see the day before.
+ * a reader west of it would otherwise see the day before. An end the calendar
+ * cannot hold reads as missing: the attestation keeps each end as a uint256,
+ * and the range formatter fails on one beyond a Date's reach.
  */
 export function formatReportingPeriod(
   intl: Pick<IntlShape, "formatDateTimeRange">,
@@ -522,6 +524,6 @@ export function formatReportingPeriod(
   if (!start || !end) return null;
   const from = normalizeTimestamp(start);
   const to = normalizeTimestamp(end);
-  if (Number.isNaN(from) || Number.isNaN(to)) return null;
+  if (Number.isNaN(new Date(from).getTime()) || Number.isNaN(new Date(to).getTime())) return null;
   return intl.formatDateTimeRange(from, to, { dateStyle: "medium", timeZone: "UTC" });
 }
