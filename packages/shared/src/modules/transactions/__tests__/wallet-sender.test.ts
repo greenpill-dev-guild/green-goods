@@ -385,6 +385,36 @@ describe("WalletSender", () => {
       expect(batchWrite).not.toHaveBeenCalled();
     });
 
+    // No batch in the app names an account, so a batch is for whoever holds the
+    // connection when it starts.
+    it("sends a batch as the address connected when it starts, or not at all", async () => {
+      const owner = "0x1111111111111111111111111111111111111111" as const;
+      let connected: `0x${string}` = owner;
+      batchDeps.getAccount = () => ({ address: connected });
+
+      await sender.sendAtomicBatch([TEST_CALL, SECOND_CALL]);
+      expect(batchDeps.sendCalls).toHaveBeenCalledWith(
+        batchConfig,
+        expect.objectContaining({ account: owner })
+      );
+
+      // Another wallet takes the connection over while the guard reads this one.
+      vi.mocked(batchDeps.sendCalls!).mockClear();
+      trace.length = 0;
+      vi.mocked(batchDeps.ensureWalletChain!).mockImplementationOnce(
+        async (_chainId, _reason, beforeSwitch) => {
+          connected = "0x2222222222222222222222222222222222222222";
+          await beforeSwitch?.();
+          trace.push("chain");
+        }
+      );
+      await expect(sender.sendAtomicBatch([TEST_CALL, SECOND_CALL])).rejects.toMatchObject({
+        code: "account_mismatch",
+      });
+      expect(trace).toEqual([]);
+      expect(batchDeps.sendCalls).not.toHaveBeenCalled();
+    });
+
     it("says a reverted batch wrote nothing, and an unanswered one is unknown", async () => {
       vi.mocked(batchDeps.waitForCallsStatus!).mockResolvedValueOnce({
         status: "failure",

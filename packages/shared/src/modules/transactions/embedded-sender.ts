@@ -85,8 +85,20 @@ export class EmbeddedSender implements TransactionSender {
   }
 
   /**
-   * Who signs: the act's own ownership check, then the account the call was
-   * quoted for. The account is read last, with nothing awaited after it.
+   * The call with the address it is for: the one it names, or else the one
+   * connected when its send starts. The send belongs to that address from then
+   * on, so a wallet that takes the connection over is asked neither to change
+   * network nor to sign it. With no wallet connected the call names nobody,
+   * and the send fails as not connected.
+   */
+  private forSigner(call: ContractCall): ContractCall {
+    const account = call.account ?? this.deps.getAccount?.().address;
+    return account ? { ...call, account } : call;
+  }
+
+  /**
+   * Who signs: the act's own ownership check, then the account the call is
+   * for. The account is read last, with nothing awaited after it.
    */
   private async assertSigner(call: ContractCall, options: TransactionSendOptions): Promise<void> {
     await options.assertOwnership?.();
@@ -113,10 +125,11 @@ export class EmbeddedSender implements TransactionSender {
   }
 
   async sendContractCall(
-    call: ContractCall,
+    named: ContractCall,
     options: TransactionSendOptions = {}
   ): Promise<TxResult> {
     // TODO: Replace with EIP-5792 sendCalls + paymasterService once @wagmi/core/experimental is stable.
+    const call = this.forSigner(named);
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
     await this.readyWallet(call, chainId, options, "write");
     await options.onBeforeBroadcast?.();

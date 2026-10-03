@@ -64,7 +64,7 @@
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
       "reviewedAt": "2026-09-30",
-      "evidenceFingerprint": "sha256:7d2fb7571b581f2f9c2356cd593176d529d84997a4abb189df441dff421ca70d"
+      "evidenceFingerprint": "sha256:0156da2a70c8350a7a91f49fc9ca6deb63d31095e34103958e41b4a79a142742"
     },
     {
       "id": "shared-commitment-pooling-public",
