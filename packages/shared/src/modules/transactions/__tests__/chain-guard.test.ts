@@ -15,6 +15,7 @@ vi.mock("../../app/walletNetworkSwitchAnalytics", () => ({
   trackWalletNetworkSwitch: mocks.trackSwitch,
 }));
 
+import { refusedForWalletNetwork } from "../../../utils/errors/wallet-network-refusal";
 import {
   ensureWagmiWalletChain,
   retryOnWalletChainMismatch,
@@ -229,6 +230,34 @@ describe("ensureWagmiWalletChain", () => {
     await expect(ensureWagmiWalletChain(config, ARBITRUM)).resolves.toBeUndefined();
   });
 
+  it("guards a wallet that stays connected while another connection is being opened", async () => {
+    // wagmi reports "not connected" for that moment, yet a write still goes
+    // through the wallet that is.
+    const { config, connector } = wallet();
+    (config.state as { status: string }).status = "connecting";
+
+    await ensureWagmiWalletChain(config, ARBITRUM);
+
+    expect(connector.switchChain).toHaveBeenCalledOnce();
+  });
+
+  it("fails as a wallet to reconnect when it stops reporting a network during the switch", async () => {
+    const { config, connector } = wallet();
+    connector.switchChain.mockImplementationOnce(async ({ chainId }) => {
+      // The session ends while the switch is open.
+      connector.getChainId.mockRejectedValue(new Error("session ended"));
+      connector.getProvider.mockRejectedValue(new Error("session ended"));
+      return { id: chainId };
+    });
+
+    await expect(ensureWagmiWalletChain(config, ARBITRUM)).rejects.toThrow(
+      "Connector not connected"
+    );
+    expect(mocks.trackSwitch).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ outcome: "failed" })
+    );
+  });
+
   it("asks once when two writes need the same switch at the same time", async () => {
     const { config, connector } = wallet();
 
@@ -277,6 +306,28 @@ describe("retryOnWalletChainMismatch", () => {
     const neverLands = vi.fn().mockRejectedValue(moved());
     await expect(retryOnWalletChainMismatch(neverLands, recheck)).rejects.toBeInstanceOf(BaseError);
     expect(neverLands).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports a check that fails before the second attempt as a write that was never signed", async () => {
+    const refused = vi.fn().mockRejectedValue(moved());
+    const changedHands = new Error("submission-ownership-changed");
+
+    const failure = await retryOnWalletChainMismatch(refused, () =>
+      Promise.reject(changedHands)
+    ).catch((error: unknown) => error);
+
+    // It reads as the failed check, and as a refusal before anything was signed.
+    expect(failure).toMatchObject({ message: "submission-ownership-changed", cause: changedHands });
+    expect(refusedForWalletNetwork(failure)).toBe(true);
+    expect(refused).toHaveBeenCalledOnce();
+
+    // A check that is itself a network refusal already says so, and passes as it is.
+    const declined = Object.assign(new Error("Network switch rejected"), {
+      name: "WalletChainMismatchError",
+    });
+    await expect(retryOnWalletChainMismatch(refused, () => Promise.reject(declined))).rejects.toBe(
+      declined
+    );
   });
 
   it("does not retry wagmi's connector refusal, which can follow an accepted batch, or any other failure", async () => {

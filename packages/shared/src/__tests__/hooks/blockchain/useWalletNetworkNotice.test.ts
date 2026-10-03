@@ -17,7 +17,12 @@ const CELO = 42220;
 const mocks = vi.hoisted(() => ({
   // wagmi's config is one stable object for the life of the app.
   config: { wagmi: true },
-  account: { status: "connected", chainId: 42161 as number },
+  account: { status: "connected", chainId: 42161 as number } as {
+    status: string;
+    chainId: number;
+    address?: string;
+    connector?: { uid: string };
+  },
   walletNetworkOtherThan: vi.fn(),
   walletSwitchesQuietly: vi.fn(),
   ensureWagmiWalletChain: vi.fn(),
@@ -140,6 +145,25 @@ describe("useWalletNetworkNotice", () => {
     act(() => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
+    await waitFor(() => expect(result.current?.message).toBe("Wallet on Celo"));
+  });
+
+  it("checks again when another wallet takes over the connection", async () => {
+    walletOn(undefined);
+    const { result, rerender } = renderNotice();
+    await waitFor(() => expect(mocks.walletNetworkOtherThan).toHaveBeenCalled());
+    expect(result.current).toBeNull();
+
+    // wagmi stays connected, and its stored network still reads as the app's.
+    walletOn(CELO);
+    mocks.account = {
+      status: "connected",
+      chainId: ARBITRUM,
+      address: "0x2222222222222222222222222222222222222222",
+      connector: { uid: "another-wallet" },
+    };
+    rerender();
+
     await waitFor(() => expect(result.current?.message).toBe("Wallet on Celo"));
   });
 

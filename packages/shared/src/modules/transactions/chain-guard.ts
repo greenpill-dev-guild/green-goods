@@ -3,7 +3,10 @@ import { getWagmiConfig, peekAppKit } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getChainName } from "../../config/chains";
-import { refusedForWalletNetwork } from "../../utils/errors/wallet-network-refusal";
+import {
+  refusedForWalletNetwork,
+  WalletWriteNotRetriedError,
+} from "../../utils/errors/wallet-network-refusal";
 import { logger } from "../app/logger";
 import {
   trackWalletNetworkSwitch,
@@ -144,6 +147,23 @@ export async function walletNetworkOtherThan(
   return networkOtherThan(await readWalletNetworks(config), chainId);
 }
 
+/**
+ * The same answer for a caller about to write through the wallet, where "cannot
+ * say" is not an answer: a wallet that reports no network cannot be written
+ * through either, and guessing from wagmi's stored network is what failed
+ * before. That throws wagmi's `ConnectorNotConnectedError`.
+ */
+async function writableNetworkOtherThan(
+  config: Config,
+  chainId: number
+): Promise<number | undefined> {
+  const networks = await readWalletNetworks(config);
+  if (networks.connector === undefined && networks.provider === undefined) {
+    throw new ConnectorNotConnectedError();
+  }
+  return networkOtherThan(networks, chainId);
+}
+
 type WalletNetworkSwitch = { via: "appkit" | "wagmi"; run: () => Promise<unknown> };
 
 function switchThroughWagmi(config: Config, chainId: number): WalletNetworkSwitch {
@@ -224,12 +244,14 @@ async function switchWallet(
   try {
     const first = walletNetworkSwitch(config, targetChainId);
     await ask(first);
-    let stillOn = await walletNetworkOtherThan(config, targetChainId);
+    // A wallet that dropped while the switch was open reports nothing, which
+    // must not pass for a wallet that moved.
+    let stillOn = await writableNetworkOtherThan(config, targetChainId);
     if (stillOn !== undefined && first.via === "appkit") {
       // AppKit moves only its own selection when it holds no account for the
       // wallet. The wallet itself is still elsewhere, so ask it through wagmi.
       await ask(switchThroughWagmi(config, targetChainId));
-      stillOn = await walletNetworkOtherThan(config, targetChainId);
+      stillOn = await writableNetworkOtherThan(config, targetChainId);
     }
     // A switch can resolve without moving the wallet. Writing anyway would only
     // trade this clear error for the write's network-mismatch refusal.
@@ -268,14 +290,11 @@ export async function ensureWagmiWalletChain(
   targetChainId: number = DEFAULT_CHAIN_ID,
   reason: WalletNetworkSwitchReason = "write"
 ): Promise<void> {
-  if (!getAccount(config).isConnected) return;
-  const networks = await readWalletNetworks(config);
-  // A wallet that cannot say where it is cannot be written through either, and
-  // guessing from wagmi's stored network is what failed before.
-  if (networks.connector === undefined && networks.provider === undefined) {
-    throw new ConnectorNotConnectedError();
-  }
-  const walletChainId = networkOtherThan(networks, targetChainId);
+  // Judged by the connection, not by wagmi's status: while another connection
+  // is being opened wagmi reports "not connected", yet a write still goes
+  // through the wallet that is.
+  if (!getAccount(config).connector) return;
+  const walletChainId = await writableNetworkOtherThan(config, targetChainId);
   if (walletChainId === undefined) return;
 
   const underWay = switching.get(config) ?? new Map<number, Promise<void>>();
@@ -329,7 +348,8 @@ export async function walletSwitchesQuietly(config: Config, chainId: number): Pr
  * follow it) and the write once more. The refusal happens before the wallet is
  * asked to sign, so nothing was signed or broadcast and the second attempt
  * cannot send twice. A second refusal, and any other failure, goes back to the
- * caller.
+ * caller. A check that fails ahead of the second attempt goes back as a
+ * `WalletWriteNotRetriedError`, so it still reads as nothing signed.
  */
 export async function retryOnWalletChainMismatch<T>(
   request: () => Promise<T>,
@@ -342,7 +362,15 @@ export async function retryOnWalletChainMismatch<T>(
     logger.warn("Wallet network moved after the guard; checking again before one more attempt", {
       source: "chain-guard",
     });
-    await recheck();
+    try {
+      await recheck();
+    } catch (failedCheck) {
+      // Still nothing signed: viem refused the first attempt and no second one
+      // is made. A check that is itself a network refusal already says so.
+      throw refusedForWalletNetwork(failedCheck)
+        ? failedCheck
+        : new WalletWriteNotRetriedError(failedCheck);
+    }
     return request();
   }
 }

@@ -4,7 +4,7 @@ import {
   reconcileWorkTransaction,
 } from "../work-confirmation";
 import type { Address } from "viem";
-import { getWalletClient } from "@wagmi/core";
+import { getAccount, getWalletClient } from "@wagmi/core";
 import type { WorkDraft } from "../../../types/domain";
 import type { EASWork } from "../../../types/eas-responses";
 import { getWagmiConfig } from "../../../config/appkit";
@@ -72,6 +72,15 @@ export async function submitWorkDirectly(
   }
 
   const originatingAccount = options.userAddress ?? walletClient.account?.address;
+  /** Who signs, read without a wallet client, so it can be asked before the network is right. */
+  const assertSigner = async () => {
+    await options.assertOwnership?.();
+    if (
+      !originatingAccount ||
+      getAccount(wagmiConfig).address?.toLowerCase() !== originatingAccount.toLowerCase()
+    )
+      throw new Error("submission-ownership-changed");
+  };
   const assertOwnership = async () => {
     await options.assertOwnership?.();
     const current = await getWalletClient(wagmiConfig, { chainId });
@@ -153,8 +162,11 @@ export async function submitWorkDirectly(
 
     debugLog("[WalletSubmission] Sending transaction", { to: txParams.to });
     // The upload can run for minutes, long enough for the wallet to have moved
-    // network. Checking again here, before the send intent is recorded, switches
-    // it back instead of refusing the send.
+    // network or changed hands. Who signs comes first, so a wallet swapped in
+    // meanwhile is refused before it is asked to change network. Checking the
+    // network again here, before the send intent is recorded, switches it back
+    // instead of refusing the send.
+    await assertSigner();
     await ensureWagmiWalletChain(wagmiConfig, chainId);
     await assertLocalArbitrumForkWallet();
 

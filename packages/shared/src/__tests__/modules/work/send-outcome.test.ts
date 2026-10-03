@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { WorkSendCancelledError, classifySendFailure } from "../../../modules/work/send-outcome";
 import { isWorkSubmissionCancelled } from "../../../modules/work/work-confirmation";
+import { WalletWriteNotRetriedError } from "../../../utils/errors/wallet-network-refusal";
 
 const declinedPasskey = () =>
   new DOMException("The operation either timed out or was not allowed.", "NotAllowedError");
@@ -69,6 +70,12 @@ describe("what a failed send means for the work it carried", () => {
       cancelled: false,
     });
     expect(classifySendFailure(guardRefusal, afterIntent)).toEqual({
+      kind: "not-sent",
+      cancelled: false,
+    });
+    // viem refused, then a check ahead of the retry failed: no second attempt was made.
+    const neverRetried = new WalletWriteNotRetriedError(new Error("submission-ownership-changed"));
+    expect(classifySendFailure(neverRetried, afterIntent)).toEqual({
       kind: "not-sent",
       cancelled: false,
     });

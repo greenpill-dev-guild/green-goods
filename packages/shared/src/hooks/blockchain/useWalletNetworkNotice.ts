@@ -81,7 +81,7 @@ export function useWalletNetworkNotice(): WalletNetworkNoticeState | null {
   const { formatMessage } = useIntl();
   const { authMode } = useUser();
   const config = useConfig();
-  const { status, chainId: storedChainId } = useAccount();
+  const { address, connector, status, chainId: storedChainId } = useAccount();
   const targetChainId = useCurrentChain();
   // The network the notice names, and whether a switch away from it was refused.
   // One state, so "still on" cannot outlive the notice it was said about.
@@ -97,7 +97,9 @@ export function useWalletNetworkNotice(): WalletNetworkNoticeState | null {
     );
   }, []);
 
-  // The connection coming up: sign-in, a reload, or a dropped wallet answering again.
+  // The connection coming up: sign-in, a reload, a dropped wallet answering
+  // again, or another wallet or account taking the connection over while wagmi
+  // stays connected.
   useAsyncEffect(
     async ({ isMounted }) => {
       if (!watching) {
@@ -107,7 +109,7 @@ export function useWalletNetworkNotice(): WalletNetworkNoticeState | null {
       const network = await noticeNetwork(config, targetChainId, true);
       if (isMounted()) show(network);
     },
-    [watching, config, targetChainId, show]
+    [watching, address, connector?.uid, config, targetChainId, show]
   );
 
   // Coming back to the app: the notice may appear, but nothing is switched.

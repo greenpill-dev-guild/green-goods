@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Must mock before imports
 vi.mock("@wagmi/core", () => ({
+  getAccount: vi.fn(),
   getBlock: vi.fn(),
   getWalletClient: vi.fn(),
   getPublicClient: vi.fn(),
@@ -137,6 +138,7 @@ describe("wallet-submission", () => {
     vi.clearAllMocks();
     mockEnsureWagmiWalletChain.mockResolvedValue(undefined);
     mockAssertLocalArbitrumForkWallet.mockResolvedValue(undefined);
+    mock(wagmiCore.getAccount).mockReturnValue({ address: "0xUserAddress" } as any);
   });
 
   afterEach(() => {
@@ -235,6 +237,30 @@ describe("wallet-submission", () => {
         {},
         { hash: "0xTransactionHash", chainId: mockChainId }
       );
+    });
+
+    it("refuses a wallet swapped in during the upload before asking it to change network", async () => {
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkData).mockImplementation(async () => {
+        // Another account takes over the connection while the media uploads.
+        mock(wagmiCore.getAccount).mockReturnValue({ address: "0xAnotherWallet" } as any);
+        return "0xEncodedWorkData" as `0x${string}`;
+      });
+
+      await expect(
+        submitWorkDirectly(
+          mockWorkDraft,
+          "0xGardenAddress",
+          123,
+          "Test Action",
+          mockChainId,
+          mockImages
+        )
+      ).rejects.toThrow("submission-ownership-changed");
+
+      // Only the check before the upload asked the wallet about its network.
+      expect(mockEnsureWagmiWalletChain).toHaveBeenCalledOnce();
+      expect(mockWalletClient.sendTransaction).not.toHaveBeenCalled();
     });
 
     it("keeps the chain's head with the intent it records before the wallet prompt, and never a stale one", async () => {
