@@ -77,10 +77,21 @@ export function applyAttestationFilters(
   });
 }
 
+const SECONDS_PER_DAY = 86_400;
+
+/** The UTC calendar day an instant falls on, counted in days since the epoch. */
+function utcDayOf(seconds: number): number {
+  return Math.floor(seconds / SECONDS_PER_DAY);
+}
+
 /**
- * Filters attestations based on a GardenAssessment's parameters.
- * Applies the assessment's reportingPeriod, domain, and selectedActionUIDs
- * as filters to narrow down which work attestations are relevant for hypercert minting.
+ * Narrows work attestations to the ones an assessment covers: created within
+ * its reporting period and, when the work names a domain, in its domain.
+ *
+ * A reporting period names whole days. Create Assessment stores each end as
+ * UTC midnight of the day the author picked, so the stored end is the first
+ * instant of the period's last day. Work belongs to the period from its first
+ * UTC day through the whole of its last.
  */
 export function filterAttestationsByAssessment(
   attestations: HypercertAttestation[],
@@ -93,9 +104,9 @@ export function filterAttestationsByAssessment(
       : { start: assessment.startDate, end: assessment.endDate };
 
   return attestations.filter((attestation) => {
-    // Filter by reporting period (work must fall within the assessment window)
-    if (start && attestation.createdAt < start) return false;
-    if (end && attestation.createdAt > end) return false;
+    const createdOn = utcDayOf(attestation.createdAt);
+    if (start && createdOn < utcDayOf(start)) return false;
+    if (end && createdOn > utcDayOf(end)) return false;
 
     // Filter by domain
     if (actionDomain && attestation.domain && attestation.domain !== actionDomain) {
