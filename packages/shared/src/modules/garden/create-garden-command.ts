@@ -1,5 +1,5 @@
 import { waitForTransactionReceipt } from "@wagmi/core";
-import { formatEther, type WalletClient } from "viem";
+import { formatEther } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import { getChain } from "../../config/chains";
 import type { CreateGardenParams } from "../../types/contracts";
@@ -13,7 +13,7 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { logger } from "../app/logger";
-import { ensureAppKitWalletChain } from "../transactions/chain-guard";
+import { readyWalletClient } from "../transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../transactions/local-fork-safety";
 
 export interface CreateGardenCommand {
@@ -155,7 +155,6 @@ export async function estimateGardenCreation(
 }
 
 export function createDefaultCreateGardenPorts(input: {
-  walletClient: WalletClient;
   addPending(hash: `0x${string}`): void;
 }): CreateGardenPorts {
   return {
@@ -214,9 +213,9 @@ export function createDefaultCreateGardenPorts(input: {
     },
     sender: {
       send: async ({ gardenToken, config, accountAddress, chainId, ccipFee }) => {
-        await ensureAppKitWalletChain(chainId);
+        const walletClient = await readyWalletClient(chainId, accountAddress);
         await assertLocalArbitrumForkWallet();
-        return input.walletClient.writeContract({
+        return walletClient.writeContract({
           address: gardenToken,
           abi: GardenTokenABI,
           functionName: "mintGarden",

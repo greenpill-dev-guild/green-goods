@@ -5,7 +5,6 @@
  * 2. hypercertMinter.setApprovalForAll(transferManager, true)
  */
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { getChain } from "../../config/chains";
@@ -19,7 +18,7 @@ import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../modules/transactions/local-fork-safety";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
+import { readyWalletClient } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
@@ -39,7 +38,6 @@ export interface UseMarketplaceApprovalsResult {
 
 export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
   const { smartAccountAddress, eoaAddress, smartAccountClient } = useAuth();
-  const { data: walletClient } = useConnectedWalletClient();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
 
@@ -77,8 +75,8 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
             calls: [{ to: txs.grantExchange.to, data: txs.grantExchange.data, value: 0n }],
           });
           await smartAccountClient.getUserOperationReceipt({ hash });
-        } else if (walletClient) {
-          await ensureAppKitWalletChain(chainId);
+        } else {
+          const walletClient = await readyWalletClient(chainId, steward);
           await assertLocalArbitrumForkWallet();
 
           const hash = await walletClient.sendTransaction({
@@ -101,8 +99,8 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
             calls: [{ to: txs.approveMinter.to, data: txs.approveMinter.data, value: 0n }],
           });
           await smartAccountClient.getUserOperationReceipt({ hash });
-        } else if (walletClient) {
-          await ensureAppKitWalletChain(chainId);
+        } else {
+          const walletClient = await readyWalletClient(chainId, steward);
           await assertLocalArbitrumForkWallet();
 
           const hash = await walletClient.sendTransaction({
