@@ -68,22 +68,29 @@ export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
     body: {
       id: "public.reporting.grant.body",
       defaultMessage:
-        "Check the garden, time window and limits below. Your wallet or passkey will ask you to install this permission.",
+        "Check the garden, time window and limits below. Prepare your first publication, then review it before approving the permission and publication together.",
     },
   },
   grant_signing: {
-    title: { id: "public.reporting.grant.signingTitle", defaultMessage: "Confirm the permission" },
+    title: {
+      id: "public.reporting.grant.signingTitle",
+      defaultMessage: "Confirm permission and first publication",
+    },
     body: {
       id: "public.reporting.grant.signingBody",
-      defaultMessage: "Approve the permission in your wallet or passkey prompt.",
+      defaultMessage:
+        "Approve the permission and first publication in your wallet or passkey prompt.",
     },
   },
   grant_submitted: {
-    title: { id: "public.reporting.grant.submittedTitle", defaultMessage: "Permission sent" },
+    title: {
+      id: "public.reporting.grant.submittedTitle",
+      defaultMessage: "Permission and first publication sent",
+    },
     body: {
       id: "public.reporting.grant.submittedBody",
       defaultMessage:
-        "Waiting for the network to confirm. Keep using your chat; don't install it again.",
+        "Waiting for the network to confirm both. Keep using your chat; don't send the request again.",
     },
   },
   grant_active: {

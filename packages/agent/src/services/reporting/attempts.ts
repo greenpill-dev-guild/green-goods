@@ -24,7 +24,7 @@ export interface AttemptRecord {
   id: string;
   operationId: string;
   attemptNumber: number;
-  mode: "owner" | "delegated";
+  mode: "owner" | "delegated" | "activation";
   grantId: string | null;
   payloadDigest: string;
   identityEpoch: number;
@@ -41,7 +41,7 @@ interface AttemptRow {
   id: string;
   operation_id: string;
   attempt_number: number;
-  authorization_mode: "owner" | "delegated";
+  authorization_mode: "owner" | "delegated" | "activation";
   execution_grant_id: string | null;
   payload_digest: string;
   identity_epoch: number;
@@ -102,7 +102,7 @@ export function reserveAttempt(
     operation: OperationRecord;
     expectedAttemptVersion: number;
     payloadDigest: string;
-    mode: "owner" | "delegated";
+    mode: "owner" | "delegated" | "activation";
     grantId?: string | null;
     policyDigest?: string | null;
     identityEpoch: number;
@@ -151,7 +151,7 @@ export function reserveAttempt(
         account: input.expectedAccount.toLowerCase(),
         from: input.fromBlock,
         gas: input.gasReserved ?? 0,
-        state: input.mode === "owner" ? "wallet_pending" : "reserved",
+        state: input.mode === "delegated" ? "reserved" : "wallet_pending",
         now,
       });
   } catch (error) {

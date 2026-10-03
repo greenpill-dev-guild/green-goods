@@ -8,6 +8,21 @@ import { migrateLegacyCommand } from './migration.mjs';
 import { explainOperation, OPERATIONS, OPERATOR, PACKAGE_ROOT, resolveCommand, resolveMintingTransaction, resolveOperatorBoundary } from './operations.mjs';
 
 const resolve = (text) => resolveCommand(text.split(' '));
+test('standalone reporting policy separates offline, RPC, keystore broadcast and reconciliation', () => {
+  const preflight = resolve('deploy single-attestation-policy --network arbitrum --mode preflight');
+  assert.deepEqual(preflight.args, ['script/deploy/single-attestation-policy.ts', 'deploy', '--network', 'arbitrum', '--preflight']);
+  assert.ok(!preflight.capabilities.includes('configured RPC'));
+  assert.ok(resolve('deploy single-attestation-policy --network arbitrum --mode simulate').args.includes('--simulate'));
+  assert.throws(() => resolve('deploy single-attestation-policy --network arbitrum --mode broadcast'), /expected-nonce/);
+  assert.throws(() => resolve('deploy single-attestation-policy --network arbitrum --mode plan --expected-nonce 0'), /sender/);
+  assert.throws(() => resolve('deploy single-attestation-policy --network arbitrum --mode broadcast --expected-nonce 0 --private-key secret'), /Unknown/);
+  const broadcast = resolve('deploy single-attestation-policy --network arbitrum --mode broadcast --expected-nonce 0');
+  assert.equal(broadcast.env.FOUNDRY_KEYSTORE_ACCOUNT, 'green-goods-deployer');
+  assert.equal(broadcast.env.PINATA_JWT_OP_REF, '');
+  assert.deepEqual(resolve('verify single-attestation-policy --network arbitrum').args, ['script/deploy/single-attestation-policy.ts', 'verify', '--network', 'arbitrum']);
+  assert.deepEqual(resolve('verify reporting-kernel --network arbitrum --mode simulate').args, ['script/reporting-kernel-compatibility.ts', '--network', 'arbitrum', '--simulate']);
+  assert.throws(() => resolve('verify reporting-kernel --network arbitrum --mode broadcast'), /Unsupported mode/);
+});
 test('help and explain run in a fresh process without handler imports or env loading', () => {
   for (const args of [['help'], ['deploy', 'core', '--network', 'arbitrum', '--mode', 'preflight', '--explain', '--json']]) {
     const result = spawnSync(process.execPath, ['script/cli.mjs', ...args], { cwd: PACKAGE_ROOT, env: { PATH: process.env.PATH }, encoding: 'utf8' });

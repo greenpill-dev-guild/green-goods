@@ -3,8 +3,12 @@ import { setControl } from "../../services/reporting/controls";
 import { loadDraft } from "../../services/reporting/drafts";
 import { liveGrant } from "../../services/reporting/grants-store";
 import { operationById } from "../../services/reporting/operations";
+import {
+  grantInBrowser as activateGrant,
+  confirmedKernelReport as confirmKernel,
+} from "./support/activation";
 import { TestBrowser } from "./support/browser";
-import { latestLink, reportUntilSummary } from "./support/flows";
+import { reportUntilSummary } from "./support/flows";
 import { AIYELOJA, planting, snapshot, TAS } from "./support/fixtures";
 import { ADA, Harness, summaryToken } from "./support/harness";
 
@@ -16,7 +20,6 @@ import { ADA, Harness, summaryToken } from "./support/harness";
  */
 let harness: Harness;
 const KERNEL = "0x00000000000000000000000000000000000000ca" as const;
-const KERNEL_PROOF = "0x6b65726e656c" as const;
 
 beforeEach(() => {
   harness = new Harness();
@@ -40,52 +43,27 @@ function one<T>(sql: string, params: Record<string, string> = {}): T {
 
 /** Confirms a report, links the Kernel account and consents to publish. */
 async function confirmedKernelReport(): Promise<string[]> {
-  const summary = await reportUntilSummary(harness);
-  await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
-  const linking = new TestBrowser(harness.app);
-  await linking.open(latestLink(harness));
-  const proof = await linking.proveAs(KERNEL, KERNEL_PROOF);
-  const consent = await harness.say(ADA, `PAIR ${proof.body.pairingCode}`);
-  const token = /PUBLISH (\d{4})/.exec(consent.join("\n"))?.[1];
-  return harness.say(ADA, `PUBLISH ${token}`);
+  return confirmKernel(harness);
 }
 
 async function grantInBrowser(): Promise<TestBrowser> {
-  const browser = new TestBrowser(harness.app);
-  await browser.open(latestLink(harness));
-  await browser.proveAs(KERNEL, KERNEL_PROOF);
-  expect((await browser.access()).body.scope).toMatchObject({ purpose: "grant_reporting" });
-  const proposed = await browser.request<{
-    grant: {
-      grantId: string;
-      version: number;
-      policyDigest: string;
-      policy: Record<string, unknown>;
-    };
-  }>("POST", "/messaging/execution-grants");
-  expect(proposed.status).toBe(201);
-  expect(proposed.body.grant.policy).toMatchObject({ purpose: "reporting", maxSubmissions: 5 });
-  // The owner installs the permission with their passkey; the chain now reports it installed.
-  harness.chain.permissions.add(`${KERNEL}:${harness.permissionId}`);
-  const approved = await browser.request(
-    "POST",
-    `/messaging/execution-grants/${proposed.body.grant.grantId}/approval`,
-    {
-      body: {
-        expectedVersion: proposed.body.grant.version,
-        policyDigest: proposed.body.grant.policyDigest,
-        enableReference: `0x${"cd".repeat(32)}`,
-      },
-    }
-  );
-  expect(approved.status).toBe(200);
-  return browser;
+  return activateGrant(harness);
+}
+
+async function establishGrant() {
+  await confirmedKernelReport();
+  await harness.press(ADA, "Allow reporting in chat");
+  await grantInBrowser();
+}
+
+async function nextReport() {
+  const summary = await reportUntilSummary(harness);
+  await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
 }
 
 describe("Kernel reporting grant", () => {
   it("keeps signed bytes reserved across a paused restart and submits them only after resuming", async () => {
-    await confirmedKernelReport();
-    await harness.press(ADA, "Allow reporting in chat");
+    await establishGrant();
     const sign = harness.sender.sign.bind(harness.sender);
     harness.sender.sign = async (...args) => {
       const signed = await sign(...args);
@@ -95,64 +73,64 @@ describe("Kernel reporting grant", () => {
       });
       return signed;
     };
-    await grantInBrowser();
+    await nextReport();
     await harness.drain();
-    expect(harness.sender.signed).toBe(1);
-    expect(harness.sender.submitted).toBe(0);
-    expect(one("SELECT state FROM execution_attempts")).toEqual({ state: "signed" });
+    expect(harness.sender.signed).toBe(2);
+    expect(harness.sender.submitted).toBe(1);
+    expect(one("SELECT state FROM execution_attempts ORDER BY rowid DESC LIMIT 1")).toEqual({
+      state: "signed",
+    });
     harness.restart();
     harness.clock.advance(5 * 60_000);
     await harness.drain();
-    expect(harness.sender.submitted).toBe(0);
+    expect(harness.sender.submitted).toBe(1);
     setControl(harness.core, "publication", true, {
       actor: "operator",
       reason: "resume signed attempt",
     });
     harness.clock.advance(5 * 60_000);
     await harness.drain();
-    expect(harness.sender.signed).toBe(1);
-    expect(harness.sender.submitted).toBe(1);
+    expect(harness.sender.signed).toBe(2);
+    expect(harness.sender.submitted).toBe(2);
   });
 
   it("rechecks publication after awaited role reads immediately before submitting signed bytes", async () => {
-    await confirmedKernelReport();
-    await harness.press(ADA, "Allow reporting in chat");
+    await establishGrant();
     const roles = harness.chain.gardenRoles.bind(harness.chain);
     harness.chain.gardenRoles = async (...args) => {
       const value = await roles(...args);
-      if (harness.sender.signed > 0)
+      if (harness.sender.signed > 1)
         setControl(harness.core, "publication", false, {
           actor: "operator",
           reason: "pause during send preflight",
         });
       return value;
     };
-    await grantInBrowser();
+    await nextReport();
     await harness.drain();
-    expect(harness.sender.signed).toBe(1);
-    expect(harness.sender.submitted).toBe(0);
+    expect(harness.sender.signed).toBe(2);
+    expect(harness.sender.submitted).toBe(1);
     expect(one("SELECT submissions_reserved, submissions_consumed FROM execution_grants")).toEqual({
       submissions_reserved: 1,
-      submissions_consumed: 0,
+      submissions_consumed: 1,
     });
   });
   it("blocks a signed operation when account recovery advances identity during awaited preflight", async () => {
-    await confirmedKernelReport();
-    await harness.press(ADA, "Allow reporting in chat");
+    await establishGrant();
     const roles = harness.chain.gardenRoles.bind(harness.chain);
     harness.chain.gardenRoles = async (...args) => {
       const value = await roles(...args);
-      if (harness.sender.signed > 0)
+      if (harness.sender.signed > 1)
         harness.core.db.query("UPDATE participants SET identity_epoch = identity_epoch + 1").run();
       return value;
     };
-    await grantInBrowser();
+    await nextReport();
     await harness.drain();
-    expect(harness.sender.signed).toBe(1);
-    expect(harness.sender.submitted).toBe(0);
+    expect(harness.sender.signed).toBe(2);
+    expect(harness.sender.submitted).toBe(1);
     expect(one("SELECT submissions_reserved, submissions_consumed FROM execution_grants")).toEqual({
       submissions_reserved: 1,
-      submissions_consumed: 0,
+      submissions_consumed: 1,
     });
   });
   it("expires setup during a permission read instead of announcing an active grant", async () => {
@@ -172,13 +150,13 @@ describe("Kernel reporting grant", () => {
     expect((await browser.request("GET", `/messaging/execution-grants/${grant.id}`)).status).toBe(
       401
     );
-    expect(harness.sender.signed).toBe(0);
+    expect(harness.sender.signed).toBe(1);
     expect(
       harness.transport.sent.some((sent) => sent.message.text.startsWith("Reporting in chat is on"))
     ).toBe(false);
   });
 
-  it("offers a bounded grant, verifies installation, then publishes the waiting report without another signature", async () => {
+  it("publishes the first owner-approved report and activates its bounded grant without resubmitting it", async () => {
     const offer = await confirmedKernelReport();
     expect(offer[0]).toContain("up to 5 reports in 24 hours, reports only, revocable any time");
     await harness.press(ADA, "Allow reporting in chat");
@@ -187,9 +165,9 @@ describe("Kernel reporting grant", () => {
 
     const texts = harness.transport.sent.map((sent) => sent.message.text);
     expect(texts.some((text) => text.startsWith("Reporting in chat is on for TAS"))).toBe(true);
-    expect(texts.at(-1)).toMatch(/^Your report is published ✅/);
+    expect(texts.some((text) => /^Your report is published ✅/.test(text))).toBe(true);
     expect(one("SELECT authorization_mode, state FROM execution_operations")).toEqual({
-      authorization_mode: "delegated",
+      authorization_mode: "owner",
       state: "published",
     });
     expect(one("SELECT submissions_reserved, submissions_consumed FROM execution_grants")).toEqual({
@@ -235,14 +213,13 @@ describe("Kernel reporting grant", () => {
   });
 
   it("releases the reservation and returns the report when signing fails before anything is sent", async () => {
-    await confirmedKernelReport();
-    await harness.press(ADA, "Allow reporting in chat");
+    await establishGrant();
     harness.sender.failSigning = true;
-    await grantInBrowser();
+    await nextReport();
     await harness.drain();
     expect(one("SELECT submissions_reserved, submissions_consumed FROM execution_grants")).toEqual({
       submissions_reserved: 0,
-      submissions_consumed: 0,
+      submissions_consumed: 1,
     });
     expect(harness.transport.sent.at(-1)?.message.text).toContain("CONFIRM");
   });

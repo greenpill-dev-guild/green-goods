@@ -18,7 +18,13 @@ const ACCOUNT = "0x00000000000000000000000000000000000000a1";
 const PERMISSION = "0x12345678";
 
 function reader(
-  input: { hook?: `0x${string}`; nonce?: number; validFrom?: number; root?: `0x${string}` } = {}
+  input: {
+    hook?: `0x${string}`;
+    nonce?: number;
+    validFrom?: number;
+    root?: `0x${string}`;
+    executionAllowed?: boolean;
+  } = {}
 ) {
   const client = createPublicClient({
     chain: arbitrum,
@@ -42,7 +48,9 @@ function reader(
                 ? (input.root ?? `0x01${"00".repeat(20)}`)
                 : functionName === "currentNonce"
                   ? 3
-                  : (input.validFrom ?? 2);
+                  : functionName === "isAllowedSelector"
+                    ? (input.executionAllowed ?? true)
+                    : (input.validFrom ?? 2);
         return encodeFunctionResult({ abi: KERNEL_PERMISSION_ABI, functionName, result } as never);
       },
     }),
@@ -51,6 +59,11 @@ function reader(
 }
 
 describe("independent Kernel owner recovery", () => {
+  it("rejects installed permissions without Kernel execution authority", async () => {
+    expect((await reader({ executionAllowed: false }).permission(ACCOUNT, PERMISSION)).active).toBe(
+      false
+    );
+  });
   it("decodes the actual pinned ABI tuple outputs into effective permission state", async () => {
     const permission = await reader().permission(ACCOUNT, PERMISSION);
     expect(permission).toMatchObject({ active: true, nonce: 2 });

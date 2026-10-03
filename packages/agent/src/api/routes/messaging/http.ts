@@ -3,6 +3,7 @@ import type { Context, MiddlewareHandler } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type * as z from "zod";
 import type { AccountProofVerifier } from "../../../services/reporting/browser-access";
+import type { DelegatedSender } from "../../../services/reporting/delegated";
 import type { GrantDeps } from "../../../services/reporting/grants";
 import type { ReportingChain } from "../../../services/reporting/chain";
 import type { PrivateMediaStore } from "../../../services/reporting/media-store";
@@ -31,6 +32,7 @@ export interface MessagingRouteDeps {
   trustedProxy?: TrustedProxyConfig;
   /** Present only when delegation has a verified module; otherwise grants are unsupported. */
   grants?: Omit<GrantDeps, "core" | "chain">;
+  activation?: { sender: DelegatedSender; gasPerSubmission: number };
   /** Only the loopback development driver serves plain HTTP. */
   secureCookies: boolean;
   cookiePath: string;

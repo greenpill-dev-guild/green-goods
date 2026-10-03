@@ -14,17 +14,15 @@ const mocks = vi.hoisted(() => ({
   account: "0x00000000000000000000000000000000000000a1" as `0x${string}`,
   signMessage: vi.fn(async (_args: { message: string }) => `0x${"11".repeat(65)}` as `0x${string}`),
   sender: null as TransactionSender | null,
-  installCall: vi.fn(async () => ({
-    address: "0x00000000000000000000000000000000000000a1",
-    abi: [],
-    functionName: "installValidations",
-    args: [],
-    value: 0n,
-  })),
+  ownerClient: {
+    chain: { id: 42161 },
+    account: { address: "0x00000000000000000000000000000000000000a1" },
+  },
+  sendActivation: vi.fn(),
 }));
 
-vi.mock("../../../modules/agent-reporting/kernel-permissions", () => ({
-  grantInstallCall: mocks.installCall,
+vi.mock("../../../modules/agent-reporting/browser-grant-activation", () => ({
+  sendBrowserGrantActivation: mocks.sendActivation,
 }));
 vi.mock("../../../modules/agent-reporting/grants", async (load) => {
   const original = await load<typeof import("../../../modules/agent-reporting/grants")>();
@@ -49,7 +47,7 @@ vi.mock("../../../providers/Auth", () => ({
     walletAddress: mocks.account,
     smartAccountAddress: null,
     embeddedAddress: null,
-    smartAccountClient: null,
+    smartAccountClient: mocks.ownerClient,
     isAuthenticating: false,
   }),
   useAuthActions: () => ({ loginWithWallet: vi.fn(), loginWithPasskey: vi.fn(async () => {}) }),
@@ -100,7 +98,26 @@ beforeEach(() => {
   mocks.account = ACCOUNT;
   mocks.sender = null;
   mocks.signMessage.mockClear();
-  mocks.installCall.mockClear();
+  mocks.sendActivation.mockReset();
+  mocks.sendActivation.mockImplementation(async (input) => {
+    input.assertOwner();
+    await input.signDelegate({
+      sender: ACCOUNT,
+      nonce: "0x0",
+      callData: "0x1234",
+      callGasLimit: "0x1",
+      verificationGasLimit: "0x1",
+      preVerificationGas: "0x1",
+      maxFeePerGas: "0x1",
+      maxPriorityFeePerGas: "0x0",
+      paymaster: ACCOUNT,
+      paymasterVerificationGasLimit: "0x1",
+      paymasterPostOpGasLimit: "0x0",
+      paymasterData: "0xab",
+    });
+    input.onBeforeBroadcast(TX_HASH);
+    return TX_HASH;
+  });
   window.sessionStorage.clear();
   window.localStorage.clear();
 });
@@ -299,55 +316,96 @@ describe("reporting ceremony page", () => {
     ]);
   });
 
-  it("persists a sender result without callback and retries the same installation reference after reload", async () => {
+  it("prepares the first report without signing, then reserves before the owner enables and publishes", async () => {
     wallet("send");
-    mocks.sender!.sendContractCall = async () => ({ hash: TX_HASH, sponsored: false });
-    agent.dropGrantApprovals = 1;
+    const { result } = render();
+    await reachGrant(result);
+    expect(agent.requests("POST", "/execution-grants/g-1/activation")).toEqual([]);
+    await act(() => result.current.installGrant());
+    expect(result.current.resource?.title).toBe("Planted seedlings");
+    expect(mocks.sendActivation).not.toHaveBeenCalled();
+    await act(() => result.current.installGrant());
+    expect(mocks.sendActivation).toHaveBeenCalledTimes(1);
+    expect(agent.requests("POST", "/execution-grants/g-1/activation").map((r) => r.path)).toEqual([
+      "/execution-grants/g-1/activation",
+      "/execution-grants/g-1/activation/attempts",
+      "/execution-grants/g-1/activation/signature",
+      "/execution-grants/g-1/activation/outcome",
+    ]);
+    expect(agent.requests("POST", "/execution-grants/g-1/approval")).toEqual([]);
+    expect(result.current.stage).toBe("grant_submitted");
+    const saved = window.localStorage.getItem("gg-reporting-permissions");
+    expect(saved ?? "").not.toContain("signature");
+  });
+
+  it("polls a first report whose operation is not ready without creating or signing another one", async () => {
+    wallet("send");
+    agent.activationEmpty = true;
+    const { result } = render();
+    await reachGrant(result);
+    await act(() => result.current.installGrant());
+    await waitFor(() => expect(result.current.stage).toBe("loading"));
+    expect(result.current.operation).toBeNull();
+    expect(mocks.sendActivation).not.toHaveBeenCalled();
+    agent.activationEmpty = false;
+    await waitFor(() => expect(result.current.stage).toBe("grant_ready"));
+    expect(result.current.resource?.title).toBe("Planted seedlings");
+    expect(agent.requests("POST", "/execution-grants/g-1/activation")).toHaveLength(1);
+    expect(mocks.sendActivation).not.toHaveBeenCalled();
+  });
+
+  it("replays the public activation reference after a dropped API reply without signing again", async () => {
+    wallet("send");
     const first = render();
     await reachGrant(first.result);
     await act(() => first.result.current.installGrant());
-    expect(readCeremony("request-0123456789abcdef")?.pendingGrant?.enableReference).toBe(TX_HASH);
+    agent.dropOutcomes = 2;
+    await act(() => first.result.current.installGrant());
+    expect(
+      readCeremony("request-0123456789abcdef")?.pendingGrantActivation?.request.outcome
+    ).toEqual({ kind: "uncertain", reason: "send_unknown", userOperationHash: TX_HASH });
     first.unmount();
     const { result } = render();
     await waitFor(() => expect(result.current.stage).toBe("grant_submitted"));
+    await act(() => result.current.installGrant());
+    expect(mocks.sendActivation).toHaveBeenCalledTimes(1);
+    expect(result.current.error).toBe("outcome_unknown");
     expect(
-      agent.requests("POST", "/execution-grants/g-1/approval").map((r) => r.body?.enableReference)
-    ).toEqual([TX_HASH, TX_HASH]);
-    expect(readCeremony("request-0123456789abcdef")?.pendingGrant).toBeUndefined();
-    expect(mocks.installCall).toHaveBeenCalledTimes(1);
+      agent.requests("POST", "/execution-grants/g-1/activation/outcome").at(-1)?.body
+    ).toMatchObject({ idempotencyKey: "at-1:uncertain", outcome: { userOperationHash: TX_HASH } });
   });
 
-  it("keeps the first UserOperation reference when receipt and API delivery differ", async () => {
+  it("reports an owner decline before delegate signing as rejected, preserving a retryable summary", async () => {
     wallet("send");
-    const userOperationHash = `0x${"ef".repeat(32)}` as const;
-    mocks.sender!.sendContractCall = async (_call, options) => {
-      await options?.onBeforeBroadcast?.();
-      await options?.onBroadcastReference?.({ kind: "user-operation", hash: userOperationHash });
-      return { hash: TX_HASH, sponsored: false };
-    };
-    agent.dropGrantApprovals = 3;
-    const first = render();
-    await reachGrant(first.result);
-    await act(() => first.result.current.installGrant());
-    first.unmount();
-    expect(
-      await resumeGrantInstallation(
-        agent.client(),
-        "request-0123456789abcdef",
-        readCeremony("request-0123456789abcdef")!
-      )
-    ).toMatchObject({ stage: "grant_submitted", error: "outcome_unknown" });
-    agent.dropGrantApprovals = 1;
-    const { result } = render();
-    await waitFor(() => expect(result.current.error).toBe("outcome_unknown"));
-    expect(readCeremony("request-0123456789abcdef")?.pendingGrant?.enableReference).toBe(
-      userOperationHash
+    mocks.sendActivation.mockRejectedValue(
+      Object.assign(new Error("User rejected the request."), { code: 4001 })
     );
+    const { result } = render();
+    await reachGrant(result);
     await act(() => result.current.installGrant());
-    expect(mocks.installCall).toHaveBeenCalledTimes(1);
+    await act(() => result.current.installGrant());
+    expect(result.current).toMatchObject({ stage: "grant_ready", error: "declined" });
+    expect(agent.requests("POST", "/execution-grants/g-1/activation/signature")).toEqual([]);
     expect(
-      agent.requests("POST", "/execution-grants/g-1/approval").map((r) => r.body?.enableReference)
-    ).toEqual([userOperationHash, userOperationHash, userOperationHash, userOperationHash]);
+      agent.requests("POST", "/execution-grants/g-1/activation/outcome")[0]?.body?.outcome
+    ).toEqual({ kind: "rejected_before_send", reason: "user_rejected" });
+  });
+
+  it("keeps a delegate signature with no bundler result uncertain and blocks a second owner prompt", async () => {
+    wallet("send");
+    const send = mocks.sendActivation.getMockImplementation()!;
+    mocks.sendActivation.mockImplementation(async (input) => {
+      await send(input);
+      throw new Error("Connection lost");
+    });
+    const { result } = render();
+    await reachGrant(result);
+    await act(() => result.current.installGrant());
+    await act(() => result.current.installGrant());
+    await act(() => result.current.installGrant());
+    expect(result.current).toMatchObject({ stage: "grant_submitted", error: "outcome_unknown" });
+    expect(mocks.sendActivation).toHaveBeenCalledTimes(1);
+    expect(readCeremony("request-0123456789abcdef")?.pendingGrantActivation).toBeDefined();
   });
 
   it("rejects an account or module substituted in the recovery descriptor before asking the owner", async () => {
@@ -358,7 +416,7 @@ describe("reporting ceremony page", () => {
     await reachGrant(result);
     await act(() => result.current.installGrant());
     expect(result.current.error).toBe("envelope_mismatch");
-    expect(mocks.installCall).not.toHaveBeenCalled();
+    expect(mocks.sendActivation).not.toHaveBeenCalled();
     expect(calls).toEqual([]);
   });
 
@@ -366,6 +424,7 @@ describe("reporting ceremony page", () => {
     wallet("send");
     const { result } = render();
     await reachGrant(result);
+    await act(() => result.current.installGrant());
     await act(() => result.current.installGrant());
     agent.grant = { ...agent.grant!, state: "paused" };
     await waitFor(() => expect(result.current.stage).toBe("failed"));

@@ -6,8 +6,9 @@
  *
  *   bun run --cwd packages/agent reporting:walkthrough
  *   bun --env-file=.env packages/agent/src/__tests__/reporting/driver/walkthrough.ts --models
- * The second command sends only six synthetic text cases to the pinned providers and prints
- * metrics. It never starts this HTTP driver or sends anything to a chat or a chain.
+ *   bun --env-file=.env packages/agent/src/__tests__/reporting/driver/walkthrough.ts --media-models
+ * Evaluation modes send only synthetic cases to pinned providers and print acceptance metrics.
+ * They never start this HTTP driver or send anything to a chat or a chain.
  */
 
 interface Message {
@@ -256,18 +257,36 @@ export async function runWalkthrough(base: string, log: Log = console.log): Prom
 
 if (import.meta.main) {
   const args = process.argv.slice(2);
-  if (args.length === 1 && args[0] === "--models") {
-    const { runModelEvaluation } = await import("./model-evaluation");
+  if ((args.length === 1 && args[0] === "--models") || args[0] === "--media-models") {
     try {
-      const report = await runModelEvaluation(process.env);
+      const report =
+        args[0] === "--models"
+          ? await (await import("./model-evaluation")).runModelEvaluation(process.env)
+          : await (await import("./media-model-evaluation")).runMediaModelEvaluation(
+              process.env,
+              fetch,
+              undefined,
+              { caseIds: args.slice(1) }
+            );
       console.log(JSON.stringify(report, null, 2));
       if (!report.qualityPassed) process.exitCode = 1;
     } catch (error) {
-      console.error(error instanceof Error ? error.message : "Model evaluation could not start");
+      const missing =
+        error instanceof Error &&
+        /^Missing provider credentials: AGENT_REPORTING_(OPENAI_API_KEY|JEV_API_KEY)(, AGENT_REPORTING_JEV_API_KEY)?$/.test(
+          error.message
+        );
+      console.error(
+        missing
+          ? error.message
+          : error instanceof Error && error.message === "Unknown media evaluation case"
+            ? error.message
+            : "Model evaluation could not complete"
+      );
       process.exitCode = 1;
     }
   } else if (args.length) {
-    console.error("Usage: reporting:walkthrough [--models]");
+    console.error("Usage: reporting:walkthrough [--models|--media-models [case-id ...]]");
     process.exitCode = 1;
   } else {
     const { startDriver } = await import("./server");

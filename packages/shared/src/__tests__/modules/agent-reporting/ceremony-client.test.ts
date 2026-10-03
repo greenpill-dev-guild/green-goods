@@ -1,3 +1,4 @@
+import type { GrantActivationSignatureRequest } from "../../../modules/agent-reporting/api-contract";
 import { describe, expect, it } from "vitest";
 import { CeremonyClient, CeremonyError } from "../../../modules/agent-reporting/ceremony-client";
 
@@ -97,5 +98,38 @@ describe("ceremony client", () => {
       status: 0,
       message: "Ceremony request failed: network",
     });
+  });
+  it("validates the signature-free activation wire before sending anything to the Agent", async () => {
+    const { calls, client } = recorder([
+      { status: 200, body: { ok: true, delegateSignature: "0xff1234" } },
+    ]);
+    const request: GrantActivationSignatureRequest = {
+      attemptId: "at-1",
+      permitVersion: 1,
+      payloadDigest: `0x${"12".repeat(32)}`,
+      userOperation: {
+        sender: "0x00000000000000000000000000000000000000a1",
+        nonce: "0x0",
+        callData: "0x1234",
+        callGasLimit: "0x1",
+        verificationGasLimit: "0x1",
+        preVerificationGas: "0x1",
+        maxFeePerGas: "0x1",
+        maxPriorityFeePerGas: "0x0",
+        paymaster: "0x00000000000000000000000000000000000000a1",
+        paymasterVerificationGasLimit: "0x1",
+        paymasterPostOpGasLimit: "0x0",
+        paymasterData: "0xab",
+      },
+    };
+    const contaminated = {
+      ...request,
+      userOperation: { ...request.userOperation, signature: "0xdeadbeef" },
+    };
+    await expect(client.signGrantActivation("g-1", contaminated)).rejects.toThrow();
+    expect(calls).toEqual([]);
+    await expect(client.signGrantActivation("g-1", request)).resolves.toBe("0xff1234");
+    expect(calls[0]?.url).toBe("/api/messaging/execution-grants/g-1/activation/signature");
+    expect(JSON.parse(calls[0]?.init.body as string)).toEqual(request);
   });
 });

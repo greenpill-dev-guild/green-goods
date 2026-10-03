@@ -153,16 +153,34 @@ export function CeremonyView(props: CeremonyViewProps) {
             <Button
               size="lg"
               loading={stage === "grant_signing"}
-              disabled={!grant || wrongAccount || props.issues.length > 0}
+              disabled={
+                !grant ||
+                wrongAccount ||
+                props.issues.length > 0 ||
+                Boolean(resource && !operation?.envelope)
+              }
               onClick={() => void props.installGrant()}
             >
               {intl.formatMessage(
-                grant?.purpose === "review"
-                  ? { id: "public.reporting.grant.allowReview", defaultMessage: "Allow Reviews" }
-                  : {
-                      id: "public.reporting.grant.allowReporting",
-                      defaultMessage: "Allow Reporting",
-                    }
+                resource
+                  ? grant?.purpose === "review"
+                    ? {
+                        id: "public.reporting.grant.allowFirstReview",
+                        defaultMessage: "Allow and record first review",
+                      }
+                    : {
+                        id: "public.reporting.grant.allowFirstReport",
+                        defaultMessage: "Allow and publish first report",
+                      }
+                  : grant?.purpose === "review"
+                    ? {
+                        id: "public.reporting.grant.prepareReview",
+                        defaultMessage: "Prepare first review",
+                      }
+                    : {
+                        id: "public.reporting.grant.prepareReport",
+                        defaultMessage: "Prepare first report",
+                      }
               )}
             </Button>
           ) : null}
@@ -194,10 +212,18 @@ export function CeremonyView(props: CeremonyViewProps) {
         stage === "grant_ready") ? (
         <p className="rounded-xl bg-bg-weak-50 px-4 py-3 text-sm font-medium text-text-sub-600">
           {stage === "grant_ready"
-            ? intl.formatMessage({
-                id: "public.reporting.step.install",
-                defaultMessage: "Signature 2 of 2: allow permission",
-              })
+            ? intl.formatMessage(
+                resource
+                  ? {
+                      id: "public.reporting.step.install",
+                      defaultMessage:
+                        "Signature 2 of 2: allow permission and publish the first item",
+                    }
+                  : {
+                      id: "public.reporting.grant.prepareNotice",
+                      defaultMessage: "Preparing the first item does not request a signature.",
+                    }
+              )
             : stage === "review"
               ? intl.formatMessage({
                   id: "public.reporting.step.publish",
@@ -235,9 +261,24 @@ export function CeremonyView(props: CeremonyViewProps) {
           ) : null}
         </>
       ) : null}
-      {grant && stage.startsWith("grant_") ? (
+      {grant && (stage.startsWith("grant_") || (isGrant && stage === "loading")) ? (
         <>
           <GrantSummary grant={grant} />
+          {resource && (stage === "grant_ready" || stage === "grant_signing") ? (
+            <>
+              <p className="rounded-xl bg-bg-weak-50 px-4 py-3 text-sm font-medium text-text-sub-600">
+                {intl.formatMessage(
+                  {
+                    id: "public.reporting.grant.firstCounts",
+                    defaultMessage:
+                      "This first publication uses 1 of the {maximum} allowed publications. Check it before approving the permission.",
+                  },
+                  { maximum: grant.policy.maxSubmissions }
+                )}
+              </p>
+              <PublicationSummary resource={resource} evidenceUrl={props.evidenceUrl} />
+            </>
+          ) : null}
           <p className="break-words text-sm text-text-sub-600" title={grant.policy.account}>
             {intl.formatMessage(
               { id: "public.reporting.review.signer", defaultMessage: "From account {account}" },

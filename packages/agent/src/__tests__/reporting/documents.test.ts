@@ -123,6 +123,14 @@ describe("office conversion", () => {
     );
     expect(call?.args).not.toContain("/data");
     expect(call?.args).not.toContain("/app");
+    const backend = call!.args.indexOf("SAL_USE_VCLPLUGIN");
+    expect(call?.args[backend + 1]).toBe("svp");
+    const registry = call!.args.indexOf("/etc/libreoffice");
+    expect(call?.args.slice(registry - 1, registry + 2)).toEqual([
+      "--ro-bind",
+      "/etc/libreoffice",
+      "/etc/libreoffice",
+    ]);
     expect(call?.profile).toContain('oor:name="DisableMacrosExecution"');
     expect(call?.profile).toContain('oor:name="DisableActiveContent"');
     expect(call?.profile).toContain('oor:name="MacroSecurityLevel"');

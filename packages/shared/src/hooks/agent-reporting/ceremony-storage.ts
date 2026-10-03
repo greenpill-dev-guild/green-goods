@@ -16,6 +16,12 @@ export interface StoredCeremony {
     policyDigest: `0x${string}`;
     enableReference: `0x${string}`;
   };
+  /** Public outcome only; owner enable signatures are never persisted or sent to the Agent. */
+  pendingGrantActivation?: {
+    grantId: string;
+    policyDigest: `0x${string}`;
+    request: OutcomeRequest;
+  };
 }
 
 const key = (requestId: string) => `gg-agent-reporting:${requestId}`;

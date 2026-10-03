@@ -5,12 +5,7 @@ import * as z from "zod";
  * with these schemas and the browser validates responses with them, so neither side trusts the
  * other's shape. Failures are typed and never reveal another resource.
  */
-type Hex = `0x${string}`;
-const hexOf = (pattern: RegExp, message: string) =>
-  z.custom<Hex>((value) => typeof value === "string" && pattern.test(value), message);
-const hex = hexOf(/^0x[0-9a-fA-F]*$/, "Expected hex data");
-const address = hexOf(/^0x[0-9a-fA-F]{40}$/, "Expected an address");
-const digest = hexOf(/^0x[0-9a-f]{64}$/, "Expected a 32-byte digest");
+import { address, digest, hex, hexOf } from "./api-values";
 
 export const REPORTING_ERROR_CODES = [
   "access_required",
@@ -317,3 +312,21 @@ export const grantResponseSchema = z.object({
   }),
 });
 export type GrantView = z.infer<typeof grantResponseSchema>["grant"];
+
+export const grantActivationRequestSchema = z
+  .object({
+    expectedVersion: z.number().int().positive(),
+    policyDigest: digest,
+  })
+  .strict();
+export const grantActivationResponseSchema = z.object({
+  ok: z.literal(true),
+  resource: resourceViewSchema,
+});
+export {
+  grantActivationOperationSchema,
+  grantActivationSignatureRequestSchema,
+  grantActivationSignatureResponseSchema,
+  type GrantActivationOperation,
+  type GrantActivationSignatureRequest,
+} from "./activation-api-contract";

@@ -86,6 +86,8 @@ RUN apt-get update \
 # bun's --env-file=../../.env in the start script is a no-op when the file is absent.
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/packages/agent/node_modules ./packages/agent/node_modules
+# Shared resolves runtime peers through its own Bun workspace links (for example zod).
+COPY --from=prod-deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=prod-deps /app/package.json ./package.json
 COPY --from=base /app/packages/agent/package.json ./packages/agent/package.json
 COPY --from=base /app/packages/agent/dist ./packages/agent/dist

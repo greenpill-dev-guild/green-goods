@@ -199,6 +199,9 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.cancelled": "Revisión cancelada. No se registró nada.",
   "review.signLink": "Abre esta página para revisar y firmar tu decisión con tu {kind}.",
   "review.signLabel": "Revisar y firmar",
+  "review.grantLink":
+    "Abre esta página para registrar esta decisión confirmada y permitir hasta 5 revisiones, incluida esta, para este jardín durante 1 hora. Debes confirmar cada revisión por separado en el chat.",
+  "review.grantLabel": "Permitir revisiones en el chat",
   "review.rejectedBeforeSend":
     "La firma fue rechazada, así que tu revisión no se registró. Aquí está de nuevo; confírmala cuando quieras.",
   "review.reverted":

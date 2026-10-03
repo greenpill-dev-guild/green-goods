@@ -1,11 +1,11 @@
+import { registerGrantActivationRoutes } from "./grant-activation";
 import type { Hono } from "hono";
 import * as z from "zod";
 import { gardenLabel } from "../../../services/reporting/coordinator/prompting";
 import type { ReportingCore } from "../../../services/reporting/runtime";
-import { loadDraft } from "../../../services/reporting/drafts";
 import { grantById, type GrantRecord } from "../../../services/reporting/grants-store";
-import { approveGrant, proposeGrant, pauseGrant } from "../../../services/reporting/grants";
-import { loadReview } from "../../../services/reporting/reviews";
+import { approveGrant, pauseGrant } from "../../../services/reporting/grants";
+import { proposeGrant } from "../../../services/reporting/grant-proposal";
 import { currentSession, failure, limited, type MessagingRouteDeps, readBody } from "./http";
 
 const approvalSchema = z.object({
@@ -39,6 +39,7 @@ function view(grant: GrantRecord, core: ReportingCore) {
  * dependencies (delegation disabled) every call answers `unsupported_scope`.
  */
 export function registerGrantRoutes(app: Hono, deps: MessagingRouteDeps): void {
+  registerGrantActivationRoutes(app, deps);
   app.post("/messaging/execution-grants", async (c) => {
     const session = currentSession(c, deps, true);
     if (!session) return failure(c, "access_required");
@@ -47,10 +48,15 @@ export function registerGrantRoutes(app: Hono, deps: MessagingRouteDeps): void {
       return failure(c, "unsupported_scope");
     const core = deps.core();
     const resourceId = session.request.resourceId;
-    const garden =
-      session.request.purpose === "grant_review"
-        ? loadReview(core, resourceId)?.content.gardenAddress
-        : loadDraft(core, resourceId)?.content.garden?.address;
+    const metadata = core.db
+      .query(
+        session.request.purpose === "grant_review"
+          ? `SELECT w.garden_address FROM review_intents r JOIN work_records w
+         ON w.chain_id = r.chain_id AND w.work_uid = r.work_uid WHERE r.id = $id`
+          : "SELECT garden_address FROM work_drafts WHERE id = $id"
+      )
+      .get({ id: resourceId }) as { garden_address: string | null } | null;
+    const garden = metadata?.garden_address;
     if (!garden) return failure(c, "unavailable");
     const result = await proposeGrant({ core, chain: deps.chain, ...deps.grants }, session, garden);
     return result.ok ? c.json(view(result.grant, deps.core()), 201) : failure(c, result.errorCode);

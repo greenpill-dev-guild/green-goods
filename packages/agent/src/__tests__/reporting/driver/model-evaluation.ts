@@ -1,4 +1,3 @@
-import * as z from "zod";
 import { loadReportingProviders } from "../../../services/reporting/config";
 import {
   createModelInterpreter,
@@ -8,6 +7,7 @@ import {
 } from "../../../services/reporting/interpretation";
 import { extractWithOpenAI } from "../../../services/reporting/model-extraction";
 import { routeWithJev } from "../../../services/reporting/model-routing";
+import { type EvaluationSample, measureProvider } from "./evaluation-provider";
 
 /** Six synthetic text cases; no chat, database, signer, upload or chain composition is loaded. */
 const CASES = [
@@ -61,25 +61,6 @@ const CASES = [
   },
 ] as const;
 
-const usageSchema = z.object({
-  input_tokens: z.number().int().nonnegative(),
-  output_tokens: z.number().int().nonnegative(),
-  input_tokens_details: z.object({ cached_tokens: z.number().int().nonnegative() }).optional(),
-});
-
-interface Sample {
-  caseId: string;
-  provider: "jev" | "openai";
-  requestedModel: string;
-  returnedModel: string | null;
-  latencyMs: number;
-  adapterValid: boolean;
-  expectationsMet: boolean;
-  failure: string | null;
-  usage: z.infer<typeof usageSchema> | null;
-  estimatedUsd: number | null;
-}
-
 function requestFor(example: (typeof CASES)[number]): InterpretationRequest {
   return {
     locale: example.locale,
@@ -130,65 +111,25 @@ export async function runModelEvaluation(
   ];
   if (!openai || jev.provider === "none")
     throw new Error(`Missing provider credentials: ${missing.join(", ")}`);
-  const samples: Sample[] = [];
+  const samples: EvaluationSample[] = [];
   let fullFallbacks = 0;
   let partialFallbacks = 0;
   for (const example of CASES) {
     const request = requestFor(example);
     async function measure<T extends { model: string }>(
-      provider: Sample["provider"],
-      requestedModel: string,
+      provider: EvaluationSample["provider"],
+      model: string,
       execute: (observe: typeof fetch, signal: AbortSignal) => Promise<T>,
       expected: (result: T) => boolean
     ): Promise<T | null> {
-      const observed: { usage: Sample["usage"] } = { usage: null };
-      const observe = (async (input, init) => {
-        const response = await call(input, init);
-        if (provider === "openai" && response.ok) {
-          const body: unknown = await response
-            .clone()
-            .json()
-            .catch(() => null);
-          const parsed = usageSchema.safeParse(
-            body && typeof body === "object" && "usage" in body ? body.usage : null
-          );
-          if (
-            parsed.success &&
-            (parsed.data.input_tokens_details?.cached_tokens ?? 0) <= parsed.data.input_tokens
-          )
-            observed.usage = parsed.data;
-        }
-        return response;
-      }) as typeof fetch;
-      const start = performance.now();
-      let value: T | null = null;
-      let failure: string | null = null;
-      try {
-        value = await execute(observe, AbortSignal.timeout(15_000));
-      } catch (error) {
-        failure = error instanceof InterpretationUnavailableError ? error.reason : "provider_error";
-      }
-      const usage = observed.usage;
-      const cached = usage?.input_tokens_details?.cached_tokens ?? 0;
-      // GPT-4.1 mini standard text rates verified 2026-10-02; usage is measured, billing is estimated.
-      // https://developers.openai.com/api/docs/models/gpt-4.1-mini
-      const estimatedUsd = usage
-        ? ((usage.input_tokens - cached) * 0.4 + cached * 0.1 + usage.output_tokens * 1.6) /
-          1_000_000
-        : null;
-      samples.push({
-        caseId: example.id,
-        provider,
-        requestedModel,
-        returnedModel: value?.model ?? null,
-        latencyMs: Math.round(performance.now() - start),
-        adapterValid: value !== null,
-        expectationsMet: value !== null && value.model === requestedModel && expected(value),
-        failure,
-        usage,
-        estimatedUsd,
-      });
-      return value;
+      const measured = await measureProvider(
+        call,
+        { caseId: example.id, provider, model, timeoutMs: 15_000 },
+        execute,
+        expected
+      );
+      samples.push(measured.sample);
+      return measured.value;
     }
     const routed = await measure(
       "jev",
@@ -256,7 +197,7 @@ export async function runModelEvaluation(
       ratesChecked: "2026-10-02",
     },
     pending: [
-      "photo/PDF/table quality",
+      "media quality: run --media-models",
       "accented voice transcription",
       "live Telegram flow",
       "live chain publication",

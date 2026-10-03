@@ -3,7 +3,7 @@
 **Updated:** 2026-10-02
 **Owner:** Codex; Afolabi owns live testing and deployment
 **Branch:** `feature/agent-reporting-telegram` (PR #949, stacked on #934 and #864)
-**State:** implementation and complete local integration validation passed; deployment and live acceptance unrun
+**State:** first-report activation follow-up implemented; complete selected critical worktree gate and final-image Office smoke passed; production release and live acceptance unrun
 
 This is the current execution handoff. It supersedes the laptop polling demo in the
 [earlier Telegram handoff](claude-telegram-channel.md). Keep the production bot in webhook
@@ -16,7 +16,7 @@ the production bot token: that would displace its webhook.
   Corrections and the final report confirmation stay in chat. OpenAI extracts content;
   Jev makes bounded routing judgments; the deterministic field walk handles provider failure.
 - The browser provides account proof, same-chat pairing, exact publication/review signing,
-  optional verified Kernel permission installation, outcome checking, and recovery.
+  optional verified Kernel first-report activation, outcome checking, and recovery.
   PWA installation is unnecessary. A wallet proof or paired session never grants membership
   or signing authority by itself.
 - A person can attach one active Telegram and one active WhatsApp channel to the same proven
@@ -46,8 +46,8 @@ Use the root `env.template` and `env.schema`. Required reporting/provider values
 | `AGENT_REPORTING_SIGNER_KEYS` | Separate versioned wrapping ring for per-grant delegated signer files; required only for delegation |
 
 Store references to actual approved 1Password fields, not plaintext secrets, in the template.
-The 1Password lookup was dismissed in this session; no references were discovered and no live
-model credentials were installed. Do not invent vault items. Before `bun run env:sync`, reconcile
+The user supplied the local and Fly credentials. Synthetic live text evaluations passed 12/12,
+and media evaluations passed 9/9 after a prompt correction. Do not invent vault items. Before `bun run env:sync`, reconcile
 the root template with existing settings because that command rewrites the root `.env`.
 Do not create package environment files. Keep old wrapping versions during key rotation so
 existing records remain readable; never reuse the reporting wrapping material as signer material.
@@ -65,7 +65,7 @@ Delegation also needs the existing `VITE_PIMLICO_API_KEY` (or server `PIMLICO_AP
 and `VITE_PIMLICO_SPONSORSHIP_POLICY_ID` (or server `PIMLICO_SPONSORSHIP_POLICY_ID`).
 These are already declared; do not invent a sponsorship policy. Deployed policy/paymaster pins
 and measured gas/wei budgets come from the verified module registry, never arbitrary environment values.
-No quality or optimization claim is established without the real provider run.
+Live provider evidence below covers synthetic fixtures; it does not certify real garden reports.
 
 ## Remote API and browser flow
 
@@ -78,8 +78,11 @@ Deploy both the Agent and Client changes; the current production Agent has not l
 4. A code entered in the source chat binds that proof to the channel. The browser receives a
    short-lived scoped session; state changes require its CSRF header.
 5. The browser reads the named draft/review and private media, validates the exact prepared
-   envelope, and uses the existing owner sender. An approved Kernel installation instead saves
-   its public revocation descriptor before asking the owner to install the permission.
+   envelope, and uses the existing owner sender. A verified Kernel grant instead freezes the actual first report for browser review.
+   A second explicit action reserves the attempt, saves its public revocation descriptor, and
+   prompts the owner to authorize that report and bounded permission. The SDK keeps the owner
+   enable signature in the browser; the Agent receives a strict signature-free operation and
+   returns only the delegated signature. The browser submits the completed operation to its bundler.
 6. Durable attempt references and independent receipt reconciliation determine publication.
    An uncertain send stays reserved; refreshing a page or restarting the Agent cannot create
    a second publication or another budget reservation.
@@ -101,7 +104,9 @@ including those from other applications; the confirmation discloses this before 
 3. Build and smoke-test the pinned Office image. Verify that the Fly runtime supports the
    bubblewrap namespaces, convert a synthetic DOCX and XLSX, and inspect the resulting PDF.
    Converter unavailability preserves native extraction; unsafe files never run unsandboxed.
-   This host has no Docker/LibreOffice, so actual container conversion is still pending.
+   Fly synthetic DOCX/XLSX conversion now passes with the production module correction: headless
+   `svp` backend and a read-only static `/etc/libreoffice` registry bind. The final validated image
+   also passed unchanged; the original image predated these corrections.
 4. Deploy the Agent and Client and verify HTTPS, no-store/security headers, the Client proxy,
    private preview scope and origin/cookie behavior. A 200 HTML SPA fallback is not API proof.
 5. Use authenticated `/reporting/ops/health` and
@@ -128,13 +133,13 @@ a second Telegram identity is available; that does not establish the steward Tel
   decision, sign as the steward and reconcile. Never approve one's own work.
 - Repeat the browser flow on desktop and mobile, including reload after a reported send and
   an uncertain provider response. Record authenticated signing evidence; Storybook is layout proof.
-- After the Kernel compatibility gate, install a bounded reporting grant and publish a confirmed
-  report through it. Exercise expiry, fifth/sixth publication, wrong garden/channel, pause during
+- After the Kernel compatibility gate, activate a bounded reporting grant by approving and publishing the first confirmed
+  report in the browser, then publish a second confirmed report from Telegram. Exercise expiry, fifth/sixth publication, wrong garden/channel, pause during
   an RPC read, restart, lost bundler response and direct owner removal with the Agent unavailable.
 - WhatsApp needs access restored **and its live transport adapter**. The dual-channel identity
   architecture and synthetic tests do not constitute a deployed WhatsApp integration.
 
-## Validation Receipt
+## Earlier validation receipt (historical)
 
 - **Tested implementation commit SHA:** `202333ca6831e2e5d3bceae32a4c0894519ab019`
 - **Run at (UTC):** `2026-10-02T09:09:30Z`
@@ -161,3 +166,99 @@ read missing from the design deployment input list. The existing regression test
 the same test passes. This source follow-up is outside the earlier receipt's evidence-only reuse.
 The normal pre-push gate validates the new complete head; the PR body records that head and its
 current GitHub CI status. No fixture, workflow requirement or skip rule was weakened.
+
+## First-report activation follow-up, 2026-10-02
+
+The user selected browser-only first-report activation. Kernel 0.3.1's direct
+`installValidations` path installs a signer without the execute selector, so it cannot activate
+a usable reporting permission. The first exact EAS report now uses the SDK ENABLE operation;
+subsequent reports use DEFAULT operations with only the delegated signer. Permission status
+checks the execute selector as well as signer, hook and non-revoked generation.
+
+The activation API is under `/messaging/execution-grants/:id/activation`, with separate
+`attempts`, `signature` and `outcome` endpoints. The strict 12-field unsigned operation forbids
+owner signatures, factory deployment and EIP-7702 authorization. Signature exposure durably
+records the exact operation hash and retains the budget before returning bytes. Only the exact
+first-report receipt and usable onchain permission make the grant active; the first report is
+never queued again. Migration 3 names `activation` attempts explicitly and preserves historical
+attempts and outcomes.
+
+Reporting allows five publications over 24 hours. Review is a separate five-review allowance
+over one hour. The first item consumes one allowance. Role checks and self-review refusal remain
+required; a wallet proof never grants a garden role.
+
+Live model proof used synthetic content only. Nine native media fixtures passed after fixing
+a photo prompt-injection failure that initially extracted an embedded false count. The adversarial
+photo subsequently passed three independent repeats. Snapshot: `gpt-4.1-mini-2025-04-14`.
+OpenAI estimated cost of the media lane, including failed runs and repeats, was approximately
+$0.0118. Converted Office cases subsequently passed 2/2 on Fly using the provisioned key, with real
+sandboxed conversion and Poppler inspection. They returned the pinned model, preserved quotations
+and cell provenance, and rejected invented totals/embedded instructions. Provider latency was
+4.292s for DOCX and 2.994s for XLSX; estimated token cost was $0.000948. All 11 synthetic media
+cases have passing proof across the host and Fly runs; no single run covered all 11. This does
+not certify real garden photographs.
+
+The final Kernel fork runner passed 17/17 scenarios through EntryPoint `handleOps` with deployed
+pinned SDK/Kernel/policy bytecode and a production guard. It includes first ENABLE, later DEFAULT,
+malformed scope/calls, cumulative complete sponsorship cost, report/review count limits, separate
+one-hour review expiry, owner uninstall, nonce revocation, stale enable replay and report expiry.
+Proof: fork block `511136709`, verified at `2026-10-02T23:46:01.460Z`, source digest
+`sha256:72da136a4312253633f75463a565f28207e6f16f9f4848b134f583b320f9bc88` across 1,815 public
+source files. The artifact declares `workingTreeDirty: true` and `activationReady: false`.
+The fixture uses ECDSA root authority, fixture EAS and a deposited fixture
+paymaster. It is not proof of production passkey, EAS resolver/roles, live sponsorship or a
+deployed guard; the verified registry remains empty.
+
+Fly Office proof used a temporary no-service, no-volume machine with synthetic fixtures.
+With the corrected compiled production module, DOCX produced a 19,384-byte one-page PDF and
+XLSX a 19,028-byte one-page PDF. Machine `83dd19ec145278` exited zero and was destroyed.
+Namespaces, network isolation, capability removal, minimal environment, resource caps and
+active-content protections stayed enabled. The first image built and passed runtime import smoke
+at `sha256:791ab05b23f4c9000193b1f1c4ae53c65ee9cd95ef7ea0543c5983a7ea031807`; it predates final
+activation and Office corrections and is not the release image.
+
+Rendered proof is **Storybook through Brave browser extension**, at 375×812 and 1280×900: no
+horizontal overflow, 48px buttons, loaded logo/private fixture previews, and summary before
+Allow and Publish. Preparing and uncertain states were inspected; uncertainty offers no second
+publish action. Authenticated wallet/passkey proof remains pending.
+
+Production health was 200 and Fly secret names were present. The live Client messaging path still
+returned SPA HTML, so Client proxy deployment is required. No production release or contract
+broadcast has occurred. The final immutable image also passed Office conversion; details below.
+
+## Current uncommitted worktree validation, 2026-10-02
+
+The complete selected critical QA plan passed at `2026-10-02T23:53:28Z`:
+`bun run check --intent qa --base HEAD`. All 20 selected checks ran fresh, including format/lint,
+ABI artifacts, source/test typechecks, Shared/Client/Admin/Agent suites, Agent build, Contracts
+build/tests/release verification, documentation authority/build, staged boundaries and Storybook.
+Shared passed 6,683 tests (17 governed skips), Client 1,533, Admin 1,164, Agent 426 units (one
+governed skip) plus 137 SQLite tests, Contracts 319 tooling tests and 2,100 Solidity tests.
+No check was suppressed or substituted. Separate source-structure, test-quality, vocabulary and
+whitespace checks passed without expanding baselines.
+
+This proof belongs to the uncommitted worktree based on HEAD
+`fc6bf61d82dda8e787b0390a29fad79d5b8425c2`; it is not a commit-attributed receipt. The exact command
+`git status --porcelain=v1 --untracked-files=all -- . ':!.plans'` returned implementation changes,
+as expected. The historical commit receipt above does not cover these changes. Only Plan Hub
+evidence is updated after this run; implementation source stays frozen. Current-head GitHub CI
+for this follow-up and authenticated passkey proof remain pending.
+
+## Final immutable image and Fly conversion proof
+
+Build-only image: `registry.fly.io/green-goods:reporting-readiness-20261002-validated`, digest
+`sha256:ff9482e25d37264e3ff7d7bf19b3fd8890dd22f87535976024b111aefaa6fa9e` (989 MB).
+The frozen dependency install, Agent compile and untouched runtime imports passed. This build
+includes the final gas reservation, identity-epoch and import corrections. No dependency or
+lockfile changed. Optional Sentry source-map upload was skipped because the build secret was absent;
+maps were stripped as configured. The image was pushed without releasing the application.
+
+Disposable no-service, no-volume Fly machine `857495b473e108` resolved that exact digest and
+ran the production converter without a module override. DOCX produced a 19,384-byte one-page
+PDF at `2026-10-02T23:58:54Z`; XLSX produced a 19,028-byte one-page PDF at
+`2026-10-02T23:58:56Z`. Poppler inspection passed and the process exited zero. The sandbox
+and resource limits remained enabled. Fly's CLI startup monitor returned early during the
+80-second image pull; machine logs establish the later successful run. This was synthetic
+conversion proof, with no production reporting traffic or contract broadcast.
+`flyctl machine status 857495b473e108 --app green-goods` confirmed `destroyed`, exit code zero,
+and `oom_killed: false`; no test machine remains running.

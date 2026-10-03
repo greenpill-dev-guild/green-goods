@@ -9,7 +9,7 @@ generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/config/command-migration.json
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:8a6f295f344d1cd54046b095ba1a0435ab5e17036ae5781a6f947401385eb12c"
+source_digest: "sha256:3bdec66167daed2c451cf20918a4853809d02f85997717fa5d0da6104dab0b50"
 source_of_truth:
   - packages/contracts/config/command-migration.json
   - packages/contracts/script/cli/operations.mjs
@@ -75,6 +75,9 @@ Only the modes listed for each operation are accepted. Read-only operations do n
 | <code>upgrade all</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
 | <code>verify</code> | localhost, sepolia, arbitrum, celo, mainnet | none | <code>--check-etherscan, --check-indexer-runtime, --check-steward-upgrade, --skip-indexer, --skip-indexer-runtime, --skip-local-indexer-start, --start-local-indexer, --stop-local-indexer-after-check, --no-octant, --no-cookiejar, --ack-product-copy, --require-product-copy, --rpc-url &lt;value&gt;, --chain-id &lt;value&gt;, --community-slug &lt;value&gt;, --expected-hats-implementation &lt;value&gt;, --indexer-poll-seconds &lt;value&gt;, --indexer-timeout-seconds &lt;value&gt;, --indexer-url &lt;value&gt;, --steward-baseline &lt;value&gt;, --steward-probe-account &lt;value&gt;</code> |
 | <code>verify arbitrum-fork</code> | arbitrum | none | <code>none</code> |
+| <code>deploy single-attestation-policy</code> | localhost, sepolia, arbitrum | preflight, plan, simulate, broadcast | <code>--sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;</code> |
+| <code>verify single-attestation-policy</code> | localhost, sepolia, arbitrum | none | <code>--receipt &lt;value&gt;</code> |
+| <code>verify reporting-kernel</code> | arbitrum | simulate | <code>none</code> |
 | <code>status</code> | localhost, sepolia, arbitrum, celo, mainnet | none | <code>none</code> |
 | <code>fork</code> | localhost, sepolia, arbitrum, celo, mainnet | none | <code>none</code> |
 | <code>migrate vaults</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast | <code>--sender &lt;value&gt;, --rpc-url &lt;value&gt;, --chain-id &lt;value&gt;</code> |

@@ -12,16 +12,16 @@ import {
 } from "./attempts";
 import type { ReportingChain } from "./chain";
 import { confirmationById } from "./confirmations";
+import { grantById } from "./grants-store";
 import { inTransaction } from "./database";
-import { type ClaimedJob, enqueueJob } from "./jobs";
+import { enqueueJob } from "./jobs";
 import { participantWriter } from "./notify";
 import { operationSubject } from "./operation-subjects";
 import { operationById, setOperationState } from "./operations";
-import { audit } from "./participants";
+import { audit, participantEpoch } from "./participants";
 import type { ReportingCore } from "./runtime";
 import type { BrowserSession } from "./sessions";
 import { sessionOwnsOperation } from "./views";
-import type { JobOutcome } from "./worker";
 
 /**
  * Owner-signed execution of a report or a steward decision, driven by the browser ceremony. The
@@ -52,6 +52,7 @@ export async function reserveOwnerAttempt(
     session: BrowserSession;
     expectedAttemptVersion: number;
     payloadDigest: string;
+    activation?: { grantId: string; gasReserved: number };
   }
 ): Promise<
   | { ok: true; attemptId: string; attemptNumber: number; permitVersion: number }
@@ -85,16 +86,52 @@ export async function reserveOwnerAttempt(
     }
     const fresh = operationById(core, operation.id);
     if (!fresh) return { ok: false as const, errorCode: "unavailable" as const };
+    const activationGrant = input.activation ? grantById(core, input.activation.grantId) : null;
+    if (
+      input.activation &&
+      (!activationGrant ||
+        activationGrant.state !== "owner_authorization_pending" ||
+        activationGrant.accountBindingId !== input.session.accountBindingId ||
+        activationGrant.identityEpoch !== input.session.identityEpoch ||
+        participantEpoch(core, input.session.participantId) !== input.session.identityEpoch ||
+        input.session.expiresAt <= core.clock.now() ||
+        !core.db
+          .query("SELECT id FROM channel_bindings WHERE id = $id AND status = 'active'")
+          .get({ id: activationGrant.channelBindingId }) ||
+        activationGrant.channelBindingId !== input.session.request.bindingId ||
+        activationGrant.gardenAddress !== operation.gardenAddress.toLowerCase() ||
+        activationGrant.purpose !== (operation.kind === "work" ? "reporting" : "review") ||
+        core.clock.now() < activationGrant.validAfter ||
+        core.clock.now() >= activationGrant.validUntil)
+    )
+      return { ok: false as const, errorCode: "forbidden" as const };
     const reserved = reserveAttempt(core, {
       operation: fresh,
       expectedAttemptVersion: input.expectedAttemptVersion,
       payloadDigest: input.payloadDigest,
-      mode: "owner",
+      mode: activationGrant ? "activation" : "owner",
+      ...(activationGrant && input.activation
+        ? {
+            grantId: activationGrant.id,
+            policyDigest: activationGrant.policyDigest,
+            gasReserved: input.activation.gasReserved,
+          }
+        : {}),
       identityEpoch: input.session.identityEpoch,
       expectedAccount: input.session.account,
       fromBlock: Number(fromBlock),
     });
     if (typeof reserved === "string") return { ok: false as const, errorCode: reserved };
+    if (activationGrant && input.activation) {
+      const budget = core.db
+        .query(`UPDATE execution_grants SET submissions_reserved = submissions_reserved + 1,
+        gas_reserved = gas_reserved + $gas, version = version + 1, updated_at = $now
+        WHERE id = $id AND state = 'owner_authorization_pending' AND valid_after <= $now AND valid_until > $now
+        AND submissions_reserved + submissions_consumed < max_submissions AND gas_reserved + gas_consumed + $gas <= gas_cap`)
+        .run({ id: activationGrant.id, gas: input.activation.gasReserved, now: core.clock.now() });
+      // Throw rolls the attempt and operation CAS back with the exhausted budget.
+      if (budget.changes !== 1) throw new ActivationBudgetError();
+    }
     subject.advance("ATTEMPT_RESERVED", true);
     enqueueJob(core, {
       kind: "watch_owner_attempt",
@@ -110,6 +147,8 @@ export async function reserveOwnerAttempt(
     };
   });
 }
+
+export class ActivationBudgetError extends Error {}
 
 export interface OutcomeResponse {
   ok: true;
@@ -130,6 +169,7 @@ export function recordOwnerOutcome(
     idempotencyKey: string;
     payloadDigest: string;
     outcome: AttemptOutcome;
+    activationGrantId?: string;
   }
 ): OutcomeResult {
   const requestDigest = reportingDigest(
@@ -143,7 +183,10 @@ export function recordOwnerOutcome(
       !operation ||
       !attempt ||
       attempt.operationId !== operation.id ||
-      attempt.mode !== "owner"
+      !(
+        attempt.mode === "owner" ||
+        (attempt.mode === "activation" && attempt.grantId === input.activationGrantId)
+      )
     ) {
       return { ok: false, errorCode: "unavailable" };
     }
@@ -157,6 +200,28 @@ export function recordOwnerOutcome(
       operation.payloadDigest !== input.payloadDigest
     ) {
       return { ok: false, errorCode: "stale_revision" };
+    }
+    if (
+      attempt.mode === "activation" &&
+      attempt.state === "confirmed" &&
+      operation.state === "published" &&
+      (input.outcome.kind === "broadcast" || input.outcome.kind === "uncertain") &&
+      attempt.userOperationHash &&
+      input.outcome.userOperationHash?.toLowerCase() === attempt.userOperationHash.toLowerCase()
+    ) {
+      const response = {
+        ok: true as const,
+        operationState: "published",
+        attemptState: "confirmed",
+      };
+      storeOutcome(core, {
+        attemptId: attempt.id,
+        idempotencyKey: input.idempotencyKey,
+        requestDigest,
+        outcomeKind: input.outcome.kind,
+        response,
+      });
+      return { ok: true, response };
     }
     const lateReference = lateBroadcastReference(attempt, input.outcome);
     if (lateReference) {
@@ -181,7 +246,18 @@ export function recordOwnerOutcome(
       });
       return { ok: true, response };
     }
-    if (attempt.state !== "wallet_pending") {
+    const signedActivation =
+      attempt.mode === "activation" &&
+      attempt.state === "uncertain" &&
+      attempt.reasonCode === "grant_activation_signed" &&
+      Boolean(attempt.userOperationHash);
+    if (
+      signedActivation &&
+      (!(input.outcome.kind === "broadcast" || input.outcome.kind === "uncertain") ||
+        input.outcome.userOperationHash?.toLowerCase() !== attempt.userOperationHash?.toLowerCase())
+    )
+      return { ok: false, errorCode: "conflict" };
+    if (attempt.state !== "wallet_pending" && !signedActivation) {
       audit(
         core,
         "outcome_hint_rejected",
@@ -206,7 +282,8 @@ export function recordOwnerOutcome(
         reasonCode: outcome.kind === "uncertain" ? outcome.reason : null,
       });
       setOperationState(core, operation.id, "reconciling");
-      subject.advance(outcome.kind === "broadcast" ? "BROADCAST" : "OUTCOME_UNCERTAIN", true);
+      if (!signedActivation)
+        subject.advance(outcome.kind === "broadcast" ? "BROADCAST" : "OUTCOME_UNCERTAIN", true);
       enqueueJob(core, {
         kind: "reconcile_operation",
         subjectId: operation.id,
@@ -224,6 +301,13 @@ export function recordOwnerOutcome(
       operationState = "failed";
       updateAttempt(core, attempt.id, { state: outcome.kind, reasonCode: outcome.reason });
       setOperationState(core, operation.id, "failed", { failureCode: outcome.kind });
+      if (attempt.mode === "activation" && attempt.grantId)
+        core.db
+          .query(`UPDATE execution_grants SET submissions_reserved = submissions_reserved - 1,
+          gas_reserved = gas_reserved - $gas, version = version + 1,
+          state = CASE WHEN state = 'owner_authorization_pending' THEN 'failed' ELSE state END
+          WHERE id = $id AND submissions_reserved > 0 AND gas_reserved >= $gas`)
+          .run({ id: attempt.grantId, gas: attempt.gasReserved });
       subject.reopen(outcome.kind, input.session.account, `outcome:${attempt.id}`);
     }
     const response = { ok: true as const, operationState, attemptState };
@@ -238,10 +322,7 @@ export function recordOwnerOutcome(
   });
 }
 
-/**
- * A reference the browser reports after its callback window closed. It may only add the missing
- * transaction or UserOperation hash to the same reserved attempt; it never changes the outcome.
- */
+/** Allows a late reference only while the callback-missing attempt has no recorded hashes. */
 function lateBroadcastReference(
   attempt: {
     state: string;
@@ -265,35 +346,4 @@ function lateBroadcastReference(
     transactionHash: outcome.transactionHash ?? null,
     userOperationHash: outcome.userOperationHash ?? null,
   };
-}
-
-/**
- * The wallet window closed without a browser outcome. Absence of a callback never proves that
- * nothing was sent, so the attempt becomes uncertain and the reconciler searches the chain; it is
- * never released or resent from here.
- */
-export function watchOwnerAttempt(core: ReportingCore, job: ClaimedJob): JobOutcome {
-  return inTransaction(core.db, (): JobOutcome => {
-    const attempt = attemptById(core, job.subjectId);
-    const operation = attempt ? operationById(core, attempt.operationId) : null;
-    if (!attempt || !operation || attempt.state !== "wallet_pending") return { status: "done" };
-    updateAttempt(core, attempt.id, { state: "uncertain", reasonCode: "callback_missing" });
-    setOperationState(core, operation.id, "reconciling");
-    audit(core, "attempt_callback_missing", { kind: "attempt", id: attempt.id }, {});
-    enqueueJob(core, {
-      kind: "reconcile_operation",
-      subjectId: operation.id,
-      dedupeKey: `reconcile:${attempt.id}`,
-      maxAttempts: 40,
-    });
-    const subject = operationSubject(core, operation);
-    if (!subject) return { status: "done" };
-    subject.advance("OUTCOME_UNCERTAIN", false);
-    participantWriter(core, {
-      participantId: subject.participantId,
-      conversationId: subject.conversationId,
-      dedupePrefix: `watch:${attempt.id}`,
-    })?.say("publish.unknown");
-    return { status: "done" };
-  });
 }

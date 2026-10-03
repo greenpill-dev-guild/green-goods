@@ -12,15 +12,19 @@ Current implementation checklist:
 
 - [x] Resolve develop conflicts in isolated scope/core checkouts and integrate locally into Telegram.
 - [x] Pin provider snapshots and declare optional root environment entries.
-- [ ] Supply real root environment references and evaluate/optimize with live providers.
+- [x] Validate supplied local/Fly provider keys and evaluate synthetic text/native media/converted Office cases.
 - [x] Install and wire bounded Office conversion with native-text recovery.
 - [x] Complete browser Kernel grants, live executor wiring and Agent-independent owner revocation.
 - [x] Render responsive PWA ceremonies and permission management at desktop/mobile widths.
 - [x] Preserve multiple active channel links for the same proven account, with channel-scoped unlink/recovery.
 - [x] Enable new-database Telegram text/photo reporting and prepare remote routes, controls and bot menu.
-- [x] Run focused negative/failure proof, the complete selected critical gate and rendered proof.
+- [x] Pass the complete current first-report activation critical QA gate; uncommitted-worktree proof is separate from the earlier committed receipt.
 - [x] Prepare the resolved PR stack; local gates pass and current-head CI is tracked in the PR body.
 - [x] Record deployment/key/operator runbook and outstanding live signing, chain, provider and WhatsApp evidence.
+- [x] Implement browser-only first-report ENABLE activation; never send owner enable signatures to the Agent.
+- [x] Prove real sandboxed Office conversion and two converted Office model cases on isolated Fly machines.
+- [x] Verify the final immutable image with untouched runtime imports and synthetic DOCX/XLSX conversion on Fly.
+- [ ] Verify production passkey/EAS/role/sponsorship/deployed-policy gates before release/registry activation.
 
 Reuse decisions: extend existing reporting config/media converters, identity-store/bindings,
 Kernel permission builder and ceremony hooks, and Client CeremonyFrame/PermissionsPage.

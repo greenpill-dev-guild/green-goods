@@ -8,6 +8,15 @@
 > credentials. Voice and WhatsApp stay off. See the current
 > [implementation and live-session handoff](handoffs/codex-telegram-readiness.md).
 >
+> **First-report activation accepted, 2 October:** the owner reviews the actual first report or
+> review in the browser, then explicitly allows and publishes it using the SDK ENABLE operation.
+> That first item consumes one of five. Later confirmed items use DEFAULT operations with only
+> the delegated signature. The owner enable signature remains in the browser and is never sent
+> to or persisted by the Agent. Direct `installValidations` cannot establish the required execute
+> selector on Kernel 0.3.1; this supersedes the lifecycle alternatives in the historical diagrams.
+> Active requires the exact first receipt and effective onchain permission. Uncertain attempts
+> retain their reservation. Reporting remains 24 hours; separate review remains one hour.
+>
 > Standard Kernel CallPolicy admits batches, and GasPolicy omits paymaster gas from its
 > allowance. The accepted bounded grant therefore adds `SingleAttestationPolicy`: one
 > canonical zero-value call, no message signing, permanent permission retirement, the exact

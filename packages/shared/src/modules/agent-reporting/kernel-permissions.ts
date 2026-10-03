@@ -31,11 +31,7 @@ import {
   type RevocationDescriptor,
 } from "./grants";
 import { resolveReportingDeployment } from "./envelope";
-import {
-  createPermissionReader,
-  KERNEL_PERMISSION_ABI,
-  permissionValidationId,
-} from "./permission-management";
+import { createPermissionReader } from "./permission-management";
 
 /**
  * Kernel 0.3.1 permission construction for one bounded grant: a call policy that admits only the
@@ -125,8 +121,8 @@ export function publicGrantSigner(policy: GrantPolicy): LocalAccount {
   });
 }
 
-/** Rebuild the owner install call from trusted deployment pins, never accept imported calldata. */
-export async function grantInstallCall(
+/** Verify a locally rebuilt permission against the trusted deployment and bytecode pins. */
+export async function verifiedGrantPermissionValidator(
   client: PublicClient<Transport, Chain>,
   policy: GrantPolicy,
   permissionId: Hex
@@ -172,38 +168,14 @@ export async function grantInstallCall(
     },
   });
   if (validator.getIdentifier() !== permissionId) throw new Error("unsupported_scope");
-  const validationId = permissionValidationId(permissionId);
-  const [current, previous] = await Promise.all([
-    client.readContract({
-      address: policy.account,
-      abi: KERNEL_PERMISSION_ABI,
-      functionName: "currentNonce",
-    }),
-    client.readContract({
-      address: policy.account,
-      abi: KERNEL_PERMISSION_ABI,
-      functionName: "validationConfig",
-      args: [validationId],
-    }),
-  ]);
-  const nonce = previous.nonce === current ? current + 1 : current;
-  return {
-    address: policy.account,
-    account: policy.account,
-    chainId: policy.chainId,
-    abi: KERNEL_PERMISSION_ABI,
-    functionName: "installValidations",
-    args: [
-      [validationId],
-      [{ nonce, hook: "0x0000000000000000000000000000000000000001" }],
-      [await validator.getEnableData(policy.account)],
-      ["0x"],
-    ],
-    value: 0n,
-  };
+  return validator;
 }
 
 export { signGrantedKernelOperation } from "./kernel-executor";
+export {
+  createGrantedKernelActivationAccount,
+  signGrantedKernelActivation,
+} from "./kernel-activation";
 export {
   createPermissionReader,
   KERNEL_PERMISSION_ABI,

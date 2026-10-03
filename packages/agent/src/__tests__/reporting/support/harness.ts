@@ -8,7 +8,7 @@ import { registerMessagingRoutes } from "../../../api/routes/messaging";
 import { InMemoryPublicRateLimiter } from "../../../api/public-protection";
 import { resolveAuthority } from "../../../services/reporting/authority";
 import type { AccountProofVerifier } from "../../../services/reporting/browser-access";
-import { watchOwnerAttempt } from "../../../services/reporting/execution";
+import { watchOwnerAttempt } from "../../../services/reporting/owner-attempt-watch";
 import { createFilesystemMediaStore } from "../../../services/reporting/media-store";
 import { processMedia } from "../../../services/reporting/media/process";
 import type { OpenAIConfig } from "../../../services/reporting/openai-responses";
@@ -136,6 +136,7 @@ export class Harness {
       secureCookies: true,
       cookiePath: "/api/messaging",
       grants: this.grantDeps(),
+      activation: { sender: this.sender, gasPerSubmission: 200_000 },
     });
   }
 

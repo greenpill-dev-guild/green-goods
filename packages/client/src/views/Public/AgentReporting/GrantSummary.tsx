@@ -66,7 +66,7 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
     {
       label: intl.formatMessage({
         id: "public.reporting.grant.gas",
-        defaultMessage: "Gas allowance",
+        defaultMessage: "Total gas allowance",
       }),
       value: intl.formatMessage(
         { id: "public.reporting.grant.gasUnits", defaultMessage: "{count} gas units" },
@@ -78,7 +78,7 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
           {
             label: intl.formatMessage({
               id: "public.reporting.grant.cost",
-              defaultMessage: "Maximum network cost",
+              defaultMessage: "Maximum total sponsored cost",
             }),
             value: `${formatEther(BigInt(grant.policy.gasCostCapWei))} ETH`,
           },

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  grantInstallationState,
+  readGrantActivationState,
   resumeGrantInstallation,
   useGrantInstallation,
 } from "./useGrantInstallation";
@@ -37,7 +37,6 @@ import {
   issuesFor,
   PURPOSES,
   stageForOperation,
-  stageForGrant,
 } from "./ceremony-stage";
 import { useCeremonyAccount } from "./useCeremonyAccount";
 
@@ -98,11 +97,11 @@ export function useAgentReportingCeremony(
   const loadResource = useCallback(
     async (access: AccessResponse) => {
       const { purpose, resourceKind, resourceId } = access.scope;
-      update({ access, purpose, error: null });
+      update({ access, purpose, error: null, resource: null, operation: null, grant: null });
       if (purpose === "grant_reporting" || purpose === "grant_review") {
         try {
           const grant = await client.proposeGrant();
-          return update({ grant, stage: stageForGrant(grant.state) });
+          return update(await readGrantActivationState(client, requestId, grant));
         } catch (error) {
           if (error instanceof CeremonyError && error.code === "unsupported_scope")
             return update({ stage: "unsupported" });
@@ -117,7 +116,7 @@ export function useAgentReportingCeremony(
         resourceKind === "review" ? await client.review(resourceId) : await client.draft(resourceId)
       );
     },
-    [client, showResource, update]
+    [client, requestId, showResource, update]
   );
 
   const openAccess = useCallback(
@@ -173,7 +172,7 @@ export function useAgentReportingCeremony(
         }
         if (isMounted()) await loadResource(access);
       } catch {
-        if (stored.pendingGrant) {
+        if (stored.pendingGrant || stored.pendingGrantActivation) {
           if (isMounted()) update({ stage: "grant_submitted", error: "outcome_unknown" });
         } else clearCeremony(requestId);
       }
@@ -184,11 +183,12 @@ export function useAgentReportingCeremony(
   const polling =
     state.stage === "pairing" ||
     state.stage === "grant_submitted" ||
-    ((state.stage === "loading" || state.stage === "submitted") && Boolean(state.operation));
+    ((state.stage === "loading" || state.stage === "submitted") &&
+      Boolean(state.operation || state.grant));
   useQuery({
     queryKey:
-      state.stage === "grant_submitted"
-        ? agentReportingKeys.grant(state.grant?.grantId ?? "none")
+      state.grant && (state.stage === "grant_submitted" || state.stage === "loading")
+        ? agentReportingKeys.activation(state.grant?.grantId ?? "none")
         : state.stage === "pairing"
           ? agentReportingKeys.challenge(challengeRef.current ?? "none")
           : agentReportingKeys.operation(state.operation?.operationId ?? "none"),
@@ -202,9 +202,9 @@ export function useAgentReportingCeremony(
         if (challenge.state !== "proof_verified") await afterChallenge(challenge);
         return challenge.state;
       }
-      if (stateRef.current.stage === "grant_submitted" && stateRef.current.grant) {
+      if (stateRef.current.grant) {
         const grant = await client.grant(stateRef.current.grant.grantId);
-        update(grantInstallationState(requestId, grant));
+        update(await readGrantActivationState(client, requestId, grant));
         return grant.state;
       }
       const operationId = stateRef.current.operation?.operationId;

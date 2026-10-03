@@ -3,6 +3,7 @@ import type {
   GrantView,
   OperationView,
   RecoveryStep,
+  ResourceView,
 } from "../../../modules/agent-reporting/api-contract";
 import { CeremonyClient } from "../../../modules/agent-reporting/ceremony-client";
 import {
@@ -62,6 +63,8 @@ export class FakeAgent {
   dropOutcomes = 0;
   grant: GrantView | null = null;
   dropGrantApprovals = 0;
+  activationStarted = false;
+  activationEmpty = false;
   operation: OperationView = {
     operationId: "op-1",
     kind: "work",
@@ -125,7 +128,11 @@ export class FakeAgent {
     };
   }
 
-  private route(method: string, path: string, body: Record<string, unknown> | null) {
+  private route(
+    method: string,
+    path: string,
+    body: Record<string, unknown> | null
+  ): { status: number; value: unknown } {
     const ok = (value: unknown, status = 200) => ({ status, value });
     const refuse = (errorCode: string, status: number) => ({
       status,
@@ -145,6 +152,32 @@ export class FakeAgent {
     }
     if (method === "POST" && path === "/access") return ok(this.access());
     if (method === "GET" && path === "/access/current") return ok(this.access());
+    if (path.endsWith("/activation") && this.grant) {
+      if (method === "POST") this.activationStarted = true;
+      return this.activationStarted
+        ? ok({
+            ok: true,
+            resource: {
+              ...(this.route("GET", "/drafts/d-1", null).value as ResourceView),
+              operation: this.activationEmpty ? null : this.operation,
+            },
+          })
+        : refuse("unavailable", 404);
+    }
+    if (path.endsWith("/activation/attempts"))
+      return this.route(method, "/operations/op-1/attempts", body);
+    if (path.endsWith("/activation/signature")) {
+      this.operation = {
+        ...this.operation,
+        attempt: { attemptId: "at-1", attemptNumber: 1, state: "signed" },
+      };
+      return ok({ ok: true, delegateSignature: "0xff1234" });
+    }
+    if (path.endsWith("/activation/outcome") && this.grant) {
+      const outcome = body?.outcome as { kind: string };
+      if (outcome.kind === "broadcast") this.grant = { ...this.grant, state: "enabling" };
+      return this.route(method, "/operations/op-1/outcome", body);
+    }
     if (path.startsWith("/execution-grants") && this.grant) {
       if (path.endsWith("/approval"))
         this.grant = { ...this.grant, state: "enabling", version: this.grant.version + 1 };

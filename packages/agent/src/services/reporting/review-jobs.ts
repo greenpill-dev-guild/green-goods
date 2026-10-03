@@ -14,7 +14,7 @@ import { gardenLabel } from "./coordinator/prompting";
 import { askReviewConfirmation, nextReviewStep } from "./coordinator/review-prompts";
 import { inTransaction } from "./database";
 import { grantUsability, liveGrant } from "./grants-store";
-import type { ClaimedJob } from "./jobs";
+import { enqueueJob, type ClaimedJob } from "./jobs";
 import { conversationRealm, participantWriter } from "./notify";
 import { freezeEnvelope, upsertOperation } from "./operations";
 import { activeAccount, participantEpoch } from "./participants";
@@ -250,6 +250,15 @@ export async function resolveReviewAuthority(
       },
     });
     if (!freezeEnvelope(core, operation, envelope)) return;
+    if (mode === "delegated") {
+      enqueueJob(core, {
+        kind: "execute_delegated",
+        subjectId: operation.id,
+        dedupeKey: `execute:${operation.id}:${envelope.payloadDigest}`,
+        maxAttempts: 288,
+      });
+      return;
+    }
     const out = writer();
     if (!out?.target.binding) return;
     const { url } = issueContinuation(core, {
@@ -271,6 +280,32 @@ export async function resolveReviewAuthority(
       { kind: out.text(account.kind === "eoa" ? "account.wallet" : "account.passkey") },
       { url, label: out.text("review.signLabel") }
     );
+    const module = deps.delegationModules.find((entry) => entry.chainId === review.chainId);
+    if (
+      account.kind === "kernel" &&
+      delegationReady &&
+      (!module?.singleCallPolicy || module.reviewSupported)
+    ) {
+      const grantLink = issueContinuation(core, {
+        purpose: "grant_review",
+        participantId: review.participantId,
+        subjectId: out.target.subjectId,
+        bindingId: out.target.binding.bindingId,
+        conversationId: review.conversationId,
+        providerRealm: conversationRealm(core, review.conversationId),
+        resourceKind: "grant",
+        resourceId: review.id,
+        resourceRevision: review.revision,
+        resourceDigest: `garden:${content.gardenAddress}`,
+        expectedAccount: account.address,
+        identityEpoch: epoch,
+      });
+      out.say(
+        "review.grantLink",
+        { garden: gardenLabel(core.gardens, content.gardenAddress) },
+        { url: grantLink.url, label: out.text("review.grantLabel") }
+      );
+    }
   });
   return done;
 }

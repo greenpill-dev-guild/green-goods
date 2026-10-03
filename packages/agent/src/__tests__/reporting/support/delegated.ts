@@ -35,6 +35,18 @@ export class FakeDelegatedSender implements DelegatedSender {
     };
   }
 
+  async signActivation(input: {
+    grant: GrantRecord;
+    envelope: PublicationEnvelope;
+    userOperation: unknown;
+  }) {
+    const signed = await this.sign(input);
+    this.activationOperations.set(signed.userOperationHash, signed.signedOperation);
+    return { userOperationHash: signed.userOperationHash, delegateSignature: "0xfade" as Hex };
+  }
+
+  readonly activationOperations = new Map<Hex, string>();
+
   async submit(signedOperation: string) {
     const op = JSON.parse(signedOperation) as { hash: Hex; account: string; to: string; data: Hex };
     this.submitted += 1;

@@ -2,6 +2,7 @@ import {
   attestCallFailures,
   envelopeIssues,
   type PublicationEnvelope,
+  type GrantActivationOperation,
   type ReportingDeployment,
 } from "@green-goods/shared/modules/agent-reporting";
 import type { Hex } from "viem";
@@ -36,6 +37,12 @@ export interface DelegatedSender {
     nonceRef?: string;
     onPrepared?: (nonce: bigint) => Promise<void>;
   }): Promise<{ userOperationHash: Hex; signedOperation: string }>;
+  /** Signs only the frozen first-report ENABLE operation; owner approval never reaches this port. */
+  signActivation?(input: {
+    grant: GrantRecord;
+    envelope: PublicationEnvelope;
+    userOperation: GrantActivationOperation;
+  }): Promise<{ userOperationHash: Hex; delegateSignature: Hex }>;
   submit(
     signedOperation: string
   ): Promise<{ accepted: boolean; retryable: boolean; errorCode?: string }>;

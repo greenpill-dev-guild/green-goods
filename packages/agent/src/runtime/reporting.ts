@@ -14,7 +14,7 @@ import type { GardenDirectory } from "../services/reporting/gardens";
 import { type ControlName, ensureControls, INITIAL_CONTROLS } from "../services/reporting/controls";
 import { inTransaction, openReportingDatabase } from "../services/reporting/database";
 import { type DelegatedSender, executeDelegated } from "../services/reporting/delegated";
-import { watchOwnerAttempt } from "../services/reporting/execution";
+import { watchOwnerAttempt } from "../services/reporting/owner-attempt-watch";
 import { type GrantDeps, reconcileGrant } from "../services/reporting/grants";
 import type { ReportInterpreter } from "../services/reporting/interpretation";
 import type { JobKind } from "../services/reporting/jobs";
@@ -222,6 +222,14 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
       media,
       rateLimiter: new InMemoryPublicRateLimiter(),
       ...(grantDeps ? { grants: grantDeps } : {}),
+      ...(delegation?.sender.signActivation
+        ? {
+            activation: {
+              sender: delegation.sender,
+              gasPerSubmission: delegation.gasPerSubmission,
+            },
+          }
+        : {}),
       ...(options.trustedProxy ? { trustedProxy: options.trustedProxy } : {}),
       secureCookies: options.secureCookies ?? true,
       cookiePath: "/api/messaging",

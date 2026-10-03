@@ -94,11 +94,12 @@ export function createPermissionReader(client: {
     generations,
     async permission(account, permissionId) {
       const validationId = permissionValidationId(permissionId);
-      const [config, validation, root, generation] = await Promise.all([
+      const [config, validation, root, generation, executionAllowed] = await Promise.all([
         read(account, "permissionConfig", [permissionId]),
         read(account, "validationConfig", [validationId]),
         read(account, "rootValidator"),
         generations(account),
+        read(account, "isAllowedSelector", [validationId, "0xe9ae5c53"]),
       ]);
       const { signer } = config as { signer: Address };
       const { nonce, hook } = validation as { nonce: number; hook: Address };
@@ -109,7 +110,10 @@ export function createPermissionReader(client: {
         signerAddress: signer,
         nonce: Number(nonce),
         active:
-          signer !== zeroAddress && hook !== zeroAddress && Number(nonce) >= generation.validFrom,
+          signer !== zeroAddress &&
+          hook !== zeroAddress &&
+          Number(nonce) >= generation.validFrom &&
+          executionAllowed === true,
       };
     },
     async discover(account) {

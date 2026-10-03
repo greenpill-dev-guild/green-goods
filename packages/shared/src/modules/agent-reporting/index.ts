@@ -120,6 +120,8 @@ export type {
   ReportingErrorCode,
   ResourceView,
   GrantView,
+  GrantActivationOperation,
+  GrantActivationSignatureRequest,
 } from "./api-contract";
 export {
   accessResponseSchema,
@@ -134,6 +136,11 @@ export {
   proofRequestSchema,
   REPORTING_ERROR_CODES,
   resourceViewSchema,
+  grantActivationOperationSchema,
+  grantActivationRequestSchema,
+  grantActivationResponseSchema,
+  grantActivationSignatureRequestSchema,
+  grantActivationSignatureResponseSchema,
 } from "./api-contract";
 export type { ReportingProofFields, ReportingPurpose } from "./proof";
 export { buildReportingProofMessage, REPORTING_PROOF_AUDIENCE } from "./proof";

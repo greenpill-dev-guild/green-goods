@@ -1,19 +1,30 @@
-import { useCallback, type RefObject } from "react";
-import { createPublicClient, http, type Address } from "viem";
-import { getChain } from "../../config/chains";
-import { getRpcUrl } from "../../utils/blockchain/chain-registry";
-import type { AccessResponse, GrantView } from "../../modules/agent-reporting/api-contract";
+import { useCallback, useRef, type RefObject } from "react";
+import type { Address, Hex } from "viem";
+import type {
+  AccessResponse,
+  GrantView,
+  ResourceView,
+  OperationView,
+  AttemptOutcome,
+} from "../../modules/agent-reporting/api-contract";
 import type { CeremonyClient } from "../../modules/agent-reporting/ceremony-client";
 import {
   descriptorMatchesPolicy,
   grantPolicyDigest,
   revocationDescriptorIssues,
 } from "../../modules/agent-reporting/grants";
-import { grantInstallCall } from "../../modules/agent-reporting/kernel-permissions";
+import { sendBrowserGrantActivation } from "../../modules/agent-reporting/browser-grant-activation";
+import {
+  assertSmartAccountClient,
+  assertSmartAccountClientResolverActive,
+} from "../../modules/auth/smartAccountClientResolver";
+import { assertLocalArbitrumForkSmartAccountsDisabled } from "../../modules/transactions/local-fork-safety";
+import { useAuthState } from "../../providers/Auth";
+import { getPrimaryAddress } from "../auth/usePrimaryAddress";
+import { issuesFor, stageForOperation, stageForGrant, type CeremonyStage } from "./ceremony-stage";
 import { persistRevocationDescriptor } from "../../modules/agent-reporting/permission-management";
 import type { TransactionSender } from "../../modules/transactions/types";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
-import { stageForGrant, type CeremonyStage } from "./ceremony-stage";
 import {
   readCeremony,
   writeCeremony,
@@ -27,6 +38,24 @@ export async function resumeGrantInstallation(
   requestId: string,
   stored: StoredCeremony
 ) {
+  const activation = stored.pendingGrantActivation;
+  if (activation) {
+    await client
+      .reportGrantActivationOutcome(activation.grantId, activation.request)
+      .then(() => {
+        if (activation.request.outcome.kind !== "uncertain")
+          writeCeremony(requestId, { accessId: stored.accessId });
+      })
+      .catch(() => undefined);
+    const grant = await client.grant(activation.grantId).catch(() => null);
+    return grant
+      ? readGrantActivationState(client, requestId, grant)
+      : {
+          grant: null,
+          stage: "grant_submitted" as CeremonyStage,
+          error: "outcome_unknown" as const,
+        };
+  }
   const pending = stored.pendingGrant;
   if (!pending) return null;
   try {
@@ -42,14 +71,17 @@ export async function resumeGrantInstallation(
 }
 
 /** Clear uncertainty only for this exact policy once the Agent reports a reconciled state. */
-export function grantInstallationState(requestId: string, grant: GrantView) {
+function grantInstallationState(requestId: string, grant: GrantView) {
   const stored = readCeremony(requestId);
   const pending = stored?.pendingGrant;
-  const matches = pending?.grantId === grant.grantId && pending.policyDigest === grant.policyDigest;
+  const activation = stored?.pendingGrantActivation;
+  const matches =
+    (pending?.grantId === grant.grantId && pending.policyDigest === grant.policyDigest) ||
+    (activation?.grantId === grant.grantId && activation.policyDigest === grant.policyDigest);
   const authoritative =
     matches && ["active", "paused", "failed", "expired", "revoked"].includes(grant.state);
   if (authoritative) writeCeremony(requestId, { accessId: stored?.accessId });
-  const undelivered = Boolean(pending) && !authoritative;
+  const undelivered = Boolean(pending || activation) && !authoritative;
   const error: CeremonyFailure | null = undelivered
     ? "outcome_unknown"
     : grant.state === "paused"
@@ -66,7 +98,38 @@ export function grantInstallationState(requestId: string, grant: GrantView) {
   };
 }
 
-/** Installs only the approved, locally reconstructed authority and retains uncertain references. */
+/** A GET can restore an existing first report, but never creates or signs one. */
+export async function readGrantActivationState(
+  client: CeremonyClient,
+  requestId: string,
+  grant: GrantView
+) {
+  const installed = grantInstallationState(requestId, grant);
+  const resource = await client.grantActivation(grant.grantId).catch(() => null);
+  if (!resource) return installed;
+  const operation = resource.operation;
+  const operationStage = stageForOperation(operation);
+  const stage: CeremonyStage =
+    installed.stage !== "grant_ready"
+      ? installed.stage
+      : operationStage === "submitted"
+        ? "grant_submitted"
+        : operationStage === "loading" || !operation
+          ? "loading"
+          : operationStage === "failed" && !operation.envelope
+            ? "failed"
+            : "grant_ready";
+  return {
+    ...installed,
+    resource,
+    operation,
+    stage,
+    error:
+      operation?.attempt?.state === "uncertain" ? ("outcome_unknown" as const) : installed.error,
+  };
+}
+
+/** First freezes a report for review, then enables its permission and publishes on a second action. */
 export function useGrantInstallation({
   account,
   client,
@@ -79,19 +142,33 @@ export function useGrantInstallation({
   client: CeremonyClient;
   requestId: string;
   sender: TransactionSender | null;
-  stateRef: RefObject<{ grant: GrantView | null; access: AccessResponse | null }>;
+  stateRef: RefObject<{
+    grant: GrantView | null;
+    access: AccessResponse | null;
+    resource: ResourceView | null;
+  }>;
   update: (next: {
     stage?: CeremonyStage;
     error?: CeremonyFailure | null;
     grant?: GrantView;
+    resource?: ResourceView;
+    operation?: OperationView | null;
   }) => void;
 }) {
-  const installGrant = useCallback(async () => {
-    const { grant, access } = stateRef.current;
-    if (!grant || !access || !sender || !grant.permissionId || !grant.revocationDescriptor) return;
+  const auth = useAuthState();
+  const authRef = useRef(auth);
+  authRef.current = auth;
+  const busy = useRef(false);
+  return useCallback(async () => {
+    const { grant, access, resource } = stateRef.current;
+    if (busy.current || !grant || !access || !grant.permissionId || !grant.revocationDescriptor)
+      return;
+    if (!["proposed", "owner_authorization_pending"].includes(grant.state))
+      return update({ stage: stageForGrant(grant.state) });
     if (Date.now() >= grant.policy.validUntil)
       return update({ stage: "unavailable", error: "expired" });
-    if (readCeremony(requestId)?.pendingGrant)
+    const stored = readCeremony(requestId);
+    if (stored?.pendingGrant || stored?.pendingGrantActivation)
       return update({ stage: "grant_submitted", error: "outcome_unknown" });
     if (account?.toLowerCase() !== grant.policy.account.toLowerCase())
       return update({ error: "wrong_account" });
@@ -99,73 +176,143 @@ export function useGrantInstallation({
       grantPolicyDigest(grant.policy) !== grant.policyDigest ||
       revocationDescriptorIssues(grant.revocationDescriptor).length ||
       !descriptorMatchesPolicy(grant.revocationDescriptor, grant.policy, grant.permissionId)
-    ) {
+    )
       return update({ error: "envelope_mismatch" });
-    }
-    update({ stage: "grant_signing", error: null });
+    busy.current = true;
+    let delegateRequested = false;
     let broadcast = false;
-    let reported = false;
-    let knownReference: `0x${string}` | null = null;
-    const reportReference = async (hash: `0x${string}`) => {
-      // Prefer the sender's first reference (often a UserOperation hash) to its later receipt.
-      knownReference ??= hash;
+    let knownHash: Hex | null = null;
+    let attemptId: string | null = null;
+    let payloadDigest: Hex | null = null;
+    const outcomeRequest = (outcome: AttemptOutcome) => ({
+      attemptId: attemptId as string,
+      payloadDigest: payloadDigest as Hex,
+      idempotencyKey: `${attemptId}:${outcome.kind}`,
+      outcome,
+    });
+    const remember = (outcome: AttemptOutcome) =>
       writeCeremony(requestId, {
         accessId: access.accessId,
-        pendingGrant: {
+        pendingGrantActivation: {
           grantId: grant.grantId,
-          version: grant.version,
           policyDigest: grant.policyDigest,
-          enableReference: knownReference,
+          request: outcomeRequest(outcome),
         },
       });
-      update({ stage: "grant_submitted" });
-      const approved = await client.approveGrant(grant, knownReference).catch(() => null);
-      if (approved) {
-        reported = true;
-        writeCeremony(requestId, { accessId: access.accessId });
-        update({ grant: approved });
-      }
+    const report = async (outcome: AttemptOutcome) => {
+      remember(outcome);
+      await client.reportGrantActivationOutcome(grant.grantId, outcomeRequest(outcome));
+      if (outcome.kind !== "uncertain") writeCeremony(requestId, { accessId: access.accessId });
     };
     try {
-      const clientChain = createPublicClient({
-        chain: getChain(grant.policy.chainId),
-        transport: http(getRpcUrl(grant.policy.chainId)),
+      // This first explicit action prepares the summary only. It cannot prompt or sign.
+      if (!resource) {
+        update({ stage: "loading", error: null });
+        const frozen = await client.startGrantActivation(grant);
+        update({
+          resource: frozen,
+          operation: frozen.operation,
+          stage:
+            stageForOperation(frozen.operation) === "submitted"
+              ? "grant_submitted"
+              : frozen.operation?.envelope
+                ? "grant_ready"
+                : "loading",
+        });
+        return;
+      }
+      const operation = resource.operation;
+      const envelope = operation?.envelope;
+      if (!operation || !envelope || issuesFor(operation).length || !sender)
+        return update({ error: "envelope_mismatch" });
+      payloadDigest = envelope.payloadDigest;
+      update({ stage: "grant_signing", error: null });
+      const attempt = await client.reserveGrantActivationAttempt(grant.grantId, {
+        expectedAttemptVersion: operation.attemptVersion,
+        payloadDigest,
+        idempotencyKey: crypto.randomUUID(),
       });
-      const call = await grantInstallCall(clientChain, grant.policy, grant.permissionId);
-      if (Date.now() >= grant.policy.validUntil)
-        return update({ stage: "unavailable", error: "expired" });
+      attemptId = attempt.attemptId;
+      if (attempt.payloadDigest !== payloadDigest) throw new Error("Activation payload changed");
+      await assertLocalArbitrumForkSmartAccountsDisabled();
+      const captured = authRef.current;
+      const resolve = captured.resolveSmartAccountClient;
+      const ownerClient = resolve
+        ? await resolve(grant.policy.chainId)
+        : captured.smartAccountClient;
+      if (!ownerClient) throw new Error("Owner Kernel client unavailable");
+      const assertOwner = () => {
+        const current = authRef.current;
+        assertSmartAccountClientResolverActive(resolve);
+        const currentAddress = getPrimaryAddress(
+          current.authMode,
+          current.walletAddress,
+          current.smartAccountAddress,
+          current.embeddedAddress
+        );
+        if (
+          currentAddress?.toLowerCase() !== grant.policy.account.toLowerCase() ||
+          current.resolveSmartAccountClient !== resolve ||
+          current.smartAccountClient !== captured.smartAccountClient
+        )
+          throw new Error("Owner session changed");
+        assertSmartAccountClient(ownerClient, grant.policy.chainId, grant.policy.account);
+        if (Date.now() >= grant.policy.validUntil) throw new Error("Permission expired");
+      };
       persistRevocationDescriptor(grant.revocationDescriptor);
-      const result = await sender.sendContractCall(call, {
-        assertOwnership: () => sender.assertOwnership?.(grant.policy.account, grant.policy.chainId),
-        onBeforeBroadcast: async (reference) => {
-          broadcast = true;
-          if (reference) {
-            knownReference = reference.hash;
-            writeCeremony(requestId, {
-              accessId: access.accessId,
-              pendingGrant: {
-                grantId: grant.grantId,
-                version: grant.version,
-                policyDigest: grant.policyDigest,
-                enableReference: reference.hash,
-              },
-            });
-          }
+      const hash = await sendBrowserGrantActivation({
+        ownerClient,
+        policy: grant.policy,
+        permissionId: grant.permissionId,
+        envelope,
+        assertOwner,
+        signDelegate: async (userOperation) => {
+          delegateRequested = true;
+          remember({ kind: "uncertain", reason: "send_unknown" });
+          return client.signGrantActivation(grant.grantId, {
+            attemptId: attempt.attemptId,
+            permitVersion: attempt.permitVersion,
+            payloadDigest: attempt.payloadDigest,
+            userOperation,
+          });
         },
-        onBroadcastReference: (reference) => reportReference(reference.hash),
+        onBeforeBroadcast: (hash) => {
+          broadcast = true;
+          knownHash = hash;
+          remember({ kind: "uncertain", reason: "send_unknown", userOperationHash: hash });
+        },
       });
-      // A wallet sender may report only its transaction result; repeating the same approval is
-      // harmless (the route accepts the same enable reference) and never creates new authority.
-      if (!reported) await reportReference(result.hash);
-      update({ stage: "grant_submitted" });
+      await report({ kind: "broadcast", userOperationHash: hash });
+      update({ stage: "grant_submitted", error: null });
     } catch (error) {
-      if (!broadcast && isCancelledTxError(error))
-        return update({ stage: "grant_ready", error: "declined" });
+      const uncertain = delegateRequested || broadcast;
+      if (attemptId && payloadDigest) {
+        const outcome: AttemptOutcome = uncertain
+          ? {
+              kind: "uncertain",
+              reason: "send_unknown",
+              ...(knownHash ? { userOperationHash: knownHash } : {}),
+            }
+          : isCancelledTxError(error)
+            ? { kind: "rejected_before_send", reason: "user_rejected" }
+            : { kind: "preparation_failed", reason: "activation_unavailable" };
+        await report(outcome).catch(() => undefined);
+      }
+      if (!uncertain && resource) {
+        const fresh = await readGrantActivationState(client, requestId, grant);
+        update({ ...fresh, error: isCancelledTxError(error) ? "declined" : "unsupported" });
+        return;
+      }
       update({
-        stage: broadcast ? "grant_submitted" : "grant_ready",
-        error: broadcast ? "outcome_unknown" : "unsupported",
+        stage: uncertain ? "grant_submitted" : "grant_ready",
+        error: uncertain
+          ? "outcome_unknown"
+          : isCancelledTxError(error)
+            ? "declined"
+            : "unsupported",
       });
+    } finally {
+      busy.current = false;
     }
   }, [account, client, requestId, sender, stateRef, update]);
-  return installGrant;
 }

@@ -15,6 +15,11 @@ import {
   type ResourceView,
   resourceViewSchema,
   grantResponseSchema,
+  grantActivationResponseSchema,
+  grantActivationSignatureResponseSchema,
+  grantActivationSignatureRequestSchema,
+  type GrantActivationSignatureRequest,
+  type OutcomeRequest,
   type GrantView,
 } from "./api-contract";
 
@@ -195,6 +200,60 @@ export class CeremonyClient {
   }
   async grant(grantId: string): Promise<GrantView> {
     return (await this.request("GET", `/execution-grants/${grantId}`, grantResponseSchema)).grant;
+  }
+  async startGrantActivation(grant: Pick<GrantView, "grantId" | "version" | "policyDigest">) {
+    return (
+      await this.request(
+        "POST",
+        `/execution-grants/${grant.grantId}/activation`,
+        grantActivationResponseSchema,
+        {
+          body: { expectedVersion: grant.version, policyDigest: grant.policyDigest },
+        }
+      )
+    ).resource;
+  }
+  async grantActivation(grantId: string) {
+    return (
+      await this.request(
+        "GET",
+        `/execution-grants/${grantId}/activation`,
+        grantActivationResponseSchema
+      )
+    ).resource;
+  }
+  reserveGrantActivationAttempt(
+    grantId: string,
+    input: {
+      expectedAttemptVersion: number;
+      payloadDigest: `0x${string}`;
+      idempotencyKey: string;
+    }
+  ) {
+    return this.request(
+      "POST",
+      `/execution-grants/${grantId}/activation/attempts`,
+      attemptResponseSchema,
+      { body: input }
+    );
+  }
+  async signGrantActivation(grantId: string, input: GrantActivationSignatureRequest) {
+    return (
+      await this.request(
+        "POST",
+        `/execution-grants/${grantId}/activation/signature`,
+        grantActivationSignatureResponseSchema,
+        { body: grantActivationSignatureRequestSchema.parse(input) }
+      )
+    ).delegateSignature;
+  }
+  reportGrantActivationOutcome(grantId: string, input: OutcomeRequest) {
+    return this.request(
+      "POST",
+      `/execution-grants/${grantId}/activation/outcome`,
+      outcomeResponseSchema,
+      { body: input }
+    );
   }
   async approveGrant(
     grant: Pick<GrantView, "grantId" | "version" | "policyDigest">,

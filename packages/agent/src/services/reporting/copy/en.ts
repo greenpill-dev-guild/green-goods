@@ -204,6 +204,9 @@ export const EN_REPORTING_COPY = {
   "review.cancelled": "Review cancelled. Nothing was recorded.",
   "review.signLink": "Open this page to check and sign your decision with your {kind}.",
   "review.signLabel": "Check and sign",
+  "review.grantLink":
+    "Open this page to record this confirmed decision and allow up to 5 reviews, including this one, for this garden over 1 hour. You must confirm every review separately in chat.",
+  "review.grantLabel": "Allow reviews in chat",
   "review.rejectedBeforeSend":
     "The signature was declined, so your review wasn't recorded. Here it is again; confirm it when you're ready.",
   "review.reverted": "Recording your review failed on chain. Check it and confirm again to retry.",

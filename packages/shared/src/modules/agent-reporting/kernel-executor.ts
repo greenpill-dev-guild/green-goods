@@ -14,6 +14,7 @@ import { formatUserOperationRequest, getUserOperationHash } from "viem/account-a
 import type { GrantPolicy } from "./grants";
 import type { PublicationEnvelope } from "./envelope";
 import { grantPermissionValidator } from "./kernel-permissions";
+import { createPermissionReader } from "./permission-management";
 
 /** Prepares and signs one installed permission; no sudo plugin/portable owner-enable signature. */
 export async function signGrantedKernelOperation(input: {
@@ -23,6 +24,8 @@ export async function signGrantedKernelOperation(input: {
   signer: LocalAccount;
   policy: GrantPolicy;
   envelope: PublicationEnvelope;
+  /** The reservation for this attempt; the total grant allowance cannot replace it. */
+  reservedGasUnits: number;
   nonce?: bigint;
   onPrepared?: (nonce: bigint) => Promise<void>;
 }): Promise<{ userOperationHash: Hex; signedOperation: string }> {
@@ -30,6 +33,9 @@ export async function signGrantedKernelOperation(input: {
   if (
     !policy.approvedPaymaster ||
     !policy.gasCostCapWei ||
+    !Number.isSafeInteger(input.reservedGasUnits) ||
+    input.reservedGasUnits <= 0 ||
+    input.reservedGasUnits > policy.gasCap ||
     input.signer.address.toLowerCase() !== policy.signerAddress.toLowerCase()
   ) {
     throw new Error("Unsupported grant execution");
@@ -45,7 +51,13 @@ export async function signGrantedKernelOperation(input: {
     signer: input.signer,
   });
   // Permission must already be owner-installed. Agent never gets an owner enable signature.
-  if (!(await permission.isEnabled(policy.account, "0xe9ae5c53")))
+  // The SDK's isEnabled checks signer installation only; Kernel separately requires the
+  // execution selector and a non-revoked validation generation.
+  const reader = createPermissionReader(
+    client as unknown as Parameters<typeof createPermissionReader>[0]
+  );
+  await reader.assertKernel(policy.account);
+  if (!(await reader.permission(policy.account, permission.getIdentifier())).active)
     throw new Error("Permission not installed");
   const account = await createKernelAccount(client, {
     address: policy.account,
@@ -80,6 +92,8 @@ export async function signGrantedKernelOperation(input: {
     (prepared.preVerificationGas ?? 0n) +
     (prepared.paymasterVerificationGasLimit ?? 0n) +
     (prepared.paymasterPostOpGasLimit ?? 0n);
+  if (gas > BigInt(input.reservedGasUnits))
+    throw new Error("Operation gas exceeds attempt reservation");
   if (gas * (prepared.maxFeePerGas ?? 0n) > BigInt(policy.gasCostCapWei))
     throw new Error("Grant cost exceeds approved budget");
   await input.onPrepared?.(prepared.nonce);

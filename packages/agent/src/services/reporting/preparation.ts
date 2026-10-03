@@ -266,6 +266,7 @@ export async function prepareOperation(
         });
         return;
       }
+      if (typeof job.payload.activationGrantId === "string") return;
       const out = writer();
       if (!out?.target.binding) return;
       const { url } = issueContinuation(core, {

@@ -1,10 +1,5 @@
 import {
-  GRANT_LIMITS,
   type GrantPolicy,
-  type GrantPurpose,
-  grantPolicyDigest,
-  grantPolicyIssues,
-  isDelegationAvailable,
   type PermissionModuleEntry,
   type ReportingDeployment,
 } from "@green-goods/shared/modules/agent-reporting";
@@ -14,12 +9,12 @@ import { commitLifecycle, lifecycleState } from "./coordinator/draft-commit";
 import { gardenLabel } from "./coordinator/prompting";
 import { inTransaction } from "./database";
 import { loadDraft } from "./drafts";
-import { grantById, liveGrant, type GrantRecord } from "./grants-store";
+import { grantById, type GrantRecord } from "./grants-store";
 import { type ClaimedJob, enqueueJob } from "./jobs";
 import { participantWriter } from "./notify";
 import { upsertOperation } from "./operations";
-import { audit, participantEpoch } from "./participants";
-import { findGarden } from "./gardens";
+import { audit } from "./participants";
+import { grantPurposeOf } from "./grant-proposal";
 import type { ReportingCore } from "./runtime";
 import type { BrowserSession } from "./sessions";
 import type { JobOutcome } from "./worker";
@@ -49,129 +44,8 @@ export type GrantError =
   | "unavailable"
   | "conflict"
   | "stale_revision"
-  | "forbidden";
-
-function purposeOf(session: BrowserSession): GrantPurpose | null {
-  const { purpose } = session.request;
-  return purpose === "grant_reporting" ? "reporting" : purpose === "grant_review" ? "review" : null;
-}
-
-export async function proposeGrant(
-  deps: GrantDeps,
-  session: BrowserSession,
-  gardenAddress: string
-): Promise<{ ok: true; grant: GrantRecord } | { ok: false; errorCode: GrantError }> {
-  const { core } = deps;
-  const purpose = purposeOf(session);
-  const module = deps.modules.find((entry) => entry.chainId === core.settings.chainId);
-  if (
-    !purpose ||
-    session.accountKind !== "kernel" ||
-    !module ||
-    !isDelegationAvailable(core.settings.chainId, deps.modules) ||
-    (purpose === "review" && Boolean(module?.singleCallPolicy) && !module?.reviewSupported)
-  ) {
-    return { ok: false, errorCode: "unsupported_scope" };
-  }
-  const garden = findGarden(core.gardens, gardenAddress);
-  if (!garden) return { ok: false, errorCode: "unavailable" };
-  const now = core.clock.now();
-  const existing = liveGrant(core, {
-    accountBindingId: session.accountBindingId,
-    purpose,
-    chainId: core.settings.chainId,
-    gardenAddress: garden.address,
-  });
-  if (existing?.state === "expired") return { ok: true, grant: existing };
-  if (existing)
-    return existing.channelBindingId === session.request.bindingId &&
-      existing.validUntil > now &&
-      existing.state !== "paused"
-      ? { ok: true, grant: existing }
-      : { ok: false, errorCode: "conflict" };
-  const schema = purpose === "reporting" ? deps.deployment.work : deps.deployment.review;
-  const signer = deps.createSigner
-    ? await deps.createSigner()
-    : {
-        signerAddress: deps.signerAddress,
-        signerKeyRef: `signer:${deps.signerAddress.toLowerCase()}`,
-      };
-  const policy: GrantPolicy = {
-    version: 1,
-    purpose,
-    chainId: core.settings.chainId,
-    account: session.account,
-    gardenAddress: garden.address,
-    easAddress: deps.deployment.easAddress,
-    schemaUID: schema.schemaUID,
-    signerAddress: signer.signerAddress,
-    moduleRef: module.moduleRef,
-    validAfter: now,
-    validUntil: now + GRANT_LIMITS[purpose].durationMs,
-    maxSubmissions: GRANT_LIMITS[purpose].maxSubmissions,
-    gasCap: deps.gasCap,
-    ...(module.singleCallPolicy ? { singleCallPolicy: module.singleCallPolicy } : {}),
-    ...(module.approvedPaymaster ? { approvedPaymaster: module.approvedPaymaster } : {}),
-    ...(module.gasCostCapsWei ? { gasCostCapWei: module.gasCostCapsWei[purpose] } : {}),
-  };
-  if (grantPolicyIssues(policy).length > 0) return { ok: false, errorCode: "unsupported_scope" };
-  const permissionId = await deps.permissionIdFor(policy);
-  if (core.clock.now() >= policy.validUntil) return { ok: false, errorCode: "unavailable" };
-  const descriptor = deps.descriptorFor?.(policy, permissionId) ?? null;
-  return inTransaction(core.db, () => {
-    const binding = core.db
-      .query(
-        `SELECT id FROM channel_bindings WHERE id = $binding AND participant_id = $participant
-         AND channel_subject_id = $subject AND status = 'active'`
-      )
-      .get({
-        binding: session.request.bindingId,
-        participant: session.participantId,
-        subject: session.request.subjectId,
-      }) as { id: string } | null;
-    if (!binding) return { ok: false as const, errorCode: "forbidden" as const };
-    const id = core.ids.id();
-    try {
-      core.db
-        .query(
-          `INSERT INTO execution_grants
-             (id, purpose, participant_id, account_binding_id, channel_binding_id, identity_epoch, chain_id, garden_address,
-              module_ref, permission_id, signer_key_ref, signer_address, policy_digest, policy_json, valid_after, valid_until,
-              max_submissions, gas_cap, revocation_descriptor, state, created_at, updated_at)
-           VALUES ($id, $purpose, $participant, $account, $binding, $epoch, $chain, $garden, $module, $permission, $signerRef,
-                   $signer, $digest, $policy, $after, $until, $max, $gas, $descriptor, 'owner_authorization_pending', $now, $now)`
-        )
-        .run({
-          id,
-          purpose,
-          participant: session.participantId,
-          account: session.accountBindingId,
-          binding: binding.id,
-          epoch: participantEpoch(core, session.participantId),
-          chain: policy.chainId,
-          garden: garden.address,
-          module: module.moduleRef,
-          permission: permissionId,
-          signerRef: signer.signerKeyRef,
-          signer: signer.signerAddress.toLowerCase(),
-          descriptor,
-          digest: grantPolicyDigest(policy),
-          policy: JSON.stringify(policy),
-          after: policy.validAfter,
-          until: policy.validUntil,
-          max: policy.maxSubmissions,
-          gas: policy.gasCap,
-          now,
-        });
-    } catch (error) {
-      if ((error as { code?: string }).code?.startsWith("SQLITE_CONSTRAINT")) {
-        return { ok: false as const, errorCode: "conflict" as const };
-      }
-      throw error;
-    }
-    return { ok: true as const, grant: grantById(core, id) as GrantRecord };
-  });
-}
+  | "forbidden"
+  | "dependency_unavailable";
 
 /** The owner authorized exactly this policy; installation is verified before activation. */
 export function approveGrant(
@@ -186,7 +60,7 @@ export function approveGrant(
     }
     if (
       grant.channelBindingId !== session.request.bindingId ||
-      purposeOf(session) !== grant.purpose
+      grantPurposeOf(session) !== grant.purpose
     ) {
       return { ok: false as const, errorCode: "forbidden" as const };
     }
@@ -201,6 +75,12 @@ export function approveGrant(
     ) {
       return { ok: true as const, grant };
     }
+    const activation = core.db
+      .query(`SELECT a.id FROM execution_attempts a JOIN execution_operations o ON o.id = a.operation_id
+      WHERE a.execution_grant_id = $grant AND a.authorization_mode = 'activation' AND a.user_operation_hash = $hash
+      AND (o.draft_id = $resource OR o.review_intent_id = $resource) AND a.state IN ('uncertain','broadcast','confirmed')`)
+      .get({ grant: grant.id, hash: input.enableReference, resource: session.request.resourceId });
+    if (!activation) return { ok: false as const, errorCode: "forbidden" as const };
     const moved = core.db
       .query(
         `UPDATE execution_grants SET state = 'enabling', enable_reference = $reference, version = version + 1, updated_at = $now
@@ -244,6 +124,17 @@ export async function reconcileGrant(deps: GrantDeps, job: ClaimedJob): Promise<
   const { core } = deps;
   const grant = grantById(core, job.subjectId);
   if (!grant || grant.state !== "enabling" || !grant.permissionId) return { status: "done" };
+  const first = core.db
+    .query(`SELECT o.state, o.draft_id, a.state AS attempt_state FROM execution_attempts a
+    JOIN execution_operations o ON o.id = a.operation_id WHERE a.execution_grant_id = $grant
+    AND a.authorization_mode = 'activation' ORDER BY a.created_at DESC LIMIT 1`)
+    .get({ grant: grant.id }) as {
+    state: string;
+    draft_id: string | null;
+    attempt_state: string;
+  } | null;
+  if (!first || first.state !== "published" || first.attempt_state !== "confirmed")
+    return { status: "retry", errorCode: "activation_receipt_pending", delayMs: 30_000 };
   let installed: boolean;
   try {
     installed = await deps.chain.permissionInstalled(
@@ -270,6 +161,20 @@ export async function reconcileGrant(deps: GrantDeps, job: ClaimedJob): Promise<
       )
       .all({ participant: grant.participantId }) as Array<{ id: string }>;
     for (const { id } of waiting) resumeWithGrant(core, id, grant);
+    const firstDraft = first.draft_id
+      ? (core.db
+          .query("SELECT conversation_id FROM work_drafts WHERE id = $id")
+          .get({ id: first.draft_id }) as { conversation_id: string } | null)
+      : null;
+    if (firstDraft)
+      participantWriter(core, {
+        participantId: grant.participantId,
+        conversationId: firstDraft.conversation_id,
+        dedupePrefix: `grant-active:${grant.id}`,
+      })?.say("grant.active", {
+        garden: gardenLabel(core.gardens, grant.gardenAddress),
+        until: new Date(grant.validUntil).toISOString().slice(0, 16).replace("T", " "),
+      });
   });
   return { status: "done" };
 }

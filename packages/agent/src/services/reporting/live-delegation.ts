@@ -1,3 +1,4 @@
+import { formatUserOperation } from "viem/account-abstraction";
 import { dirname, join } from "node:path";
 import {
   grantPolicyDigest,
@@ -9,6 +10,7 @@ import {
   grantPermissionValidator,
   grantRevocationDescriptor,
   publicGrantSigner,
+  signGrantedKernelActivation,
   signGrantedKernelOperation,
 } from "@green-goods/shared/modules/agent-reporting/kernel-permissions";
 import { createPublicClient, http, zeroAddress, type Chain, type Hex } from "viem";
@@ -45,6 +47,7 @@ export function createLiveDelegation(input: {
   ) {
     return { delegationModules: [] };
   }
+  const gasPerSubmission = module.measuredGasUnitsPerSubmission;
   const client = createPublicClient({ chain: input.chain, transport: http(input.rpcUrl) });
   const custody = createGrantSignerCustody(
     join(dirname(input.config.dbPath), "reporting-signers"),
@@ -67,8 +70,8 @@ export function createLiveDelegation(input: {
   return {
     delegationModules: [module],
     delegation: {
-      gasCap: module.measuredGasUnitsPerSubmission * 5,
-      gasPerSubmission: module.measuredGasUnitsPerSubmission,
+      gasCap: gasPerSubmission * 5,
+      gasPerSubmission,
       permissionIdFor,
       createSigner: () => custody.create(),
       descriptorFor: (policy, permissionId) =>
@@ -92,8 +95,19 @@ export function createLiveDelegation(input: {
             signer,
             policy: grant.policy,
             envelope,
+            reservedGasUnits: gasPerSubmission,
             ...(nonceRef ? { nonce: BigInt(nonceRef) } : {}),
             ...(onPrepared ? { onPrepared } : {}),
+          });
+        },
+        async signActivation({ grant, envelope, userOperation }) {
+          const signer = await custody.account(grant.signerKeyRef);
+          return signGrantedKernelActivation({
+            client,
+            policy: grant.policy,
+            envelope,
+            signer,
+            operation: formatUserOperation({ ...userOperation, signature: "0x" }),
           });
         },
         async submit(signedOperation) {

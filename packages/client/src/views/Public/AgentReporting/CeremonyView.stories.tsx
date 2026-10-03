@@ -4,6 +4,7 @@ import {
   type ResourceView,
   resolveReportingDeployment,
 } from "@green-goods/shared/modules/agent-reporting";
+import { Confidence, VerificationMethod } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { HelmetProvider } from "react-helmet-async";
 import { FocusedSiteHeader } from "@/components/Navigation/FocusedSiteHeader";
@@ -26,7 +27,7 @@ const envelope = buildEnvelope(resolveReportingDeployment(42161), {
   revision: 4,
   chainId: 42161,
   accountAddress: ACCOUNT,
-  gardenAddress: "0x00000000000000000000000000000000000000c2",
+  gardenAddress: "0xF7b892886998DAe960D64a9db488336684F137A0",
   clientWorkId: "cw-story",
   actionDefinitionDigest: `0x${"12".repeat(32)}`,
   fields: {
@@ -199,7 +200,7 @@ const grant: NonNullable<Props["grant"]> = {
     account: ACCOUNT,
     gardenAddress: "0xF7b892886998DAe960D64a9db488336684F137A0",
     easAddress: envelope.call.to,
-    schemaUID: `0x${"11".repeat(32)}`,
+    schemaUID: envelope.schemaUID,
     signerAddress: "0x00000000000000000000000000000000000000b2",
     moduleRef: "storybook-only",
     validAfter: STORYBOOK_NOW_SECONDS * 1000,
@@ -213,33 +214,77 @@ const grant: NonNullable<Props["grant"]> = {
   submissionsUsed: 0,
   revocationDescriptor: null,
 };
-export const GrantReady: Story = {
+export const GrantPrepare: Story = {
   args: { stage: "grant_ready", purpose: "grant_reporting", account: ACCOUNT, grant },
+};
+export const GrantPreparing: Story = { args: { ...GrantPrepare.args, stage: "loading" } };
+export const GrantReady: Story = {
+  args: { ...GrantPrepare.args, resource, operation },
 };
 export const GrantSigning: Story = { args: { ...GrantReady.args, stage: "grant_signing" } };
 export const GrantSubmitted: Story = {
   args: { ...GrantReady.args, stage: "grant_submitted", grant: { ...grant, state: "enabling" } },
 };
+export const GrantOutcomeUnknown: Story = {
+  args: { ...GrantSubmitted.args, error: "outcome_unknown" },
+};
 export const GrantActive: Story = {
   args: {
     ...GrantReady.args,
     stage: "grant_active",
-    grant: { ...grant, state: "active", submissionsUsed: 2 },
+    grant: { ...grant, state: "active", submissionsUsed: 1 },
   },
 };
 export const GrantWrongAccount: Story = {
   args: { ...GrantReady.args, account: "0x00000000000000000000000000000000000000b2" },
 };
+const reviewEnvelope = buildEnvelope(resolveReportingDeployment(42161), {
+  kind: "review",
+  operationId: "review-story",
+  revision: 1,
+  chainId: 42161,
+  accountAddress: ACCOUNT,
+  gardenAddress: envelope.gardenAddress,
+  reviewContentDigest: `0x${"34".repeat(32)}`,
+  fields: {
+    actionUID: "7",
+    workUID: `0x${"12".repeat(32)}`,
+    approved: true,
+    feedback: "Seedlings planted and watered as reported.",
+    confidence: Confidence.HIGH,
+    verificationMethod: VerificationMethod.HUMAN,
+    reviewNotesCID: "",
+  },
+});
+const reviewOperation: OperationView = {
+  ...operation,
+  operationId: "review-story",
+  kind: "review",
+  envelope: reviewEnvelope,
+};
 export const GrantReview: Story = {
   args: {
     ...GrantReady.args,
     purpose: "grant_review",
+    operation: reviewOperation,
+    resource: {
+      ...resource,
+      kind: "review",
+      operation: reviewOperation,
+      lines: [
+        { label: "Decision", value: "Approve" },
+        { label: "Confidence", value: "High" },
+        { label: "Feedback", value: "Seedlings planted and watered as reported." },
+      ],
+      evidence: [],
+    },
     grant: {
       ...grant,
       purpose: "review",
       policy: {
         ...grant.policy,
         purpose: "review",
+        schemaUID: reviewEnvelope.schemaUID,
         validUntil: (STORYBOOK_NOW_SECONDS + 60 * 60) * 1000,
       },
     },

@@ -131,7 +131,7 @@ describe("operator controls", () => {
 
     const core = coreFor(path);
     ensureControls(core, INITIAL_CONTROLS);
-    expect(core.db.query("PRAGMA user_version").get()).toEqual({ user_version: 2 });
+    expect(core.db.query("PRAGMA user_version").get()).toEqual({ user_version: 3 });
     expect(readControl(core, "publication")).toEqual({ enabled: true, version: 3 });
     expect(readControl(core, "voice")).toEqual({ enabled: false, version: 1 });
     expect(setControl(core, "voice", true, { actor: "operator", reason: "pilot" })).toEqual({
