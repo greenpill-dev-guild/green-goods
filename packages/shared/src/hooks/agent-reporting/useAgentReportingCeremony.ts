@@ -5,7 +5,6 @@ import {
   useGrantInstallation,
 } from "./useGrantInstallation";
 import { useCallback, useRef, useState } from "react";
-import { agentReportingKeys } from "../../config/query-keys/agent-reporting";
 import type {
   AccessResponse,
   AttemptOutcome,
@@ -34,8 +33,11 @@ import {
 import {
   type AgentReportingCeremony,
   type CeremonyStage,
+  ceremonyPollKey,
   issuesFor,
   PURPOSES,
+  settlesUnknownOutcome,
+  shouldPollCeremony,
   stageForOperation,
 } from "./ceremony-stage";
 import { useCeremonyAccount } from "./useCeremonyAccount";
@@ -180,22 +182,9 @@ export function useAgentReportingCeremony(
     [client, requestId]
   );
 
-  // An unknown outcome is checked until the chain answers, whichever stage it surfaced in.
-  const polling =
-    state.stage === "pairing" ||
-    state.stage === "grant_submitted" ||
-    ((state.stage === "loading" ||
-      state.stage === "submitted" ||
-      state.error === "outcome_unknown") &&
-      Boolean(state.operation || state.grant));
   useQuery({
-    queryKey:
-      state.grant && (state.stage === "grant_submitted" || state.stage === "loading")
-        ? agentReportingKeys.activation(state.grant?.grantId ?? "none")
-        : state.stage === "pairing"
-          ? agentReportingKeys.challenge(challengeRef.current ?? "none")
-          : agentReportingKeys.operation(state.operation?.operationId ?? "none"),
-    enabled: polling,
+    queryKey: ceremonyPollKey(state, challengeRef.current),
+    enabled: shouldPollCeremony(state),
     refetchInterval: options.pollMs ?? POLL_MS,
     gcTime: 0,
     retry: false,
@@ -214,8 +203,7 @@ export function useAgentReportingCeremony(
       if (!operationId) return null;
       const operation = await client.operation(operationId);
       const stage = stageForOperation(operation);
-      // Only a final answer from the chain settles an unknown outcome; until then it stays.
-      const settled = stage === "published" || stage === "failed" || stage === "not_sent";
+      const settled = settlesUnknownOutcome(stage);
       update({
         operation,
         stage,

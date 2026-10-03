@@ -1,5 +1,6 @@
 import type { CeremonyAccount } from "./useCeremonyAccount";
 import type { CeremonyFailure } from "./ceremony-storage";
+import { agentReportingKeys } from "../../config/query-keys/agent-reporting";
 import type {
   AccessResponse,
   ChallengeResponse,
@@ -87,6 +88,41 @@ export function stageForGrant(state: string): CeremonyStage {
   if (["owner_authorization_pending", "proposed"].includes(state)) return "grant_ready";
   if (["enabling", "reconciling_setup"].includes(state)) return "grant_submitted";
   return state === "paused" || state === "failed" ? "failed" : "unavailable";
+}
+
+/** What a status check reads from the ceremony's state. */
+interface PollState {
+  stage: CeremonyStage;
+  error: CeremonyFailure | null;
+  operation: OperationView | null;
+  grant: GrantView | null;
+}
+
+/**
+ * Whether the page keeps asking the Agent where things stand: while a chat pairs, while a request
+ * is prepared or on its way, and for as long as an outcome is unknown, whichever stage that
+ * surfaced in. Without an operation or grant there is nothing to ask about.
+ */
+export function shouldPollCeremony(state: PollState): boolean {
+  if (state.stage === "pairing" || state.stage === "grant_submitted") return true;
+  const waiting =
+    state.stage === "loading" || state.stage === "submitted" || state.error === "outcome_unknown";
+  return waiting && Boolean(state.operation || state.grant);
+}
+
+/** The record a status check reads: the grant's activation, the chat pairing, or the operation. */
+export function ceremonyPollKey(state: PollState, challengeId: string | null) {
+  if (state.grant && (state.stage === "grant_submitted" || state.stage === "loading")) {
+    return agentReportingKeys.activation(state.grant.grantId);
+  }
+  return state.stage === "pairing"
+    ? agentReportingKeys.challenge(challengeId ?? "none")
+    : agentReportingKeys.operation(state.operation?.operationId ?? "none");
+}
+
+/** Only a final answer from the chain settles an unknown outcome; until then it stays. */
+export function settlesUnknownOutcome(stage: CeremonyStage): boolean {
+  return stage === "published" || stage === "failed" || stage === "not_sent";
 }
 
 /** Browser-scoped proof and publication flow; signing requires an explicit owner action.
