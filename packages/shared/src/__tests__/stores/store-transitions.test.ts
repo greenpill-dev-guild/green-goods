@@ -172,6 +172,43 @@ describe("store domain transitions", () => {
     expect(restored.currentStep).toBe(opensOn);
   });
 
+  // A saved draft is read back from the browser's storage, so a text field can
+  // come back as anything. One that is not text is read as empty, so the rest of
+  // the draft is still restored. The wizard trims the title to decide whether
+  // the metadata step is complete, and used to throw on one that was a number.
+  it.each([
+    { field: "title", saved: 42, opensOn: 2 },
+    { field: "description", saved: { not: "text" }, opensOn: 4 },
+    { field: "externalUrl", saved: 7, opensOn: 4 },
+  ])("reads a restored hypercert draft's $field that is not text as empty", ({
+    field,
+    saved,
+    opensOn,
+  }) => {
+    const restored = loadHypercertDraftTransition(
+      {} as HypercertWizardStore,
+      {
+        stepNumber: 4,
+        attestationIds: ["attestation-1"],
+        title: "Spring planting",
+        description: "Seedlings planted along the river",
+        externalUrl: "https://example.org/planting",
+        workScopes: ["planting"],
+        workTimeframeStart: march(25),
+        workTimeframeEnd: march(26),
+        impactTimeframeStart: 0,
+        impactTimeframeEnd: null,
+        [field]: saved,
+      } as unknown as HypercertDraft
+    );
+
+    expect(restored[field as "title" | "description" | "externalUrl"]).toBe("");
+    // What the steward had chosen is kept, and only a missing title sends the
+    // draft back to the metadata step.
+    expect(restored.selectedAttestationIds).toEqual(["attestation-1"]);
+    expect(restored.currentStep).toBe(opensOn);
+  });
+
   it("updates garden fields, membership, and bounded steps as pure patches", () => {
     const state = {
       form: createEmptyGardenForm(),
