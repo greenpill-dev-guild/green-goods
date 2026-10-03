@@ -19,7 +19,6 @@ import {
   zeroAddress,
 } from "viem";
 import { useAccount } from "wagmi";
-import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 import { useIntl } from "react-intl";
 
 import { toastService } from "../../components/toast";
@@ -27,7 +26,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getChain } from "../../config/chains";
 import { ensKeys } from "../../config/query-keys/identity";
 import { logger } from "../../modules/app/logger";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
+import { readyWalletClient } from "../../modules/transactions/chain-guard";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
@@ -111,7 +110,6 @@ export function useENSClaim() {
   const queryClient = useQueryClient();
   const { authMode, smartAccountClient } = useAuth();
   const { address: walletAddress } = useAccount();
-  const { data: walletClient } = useConnectedWalletClient();
   const isPasskeyUser = authMode === "passkey";
 
   return useMutation<ENSClaimResult, Error, { slug: string }>({
@@ -165,7 +163,7 @@ export function useENSClaim() {
           to: ensAddress,
           data,
         });
-      } else if (walletClient && walletAddress) {
+      } else if (walletAddress) {
         await assertSponsoredClaimFunded({ publicClient, ensAddress, slug, owner: walletAddress });
         // The wallet pays only gas. A wallet opened for a claim it cannot pay
         // for shows no request, so the check runs before anything reaches it.
@@ -174,7 +172,7 @@ export function useENSClaim() {
           to: ensAddress,
           data,
         });
-        await ensureAppKitWalletChain(DEFAULT_CHAIN_ID);
+        const walletClient = await readyWalletClient(DEFAULT_CHAIN_ID, walletAddress);
         await assertLocalArbitrumForkWallet();
 
         txHash = await walletClient.sendTransaction({

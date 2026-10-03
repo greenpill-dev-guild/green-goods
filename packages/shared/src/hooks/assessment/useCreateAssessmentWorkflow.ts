@@ -3,7 +3,6 @@ import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useAccount } from "wagmi";
-import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 import { fromPromise } from "xstate";
 import { toastService } from "../../components/toast";
 import {
@@ -40,7 +39,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   const { gardenId: draftGardenId } = options;
   const { formatMessage } = useIntl();
   const { address } = useAccount();
-  const { data: walletClient } = useConnectedWalletClient();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
 
   // Draft persistence
@@ -87,16 +85,12 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   // Store mutable dependencies in refs so the machine actor can read
   // current values without recreating the machine on every change
   const addressRef = useRef(address);
-  const walletClientRef = useRef(walletClient);
   const chainIdRef = useRef(selectedChainId);
   const formatMessageRef = useRef(formatMessage);
 
   useEffect(() => {
     addressRef.current = address;
   }, [address]);
-  useEffect(() => {
-    walletClientRef.current = walletClient;
-  }, [walletClient]);
   useEffect(() => {
     chainIdRef.current = selectedChainId;
   }, [selectedChainId]);
@@ -111,15 +105,10 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
           submitAssessment: fromPromise<string, AssessmentWorkflowParams & { gardenId: Address }>(
             async ({ input: params }) => {
               const currentAddress = addressRef.current;
-              const currentWalletClient = walletClientRef.current;
               const currentChainId = chainIdRef.current;
 
               if (!currentAddress) {
                 throw new Error("Wallet not connected");
-              }
-
-              if (!currentWalletClient) {
-                throw new Error("No wallet client available");
               }
 
               try {
@@ -136,7 +125,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                     },
                   },
                   createDefaultCreateAssessmentPorts({
-                    walletClient: currentWalletClient,
+                    account: currentAddress,
                     reportEvidenceFailures: ({ failedCount, totalCount }) => {
                       logger.warn("Some evidence media uploads failed", {
                         source: "useCreateAssessmentWorkflow",

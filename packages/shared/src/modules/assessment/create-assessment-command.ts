@@ -1,13 +1,12 @@
 import { EAS, SchemaEncoder, type Transaction } from "@ethereum-attestation-service/eas-sdk";
 import { type Eip1193Provider, ethers } from "ethers";
-import type { WalletClient } from "viem";
 import { getAssessmentSchemas } from "./schemas";
 import { getEASConfig } from "../../config/blockchain";
-import type { AssessmentWorkflowParams } from "../../types/domain";
+import type { Address, AssessmentWorkflowParams } from "../../types/domain";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../data/ipfs/upload";
-import { ensureAppKitWalletChain } from "../transactions/chain-guard";
+import { ensureAppKitWalletChain, readyWalletClient } from "../transactions/chain-guard";
 
 const DOMAIN_MAP: Record<string, number> = {
   solar: 0,
@@ -183,11 +182,28 @@ function toUnixSeconds(value?: string | number | null): number {
 }
 
 export function createDefaultCreateAssessmentPorts(input: {
-  walletClient: WalletClient;
+  /** The steward the assessment was prepared for. The wallet must still sign as them. */
+  account: Address;
   reportEvidenceFailures(details: { failedCount: number; totalCount: number }): void;
   reportMetricsFailure(error: unknown): void;
 }): CreateAssessmentPorts {
-  let eas: EAS | null = null;
+  let chain: number | null = null;
+  let easAddress: string | null = null;
+
+  /**
+   * EAS, signing as the wallet as it stands now. Asked for once before the
+   * uploads, so a wallet that cannot sign stops the work early, and again when
+   * the attestation is sent: the uploads can run for minutes, long enough for
+   * the wallet to have moved network or changed hands.
+   */
+  const connectEas = async (): Promise<EAS> => {
+    if (chain === null || !easAddress) throw new Error("Assessment sender was not prepared");
+    const walletClient = await readyWalletClient(chain, input.account);
+    const provider = new ethers.BrowserProvider(walletClient.transport as Eip1193Provider);
+    const eas = new EAS(easAddress);
+    eas.connect(await provider.getSigner(walletClient.account.address));
+    return eas;
+  };
 
   return {
     reader: {
@@ -204,16 +220,16 @@ export function createDefaultCreateAssessmentPorts(input: {
       encode: (schema, values) => new SchemaEncoder(schema).encodeData(values),
     },
     sender: {
-      ensureChain: ensureAppKitWalletChain,
-      connect: async (easAddress) => {
-        eas = new EAS(easAddress);
-        const { account, transport } = input.walletClient;
-        if (!account) throw new Error("Wallet client account unavailable");
-        const provider = new ethers.BrowserProvider(transport as Eip1193Provider);
-        eas.connect(await provider.getSigner(account.address));
+      ensureChain: async (chainId) => {
+        chain = chainId;
+        await ensureAppKitWalletChain(chainId);
+      },
+      connect: async (address) => {
+        easAddress = address;
+        await connectEas();
       },
       attest: async ({ schemaUid, gardenId, encodedData }) => {
-        if (!eas) throw new Error("Assessment sender was not prepared");
+        const eas = await connectEas();
         const transaction: Transaction<string> = await eas.attest({
           schema: schemaUid,
           data: {
