@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 
 import { validateAllowlist } from "../../lib/hypercerts";
-import { selectHypercertTimeframeOrder } from "../../stores/transitions/hypercert-wizard";
+import { selectHypercertMetadataComplete } from "../../stores/transitions/hypercert-wizard";
 import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
 
 export interface UseCreateHypercertWorkflowResult {
@@ -39,25 +39,15 @@ export function useCreateHypercertWorkflow(): UseCreateHypercertWorkflowResult {
       switch (step) {
         case 1: // Attestations
           return selectedAttestationIds.length > 0;
-        case 2: {
-          // Metadata. Required fields: title, workScopes, workTimeframeStart,
-          // workTimeframeEnd (as indicated by * in UI). A time frame that ends
-          // before it starts shows an error in the step, so Next waits on it too.
-          const { workInOrder, impactInOrder } = selectHypercertTimeframeOrder({
+        case 2: // Metadata: the rule a restored draft is also held to.
+          return selectHypercertMetadataComplete({
+            title,
+            workScopes,
             workTimeframeStart,
             workTimeframeEnd,
             impactTimeframeStart,
             impactTimeframeEnd,
           });
-          return (
-            title.trim().length > 0 &&
-            workScopes.length > 0 &&
-            workTimeframeStart > 0 &&
-            workTimeframeEnd > 0 &&
-            workInOrder &&
-            impactInOrder
-          );
-        }
         case 3: // Distribution
           return allowlistValidation.valid;
         case 4: // Preview & Mint - always true (submit handled separately)

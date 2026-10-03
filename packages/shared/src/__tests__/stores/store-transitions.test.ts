@@ -33,6 +33,9 @@ import type { WorkDraftState, WorkFlowState } from "../../stores/useWorkFlowStor
 import { WorkTab } from "../../stores/workFlowTypes";
 import { Domain } from "../../types/domain";
 
+/** A day of March 2026 as stored: its UTC midnight in Unix seconds. */
+const march = (day: number) => Date.UTC(2026, 2, day) / 1000;
+
 describe("store domain transitions", () => {
   it("clamps hypercert steps and toggles attestations without mutating state", () => {
     const state = {
@@ -103,60 +106,66 @@ describe("store domain transitions", () => {
     });
   });
 
-  // Next has not always waited on the order, so a saved draft can sit past the
-  // metadata step with a time frame that runs backwards. Restoring it would
-  // put the steward one press from Mint without ever showing the error.
+  // A restored draft reopens past the metadata step only if it would pass that
+  // step now. Next has not always waited on the order, and an end no calendar
+  // holds is kept as not set, so a saved draft can sit on a later step with
+  // metadata the step would hold back. Restoring it there would put the steward
+  // one press from Mint without the step ever showing what is wrong.
   it.each([
     {
       name: "a work time frame that runs backwards",
-      draft: { stepNumber: 4, workTimeframeStart: 26, workTimeframeEnd: 25 },
+      saved: { stepNumber: 4, workTimeframeStart: march(26), workTimeframeEnd: march(25) },
       opensOn: 2,
     },
     {
       name: "an impact time frame that ends before the work starts",
-      draft: {
+      saved: {
         stepNumber: 3,
-        workTimeframeStart: 26,
-        workTimeframeEnd: 26,
-        impactTimeframeEnd: 25,
+        workTimeframeStart: march(26),
+        workTimeframeEnd: march(26),
+        impactTimeframeEnd: march(25),
       },
       opensOn: 2,
     },
     {
+      name: "a work end no calendar holds",
+      saved: { stepNumber: 4, workTimeframeStart: march(25), workTimeframeEnd: 1.158e77 },
+      opensOn: 2,
+    },
+    {
       name: "time frames in order",
-      draft: {
+      saved: {
         stepNumber: 4,
-        workTimeframeStart: 25,
-        workTimeframeEnd: 26,
-        impactTimeframeEnd: 27,
+        workTimeframeStart: march(25),
+        workTimeframeEnd: march(26),
+        impactTimeframeEnd: march(27),
       },
       opensOn: 4,
     },
     {
       // Saved as moments, 22:15 on the 25th is later than the 25th's midnight.
       name: "an end on the start's own day, saved as moments",
-      draft: { stepNumber: 4, workTimeframeStart: 25 + 22.25 / 24, workTimeframeEnd: 25 },
+      saved: {
+        stepNumber: 4,
+        workTimeframeStart: march(25) + 22.25 * 3600,
+        workTimeframeEnd: march(25),
+      },
       opensOn: 4,
     },
     {
       name: "a backwards time frame on a draft that had not left step 1",
-      draft: { stepNumber: 1, workTimeframeStart: 26, workTimeframeEnd: 25 },
+      saved: { stepNumber: 1, workTimeframeStart: march(26), workTimeframeEnd: march(25) },
       opensOn: 1,
     },
-  ])("reopens a saved hypercert draft with $name on step $opensOn", ({ draft, opensOn }) => {
-    // Days of March 2026, so each row reads as its dates.
-    const march = (day: number | undefined) =>
-      day === undefined ? 0 : Math.round(Date.UTC(2026, 2, 1) / 1000 + (day - 1) * 86_400);
-
+  ])("reopens a saved hypercert draft with $name on step $opensOn", ({ saved, opensOn }) => {
     const restored = loadHypercertDraftTransition(
       {} as HypercertWizardStore,
       {
-        stepNumber: draft.stepNumber,
-        workTimeframeStart: march(draft.workTimeframeStart),
-        workTimeframeEnd: march(draft.workTimeframeEnd),
+        title: "Spring planting",
+        workScopes: ["planting"],
         impactTimeframeStart: 0,
-        impactTimeframeEnd:
-          draft.impactTimeframeEnd === undefined ? null : march(draft.impactTimeframeEnd),
+        impactTimeframeEnd: null,
+        ...saved,
       } as HypercertDraft
     );
 

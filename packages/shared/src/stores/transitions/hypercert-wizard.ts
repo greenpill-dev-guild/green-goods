@@ -140,19 +140,23 @@ export function loadHypercertDraftTransition(
     impactTimeframeStart: draft.impactTimeframeStart ?? 0,
     impactTimeframeEnd: draft.impactTimeframeEnd,
   });
-  // Next has not always waited on the order, so a saved draft can sit past the
-  // metadata step with a time frame that runs backwards. It reopens on that
-  // step, where the error shows and Next waits, not one press from Mint.
-  const { workInOrder, impactInOrder } = selectHypercertTimeframeOrder(timeframes);
-  const currentStep =
-    workInOrder && impactInOrder ? draft.stepNumber : Math.min(draft.stepNumber, METADATA_STEP);
+  const title = draft.title ?? "";
+  const workScopes = draft.workScopes ?? [];
+  // A draft reopens past the metadata step only if it would pass that step
+  // now. Next has not always waited on the order, and an end no calendar holds
+  // is kept above as not set, so a saved draft can sit on a later step with
+  // metadata the step would hold back. It reopens on the metadata step, where
+  // the step shows what is wrong and Next waits, not one press from Mint.
+  const currentStep = selectHypercertMetadataComplete({ title, workScopes, ...timeframes })
+    ? draft.stepNumber
+    : Math.min(draft.stepNumber, METADATA_STEP);
 
   return {
     currentStep,
     selectedAttestationIds: draft.attestationIds,
-    title: draft.title ?? "",
+    title,
     description: draft.description ?? "",
-    workScopes: draft.workScopes ?? [],
+    workScopes,
     impactScopes: draft.impactScopes ?? [],
     ...timeframes,
     sdgs: draft.sdgs ?? [],
@@ -191,6 +195,26 @@ export function selectHypercertTimeframeOrder(draft: HypercertTimeframes): {
       draft.impactTimeframeEnd
     ),
   };
+}
+
+/**
+ * Whether a draft may leave the metadata step: it has a title, a work scope and
+ * both ends of the work time frame (the fields the step marks as required), and
+ * its time frames are in order. Next waits on this, and a restored draft
+ * reopens no further than the metadata step without it.
+ */
+export function selectHypercertMetadataComplete(
+  draft: HypercertTimeframes & Pick<HypercertDraft, "title" | "workScopes">
+): boolean {
+  const { workInOrder, impactInOrder } = selectHypercertTimeframeOrder(draft);
+  return (
+    draft.title.trim().length > 0 &&
+    draft.workScopes.length > 0 &&
+    draft.workTimeframeStart > 0 &&
+    draft.workTimeframeEnd > 0 &&
+    workInOrder &&
+    impactInOrder
+  );
 }
 
 export function selectHypercertDirtyState({
