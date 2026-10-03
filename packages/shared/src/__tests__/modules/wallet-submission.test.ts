@@ -239,13 +239,29 @@ describe("wallet-submission", () => {
       );
     });
 
-    it("refuses a wallet swapped in during the upload before asking it to change network", async () => {
+    it.each([
+      ["during the upload", "upload"],
+      ["while its networks were being read after the upload", "read"],
+    ])("refuses a wallet swapped in %s before asking it to change network", async (_when, moment) => {
+      // Another account takes over the connection.
+      const swapIn = () =>
+        mock(wagmiCore.getAccount).mockReturnValue({ address: "0xAnotherWallet" } as any);
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
       mock(encoders.encodeWorkData).mockImplementation(async () => {
-        // Another account takes over the connection while the media uploads.
-        mock(wagmiCore.getAccount).mockReturnValue({ address: "0xAnotherWallet" } as any);
+        if (moment === "upload") swapIn();
         return "0xEncodedWorkData" as `0x${string}`;
       });
+      // As the guard does for a wallet on another network: it reads the wallet,
+      // asks who the switch is for, then switches.
+      const switched = vi.fn();
+      mockEnsureWagmiWalletChain.mockImplementation(
+        async (_config, _chainId, _reason, beforeSwitch?: () => Promise<void>) => {
+          if (!beforeSwitch) return;
+          if (moment === "read") swapIn();
+          await beforeSwitch();
+          switched();
+        }
+      );
 
       await expect(
         submitWorkDirectly(
@@ -258,8 +274,7 @@ describe("wallet-submission", () => {
         )
       ).rejects.toThrow("submission-ownership-changed");
 
-      // Only the check before the upload asked the wallet about its network.
-      expect(mockEnsureWagmiWalletChain).toHaveBeenCalledOnce();
+      expect(switched).not.toHaveBeenCalled();
       expect(mockWalletClient.sendTransaction).not.toHaveBeenCalled();
     });
 

@@ -162,12 +162,13 @@ export async function submitWorkDirectly(
 
     debugLog("[WalletSubmission] Sending transaction", { to: txParams.to });
     // The upload can run for minutes, long enough for the wallet to have moved
-    // network or changed hands. Who signs comes first, so a wallet swapped in
-    // meanwhile is refused before it is asked to change network. Checking the
-    // network again here, before the send intent is recorded, switches it back
-    // instead of refusing the send.
+    // network or changed hands. Who signs comes first, and the guard asks again
+    // right before it switches, so a wallet swapped in meanwhile is refused
+    // before it is asked to change network. Checking the network again here,
+    // before the send intent is recorded, switches it back instead of refusing
+    // the send.
     await assertSigner();
-    await ensureWagmiWalletChain(wagmiConfig, chainId);
+    await ensureWagmiWalletChain(wagmiConfig, chainId, "write", assertSigner);
     await assertLocalArbitrumForkWallet();
 
     const currentWallet = await assertOwnership();

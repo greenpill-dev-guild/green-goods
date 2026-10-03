@@ -25,6 +25,8 @@ type SenderScenario = {
   hashes?: Hex[];
   receiptStatus?: string;
   transportFailure?: Error;
+  /** The account the wallet holds now, for senders that read it from wagmi. */
+  connectedAccount?: `0x${string}`;
 };
 
 type ForwardedCall = {
@@ -86,7 +88,10 @@ const cases: SenderCase[] = [
       const receiptHashes: Hex[] = [];
       const hashes = sequence(scenario.hashes ?? [], SECOND_TX_HASH);
       const deps = createFakeWagmiDeps({ receiptStatus: scenario.receiptStatus });
-      deps.ensureWalletChain.mockImplementation(async (chainId) => {
+      deps.getAccount = () => ({ address: scenario.connectedAccount });
+      deps.ensureWalletChain.mockImplementation(async (chainId, _reason, beforeSwitch) => {
+        // As the guard does for a wallet on another network.
+        await beforeSwitch?.();
         trace.push("chain");
         guardedChains.push(chainId);
       });
@@ -195,7 +200,10 @@ const cases: SenderCase[] = [
       const receiptHashes: Hex[] = [];
       const hashes = sequence(scenario.hashes ?? [], SECOND_TX_HASH);
       const deps = createFakeWagmiDeps({ receiptStatus: scenario.receiptStatus });
-      deps.ensureWalletChain.mockImplementation(async (chainId) => {
+      deps.getAccount = () => ({ address: scenario.connectedAccount });
+      deps.ensureWalletChain.mockImplementation(async (chainId, _reason, beforeSwitch) => {
+        // As the guard does for a wallet on another network.
+        await beforeSwitch?.();
         trace.push("chain");
         guardedChains.push(chainId);
       });
@@ -274,6 +282,42 @@ const laws: ConformanceLaw<SenderCase>[] = [
       const harness = make();
       await harness.sender.sendContractCall(createMockContractCall());
       expect(harness.trace).toEqual(expectations.guardOrder);
+    },
+  },
+  {
+    // An act can be prepared for minutes (uploads) before it is sent. A wallet
+    // that took the connection over meanwhile must be refused before it is
+    // asked to change network, not after. The guard asks at that moment.
+    name: "has the guard ask who signs before the wallet changes network, and asks again after",
+    applicable: ({ expectations }) =>
+      expectations.chainSource === "call" || "a passkey send has no wallet network to guard",
+    verify: async ({ make }) => {
+      const owner = "0x1111111111111111111111111111111111111111";
+      const harness = make();
+      const assertOwnership = vi.fn(async () => {
+        harness.trace.push("owner");
+      });
+      await harness.sender.sendContractCall(createMockContractCall(), { assertOwnership });
+      expect(harness.trace.slice(0, 4)).toEqual(["owner", "chain", "safety", "owner"]);
+
+      // The account is read last: one that changes while ownership is being
+      // checked is still caught before the switch.
+      const connection = { connectedAccount: owner } as SenderScenario;
+      const takenOver = make(connection);
+      await expect(
+        takenOver.sender.sendContractCall(createMockContractCall({ account: owner }), {
+          assertOwnership: async () => {
+            connection.connectedAccount = "0x2222222222222222222222222222222222222222";
+          },
+        })
+      ).rejects.toMatchObject({ code: "account_mismatch" });
+      const disowned = make();
+      await expect(
+        disowned.sender.sendContractCall(createMockContractCall(), {
+          assertOwnership: () => Promise.reject(new Error("submission-ownership-changed")),
+        })
+      ).rejects.toThrow("submission-ownership-changed");
+      expect([takenOver.trace, disowned.trace]).toEqual([[], []]);
     },
   },
   {

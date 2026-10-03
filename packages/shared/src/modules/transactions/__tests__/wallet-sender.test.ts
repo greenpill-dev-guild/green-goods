@@ -158,7 +158,7 @@ describe("WalletSender", () => {
 
     it("switches to Celo and confirms a user-paid send", async () => {
       const result = await sender.sendContractCall({ ...TEST_CALL, chainId: 42220 });
-      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(42220, "write");
+      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(42220, "write", expect.any(Function));
       expect(mockWriteContractAsync).toHaveBeenCalled();
       expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledWith(expect.anything(), {
         onReplaced: expect.any(Function),
@@ -179,7 +179,11 @@ describe("WalletSender", () => {
     it("switches to the target chain before sending", async () => {
       await sender.sendContractCall(TEST_CALL);
 
-      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(TEST_CALL.chainId, "write");
+      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(
+        TEST_CALL.chainId,
+        "write",
+        expect.any(Function)
+      );
       expect(mockWriteContractAsync).toHaveBeenCalledOnce();
     });
 
@@ -249,8 +253,18 @@ describe("WalletSender", () => {
         assertOwnership,
       });
 
-      expect(mockDeps.ensureWalletChain).toHaveBeenNthCalledWith(1, TEST_CALL.chainId, "write");
-      expect(mockDeps.ensureWalletChain).toHaveBeenNthCalledWith(2, TEST_CALL.chainId, "retry");
+      expect(mockDeps.ensureWalletChain).toHaveBeenNthCalledWith(
+        1,
+        TEST_CALL.chainId,
+        "write",
+        expect.any(Function)
+      );
+      expect(mockDeps.ensureWalletChain).toHaveBeenNthCalledWith(
+        2,
+        TEST_CALL.chainId,
+        "retry",
+        expect.any(Function)
+      );
       // A switch prompt can stay open long enough for the account to change.
       expect(assertOwnership).toHaveBeenCalledTimes(2);
       expect(mockWriteContractAsync).toHaveBeenCalledTimes(2);

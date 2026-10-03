@@ -23,10 +23,18 @@ const mocks = vi.hoisted(() => ({
     address?: string;
     connector?: { uid: string };
   },
+  /** The connection wagmi holds now, when a test moves it ahead of what was rendered. */
+  live: undefined as undefined | { address?: string; connector?: { uid: string } },
   walletNetworkOtherThan: vi.fn(),
   walletSwitchesQuietly: vi.fn(),
   ensureWagmiWalletChain: vi.fn(),
+  /** The wallet was asked to move: the guard's last check let the switch through. */
+  switched: vi.fn(),
   warn: vi.fn(),
+}));
+
+vi.mock("@wagmi/core", () => ({
+  getAccount: () => mocks.live ?? mocks.account,
 }));
 
 vi.mock("wagmi", () => ({
@@ -54,6 +62,12 @@ vi.mock("../../../modules/transactions/chain-guard", () => ({
 
 import { useWalletNetworkAlignment } from "../../../hooks/blockchain/useWalletNetworkAlignment";
 
+/** A browser wallet, which would prompt, holding the connection. */
+const BROWSER_WALLET = {
+  address: "0x2222222222222222222222222222222222222222",
+  connector: { uid: "browser-wallet" },
+};
+
 /** Puts the wallet on a network; `undefined` is the app's own. */
 const walletOn = (chainId: number | undefined) =>
   mocks.walletNetworkOtherThan.mockResolvedValue(chainId);
@@ -63,8 +77,16 @@ describe("useWalletNetworkAlignment", () => {
     vi.clearAllMocks();
     mocks.authMode = "wallet";
     mocks.account = { status: "connected", chainId: ARBITRUM };
+    mocks.live = undefined;
     mocks.walletSwitchesQuietly.mockResolvedValue(true);
-    mocks.ensureWagmiWalletChain.mockResolvedValue(undefined);
+    // As the guard does for a wallet on another network: it asks who the switch
+    // is for, then switches.
+    mocks.ensureWagmiWalletChain.mockImplementation(
+      async (_config, _chainId, _reason, beforeSwitch?: () => void | Promise<void>) => {
+        await beforeSwitch?.();
+        mocks.switched();
+      }
+    );
   });
 
   it("moves a phone wallet that switches without a prompt when it connects", async () => {
@@ -75,9 +97,11 @@ describe("useWalletNetworkAlignment", () => {
       expect(mocks.ensureWagmiWalletChain).toHaveBeenCalledExactlyOnceWith(
         mocks.config,
         ARBITRUM,
-        "sign-in"
+        "sign-in",
+        expect.any(Function)
       )
     );
+    expect(mocks.switched).toHaveBeenCalledOnce();
   });
 
   it("asks nothing of a wallet that would show a prompt, or one already on the network", async () => {
@@ -128,6 +152,57 @@ describe("useWalletNetworkAlignment", () => {
     rerender();
 
     await waitFor(() => expect(mocks.ensureWagmiWalletChain).toHaveBeenCalledOnce());
+  });
+
+  // Regression: a run for one wallet went on to switch after another wallet had
+  // taken the connection over, so a browser wallet could be prompted at sign-in.
+  // React cleans the effect up a moment after wagmi's connection changes, so
+  // both orders count.
+  it.each([
+    {
+      name: "after React has re-rendered",
+      takeOver: (rerender: () => void) => {
+        mocks.account = { status: "connected", chainId: ARBITRUM, ...BROWSER_WALLET };
+        rerender();
+      },
+    },
+    {
+      name: "before React has re-rendered",
+      takeOver: () => {
+        mocks.live = BROWSER_WALLET;
+      },
+    },
+  ])("drops its move when another wallet takes the connection over $name", async ({ takeOver }) => {
+    walletOn(CELO);
+    let answerFirst: (quiet: boolean) => void = () => undefined;
+    mocks.walletSwitchesQuietly
+      .mockReturnValueOnce(
+        new Promise<boolean>((resolve) => {
+          answerFirst = resolve;
+        })
+      )
+      .mockResolvedValue(false);
+    const { rerender } = renderHook(() => useWalletNetworkAlignment());
+    await waitFor(() => expect(mocks.walletSwitchesQuietly).toHaveBeenCalledOnce());
+
+    takeOver(rerender);
+    answerFirst(true);
+    await waitFor(() => expect(mocks.ensureWagmiWalletChain).toHaveBeenCalledOnce());
+
+    expect(mocks.switched).not.toHaveBeenCalled();
+    expect(mocks.warn).not.toHaveBeenCalled();
+  });
+
+  // A session can drop or reorder its accounts while the wallet is being read.
+  it("leaves a wallet alone when its switch stops being quiet by the time the guard asks", async () => {
+    walletOn(CELO);
+    mocks.walletSwitchesQuietly.mockResolvedValueOnce(true).mockResolvedValue(false);
+    renderHook(() => useWalletNetworkAlignment());
+
+    await waitFor(() => expect(mocks.ensureWagmiWalletChain).toHaveBeenCalledOnce());
+    await mocks.ensureWagmiWalletChain.mock.results[0]?.value.catch(() => undefined);
+
+    expect(mocks.switched).not.toHaveBeenCalled();
   });
 
   it("keeps a failed move to itself: the next act switches, or says why it cannot", async () => {
