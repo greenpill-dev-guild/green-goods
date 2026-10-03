@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderWithProviders, screen, waitFor } from "../test-utils";
 import userEvent from "@testing-library/user-event";
 import type { AdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdminAccessState";
+import type { WalletNetworkNoticeState } from "@green-goods/shared/hooks/blockchain/useWalletNetworkNotice";
 import type { EligibleAdminGardensResult } from "@green-goods/shared/hooks/garden/useEligibleAdminGardens";
 import { useSheetOrchestratorStore } from "@green-goods/shared/stores/useSheetOrchestratorStore";
 import type { Address, Garden } from "@green-goods/shared/types/domain";
@@ -27,7 +28,9 @@ const {
   mockEligibleAdminGardens,
   mockAdminAccessState,
   mockRouteLeftSheetConfig,
+  mockWalletNetwork,
 } = vi.hoisted(() => ({
+  mockWalletNetwork: { current: null as WalletNetworkNoticeState | null },
   mockUseGardenUrlSync: vi.fn(),
   mockUseStaleGardenGuard: vi.fn(),
   mockEnsureBaseLists: vi.fn(),
@@ -302,9 +305,10 @@ vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
   useOffline: () => ({ isOnline: true }),
 }));
 
-// The shell reads the wallet network notice from wagmi; these shells have no wallet.
+// The shell reads the wallet network notice from wagmi; these shells have no
+// wallet, so a test that wants the notice sets it here.
 vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkNotice", () => ({
-  useWalletNetworkNotice: () => null,
+  useWalletNetworkNotice: () => mockWalletNetwork.current,
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
@@ -544,11 +548,32 @@ describe("CanvasLayout", () => {
       closeItem: vi.fn(),
     });
     mockRouteLeftSheetConfig.current = null;
+    mockWalletNetwork.current = null;
     useSheetOrchestratorStore.setState({
       activeSheet: null,
       activeContentId: null,
       viewStates: {},
     });
+  });
+
+  it("hands the wallet network notice to the app bar and gives it no row of its own", () => {
+    // A row of its own would push the page down when it appears and pull it
+    // back when the wallet switches. The bar has the room.
+    mockWalletNetwork.current = {
+      message: "Wallet on Celo",
+      switchLabel: "Switch to Arbitrum One",
+      isSwitching: false,
+      switchNetwork: vi.fn(),
+    };
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    expect(mockAppBarProps.mock.calls.at(-1)?.[0].walletNetwork).toBe(mockWalletNetwork.current);
+    // The bar is mocked here, so anything on screen would be the layout's own.
+    expect(screen.queryByText("Wallet on Celo")).not.toBeInTheDocument();
   });
 
   it("mounts canvas state sync hooks and exposes Actions in the toolbar", () => {

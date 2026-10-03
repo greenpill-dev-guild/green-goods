@@ -24,6 +24,7 @@ sb.mock(import("../src/hooks/blockchain/useChainConfig.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useEnsName.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useSendToken.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useSendableTokens.ts"), { spy: true });
+sb.mock(import("../src/hooks/blockchain/useWalletNetworkNotice.ts"), { spy: true });
 sb.mock(import("../src/hooks/client-ui/commitment/useGardenCommitmentController.ts"), {
   spy: true,
 });

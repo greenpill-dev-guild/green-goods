@@ -5,11 +5,12 @@ import {
   NavigationBar,
   type ToolbarSlot,
 } from "@green-goods/shared/components/Canvas/NavigationBar";
+import { useWalletNetworkNotice } from "@green-goods/shared/hooks/blockchain/useWalletNetworkNotice";
 import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo, useState } from "react";
 import { Route, Routes } from "react-router-dom";
-import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import { AdminDialog } from "@/components/AdminDialog";
 import {
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
@@ -22,6 +23,7 @@ import {
   withRouter,
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
+import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import {
   expectAdminShellDarkPalette,
   withTemporaryDocumentTheme,
@@ -352,6 +354,44 @@ export const DarkRouteToneContract: Story = {
       // this also proves every route was actually recorded.
       expect(new Set(washes.values()).size).toBe(4);
     });
+  },
+};
+
+/**
+ * A steward's wallet left on another network. The switch sits in the app bar,
+ * so it is in view when an act far down the page asks the wallet to switch, and
+ * the page does not move when it comes or goes.
+ */
+export const WalletOnAnotherNetwork: Story = {
+  tags: ["storybook-ci"],
+  render: () => <RealCanvasLayoutStory />,
+  decorators: [
+    withAdminIdentity,
+    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
+    withRouter(["/hub/work"]),
+    withCanvasFrame({
+      className: "p-0",
+      heightClassName: "h-[760px]",
+      workspace: "hub",
+    }),
+  ],
+  beforeEach: () => {
+    mocked(useWalletNetworkNotice).mockReturnValue({
+      message: "Wallet on Celo",
+      switchLabel: "Switch to Arbitrum One",
+      isSwitching: false,
+      switchNetwork: fn(async () => {}),
+    });
+    return resetHookMocks(useWalletNetworkNotice);
+  },
+  play: async ({ canvasElement }) => {
+    const control = await within(canvasElement).findByRole("button", {
+      name: "Wallet on Celo. Switch to Arbitrum One",
+    });
+    await expect(control.closest("[data-component='AppBar']")).not.toBeNull();
+    // The top row is still only the 56px bar: nothing was added under it.
+    const topRow = canvasElement.querySelector<HTMLElement>("[data-region='canvas-area-top']");
+    await expect(topRow?.getBoundingClientRect().height).toBe(56);
   },
 };
 

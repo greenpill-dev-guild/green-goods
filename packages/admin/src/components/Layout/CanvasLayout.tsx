@@ -16,7 +16,6 @@ import { FabAwareNavigationBar, ProfiledNavigationBar } from "./canvasChromeProb
 import { CommandPalette } from "./CommandPalette";
 import { LeftInspectorDialog } from "./LeftInspectorDialog";
 import { PageTransition } from "./PageTransition";
-import { WalletNetworkNotice } from "./WalletNetworkNotice";
 
 const StableAppBar = memo(AppBar);
 StableAppBar.displayName = "StableAppBar";
@@ -131,6 +130,7 @@ export function CanvasLayout() {
                 onOpenNotifications={openNotifications}
                 onOpenProfile={isDesktop ? openProfile : undefined}
                 profileImageSrc={profileImageSrc ?? undefined}
+                walletNetwork={walletNetwork}
               />
             </div>
 
@@ -153,7 +153,6 @@ export function CanvasLayout() {
                   WebkitOverflowScrolling: "touch",
                 }}
               >
-                {walletNetwork ? <WalletNetworkNotice notice={walletNetwork} /> : null}
                 <PageTransition />
               </main>
             </MainSheet>

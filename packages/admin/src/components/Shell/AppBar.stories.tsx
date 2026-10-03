@@ -1,3 +1,4 @@
+import type { WalletNetworkNoticeState } from "@green-goods/shared/hooks/blockchain/useWalletNetworkNotice";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { ReactNode } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
@@ -69,6 +70,41 @@ export const SheetContext: Story = {
   },
 };
 
+/** What the network hook hands over while a wallet is left on Celo and the app acts on Arbitrum One. */
+function walletOnCelo(overrides: Partial<WalletNetworkNoticeState> = {}): WalletNetworkNoticeState {
+  return {
+    message: "Wallet on Celo",
+    switchLabel: "Switch to Arbitrum One",
+    isSwitching: false,
+    switchNetwork: fn(async () => {}),
+    ...overrides,
+  };
+}
+
+/** A wallet on another network: the switch leads the actions, and the icons after it keep their places. */
+export const WalletOnAnotherNetwork: Story = {
+  args: { walletNetwork: walletOnCelo() },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    const control = canvas.getByRole("button", { name: "Wallet on Celo. Switch to Arbitrum One" });
+    await expect(control).toHaveTextContent("Switch to Arbitrum One");
+    await userEvent.click(control);
+    await expect(args.walletNetwork?.switchNetwork).toHaveBeenCalledOnce();
+    await expect(canvas.getByRole("button", { name: /notifications/i })).toBeVisible();
+  },
+};
+
+/** While the wallet is asked, the control is busy and a second tap asks nothing more. */
+export const WalletNetworkSwitching: Story = {
+  args: { walletNetwork: walletOnCelo({ isSwitching: true }) },
+  play: async ({ args, canvasElement }) => {
+    const control = within(canvasElement).getByRole("button", { name: /switch to arbitrum one/i });
+    await expect(control).toHaveAttribute("aria-busy", "true");
+    await userEvent.click(control);
+    await expect(args.walletNetwork?.switchNetwork).not.toHaveBeenCalled();
+  },
+};
+
 const longNamedGardens = [
   { id: "g1", name: "Green Goods Community Garden" },
   { id: "g2", name: "TAS HUB" },
@@ -107,6 +143,28 @@ export const PhoneLongGardenName: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("button", { name: /refresh/i })).toBeVisible();
+    const chip = canvasElement.querySelector<HTMLElement>("[data-component='GardenChip']");
+    const actions = canvasElement.querySelector<HTMLElement>("[data-slot='actions']");
+    if (!chip || !actions) throw new Error("The app bar lost its chip or actions");
+    await expect(chip.getBoundingClientRect().right).toBeLessThanOrEqual(
+      actions.getBoundingClientRect().left
+    );
+  },
+};
+
+/** On a phone the switch is one more 40px icon. The chip still ends before the
+ *  actions, and the longest wording stays in the control's name. */
+export const PhoneWalletOnAnotherNetwork: Story = {
+  ...PhoneLongGardenName,
+  args: {
+    ...PhoneLongGardenName.args,
+    walletNetwork: walletOnCelo({ message: "Wallet still on another network" }),
+  },
+  play: async ({ canvasElement }) => {
+    const control = within(canvasElement).getByRole("button", {
+      name: "Wallet still on another network. Switch to Arbitrum One",
+    });
+    await expect(control.getBoundingClientRect().width).toBe(40);
     const chip = canvasElement.querySelector<HTMLElement>("[data-component='GardenChip']");
     const actions = canvasElement.querySelector<HTMLElement>("[data-slot='actions']");
     if (!chip || !actions) throw new Error("The app bar lost its chip or actions");
