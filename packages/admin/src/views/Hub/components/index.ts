@@ -1,9 +1,8 @@
 export { CookieJarDepositModal } from "./CookieJarDepositModal";
 export { CookieJarPayoutPanel } from "./CookieJarPayoutPanel";
 export { CookieJarWithdrawModal } from "./CookieJarWithdrawModal";
-export { HubAssessmentQueue } from "./HubAssessmentQueue";
-export { HubCertificationInspector } from "./HubCertificationInspector";
-export { HubCertificationQueue } from "./HubCertificationQueue";
+export { HubAssessmentInspector } from "./HubAssessmentInspector";
+export { HubAssessmentList, HubHypercertList } from "./HubRecordLists";
 export { HubSheetDescriptor } from "./HubSheetDescriptor";
 export { HubStageContent } from "./HubStageContent";
 export { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";

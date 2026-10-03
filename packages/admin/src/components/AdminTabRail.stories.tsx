@@ -194,7 +194,7 @@ export const NarrowActionsLifecycle: Story = {
 };
 
 /**
- * On a 375px phone the Hub's stages need about 476px in a 283px rail. The
+ * On a 375px phone the Hub's four tabs are wider than its 283px rail. The
  * clipped edge fades so the rail reads as scrollable, and tabs snap as it
  * scrolls (D18).
  */
@@ -202,7 +202,7 @@ export const OverflowOnAPhone: Story = {
   tags: ["storybook-ci"],
   render: () => {
     const Demo = () => {
-      const [active, setActive] = useState("confirm");
+      const [active, setActive] = useState("work");
       return (
         <div style={{ width: 283 }}>
           <AdminTabRail
@@ -210,10 +210,10 @@ export const OverflowOnAPhone: Story = {
             activeId={active}
             onChange={setActive}
             tabs={[
-              { id: "confirm", label: "Confirm", icon: RiCheckboxCircleLine },
               { id: "work", label: "Work", icon: RiTimeLine, count: 6 },
-              { id: "assess", label: "Assess", icon: RiListCheck2, count: 2 },
-              { id: "certify", label: "Certify", icon: RiLeafLine },
+              { id: "confirm", label: "Confirm", icon: RiCheckboxCircleLine, count: 2 },
+              { id: "assess", label: "Assessments", icon: RiListCheck2 },
+              { id: "certify", label: "Hypercerts", icon: RiLeafLine },
             ]}
           />
         </div>

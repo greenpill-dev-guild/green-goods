@@ -7,8 +7,12 @@ export interface WorkbenchCardProps {
   title: string;
   description: string;
   meta: string[];
-  statusLabel: string;
-  statusTone: WorkbenchTone;
+  /**
+   * The item's lifecycle state. A record with no lifecycle of its own (an
+   * assessment, a minted hypercert) leaves it out and the card shows no pill.
+   */
+  statusLabel?: string;
+  statusTone?: WorkbenchTone;
   leadingIcon: ComponentType<{ className?: string }>;
   thumbnailSrc?: string | null;
   selected?: boolean;
@@ -31,7 +35,7 @@ export function WorkbenchCard({
   description,
   meta,
   statusLabel,
-  statusTone,
+  statusTone = "history",
   leadingIcon: LeadingIcon,
   thumbnailSrc,
   selected = false,
@@ -61,21 +65,25 @@ export function WorkbenchCard({
           )}
           <span className="truncate text-label-sm text-text-soft">{eyebrow}</span>
         </div>
-        <span
-          className={cn(
-            "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-label-sm font-bold",
-            getStatusToneClasses(statusTone)
-          )}
-        >
-          {statusLabel}
-        </span>
+        {statusLabel ? (
+          <span
+            className={cn(
+              "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-label-sm font-bold",
+              getStatusToneClasses(statusTone)
+            )}
+          >
+            {statusLabel}
+          </span>
+        ) : null}
       </div>
 
       <div className="min-w-0 flex-1">
         <h3 className="truncate text-title-md text-text-strong" title={title}>
           {title}
         </h3>
-        <p className="mt-1 line-clamp-2 text-body-md text-text-sub">{description}</p>
+        {description ? (
+          <p className="mt-1 line-clamp-2 text-body-md text-text-sub">{description}</p>
+        ) : null}
       </div>
 
       {meta.length > 0 ? (

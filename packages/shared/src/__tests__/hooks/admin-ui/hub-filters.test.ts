@@ -1,25 +1,83 @@
-import { createMockWork } from "../../test-utils/mock-factories";
+import { createMockHypercertRecord, createMockWork } from "../../test-utils/mock-factories";
 import { describe, expect, it } from "vitest";
 import {
-  filterAssessmentQueue,
-  filterPendingWorks,
+  filterAssessments,
+  filterHypercerts,
+  filterWorksByScope,
   selectToConfirmForGarden,
 } from "../../../hooks/admin-ui/hub/hub.filters";
 import type { Address } from "../../../types/domain";
 import { commitmentFixture, toConfirmFixture } from "../../test-utils/commitment-pooling-fixtures";
 
-describe("Hub work queue filters", () => {
-  it("moves only the reviewed work out of pending and into its next state", () => {
-    const reviewed = createMockWork({ id: "reviewed", createdAt: 2, status: "pending" });
-    const unrelated = createMockWork({ id: "unrelated", createdAt: 1, status: "pending" });
-    const actions = new Map();
+const idsOf = (list: { id: string }[]) => list.map((item) => item.id);
 
-    const reconciled = [{ ...reviewed, status: "approved" as const }, unrelated];
+describe("Hub Work tab scopes", () => {
+  const CLEANUP_ACTION = 7;
+  const actions = new Map([[CLEANUP_ACTION, { title: "Riverbank cleanup" }]]);
+  const works = [
+    createMockWork({ id: "pending-old", createdAt: 1, status: "pending", actionUID: 1 }),
+    createMockWork({ id: "pending-new", createdAt: 4, status: "pending", actionUID: 1 }),
+    createMockWork({
+      id: "approved-old",
+      createdAt: 2,
+      status: "approved",
+      actionUID: CLEANUP_ACTION,
+    }),
+    createMockWork({ id: "approved-new", createdAt: 3, status: "approved", actionUID: 1 }),
+    // Rejected work belongs to neither scope.
+    createMockWork({ id: "rejected", createdAt: 5, status: "rejected", actionUID: 1 }),
+  ];
 
-    expect(filterPendingWorks(reconciled, actions, "", "newest")).toEqual([unrelated]);
-    expect(filterAssessmentQueue(reconciled, actions, "")).toEqual([
-      expect.objectContaining({ id: reviewed.id, status: "approved" }),
-    ]);
+  it.each([
+    { scope: "pending", sort: "newest", search: "", expected: ["pending-new", "pending-old"] },
+    { scope: "pending", sort: "oldest", search: "", expected: ["pending-old", "pending-new"] },
+    { scope: "approved", sort: "newest", search: "", expected: ["approved-new", "approved-old"] },
+    { scope: "approved", sort: "oldest", search: "", expected: ["approved-old", "approved-new"] },
+    { scope: "approved", sort: "newest", search: "riverbank", expected: ["approved-old"] },
+    { scope: "pending", sort: "newest", search: "riverbank", expected: [] },
+  ] as const)('lists $scope work, $sort first, searching "$search"', ({
+    scope,
+    sort,
+    search,
+    expected,
+  }) => {
+    expect(idsOf(filterWorksByScope(works, scope, actions, search, sort))).toEqual(expected);
+  });
+});
+
+describe("Hub record lists", () => {
+  it("lists every assessment, newest first, and searches its title and description", () => {
+    const assessments = [
+      { id: "older", title: "Q1 baseline", description: "Riverbank survey", createdAt: 1 },
+      { id: "newer", title: "Q2 baseline", description: null, createdAt: 2 },
+    ];
+
+    expect(idsOf(filterAssessments(assessments, ""))).toEqual(["newer", "older"]);
+    expect(idsOf(filterAssessments(assessments, "riverbank"))).toEqual(["older"]);
+    expect(idsOf(filterAssessments(assessments, "q2"))).toEqual(["newer"]);
+  });
+
+  it("lists minted hypercerts, newest first, and searches title and work scopes", () => {
+    const hypercerts = [
+      createMockHypercertRecord({
+        id: "42161-1",
+        title: "Canopy 2025",
+        description: null,
+        workScopes: ["planting"],
+        mintedAt: 10,
+      }),
+      createMockHypercertRecord({
+        id: "42161-2",
+        title: "Solar sessions",
+        description: null,
+        workScopes: ["training"],
+        mintedAt: 20,
+      }),
+    ];
+
+    expect(idsOf(filterHypercerts(hypercerts, ""))).toEqual(["42161-2", "42161-1"]);
+    expect(idsOf(filterHypercerts(hypercerts, "planting"))).toEqual(["42161-1"]);
+    expect(idsOf(filterHypercerts(hypercerts, "solar"))).toEqual(["42161-2"]);
   });
 });
 

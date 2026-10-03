@@ -282,8 +282,8 @@ export function HubWorkCard({
           </span>
         </div>
 
-        {/* Action title — the queue search matches on it (filterPendingWorks /
-            filterAssessmentQueue), so it has to stay visible or a hit renders a
+        {/* Action title — the Work tab's search matches on it
+            (filterWorksByScope), so it has to stay visible or a hit renders a
             card with no matching text. Suppressed when the work title already
             carries it, which is the common generated-title case. */}
         {visibleActionTitle && (
