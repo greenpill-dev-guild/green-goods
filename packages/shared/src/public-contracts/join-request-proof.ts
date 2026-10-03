@@ -1,9 +1,10 @@
 import type { Address } from "./core";
-import type {
-  GardenJoinProofAction,
-  GardenJoinProofEnvelope,
-  GardenJoinRequestApiError,
-  GardenJoinValidationResult,
+import {
+  validateCreateGardenJoinRequest,
+  type GardenJoinProofAction,
+  type GardenJoinProofEnvelope,
+  type GardenJoinRequestApiError,
+  type GardenJoinValidationResult,
 } from "./join-requests";
 
 const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
@@ -74,6 +75,36 @@ export function validateGardenJoinProofEnvelope(
   }
   if (options.expectedAction && candidate.action !== options.expectedAction) {
     return { ok: false, error: error("Proof action does not match this request.", "action") };
+  }
+  let readSelf: GardenJoinProofEnvelope["readSelf"];
+  if (candidate.readSelf !== undefined) {
+    const grant = candidate.readSelf;
+    if (
+      candidate.action !== "create" ||
+      !grant ||
+      typeof grant !== "object" ||
+      typeof grant.audience !== "string"
+    ) {
+      return { ok: false, error: error("Invalid status read authorization.") };
+    }
+    try {
+      const audience = new URL(grant.audience);
+      if (
+        audience.origin !== grant.audience ||
+        (audience.protocol !== "https:" &&
+          !(
+            audience.protocol === "http:" &&
+            ["localhost", "127.0.0.1", "[::1]"].includes(audience.hostname)
+          ))
+      ) {
+        return { ok: false, error: error("Invalid status read audience.") };
+      }
+    } catch {
+      return { ok: false, error: error("Invalid status read audience.") };
+    }
+    const content = validateCreateGardenJoinRequest(grant.content);
+    if (!content.ok) return content;
+    readSelf = { audience: grant.audience, content: content.value };
   }
   if (typeof candidate.nonce !== "string" || !NONCE_PATTERN.test(candidate.nonce)) {
     return { ok: false, error: error("Invalid proof nonce.", "nonce") };
@@ -149,6 +180,7 @@ export function validateGardenJoinProofEnvelope(
       issuedAt: candidate.issuedAt,
       expiresAt: candidate.expiresAt,
       signature: candidate.signature as `0x${string}`,
+      ...(readSelf ? { readSelf } : {}),
       ...(candidate.requestId ? { requestId: candidate.requestId } : {}),
       ...(candidate.cursor ? { cursor: candidate.cursor } : {}),
       ...(candidate.expectedRevision !== undefined

@@ -59,6 +59,8 @@ export type GardenJoinProofEnvelope = {
   expectedRevision?: number;
   factory?: Address;
   factoryData?: `0x${string}`;
+  /** Explicit, signed permission for own status reads until this proof expires. */
+  readSelf?: { audience: string; content: CreateGardenJoinRequestInput };
 };
 
 export type GardenJoinProofContent = {

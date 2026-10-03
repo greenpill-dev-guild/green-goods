@@ -1,4 +1,8 @@
+import { privateKeyToAccount } from "viem/accounts";
+import { arbitrum } from "viem/chains";
+import { createGardenJoinRequestSignatureVerifier } from "../services/garden-join-requests-verifier";
 import {
+  buildGardenJoinProofMessage,
   encodeGardenJoinAuthorization,
   type GardenJoinProofAction,
   type GardenJoinProofEnvelope,
@@ -59,7 +63,9 @@ function headers(
   };
 }
 
-function createApp(options: { signatureVerifier?: ProfileAvatarSignatureVerifier } = {}) {
+function createApp(
+  options: { signatureVerifier?: ProfileAvatarSignatureVerifier; now?: () => number } = {}
+) {
   let requestId = 0;
   const store = new MemoryGardenJoinRequestStore(createGardenJoinRequestCipher("11".repeat(32)), {
     id: () => `request-${++requestId}`,
@@ -92,7 +98,7 @@ function createApp(options: { signatureVerifier?: ProfileAvatarSignatureVerifier
     gardenJoinRequestChainReader: chainReader,
     gardenJoinRequestSignatureVerifier: options.signatureVerifier ?? vi.fn(async () => true),
     gardenJoinRequestSweepIntervalMs: 0,
-    now: () => NOW,
+    now: options.now ?? (() => NOW),
   });
   return {
     app,
@@ -161,6 +167,175 @@ describe("garden join request public API", () => {
     expect(
       (await store.listPending(GARDEN, { nowIso: new Date(NOW).toISOString() })).items
     ).toHaveLength(1);
+  });
+
+  it("never persists after the pre-write deadline is exhausted", async () => {
+    let clock = NOW;
+    const { app, store, chainReader } = createApp({ now: () => clock });
+    const create = vi.spyOn(store, "create");
+    chainReader.isOpenJoining.mockImplementation(async () => {
+      clock += 8_001;
+      return false;
+    });
+    const response = await submit(app);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ errorCode: "request_not_saved" });
+    expect(create).not.toHaveBeenCalled();
+    expect(store.inspectEncryptedRecords()).toHaveLength(0);
+    expect(store.inspectProofKeys()).toHaveLength(0);
+  });
+
+  it.each([
+    "pending at deadline",
+    "completing at deadline",
+    "aborted",
+  ] as const)("finishes an admitted create when its proof claim is %s", async (boundary) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const { app, store } = createApp({ now: Date.now });
+    const controller = new AbortController();
+    let releaseClaim!: () => void;
+    let markClaimStarted!: () => void;
+    const paused = new Promise<void>((resolve) => (releaseClaim = resolve));
+    const started = new Promise<void>((resolve) => (markClaimStarted = resolve));
+    const claimProof = store.claimProof.bind(store);
+    vi.spyOn(store, "claimProof").mockImplementationOnce(async (...args) => {
+      markClaimStarted();
+      await paused;
+      return claimProof(...args);
+    });
+    try {
+      const response = app.request(`/public/gardens/${GARDEN}/join-requests`, {
+        method: "POST",
+        headers: headers(proof("create")),
+        body: JSON.stringify({ displayName: "Maya", requestedVia: "garden_detail" }),
+        signal: controller.signal,
+      });
+      await started;
+      if (boundary === "pending at deadline") await vi.advanceTimersByTimeAsync(8_001);
+      else if (boundary === "completing at deadline") vi.setSystemTime(NOW + 8_001);
+      else controller.abort();
+      releaseClaim();
+      const saved = await response;
+      expect(saved.status).toBe(201);
+      expect((await saved.json()).request).toMatchObject({ id: "request-1", state: "pending" });
+      const mine = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+        headers: headers(proof("read_self")),
+      });
+      expect((await mine.json()).request.id).toBe("request-1");
+      const retry = await submit(app);
+      expect(retry.status).toBe(200);
+      expect((await retry.json()).request.id).toBe("request-1");
+      expect((await store.listPending(GARDEN)).items).toHaveLength(1);
+    } finally {
+      releaseClaim();
+      vi.useRealTimers();
+    }
+  });
+
+  it("verifies real signed grant content and rejects tampering without weakening writes", async () => {
+    const signer = privateKeyToAccount(`0x${"11".repeat(32)}` as `0x${string}`);
+    const signatureVerifier = createGardenJoinRequestSignatureVerifier({
+      chain: arbitrum,
+      rpcUrl: "http://127.0.0.1:3009",
+    });
+    const { app, store } = createApp({ signatureVerifier });
+    const input = { displayName: "Maya", requestedVia: "garden_detail" as const };
+    const unsigned = {
+      ...proof("create", signer.address as `0x${string}`),
+      readSelf: { audience: ORIGIN, content: input },
+    };
+    const grant = {
+      ...unsigned,
+      signature: await signer.signMessage({
+        message: buildGardenJoinProofMessage(unsigned, { ...input, note: null }),
+      }),
+    };
+    const created = await app.request(`/public/gardens/${GARDEN}/join-requests`, {
+      method: "POST",
+      headers: headers(grant),
+      body: JSON.stringify(input),
+    });
+    expect(created.status).toBe(201);
+    const mine = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      headers: headers(grant),
+    });
+    expect(mine.status).toBe(200);
+    const mismatch = await app.request(`/public/gardens/${GARDEN}/join-requests`, {
+      method: "POST",
+      headers: headers(grant),
+      body: JSON.stringify({ ...input, displayName: "Different person" }),
+    });
+    expect(mismatch.status).toBe(400);
+    expect(store.inspectEncryptedRecords()).toHaveLength(1);
+    const fetch = vi.fn(async () =>
+      Response.json({ jsonrpc: "2.0", id: 1, result: `0x${"0".repeat(64)}` })
+    );
+    vi.stubGlobal("fetch", fetch);
+    try {
+      const tampered = {
+        ...grant,
+        readSelf: { ...grant.readSelf, content: { ...input, displayName: "Altered" } },
+      };
+      const rejected = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+        headers: headers(tampered),
+      });
+      expect(rejected.status).toBe(401);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    const wrongGarden = await app.request(`/public/gardens/${SECOND_GARDEN}/join-requests/me`, {
+      headers: headers(grant),
+    });
+    expect(wrongGarden.status).toBe(400);
+    const withdrawal = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      method: "DELETE",
+      headers: headers(grant),
+    });
+    expect(withdrawal.status).toBe(400);
+  });
+
+  it("allows status recovery before create while leaving the create nonce unused", async () => {
+    const { app } = createApp();
+    const input = { displayName: "Maya", requestedVia: "garden_detail" as const };
+    const grant = { ...proof("create"), readSelf: { audience: ORIGIN, content: input } };
+    const mine = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      headers: headers(grant),
+    });
+    expect(mine.status).toBe(200);
+    expect(await mine.json()).toMatchObject({ request: null });
+    const created = await app.request(`/public/gardens/${GARDEN}/join-requests`, {
+      method: "POST",
+      headers: headers(grant),
+      body: JSON.stringify(input),
+    });
+    expect(created.status).toBe(201);
+  });
+
+  it("accepts an explicitly audience-bound create grant only for its own status", async () => {
+    const { app } = createApp();
+    const input = { displayName: "Maya", requestedVia: "garden_detail" as const };
+    const grant = { ...proof("create"), readSelf: { audience: ORIGIN, content: input } };
+    const created = await app.request(`/public/gardens/${GARDEN}/join-requests`, {
+      method: "POST",
+      headers: headers(grant),
+      body: JSON.stringify(input),
+    });
+    expect(created.status).toBe(201);
+    const mine = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      headers: headers(grant),
+    });
+    expect(mine.status).toBe(200);
+    expect(await mine.json()).toMatchObject({ request: { state: "pending" } });
+    const queue = await app.request(
+      `/public/gardens/${GARDEN}/join-requests?state=pending&limit=25`,
+      { headers: headers(grant) }
+    );
+    expect(queue.status).toBe(400);
+    const differentAudience = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      headers: headers(grant, "https://green-goods-preview-greenpilldevguild.vercel.app"),
+    });
+    expect(differentAudience.status).toBe(401);
   });
 
   it("reconciles a store failure after persistence without creating a second pending request", async () => {
