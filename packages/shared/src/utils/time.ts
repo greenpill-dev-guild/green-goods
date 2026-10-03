@@ -19,7 +19,12 @@
  */
 import type { IntlShape } from "react-intl";
 
-export { fromCalendarDateKey, toCalendarDateKey } from "./calendar-date";
+export {
+  fromCalendarDateKey,
+  pickerValueToUtcDay,
+  toCalendarDateKey,
+  utcDayToPickerValue,
+} from "./calendar-date";
 export type TimeFilter = "day" | "week" | "month" | "year";
 
 // Duration constants for time filtering

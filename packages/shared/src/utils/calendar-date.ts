@@ -4,6 +4,10 @@
  * Use this pair with DatePicker, which creates and renders local-midnight Dates.
  * Use the UTC-based `toDateInputValue` / `fromDateInputValue` pair for native
  * date inputs and persisted instants. Mixing the pairs can shift the visible day.
+ *
+ * A form that keeps the persisted instant itself, not a calendar key, crosses
+ * that boundary on every read and write: give the picker
+ * `utcDayToPickerValue(instant)` and store `pickerValueToUtcDay(picked)`.
  */
 
 /** Format an instant as a YYYY-MM-DD key using local calendar parts. */
@@ -39,4 +43,31 @@ export function fromCalendarDateKey(value: string | null | undefined): number | 
   }
 
   return Math.floor(date.getTime() / 1000);
+}
+
+/**
+ * The DatePicker value that shows the UTC calendar day of a persisted instant:
+ * local midnight of that day. Null for an unset instant (null or not positive).
+ */
+export function utcDayToPickerValue(value: number | null | undefined): number | null {
+  if (value === null || value === undefined || value <= 0) return null;
+
+  const instant = new Date(value * 1000);
+  if (!Number.isFinite(instant.getTime())) return null;
+
+  const shown = new Date(instant.getUTCFullYear(), instant.getUTCMonth(), instant.getUTCDate());
+  return Math.floor(shown.getTime() / 1000);
+}
+
+/**
+ * The instant to persist for the day a DatePicker handed back: UTC midnight of
+ * that calendar day, whichever zone the picker ran in. Null for a cleared field.
+ */
+export function pickerValueToUtcDay(value: number | null | undefined): number | null {
+  if (value === null || value === undefined || value <= 0) return null;
+
+  const picked = new Date(value * 1000);
+  if (!Number.isFinite(picked.getTime())) return null;
+
+  return Date.UTC(picked.getFullYear(), picked.getMonth(), picked.getDate()) / 1000;
 }
