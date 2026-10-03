@@ -1,6 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { fromCalendarDateKey, toCalendarDateKey } from "../../utils/calendar-date";
+import {
+  fromCalendarDateKey,
+  pickerValueToUtcDay,
+  toCalendarDateKey,
+  utcDayToPickerValue,
+} from "../../utils/calendar-date";
 import { fromDateInputValue, toDateInputValue } from "../../utils/time";
 
 /**
@@ -106,6 +111,63 @@ describe("calendar date key helpers", () => {
         checked += 1;
       }
       expect(checked).toBe(365);
+    });
+  });
+
+  // A form that keeps a persisted instant (UTC midnight of a day) and edits it
+  // with the picker crosses the two bases on every read and write. The hypercert
+  // wizard did, so a steward west of UTC saw the day before, and a day picked
+  // east of UTC was written a day early.
+  describe("UTC day bridge", () => {
+    const persisted = Date.UTC(2026, 8, 30) / 1000;
+
+    it("hands the picker the local midnight of the persisted UTC day", () => {
+      const shown = new Date((utcDayToPickerValue(persisted) as number) * 1000);
+      expect([shown.getFullYear(), shown.getMonth(), shown.getDate(), shown.getHours()]).toEqual([
+        2026, 8, 30, 0,
+      ]);
+    });
+
+    it("persists UTC midnight of the day the picker hands back", () => {
+      const picked = Math.floor(new Date(2026, 8, 30).getTime() / 1000);
+      expect(pickerValueToUtcDay(picked)).toBe(persisted);
+    });
+
+    it("reads an instant with a time of day as the UTC day it falls on", () => {
+      const lateEvening = Date.parse("2026-09-30T23:30:00Z") / 1000;
+      const shown = new Date((utcDayToPickerValue(lateEvening) as number) * 1000);
+      expect([shown.getMonth(), shown.getDate()]).toEqual([8, 30]);
+    });
+
+    it("treats an unset value as no day rather than the epoch", () => {
+      for (const unset of [0, -1, null, undefined]) {
+        expect(utcDayToPickerValue(unset)).toBeNull();
+        expect(pickerValueToUtcDay(unset)).toBeNull();
+      }
+    });
+
+    // CI runs on UTC, where both bases agree and a crossed read passes. A child
+    // runtime west of UTC and one east of it fail it on any machine.
+    it.each([
+      "America/Sao_Paulo",
+      "Asia/Taipei",
+    ])("keeps the day in both directions on a %s runtime", (timeZone) => {
+      const helperUrl = new URL("../../utils/calendar-date.ts", import.meta.url).href;
+      const script = `
+          import { pickerValueToUtcDay, utcDayToPickerValue } from ${JSON.stringify(helperUrl)};
+          const persisted = Date.UTC(2026, 8, 30) / 1000;
+          const shown = new Date(utcDayToPickerValue(persisted) * 1000);
+          if (shown.getTimezoneOffset() === 0) process.exit(2);
+          if (shown.getMonth() !== 8 || shown.getDate() !== 30 || shown.getHours() !== 0) process.exit(3);
+          const picked = Math.floor(new Date(2026, 8, 30).getTime() / 1000);
+          if (pickerValueToUtcDay(picked) !== persisted) process.exit(4);
+        `;
+      const result = spawnSync(process.execPath, ["-e", script], {
+        env: { ...process.env, TZ: timeZone },
+        encoding: "utf8",
+      });
+
+      expect(result.status, result.stderr).toBe(0);
     });
   });
 
