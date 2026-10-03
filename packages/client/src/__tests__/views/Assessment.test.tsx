@@ -14,11 +14,6 @@ vi.mock("@green-goods/shared/utils/garden-detail", () => ({
   DOMAIN_LABEL_IDS: { 1: "app.domain.tab.agro" },
 }));
 
-vi.mock("@green-goods/shared/utils/time", () => ({
-  formatDateRange: (start: number, end: number, fallback: string) =>
-    start || end ? "Nov 14, 2023 – Mar 9, 2024" : fallback,
-}));
-
 vi.mock("@green-goods/shared/modules/data/ipfs/resolve", () => ({
   resolveIPFSUrl: (cid: string) => `https://gateway.test/ipfs/${cid}`,
 }));
@@ -68,7 +63,8 @@ const baseAssessment = {
   cynefinPhase: 2 as const,
   domain: 1 as const,
   selectedActionUIDs: ["action-1", "action-2"],
-  reportingPeriod: { start: 1_700_000_000, end: 1_710_000_000 },
+  // Create Assessment stores each end as UTC midnight of the day the author picked.
+  reportingPeriod: { start: Date.UTC(2026, 6, 1) / 1000, end: Date.UTC(2026, 8, 30) / 1000 },
   sdgTargets: [2, 13],
   attachments: [
     { name: "Field photo.jpg", cid: "bafy-photo", mimeType: "image/jpeg" },
@@ -112,7 +108,9 @@ const renderRoute = () =>
       { initialEntries: [`/home/${GARDEN_ID}/assessments/${ASSESSMENT_ID}`] },
       createElement(
         IntlProvider,
-        { locale: "en", messages, defaultLocale: "en" },
+        // A reader west of UTC, set on the provider so no case depends on the
+        // zone of the machine running it.
+        { locale: "en", messages, defaultLocale: "en", timeZone: "America/Sao_Paulo" },
         createElement(
           Routes,
           null,
@@ -150,14 +148,19 @@ describe("GardenAssessment", () => {
     expect(screen.getByText("Assessment not found.")).toBeInTheDocument();
   });
 
-  it("renders the canonical domain, complexity, and reporting period", () => {
+  it("renders the canonical domain and complexity", () => {
     renderRoute();
     expect(screen.getByText("Muizenberg Community Garden")).toBeInTheDocument();
     expect(screen.getByText("Q1 Soil Health Assessment")).toBeInTheDocument();
     expect(screen.getByText("Assessment of soil regeneration outcomes")).toBeInTheDocument();
     expect(screen.getByText("Agroforestry")).toBeInTheDocument();
     expect(screen.getByText("Complex")).toBeInTheDocument();
-    expect(screen.getByText(/Nov 14, 2023 – Mar 9, 2024/)).toBeInTheDocument();
+  });
+
+  it("shows the reporting period as the days the author picked, for a reader west of UTC", () => {
+    renderRoute();
+    // Read in the reader's own zone, the page would say Jun 30 – Sep 29.
+    expect(screen.getByText(/Jul 1\s–\sSep 30, 2026 · Field A/u)).toBeInTheDocument();
   });
 
   it("renders the diagnosis and SMART outcome targets", () => {

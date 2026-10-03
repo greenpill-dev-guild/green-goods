@@ -17,6 +17,8 @@
  * @module utils/time
  * @see https://tc39.es/proposal-temporal/docs/
  */
+import type { IntlShape } from "react-intl";
+
 export { fromCalendarDateKey, toCalendarDateKey } from "./calendar-date";
 export type TimeFilter = "day" | "week" | "month" | "year";
 
@@ -507,30 +509,19 @@ export function getCurrentTimezone(): string {
 }
 
 /**
- * Format a date range as "start - end" with safe timestamp handling.
- * Handles seconds, milliseconds, ISO strings, and null values.
+ * An assessment's reporting period as one date range in the reader's language,
+ * or null when either end is missing. Create Assessment stores each end as UTC
+ * midnight of the calendar day the author picked, so the range is read in UTC:
+ * a reader west of it would otherwise see the day before.
  */
-export function formatDateRange(
-  start?: string | number | null,
-  end?: string | number | null,
-  fallback = "\u2014"
-): string {
-  const formatValue = (value?: string | number | null): string | undefined => {
-    if (value === null || value === undefined) return undefined;
-    if (typeof value === "string" && value.includes("-")) {
-      const date = new Date(value);
-      return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
-    }
-    const numeric = typeof value === "string" ? Number(value) : value;
-    if (!numeric) return undefined;
-    const timestamp = numeric > 10_000_000_000 ? numeric : numeric * 1000;
-    const date = new Date(timestamp);
-    return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
-  };
-
-  if (!start && !end) return fallback;
-  const startLabel = formatValue(start);
-  const endLabel = formatValue(end);
-  if (startLabel && endLabel) return `${startLabel} \u2013 ${endLabel}`;
-  return startLabel ?? endLabel ?? fallback;
+export function formatReportingPeriod(
+  intl: Pick<IntlShape, "formatDateTimeRange">,
+  start: number | null | undefined,
+  end: number | null | undefined
+): string | null {
+  if (!start || !end) return null;
+  const from = normalizeTimestamp(start);
+  const to = normalizeTimestamp(end);
+  if (Number.isNaN(from) || Number.isNaN(to)) return null;
+  return intl.formatDateTimeRange(from, to, { dateStyle: "medium", timeZone: "UTC" });
 }

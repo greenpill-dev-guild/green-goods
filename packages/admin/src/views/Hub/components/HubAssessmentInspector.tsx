@@ -4,7 +4,7 @@ import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
 import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
 import { getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
-import { normalizeTimestamp } from "@green-goods/shared/utils/time";
+import { formatReportingPeriod, normalizeTimestamp } from "@green-goods/shared/utils/time";
 import {
   RiCalendarLine,
   RiExternalLinkLine,
@@ -16,7 +16,7 @@ import {
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { DetailRow } from "@/views/Garden/WorkDetail/helpers";
-import { assessmentDomainLabelId, formatReportingPeriod } from "../assessmentDisplay";
+import { assessmentDomainLabelId } from "../assessmentDisplay";
 
 export type HubAssessmentRecord = Pick<
   EASGardenAssessment,

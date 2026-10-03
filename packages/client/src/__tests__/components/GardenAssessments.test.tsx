@@ -7,10 +7,6 @@ vi.mock("@green-goods/shared/utils/garden-detail", () => ({
   DOMAIN_LABEL_IDS: { 1: "app.domain.tab.agro" },
 }));
 
-vi.mock("@green-goods/shared/utils/time", () => ({
-  formatDateRange: () => "Nov 14, 2023 – Mar 9, 2024",
-}));
-
 vi.mock("@green-goods/shared/modules/data/ipfs/resolve", () => ({
   resolveIPFSUrl: (cid: string) => `https://gateway.test/ipfs/${cid}`,
 }));
@@ -50,7 +46,8 @@ const assessment = {
   cynefinPhase: 2 as const,
   domain: 1 as const,
   selectedActionUIDs: ["action-1"],
-  reportingPeriod: { start: 1_700_000_000, end: 1_710_000_000 },
+  // Create Assessment stores each end as UTC midnight of the day the author picked.
+  reportingPeriod: { start: Date.UTC(2026, 6, 1) / 1000, end: Date.UTC(2026, 8, 30) / 1000 },
   sdgTargets: [2, 13],
   attachments: [{ name: "Soil report.pdf", cid: "bafy-report", mimeType: "application/pdf" }],
   location: "Field A",
@@ -74,25 +71,36 @@ const messages = {
   "app.hypercerts.sdg.13": "Climate Action",
 };
 
+// A reader west of UTC, set on the provider so no case depends on the zone of
+// the machine running it.
+const renderAssessments = () =>
+  render(
+    <MemoryRouter>
+      <IntlProvider locale="en" messages={messages} defaultLocale="en" timeZone="America/Sao_Paulo">
+        <GardenAssessments
+          assessments={[assessment]}
+          assessmentFetchStatus="success"
+          description={null}
+        />
+      </IntlProvider>
+    </MemoryRouter>
+  );
+
 describe("GardenAssessments", () => {
   afterEach(cleanup);
 
+  it("shows the reporting period as the days the author picked, for a reader west of UTC", () => {
+    renderAssessments();
+
+    // Read in the reader's own zone, the card would say Jun 30 – Sep 29.
+    expect(screen.getByText(/^Jul 1\s–\sSep 30, 2026$/u)).toBeInTheDocument();
+  });
+
   it("summarizes canonical v2 assessment fields and attachments", () => {
-    render(
-      <MemoryRouter>
-        <IntlProvider locale="en" messages={messages} defaultLocale="en">
-          <GardenAssessments
-            assessments={[assessment]}
-            assessmentFetchStatus="success"
-            description={null}
-          />
-        </IntlProvider>
-      </MemoryRouter>
-    );
+    renderAssessments();
 
     expect(screen.getByText("Agroforestry")).toBeInTheDocument();
     expect(screen.getByText("Complex")).toBeInTheDocument();
-    expect(screen.getByText("Nov 14, 2023 – Mar 9, 2024")).toBeInTheDocument();
     expect(screen.getByText("SDG 2: Zero Hunger")).toBeInTheDocument();
     expect(screen.getByText("SDG 13: Climate Action")).toBeInTheDocument();
     expect(screen.getByText("Restore healthy soil across the north field")).toBeInTheDocument();
