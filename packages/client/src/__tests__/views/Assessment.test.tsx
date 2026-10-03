@@ -37,7 +37,8 @@ vi.mock("@/components/Features/Work", () => ({
 }));
 
 vi.mock("@/components/Navigation", () => ({
-  TopNav: () => createElement("nav", { "data-testid": "topnav" }),
+  TopNav: ({ overlay }: { overlay?: boolean }) =>
+    createElement("nav", { "data-testid": "topnav", "data-overlay": String(Boolean(overlay)) }),
 }));
 
 import { GardenAssessment } from "../../views/Home/Garden/Assessment";
@@ -188,6 +189,24 @@ describe("GardenAssessment", () => {
     renderRoute();
     expect(screen.getByText(message)).toBeInTheDocument();
     expect(screen.getByTestId("skeleton")).toBeInTheDocument();
+  });
+
+  // The top bar is 80px tall. Left in the flow with 64px of padding under it,
+  // the page began 144px down, where the work page and the promise page begin
+  // at 80px. Like theirs, the bar is pinned over the page, which clears it once.
+  it.each([
+    ["an assessment to show", () => undefined],
+    [
+      "no assessment to show",
+      () => mockUseGardenAssessmentRecords.mockReturnValue({ records: [], status: "success" }),
+    ],
+  ])("pins the top bar and starts the page 80px down, with %s", (_label, arrange) => {
+    arrange();
+    renderRoute();
+
+    const bar = screen.getByTestId("topnav");
+    expect(bar).toHaveAttribute("data-overlay", "true");
+    expect(bar.nextElementSibling).toHaveClass("pt-20");
   });
 
   it("claims nothing while the assessments are still being read", () => {

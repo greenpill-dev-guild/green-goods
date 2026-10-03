@@ -43,8 +43,8 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
         });
     return (
       <article>
-        <TopNav onBackClick={() => window.history.back()} />
-        <div className="padded pt-16">
+        <TopNav onBackClick={() => window.history.back()} overlay />
+        <div className="padded pt-20">
           <WorkViewSkeleton showMedia={false} showActions={false} numDetails={2} />
           {message ? <p className="mt-6 text-center text-sm text-text-sub-600">{message}</p> : null}
         </div>
@@ -61,8 +61,10 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
 
   return (
     <article>
-      <TopNav onBackClick={() => window.history.back()} />
-      <div className="padded flex flex-col gap-8 pt-16">
+      {/* Pinned over the page like the work and promise pages: the bar is 80px
+          tall, and the page clears it once. */}
+      <TopNav onBackClick={() => window.history.back()} overlay />
+      <div className="padded flex flex-col gap-8 pt-20">
         <header className="space-y-3">
           <p
             className="truncate text-xs uppercase tracking-wide text-text-sub-600"
