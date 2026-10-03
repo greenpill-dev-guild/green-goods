@@ -270,13 +270,13 @@ async function switchWallet(
 }
 
 /**
- * The switches asked through one config: the ones under way and the last one
- * to end, by the wallet asked and the network asked for, and how many have
- * ended.
+ * The switches asked through one config: the ones under way, and the refusal
+ * the last one ended with, by the wallet asked and the network asked for, and
+ * how many have ended.
  */
 type WalletSwitches = {
   underWay: Map<string, Promise<void>>;
-  last: Map<string, { ended: number; switched: Promise<void> }>;
+  refused: Map<string, { ended: number; refusal: unknown }>;
   ended: number;
 };
 const switches = new WeakMap<Config, WalletSwitches>();
@@ -298,16 +298,20 @@ function switchKey(config: Config, targetChainId: number): string {
  * Callers that need the same switch of the same wallet at the same time share
  * one request, so the wallet is asked once and each of them gets its answer,
  * including a caller that was still answering `beforeSwitch` when the request
- * ended. A wallet that took the connection over is asked itself. A wallet
- * already on the network never waits on anyone else's switch.
+ * was refused. A wallet that took the connection over is asked itself. A
+ * wallet already on the network never waits on anyone else's switch.
  *
  * `beforeSwitch` is the caller's last word on who the switch is for. Reading
  * the wallet's networks takes time, and a request acts on whichever wallet
- * holds the connection by then. The check runs after each read and right
- * before each request that asks the wallet to move, so a wallet that took the
- * connection over in between is refused, not switched or prompted. Throwing
- * stops it. A request that callers share asks the one that started it; the
- * others answered as they joined.
+ * holds the connection by then. So the caller is asked after the wallet is
+ * read, and its answer counts for the wallet that holds the connection once it
+ * is given. The answer takes time too, so the wallet is read again after it,
+ * and a request is made only while that same wallet holds the connection: one
+ * that took it over during the second read is asked about first. A wallet that
+ * took the connection over is therefore refused, not switched or prompted.
+ * Throwing stops the switch. The caller is asked once more before a second
+ * request to the wallet (see `switchWallet`); a request that callers share
+ * asks the one that started it there.
  */
 export async function ensureWagmiWalletChain(
   config: Config,
@@ -321,37 +325,52 @@ export async function ensureWagmiWalletChain(
   if (!getAccount(config).connector) return;
   const known: WalletSwitches = switches.get(config) ?? {
     underWay: new Map(),
-    last: new Map(),
+    refused: new Map(),
     ended: 0,
   };
   switches.set(config, known);
   const endedBefore = known.ended;
-  const walletChainId = await writableNetworkOtherThan(config, targetChainId);
-  if (walletChainId === undefined) return;
-  await beforeSwitch?.();
+  /** The wallet the caller has answered `beforeSwitch` for. */
+  let answeredFor: string | undefined;
 
-  // Nothing is awaited between the caller's answer and the request.
-  const asked = switchKey(config, targetChainId);
-  let request = known.underWay.get(asked);
-  if (!request) {
-    if (known.ended !== endedBefore) {
-      // The caller's answer can take a while, and a switch has ended since the
-      // wallet was read. One that asked this wallet for this network was this
-      // caller's switch as well: its refusal is shared, and the wallet is not
-      // asked again. Otherwise the wallet may have moved, so it is read again.
-      const last = known.last.get(asked);
-      if (last && last.ended > endedBefore) await last.switched;
-      return ensureWagmiWalletChain(config, targetChainId, reason, beforeSwitch);
+  for (;;) {
+    const endedAtRead = known.ended;
+    const walletChainId = await writableNetworkOtherThan(config, targetChainId);
+    if (walletChainId === undefined) return;
+    // A switch that ended during the read may have moved the wallet since it answered.
+    if (known.ended !== endedAtRead) continue;
+
+    // From here nothing is awaited before the request, except the caller's answer.
+    const asked = switchKey(config, targetChainId);
+    if (beforeSwitch && answeredFor !== asked) {
+      await beforeSwitch();
+      answeredFor = switchKey(config, targetChainId);
+      continue;
     }
-    const switched = switchWallet(config, walletChainId, targetChainId, reason, beforeSwitch);
-    request = switched.finally(() => {
-      known.underWay.delete(asked);
-      known.ended += 1;
-      known.last.set(asked, { ended: known.ended, switched });
-    });
-    known.underWay.set(asked, request);
+    // A switch that asked this wallet for this network, and was refused after
+    // this caller came in, was its switch as well. The refusal is shared, and
+    // the wallet is not asked again.
+    const refused = known.refused.get(asked);
+    if (refused && refused.ended > endedBefore) throw refused.refusal;
+
+    let request = known.underWay.get(asked);
+    if (!request) {
+      request = (async () => {
+        try {
+          await switchWallet(config, walletChainId, targetChainId, reason, beforeSwitch);
+          known.refused.delete(asked);
+        } catch (refusal) {
+          known.refused.set(asked, { ended: known.ended + 1, refusal });
+          throw refusal;
+        } finally {
+          known.underWay.delete(asked);
+          known.ended += 1;
+        }
+      })();
+      known.underWay.set(asked, request);
+    }
+    return request;
   }
-  await request;
 }
 
 export async function ensureAppKitWalletChain(

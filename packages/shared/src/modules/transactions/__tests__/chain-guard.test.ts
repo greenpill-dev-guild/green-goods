@@ -116,7 +116,7 @@ describe("ensureWagmiWalletChain", () => {
 
   // Reading the wallet takes time, and the switch acts on whichever wallet
   // holds the connection by then.
-  it("asks the caller who the switch is for after reading the wallet and right before asking it to move", async () => {
+  it("asks the caller who the switch is for after reading the wallet and before asking it to move", async () => {
     const { config, connector } = wallet();
     const beforeSwitch = vi.fn();
 
@@ -141,6 +141,43 @@ describe("ensureWagmiWalletChain", () => {
       beforeSwitch
     );
     expect(beforeSwitch).toHaveBeenCalledOnce();
+  });
+
+  // The caller's answer takes time as well, so the wallet is read again after it.
+  it("asks nothing of a wallet that moved onto the network by itself while the caller was answering", async () => {
+    const { config, connector, on } = wallet();
+    const beforeSwitch = vi.fn(async () => {
+      // The person switches in their wallet meanwhile.
+      on.connector = ARBITRUM;
+      on.provider = ARBITRUM;
+    });
+
+    await ensureWagmiWalletChain(config, ARBITRUM, "write", beforeSwitch);
+
+    expect(connector.switchChain).not.toHaveBeenCalled();
+    expect(mocks.trackSwitch).not.toHaveBeenCalled();
+  });
+
+  it("asks the caller again when the connection changes hands during that second read", async () => {
+    const { config, connector } = wallet();
+    const refusal = new Error("submission-ownership-changed");
+    const beforeSwitch = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(refusal);
+    connector.getChainId
+      .mockImplementationOnce(async () => CELO)
+      .mockImplementationOnce(async () => {
+        const connection = config.state.connections.get("wallet") as unknown as {
+          accounts: string[];
+        };
+        connection.accounts = ["0x2222222222222222222222222222222222222222"];
+        return CELO;
+      });
+
+    await expect(ensureWagmiWalletChain(config, ARBITRUM, "write", beforeSwitch)).rejects.toBe(
+      refusal
+    );
+
+    expect(beforeSwitch).toHaveBeenCalledTimes(2);
+    expect(connector.switchChain).not.toHaveBeenCalled();
   });
 
   it("switches through AppKit when AppKit owns the connection, so its selected network moves too", async () => {
