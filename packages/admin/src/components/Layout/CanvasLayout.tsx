@@ -2,7 +2,7 @@ import { FabProvider } from "@green-goods/shared/components/Canvas/FabContext";
 import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
 import { RefreshActionProvider } from "@green-goods/shared/components/Canvas/RefreshActionContext";
 import { useCanvasShellController } from "@green-goods/shared/hooks/admin-ui/layout/useCanvasShellController";
-import { useWalletNetworkNotice } from "@green-goods/shared/hooks/blockchain/useWalletNetworkNotice";
+import { useWalletNetworkAlignment } from "@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment";
 import { memo, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminSideSheet } from "@/components/AdminSideSheet";
@@ -43,7 +43,7 @@ export function CanvasLayout() {
     renderAccountSettings,
     renderNotifications,
   });
-  const walletNetwork = useWalletNetworkNotice();
+  useWalletNetworkAlignment();
   const {
     activePath,
     activeSheet,
@@ -130,7 +130,6 @@ export function CanvasLayout() {
                 onOpenNotifications={openNotifications}
                 onOpenProfile={isDesktop ? openProfile : undefined}
                 profileImageSrc={profileImageSrc ?? undefined}
-                walletNetwork={walletNetwork}
               />
             </div>
 

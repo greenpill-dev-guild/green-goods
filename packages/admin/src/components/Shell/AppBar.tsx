@@ -1,16 +1,13 @@
 import { useRefreshActionValue } from "@green-goods/shared/components/Canvas/RefreshActionContext";
-import type { WalletNetworkNoticeState } from "@green-goods/shared/hooks/blockchain/useWalletNetworkNotice";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowLeftLine,
-  RiLoader4Line,
   RiNotification3Line,
   RiRefreshLine,
   RiSearchLine,
   RiSettings3Line,
   RiUserLine,
-  RiWallet3Line,
 } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
@@ -84,69 +81,6 @@ function TopBarIconButton({
 }
 
 // ----------------------------------------------------------------------------
-// WalletNetworkButton — the wallet's network, when it is not the app's
-// ----------------------------------------------------------------------------
-
-const NETWORK_BTN = cn(
-  // The icon buttons' 40px circle on a phone. From 600px it is a 36px pill on
-  // the garden chip's metric, with the label showing.
-  "group/icon relative flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full",
-  "min-[600px]:h-9 min-[600px]:w-auto min-[600px]:px-3.5",
-  "border border-warning-light bg-warning-lighter text-label-lg font-medium text-warning-dark",
-  // Hover and press are the neutral ink state layer over the warning fill,
-  // never a hue shift. The hit-target class releases the layer's clip, which
-  // the tooltip below the button needs.
-  "m3-state-layer admin-hit-target-lg",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--tone-primary,var(--primary-base))))]",
-  "aria-busy:cursor-progress"
-);
-
-/**
- * Shown only while the steward's wallet is on another network. It names the
- * switch and asks the wallet for it. Wallet acts switch the network themselves;
- * this exists so a browser wallet's prompt never arrives unannounced
- * (PRD-1067). It lives in the bar, where it is always in view and where coming
- * and going moves nothing on the page.
- */
-function WalletNetworkButton({ notice }: { notice: WalletNetworkNoticeState }) {
-  const Icon = notice.isSwitching ? RiLoader4Line : RiWallet3Line;
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        if (!notice.isSwitching) void notice.switchNetwork();
-      }}
-      aria-label={`${notice.message}. ${notice.switchLabel}`}
-      aria-busy={notice.isSwitching || undefined}
-      className={NETWORK_BTN}
-      data-component="AppBar"
-      data-slot="wallet-network-button"
-    >
-      <Icon
-        className={cn(
-          "h-5 w-5 shrink-0 min-[600px]:h-4 min-[600px]:w-4",
-          notice.isSwitching && "animate-spin motion-reduce:animate-none"
-        )}
-        aria-hidden="true"
-      />
-      <span className="hidden whitespace-nowrap min-[600px]:inline">{notice.switchLabel}</span>
-      <span
-        className={cn(
-          "pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap",
-          "rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-inverse-surface)/0.9)] px-2.5 py-1 text-label-md font-medium text-[rgb(var(--m3-inverse-on-surface))]",
-          "opacity-0 transition-opacity group-hover/icon:opacity-100",
-          "motion-reduce:transition-none"
-        )}
-        role="tooltip"
-        data-slot="tooltip"
-      >
-        {notice.message}
-      </span>
-    </button>
-  );
-}
-
-// ----------------------------------------------------------------------------
 // Types
 // ----------------------------------------------------------------------------
 
@@ -161,8 +95,6 @@ export interface AppBarProps {
   onOpenProfile?: () => void;
   /** Optional resolved profile image for the existing profile control. */
   profileImageSrc?: string;
-  /** The wallet's other network and its switch, while there is one to show. */
-  walletNetwork?: WalletNetworkNoticeState | null;
 }
 
 // ----------------------------------------------------------------------------
@@ -173,8 +105,7 @@ export interface AppBarProps {
  * Sticky top bar for the admin canvas layout (M3 AppBar, admin fork).
  *
  * - Left side: GardenChip (or sheetContext back-arrow + label when a sheet is open)
- * - Right side: Search, Notifications, Settings, Profile — all with identical styling,
- *   led by the wallet network button while the wallet is on another network
+ * - Right side: Search, Notifications, Settings, Profile — all with identical styling
  * - Transparent root so the canvas wash reads continuously behind it
  * - h-14 (56px)
  *
@@ -191,7 +122,6 @@ export function AppBar({
   onOpenNotifications,
   onOpenProfile,
   profileImageSrc,
-  walletNetwork,
 }: AppBarProps) {
   const { formatMessage } = useIntl();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -244,10 +174,6 @@ export function AppBar({
 
         {/* Right side — all icons share ICON_BTN styling via TopBarIconButton */}
         <div className="flex shrink-0 items-center gap-1" data-slot="actions">
-          {/* First in the cluster, so the icons after it keep their places when
-            it comes and goes. */}
-          {walletNetwork ? <WalletNetworkButton notice={walletNetwork} /> : null}
-
           {/* Refresh — mobile/tablet only, registered via useRefreshAction by the
             active view. Desktop uses inline header actions instead. */}
           {showRefresh && refreshAction ? (

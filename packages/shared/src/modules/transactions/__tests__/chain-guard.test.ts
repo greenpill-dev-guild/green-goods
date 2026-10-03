@@ -263,7 +263,7 @@ describe("ensureWagmiWalletChain", () => {
 
     await Promise.all([
       ensureWagmiWalletChain(config, ARBITRUM),
-      ensureWagmiWalletChain(config, ARBITRUM, "notice"),
+      ensureWagmiWalletChain(config, ARBITRUM, "retry"),
     ]);
 
     expect(connector.switchChain).toHaveBeenCalledOnce();

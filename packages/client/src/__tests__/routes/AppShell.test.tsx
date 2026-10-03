@@ -38,9 +38,9 @@ vi.mock("@/components/Communication/PwaBadgeCoordinator", () => ({
   PwaBadgeCoordinator: () => null,
 }));
 
-// The shell reads the wallet network notice from wagmi; this shell has no wallet.
-vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkNotice", () => ({
-  useWalletNetworkNotice: () => null,
+// The shell aligns a phone wallet's network through wagmi; this shell has no wallet.
+vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment", () => ({
+  useWalletNetworkAlignment: () => undefined,
 }));
 
 vi.mock("@/components/Layout/AppBar", () => ({

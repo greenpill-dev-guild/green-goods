@@ -200,16 +200,6 @@ function walletNetworkSwitch(config: Config, chainId: number): WalletNetworkSwit
   };
 }
 
-const switchListeners = new Set<() => void>();
-
-/** Calls `listener` each time the guard has moved a wallet. Returns the unsubscribe. */
-export function onWalletNetworkSwitched(listener: () => void): () => void {
-  switchListeners.add(listener);
-  return () => {
-    switchListeners.delete(listener);
-  };
-}
-
 async function switchWallet(
   config: Config,
   walletChainId: number,
@@ -267,7 +257,6 @@ async function switchWallet(
     throw error;
   }
   report("switched");
-  for (const listener of switchListeners) listener();
 }
 
 /** Switches under way, by wallet and by the network asked for. */

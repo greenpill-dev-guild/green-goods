@@ -58,9 +58,9 @@ vi.mock("@green-goods/shared/components/Canvas/GardenChip", () => ({
   GardenChip: () => <div>Garden Chip</div>,
 }));
 
-// The shell reads the wallet network notice from wagmi; these shells have no wallet.
-vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkNotice", () => ({
-  useWalletNetworkNotice: () => null,
+// The shell aligns a phone wallet's network through wagmi; these shells have no wallet.
+vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment", () => ({
+  useWalletNetworkAlignment: () => undefined,
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({

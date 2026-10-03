@@ -1,7 +1,7 @@
 import { track } from "./posthog";
 
-/** Why the app asked a wallet to change network: before a write, on its retry, at sign-in, or from the notice. */
-export type WalletNetworkSwitchReason = "write" | "retry" | "sign-in" | "notice";
+/** Why the app asked a wallet to change network: before a write, on its retry, or when its connection came up. */
+export type WalletNetworkSwitchReason = "write" | "retry" | "sign-in";
 
 /**
  * How a requested network switch ended. `pending`: a switch is already waiting
