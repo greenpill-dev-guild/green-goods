@@ -91,6 +91,28 @@ describe("readAssessmentDetail", () => {
     });
   });
 
+  // Number(true) is 1 and Number([7]) is 7. A file that holds either where a
+  // number belongs recorded no number, and must not read as a target or an SDG.
+  it("reads only a number, or a string that spells one, as a number", async () => {
+    const readJson = storedFiles({
+      [CONFIG_CID]: config,
+      [METRICS_CID]: {
+        ...metrics,
+        smartOutcomes: [
+          { description: "Restore the north field", metric: "areaCovered", target: true },
+          { description: "Run soil workshops", metric: "sessionsDelivered", target: [6] },
+          { description: "Plant the hedge", metric: "treesPlanted", target: " 120 " },
+        ],
+        sdgTargets: [true, [7], null, "", "13", 2],
+      },
+    });
+
+    const read = await readAssessmentDetail(CONFIG_CID, { readJson });
+
+    expect(read.smartOutcomes.map((outcome) => outcome.target)).toEqual([0, 0, 120]);
+    expect(read.sdgTargets).toEqual([13, 2]);
+  });
+
   it("hands the caller's abort signal to both reads", async () => {
     const readJson = storedFiles({ [CONFIG_CID]: config, [METRICS_CID]: metrics });
     const { signal } = new AbortController();

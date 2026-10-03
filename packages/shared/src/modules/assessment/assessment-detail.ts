@@ -47,13 +47,24 @@ function strings(value: unknown): string[] {
   return value.filter((entry): entry is string => typeof entry === "string" && entry.trim() !== "");
 }
 
+/**
+ * A number as a stored file holds one: a finite number, or a string that spells
+ * one. `Number` alone would also read `true` as 1 and `[7]` as 7, and show a
+ * target or an SDG nobody recorded.
+ */
+function toNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string" || value.trim() === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function toSmartOutcome(value: unknown): SmartOutcome | null {
   if (!isRecord(value)) return null;
   const description = typeof value.description === "string" ? value.description : "";
   const metric = typeof value.metric === "string" ? value.metric : "";
   if (!description.trim() && !metric.trim()) return null;
-  const target = Number(value.target);
-  return { description, metric, target: Number.isFinite(target) ? target : 0 };
+  return { description, metric, target: toNumber(value.target) ?? 0 };
 }
 
 function toCynefinPhase(value: unknown): CynefinPhase | null {
@@ -63,8 +74,9 @@ function toCynefinPhase(value: unknown): CynefinPhase | null {
 function toSdgTargets(value: unknown): number[] {
   if (!Array.isArray(value)) return [];
   const goals = value
-    .map(Number)
-    .filter((goal) => Number.isInteger(goal) && goal >= 1 && goal <= 17);
+    .map(toNumber)
+    .filter((goal): goal is number => goal !== null && Number.isInteger(goal))
+    .filter((goal) => goal >= 1 && goal <= 17);
   return [...new Set(goals)];
 }
 
