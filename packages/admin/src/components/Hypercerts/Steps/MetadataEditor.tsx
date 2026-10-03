@@ -1,4 +1,5 @@
 import { DatePicker } from "@green-goods/shared/components/DatePicker/DatePicker";
+import { selectHypercertTimeframeOrder } from "@green-goods/shared/stores/useHypercertWizardStore";
 import type { GardenAssessment } from "@green-goods/shared/types/domain";
 import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
 import type { CapitalType, HypercertDraft } from "@green-goods/shared/types/hypercerts";
@@ -87,35 +88,11 @@ export function MetadataEditor({
     ? impactScopesText
     : draft.impactScopes.join(", ");
 
-  // Date validation
-  const workDateError = useMemo(() => {
-    const start = draft.workTimeframeStart ?? suggestedStart;
-    const end = draft.workTimeframeEnd ?? suggestedEnd;
-    if (start && end && start > end) {
-      return formatMessage({ id: "app.hypercerts.metadata.error.dateRange" });
-    }
-    return undefined;
-  }, [
-    draft.workTimeframeStart,
-    draft.workTimeframeEnd,
-    suggestedStart,
-    suggestedEnd,
-    formatMessage,
-  ]);
-
-  const impactDateError = useMemo(() => {
-    const start = draft.impactTimeframeStart ?? draft.workTimeframeStart;
-    const end = draft.impactTimeframeEnd;
-    if (start !== null && start !== undefined && end && start > end) {
-      return formatMessage({ id: "app.hypercerts.metadata.error.dateRange" });
-    }
-    return undefined;
-  }, [
-    draft.impactTimeframeStart,
-    draft.impactTimeframeEnd,
-    draft.workTimeframeStart,
-    formatMessage,
-  ]);
+  // The wizard's own rule, so the error shown here is the one Next waits on.
+  const { workInOrder, impactInOrder } = selectHypercertTimeframeOrder(draft);
+  const dateRangeError = formatMessage({ id: "app.hypercerts.metadata.error.dateRange" });
+  const workDateError = workInOrder ? undefined : dateRangeError;
+  const impactDateError = impactInOrder ? undefined : dateRangeError;
 
   const availableSuggestedScopes = useMemo(() => {
     return suggestedWorkScopes.filter((scope) => !draft.workScopes.includes(scope));
@@ -283,8 +260,9 @@ export function MetadataEditor({
           />
         </div>
 
-        {/* Current selection display */}
-        {(draft.workTimeframeStart > 0 || draft.workTimeframeEnd > 0) && (
+        {/* Current selection display. Its check mark confirms the time frame, so
+            it stays away while the step calls that time frame out of order. */}
+        {workInOrder && (draft.workTimeframeStart > 0 || draft.workTimeframeEnd > 0) && (
           <div className="flex items-center gap-2 rounded-lg border border-primary-light bg-primary-lighter/30 px-3 py-2">
             <RiCheckLine className="h-4 w-4 text-primary-base" />
             <span className="body-sm text-primary-dark">

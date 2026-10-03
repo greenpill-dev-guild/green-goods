@@ -6,6 +6,7 @@
  */
 
 import enMessages from "@green-goods/shared/i18n/en.json";
+import { useHypercertWizardStore } from "@green-goods/shared/stores/useHypercertWizardStore";
 import type { HypercertDraft } from "@green-goods/shared/types/hypercerts";
 import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -188,6 +189,27 @@ function MetadataEditorHarness({
     suggestedWorkScopes: [],
     suggestedStart: null,
     suggestedEnd: null,
+  });
+}
+
+/** The step as the wizard runs it: its periods read from, and written to, the wizard's own store. */
+function StoreBackedEditor({
+  suggestedStart,
+  suggestedEnd,
+}: {
+  suggestedStart: number;
+  suggestedEnd: number;
+}) {
+  const workTimeframeStart = useHypercertWizardStore((state) => state.workTimeframeStart);
+  const workTimeframeEnd = useHypercertWizardStore((state) => state.workTimeframeEnd);
+  const updateMetadata = useHypercertWizardStore((state) => state.updateMetadata);
+
+  return createElement(MetadataEditor, {
+    draft: createMockDraft({ workTimeframeStart, workTimeframeEnd }),
+    onUpdate: updateMetadata,
+    suggestedWorkScopes: [],
+    suggestedStart,
+    suggestedEnd,
   });
 }
 
@@ -572,6 +594,8 @@ describe("components/Hypercerts/MetadataEditor", () => {
       render(
         createElement(MetadataEditor, {
           ...defaultProps,
+          suggestedStart: null,
+          suggestedEnd: null,
           draft: createMockDraft({
             workTimeframeStart: now,
             workTimeframeEnd: now - 86400, // End before start
@@ -581,6 +605,8 @@ describe("components/Hypercerts/MetadataEditor", () => {
 
       // Error should be shown - look for the specific date range error message
       expect(screen.getByText(/start date must be before/i)).toBeInTheDocument();
+      // The check-marked line confirms a time frame, so it does not show for this one.
+      expect(screen.queryByText(/→/)).not.toBeInTheDocument();
     });
   });
 
@@ -643,6 +669,46 @@ describe("components/Hypercerts/MetadataEditor", () => {
       expect(dayIn("hypercert-impact-end")).toBe("2026-08-26");
       expect(document.getElementById("hypercert-work-end")).toHaveAttribute("min", "2026-03-01");
       expect(document.getElementById("hypercert-impact-end")).toHaveAttribute("min", "2026-03-01");
+    });
+
+    // "Use suggested dates" hands over the moments the work was created and
+    // approved. Kept as moments, 22:15 on 25 March is later than the midnight
+    // stored for an end picked on 25 March, and the step called that end too early.
+    it("accepts an end on the suggested start's own day", async () => {
+      const user = userEvent.setup();
+      useHypercertWizardStore.getState().reset();
+
+      render(
+        createElement(StoreBackedEditor, {
+          suggestedStart: Date.UTC(2026, 2, 25, 22, 15, 8) / 1000,
+          suggestedEnd: Date.UTC(2026, 7, 26, 9, 37, 49) / 1000,
+        })
+      );
+      await user.click(screen.getByText(/use suggested/i));
+      fireEvent.change(document.getElementById("hypercert-work-end") as HTMLInputElement, {
+        target: { value: "2026-03-25" },
+      });
+
+      expect(dayIn("hypercert-work-start")).toBe("2026-03-25");
+      expect(dayIn("hypercert-work-end")).toBe("2026-03-25");
+      expect(screen.queryByText(/start date must be before/i)).not.toBeInTheDocument();
+    });
+
+    // With no start of its own the impact period begins with the work, as its
+    // picker shows and the minted metadata writes.
+    it("flags an impact end before the work start the impact period begins from", () => {
+      render(
+        createElement(MetadataEditor, {
+          ...defaultProps,
+          draft: createMockDraft({
+            workTimeframeStart: august26,
+            workTimeframeEnd: august26,
+            impactTimeframeEnd: march1,
+          }),
+        })
+      );
+
+      expect(screen.getByText(/start date must be before/i)).toBeInTheDocument();
     });
 
     it.each([

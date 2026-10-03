@@ -87,6 +87,8 @@ export function AttestationSelector({
     });
   }, [attestations, domainFilter, searchQuery, selectedAssessment]);
 
+  // The work a steward can choose now: shown under the filters in force and
+  // not already in a hypercert. The header counts these as available.
   const selectable = useMemo(
     () => filtered.filter((attestation) => !bundledInfo?.[attestation.id]),
     [bundledInfo, filtered]
@@ -126,10 +128,7 @@ export function AttestationSelector({
           {formatMessage({ id: "app.hypercerts.attestations.title" })}
         </h2>
         <p className="body-sm text-text-sub">
-          {formatMessage(
-            { id: "app.hypercerts.attestations.count" },
-            { count: attestations.length }
-          )}
+          {formatMessage({ id: "app.hypercerts.attestations.count" }, { count: selectable.length })}
           {selectedIds.length > 0
             ? ` · ${formatMessage(
                 { id: "app.hypercerts.attestations.selected" },

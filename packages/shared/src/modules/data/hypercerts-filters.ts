@@ -5,6 +5,7 @@ import {
   type AttestationFilters,
   type HypercertAttestation,
 } from "../../types/hypercerts";
+import { toUtcDay } from "../../utils/calendar-date";
 
 /**
  * Maps numeric Domain enum values to ActionDomain strings used in hypercert attestations.
@@ -77,13 +78,6 @@ export function applyAttestationFilters(
   });
 }
 
-const SECONDS_PER_DAY = 86_400;
-
-/** The UTC calendar day an instant falls on, counted in days since the epoch. */
-function utcDayOf(seconds: number): number {
-  return Math.floor(seconds / SECONDS_PER_DAY);
-}
-
 /**
  * Narrows work attestations to the ones an assessment covers: created within
  * its reporting period and, when the work names a domain, in its domain.
@@ -104,9 +98,9 @@ export function filterAttestationsByAssessment(
       : { start: assessment.startDate, end: assessment.endDate };
 
   return attestations.filter((attestation) => {
-    const createdOn = utcDayOf(attestation.createdAt);
-    if (start && createdOn < utcDayOf(start)) return false;
-    if (end && createdOn > utcDayOf(end)) return false;
+    const createdOn = toUtcDay(attestation.createdAt);
+    if (start && createdOn < toUtcDay(start)) return false;
+    if (end && createdOn > toUtcDay(end)) return false;
 
     // Filter by domain
     if (actionDomain && attestation.domain && attestation.domain !== actionDomain) {

@@ -45,6 +45,16 @@ export function fromCalendarDateKey(value: string | null | undefined): number | 
   return Math.floor(date.getTime() / 1000);
 }
 
+const SECONDS_PER_DAY = 86_400;
+
+/**
+ * The UTC calendar day a persisted instant falls on, as that day's UTC midnight
+ * in Unix seconds: the form a stored day takes.
+ */
+export function toUtcDay(seconds: number): number {
+  return Math.floor(seconds / SECONDS_PER_DAY) * SECONDS_PER_DAY;
+}
+
 /**
  * The DatePicker value that shows the UTC calendar day of a persisted instant:
  * local midnight of that day. Null for an unset instant (null or not positive).
