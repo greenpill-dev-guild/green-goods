@@ -43,7 +43,8 @@ dialect: installed-pwa
 - Toasts (DL-060): the status icon sits on the title's line (on the message's first line when there is no title), and the message, description, and action run the toast's full width below it; the action's text takes `--primary-on-surface`. The toast is shared, so the admin cockpit renders the same anatomy
 - Garden header (DL-020): page actions (notifications, endowment, share) are 32px icon buttons stacked in the banner's top right, with Share last so the others keep their places. The title row carries at most one text action, Join Garden or Request to Join, at the `compact` button size (32px tall, 14px label, no icon, 48px tap area), and its location and founded lines truncate instead of running under the button
 - Scrolling: content scrolls inside `#app-scroll`, within a full-height `main` that clips and is positioned, so the document itself never scrolls. Android stretches every fixed element when the document overscrolls; with no document scroll, the AppBar and page headers hold still while native pull-to-refresh still reaches the document
-- Persistent chrome (AppBar, offline banner) has its own view-transition name and never animates, so tab cross-fades pass beneath it
+- Persistent chrome (AppBar, offline banner, wallet network notice) has its own view-transition name and never animates, so tab cross-fades pass beneath it
+- Top status bars: the offline banner sits above the others, and of the rest one shows at a time. The wallet network notice ("Wallet on Celo", with a Switch to button naming the app's network) takes the install nudge's place while a wallet sits on another network, and appears only at sign-in or on return to the app
 - Safe areas: `env(safe-area-inset-bottom)` for notched devices
 
 **Typography:**

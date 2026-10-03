@@ -22,15 +22,20 @@
   view-transition-name: main;
 }
 
-/* Persistent app chrome - assigned via className in AppBar and OfflineIndicator.
- * Unnamed elements paint in the root snapshot, below every named group, so
- * without these names `main` fading in or out covers the fixed bars. */
+/* Persistent app chrome - assigned via className in AppBar, OfflineIndicator and
+ * WalletNetworkNotice. Unnamed elements paint in the root snapshot, below every
+ * named group, so without these names `main` fading in or out covers the fixed
+ * bars. */
 .vt-app-bar {
   view-transition-name: app-bar;
 }
 
 .vt-offline-banner {
   view-transition-name: offline-banner;
+}
+
+.vt-wallet-network-notice {
+  view-transition-name: wallet-network-notice;
 }
 
 /* Page-level transitions for specific views */
@@ -93,13 +98,16 @@
  */
 ::view-transition-group(app-bar),
 ::view-transition-group(offline-banner),
+::view-transition-group(wallet-network-notice),
 ::view-transition-new(app-bar),
-::view-transition-new(offline-banner) {
+::view-transition-new(offline-banner),
+::view-transition-new(wallet-network-notice) {
   animation: none;
 }
 
 ::view-transition-old(app-bar),
-::view-transition-old(offline-banner) {
+::view-transition-old(offline-banner),
+::view-transition-old(wallet-network-notice) {
   animation: none;
   opacity: 0;
 }

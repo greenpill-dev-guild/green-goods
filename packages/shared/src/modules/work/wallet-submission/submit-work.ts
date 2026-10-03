@@ -152,6 +152,10 @@ export async function submitWorkDirectly(
     const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);
 
     debugLog("[WalletSubmission] Sending transaction", { to: txParams.to });
+    // The upload can run for minutes, long enough for the wallet to have moved
+    // network. Checking again here, before the send intent is recorded, switches
+    // it back instead of refusing the send.
+    await ensureWagmiWalletChain(wagmiConfig, chainId);
     await assertLocalArbitrumForkWallet();
 
     const currentWallet = await assertOwnership();

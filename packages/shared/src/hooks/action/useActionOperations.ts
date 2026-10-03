@@ -9,7 +9,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import type { Abi } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
+import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 import { toastService } from "../../components/toast";
 import {
   type ActionOperationCommand,
@@ -48,7 +49,7 @@ export function useActionOperations(chainId: number) {
 
   const { executeWithToast } = useToastAction();
   const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useConnectedWalletClient();
   const contracts = getNetworkContracts(chainId);
   const queryClient = useQueryClient();
 

@@ -1,6 +1,7 @@
 import { configureConnectivityProbe } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useWalletNetworkNotice } from "@green-goods/shared/hooks/blockchain/useWalletNetworkNotice";
 import { useDocumentScrollLockLifecycle } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
@@ -11,6 +12,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { OfflineIndicator } from "@/components/Communication/Offline/OfflineIndicator";
 import { InstallNudge } from "@/components/Communication/Offline/InstallNudge";
 import { PwaBadgeCoordinator } from "@/components/Communication/PwaBadgeCoordinator";
+import { WalletNetworkNotice } from "@/components/Communication/WalletNetworkNotice";
 import { AppBar } from "@/components/Layout/AppBar";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { markArrivalPassed } from "@/views/Home/arrivalToast";
@@ -66,6 +68,7 @@ export default function AppShell() {
   const closeWorkDashboard = useUIStore((state) => state.closeWorkDashboard);
   const previousPathnameRef = useRef(pathname);
   const primaryAddress = usePrimaryAddress();
+  const walletNetwork = useWalletNetworkNotice();
 
   useDocumentScrollLockLifecycle(pathname);
 
@@ -119,7 +122,9 @@ export default function AppShell() {
         </main>
         <AppBar />
         <OfflineIndicator />
-        <InstallNudge />
+        {/* One top notice at a time: the wallet's network outranks the install nudge. */}
+        <InstallNudge hidden={walletNetwork !== null} />
+        {walletNetwork ? <WalletNetworkNotice notice={walletNetwork} /> : null}
       </WorkProvider>
     </JobQueueProvider>
   );

@@ -53,6 +53,33 @@ describe("what a failed send means for the work it carried", () => {
     ).toEqual({ kind: "may-have-sent" });
   });
 
+  it("clears the intent when the write was refused for the wallet's network, which is before anything is signed", () => {
+    const afterIntent = { intentRecorded: true, broadcastKnown: false };
+    // viem's refusal, as wagmi's write wraps it, and the chain guard's on a retry.
+    const viemRefusal = new Error("Contract write failed", {
+      cause: Object.assign(new Error("The current chain of the wallet does not match"), {
+        name: "ChainMismatchError",
+      }),
+    });
+    const guardRefusal = Object.assign(new Error("Wrong wallet network."), {
+      name: "WalletChainMismatchError",
+    });
+    expect(classifySendFailure(viemRefusal, afterIntent)).toEqual({
+      kind: "not-sent",
+      cancelled: false,
+    });
+    expect(classifySendFailure(guardRefusal, afterIntent)).toEqual({
+      kind: "not-sent",
+      cancelled: false,
+    });
+
+    // wagmi raises this one while waiting on a batch the wallet already accepted.
+    const afterAcceptedBatch = Object.assign(new Error("The connector's chain does not match"), {
+      name: "ConnectorChainMismatchError",
+    });
+    expect(classifySendFailure(afterAcceptedBatch, afterIntent)).toEqual({ kind: "may-have-sent" });
+  });
+
   // A node can answer with either after its own broadcast: -32000 also carries
   // "already known" and "nonce too low". Clearing the intent on one of them
   // would let the same attestation go out twice.

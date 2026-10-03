@@ -7,14 +7,17 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { APP_ROUTES } from "@/config/pwaRouting";
 
-/** Mobile-browser install guidance, independent of connectivity state. */
-export function InstallNudge() {
+/**
+ * Mobile-browser install guidance, independent of connectivity state. `hidden`
+ * gives its place to a more pressing top notice while keeping a dismissal.
+ */
+export function InstallNudge({ hidden = false }: { hidden?: boolean }) {
   const { isMobile, isInstalled } = useApp();
   const [dismissed, setDismissed] = useState(false);
   const navigate = useNavigate();
   const { formatMessage } = useIntl();
 
-  if (!isMobile || isInstalled || dismissed) return null;
+  if (hidden || !isMobile || isInstalled || dismissed) return null;
 
   return (
     <div

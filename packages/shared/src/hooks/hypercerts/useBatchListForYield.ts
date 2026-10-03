@@ -9,7 +9,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { type Address, encodeFunctionData, type Hex } from "viem";
-import { useWalletClient } from "wagmi";
+import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
@@ -52,7 +52,7 @@ const INITIAL_PROGRESS: BatchProgress = { total: 0, signed: 0, status: "idle" };
 
 export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYieldResult {
   const { smartAccountClient, smartAccountAddress, eoaAddress } = useAuth();
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useConnectedWalletClient();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState<BatchProgress>(INITIAL_PROGRESS);

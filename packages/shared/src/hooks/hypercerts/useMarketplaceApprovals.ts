@@ -5,7 +5,7 @@
  * 2. hypercertMinter.setApprovalForAll(transferManager, true)
  */
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useWalletClient } from "wagmi";
+import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { getChain } from "../../config/chains";
@@ -39,7 +39,7 @@ export interface UseMarketplaceApprovalsResult {
 
 export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
   const { smartAccountAddress, eoaAddress, smartAccountClient } = useAuth();
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useConnectedWalletClient();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
 

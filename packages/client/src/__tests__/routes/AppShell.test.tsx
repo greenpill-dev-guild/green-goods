@@ -38,6 +38,11 @@ vi.mock("@/components/Communication/PwaBadgeCoordinator", () => ({
   PwaBadgeCoordinator: () => null,
 }));
 
+// The shell reads the wallet network notice from wagmi; this shell has no wallet.
+vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkNotice", () => ({
+  useWalletNetworkNotice: () => null,
+}));
+
 vi.mock("@/components/Layout/AppBar", () => ({
   AppBar: () => <nav data-testid="authenticated-nav" />,
 }));

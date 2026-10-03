@@ -18,7 +18,8 @@ import {
   type PublicClient,
   zeroAddress,
 } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
+import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 import { useIntl } from "react-intl";
 
 import { toastService } from "../../components/toast";
@@ -110,7 +111,7 @@ export function useENSClaim() {
   const queryClient = useQueryClient();
   const { authMode, smartAccountClient } = useAuth();
   const { address: walletAddress } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useConnectedWalletClient();
   const isPasskeyUser = authMode === "passkey";
 
   return useMutation<ENSClaimResult, Error, { slug: string }>({

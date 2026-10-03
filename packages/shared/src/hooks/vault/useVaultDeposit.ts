@@ -69,6 +69,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
         abi: OCTANT_VAULT_ABI,
         functionName: "maxDeposit",
         args: [receiver],
+        chainId,
       });
       const maxDeposit = typeof maxDepositResult === "bigint" ? maxDepositResult : 0n;
 
@@ -80,18 +81,21 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
             abi: OCTANT_VAULT_ABI,
             functionName: "isShutdown",
             args: [],
+            chainId,
           }).catch(() => "read_failed" as const),
           readContract(getWagmiConfig(), {
             address: params.vaultAddress,
             abi: OCTANT_VAULT_ABI,
             functionName: "depositLimit",
             args: [],
+            chainId,
           }).catch(() => "read_failed" as const),
           readContract(getWagmiConfig(), {
             address: params.vaultAddress,
             abi: OCTANT_VAULT_ABI,
             functionName: "totalAssets",
             args: [],
+            chainId,
           }).catch(() => "read_failed" as const),
         ]);
 
@@ -138,6 +142,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
           abi: OCTANT_VAULT_ABI,
           functionName: "previewDeposit",
           args: [params.amount],
+          chainId,
         });
         const earlyShares = typeof earlyPreview === "bigint" ? earlyPreview : 0n;
         if (earlyShares < params.minSharesOut) {
@@ -153,6 +158,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
         abi: OCTANT_VAULT_ABI,
         functionName: "previewDeposit",
         args: [params.amount],
+        chainId,
       });
       const expectedShares = typeof preApprovalPreview === "bigint" ? preApprovalPreview : 0n;
 
@@ -163,6 +169,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
           abi: ERC20_ALLOWANCE_ABI,
           functionName: "allowance",
           args: [primaryAddress as Address, params.vaultAddress],
+          chainId,
         });
         allowance = typeof allowanceResult === "bigint" ? allowanceResult : 0n;
       } catch (error) {
@@ -198,6 +205,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
             abi: ERC20_ALLOWANCE_ABI,
             functionName: "allowance",
             args: [primaryAddress as Address, params.vaultAddress],
+            chainId,
           });
           const refreshedAllowance =
             typeof refreshedAllowanceResult === "bigint" ? refreshedAllowanceResult : 0n;
@@ -220,6 +228,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
         abi: OCTANT_VAULT_ABI,
         functionName: "previewDeposit",
         args: [params.amount],
+        chainId,
       });
       const freshShares = typeof freshPreview === "bigint" ? freshPreview : 0n;
       // Default slippage tolerance: 1% (99% of pre-approval snapshot)

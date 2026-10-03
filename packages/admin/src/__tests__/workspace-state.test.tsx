@@ -78,6 +78,11 @@ vi.mock("@green-goods/shared/components/Canvas/GardenChip", () => ({
   GardenChip: () => <div>Garden Chip</div>,
 }));
 
+// The shell reads the wallet network notice from wagmi; these shells have no wallet.
+vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkNotice", () => ({
+  useWalletNetworkNotice: () => null,
+}));
+
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuth: () => ({
     isAuthenticated: true,

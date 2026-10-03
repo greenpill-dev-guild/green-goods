@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { type Address, type Hex, keccak256 } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
+import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 import { getChain } from "../../config/chains";
 import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
@@ -29,7 +30,7 @@ export function useGardenInvites(gardenAddress: Address) {
   const [isRevoking, setIsRevoking] = useState(false);
   const { executeWithToast } = useToastAction();
   const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useConnectedWalletClient();
 
   /**
    * Generates a unique invite code using cryptographically secure randomness

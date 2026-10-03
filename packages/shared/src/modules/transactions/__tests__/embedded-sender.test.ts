@@ -133,7 +133,7 @@ describe("EmbeddedSender", () => {
 
     it("switches to Celo and confirms a user-paid send", async () => {
       const result = await sender.sendContractCall({ ...TEST_CALL, chainId: 42220 });
-      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(42220);
+      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(42220, "write");
       expect(mockDeps.writeContract).toHaveBeenCalled();
       expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledWith(expect.anything(), {
         onReplaced: expect.any(Function),
@@ -154,7 +154,7 @@ describe("EmbeddedSender", () => {
     it("switches to the target chain before sending", async () => {
       await sender.sendContractCall(TEST_CALL);
 
-      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(TEST_CALL.chainId);
+      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(TEST_CALL.chainId, "write");
       expect(mockDeps.writeContract).toHaveBeenCalledOnce();
     });
 

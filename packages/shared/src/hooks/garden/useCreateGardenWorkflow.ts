@@ -11,7 +11,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { isAddress } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
+import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 import { fromPromise } from "xstate";
 import {
   trackAdminGardenCreateFailed,
@@ -53,7 +54,7 @@ function getFormStatus(): CreateGardenFormStatus {
 
 export function useCreateGardenWorkflow() {
   const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useConnectedWalletClient();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
   const addPendingTransaction = useAdminStore((state: AdminState) => state.addPendingTransaction);
   const updateTransactionStatus = useAdminStore(

@@ -203,6 +203,14 @@ describe("wallet-submission", () => {
       expect(result).toBe("0xTransactionHash");
       expect(wagmiCore.getWalletClient).toHaveBeenCalledWith({}, { chainId: mockChainId });
       expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, mockChainId);
+      // The wallet's network is checked before the upload and again after it: an
+      // upload can outlast the wallet staying on the network.
+      const [beforeUpload, beforeSend] = mockEnsureWagmiWalletChain.mock.invocationCallOrder;
+      const upload = vi.mocked(encoders.encodeWorkData).mock.invocationCallOrder[0];
+      const send = vi.mocked(mockWalletClient.sendTransaction!).mock.invocationCallOrder[0];
+      expect(beforeUpload).toBeLessThan(upload);
+      expect(beforeSend).toBeGreaterThan(upload);
+      expect(beforeSend).toBeLessThan(send);
       expect(encoders.encodeWorkData).toHaveBeenCalledWith(
         expect.objectContaining({
           title: "Test Work",
