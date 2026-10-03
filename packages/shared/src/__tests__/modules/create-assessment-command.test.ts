@@ -1,6 +1,34 @@
 /** @vitest-environment happy-dom */
 
 import { describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({ readyWalletClient: vi.fn() }));
+
+// The guard needs a connected wallet. Its error and its retry stay real.
+vi.mock("../../modules/transactions/chain-guard", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../modules/transactions/chain-guard")>()),
+  ensureAppKitWalletChain: vi.fn(async () => undefined),
+  readyWalletClient: mocks.readyWalletClient,
+}));
+
+// Every shared test gets a stand-in for the EAS SDK (a vitest alias keeps the
+// real one from loading). This one does what the SDK's transaction does when it
+// is waited on: it sends through the signer it was connected with.
+vi.mock("@ethereum-attestation-service/eas-sdk", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@ethereum-attestation-service/eas-sdk")>()),
+  EAS: class {
+    private signer?: { sendTransaction(transaction: object): Promise<unknown> };
+    constructor(private readonly address: string) {}
+    connect(signer: { sendTransaction(transaction: object): Promise<unknown> }) {
+      this.signer = signer;
+      return this;
+    }
+    async attest() {
+      return { wait: () => this.signer?.sendTransaction({ to: this.address, data: "0x1234" }) };
+    }
+  },
+}));
+
 import {
   createDefaultCreateAssessmentPorts,
   createAssessment,
@@ -182,6 +210,79 @@ describe("createAssessment", () => {
     await expect(createAssessment(command(params(), vi.fn()), dependencies)).rejects.toBe(error);
     expect(dependencies.documents.reportMetricsFailure).toHaveBeenCalledWith(error);
     expect(dependencies.sender.attest).not.toHaveBeenCalled();
+  });
+});
+
+// ethers runs for real here, over a wallet that answers what it asks. Every
+// other wallet write goes through viem, which asks the wallet its network right
+// before it sends. These pin the same check for the one write that does not.
+describe("the default sender", () => {
+  const STEWARD = "0x3333333333333333333333333333333333333333";
+  const SEPOLIA = 11155111;
+  const CELO = 42220;
+
+  /**
+   * The steward's wallet as ethers reaches it. The guard leaves it on Sepolia;
+   * `movesAway` says, per attempt, whether it is on Celo by the time ethers has
+   * asked everything it asks before sending.
+   */
+  function stewardWallet(movesAway: (attempt: number) => boolean) {
+    const asked: string[] = [];
+    let attempt = 0;
+    let onCelo = false;
+    const request = async ({ method }: { method: string }) => {
+      asked.push(method);
+      if (method === "eth_chainId") return `0x${(onCelo ? CELO : SEPOLIA).toString(16)}`;
+      if (method === "eth_accounts") return [STEWARD];
+      if (method === "eth_blockNumber") return "0x1";
+      if (method === "eth_estimateGas") {
+        attempt += 1;
+        onCelo = movesAway(attempt);
+        return "0x5208";
+      }
+      // The person declines, so a send that reaches the wallet ends there.
+      throw Object.assign(new Error("User rejected the request."), { code: 4001 });
+    };
+    mocks.readyWalletClient.mockReset().mockImplementation(async () => {
+      onCelo = false;
+      return { account: { address: STEWARD }, transport: { request } };
+    });
+    return asked;
+  }
+
+  async function attest() {
+    const { sender } = createDefaultCreateAssessmentPorts({
+      account: STEWARD,
+      reportEvidenceFailures: vi.fn(),
+      reportMetricsFailure: vi.fn(),
+    });
+    await sender.ensureChain(SEPOLIA);
+    await sender.connect("0x2222222222222222222222222222222222222222");
+    return sender.attest({ schemaUid: `0x${"44".repeat(32)}`, gardenId, encodedData: "0x1234" });
+  }
+
+  it("never asks a wallet on another network to send, and says which network it needs", async () => {
+    const asked = stewardWallet(() => true);
+
+    await expect(attest()).rejects.toMatchObject({
+      name: "WalletChainMismatchError",
+      targetChainId: SEPOLIA,
+      walletChainId: CELO,
+    });
+
+    expect(asked).not.toContain("eth_sendTransaction");
+    // Readied before the uploads, for the attestation, and once more for a second attempt.
+    expect(mocks.readyWalletClient).toHaveBeenCalledTimes(3);
+  });
+
+  it("readies the wallet again and sends once when it had moved for the first attempt only", async () => {
+    const asked = stewardWallet((attempt) => attempt === 1);
+
+    // The wallet's own answer to the send: the check let the second attempt through.
+    await expect(attest()).rejects.toMatchObject({ code: "ACTION_REJECTED" });
+
+    expect(asked.filter((method) => method === "eth_sendTransaction")).toHaveLength(1);
+    expect(asked.slice(-2)).toEqual(["eth_chainId", "eth_sendTransaction"]);
   });
 });
 
