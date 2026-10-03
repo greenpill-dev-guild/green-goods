@@ -1,9 +1,45 @@
 import type { HypercertDraft } from "../../types/hypercerts";
+import { toUtcDay } from "../../utils/calendar-date";
 import { transitionWizardStep } from "./wizard-navigation";
 import type { HypercertWizardStore, MintingState } from "../useHypercertWizardStore";
 
 const MIN_STEP = 1;
 const MAX_STEP = 4;
+
+type HypercertTimeframes = Pick<
+  HypercertDraft,
+  "workTimeframeStart" | "workTimeframeEnd" | "impactTimeframeStart" | "impactTimeframeEnd"
+>;
+
+/**
+ * What the wizard keeps for one end of a time frame. An end is a calendar day,
+ * kept as UTC midnight: the pickers store it that way, an assessment prefills
+ * it that way, and the minted metadata names its UTC day. Whatever moment a
+ * caller hands over, the wizard keeps its day; a value that is no day a
+ * calendar holds is an end that is not set.
+ */
+function asTimeframeDay(seconds: number): number {
+  if (!(seconds > 0) || Number.isNaN(new Date(seconds * 1000).getTime())) return 0;
+  return toUtcDay(seconds);
+}
+
+function withTimeframeDays<Fields extends Partial<HypercertTimeframes>>(fields: Fields): Fields {
+  const kept: Partial<HypercertTimeframes> = {};
+  if (typeof fields.workTimeframeStart === "number") {
+    kept.workTimeframeStart = asTimeframeDay(fields.workTimeframeStart);
+  }
+  if (typeof fields.workTimeframeEnd === "number") {
+    kept.workTimeframeEnd = asTimeframeDay(fields.workTimeframeEnd);
+  }
+  if (typeof fields.impactTimeframeStart === "number") {
+    kept.impactTimeframeStart = asTimeframeDay(fields.impactTimeframeStart);
+  }
+  // An impact period can be left open: a null end stays null.
+  if (typeof fields.impactTimeframeEnd === "number") {
+    kept.impactTimeframeEnd = asTimeframeDay(fields.impactTimeframeEnd);
+  }
+  return { ...fields, ...kept };
+}
 
 export function setHypercertStepTransition(
   _state: HypercertWizardStore,
@@ -74,7 +110,7 @@ export function updateHypercertMetadataTransition(
   _state: HypercertWizardStore,
   updates: Parameters<HypercertWizardStore["updateMetadata"]>[0]
 ): Partial<HypercertWizardStore> {
-  return updates;
+  return withTimeframeDays(updates);
 }
 
 export function setMintingStateTransition(
@@ -102,10 +138,13 @@ export function loadHypercertDraftTransition(
     description: draft.description ?? "",
     workScopes: draft.workScopes ?? [],
     impactScopes: draft.impactScopes ?? [],
-    workTimeframeStart: draft.workTimeframeStart ?? 0,
-    workTimeframeEnd: draft.workTimeframeEnd ?? 0,
-    impactTimeframeStart: draft.impactTimeframeStart ?? 0,
-    impactTimeframeEnd: draft.impactTimeframeEnd,
+    // A draft saved before the wizard kept days can hold the moments themselves.
+    ...withTimeframeDays({
+      workTimeframeStart: draft.workTimeframeStart ?? 0,
+      workTimeframeEnd: draft.workTimeframeEnd ?? 0,
+      impactTimeframeStart: draft.impactTimeframeStart ?? 0,
+      impactTimeframeEnd: draft.impactTimeframeEnd,
+    }),
     sdgs: draft.sdgs ?? [],
     capitals: draft.capitals ?? [],
     outcomes: draft.outcomes ?? { predefined: {}, custom: {} },
