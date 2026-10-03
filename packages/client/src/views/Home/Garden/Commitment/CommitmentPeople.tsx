@@ -15,8 +15,9 @@ import {
   RiTimeLine,
   RiUserLine,
 } from "@remixicon/react";
-import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
+
+import { Fact } from "@/components/Display";
 
 export interface CommitmentPeopleProps {
   commitment: CommitmentReadModel;
@@ -186,38 +187,5 @@ export function CommitmentPeople({
         </p>
       ) : null}
     </dl>
-  );
-}
-
-/** One labelled fact: an icon and its label on the start side, the value on the end. */
-export function Fact({
-  icon,
-  label,
-  value,
-  tag = null,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: ReactNode;
-  /** "You", or the role the person holds, beside the value. */
-  tag?: ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-2.5">
-      <dt className="flex shrink-0 items-center gap-2 text-xs text-text-sub-600">
-        <span className="flex text-text-soft-400 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true">
-          {icon}
-        </span>
-        {label}
-      </dt>
-      <dd className="flex min-w-0 items-center justify-end gap-1 text-right text-sm text-text-strong-950">
-        {value}
-        {tag ? (
-          <span className="ms-1 inline-flex shrink-0 items-center gap-1 rounded-full bg-bg-weak-50 px-2 py-0.5 text-[10px] font-medium text-text-sub-600">
-            {tag}
-          </span>
-        ) : null}
-      </dd>
-    </div>
   );
 }

@@ -1,103 +1,150 @@
 import type { AgentReportingCeremony } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingCeremony";
+import { RiAttachment2, RiFileFill, RiFileTextFill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { FormCard } from "@/components/Cards";
+import { Carousel, CarouselContent, CarouselItem, ImageWithFallback } from "@/components/Display";
 
-/** The exact publication, line by line, as the Agent froze it. */
+type Resource = NonNullable<AgentReportingCeremony["resource"]>;
+type HeadingLevel = "h2" | "h3";
+
+/** Images the session-scoped media route serves as sanitized previews. */
+const PREVIEWABLE = /^image\/(jpeg|png|webp)$/;
+
+/**
+ * The exact publication as the Agent froze it, drawn as the app reviews a work submission: its
+ * photos under Media, in the same carousel and full-screen preview, then its title and every line
+ * under Details, one card each. A file without a preview keeps its own card, so nothing that will
+ * be published is left off the page.
+ */
 export function PublicationSummary({
   resource,
   evidenceUrl,
+  headingLevel = "h2",
 }: {
-  resource: NonNullable<AgentReportingCeremony["resource"]>;
+  resource: Resource;
+  /** Story fixtures can provide local media; production uses the session-scoped API. */
   evidenceUrl?: (assetId: string) => string;
+  /** `h3` when the summary sits under its own section heading. */
+  headingLevel?: HeadingLevel;
 }) {
   const intl = useIntl();
+  const [previewFailed, setPreviewFailed] = useState(false);
+  // Only a draft's evidence has the private media route; a decision publishes none.
+  const photos =
+    resource.kind === "draft"
+      ? resource.evidence.filter((asset) => PREVIEWABLE.test(asset.mime))
+      : [];
+  const files = resource.evidence.filter((asset) => !photos.includes(asset));
+  const urls = photos.map(
+    (asset) =>
+      evidenceUrl?.(asset.assetId) ?? `/api/messaging/media/${encodeURIComponent(asset.assetId)}`
+  );
   const lines = resource.lines.filter((line) => line.value.trim() !== "");
+  const attachment = (index: number) =>
+    intl.formatMessage(
+      { id: "public.reporting.review.attachment", defaultMessage: "Attachment {number}" },
+      { number: index + 1 }
+    );
+  const previewUnavailable = intl.formatMessage({
+    id: "public.reporting.review.previewUnavailable",
+    defaultMessage: "Preview unavailable. The attachment is still included.",
+  });
+
   return (
-    <div className="min-w-0 overflow-hidden rounded-2xl border border-stroke-soft-200 bg-bg-weak-50">
-      <div className="border-b border-stroke-soft-200 p-4 sm:p-5">
-        <p className="break-words text-sm font-medium text-primary-on-surface">
-          {resource.gardenLabel}
-        </p>
-        <p className="mt-1 break-words text-base font-semibold leading-6 text-text-strong-950">
-          {resource.title}
-        </p>
-      </div>
-      <dl className="divide-y divide-stroke-soft-200">
-        {lines.map((line) => (
-          <div
-            key={line.label}
-            className="grid min-w-0 gap-1 px-4 py-3 @[480px]:grid-cols-[9rem_minmax(0,1fr)] @[480px]:gap-4 sm:px-5"
-          >
-            <dt className="break-words text-sm text-text-sub-600">{line.label}</dt>
-            <dd className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-6 text-text-strong-950">
-              {line.value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      {resource.evidence.length > 0 ? (
-        <div className="border-t border-stroke-soft-200 p-4 sm:p-5">
-          <p className="text-sm font-medium text-text-strong-950">
-            {intl.formatMessage(
-              {
-                id: "public.reporting.review.evidence",
-                defaultMessage:
-                  "{count, plural, one {# photo or file} other {# photos or files}} attached",
-              },
-              { count: resource.evidence.length }
-            )}
-          </p>
-          {resource.kind === "draft" ? (
-            <div className="mt-3 grid min-w-0 grid-cols-2 gap-3">
-              {resource.evidence.map((asset, index) => (
-                <EvidencePreview
+    <>
+      {photos.length > 0 ? (
+        <>
+          <SectionHeading as={headingLevel}>
+            {intl.formatMessage({ id: "app.home.workApproval.media", defaultMessage: "Media" })}
+          </SectionHeading>
+          <Carousel enablePreview previewImages={urls}>
+            <CarouselContent>
+              {photos.map((asset, index) => (
+                <CarouselItem
                   key={asset.assetId}
-                  mime={asset.mime}
-                  index={index + 1}
-                  src={
-                    evidenceUrl?.(asset.assetId) ??
-                    `/api/messaging/media/${encodeURIComponent(asset.assetId)}`
-                  }
-                />
+                  index={index}
+                  className="max-w-40 aspect-3/4 rounded-2xl relative overflow-hidden"
+                >
+                  <ImageWithFallback
+                    src={urls[index]}
+                    alt={attachment(index)}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full aspect-3/4 object-cover rounded-2xl"
+                    fallbackClassName="w-full h-full aspect-3/4 rounded-2xl"
+                    onErrorCallback={() => setPreviewFailed(true)}
+                  />
+                </CarouselItem>
               ))}
-            </div>
+            </CarouselContent>
+          </Carousel>
+          {previewFailed ? (
+            <p role="status" className="text-xs text-text-sub-600">
+              {previewUnavailable}
+            </p>
           ) : null}
-        </div>
+        </>
       ) : null}
-    </div>
+
+      <SectionHeading as={headingLevel}>
+        {intl.formatMessage({ id: "app.home.workApproval.details", defaultMessage: "Details" })}
+      </SectionHeading>
+      {resource.title ? (
+        <FormCard
+          label={intl.formatMessage({
+            id: "public.reporting.review.titleLabel",
+            defaultMessage: "Title",
+          })}
+          value={<LineValue>{resource.title}</LineValue>}
+          Icon={RiFileTextFill}
+        />
+      ) : null}
+      {lines.map((line) => (
+        <FormCard
+          key={line.label}
+          label={line.label}
+          value={<LineValue>{line.value}</LineValue>}
+          Icon={RiFileFill}
+        />
+      ))}
+      {files.map((asset) => (
+        <FormCard
+          key={asset.assetId}
+          label={attachment(resource.evidence.indexOf(asset))}
+          value={<LineValue>{previewUnavailable}</LineValue>}
+          Icon={RiAttachment2}
+        />
+      ))}
+    </>
   );
 }
 
-/** Only sanitized draft images use the private session-scoped media route. */
-function EvidencePreview({ src, mime, index }: { src: string; mime: string; index: number }) {
+/** Details still being prepared, as the app's work view shows them while they load. */
+export function PublicationSkeleton({ headingLevel = "h2" }: { headingLevel?: HeadingLevel }) {
   const intl = useIntl();
-  const [failed, setFailed] = useState(false);
-  const image = /^image\/(jpeg|png|webp)$/.test(mime);
-  const label = intl.formatMessage(
-    { id: "public.reporting.review.attachment", defaultMessage: "Attachment {number}" },
-    { number: index }
-  );
   return (
-    <figure className="min-w-0">
-      {image && !failed ? (
-        <img
-          src={src}
-          alt={label}
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
-          onError={() => setFailed(true)}
-          className="aspect-square w-full rounded-xl bg-bg-white-0 object-contain"
-        />
-      ) : null}
-      <figcaption className="mt-2 text-xs leading-5 text-text-sub-600">
-        {image && failed
-          ? intl.formatMessage({
-              id: "public.reporting.review.previewUnavailable",
-              defaultMessage: "Preview unavailable. The attachment is still included.",
-            })
-          : label}
-      </figcaption>
-    </figure>
+    <>
+      <SectionHeading as={headingLevel}>
+        {intl.formatMessage({ id: "app.home.workApproval.details", defaultMessage: "Details" })}
+      </SectionHeading>
+      <div className="space-y-2" aria-hidden="true">
+        <div className="h-12 bg-bg-weak-50 rounded-lg animate-pulse" />
+        <div className="h-12 bg-bg-weak-50 rounded-lg animate-pulse" />
+      </div>
+    </>
+  );
+}
+
+function SectionHeading({ as: Heading, children }: { as: HeadingLevel; children: string }) {
+  return <Heading className="text-base font-semibold text-text-strong-950">{children}</Heading>;
+}
+
+/**
+ * A detail card's value as written: its line breaks kept, a long address or hash wrapped, and
+ * held off the card's end edge, which the card itself leaves unpadded.
+ */
+export function LineValue({ children }: { children: string }) {
+  return (
+    <span className="block pe-4 whitespace-pre-wrap [overflow-wrap:anywhere]">{children}</span>
   );
 }

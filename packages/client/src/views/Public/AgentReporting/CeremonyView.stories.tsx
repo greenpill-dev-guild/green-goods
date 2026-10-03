@@ -1,3 +1,6 @@
+import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import {
   buildEnvelope,
   type OperationView,
@@ -5,8 +8,10 @@ import {
   resolveReportingDeployment,
 } from "@green-goods/shared/modules/agent-reporting";
 import { Confidence, VerificationMethod } from "@green-goods/shared/types/domain";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { HelmetProvider } from "react-helmet-async";
+import { IntlProvider } from "react-intl";
+import { expect, waitFor, within } from "storybook/test";
 import { FocusedSiteHeader } from "@/components/Navigation/FocusedSiteHeader";
 import {
   FIXTURE_IMAGE_AGROFORESTRY,
@@ -103,20 +108,41 @@ const base: Props = {
   evidenceUrl: (assetId) => (assetId === "a1" ? FIXTURE_IMAGE_AGROFORESTRY : FIXTURE_IMAGE_BANNER),
 };
 
+const MESSAGES = { en, es, pt } as const;
+type Locale = keyof typeof MESSAGES;
+
+/** Stories pick a language through `parameters.locale`; the global decorator stays English. */
+const withLocale: Decorator = (Story, context) => {
+  const locale = (context.parameters.locale as Locale | undefined) ?? "en";
+  return (
+    <IntlProvider locale={locale} messages={MESSAGES[locale]}>
+      <Story />
+    </IntlProvider>
+  );
+};
+
 const meta: Meta<typeof CeremonyView> = {
   title: "Client/Public/AgentReporting/Ceremony",
   component: CeremonyView,
   tags: ["autodocs"],
   args: base,
   decorators: [
+    // The focused PublicShell branch: the header, then the page in `main`. Storybook pads every
+    // story by its `--gg-space-md`; the negative margin takes exactly that back (a rem margin
+    // would grow with the text size), so the page meets the viewport's edges as it does in the
+    // browser and lines up with its fixed bar.
     (Story) => (
       <HelmetProvider>
-        <div className="min-h-screen bg-bg-white-0">
+        <div className="m-[calc(var(--gg-space-md)*-1)] flex min-h-screen flex-col bg-bg-white-0">
           <FocusedSiteHeader />
-          <Story />
+          <main className="flex-1">
+            <Story />
+          </main>
         </div>
       </HelmetProvider>
     ),
+    // Outermost, so the header speaks the story's language too.
+    withLocale,
   ],
   parameters: {
     // The focused shell renders without the website surface: app corners for fields and buttons.
@@ -125,9 +151,12 @@ const meta: Meta<typeof CeremonyView> = {
     docs: {
       description: {
         component:
-          "`/agent/reporting/:requestId` — the browser step of a chat report or review. One " +
-          "step at a time under the focused header: continue, prove the account, pair through " +
-          "the chat, check the exact frozen publication, sign, then follow it to the chain.",
+          "`/agent/reporting/:requestId` — the browser step of a chat report or review, drawn " +
+          "with the app's flow parts: the named steps, the step's heading card, the work " +
+          "review's Media and Details, the promise page's facts for a permission's limits, the " +
+          "work page's stacked notices once a request is sent, and Submit Work's fixed bar. " +
+          "The bar keeps its place from the first step to the outcome: the step's act, or " +
+          "where the step stands when there is nothing to press.",
       },
     },
   },
@@ -146,6 +175,7 @@ export const ProveConnected: Story = {
 export const Pairing: Story = {
   args: { stage: "pairing", purpose: "link_account", pairingCode: "481516", account: ACCOUNT },
 };
+export const Linked: Story = { args: { ...Pairing.args, stage: "linked", pairingCode: null } };
 export const Review: Story = {
   args: { stage: "review", purpose: "publish_work", account: ACCOUNT, resource, operation },
 };
@@ -184,7 +214,7 @@ export const OutcomeUnknown: Story = {
   args: { ...Submitted.args, error: "outcome_unknown" },
 };
 export const Unavailable: Story = { args: { stage: "unavailable", error: "expired" } };
-export const Failed: Story = { args: { stage: "failed", error: "offline" } };
+export const Failed: Story = { args: { ...Review.args, stage: "failed" } };
 export const Unsupported: Story = { args: { stage: "unsupported", purpose: "grant_reporting" } };
 
 const grant: NonNullable<Props["grant"]> = {
@@ -218,8 +248,43 @@ export const GrantPrepare: Story = {
   args: { stage: "grant_ready", purpose: "grant_reporting", account: ACCOUNT, grant },
 };
 export const GrantPreparing: Story = { args: { ...GrantPrepare.args, stage: "loading" } };
+/** The longest step: the permission and its first report. The act stays in reach throughout. */
 export const GrantReady: Story = {
   args: { ...GrantPrepare.args, resource, operation },
+  tags: ["storybook-ci"],
+  globals: { viewport: { value: "mobile" } },
+  play: async ({ canvasElement }) => {
+    const view = canvasElement.ownerDocument.defaultView as Window;
+    const region = within(canvasElement).getByRole("region", { name: "Next step" });
+    const act = within(region).getByRole("button", { name: "Allow and Publish First Report" });
+    const inReach = () => {
+      const { top, bottom } = act.getBoundingClientRect();
+      return top >= 0 && bottom <= view.innerHeight;
+    };
+    // The bar is fixed to the viewport's bottom edge and a spacer of its height holds the end of
+    // the page clear.
+    const bar = region.querySelector<HTMLElement>('[data-component="FlowBar"]') as HTMLElement;
+    const spacer = canvasElement.querySelector<HTMLElement>(
+      '[data-component="CeremonyBarSpacer"]'
+    ) as HTMLElement;
+    await expect(view.getComputedStyle(bar).position).toBe("fixed");
+    await waitFor(() =>
+      expect(spacer.getBoundingClientRect().height).toBe(bar.getBoundingClientRect().height)
+    );
+    await expect(bar.getBoundingClientRect().bottom).toBe(view.innerHeight);
+    const end = view.document.documentElement.scrollHeight - view.innerHeight;
+    await expect(inReach()).toBe(true);
+    view.scrollTo({ top: end / 2, behavior: "instant" });
+    await expect(inReach()).toBe(true);
+    view.scrollTo({ top: end, behavior: "instant" });
+    await expect(inReach()).toBe(true);
+    // At the end of the page the last of the content clears the bar.
+    const last = within(canvasElement).getByRole("button", { name: "Sign Out of This Page" });
+    await expect(last.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      bar.getBoundingClientRect().top
+    );
+    view.scrollTo({ top: 0, behavior: "instant" });
+  },
 };
 export const GrantSigning: Story = { args: { ...GrantReady.args, stage: "grant_signing" } };
 export const GrantSubmitted: Story = {
@@ -237,6 +302,16 @@ export const GrantActive: Story = {
 };
 export const GrantWrongAccount: Story = {
   args: { ...GrantReady.args, account: "0x00000000000000000000000000000000000000b2" },
+};
+/** Long Portuguese labels in the action bar and the permission summary. */
+export const GrantReadyPortuguese: Story = {
+  args: GrantReady.args,
+  parameters: { locale: "pt" },
+};
+/** Two connect choices with long Spanish labels. */
+export const ConnectSpanish: Story = {
+  args: Connect.args,
+  parameters: { locale: "es" },
 };
 const reviewEnvelope = buildEnvelope(resolveReportingDeployment(42161), {
   kind: "review",
@@ -298,6 +373,25 @@ export const RecoveryCode: StoryObj<typeof RecoveryView> = {
       channelLabel="Telegram"
       recoveredAccount={ACCOUNT}
       error="wrong_code"
+      account={ACCOUNT}
+      connecting={false}
+      connectWallet={noop}
+      connectPasskey={asyncNoop}
+      start={asyncNoop}
+      prove={asyncNoop}
+      confirmCode={asyncNoop}
+      apply={asyncNoop}
+    />
+  ),
+};
+
+export const RecoveryApplied: StoryObj<typeof RecoveryView> = {
+  render: () => (
+    <RecoveryView
+      stage="applied"
+      channelLabel="Telegram"
+      recoveredAccount={ACCOUNT}
+      error={null}
       account={ACCOUNT}
       connecting={false}
       connectWallet={noop}

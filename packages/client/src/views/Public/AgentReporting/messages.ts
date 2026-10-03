@@ -8,7 +8,7 @@ type Copy = { title: MessageDescriptor; body?: MessageDescriptor };
 /** One title and explanation per ceremony step, in the person's terms. */
 export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
   intro: {
-    title: { id: "public.reporting.intro.title", defaultMessage: "Continue from your chat" },
+    title: { id: "public.reporting.intro.title", defaultMessage: "Continue From Your Chat" },
     body: {
       id: "public.reporting.intro.body",
       defaultMessage:
@@ -16,10 +16,10 @@ export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
     },
   },
   opening: {
-    title: { id: "public.reporting.intro.title", defaultMessage: "Continue from your chat" },
+    title: { id: "public.reporting.intro.title", defaultMessage: "Continue From Your Chat" },
   },
   connect: {
-    title: { id: "public.reporting.connect.title", defaultMessage: "Show it's your account" },
+    title: { id: "public.reporting.connect.title", defaultMessage: "Show It's Your Account" },
     body: {
       id: "public.reporting.connect.body",
       defaultMessage:
@@ -27,14 +27,14 @@ export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
     },
   },
   proving: {
-    title: { id: "public.reporting.connect.title", defaultMessage: "Show it's your account" },
+    title: { id: "public.reporting.connect.title", defaultMessage: "Show It's Your Account" },
     body: {
       id: "public.reporting.proving.body",
       defaultMessage: "Check your wallet or passkey prompt to sign the message.",
     },
   },
   pairing: {
-    title: { id: "public.reporting.pairing.title", defaultMessage: "Send this code in your chat" },
+    title: { id: "public.reporting.pairing.title", defaultMessage: "Send This Code in Your Chat" },
     body: {
       id: "public.reporting.pairing.body",
       defaultMessage:
@@ -56,7 +56,7 @@ export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
     },
   },
   review: {
-    title: { id: "public.reporting.review.title", defaultMessage: "Check and publish" },
+    title: { id: "public.reporting.review.title", defaultMessage: "Check and Publish" },
     body: {
       id: "public.reporting.review.body",
       defaultMessage:
@@ -64,7 +64,7 @@ export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
     },
   },
   grant_ready: {
-    title: { id: "public.reporting.grant.title", defaultMessage: "Allow bounded reporting" },
+    title: { id: "public.reporting.grant.title", defaultMessage: "Allow Bounded Reporting" },
     body: {
       id: "public.reporting.grant.body",
       defaultMessage:
@@ -172,7 +172,7 @@ export const RECOVERY_COPY: Record<AgentReportingRecovery["stage"], Copy> = {
   intro: {
     title: {
       id: "public.reporting.recovery.title",
-      defaultMessage: "Move your account to this chat",
+      defaultMessage: "Move Your Account to This Chat",
     },
     body: {
       id: "public.reporting.recovery.body",
@@ -183,7 +183,7 @@ export const RECOVERY_COPY: Record<AgentReportingRecovery["stage"], Copy> = {
   opening: {
     title: {
       id: "public.reporting.recovery.title",
-      defaultMessage: "Move your account to this chat",
+      defaultMessage: "Move Your Account to This Chat",
     },
   },
   connect: CEREMONY_COPY.connect,
@@ -191,13 +191,13 @@ export const RECOVERY_COPY: Record<AgentReportingRecovery["stage"], Copy> = {
   code: {
     title: {
       id: "public.reporting.recovery.code.title",
-      defaultMessage: "Enter the code from your new chat",
+      defaultMessage: "Enter the Code From Your New Chat",
     },
   },
   confirm: {
     title: {
       id: "public.reporting.recovery.confirm.title",
-      defaultMessage: "Move {account} here?",
+      defaultMessage: "Move {account} Here?",
     },
     body: {
       id: "public.reporting.recovery.confirm.body",
@@ -208,7 +208,7 @@ export const RECOVERY_COPY: Record<AgentReportingRecovery["stage"], Copy> = {
   applying: {
     title: {
       id: "public.reporting.recovery.confirm.title",
-      defaultMessage: "Move {account} here?",
+      defaultMessage: "Move {account} Here?",
     },
   },
   applied: {
@@ -321,3 +321,24 @@ export const PERMISSION_FAILURE_COPY: Record<
       "Newer permissions remain active. Check them and approve another removal if you want to stop them too.",
   },
 };
+
+/** Each flow's named steps, shown as the app's flows name theirs (D6). */
+export const STEP_NAMES = {
+  account: { id: "public.reporting.steps.account", defaultMessage: "Account" },
+  link: { id: "public.reporting.steps.link", defaultMessage: "Link" },
+  permission: { id: "public.reporting.steps.permission", defaultMessage: "Permission" },
+  review: { id: "app.work.step.review", defaultMessage: "Review" },
+  code: { id: "public.reporting.steps.code", defaultMessage: "Code" },
+  move: { id: "public.reporting.steps.move", defaultMessage: "Move" },
+} satisfies Record<string, MessageDescriptor>;
+
+/**
+ * Once a request has left the page, the heading names what was sent, as the app's work page names
+ * a submission, and the notice under it says where it stands.
+ */
+export const SENT_HEADINGS = {
+  report: { id: "public.reporting.yourReport", defaultMessage: "Your report" },
+  decision: { id: "public.reporting.yourDecision", defaultMessage: "Your decision" },
+  permission: { id: "public.reporting.yourPermission", defaultMessage: "Your permission" },
+  account: { id: "public.reporting.yourAccount", defaultMessage: "Your account" },
+} satisfies Record<string, MessageDescriptor>;

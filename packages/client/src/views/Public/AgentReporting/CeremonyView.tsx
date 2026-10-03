@@ -1,11 +1,22 @@
-import { Button } from "@green-goods/shared/components/Button";
-import { Spinner } from "@green-goods/shared/components/Spinner";
 import type { AgentReportingCeremony } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingCeremony";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
-import { useIntl } from "react-intl";
-import { AccountStep, CeremonyFrame } from "./CeremonyFrame";
+import { type ReactNode, useId } from "react";
+import { type MessageDescriptor, useIntl } from "react-intl";
+import { FlowForward } from "@/components/Features/Work";
+import {
+  AccountActions,
+  AccountLine,
+  ActContext,
+  BLOCKED_ID,
+  type CeremonyNotice,
+  CeremonyFrame,
+  ManagePermissionsLink,
+  SignOutButton,
+} from "./CeremonyFrame";
+import { barStanding, OutcomeNotice } from "./CeremonyOutcome";
+import { ceremonyHeading } from "./ceremonyHeading";
+import { readCeremonyScreen } from "./ceremonyScreen";
 import { GrantSummary } from "./GrantSummary";
-import { PublicationSummary } from "./PublicationSummary";
+import { PublicationSkeleton, PublicationSummary } from "./PublicationSummary";
 import { CAUTIONS, CEREMONY_COPY, FAILURE_COPY } from "./messages";
 
 type CeremonyViewProps = Pick<
@@ -33,8 +44,8 @@ type CeremonyViewProps = Pick<
   evidenceUrl?: (assetId: string) => string;
 };
 
-const WAITING = new Set(["pairing", "loading", "submitted", "grant_submitted"]);
-const SESSION = new Set([
+/** Stages with a session this browser can end. */
+const SESSION = new Set<AgentReportingCeremony["stage"]>([
   "review",
   "submitted",
   "published",
@@ -45,261 +56,251 @@ const SESSION = new Set([
   "grant_active",
 ]);
 
+/**
+ * The browser step of a chat report, review or permission, drawn with the app's flow parts. The
+ * frame lays the page out; this view decides what each stage shows and which act, if any, its bar
+ * offers. A send whose outcome is unknown never gets an act.
+ */
 export function CeremonyView(props: CeremonyViewProps) {
   const intl = useIntl();
+  const firstItemId = useId();
   const { stage, resource, operation, grant } = props;
-  const copy = CEREMONY_COPY[stage];
-  const isReview = props.purpose === "review_decision";
-  const isGrant = props.purpose === "grant_reporting" || props.purpose === "grant_review";
-  // Publishing and reviewing take two signatures; say so before the first one.
-  const twoSignatures = props.purpose === "publish_work" || isReview || isGrant;
+  const screen = readCeremonyScreen(props);
+  const { isGrant, decides, uncertain, proving, publishing, granting, sent } = screen;
+  const text = (message: MessageDescriptor, values?: Record<string, string | number>) =>
+    intl.formatMessage(message, values);
   const signer = grant?.policy.account ?? operation?.envelope?.accountAddress ?? null;
   const wrongAccount =
     (stage === "review" || stage === "grant_ready") &&
     signer !== null &&
     props.account?.toLowerCase() !== signer.toLowerCase();
-  const title =
-    stage === "review" && isReview
-      ? {
-          id: "public.reporting.review.decisionTitle",
-          defaultMessage: "Check and record your decision",
-        }
-      : stage === "grant_ready" && grant?.purpose === "review"
-        ? { id: "public.reporting.grant.reviewTitle", defaultMessage: "Allow bounded reviews" }
-        : stage === "grant_active" && grant?.purpose === "review"
-          ? {
-              id: "public.reporting.grant.reviewActiveTitle",
-              defaultMessage: "Review permission active",
-            }
-          : copy.title;
+
+  const blocked: CeremonyNotice | null =
+    !uncertain && (stage === "review" || stage === "grant_ready")
+      ? wrongAccount
+        ? { message: FAILURE_COPY.wrong_account, tone: "error" }
+        : props.issues.length > 0
+          ? { message: FAILURE_COPY.envelope_mismatch, tone: "error" }
+          : stage === "grant_ready" && resource && !operation?.envelope
+            ? { message: CEREMONY_COPY.loading.body as MessageDescriptor, tone: "neutral" }
+            : null
+      : null;
+  const describedBy = blocked ? BLOCKED_ID : undefined;
+
+  const actions: ReactNode = (() => {
+    if (screen.opening) {
+      return (
+        <FlowForward
+          label={text({ id: "public.reporting.intro.continue", defaultMessage: "Continue" })}
+          loading={stage === "opening"}
+          onClick={() => void props.start()}
+        />
+      );
+    }
+    if (proving) {
+      return (
+        <AccountActions
+          account={props.account}
+          connecting={props.connecting}
+          proving={stage === "proving"}
+          onConnectWallet={props.connectWallet}
+          onConnectPasskey={() => void props.connectPasskey()}
+          onProve={() => void props.prove()}
+        />
+      );
+    }
+    if (uncertain) return null;
+    if (publishing) {
+      return (
+        <FlowForward
+          label={
+            screen.isReview
+              ? text({ id: "public.reporting.review.record", defaultMessage: "Record Decision" })
+              : text({ id: "public.reporting.review.publish", defaultMessage: "Publish" })
+          }
+          loading={stage === "signing"}
+          disabled={wrongAccount || props.issues.length > 0}
+          describedBy={describedBy}
+          onClick={() => void props.publish()}
+        />
+      );
+    }
+    if (granting) {
+      return (
+        <FlowForward
+          label={text(
+            resource
+              ? decides
+                ? {
+                    id: "public.reporting.grant.allowFirstReview",
+                    defaultMessage: "Allow and Record First Review",
+                  }
+                : {
+                    id: "public.reporting.grant.allowFirstReport",
+                    defaultMessage: "Allow and Publish First Report",
+                  }
+              : decides
+                ? {
+                    id: "public.reporting.grant.prepareReview",
+                    defaultMessage: "Prepare First Review",
+                  }
+                : {
+                    id: "public.reporting.grant.prepareReport",
+                    defaultMessage: "Prepare First Report",
+                  }
+          )}
+          loading={stage === "grant_signing"}
+          disabled={
+            !grant ||
+            wrongAccount ||
+            props.issues.length > 0 ||
+            Boolean(resource && !operation?.envelope)
+          }
+          describedBy={describedBy}
+          onClick={() => void props.installGrant()}
+        />
+      );
+    }
+    return null;
+  })();
+  const hasActions = actions !== null;
+
+  // The act's own label says what it signs, so its note counts signatures and names the account.
+  const actStep = !screen.twoSignatures
+    ? null
+    : proving
+      ? text({
+          id: "public.reporting.step.prove",
+          defaultMessage: "Signature 1 of 2: prove the account",
+        })
+      : stage === "signing"
+        ? text(CEREMONY_COPY.signing.body as MessageDescriptor)
+        : stage === "grant_signing"
+          ? text(CEREMONY_COPY.grant_signing.body as MessageDescriptor)
+          : publishing || (granting && resource)
+            ? text({ id: "public.reporting.step.second", defaultMessage: "Signature 2 of 2" })
+            : granting
+              ? text({
+                  id: "public.reporting.grant.prepareNotice",
+                  defaultMessage: "Preparing the first item does not request a signature.",
+                })
+              : null;
+  const actAccount = proving ? (
+    props.account ? (
+      <AccountLine account={props.account} relation="connected" />
+    ) : null
+  ) : (publishing || granting) && signer ? (
+    <AccountLine account={signer} relation="signer" />
+  ) : null;
+
+  const utilities =
+    (isGrant && stage !== "grant_signing") || SESSION.has(stage) ? (
+      <>
+        {isGrant && stage !== "grant_signing" ? <ManagePermissionsLink /> : null}
+        {SESSION.has(stage) ? <SignOutButton onLeave={() => void props.leave()} /> : null}
+      </>
+    ) : null;
+
+  // What the request publishes, shown before it is signed and kept on the page after it is sent.
+  const publication = (() => {
+    if (screen.isLink || isGrant || screen.unusable || screen.opening || proving) return null;
+    if (stage === "pairing") return null;
+    if (resource) return <PublicationSummary resource={resource} evidenceUrl={props.evidenceUrl} />;
+    return stage === "loading" ? <PublicationSkeleton /> : null;
+  })();
+
+  // The permission itself, from the step that checks its limits to the outcome.
+  const showsGrant =
+    isGrant &&
+    grant !== null &&
+    (stage.startsWith("grant_") || stage === "loading" || stage === "failed");
+  // A permission's first item: prepared after its limits are checked, then signed with them.
+  const showsFirstItem =
+    showsGrant &&
+    !screen.permissionStep &&
+    (stage === "loading" ||
+      Boolean(resource && (resource.title || resource.lines.length || resource.evidence.length)));
+  const firstItem = showsFirstItem ? (
+    <section aria-labelledby={firstItemId} className="flex min-w-0 flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-1">
+        <h2 id={firstItemId} className="text-base font-semibold text-text-strong-950">
+          {text(
+            decides
+              ? {
+                  id: "public.reporting.grant.firstReviewHeading",
+                  defaultMessage: "Your first review",
+                }
+              : {
+                  id: "public.reporting.grant.firstReportHeading",
+                  defaultMessage: "Your first report",
+                }
+          )}
+        </h2>
+        {grant && !sent ? (
+          <p className="text-xs text-text-sub-600">
+            {text(
+              {
+                id: "public.reporting.grant.firstCounts",
+                defaultMessage:
+                  "This first publication uses 1 of the {maximum} allowed publications. Check it before approving the permission.",
+              },
+              { maximum: grant.policy.maxSubmissions }
+            )}
+          </p>
+        ) : null}
+      </div>
+      {resource ? (
+        <PublicationSummary resource={resource} evidenceUrl={props.evidenceUrl} headingLevel="h3" />
+      ) : (
+        <PublicationSkeleton headingLevel="h3" />
+      )}
+    </section>
+  ) : null;
 
   return (
     <CeremonyFrame
       channel={props.channelLabel}
-      title={
-        props.error === "outcome_unknown"
-          ? {
-              id: "public.reporting.uncertain.title",
-              defaultMessage: "Checking whether the request was sent",
-            }
-          : title
-      }
-      body={
-        props.error === "outcome_unknown"
-          ? {
-              id: "public.reporting.uncertain.body",
-              defaultMessage:
-                "The result isn't confirmed yet. Don't send it again while Green Goods checks the network.",
-            }
-          : stage === "unsupported" && isGrant
-            ? {
-                id: "public.reporting.grant.unsupported",
-                defaultMessage:
-                  "A safe assistant permission isn't available for this account yet. Return to your chat to sign this report or decision with your own wallet or passkey.",
-              }
-            : stage === "grant_active" && grant?.purpose === "review"
-              ? {
-                  id: "public.reporting.grant.reviewActiveBody",
-                  defaultMessage:
-                    "The assistant can record your review decisions within these limits after you confirm each decision in chat. You can remove permissions from the reporting permissions page.",
-                }
-              : copy.body
-      }
-      values={{ garden: resource?.gardenLabel ?? "" }}
-      error={
-        props.error
-          ? { message: FAILURE_COPY[props.error], caution: CAUTIONS.has(props.error) }
+      screen={screen.unusable ? "state" : "step"}
+      steps={
+        screen.steps
+          ? { names: screen.steps.names.map((name) => text(name)), current: screen.steps.current }
           : null
       }
-      actions={
-        <>
-          {stage === "intro" || stage === "opening" ? (
-            <Button size="lg" loading={stage === "opening"} onClick={() => void props.start()}>
-              {intl.formatMessage({
-                id: "public.reporting.intro.continue",
-                defaultMessage: "Continue",
-              })}
-            </Button>
-          ) : null}
-          {stage === "connect" || stage === "proving" ? (
-            <AccountStep
-              account={props.account}
-              connecting={props.connecting}
-              proving={stage === "proving"}
-              onConnectWallet={props.connectWallet}
-              onConnectPasskey={() => void props.connectPasskey()}
-              onProve={() => void props.prove()}
-            />
-          ) : null}
-          {stage === "review" || stage === "signing" ? (
-            <Button
-              size="lg"
-              loading={stage === "signing"}
-              disabled={wrongAccount || props.issues.length > 0}
-              onClick={() => void props.publish()}
-            >
-              {isReview
-                ? intl.formatMessage({
-                    id: "public.reporting.review.record",
-                    defaultMessage: "Record decision",
-                  })
-                : intl.formatMessage({
-                    id: "public.reporting.review.publish",
-                    defaultMessage: "Publish",
-                  })}
-            </Button>
-          ) : null}
-          {stage === "grant_ready" || stage === "grant_signing" ? (
-            <Button
-              size="lg"
-              loading={stage === "grant_signing"}
-              disabled={
-                !grant ||
-                wrongAccount ||
-                props.issues.length > 0 ||
-                Boolean(resource && !operation?.envelope)
-              }
-              onClick={() => void props.installGrant()}
-            >
-              {intl.formatMessage(
-                resource
-                  ? grant?.purpose === "review"
-                    ? {
-                        id: "public.reporting.grant.allowFirstReview",
-                        defaultMessage: "Allow and record first review",
-                      }
-                    : {
-                        id: "public.reporting.grant.allowFirstReport",
-                        defaultMessage: "Allow and publish first report",
-                      }
-                  : grant?.purpose === "review"
-                    ? {
-                        id: "public.reporting.grant.prepareReview",
-                        defaultMessage: "Prepare first review",
-                      }
-                    : {
-                        id: "public.reporting.grant.prepareReport",
-                        defaultMessage: "Prepare first report",
-                      }
-              )}
-            </Button>
-          ) : null}
-          {isGrant && stage !== "grant_signing" ? (
-            <Button size="lg" emphasis="secondary" asChild>
-              <a href="/agent/reporting/permissions" target="_blank" rel="noopener noreferrer">
-                {intl.formatMessage({
-                  id: "public.reporting.grant.manage",
-                  defaultMessage: "Manage Permissions",
-                })}
-              </a>
-            </Button>
-          ) : null}
-          {SESSION.has(stage) ? (
-            <Button size="lg" emphasis="tertiary" onClick={() => void props.leave()}>
-              {intl.formatMessage({
-                id: "public.reporting.leave",
-                defaultMessage: "Sign out of this page",
-              })}
-            </Button>
-          ) : null}
-        </>
+      heading={ceremonyHeading(intl, screen, props)}
+      notice={<OutcomeNotice screen={screen} />}
+      // A sent request's notice already says the outcome is unknown, so no caution repeats it.
+      error={
+        props.error && !uncertain
+          ? {
+              message: FAILURE_COPY[props.error],
+              tone: CAUTIONS.has(props.error) ? "caution" : "error",
+            }
+          : null
       }
+      blocked={blocked}
+      barNotes={hasActions ? <ActContext step={actStep} account={actAccount} /> : null}
+      actions={actions}
+      // Without an act, the bar says where the step stands, in the act's place.
+      barStatus={hasActions ? null : barStanding(intl, screen)}
+      utilities={utilities}
     >
-      {twoSignatures &&
-      (stage === "connect" ||
-        stage === "proving" ||
-        stage === "review" ||
-        stage === "grant_ready") ? (
-        <p className="rounded-xl bg-bg-weak-50 px-4 py-3 text-sm font-medium text-text-sub-600">
-          {stage === "grant_ready"
-            ? intl.formatMessage(
-                resource
-                  ? {
-                      id: "public.reporting.step.install",
-                      defaultMessage:
-                        "Signature 2 of 2: allow permission and publish the first item",
-                    }
-                  : {
-                      id: "public.reporting.grant.prepareNotice",
-                      defaultMessage: "Preparing the first item does not request a signature.",
-                    }
-              )
-            : stage === "review"
-              ? intl.formatMessage({
-                  id: "public.reporting.step.publish",
-                  defaultMessage: "Signature 2 of 2: publish",
-                })
-              : intl.formatMessage({
-                  id: "public.reporting.step.prove",
-                  defaultMessage: "Signature 1 of 2: prove the account",
-                })}
-        </p>
-      ) : null}
       {stage === "pairing" && props.pairingCode ? (
         <p
-          className="rounded-2xl border border-stroke-soft-200 bg-bg-weak-50 px-4 py-6 text-center font-mono text-3xl font-semibold tracking-[0.2em] text-text-strong-950 sm:text-4xl"
+          className="rounded-2xl border border-stroke-soft-200 bg-bg-weak-50 px-4 py-6 text-center font-mono text-3xl font-semibold tracking-[0.2em] text-text-strong-950 [overflow-wrap:anywhere] sm:text-4xl"
           aria-label={props.pairingCode.split("").join(" ")}
         >
           {props.pairingCode}
         </p>
       ) : null}
-      {(stage === "review" || stage === "signing") && resource ? (
-        <>
-          <PublicationSummary resource={resource} evidenceUrl={props.evidenceUrl} />
-          {signer ? (
-            <p className="min-w-0 break-words text-sm text-text-sub-600" title={signer}>
-              {intl.formatMessage(
-                { id: "public.reporting.review.signer", defaultMessage: "From account {account}" },
-                { account: formatAddress(signer) }
-              )}
-            </p>
-          ) : null}
-          {wrongAccount ? (
-            <p role="alert" className="text-sm text-text-strong-950">
-              {intl.formatMessage(FAILURE_COPY.wrong_account)}
-            </p>
-          ) : null}
-        </>
-      ) : null}
-      {grant && (stage.startsWith("grant_") || (isGrant && stage === "loading")) ? (
-        <>
-          <GrantSummary grant={grant} />
-          {resource && (stage === "grant_ready" || stage === "grant_signing") ? (
-            <>
-              <p className="rounded-xl bg-bg-weak-50 px-4 py-3 text-sm font-medium text-text-sub-600">
-                {intl.formatMessage(
-                  {
-                    id: "public.reporting.grant.firstCounts",
-                    defaultMessage:
-                      "This first publication uses 1 of the {maximum} allowed publications. Check it before approving the permission.",
-                  },
-                  { maximum: grant.policy.maxSubmissions }
-                )}
-              </p>
-              <PublicationSummary resource={resource} evidenceUrl={props.evidenceUrl} />
-            </>
-          ) : null}
-          <p className="break-words text-sm text-text-sub-600" title={grant.policy.account}>
-            {intl.formatMessage(
-              { id: "public.reporting.review.signer", defaultMessage: "From account {account}" },
-              { account: formatAddress(grant.policy.account) }
-            )}
-          </p>
-        </>
-      ) : null}
-      {stage === "grant_ready" && wrongAccount ? (
-        <p role="alert" className="text-sm text-text-strong-950">
-          {intl.formatMessage(FAILURE_COPY.wrong_account)}
+      {publication}
+      {/* While it is checked, the newly prepared first item leads; once sent, the permission does. */}
+      {sent ? null : firstItem}
+      {showsGrant && grant ? <GrantSummary grant={grant} /> : null}
+      {sent ? firstItem : null}
+      {sent && signer ? (
+        <p className="min-w-0 break-words text-xs text-text-sub-600">
+          <AccountLine account={signer} relation="signer" />
         </p>
-      ) : null}
-      {WAITING.has(stage) ? (
-        <div role="status" className="flex items-center gap-3 text-sm text-text-sub-600">
-          <Spinner size="sm" />
-          {intl.formatMessage({
-            id: "public.reporting.waiting",
-            defaultMessage: "Checking for updates…",
-          })}
-        </div>
       ) : null}
     </CeremonyFrame>
   );

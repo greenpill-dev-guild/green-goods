@@ -9,7 +9,15 @@ interface FormInfoProps {
   info: ReactNode;
   variant?: "primary" | "secondary" | "tertiary";
   Icon?: RemixiconComponentType;
+  /**
+   * Merged last, so a page whose explanation runs long (the public reporting pages, in any
+   * language and at any text size) can lift the card's 9rem cap with `max-h-none`.
+   */
   className?: string;
+  /** `h1` when the card heads a page of its own, as on the public reporting pages. */
+  titleAs?: "h1" | "h6";
+  /** Lets the page name itself by the card's title. */
+  headingId?: string;
 }
 
 const variants = {
@@ -24,24 +32,28 @@ export const FormInfo = ({
   variant = "primary",
   Icon,
   className = "",
+  titleAs: Title = "h6",
+  headingId,
   ...props
 }: FormInfoProps) => {
   const variantClasses = variants[variant];
 
   return (
     <Card
-      className={cn(variantClasses, className, "p-4 rounded-lg flex gap-4 max-h-36")}
+      className={cn(variantClasses, "p-4 rounded-lg flex gap-4 max-h-36", className)}
       variant="primary"
       mode="filled"
       {...props}
     >
       {Icon && (
-        <div className="bg-bg-white-0 h-12 w-12 p-3 rounded-full border border-stroke-soft-200">
+        <div className="bg-bg-white-0 h-12 w-12 shrink-0 p-3 rounded-full border border-stroke-soft-200">
           <Icon size={24} className="text-primary" />
         </div>
       )}
-      <div className="flex flex-col gap-0.5 grow">
-        <h6 className="text-base font-semibold text-text-strong-950">{title}</h6>
+      <div className="flex min-w-0 flex-col gap-0.5 grow [overflow-wrap:anywhere]">
+        <Title id={headingId} className="text-base font-semibold text-text-strong-950">
+          {title}
+        </Title>
         <div className="text-xs leading-tight text-text-sub-600">{info}</div>
       </div>
     </Card>

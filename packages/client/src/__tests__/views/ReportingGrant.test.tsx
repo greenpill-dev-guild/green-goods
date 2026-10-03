@@ -1,5 +1,5 @@
 /** @vitest-environment happy-dom */
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import {
   buildEnvelope,
   resolveReportingDeployment,
@@ -117,9 +117,9 @@ describe("first publication permission ceremony", () => {
     render(view(props));
     expect(props.installGrant).not.toHaveBeenCalled();
     expect(
-      screen.getByText("Preparing the first item does not request a signature.")
+      screen.getByText(/Preparing the first item does not request a signature/)
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Prepare first report" }));
+    fireEvent.click(screen.getByRole("button", { name: "Prepare First Report" }));
     expect(props.installGrant).toHaveBeenCalledTimes(1);
     expect(props.publish).not.toHaveBeenCalled();
   });
@@ -128,16 +128,17 @@ describe("first publication permission ceremony", () => {
     render(view(props));
     expect(screen.getByText("Watered twelve seedlings")).toBeInTheDocument();
     expect(screen.getByText(/uses 1 of the 5 allowed publications/)).toBeInTheDocument();
+    expect(screen.getByText("24 hours")).toBeInTheDocument();
     expect(screen.getByText("0.001 ETH")).toBeInTheDocument();
     expect(screen.getByText("Total gas allowance")).toBeInTheDocument();
     expect(screen.getByText("Maximum total sponsored cost")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Allow and publish first report" }));
+    fireEvent.click(screen.getByRole("button", { name: "Allow and Publish First Report" }));
     expect(props.installGrant).toHaveBeenCalledTimes(1);
   });
   it.each([
-    "wrong account",
-    "unprepared envelope",
-  ] as const)("disables owner authorization for %s", (reason) => {
+    ["wrong account", /isn't the account linked to your chat/],
+    ["unprepared envelope", /Preparing the exact publication/],
+  ] as const)("disables owner authorization for %s and says why beside it", (reason, why) => {
     const props = {
       ...makeProps(),
       resource,
@@ -147,7 +148,11 @@ describe("first publication permission ceremony", () => {
         : { operation: { ...operation, envelope: null } }),
     };
     render(view(props));
-    expect(screen.getByRole("button", { name: "Allow and publish first report" })).toBeDisabled();
+    const bar = screen.getByRole("region", { name: "Next step" });
+    expect(
+      within(bar).getByRole("button", { name: "Allow and Publish First Report" })
+    ).toBeDisabled();
+    expect(within(bar).getByText(why)).toBeInTheDocument();
   });
   it("keeps an uncertain activation distinct from sent confirmation and removes the signing action", () => {
     render(
@@ -159,12 +164,77 @@ describe("first publication permission ceremony", () => {
         error: "outcome_unknown",
       })
     );
-    expect(
-      screen.getByRole("heading", { name: "Checking whether the request was sent" })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Allow and publish first report" })
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: /publication sent/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Your permission" })).toBeInTheDocument();
+    expect(screen.getByText("May already be sent")).toBeInTheDocument();
+    const bar = screen.getByRole("region", { name: "Next step" });
+    expect(within(bar).getByText("Checking whether the request was sent")).toBeInTheDocument();
+    expect(within(bar).queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.queryByText(/publication sent/)).not.toBeInTheDocument();
+  });
+});
+
+describe("ceremony action bar", () => {
+  const review = (): Props => ({
+    ...makeProps(),
+    stage: "review",
+    purpose: "publish_work",
+    grant: null,
+    resource,
+    operation,
+  });
+
+  it("holds the step's act and its signing account, and keeps page utilities out of it", () => {
+    render(view({ ...makeProps(), resource, operation }));
+    const bar = screen.getByRole("region", { name: "Next step" });
+    const [primary, ...others] = within(bar).getAllByRole("button");
+    expect(primary).toHaveAccessibleName("Allow and Publish First Report");
+    expect(others).toHaveLength(0);
+    expect(within(bar).getByText(/From account 0x1f3a/)).toBeInTheDocument();
+    expect(within(bar).queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Manage Permissions/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign Out of This Page" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["a publication under review", review()],
+    ["a first report under a permission", { ...makeProps(), resource, operation }],
+  ])("offers no further send for %s while its outcome is unknown", (_, props) => {
+    render(view({ ...props, error: "outcome_unknown" }));
+    const bar = screen.getByRole("region", { name: "Next step" });
+    expect(within(bar).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(bar).getByText(/Checking whether/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Publish|Allow/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/From account 0x1f3a/)).toBeInTheDocument();
+    expect(props.publish).not.toHaveBeenCalled();
+    expect(props.installGrant).not.toHaveBeenCalled();
+  });
+
+  it("explains a publication the page refuses to sign beside the disabled act", () => {
+    render(view({ ...review(), issues: ["wrong_chain"] }));
+    const bar = screen.getByRole("region", { name: "Next step" });
+    expect(within(bar).getByRole("button", { name: "Publish" })).toBeDisabled();
+    expect(within(bar).getByRole("alert")).toHaveTextContent(/refused to sign/);
+  });
+
+  it("shows a failure beside the act, or under the heading when the bar has no act", () => {
+    const { rerender } = render(view({ ...makeProps(), stage: "intro", error: "offline" }));
+    const bar = screen.getByRole("region", { name: "Next step" });
+    expect(within(bar).getByRole("status")).toHaveTextContent(/couldn't be reached/);
+    rerender(view({ ...makeProps(), stage: "failed", error: "offline" }));
+    const settled = screen.getByRole("region", { name: "Next step" });
+    expect(within(settled).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(settled).queryByText(/couldn't be reached/)).not.toBeInTheDocument();
+    expect(screen.getByText(/couldn't be reached/)).toBeInTheDocument();
+  });
+
+  it.each([
+    ["intro", "Continue"],
+    ["pairing", "Waiting for your chat"],
+    ["review", "Publish"],
+    ["submitted", "Waiting for the network"],
+    ["published", "Published"],
+  ] as const)("keeps the bar in its place at %s, with an act or where the step stands", (stage, says) => {
+    render(view({ ...review(), stage }));
+    expect(screen.getByRole("region", { name: "Next step" })).toHaveTextContent(says);
   });
 });

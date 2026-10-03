@@ -16,8 +16,13 @@ export function FocusedSiteHeader() {
   return (
     <header className="border-b border-stroke-soft-200 bg-bg-white-0" data-variant="focused">
       <div className="px-6 sm:px-10">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between">
-          <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3">
+          {/* At large text on a small phone the mark gives way, so Help stays inside the page. */}
+          <img
+            src="/icon.png"
+            alt={APP_NAME}
+            className="h-8 w-auto min-w-0 shrink object-contain object-left"
+          />
           <Button emphasis="tertiary" size="lg" onClick={() => setHelpOpen(true)}>
             {intl.formatMessage({ id: "public.reporting.help.label", defaultMessage: "Help" })}
           </Button>
