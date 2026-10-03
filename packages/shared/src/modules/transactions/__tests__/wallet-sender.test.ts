@@ -9,6 +9,8 @@
  * mock collisions with other test files when running with isolate: false.
  */
 
+import { ChainMismatchError } from "viem";
+import { arbitrum } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createFakeWagmiDeps,
@@ -156,7 +158,7 @@ describe("WalletSender", () => {
 
     it("switches to Celo and confirms a user-paid send", async () => {
       const result = await sender.sendContractCall({ ...TEST_CALL, chainId: 42220 });
-      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(42220);
+      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(42220, "write");
       expect(mockWriteContractAsync).toHaveBeenCalled();
       expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledWith(expect.anything(), {
         onReplaced: expect.any(Function),
@@ -177,7 +179,7 @@ describe("WalletSender", () => {
     it("switches to the target chain before sending", async () => {
       await sender.sendContractCall(TEST_CALL);
 
-      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(TEST_CALL.chainId);
+      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(TEST_CALL.chainId, "write");
       expect(mockWriteContractAsync).toHaveBeenCalledOnce();
     });
 
@@ -232,6 +234,30 @@ describe("WalletSender", () => {
       mockWriteContractAsync.mockRejectedValueOnce(new Error("User rejected the request"));
 
       await expect(sender.sendContractCall(TEST_CALL)).rejects.toThrow("User rejected the request");
+    });
+
+    it("checks the network and who signs again, and sends once more, when the wallet moved after the check", async () => {
+      // viem refuses a write whose wallet sits on another network before it asks the wallet.
+      mockWriteContractAsync.mockRejectedValueOnce(
+        new ChainMismatchError({ chain: arbitrum, currentChainId: 42220 })
+      );
+      const onBeforeBroadcast = vi.fn();
+      const assertOwnership = vi.fn();
+
+      const result = await sender.sendContractCall(TEST_CALL, {
+        onBeforeBroadcast,
+        assertOwnership,
+      });
+
+      expect(mockDeps.ensureWalletChain).toHaveBeenNthCalledWith(1, TEST_CALL.chainId, "write");
+      expect(mockDeps.ensureWalletChain).toHaveBeenNthCalledWith(2, TEST_CALL.chainId, "retry");
+      // A switch prompt can stay open long enough for the account to change.
+      expect(assertOwnership).toHaveBeenCalledTimes(2);
+      expect(mockWriteContractAsync).toHaveBeenCalledTimes(2);
+      // One send intent: the refused attempt never reached the wallet.
+      expect(onBeforeBroadcast).toHaveBeenCalledOnce();
+      expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledOnce();
+      expect(result.hash).toBe(MOCK_TX_HASH);
     });
 
     it("blocks writes when the local fork safety guard rejects", async () => {

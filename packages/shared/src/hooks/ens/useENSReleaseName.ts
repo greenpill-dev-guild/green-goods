@@ -19,7 +19,8 @@ import {
   type PublicClient,
   zeroAddress,
 } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
+import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -151,7 +152,7 @@ export function useENSReleaseName() {
   const queryClient = useQueryClient();
   const { authMode, smartAccountClient } = useAuth();
   const { address: walletAddress } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useConnectedWalletClient();
   const isPasskeyUser = authMode === "passkey";
   const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);
   const ensAddress = contracts.greenGoodsENS as Address;

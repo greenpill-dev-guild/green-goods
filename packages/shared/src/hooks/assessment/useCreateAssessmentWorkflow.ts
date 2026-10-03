@@ -2,7 +2,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
+import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 import { fromPromise } from "xstate";
 import { toastService } from "../../components/toast";
 import {
@@ -39,7 +40,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   const { gardenId: draftGardenId } = options;
   const { formatMessage } = useIntl();
   const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useConnectedWalletClient();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
 
   // Draft persistence

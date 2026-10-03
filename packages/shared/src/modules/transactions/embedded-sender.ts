@@ -24,7 +24,12 @@ import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { assertWalletAccount, ensureWagmiWalletChain } from "./chain-guard";
+import type { WalletNetworkSwitchReason } from "../app/walletNetworkSwitchAnalytics";
+import {
+  assertWalletAccount,
+  ensureWagmiWalletChain,
+  retryOnWalletChainMismatch,
+} from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
   TransactionReplacementError,
@@ -48,7 +53,7 @@ export interface EmbeddedSenderDeps {
   ) => Promise<{ status: string; transactionHash?: Hex }>;
   getAccount?: () => { address?: Address };
   assertWriteSafety?: () => Promise<void>;
-  ensureWalletChain?: (chainId: number) => Promise<void>;
+  ensureWalletChain?: (chainId: number, reason?: WalletNetworkSwitchReason) => Promise<void>;
 }
 
 export class EmbeddedSender implements TransactionSender {
@@ -68,12 +73,24 @@ export class EmbeddedSender implements TransactionSender {
       waitForTransactionReceipt:
         defaultWaitForReceipt as unknown as EmbeddedSenderDeps["waitForTransactionReceipt"],
       assertWriteSafety: assertLocalArbitrumForkWallet,
-      ensureWalletChain: (chainId: number) => ensureWagmiWalletChain(this.config, chainId),
     };
     this.deps.getAccount ??= () => defaultGetAccount(this.config);
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
-    this.deps.ensureWalletChain ??= (chainId: number) =>
-      ensureWagmiWalletChain(this.config, chainId);
+    this.deps.ensureWalletChain ??= (chainId: number, reason?: WalletNetworkSwitchReason) =>
+      ensureWagmiWalletChain(this.config, chainId, reason);
+  }
+
+  /** What must hold before the wallet is asked: its network, the fork check, and who signs. */
+  private async readyWallet(
+    call: ContractCall,
+    chainId: number,
+    options: TransactionSendOptions,
+    reason: WalletNetworkSwitchReason
+  ): Promise<void> {
+    await this.deps.ensureWalletChain?.(chainId, reason);
+    await this.deps.assertWriteSafety?.();
+    if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
+    await options.assertOwnership?.();
   }
 
   async sendContractCall(
@@ -82,22 +99,25 @@ export class EmbeddedSender implements TransactionSender {
   ): Promise<TxResult> {
     // TODO: Replace with EIP-5792 sendCalls + paymasterService once @wagmi/core/experimental is stable.
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
-    await this.deps.ensureWalletChain?.(chainId);
-    await this.deps.assertWriteSafety?.();
-    if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
-
-    await options.assertOwnership?.();
+    await this.readyWallet(call, chainId, options, "write");
     await options.onBeforeBroadcast?.();
 
-    const hash = await this.deps.writeContract(this.config, {
-      ...(call.account ? { account: call.account } : {}),
-      address: call.address,
-      abi: call.abi,
-      functionName: call.functionName,
-      args: call.args as unknown[],
-      chainId,
-      ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
-    });
+    // The wallet can change network between the guard and the write. viem then
+    // refuses before anything is signed, so every check runs again and one more
+    // attempt cannot send twice.
+    const hash = await retryOnWalletChainMismatch(
+      () =>
+        this.deps.writeContract(this.config, {
+          ...(call.account ? { account: call.account } : {}),
+          address: call.address,
+          abi: call.abi,
+          functionName: call.functionName,
+          args: call.args as unknown[],
+          chainId,
+          ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
+        }),
+      () => this.readyWallet(call, chainId, options, "retry")
+    );
 
     await options.onBroadcastReference?.({ kind: "transaction", hash: hash as `0x${string}` });
     await options.onBroadcast?.(hash as `0x${string}`);

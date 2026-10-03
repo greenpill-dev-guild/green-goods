@@ -74,6 +74,7 @@ export async function checkMembership(address: string): Promise<{
       abi: GardenAccountABI,
       functionName: "isGardener",
       args: [address as `0x${string}`],
+      chainId: Number(networkConfig.chainId ?? DEFAULT_CHAIN_ID),
     });
 
     if (isGardener && !hasBeenOnboarded) {

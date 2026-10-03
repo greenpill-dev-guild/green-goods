@@ -14,7 +14,7 @@ import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { type Hex, isAddress } from "viem";
-import { useWalletClient } from "wagmi";
+import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -104,7 +104,7 @@ function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
 
 export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMintHypercertResult {
   const { smartAccountClient, authMode, smartAccountAddress, eoaAddress } = useAuth();
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useConnectedWalletClient();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const setMintingState = useHypercertWizardStore((state) => state.setMintingState);
   const { formatMessage } = useIntl();

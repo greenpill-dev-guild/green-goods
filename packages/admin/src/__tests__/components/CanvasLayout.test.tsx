@@ -302,6 +302,11 @@ vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
   useOffline: () => ({ isOnline: true }),
 }));
 
+// The shell aligns a phone wallet's network through wagmi; these shells have no wallet.
+vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment", () => ({
+  useWalletNetworkAlignment: () => undefined,
+}));
+
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuth: () => mockAuthState.current,
 }));

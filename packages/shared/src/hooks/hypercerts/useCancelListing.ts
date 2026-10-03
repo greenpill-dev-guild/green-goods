@@ -7,7 +7,7 @@
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Address, encodeFunctionData } from "viem";
-import { useWalletClient } from "wagmi";
+import { useConnectedWalletClient } from "../blockchain/useConnectedWalletClient";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
@@ -33,7 +33,7 @@ export interface UseCancelListingResult {
 
 export function useCancelListing(gardenAddress?: Address): UseCancelListingResult {
   const { smartAccountClient, smartAccountAddress, eoaAddress } = useAuth();
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useConnectedWalletClient();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
 

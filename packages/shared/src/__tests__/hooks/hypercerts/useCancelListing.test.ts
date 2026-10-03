@@ -56,6 +56,8 @@ vi.mock("../../../config/pimlico", () => ({
 }));
 
 vi.mock("wagmi", () => ({
+  // The hook asks for the wallet client on the network the connection is on.
+  useAccount: () => ({ chainId: 11155111 }),
   useWalletClient: () => ({
     data: {
       sendTransaction: (...args: unknown[]) => mockSendTransaction(...args),
