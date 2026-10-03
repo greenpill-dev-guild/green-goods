@@ -356,6 +356,36 @@ describe("ensureWagmiWalletChain", () => {
     expect(connector.switchChain).toHaveBeenCalledOnce();
     expect(slow).toHaveBeenCalledOnce();
   });
+
+  it("asks a wallet that took the connection over itself, whatever the wallet before it answered", async () => {
+    const { config, connector } = wallet({ type: "injected" });
+    // The first wallet is asked and leaves its prompt open.
+    let decline = (_refusal: Error) => {};
+    connector.switchChain.mockImplementationOnce(
+      () => new Promise((_resolve, reject) => (decline = reject))
+    );
+    const first = ensureWagmiWalletChain(config, ARBITRUM).catch((refusal) => refusal);
+    await vi.waitFor(() => expect(connector.switchChain).toHaveBeenCalledOnce());
+
+    // Another wallet takes the connection over and starts an act of its own.
+    (config.state.connections.get("wallet") as unknown as { accounts: string[] }).accounts = [
+      "0x2222222222222222222222222222222222222222",
+    ];
+    let answer = () => {};
+    const slow = vi
+      .fn<() => Promise<void>>()
+      .mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)))
+      .mockResolvedValue(undefined);
+    const second = ensureWagmiWalletChain(config, ARBITRUM, "write", slow);
+    await vi.waitFor(() => expect(slow).toHaveBeenCalledOnce());
+
+    decline(new UserRejectedRequestError(new Error("User rejected the request.")));
+    await first;
+    answer();
+
+    await expect(second).resolves.toBeUndefined();
+    expect(connector.switchChain).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("walletSwitchesQuietly", () => {

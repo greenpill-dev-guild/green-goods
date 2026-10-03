@@ -82,8 +82,8 @@ describe("useWalletNetworkAlignment", () => {
     // As the guard does for a wallet on another network: it asks who the switch
     // is for, then switches.
     mocks.ensureWagmiWalletChain.mockImplementation(
-      async (_config, _chainId, _reason, beforeSwitch?: () => void) => {
-        beforeSwitch?.();
+      async (_config, _chainId, _reason, beforeSwitch?: () => void | Promise<void>) => {
+        await beforeSwitch?.();
         mocks.switched();
       }
     );
@@ -191,6 +191,18 @@ describe("useWalletNetworkAlignment", () => {
 
     expect(mocks.switched).not.toHaveBeenCalled();
     expect(mocks.warn).not.toHaveBeenCalled();
+  });
+
+  // A session can drop or reorder its accounts while the wallet is being read.
+  it("leaves a wallet alone when its switch stops being quiet by the time the guard asks", async () => {
+    walletOn(CELO);
+    mocks.walletSwitchesQuietly.mockResolvedValueOnce(true).mockResolvedValue(false);
+    renderHook(() => useWalletNetworkAlignment());
+
+    await waitFor(() => expect(mocks.ensureWagmiWalletChain).toHaveBeenCalledOnce());
+    await mocks.ensureWagmiWalletChain.mock.results[0]?.value.catch(() => undefined);
+
+    expect(mocks.switched).not.toHaveBeenCalled();
   });
 
   it("keeps a failed move to itself: the next act switches, or says why it cannot", async () => {

@@ -270,15 +270,22 @@ async function switchWallet(
 }
 
 /**
- * One wallet's switches: the ones under way and the last one to end, by the
- * network asked for, and how many have ended.
+ * The switches asked through one config: the ones under way and the last one
+ * to end, by the wallet asked and the network asked for, and how many have
+ * ended.
  */
 type WalletSwitches = {
-  underWay: Map<number, Promise<void>>;
-  last: Map<number, { ended: number; switched: Promise<void> }>;
+  underWay: Map<string, Promise<void>>;
+  last: Map<string, { ended: number; switched: Promise<void> }>;
   ended: number;
 };
 const switches = new WeakMap<Config, WalletSwitches>();
+
+/** The wallet that holds the connection now, and the network asked of it. */
+function switchKey(config: Config, targetChainId: number): string {
+  const { address, connector } = getAccount(config);
+  return `${connector?.uid}:${address?.toLowerCase()}:${targetChainId}`;
+}
 
 /**
  * Put the connected wallet on `targetChainId` before it is asked to sign or
@@ -288,9 +295,10 @@ const switches = new WeakMap<Config, WalletSwitches>();
  * network throws wagmi's `ConnectorNotConnectedError`. Nothing is asked of the
  * wallet afterwards.
  *
- * Callers that need the same switch at the same time share one request, so the
- * wallet is asked once and each of them gets its answer, including a caller
- * that was still answering `beforeSwitch` when the request ended. A wallet
+ * Callers that need the same switch of the same wallet at the same time share
+ * one request, so the wallet is asked once and each of them gets its answer,
+ * including a caller that was still answering `beforeSwitch` when the request
+ * ended. A wallet that took the connection over is asked itself. A wallet
  * already on the network never waits on anyone else's switch.
  *
  * `beforeSwitch` is the caller's last word on who the switch is for. Reading
@@ -323,24 +331,25 @@ export async function ensureWagmiWalletChain(
   await beforeSwitch?.();
 
   // Nothing is awaited between the caller's answer and the request.
-  let request = known.underWay.get(targetChainId);
+  const asked = switchKey(config, targetChainId);
+  let request = known.underWay.get(asked);
   if (!request) {
     if (known.ended !== endedBefore) {
       // The caller's answer can take a while, and a switch has ended since the
-      // wallet was read. One to this network was this caller's switch as well:
-      // its refusal is shared, and the wallet is not asked again. Otherwise the
-      // wallet may have moved, so it is read again.
-      const last = known.last.get(targetChainId);
+      // wallet was read. One that asked this wallet for this network was this
+      // caller's switch as well: its refusal is shared, and the wallet is not
+      // asked again. Otherwise the wallet may have moved, so it is read again.
+      const last = known.last.get(asked);
       if (last && last.ended > endedBefore) await last.switched;
       return ensureWagmiWalletChain(config, targetChainId, reason, beforeSwitch);
     }
     const switched = switchWallet(config, walletChainId, targetChainId, reason, beforeSwitch);
     request = switched.finally(() => {
-      known.underWay.delete(targetChainId);
+      known.underWay.delete(asked);
       known.ended += 1;
-      known.last.set(targetChainId, { ended: known.ended, switched });
+      known.last.set(asked, { ended: known.ended, switched });
     });
-    known.underWay.set(targetChainId, request);
+    known.underWay.set(asked, request);
   }
   await request;
 }

@@ -39,11 +39,14 @@ async function alignQuietly(
   try {
     if ((await walletNetworkOtherThan(config, targetChainId)) === undefined) return;
     if (!(await walletSwitchesQuietly(config, targetChainId))) return;
-    // The guard acts on whichever wallet holds the connection when it switches.
-    // It asks this right before, so a wallet that took the connection over was
-    // never judged quiet here and is left to its own run.
-    await ensureWagmiWalletChain(config, targetChainId, "sign-in", () => {
-      if (!stillThisWallet()) throw new Error("The wallet connection changed hands");
+    // The guard acts on whichever wallet holds the connection when it switches,
+    // with the session as it stands then. It asks this right before: the switch
+    // is judged quiet again, and who holds the connection is checked last, with
+    // nothing awaited after it. A wallet that took the connection over is left
+    // to its own run.
+    await ensureWagmiWalletChain(config, targetChainId, "sign-in", async () => {
+      const quiet = await walletSwitchesQuietly(config, targetChainId);
+      if (!quiet || !stillThisWallet()) throw new Error("The wallet connection changed");
     });
   } catch (error) {
     // A run that another wallet superseded has nothing to report.
