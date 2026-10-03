@@ -4782,7 +4782,7 @@
   "cockpit.topBar.refresh": "Actualizar",
   "cockpit.topBar.userProfile": "Perfil de usuario",
   "cockpit.work.allCaughtUp": "Todo al día",
-  "cockpit.work.allCaughtUpDescription": "No hay trabajos pendientes en tus jardines.",
+  "cockpit.work.allCaughtUpDescription": "El trabajo enviado a este jardín espera aquí su revisión.",
   "cockpit.work.noApproved": "Aún no hay trabajo aprobado",
   "cockpit.work.noApprovedDescription": "El trabajo que apruebes pasa aquí desde Pendiente.",
   "cockpit.work.createGarden": "Crear jardín",

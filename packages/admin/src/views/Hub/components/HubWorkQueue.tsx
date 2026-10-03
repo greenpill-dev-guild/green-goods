@@ -26,7 +26,7 @@ const EMPTY_SCOPE_COPY: Record<
     title: { id: "cockpit.work.allCaughtUp", defaultMessage: "All caught up" },
     description: {
       id: "cockpit.work.allCaughtUpDescription",
-      defaultMessage: "No pending work items across your gardens.",
+      defaultMessage: "Work submitted to this garden waits here for review.",
     },
   },
   approved: {

@@ -4782,7 +4782,7 @@
   "cockpit.topBar.refresh": "Refresh",
   "cockpit.topBar.userProfile": "User profile",
   "cockpit.work.allCaughtUp": "All caught up",
-  "cockpit.work.allCaughtUpDescription": "No pending work items across your gardens.",
+  "cockpit.work.allCaughtUpDescription": "Work submitted to this garden waits here for review.",
   "cockpit.work.noApproved": "No approved work yet",
   "cockpit.work.noApprovedDescription": "Work you approve moves here from Pending.",
   "cockpit.work.createGarden": "Create Garden",
