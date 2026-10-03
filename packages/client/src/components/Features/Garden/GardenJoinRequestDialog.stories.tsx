@@ -236,7 +236,7 @@ export const Pending: Story = {
     await expect(sheet.getByRole("button", { name: "Withdraw Request" })).toBeVisible();
     await expect(sheet.queryByRole("button", { name: "Send Request" })).not.toBeInTheDocument();
     await userEvent.click(sheet.getByRole("button", { name: "Check Request Status" }));
-    await expect(sheet.getByText("Checked just now.")).toBeVisible();
+    await expect(await sheet.findByText("Checked just now.")).toBeVisible();
   },
 };
 

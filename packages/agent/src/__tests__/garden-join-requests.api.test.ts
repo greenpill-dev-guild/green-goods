@@ -182,6 +182,55 @@ describe("garden join request public API", () => {
     expect(await response.json()).toMatchObject({ errorCode: "request_not_saved" });
     expect(create).not.toHaveBeenCalled();
     expect(store.inspectEncryptedRecords()).toHaveLength(0);
+    expect(store.inspectProofKeys()).toHaveLength(0);
+  });
+
+  it.each([
+    "pending at deadline",
+    "completing at deadline",
+    "aborted",
+  ] as const)("finishes an admitted create when its proof claim is %s", async (boundary) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const { app, store } = createApp({ now: Date.now });
+    const controller = new AbortController();
+    let releaseClaim!: () => void;
+    let markClaimStarted!: () => void;
+    const paused = new Promise<void>((resolve) => (releaseClaim = resolve));
+    const started = new Promise<void>((resolve) => (markClaimStarted = resolve));
+    const claimProof = store.claimProof.bind(store);
+    vi.spyOn(store, "claimProof").mockImplementationOnce(async (...args) => {
+      markClaimStarted();
+      await paused;
+      return claimProof(...args);
+    });
+    try {
+      const response = app.request(`/public/gardens/${GARDEN}/join-requests`, {
+        method: "POST",
+        headers: headers(proof("create")),
+        body: JSON.stringify({ displayName: "Maya", requestedVia: "garden_detail" }),
+        signal: controller.signal,
+      });
+      await started;
+      if (boundary === "pending at deadline") await vi.advanceTimersByTimeAsync(8_001);
+      else if (boundary === "completing at deadline") vi.setSystemTime(NOW + 8_001);
+      else controller.abort();
+      releaseClaim();
+      const saved = await response;
+      expect(saved.status).toBe(201);
+      expect((await saved.json()).request).toMatchObject({ id: "request-1", state: "pending" });
+      const mine = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+        headers: headers(proof("read_self")),
+      });
+      expect((await mine.json()).request.id).toBe("request-1");
+      const retry = await submit(app);
+      expect(retry.status).toBe(200);
+      expect((await retry.json()).request.id).toBe("request-1");
+      expect((await store.listPending(GARDEN)).items).toHaveLength(1);
+    } finally {
+      releaseClaim();
+      vi.useRealTimers();
+    }
   });
 
   it("verifies real signed grant content and rejects tampering without weakening writes", async () => {

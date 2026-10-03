@@ -136,7 +136,10 @@ export async function handleCreateGardenJoinRequest(
     }
     gardenRateLimitReserved = true;
     stage = "proof_claim";
-    if (!(await ctx.budget!.run(() => claimGardenJoinRequestProof(store, authenticated.proof)))) {
+    // Proof consumption starts the write. Check admission once, then let both
+    // mutations finish even if the read budget expires or the client disconnects.
+    ctx.budget!.assertRemaining();
+    if (!(await claimGardenJoinRequestProof(store, authenticated.proof))) {
       releaseMaterialRateLimit(ctx.deps, "join_request_create_garden", preflight.garden);
       gardenRateLimitReserved = false;
       void trackCreateRejected("proof_replayed", authenticated.proof.factory !== undefined);
@@ -149,7 +152,6 @@ export async function handleCreateGardenJoinRequest(
       );
     }
     const now = ctx.deps.now?.() ?? Date.now();
-    ctx.budget!.assertRemaining();
     stage = "store_create";
     const result = await store.create({
       gardenAddress: preflight.garden,
