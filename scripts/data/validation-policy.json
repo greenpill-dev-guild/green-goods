@@ -1482,7 +1482,9 @@
         "packages/shared/src/hooks/yield/useAllocateYield.ts",
         "packages/shared/src/hooks/yield/useHarvestDistribution.ts",
         "packages/shared/src/modules/action/action-operation-command.ts",
+        "packages/shared/src/modules/agent-reporting/browser-grant-activation.ts",
         "packages/shared/src/modules/agent-reporting/ceremony-send.ts",
+        "packages/shared/src/modules/agent-reporting/kernel-activation.ts",
         "packages/shared/src/modules/agent-reporting/kernel-executor.ts",
         "packages/shared/src/modules/assessment/create-assessment-command.ts",
         "packages/shared/src/modules/commitment-pooling/creation-send.ts",
@@ -1591,6 +1593,7 @@
     "members": [
       "sendTransaction",
       "sendUserOperation",
+      "signUserOperation",
       "writeContract",
       "writeContractAsync",
       "signMessage",

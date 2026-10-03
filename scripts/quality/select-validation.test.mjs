@@ -2269,6 +2269,39 @@ test("a new hook that reaches a signing or sending primitive defaults to critica
   assert.notEqual(readPlan.risk, "critical");
 });
 
+test("account-abstraction signing keeps aliased callers critical without escalating operation readers", (t) => {
+  const { sharedMutationPrimitives: primitives } = loadPolicy();
+  const root = mutationFixture(t, {
+    "modules/reporting/activation.ts": [
+      "export async function activate(account: { signUserOperation: (operation: unknown) => Promise<string> }) {",
+      "  return account.signUserOperation({});",
+      "}",
+      "export function activationStatus() { return \"pending\"; }",
+    ].join("\n"),
+    "hooks/reporting/useActivation.ts": [
+      'import { activate as submit } from "../../modules/reporting/activation";',
+      "export const useActivation = (account: never) => submit(account);",
+    ].join("\n"),
+    "hooks/reporting/useActivationStatus.ts": [
+      'import { activationStatus } from "../../modules/reporting/activation";',
+      "export const useActivationStatus = () => activationStatus();",
+    ].join("\n"),
+  });
+  const signing = [
+    "packages/shared/src/modules/reporting/activation.ts",
+    "packages/shared/src/hooks/reporting/useActivation.ts",
+  ];
+  const reader = "packages/shared/src/hooks/reporting/useActivationStatus.ts";
+  const mutationPaths = mutationPathsAmong([...signing, reader], { root, primitives });
+  assert.deepEqual(mutationPaths, [...signing].sort());
+  for (const changedPath of signing) {
+    const plan = selectValidation({ intent: "push", changedPaths: [changedPath], mutationPaths });
+    assert.equal(plan.risk, "critical", changedPath);
+    assert.ok(plan.checks.find((check) => check.id === "shared-test")?.mandatory, changedPath);
+  }
+  assert.notEqual(selectValidation({ intent: "push", changedPaths: [reader], mutationPaths }).risk, "critical");
+});
+
 test("mutation capability that travels by reference keeps a new file critical, in hooks and beyond", (t) => {
   const { sharedMutationPrimitives: primitives } = loadPolicy();
   const root = mutationFixture(t, {
