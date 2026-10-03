@@ -162,6 +162,27 @@ export function resetHypercertWizardTransition(
   return initial;
 }
 
+/**
+ * Whether each of a draft's time frames is in order: it ends on or after the
+ * day it starts, or one of its ends is not set. With no start of its own the
+ * impact time frame starts with the work, as its picker shows and the minted
+ * metadata writes. The metadata step shows its date-range error, and Next
+ * waits, from this one answer.
+ */
+export function selectHypercertTimeframeOrder(draft: HypercertTimeframes): {
+  workInOrder: boolean;
+  impactInOrder: boolean;
+} {
+  const inOrder = (start: number, end: number | null) => !start || !end || start <= end;
+  return {
+    workInOrder: inOrder(draft.workTimeframeStart, draft.workTimeframeEnd),
+    impactInOrder: inOrder(
+      draft.impactTimeframeStart || draft.workTimeframeStart,
+      draft.impactTimeframeEnd
+    ),
+  };
+}
+
 export function selectHypercertDirtyState({
   currentStep,
   mintingStatus,

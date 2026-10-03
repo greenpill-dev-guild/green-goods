@@ -594,6 +594,8 @@ describe("components/Hypercerts/MetadataEditor", () => {
       render(
         createElement(MetadataEditor, {
           ...defaultProps,
+          suggestedStart: null,
+          suggestedEnd: null,
           draft: createMockDraft({
             workTimeframeStart: now,
             workTimeframeEnd: now - 86400, // End before start
@@ -603,6 +605,8 @@ describe("components/Hypercerts/MetadataEditor", () => {
 
       // Error should be shown - look for the specific date range error message
       expect(screen.getByText(/start date must be before/i)).toBeInTheDocument();
+      // The check-marked line confirms a time frame, so it does not show for this one.
+      expect(screen.queryByText(/→/)).not.toBeInTheDocument();
     });
   });
 
@@ -688,6 +692,23 @@ describe("components/Hypercerts/MetadataEditor", () => {
       expect(dayIn("hypercert-work-start")).toBe("2026-03-25");
       expect(dayIn("hypercert-work-end")).toBe("2026-03-25");
       expect(screen.queryByText(/start date must be before/i)).not.toBeInTheDocument();
+    });
+
+    // With no start of its own the impact period begins with the work, as its
+    // picker shows and the minted metadata writes.
+    it("flags an impact end before the work start the impact period begins from", () => {
+      render(
+        createElement(MetadataEditor, {
+          ...defaultProps,
+          draft: createMockDraft({
+            workTimeframeStart: august26,
+            workTimeframeEnd: august26,
+            impactTimeframeEnd: march1,
+          }),
+        })
+      );
+
+      expect(screen.getByText(/start date must be before/i)).toBeInTheDocument();
     });
 
     it.each([
