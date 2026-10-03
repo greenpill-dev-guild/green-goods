@@ -7,7 +7,6 @@
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Address, encodeFunctionData } from "viem";
-import { useWalletClient } from "wagmi";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
@@ -17,7 +16,7 @@ import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../modules/transactions/local-fork-safety";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
+import { readyWalletClient } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
@@ -33,7 +32,6 @@ export interface UseCancelListingResult {
 
 export function useCancelListing(gardenAddress?: Address): UseCancelListingResult {
   const { smartAccountClient, smartAccountAddress, eoaAddress } = useAuth();
-  const { data: walletClient } = useWalletClient();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
 
@@ -66,9 +64,9 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
           calls: [{ to: moduleAddress, data: callData, value: 0n }],
         });
         await smartAccountClient.getUserOperationReceipt({ hash });
-      } else if (walletClient) {
+      } else {
         const publicClient = createPublicClientForChain(chainId);
-        await ensureAppKitWalletChain(chainId);
+        const walletClient = await readyWalletClient(chainId, signer);
         await assertLocalArbitrumForkWallet();
 
         const txHash = await walletClient.sendTransaction({
@@ -81,8 +79,6 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
           hash: txHash,
           timeout: TX_RECEIPT_TIMEOUT_MS,
         });
-      } else {
-        throw new Error("No wallet available for transaction");
       }
 
       logger.info("[useCancelListing] Listing cancelled", { gardenAddress, orderId });

@@ -18,7 +18,7 @@ const mockGetBalance = vi.fn();
 const mockEstimateGas = vi.fn();
 const mockEstimateFeesPerGas = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn();
-const mockEnsureAppKitWalletChain = vi.fn();
+const mockReadyWalletClient = vi.fn();
 
 /** `claimNameSponsored(string)` selector on the deployed ENS sender. */
 const CLAIM_NAME_SPONSORED_SELECTOR = "0x12199b7d";
@@ -42,13 +42,10 @@ const mockSmartAccountClient = {
 let mockSmartAccountClientValue: typeof mockSmartAccountClient | null = mockSmartAccountClient;
 const queryClients = new Set<QueryClient>();
 
+// The hook reads only the address at render. Its wallet client comes from the
+// guard when the claim runs, so wagmi's render-time client is not mocked at all.
 vi.mock("wagmi", () => ({
-  useAccount: vi.fn(() => ({
-    address: mockWalletAddress,
-  })),
-  useWalletClient: vi.fn(() => ({
-    data: mockWalletClientData,
-  })),
+  useAccount: vi.fn(() => ({ address: mockWalletAddress })),
 }));
 
 vi.mock("../../../hooks/auth/useAuth", () => ({
@@ -93,7 +90,7 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
 }));
 
 vi.mock("../../../modules/transactions/chain-guard", () => ({
-  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
+  readyWalletClient: (...args: unknown[]) => mockReadyWalletClient(...args),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
@@ -169,6 +166,7 @@ describe("useENSClaim", () => {
       account: { address: mockWalletAddress, type: "json-rpc" },
       sendTransaction: mockWalletSendTransaction,
     };
+    mockReadyWalletClient.mockImplementation(async () => mockWalletClientData);
     mockPoolBalance = 200000n;
     mockWalletBalance = 10n ** 18n;
     mockGetBalance.mockImplementation(({ address }: { address: string }) =>
@@ -292,11 +290,29 @@ describe("useENSClaim", () => {
         })
       );
       expect(mockGetBalance).toHaveBeenCalledWith({ address: ENS_ADDRESS });
-      expect(mockEnsureAppKitWalletChain).toHaveBeenCalledWith(11155111);
+      // The wallet is readied on the app's network, for the address the checks ran for.
+      expect(mockReadyWalletClient).toHaveBeenCalledExactlyOnceWith(11155111, mockWalletAddress);
       const sent = mockWalletSendTransaction.mock.calls[0]?.[0];
       expect(sent).toMatchObject({ to: ENS_ADDRESS, account: mockWalletClientData?.account });
       expect(sent.data.startsWith(CLAIM_NAME_SPONSORED_SELECTOR)).toBe(true);
       expect(sent.value).toBeUndefined();
+    });
+
+    it("sends nothing when the wallet cannot be put on the app's network", async () => {
+      const refusal = Object.assign(new Error("Network switch rejected."), {
+        name: "WalletChainMismatchError",
+      });
+      mockReadyWalletClient.mockRejectedValue(refusal);
+
+      const { wrapper } = createTestWrapper();
+      const { result } = renderHook(() => useENSClaim(), { wrapper });
+
+      result.current.mutate({ slug: "bob" });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.error).toBe(refusal);
+      expect(mockWalletSendTransaction).not.toHaveBeenCalled();
+      expect(toastService.error).toHaveBeenCalled();
     });
 
     // Regression: a wallet handed a claim it could not pay for opened with nothing to sign.
@@ -312,7 +328,7 @@ describe("useENSClaim", () => {
 
       expect(result.current.error?.name).toBe("WalletCannotFundTransactionError");
       expect(mockGetBalance).toHaveBeenCalledWith({ address: mockWalletAddress });
-      expect(mockEnsureAppKitWalletChain).not.toHaveBeenCalled();
+      expect(mockReadyWalletClient).not.toHaveBeenCalled();
       expect(mockWalletSendTransaction).not.toHaveBeenCalled();
     });
 
@@ -327,7 +343,7 @@ describe("useENSClaim", () => {
       await waitFor(() => expect(result.current.isError).toBe(true));
 
       expect(result.current.error?.message).toBe("InsufficientSponsoredBalance");
-      expect(mockEnsureAppKitWalletChain).not.toHaveBeenCalled();
+      expect(mockReadyWalletClient).not.toHaveBeenCalled();
       expect(mockWalletSendTransaction).not.toHaveBeenCalled();
     });
   });
@@ -336,7 +352,6 @@ describe("useENSClaim", () => {
     it("throws when no auth mode or connected account exists", async () => {
       mockAuthMode = null;
       mockWalletAddress = undefined;
-      mockWalletClientData = undefined;
 
       const { wrapper } = createTestWrapper();
       const { result } = renderHook(() => useENSClaim(), { wrapper });

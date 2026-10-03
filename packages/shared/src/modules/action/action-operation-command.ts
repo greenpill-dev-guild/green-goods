@@ -1,7 +1,7 @@
-import type { Abi, WalletClient } from "viem";
+import type { Abi } from "viem";
 import { getChain } from "../../config/chains";
 import type { ToastActionOptions } from "../../hooks/app/useToastAction";
-import { ensureAppKitWalletChain } from "../transactions/chain-guard";
+import { readyWalletClient } from "../transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../transactions/local-fork-safety";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 
@@ -44,7 +44,6 @@ export async function executeActionOperation(
 }
 
 export function createDefaultActionOperationPorts(input: {
-  walletClient: WalletClient;
   executeWithToast: <T>(action: () => Promise<T>, options: ToastActionOptions) => Promise<T>;
 }): ActionOperationPorts {
   return {
@@ -63,9 +62,9 @@ export function createDefaultActionOperationPorts(input: {
       send: (call) =>
         input.executeWithToast(
           async () => {
-            await ensureAppKitWalletChain(call.chainId);
+            const walletClient = await readyWalletClient(call.chainId, call.account);
             await assertLocalArbitrumForkWallet();
-            return input.walletClient.writeContract({
+            return walletClient.writeContract({
               address: call.contractAddress,
               abi: call.abi,
               functionName: call.functionName,

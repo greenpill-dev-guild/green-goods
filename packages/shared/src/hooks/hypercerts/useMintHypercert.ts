@@ -14,7 +14,6 @@ import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { type Hex, isAddress } from "viem";
-import { useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -104,7 +103,6 @@ function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
 
 export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMintHypercertResult {
   const { smartAccountClient, authMode, smartAccountAddress, eoaAddress } = useAuth();
-  const { data: walletClient } = useWalletClient();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const setMintingState = useHypercertWizardStore((state) => state.setMintingState);
   const { formatMessage } = useIntl();
@@ -113,15 +111,11 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
   // Store mutable dependencies in refs so the machine actor can read
   // current values without recreating the machine on every change.
   // This prevents loss of active mint progress on wallet reconnect.
-  const walletClientRef = useRef(walletClient);
   const smartAccountClientRef = useRef(smartAccountClient);
   const eoaAddressRef = useRef(eoaAddress);
   const authModeRef = useRef(authMode);
   const chainIdRef = useRef(chainId);
 
-  useEffect(() => {
-    walletClientRef.current = walletClient;
-  }, [walletClient]);
   useEffect(() => {
     smartAccountClientRef.current = smartAccountClient;
   }, [smartAccountClient]);
@@ -136,7 +130,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
   }, [chainId]);
 
   const machine = useMemo(() => {
-    const deps = { walletClientRef, smartAccountClientRef, eoaAddressRef, authModeRef, chainIdRef };
+    const deps = { smartAccountClientRef, eoaAddressRef, authModeRef, chainIdRef };
 
     return mintHypercertMachine.provide({
       actors: {

@@ -17,7 +17,9 @@ vi.mock("wagmi", () => ({
   useConfig: () => ({}),
   useWriteContract: () => ({ writeContractAsync: vi.fn() }),
 }));
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ConnectorNotConnectedError: (await importOriginal<typeof import("@wagmi/core")>())
+    .ConnectorNotConnectedError,
   getWalletClient: (...args: unknown[]) => mocks.wallet(...args),
   getAccount: (...args: unknown[]) => mocks.account(...args),
 }));
@@ -64,5 +66,53 @@ describe("useTransactionSender ownership", () => {
       "submission-ownership-changed"
     );
     expect(mocks.resolver).not.toHaveBeenCalled();
+  });
+});
+
+describe("useTransactionSender wallet ownership", () => {
+  // A live connector, as wagmi holds it once the wallet is connected.
+  const connector = { getChainId: async () => 42220 };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.user = { authMode: "wallet", primaryAddress: account };
+    // A wallet left on Celo, as on 2026-10-01: wagmi refuses a wallet client
+    // for any other network.
+    mocks.account.mockReturnValue({ address: account, chainId: 42220, connector });
+    mocks.wallet.mockRejectedValue(
+      Object.assign(new Error("The current chain of the connector does not match"), {
+        name: "ConnectorChainMismatchError",
+      })
+    );
+  });
+
+  it("accepts an Arbitrum job from the same wallet while it sits on Celo, leaving the switch to the sender", async () => {
+    const { result } = renderHook(() => useTransactionSender());
+    await expect(result.current!.assertOwnership!(account, 42161)).resolves.toBeUndefined();
+    // Who signs needs no wallet client, and a wallet client is refused on another network.
+    expect(mocks.wallet).not.toHaveBeenCalled();
+  });
+
+  it("rejects the job when the wallet now signs as another account", async () => {
+    mocks.account.mockReturnValue({ address: other, chainId: 42161, connector });
+    const { result } = renderHook(() => useTransactionSender());
+    await expect(result.current!.assertOwnership!(account, 42161)).rejects.toThrow(
+      "submission-ownership-changed"
+    );
+  });
+
+  it("fails as a wallet to reconnect, not as a job to skip, when the wallet dropped or is still reconnecting", async () => {
+    // The member stays signed in while the wallet is away.
+    mocks.account.mockReturnValue({ address: undefined, connector: undefined });
+    const { result } = renderHook(() => useTransactionSender());
+    await expect(result.current!.assertOwnership!(account, 42161)).rejects.toThrow(
+      "Connector not connected"
+    );
+
+    // While wagmi reconnects, the connector is a stored stub that cannot be asked anything.
+    mocks.account.mockReturnValue({ address: account, connector: { id: "walletConnect" } });
+    await expect(result.current!.assertOwnership!(account, 42161)).rejects.toThrow(
+      "Connector not connected"
+    );
   });
 });

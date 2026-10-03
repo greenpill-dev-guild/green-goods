@@ -258,6 +258,11 @@ describe("work and approval job executors", () => {
       11155111
     );
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    // The sender's chain guard moves the wallet to the network the call names.
+    expect(sender.sendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "attest", chainId: 11155111 }),
+      expect.anything()
+    );
   });
 
   it("uses optional work defaults without inventing tags, audio, or details", async () => {

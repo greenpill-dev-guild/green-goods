@@ -4,13 +4,15 @@
  * A send intent is recorded immediately before a call can reach the network
  * (`onBeforeBroadcast`). A failure before that point never sent anything. After
  * it, only a refusal that came back from the person or the network proves the
- * call was not broadcast, or an estimate the contract refused, since nothing is
- * signed after that; a lost response may hide a send that landed, so the
- * intent is kept for reconciliation instead of risking a second attestation.
+ * call was not broadcast, or an estimate the contract refused, or a refusal for
+ * the wallet's network, since nothing is signed after either; a lost response
+ * may hide a send that landed, so the intent is kept for reconciliation instead
+ * of risking a second attestation.
  *
  * @module modules/work/send-outcome
  */
 
+import { refusedForWalletNetwork } from "../../utils/errors/wallet-network-refusal";
 import { isWorkSubmissionCancelled } from "./work-confirmation";
 
 export type SendFailure = { kind: "not-sent"; cancelled: boolean } | { kind: "may-have-sent" };
@@ -77,7 +79,14 @@ export function classifySendFailure(
   // never reported its intent.
   if (context.broadcastKnown) return { kind: "may-have-sent" };
   if (!context.intentRecorded) return { kind: "not-sent", cancelled };
-  if (cancelled || hasNetworkRefusal(error) || refusedWhileEstimating(error))
+  if (
+    cancelled ||
+    hasNetworkRefusal(error) ||
+    refusedWhileEstimating(error) ||
+    // The sender retries once when the wallet's network moved; the retry's own
+    // network check and a second refusal both land here with nothing signed.
+    refusedForWalletNetwork(error)
+  )
     return { kind: "not-sent", cancelled };
   return { kind: "may-have-sent" };
 }

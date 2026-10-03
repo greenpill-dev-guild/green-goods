@@ -38,6 +38,7 @@ const mocks = vi.hoisted(() => ({
   uploadFile: vi.fn(),
   uploadJson: vi.fn(),
   ensureChain: vi.fn(),
+  readyWalletClient: vi.fn(),
   trackStarted: vi.fn(),
   trackSuccess: vi.fn(),
   trackFailed: vi.fn(),
@@ -60,7 +61,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("wagmi", () => ({
   useAccount: () => ({ address: mocks.walletAddress }),
-  useWalletClient: () => ({ data: mocks.walletClient }),
 }));
 
 vi.mock("../../../stores/useAdminStore", () => ({
@@ -89,8 +89,10 @@ vi.mock("../../../modules/data/ipfs/upload", () => ({
   uploadJSONToIPFS: mocks.uploadJson,
 }));
 
+// The wallet client comes from the guard when the workflow signs, not from wagmi at render.
 vi.mock("../../../modules/transactions/chain-guard", () => ({
   ensureAppKitWalletChain: mocks.ensureChain,
+  readyWalletClient: mocks.readyWalletClient,
 }));
 
 vi.mock("../../../modules/app/analytics-events", () => ({
@@ -249,6 +251,7 @@ describe("useCreateAssessmentWorkflow", () => {
       .mockResolvedValueOnce({ cid: "bafy-metrics" })
       .mockResolvedValueOnce({ cid: "bafy-config" });
     mocks.ensureChain.mockResolvedValue(undefined);
+    mocks.readyWalletClient.mockImplementation(async () => mocks.walletClient);
     mocks.getSigner.mockResolvedValue({ address: OPERATOR_ADDRESS });
     mocks.schemaEncode.mockReturnValue("0xencoded-assessment");
     mocks.waitForAttestation.mockResolvedValue(ATTESTATION_UID);
@@ -275,32 +278,36 @@ describe("useCreateAssessmentWorkflow", () => {
     queryClient.clear();
   });
 
-  it.each([
-    {
-      name: "steward address",
-      prepare: () => {
-        mocks.walletAddress = undefined;
-      },
-      error: "Wallet not connected",
-    },
-    {
-      name: "wallet client",
-      prepare: () => {
-        mocks.walletClient = undefined;
-      },
-      error: "No wallet client available",
-    },
-  ])("surfaces a missing $name prerequisite", async ({ prepare, error }) => {
-    prepare();
+  it("surfaces a missing steward address before the wallet is asked anything", async () => {
+    mocks.walletAddress = undefined;
     const queryClient = createTestQueryClient();
     const { result } = renderWorkflow(queryClient);
 
     await startReady(result);
     await submitAndWaitFor(result, "error");
 
-    expect(result.current.state.context.error).toBe(error);
+    expect(result.current.state.context.error).toBe("Wallet not connected");
     expect(result.current.canRetry).toBe(true);
     expect(mocks.ensureChain).not.toHaveBeenCalled();
+    expect(mocks.readyWalletClient).not.toHaveBeenCalled();
+    expect(mocks.easAttest).not.toHaveBeenCalled();
+    queryClient.clear();
+  });
+
+  // The uploads can run for minutes. A wallet that changed hands meanwhile must
+  // not sign what the steward prepared.
+  it("does not attest when the wallet can no longer be readied after the uploads", async () => {
+    mocks.readyWalletClient
+      .mockResolvedValueOnce(mocks.walletClient)
+      .mockRejectedValueOnce(new Error("Wallet account changed before submission"));
+    const queryClient = createTestQueryClient();
+    const { result } = renderWorkflow(queryClient);
+
+    await startReady(result);
+    await submitAndWaitFor(result, "error");
+
+    expect(result.current.state.context.error).toBe("Wallet account changed before submission");
+    expect(mocks.uploadJson).toHaveBeenCalledTimes(2);
     expect(mocks.easAttest).not.toHaveBeenCalled();
     queryClient.clear();
   });
@@ -377,6 +384,16 @@ describe("useCreateAssessmentWorkflow", () => {
       { name: "endDate", value: 1_700_086_400, type: "uint256" },
       { name: "location", value: "Portland, OR", type: "string" },
     ]);
+    // Readied for the steward before the uploads, and again once they are done.
+    expect(mocks.readyWalletClient.mock.calls).toEqual([
+      [11155111, OPERATOR_ADDRESS],
+      [11155111, OPERATOR_ADDRESS],
+    ]);
+    const [beforeUploads, afterUploads] = mocks.readyWalletClient.mock.invocationCallOrder;
+    expect(beforeUploads).toBeLessThan(mocks.uploadFile.mock.invocationCallOrder[0]);
+    expect(afterUploads).toBeGreaterThan(mocks.uploadJson.mock.invocationCallOrder[1]);
+    expect(afterUploads).toBeLessThan(mocks.easAttest.mock.invocationCallOrder[0]);
+    expect(mocks.browserProviderConstructor).toHaveBeenCalledWith(mocks.walletClient?.transport);
     expect(mocks.easConstructor).toHaveBeenCalledWith(EAS_ADDRESS);
     expect(mocks.easConnect).toHaveBeenCalledWith({ address: OPERATOR_ADDRESS });
     expect(mocks.easAttest).toHaveBeenCalledWith({

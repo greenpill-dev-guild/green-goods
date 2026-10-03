@@ -16,7 +16,6 @@ import { useActionOperations } from "../../hooks/action/useActionOperations";
 // Mock wagmi hooks
 vi.mock("wagmi", () => ({
   useAccount: vi.fn(),
-  useWalletClient: vi.fn(),
 }));
 
 // Mock contract utils
@@ -32,8 +31,9 @@ vi.mock("../../utils/blockchain/simulation", () => ({
   simulateTransaction: vi.fn(),
 }));
 
+// The wallet client is taken from the guard when a write runs, not at render.
 vi.mock("../../modules/transactions/chain-guard", () => ({
-  ensureAppKitWalletChain: vi.fn(() => Promise.resolve()),
+  readyWalletClient: vi.fn(),
 }));
 
 // Mock error parsing
@@ -69,9 +69,9 @@ vi.mock("@tanstack/react-query", () => ({
   QueryClient: vi.fn(() => ({})),
 }));
 
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
 import { useToastAction } from "../../hooks/app/useToastAction";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
+import { readyWalletClient } from "../../modules/transactions/chain-guard";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 
 async function runInAct<T>(callback: () => Promise<T>): Promise<T> {
@@ -98,10 +98,6 @@ describe("useActionOperations", () => {
     // Default: wallet not connected
     vi.mocked(useAccount).mockReturnValue({
       address: undefined,
-    } as any);
-
-    vi.mocked(useWalletClient).mockReturnValue({
-      data: undefined,
     } as any);
   });
 
@@ -140,9 +136,7 @@ describe("useActionOperations", () => {
         address: "0xUserAddress123",
       } as any);
 
-      vi.mocked(useWalletClient).mockReturnValue({
-        data: mockWalletClient,
-      } as any);
+      vi.mocked(readyWalletClient).mockResolvedValue(mockWalletClient as any);
     });
 
     it("simulates transaction before execution", async () => {
@@ -248,7 +242,7 @@ describe("useActionOperations", () => {
       );
     });
 
-    it("switches to the selected chain before executing wallet writes", async () => {
+    it("readies the wallet on the selected chain, for the caller, and writes through it", async () => {
       vi.mocked(simulateTransaction).mockResolvedValue({
         success: true,
         result: undefined,
@@ -258,7 +252,10 @@ describe("useActionOperations", () => {
 
       await runInAct(() => result.current.updateActionTitle("1", "Updated Title"));
 
-      expect(ensureAppKitWalletChain).toHaveBeenCalledWith(11155111);
+      expect(readyWalletClient).toHaveBeenCalledExactlyOnceWith(11155111, "0xUserAddress123");
+      expect(mockWalletClient.writeContract).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ functionName: "updateActionTitle", account: "0xUserAddress123" })
+      );
     });
 
     it("handles contract errors during execution", async () => {
