@@ -271,14 +271,27 @@ export function getHubResultCount(
 
 /**
  * Whether the open stage's list could not be read. A failed read is not an
- * empty list, so the stage says so instead of "none yet". Hypercerts come from
- * their own source: a failure there marks only the Hypercerts tab, and only
- * while that tab has nothing already read to show.
+ * empty list, so the stage says so instead of "none yet". Each stage answers
+ * for its own read: a work outage must not hide assessments that loaded, nor
+ * the reverse. A garden that could not be read fails every stage. The
+ * Hypercerts tab says so only while it has nothing already read to show. The
+ * Confirm stage reads its own queue and reports its own failures.
+ *
+ * It takes each read's error as it comes, so a caller has nothing to combine.
  */
 export function hasHubStageDataError(
   stage: HubPipelineStage,
-  input: { hasWorkspaceError: boolean; hasHypercertsError: boolean; hypercertCount: number }
+  read: {
+    gardenError: unknown;
+    worksError: unknown;
+    assessmentsError: unknown;
+    hypercertsError: unknown;
+    hypercertCount: number;
+  }
 ): boolean {
-  if (input.hasWorkspaceError) return true;
-  return stage === "certify" && input.hasHypercertsError && input.hypercertCount === 0;
+  if (read.gardenError) return true;
+  if (stage === "work") return Boolean(read.worksError);
+  if (stage === "assess") return Boolean(read.assessmentsError);
+  if (stage === "certify") return Boolean(read.hypercertsError) && read.hypercertCount === 0;
+  return false;
 }

@@ -347,8 +347,10 @@ export function useHubWorkbenchController() {
     [formatEventAge, lastRefreshAt]
   );
   const hasDataError = hasHubStageDataError(stage, {
-    hasWorkspaceError: Boolean(error || worksError || assessmentsError),
-    hasHypercertsError: Boolean(hypercertsError),
+    gardenError: error,
+    worksError,
+    assessmentsError,
+    hypercertsError,
     hypercertCount: hypercerts.length,
   });
 

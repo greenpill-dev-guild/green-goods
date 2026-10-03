@@ -70,28 +70,66 @@ describe("buildHubStageModel stageCounts", () => {
 });
 
 describe("hasHubStageDataError", () => {
-  const read = { hasWorkspaceError: false, hasHypercertsError: false, hypercertCount: 0 };
+  const failed = new Error("read failed");
+  const read = {
+    gardenError: null,
+    worksError: null,
+    assessmentsError: null,
+    hypercertsError: null,
+    hypercertCount: 0,
+  };
 
-  // A failed read is not an empty list. Hypercerts come from their own source,
-  // so their failure must not take the review queue down with it.
+  // A failed read is not an empty list, and each tab answers for its own read:
+  // an outage in one source must not blank a tab whose records loaded.
   it.each([
-    ["a workspace read failure marks every stage", "work", { hasWorkspaceError: true }, true],
+    ["a garden that could not be read marks every stage", "assess", { gardenError: failed }, true],
+    ["a failed work read marks the Work tab", "work", { worksError: failed }, true],
+    [
+      "a failed work read leaves the Assessments tab alone",
+      "assess",
+      { worksError: failed },
+      false,
+    ],
+    [
+      "a failed work read leaves the Hypercerts tab alone",
+      "certify",
+      { worksError: failed },
+      false,
+    ],
+    [
+      "a failed assessment read marks the Assessments tab",
+      "assess",
+      { assessmentsError: failed },
+      true,
+    ],
+    [
+      "a failed assessment read leaves the Work tab reviewable",
+      "work",
+      { assessmentsError: failed },
+      false,
+    ],
     [
       "a failed hypercert read with nothing to show marks the Hypercerts tab",
       "certify",
-      { hasHypercertsError: true },
+      { hypercertsError: failed },
       true,
     ],
     [
       "a failed refresh keeps the hypercerts already read",
       "certify",
-      { hasHypercertsError: true, hypercertCount: 2 },
+      { hypercertsError: failed, hypercertCount: 2 },
       false,
     ],
     [
       "a failed hypercert read leaves the Work tab reviewable",
       "work",
-      { hasHypercertsError: true },
+      { hypercertsError: failed },
+      false,
+    ],
+    [
+      "the Confirm stage answers for its own queue",
+      "confirm",
+      { worksError: failed, assessmentsError: failed, hypercertsError: failed },
       false,
     ],
   ] as const)("%s", (_label, stage, overrides, expected) => {
