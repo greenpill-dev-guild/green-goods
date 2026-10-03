@@ -5,6 +5,8 @@ import type { HypercertWizardStore, MintingState } from "../useHypercertWizardSt
 
 const MIN_STEP = 1;
 const MAX_STEP = 4;
+/** The step that holds the time frames and shows their date-range error. */
+const METADATA_STEP = 2;
 
 type HypercertTimeframes = Pick<
   HypercertDraft,
@@ -131,20 +133,28 @@ export function loadHypercertDraftTransition(
   _state: HypercertWizardStore,
   draft: HypercertDraft
 ): Partial<HypercertWizardStore> {
+  // A draft saved before the wizard kept days can hold the moments themselves.
+  const timeframes = withTimeframeDays({
+    workTimeframeStart: draft.workTimeframeStart ?? 0,
+    workTimeframeEnd: draft.workTimeframeEnd ?? 0,
+    impactTimeframeStart: draft.impactTimeframeStart ?? 0,
+    impactTimeframeEnd: draft.impactTimeframeEnd,
+  });
+  // Next has not always waited on the order, so a saved draft can sit past the
+  // metadata step with a time frame that runs backwards. It reopens on that
+  // step, where the error shows and Next waits, not one press from Mint.
+  const { workInOrder, impactInOrder } = selectHypercertTimeframeOrder(timeframes);
+  const currentStep =
+    workInOrder && impactInOrder ? draft.stepNumber : Math.min(draft.stepNumber, METADATA_STEP);
+
   return {
-    currentStep: draft.stepNumber,
+    currentStep,
     selectedAttestationIds: draft.attestationIds,
     title: draft.title ?? "",
     description: draft.description ?? "",
     workScopes: draft.workScopes ?? [],
     impactScopes: draft.impactScopes ?? [],
-    // A draft saved before the wizard kept days can hold the moments themselves.
-    ...withTimeframeDays({
-      workTimeframeStart: draft.workTimeframeStart ?? 0,
-      workTimeframeEnd: draft.workTimeframeEnd ?? 0,
-      impactTimeframeStart: draft.impactTimeframeStart ?? 0,
-      impactTimeframeEnd: draft.impactTimeframeEnd,
-    }),
+    ...timeframes,
     sdgs: draft.sdgs ?? [],
     capitals: draft.capitals ?? [],
     outcomes: draft.outcomes ?? { predefined: {}, custom: {} },
