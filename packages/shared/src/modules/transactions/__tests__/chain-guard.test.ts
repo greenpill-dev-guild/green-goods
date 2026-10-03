@@ -114,6 +114,35 @@ describe("ensureWagmiWalletChain", () => {
     expect(on).toEqual({ connector: ARBITRUM, provider: ARBITRUM });
   });
 
+  // Reading the wallet takes time, and the switch acts on whichever wallet
+  // holds the connection by then.
+  it("asks the caller who the switch is for after reading the wallet and right before asking it to move", async () => {
+    const { config, connector } = wallet();
+    const beforeSwitch = vi.fn();
+
+    await ensureWagmiWalletChain(config, ARBITRUM, "write", beforeSwitch);
+
+    const [read] = connector.getChainId.mock.invocationCallOrder;
+    const [asked] = beforeSwitch.mock.invocationCallOrder;
+    expect(read).toBeLessThan(asked);
+    expect(asked).toBeLessThan(connector.switchChain.mock.invocationCallOrder[0]);
+
+    // A refusal stops the switch, and a wallet already on the network is not asked about.
+    const takenOver = wallet();
+    const refusal = new Error("submission-ownership-changed");
+    await expect(
+      ensureWagmiWalletChain(takenOver.config, ARBITRUM, "write", () => Promise.reject(refusal))
+    ).rejects.toBe(refusal);
+    expect(takenOver.connector.switchChain).not.toHaveBeenCalled();
+    await ensureWagmiWalletChain(
+      wallet({ connector: ARBITRUM }).config,
+      ARBITRUM,
+      "write",
+      beforeSwitch
+    );
+    expect(beforeSwitch).toHaveBeenCalledOnce();
+  });
+
   it("switches through AppKit when AppKit owns the connection, so its selected network moves too", async () => {
     const { config, connector, on } = wallet();
     const appKit = appKitThat(async (network) => {
@@ -279,21 +308,23 @@ describe("ensureWagmiWalletChain", () => {
 });
 
 describe("walletSwitchesQuietly", () => {
-  // A session can hold a different address on each network. Switching to one
-  // of those would change who signs, so it is never done without being asked.
-  it("is not quiet when the session holds another address on the network", async () => {
-    const session = {
-      namespaces: {
-        eip155: {
-          accounts: [
-            `eip155:${CELO}:0x1111111111111111111111111111111111111111`,
-            `eip155:${ARBITRUM}:0x2222222222222222222222222222222222222222`,
-          ],
-        },
-      },
-    };
+  // On a quiet switch WalletConnect hands wagmi the session's accounts on the
+  // new network, in the session's order, and the first becomes the signer. A
+  // switch that would change who signs is never made without being asked.
+  it("is not quiet unless the first account the session holds on the network is the connected one", async () => {
+    const connected = "0x1111111111111111111111111111111111111111";
+    const other = "0x2222222222222222222222222222222222222222";
+    const holding = (...accounts: string[]) =>
+      wallet({ session: { namespaces: { eip155: { accounts } } } }).config;
 
-    await expect(walletSwitchesQuietly(wallet({ session }).config, ARBITRUM)).resolves.toBe(false);
+    const anotherAddress = holding(`eip155:${CELO}:${connected}`, `eip155:${ARBITRUM}:${other}`);
+    const connectedSecond = holding(
+      `eip155:${ARBITRUM}:${other}`,
+      `eip155:${ARBITRUM}:${connected}`
+    );
+
+    await expect(walletSwitchesQuietly(anotherAddress, ARBITRUM)).resolves.toBe(false);
+    await expect(walletSwitchesQuietly(connectedSecond, ARBITRUM)).resolves.toBe(false);
   });
 
   it("is quiet for a WalletConnect session holding the connected address on the network, and never for a browser wallet", async () => {
@@ -342,6 +373,23 @@ describe("readyWalletClient", () => {
     vi.mocked(getWagmiConfig).mockReturnValue(config);
 
     await expect(readyWalletClient(ARBITRUM, SOMEONE_ELSE)).rejects.toMatchObject({
+      code: "account_mismatch",
+    });
+    expect(connector.switchChain).not.toHaveBeenCalled();
+  });
+
+  it("refuses a wallet that takes the connection over while its networks are being read", async () => {
+    const { config, connector } = wallet();
+    vi.mocked(getWagmiConfig).mockReturnValue(config);
+    connector.getChainId.mockImplementationOnce(async () => {
+      const connection = config.state.connections.get("wallet") as unknown as {
+        accounts: string[];
+      };
+      connection.accounts = [SOMEONE_ELSE];
+      return CELO;
+    });
+
+    await expect(readyWalletClient(ARBITRUM, OWNER)).rejects.toMatchObject({
       code: "account_mismatch",
     });
     expect(connector.switchChain).not.toHaveBeenCalled();

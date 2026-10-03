@@ -84,7 +84,11 @@ export interface WalletSenderDeps {
   ) => Promise<{ status: string; transactionHash?: Hex }>;
   getAccount?: () => { address?: Address };
   assertWriteSafety?: () => Promise<void>;
-  ensureWalletChain?: (chainId: number, reason?: WalletNetworkSwitchReason) => Promise<void>;
+  ensureWalletChain?: (
+    chainId: number,
+    reason?: WalletNetworkSwitchReason,
+    beforeSwitch?: () => void | Promise<void>
+  ) => Promise<void>;
   getCapabilities?: (
     config: Config,
     params: { chainId: number }
@@ -168,22 +172,26 @@ export class WalletSender implements TransactionSender {
     };
     this.deps.getAccount ??= () => defaultGetAccount(this.config);
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
-    this.deps.ensureWalletChain ??= (chainId: number, reason?: WalletNetworkSwitchReason) =>
-      ensureWagmiWalletChain(this.config, chainId, reason);
-  }
-
-  /** Who signs: the account the call was quoted for, and the act's own ownership check. */
-  private async assertSigner(call: ContractCall, options: TransactionSendOptions): Promise<void> {
-    if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
-    await options.assertOwnership?.();
+    this.deps.ensureWalletChain ??= (chainId, reason, beforeSwitch) =>
+      ensureWagmiWalletChain(this.config, chainId, reason, beforeSwitch);
   }
 
   /**
-   * What must hold before the wallet is asked: who signs, its network, and the
-   * fork check. Who signs comes first, so a wallet that took the connection
-   * over while the act was being prepared is refused before it is asked to
-   * change network. It is asked again once the wallet is on the network,
-   * because a switch prompt can stay open long enough for the account to change.
+   * Who signs: the act's own ownership check, then the account the call was
+   * quoted for. The account is read last, with nothing awaited after it.
+   */
+  private async assertSigner(call: ContractCall, options: TransactionSendOptions): Promise<void> {
+    await options.assertOwnership?.();
+    if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
+  }
+
+  /**
+   * What must hold before the wallet is asked: its network, the fork check, and
+   * who signs. The guard asks who signs right before it asks the wallet to
+   * change network, so a wallet that took the connection over while the act
+   * was being prepared is refused, not switched. Who signs is asked again once
+   * the wallet is on the network, because a switch prompt can stay open long
+   * enough for the account to change.
    */
   private async readyWallet(
     call: ContractCall,
@@ -191,8 +199,7 @@ export class WalletSender implements TransactionSender {
     options: TransactionSendOptions,
     reason: WalletNetworkSwitchReason
   ): Promise<void> {
-    await this.assertSigner(call, options);
-    await this.deps.ensureWalletChain?.(chainId, reason);
+    await this.deps.ensureWalletChain?.(chainId, reason, () => this.assertSigner(call, options));
     await this.deps.assertWriteSafety?.();
     await this.assertSigner(call, options);
   }
@@ -304,15 +311,6 @@ export class WalletSender implements TransactionSender {
     }
   }
 
-  /** Every call quoted for an account is signed by that account, or the batch is refused. */
-  private assertBatchSigner(calls: ContractCall[]): void {
-    if (!calls.some((call) => call.account)) return;
-    const account = this.deps.getAccount?.().address;
-    for (const call of calls) {
-      if (call.account) assertWalletAccount(call.account, account);
-    }
-  }
-
   async sendAtomicBatch(
     calls: ContractCall[],
     options: AtomicBatchOptions = {}
@@ -327,12 +325,14 @@ export class WalletSender implements TransactionSender {
     if (calls.some((call) => (call.chainId ?? DEFAULT_CHAIN_ID) !== chainId)) {
       throw new Error("An atomic batch runs on one chain");
     }
-    // Who signs is checked before the wallet is asked to change network, and
-    // again after: see `readyWallet`.
-    this.assertBatchSigner(calls);
     await this.deps.ensureWalletChain?.(chainId, "write");
     await this.deps.assertWriteSafety?.();
-    this.assertBatchSigner(calls);
+    if (calls.some((call) => call.account)) {
+      const account = this.deps.getAccount?.().address;
+      for (const call of calls) {
+        if (call.account) assertWalletAccount(call.account, account);
+      }
+    }
 
     const { id } = await sendCalls(this.config, {
       chainId,

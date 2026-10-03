@@ -279,11 +279,18 @@ const switching = new WeakMap<Config, Map<number, Promise<void>>>();
  * Callers that need the same switch at the same time share one request, so the
  * wallet is asked once and each of them gets its answer. A wallet already on
  * the network never waits on anyone else's switch.
+ *
+ * `beforeSwitch` is the caller's last word on who the switch is for. Reading
+ * the wallet's networks takes time, and the switch acts on whichever wallet
+ * holds the connection by then. The check runs after that read and right
+ * before the wallet is asked to move, so a wallet that took the connection
+ * over in between is refused, not switched or prompted. Throwing stops it.
  */
 export async function ensureWagmiWalletChain(
   config: Config,
   targetChainId: number = DEFAULT_CHAIN_ID,
-  reason: WalletNetworkSwitchReason = "write"
+  reason: WalletNetworkSwitchReason = "write",
+  beforeSwitch?: () => void | Promise<void>
 ): Promise<void> {
   // Judged by the connection, not by wagmi's status: while another connection
   // is being opened wagmi reports "not connected", yet a write still goes
@@ -291,6 +298,7 @@ export async function ensureWagmiWalletChain(
   if (!getAccount(config).connector) return;
   const walletChainId = await writableNetworkOtherThan(config, targetChainId);
   if (walletChainId === undefined) return;
+  await beforeSwitch?.();
 
   const underWay = switching.get(config) ?? new Map<number, Promise<void>>();
   switching.set(config, underWay);
@@ -320,27 +328,33 @@ export async function ensureAppKitWalletChain(
  * stopped with "not connected" before its guard could switch anything.
  *
  * `account` is the address the act was prepared for: its checks, its
- * simulation, its form. Who signs is checked first, so a wallet swapped in
- * since then is refused before it is asked to change network, and the client
- * that comes back signs as that address or not at all. A wallet that is not
- * connected throws wagmi's `ConnectorNotConnectedError`.
+ * simulation, its form. Who signs is checked first, and again by the guard
+ * right before it asks the wallet to change network, so a wallet swapped in
+ * since then is refused and not switched. The client that comes back signs as
+ * that address or not at all. A wallet that is not connected throws wagmi's
+ * `ConnectorNotConnectedError`.
  */
 export async function readyWalletClient(chainId: number, account?: Address) {
   const config = getWagmiConfig();
-  const connected = getAccount(config).address;
-  if (account && connected) assertWalletAccount(account, connected);
-  await ensureWagmiWalletChain(config, chainId);
+  const assertSigner = () => {
+    const connected = getAccount(config).address;
+    if (account && connected) assertWalletAccount(account, connected);
+  };
+  assertSigner();
+  await ensureWagmiWalletChain(config, chainId, "write", assertSigner);
   return getWalletClient(config, { chainId, account });
 }
 
 /**
- * Whether moving this wallet to `chainId` needs no prompt: a WalletConnect
- * session that holds the connected address on that network. WalletConnect's
- * provider decides from the session's accounts and not its optional `chains`
- * list, and then switches on the app's side. A session can hold a different
- * address on each network, and switching to one of those would change who
- * signs, so only the connected address counts. Any other network, and every
- * browser wallet, asks the person.
+ * Whether moving this wallet to `chainId` needs no prompt and leaves who signs
+ * unchanged: a WalletConnect session whose first account on that network is
+ * the connected address. WalletConnect's provider decides from the session's
+ * accounts and not its optional `chains` list, and then switches on the app's
+ * side. On that switch it hands wagmi the session's accounts on the new
+ * network, in the session's order, and the first becomes the one that signs.
+ * A session can hold other addresses there, or the same ones in another order,
+ * so only that first account counts. Any other network, and every browser
+ * wallet, asks the person.
  */
 export async function walletSwitchesQuietly(config: Config, chainId: number): Promise<boolean> {
   const { address, connector } = getAccount(config);
@@ -349,10 +363,11 @@ export async function walletSwitchesQuietly(config: Config, chainId: number): Pr
     const provider = (await connector.getProvider?.()) as
       | { session?: { namespaces?: Record<string, { accounts?: string[] }> } }
       | undefined;
-    const sameAddressOnChain = `eip155:${chainId}:${address}`.toLowerCase();
-    return Object.values(provider?.session?.namespaces ?? {}).some((namespace) =>
-      namespace.accounts?.some((account) => account.toLowerCase() === sameAddressOnChain)
-    );
+    const onChain = `eip155:${chainId}:`;
+    const nextSigner = Object.values(provider?.session?.namespaces ?? {})
+      .flatMap((namespace) => namespace.accounts ?? [])
+      .find((account) => account.startsWith(onChain));
+    return nextSigner?.toLowerCase() === `${onChain}${address}`.toLowerCase();
   } catch (error) {
     logger.warn("Could not read the WalletConnect session's accounts", {
       source: "chain-guard",

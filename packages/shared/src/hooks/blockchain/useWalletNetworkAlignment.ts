@@ -19,7 +19,7 @@
  * @module hooks/blockchain/useWalletNetworkAlignment
  */
 
-import type { Config } from "@wagmi/core";
+import { getAccount, type Config } from "@wagmi/core";
 import { useAccount, useConfig } from "wagmi";
 import { logger } from "../../modules/app/logger";
 import {
@@ -39,12 +39,15 @@ async function alignQuietly(
   try {
     if ((await walletNetworkOtherThan(config, targetChainId)) === undefined) return;
     if (!(await walletSwitchesQuietly(config, targetChainId))) return;
-    // The guard acts on whichever wallet holds the connection now. One that took
-    // it over while this one was being read was never judged quiet, so it is
-    // left to its own run.
-    if (!stillThisWallet()) return;
-    await ensureWagmiWalletChain(config, targetChainId, "sign-in");
+    // The guard acts on whichever wallet holds the connection when it switches.
+    // It asks this right before, so a wallet that took the connection over was
+    // never judged quiet here and is left to its own run.
+    await ensureWagmiWalletChain(config, targetChainId, "sign-in", () => {
+      if (!stillThisWallet()) throw new Error("The wallet connection changed hands");
+    });
   } catch (error) {
+    // A run that another wallet superseded has nothing to report.
+    if (!stillThisWallet()) return;
     // The guard has already reported the refusal. The wallet's next act
     // switches it, or says why it cannot.
     logger.warn("Wallet did not move to the app's network when it connected", {
@@ -66,7 +69,14 @@ export function useWalletNetworkAlignment(): void {
   // stays connected.
   useAsyncEffect(
     async ({ isMounted }) => {
-      if (connected) await alignQuietly(config, targetChainId, isMounted);
+      if (!connected) return;
+      // React cleans this effect up a moment after wagmi's connection changes,
+      // so the connection itself is compared as well.
+      const stillThisWallet = () => {
+        const now = getAccount(config);
+        return isMounted() && now.address === address && now.connector?.uid === connector?.uid;
+      };
+      await alignQuietly(config, targetChainId, stillThisWallet);
     },
     [connected, address, connector?.uid, config, targetChainId]
   );
