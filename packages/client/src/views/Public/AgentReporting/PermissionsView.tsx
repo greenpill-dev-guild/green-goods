@@ -3,7 +3,6 @@ import { Button } from "@green-goods/shared/components/Button";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
-import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { useAgentReportingPermissions } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingPermissions";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { RiLoader4Line, RiShieldKeyholeLine, RiTimeLine } from "@remixicon/react";
@@ -18,6 +17,7 @@ import {
   PairedActs,
 } from "./CeremonyFrame";
 import { PERMISSION_FAILURE_COPY as ERRORS } from "./messages";
+import { PermissionList } from "./PermissionList";
 
 /** Failures of the saved-record import, shown on its own field rather than beside the page's acts. */
 const IMPORT_ERRORS = new Set(["invalid_descriptor", "wrong_account"]);
@@ -48,7 +48,6 @@ export function PermissionsView(props: PermissionsViewProps) {
   const intl = useIntl();
   const importId = useId();
   const exportId = useId();
-  const listId = useId();
   const [record, setRecord] = useState("");
   const [exported, setExported] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -164,51 +163,7 @@ export function PermissionsView(props: PermissionsViewProps) {
       }
     >
       {props.permissions.length > 0 ? (
-        <section
-          aria-labelledby={listId}
-          className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
-        >
-          <h2 id={listId} className="text-sm font-semibold leading-5 text-text-strong-950">
-            {text({
-              id: "public.reporting.permissions.found",
-              defaultMessage: "Permissions found",
-            })}
-          </h2>
-          <ul className="mt-1 divide-y divide-stroke-soft-200">
-            {props.permissions.map((permission) => (
-              <li
-                key={permission.permissionId}
-                className="flex min-w-0 items-start justify-between gap-3 py-2.5"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-text-strong-950">
-                    {text(
-                      permission.descriptor
-                        ? {
-                            id: "public.reporting.permissions.reporting",
-                            defaultMessage: "Reporting permission",
-                          }
-                        : {
-                            id: "public.reporting.permissions.other",
-                            defaultMessage: "Account permission",
-                          }
-                    )}
-                  </p>
-                  <p className="mt-0.5 break-all font-mono text-xs leading-5 text-text-sub-600">
-                    {permission.permissionId}
-                  </p>
-                </div>
-                <StatusBadge size="xs" variant={permission.active ? "success" : "neutral"}>
-                  {text(
-                    permission.active
-                      ? { id: "public.reporting.permissions.active", defaultMessage: "Active" }
-                      : { id: "public.reporting.permissions.inactive", defaultMessage: "Inactive" }
-                  )}
-                </StatusBadge>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <PermissionList permissions={props.permissions} />
       ) : props.stage === "ready" ? (
         <EmptyState
           titleAs="h2"
