@@ -57,6 +57,13 @@ function toDetailStates(results: UseQueryResult<AssessmentDetail>[]): Assessment
  * A garden's assessments, newest first, each with the detail it stores on IPFS.
  * The detail reads never hold the list back, and one that fails leaves its
  * assessment on screen with the detail marked unavailable.
+ *
+ * A failed read is reported two ways, by what is left to show. With nothing to
+ * show (no list yet, or an earlier empty one) the status is `error`: an empty
+ * list from before a failed read does not show the garden has none. With
+ * assessments from an earlier read the status stays `success` and
+ * `refreshFailed` is set: they are worth showing, but one missing from them may
+ * have been attested since, so a caller looking for it cannot call it absent.
  */
 export function useGardenAssessmentRecords(gardenAddress?: string, chainId?: number) {
   const list = useGardenAssessments(gardenAddress, chainId);
@@ -85,12 +92,14 @@ export function useGardenAssessmentRecords(gardenAddress?: string, chainId?: num
     [assessments, details]
   );
 
-  // A list that failed to refresh still has its last assessments to show.
-  const status: "pending" | "success" | "error" = assessments
+  const hasAssessments = records.length > 0;
+  const status: "pending" | "success" | "error" = hasAssessments
     ? "success"
     : list.isError
       ? "error"
-      : "pending";
+      : assessments
+        ? "success"
+        : "pending";
 
-  return { records, status };
+  return { records, status, refreshFailed: hasAssessments && list.isError };
 }

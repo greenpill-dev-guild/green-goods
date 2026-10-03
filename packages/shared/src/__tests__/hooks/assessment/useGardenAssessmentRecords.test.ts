@@ -83,6 +83,7 @@ describe("useGardenAssessmentRecords", () => {
       ])
     );
     expect(result.current.status).toBe("success");
+    expect(result.current.refreshFailed).toBe(false);
     expect(result.current.records.map((record) => record.summary.id)).toEqual(["newer", "older"]);
     expect(result.current.records[0].detail).toEqual({ status: "loaded", value: detail });
     expect(mockReadAssessmentDetail.mock.calls.map(([cid]) => cid).sort()).toEqual([
@@ -176,6 +177,43 @@ describe("useGardenAssessmentRecords", () => {
 
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.records).toEqual([]);
+  });
+
+  // An empty list from an earlier read no longer shows that the garden has no
+  // assessment once the latest read has failed: one may have been attested since.
+  it("reports a failed list when the read fails over an earlier empty one", async () => {
+    mockGetGardenAssessments
+      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce(new Error("EAS unavailable"));
+    const queryClient = createTestQueryClient();
+
+    const { result } = render(queryClient);
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    void queryClient.refetchQueries({ queryKey: ["greengoods", "assessments"] });
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.records).toEqual([]);
+  });
+
+  // The list on screen is then from an earlier read. A screen looking for one
+  // assessment in it cannot call that assessment missing: it may have been
+  // attested since.
+  it("says the latest read failed while it keeps the assessments it already has", async () => {
+    mockGetGardenAssessments
+      .mockResolvedValueOnce([attested("a", 100)])
+      .mockRejectedValueOnce(new Error("EAS unavailable"));
+    mockReadAssessmentDetail.mockResolvedValue(detail);
+    const queryClient = createTestQueryClient();
+
+    const { result } = render(queryClient);
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    void queryClient.refetchQueries({ queryKey: ["greengoods", "assessments"] });
+
+    await waitFor(() => expect(result.current.refreshFailed).toBe(true));
+    expect(result.current.status).toBe("success");
+    expect(result.current.records.map((record) => record.summary.id)).toEqual(["a"]);
   });
 
   // A screen that keeps a record in state from an effect re-renders without end

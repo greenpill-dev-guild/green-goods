@@ -23,20 +23,23 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
   const { data: gardens = [], isLoading: gardensLoading } = useGardens(DEFAULT_CHAIN_ID);
   // Addresses arrive in either case: the list is checksummed and a link may be typed.
   const garden = gardens.find((candidate) => candidate.id.toLowerCase() === id?.toLowerCase());
-  const { records, status } = useGardenAssessmentRecords(garden?.id, DEFAULT_CHAIN_ID);
+  const { records, status, refreshFailed } = useGardenAssessmentRecords(
+    garden?.id,
+    DEFAULT_CHAIN_ID
+  );
   const record = records.find((candidate) => candidate.summary.id === assessmentId);
   const intl = useIntl();
 
   if (!record || !garden) {
     // Still looking: the garden list, or this garden's assessments, have not arrived.
     const looking = gardensLoading || (Boolean(garden) && status === "pending");
+    // An assessment missing from a list that could not be read, or could not be
+    // refreshed, has not been shown to be missing.
+    const unread = Boolean(garden) && (status === "error" || refreshFailed);
     const message = looking
       ? null
       : intl.formatMessage({
-          id:
-            garden && status === "error"
-              ? "app.garden.assessments.loadError"
-              : "app.garden.assessments.notFound",
+          id: unread ? "app.garden.assessments.loadError" : "app.garden.assessments.notFound",
         });
     return (
       <article>

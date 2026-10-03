@@ -27,11 +27,6 @@ vi.mock("@green-goods/shared/hooks/assessment/useGardenAssessmentRecords", () =>
   useGardenAssessmentRecords: (...args: unknown[]) => mockUseGardenAssessmentRecords(...args),
 }));
 
-vi.mock("@green-goods/shared/components/Alert", () => ({
-  Alert: ({ children }: { children: React.ReactNode }) =>
-    createElement("div", { role: "alert" }, children),
-}));
-
 vi.mock("@/components/Communication", () => ({
   Badge: ({ children }: { children: React.ReactNode }) =>
     createElement("span", { "data-testid": "badge" }, children),
@@ -174,6 +169,20 @@ describe("GardenAssessment", () => {
       () => mockUseGardenAssessmentRecords.mockReturnValue({ records: [], status: "error" }),
       "Assessments could not be loaded.",
     ],
+    [
+      // The list is from an earlier read, so an assessment missing from it may
+      // have been attested since: that is not a finding that it does not exist.
+      "the id is not in a list whose latest read failed",
+      () =>
+        mockUseGardenAssessmentRecords.mockReturnValue({
+          records: [
+            { summary: { ...summary, id: "an-earlier-one" }, detail: { status: "pending" } },
+          ],
+          status: "success",
+          refreshFailed: true,
+        }),
+      "Assessments could not be loaded.",
+    ],
   ])("says so when %s", (_label, arrange, message) => {
     arrange();
     renderRoute();
@@ -232,7 +241,8 @@ describe("GardenAssessment", () => {
     read({ status: "unavailable" });
     renderRoute();
     expect(screen.getByText("Soil workshops, second stage")).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent(
+    // A warning, so it is announced politely: the real Alert gives it the status role.
+    expect(screen.getByRole("status")).toHaveTextContent(
       "The rest of this assessment could not be loaded."
     );
     expect(screen.queryByText("No outcome targets recorded.")).not.toBeInTheDocument();
