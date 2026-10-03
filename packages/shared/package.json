@@ -168,6 +168,7 @@
     "./hooks/app/useTheme": "./src/hooks/app/useTheme.ts",
     "./hooks/app/useOffline": "./src/hooks/app/useOffline.ts",
     "./hooks/assessment/useAllAssessments": "./src/hooks/assessment/useAllAssessments.ts",
+    "./hooks/assessment/useGardenAssessmentRecords": "./src/hooks/assessment/useGardenAssessmentRecords.ts",
     "./hooks/auth/useAuth": "./src/hooks/auth/useAuth.ts",
     "./hooks/auth/usePrimaryAddress": "./src/hooks/auth/usePrimaryAddress.ts",
     "./hooks/auth/useUser": "./src/hooks/auth/useUser.ts",

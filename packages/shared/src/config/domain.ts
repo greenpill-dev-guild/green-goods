@@ -194,3 +194,8 @@ export const DOMAIN_METRICS: Record<Domain, DomainMetric[]> = {
     },
   ],
 };
+
+/** The metric an outcome names, within its assessment's domain, or undefined when the domain has none by that key. */
+export function findDomainMetric(domain: number, key: string): DomainMetric | undefined {
+  return DOMAIN_METRICS[domain as Domain]?.find((metric) => metric.key === key);
+}
