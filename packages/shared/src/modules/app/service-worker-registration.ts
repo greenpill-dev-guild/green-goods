@@ -374,11 +374,14 @@ function readServiceWorkerEnv(): ServiceWorkerEnv {
 }
 
 export async function registerServiceWorkerFromEnv(
-  env: ServiceWorkerEnv = readServiceWorkerEnv(),
+  providedEnv?: ServiceWorkerEnv,
   registrationConfig: ServiceWorkerRegistrationConfig = {}
 ): Promise<boolean> {
   if (typeof window === "undefined") return false;
 
+  // Read past the guard: outside a browser `import.meta.env` may not exist, and a default
+  // parameter would read its keys before the guard could return.
+  const env = providedEnv ?? readServiceWorkerEnv();
   const enableDevServiceWorker = env.VITE_ENABLE_SW_DEV === "true";
   const isStorybook = Boolean(env.STORYBOOK);
   if (isStorybook) return false;
