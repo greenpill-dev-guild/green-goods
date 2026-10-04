@@ -323,7 +323,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
             />
             {busy ? (
               <span className="absolute inset-0 flex items-center justify-center">
-                <Spinner size="sm" />
+                <Spinner size="sm" label={progressLabel} />
               </span>
             ) : null}
           </span>
