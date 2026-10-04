@@ -15,6 +15,7 @@
  */
 
 import {
+  ConnectorNotConnectedError,
   getAccount as defaultGetAccount,
   waitForTransactionReceipt as defaultWaitForReceipt,
   writeContract as defaultWriteContract,
@@ -88,12 +89,14 @@ export class EmbeddedSender implements TransactionSender {
    * The call with the address it is for: the one it names, or else the one
    * connected when its send starts. The send belongs to that address from then
    * on, so a wallet that takes the connection over is asked neither to change
-   * network nor to sign it. With no wallet connected the call names nobody,
-   * and the send fails as not connected.
+   * network nor to sign it. A send that starts with no wallet connected is for
+   * nobody, and is refused here: waiting to see who connects would let that
+   * wallet sign it.
    */
   private forSigner(call: ContractCall): ContractCall {
     const account = call.account ?? this.deps.getAccount?.().address;
-    return account ? { ...call, account } : call;
+    if (!account) throw new ConnectorNotConnectedError();
+    return { ...call, account };
   }
 
   /**

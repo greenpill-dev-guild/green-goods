@@ -193,8 +193,8 @@ export function createFakeWagmiDeps(options: FakeWagmiDepsOptions = {}): FakeWag
     waitForTransactionReceipt: vi
       .fn<WalletSenderDeps["waitForTransactionReceipt"]>()
       .mockResolvedValue({ status: receiptStatus }),
-    // No wallet connected, unless a test says who is.
-    getAccount: () => ({}),
+    // A wallet is connected, unless a test says otherwise: a send needs one.
+    getAccount: () => ({ address: MOCK_ADDRESSES.deployer }),
     assertWriteSafety: vi
       .fn<NonNullable<WalletSenderDeps["assertWriteSafety"]>>()
       .mockResolvedValue(),

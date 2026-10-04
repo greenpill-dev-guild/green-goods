@@ -17,6 +17,7 @@
  */
 
 import {
+  ConnectorNotConnectedError,
   getAccount as defaultGetAccount,
   getCapabilities as defaultGetCapabilities,
   sendCalls as defaultSendCalls,
@@ -181,12 +182,14 @@ export class WalletSender implements TransactionSender {
    * The call with the address it is for: the one it names, or else the one
    * connected when its send starts. The send belongs to that address from then
    * on, so a wallet that takes the connection over is asked neither to change
-   * network nor to sign it. With no wallet connected the call names nobody,
-   * and the send fails as not connected.
+   * network nor to sign it. A send that starts with no wallet connected is for
+   * nobody, and is refused here: waiting to see who connects would let that
+   * wallet sign it.
    */
   private forSigner(call: ContractCall): ContractCall {
     const account = call.account ?? this.deps.getAccount?.().address;
-    return account ? { ...call, account } : call;
+    if (!account) throw new ConnectorNotConnectedError();
+    return { ...call, account };
   }
 
   /**
@@ -340,8 +343,10 @@ export class WalletSender implements TransactionSender {
       throw new Error("An atomic batch runs on one chain");
     }
     // A batch is for one address, as a single send is: the one its calls name,
-    // or else the one connected when it starts.
+    // or else the one connected when it starts. With nobody connected it is
+    // refused here.
     const account = calls.find((call) => call.account)?.account ?? this.deps.getAccount?.().address;
+    if (!account) throw new ConnectorNotConnectedError();
     const assertSigner = () => {
       const connected = this.deps.getAccount?.().address;
       for (const expected of [account, ...calls.map((call) => call.account)]) {
@@ -353,7 +358,7 @@ export class WalletSender implements TransactionSender {
     assertSigner();
 
     const { id } = await sendCalls(this.config, {
-      ...(account ? { account } : {}),
+      account,
       chainId,
       forceAtomic: true,
       calls: calls.map((call) => ({

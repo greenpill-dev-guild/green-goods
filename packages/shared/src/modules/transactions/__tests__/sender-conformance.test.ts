@@ -19,13 +19,15 @@ import type { ContractCall, TransactionSender } from "../types";
 import { WalletSender } from "../wallet-sender";
 
 const SECOND_TX_HASH = `0x${"b".repeat(64)}` as Hex;
+/** Who holds the connection when a scenario does not say. */
+const CONNECTED = "0x9999999999999999999999999999999999999999";
 const NON_CANONICAL_HASH = `0x${"c".repeat(130)}` as Hex;
 
 type SenderScenario = {
   hashes?: Hex[];
   receiptStatus?: string;
   transportFailure?: Error;
-  /** The account the wallet holds now, for senders that read it from wagmi. */
+  /** The account the wallet holds now, for senders that read it from wagmi. Named `undefined`, nobody is connected. */
   connectedAccount?: `0x${string}`;
   /** What happens while the guard reads the wallet, before it asks who signs. */
   whileGuardReads?: () => void;
@@ -91,7 +93,9 @@ const cases: SenderCase[] = [
       const receiptHashes: Hex[] = [];
       const hashes = sequence(scenario.hashes ?? [], SECOND_TX_HASH);
       const deps = createFakeWagmiDeps({ receiptStatus: scenario.receiptStatus });
-      deps.getAccount = () => ({ address: scenario.connectedAccount });
+      deps.getAccount = () => ({
+        address: "connectedAccount" in scenario ? scenario.connectedAccount : CONNECTED,
+      });
       deps.ensureWalletChain.mockImplementation(async (chainId, _reason, beforeSwitch) => {
         // As the guard does for a wallet on another network.
         scenario.whileGuardReads?.();
@@ -204,7 +208,9 @@ const cases: SenderCase[] = [
       const receiptHashes: Hex[] = [];
       const hashes = sequence(scenario.hashes ?? [], SECOND_TX_HASH);
       const deps = createFakeWagmiDeps({ receiptStatus: scenario.receiptStatus });
-      deps.getAccount = () => ({ address: scenario.connectedAccount });
+      deps.getAccount = () => ({
+        address: "connectedAccount" in scenario ? scenario.connectedAccount : CONNECTED,
+      });
       deps.ensureWalletChain.mockImplementation(async (chainId, _reason, beforeSwitch) => {
         // As the guard does for a wallet on another network.
         scenario.whileGuardReads?.();
@@ -350,6 +356,14 @@ const laws: ConformanceLaw<SenderCase>[] = [
         takenOver.sender.sendContractCall(createMockContractCall())
       ).rejects.toMatchObject({ code: "account_mismatch" });
       expect(takenOver.trace).toEqual([]);
+
+      // Started with no wallet connected, a send is for nobody. It is refused
+      // there, so a wallet that connects a moment later cannot sign it.
+      const nobody = make({ connectedAccount: undefined });
+      await expect(nobody.sender.sendContractCall(createMockContractCall())).rejects.toThrow(
+        "Connector not connected"
+      );
+      expect(nobody.trace).toEqual([]);
     },
   },
   {

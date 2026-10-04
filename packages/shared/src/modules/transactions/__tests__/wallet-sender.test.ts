@@ -16,7 +16,7 @@ import {
   createFakeWagmiDeps,
   createMockContractCall,
 } from "../../../__tests__/test-utils/transaction-fakes";
-import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
+import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import { TransactionRevertedError, type ContractCall } from "../types";
 import { WalletSender, type WalletSenderDeps } from "../wallet-sender";
 
@@ -92,6 +92,8 @@ describe("WalletSender", () => {
       await sender.sendContractCall(TEST_CALL);
 
       expect(mockWriteContractAsync).toHaveBeenCalledWith({
+        // The write names who signs: the wallet connected when the send started.
+        account: MOCK_ADDRESSES.deployer,
         address: TEST_CALL.address,
         abi: TEST_CALL.abi,
         functionName: TEST_CALL.functionName,
@@ -191,6 +193,7 @@ describe("WalletSender", () => {
       await sender.sendContractCall({ ...TEST_CALL, value: 123n });
 
       expect(mockWriteContractAsync).toHaveBeenCalledWith({
+        account: MOCK_ADDRESSES.deployer,
         address: TEST_CALL.address,
         abi: TEST_CALL.abi,
         functionName: TEST_CALL.functionName,
@@ -365,6 +368,7 @@ describe("WalletSender", () => {
       expect(result).toEqual({ hash: BATCH_HASH, sponsored: false });
       expect(trace).toEqual(["chain", "safety", "sendCalls", "accepted", "status"]);
       expect(batchDeps.sendCalls).toHaveBeenCalledWith(batchConfig, {
+        account: MOCK_ADDRESSES.deployer,
         chainId: TEST_CALL.chainId,
         forceAtomic: true,
         calls: [
@@ -413,6 +417,13 @@ describe("WalletSender", () => {
       });
       expect(trace).toEqual([]);
       expect(batchDeps.sendCalls).not.toHaveBeenCalled();
+
+      // Started with no wallet connected, a batch is for nobody.
+      batchDeps.getAccount = () => ({});
+      await expect(sender.sendAtomicBatch([TEST_CALL, SECOND_CALL])).rejects.toThrow(
+        "Connector not connected"
+      );
+      expect(trace).toEqual([]);
     });
 
     it("says a reverted batch wrote nothing, and an unanswered one is unknown", async () => {
