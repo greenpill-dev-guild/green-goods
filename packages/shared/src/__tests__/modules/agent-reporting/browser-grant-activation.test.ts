@@ -57,7 +57,8 @@ function fixture(operation: UserOperation<"0.7"> = prepared) {
     await sdk.create.mock.calls[0]![0].signDelegate(op);
     return ownerPacked;
   });
-  const rootValidator = { getIdentifier: () => "0x1234" };
+  // The app's own account object: it has no SDK plugin manager, only its way of signing.
+  const ownerAccount = { signMessage: vi.fn() };
   sdk.create.mockResolvedValue({ entryPoint: { address: entryPoint }, signUserOperation: sign });
   const hash = getUserOperationHash({
     userOperation: operation,
@@ -68,7 +69,7 @@ function fixture(operation: UserOperation<"0.7"> = prepared) {
   const prepare = vi.fn(async () => operation);
   const request = vi.fn(async () => hash);
   const ownerClient = {
-    account: { kernelPluginManager: { sudoValidator: rootValidator } },
+    account: ownerAccount,
     prepareUserOperation: prepare,
     request,
   } as unknown as SmartAccountClient;
@@ -87,7 +88,7 @@ function fixture(operation: UserOperation<"0.7"> = prepared) {
     assertOwner,
     onBeforeBroadcast,
     sign,
-    rootValidator,
+    ownerAccount,
     hash,
     prepare,
     request,
@@ -100,7 +101,7 @@ describe("browser first publication activation", () => {
   it("sends only 12 explicit bare fields to the Agent and packs owner authority only for the bundler", async () => {
     const f = fixture();
     await expect(sendBrowserGrantActivation(f.input)).resolves.toBe(f.hash);
-    expect(sdk.create.mock.calls[0]![0].ownerValidator).toBe(f.rootValidator);
+    expect(sdk.create.mock.calls[0]![0].owner).toBe(f.ownerAccount);
     const wire = f.signDelegate.mock.calls[0]![0] as unknown as Record<string, unknown>;
     expect(Object.keys(wire)).toHaveLength(12);
     expect(wire).not.toHaveProperty("signature");

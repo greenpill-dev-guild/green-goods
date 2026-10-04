@@ -1,5 +1,5 @@
-import { createKernelAccount, type KernelValidator } from "@zerodev/sdk";
-import { getEntryPoint, KERNEL_V3_1, VALIDATOR_TYPE } from "@zerodev/sdk/constants";
+import { createKernelAccount } from "@zerodev/sdk";
+import { getEntryPoint, KERNEL_V3_1 } from "@zerodev/sdk/constants";
 import {
   concatHex,
   encodeFunctionData,
@@ -19,6 +19,7 @@ import {
 import { envelopeIssues, resolveReportingDeployment, type PublicationEnvelope } from "./envelope";
 import type { GrantPolicy } from "./grants";
 import { grantPermissionValidator, verifiedGrantPermissionValidator } from "./kernel-permissions";
+import { type OwnerAccount, passkeyOwnerValidator } from "./owner-validator";
 import { KERNEL_PERMISSION_ABI, permissionValidationId } from "./permission-management";
 
 type Client = PublicClient<Transport, Chain>;
@@ -141,13 +142,18 @@ export async function signGrantedKernelActivation(input: {
   };
 }
 
-/** Browser-only SDK account. Its owner plugin signs enable data locally; Agent signs the report. */
+/**
+ * Browser-only SDK account. The owner approves the permission locally with their passkey, the
+ * Agent signs the report. The account's own record of its root decides who the owner is: it is
+ * read from the chain, and only the app's passkey validator is accepted.
+ */
 export async function createGrantedKernelActivationAccount(input: {
   client: Client;
   policy: GrantPolicy;
   permissionId: Hex;
   envelope: PublicationEnvelope;
-  ownerValidator: KernelValidator;
+  /** The owner's own account object, which signs the approval as it signs its operations. */
+  owner: OwnerAccount;
   signDelegate: (operation: Operation) => Promise<Hex>;
 }) {
   const permission = await verifiedGrantPermissionValidator(
@@ -160,17 +166,18 @@ export async function createGrantedKernelActivationAccount(input: {
     abi: KERNEL_PERMISSION_ABI,
     functionName: "rootValidator",
   });
-  const ownerId = concatHex([
-    VALIDATOR_TYPE[input.ownerValidator.validatorType],
-    padHex(input.ownerValidator.getIdentifier(), { size: 20, dir: "right" }),
-  ]);
-  if (root.toLowerCase() !== ownerId.toLowerCase()) throw new Error("unsupported_account");
   return createKernelAccount(input.client, {
     address: input.policy.account,
     entryPoint: getEntryPoint("0.7"),
     kernelVersion: KERNEL_V3_1,
     plugins: {
-      sudo: input.ownerValidator,
+      // The passkey is asked for this permission's enable request and for nothing else.
+      sudo: passkeyOwnerValidator(input.owner, root, {
+        account: input.policy.account,
+        chainId: input.policy.chainId,
+        validationId: permissionValidationId(input.permissionId),
+        validatorData: await permission.getEnableData(input.policy.account),
+      }),
       regular: {
         ...permission,
         async signUserOperation(operation) {
