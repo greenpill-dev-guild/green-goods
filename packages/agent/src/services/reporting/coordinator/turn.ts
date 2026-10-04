@@ -20,9 +20,10 @@ import {
   answerConnectionOffer,
   answerGrantChoice,
   confirmPublication,
+  disconnectAccount,
   handlePairing,
-  offerConnection,
   requestConnection,
+  welcome,
 } from "./account-steps";
 import {
   answerConsent,
@@ -258,8 +259,10 @@ function routeCommand(
     return withdrawProcessing(writer, command.kind);
   if (command.kind === "pair") return handlePairing(writer, command.code);
   if (command.kind === "connect") return requestConnection(writer, command.account);
+  if (command.kind === "disconnect" || command.kind === "switch")
+    return disconnectAccount(writer, command.kind === "switch");
   if (command.kind === "publish") return confirmPublication(writer, command.token, false);
-  if (command.kind === "start" && startsUnlinked(writer)) return offerConnection(writer);
+  if (command.kind === "start" && startsIdle(writer)) return welcome(writer);
   if (command.kind === "help" || command.kind === "start") return writer.say("help");
   if (command.kind === "review") return requestReview(writer, command.index);
   if (command.kind === "recover") return startRecovery(writer);
@@ -269,10 +272,10 @@ function routeCommand(
   handleReportCommand(writer, command, external);
 }
 
-/** START opens with the offer to link an account only while nothing else is under way. */
-function startsUnlinked(writer: TurnWriter): boolean {
-  const { binding, account, draft, review } = writer.ctx;
-  return Boolean(binding) && !account && !draft && !review;
+/** START welcomes, and offers to link an account, only while nothing else is under way. */
+function startsIdle(writer: TurnWriter): boolean {
+  const { binding, draft, review } = writer.ctx;
+  return Boolean(binding) && !draft && !review;
 }
 
 /** Commands such as CONFIRM or CANCEL belong to an open decision while its question is showing. */

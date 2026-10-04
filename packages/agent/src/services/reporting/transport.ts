@@ -53,6 +53,8 @@ export interface OutboundMessage {
   text: string;
   choices?: OutboundChoice[];
   link?: { url: string; label: string; copyLabel?: string };
+  /** A value the reader may want to paste elsewhere, such as their account address. */
+  copy?: { label: string; text: string };
 }
 
 export interface OutboundRequest {

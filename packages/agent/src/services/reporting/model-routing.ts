@@ -33,6 +33,9 @@ const INTENTS: Record<InterpretedIntent, string> = {
   status: "The message asks what is happening with a report.",
   help: "The message asks how this works or what to do.",
   cancel: "The message asks to stop or discard the current report.",
+  connect: "The message asks to log in, sign in, or connect or link an account or wallet.",
+  disconnect: "The message asks to log out, disconnect the account, or use a different account.",
+  greeting: "The message only says hello or makes small talk and describes no work.",
   unclear: "None of the above, or the message is too ambiguous to tell.",
 };
 

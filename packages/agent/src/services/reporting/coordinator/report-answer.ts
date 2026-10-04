@@ -6,6 +6,8 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { CopyValues } from "../copy";
 import type { PromptRecord } from "../prompts";
+import { requestConnection } from "./account-steps";
+import { isGreeting } from "./commands";
 import type { TurnPlan } from "./context";
 import { EDITABLE_STATES, lifecycleState } from "./draft-commit";
 import { askEditField, askEditMenu } from "./edit-menu";
@@ -14,7 +16,9 @@ import {
   askAction,
   askField,
   askGarden,
+  fieldHint,
   fieldQuestionText,
+  gardenLabel,
   promptNextStep,
 } from "./prompting";
 import { handleReportMessage } from "./report-message";
@@ -39,11 +43,33 @@ function presentedKeys(prompt: PromptRecord): string[] {
     .map((option) => option.value);
 }
 
+/** What the open question is asking for, in a sentence, before its choices are shown again. */
+function explainQuestion(writer: TurnWriter, prompt: PromptRecord): void {
+  const { ctx, core } = writer;
+  const draft = ctx.draft;
+  switch (prompt.kind) {
+    case "select_garden":
+      return writer.say(ctx.account ? "report.explainGarden" : "report.explainGardenUnlinked");
+    case "select_action":
+      return writer.say("report.explainAction", {
+        garden: gardenLabel(core.gardens, draft?.content.garden?.address),
+      });
+    case "field": {
+      const input = findInput(draft?.snapshot ?? null, prompt.fieldKey ?? "");
+      const hint = input ? fieldHint(input) : "";
+      if (input && hint) return writer.say("report.explainField", { title: input.title, hint });
+      return writer.say("report.choiceHelp");
+    }
+    default:
+      return writer.say("report.choiceHelp");
+  }
+}
+
 /**
  * Typed words that pick none of the choices on offer. What the model could read in them (a status
- * or cancel request, a correction, new facts) is handled as a message is. A question, or words
- * nothing could read, get a line on how to answer and the choices again, so the conversation never
- * stops at an error.
+ * or cancel request, a request to link an account, a correction, new facts) is handled as a
+ * message is. A hello, a question, or words nothing could read get a sentence on what the question
+ * is asking for and the choices again, so the conversation never stops at an error.
  */
 function offChoice(
   writer: TurnWriter,
@@ -52,17 +78,22 @@ function offChoice(
   askAgain: () => void
 ): void {
   const read = external.interpretation;
+  if (read?.intent === "connect") return requestConnection(writer, null);
+  const hello = isGreeting(plan.text) || read?.intent === "greeting";
   const usable =
+    !hello &&
     read !== null &&
     (read.intent === "status" ||
       read.intent === "cancel" ||
+      read.intent === "disconnect" ||
       read.gardenKey !== null ||
       read.actionUID !== null ||
       read.facts.length > 0);
   if (usable) {
     return handleReportMessage(writer, { kind: "message", text: plan.text, media: [] }, external);
   }
-  writer.say("report.choiceHelp");
+  if (hello) writer.say("chat.hello");
+  else explainQuestion(writer, plan.prompt);
   askAgain();
 }
 
@@ -140,6 +171,15 @@ export function handleReportAnswer(
         : parseFieldAnswer(input, text ?? "", presentedKeys(prompt));
       if (!answer.ok && answer.reason === "unknown_option") {
         return offChoice(writer, plan, external, () => askField(writer, draft, input, prompt.page));
+      }
+      if (!answer.ok && answer.reason === "not_a_number") {
+        // Words where a number was asked for are usually a question about the field itself.
+        const hint = fieldHint(input);
+        return writer.say(hint ? "report.explainNumber" : "report.explainNumberPlain", {
+          title: input.title,
+          hint,
+          unit: input.unit ? ` (${input.unit})` : "",
+        });
       }
       if (!answer.ok)
         return invalid(writer, answer.reason, {

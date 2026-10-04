@@ -1,8 +1,11 @@
 import { applyReportChanges, emptyReport } from "@green-goods/shared/modules/agent-reporting";
 import { createDraft } from "../drafts";
 import { recordMediaIntake } from "../media-intake";
+import { requestConnection, welcome } from "./account-steps";
+import { isGreeting } from "./commands";
 import type { TurnPlan } from "./context";
 import { commitLifecycle, EDITABLE_STATES, lifecycleState } from "./draft-commit";
+import { promptNextStep } from "./prompting";
 import { handleReportCommand } from "./report-commands";
 import {
   apply,
@@ -31,12 +34,22 @@ export function handleReportMessage(
   // Interpreted non-content intents route to deterministic replies; cancelling still needs the
   // explicit command, so a misread message can never discard a report.
   const intent = external.interpretation?.intent;
-  if (
-    plan.media.length === 0 &&
-    (intent === "status" || intent === "help" || intent === "cancel")
-  ) {
+  if (plan.media.length === 0) {
     if (intent === "status") return handleReportCommand(writer, { kind: "status" }, external);
-    return writer.say(intent === "cancel" && draft ? "report.cancelHint" : "help");
+    // Linking only sends a link, so the model's reading is enough. Unlinking changes what the
+    // chat may do, so like cancelling it takes the command itself.
+    if (intent === "connect") return requestConnection(writer, null);
+    if (intent === "disconnect") return writer.say("link.disconnectHint");
+    if (intent === "help" || intent === "cancel")
+      return writer.say(intent === "cancel" && draft ? "report.cancelHint" : "help");
+    // A hello describes no work. It gets a welcome, and an open report asks its question again.
+    if (text && (isGreeting(text) || intent === "greeting")) {
+      if (!draft) return welcome(writer);
+      writer.say("chat.hello");
+      if (["collecting", "review"].includes(lifecycleState(draft)))
+        return promptNextStep(writer, draft, external.catalog);
+      return handleReportCommand(writer, { kind: "status" }, external);
+    }
   }
 
   if (draft && !EDITABLE_STATES.has(lifecycleState(draft))) {

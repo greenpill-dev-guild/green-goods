@@ -4,6 +4,8 @@ import type { Address } from "@green-goods/shared/types/domain";
  * Deterministic chat commands. They work with every model disabled and take precedence over
  * interpretation, so STOP, DELETE and HELP can never be misread as report content. An account
  * address sent on its own is a command too: it asks to link that account, and proves nothing.
+ * A short message that is nothing but a request to log in, log out or switch account is read as
+ * that command as well, so linking never depends on knowing the command word.
  */
 export type ChatCommand =
   | { kind: "help" }
@@ -21,6 +23,8 @@ export type ChatCommand =
   | { kind: "publish"; token: string | null }
   | { kind: "pair"; code: string }
   | { kind: "connect"; account: Address | null }
+  | { kind: "disconnect" }
+  | { kind: "switch" }
   | { kind: "review"; index: number | null }
   | { kind: "locale"; locale: "en" | "es" | "pt" };
 
@@ -60,6 +64,17 @@ const WORDS: Record<string, ChatCommand["kind"]> = {
   conectar: "connect",
   link: "connect",
   vincular: "connect",
+  login: "connect",
+  signin: "connect",
+  disconnect: "disconnect",
+  desconectar: "disconnect",
+  unlink: "disconnect",
+  desvincular: "disconnect",
+  logout: "disconnect",
+  signout: "disconnect",
+  switch: "switch",
+  reconnect: "switch",
+  reconectar: "switch",
   review: "review",
   revisar: "review",
 };
@@ -69,10 +84,91 @@ const ACCOUNT = /^0x[0-9a-f]{40}$/;
 const isAccount = (word: string | undefined): word is Address =>
   word !== undefined && ACCOUNT.test(word);
 
+/** The longest message read as an account request; anything longer is a story for the report. */
+const MAX_REQUEST_WORDS = 9;
+
+/** Words that may surround an account request without making the message about anything else. */
+const REQUEST_FILLER = new Set(
+  `i id i'd would like to want wanna need can could may please pls how do let me help my the a an
+   account wallet passkey with into in on of first now again green goods greengoods and then hi
+   hello hey this chat bot here out quiero quisiera gustaria gustaría puedo necesito como cómo mi
+   cuenta billetera con la el de por favor primero quero gostaria posso preciso minha conta
+   carteira na no em uma um una un sesion sesión sessao sessão`.split(/\s+/u)
+);
+
+const OTHER_ACCOUNT = /\b(another|different|other|new|otra|otro|nueva|outra|outro|nova)\b/u;
+
+const ACCOUNT_REQUESTS: Array<{ kind: "disconnect" | "switch" | "connect"; phrase: RegExp }> = [
+  {
+    kind: "disconnect",
+    phrase:
+      /\b(log (me )?out|logout|sign (me )?out|signout|disconnect|unlink|cerrar sesi[oó]n|desconectar|desvincular|encerrar sess[aã]o|sair da conta)\b/u,
+  },
+  {
+    kind: "switch",
+    phrase: /\b(switch|change|reconnect|use|cambiar|usar|trocar|mudar|reconectar)\b/u,
+  },
+  {
+    kind: "connect",
+    phrase:
+      /\b(log (me )?in|login|sign (me )?in|signin|connect|link|iniciar sesi[oó]n|iniciar sess[aã]o|conectar|vincular|entrar|acceder|acessar|fazer login)\b/u,
+  },
+];
+
+/**
+ * A short message that asks for nothing but an account action: "I would like to log in",
+ * "sign me out", "connect another account". Every other word has to be filler, so a story that
+ * happens to say "connect" or "log" still reaches the report.
+ */
+function accountRequest(text: string): ChatCommand | null {
+  const said = text.replace(/[.,!?¿¡]+/gu, " ").trim();
+  const words = said.split(/\s+/u);
+  if (words.length > MAX_REQUEST_WORDS) return null;
+  for (const { kind, phrase } of ACCOUNT_REQUESTS) {
+    const match = phrase.exec(said);
+    if (!match) continue;
+    const rest = `${said.slice(0, match.index)} ${said.slice(match.index + match[0].length)}`;
+    const other = OTHER_ACCOUNT.test(rest);
+    const plain = rest
+      .replace(OTHER_ACCOUNT, " ")
+      .split(/\s+/u)
+      .filter(Boolean)
+      .every((word) => REQUEST_FILLER.has(word));
+    if (!plain) return null;
+    // Linking, or using, "another" account is a switch; using "my" account is only linking.
+    if (kind === "connect" || (/^(use|usar)$/u.test(match[0]) && !other))
+      return other ? { kind: "switch" } : { kind: "connect", account: null };
+    return { kind };
+  }
+  return null;
+}
+
+const GREETING_WORDS = new Set(
+  `hi hello hey heya hiya yo howdy greetings gm good morning afternoon evening day there hola
+   buenas buenos dias días tardes noches saludos ola olá oi bom boa dia tarde noite`.split(/\s+/u)
+);
+
+/** A message that only says hello. It describes no work, so it never starts a report. */
+export function isGreeting(text: string | null | undefined): boolean {
+  const words = (text ?? "")
+    .toLowerCase()
+    .replace(/[^\p{L}\s]+/gu, " ")
+    .trim()
+    .split(/\s+/u)
+    .filter(Boolean);
+  return words.length > 0 && words.length <= 4 && words.every((word) => GREETING_WORDS.has(word));
+}
+
 export function parseCommand(text: string | undefined): ChatCommand | null {
   if (!text) return null;
-  const words = text.trim().toLowerCase().split(/\s+/u);
-  if (words.length === 0 || words.length > 2) return null;
+  const said = text.trim().toLowerCase();
+  const words = said.split(/\s+/u);
+  if (words.length === 0) return null;
+  return commandWord(words) ?? accountRequest(said);
+}
+
+function commandWord(words: string[]): ChatCommand | null {
+  if (words.length > 2) return null;
   const [head, argument] = words;
   if ((head === "lang" || head === "idioma") && argument && LOCALES.has(argument)) {
     return { kind: "locale", locale: argument as "en" | "es" | "pt" };
