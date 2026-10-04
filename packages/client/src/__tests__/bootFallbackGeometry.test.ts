@@ -292,8 +292,10 @@ describe("boot skeleton geometry parity", () => {
     );
     expect(titleLines).toHaveLength(3);
     expect(ledeLines).toHaveLength(8);
-    // Measured wrap-threshold steps inside the base band (viewport px).
-    for (const threshold of [348, 364, 378, 424, 488]) {
+    // The core titles are authored as three lines, so no width drops a title bar.
+    expect(BOOT_CSS).not.toContain(".boot-skeleton-title-line[data-line");
+    // Measured lede wrap-threshold steps inside the base band (viewport px).
+    for (const threshold of [348, 364, 424, 488]) {
       expect(BOOT_CSS).toContain(`@media (min-width: ${threshold}px)`);
     }
     expect(BOOT_CSS).toContain("margin-top: 16px; /* mt-4 */");

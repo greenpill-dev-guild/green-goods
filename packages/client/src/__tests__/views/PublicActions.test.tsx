@@ -56,7 +56,8 @@ const messages: Record<string, string> = {
   "app.domain.tab.education": "Education",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.waste": "Waste",
-  "public.actions.heroTitle": "A field guide for regenerative work",
+  "public.actions.heroTitle":
+    "<line>A field guide for</line> <line><accent>regenerative</accent></line> <line><accent>work</accent></line>",
   "public.actions.heroLede":
     "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste.",
   "public.actions.gridTitle": "Templates Gardens use to plan and document Work.",
@@ -81,10 +82,10 @@ describe("ActionsGallery", () => {
     mockUseActions.mockReturnValue({ data: mockActions, isLoading: false });
   });
 
-  it("renders the editorial hero title", () => {
+  it("reads the hero title as one sentence across its authored lines", () => {
     renderView();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      /a field guide for regenerative work/i
+      /^A field guide for regenerative work$/
     );
   });
 

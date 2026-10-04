@@ -154,6 +154,7 @@ Manage Endowments is the only public withdrawal surface in v1. It is wallet-owne
 - **Fraunces** (serif) is reserved for editorial route heroes, large stat numbers, and Garden story headings. Loaded via `packages/client/index.html`; resolved by Tailwind's `font-serif` utility through `--font-serif` in shared `theme.css`.
 - **Inter** carries body, nav, cards, buttons, and dialogs across both browser and installed PWA modes.
 - Editorial headlines scale to magazine sizes (text-3xl → text-5xl); body stays restrained.
+- The home page and the four navigation pages (Gardens, Impact, Fund, Actions) open on a hero title of three lines at every width. Their English titles are written as three `<line>` segments in the catalog and rendered with `EditorialTitleLine`, because the card's measure alone lets a small copy edit change the count. Keep each line within the desktop card, 456px at 60px type. Spanish and Portuguese titles are longer and wrap on their own.
 
 ### Trying a different editorial serif
 

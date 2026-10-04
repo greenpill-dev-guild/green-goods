@@ -433,9 +433,10 @@
          scale × leading-[1.04] (home overrides md/lg), EditorialLede
          text-base/md:text-lg × leading-[1.6]. Home hero composition is
          title + lede + actions (no kicker); banner heroes drop the actions.
-         Line counts follow the measured wrap thresholds of the real hero
-         copy (2026-08-29): title 3→2 at 378px, back to 3 from 768px; lede
-         8→7→6→5→4 at 348/364/424/488px, 5 in the md band, 4 from 1024px. */
+         The core titles are authored as three lines, so the title holds three
+         bars at every width. Lede line counts follow the measured wrap
+         thresholds of the real hero copy (2026-08-29): 8→7→6→5→4 at
+         348/364/424/488px, 5 in the md band, 4 from 1024px. */
       .boot-editorial-card {
         --boot-title-lh: 31.2px; /* text-3xl × 1.04 */
         --boot-lede-lh: 25.6px; /* text-base × 1.6 */
@@ -483,12 +484,6 @@
 
       @media (min-width: 364px) {
         .boot-skeleton-lede-line[data-line="7"] {
-          display: none;
-        }
-      }
-
-      @media (min-width: 378px) {
-        .boot-skeleton-title-line[data-line="3"] {
           display: none;
         }
       }
@@ -737,7 +732,6 @@
           --boot-title-lh: 49.92px; /* md:text-5xl × 1.04 */
         }
 
-        .boot-skeleton-title-line[data-line="3"],
         .boot-skeleton-lede-line[data-line="5"] {
           display: block;
         }

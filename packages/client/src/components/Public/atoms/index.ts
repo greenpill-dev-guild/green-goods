@@ -52,3 +52,8 @@ export {
   EditorialStatSkeleton,
   EditorialVaultAssetCardSkeleton,
 } from "./EditorialSkeleton";
+export {
+  EditorialTitleLine,
+  type EditorialTitleLineProps,
+  editorialTitleTags,
+} from "./EditorialTitle";
