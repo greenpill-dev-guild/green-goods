@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { TestBrowser } from "./support/browser";
-import { AIYELOJA, TAS } from "./support/fixtures";
+import { AIYELOJA, planting, snapshot, TAS } from "./support/fixtures";
 import { adaAccount, bolaAccount, latestLink } from "./support/flows";
 import { ADA, Harness, summaryToken } from "./support/harness";
 
@@ -171,6 +171,47 @@ describe("story-first reporting", () => {
       )
       .get({ id: event.eventId }) as { n: number };
     expect(count.n).toBe(1);
+  });
+});
+
+describe("an amount that needs a choice to mean anything", () => {
+  it("asks what is being measured before a number with no unit, and explains the number", async () => {
+    const milestone = planting({
+      title: "Infrastructure Milestone",
+      inputs: [
+        {
+          key: "milestoneValue",
+          title: "Milestone Value",
+          placeholder: "Enter the numeric value for this milestone",
+          type: "number",
+          required: true,
+          options: [],
+        },
+        {
+          key: "milestoneType",
+          title: "Milestone Type",
+          placeholder: "Select the type of milestone",
+          type: "select",
+          required: true,
+          options: ["Solar kW installed", "Battery kWh added"],
+        },
+      ],
+    });
+    harness.catalog.actions.set(TAS.key, [snapshot(milestone)]);
+    await consented();
+    await harness.say(ADA, "1");
+    // The activity's choice comes before its unit-less amount, and both are numbered as asked.
+    expect(await harness.press(ADA, "Infrastructure Milestone")).toEqual([
+      "Got it: Infrastructure Milestone at TAS. 3 quick questions, then a summary to check.",
+      "1 of 3 · Milestone Type: Select the type of milestone.\n1. Solar kW installed\n2. Battery kWh added",
+    ]);
+    expect(await harness.say(ADA, "1")).toEqual([
+      "2 of 3 · Milestone Value: Enter the numeric value for this milestone. Send just the number.",
+    ]);
+    expect(await harness.say(ADA, "what is a milestone value?")).toEqual([
+      "Milestone Value is a number: Enter the numeric value for this milestone. For example, 12.",
+    ]);
+    expect((await harness.say(ADA, "5"))[0]).toContain("3 of 3 · How much time");
   });
 });
 

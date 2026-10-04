@@ -2,6 +2,7 @@ import {
   type ActionDefinitionSnapshot,
   buildReportSummary,
   findInput,
+  outstandingFieldQuestions,
   outstandingRequirements,
   reportQuestionPosition,
   pageChoices,
@@ -90,7 +91,12 @@ export function fieldQuestionText(
     requirement,
     askedQuestions(writer, draft)
   );
-  return place ? `${writer.text("report.questionPosition", place)}${question}` : question;
+  if (!place) return question;
+  // Questions are put one at a time, so this one follows those already answered, whatever its
+  // place in the activity's own list.
+  const waiting = outstandingFieldQuestions(draft.content, draft.snapshot).length;
+  const position = place.total - waiting + 1;
+  return `${writer.text("report.questionPosition", { position, total: place.total })}${question}`;
 }
 
 /** What the activity's own definition says about a field, when that adds to its title. */
@@ -439,5 +445,29 @@ export function promptNextStepFor(
     askConfirmation(writer, draft, account);
     return;
   }
-  askRequirement(writer, draft, requirements[0] as ReportRequirement, view, account);
+  askRequirement(writer, draft, nextRequirement(requirements, draft), view, account);
+}
+
+const CHOICE_INPUTS = new Set<WorkInput["type"]>(["select", "multi-select", "band"]);
+
+/**
+ * The requirement to ask next. An amount with no unit ("Milestone Value") only means something
+ * once the gardener has picked what it measures ("Solar kW installed"), so such a number waits
+ * for the first of the activity's choices still to be made. A number that names its unit, and
+ * everything else, keeps the place the activity gives it.
+ */
+function nextRequirement(
+  requirements: readonly ReportRequirement[],
+  draft: DraftRecord
+): ReportRequirement {
+  const first = requirements[0] as ReportRequirement;
+  if (first.kind !== "detail") return first;
+  const amount = findInput(draft.snapshot, first.key);
+  if (amount?.type !== "number" || amount.unit) return first;
+  for (const requirement of requirements) {
+    if (requirement.kind !== "detail") break;
+    const input = findInput(draft.snapshot, requirement.key);
+    if (input && CHOICE_INPUTS.has(input.type)) return requirement;
+  }
+  return first;
 }
