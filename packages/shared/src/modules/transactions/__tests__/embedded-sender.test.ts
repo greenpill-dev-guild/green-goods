@@ -16,7 +16,7 @@ import {
   createFakeWagmiDeps,
   createMockContractCall,
 } from "../../../__tests__/test-utils/transaction-fakes";
-import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
+import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import type { ContractCall } from "../types";
 import { EmbeddedSender, type EmbeddedSenderDeps } from "../embedded-sender";
 
@@ -71,6 +71,8 @@ describe("EmbeddedSender", () => {
       await sender.sendContractCall(TEST_CALL);
 
       expect(mockDeps.writeContract).toHaveBeenCalledWith(expect.anything(), {
+        // The write names who signs: the wallet connected when the send started.
+        account: MOCK_ADDRESSES.deployer,
         address: TEST_CALL.address,
         abi: TEST_CALL.abi,
         functionName: TEST_CALL.functionName,
@@ -166,6 +168,7 @@ describe("EmbeddedSender", () => {
       await sender.sendContractCall({ ...TEST_CALL, value: 123n });
 
       expect(mockDeps.writeContract).toHaveBeenCalledWith(expect.anything(), {
+        account: MOCK_ADDRESSES.deployer,
         address: TEST_CALL.address,
         abi: TEST_CALL.abi,
         functionName: TEST_CALL.functionName,

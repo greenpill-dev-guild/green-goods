@@ -16,7 +16,7 @@ import {
   createFakeWagmiDeps,
   createMockContractCall,
 } from "../../../__tests__/test-utils/transaction-fakes";
-import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
+import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import { TransactionRevertedError, type ContractCall } from "../types";
 import { WalletSender, type WalletSenderDeps } from "../wallet-sender";
 
@@ -92,6 +92,8 @@ describe("WalletSender", () => {
       await sender.sendContractCall(TEST_CALL);
 
       expect(mockWriteContractAsync).toHaveBeenCalledWith({
+        // The write names who signs: the wallet connected when the send started.
+        account: MOCK_ADDRESSES.deployer,
         address: TEST_CALL.address,
         abi: TEST_CALL.abi,
         functionName: TEST_CALL.functionName,
@@ -191,6 +193,7 @@ describe("WalletSender", () => {
       await sender.sendContractCall({ ...TEST_CALL, value: 123n });
 
       expect(mockWriteContractAsync).toHaveBeenCalledWith({
+        account: MOCK_ADDRESSES.deployer,
         address: TEST_CALL.address,
         abi: TEST_CALL.abi,
         functionName: TEST_CALL.functionName,
@@ -365,6 +368,7 @@ describe("WalletSender", () => {
       expect(result).toEqual({ hash: BATCH_HASH, sponsored: false });
       expect(trace).toEqual(["chain", "safety", "sendCalls", "accepted", "status"]);
       expect(batchDeps.sendCalls).toHaveBeenCalledWith(batchConfig, {
+        account: MOCK_ADDRESSES.deployer,
         chainId: TEST_CALL.chainId,
         forceAtomic: true,
         calls: [
@@ -383,6 +387,51 @@ describe("WalletSender", () => {
         ],
       });
       expect(batchWrite).not.toHaveBeenCalled();
+    });
+
+    // No batch in the app names an account, so a batch is for whoever holds the
+    // connection when it starts.
+    it("sends a batch as the address connected when it starts, or not at all", async () => {
+      const owner = "0x1111111111111111111111111111111111111111" as const;
+      let connected: `0x${string}` = owner;
+      batchDeps.getAccount = () => ({ address: connected });
+
+      await sender.sendAtomicBatch([TEST_CALL, SECOND_CALL]);
+      expect(batchDeps.sendCalls).toHaveBeenCalledWith(
+        batchConfig,
+        expect.objectContaining({ account: owner })
+      );
+
+      // Another wallet takes the connection over while the guard reads this one.
+      vi.mocked(batchDeps.sendCalls!).mockClear();
+      trace.length = 0;
+      vi.mocked(batchDeps.ensureWalletChain!).mockImplementationOnce(
+        async (_chainId, _reason, beforeSwitch) => {
+          connected = "0x2222222222222222222222222222222222222222";
+          await beforeSwitch?.();
+          trace.push("chain");
+        }
+      );
+      await expect(sender.sendAtomicBatch([TEST_CALL, SECOND_CALL])).rejects.toMatchObject({
+        code: "account_mismatch",
+      });
+      expect(trace).toEqual([]);
+      expect(batchDeps.sendCalls).not.toHaveBeenCalled();
+
+      // Started with no wallet connected, a batch is for nobody.
+      batchDeps.getAccount = () => ({});
+      await expect(sender.sendAtomicBatch([TEST_CALL, SECOND_CALL])).rejects.toThrow(
+        "Connector not connected"
+      );
+      expect(trace).toEqual([]);
+
+      // A queued job names its owner. A batch of such calls is held to that
+      // owner, whoever is connected when it is sent.
+      batchDeps.getAccount = () => ({ address: "0x2222222222222222222222222222222222222222" });
+      await expect(
+        sender.sendAtomicBatch([{ ...TEST_CALL, account: owner }, SECOND_CALL])
+      ).rejects.toMatchObject({ name: "WalletAccountMismatchError", code: "account_mismatch" });
+      expect(batchDeps.sendCalls).not.toHaveBeenCalled();
     });
 
     it("says a reverted batch wrote nothing, and an unanswered one is unknown", async () => {

@@ -17,6 +17,7 @@
  */
 
 import {
+  ConnectorNotConnectedError,
   getAccount as defaultGetAccount,
   getCapabilities as defaultGetCapabilities,
   sendCalls as defaultSendCalls,
@@ -96,6 +97,7 @@ export interface WalletSenderDeps {
   sendCalls?: (
     config: Config,
     params: {
+      account?: Address;
       chainId: number;
       forceAtomic: true;
       calls: readonly {
@@ -177,8 +179,22 @@ export class WalletSender implements TransactionSender {
   }
 
   /**
-   * Who signs: the act's own ownership check, then the account the call was
-   * quoted for. The account is read last, with nothing awaited after it.
+   * The call with the address it is for: the one it names, or else the one
+   * connected when its send starts. The send belongs to that address from then
+   * on, so a wallet that takes the connection over is asked neither to change
+   * network nor to sign it. A send that starts with no wallet connected is for
+   * nobody, and is refused here: waiting to see who connects would let that
+   * wallet sign it.
+   */
+  private forSigner(call: ContractCall): ContractCall {
+    const account = call.account ?? this.deps.getAccount?.().address;
+    if (!account) throw new ConnectorNotConnectedError();
+    return { ...call, account };
+  }
+
+  /**
+   * Who signs: the act's own ownership check, then the account the call is
+   * for. The account is read last, with nothing awaited after it.
    */
   private async assertSigner(call: ContractCall, options: TransactionSendOptions): Promise<void> {
     await options.assertOwnership?.();
@@ -205,12 +221,13 @@ export class WalletSender implements TransactionSender {
   }
 
   async sendContractCall(
-    call: ContractCall,
+    named: ContractCall,
     options: TransactionSendOptions = {}
   ): Promise<TxResult> {
     // TODO: Try EIP-5792 sendCalls with paymasterService first when available.
     // Fall back to direct writeContractAsync if the wallet doesn't support it.
 
+    const call = this.forSigner(named);
     // Cast to string to allow non-canonical hash detection (Safe wallets
     // can return identifiers that don't match `0x${string}` at runtime).
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
@@ -325,16 +342,23 @@ export class WalletSender implements TransactionSender {
     if (calls.some((call) => (call.chainId ?? DEFAULT_CHAIN_ID) !== chainId)) {
       throw new Error("An atomic batch runs on one chain");
     }
-    await this.deps.ensureWalletChain?.(chainId, "write");
-    await this.deps.assertWriteSafety?.();
-    if (calls.some((call) => call.account)) {
-      const account = this.deps.getAccount?.().address;
-      for (const call of calls) {
-        if (call.account) assertWalletAccount(call.account, account);
+    // A batch is for one address, as a single send is: the one its calls name,
+    // or else the one connected when it starts. With nobody connected it is
+    // refused here.
+    const account = calls.find((call) => call.account)?.account ?? this.deps.getAccount?.().address;
+    if (!account) throw new ConnectorNotConnectedError();
+    const assertSigner = () => {
+      const connected = this.deps.getAccount?.().address;
+      for (const expected of [account, ...calls.map((call) => call.account)]) {
+        if (expected) assertWalletAccount(expected, connected);
       }
-    }
+    };
+    await this.deps.ensureWalletChain?.(chainId, "write", assertSigner);
+    await this.deps.assertWriteSafety?.();
+    assertSigner();
 
     const { id } = await sendCalls(this.config, {
+      account,
       chainId,
       forceAtomic: true,
       calls: calls.map((call) => ({

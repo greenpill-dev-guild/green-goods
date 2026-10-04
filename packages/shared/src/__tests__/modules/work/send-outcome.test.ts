@@ -87,6 +87,17 @@ describe("what a failed send means for the work it carried", () => {
     expect(classifySendFailure(afterAcceptedBatch, afterIntent)).toEqual({ kind: "may-have-sent" });
   });
 
+  // A bundle records its jobs' intents before the batch's own checks run.
+  it("clears the intent when the sender refused the connected account, which is before anything is signed", () => {
+    const changedHands = Object.assign(new Error("Wallet account changed before submission"), {
+      name: "WalletAccountMismatchError",
+      code: "account_mismatch",
+    });
+    expect(
+      classifySendFailure(changedHands, { intentRecorded: true, broadcastKnown: false })
+    ).toEqual({ kind: "not-sent", cancelled: false });
+  });
+
   // A node can answer with either after its own broadcast: -32000 also carries
   // "already known" and "nonce too low". Clearing the intent on one of them
   // would let the same attestation go out twice.
