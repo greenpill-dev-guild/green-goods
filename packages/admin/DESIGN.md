@@ -84,6 +84,7 @@ CSS Grid with named areas:
 
 - **Overlays:** every workspace action and detail/inspection flow is a centered `AdminDialog` (the old side-sheet renderers are deleted). Creation flows and inspectors keep the left-inspector channel: views publish a descriptor through `useLeftSheetConfig`, and `LeftInspectorDialog` renders it as an `AdminDialog` carrying the workspace tone. The three global AppBar surfaces (profile/settings/notifications) route through the right-sheet registry into the `AdminSideSheet` inspector — right-docked within the canvas chrome bounds on desktop, bottom sheet on mobile. Profile and settings are separate sheet contents on desktop; the tabbed account surface (Profile | Settings) is reserved for the mobile account route.
 - **MainSheet recession:** retired — the canvas stays at rest; depth comes from the dialog's own scrim (the `isReceded` prop is no longer passed).
+- **Phone gutter:** below 600px the page has one 12px side inset, `--admin-main-inline-gutter-mobile`, and the shell applies it once: the AppBar row and the main scroll area take it, so the GardenChip, the route header, the tab rail, and every card share one edge. Nothing inside adds to it. The route frame's side padding starts at 600px (24px, then 32px from 1024px), and a view never wraps its page content in its own `px-*`. A card's padding is the only other inset. A dialog is a full-width sheet at that size and keeps its own 16px.
 
 ---
 
@@ -198,5 +199,6 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 - Add decorative gradients or hero imagery behind routine UI
 - Write homepage, campaign, or executive-summary copy
 - Nest multiple layers of rounded bordered panels
+- Add side padding around a view's page content below 600px — the shell's 12px phone gutter is the only one
 - Apply glass/blur/translucency to route cards, forms, tables, records, or dense content
 - Use Inter — admin uses Plus Jakarta Sans

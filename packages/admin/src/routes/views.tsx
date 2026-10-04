@@ -34,7 +34,7 @@ const submitWorkView = lazyView(() => import("@/views/Garden/SubmitWork"));
 
 function RoleGateSkeleton() {
   return (
-    <div className="p-6 space-y-6" data-testid="content-skeleton">
+    <div className="space-y-6 py-6 min-[600px]:px-6" data-testid="content-skeleton">
       <div className="h-9 w-48 rounded-md skeleton-shimmer" />
       <SkeletonGrid count={4} columns={2} />
     </div>
