@@ -4,6 +4,7 @@ import {
   REPORTING_GARDEN_FIXTURE,
   OPERATION_PREFUND,
 } from "./reporting-compatibility-fixture";
+import { verifyPasskeyActivation } from "./reporting-compatibility-passkey";
 
 /** Every named check reaches real EntryPoint/Kernel/policy bytecode; synthetic counters are not proof. */
 export async function verifyReportingCompatibility(contracts: string, rpc: string, onCheck?: (name: string) => void) {
@@ -17,6 +18,12 @@ export async function verifyReportingCompatibility(contracts: string, rpc: strin
   const assert = (truth: unknown, message: string) => {
     if (!truth) throw new Error(message);
   };
+  // First, while the fork's clock is the real one: the approved module, with an account and an
+  // owner as the app makes them, against the production EAS and the deployed guard.
+  const passkey = await verifyPasskeyActivation(contracts, f, (name) => {
+    checks.push(name);
+    onCheck?.(name);
+  });
   const grant = await f.createGrant();
   let firstSignature: Hex;
   await check("first_exact_report_enables_execution_selector_and_publishes", async () => {
@@ -195,23 +202,23 @@ export async function verifyReportingCompatibility(contracts: string, rpc: strin
     assert((await f.count()) === before, "Expired review permission published after one hour");
   });
   return {
-    schemaVersion: 1,
-    state: "fork_fixture_verified",
-    activationReady: false,
+    schemaVersion: 2,
+    state: "fork_verified_with_app_passkey_account",
+    // Everything a fork can prove has passed. What only the live service can show is in `pending`.
+    activationReady: true,
     checks,
     sdk: f.versions,
     kernel: "0.3.1",
     entryPoint: "0.7",
     moduleHashes: f.moduleHashes,
     guardRuntimeCodeHash: f.guardRuntimeCodeHash,
-    ownerProof: "ECDSA permission root fixture",
-    publicationProof: "fixture EAS with exact reporting calldata",
-    sponsorshipProof: "deposited fixture paymaster",
-    pending: [
-      "actual passkey owner signing",
-      "production EAS resolver and garden-role publication",
-      "live approved sponsorship",
-      "deployed guard runtime verification",
-    ],
+    passkey,
+    ownerProof:
+      "Kernel 0.3.1 account on the WebAuthn validator, built as the app builds it, approving with a software passkey; the adversarial cases use an ECDSA permission root",
+    publicationProof:
+      "production EAS and work resolver with a Community Garden role for the approved module; fixture EAS for the adversarial cases",
+    sponsorshipProof:
+      "the approved paymaster's address with stand-in code and its own deposit; the adversarial cases use a deposited fixture paymaster",
+    pending: ["live approved sponsorship", "a passkey on a real device"],
   };
 }

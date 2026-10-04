@@ -24,9 +24,10 @@ async function main() {
     "packages/contracts/src/modules/SingleAttestationPolicy.sol",
     "packages/contracts/script/ReportingKernelFixtures.s.sol",
     "packages/contracts/script/reporting-kernel-compatibility.ts",
+    "packages/contracts/deployments/42161-latest.json",
     "packages/contracts/script/utils/build-target.ts",
     "scripts/contracts/check-foundry-version.mjs",
-    ...["boundary", "fixture", "evidence", "sdk", "scenarios", "provenance"].map(
+    ...["boundary", "fixture", "evidence", "sdk", "scenarios", "passkey", "provenance"].map(
       (name) => `packages/contracts/script/utils/reporting-compatibility-${name}.ts`,
     ),
   ];

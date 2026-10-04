@@ -310,6 +310,8 @@ export async function reportingCompatibilityFixture(contracts: string, rpc: stri
   }
   return {
     client,
+    wallet,
+    delegate,
     request,
     createGrant,
     submit,

@@ -7,6 +7,7 @@ import {
   isDelegationAvailable,
   type RevocationDescriptor,
   revocationDescriptorIssues,
+  VERIFIED_PERMISSION_MODULES,
 } from "../../../modules/agent-reporting/grants";
 
 const policy: GrantPolicy = {
@@ -80,10 +81,25 @@ describe("revocation descriptors", () => {
     validatorCodeHash: descriptor.validatorCodeHash,
   };
 
-  it("keeps delegation disabled until a module passes the independent-revocation gate", () => {
-    expect(isDelegationAvailable(42161)).toBe(false);
+  it("offers delegation only on a chain with an approved module, and only for that module", () => {
+    expect(isDelegationAvailable(42161)).toBe(true);
+    expect(isDelegationAvailable(11155111)).toBe(false);
+    expect(isDelegationAvailable(11155111, [{ ...entry, chainId: 11155111 }])).toBe(true);
+    // A descriptor naming any other module is not one the owner is asked to trust.
     expect(revocationDescriptorIssues(descriptor)).toEqual(["unsupported_module"]);
-    expect(isDelegationAvailable(42161, [entry])).toBe(true);
+  });
+
+  it("approves Arbitrum for reporting alone, with every pin and cap the Agent needs", () => {
+    const modules = VERIFIED_PERMISSION_MODULES.filter((module) => module.chainId === 42161);
+    expect(modules).toHaveLength(1);
+    const [module] = modules;
+    // A decision's permission cannot yet be bound to the work it decides.
+    expect(module?.reviewSupported).toBeFalsy();
+    expect(module?.singleCallPolicy && module.singleCallPolicyCodeHash).toBeTruthy();
+    expect(module?.approvedPaymaster).toMatch(/^0x[0-9a-fA-F]{40}$/);
+    expect(BigInt(module?.gasCostCapsWei?.reporting ?? "0")).toBeGreaterThan(0n);
+    expect(BigInt(module?.gasCostCapsWei?.reporting ?? "0")).toBeLessThan(2n ** 128n);
+    expect(module?.measuredGasUnitsPerSubmission).toBeGreaterThan(0);
   });
 
   it.each([

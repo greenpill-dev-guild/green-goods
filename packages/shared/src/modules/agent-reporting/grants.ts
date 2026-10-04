@@ -134,10 +134,35 @@ export interface PermissionModuleEntry {
 
 /**
  * Modules whose install, scoped execution and owner revocation have passed the section 9.3
- * compatibility gate. Delegation stays disabled while this list is empty: nothing may be enabled
+ * compatibility gate. Delegation is offered only on a chain with an entry: nothing may be enabled
  * that the owner cannot independently find and revoke.
+ *
+ * Arbitrum One, reporting only. Every value is a fact read from the chain or measured on a fork
+ * of it; the evidence is in the reporting handoff and `contracts verify reporting-kernel`.
+ * - The validator is ZeroDev's ECDSA signer for Kernel permissions, the module the delegate signs
+ *   through. The guard is this repository's `SingleAttestationPolicy`.
+ * - The paymaster is Pimlico's, the one that sponsors the app's own passkey operations. A
+ *   permission names it, so the delegate can spend no one's gas but that sponsorship's.
+ * - Gas: on the fork a first report (the passkey's approval, the install and the publication)
+ *   used 3.0M gas and each later one 1.0M. 2.5M units admit a later report with a bundler's
+ *   margins, and five times that admits the first. The wei cap is ten million gas, five reports
+ *   with those margins, at 0.5 gwei: twenty-five times the 0.02 gwei the chain charged when it
+ *   was measured. Past either, a report falls back to the owner's own signature.
+ * Review is not approved: a decision's permission cannot yet be bound to the work it decides.
  */
-export const VERIFIED_PERMISSION_MODULES: readonly PermissionModuleEntry[] = [];
+export const VERIFIED_PERMISSION_MODULES: readonly PermissionModuleEntry[] = [
+  {
+    moduleRef: "arbitrum-single-attestation-1",
+    chainId: 42161,
+    validatorAddress: "0x6A6F069E2a08c2468e7724Ab3250CdBFBA14D4FF",
+    validatorCodeHash: "0x510a0a1ab8b3f256a5c90b5fff51a9fd98656bd1c8a29fbd7857faa70c400ccd",
+    singleCallPolicy: "0xfe7c50354cE1AC1d10aEe840a520A40103A3d971",
+    singleCallPolicyCodeHash: "0x76f0a1fa648cf915dfe2a72a150622eb7d96f725cea6666e93f27f6e5645a0cf",
+    approvedPaymaster: "0x777777777777AeC03fd955926DbF81597e66834C",
+    gasCostCapsWei: { reporting: "5000000000000000", review: "5000000000000000" },
+    measuredGasUnitsPerSubmission: 2_500_000,
+  },
+];
 
 export type DescriptorIssue = "malformed" | "unsupported_module" | "module_mismatch";
 
