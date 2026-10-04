@@ -153,19 +153,25 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
   const unusable = grant
     ? grantUsability(grant, { identityEpoch: epoch, now: core.clock.now() })
     : null;
-  const usable = grant !== null && unusable === null;
+  // The gas one more report would reserve, from the same approved module the executor reserves
+  // by. A permission approved under a smaller reservation can run out of gas before its count.
+  const reservation =
+    deps.delegationModules.find((entry) => entry.chainId === core.settings.chainId)
+      ?.measuredGasUnitsPerSubmission ?? 0;
+  const outOfGas =
+    grant !== null && grant.gasReserved + grant.gasConsumed + reservation > grant.gasCap;
   // A permission that is paused or used up stays this garden's one live permission until it
   // ends, so another cannot be approved yet. Offering one would lead nowhere: the owner signs.
   const spent =
     grant?.state === "paused" || unusable === "epoch_changed"
       ? "grant.paused"
-      : unusable === "exhausted"
+      : unusable === "exhausted" || (unusable === null && outOfGas)
         ? "grant.spent"
         : null;
   const mode =
     account.kind === "eoa" || !delegationReady || spent
       ? "owner"
-      : usable
+      : unusable === null && grant !== null
         ? "delegated"
         : "grant_choice";
 

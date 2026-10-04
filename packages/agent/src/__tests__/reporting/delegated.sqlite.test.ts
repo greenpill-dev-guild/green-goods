@@ -214,12 +214,15 @@ describe("Kernel reporting grant", () => {
     expect(harness.sender.signed).toBe(1);
   });
 
-  it("sends the owner to sign once the grant's reports are used up", async () => {
+  // Either budget ends the permission's use: its count of reports, or the gas they may reserve.
+  it.each([
+    ["reports", "submissions_reserved = 0, submissions_consumed = max_submissions"],
+    ["gas", "gas_reserved = 0, gas_consumed = gas_cap"],
+  ])("sends the owner to sign once the grant's %s are used up", async (_budget, used) => {
+    Object.assign(harness.delegationModules[0], { measuredGasUnitsPerSubmission: 1 });
     await establishGrant();
     await harness.drain();
-    harness.core.db.exec(
-      "UPDATE execution_grants SET submissions_reserved = 0, submissions_consumed = max_submissions"
-    );
+    harness.core.db.exec(`UPDATE execution_grants SET ${used}`);
     const summary = await reportUntilSummary(harness);
     const replies = (await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`)).join("\n");
     expect(replies).toContain("used up for now");
