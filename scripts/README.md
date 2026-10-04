@@ -77,8 +77,11 @@ keeps a pending journal before sending, so an interrupted or uncertain result mu
 with `verify single-attestation-policy --network <network> [--receipt <transaction-hash>]`.
 Verification persists `packages/contracts/deployments/<chainId>-single-attestation-policy.json`
 only after checking the CREATE transaction, successful receipt, production runtime hash, and policy
-module ABI. It does not modify core deployment artifacts or enable delegated reporting. The
-separate `verify reporting-kernel --network arbitrum --mode simulate` command owns the real-fork
+module ABI. It does not modify core deployment artifacts or enable delegated reporting. Add
+`--publish-source` on `sepolia` or `arbitrum` to submit the source of the deployment it has just
+verified to the network's explorer. That step needs `ETHERSCAN_API_KEY` from the root `.env`, uses
+no signer, sends no transaction, and is safe to repeat. The separate
+`verify reporting-kernel --network arbitrum --mode simulate` command owns the real-fork
 compatibility gate.
 
 ## Inventory

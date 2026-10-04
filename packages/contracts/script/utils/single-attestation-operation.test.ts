@@ -9,8 +9,10 @@ import {
   policyForgeCommand,
   policyPaths,
   policyReceiptHash,
+  policySourceCommand,
   readPolicyJson,
   recordPolicyDeployment,
+  redactExplorerKey,
   writePolicyJson,
 } from "./single-attestation-operation";
 
@@ -75,6 +77,49 @@ describe("standalone policy operation boundaries", () => {
     } finally {
       if (before === undefined) delete process.env.ETH_PASSWORD;
       else process.env.ETH_PASSWORD = before;
+    }
+  });
+  it("publishes source only with verification, with no signer and no explorer key in the arguments or logs", () => {
+    expect(parsePolicyOptions(["verify", "--network", "arbitrum", "--publish-source"]).publishSource).toBe(true);
+    expect(parsePolicyOptions(["verify", "--network", "arbitrum"]).publishSource).toBe(false);
+    expect(() => parsePolicyOptions(["verify", "--network", "localhost", "--publish-source"])).toThrow("explorer");
+    expect(() => parsePolicyOptions(["deploy", "--network", "arbitrum", "--preflight", "--publish-source"])).toThrow(
+      "explorer",
+    );
+    const before = { key: process.env.ETHERSCAN_API_KEY, password: process.env.ETH_PASSWORD };
+    process.env.ETHERSCAN_API_KEY = "fixture-explorer-key";
+    process.env.ETH_PASSWORD = "/fixture/password-path";
+    try {
+      const command = policySourceCommand({ address: plan().address, chainId: 42161 }, "https://explorer.invalid/api");
+      expect(command.args).toEqual([
+        "verify-contract",
+        plan().address,
+        "src/modules/SingleAttestationPolicy.sol:SingleAttestationPolicy",
+        "--chain",
+        "42161",
+        "--verifier",
+        "etherscan",
+        "--verifier-url",
+        "https://explorer.invalid/api",
+        "--watch",
+      ]);
+      expect(command.args.join(" ")).not.toContain("fixture-explorer-key");
+      expect(command.env.FOUNDRY_PROFILE).toBe("production");
+      expect(command.env.ETH_PASSWORD).toBeUndefined();
+      const echoed =
+        "GET https://api.invalid/v2/api?chainid=42161&apikey=fixture-explorer-key failed (fixture-explorer-key)";
+      expect(redactExplorerKey(echoed, "fixture-explorer-key")).not.toContain("fixture-explorer-key");
+      expect(redactExplorerKey("apikey=another-secret&module=contract", undefined)).toBe(
+        "apikey=[REDACTED]&module=contract",
+      );
+    } finally {
+      for (const [name, value] of [
+        ["ETHERSCAN_API_KEY", before.key],
+        ["ETH_PASSWORD", before.password],
+      ] as const) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
     }
   });
   it("rejects escaped or symlinked evidence paths", () => {

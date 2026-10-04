@@ -20,6 +20,12 @@ test('standalone reporting policy separates offline, RPC, keystore broadcast and
   assert.equal(broadcast.env.FOUNDRY_KEYSTORE_ACCOUNT, 'green-goods-deployer');
   assert.equal(broadcast.env.PINATA_JWT_OP_REF, '');
   assert.deepEqual(resolve('verify single-attestation-policy --network arbitrum').args, ['script/deploy/single-attestation-policy.ts', 'verify', '--network', 'arbitrum']);
+  const published = resolve('verify single-attestation-policy --network arbitrum --publish-source');
+  assert.deepEqual(published.args, ['script/deploy/single-attestation-policy.ts', 'verify', '--network', 'arbitrum', '--publish-source']);
+  assert.ok(published.capabilities.includes('explorer API key'));
+  assert.ok(!published.capabilities.includes('authorized signer'));
+  assert.throws(() => resolve('verify single-attestation-policy --network localhost --publish-source'), /explorer/);
+  assert.throws(() => resolve('deploy single-attestation-policy --network arbitrum --mode preflight --publish-source'), /Unknown/);
   assert.deepEqual(resolve('verify reporting-kernel --network arbitrum --mode simulate').args, ['script/reporting-kernel-compatibility.ts', '--network', 'arbitrum', '--simulate']);
   assert.throws(() => resolve('verify reporting-kernel --network arbitrum --mode broadcast'), /Unsupported mode/);
 });

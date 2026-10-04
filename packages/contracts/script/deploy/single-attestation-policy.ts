@@ -24,8 +24,10 @@ import {
   policyForgeCommand,
   policyPaths,
   policyReceiptHash,
+  policySourceCommand,
   readPolicyJson,
   recordPolicyDeployment,
+  redactExplorerKey,
   writePolicyJson,
   type PolicyBroadcastJournal,
 } from "../utils/single-attestation-operation";
@@ -65,6 +67,42 @@ function runForge(plan: PolicyDeploymentPlan, rpc: string, broadcast: boolean): 
       broadcast ? "Policy broadcast (outcome may be unknown; verify before retry)" : "Policy RPC simulation",
     );
   }
+}
+
+/**
+ * Submit the source of a deployment this run has just verified to the network's explorer. The
+ * local production build is known to equal the live code at that point, so the explorer receives
+ * the source that produced it. No signer is involved and no transaction is sent.
+ */
+function publishPolicySource(network: string, deployment: PolicyDeploymentArtifact): void {
+  const verifier = new NetworkManager().getVerifierConfig(network);
+  const key = verifier?.apiKey;
+  if (!verifier || !key) throw new Error("Source publication needs ETHERSCAN_API_KEY from the root .env");
+  const command = policySourceCommand(deployment, verifier.apiUrl);
+  let output: string;
+  try {
+    output = execFileSync("forge", command.args, {
+      cwd: ROOT,
+      env: command.env,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: 16 * 1024 * 1024,
+      timeout: 300_000,
+    });
+  } catch (error) {
+    throw new Error(redactExplorerKey(formatCastFailure(error, "Policy source publication").message, key));
+  }
+  const lines = redactExplorerKey(output, key)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  console.log(
+    JSON.stringify(
+      { state: "source_published", address: deployment.address, chainId: deployment.chainId, detail: lines.at(-1) },
+      null,
+      2,
+    ),
+  );
 }
 
 async function main(): Promise<void> {
@@ -124,6 +162,7 @@ async function main(): Promise<void> {
         if (verified.blockHash !== artifact.blockHash || verified.blockNumber !== artifact.blockNumber)
           throw new Error("Policy deployment receipt no longer matches its recorded block");
         console.log(JSON.stringify({ state: "verified", ...verified, authorityEnabled: false }, null, 2));
+        if (options.publishSource) publishPolicySource(options.network, verified);
         return;
       }
       const journal = readPolicyJson<PolicyBroadcastJournal>(ROOT, paths.journal);
@@ -139,6 +178,7 @@ async function main(): Promise<void> {
       const verified = await verifyPolicyDeployment(provider, journal.plan, hash);
       recordPolicyDeployment(ROOT, paths, journal.plan, verified);
       console.log(JSON.stringify({ state: "reconciled", ...verified, authorityEnabled: false }, null, 2));
+      if (options.publishSource) publishPolicySource(options.network, verified);
       return;
     }
     if (options.mode === "plan") {

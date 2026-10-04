@@ -4,7 +4,11 @@ import * as path from "node:path";
 import { parseArgs } from "node:util";
 import { getAddress } from "ethers";
 import { CHAIN_ID_MAP } from "./network";
-import type { PolicyDeploymentArtifact, PolicyDeploymentPlan } from "./single-attestation-deployment";
+import {
+  POLICY_TARGET,
+  type PolicyDeploymentArtifact,
+  type PolicyDeploymentPlan,
+} from "./single-attestation-deployment";
 
 export interface PolicyOptions {
   command: "deploy" | "verify";
@@ -14,6 +18,8 @@ export interface PolicyOptions {
   nonce?: number;
   planPath?: string;
   receipt?: string;
+  /** After verification, submit the source to the network's explorer. */
+  publishSource: boolean;
 }
 
 /** The inner handler remains strict even when called without the outer CLI. */
@@ -34,6 +40,7 @@ export function parsePolicyOptions(argv: string[]): PolicyOptions {
       "plan-only": { type: "boolean" },
       simulate: { type: "boolean" },
       broadcast: { type: "boolean" },
+      "publish-source": { type: "boolean" },
     },
   });
   const seen = new Set<string>();
@@ -66,7 +73,19 @@ export function parsePolicyOptions(argv: string[]): PolicyOptions {
     (["simulate", "broadcast"].includes(mode ?? "") && sender !== undefined)
   )
     throw new Error("Unexpected input for this policy operation");
-  return { command, network: values.network!, mode, sender, nonce, planPath: values.plan, receipt: values.receipt };
+  const publishSource = values["publish-source"] === true;
+  if (publishSource && (command !== "verify" || values.network === "localhost"))
+    throw new Error("Source publication belongs to verification on a network with an explorer");
+  return {
+    command,
+    network: values.network!,
+    mode,
+    sender,
+    nonce,
+    planPath: values.plan,
+    receipt: values.receipt,
+    publishSource,
+  };
 }
 
 export interface PolicyPaths {
@@ -261,6 +280,50 @@ export function policyForgeCommand(
   };
   if (!broadcast) delete env.ETH_PASSWORD;
   return { args, env };
+}
+
+/**
+ * Explorer source submission for a deployment whose receipt and runtime are already verified. It
+ * signs nothing and sends no transaction. The explorer is named explicitly, because Forge would
+ * otherwise submit to its default verifier, and Forge reads the explorer key from
+ * ETHERSCAN_API_KEY in the environment, so the key never appears in the arguments.
+ */
+export function policySourceCommand(
+  deployment: Pick<PolicyDeploymentArtifact, "address" | "chainId">,
+  verifierUrl: string,
+): {
+  args: string[];
+  env: NodeJS.ProcessEnv;
+} {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    FOUNDRY_PROFILE: "production",
+    PINATA_JWT: "",
+    PINATA_GATEWAY: "",
+    PINATA_JWT_OP_REF: "",
+  };
+  delete env.ETH_PASSWORD;
+  return {
+    args: [
+      "verify-contract",
+      deployment.address,
+      POLICY_TARGET,
+      "--chain",
+      String(deployment.chainId),
+      "--verifier",
+      "etherscan",
+      "--verifier-url",
+      verifierUrl,
+      "--watch",
+    ],
+    env,
+  };
+}
+
+/** Forge and the explorer may echo a request; the explorer key must not reach a log. */
+export function redactExplorerKey(text: string, key: string | undefined): string {
+  const withoutKey = key ? text.split(key).join("[REDACTED]") : text;
+  return withoutKey.replace(/(api-?key[=:]\s*)[^\s&"']+/giu, "$1[REDACTED]");
 }
 
 export function assertPolicySourcesCommitted(root: string): void {
