@@ -216,7 +216,7 @@ export async function verifyReportingCompatibility(contracts: string, rpc: strin
     ownerProof:
       "Kernel 0.3.1 account on the WebAuthn validator, built as the app builds it, approving with a software passkey; the adversarial cases use an ECDSA permission root",
     publicationProof:
-      "production EAS and work resolver with a Community Garden role for the approved module; fixture EAS for the adversarial cases",
+      "production EAS and work resolver with a role in the Community Garden and in a second garden for the approved module; fixture EAS for the adversarial cases",
     sponsorshipProof:
       "the approved paymaster's address with stand-in code and its own deposit; the adversarial cases use a deposited fixture paymaster",
     pending: ["live approved sponsorship", "a passkey on a real device"],
