@@ -5001,7 +5001,7 @@
   "public.cookies.status.pastPaused": "Claims paused",
   "public.cookies.strictPurpose": "Purpose required",
   "public.cookies.summary": "{count, plural, one {# jar listed} other {# jars listed}} · {claimable, plural, =0 {no claimable jars} one {# claimable} other {# claimable}}",
-  "public.cookies.title": "Shared <accent>cookie jars</accent> for seasonal campaign work.",
+  "public.cookies.title": "Shared <accent>cookie jars</accent> for seasonal campaign work",
   "public.cookies.toast.claimSuccessMessage": "The claim went through. Funds are on the way to your wallet.",
   "public.cookies.toast.claimSuccessTitle": "Cookies claimed",
   "public.cookies.toast.depositSuccessMessage": "Thank you! Your deposit is in the jar.",

@@ -5001,7 +5001,7 @@
   "public.cookies.status.pastPaused": "Claims pausados",
   "public.cookies.strictPurpose": "Propósito obrigatório",
   "public.cookies.summary": "{count, plural, one {# jar listada} other {# jars listadas}} · {claimable, plural, =0 {sem jars reclamáveis} one {# reclamável} other {# reclamáveis}}",
-  "public.cookies.title": "<accent>Cookie jars</accent> compartilhadas para o trabalho de campanhas sazonais.",
+  "public.cookies.title": "<accent>Cookie jars</accent> compartilhadas para o trabalho de campanhas sazonais",
   "public.cookies.toast.claimSuccessMessage": "O claim foi concluído. Os fundos estão a caminho da sua wallet.",
   "public.cookies.toast.claimSuccessTitle": "Cookies reclamados",
   "public.cookies.toast.depositSuccessMessage": "Obrigado! Seu depósito já está no jar.",
