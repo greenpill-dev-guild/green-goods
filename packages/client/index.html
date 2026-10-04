@@ -129,6 +129,14 @@
         // other website path mounts a banner hero.
         var HOME_HERO_PATHS = ["/", "/landing"];
         var FOCUSED_PREFIX = "/agent/reporting/";
+        // The home page and the four navigation pages write their English title
+        // as three lines. Every other title wraps on its own.
+        var THREE_LINE_TITLE_PATHS = HOME_HERO_PATHS.concat([
+          "/actions",
+          "/fund",
+          "/gardens",
+          "/impact",
+        ]);
 
         function isLocalHostname(hostname) {
           var normalized = String(hostname || "").toLowerCase();
@@ -226,6 +234,7 @@
 
         var mode = "website";
         var heroVariant = "fullscreen";
+        var threeLineTitle = false;
         try {
           var url = new URL(window.location.href);
           var localOverride = readLocalOverride(url);
@@ -237,6 +246,8 @@
             mode = "pwa";
           }
           heroVariant = heroVariantForUrl(url);
+          threeLineTitle =
+            THREE_LINE_TITLE_PATHS.indexOf(normalizePathname(effectivePathname(url))) !== -1;
         } catch (_) {
           mode = isStandalone() ? "pwa" : "website";
         }
@@ -244,6 +255,7 @@
         document.documentElement.dataset.bootPresentation = mode;
         if (mode === "website") {
           document.documentElement.dataset.bootHero = heroVariant;
+          if (threeLineTitle) document.documentElement.dataset.bootTitle = "three-lines";
         }
       })();
     </script>
@@ -365,9 +377,14 @@
 
       .boot-editorial-hero {
         position: relative;
+        display: flex;
+        flex-direction: column; /* flex-col */
+        justify-content: flex-end; /* justify-end */
         min-height: 100vh;
         min-height: 100svh; /* min-h-[100svh] */
         box-sizing: border-box;
+        padding-top: 88px; /* pt-22 */
+        padding-bottom: 56px; /* pb-14 */
         background:
           radial-gradient(circle at 72% 22%, rgb(245 240 232 / 0.08), transparent 34%),
           linear-gradient(145deg, var(--boot-deep), #18291f 62%, #23382b);
@@ -379,11 +396,20 @@
       .boot-editorial-card-rail {
         position: absolute;
         right: 0;
-        bottom: 56px; /* bottom-14 */
+        bottom: 56px; /* as pb-14 */
         left: 0;
         z-index: 1;
         box-sizing: border-box;
         padding: 0 24px; /* px-6 */
+      }
+
+      /* The home hero's rail sits in the hero's flow above its foot padding,
+         as the loaded card does, so a screen too short for the card grows the
+         hero instead of sliding the card under the header. The recovery rail,
+         outside the hero, keeps the viewport-anchored offsets above. */
+      .boot-editorial-hero .boot-editorial-card-rail {
+        position: relative;
+        bottom: auto;
       }
 
       .boot-editorial-card-column {
@@ -435,7 +461,9 @@
          title + lede + actions (no kicker); banner heroes drop the actions.
          Line counts follow the measured wrap thresholds of the real hero
          copy (2026-08-29): title 3→2 at 378px, back to 3 from 768px; lede
-         8→7→6→5→4 at 348/364/424/488px, 5 in the md band, 4 from 1024px. */
+         8→7→6→5→4 at 348/364/424/488px, 5 in the md band, 4 from 1024px.
+         The home page and the four navigation pages write their English
+         title as three lines, so there the title keeps its third bar. */
       .boot-editorial-card {
         --boot-title-lh: 31.2px; /* text-3xl × 1.04 */
         --boot-lede-lh: 25.6px; /* text-base × 1.6 */
@@ -487,9 +515,16 @@
         }
       }
 
+      /* data-boot-title is stamped by the boot-presentation detector, and the
+         fallback's lang by its controller. Other pages and languages wrap on
+         their own, to two lines in this band. */
       @media (min-width: 378px) {
         .boot-skeleton-title-line[data-line="3"] {
           display: none;
+        }
+
+        [data-boot-title="three-lines"] #boot-fallback[lang="en"] .boot-skeleton-title-line[data-line="3"] {
+          display: block;
         }
       }
 
@@ -716,8 +751,13 @@
           padding: 0 40px; /* sm:px-10 */
         }
 
+        .boot-editorial-hero {
+          padding-top: 104px; /* sm:pt-26 */
+          padding-bottom: 96px; /* sm:pb-24 */
+        }
+
         .boot-editorial-card-rail {
-          bottom: 96px; /* sm:bottom-24 */
+          bottom: 96px; /* as sm:pb-24 */
           padding: 0 40px; /* sm:px-10 */
         }
 
@@ -744,8 +784,12 @@
       }
 
       @media (min-width: 1024px) {
+        /* lg:pb-[12svh]; parsers without svh keep the 96px step above */
+        .boot-editorial-hero {
+          padding-bottom: 12svh;
+        }
+
         .boot-editorial-card-rail {
-          /* lg:bottom-[12svh]; parsers without svh keep the 96px step above */
           bottom: 12svh;
         }
 
@@ -779,6 +823,7 @@
       }
 
       [data-boot-hero="banner"] .boot-editorial-hero .boot-editorial-card-rail {
+        position: absolute;
         bottom: -64px; /* bottom-[-4rem] */
       }
 

@@ -23,7 +23,7 @@ import {
   EditorialMediaCardSkeleton,
   EditorialSelect,
   type EditorialSelectOption,
-  EditorialTitleAccent,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicCommitmentsBand } from "@/components/Public/PublicCommitmentsBand";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
@@ -297,11 +297,10 @@ export default function ImpactPage() {
         title={formatMessage(
           {
             id: "public.impact.heroTitle",
-            defaultMessage: "See how Garden work becomes <accent>evidence</accent>",
+            defaultMessage:
+              "<line>See how Garden</line> <line>work becomes</line> <line><accent>evidence</accent></line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.impact.heroLede",

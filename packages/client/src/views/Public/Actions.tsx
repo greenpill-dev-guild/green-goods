@@ -13,7 +13,7 @@ import {
   EditorialLede,
   EditorialMediaCardSkeleton,
   EditorialNumeral,
-  EditorialTitleAccent,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicActionCard } from "@/components/Public/PublicActionCard";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
@@ -228,11 +228,10 @@ export default function ActionsGallery() {
         title={formatMessage(
           {
             id: "public.actions.heroTitle",
-            defaultMessage: "A field guide for <accent>regenerative work</accent>",
+            defaultMessage:
+              "<line>A field guide for</line> <line><accent>regenerative</accent></line> <line><accent>work</accent></line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.actions.heroLede",

@@ -13,7 +13,7 @@ import {
   EditorialHeading,
   EditorialKicker,
   EditorialMediaCardSkeleton,
-  EditorialTitleAccent,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
@@ -73,11 +73,10 @@ export default function GardensGallery() {
         title={formatMessage(
           {
             id: "public.gardens.heroTitle",
-            defaultMessage: "Explore the <accent>Gardens</accent> growing the public record",
+            defaultMessage:
+              "<line>Explore the</line> <line><accent>Gardens</accent> growing</line> <line>the public record</line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.gardens.heroLede",

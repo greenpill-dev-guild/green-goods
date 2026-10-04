@@ -87,12 +87,28 @@ interface GeometryPair {
 }
 
 const GEOMETRY_PAIRS: GeometryPair[] = [
+  // The fullscreen hero holds its card in the flow between a header clearance and a foot
+  // offset, so a screen too short for the card grows the hero instead of clipping the card.
   {
-    classLiteral: "bottom-14 sm:bottom-24 lg:bottom-[12svh]",
+    classLiteral: "flex-col justify-end",
     source: "hero",
     boot: [
-      { css: "bottom: 56px; /* bottom-14 */", scope: "base" },
-      { css: "bottom: 96px; /* sm:bottom-24 */", scope: "sm" },
+      { css: "flex-direction: column; /* flex-col */", scope: "base" },
+      { css: "justify-content: flex-end; /* justify-end */", scope: "base" },
+    ],
+  },
+  {
+    classLiteral: "pt-22 pb-14 sm:pt-26 sm:pb-24 lg:pb-[12svh]",
+    source: "hero",
+    boot: [
+      { css: "padding-top: 88px; /* pt-22 */", scope: "base" },
+      { css: "padding-bottom: 56px; /* pb-14 */", scope: "base" },
+      { css: "padding-top: 104px; /* sm:pt-26 */", scope: "sm" },
+      { css: "padding-bottom: 96px; /* sm:pb-24 */", scope: "sm" },
+      { css: "padding-bottom: 12svh;", scope: "lg" },
+      // The recovery card stays anchored to the viewport at the same foot offsets.
+      { css: "bottom: 56px; /* as pb-14 */", scope: "base" },
+      { css: "bottom: 96px; /* as sm:pb-24 */", scope: "sm" },
       { css: "bottom: 12svh;", scope: "lg" },
     ],
   },
@@ -222,6 +238,17 @@ describe("boot skeleton geometry parity", () => {
     expect(navQuery).not.toContain("boot-editorial-header");
   });
 
+  it("keeps the hero's rail in the flow so a short screen grows the hero", () => {
+    // Only the rail inside the hero joins the flow. The recovery rail keeps the absolute base
+    // rule, and the banner variant sets its rail back to an absolute spill below the plate.
+    expect(BOOT_CSS).toMatch(
+      /\n {6}\.boot-editorial-hero \.boot-editorial-card-rail \{\s*position: relative;\s*bottom: auto;\s*\}/
+    );
+    expect(BOOT_CSS).toMatch(
+      /\[data-boot-hero="banner"\] \.boot-editorial-hero \.boot-editorial-card-rail \{\s*position: absolute;\s*bottom: -64px;/
+    );
+  });
+
   it("scopes the banner spill to rails inside the plate so recovery stays viewport-anchored", () => {
     expect(BOOT_CSS).toContain(
       '[data-boot-hero="banner"] .boot-editorial-hero .boot-editorial-card-rail'
@@ -296,6 +323,11 @@ describe("boot skeleton geometry parity", () => {
     for (const threshold of [348, 364, 378, 424, 488]) {
       expect(BOOT_CSS).toContain(`@media (min-width: ${threshold}px)`);
     }
+    // A title left to wrap drops its third bar from 378px. The five pages whose English title
+    // is written as three lines keep it, and no other page or language does.
+    expect(mediaBlocks("min-width: 378px")).toMatch(
+      /\n {8}\.boot-skeleton-title-line\[data-line="3"\] \{\s*display: none;\s*\}\s*\[data-boot-title="three-lines"\] #boot-fallback\[lang="en"\] \.boot-skeleton-title-line\[data-line="3"\] \{\s*display: block;/
+    );
     expect(BOOT_CSS).toContain("margin-top: 16px; /* mt-4 */");
     expect(BOOT_CSS).toContain("margin-top: 24px; /* mt-6 */");
     expect(BOOT_CSS).toContain("height: 44px; /* hero actions row (pill height) */");

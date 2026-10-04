@@ -332,6 +332,24 @@ describe("presentation-specific boot fallback", () => {
     ).toBeUndefined();
   });
 
+  it("marks the pages whose English title is written as three lines", () => {
+    for (const path of ["/", "/landing", "/gardens", "/impact", "/fund", "/actions/"]) {
+      expect(detectBootDataset({ href: `https://www.greengoods.app${path}` }).bootTitle).toBe(
+        "three-lines"
+      );
+    }
+    // Other heroes wrap on their own, a garden's page among them, so they keep the old bars.
+    for (const path of ["/cookies", "/vaults", "/glossary", "/gardens/0xabc"]) {
+      expect(
+        detectBootDataset({ href: `https://www.greengoods.app${path}` }).bootTitle
+      ).toBeUndefined();
+    }
+    expect(
+      detectBootDataset({ href: "https://www.greengoods.app/home", displayMode: "standalone" })
+        .bootTitle
+    ).toBeUndefined();
+  });
+
   it("reveals the website skeleton after 200ms with no loading live region", () => {
     const { fallback, website } = runController("website");
 

@@ -24,7 +24,7 @@ import {
   EditorialLinkArrow,
   EditorialNumeral,
   EditorialVaultAssetCardSkeleton,
-  EditorialTitleAccent,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
@@ -454,11 +454,10 @@ function FundPageContent() {
         title={formatMessage(
           {
             id: "public.fund.heroTitle",
-            defaultMessage: "A small gesture, <accent>growing</accent> over many seasons",
+            defaultMessage:
+              "<line>A small gesture,</line> <line><accent>growing</accent> over</line> <line>many seasons</line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.fund.heroLede",
