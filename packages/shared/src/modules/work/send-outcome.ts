@@ -5,9 +5,9 @@
  * (`onBeforeBroadcast`). A failure before that point never sent anything. After
  * it, only a refusal that came back from the person or the network proves the
  * call was not broadcast, or an estimate the contract refused, or a refusal for
- * the wallet's network, since nothing is signed after either; a lost response
- * may hide a send that landed, so the intent is kept for reconciliation instead
- * of risking a second attestation.
+ * the wallet's network or for who is connected, since nothing is signed after
+ * any of them; a lost response may hide a send that landed, so the intent is
+ * kept for reconciliation instead of risking a second attestation.
  *
  * @module modules/work/send-outcome
  */
@@ -70,6 +70,23 @@ function refusedWhileEstimating(error: unknown): boolean {
   return false;
 }
 
+/**
+ * The sender's own refusal for who is connected. It compares the connected
+ * address with the one the send is for before it asks the wallet anything, so
+ * nothing was signed or broadcast. A bundle records its jobs' intents before
+ * the batch makes that check.
+ */
+function refusedForConnectedAccount(error: unknown): boolean {
+  const seen = new Set<object>();
+  let cause = error;
+  while (cause && typeof cause === "object" && !seen.has(cause)) {
+    seen.add(cause);
+    if ("name" in cause && cause.name === "WalletAccountMismatchError") return true;
+    cause = "cause" in cause ? (cause as { cause: unknown }).cause : undefined;
+  }
+  return false;
+}
+
 export function classifySendFailure(
   error: unknown,
   context: { intentRecorded: boolean; broadcastKnown: boolean }
@@ -85,7 +102,8 @@ export function classifySendFailure(
     refusedWhileEstimating(error) ||
     // The sender retries once when the wallet's network moved; the retry's own
     // network check and a second refusal both land here with nothing signed.
-    refusedForWalletNetwork(error)
+    refusedForWalletNetwork(error) ||
+    refusedForConnectedAccount(error)
   )
     return { kind: "not-sent", cancelled };
   return { kind: "may-have-sent" };

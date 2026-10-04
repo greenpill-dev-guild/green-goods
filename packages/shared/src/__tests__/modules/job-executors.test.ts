@@ -565,8 +565,10 @@ describe("commitment queue executor", () => {
     ).resolves.toEqual({ status: "complete", txHash: MOCK_TX_HASH });
 
     expect(publishEvidence).toHaveBeenCalledOnce();
+    // The call names the job's owner, so a sender holds the send, or a bundle
+    // of them, to that address and not to whoever is connected by then.
     expect(sender.sendContractCall).toHaveBeenCalledWith(
-      expect.objectContaining({ functionName: "attachEvidence" }),
+      expect.objectContaining({ functionName: "attachEvidence", account: USER }),
       expect.anything()
     );
   });

@@ -424,6 +424,14 @@ describe("WalletSender", () => {
         "Connector not connected"
       );
       expect(trace).toEqual([]);
+
+      // A queued job names its owner. A batch of such calls is held to that
+      // owner, whoever is connected when it is sent.
+      batchDeps.getAccount = () => ({ address: "0x2222222222222222222222222222222222222222" });
+      await expect(
+        sender.sendAtomicBatch([{ ...TEST_CALL, account: owner }, SECOND_CALL])
+      ).rejects.toMatchObject({ name: "WalletAccountMismatchError", code: "account_mismatch" });
+      expect(batchDeps.sendCalls).not.toHaveBeenCalled();
     });
 
     it("says a reverted batch wrote nothing, and an unanswered one is unknown", async () => {
