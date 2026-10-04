@@ -248,7 +248,7 @@ describe("useCommitmentJobs over the real queue, signed in with a wallet", () =>
       expect(toastError).toHaveBeenLastCalledWith(
         expect.objectContaining({
           title: "An earlier version is waiting",
-          message: expect.stringMatching(/earlier version .* hasn't been sent/),
+          message: expect.stringMatching(/earlier version .* still on this phone/),
         })
       );
 
@@ -258,6 +258,23 @@ describe("useCommitmentJobs over the real queue, signed in with a wallet", () =>
       expect(kept).toHaveLength(1);
       expect(kept[0]?.payload).toMatchObject({ targetUnits: 10n, dueDate: 2_000_000_000n });
       await expect(harness.queue.discardJob(kept[0]?.id ?? "")).resolves.toBe(true);
+    });
+
+    it("keeps one creation however many presses fail, each on a fresh run of tries", async () => {
+      const { store, jobs } = setUp(async () => {
+        throw new Error(declinedSwitch);
+      });
+
+      // One press more than the tries the queue allows a job before it gives up on it.
+      for (let press = 0; press < 6; press += 1) {
+        await expect(
+          jobs.current.enqueue(creation({ dueDate: 2_000_000_000n + BigInt(press) }))
+        ).rejects.toThrow(/Network switch rejected/);
+      }
+
+      const kept = await store.getJobs({ userAddress: VIEWER });
+      expect(kept).toHaveLength(1);
+      expect(kept[0]?.attempts).toBe(1);
     });
   });
 

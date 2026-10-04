@@ -40,6 +40,12 @@ import { classifyTxError } from "../../utils/errors/tx-error-classifier";
 export interface FailedSendReason {
   messageId: string;
   values?: Record<string, string>;
+  /**
+   * The wallet was on another network, or would not move to the one the act
+   * needed. A declined switch marks an act as a declined signature does, so a
+   * row reads this to say which of the two it was.
+   */
+  walletNetwork?: true;
 }
 
 /** A commitment composed on this phone that has not reached the chain yet. */
@@ -178,10 +184,11 @@ function explainTerminalFailure(
 function explainFailedSend(lastError?: string): FailedSendReason | undefined {
   if (!lastError) return undefined;
   const parsed = parseContractError(lastError);
-  if (parsed.name === "WrongNetwork" && parsed.messageKey) {
+  if (parsed.name === "WalletOnAnotherNetwork" && parsed.messageKey) {
     return {
       messageId: parsed.messageKey,
       ...(parsed.messageValues ? { values: parsed.messageValues } : {}),
+      walletNetwork: true,
     };
   }
   return { messageId: classifyTxError(lastError).messageKey };

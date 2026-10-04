@@ -456,7 +456,7 @@ describe("CommitmentsSheet", () => {
 
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
     expect(
-      screen.getByText(/hasn't been sent\. Send it from its garden's Promises/i)
+      screen.getByText(/still on this phone\. Send it, or check on it, from its garden's Promises/i)
     ).toBeInTheDocument();
     expect(screen.queryByText(/It sends when you are connected/i)).not.toBeInTheDocument();
   });

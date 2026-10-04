@@ -181,8 +181,8 @@ describe("contract error recovery fields", () => {
       expect(loggedMismatch).toContain("connection's chain");
       const { title, message, parsed } = parseAndFormatError(new Error(loggedMismatch));
 
-      expect(parsed.name).toBe("WrongNetwork");
-      expect(title).toBe("Wrong Network");
+      expect(parsed.name).toBe("WalletOnAnotherNetwork");
+      expect(title).toBe("Wallet On Another Network");
       // wagmi gives only chain ids, and naming one would load the chain table,
       // and viem with it, wherever this parser ships. So this one says no name.
       expect(message).toBe(
@@ -197,7 +197,7 @@ describe("contract error recovery fields", () => {
 
       expect(parsed.name).toBe("EarlierVersionQueued");
       expect(parsed.recoverable).toBe(false);
-      expect(message).toMatch(/earlier version .* hasn't been sent/);
+      expect(message).toMatch(/earlier version .* still on this phone/);
       // The queue names an act by a hex key too; that is never a contract's error code.
       expect(
         parseContractError(`offline_job_identity_conflict:workLink:0x${"ab".repeat(32)}`).name
@@ -235,7 +235,7 @@ describe("contract error recovery fields", () => {
       // The chain guard and viem throw the error; the job queue keeps only its message.
       for (const seen of [error, new Error(error.message)]) {
         const parsed = parseContractError(seen);
-        expect(parsed.name).toBe("WrongNetwork");
+        expect(parsed.name).toBe("WalletOnAnotherNetwork");
         expect(parsed.messageKey).toBe("app.errors.wallet.wrongNetwork.message");
         expect(parsed.messageValues).toEqual({ network: "Arbitrum One" });
       }
@@ -245,7 +245,7 @@ describe("contract error recovery fields", () => {
       const declinedSwitch = new SwitchChainError(walletDeclined);
       expect(declinedSwitch.message).toContain("User rejected the request");
 
-      expect(parseContractError(declinedSwitch).name).toBe("WrongNetwork");
+      expect(parseContractError(declinedSwitch).name).toBe("WalletOnAnotherNetwork");
       // A declined signature still does, and the queue drops only that one.
       expect(parseContractError(walletDeclined).name).toBe("UserRejected");
       const kept = new WalletChainMismatchError({ targetChainId: ARBITRUM, outcome: "rejected" });
@@ -256,7 +256,7 @@ describe("contract error recovery fields", () => {
     it("says so without a name when the failure does not say which network", () => {
       for (const error of [new ChainNotConfiguredError(), new Error("Unsupported chain")]) {
         const parsed = parseContractError(error);
-        expect(parsed.name).toBe("WrongNetwork");
+        expect(parsed.name).toBe("WalletOnAnotherNetwork");
         expect(parsed.messageKey).toBe("app.errors.wallet.wrongNetwork.messageUnnamed");
         expect(parsed.messageValues).toBeUndefined();
       }

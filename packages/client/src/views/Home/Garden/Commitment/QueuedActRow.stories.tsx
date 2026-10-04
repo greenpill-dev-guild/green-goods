@@ -63,15 +63,20 @@ export const Sending: Story = {
   args: { isBusy: true },
 };
 
-/** A wallet reader whose last send failed on the wallet's network: the row names the one it needed. */
+/**
+ * A wallet reader who declined the wallet's network switch. The queue marks the act as it marks a
+ * declined signature, and the row names the network the act needed instead of a cancelled signature.
+ */
 export const WalletNotSentWrongNetwork: Story = {
   args: {
     sendsFromTap: true,
     act: {
       ...claim,
+      waitingReason: "send-intent-expired",
       sendFailure: {
         messageId: "app.errors.wallet.wrongNetwork.message",
         values: { network: "Arbitrum One" },
+        walletNetwork: true,
       },
     },
   },
@@ -82,6 +87,7 @@ export const WalletNotSentWrongNetwork: Story = {
         "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again."
       )
     ).toBeVisible();
+    await expect(canvas.queryByText(/signature cancelled/i)).toBeNull();
     // Nothing sends it for them, so the row must not say it will.
     await expect(canvas.queryByText(/sends when you're connected/i)).toBeNull();
     await expect(canvas.getByRole("button", { name: "Send Now" })).toBeEnabled();

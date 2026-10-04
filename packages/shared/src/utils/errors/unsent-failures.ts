@@ -26,8 +26,7 @@ export function parseUnsentFailure(error: unknown, message: string): ParsedContr
     return {
       raw: message,
       name: "EarlierVersionQueued",
-      message:
-        "An earlier version of this is saved on this phone and hasn't been sent. Send it or discard it first.",
+      message: "An earlier version of this is still on this phone. Send it or discard it first.",
       titleKey: "app.errors.queue.earlierVersion.title",
       messageKey: "app.errors.queue.earlierVersion.message",
       isKnown: true,
@@ -41,7 +40,7 @@ export function parseUnsentFailure(error: unknown, message: string): ParsedContr
   const { network } = wrongNetwork;
   return {
     raw: message,
-    name: "WrongNetwork",
+    name: "WalletOnAnotherNetwork",
     message: network
       ? `Your wallet needs to be on ${network} for this. Switch it there, then try again.`
       : "Your wallet is on a different network than this needs. Switch networks in your wallet, then try again.",

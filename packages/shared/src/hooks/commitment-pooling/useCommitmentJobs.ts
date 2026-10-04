@@ -255,6 +255,11 @@ async function sendAndSettle(
  *   form's button again is the same act, so the queue answers with this job
  *   (`isSameCreationPlacedAgain`) and it is sent again as it was queued; a press
  *   whose answers changed is refused, and this job is left as it was.
+ *
+ * Every tap starts the job on a fresh run of tries, as Send Now does. A press
+ * that reaches a job already queued would otherwise add to its failures until
+ * the queue gave up on it, and the press after that would file a second
+ * creation beside the spent one.
  */
 async function sendFromTap(
   jobId: string,
@@ -267,6 +272,7 @@ async function sendFromTap(
     tell(report, { stage: "queued" });
     return;
   }
+  await jobQueue.retryJob(jobId);
   const result = await sendAndSettle(jobId, sender, report);
   if (result.success) {
     tell(report, { stage: "landed", txHash: result.txHash ?? null });

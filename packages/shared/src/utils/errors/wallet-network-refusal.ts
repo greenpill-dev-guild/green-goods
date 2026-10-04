@@ -78,9 +78,11 @@ const WRONG_NETWORK_PHRASES = [
 
 /**
  * Where each refusal names the network the write needed. wagmi's mismatch gives
- * only chain ids and is left unnamed: naming an id needs the chain table, and
- * with it viem, which the public site's startup must not load. This file ships
- * there, inside the error parser.
+ * only chain ids and is left unnamed, for two reasons. Its "connection's chain"
+ * is the one its caller asked for, or wagmi's stored chain when the caller named
+ * none, so it is not always the network the act needed. And naming an id needs
+ * the chain table, and with it viem, which the public site's startup must not
+ * load: this file ships there, inside the error parser.
  */
 const NEEDED_NETWORK_NAME = [
   /switch(?: your wallet)? to (.+?)(?: before continuing)?\./i,

@@ -25,6 +25,17 @@ interface NoticeCopy {
 
 const ICON = "h-5 w-5 flex-shrink-0";
 
+/** A wallet reader's act whose last send failed: saved, not sent, and why. */
+function failedSendCopy(failure: NonNullable<PendingCommitmentAct["sendFailure"]>): NoticeCopy {
+  return {
+    tone: "warning",
+    icon: <RiAlertLine className={ICON} aria-hidden="true" />,
+    titleId: "app.commitment.queue.notice.waiting.title",
+    bodyId: failure.messageId,
+    bodyValues: failure.values,
+  };
+}
+
 /**
  * What the notice says for each state; any reason the queue gives besides these
  * reads as waiting. A reader who sends from their own tap is never told the act
@@ -53,6 +64,9 @@ function noticeCopy(
         bodyId: "app.commitment.queue.notice.checking.body",
       };
     case "send-intent-expired":
+      // A declined network switch marks the act as a declined signature does.
+      // Only the change of network was declined, so it reads as the network.
+      if (sendsFromTap && act.sendFailure?.walletNetwork) return failedSendCopy(act.sendFailure);
       return {
         tone: "warning",
         icon: <RiAlertLine className={ICON} aria-hidden="true" />,
@@ -69,15 +83,7 @@ function noticeCopy(
           : "app.commitment.queue.notice.membership.body",
       };
     default:
-      if (sendsFromTap && act.sendFailure) {
-        return {
-          tone: "warning",
-          icon: <RiAlertLine className={ICON} aria-hidden="true" />,
-          titleId: "app.commitment.queue.notice.waiting.title",
-          bodyId: act.sendFailure.messageId,
-          bodyValues: act.sendFailure.values,
-        };
-      }
+      if (sendsFromTap && act.sendFailure) return failedSendCopy(act.sendFailure);
       return {
         tone: "warning",
         icon: <RiTimeLine className={ICON} aria-hidden="true" />,

@@ -185,11 +185,11 @@ describe("createMutationErrorHandler", () => {
 
   describe("a known error whose parser names its copy", () => {
     const wrongNetwork = {
-      title: "Wrong Network",
+      title: "Wallet On Another Network",
       message: "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again.",
       parsed: {
         raw: "Network switch rejected.",
-        name: "WrongNetwork",
+        name: "WalletOnAnotherNetwork",
         message:
           "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again.",
         titleKey: "app.errors.wallet.wrongNetwork.title",
@@ -239,7 +239,10 @@ describe("createMutationErrorHandler", () => {
       handler(new Error("Network switch rejected."));
 
       expect(mockToastError.mock.calls[0][0]).toEqual(
-        expect.objectContaining({ title: "Wrong Network", message: wrongNetwork.message })
+        expect.objectContaining({
+          title: "Wallet On Another Network",
+          message: wrongNetwork.message,
+        })
       );
     });
 

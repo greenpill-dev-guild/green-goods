@@ -909,18 +909,27 @@ describe("GardenCommitment", () => {
         },
       });
 
-    it("says it was not sent and why, and offers the send and the discard", () => {
+    // A declined network switch leaves the act marked as a declined signature
+    // does ("send-intent-expired"); any other network failure leaves it plain.
+    it.each([
+      null,
+      "send-intent-expired",
+    ])("says it was not sent and why, and offers the send and the discard (waiting reason: %s)", (waitingReason) => {
       mockUseController.mockReturnValue(
         parked({
+          waitingReason,
           sendFailure: {
             messageId: "app.errors.wallet.wrongNetwork.message",
             values: { network: "Arbitrum One" },
+            walletNetwork: true,
           },
         })
       );
       render();
 
       expect(screen.getByText("Saved on this phone, not sent")).toBeInTheDocument();
+      // Only the change of network was declined, so it never reads as a signature.
+      expect(screen.queryByText(/signature cancelled/i)).not.toBeInTheDocument();
       expect(
         screen.getByText(
           "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again."
