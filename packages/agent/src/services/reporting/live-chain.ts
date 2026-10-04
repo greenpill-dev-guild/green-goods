@@ -182,6 +182,14 @@ export function createLiveReportingChain(options: LiveChainOptions): ReportingCh
       return { gardener: Boolean(gardener), operator: Boolean(operator), owner: Boolean(owner) };
     },
 
+    async gardenOpenToJoin(_chainId, garden) {
+      return client.readContract({
+        address: garden as Addr,
+        abi: GARDEN_ACCOUNT_ROLE_ABI,
+        functionName: "openJoining",
+      });
+    },
+
     async gardenDomainMask(chainId, garden) {
       const registry = getNetworkContracts(chainId).actionRegistry as Addr;
       const mask = await client.readContract({

@@ -64,6 +64,8 @@ export interface PublishedWorkView {
 
 export interface ReportingChain {
   gardenRoles(chainId: number, garden: string, account: string): Promise<GardenRoles>;
+  /** Whether an account may join the garden itself. One closed to joining needs a steward. */
+  gardenOpenToJoin(chainId: number, garden: string): Promise<boolean>;
   gardenDomainMask(chainId: number, garden: string): Promise<number | null>;
   /** Classifies an account: code at the address, or the counterfactual factory used in its proof. */
   accountKind(
