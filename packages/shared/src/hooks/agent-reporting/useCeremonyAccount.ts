@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
 import { useSignMessage } from "wagmi";
 import type { ChallengeResponse } from "../../modules/agent-reporting/api-contract";
 import type { CeremonyClient } from "../../modules/agent-reporting/ceremony-client";
@@ -10,16 +11,19 @@ import {
 import { useAuthActions, useAuthState } from "../../providers/Auth";
 import type { Address } from "../../types/domain";
 import { getPrimaryAddress } from "../auth/usePrimaryAddress";
+import { getFriendlyLoginErrorMessage } from "../client-ui/auth/login-screen-messages";
 
 /**
  * The account half of a browser ceremony: which existing account is connected, how to connect
- * one, and how it proves ownership for this browser's challenge. It never creates an account;
- * passkey sign-in only reuses a credential this device already holds.
+ * one, and how it proves ownership for this browser's challenge. A link flow may create a
+ * passkey account before the explicit proof signature.
  */
 export interface CeremonyAccount {
   account: Address | null;
   accountKind: "wallet" | "passkey" | null;
   connecting: boolean;
+  lastFailure: string | null;
+  createAccount: (name: string) => Promise<boolean>;
   connectWallet: () => void;
   connectPasskey: () => Promise<void>;
   /** Signs the Agent's proof fields for this challenge and submits them. */
@@ -27,6 +31,8 @@ export interface CeremonyAccount {
 }
 
 export function useCeremonyAccount(): CeremonyAccount {
+  const intl = useIntl();
+  const [lastFailure, setLastFailure] = useState<string | null>(null);
   const auth = useAuthState();
   const actions = useAuthActions();
   const { signMessageAsync } = useSignMessage();
@@ -37,6 +43,34 @@ export function useCeremonyAccount(): CeremonyAccount {
     auth.embeddedAddress
   );
   const smartAccount = auth.smartAccountClient?.account;
+
+  useEffect(() => {
+    if (auth.error && !auth.isAuthenticating)
+      setLastFailure(getFriendlyLoginErrorMessage(auth.error, intl));
+  }, [auth.error, auth.isAuthenticating, intl]);
+
+  const connectPasskey = useCallback(async () => {
+    setLastFailure(null);
+    try {
+      await actions.loginWithPasskey();
+    } catch (error) {
+      setLastFailure(getFriendlyLoginErrorMessage(error, intl));
+    }
+  }, [actions, intl]);
+
+  const createAccount = useCallback(
+    async (name: string): Promise<boolean> => {
+      setLastFailure(null);
+      try {
+        await actions.createAccount(name);
+        return true;
+      } catch (error) {
+        setLastFailure(getFriendlyLoginErrorMessage(error, intl));
+        return false;
+      }
+    },
+    [actions, intl]
+  );
 
   const signer = useMemo(
     () =>
@@ -72,8 +106,13 @@ export function useCeremonyAccount(): CeremonyAccount {
     account,
     accountKind: auth.authMode === "passkey" ? "passkey" : auth.authMode === null ? null : "wallet",
     connecting: auth.isAuthenticating,
-    connectWallet: actions.loginWithWallet,
-    connectPasskey: () => actions.loginWithPasskey(),
+    lastFailure,
+    createAccount,
+    connectWallet: () => {
+      setLastFailure(null);
+      actions.loginWithWallet();
+    },
+    connectPasskey,
     prove,
   };
 }

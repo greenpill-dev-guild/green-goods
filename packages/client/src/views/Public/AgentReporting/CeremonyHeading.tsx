@@ -20,7 +20,7 @@ import type { CeremonyScreen } from "./ceremonyScreen";
 import { CEREMONY_COPY, SENT_HEADINGS } from "./messages";
 
 /** A garden's name on a line of its own: it is someone's own words, so it is cut, never wrapped. */
-function GardenLine({ children }: { children: string }) {
+export function GardenLine({ children }: { children: string }) {
   return (
     <span className="block truncate" title={children}>
       {children}

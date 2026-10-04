@@ -128,10 +128,19 @@ export function settlesUnknownOutcome(stage: CeremonyStage): boolean {
 /** Browser-scoped proof and publication flow; signing requires an explicit owner action.
  * Frozen envelopes are checked locally; the chain reconciles every uncertain send. */
 export interface AgentReportingCeremony extends Omit<CeremonyAccount, "prove"> {
+  inAppBrowser: boolean;
+  passkeyUnavailable: boolean;
+  linkCopied: boolean;
+  openInBrowser: () => Promise<void>;
   stage: CeremonyStage;
   purpose: ChallengeResponse["purpose"] | null;
   channelLabel: string | null;
   pairingCode: string | null;
+  communityOffer: { address: `0x${string}`; name: string; chainId: number } | null;
+  joinFailure: "declined" | "not_sent" | null;
+  joinSending: boolean;
+  skipCommunity: () => void;
+  joinCommunity: () => Promise<void>;
   sessionAccount: AccessResponse["account"] | null;
   resource: ResourceView | null;
   operation: OperationView | null;

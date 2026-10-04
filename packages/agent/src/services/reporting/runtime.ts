@@ -35,6 +35,7 @@ export interface ReportingSettings {
   noticeVersion: string;
   supportContact: string;
   browserOrigin: string;
+  communityGarden?: `0x${string}`;
   preConsentRetentionMs: number;
   inactiveDraftRetentionMs: number;
   linkChallengeTtlMs: number;

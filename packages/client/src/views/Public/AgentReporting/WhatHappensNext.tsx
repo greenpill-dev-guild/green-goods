@@ -13,7 +13,7 @@ const ACCOUNT: Row = {
  * for, so `any` holds for all of them; linking and moving an account ask for something else after
  * the account step, and say so.
  */
-const ROWS: Record<"any" | "link" | "move", Row[]> = {
+const ROWS: Record<"any" | "link" | "move" | "joinPasskey" | "joinWallet", Row[]> = {
   any: [
     ACCOUNT,
     {
@@ -32,6 +32,47 @@ const ROWS: Record<"any" | "link" | "move", Row[]> = {
     ACCOUNT,
     {
       title: { id: "public.reporting.next.code", defaultMessage: "Send a code in your chat" },
+      note: {
+        id: "public.reporting.next.codeNote",
+        defaultMessage: "That links this account to your chat.",
+      },
+    },
+  ],
+  joinPasskey: [
+    {
+      title: {
+        id: "public.reporting.join.signature",
+        defaultMessage: "Join with your own signature",
+      },
+      note: { id: "public.reporting.join.free", defaultMessage: "It costs nothing." },
+    },
+    {
+      title: {
+        id: "public.reporting.join.code",
+        defaultMessage: "Then send the code in your chat",
+      },
+      note: {
+        id: "public.reporting.next.codeNote",
+        defaultMessage: "That links this account to your chat.",
+      },
+    },
+  ],
+  joinWallet: [
+    {
+      title: {
+        id: "public.reporting.join.signature",
+        defaultMessage: "Join with your own signature",
+      },
+      note: {
+        id: "public.reporting.join.fee",
+        defaultMessage: "Your wallet pays a small network fee.",
+      },
+    },
+    {
+      title: {
+        id: "public.reporting.join.code",
+        defaultMessage: "Then send the code in your chat",
+      },
       note: {
         id: "public.reporting.next.codeNote",
         defaultMessage: "That links this account to your chat.",

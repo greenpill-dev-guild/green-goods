@@ -13,7 +13,7 @@ import { activeAccount, bindingForSubject, type ParticipantBinding } from "../pa
 import { resolvePrompt } from "../prompts";
 import { commitLifecycle, lifecycleState } from "./draft-commit";
 import { recordDraftConfirmation } from "./report-commands";
-import type { TurnWriter } from "./writer";
+import type { ConversationWriter, TurnWriter } from "./writer";
 
 /** How many garden names a reply lists before it counts the rest. */
 const NAMED_GARDENS = 5;
@@ -23,18 +23,18 @@ const NAMED_GARDENS = 5;
  * a proof from any other account is refused.
  */
 export function accountLink(
-  writer: TurnWriter,
+  writer: ConversationWriter,
   binding: ParticipantBinding,
   expectedAccount: Address | null
 ): string {
-  const { core, ctx } = writer;
+  const { core, target } = writer;
   return issueContinuation(core, {
     purpose: "link_account",
     participantId: binding.participantId,
-    subjectId: ctx.subjectId,
+    subjectId: target.subjectId,
     bindingId: binding.bindingId,
-    conversationId: ctx.conversationId,
-    providerRealm: conversationRealm(core, ctx.conversationId),
+    conversationId: target.conversationId,
+    providerRealm: conversationRealm(core, target.conversationId),
     resourceKind: "account",
     resourceId: null,
     resourceRevision: null,
@@ -95,6 +95,16 @@ export function requestConnection(writer: TurnWriter, named: Address | null): vo
   const linked = ctx.account?.address ?? null;
   if (linked) {
     if (named && named !== linked) return writer.say("link.accountMismatch", { account: linked });
+    if (core.settings.communityGarden && core.gardens.gardensOf(linked).length === 0) {
+      return writer.say(
+        "link.joinCommunity",
+        { account: linked },
+        {
+          url: accountLink(writer, ctx.binding, linked),
+          label: writer.text("link.joinCommunityLabel"),
+        }
+      );
+    }
     return writer.say("link.already", { account: linked, gardens: linkedGardens(writer, linked) });
   }
   const link = { url: accountLink(writer, ctx.binding, named), label: writer.text("link.label") };

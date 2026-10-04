@@ -41,6 +41,9 @@ import {
   stageForOperation,
 } from "./ceremony-stage";
 import { useCeremonyAccount } from "./useCeremonyAccount";
+import { useCommunityGardenJoin } from "./useCommunityGardenJoin";
+import { sendGardenJoin } from "../../modules/agent-reporting/garden-join";
+import { useReportingBrowser } from "./useReportingBrowser";
 
 export type { AgentReportingCeremony } from "./ceremony-stage";
 
@@ -58,6 +61,7 @@ export function useAgentReportingCeremony(
 ): AgentReportingCeremony {
   const [client] = useState(() => options.client ?? new CeremonyClient());
   const account = useCeremonyAccount();
+  const browser = useReportingBrowser();
   const sender = useTransactionSender();
   const challengeRef = useRef<string | null>(null);
   const [state, setState] = useState({
@@ -65,12 +69,20 @@ export function useAgentReportingCeremony(
     purpose: null as ChallengeResponse["purpose"] | null,
     channelLabel: null as string | null,
     pairingCode: null as string | null,
+    communityOffer: null as { address: `0x${string}`; name: string; chainId: number } | null,
+    joinFailure: null as "declined" | "not_sent" | null,
+    joinSending: false,
     access: null as AccessResponse | null,
     resource: null as ResourceView | null,
     operation: null as OperationView | null,
     grant: null as GrantView | null,
     error: null as CeremonyFailure | null,
   });
+  const eligibility = useCommunityGardenJoin(state.purpose, account.account);
+  const eligibleRef = useRef(eligibility.data ?? null);
+  eligibleRef.current = eligibility.isSuccess ? (eligibility.data ?? null) : null;
+  const joinDecidedRef = useRef(false);
+  const joinInFlightRef = useRef(false);
   const stateRef = useRef(state);
   stateRef.current = state;
   const update = useCallback((next: Partial<typeof state>) => {
@@ -139,9 +151,20 @@ export function useAgentReportingCeremony(
         case "issued":
           return update({ stage: "connect" });
         case "proof_verified":
-          return update({ stage: "pairing", pairingCode: challenge.pairingCode ?? null });
+          return update({
+            stage: "pairing",
+            pairingCode: challenge.pairingCode ?? null,
+            communityOffer:
+              challenge.purpose === "link_account" && !joinDecidedRef.current
+                ? eligibleRef.current
+                : null,
+          });
         case "paired":
-          if (challenge.purpose === "link_account") return update({ stage: "linked" });
+          if (challenge.purpose === "link_account")
+            return update({
+              stage: "linked",
+              communityOffer: !joinDecidedRef.current ? eligibleRef.current : null,
+            });
           return openAccess(challenge.challengeId);
         default:
           return update({ stage: "unavailable", error: "expired" });
@@ -308,6 +331,31 @@ export function useAgentReportingCeremony(
     });
   }, [account.account, client, fail, loadResource, requestId, sender, update]);
 
+  const skipCommunity = useCallback(() => {
+    joinDecidedRef.current = true;
+    update({ communityOffer: null, joinFailure: null });
+  }, [update]);
+
+  const joinCommunity = useCallback(async () => {
+    const offer = stateRef.current.communityOffer;
+    if (!offer || !sender || !account.account || joinInFlightRef.current) return;
+    joinInFlightRef.current = true;
+    update({ joinSending: true, joinFailure: null });
+    const result = await sendGardenJoin(sender, {
+      garden: offer.address,
+      account: account.account,
+      chainId: offer.chainId,
+    });
+    joinInFlightRef.current = false;
+    if (result.kind === "not_sent") {
+      update({ joinSending: false, joinFailure: result.cancelled ? "declined" : "not_sent" });
+      return;
+    }
+    // A send that may have gone out is never offered a second time.
+    joinDecidedRef.current = true;
+    update({ communityOffer: null, joinSending: false, joinFailure: null });
+  }, [account.account, sender, update]);
+
   const leave = useCallback(async () => {
     const access = stateRef.current.access;
     clearCeremony(requestId);
@@ -326,10 +374,16 @@ export function useAgentReportingCeremony(
 
   return {
     ...account,
+    ...browser,
     stage: state.stage,
     purpose: state.purpose,
     channelLabel: state.channelLabel,
     pairingCode: state.pairingCode,
+    communityOffer: state.communityOffer,
+    joinFailure: state.joinFailure,
+    joinSending: state.joinSending,
+    skipCommunity,
+    joinCommunity,
     sessionAccount: state.access?.account ?? null,
     resource: state.resource,
     operation: state.operation,

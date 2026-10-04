@@ -212,6 +212,13 @@ function applyTurn(
           handleReportMessage(writer, { kind: "message", text: null, media: [] }, external);
       } else if (plan.prompt.kind === "grant_choice" && plan.option) {
         answerGrantChoice(writer, plan.option.value);
+      } else if (
+        plan.prompt.kind === "join_community" &&
+        (plan.option?.value === "retry" ||
+          plan.text?.trim() === "1" ||
+          plan.text?.trim().toLowerCase() === plan.prompt.options[0]?.label.toLowerCase())
+      ) {
+        handleReportCommand(writer, { kind: "retry" }, external);
       } else if (plan.prompt.kind === "connect_offer") {
         answerConnectionOffer(writer, plan.option !== null);
       } else if (plan.prompt.kind === "confirm_report" && plan.option) {

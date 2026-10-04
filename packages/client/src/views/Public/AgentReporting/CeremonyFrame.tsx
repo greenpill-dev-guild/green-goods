@@ -13,7 +13,7 @@ import type { CeremonyProblem } from "./failures";
 export interface CeremonyHeading {
   title: MessageDescriptor | string;
   info: ReactNode;
-  Icon: RemixiconComponentType;
+  Icon?: RemixiconComponentType;
 }
 
 /** The words saying why an act is switched off, which the act names as its description. */
@@ -55,6 +55,7 @@ export function CeremonyFrame({
   children,
   actions = null,
   barStatus = null,
+  hideHeadingIcon = false,
 }: {
   /** `state` draws the heading as the app's empty state and leaves out the steps and the bar. */
   screen?: "step" | "state";
@@ -71,6 +72,7 @@ export function CeremonyFrame({
   actions?: ReactNode;
   /** In place of acts: where the request stands, at the act's height. */
   barStatus?: ReactNode;
+  hideHeadingIcon?: boolean;
 }) {
   const intl = useIntl();
   const title =
@@ -102,7 +104,7 @@ export function CeremonyFrame({
             titleAs="h1"
             headingId="ceremony-title"
             tone="warning"
-            icon={<heading.Icon />}
+            icon={heading.Icon ? <heading.Icon /> : undefined}
             title={title}
             description={heading.info}
           />
@@ -130,7 +132,7 @@ export function CeremonyFrame({
                   )}
                 </span>
               }
-              Icon={heading.Icon}
+              Icon={hideHeadingIcon ? undefined : heading.Icon}
               // Enlarged text may need more than the form card's cap; it grows rather than clips.
               className="max-h-none"
             />
