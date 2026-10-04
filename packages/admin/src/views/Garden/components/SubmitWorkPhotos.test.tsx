@@ -3,7 +3,10 @@
  * photo requirement is met, opens a photo in the shared preview, removes one, and lets go of the
  * object URLs it made.
  */
+import enMessages from "@green-goods/shared/i18n/en.json";
 import esMessages from "@green-goods/shared/i18n/es.json";
+import { render as renderBare } from "@testing-library/react";
+import { StrictMode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/__tests__/test-utils";
@@ -161,5 +164,22 @@ describe("SubmitWorkPhotos", () => {
     unmount();
 
     expect(revoked).toEqual(["blob:photo-2", "blob:photo-1"]);
+  });
+
+  it("draws live object URLs under StrictMode, which runs each effect twice", () => {
+    // StrictMode is outermost, as in the cockpit: React skips the second pass for one mounted
+    // under a parent that is not strict.
+    const { container } = renderBare(
+      <StrictMode>
+        <IntlProvider locale="en" messages={enMessages}>
+          <SubmitWorkPhotos images={staged(2)} minRequired={2} onRemove={vi.fn()} />
+        </IntlProvider>
+      </StrictMode>
+    );
+
+    // The first pass's URLs are let go with it, and the tiles draw the second pass's.
+    expect(revoked).toEqual(["blob:photo-1", "blob:photo-2"]);
+    const drawn = [...container.querySelectorAll("img")].map((image) => image.getAttribute("src"));
+    expect(drawn).toEqual(["blob:photo-3", "blob:photo-4"]);
   });
 });

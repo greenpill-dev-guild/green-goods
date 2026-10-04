@@ -418,17 +418,14 @@ export const MediaStepStaging: Story = {
     const count = () => photos().getByRole("status");
     await expect(count()).toHaveTextContent("0 of 2 photos");
 
-    // The fixtures are drawings named as photos, so the picker's type filter is
-    // off. Each is under the 1 MB compression threshold and stages as it is.
+    // Each photo is under the 1 MB compression threshold, so it stages as it is.
     const input = flow.querySelector<HTMLInputElement>('input[type="file"]');
     if (!input) throw new Error("The media step renders no file input");
-    await userEvent
-      .setup({ applyAccept: false })
-      .upload(input, [
-        stagedWorkPhoto("east-bed-before.jpg", 420_000),
-        stagedWorkPhoto("east-bed-after.jpg", 510_000),
-        stagedWorkPhoto("seedling-tray.jpg", 640_000),
-      ]);
+    await userEvent.upload(input, [
+      stagedWorkPhoto("east-bed-before.jpg", 420_000),
+      stagedWorkPhoto("east-bed-after.jpg", 510_000),
+      stagedWorkPhoto("seedling-tray.jpg", 640_000),
+    ]);
     const preview = await within(flow).findByRole(
       "button",
       { name: "Preview east-bed-after.jpg" },
