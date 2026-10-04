@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:87bc2a57d9cde4ea112486dd25e549506e36adbaacdd012937ad9e72d4b08f73"
+source_digest: "sha256:90e3e2d4766c023318c6c830bae89ee9c7eed8973fcb4eb099aa324c1b3c1e84"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -217,7 +217,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 
 ## PWA
 
-### P0 — run these first (39) {#pwa-p0}
+### P0 — run these first (40) {#pwa-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -246,6 +246,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-118` | Transaction | Commitments | A threshold of two needs both named confirmers before it is kept | Screenshots of the count after the first confirmation and of the Kept band |
 | `PWA-124` | Transaction | Commitments | Take up a commitment minutes after joining the garden | Screenshots before and after the take-up |
 | `PWA-136` | Journey | Work | Resume and discard saved work drafts from Your Work Pending and its Editing filter | Screenshots of Pending and Editing, the restored wizard and the discard confirmation |
+| `PWA-138` | Journey | Work | Start Fresh on a saved work draft keeps the draft in Your Work | Screenshots of the sheet, the empty wizard, Editing with both drafts and the restored wizard |
 | `PWA-AND-001` | Journey | Install | [Android] Fresh Android install launches standalone | Screen recording |
 | `PWA-AND-002` | Resilience | Update | [Android] Existing Android install updates without split state | Screen recording |
 | `PWA-AND-004` | Transaction | Offline | Offline queue survives app close and reconnect | Screen recording plus queue/status screenshot |
