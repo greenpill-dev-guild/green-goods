@@ -48,7 +48,7 @@ export interface CommitmentDialogPanelProps {
    * has a seeding wizard passes it, and only the pool's stewards are offered it.
    */
   onSeedAnother?: (commitmentId: string) => void;
-  /** Open at the waiting list, as a Waiting for approval row does (PRD-1025 D4). */
+  /** Open at the waiting list, as a Review Promises row does (PRD-1025 D4). */
   focus?: "waiting";
 }
 

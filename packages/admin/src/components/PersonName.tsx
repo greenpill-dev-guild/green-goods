@@ -15,7 +15,7 @@ interface PersonNameProps {
 /**
  * What the cockpit calls a person: their Green Goods name, then their ENS name,
  * then a short address, never a raw hex string. One lookup, so a confirmer
- * chip, a member suggestion and a row waiting for approval name the same
+ * chip, a member suggestion and a Review Promises row name the same
  * person the same way, in one style (PRD-1025 D11): 14px semibold sans.
  */
 export function PersonName({ address, className, children }: PersonNameProps) {

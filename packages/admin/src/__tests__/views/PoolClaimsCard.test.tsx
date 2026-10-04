@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 
 /**
- * Waiting for approval holds steady for the visit: one quiet line when nothing
+ * Review Promises holds steady for the visit: one quiet line when nothing
  * waits, a decided row stays as its outcome after the index moves on, a failed
  * approval brings the pair back as Try Again, and a new ask joins the end.
  */
@@ -61,13 +61,22 @@ function card(overrides: Partial<PoolConsoleController> = {}) {
   };
 }
 
-describe("PoolClaimsCard (Waiting for approval)", () => {
-  it("stays in place with one quiet line when nothing waits", () => {
-    card({ claims: [] });
-    const waiting = screen.getByTestId("pool-claims");
-    expect(within(waiting).getByRole("heading", { name: "Waiting for approval" })).toBeVisible();
-    expect(within(waiting).getByText("Nothing waiting for approval.")).toBeInTheDocument();
-    expect(within(waiting).queryByRole("list")).not.toBeInTheDocument();
+describe("PoolClaimsCard (Review Promises)", () => {
+  it("stays in place with one quiet line when nothing waits, and says whose decision it is once someone asks", () => {
+    const view = card({ claims: [] });
+    const review = screen.getByTestId("pool-claims");
+    expect(within(review).getByRole("heading", { name: "Review Promises" })).toBeVisible();
+    expect(within(review).getByText("Nothing to review.")).toBeInTheDocument();
+    expect(within(review).queryByRole("list")).not.toBeInTheDocument();
+
+    view.rerender({ claims: [ines] });
+    expect(within(review).getByRole("heading", { name: "Review Promises" })).toBeVisible();
+    expect(
+      within(review).getByText(
+        "Neighbours asking to take a promise up. Approving one closes the others on that promise."
+      )
+    ).toBeInTheDocument();
+    expect(within(review).queryByText("Nothing to review.")).not.toBeInTheDocument();
   });
 
   it("approves from the row in one click, asks a reason to decline, and opens the ask's promise", () => {

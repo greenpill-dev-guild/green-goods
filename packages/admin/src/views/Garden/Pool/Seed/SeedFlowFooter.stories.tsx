@@ -117,5 +117,5 @@ export const PartialResult: Story = { args: { phase: "partial", mode: "one-by-on
 
 export const Created: Story = { args: { phase: "created" } };
 
-/** One copy waits in the queue: Done, and it is finished from the pool tab. */
+/** One copy waits in the queue: Done, and it is finished from the Promises tab. */
 export const FinishLater: Story = { args: { phase: "finishLater", mode: "one-by-one" } };

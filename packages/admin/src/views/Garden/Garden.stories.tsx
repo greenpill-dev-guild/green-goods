@@ -150,8 +150,8 @@ export const Activity: Story = {
 // Members tab retired — "Manage Members" now opens ManageMembersDialog from
 // the community workspace rather than a browsable Garden workspace tab.
 
-// The steward's pool console on the Garden workspace's Pool tab (W7), seeded
-// through the registry keys the pool controller reads.
+// The steward's pool console on the Garden workspace's Promises tab (W7),
+// seeded through the registry keys the pool controller reads.
 export const Pool: Story = {
   tags: ["visual-harness"],
   args: { initialPath: "/garden/pool" },

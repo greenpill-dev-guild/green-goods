@@ -23,8 +23,8 @@ import { timelineTime } from "../poolTime";
 import type { OpenDialog } from "./commitmentDialogPresentation";
 
 /**
- * Who asked to take the promise up (PRD-1025 D4), where a row on the Pool
- * tab's Waiting for approval card opens: each ask named the way the steward
+ * Who asked to take the promise up (PRD-1025 D4), where a row on the Promises
+ * tab's Review Promises card opens: each ask named the way the steward
  * knows the person, when they asked and for whom, and, on a request, what they
  * already hold in this pool and have kept. Approve stays one click and its row
  * then says where it stands; Decline… asks for a reason and closes that ask

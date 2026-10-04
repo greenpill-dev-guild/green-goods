@@ -13,7 +13,7 @@ import { SeedCommitmentDialog } from "@/views/Garden/Pool/Seed";
 interface GardenSheetDescriptorProps {
   hypercertId: string | undefined;
   closeTo: string;
-  /** `/garden/pool/seed`: the seeding console, a flow dialog over the Pool tab. */
+  /** `/garden/pool/seed`: the seeding console, a flow dialog over the Promises tab. */
   poolSeedOpen?: boolean;
   /** `/garden/pool/:commitmentId`: one commitment in the left inspector. */
   poolCommitmentId?: string;
