@@ -135,6 +135,44 @@ describe("useCommitmentQueueState", () => {
     expect(result.current.pendingActs.size).toBe(1);
   });
 
+  it("says why a queued act's last send failed, in copy a row can show", async () => {
+    // A wallet reader's act waits for their own send, so the row has to say what
+    // went wrong the last time: the network it needed, or the kind of failure.
+    mocks.getJobs.mockResolvedValue([
+      // A declined network switch: the queue marks the act as it marks a declined
+      // signature, and the reason says it was the network.
+      creation({
+        id: "claim-1",
+        kind: "claim",
+        payload: { commitmentId: 9n, gardenAddress: VIEWER },
+        attempts: 1,
+        meta: { requiresExplicitSend: true },
+        lastError:
+          "Network switch rejected. Approve the wallet prompt to switch to Arbitrum One before continuing.",
+      }),
+      creation({ id: "create-1", attempts: 1, lastError: "HTTP request failed: Failed to fetch" }),
+      creation({ id: "create-2" }),
+      // A creation that gave up says so in its own words, not as a failed send.
+      creation({ id: "create-3", attempts: 5, lastError: "Max retries (5) exceeded" }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingCreates).toHaveLength(3));
+
+    expect(result.current.pendingActs.get("9")).toMatchObject({
+      waitingReason: "send-intent-expired",
+      sendFailure: {
+        messageId: "app.errors.wallet.wrongNetwork.message",
+        values: { network: "Arbitrum One" },
+        walletNetwork: true,
+      },
+    });
+    const failureOf = (jobId: string) =>
+      result.current.pendingCreates.find((row) => row.jobId === jobId)?.sendFailure;
+    expect(failureOf("create-1")).toEqual({ messageId: "app.errors.blockchain.network.message" });
+    expect(failureOf("create-2")).toBeUndefined();
+    expect(failureOf("create-3")).toBeUndefined();
+  });
+
   it("holds Discard back from an act whose send is on record, and says it is confirming", async () => {
     // The transaction may still land; dropping the job would lose its only
     // local record, so the row confirms it instead.

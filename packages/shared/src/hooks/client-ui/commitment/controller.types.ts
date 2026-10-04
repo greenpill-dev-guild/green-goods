@@ -101,6 +101,11 @@ export interface GardenCommitmentController {
     proofSending: boolean;
     /** What that proof carries, until the promise's own record counts it. */
     proofOnItsWay: ProofContents | null;
+    /**
+     * A queued act goes only when the reader sends it (a wallet sign-in). No
+     * background flush runs for them, so no notice may promise it sends itself.
+     */
+    sendsFromTap: boolean;
     isUnavailable: boolean;
     refresh: () => void;
   };

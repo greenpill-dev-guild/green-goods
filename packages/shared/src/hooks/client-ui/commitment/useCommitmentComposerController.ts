@@ -258,6 +258,7 @@ export function useCommitmentComposerController(
     hasPool: Boolean(pool),
     poolOpen,
     isPending: jobs.isPending,
+    sendsFromTap: jobs.sendsFromTap,
     resumeDraft,
     startFresh,
     place,

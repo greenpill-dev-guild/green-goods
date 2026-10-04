@@ -121,6 +121,7 @@ export function gardenCommitmentControllerFixture(
       pendingAct: null,
       proofSending: false,
       proofOnItsWay: null,
+      sendsFromTap: false,
       isUnavailable: false,
       refresh: () => undefined,
     },

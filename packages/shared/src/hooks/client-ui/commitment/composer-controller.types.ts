@@ -32,6 +32,8 @@ export interface CommitmentComposerController {
   hasPool: boolean;
   poolOpen: boolean;
   isPending: boolean;
+  /** Placing asks the reader's wallet to send it; nothing sends it for them later. */
+  sendsFromTap: boolean;
   resumeDraft: () => void;
   startFresh: () => void;
   place: () => Promise<boolean>;
