@@ -25,6 +25,17 @@ function asTimeframeDay(seconds: number): number {
   return toUtcDay(seconds);
 }
 
+/**
+ * A text field of a saved draft. The draft is read back from the browser's
+ * storage, so the field can come back as anything; one that is not text is
+ * read as empty. The wizard calls string methods on all three: the metadata
+ * step's rule trims the title, the autosave trims the title and description,
+ * and the metadata builder trims the link.
+ */
+function asText(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 function withTimeframeDays<Fields extends Partial<HypercertTimeframes>>(fields: Fields): Fields {
   const kept: Partial<HypercertTimeframes> = {};
   if (typeof fields.workTimeframeStart === "number") {
@@ -140,7 +151,7 @@ export function loadHypercertDraftTransition(
     impactTimeframeStart: draft.impactTimeframeStart ?? 0,
     impactTimeframeEnd: draft.impactTimeframeEnd,
   });
-  const title = draft.title ?? "";
+  const title = asText(draft.title);
   const workScopes = draft.workScopes ?? [];
   // A draft reopens past the metadata step only if it would pass that step
   // now. Next has not always waited on the order, and an end no calendar holds
@@ -155,7 +166,7 @@ export function loadHypercertDraftTransition(
     currentStep,
     selectedAttestationIds: draft.attestationIds,
     title,
-    description: draft.description ?? "",
+    description: asText(draft.description),
     workScopes,
     impactScopes: draft.impactScopes ?? [],
     ...timeframes,
@@ -163,7 +174,7 @@ export function loadHypercertDraftTransition(
     capitals: draft.capitals ?? [],
     outcomes: draft.outcomes ?? { predefined: {}, custom: {} },
     allowlist: draft.allowlist ?? [],
-    externalUrl: draft.externalUrl ?? "",
+    externalUrl: asText(draft.externalUrl),
     draftId: draft.id,
     lastSavedAt: draft.updatedAt,
   };
