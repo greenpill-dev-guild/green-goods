@@ -34,10 +34,18 @@ export function stagedWorkPhotos(count: number): File[] {
   );
 }
 
-/** A short clip: the one kind of staged media the browser cannot draw as a still. */
+/** A short clip, which has no still to draw. */
 export function stagedWorkVideo(name: string): File {
   return new File([new Uint8Array(4_200_000)], name, {
     type: "video/mp4",
+    lastModified: LAST_MODIFIED,
+  });
+}
+
+/** A HEIC photo as the flow stages it while the decoder cannot load: its original bytes. */
+export function stagedUnconvertedHeic(name: string): File {
+  return new File([new Uint8Array(2_650_000)], name, {
+    type: "image/heic",
     lastModified: LAST_MODIFIED,
   });
 }

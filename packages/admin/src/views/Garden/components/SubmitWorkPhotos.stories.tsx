@@ -3,6 +3,7 @@ import { useState } from "react";
 import { fn } from "storybook/test";
 import { withAdminPrimitiveFrame, withI18n } from "../../../../../shared/.storybook/decorators";
 import {
+  stagedUnconvertedHeic,
   stagedWorkPhoto,
   stagedWorkPhotos,
   stagedWorkVideo,
@@ -41,14 +42,15 @@ export const BelowRequirement: Story = {
 };
 
 /**
- * Worst case: a name longer than its tile, and a video, which has no still to
- * open. The count matches what the Next button checks, so it counts the video.
+ * Worst case: a name longer than its tile, and two files that are staged but
+ * are not photos to open or count: a video, and a HEIC still waiting to convert.
  */
-export const LongNamesAndVideo: Story = {
+export const LongNamesAndOtherFiles: Story = {
   args: {
     images: [
       stagedWorkPhoto("IMG_20261003_174512_east-beds-before-mulching-wide-angle.jpg", 3_870_000),
       stagedWorkVideo("walkthrough-of-the-east-beds.mp4"),
+      stagedUnconvertedHeic("IMG_0042.HEIC"),
       ...stagedWorkPhotos(1),
     ],
   },

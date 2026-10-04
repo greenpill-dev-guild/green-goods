@@ -448,7 +448,7 @@ export const MediaStepStaging: Story = {
     // The flow is a dialog on the modal layer, so the preview's scrim has to sit
     // on that layer and after it, or the flow shows through around the photo.
     await userEvent.click(preview);
-    const viewer = await screen.findByRole("dialog", { name: "Image preview" });
+    const viewer = await screen.findByRole("dialog", { name: "Image Preview" });
     await expect(within(viewer).getByText("2 / 3")).toBeVisible();
     const scrim = page.querySelector('[data-component="ImagePreviewDialog"][data-slot="overlay"]');
     if (!scrim) throw new Error("The preview renders no scrim");
@@ -459,9 +459,9 @@ export const MediaStepStaging: Story = {
     ).toBeTruthy();
 
     // Closing the preview leaves the flow open and hands focus back to the tile.
-    await userEvent.click(within(viewer).getByRole("button", { name: "Close preview" }));
+    await userEvent.click(within(viewer).getByRole("button", { name: "Close Preview" }));
     await waitFor(() =>
-      expect(screen.queryByRole("dialog", { name: "Image preview" })).not.toBeInTheDocument()
+      expect(screen.queryByRole("dialog", { name: "Image Preview" })).not.toBeInTheDocument()
     );
     await expect(preview).toHaveFocus();
 

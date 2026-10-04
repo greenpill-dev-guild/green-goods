@@ -7,17 +7,23 @@
 import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImagePreviewDialog";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
-import { getWorkMediaId, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
+import {
+  getWorkMediaId,
+  isHeicFile,
+  isVideoFile,
+} from "@green-goods/shared/modules/work/media-processing";
 import {
   RiCheckLine,
   RiCloseLine,
   RiFilmLine,
   RiImageAddLine,
+  RiImageLine,
   RiZoomInLine,
 } from "@remixicon/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton, AdminIconButton } from "@/components/AdminButton";
+import { imagePreviewLabels } from "@/components/imagePreviewLabels";
 
 export interface SubmitWorkPhotosProps {
   /** Media staged for this submission, in the order it was added. */
@@ -33,6 +39,15 @@ const BYTES_PER_MEGABYTE = BYTES_PER_KILOBYTE * 1024;
 const OVERLAY_MOTION =
   "duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] motion-reduce:transition-none";
 
+/**
+ * A staged file the browser can draw and a submission counts as a photo. A
+ * video is not one, and neither is a HEIC still waiting to convert: both stay
+ * staged as file tiles, with nothing to open.
+ */
+function isStagedPhoto(file: File) {
+  return !isVideoFile(file) && !isHeicFile(file);
+}
+
 export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPhotosProps) {
   const { formatMessage, formatNumber } = useIntl();
   const [previewFile, setPreviewFile] = useState<File | null>(null);
@@ -40,8 +55,7 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
 
   // One object URL per staged photo, held for as long as the photo is staged, so
   // adding or removing one never re-decodes the others. A layout effect, so a new
-  // tile paints with its picture instead of flashing the file tile first. A video
-  // has no still to draw and keeps the file tile.
+  // tile paints with its picture instead of flashing the file tile first.
   const liveUrls = useRef(new Map<File, string>());
   const [urls, setUrls] = useState<ReadonlyMap<File, string>>(() => new Map());
   useLayoutEffect(() => {
@@ -53,7 +67,7 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
       live.delete(file);
     }
     for (const file of images) {
-      if (!live.has(file) && !isVideoFile(file)) live.set(file, URL.createObjectURL(file));
+      if (!live.has(file) && isStagedPhoto(file)) live.set(file, URL.createObjectURL(file));
     }
     setUrls(new Map(live));
   }, [images]);
@@ -65,8 +79,9 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
     };
   }, []);
 
-  // The same count the Next button checks, so the badge and the gate agree.
-  const count = images.length;
+  // The requirement is in photos, so only photos count, as they do when the work
+  // is submitted. The flow's Next gate is looser: it counts every staged file.
+  const count = images.filter(isStagedPhoto).length;
   const met = count >= minRequired;
   const showCount = minRequired > 0 || count > 0;
 
@@ -117,7 +132,7 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
         </StatusBadge>
       ) : null}
 
-      {count > 0 ? (
+      {images.length > 0 ? (
         <ul
           aria-label={formatMessage({ id: "app.admin.work.submit.section.photos" })}
           className="grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-3"
@@ -142,7 +157,7 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
                       aria-haspopup="dialog"
                       aria-label={previewLabel}
                       title={previewLabel}
-                      className="group my-0 aspect-square h-auto w-full min-w-0 overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak p-0"
+                      className="group my-0 flex aspect-square h-auto w-full min-w-0 overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak p-0"
                     >
                       <ImageWithFallback
                         src={url}
@@ -161,7 +176,11 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
                     </AdminButton>
                   ) : (
                     <div className="flex aspect-square items-center justify-center rounded-lg border border-stroke-soft bg-bg-weak text-text-soft">
-                      <RiFilmLine className="h-6 w-6" aria-hidden="true" />
+                      {isVideoFile(file) ? (
+                        <RiFilmLine className="h-6 w-6" aria-hidden="true" />
+                      ) : (
+                        <RiImageLine className="h-6 w-6" aria-hidden="true" />
+                      )}
                     </div>
                   )}
                   <AdminIconButton
@@ -193,6 +212,7 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
           lifted to that layer to cover it instead of sitting underneath. */}
       <ImagePreviewDialog
         className="!z-modal"
+        labels={imagePreviewLabels(formatMessage)}
         isOpen={previewOpen}
         onClose={() => setPreviewFile(null)}
         images={previewable.map((file) => urls.get(file) ?? "")}

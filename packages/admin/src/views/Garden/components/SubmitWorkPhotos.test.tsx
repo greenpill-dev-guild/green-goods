@@ -3,6 +3,8 @@
  * photo requirement is met, opens a photo in the shared preview, removes one, and lets go of the
  * object URLs it made.
  */
+import esMessages from "@green-goods/shared/i18n/es.json";
+import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/__tests__/test-utils";
 import { SubmitWorkPhotos } from "./SubmitWorkPhotos";
@@ -10,6 +12,7 @@ import { SubmitWorkPhotos } from "./SubmitWorkPhotos";
 const photo = (name: string, sizeBytes = 2048) =>
   new File([new Uint8Array(sizeBytes)], name, { type: "image/jpeg" });
 const video = (name: string) => new File([new Uint8Array(2048)], name, { type: "video/mp4" });
+const heic = (name: string) => new File([new Uint8Array(2048)], name, { type: "image/heic" });
 
 function staged(count: number) {
   return Array.from({ length: count }, (_, index) => photo(`photo-${index + 1}.jpg`));
@@ -69,9 +72,25 @@ describe("SubmitWorkPhotos", () => {
 
     await user.click(screen.getByRole("button", { name: "Preview photo-2.jpg" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Image preview" });
+    const dialog = await screen.findByRole("dialog", { name: "Image Preview" });
     expect(within(dialog).getByText("2 / 3")).toBeInTheDocument();
     expect(within(dialog).getByAltText("Preview 2")).toHaveAttribute("src", "blob:photo-2");
+  });
+
+  it("labels the preview in the steward's language", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <IntlProvider locale="es" messages={esMessages}>
+        <SubmitWorkPhotos images={staged(2)} minRequired={2} onRemove={vi.fn()} />
+      </IntlProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Abrir vista previa de photo-1.jpg" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Vista previa de imagen" });
+    for (const name of ["Acercar", "Descargar imagen", "Imagen siguiente", "Cerrar vista previa"]) {
+      expect(within(dialog).getByRole("button", { name })).toBeInTheDocument();
+    }
   });
 
   it("returns focus to the tile once the preview closes", async () => {
@@ -80,7 +99,7 @@ describe("SubmitWorkPhotos", () => {
     const tile = screen.getByRole("button", { name: "Preview photo-2.jpg" });
 
     await user.click(tile);
-    await user.click(await screen.findByRole("button", { name: "Close preview" }));
+    await user.click(await screen.findByRole("button", { name: "Close Preview" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(tile).toHaveFocus();
@@ -99,25 +118,31 @@ describe("SubmitWorkPhotos", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("lists a video without a preview and pages the dialog over the photos only", async () => {
+  it("keeps a video or an unconverted HEIC as a file that neither opens nor counts", async () => {
     const user = userEvent.setup();
     renderWithProviders(
       <SubmitWorkPhotos
-        images={[photo("before.jpg"), video("walkthrough.mp4"), photo("after.jpg")]}
-        minRequired={2}
+        images={[
+          photo("before.jpg"),
+          video("walkthrough.mp4"),
+          heic("IMG_0042.HEIC"),
+          photo("after.jpg"),
+        ]}
+        minRequired={3}
         onRemove={vi.fn()}
       />
     );
 
-    expect(screen.getByText("walkthrough.mp4")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Remove walkthrough.mp4" })).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Preview walkthrough.mp4" })
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("2 of 3 photos");
+    for (const name of ["walkthrough.mp4", "IMG_0042.HEIC"]) {
+      expect(screen.getByText(name)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: `Remove ${name}` })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: `Preview ${name}` })).not.toBeInTheDocument();
+    }
 
     await user.click(screen.getByRole("button", { name: "Preview after.jpg" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Image preview" });
+    const dialog = await screen.findByRole("dialog", { name: "Image Preview" });
     expect(within(dialog).getByText("2 / 2")).toBeInTheDocument();
   });
 

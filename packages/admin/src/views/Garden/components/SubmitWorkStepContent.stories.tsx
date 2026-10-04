@@ -112,7 +112,7 @@ export const MediaPreviewOpen: Story = {
       await canvas.findByRole("button", { name: "Preview east-bed-after.jpg" })
     );
     const dialog = await within(canvasElement.ownerDocument.body).findByRole("dialog", {
-      name: "Image preview",
+      name: "Image Preview",
     });
     await expect(within(dialog).getByText("2 / 3")).toBeVisible();
   },
