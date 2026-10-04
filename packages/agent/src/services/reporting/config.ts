@@ -1,11 +1,13 @@
 import { join } from "node:path";
 
 /**
- * Agent reporting configuration, read from the root `.env`. Only secrets live there: the key list,
- * whose absence keeps reporting off, and the model providers' keys. Which chat channels take
- * reports, and everything else an operator decides at runtime (intake, model processing,
- * documents, voice, publication), are persistent operator controls. New databases use Telegram-first
- * rollout defaults; voice and WhatsApp start off. Model versions and browser origin are fixed in code.
+ * Agent reporting configuration, read from the root `.env`. Secrets live there: the key list,
+ * whose absence keeps reporting off, and the model providers' keys. So does one closed choice,
+ * `AGENT_REPORTING_SITE`: the Green Goods site this deployment runs its ceremonies on. Which chat
+ * channels take reports, and everything else an operator decides at runtime (intake, model
+ * processing, documents, voice, publication), are persistent operator controls. New databases use
+ * Telegram-first rollout defaults; voice and WhatsApp start off. Model versions and each site's
+ * address are fixed in code.
  */
 export interface ReportingConfig {
   dbPath: string;
@@ -55,16 +57,34 @@ const JEV_BASE_URL = "https://api.typesafe.ai";
 const WORKER_INTERVAL_MS = 2_000;
 
 /**
- * Where ceremony links point and the only origin the ceremony API accepts: the installed app's
- * public origin, where people's passkeys live. Outside production that is the local Client dev
- * server; the loopback driver and the tests bring their own.
+ * The Green Goods sites a deployed Agent can run ceremonies on. A deployment serves exactly one:
+ * its ceremony links point there and the ceremony API accepts no other origin.
+ * `AGENT_REPORTING_SITE` names the site and the addresses are fixed here, so no environment value
+ * can send a ceremony to another host. `production` is the public site, built from `main`, where
+ * people's passkeys live. `beta` is the staging site, built from `develop`: it lets a release be
+ * tested against the live Agent before `main` carries it, and while it is selected a ceremony on
+ * the public site is refused. Outside production the origin is the local Client dev server,
+ * whichever site is named; the loopback driver and the tests bring their own.
  */
-const PRODUCTION_BROWSER_ORIGIN = "https://www.greengoods.app";
+const SITE_ORIGINS = {
+  production: "https://www.greengoods.app",
+  beta: "https://beta.greengoods.app",
+} as const;
+type ReportingSite = keyof typeof SITE_ORIGINS;
 const LOCAL_BROWSER_ORIGIN = "https://localhost:3001";
 
 function text(value: string | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+/** An unset site is the public one. A name this build does not know is refused, never guessed. */
+function reportingSite(value: string | undefined): ReportingSite {
+  const name = text(value) ?? "production";
+  if (!Object.hasOwn(SITE_ORIGINS, name)) {
+    throw new Error(`AGENT_REPORTING_SITE must be one of: ${Object.keys(SITE_ORIGINS).join(", ")}`);
+  }
+  return name as ReportingSite;
 }
 
 /** Provider-only evaluation does not need a database, wrapping keys or chat credentials. */
@@ -103,12 +123,13 @@ export function loadReportingConfig(
 ): ReportingConfig | null {
   const keys = text(env.AGENT_REPORTING_KEYS);
   if (!keys) return null;
+  const site = reportingSite(env.AGENT_REPORTING_SITE);
   const pinataJwt = text(env.PINATA_JWT);
   return {
     dbPath: join(base.dataDir, "reporting.db"),
     mediaDir: join(base.dataDir, "reporting-media"),
     keys,
-    browserOrigin: base.isProduction ? PRODUCTION_BROWSER_ORIGIN : LOCAL_BROWSER_ORIGIN,
+    browserOrigin: base.isProduction ? SITE_ORIGINS[site] : LOCAL_BROWSER_ORIGIN,
     ...loadReportingProviders(env, models),
     pinata: pinataJwt
       ? {

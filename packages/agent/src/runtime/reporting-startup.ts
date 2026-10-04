@@ -106,6 +106,7 @@ export function startReporting(input: {
   log.info(
     {
       channels: [...adapters.keys()],
+      browserOrigin: config.browserOrigin,
       extraction: Boolean(config.openai),
       transcription: Boolean(config.openai?.transcriptionModel),
       jev: config.interpretation.provider === "jev",

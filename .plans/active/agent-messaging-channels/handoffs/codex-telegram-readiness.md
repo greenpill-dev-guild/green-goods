@@ -1,6 +1,6 @@
 # Telegram-first implementation and live-session handoff
 
-**Updated:** 2026-10-02
+**Updated:** 2026-10-03
 **Owner:** Codex; Afolabi owns live testing and deployment
 **Branch:** `feature/agent-reporting-telegram` (PR #949, stacked on #934 and #864)
 **State:** first-report activation follow-up implemented; complete selected critical worktree gate and final-image Office smoke passed; production release and live acceptance unrun
@@ -290,7 +290,32 @@ Recorded by the Claude interface session with Afolabi. The sections above predat
 - **Develop merged in.** The branch contains develop as of `df0484c68`, and the pull request now
   targets develop directly. GitHub's stack link between the three pull requests was removed,
   because the middle branch conflicted with develop and that stopped CI for the top one.
-- **Where the live Agent can be tested.** A production Agent links to and accepts only
-  `https://www.greengoods.app`, which is built from `main` (decision of 29 September: no
-  browser-origin setting). A merge into develop puts the pages on staging, which the live Agent
-  does not use. Live testing needs the release to main; the laptop route needs neither.
+- **Where the live Agent can be tested.** At that head a production Agent linked to and accepted
+  only `https://www.greengoods.app`, which is built from `main`, so the merge into develop put the
+  pages on staging where the live Agent could not use them. The next section changes that.
+
+## Staging route for live testing, 2026-10-03
+
+Afolabi decided on 3 October to test on staging with the live Agent. For deployed Agents this
+replaces the 29 September line "No browser-origin setting comes back", which was written for the
+laptop demo.
+
+- **One site per deployment.** `AGENT_REPORTING_SITE` names the Green Goods site a deployed Agent
+  runs its ceremonies on: `production` (the default, `https://www.greengoods.app`) or `beta`
+  (`https://beta.greengoods.app`, built from develop). Ceremony links point to that site and the
+  ceremony API accepts no other origin. The addresses are fixed in `reporting/config.ts`: an
+  address in the environment is ignored, and with reporting on an unknown name stops the Agent at
+  start-up. Outside production the Client dev server is used whichever site is named.
+- **The live Agent is set to beta.** `fly.toml` carries `AGENT_REPORTING_SITE = 'beta'`, so a deploy
+  of the Agent from develop runs its ceremonies on the beta site with nothing else to set. A Fly
+  secret of the same name would override the file.
+- **Consequence.** While the live Agent is set to `beta`, a ceremony opened on the public site is
+  refused. That costs nothing until `main` carries the pages. When reporting is released to main,
+  remove the line from `fly.toml`, or set `production`, and deploy the Agent again.
+- **To test.** Deploy the Agent from develop with the reporting secrets in place, then follow the
+  deployment checklist above from step 4 on `https://beta.greengoods.app`. The start-up log line
+  "Agent reporting starting" names the origin in use.
+- **Not proven yet.** Nothing has run against the deployed Agent: the Client proxy, the cookies,
+  the origin check and signing on beta are still to be observed. Recheck which accounts exist on
+  beta before the session. Staging has had its own passkey configuration, so a passkey account
+  there may differ from the one on the public site; a wallet account is the same on both.

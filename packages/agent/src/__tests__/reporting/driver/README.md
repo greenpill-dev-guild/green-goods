@@ -34,8 +34,10 @@ bun run --cwd packages/agent reporting:driver
 To drive the client ceremony pages locally, set `REPORTING_DRIVER_ORIGIN` to the client dev
 origin and proxy `/api/messaging` from the client dev server to the driver.
 
-The Agent itself has no origin setting: its ceremony links point to `https://www.greengoods.app`
-in production and to the client dev server, `https://localhost:3001`, everywhere else.
+A deployed Agent runs its ceremonies on one Green Goods site, named by `AGENT_REPORTING_SITE`:
+`production` (the default, `https://www.greengoods.app`) or `beta` (`https://beta.greengoods.app`).
+The addresses are fixed in code, so the setting cannot name another host. Everywhere else the
+ceremony links point to the client dev server, `https://localhost:3001`.
 
 ## Evaluate the pinned live models
 

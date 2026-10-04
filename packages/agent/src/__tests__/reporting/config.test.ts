@@ -43,12 +43,28 @@ describe("reporting configuration", () => {
     expect(loadReportingConfig(keys, base)?.keys).toBe(keys.AGENT_REPORTING_KEYS);
   });
 
-  it("links to the installed app's origin in production and the local Client elsewhere", () => {
-    const beta = { ...keys, AGENT_REPORTING_BROWSER_ORIGIN: "https://beta.greengoods.app" };
-    expect(loadReportingConfig(beta, base)?.browserOrigin).toBe("https://www.greengoods.app");
-    expect(loadReportingConfig(keys, { ...base, isProduction: false })?.browserOrigin).toBe(
-      "https://localhost:3001"
-    );
+  it("runs ceremonies on the public site unless the deployment names the beta site", () => {
+    const origin = (env: Record<string, string>, isProduction = true) =>
+      loadReportingConfig({ ...keys, ...env }, { ...base, isProduction })?.browserOrigin;
+    expect(origin({})).toBe("https://www.greengoods.app");
+    expect(origin({ AGENT_REPORTING_SITE: " " })).toBe("https://www.greengoods.app");
+    expect(origin({ AGENT_REPORTING_SITE: "production" })).toBe("https://www.greengoods.app");
+    expect(origin({ AGENT_REPORTING_SITE: "beta" })).toBe("https://beta.greengoods.app");
+    // Outside production the Client dev server is the site, whichever one is named.
+    expect(origin({}, false)).toBe("https://localhost:3001");
+    expect(origin({ AGENT_REPORTING_SITE: "beta" }, false)).toBe("https://localhost:3001");
+  });
+
+  it("takes a site by name only: an address is ignored and an unknown name is refused", () => {
+    const address = { ...keys, AGENT_REPORTING_BROWSER_ORIGIN: "https://beta.greengoods.app" };
+    expect(loadReportingConfig(address, base)?.browserOrigin).toBe("https://www.greengoods.app");
+    for (const name of ["https://beta.greengoods.app", "staging", "Beta", "constructor"]) {
+      expect(() => loadReportingConfig({ ...keys, AGENT_REPORTING_SITE: name }, base)).toThrow(
+        "AGENT_REPORTING_SITE must be one of: production, beta"
+      );
+    }
+    // Without the key list reporting is off, so the site is never read.
+    expect(loadReportingConfig({ AGENT_REPORTING_SITE: "staging" }, base)).toBeNull();
   });
 
   it("uses a model provider only when this build pins its model, whatever the environment says", () => {
