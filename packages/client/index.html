@@ -953,9 +953,6 @@
         var pwaAction = document.getElementById("boot-pwa-action");
         var pwaReload = document.getElementById("boot-pwa-reload");
         var presentation = document.documentElement.dataset.bootPresentation || "website";
-        var language = (navigator.language || document.documentElement.lang || "en")
-          .toLowerCase()
-          .slice(0, 2);
         var copy = {
           en: {
             applying: "Updating Green Goods…",
@@ -1000,7 +997,34 @@
             reload: "Recarregar",
           },
         };
-        var labels = copy[language] || copy.en;
+
+        // The choice the app makes once it runs: the stored language, else the first
+        // browser language with copy here, else English.
+        function bootLanguage() {
+          var stored = null;
+          try {
+            stored = window.localStorage.getItem("gg-language");
+          } catch (error) {
+            // Storage can be blocked. The browser language still applies.
+          }
+          var browser =
+            navigator.languages && navigator.languages.length
+              ? navigator.languages
+              : [navigator.language];
+          var candidates = stored ? [stored] : browser;
+          for (var index = 0; index < candidates.length; index += 1) {
+            var tag = String(candidates[index] || "")
+              .toLowerCase()
+              .slice(0, 2);
+            if (Object.prototype.hasOwnProperty.call(copy, tag)) return tag;
+          }
+          return "en";
+        }
+
+        var language = bootLanguage();
+        var labels = copy[language];
+        // This shell declares the language of its own copy. The page's language is not its to set.
+        if (fallback) fallback.lang = language;
         var timer;
         var updateTimer;
         var observer;

@@ -92,11 +92,13 @@ type BootWindow = Pick<Window, "addEventListener" | "clearTimeout" | "setTimeout
   __GG_CLEAR_BOOT_FALLBACK?: () => void;
   __GG_MARK_BOOT_FAILED?: () => void;
   __GG_MARK_REACT_MOUNTED?: () => void;
+  localStorage?: Storage;
   location: Pick<Location, "href" | "reload" | "replace">;
 };
 
 type BootNavigator = {
   language: string;
+  languages?: readonly string[];
   onLine: boolean;
   serviceWorker?: {
     addEventListener: ReturnType<typeof vi.fn>;
@@ -355,6 +357,7 @@ describe("presentation-specific boot fallback", () => {
     expect(pwa).toHaveAttribute("role", "status");
     expect(pwa).toHaveAttribute("aria-live", "polite");
     expect(pwaMessage).toHaveTextContent("Green Goods is loading.");
+    expect(fallback).toHaveAttribute("lang", "en");
     expect(pwa.querySelector("img")).toHaveAttribute("src", "%BASE_URL%icon.png");
     expect(slots).toEqual(["logo", "message", "action"]);
   });
@@ -455,15 +458,49 @@ describe("presentation-specific boot fallback", () => {
     expect(MAIN_SOURCE).not.toContain("__GG_CLEAR_BOOT_FALLBACK");
   });
 
+  // The app's own choice: the stored language, else the first browser language with copy, else English.
   it.each([
-    ["es-MX", "Green Goods se está cargando."],
-    ["pt-BR", "Green Goods está carregando."],
-  ])("renders the %s loading copy on the static PWA surface", (language, message) => {
-    const { pwaMessage } = runController("pwa", {
-      navigator: { language, onLine: true },
+    { stored: null, browser: ["es-MX"], language: "es", message: "Green Goods se está cargando." },
+    { stored: null, browser: ["pt-BR"], language: "pt", message: "Green Goods está carregando." },
+    {
+      stored: null,
+      browser: ["fr-FR", "pt-BR"],
+      language: "pt",
+      message: "Green Goods está carregando.",
+    },
+    { stored: "pt", browser: ["es-MX"], language: "pt", message: "Green Goods está carregando." },
+    { stored: "fr", browser: ["es-MX"], language: "en", message: "Green Goods is loading." },
+  ])("shows $language copy and declares it for a stored $stored and a browser on $browser", ({
+    stored,
+    browser,
+    language,
+    message,
+  }) => {
+    const localStorage = createStorage();
+    if (stored) localStorage.setItem("gg-language", stored);
+    const { fallback, pwaMessage } = runController("pwa", {
+      navigator: { language: browser[0], languages: browser, onLine: true },
+      window: { ...createBootWindow().windowLike, localStorage },
     });
 
     expect(pwaMessage).toHaveTextContent(message);
+    expect(fallback).toHaveAttribute("lang", language);
+  });
+
+  it("keeps to the browser language when storage cannot be read", () => {
+    const { windowLike } = createBootWindow();
+    Object.defineProperty(windowLike, "localStorage", {
+      get() {
+        throw new DOMException("Access is denied for this document.", "SecurityError");
+      },
+    });
+    const { fallback, pwaMessage } = runController("pwa", {
+      navigator: { language: "es-MX", onLine: true },
+      window: windowLike,
+    });
+
+    expect(pwaMessage).toHaveTextContent("Green Goods se está cargando.");
+    expect(fallback).toHaveAttribute("lang", "es");
   });
 
   it("clears before the website delay when React mounts quickly", () => {
