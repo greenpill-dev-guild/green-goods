@@ -16,6 +16,9 @@ import { enqueueJob } from "./jobs";
 import { operationSubject } from "./operation-subjects";
 import { setOperationState } from "./operations";
 import type { BrowserSession } from "./sessions";
+import { createLogger } from "../logger";
+
+const log = createLogger("reporting");
 
 /** The sealed request locks one attempt to one exact operation before any async signer work. */
 export async function signGrantActivation(
@@ -65,7 +68,14 @@ export async function signGrantActivation(
       input.userOperation.paymasterVerificationGasLimit,
       input.userOperation.paymasterPostOpGasLimit,
     ].reduce((sum, value) => sum + BigInt(value), 0n);
-    if (requestedGas > BigInt(attempt.gasReserved)) return { errorCode: "forbidden" as const };
+    // What a live bundler asks for is what the reservation has to make room for. Neither figure
+    // names anyone, so both go to the log whichever way this falls.
+    const gas = { requestedGas: requestedGas.toString(), reservedGas: attempt.gasReserved };
+    if (requestedGas > BigInt(attempt.gasReserved)) {
+      log.warn(gas, "Refused a first report: its gas limits exceed the reservation");
+      return { errorCode: "forbidden" as const };
+    }
+    log.info(gas, "A first report's gas limits fit the reservation");
     const stored = core.db
       .query("SELECT signed_operation_ciphertext FROM execution_attempts WHERE id = $id")
       .get({ id: attempt.id }) as { signed_operation_ciphertext: string | null };
