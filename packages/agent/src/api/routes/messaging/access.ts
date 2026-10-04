@@ -20,6 +20,7 @@ import {
 import { inTransaction } from "../../../services/reporting/database";
 import { activeAccount, participantEpoch } from "../../../services/reporting/participants";
 import {
+  forgetBrowser,
   issueRecognition,
   recognizedAccount,
   RECOGNITION_TTL_MS,
@@ -213,6 +214,10 @@ export function registerAccessRoutes(app: Hono, deps: MessagingRouteDeps): void 
     if (!session || session.accessId !== c.req.param("id")) return failure(c, "access_required");
     revokeSession(deps.core(), session.accessId, session.participantId);
     clearCookie(c, deps, SESSION_COOKIE);
+    // Signing out also ends this browser's recognition, or the next link would skip the proof.
+    const recognized = recognitionToken(c);
+    if (recognized) forgetBrowser(deps.core(), recognized);
+    clearCookie(c, deps, RECOGNITION_COOKIE);
     return c.json({ ok: true });
   });
 }

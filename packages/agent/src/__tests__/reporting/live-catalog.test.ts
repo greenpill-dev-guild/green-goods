@@ -118,6 +118,17 @@ describe("live Action catalog", () => {
     expect(failures).toEqual([{ garden: TAS.address, read: "instructions", cause: "Error" }]);
   });
 
+  it("lists nothing, and asks for no retry, when every file was read and none is usable", async () => {
+    const { instance, failures } = catalog([row(1), row(2, { instructions: null })], {
+      "bafy-instructions-1": { uiConfig: {} },
+    });
+    expect(await instance.eligibleActions(TAS, NOW)).toEqual({ ok: true, actions: [] });
+    // Still worth an operator's attention: the garden's activities are published unusably.
+    expect(failures).toEqual([
+      { garden: TAS.address, read: "instructions", cause: "no usable instruction file" },
+    ]);
+  });
+
   it("names the chain read when the RPC refuses, without quoting the address it called", async () => {
     const { instance, chain, failures } = catalog([row(1)], { "bafy-instructions-1": published });
     chain.gardenDomainMask = async () => {

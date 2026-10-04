@@ -142,8 +142,12 @@ describe("steward review", () => {
     });
     await harness.drain();
     expect(sentTexts().at(-1)).toBe(
-      `Your review is recorded ✅\nTransaction: https://arbiscan.io/tx/${hash}\n\nOpen it in Safari or Chrome. If it opens inside the chat app, use that page's menu to open it in your browser, or copy the link.`
+      `Your review is recorded ✅\nTransaction: https://arbiscan.io/tx/${hash}`
     );
+    expect(harness.transport.sent.at(-1)?.message.link).toEqual({
+      url: `https://arbitrum.easscan.org/attestation/view/${workUID}`,
+      label: "View the work",
+    });
     expect(harness.chain.works.get(workUID)?.approved).toBe(true);
     expect(harness.core.db.query("SELECT lifecycle FROM review_intents").get()).toEqual({
       lifecycle: "recorded",

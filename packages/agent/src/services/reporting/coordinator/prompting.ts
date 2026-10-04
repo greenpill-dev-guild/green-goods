@@ -11,7 +11,12 @@ import type { Address, WorkInput } from "@green-goods/shared/types/domain";
 import { type CatalogResult, orderActions } from "../catalog";
 import type { DraftRecord } from "../drafts";
 import { findGarden, type GardenDirectory, gardenByKey, type ReportingGarden } from "../gardens";
-import { closeConversationPrompt, type PromptOption, type PromptRecord } from "../prompts";
+import {
+  closeConversationPrompt,
+  type PromptOption,
+  type PromptRecord,
+  promptsAsked,
+} from "../prompts";
 import type { ConversationWriter, TurnWriter } from "./writer";
 
 export interface CatalogView {
@@ -56,14 +61,35 @@ function formatDetail(input: WorkInput, value: unknown): string {
 
 const option = (id: string, label: string, value: string): PromptOption => ({ id, label, value });
 
-/** Count only activity field questions; garden, activity and contradictions stay unnumbered. */
+/** The field questions this report has already put to the gardener, from its own prompts. */
+function askedQuestions(writer: ConversationWriter, draft: DraftRecord): ReportRequirement[] {
+  return promptsAsked(writer.core, "draft", draft.id).flatMap(
+    ({ kind, fieldKey }): ReportRequirement[] => {
+      if (kind === "field") return fieldKey ? [{ kind: "detail", key: fieldKey }] : [];
+      if (kind === "time" || kind === "time_unit") return [{ kind: "time" }];
+      if (kind === "title" || kind === "feedback") return [{ kind }];
+      return kind === "evidence" ? [{ kind: "evidence", minimum: 0, have: 0 }] : [];
+    }
+  );
+}
+
+/**
+ * A field question with its place among the ones this report asks, "2 of 3 · ", so the count the
+ * conversation opened with is the count it is numbered against. Garden, activity and contradiction
+ * questions stay unnumbered, and so does a field asked again to change it.
+ */
 export function fieldQuestionText(
   writer: ConversationWriter,
   draft: DraftRecord,
   requirement: ReportRequirement,
   question: string
 ): string {
-  const place = reportQuestionPosition(draft.content, draft.snapshot, requirement);
+  const place = reportQuestionPosition(
+    draft.content,
+    draft.snapshot,
+    requirement,
+    askedQuestions(writer, draft)
+  );
   return place ? `${writer.text("report.questionPosition", place)}${question}` : question;
 }
 

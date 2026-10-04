@@ -75,31 +75,62 @@ export function outstandingRequirements(
   return requirements;
 }
 
-/** Stable place of a field question in the activity's required questions. Selection and
- * contradictions have no number; answered fields retain their place as the report progresses. */
+const FIELD_QUESTIONS = new Set<ReportRequirement["kind"]>([
+  "detail",
+  "time",
+  "title",
+  "feedback",
+  "evidence",
+]);
+
+/** The field questions a report still has to ask, in the order it asks them. */
+export function outstandingFieldQuestions(
+  content: ReportContent,
+  snapshot: ActionDefinitionSnapshot | null
+): ReportRequirement[] {
+  return outstandingRequirements(content, snapshot).filter((item) =>
+    FIELD_QUESTIONS.has(item.kind)
+  );
+}
+
+function sameQuestion(one: ReportRequirement, other: ReportRequirement): boolean {
+  return (
+    one.kind === other.kind &&
+    (one.kind !== "detail" || (other.kind === "detail" && one.key === other.key))
+  );
+}
+
+/**
+ * The place of a field question among the ones this report puts to the gardener: "2 of 3".
+ * `asked` is what the conversation has already asked for this report. A question that was asked
+ * and is now answered keeps its place; a field the gardener's story already covered was never
+ * asked, so it is left out and the last question is always "n of n". Garden, activity and
+ * contradiction questions carry no number, nor does a field asked again to change it.
+ */
 export function reportQuestionPosition(
   content: ReportContent,
   snapshot: ActionDefinitionSnapshot | null,
-  requirement: ReportRequirement
+  requirement: ReportRequirement,
+  asked: readonly ReportRequirement[] = []
 ): { position: number; total: number } | null {
   if (!snapshot) return null;
-  const questions: ReportRequirement[] = [
-    ...snapshot.definition.inputs
-      .filter((input) => input.required && input.type !== "repeater")
-      .map((input) => ({ kind: "detail" as const, key: input.key })),
-    { kind: "time" },
-    { kind: "title" },
-    { kind: "feedback" },
-  ];
-  const minimum = minimumEvidence(snapshot);
-  if (minimum > 0) questions.push({ kind: "evidence", minimum, have: content.evidence.length });
-  const position = questions.findIndex(
-    (question) =>
-      question.kind === requirement.kind &&
-      (question.kind !== "detail" ||
-        (requirement.kind === "detail" && question.key === requirement.key))
-  );
-  return position < 0 ? null : { position: position + 1, total: questions.length };
+  const waiting = outstandingFieldQuestions(content, snapshot);
+  const index = waiting.findIndex((question) => sameQuestion(question, requirement));
+  if (index < 0) return null;
+  // A detail of an activity the report no longer names is not one of this report's questions.
+  const required = (question: ReportRequirement) =>
+    question.kind !== "detail" ||
+    snapshot.definition.inputs.some(
+      (input) => input.key === question.key && input.required && input.type !== "repeater"
+    );
+  const answered = asked.filter(
+    (question, at) =>
+      FIELD_QUESTIONS.has(question.kind) &&
+      required(question) &&
+      asked.findIndex((other) => sameQuestion(other, question)) === at &&
+      !waiting.some((item) => sameQuestion(item, question))
+  ).length;
+  return { position: answered + index + 1, total: answered + waiting.length };
 }
 
 export interface ReportSummary {

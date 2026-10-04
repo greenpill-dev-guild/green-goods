@@ -151,9 +151,10 @@ describe("separate steward review activation", () => {
     });
     const before = harness.transport.sent.length;
     await confirmNextReview();
-    expect(
-      harness.transport.sent.slice(before).find((sent) => sent.message.link)?.message.link?.label
-    ).toBe("View your report");
+    // The grant signs this decision, so no page is sent to sign on: the one link is to the work.
+    expect(harness.transport.sent.slice(before).flatMap((sent) => sent.message.link ?? [])).toEqual(
+      [{ url: expect.stringContaining("/attestation/view/"), label: "View the work" }]
+    );
     expect(row("SELECT submissions_consumed FROM execution_grants")).toEqual({
       submissions_consumed: 2,
     });

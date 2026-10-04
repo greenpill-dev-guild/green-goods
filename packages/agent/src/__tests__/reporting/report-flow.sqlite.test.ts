@@ -70,25 +70,24 @@ describe("story-first reporting", () => {
       "Which activity in TAS best matches your work?\n1. Tree planting\n2. Weeding",
     ]);
     const adopted = await harness.press(ADA, "Tree planting");
-    expect(adopted[0]).toMatch(
-      /^Got it: Tree planting at TAS\. [0-9]+ quick questions?, then a summary to check\.$/
-    );
-    expect(adopted[1]).toMatch(
-      /^[0-9]+ of [0-9]+ · Seedlings planted\? Please reply with a number \(seedlings\)\.$/
-    );
+    // The story gave the description, so three questions are left, and each is numbered against them.
+    expect(adopted).toEqual([
+      "Got it: Tree planting at TAS. 3 quick questions, then a summary to check.",
+      "1 of 3 · Seedlings planted? Please reply with a number (seedlings).",
+    ]);
     expect(await harness.say(ADA, "twelve")).toEqual([
       "Please reply with a number, for example 12.",
     ]);
     expect(await harness.say(ADA, "10 bags")).toEqual([
       "This is counted in seedlings, but you wrote bags. Could you give it in seedlings?",
     ]);
-    expect((await harness.say(ADA, "12 seedlings"))[0]).toContain("Main species?");
-    expect((await harness.say(ADA, "2"))[0]).toMatch(
-      /^[0-9]+ of [0-9]+ · How much time did you spend on this work\? For example: 2 hours or 45 minutes\.$/
-    );
-    expect((await harness.say(ADA, "3"))[0]).toMatch(
-      /^[0-9]+ of [0-9]+ · Was that 3 hours or 3 minutes\?\n1\. Hours\n2\. Minutes$/
-    );
+    expect((await harness.say(ADA, "12 seedlings"))[0]).toContain("2 of 3 · Main species?");
+    expect(await harness.say(ADA, "2")).toEqual([
+      "3 of 3 · How much time did you spend on this work? For example: 2 hours or 45 minutes.",
+    ]);
+    expect(await harness.say(ADA, "3")).toEqual([
+      "3 of 3 · Was that 3 hours or 3 minutes?\n1. Hours\n2. Minutes",
+    ]);
     const summary = await harness.press(ADA, "Hours");
     expect(summary[0]).toContain("• Activity: Tree planting");
     expect(summary[0]).toContain("• Time spent: 3 h");
@@ -97,7 +96,7 @@ describe("story-first reporting", () => {
     expect(summary[0]).toContain("cannot be deleted");
 
     expect(await harness.say(ADA, "CONFIRM 9999")).toEqual([
-      `To publish, reply CONFIRM ${summaryToken(summary)} exactly as shown in the summary.`,
+      `To publish, reply CONFIRM ${summaryToken(summary)}.`,
     ]);
     const linking = await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
     expect(linking).toEqual([
@@ -231,9 +230,10 @@ describe("a reply that is not one of the choices", () => {
     ]);
     // The garden's one activity is read in the same turn, so the reply moves on to its first field.
     harness.interpreter.responses = [read("report_content", AIYELOJA.key)];
-    const adoptedFromModel = await harness.say(ADA, "the family garden");
-    expect(adoptedFromModel[0]).toMatch(/^Got it: Tree planting at Aiyeloja Family Garden\./);
-    expect(adoptedFromModel[1]).toMatch(/^[0-9]+ of [0-9]+ · Seedlings planted\?/);
+    expect(await harness.say(ADA, "the family garden")).toEqual([
+      "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.",
+      "1 of 3 · Seedlings planted? Please reply with a number (seedlings).",
+    ]);
     expect(harness.interpreter.requests.at(-1)?.message.text).toBe("the family garden");
     // Numbers and a choice's own label never go to the model.
     const asked = harness.interpreter.requests.length;

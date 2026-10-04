@@ -39,6 +39,11 @@ describe("Community Garden invitation", () => {
     const reply = await harness.say(ADA, `PUBLISH ${token}`);
     expect(reply.join("\n")).toContain("Join the Community Garden");
     expect(harness.transport.sent.at(-1)?.message.link?.label).toBe("Join the Community Garden");
+    // Once they have joined, any reply reads the role again: the button is not the only way on.
+    harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true });
+    expect((await harness.say(ADA, "ok, I joined")).join("\n")).toContain(
+      "Open this page to review and sign the exact publication"
+    );
   });
 
   it("does not offer Join on CONNECT when the account already belongs to another garden", async () => {

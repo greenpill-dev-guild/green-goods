@@ -1,4 +1,9 @@
 import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
+import {
+  getLocalArbitrumForkRpcUrl,
+  type LocalForkEnv,
+  shouldUseLocalArbitrumForkRpc,
+} from "@green-goods/shared/config/local-fork";
 import { arbitrum, celo, mainnet, optimism, sepolia } from "viem/chains";
 
 export type AgentRpcEnv = Pick<
@@ -11,7 +16,8 @@ export type AgentRpcEnv = Pick<
   | "VITE_RPC_URL_11155111"
   | "ALCHEMY_API_KEY"
   | "ALCHEMY_KEY"
->;
+> &
+  LocalForkEnv;
 
 const CHAIN_RPC_ENV: Record<number, keyof AgentRpcEnv> = {
   1: "ETHEREUM_RPC_URL",
@@ -32,10 +38,10 @@ const PUBLIC_RPC: Record<number, string | undefined> = Object.fromEntries(
 export interface AgentRpc {
   url: string;
   /**
-   * Where the address came from: the chain's own setting, the Alchemy key, or the chain's public
-   * endpoint because neither is set.
+   * Where the address came from: the chain's own setting, a local fork, the Alchemy key, or the
+   * chain's public endpoint because none of them is set.
    */
-  source: "configured" | "alchemy" | "public";
+  source: "configured" | "fork" | "alchemy" | "public";
 }
 
 /**
@@ -51,6 +57,10 @@ export function resolveAgentRpc(chainId: number, env: AgentRpcEnv = process.env)
   }
   if (chainId === 11155111 && env.VITE_RPC_URL_11155111) {
     return { url: env.VITE_RPC_URL_11155111, source: "configured" };
+  }
+  // A local fork stands in for the chain: reading the public one would bypass it.
+  if (shouldUseLocalArbitrumForkRpc(chainId, env)) {
+    return { url: getLocalArbitrumForkRpcUrl(env), source: "fork" };
   }
   const alchemyKey = env.ALCHEMY_API_KEY || env.ALCHEMY_KEY;
   if (alchemyKey) return { url: getNetworkConfig(chainId, alchemyKey).rpcUrl, source: "alchemy" };

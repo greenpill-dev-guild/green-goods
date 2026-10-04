@@ -134,8 +134,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.cancelled": "Relato cancelado. O conteúdo não publicado será removido.",
   "report.cancelHint": "Para cancelar este relato, responda CANCEL.",
   "report.nothingToCancel": "Não há nenhum relato em andamento.",
-  "report.confirmToken":
-    "Para publicar, responda CONFIRM {token} exatamente como aparece no resumo.",
+  "report.confirmToken": "Para publicar, responda CONFIRM {token}.",
   "report.frozen":
     "Este relato está sendo publicado, então não posso mudá-lo agora. Guardei sua mensagem e vou usá-la se a publicação não for concluída.",
   "report.alreadyPublished": "Esse relato já foi publicado. Envie NEW para começar outro.",
@@ -235,6 +234,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.notOperator":
     "Sua conta não é responsável por nenhuma horta, então não há trabalhos para você revisar.",
   "review.recorded": "Sua revisão foi registrada ✅\nTransação: {tx}",
+  "review.viewWork": "Ver o trabalho",
   "account.wallet": "carteira",
   "account.passkey": "chave de acesso",
   "review.link":

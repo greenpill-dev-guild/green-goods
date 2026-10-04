@@ -3,8 +3,8 @@ import {
   applyReportChanges,
   type FieldChange,
   type FieldProvenance,
+  outstandingFieldQuestions,
   reconcileDetailsWithAction,
-  outstandingRequirements,
   type ReportContent,
 } from "@green-goods/shared/modules/agent-reporting";
 import { resolveWorkSubmissionTitle } from "@green-goods/shared/utils/work/workTitles";
@@ -167,10 +167,9 @@ export function finish(
         sourceEventId: writer.ctx.event.id,
       })
     : draft;
+  // An activity just adopted: say how many questions follow, the count each one is numbered against.
   if (draft.content.actionUID === null && next.content.actionUID !== null && next.snapshot) {
-    const remaining = outstandingRequirements(next.content, next.snapshot).filter((item) =>
-      ["detail", "time", "title", "feedback", "evidence"].includes(item.kind)
-    ).length;
+    const remaining = outstandingFieldQuestions(next.content, next.snapshot).length;
     if (remaining > 0) {
       writer.say(remaining === 1 ? "report.actionAdoptedOne" : "report.actionAdoptedMany", {
         action: next.snapshot.definition.title,

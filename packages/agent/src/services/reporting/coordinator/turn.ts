@@ -212,12 +212,9 @@ function applyTurn(
           handleReportMessage(writer, { kind: "message", text: null, media: [] }, external);
       } else if (plan.prompt.kind === "grant_choice" && plan.option) {
         answerGrantChoice(writer, plan.option.value);
-      } else if (
-        plan.prompt.kind === "join_community" &&
-        (plan.option?.value === "retry" ||
-          plan.text?.trim() === "1" ||
-          plan.text?.trim().toLowerCase() === plan.prompt.options[0]?.label.toLowerCase())
-      ) {
+      } else if (plan.prompt.kind === "join_community") {
+        // Its one choice reads the account's role again, and so does any other reply: the report
+        // is waiting on nothing else.
         handleReportCommand(writer, { kind: "retry" }, external);
       } else if (plan.prompt.kind === "connect_offer") {
         answerConnectionOffer(writer, plan.option !== null);

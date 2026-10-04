@@ -52,6 +52,12 @@ export function issueRecognition(
 ): string {
   const token = core.ids.token(32);
   const now = core.clock.now();
+  // Lapsed rows recognize nothing; each new one clears the participant's own.
+  core.db
+    .query(
+      "DELETE FROM browser_recognitions WHERE participant_id = $participant AND expires_at <= $now"
+    )
+    .run({ participant: participantId, now });
   core.db
     .query(
       `INSERT INTO browser_recognitions
@@ -69,8 +75,16 @@ export function issueRecognition(
   return token;
 }
 
+/** STOP, DELETE and recovery: no browser stays recognized for this participant. */
 export function endRecognition(core: ReportingCore, participantId: string): void {
   core.db
     .query("DELETE FROM browser_recognitions WHERE participant_id = $participant")
     .run({ participant: participantId });
+}
+
+/** Signing out of the page: this browser, and only this one, must prove the account again. */
+export function forgetBrowser(core: ReportingCore, token: string): void {
+  core.db
+    .query("DELETE FROM browser_recognitions WHERE token_hash = $token")
+    .run({ token: hashSecret(token) });
 }

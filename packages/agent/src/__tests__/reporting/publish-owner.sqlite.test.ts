@@ -95,10 +95,12 @@ describe("owner publication", () => {
     );
     expect(published).toMatchObject({ state: "published", transaction_hash: hash });
     expect(sentTexts().at(-1)).toBe(
-      `Your report is published ✅\nWork: ${published.attestation_uid}\nTransaction: https://arbiscan.io/tx/${hash}\n\nOpen it in Safari or Chrome. If it opens inside the chat app, use that page's menu to open it in your browser, or copy the link.`
+      `Your report is published ✅\nWork: ${published.attestation_uid}\nTransaction: https://arbiscan.io/tx/${hash}`
     );
-    expect(harness.transport.sent.at(-1)?.message.link).toMatchObject({
-      url: `https://greengoods.test/gardens/${TAS.address.toLowerCase()}/work/${published.attestation_uid}`,
+    // The link opens the attestation's own record, which exists from the moment it is published.
+    // Nothing is signed there, so it carries no advice about browsers and no link to copy.
+    expect(harness.transport.sent.at(-1)?.message.link).toEqual({
+      url: `https://arbitrum.easscan.org/attestation/view/${published.attestation_uid}`,
       label: "View your report",
     });
     // Attribution is the gardener's own account, never the Agent or a relayer.

@@ -131,7 +131,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.cancelled": "Reporte cancelado. El contenido sin publicar se eliminará.",
   "report.cancelHint": "Para cancelar este reporte, responde CANCEL.",
   "report.nothingToCancel": "No hay ningún reporte en curso.",
-  "report.confirmToken": "Para publicar, responde CONFIRM {token} tal como aparece en el resumen.",
+  "report.confirmToken": "Para publicar, responde CONFIRM {token}.",
   "report.frozen":
     "Este reporte se está publicando, así que no puedo cambiarlo ahora. Guardé tu mensaje y lo usaré si la publicación no se completa.",
   "report.alreadyPublished": "Ese reporte ya está publicado. Envía NEW para empezar otro.",
@@ -229,6 +229,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.notOperator":
     "Tu cuenta no administra ningún huerto, así que no tienes trabajos para revisar.",
   "review.recorded": "Tu revisión quedó registrada ✅\nTransacción: {tx}",
+  "review.viewWork": "Ver el trabajo",
   "account.wallet": "billetera",
   "account.passkey": "llave de acceso",
   "review.link":

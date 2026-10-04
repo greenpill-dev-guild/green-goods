@@ -34,6 +34,20 @@ describe("agent RPC address", () => {
     expect(resolveAgentRpcUrl(42161, {})).toBe("https://arb1.arbitrum.io/rpc");
   });
 
+  it("keeps a local Arbitrum fork ahead of a key and of the public endpoint", () => {
+    const fork = { VITE_DEV_CHAIN_MODE: "arbitrum_fork" };
+    expect(resolveAgentRpc(42161, fork)).toEqual({ url: "http://127.0.0.1:3009", source: "fork" });
+    expect(
+      resolveAgentRpc(42161, {
+        ...fork,
+        ALCHEMY_API_KEY: "key",
+        VITE_LOCAL_FORK_RPC_URL: "http://127.0.0.1:8545",
+      })
+    ).toEqual({ url: "http://127.0.0.1:8545", source: "fork" });
+    // Only Arbitrum is forked; every other chain is read as before.
+    expect(resolveAgentRpc(1, fork).source).toBe("public");
+  });
+
   it("logs an address by its host only, and never fails on a setting that is not an address", () => {
     expect(rpcHost("https://arb-mainnet.g.alchemy.com/v2/provider-key")).toBe(
       "arb-mainnet.g.alchemy.com"

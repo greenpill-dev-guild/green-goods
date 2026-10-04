@@ -7,6 +7,7 @@ import {
   telegramRealm,
   toReportingEvent,
 } from "../../platforms/telegram-reporting";
+import { drawsChoiceButtons } from "../../services/reporting/channels";
 import type { OutboundRequest } from "../../services/reporting/transport";
 import { FakeTelegramApi, TEST_BOT_REALM, TEST_BOT_TOKEN } from "./support/telegram-api";
 
@@ -116,6 +117,14 @@ describe("Telegram updates", () => {
     ["/path/to/file", "/path/to/file"],
   ])("reads %s as %s", (text, words) => {
     expect(toReportingEvent(privateMessage({ text }), TEST_BOT_REALM, 0)?.text).toBe(words);
+  });
+});
+
+describe("choices drawn as buttons", () => {
+  it("is Telegram's way, whichever bot; a channel that sends plain text keeps its codes", () => {
+    expect(drawsChoiceButtons(TEST_BOT_REALM)).toBe(true);
+    expect(drawsChoiceButtons("whatsapp:15550000000")).toBe(false);
+    expect(drawsChoiceButtons("synthetic:wefa")).toBe(false);
   });
 });
 

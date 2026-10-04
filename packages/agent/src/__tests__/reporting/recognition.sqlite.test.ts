@@ -97,6 +97,16 @@ describe("short browser recognition", () => {
     expect((await browser.open(anotherLink(request))).body.state).toBe("issued");
   });
 
+  it("asks for the proof again once the person signs out of the page", async () => {
+    const { browser, request } = await pairedBrowser();
+    expect((await browser.open(anotherLink(request))).body.state).toBe("paired");
+    const access = await browser.access();
+    expect(access.status).toBe(200);
+    const left = await browser.request("DELETE", `/messaging/access/${access.body.accessId}`);
+    expect(left.status).toBe(200);
+    expect((await browser.open(anotherLink(request))).body.state).toBe("issued");
+  });
+
   it("rejects a cookie from a previous identity epoch", async () => {
     const { browser, request } = await pairedBrowser();
     const next = request.identityEpoch + 1;

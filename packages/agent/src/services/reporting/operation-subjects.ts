@@ -1,5 +1,5 @@
-import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
 import type { PublicationEnvelope } from "@green-goods/shared/modules/agent-reporting";
+import { getBlockExplorerTxUrl, getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
 import { activeConsentId, hasPublicationConsent } from "./consent";
 import { invalidateConfirmation } from "./confirmations";
 import { commitLifecycle, lifecycleState } from "./coordinator/draft-commit";
@@ -53,13 +53,13 @@ export interface OperationSubject {
   ): void;
 }
 
-function publicWorkLink(core: ReportingCore, garden: string, workUID: string): string {
-  return `${core.settings.browserOrigin}/gardens/${encodeURIComponent(garden)}/work/${encodeURIComponent(workUID)}`;
-}
-
-function transactionLink(chainId: number, hash: string): string {
-  const explorer = getNetworkConfig(chainId).blockExplorer;
-  return explorer ? `${explorer.replace(/\/$/, "")}/tx/${hash}` : hash;
+/**
+ * Where a published report or decision can be read straight away: the attestation's own record.
+ * The garden's public page lists a report only once a steward has approved it, so a link there
+ * would open on "not available" for work that was just published.
+ */
+function workRecord(chainId: number, workUID: string, label: string) {
+  return { url: getEASExplorerUrl(chainId, workUID), label };
 }
 
 function channelSubject(core: ReportingCore, participantId: string, conversationId: string) {
@@ -135,16 +135,13 @@ function draftSubject(core: ReportingCore, loaded: DraftRecord): OperationSubjec
         participantAction: false,
       }).draft;
       const out = writer(prefix);
-      out?.say(
+      out?.sayWithRecord(
         "publish.published",
         {
           uid: verified.uid,
-          tx: transactionLink(envelope.chainId, verified.transactionHash),
+          tx: getBlockExplorerTxUrl(envelope.chainId, verified.transactionHash),
         },
-        {
-          url: publicWorkLink(core, envelope.gardenAddress, verified.uid),
-          label: out.text("publish.viewReport"),
-        }
+        workRecord(envelope.chainId, verified.uid, out.text("publish.viewReport"))
       );
       enqueueJob(core, {
         kind: "purge_private_content",
@@ -195,13 +192,10 @@ function reviewSubject(core: ReportingCore, loaded: ReviewRecord): OperationSubj
         conversationId: review.conversationId,
         dedupePrefix: prefix,
       });
-      out?.say(
+      out?.sayWithRecord(
         "review.recorded",
-        { tx: transactionLink(review.chainId, verified.transactionHash) },
-        {
-          url: publicWorkLink(core, review.content.gardenAddress, review.workUID),
-          label: out.text("publish.viewReport"),
-        }
+        { tx: getBlockExplorerTxUrl(review.chainId, verified.transactionHash) },
+        workRecord(review.chainId, review.workUID, out.text("review.viewWork"))
       );
     },
   };

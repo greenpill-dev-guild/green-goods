@@ -131,7 +131,7 @@ export const EN_REPORTING_COPY = {
   "report.cancelled": "Report cancelled. Unpublished content will be removed.",
   "report.cancelHint": "To cancel this report, reply CANCEL.",
   "report.nothingToCancel": "There's no report in progress.",
-  "report.confirmToken": "To publish, reply CONFIRM {token} exactly as shown in the summary.",
+  "report.confirmToken": "To publish, reply CONFIRM {token}.",
   "report.frozen":
     "This report is being published, so I can't change it now. I've kept your message and will use it if publishing doesn't complete.",
   "report.alreadyPublished": "That report is already published. Send NEW to start another report.",
@@ -230,6 +230,7 @@ export const EN_REPORTING_COPY = {
   "review.notOperator":
     "Your account isn't a steward of any garden, so there's no work for you to review.",
   "review.recorded": "Your review is recorded ✅\nTransaction: {tx}",
+  "review.viewWork": "View the work",
   "account.wallet": "wallet",
   "account.passkey": "passkey",
   "review.link":

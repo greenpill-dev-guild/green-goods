@@ -137,9 +137,12 @@ export function createLiveReportingCatalog(options: LiveCatalogOptions): Reporti
   const request = options.fetch ?? fetch;
   const ttl = options.cacheTtlMs ?? 5 * 60 * 1000;
   const cache = new Map<string, { expiresAt: number; result: CatalogResult }>();
-  const unavailable = (failure: CatalogFailure): CatalogResult => {
+  const report = (failure: CatalogFailure): void => {
     if (options.onUnavailable) options.onUnavailable(failure);
     else log.warn(failure, "A garden's activities could not be read");
+  };
+  const unavailable = (failure: CatalogFailure): CatalogResult => {
+    report(failure);
     return { ok: false, reason: "unavailable" };
   };
 
@@ -229,13 +232,17 @@ export function createLiveReportingCatalog(options: LiveCatalogOptions): Reporti
                     )
                   );
                 }
-                // Rows exist but no instructions could be read: the catalog is not usable now.
+                // Rows exist but none could be used. A read that failed is worth another try. Files
+                // that were read and refused are not: the garden has no activity to offer, and
+                // asking again would only say the same.
                 if (list.length > 0 && loaded.every((entry) => entry === null)) {
-                  return unavailable({
+                  const failure: CatalogFailure = {
                     garden: garden.address,
                     read: "instructions",
                     cause: unread.length > 0 ? causeOf(unread[0]) : "no usable instruction file",
-                  });
+                  };
+                  if (unread.length > 0) return unavailable(failure);
+                  report(failure);
                 }
                 const result: CatalogResult = { ok: true, actions: snapshots };
                 cache.set(garden.address, { expiresAt: nowMs + ttl, result });

@@ -174,19 +174,64 @@ describe("withEvidence", () => {
 });
 
 describe("reportQuestionPosition", () => {
-  it("keeps required field positions stable as a report is answered", () => {
-    const empty = emptyReport();
-    expect(reportQuestionPosition(empty, snapshot, { kind: "detail", key: "seedlings" })).toEqual({
-      position: 1,
-      total: 5,
+  // The gardener's story gave the description, so the report asks three things: seedlings, time
+  // spent and a photo.
+  const told = applyReportChanges(
+    emptyReport(),
+    [
+      change("garden", GARDEN, gardener()),
+      change("action", 7, gardener()),
+      change("title", "Planting", { ...model(), origin: "system", kind: "computed" }),
+      change("feedback", "Planted twelve seedlings", gardener()),
+    ],
+    snapshot
+  ).content;
+  const seedlings = { kind: "detail", key: "seedlings" } as const;
+  const time = { kind: "time" } as const;
+  const photo = { kind: "evidence", minimum: 1, have: 0 } as const;
+
+  it("counts only the questions the report asks, and ends on the last of them", () => {
+    expect(reportQuestionPosition(told, snapshot, seedlings)).toEqual({ position: 1, total: 3 });
+    const answered = applyReportChanges(
+      told,
+      [change("details.seedlings", 12, gardener("s2"))],
+      snapshot
+    ).content;
+    // Asking twice, after an answer that could not be read, is still one question.
+    const asked = [seedlings, seedlings];
+    expect(reportQuestionPosition(answered, snapshot, time, asked)).toEqual({
+      position: 2,
+      total: 3,
     });
-    expect(
-      reportQuestionPosition(readyReport(), snapshot, { kind: "evidence", minimum: 1, have: 0 })
-    ).toEqual({ position: 5, total: 5 });
-    expect(reportQuestionPosition(empty, snapshot, { kind: "garden" })).toBeNull();
-    expect(
-      reportQuestionPosition(empty, snapshot, { kind: "conflict", field: "title" })
-    ).toBeNull();
+    const timed = applyReportChanges(
+      answered,
+      [change("timeSpentMinutes", 90, gardener("s3"))],
+      snapshot
+    ).content;
+    expect(reportQuestionPosition(timed, snapshot, photo, [...asked, time])).toEqual({
+      position: 3,
+      total: 3,
+    });
+  });
+
+  it("leaves out what another activity asked", () => {
+    const timed = applyReportChanges(
+      told,
+      [change("timeSpentMinutes", 90, gardener("s2"))],
+      snapshot
+    ).content;
+    const asked = [{ kind: "detail", key: "area" } as const, time];
+    expect(reportQuestionPosition(timed, snapshot, seedlings, asked)).toEqual({
+      position: 2,
+      total: 3,
+    });
+  });
+
+  it("gives no number to a choice of garden, a contradiction or a field asked again", () => {
+    expect(reportQuestionPosition(told, snapshot, { kind: "garden" })).toBeNull();
+    expect(reportQuestionPosition(told, snapshot, { kind: "conflict", field: "title" })).toBeNull();
+    // Already answered, so asking it again is a change, not one of the report's questions.
+    expect(reportQuestionPosition(readyReport(), snapshot, seedlings)).toBeNull();
   });
 });
 
