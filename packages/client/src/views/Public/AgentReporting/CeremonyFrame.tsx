@@ -8,7 +8,7 @@ import { FormInfo } from "@/components/Cards";
 import { EmptyState, FormProgress } from "@/components/Communication";
 import { FocusedHeaderSteps } from "@/components/Navigation/FocusedSiteHeader";
 import { CeremonyBar } from "./CeremonyBar";
-import type { CeremonyProblem } from "./failures";
+import type { CeremonyProblem, SpokenProblem } from "./failures";
 
 export interface CeremonyHeading {
   title: MessageDescriptor | string;
@@ -64,7 +64,7 @@ export function CeremonyFrame({
   heading: CeremonyHeading;
   values?: Record<string, string>;
   /** What stops or failed the step, on a screen with no status card to say it. */
-  problem?: CeremonyProblem | null;
+  problem?: CeremonyProblem | SpokenProblem | null;
   /** Where the request stands, under the heading (the app's stacked notice). */
   notice?: ReactNode;
   children?: ReactNode;
@@ -125,7 +125,9 @@ export function CeremonyFrame({
                       data-component="CeremonyHeadingProblem"
                       className={cn("block font-medium", PROBLEM_TEXT[problem.tone])}
                     >
-                      {intl.formatMessage(problem.message, problem.values)}
+                      {"spoken" in problem
+                        ? problem.spoken
+                        : intl.formatMessage(problem.message, problem.values)}
                     </span>
                   ) : (
                     heading.info

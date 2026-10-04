@@ -62,6 +62,7 @@ const makeProps = (): Props => ({
   purpose: "grant_reporting",
   channelLabel: "Telegram",
   pairingCode: null,
+  linkedAccount: null,
   inAppBrowser: false,
   passkeyUnavailable: false,
   linkCopied: false,
@@ -255,6 +256,57 @@ describe("where a ceremony says what is wrong", () => {
     expect(screen.getByText("Not sent yet")).toBeInTheDocument();
     expect(status()).toHaveTextContent(/couldn't be reached/);
     expect(within(bar()).getByRole("button", { name: "Publish" })).toBeEnabled();
+  });
+});
+
+describe("linking an account", () => {
+  const link = (): Props => ({
+    ...makeProps(),
+    stage: "connect",
+    purpose: "link_account",
+    grant: null,
+    sessionAccount: null,
+    account: null,
+  });
+  /** The bar's acts in their own order: the first is the one the bar draws on the right. */
+  const acts = () =>
+    within(bar())
+      .getAllByRole("button")
+      .map((act) => act.textContent);
+
+  it("says a failed sign-in in the account layer's own words, and the page stays up", () => {
+    render(view({ ...link(), lastFailure: "Sign in was cancelled." }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Sign in was cancelled.");
+    expect(acts()).toEqual(["Use Passkey", "Use Wallet"]);
+  });
+
+  it("puts the act of each new pair first", () => {
+    const { rerender } = render(view({ ...link(), initialCreate: true }));
+    expect(acts()).toEqual(["Create Account", "Back"]);
+    rerender(view({ ...link(), stage: "intro", purpose: null, inAppBrowser: true }));
+    expect(acts()).toEqual(["Open in Browser", "Continue Here"]);
+  });
+
+  it("invites the linked account to join, and never signs with another one", () => {
+    const joining: Props = {
+      ...link(),
+      stage: "linked",
+      linkedAccount: ACCOUNT,
+      communityOffer: { address: ACCOUNT, name: "Community Garden", chainId: 42161 },
+    };
+    // A browser the Agent recognized may have no account connected: it connects one first.
+    const { rerender } = render(view(joining));
+    expect(acts()).toEqual(["Use Passkey", "Use Wallet"]);
+    rerender(view({ ...joining, account: `0x${"9".repeat(40)}` }));
+    expect(within(bar()).getByRole("button", { name: "Join Garden" })).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent(/Switch to 0x1f3a/i);
+    rerender(view({ ...joining, account: ACCOUNT, accountKind: "passkey" }));
+    expect(acts()).toEqual(["Join Garden", "Not Now"]);
+    // The chat is linked already, so nothing asks for a code.
+    expect(screen.getByText("Then go back to your chat")).toBeInTheDocument();
+    expect(screen.queryByText(/send the code/)).not.toBeInTheDocument();
+    fireEvent.click(within(bar()).getByRole("button", { name: "Join Garden" }));
+    expect(joining.joinCommunity).toHaveBeenCalledTimes(1);
   });
 });
 

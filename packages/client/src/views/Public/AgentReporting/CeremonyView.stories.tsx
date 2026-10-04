@@ -89,6 +89,7 @@ const base: Props = {
   purpose: null,
   channelLabel: "Telegram",
   pairingCode: null,
+  linkedAccount: null,
   inAppBrowser: false,
   passkeyUnavailable: false,
   linkCopied: false,
@@ -207,6 +208,7 @@ export const Join: Story = {
     purpose: "link_account",
     account: ACCOUNT,
     accountKind: "passkey",
+    linkedAccount: ACCOUNT,
     pairingCode: "481516",
     communityOffer: {
       address: "0xF7b892886998DAe960D64a9db488336684F137A0",
@@ -217,6 +219,22 @@ export const Join: Story = {
 };
 export const JoinSpanish: Story = { ...Join, parameters: { locale: "es" } };
 export const JoinPortuguese: Story = { ...Join, parameters: { locale: "pt" } };
+/** A chat that is linked already: joining is all that is left, so no code is promised. */
+export const JoinLinked: Story = {
+  args: { ...Join.args, stage: "linked", accountKind: "wallet", pairingCode: null },
+};
+/** The invitation is for the linked account: with another one connected, joining is switched off. */
+export const JoinWrongAccount: Story = {
+  args: { ...JoinLinked.args, account: "0x9c2b7d4e5f60718293a4b5c6d7e8f90123451f3a" },
+};
+/** A browser the Agent recognized, with no account connected: it connects one before joining. */
+export const JoinDisconnected: Story = {
+  args: { ...JoinLinked.args, account: null, accountKind: null },
+};
+/** A sign-in that failed says so in the account layer's own words. */
+export const ConnectFailed: Story = {
+  args: { ...LinkConnect.args, lastFailure: "Sign in was cancelled." },
+};
 export const InAppStart: Story = { args: { stage: "intro", inAppBrowser: true } };
 export const InAppStartSpanish: Story = {
   ...InAppStart,

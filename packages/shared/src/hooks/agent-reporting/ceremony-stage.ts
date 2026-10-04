@@ -1,6 +1,8 @@
 import type { CeremonyAccount } from "./useCeremonyAccount";
 import type { CeremonyFailure } from "./ceremony-storage";
+import type { CommunityOffer } from "./community-offer";
 import { agentReportingKeys } from "../../config/query-keys/agent-reporting";
+import type { Address } from "../../types/domain";
 import type {
   AccessResponse,
   ChallengeResponse,
@@ -136,7 +138,10 @@ export interface AgentReportingCeremony extends Omit<CeremonyAccount, "prove"> {
   purpose: ChallengeResponse["purpose"] | null;
   channelLabel: string | null;
   pairingCode: string | null;
-  communityOffer: { address: `0x${string}`; name: string; chainId: number } | null;
+  /** The account this browser's challenge proved: the one the chat links, whatever is connected. */
+  linkedAccount: Address | null;
+  /** Settled before the link step opens, so the code screen never turns into an invitation. */
+  communityOffer: CommunityOffer | null;
   joinFailure: "declined" | "not_sent" | null;
   joinSending: boolean;
   skipCommunity: () => void;

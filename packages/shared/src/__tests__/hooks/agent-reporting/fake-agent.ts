@@ -56,6 +56,8 @@ export class FakeAgent {
   challengeState: ChallengeResponse["state"] = "issued";
   /** The account already linked to the chat; a proof from another account is refused. */
   boundAccount: string | null = ACCOUNT;
+  /** The account this browser's challenge has proven, or was recognized for when it opened. */
+  verifiedAccount: `0x${string}` | null = null;
   pairingCode = "481516";
   recovery: RecoveryStep["state"] = "started";
   recoveryCode = "271828";
@@ -108,6 +110,7 @@ export class FakeAgent {
         expiresAt: "2026-09-27T09:10:00.000Z",
       },
       ...(this.challengeState === "proof_verified" ? { pairingCode: this.pairingCode } : {}),
+      ...(this.verifiedAccount ? { account: this.verifiedAccount } : {}),
     };
   }
 
@@ -142,6 +145,7 @@ export class FakeAgent {
     if (method === "GET" && path === "/challenges/ch-1") return ok(this.challenge());
     if (method === "POST" && path === "/challenges/ch-1/proof") {
       if (this.boundAccount && body?.account !== this.boundAccount) return refuse("forbidden", 403);
+      this.verifiedAccount = body?.account as `0x${string}`;
       if (this.purpose === "recovery") {
         this.recovery = "account_verified";
         this.challengeState = "proof_verified";

@@ -19,8 +19,22 @@ const mocks = vi.hoisted(() => ({
     account: { address: "0x00000000000000000000000000000000000000a1" },
   },
   sendActivation: vi.fn(),
+  offer: vi.fn(
+    async (_account: string): Promise<{ address: string; name: string; chainId: number } | null> =>
+      null
+  ),
 }));
 
+/** The garden an account in no garden is invited to; by default the account needs no invitation. */
+const OFFER = {
+  address: "0x00000000000000000000000000000000000000c9",
+  name: "Community Garden",
+  chainId: 42161,
+};
+
+vi.mock("../../../hooks/agent-reporting/community-offer", () => ({
+  readCommunityOffer: (account: string) => mocks.offer(account),
+}));
 vi.mock("../../../modules/agent-reporting/browser-grant-activation", () => ({
   sendBrowserGrantActivation: mocks.sendActivation,
 }));
@@ -98,6 +112,8 @@ beforeEach(() => {
   mocks.account = ACCOUNT;
   mocks.sender = null;
   mocks.signMessage.mockClear();
+  mocks.offer.mockReset();
+  mocks.offer.mockResolvedValue(null);
   mocks.sendActivation.mockReset();
   mocks.sendActivation.mockImplementation(async (input) => {
     input.assertOwner();
@@ -216,6 +232,55 @@ describe("reporting ceremony page", () => {
     agent.challengeState = "paired";
     await waitFor(() => expect(result.current.stage).toBe("linked"));
     expect(agent.requests("POST", "/access")).toEqual([]);
+  });
+
+  it("settles the garden invitation for the proven account before the code screen opens", async () => {
+    agent.purpose = "link_account";
+    agent.boundAccount = null;
+    mocks.offer.mockResolvedValue(OFFER);
+    const calls = wallet("send");
+    const { result } = render();
+    await act(() => result.current.start());
+    await act(() => result.current.prove());
+    expect(mocks.offer).toHaveBeenCalledWith(ACCOUNT);
+    expect(result.current).toMatchObject({
+      stage: "pairing",
+      linkedAccount: ACCOUNT,
+      communityOffer: OFFER,
+    });
+
+    await act(() => result.current.joinCommunity());
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      address: OFFER.address,
+      account: ACCOUNT,
+      functionName: "joinGarden",
+    });
+    // Sent once: the invitation is gone, and it stays gone when the chat confirms the code.
+    expect(result.current.communityOffer).toBeNull();
+    agent.challengeState = "paired";
+    await waitFor(() => expect(result.current.stage).toBe("linked"));
+    expect(result.current.communityOffer).toBeNull();
+    expect(mocks.offer).toHaveBeenCalledTimes(1);
+  });
+
+  it("invites a linked chat's account in a browser the Agent recognized, and joins as no other", async () => {
+    agent.purpose = "link_account";
+    agent.challengeState = "paired";
+    agent.verifiedAccount = ACCOUNT;
+    mocks.offer.mockResolvedValue(OFFER);
+    // The wallet in this browser has moved on to another account since the proof.
+    mocks.account = OTHER_ACCOUNT;
+    const calls = wallet("send");
+    const { result } = render();
+    await act(() => result.current.start());
+    expect(result.current).toMatchObject({
+      stage: "linked",
+      linkedAccount: ACCOUNT,
+      communityOffer: OFFER,
+    });
+    await act(() => result.current.joinCommunity());
+    expect(calls).toEqual([]);
   });
 
   it("keeps a proof from another account retryable instead of ending the page", async () => {

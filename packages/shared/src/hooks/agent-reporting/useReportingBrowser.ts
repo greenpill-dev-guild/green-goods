@@ -35,7 +35,9 @@ export function useReportingBrowser() {
   const [linkCopied, setLinkCopied] = useState(false);
   const openInBrowser = useCallback(async () => {
     if (typeof window === "undefined") return;
-    const url = window.location.href;
+    // The chat link is this page's origin and path. A query or fragment someone added to it is
+    // never copied or handed to another app, where it could be read as that app's own options.
+    const url = `${window.location.origin}${window.location.pathname}`;
     let copied = false;
     try {
       await navigator.clipboard.writeText(url);

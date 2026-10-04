@@ -1,7 +1,5 @@
 /** Ceremony reads are private and short-lived; callers keep them out of any persisted cache. */
 export const agentReportingKeys = {
-  communityJoin: (chainId: number, account: string) =>
-    ["greengoods", "agent-reporting", "community-join", chainId, account.toLowerCase()] as const,
   activation: (grantId: string) =>
     ["greengoods", "agent-reporting", "grant-activation", grantId] as const,
   grant: (grantId: string) => ["greengoods", "agent-reporting", "grant", grantId] as const,

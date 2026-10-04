@@ -6729,6 +6729,8 @@
   "public.reporting.join.free": "No cuesta nada.",
   "public.reporting.join.fee": "Tu cartera paga una pequeña comisión de red.",
   "public.reporting.join.code": "Después envía el código en el chat",
+  "public.reporting.join.back": "Después vuelve a tu chat",
+  "public.reporting.join.backNote": "Tu cuenta ya está vinculada allí.",
   "public.reporting.browser.continue": "Continuar aquí",
   "public.reporting.browser.open": "Abrir en navegador",
   "public.reporting.browser.warning": "Ábrelo en Safari o Chrome. Las llaves de acceso y carteras pueden fallar aquí.",

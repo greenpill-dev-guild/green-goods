@@ -6729,6 +6729,8 @@
   "public.reporting.join.free": "It costs nothing.",
   "public.reporting.join.fee": "Your wallet pays a small network fee.",
   "public.reporting.join.code": "Then send the code in your chat",
+  "public.reporting.join.back": "Then go back to your chat",
+  "public.reporting.join.backNote": "Your account is already linked there.",
   "public.reporting.browser.continue": "Continue Here",
   "public.reporting.browser.open": "Open in Browser",
   "public.reporting.browser.warning": "Open this in Safari or Chrome. Passkeys and wallets may fail here.",

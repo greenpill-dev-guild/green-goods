@@ -1,7 +1,4 @@
 import type { AgentReportingCeremony } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingCeremony";
-import { Button } from "@green-goods/shared/components/Button";
-import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { RiPlantLine, RiUserAddLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useId, useState } from "react";
@@ -11,10 +8,16 @@ import { AccountActions, PageAccount } from "./CeremonyActs";
 import { BLOCKED_ID, CeremonyFrame } from "./CeremonyFrame";
 import { barStanding, hasStatusCard, StatusCard } from "./CeremonyOutcome";
 import { ceremonyHeading, GardenLine } from "./CeremonyHeading";
-import { PairedActs } from "./CeremonyBar";
 import { readCeremonyScreen } from "./ceremonyScreen";
-import { BLOCKS, type CeremonyProblem, failureProblem } from "./failures";
+import { BLOCKS, type CeremonyProblem, failureProblem, type SpokenProblem } from "./failures";
 import { GrantSummary } from "./GrantSummary";
+import {
+  BrowserActs,
+  CreateAccountForm,
+  CreateAccountLink,
+  CreateActs,
+  JoinActs,
+} from "./LinkScreens";
 import { PublicationSkeleton, PublicationSummary } from "./PublicationSummary";
 import { CEREMONY_COPY, STEP_NAMES } from "./messages";
 import { WhatHappensNext } from "./WhatHappensNext";
@@ -25,6 +28,7 @@ type CeremonyViewProps = Pick<
   | "purpose"
   | "channelLabel"
   | "pairingCode"
+  | "linkedAccount"
   | "inAppBrowser"
   | "passkeyUnavailable"
   | "linkCopied"
@@ -71,23 +75,61 @@ const SESSION = new Set<AgentReportingCeremony["stage"]>([
   "grant_active",
 ]);
 
-/** The browser ceremony keeps its bands fixed and never offers a second send after uncertainty. */
+/** What the link flow's own screens say in the heading card's two lines. */
+const NOTES = {
+  inApp: {
+    id: "public.reporting.browser.warning",
+    defaultMessage: "Open this in Safari or Chrome. Passkeys and wallets may fail here.",
+  },
+  copied: {
+    id: "public.reporting.browser.copied",
+    defaultMessage: "Link copied. If nothing opened, paste it in Safari or Chrome.",
+  },
+  noPasskey: {
+    id: "public.reporting.browser.noPasskey",
+    defaultMessage: "Passkeys aren't available here. Open in Safari or Chrome, or use a wallet.",
+  },
+  joinFailed: {
+    id: "public.reporting.join.failed",
+    defaultMessage: "Joining didn't go through. Try again, or tap Not Now.",
+  },
+} satisfies Record<string, MessageDescriptor>;
+
+/**
+ * The browser step of a chat report, review or permission, drawn with the app's flow parts. The
+ * frame lays the page out and keeps its bands at one size; this view decides what each stage shows
+ * and which act, if any, its bar offers. What a stage shows keeps its place and its order from the
+ * step it first appears on, so sending the request moves nothing. A send whose outcome is unknown
+ * never gets an act.
+ *
+ * Linking an account has two screens of its own: naming a new account, on the account step, and
+ * the invitation to the Community Garden, which opens the link step for an account in no garden.
+ */
 export function CeremonyView(props: CeremonyViewProps) {
   const intl = useIntl();
   const firstItemId = useId();
   const createFormId = useId();
-  const nameId = useId();
   const [creating, setCreating] = useState(props.initialCreate ?? false);
   const [name, setName] = useState("");
+  // A new account arrives connected, which ends the naming screen.
   useEffect(() => {
     if (props.account) setCreating(false);
   }, [props.account]);
   const { stage, resource, operation, grant } = props;
   const screen = readCeremonyScreen(props);
   const { isGrant, decides, uncertain, proving, publishing, granting } = screen;
+  const inApp = stage === "intro" && props.inAppBrowser;
   const createScreen = creating && screen.isLink && stage === "connect";
-  const joinScreen =
-    screen.isLink && (stage === "pairing" || stage === "linked") && props.communityOffer !== null;
+  const offer =
+    screen.isLink && (stage === "pairing" || stage === "linked") ? props.communityOffer : null;
+  const joinScreen = offer !== null;
+  // The invitation is for the account the chat links; another one connected here cannot take it.
+  const linked = props.linkedAccount;
+  const joinWrongAccount =
+    joinScreen &&
+    props.account !== null &&
+    linked !== null &&
+    props.account.toLowerCase() !== linked.toLowerCase();
   const text = (message: MessageDescriptor, values?: Record<string, string | number>) =>
     intl.formatMessage(message, values);
   const signer = grant?.policy.account ?? operation?.envelope?.accountAddress ?? null;
@@ -96,6 +138,8 @@ export function CeremonyView(props: CeremonyViewProps) {
     signer !== null &&
     props.account?.toLowerCase() !== signer.toLowerCase();
 
+  // Why the act is switched off, if it is: the wrong account, a publication this page refuses to
+  // sign, or one that is still being prepared.
   const block: CeremonyProblem | null =
     !uncertain && (stage === "review" || stage === "grant_ready")
       ? wrongAccount && signer
@@ -110,27 +154,30 @@ export function CeremonyView(props: CeremonyViewProps) {
               }
             : null
       : null;
+  // The status card already says an outcome is unknown, so no caution repeats it.
   const failure = props.error && !uncertain ? failureProblem(props.error) : null;
+  // One problem at a time: what stops the act outright, then what failed, then a wait.
   const problem = block?.tone === "error" ? block : (failure ?? block);
   const withStatus = hasStatusCard(screen);
   const describedBy = block ? BLOCKED_ID : undefined;
 
+  /** Connect an account, or sign with the one connected, while `signing` shows the prompt is open. */
+  const accountActs = (account: string | null, signing = false) => (
+    <AccountActions
+      account={account}
+      connecting={props.connecting}
+      proving={signing}
+      onConnectWallet={props.connectWallet}
+      onConnectPasskey={() => void props.connectPasskey()}
+      passkeyUnavailable={props.passkeyUnavailable}
+      onProve={() => void props.prove()}
+    />
+  );
+
   const actions: ReactNode = (() => {
-    if (stage === "intro" && props.inAppBrowser) {
+    if (inApp) {
       return (
-        <PairedActs>
-          <Button
-            size="lg"
-            className="!px-2 !text-sm"
-            emphasis="secondary"
-            onClick={() => void props.start()}
-          >
-            {text({ id: "public.reporting.browser.continue", defaultMessage: "Continue Here" })}
-          </Button>
-          <Button size="lg" className="!px-2 !text-sm" onClick={() => void props.openInBrowser()}>
-            {text({ id: "public.reporting.browser.open", defaultMessage: "Open in Browser" })}
-          </Button>
-        </PairedActs>
+        <BrowserActs onOpen={() => void props.openInBrowser()} onStay={() => void props.start()} />
       );
     }
     if (screen.opening) {
@@ -144,66 +191,30 @@ export function CeremonyView(props: CeremonyViewProps) {
     }
     if (createScreen) {
       return (
-        <PairedActs>
-          <Button size="lg" emphasis="secondary" onClick={() => setCreating(false)}>
-            {text({ id: "app.login.button.back", defaultMessage: "Back" })}
-          </Button>
-          <Button
-            size="lg"
-            type="submit"
-            form={createFormId}
-            loading={props.connecting}
-            disabled={name.trim().length < 3}
-          >
-            {text({ id: "app.login.button.createAccount", defaultMessage: "Create Account" })}
-          </Button>
-        </PairedActs>
+        <CreateActs
+          formId={createFormId}
+          name={name}
+          creating={props.connecting}
+          onBack={() => setCreating(false)}
+        />
       );
     }
     if (joinScreen) {
+      // The linked account signs the join, so a browser with none connected connects one first.
+      if (!props.account) return accountActs(null);
       return (
-        <PairedActs>
-          <Button
-            size="lg"
-            emphasis="secondary"
-            disabled={props.joinSending}
-            onClick={props.skipCommunity}
-          >
-            {text({ id: "public.reporting.join.notNow", defaultMessage: "Not Now" })}
-          </Button>
-          <Button size="lg" loading={props.joinSending} onClick={() => void props.joinCommunity()}>
-            {text({ id: "public.reporting.join.action", defaultMessage: "Join Garden" })}
-          </Button>
-        </PairedActs>
-      );
-    }
-    if (proving) {
-      return (
-        <AccountActions
-          account={props.account}
-          connecting={props.connecting}
-          proving={stage === "proving"}
-          onConnectWallet={props.connectWallet}
-          onConnectPasskey={() => void props.connectPasskey()}
-          passkeyUnavailable={props.passkeyUnavailable}
-          onProve={() => void props.prove()}
+        <JoinActs
+          sending={props.joinSending}
+          blocked={joinWrongAccount}
+          onJoin={() => void props.joinCommunity()}
+          onSkip={props.skipCommunity}
         />
       );
     }
+    if (proving) return accountActs(props.account, stage === "proving");
     if (uncertain) return null;
-    if (stage === "review" && props.sessionAccount && !props.account) {
-      return (
-        <AccountActions
-          account={null}
-          connecting={props.connecting}
-          proving={false}
-          onConnectWallet={props.connectWallet}
-          onConnectPasskey={() => void props.connectPasskey()}
-          passkeyUnavailable={props.passkeyUnavailable}
-          onProve={() => void props.prove()}
-        />
-      );
-    }
+    // A browser the Agent recognized opens Review signed in, with no account connected yet.
+    if (stage === "review" && props.sessionAccount && !props.account) return accountActs(null);
     if (publishing) {
       return (
         <FlowForward
@@ -258,6 +269,27 @@ export function CeremonyView(props: CeremonyViewProps) {
     return null;
   })();
 
+  // What the heading card says in place of its two lines, on the screens with no status card.
+  const headingProblem: CeremonyProblem | SpokenProblem | null = (() => {
+    if (inApp) return { message: props.linkCopied ? NOTES.copied : NOTES.inApp, tone: "caution" };
+    if (joinWrongAccount && linked) {
+      return { ...BLOCKS.wrongAccount, values: { account: formatAddress(linked) }, tone: "error" };
+    }
+    if (joinScreen && props.joinFailure === "declined") return failureProblem("declined");
+    if (joinScreen && props.joinFailure === "not_sent") {
+      return { message: NOTES.joinFailed, tone: "error" };
+    }
+    // Connecting or creating an account failed: the account layer has already put it into words.
+    if (props.lastFailure && !props.account && (proving || createScreen || joinScreen)) {
+      return { spoken: props.lastFailure, tone: "error" };
+    }
+    if (proving && !props.account && props.passkeyUnavailable) {
+      return { message: NOTES.noPasskey, tone: "caution" };
+    }
+    return withStatus ? null : problem;
+  })();
+
+  // What the request publishes, shown before it is signed and kept on the page after it is sent.
   const publication = (() => {
     if (screen.isLink || isGrant || screen.unusable || screen.opening || proving) return null;
     if (stage === "pairing") return null;
@@ -316,7 +348,7 @@ export function CeremonyView(props: CeremonyViewProps) {
   return (
     <CeremonyFrame
       screen={screen.unusable ? "state" : "step"}
-      hideHeadingIcon={stage === "intro" && props.inAppBrowser}
+      hideHeadingIcon={inApp}
       steps={
         joinScreen
           ? { names: [text(STEP_NAMES.account), text(STEP_NAMES.link)], current: 2 }
@@ -334,7 +366,7 @@ export function CeremonyView(props: CeremonyViewProps) {
               }),
               Icon: RiUserAddLine,
             }
-          : joinScreen && props.communityOffer
+          : joinScreen
             ? {
                 title: { id: "public.reporting.join.title", defaultMessage: "Join a Garden" },
                 info: text({
@@ -343,57 +375,11 @@ export function CeremonyView(props: CeremonyViewProps) {
                 }),
                 Icon: RiPlantLine,
               }
-            : ceremonyHeading(intl, screen, props)
+            : // "Account linked" names the account the chat links, whatever is connected here.
+              ceremonyHeading(intl, screen, { ...props, account: linked ?? props.account })
       }
       // The status card says a problem where the screen has one; elsewhere the heading card does.
-      problem={
-        stage === "intro" && props.inAppBrowser
-          ? {
-              message: props.linkCopied
-                ? {
-                    id: "public.reporting.browser.copied",
-                    defaultMessage: "Link copied. If nothing opened, paste it in Safari or Chrome.",
-                  }
-                : {
-                    id: "public.reporting.browser.warning",
-                    defaultMessage:
-                      "Open this in Safari or Chrome. Passkeys and wallets may fail here.",
-                  },
-              tone: "caution",
-            }
-          : proving && !props.account && props.passkeyUnavailable
-            ? {
-                message: {
-                  id: "public.reporting.browser.noPasskey",
-                  defaultMessage:
-                    "Passkeys aren't available here. Open in Safari or Chrome, or use a wallet.",
-                },
-                tone: "caution",
-              }
-            : joinScreen && props.joinFailure === "declined"
-              ? failureProblem("declined")
-              : joinScreen && props.joinFailure === "not_sent"
-                ? {
-                    title: { id: "public.reporting.join.title", defaultMessage: "Join a Garden" },
-                    message: {
-                      id: "public.reporting.join.failed",
-                      defaultMessage: "Joining didn't go through. Try again, or tap Not Now.",
-                    },
-                    tone: "error",
-                  }
-                : props.lastFailure && (proving || createScreen)
-                  ? {
-                      title: {
-                        id: "public.reporting.connect.title",
-                        defaultMessage: "Show It's Your Account",
-                      },
-                      message: { defaultMessage: props.lastFailure },
-                      tone: "error",
-                    }
-                  : withStatus
-                    ? null
-                    : problem
-      }
+      problem={headingProblem}
       notice={
         joinScreen ? null : <StatusCard screen={screen} problem={withStatus ? problem : null} />
       }
@@ -407,50 +393,18 @@ export function CeremonyView(props: CeremonyViewProps) {
         channel={props.channelLabel}
         onLeave={SESSION.has(stage) ? () => void props.leave() : undefined}
       />
-      {joinScreen && props.communityOffer ? (
+      {offer ? (
         <p className="min-w-0 text-base font-semibold text-text-strong-950">
-          <GardenLine>{props.communityOffer.name}</GardenLine>
+          <GardenLine>{offer.name}</GardenLine>
         </p>
       ) : null}
       {createScreen ? (
-        <form
+        <CreateAccountForm
           id={createFormId}
-          className="flex min-w-0 flex-col gap-3"
-          method="post"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (name.trim().length < 3) return;
-            void props.createAccount(name.trim());
-          }}
-        >
-          <FormField
-            htmlFor={nameId}
-            required
-            label={text({
-              id: "app.login.username.newAccountLabel",
-              defaultMessage: "Display name for new account",
-            })}
-            hint={text({
-              id: "app.login.username.hint",
-              defaultMessage:
-                "Keep this name somewhere safe. You'll use it to sign in on another device.",
-            })}
-          >
-            <TextInput
-              id={nameId}
-              name="displayName"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder={text({
-                id: "app.login.username.placeholder",
-                defaultMessage: "e.g. alice or alice.eth",
-              })}
-              minLength={3}
-              autoComplete="nickname"
-              required
-            />
-          </FormField>
-        </form>
+          name={name}
+          onName={setName}
+          onCreate={(chosen) => void props.createAccount(chosen)}
+        />
       ) : null}
       {stage === "pairing" && !joinScreen && props.pairingCode ? (
         <p
@@ -464,9 +418,8 @@ export function CeremonyView(props: CeremonyViewProps) {
         <WhatHappensNext
           flow={
             joinScreen
-              ? props.accountKind === "passkey"
-                ? "joinPasskey"
-                : "joinWallet"
+              ? // A chat that is linked already has no code to send after joining.
+                `${stage === "linked" ? "joined" : "join"}${props.accountKind === "passkey" ? "Free" : "Paid"}`
               : screen.isLink
                 ? "link"
                 : "any"
@@ -474,19 +427,7 @@ export function CeremonyView(props: CeremonyViewProps) {
         />
       ) : null}
       {screen.isLink && stage === "connect" && !props.account && !createScreen ? (
-        <Button
-          type="button"
-          size="sm"
-          emphasis="tertiary"
-          className="text-sm text-primary-action underline underline-offset-4"
-          disabled={props.passkeyUnavailable}
-          onClick={() => setCreating(true)}
-        >
-          {text({
-            id: "public.reporting.create.link",
-            defaultMessage: "New here? Create an account",
-          })}
-        </Button>
+        <CreateAccountLink disabled={props.passkeyUnavailable} onCreate={() => setCreating(true)} />
       ) : null}
       {publication}
       {/* The first item is the one thing not yet seen when Review opens, so it leads, and the
