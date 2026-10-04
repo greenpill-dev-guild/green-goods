@@ -29,6 +29,9 @@ describe("account requests in plain words", () => {
     "change the title to fence planting",
     "sign in sheet printed for the volunteers",
     "link the photos to the report",
+    "I want to change this",
+    "can I use this",
+    "change",
   ])("leaves %s for the report", (text) => {
     expect(parseCommand(text)).toBeNull();
   });

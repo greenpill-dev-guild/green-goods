@@ -97,6 +97,7 @@ const REQUEST_FILLER = new Set(
 );
 
 const OTHER_ACCOUNT = /\b(another|different|other|new|otra|otro|nueva|outra|outro|nova)\b/u;
+const ACCOUNT_NOUN = /\b(account|wallet|passkey|cuenta|billetera|conta|carteira)\b/u;
 
 const ACCOUNT_REQUESTS: Array<{ kind: "disconnect" | "switch" | "connect"; phrase: RegExp }> = [
   {
@@ -135,6 +136,9 @@ function accountRequest(text: string): ChatCommand | null {
       .filter(Boolean)
       .every((word) => REQUEST_FILLER.has(word));
     if (!plain) return null;
+    // "Change" and "use" say nothing about accounts on their own: "I want to change this" is about
+    // the report. They are an account request only when the message names an account.
+    if (kind === "switch" && !ACCOUNT_NOUN.test(rest)) return null;
     // Linking, or using, "another" account is a switch; using "my" account is only linking.
     if (kind === "connect" || (/^(use|usar)$/u.test(match[0]) && !other))
       return other ? { kind: "switch" } : { kind: "connect", account: null };

@@ -18,6 +18,9 @@ import {
 } from "./report-work";
 import type { TurnWriter } from "./writer";
 
+/** The longest message the model may call a hello or an account request rather than a story. */
+const MAX_ASIDE_WORDS = 12;
+
 /** A story, correction or attachment that is not an answer to the open question. */
 export function handleReportMessage(
   writer: TurnWriter,
@@ -36,14 +39,17 @@ export function handleReportMessage(
   const intent = external.interpretation?.intent;
   if (plan.media.length === 0) {
     if (intent === "status") return handleReportCommand(writer, { kind: "status" }, external);
+    // The model's reading of a hello or an account request is trusted only for a short message:
+    // a long one is a story, whatever it opens with, and must reach the report.
+    const brief = text !== null && text.split(/\s+/u).length <= MAX_ASIDE_WORDS;
     // Linking only sends a link, so the model's reading is enough. Unlinking changes what the
     // chat may do, so like cancelling it takes the command itself.
-    if (intent === "connect") return requestConnection(writer, null);
-    if (intent === "disconnect") return writer.say("link.disconnectHint");
+    if (brief && intent === "connect") return requestConnection(writer, null);
+    if (brief && intent === "disconnect") return writer.say("link.disconnectHint");
     if (intent === "help" || intent === "cancel")
       return writer.say(intent === "cancel" && draft ? "report.cancelHint" : "help");
     // A hello describes no work. It gets a welcome, and an open report asks its question again.
-    if (text && (isGreeting(text) || intent === "greeting")) {
+    if (text && (isGreeting(text) || (brief && intent === "greeting"))) {
       if (!draft) return welcome(writer);
       writer.say("chat.hello");
       if (["collecting", "review"].includes(lifecycleState(draft)))
