@@ -235,6 +235,7 @@ export function GardenPool({ pool }: GardenPoolProps) {
                   isBusy={controller.busyJobId === creation.jobId}
                   onRetry={(jobId) => void controller.acts.retry(jobId)}
                   onDiscard={(jobId) => void controller.acts.discard(jobId)}
+                  sendsFromTap={controller.sendsFromTap}
                 />
               ))}
             </div>

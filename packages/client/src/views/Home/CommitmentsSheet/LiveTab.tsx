@@ -28,6 +28,8 @@ export interface LiveTabProps {
   inbox: CommitmentsInbox;
   pools: CommitmentPoolRecord[];
   gardens: Garden[];
+  /** A queued promise goes only when the reader sends it (a wallet sign-in). */
+  sendsFromTap: boolean;
   /** Where a row goes when tapped: the commitment, in its garden. */
   onOpenCommitment: (gardenAddress: string, commitmentId: bigint) => void;
 }
@@ -40,7 +42,7 @@ export interface LiveTabProps {
  * chip: it leads the sort and drives the badge, so it can never be filtered
  * out of sight.
  */
-export function LiveTab({ inbox, pools, gardens, onOpenCommitment }: LiveTabProps) {
+export function LiveTab({ inbox, pools, gardens, sendsFromTap, onOpenCommitment }: LiveTabProps) {
   const { formatMessage } = useIntl();
   const isOnline = useOnlineStatus();
   const { byCID } = useCommitmentMetadata(
@@ -96,10 +98,15 @@ export function LiveTab({ inbox, pools, gardens, onOpenCommitment }: LiveTabProp
 
       {/* Same fact as the pool tab's calm dashed card, same register — a
           queued creation is reassurance, never a warning (DESIGN.pwa warm
-          offline indicators). */}
+          offline indicators). A wallet reader's goes only when they send it,
+          so theirs says where to do that. */}
       {inbox.hasPendingCreate ? (
         <Alert variant="info" className="p-3">
-          {formatMessage({ id: "app.commitments.pendingCreate" })}
+          {formatMessage({
+            id: sendsFromTap
+              ? "app.commitments.pendingCreateUnsent"
+              : "app.commitments.pendingCreate",
+          })}
         </Alert>
       ) : null}
 

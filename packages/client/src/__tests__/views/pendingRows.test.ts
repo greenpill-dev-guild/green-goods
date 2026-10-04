@@ -21,6 +21,7 @@ const context: PendingRowContext = {
   intl,
   isOnline: true,
   pausedForDataSaver: false,
+  sendsFromTap: false,
   actionTitle: () => undefined,
   isLinked: () => false,
 };
@@ -174,5 +175,31 @@ describe("Pending rows", () => {
 
     const checking = proofRow(proof({ waitingReason: "awaiting-confirmation" }), context);
     expect(checking).toMatchObject({ kind: "checking" });
+  });
+
+  it("never tells a wallet reader that queued proof sends or checks itself", () => {
+    // The background flush sends and checks proof for a passkey or embedded
+    // reader. A wallet reader does both from the promise the row opens.
+    const card = (reader: Partial<PendingRowContext>, overrides: Partial<PendingProof> = {}) => {
+      const row = proofRow(proof(overrides), { ...context, ...reader });
+      return row.type === "proof" ? row.card : null;
+    };
+    const wallet = { sendsFromTap: true };
+    const offline = { isOnline: false };
+    const sent = { waitingReason: "awaiting-confirmation", discardable: false };
+
+    expect(card({})?.status).toBe("Nothing sent yet");
+    expect(card(wallet)?.status).toBe("Not sent. Open it to send");
+    expect(card(offline)?.status).toBe("Sends when you're connected");
+    expect(card({ ...wallet, ...offline })?.status).toBe("Send it when you're connected");
+
+    expect(card({}, sent)).toMatchObject({ status: "Checking whether it was sent", locked: true });
+    expect(card(wallet, sent)).toMatchObject({
+      kind: "checking",
+      status: "Open it to check whether it was sent",
+      locked: false,
+    });
+    expect(card(offline, sent)?.status).toBe("Checks again when you're connected");
+    expect(card({ ...wallet, ...offline }, sent)?.status).toBe("Check again when you're connected");
   });
 });

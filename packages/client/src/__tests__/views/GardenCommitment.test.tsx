@@ -269,6 +269,7 @@ function controller(
       pendingAct: null,
       proofSending: false,
       proofOnItsWay: null,
+      sendsFromTap: false,
       isUnavailable: false,
       refresh: vi.fn(),
     },
@@ -887,6 +888,100 @@ describe("GardenCommitment", () => {
     await userEvent.click(screen.getByRole("button", { name: "Discard" }));
     expect(mockDiscardJob).toHaveBeenCalledWith("claim-9");
     expect(mockFlush).not.toHaveBeenCalled();
+  });
+
+  describe("a parked act, for a reader who sends from their own tap (a wallet sign-in)", () => {
+    const parked = (act: Record<string, unknown>) =>
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          sendsFromTap: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: null,
+            discardable: true,
+            createdAt: 1,
+            ...act,
+          },
+        },
+      });
+
+    // A declined network switch leaves the act marked as a declined signature
+    // does ("send-intent-expired"); any other network failure leaves it plain.
+    it.each([
+      null,
+      "send-intent-expired",
+    ])("says it was not sent and why, and offers the send and the discard (waiting reason: %s)", (waitingReason) => {
+      mockUseController.mockReturnValue(
+        parked({
+          waitingReason,
+          sendFailure: {
+            messageId: "app.errors.wallet.wrongNetwork.message",
+            values: { network: "Arbitrum One" },
+            walletNetwork: true,
+          },
+        })
+      );
+      render();
+
+      expect(screen.getByText("Saved on this phone, not sent")).toBeInTheDocument();
+      // Only the change of network was declined, so it never reads as a signature.
+      expect(screen.queryByText(/signature cancelled/i)).not.toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again."
+        )
+      ).toBeInTheDocument();
+      // Nothing sends it for them, so nothing may say it will.
+      expect(screen.queryByText(/sends when you're connected/i)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Send Now" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Discard" })).toBeEnabled();
+    });
+
+    it("says an act that was never tried waits for their send", () => {
+      mockUseController.mockReturnValue(parked({}));
+      render();
+
+      expect(screen.getByText(/waits on this phone until you send it/i)).toBeInTheDocument();
+      expect(screen.queryByText(/sends when you're connected/i)).not.toBeInTheDocument();
+    });
+
+    it("never says an act waiting for their membership sends on its own", () => {
+      mockUseController.mockReturnValue(parked({ waitingReason: "membership-unavailable" }));
+      render();
+
+      expect(screen.getByText("Waiting for your membership")).toBeInTheDocument();
+      expect(screen.getByText(/send it once it has/i)).toBeInTheDocument();
+      expect(
+        screen.queryByText(/sends once your garden membership lands/i)
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("keeps saying a parked act sends itself for a reader the background flush sends for", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: null,
+            discardable: true,
+            sendFailure: { messageId: "app.errors.blockchain.network.message" },
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+
+    expect(screen.getByText(/sends when you're connected/i)).toBeInTheDocument();
   });
 
   it("locks the parked row while this screen's own send is running", () => {

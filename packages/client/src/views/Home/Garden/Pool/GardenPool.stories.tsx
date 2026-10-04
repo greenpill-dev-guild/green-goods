@@ -1,3 +1,4 @@
+import type { PendingCommitmentCreation } from "@green-goods/shared/commitment-pooling";
 import { GardenTab } from "@green-goods/shared/hooks/garden/useGardenTabs";
 import { useGardenPoolController } from "@green-goods/shared/hooks/client-ui/pool/useGardenPoolController";
 import { useElementHeight } from "@green-goods/shared/hooks/utils/useElementHeight";
@@ -137,6 +138,69 @@ export const Live: Story = {
       await expect(row.getBoundingClientRect().height).toBe(88);
     }
   },
+};
+
+const QUEUED_REQUEST: PendingCommitmentCreation = {
+  jobId: "job-request-1",
+  chainId: 42161,
+  poolId: JOURNEY_POOL.poolId.toString(),
+  direction: "REQUEST",
+  title: "Help turning the compost bays",
+  unitLabel: "hours",
+  targetUnits: "6",
+  waitingForMembership: false,
+  failed: false,
+  discardable: true,
+  createdAt: 1_758_800_000_000,
+};
+const withQueuedRequest = (creation: PendingCommitmentCreation, sendsFromTap: boolean) =>
+  withController(
+    gardenPoolControllerFixture(LIVE_PROMISES, {
+      ownCreations: [creation],
+      shownCreations: [creation],
+      sendsFromTap,
+    })
+  );
+
+/** A request still on this phone for a passkey reader: the background flush sends it. */
+export const QueuedCreation: Story = {
+  beforeEach: withQueuedRequest(QUEUED_REQUEST, false),
+};
+
+/**
+ * The same request for a wallet reader after its send failed on the wallet's network. Nothing
+ * sends it for them, so the row says it was not sent, names the network, and offers both acts.
+ */
+export const QueuedCreationWalletNotSent: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: withQueuedRequest(
+    {
+      ...QUEUED_REQUEST,
+      sendFailure: {
+        messageId: "app.errors.wallet.wrongNetwork.message",
+        values: { network: "Arbitrum One" },
+      },
+    },
+    true
+  ),
+  play: async ({ canvasElement }) => {
+    const row = within(
+      canvasElement.querySelector("[data-component=PendingCreationRow]") as HTMLElement
+    );
+    await expect(row.getByText("Not sent")).toBeVisible();
+    await expect(row.getByText(/needs to be on Arbitrum One/)).toBeVisible();
+    await expect(row.queryByText(/sends when you are connected/i)).toBeNull();
+    await expect(row.getByRole("button", { name: "Send Now" })).toBeEnabled();
+    await expect(row.getByRole("button", { name: "Discard" })).toBeEnabled();
+  },
+};
+
+/** A wallet reader's request whose send is on record: it can only be checked again. */
+export const QueuedCreationWalletChecking: Story = {
+  beforeEach: withQueuedRequest(
+    { ...QUEUED_REQUEST, discardable: false, hasRecordedSend: true },
+    true
+  ),
 };
 
 export const Settled: Story = {

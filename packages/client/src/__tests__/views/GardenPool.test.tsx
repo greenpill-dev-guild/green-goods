@@ -47,6 +47,8 @@ const mockFlush = vi.fn();
 const mockRetryAndSend = vi.fn();
 const mockDiscardJob = vi.fn();
 const mockUseGardenPoolController = vi.fn();
+/** Whether the reader sends queued creations themselves, as a wallet sign-in does. */
+const mockSendsFromTap = vi.fn(() => false);
 const mockUsePoolCharter = vi.fn();
 
 const AVAILABLE = { status: "available", capability: {} } as const;
@@ -223,6 +225,7 @@ function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
     canCreate:
       poolState === "OPEN" && (targetPool.poolType !== "PROTOCOL" || stewardsPool || ownsPool),
     stewardsPool: stewardsPool || ownsPool ? true : role.isLoading ? null : false,
+    sendsFromTap: mockSendsFromTap(),
     acts: {
       flush: mockFlush,
       retry: (jobId: string) => runBusy(jobId, () => mockRetryAndSend(jobId)),
@@ -292,6 +295,7 @@ describe("GardenPool", () => {
     mockDiscardJob.mockResolvedValue(undefined);
     mockFlush.mockResolvedValue(undefined);
     mockUseCommitments.mockReturnValue(commitmentsResult());
+    mockSendsFromTap.mockReturnValue(false);
     mockUseGardenPoolController.mockImplementation(useGardenPoolControllerMock);
     mockUsePoolPromiseEntries.mockImplementation(({ rows }: { rows: unknown[] }) =>
       rows.map((row) => ({ kind: "single", row }))
@@ -452,6 +456,100 @@ describe("GardenPool", () => {
 
     expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  describe("for a reader who sends from their own tap (a wallet sign-in)", () => {
+    const queued = (row: Record<string, unknown>) => ({
+      pendingCommitmentIds: new Set<string>(),
+      failedCount: 0,
+      failedCommitmentIds: new Set<string>(),
+      hasPendingCreate: true,
+      pendingCreates: [creation(row)],
+      isUnavailable: false,
+      refresh: vi.fn(),
+    });
+    beforeEach(() => mockSendsFromTap.mockReturnValue(true));
+
+    it("says a creation was not sent and why, and offers the send and the discard", async () => {
+      const user = userEvent.setup();
+      mockUseQueueState.mockReturnValue(
+        queued({
+          sendFailure: {
+            messageId: "app.errors.wallet.wrongNetwork.message",
+            values: { network: "Arbitrum One" },
+          },
+        })
+      );
+
+      render(<GardenPool pool={pool()} />);
+
+      expect(screen.getByText("Not sent")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again."
+        )
+      ).toBeInTheDocument();
+      // Nothing sends it for them, so nothing may say it will.
+      expect(screen.queryByText("Waiting to send")).not.toBeInTheDocument();
+      expect(screen.queryByText(/sends when you are connected/i)).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Send Now" }));
+      expect(mockRetryAndSend).toHaveBeenCalledWith("job-1");
+      await user.click(screen.getByRole("button", { name: "Discard" }));
+      expect(mockDiscardJob).toHaveBeenCalledWith("job-1");
+    });
+
+    it("says a creation that was never tried waits for their send", () => {
+      mockUseQueueState.mockReturnValue(queued({}));
+
+      render(<GardenPool pool={pool()} />);
+
+      expect(screen.getByText("Not sent")).toBeInTheDocument();
+      expect(screen.getByText(/waits here until you send it/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Send Now" })).toBeInTheDocument();
+    });
+
+    it("never says a creation waiting for their hat sends on its own", () => {
+      mockUseQueueState.mockReturnValue(queued({ waitingForMembership: true }));
+
+      render(<GardenPool pool={pool()} />);
+
+      expect(screen.getByText("Waiting for your membership")).toBeInTheDocument();
+      expect(screen.getByText(/send it once you are in/i)).toBeInTheDocument();
+      expect(screen.queryByText(/sends on its own/i)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Send Now" })).toBeInTheDocument();
+    });
+
+    it("only checks again on a creation whose send is on record, and never offers to drop it", () => {
+      mockUseQueueState.mockReturnValue(queued({ discardable: false, hasRecordedSend: true }));
+
+      render(<GardenPool pool={pool()} />);
+
+      expect(screen.getByText("May already be sent")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Check Again" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Send Now" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+    });
+  });
+
+  it("keeps saying a queued creation sends itself for a reader the background flush sends for", () => {
+    mockUseQueueState.mockReturnValue({
+      pendingCommitmentIds: new Set<string>(),
+      failedCount: 0,
+      failedCommitmentIds: new Set<string>(),
+      hasPendingCreate: true,
+      pendingCreates: [
+        creation({ sendFailure: { messageId: "app.errors.blockchain.network.message" } }),
+      ],
+      isUnavailable: false,
+      refresh: vi.fn(),
+    });
+
+    render(<GardenPool pool={pool()} />);
+
+    expect(screen.getByText("Waiting to send")).toBeInTheDocument();
+    expect(screen.getByText(/sends when you are connected/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Send Now" })).not.toBeInTheDocument();
   });
 
   it("leaves another pool's creation where it belongs", () => {

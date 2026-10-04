@@ -1,3 +1,5 @@
+import { extractErrorMessage } from "./extract-message";
+
 /**
  * A write viem refused for the wallet's network that was not tried again,
  * because a check ahead of the second attempt failed. Nothing was signed. It
@@ -41,4 +43,91 @@ export function refusedForWalletNetwork(error: unknown): boolean {
     cause = "cause" in cause ? cause.cause : undefined;
   }
   return false;
+}
+
+/**
+ * Lower-case phrases that only a wallet on another network produces: the chain
+ * guard's refusals, viem's and wagmi's mismatch checks, a switch that failed or
+ * is not offered, and a chain the wallet or the app does not know. The job
+ * queue keeps a failed send's message and nothing else, so the message has to
+ * be enough. "Network" and "connection" alone are not here: wagmi's mismatch
+ * says "connection's chain", and reading that as a lost connection told people
+ * they were offline.
+ */
+const WRONG_NETWORK_PHRASES = [
+  "walletchainmismatch",
+  "chainmismatch",
+  "chain mismatch",
+  "connectorchainmismatch",
+  "does not match the target chain",
+  "does not match the connection's chain",
+  "wrong chain",
+  "wrong network",
+  "wallet network",
+  "switch your wallet",
+  "switch wallet",
+  "switch network",
+  "switch chain",
+  "chain switching",
+  "unsupported chain",
+  "unrecognized chain",
+  "chain not configured",
+  "network switch rejected",
+  "network switch already pending",
+];
+
+/**
+ * Where each refusal names the network the write needed. wagmi's mismatch gives
+ * only chain ids and is left unnamed, for two reasons. Its "connection's chain"
+ * is the one its caller asked for, or wagmi's stored chain when the caller named
+ * none, so it is not always the network the act needed. And naming an id needs
+ * the chain table, and with it viem, which the public site's startup must not
+ * load: this file ships there, inside the error parser.
+ *
+ * A wallet or an RPC writes these messages, so their length is not ours to
+ * bound. Every repetition here is, which keeps the read linear however long the
+ * message: an open-ended name made it quadratic.
+ */
+const NEEDED_NETWORK_NAME = [
+  /switch(?: your wallet)? to ([^.\n]{1,64}?)(?: before continuing)?\./i,
+  /\badd ([^.\n]{1,64}?) in your wallet/i,
+  /target chain for the transaction \(id: \d{1,20} [–-] ([^)\n]{1,64})\)/i,
+];
+
+function neededNetworkIn(message: string): string | null {
+  for (const pattern of NEEDED_NETWORK_NAME) {
+    const name = message.match(pattern)?.[1]?.trim();
+    if (name) return name;
+  }
+  return null;
+}
+
+/**
+ * Reads a wallet-network failure off an error, or off its message alone: a
+ * mismatch, a network switch that was declined, is pending or failed, or a
+ * chain that is not supported. `network` is the one the write needed, when the
+ * failure names it, so the person can be told where to switch.
+ *
+ * A declined switch counts here even though the wallet's own rejection sits
+ * under it as `cause`: nothing was declined but the change of network, so it
+ * must not read as a cancelled transaction.
+ */
+export function wrongWalletNetwork(error: unknown): { network: string | null } | null {
+  const seen = new Set<object>();
+  let wrongNetwork = false;
+  let link = error;
+  while (link !== null && link !== undefined && !(typeof link === "object" && seen.has(link))) {
+    const message = extractErrorMessage(link);
+    const lower = message.toLowerCase();
+    if (WRONG_NETWORK_PHRASES.some((phrase) => lower.includes(phrase))) {
+      wrongNetwork = true;
+      // The first link that names the network answers; a cause below may still name it.
+      const network = neededNetworkIn(message);
+      if (network) return { network };
+    }
+    if (typeof link !== "object") break;
+    seen.add(link);
+    link = "cause" in link ? link.cause : undefined;
+  }
+  return wrongNetwork ? { network: null } : null;
 }

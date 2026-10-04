@@ -1,6 +1,7 @@
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { usePendingProof } from "@green-goods/shared/hooks/client-ui/commitment/usePendingProof";
+import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
 import { useLinkedWorkUIDs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import { useCommitmentQueueState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState";
 import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
@@ -251,6 +252,10 @@ const meta: Meta<typeof DashboardFrame> = {
       isDeleting: false,
     } as unknown as ReturnType<typeof useDrafts>);
     mocked(usePendingProof).mockReturnValue({ items: fixture.proofs, isUnavailable: false });
+    // A passkey reader unless a story says otherwise: the background flush sends their proof.
+    mocked(useCommitmentJobs).mockReturnValue({
+      sendsFromTap: false,
+    } as unknown as ReturnType<typeof useCommitmentJobs>);
     mocked(useCommitmentQueueState).mockReturnValue({
       linkedWorkIds: fixture.linkedWorkIds,
     } as unknown as ReturnType<typeof useCommitmentQueueState>);
@@ -263,6 +268,7 @@ const meta: Meta<typeof DashboardFrame> = {
     return resetHookMocks(
       useDrafts,
       usePendingProof,
+      useCommitmentJobs,
       useCommitmentQueueState,
       useLinkedWorkUIDs,
       useActions
@@ -293,6 +299,25 @@ export const PendingInReview: Story = {
 /** Frame `work-offline`: when the list was saved, no Refresh or Upload all, rows say what waits. */
 export const PendingOffline: Story = {
   args: { uploads: READY, isOffline: true, savedAt: todayAt(10, 2) },
+};
+
+/**
+ * The same list for a wallet reader. Nothing sends their queued proof for them, so its row says to
+ * send it once connected, where a passkey reader's says it sends itself.
+ */
+export const PendingOfflineWallet: Story = {
+  args: { uploads: READY, isOffline: true, savedAt: todayAt(10, 2) },
+  beforeEach: () => {
+    mocked(useCommitmentJobs).mockReturnValue({
+      sendsFromTap: true,
+    } as unknown as ReturnType<typeof useCommitmentJobs>);
+  },
+  play: async ({ canvasElement }) => {
+    // The sheet draws in a portal, so its rows are found from the page body.
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByText("Send it when you're connected")).toBeVisible();
+    await expect(body.queryByText("Sends when you're connected")).toBeNull();
+  },
 };
 
 /** Frame `work-empty`: the sheet tab's empty state at its fixed anchor, no filter. */
