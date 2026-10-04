@@ -1488,6 +1488,7 @@
         "packages/shared/src/modules/agent-reporting/garden-join.ts",
         "packages/shared/src/modules/agent-reporting/kernel-activation.ts",
         "packages/shared/src/modules/agent-reporting/kernel-executor.ts",
+        "packages/shared/src/modules/agent-reporting/owner-validator.ts",
         "packages/shared/src/modules/assessment/create-assessment-command.ts",
         "packages/shared/src/modules/commitment-pooling/creation-send.ts",
         "packages/shared/src/modules/commitment-pooling/reward-edit.ts",
