@@ -1,12 +1,17 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { RenderHookOptions } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { act, renderHook as baseRenderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   GardenJoinRequestQueueResponse,
   GardenJoinRequestSelfResponse,
 } from "../../public-contracts/join-requests";
 import type { Address } from "../../types/domain";
+import { createTestQueryClient } from "../test-utils/query-client";
 
 const mocks = vi.hoisted(() => ({
+  sign: vi.fn(),
   accountAddress: "0x2222222222222222222222222222222222222222" as Address,
   mine: vi.fn(),
   create: vi.fn(),
@@ -32,7 +37,7 @@ vi.mock("../../hooks/blockchain/useChainConfig", () => ({
 }));
 
 vi.mock("../../modules/auth/account-message-signer", () => ({
-  createAccountMessageSigner: () => async () => "0x1234",
+  createAccountMessageSigner: () => mocks.sign,
   resolveAccountFactoryArgs: vi.fn(async () => undefined),
 }));
 
@@ -52,6 +57,19 @@ vi.mock("../../modules/garden-join-requests", async (importOriginal) => ({
 
 import { useGardenJoinRequests } from "../../hooks/garden/useGardenJoinRequests";
 import { GardenJoinRequestTransportError } from "../../modules/garden-join-requests";
+
+let testClient: QueryClient;
+function renderHook<Result, Props>(
+  callback: (props: Props) => Result,
+  options: RenderHookOptions<Props> = {}
+) {
+  return baseRenderHook(callback, {
+    ...options,
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={testClient}>{children}</QueryClientProvider>
+    ),
+  });
+}
 
 const GARDEN_A = "0x1111111111111111111111111111111111111111" as const;
 const GARDEN_B = "0x3333333333333333333333333333333333333333" as const;
@@ -93,11 +111,173 @@ const queueResponse: GardenJoinRequestQueueResponse = {
 describe("useGardenJoinRequests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    testClient = createTestQueryClient();
+    // Remount tests need the normal cache lifetime; the helper otherwise collects immediately.
+    testClient.setDefaultOptions({
+      ...testClient.getDefaultOptions(),
+      queries: { ...testClient.getDefaultOptions().queries, gcTime: 5 * 60 * 1000 },
+    });
     mocks.accountAddress = "0x2222222222222222222222222222222222222222";
+    mocks.sign.mockResolvedValue("0x1234");
     mocks.mine.mockResolvedValue(selfResponse);
     mocks.create.mockResolvedValue(selfResponse);
     mocks.withdraw.mockResolvedValue({ ok: true });
     mocks.list.mockResolvedValue(queueResponse);
+  });
+
+  it("retains pending status and its authorization when the dialog remounts", async () => {
+    const first = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    await act(async () => {
+      await first.result.current.submitRequest({
+        displayName: "Maya",
+        requestedVia: "garden_detail",
+      });
+    });
+    first.unmount();
+    const second = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    expect(second.result.current.request?.state).toBe("pending");
+    expect(second.result.current.hasCheckedStatus).toBe(true);
+    await act(async () => {
+      await second.result.current.checkStatus();
+    });
+    expect(mocks.mine.mock.calls[0][1]).toMatchObject({
+      action: "create",
+      readSelf: { audience: window.location.origin },
+    });
+  });
+
+  it("reuses an independently signed status proof until expiry", async () => {
+    const { result } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    await act(async () => {
+      await result.current.checkStatus();
+      await result.current.checkStatus();
+    });
+    expect(mocks.mine.mock.calls[0][1]).toBe(mocks.mine.mock.calls[1][1]);
+  });
+
+  it("reconciles a lost create response using its retained grant after remount", async () => {
+    mocks.create.mockRejectedValueOnce(
+      new GardenJoinRequestTransportError("Lost response", undefined, undefined, true)
+    );
+    const first = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    await act(async () => {
+      await expect(
+        first.result.current.submitRequest({ displayName: "Maya", requestedVia: "garden_detail" })
+      ).rejects.toThrow();
+    });
+    first.unmount();
+    const second = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    expect(second.result.current.outcomeUnknown).toBe(true);
+    expect(second.result.current.hasCheckedStatus).toBe(false);
+    await act(async () => {
+      await second.result.current.checkStatus();
+    });
+    expect(mocks.sign).toHaveBeenCalledOnce();
+    expect(second.result.current.outcomeUnknown).toBe(false);
+    expect(second.result.current.request?.state).toBe("pending");
+  });
+
+  it("does not reuse authorization after logout removes the private query", async () => {
+    const first = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    await act(async () => {
+      await first.result.current.checkStatus();
+    });
+    first.unmount();
+    // Real QueryCache removal with the namespace rule used by Auth.signOut.
+    testClient.removeQueries({ predicate: ({ queryKey }) => queryKey[0] !== "greengoods" });
+    const second = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    expect(second.result.current.request).toBeNull();
+    await act(async () => {
+      await second.result.current.checkStatus();
+    });
+    expect(mocks.sign).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores a read held across logout and same-account login", async () => {
+    const pending = deferred<GardenJoinRequestSelfResponse>();
+    mocks.mine.mockReturnValueOnce(pending.promise);
+    const first = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    let response!: Promise<unknown>;
+    act(() => {
+      response = first.result.current.checkStatus();
+    });
+    await waitFor(() => expect(mocks.mine).toHaveBeenCalledOnce());
+    first.unmount();
+    testClient.removeQueries({ predicate: ({ queryKey }) => queryKey[0] !== "greengoods" });
+    const second = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    pending.resolve(selfResponse);
+    await act(async () => {
+      expect(await response).toBeNull();
+    });
+    expect(second.result.current.request).toBeNull();
+    expect(second.result.current.canRefreshStatus).toBe(false);
+  });
+
+  it("does not dispatch a late signature after account A changes to B and back", async () => {
+    const pending = deferred<`0x${string}`>();
+    mocks.sign.mockReturnValueOnce(pending.promise);
+    const { result, rerender } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    let sending!: Promise<unknown>;
+    act(() => {
+      sending = result.current.submitRequest({
+        displayName: "Maya",
+        requestedVia: "garden_detail",
+      });
+    });
+    await waitFor(() => expect(mocks.sign).toHaveBeenCalledOnce());
+    mocks.accountAddress = "0x4444444444444444444444444444444444444444";
+    rerender();
+    mocks.accountAddress = "0x2222222222222222222222222222222222222222";
+    rerender();
+    pending.resolve("0x1234");
+    await act(async () => {
+      expect(await sending).toBeNull();
+    });
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(result.current.canRefreshStatus).toBe(false);
+  });
+
+  it("requests fresh status authorization after expiry and rejects an expired signing result", async () => {
+    let clock = Date.now();
+    const now = vi.spyOn(Date, "now").mockImplementation(() => clock);
+    try {
+      const { result } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+      await act(async () => {
+        await result.current.checkStatus();
+      });
+      clock += 301_000;
+      await act(async () => {
+        await result.current.checkStatus();
+      });
+      expect(mocks.sign).toHaveBeenCalledTimes(2);
+      mocks.sign.mockImplementationOnce(async () => {
+        clock += 301_000;
+        return "0x1234";
+      });
+      await act(async () => {
+        await expect(
+          result.current.submitRequest({ displayName: "Maya", requestedVia: "garden_detail" })
+        ).rejects.toMatchObject({ errorCode: "signature_expired" });
+      });
+      expect(mocks.create).not.toHaveBeenCalled();
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  it("keeps private status out of the actual persistence policy and credentials out of query data", async () => {
+    const { createShouldDehydrateQuery } = await import("../../config/query-persistence");
+    const { result } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    await act(async () => {
+      await result.current.checkStatus();
+    });
+    const query = testClient
+      .getQueryCache()
+      .getAll()
+      .find((q) => q.queryKey[0] === "garden-join-requests")!;
+    expect(createShouldDehydrateQuery()(query)).toBe(false);
+    expect(JSON.stringify(query.state.data)).not.toContain("signature");
+    expect(JSON.stringify(query.state.data)).not.toContain("nonce");
   });
 
   it("does not expose a late status response after the garden changes", async () => {
@@ -153,7 +333,11 @@ describe("useGardenJoinRequests", () => {
     expect(result.current.hasCheckedStatus).toBe(true);
     expect(mocks.mine).toHaveBeenLastCalledWith(
       GARDEN_A,
-      expect.objectContaining({ action: "read_self", signature: "0x1234" })
+      expect.objectContaining({
+        action: "create",
+        signature: "0x1234",
+        readSelf: expect.any(Object),
+      })
     );
   });
 
@@ -232,6 +416,127 @@ describe("useGardenJoinRequests", () => {
     expect(mocks.mine).toHaveBeenCalledOnce();
     expect(result.current.request).toEqual(selfResponse.request);
     expect(result.current.hasCheckedStatus).toBe(true);
+  });
+
+  it("shares the in-flight write barrier with a remounted status reader", async () => {
+    const pendingCreate = deferred<GardenJoinRequestSelfResponse>();
+    mocks.create.mockReturnValueOnce(pendingCreate.promise);
+    const first = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    let submitting!: Promise<unknown>;
+    await act(async () => {
+      submitting = first.result.current.submitRequest({
+        displayName: "Maya",
+        requestedVia: "garden_detail",
+      });
+    });
+    first.unmount();
+    const second = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    let checking!: Promise<unknown>;
+    await act(async () => {
+      checking = second.result.current.checkStatus();
+    });
+    expect(mocks.mine).not.toHaveBeenCalled();
+    await act(async () => {
+      pendingCreate.resolve(selfResponse);
+      await Promise.all([submitting, checking]);
+    });
+    expect(mocks.sign).toHaveBeenCalledOnce();
+    expect(second.result.current.request).toEqual(selfResponse.request);
+  });
+
+  it("ignores an older empty status response after a newer create succeeds", async () => {
+    const pendingRead = deferred<GardenJoinRequestSelfResponse>();
+    mocks.mine.mockReturnValueOnce(pendingRead.promise);
+    const { result } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    let checking!: Promise<unknown>;
+    await act(async () => {
+      checking = result.current.checkStatus();
+    });
+    await act(async () => {
+      await result.current.submitRequest({ displayName: "Maya", requestedVia: "garden_detail" });
+    });
+    await act(async () => {
+      pendingRead.resolve({ ok: true, request: null });
+      expect(await checking).toBeNull();
+    });
+    expect(result.current.request).toEqual(selfResponse.request);
+  });
+
+  it("clears a superseded status spinner when withdrawing", async () => {
+    const { result } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    await act(async () => {
+      await result.current.checkStatus();
+    });
+    const pendingRead = deferred<GardenJoinRequestSelfResponse>();
+    mocks.mine.mockReturnValueOnce(pendingRead.promise);
+    let checking!: Promise<unknown>;
+    await act(async () => {
+      checking = result.current.checkStatus();
+    });
+    expect(result.current.statusState.isLoading).toBe(true);
+    await act(async () => {
+      await result.current.withdrawRequest();
+    });
+    await act(async () => {
+      pendingRead.resolve(selfResponse);
+      await checking;
+    });
+    expect(result.current.request).toBeNull();
+    expect(result.current.statusState.isLoading).toBe(false);
+  });
+
+  it("never prompts for a signature during automatic status reconciliation", async () => {
+    const { result } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    await act(async () => {
+      await result.current.checkStatus({ allowSignature: false });
+    });
+    expect(mocks.sign).not.toHaveBeenCalled();
+    expect(mocks.mine).not.toHaveBeenCalled();
+    await act(async () => {
+      await result.current.submitRequest({ displayName: "Maya", requestedVia: "garden_detail" });
+    });
+    const clock = Date.now();
+    const now = vi.spyOn(Date, "now").mockReturnValue(clock + 301_000);
+    try {
+      await act(async () => {
+        await result.current.checkStatus({ allowSignature: false });
+      });
+      expect(mocks.sign).toHaveBeenCalledOnce();
+      expect(mocks.mine).not.toHaveBeenCalled();
+      expect(result.current.request).toEqual(selfResponse.request);
+      expect(result.current.hasCheckedStatus).toBe(true);
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  it("does not wait for a logged-out session's unfinished signature", async () => {
+    const signing = deferred<`0x${string}`>();
+    mocks.sign.mockReturnValueOnce(signing.promise);
+    const first = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    let submitting!: Promise<unknown>;
+    await act(async () => {
+      submitting = first.result.current.submitRequest({
+        displayName: "Maya",
+        requestedVia: "garden_detail",
+      });
+    });
+    act(() => testClient.removeQueries({ predicate: (q) => q.queryKey[0] !== "greengoods" }));
+    first.unmount();
+    const second = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    let checking!: Promise<unknown>;
+    await act(async () => {
+      checking = second.result.current.checkStatus();
+    });
+    try {
+      await waitFor(() => expect(mocks.mine).toHaveBeenCalledOnce());
+    } finally {
+      await act(async () => {
+        signing.resolve("0x1234");
+        await Promise.all([submitting, checking]);
+      });
+    }
+    expect(mocks.create).not.toHaveBeenCalled();
   });
 
   it("shows and records a failed request, but not a declined signature", async () => {

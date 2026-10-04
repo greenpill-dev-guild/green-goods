@@ -448,7 +448,6 @@ export {
   // Core utilities (backward compatible)
   filterByTimeRange,
   formatDate,
-  formatDateRange,
   formatDateTime,
   formatDuration,
   fromDateInputValue,

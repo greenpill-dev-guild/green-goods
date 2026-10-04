@@ -1,7 +1,9 @@
 import { DatePicker } from "@green-goods/shared/components/DatePicker/DatePicker";
+import { selectHypercertTimeframeOrder } from "@green-goods/shared/stores/useHypercertWizardStore";
 import type { GardenAssessment } from "@green-goods/shared/types/domain";
 import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
 import type { CapitalType, HypercertDraft } from "@green-goods/shared/types/hypercerts";
+import { pickerValueToUtcDay, utcDayToPickerValue } from "@green-goods/shared/utils/time";
 import {
   RiAddLine,
   RiCalendarLine,
@@ -23,16 +25,17 @@ function getSdgName(id: number, intl: IntlShape): string {
 }
 
 /**
- * Format a Unix timestamp (seconds) to a human-readable date string
+ * A time frame end (Unix seconds) as the calendar day it names. The end is a
+ * day kept as UTC midnight: an assessment prefills it that way, and the minted
+ * metadata names its UTC day. Read in the steward's own zone, it would show
+ * the day before to anyone west of UTC.
  */
-function formatDisplayDate(timestamp: number | null | undefined): string {
+function formatTimeframeDay(intl: IntlShape, timestamp: number | null | undefined): string {
   if (!timestamp || timestamp <= 0) return "—";
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  const day = new Date(timestamp * 1000);
+  // An end no calendar holds has no day to show, and the formatter fails on it.
+  if (Number.isNaN(day.getTime())) return "—";
+  return intl.formatDate(day, { dateStyle: "medium", timeZone: "UTC" });
 }
 
 interface MetadataEditorProps {
@@ -85,35 +88,11 @@ export function MetadataEditor({
     ? impactScopesText
     : draft.impactScopes.join(", ");
 
-  // Date validation
-  const workDateError = useMemo(() => {
-    const start = draft.workTimeframeStart ?? suggestedStart;
-    const end = draft.workTimeframeEnd ?? suggestedEnd;
-    if (start && end && start > end) {
-      return formatMessage({ id: "app.hypercerts.metadata.error.dateRange" });
-    }
-    return undefined;
-  }, [
-    draft.workTimeframeStart,
-    draft.workTimeframeEnd,
-    suggestedStart,
-    suggestedEnd,
-    formatMessage,
-  ]);
-
-  const impactDateError = useMemo(() => {
-    const start = draft.impactTimeframeStart ?? draft.workTimeframeStart;
-    const end = draft.impactTimeframeEnd;
-    if (start !== null && start !== undefined && end && start > end) {
-      return formatMessage({ id: "app.hypercerts.metadata.error.dateRange" });
-    }
-    return undefined;
-  }, [
-    draft.impactTimeframeStart,
-    draft.impactTimeframeEnd,
-    draft.workTimeframeStart,
-    formatMessage,
-  ]);
+  // The wizard's own rule, so the error shown here is the one Next waits on.
+  const { workInOrder, impactInOrder } = selectHypercertTimeframeOrder(draft);
+  const dateRangeError = formatMessage({ id: "app.hypercerts.metadata.error.dateRange" });
+  const workDateError = workInOrder ? undefined : dateRangeError;
+  const impactDateError = impactInOrder ? undefined : dateRangeError;
 
   const availableSuggestedScopes = useMemo(() => {
     return suggestedWorkScopes.filter((scope) => !draft.workScopes.includes(scope));
@@ -251,7 +230,7 @@ export function MetadataEditor({
               {formatMessage({ id: "app.hypercerts.metadata.suggestedFromAttestations" })}
             </p>
             <p className="body-sm font-medium text-text-strong">
-              {formatDisplayDate(suggestedStart)} → {formatDisplayDate(suggestedEnd)}
+              {formatTimeframeDay(intl, suggestedStart)} → {formatTimeframeDay(intl, suggestedEnd)}
             </p>
           </div>
         )}
@@ -261,8 +240,10 @@ export function MetadataEditor({
             surface="admin"
             id="hypercert-work-start"
             label={formatMessage({ id: "app.hypercerts.metadata.startDate" })}
-            value={draft.workTimeframeStart}
-            onChange={(timestamp) => onUpdate({ workTimeframeStart: timestamp ?? 0 })}
+            value={utcDayToPickerValue(draft.workTimeframeStart)}
+            onChange={(picked) =>
+              onUpdate({ workTimeframeStart: pickerValueToUtcDay(picked) ?? 0 })
+            }
             placeholder={formatMessage({ id: "app.hypercerts.metadata.selectDate" })}
             required
           />
@@ -270,22 +251,23 @@ export function MetadataEditor({
             surface="admin"
             id="hypercert-work-end"
             label={formatMessage({ id: "app.hypercerts.metadata.endDate" })}
-            value={draft.workTimeframeEnd}
-            onChange={(timestamp) => onUpdate({ workTimeframeEnd: timestamp ?? 0 })}
+            value={utcDayToPickerValue(draft.workTimeframeEnd)}
+            onChange={(picked) => onUpdate({ workTimeframeEnd: pickerValueToUtcDay(picked) ?? 0 })}
             placeholder={formatMessage({ id: "app.hypercerts.metadata.selectDate" })}
-            minDate={draft.workTimeframeStart}
+            minDate={utcDayToPickerValue(draft.workTimeframeStart)}
             error={workDateError}
             required
           />
         </div>
 
-        {/* Current selection display */}
-        {(draft.workTimeframeStart > 0 || draft.workTimeframeEnd > 0) && (
+        {/* Current selection display. Its check mark confirms the time frame, so
+            it stays away while the step calls that time frame out of order. */}
+        {workInOrder && (draft.workTimeframeStart > 0 || draft.workTimeframeEnd > 0) && (
           <div className="flex items-center gap-2 rounded-lg border border-primary-light bg-primary-lighter/30 px-3 py-2">
             <RiCheckLine className="h-4 w-4 text-primary-base" />
             <span className="body-sm text-primary-dark">
-              {formatDisplayDate(draft.workTimeframeStart)} →{" "}
-              {formatDisplayDate(draft.workTimeframeEnd)}
+              {formatTimeframeDay(intl, draft.workTimeframeStart)} →{" "}
+              {formatTimeframeDay(intl, draft.workTimeframeEnd)}
             </span>
           </div>
         )}
@@ -311,8 +293,10 @@ export function MetadataEditor({
             surface="admin"
             id="hypercert-impact-start"
             label={formatMessage({ id: "app.hypercerts.metadata.startDate" })}
-            value={draft.impactTimeframeStart || draft.workTimeframeStart}
-            onChange={(timestamp) => onUpdate({ impactTimeframeStart: timestamp ?? 0 })}
+            value={utcDayToPickerValue(draft.impactTimeframeStart || draft.workTimeframeStart)}
+            onChange={(picked) =>
+              onUpdate({ impactTimeframeStart: pickerValueToUtcDay(picked) ?? 0 })
+            }
             placeholder={formatMessage({ id: "app.hypercerts.metadata.selectDate" })}
           />
           <DatePicker
@@ -326,10 +310,10 @@ export function MetadataEditor({
                 </span>
               </>
             }
-            value={draft.impactTimeframeEnd}
-            onChange={(timestamp) => onUpdate({ impactTimeframeEnd: timestamp })}
+            value={utcDayToPickerValue(draft.impactTimeframeEnd)}
+            onChange={(picked) => onUpdate({ impactTimeframeEnd: pickerValueToUtcDay(picked) })}
             placeholder={formatMessage({ id: "app.hypercerts.metadata.selectDate" })}
-            minDate={draft.impactTimeframeStart || draft.workTimeframeStart}
+            minDate={utcDayToPickerValue(draft.impactTimeframeStart || draft.workTimeframeStart)}
             error={impactDateError}
           />
         </div>

@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Must mock before imports
 vi.mock("@wagmi/core", () => ({
+  getAccount: vi.fn(),
   getBlock: vi.fn(),
   getWalletClient: vi.fn(),
   getPublicClient: vi.fn(),
@@ -137,6 +138,7 @@ describe("wallet-submission", () => {
     vi.clearAllMocks();
     mockEnsureWagmiWalletChain.mockResolvedValue(undefined);
     mockAssertLocalArbitrumForkWallet.mockResolvedValue(undefined);
+    mock(wagmiCore.getAccount).mockReturnValue({ address: "0xUserAddress" } as any);
   });
 
   afterEach(() => {
@@ -203,6 +205,14 @@ describe("wallet-submission", () => {
       expect(result).toBe("0xTransactionHash");
       expect(wagmiCore.getWalletClient).toHaveBeenCalledWith({}, { chainId: mockChainId });
       expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, mockChainId);
+      // The wallet's network is checked before the upload and again after it: an
+      // upload can outlast the wallet staying on the network.
+      const [beforeUpload, beforeSend] = mockEnsureWagmiWalletChain.mock.invocationCallOrder;
+      const upload = vi.mocked(encoders.encodeWorkData).mock.invocationCallOrder[0];
+      const send = vi.mocked(mockWalletClient.sendTransaction!).mock.invocationCallOrder[0];
+      expect(beforeUpload).toBeLessThan(upload);
+      expect(beforeSend).toBeGreaterThan(upload);
+      expect(beforeSend).toBeLessThan(send);
       expect(encoders.encodeWorkData).toHaveBeenCalledWith(
         expect.objectContaining({
           title: "Test Work",
@@ -227,6 +237,45 @@ describe("wallet-submission", () => {
         {},
         { hash: "0xTransactionHash", chainId: mockChainId }
       );
+    });
+
+    it.each([
+      ["during the upload", "upload"],
+      ["while its networks were being read after the upload", "read"],
+    ])("refuses a wallet swapped in %s before asking it to change network", async (_when, moment) => {
+      // Another account takes over the connection.
+      const swapIn = () =>
+        mock(wagmiCore.getAccount).mockReturnValue({ address: "0xAnotherWallet" } as any);
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkData).mockImplementation(async () => {
+        if (moment === "upload") swapIn();
+        return "0xEncodedWorkData" as `0x${string}`;
+      });
+      // As the guard does for a wallet on another network: it reads the wallet,
+      // asks who the switch is for, then switches.
+      const switched = vi.fn();
+      mockEnsureWagmiWalletChain.mockImplementation(
+        async (_config, _chainId, _reason, beforeSwitch?: () => Promise<void>) => {
+          if (!beforeSwitch) return;
+          if (moment === "read") swapIn();
+          await beforeSwitch();
+          switched();
+        }
+      );
+
+      await expect(
+        submitWorkDirectly(
+          mockWorkDraft,
+          "0xGardenAddress",
+          123,
+          "Test Action",
+          mockChainId,
+          mockImages
+        )
+      ).rejects.toThrow("submission-ownership-changed");
+
+      expect(switched).not.toHaveBeenCalled();
+      expect(mockWalletClient.sendTransaction).not.toHaveBeenCalled();
     });
 
     it("keeps the chain's head with the intent it records before the wallet prompt, and never a stale one", async () => {

@@ -18,6 +18,7 @@ import {
   reportGardenJoinRequestUnavailable,
   prepareGardenJoinRequest,
 } from "./garden-join-request-auth";
+import { createGardenJoinRequestBudget } from "./garden-join-request-budget";
 import { handleCreateGardenJoinRequest } from "./garden-join-request-create";
 import { handleGardenJoinRequestResolution } from "./garden-join-request-resolution";
 import { trackGardenJoinRequestEvent } from "../../services/analytics";
@@ -40,6 +41,10 @@ export function registerGardenJoinRequestRoutes(
 }
 
 async function handleMine(c: Context, ctx: GardenJoinRequestRouteContext) {
+  ctx = {
+    ...ctx,
+    budget: createGardenJoinRequestBudget(ctx.deps.now ?? Date.now, c.req.raw.signal),
+  };
   const preflight = prepareGardenJoinRequest(c, ctx);
   if (!preflight.ok) return preflight.response;
   const rateError = checkRateLimit(c, ctx.deps, "join_request_read", preflight.garden);
@@ -53,10 +58,16 @@ async function handleMine(c: Context, ctx: GardenJoinRequestRouteContext) {
   let stage = "store_read";
   try {
     const nowIso = new Date(ctx.deps.now?.() ?? Date.now()).toISOString();
-    let request = await store.getMine(preflight.garden, authenticated.proof.accountAddress, nowIso);
+    let request = await ctx.budget!.run(() =>
+      store.getMine(preflight.garden, authenticated.proof.accountAddress, nowIso)
+    );
     if (request && request.state !== "welcomed") {
       stage = "membership_read";
-      if (await chain.isMember(preflight.garden, authenticated.proof.accountAddress)) {
+      if (
+        await ctx.budget!.run(() =>
+          chain.isMember(preflight.garden, authenticated.proof.accountAddress)
+        )
+      ) {
         stage = "store_reconcile";
         request = await store.reconcileWelcomed(preflight.garden, request.id, nowIso);
       }

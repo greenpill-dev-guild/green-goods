@@ -60,11 +60,18 @@ vi.mock("wagmi", () => ({
 }));
 
 // Mock @wagmi/core (waitForTransactionReceipt used in wallet mode)
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ConnectorNotConnectedError: (await importOriginal<typeof import("@wagmi/core")>())
+    .ConnectorNotConnectedError,
   waitForTransactionReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
+  // A connected wallet says which network it is on through its connector; the
+  // network guard no longer takes the stored chainId for it. It also says who
+  // it is: a send is for the address connected when it starts.
   getAccount: () => ({
+    address: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
     chainId: 42161,
     isConnected: true,
+    connector: { type: "injected", getChainId: async () => 42161 },
   }),
   switchChain: vi.fn().mockResolvedValue({ id: 42161, name: "Arbitrum One" }),
 }));
@@ -221,6 +228,7 @@ describe("useContractTxSender", () => {
       });
 
       expect(mockWriteContractAsync).toHaveBeenCalledWith({
+        account: MOCK_ADDRESSES.deployer,
         address: TEST_REQUEST.address,
         abi: TEST_REQUEST.abi,
         functionName: TEST_REQUEST.functionName,

@@ -15,7 +15,7 @@ import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../../modules/transactions/local-fork-safety";
-import { ensureAppKitWalletChain } from "../../../modules/transactions/chain-guard";
+import { readyWalletClient } from "../../../modules/transactions/chain-guard";
 import type { Address } from "../../../types/domain";
 import type { MintHypercertSigningInput } from "../../../workflows/mintHypercert";
 import { CREATE_ALLOWLIST_ABI } from "../../../utils/blockchain/hypercert-abis";
@@ -40,7 +40,6 @@ export function createBuildAndSignActor(deps: MintServiceDeps) {
 
     const currentSmartAccountClient = deps.smartAccountClientRef.current;
     const currentEoaAddress = deps.eoaAddressRef.current;
-    const currentWalletClient = deps.walletClientRef.current;
     const currentChainId = deps.chainIdRef.current;
 
     const contracts = await resolveHypercertContracts(currentChainId);
@@ -69,14 +68,14 @@ export function createBuildAndSignActor(deps: MintServiceDeps) {
       return { hash: userOpHash };
     }
 
-    if (!currentWalletClient || !currentEoaAddress) {
+    if (!currentEoaAddress) {
       throw new Error("Connect a wallet to mint the hypercert");
     }
 
-    await ensureAppKitWalletChain(currentChainId);
+    const walletClient = await readyWalletClient(currentChainId, currentEoaAddress as Address);
     await assertLocalArbitrumForkWallet();
 
-    const txHash = await currentWalletClient.writeContract({
+    const txHash = await walletClient.writeContract({
       address: contracts.hypercertMinter,
       abi: CREATE_ALLOWLIST_ABI,
       functionName: "createAllowlist",

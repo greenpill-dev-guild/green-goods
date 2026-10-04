@@ -15,6 +15,8 @@ next_steps: "./reviewing-work"
 persona_context: "Stewards and evaluators recording the context that later approvals and impact certificates should support."
 source_of_truth:
   - packages/admin/src/views/Hub/CreateAssessment.tsx
+  - packages/admin/src/views/Hub/components/HubRecordLists.tsx
+  - packages/admin/src/views/Hub/components/HubAssessmentInspector.tsx
   - packages/admin/src/components/Assessment/CreateAssessmentSteps/DomainContextStep.tsx
   - packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx
   - packages/admin/src/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep.tsx
@@ -62,8 +64,8 @@ The assessment form has three steps: **Domain & Context**, **Strategy Kernel**, 
 ### Step 1: Open the assessment form
 
 1. Open the **Hub** workspace.
-2. Switch to the **Assess** tab.
-3. Click **New assessment**.
+2. Switch to the **Assessments** tab. It lists the garden's assessments, newest first.
+3. Click **Create Assessment**.
 4. Pick the garden if the form asks for one.
 
 ### Step 2: Fill Domain & Context
@@ -95,6 +97,7 @@ The assessment form has three steps: **Domain & Context**, **Strategy Kernel**, 
 - A success toast confirms the assessment was submitted.
 - The form closes and returns you to the assessment list.
 - After indexing catches up, the assessment appears with its title, domain badge, and reporting date range.
+- The Hub's **Assessments** tab lists it too. Open it there to read its record: the description, domain, reporting period, location, author, and date.
 - If an explorer link is available, you can open it to verify the record.
 
 ## If something goes wrong

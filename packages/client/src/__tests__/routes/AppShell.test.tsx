@@ -38,6 +38,11 @@ vi.mock("@/components/Communication/PwaBadgeCoordinator", () => ({
   PwaBadgeCoordinator: () => null,
 }));
 
+// The shell aligns a phone wallet's network through wagmi; this shell has no wallet.
+vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment", () => ({
+  useWalletNetworkAlignment: () => undefined,
+}));
+
 vi.mock("@/components/Layout/AppBar", () => ({
   AppBar: () => <nav data-testid="authenticated-nav" />,
 }));

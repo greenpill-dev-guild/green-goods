@@ -127,7 +127,6 @@ const WORK_ACTION: Action = {
 vi.mock("wagmi", () => ({
   useAccount: () => ({ address: OPERATOR, isConnected: true, isConnecting: false }),
   useReadContract: () => ({ data: 1 }),
-  useWalletClient: () => ({ data: undefined }),
   useWriteContract: () => ({ writeContractAsync: vi.fn(), isPending: false }),
   useConfig: () => ({}),
   useSwitchChain: () => ({ switchChainAsync: vi.fn() }),

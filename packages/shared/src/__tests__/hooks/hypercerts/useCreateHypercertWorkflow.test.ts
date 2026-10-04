@@ -20,6 +20,8 @@ let mockStoreState = {
   workScopes: [] as string[],
   workTimeframeStart: 0,
   workTimeframeEnd: 0,
+  impactTimeframeStart: 0,
+  impactTimeframeEnd: null as number | null,
   allowlist: [] as Array<{ address: string; units: bigint }>,
 };
 
@@ -77,6 +79,8 @@ describe("useCreateHypercertWorkflow", () => {
       workScopes: [],
       workTimeframeStart: 0,
       workTimeframeEnd: 0,
+      impactTimeframeStart: 0,
+      impactTimeframeEnd: null,
       allowlist: [],
     };
   });
@@ -186,6 +190,31 @@ describe("useCreateHypercertWorkflow", () => {
 
       const { result } = renderHook(() => useCreateHypercertWorkflow());
       expect(result.current.canProceed()).toBe(true);
+    });
+
+    // The step shows a date-range error for either time frame, and nothing
+    // after it checks the order, so Next waits on both.
+    it.each([
+      ["the work ends before it starts", { workTimeframeStart: 2000, workTimeframeEnd: 1000 }],
+      [
+        "the impact ends before it starts",
+        { impactTimeframeStart: 3000, impactTimeframeEnd: 2500 },
+      ],
+    ])("returns false while %s", (_label, dates) => {
+      Object.assign(
+        mockStoreState,
+        {
+          currentStep: 2,
+          title: "My Cert",
+          workScopes: ["gardening"],
+          workTimeframeStart: 1000,
+          workTimeframeEnd: 2000,
+        },
+        dates
+      );
+
+      const { result } = renderHook(() => useCreateHypercertWorkflow());
+      expect(result.current.canProceed()).toBe(false);
     });
   });
 

@@ -268,6 +268,26 @@ describe("components/Hypercerts/AttestationSelector", () => {
       expect(screen.getByText("4 available")).toBeInTheDocument();
     });
 
+    // "Available" is work a steward can still choose: approved, not already in
+    // a hypercert, and matching the filters in force. The line used to count
+    // every approved work whatever the cards below showed.
+    it("counts only the work that can be chosen under the filters in force", async () => {
+      const user = userEvent.setup();
+
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          bundledInfo: { "0x4444": { hypercertId: "hc-123", title: "Existing Hypercert" } },
+        })
+      );
+
+      expect(screen.getByText("3 available")).toBeInTheDocument();
+
+      await user.selectOptions(screen.getByRole("combobox"), "waste");
+
+      expect(screen.getByText("1 available")).toBeInTheDocument();
+    });
+
     it("explains why hypercert creation cannot proceed without approved attestations", () => {
       render(createElement(AttestationSelector, { ...defaultProps, attestations: [] }));
 

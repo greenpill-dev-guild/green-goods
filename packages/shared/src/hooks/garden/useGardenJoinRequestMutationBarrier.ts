@@ -1,16 +1,12 @@
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
+import type { Query } from "@tanstack/react-query";
 
-type RequestMutationBarrier = {
-  scopeKey: string;
-  promise: Promise<void>;
-};
+// A removed Query is a removed auth session. Remounts share a Query; logout does not.
+const pendingByQuery = new WeakMap<Query, Promise<void>>();
 
 export function useGardenJoinRequestMutationBarrier() {
-  const barrierRef = useRef<RequestMutationBarrier | null>(null);
-
-  const beginRequestMutation = useCallback((scopeKey: string) => {
-    const previousBarrier =
-      barrierRef.current?.scopeKey === scopeKey ? barrierRef.current.promise : null;
+  const beginRequestMutation = useCallback((requestQuery: Query) => {
+    const previousBarrier = pendingByQuery.get(requestQuery);
     let release!: () => void;
     const ownBarrier = new Promise<void>((resolve) => {
       release = resolve;
@@ -18,17 +14,18 @@ export function useGardenJoinRequestMutationBarrier() {
     const combinedBarrier = previousBarrier
       ? Promise.all([previousBarrier, ownBarrier]).then(() => undefined)
       : ownBarrier;
-    barrierRef.current = { scopeKey, promise: combinedBarrier };
+    pendingByQuery.set(requestQuery, combinedBarrier);
     return () => {
       release();
       void combinedBarrier.then(() => {
-        if (barrierRef.current?.promise === combinedBarrier) barrierRef.current = null;
+        if (pendingByQuery.get(requestQuery) === combinedBarrier)
+          pendingByQuery.delete(requestQuery);
       });
     };
   }, []);
 
-  const waitForRequestMutation = useCallback(async (scopeKey: string) => {
-    const pending = barrierRef.current?.scopeKey === scopeKey ? barrierRef.current.promise : null;
+  const waitForRequestMutation = useCallback(async (requestQuery: Query) => {
+    const pending = pendingByQuery.get(requestQuery);
     if (pending) await pending;
   }, []);
 

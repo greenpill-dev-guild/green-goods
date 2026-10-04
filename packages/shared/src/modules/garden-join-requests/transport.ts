@@ -47,7 +47,7 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "signature_expired":
       return {
         id: "app.garden.joinRequest.error.authorization",
-        defaultMessage: "We could not verify your authorization. Please sign again.",
+        defaultMessage: "Please confirm it’s you with your wallet or passkey, then try again.",
       };
     case "idempotency_conflict":
     case "resolution_conflict":
@@ -188,7 +188,7 @@ async function request<T>(
     }
     if (proof?.action === "create" || proof?.action === "read_self") {
       const record = "request" in payload ? payload.request : undefined;
-      const emptyStatus = proof.action === "read_self" && record === null;
+      const emptyStatus = init.method === "GET" && record === null;
       if (
         !emptyStatus &&
         (!record ||

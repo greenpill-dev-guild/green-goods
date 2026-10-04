@@ -13,7 +13,11 @@ import type { Address } from "../../types/domain";
 /** A single contract call to execute */
 export interface ContractCall {
   address: Address;
-  /** Account whose balance and fee quote authorize this call. */
+  /**
+   * The address this call is for: its balance and fee quote authorize the
+   * call, and no other address is asked to sign it. A wallet sender fills in
+   * the address connected when the send starts for a call that names none.
+   */
   account?: Address;
   abi: Abi;
   functionName: string;
