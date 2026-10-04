@@ -69,7 +69,10 @@ vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
     }),
 }));
 
-vi.mock("@green-goods/shared/types/domain", () => ({
+// The assessment record the sheet descriptor can open reads the real Domain
+// enum, so only Confidence is replaced.
+vi.mock("@green-goods/shared/types/domain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/types/domain")>()),
   Confidence: {
     LOW: "LOW",
     MEDIUM: "MEDIUM",
@@ -497,6 +500,7 @@ describe("WorkDetail view", () => {
         selectedCertification: undefined,
         isResolvingSelection: false,
         canManage: true,
+        chainId: 11155111,
         hubContext: { gardenId: "0xGarden", sort: "newest" },
         closeTo: "/hub/work?gardenId=0xGarden&sort=newest",
         onNavigateToBase,
@@ -523,6 +527,7 @@ describe("WorkDetail view", () => {
       selectedCertification: undefined,
       isResolvingSelection: false,
       canManage: true,
+      chainId: 11155111,
       hubContext: { gardenId: "0xGarden", sort: "newest" as const },
       closeTo: "/hub/work?gardenId=0xGarden&sort=newest",
       onNavigateToBase: vi.fn(),

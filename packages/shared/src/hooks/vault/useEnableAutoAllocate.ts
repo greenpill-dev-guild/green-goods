@@ -33,6 +33,7 @@ export function useEnableAutoAllocate() {
         abi: OCTANT_MODULE_ABI,
         functionName: "owner",
         args: [],
+        chainId,
       });
       const moduleOwner = typeof ownerResult === "string" ? ownerResult : "";
       if (moduleOwner.toLowerCase() !== primaryAddress?.toLowerCase()) {

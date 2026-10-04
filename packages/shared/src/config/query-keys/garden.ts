@@ -35,6 +35,11 @@ export const assessmentsKeys = {
   /** Full key with limit - use for specific queries */
   byGarden: (gardenAddress: string, chainId: number, limit?: number) =>
     ["greengoods", "assessments", "byGarden", gardenAddress, chainId, limit] as const,
+  /**
+   * The detail an assessment stores on IPFS, by its config CID. Kept outside
+   * `all`: the content can never change, so a new assessment must not refetch it.
+   */
+  detail: (configCid: string) => ["greengoods", "assessmentDetail", configCid] as const,
 } as const;
 
 export const platformKeys = {

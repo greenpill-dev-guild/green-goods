@@ -23,6 +23,9 @@ type JoinRequests = ReturnType<typeof useGardenJoinRequests>;
 function joinRequests(overrides: Partial<JoinRequests> = {}): JoinRequests {
   return {
     accountAddress: ACCOUNT,
+    scopeKey: "storybook-join",
+    outcomeUnknown: false,
+    canRefreshStatus: false,
     request: null,
     hasCheckedStatus: false,
     queue: [],
@@ -183,7 +186,7 @@ export const NotSaved: Story = {
       "This attempt did not save a request. Please try again."
     );
     await expect(sheet.getByRole("button", { name: "Send Request" })).toBeEnabled();
-    await expect(sheet.getByText(/sign a message to verify your account/)).toBeVisible();
+    await expect(sheet.getByText(/Confirm with your wallet or passkey/)).toBeVisible();
   },
 };
 
@@ -232,6 +235,8 @@ export const Pending: Story = {
     await expect(sheet.getByText("Request awaiting review")).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Withdraw Request" })).toBeVisible();
     await expect(sheet.queryByRole("button", { name: "Send Request" })).not.toBeInTheDocument();
+    await userEvent.click(sheet.getByRole("button", { name: "Check Request Status" }));
+    await expect(await sheet.findByText("Checked just now.")).toBeVisible();
   },
 };
 

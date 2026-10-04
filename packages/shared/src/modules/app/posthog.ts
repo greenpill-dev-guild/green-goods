@@ -305,7 +305,13 @@ export function track(
     logger.info(`[PostHog] track: ${event}`, enrichedProperties);
   }
 
-  telemetrySink.capture(event, enrichedProperties);
+  try {
+    telemetrySink.capture(event, enrichedProperties);
+  } catch (error) {
+    // Telemetry is best effort. A sink that throws must never fail what the
+    // caller was doing: a wallet that switched network, a send that went out.
+    logger.warn(`[PostHog] capture failed: ${event}`, { error: String(error) });
+  }
 }
 
 // ============================================================================

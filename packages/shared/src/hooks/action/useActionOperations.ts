@@ -9,7 +9,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import type { Abi } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
 import { toastService } from "../../components/toast";
 import {
   type ActionOperationCommand,
@@ -48,7 +48,6 @@ export function useActionOperations(chainId: number) {
 
   const { executeWithToast } = useToastAction();
   const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
   const contracts = getNetworkContracts(chainId);
   const queryClient = useQueryClient();
 
@@ -67,7 +66,7 @@ export function useActionOperations(chainId: number) {
   async function withTracking(
     buildConfig: () => ActionOperationCommand
   ): Promise<ActionOperationResult> {
-    if (!walletClient || !address) {
+    if (!address) {
       return {
         success: false,
         error: {
@@ -91,7 +90,7 @@ export function useActionOperations(chainId: number) {
     try {
       const result = await executeActionOperation(
         call,
-        createDefaultActionOperationPorts({ walletClient, executeWithToast })
+        createDefaultActionOperationPorts({ executeWithToast })
       );
       if (!result.success) {
         toastService.error({

@@ -5,9 +5,12 @@ import { type DateAfter, type DateBefore, DayPicker } from "react-day-picker";
 import { cn } from "../../utils/styles/cn";
 
 export interface DatePickerProps {
-  /** Currently selected date as Unix timestamp (seconds) */
+  /**
+   * The selected day as Unix seconds. The picker shows the local calendar day of
+   * this instant, so pass local midnight of the day to show.
+   */
   value?: number | null;
-  /** Called when a date is selected, receives Unix timestamp (seconds) or null */
+  /** Receives local midnight of the picked day as Unix seconds, or null. */
   onChange?: (timestamp: number | null) => void;
   /** Placeholder text when no date is selected */
   placeholder?: string;
@@ -72,11 +75,15 @@ function dateToTimestamp(date: Date | undefined): number | null {
  * Select trigger), so it takes the surface's field corner and height and lines
  * up with the fields beside it; the label rides `gg-field-label` (DL-031).
  *
+ * The picker works in local calendar days. A caller that persists a day as UTC
+ * midnight has to cross that boundary on the way in and out, or the day shifts
+ * for anyone away from UTC (`utils/calendar-date`).
+ *
  * @example
  * <DatePicker
  *   label="Start Date"
- *   value={draft.workTimeframeStart}
- *   onChange={(timestamp) => onUpdate({ workTimeframeStart: timestamp ?? 0 })}
+ *   value={utcDayToPickerValue(draft.workTimeframeStart)}
+ *   onChange={(picked) => onUpdate({ workTimeframeStart: pickerValueToUtcDay(picked) ?? 0 })}
  *   placeholder="Select start date"
  *   required
  * />

@@ -225,6 +225,9 @@ export async function executeCommitmentQueueJob(
         const built = buildCommitmentContractCall(kind, payload);
         const call = {
           address: target,
+          // The job's owner signs it. Named here, a single send and a bundle of
+          // these are both held to that address, whoever is connected by then.
+          account: job.userAddress as Address,
           abi: CommitmentPoolingModuleABI,
           functionName: built.functionName,
           args: built.args,

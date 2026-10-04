@@ -50,9 +50,11 @@ const mockGetOrderNonces = vi.fn();
 const mockSignMakerAsk = vi.fn();
 const mockValidateOrder = vi.fn();
 const mockAssertMarketplaceReady = vi.fn();
-const mockEnsureAppKitWalletChain = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockSendTransaction = vi.fn();
+const mockReadyWalletClient = vi.fn(async (..._args: unknown[]) => ({
+  sendTransaction: (...args: unknown[]) => mockSendTransaction(...args),
+}));
 
 vi.mock("../../../modules/marketplace/signing", () => ({
   buildMakerAsk: (...args: unknown[]) => mockBuildMakerAsk(...args),
@@ -75,8 +77,9 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
   }),
 }));
 
+// The hook takes its wallet client from the guard when the act runs.
 vi.mock("../../../modules/transactions/chain-guard", () => ({
-  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
+  readyWalletClient: (...args: unknown[]) => mockReadyWalletClient(...args),
 }));
 
 vi.mock("../../../config/default-chain", () => ({
@@ -86,14 +89,6 @@ vi.mock("../../../config/default-chain", () => ({
 vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
     waitForTransactionReceipt: vi.fn().mockResolvedValue({}),
-  }),
-}));
-
-vi.mock("wagmi", () => ({
-  useWalletClient: () => ({
-    data: {
-      sendTransaction: (...args: unknown[]) => mockSendTransaction(...args),
-    },
   }),
 }));
 
@@ -279,6 +274,11 @@ describe("useCreateListing", () => {
         });
       });
 
+      // Readied once to sign the order and again to register it, for the signer.
+      expect(mockReadyWalletClient.mock.calls).toEqual([
+        [TEST_CHAIN_ID, TEST_SIGNER],
+        [TEST_CHAIN_ID, TEST_SIGNER],
+      ]);
       await waitFor(() => {
         expect(mockInvalidateQueries).toHaveBeenCalledWith({
           queryKey: ["greengoods", "marketplace", "orders"],

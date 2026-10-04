@@ -38,7 +38,12 @@ type GardenJoinRequestAnalyticsProperties = {
   resolution?: "declined" | "welcomed";
   retry?: boolean;
   /** The dependency a rejected create was waiting on when it failed. */
-  stage?: "open_joining_read" | "membership_read" | "proof_claim" | "store_create";
+  stage?:
+    | "signature_verification"
+    | "open_joining_read"
+    | "membership_read"
+    | "proof_claim"
+    | "store_create";
   state?: "declined" | "none" | "pending" | "welcomed";
 };
 

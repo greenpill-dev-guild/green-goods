@@ -1279,7 +1279,6 @@ export {
   // ABI exports
   formatApy,
   formatDate,
-  formatDateRange,
   formatDateTime,
   formatEnsNameForDisplay,
   formatErrorForToast,

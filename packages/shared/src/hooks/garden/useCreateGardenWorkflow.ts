@@ -11,7 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { isAddress } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
 import { fromPromise } from "xstate";
 import {
   trackAdminGardenCreateFailed,
@@ -53,7 +53,6 @@ function getFormStatus(): CreateGardenFormStatus {
 
 export function useCreateGardenWorkflow() {
   const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
   const addPendingTransaction = useAdminStore((state: AdminState) => state.addPendingTransaction);
   const updateTransactionStatus = useAdminStore(
@@ -75,7 +74,6 @@ export function useCreateGardenWorkflow() {
 
   // Keep mutable dependencies current for the long-lived machine actor/actions.
   const dependenciesRef = useRef({
-    walletClient,
     address,
     chainId: selectedChainId,
     addPendingTransaction,
@@ -100,7 +98,6 @@ export function useCreateGardenWorkflow() {
   useEffect(() => {
     dependenciesRef.current = {
       ...dependenciesRef.current,
-      walletClient,
       address,
       chainId: selectedChainId,
       addPendingTransaction,
@@ -112,7 +109,6 @@ export function useCreateGardenWorkflow() {
       scheduleGardenRefresh,
     };
   }, [
-    walletClient,
     address,
     selectedChainId,
     addPendingTransaction,
@@ -136,7 +132,6 @@ export function useCreateGardenWorkflow() {
             }
 
             const {
-              walletClient: currentWalletClient,
               address: currentAddress,
               chainId: currentChainId,
               addPendingTransaction: addPendingTx,
@@ -144,7 +139,7 @@ export function useCreateGardenWorkflow() {
               scheduleGardenRefresh: scheduleRefresh,
             } = dependenciesRef.current;
 
-            if (!currentWalletClient || !currentAddress || !isAddress(currentAddress)) {
+            if (!currentAddress || !isAddress(currentAddress)) {
               throw new Error("Connect a wallet to deploy the garden");
             }
             const accountAddress = currentAddress as `0x${string}`;
@@ -158,7 +153,6 @@ export function useCreateGardenWorkflow() {
               const txHash = await createGarden(
                 { params, accountAddress, chainId: currentChainId },
                 createDefaultCreateGardenPorts({
-                  walletClient: currentWalletClient,
                   addPending: (hash) => addPendingTx(hash, "garden:create"),
                 })
               );
@@ -301,12 +295,7 @@ export function useCreateGardenWorkflow() {
     }
     const accountAddress = currentAddress as `0x${string}`;
 
-    const currentWalletClient = dependenciesRef.current.walletClient;
-    if (!currentWalletClient) throw new Error("Connect a wallet to estimate deployment cost");
-    const ports = createDefaultCreateGardenPorts({
-      walletClient: currentWalletClient,
-      addPending: () => {},
-    });
+    const ports = createDefaultCreateGardenPorts({ addPending: () => {} });
     return estimateGardenCreation(
       { params, accountAddress, chainId: currentChainId },
       { reader: ports.reader }

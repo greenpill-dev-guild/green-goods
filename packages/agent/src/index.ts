@@ -56,6 +56,7 @@ import {
   createSqliteGardenJoinRequestStore,
 } from "./services/garden-join-requests";
 import { createGardenJoinRequestChainReader } from "./services/garden-join-requests-chain";
+import { createGardenJoinRequestSignatureVerifier } from "./services/garden-join-requests-verifier";
 
 // ============================================================================
 // INITIALIZATION
@@ -190,7 +191,7 @@ async function main(): Promise<void> {
             chain: config.chain,
             rpcUrl: agentRpcUrl,
           }),
-          gardenJoinRequestSignatureVerifier: createViemProfileAvatarSignatureVerifier({
+          gardenJoinRequestSignatureVerifier: createGardenJoinRequestSignatureVerifier({
             chain: config.chain,
             rpcUrl: agentRpcUrl,
           }),

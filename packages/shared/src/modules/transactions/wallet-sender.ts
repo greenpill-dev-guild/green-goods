@@ -17,6 +17,7 @@
  */
 
 import {
+  ConnectorNotConnectedError,
   getAccount as defaultGetAccount,
   getCapabilities as defaultGetCapabilities,
   sendCalls as defaultSendCalls,
@@ -28,7 +29,12 @@ import type { Abi, Hex } from "viem";
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { assertWalletAccount, ensureWagmiWalletChain } from "./chain-guard";
+import type { WalletNetworkSwitchReason } from "../app/walletNetworkSwitchAnalytics";
+import {
+  assertWalletAccount,
+  ensureWagmiWalletChain,
+  retryOnWalletChainMismatch,
+} from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
   type AtomicBatchOptions,
@@ -79,7 +85,11 @@ export interface WalletSenderDeps {
   ) => Promise<{ status: string; transactionHash?: Hex }>;
   getAccount?: () => { address?: Address };
   assertWriteSafety?: () => Promise<void>;
-  ensureWalletChain?: (chainId: number) => Promise<void>;
+  ensureWalletChain?: (
+    chainId: number,
+    reason?: WalletNetworkSwitchReason,
+    beforeSwitch?: () => void | Promise<void>
+  ) => Promise<void>;
   getCapabilities?: (
     config: Config,
     params: { chainId: number }
@@ -87,6 +97,7 @@ export interface WalletSenderDeps {
   sendCalls?: (
     config: Config,
     params: {
+      account?: Address;
       chainId: number;
       forceAtomic: true;
       calls: readonly {
@@ -147,7 +158,6 @@ export class WalletSender implements TransactionSender {
       waitForTransactionReceipt:
         defaultWaitForReceipt as unknown as WalletSenderDeps["waitForTransactionReceipt"],
       assertWriteSafety: assertLocalArbitrumForkWallet,
-      ensureWalletChain: (chainId: number) => ensureWagmiWalletChain(this.config, chainId),
       getCapabilities: (config, params) =>
         (defaultGetCapabilities as unknown as NonNullable<WalletSenderDeps["getCapabilities"]>)(
           config,
@@ -164,38 +174,84 @@ export class WalletSender implements TransactionSender {
     };
     this.deps.getAccount ??= () => defaultGetAccount(this.config);
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
-    this.deps.ensureWalletChain ??= (chainId: number) =>
-      ensureWagmiWalletChain(this.config, chainId);
+    this.deps.ensureWalletChain ??= (chainId, reason, beforeSwitch) =>
+      ensureWagmiWalletChain(this.config, chainId, reason, beforeSwitch);
+  }
+
+  /**
+   * The call with the address it is for: the one it names, or else the one
+   * connected when its send starts. The send belongs to that address from then
+   * on, so a wallet that takes the connection over is asked neither to change
+   * network nor to sign it. A send that starts with no wallet connected is for
+   * nobody, and is refused here: waiting to see who connects would let that
+   * wallet sign it.
+   */
+  private forSigner(call: ContractCall): ContractCall {
+    const account = call.account ?? this.deps.getAccount?.().address;
+    if (!account) throw new ConnectorNotConnectedError();
+    return { ...call, account };
+  }
+
+  /**
+   * Who signs: the act's own ownership check, then the account the call is
+   * for. The account is read last, with nothing awaited after it.
+   */
+  private async assertSigner(call: ContractCall, options: TransactionSendOptions): Promise<void> {
+    await options.assertOwnership?.();
+    if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
+  }
+
+  /**
+   * What must hold before the wallet is asked: its network, the fork check, and
+   * who signs. The guard asks who signs right before it asks the wallet to
+   * change network, so a wallet that took the connection over while the act
+   * was being prepared is refused, not switched. Who signs is asked again once
+   * the wallet is on the network, because a switch prompt can stay open long
+   * enough for the account to change.
+   */
+  private async readyWallet(
+    call: ContractCall,
+    chainId: number,
+    options: TransactionSendOptions,
+    reason: WalletNetworkSwitchReason
+  ): Promise<void> {
+    await this.deps.ensureWalletChain?.(chainId, reason, () => this.assertSigner(call, options));
+    await this.deps.assertWriteSafety?.();
+    await this.assertSigner(call, options);
   }
 
   async sendContractCall(
-    call: ContractCall,
+    named: ContractCall,
     options: TransactionSendOptions = {}
   ): Promise<TxResult> {
     // TODO: Try EIP-5792 sendCalls with paymasterService first when available.
     // Fall back to direct writeContractAsync if the wallet doesn't support it.
 
+    const call = this.forSigner(named);
     // Cast to string to allow non-canonical hash detection (Safe wallets
     // can return identifiers that don't match `0x${string}` at runtime).
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
-    await this.deps.ensureWalletChain?.(chainId);
-    await this.deps.assertWriteSafety?.();
-    if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
-
-    await options.assertOwnership?.();
+    await this.readyWallet(call, chainId, options, "write");
     // The wallet approves and broadcasts in one step, so the intent is recorded
     // before asking. A rejected prompt is recognised and clears it.
     await options.onBeforeBroadcast?.();
 
-    const hash: string = await this.writeContractAsync({
-      ...(call.account ? { account: call.account } : {}),
-      address: call.address as `0x${string}`,
-      abi: call.abi as readonly unknown[],
-      functionName: call.functionName,
-      args: call.args,
-      chainId,
-      ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
-    });
+    // A wallet can change network between the guard and the write. viem then
+    // refuses before the wallet is asked to sign, so every check runs again and
+    // one more attempt cannot send twice.
+    const hash: string = await retryOnWalletChainMismatch(
+      () =>
+        this.writeContractAsync({
+          ...(call.account ? { account: call.account } : {}),
+          address: call.address as `0x${string}`,
+          abi: call.abi as readonly unknown[],
+          functionName: call.functionName,
+          args: call.args,
+          chainId,
+          ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
+        }),
+      () => this.readyWallet(call, chainId, options, "retry")
+    );
 
     await options.onBroadcastReference?.({ kind: "transaction", hash: hash as `0x${string}` });
     await options.onBroadcast?.(hash as `0x${string}`);
@@ -286,16 +342,23 @@ export class WalletSender implements TransactionSender {
     if (calls.some((call) => (call.chainId ?? DEFAULT_CHAIN_ID) !== chainId)) {
       throw new Error("An atomic batch runs on one chain");
     }
-    await this.deps.ensureWalletChain?.(chainId);
-    await this.deps.assertWriteSafety?.();
-    if (calls.some((call) => call.account)) {
-      const account = this.deps.getAccount?.().address;
-      for (const call of calls) {
-        if (call.account) assertWalletAccount(call.account, account);
+    // A batch is for one address, as a single send is: the one its calls name,
+    // or else the one connected when it starts. With nobody connected it is
+    // refused here.
+    const account = calls.find((call) => call.account)?.account ?? this.deps.getAccount?.().address;
+    if (!account) throw new ConnectorNotConnectedError();
+    const assertSigner = () => {
+      const connected = this.deps.getAccount?.().address;
+      for (const expected of [account, ...calls.map((call) => call.account)]) {
+        if (expected) assertWalletAccount(expected, connected);
       }
-    }
+    };
+    await this.deps.ensureWalletChain?.(chainId, "write", assertSigner);
+    await this.deps.assertWriteSafety?.();
+    assertSigner();
 
     const { id } = await sendCalls(this.config, {
+      account,
       chainId,
       forceAtomic: true,
       calls: calls.map((call) => ({

@@ -4,11 +4,14 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GardenJoinRequestTransportError } from "@green-goods/shared/modules/garden-join-requests";
+import enMessages from "@green-goods/shared/i18n/en";
 import esMessages from "@green-goods/shared/i18n/es";
 import ptMessages from "@green-goods/shared/i18n/pt";
 
 const submitRequest = vi.fn(async () => ({ id: "request-1", state: "pending" }));
 const checkStatus = vi.fn(async () => null);
+const withdrawRequest = vi.fn(async () => true);
+const scrollFeedbackIntoView = vi.fn();
 const hookState = vi.hoisted(() => ({
   // The account's names, best first: Green Goods name, ENS name, chosen passkey username.
   greenGoodsName: null as string | null,
@@ -23,18 +26,28 @@ const hookState = vi.hoisted(() => ({
   statusError: null as Error | null,
   statusLoading: false,
   hasCheckedStatus: false,
+  scopeKey: "account-a",
+  outcomeUnknown: false,
+  canRefreshStatus: false,
+  request: null as { id: string; state: string } | null,
 }));
 
-vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
+vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("@green-goods/shared/hooks/garden/useGardenJoinRequests")
+  >()),
   useGardenJoinRequestAvailability: () => true,
   useGardenJoinRequests: () => ({
-    request: null,
+    request: hookState.request,
+    scopeKey: hookState.scopeKey,
+    outcomeUnknown: hookState.outcomeUnknown,
+    canRefreshStatus: hookState.canRefreshStatus,
     hasCheckedStatus: hookState.hasCheckedStatus,
     statusState: { isLoading: hookState.statusLoading, error: hookState.statusError },
     mutationState: { isLoading: hookState.mutationLoading, error: hookState.mutationError },
     submitRequest,
     checkStatus,
-    withdrawRequest: vi.fn(),
+    withdrawRequest,
   }),
 }));
 
@@ -57,6 +70,7 @@ import { GardenJoinRequestDialog } from "../../components/Features/Garden/Garden
 describe("GardenJoinRequestDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(scrollFeedbackIntoView);
     hookState.greenGoodsName = null;
     hookState.greenGoodsNameLoading = false;
     hookState.greenGoodsNameRefetching = false;
@@ -68,13 +82,17 @@ describe("GardenJoinRequestDialog", () => {
     hookState.statusError = null;
     hookState.statusLoading = false;
     hookState.hasCheckedStatus = false;
+    hookState.scopeKey = "account-a";
+    hookState.outcomeUnknown = false;
+    hookState.canRefreshStatus = false;
+    hookState.request = null;
   });
 
   it("requires a display name and submits an optional note", async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
-        <IntlProvider locale="en">
+        <IntlProvider locale="en" messages={enMessages}>
           <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
         </IntlProvider>
       </MemoryRouter>
@@ -110,7 +128,7 @@ describe("GardenJoinRequestDialog", () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
-        <IntlProvider locale="en">
+        <IntlProvider locale="en" messages={enMessages}>
           <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
         </IntlProvider>
       </MemoryRouter>
@@ -133,7 +151,7 @@ describe("GardenJoinRequestDialog", () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
-        <IntlProvider locale="en">
+        <IntlProvider locale="en" messages={enMessages}>
           <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
         </IntlProvider>
       </MemoryRouter>
@@ -158,7 +176,7 @@ describe("GardenJoinRequestDialog", () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
-        <IntlProvider locale="en">
+        <IntlProvider locale="en" messages={enMessages}>
           <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
         </IntlProvider>
       </MemoryRouter>
@@ -178,16 +196,119 @@ describe("GardenJoinRequestDialog", () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
-        <IntlProvider locale="en">
+        <IntlProvider locale="en" messages={enMessages}>
           <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
         </IntlProvider>
       </MemoryRouter>
     );
     expect(checkStatus).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Request to Join" }));
-    expect(screen.getByText(/sign a message to verify your account/)).toBeVisible();
+    expect(screen.getByText(/Confirm with your wallet or passkey/)).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Check Request Status" }));
     expect(checkStatus).toHaveBeenCalledOnce();
+    expect(await screen.findByText("Checked just now.")).toBeVisible();
+    expect(scrollFeedbackIntoView).toHaveBeenCalledWith({ block: "nearest", behavior: "instant" });
+  });
+
+  it("names checking immediately and keeps the action busy until the visible result", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <IntlProvider locale="en" messages={enMessages}>
+          <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
+        </IntlProvider>
+      </MemoryRouter>
+    );
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Check Request Status" }));
+    expect(checkStatus).toHaveBeenCalledOnce();
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("status")).toHaveTextContent("Checking for updates…");
+    expect(screen.getByRole("button", { name: "Checking…" })).toHaveAttribute("aria-busy", "true");
+    await screen.findByText("Checked just now.");
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "false");
+    expect(screen.getByRole("button", { name: "Check Request Status" })).not.toHaveAttribute(
+      "aria-busy",
+      "true"
+    );
+  });
+
+  it("refreshes cached pending status on open and keeps refresh available", async () => {
+    hookState.request = { id: "pending-1", state: "pending" };
+    hookState.canRefreshStatus = true;
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <IntlProvider locale="en" messages={enMessages}>
+          <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
+        </IntlProvider>
+      </MemoryRouter>
+    );
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    expect(checkStatus).toHaveBeenCalledOnce();
+    expect(screen.queryByText(/Checked just now/)).not.toBeInTheDocument();
+    expect(scrollFeedbackIntoView).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Send Request" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Check Request Status" }));
+    expect(checkStatus).toHaveBeenCalledTimes(2);
+    expect(await screen.findByText("Checked just now.")).toBeVisible();
+    expect(scrollFeedbackIntoView).toHaveBeenCalled();
+  });
+
+  it("does not present an earlier check as a fresh result when reopened", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <IntlProvider locale="en" messages={enMessages}>
+          <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
+        </IntlProvider>
+      </MemoryRouter>
+    );
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Check Request Status" }));
+    expect(await screen.findByText(/Checked just now/)).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    expect(screen.queryByText(/Checked just now/)).not.toBeInTheDocument();
+    expect(checkStatus).toHaveBeenCalledOnce();
+  });
+
+  it("brings withdrawal feedback into view before the form", async () => {
+    hookState.request = { id: "pending-1", state: "pending" };
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <IntlProvider locale="en" messages={enMessages}>
+          <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
+        </IntlProvider>
+      </MemoryRouter>
+    );
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Withdraw Request" }));
+    expect(withdrawRequest).toHaveBeenCalledOnce();
+    expect(await screen.findByText(/Your request was withdrawn/)).toBeVisible();
+    expect(scrollFeedbackIntoView).toHaveBeenCalled();
+  });
+
+  it("keeps an uncertain save blocked after dialog remount", async () => {
+    hookState.outcomeUnknown = true;
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <IntlProvider locale="en" messages={enMessages}>
+          <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
+        </IntlProvider>
+      </MemoryRouter>
+    );
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.type(screen.getByLabelText("Display name"), "Maya");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "We could not confirm whether your request was saved"
+    );
+    expect(screen.getByRole("button", { name: "Send Request" })).toHaveAttribute(
+      "aria-disabled",
+      "true"
+    );
   });
 
   it("blocks another submission until an unknown outcome is checked", async () => {
@@ -198,7 +319,7 @@ describe("GardenJoinRequestDialog", () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
-        <IntlProvider locale="en">
+        <IntlProvider locale="en" messages={enMessages}>
           <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
         </IntlProvider>
       </MemoryRouter>
@@ -208,6 +329,7 @@ describe("GardenJoinRequestDialog", () => {
     await user.type(screen.getByLabelText("Display name"), "Maya");
     await user.click(screen.getByRole("button", { name: "Send Request" }));
 
+    expect(scrollFeedbackIntoView).toHaveBeenCalled();
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "We could not confirm whether your request was saved"
     );
@@ -221,6 +343,7 @@ describe("GardenJoinRequestDialog", () => {
 
     await user.click(screen.getByRole("button", { name: "Check Request Status" }));
     expect(checkStatus).toHaveBeenCalledOnce();
+    await screen.findByText("Checked just now.");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send Request" })).not.toHaveAttribute(
       "aria-disabled",
@@ -237,7 +360,7 @@ describe("GardenJoinRequestDialog", () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
-        <IntlProvider locale="en">
+        <IntlProvider locale="en" messages={enMessages}>
           <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
         </IntlProvider>
       </MemoryRouter>
@@ -300,7 +423,7 @@ describe("GardenJoinRequestDialog", () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
-        <IntlProvider locale="en">
+        <IntlProvider locale="en" messages={enMessages}>
           <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
         </IntlProvider>
       </MemoryRouter>
