@@ -385,6 +385,39 @@ describe("linking an account before reporting", () => {
     ]);
   });
 
+  it("puts an open summary again when the account changes, so the old one cannot be confirmed", async () => {
+    harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true });
+    await started();
+    await harness.say(ADA, "CONNECT");
+    await pairAda();
+    await harness.say(ADA, STORY);
+    await harness.say(ADA, "1");
+    await harness.press(ADA, "Tree planting");
+    await harness.say(ADA, "12");
+    await harness.say(ADA, "2");
+    const summary = await harness.say(ADA, "3 hours");
+    expect(summary.at(-1)).toContain(`It will be published by your account ${ada}.`);
+
+    // Unlinking shows the summary again without the account, and retires the one that named it.
+    const unlinked = await harness.say(ADA, "DISCONNECT");
+    expect(unlinked[0]).toBe(disconnected(ada));
+    expect(unlinked[1]).toContain("Please check your report for TAS");
+    expect(unlinked[1]).not.toContain("published by your account");
+    const prompts = () =>
+      harness.core.db
+        .query(
+          "SELECT state FROM conversation_prompts WHERE kind = 'confirm_report' ORDER BY rowid"
+        )
+        .all() as Array<{ state: string }>;
+    expect(prompts().map((prompt) => prompt.state === "open")).toEqual([false, true]);
+
+    // Linking again shows it once more, naming the account that will publish.
+    await harness.say(ADA, "CONNECT");
+    const relinked = await pairAda();
+    expect(relinked.at(-1)).toContain(`It will be published by your account ${ada}.`);
+    expect(prompts().map((prompt) => prompt.state === "open")).toEqual([false, false, true]);
+  });
+
   it("disconnects the account on request, so another can be linked", async () => {
     const bola = bolaAccount.address.toLowerCase();
     await started();
