@@ -1,7 +1,6 @@
 /**
- * Who the link page invites to the Community Garden. The rule is about that garden alone: it is
- * open to join and the chain does not count the account as a gardener there yet. What other
- * gardens the account is in does not matter.
+ * Who the link page invites to the Community Garden: an account the chain would let join it now.
+ * What other gardens the account is in does not matter, and the indexer only names the garden.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,56 +11,45 @@ const OFFER = { address: COMMUNITY, name: "Community Garden", chainId: 42161 };
 
 const mocks = vi.hoisted(() => ({
   getGarden: vi.fn(),
-  readContract: vi.fn(),
+  simulateJoinGarden: vi.fn(),
 }));
 
-vi.mock("@wagmi/core", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@wagmi/core")>()),
-  readContract: mocks.readContract,
-}));
-vi.mock("../../../config/appkit", () => ({ getWagmiConfig: () => ({ mocked: true }) }));
 vi.mock("../../../config/blockchain", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../config/blockchain")>()),
   getDefaultChain: () => ({ chainId: 42161, rootGarden: { address: COMMUNITY, tokenId: 1 } }),
 }));
 vi.mock("../../../modules/data/indexer-garden", () => ({ getGarden: mocks.getGarden }));
+vi.mock("../../../utils/blockchain/simulation", () => ({
+  simulateJoinGarden: mocks.simulateJoinGarden,
+}));
 
 const { readCommunityOffer } = await import("../../../hooks/agent-reporting/community-offer");
 
 describe("the Community Garden invitation", () => {
   beforeEach(() => {
-    mocks.getGarden.mockReset().mockResolvedValue({ name: "Community Garden", openJoining: true });
-    mocks.readContract.mockReset().mockResolvedValue(false);
+    mocks.getGarden.mockReset().mockResolvedValue({ name: "Community Garden" });
+    mocks.simulateJoinGarden.mockReset().mockResolvedValue({ success: true });
   });
 
-  it("is offered to an account the chain does not count as a gardener there", async () => {
+  it("is offered to an account whose join the chain would accept", async () => {
     await expect(readCommunityOffer(ACCOUNT)).resolves.toEqual(OFFER);
     // The garden is read on its own, so it is found however many newer gardens exist.
     expect(mocks.getGarden).toHaveBeenCalledWith(COMMUNITY);
-    expect(mocks.readContract).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ address: COMMUNITY, functionName: "isGardener", args: [ACCOUNT] })
-    );
+    expect(mocks.simulateJoinGarden).toHaveBeenCalledWith(COMMUNITY, ACCOUNT, undefined, 42161);
   });
 
-  it("is not offered to an account that is already a gardener there", async () => {
-    mocks.readContract.mockResolvedValue(true);
+  it("is not offered when the chain would refuse the join: closed, full or already in", async () => {
+    mocks.simulateJoinGarden.mockResolvedValue({ success: false });
     await expect(readCommunityOffer(ACCOUNT)).resolves.toBeNull();
   });
 
-  it("is not offered when the garden is closed to joining or has no record", async () => {
-    mocks.getGarden.mockResolvedValue({ name: "Community Garden", openJoining: false });
-    await expect(readCommunityOffer(ACCOUNT)).resolves.toBeNull();
+  it("is not offered when the indexer has no record to name the garden by", async () => {
     mocks.getGarden.mockResolvedValue(null);
     await expect(readCommunityOffer(ACCOUNT)).resolves.toBeNull();
-    expect(mocks.readContract).not.toHaveBeenCalled();
   });
 
-  it("is not offered when either read fails, so linking is never held up", async () => {
+  it("is not offered when a read fails, so linking is never held up", async () => {
     mocks.getGarden.mockRejectedValue(new Error("indexer unavailable"));
-    await expect(readCommunityOffer(ACCOUNT)).resolves.toBeNull();
-    mocks.getGarden.mockResolvedValue({ name: "Community Garden", openJoining: true });
-    mocks.readContract.mockRejectedValue(new Error("rpc unavailable"));
     await expect(readCommunityOffer(ACCOUNT)).resolves.toBeNull();
   });
 });

@@ -47,6 +47,7 @@ const ATTESTED = parseAbiItem(
   "event Attested(address indexed recipient, address indexed attester, bytes32 uid, bytes32 indexed schemaUID)"
 );
 const ACCOUNT_ID_ABI = parseAbi(["function accountId() view returns (string)"]);
+const JOIN_GARDEN_ABI = parseAbi(["function joinGarden()"]);
 const META_FACTORY_ABI = parseAbi([
   "function deployWithFactory(address factory, bytes createData, bytes32 salt) payable returns (address)",
 ]);
@@ -182,12 +183,21 @@ export function createLiveReportingChain(options: LiveChainOptions): ReportingCh
       return { gardener: Boolean(gardener), operator: Boolean(operator), owner: Boolean(owner) };
     },
 
-    async gardenOpenToJoin(_chainId, garden) {
-      return client.readContract({
-        address: garden as Addr,
-        abi: GARDEN_ACCOUNT_ROLE_ABI,
-        functionName: "openJoining",
-      });
+    // The join itself, simulated: it reverts for a garden closed to joining or full, and for an
+    // account already in it. Asking the chain keeps this one answer with the rule's owner.
+    async gardenAcceptsJoin(_chainId, garden, account) {
+      try {
+        await client.simulateContract({
+          address: garden as Addr,
+          abi: JOIN_GARDEN_ABI,
+          functionName: "joinGarden",
+          account: account as Addr,
+        });
+        return true;
+      } catch (error) {
+        if (isRevert(error)) return false;
+        throw error;
+      }
     },
 
     async gardenDomainMask(chainId, garden) {

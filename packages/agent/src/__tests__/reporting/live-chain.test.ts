@@ -132,6 +132,23 @@ describe("live chain adapter", () => {
     await expect(down.transactionReceipt(42161, hash)).rejects.toThrow();
   });
 
+  it("says a garden accepts a join only when the chain would run it, and rethrows when it cannot ask", async () => {
+    const accepting = chainWith((method) => {
+      if (method === "eth_call") return "0x";
+      throw new Error(`unexpected ${method}`);
+    });
+    expect(await accepting.gardenAcceptsJoin(42161, GARDEN, GARDENER)).toBe(true);
+    // Closed to joining, full, or already a member: the join reverts.
+    const refusing = chainWith(() => {
+      throw Object.assign(new Error("execution reverted"), { code: 3, data: "0x8baa579f" });
+    });
+    expect(await refusing.gardenAcceptsJoin(42161, GARDEN, GARDENER)).toBe(false);
+    const down = chainWith(() => {
+      throw new Error("rpc unavailable");
+    });
+    await expect(down.gardenAcceptsJoin(42161, GARDEN, GARDENER)).rejects.toThrow();
+  });
+
   it("lists pending work from the EAS index and decodes each work from chain data", async () => {
     const decidedWork = keccak256(toHex("decided"));
     const pendingWork = keccak256(toHex("pending"));

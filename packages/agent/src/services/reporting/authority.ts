@@ -107,12 +107,16 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
     return { status: "retry", errorCode: "dependency_unavailable", delayMs: 30_000 };
   }
   if (!roles.gardener && !roles.operator) {
-    // The Community Garden can be joined, whatever other gardens the account is in, while its
-    // joining is open. Any other garden, or this one once closed, needs a steward.
+    // The Community Garden can be joined, whatever other gardens the account is in, while the
+    // chain would accept the join. Any other garden, or this one closed or full, needs a steward.
     let joinable = false;
     if (core.settings.communityGarden?.toLowerCase() === garden.address.toLowerCase()) {
       try {
-        joinable = await deps.chain.gardenOpenToJoin(garden.chainId, garden.address);
+        joinable = await deps.chain.gardenAcceptsJoin(
+          garden.chainId,
+          garden.address,
+          account.address
+        );
       } catch {
         return { status: "retry", errorCode: "dependency_unavailable", delayMs: 30_000 };
       }

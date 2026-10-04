@@ -60,7 +60,7 @@ describe("Community Garden invitation", () => {
     );
   });
 
-  it("sends the account to a steward while the Community Garden is closed to joining", async () => {
+  it("sends the account to a steward while the Community Garden would refuse its join", async () => {
     const reply = await publishToCommunityGarden(() => harness.chain.closed.add(TAS.address));
     expect(reply).toContain("ask a garden steward");
     expect(reply).not.toContain("Join the Community Garden");
