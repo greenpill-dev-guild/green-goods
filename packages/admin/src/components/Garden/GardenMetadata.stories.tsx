@@ -10,15 +10,16 @@ const meta: Meta<typeof GardenMetadata> = {
     docs: {
       description: {
         component:
-          "External-links card inside the garden profile modal: garden account address, NFT identifier, explorer and OpenSea links.",
+          "External-links card inside the garden profile modal: garden account address, NFT identifier, explorer links, and an OpenSea link on the chains OpenSea lists.",
       },
     },
   },
   argTypes: {
     chainId: {
       control: "select",
-      options: [11155111, 42161, 10],
-      description: "11155111 = Sepolia (OpenSea testnet), 42161 = Arbitrum",
+      options: [42161, 11155111, 42220],
+      description:
+        "42161 = Arbitrum, which links to OpenSea. 11155111 = Sepolia and 42220 = Celo have no OpenSea page, so the link is left out.",
     },
   },
   args: {
@@ -43,6 +44,14 @@ export const Arbitrum: Story = {};
 
 export const Sepolia: Story = {
   args: { chainId: 11155111 },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A testnet garden. OpenSea has no testnet site, so only the explorer link is offered.",
+      },
+    },
+  },
 };
 
 export const LargeTokenId: Story = {
