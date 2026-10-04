@@ -7,6 +7,28 @@ export const EN_REPORTING_COPY = {
   "link.browserHint":
     "Open it in Safari or Chrome. If it opens inside the chat app, use that page's menu to open it in your browser, or copy the link.",
   "link.copyButton": "Copy link",
+  "link.copyAddress": "Copy address",
+  "chat.welcomeLinked":
+    "Hi! This chat is connected to {account}.{gardens}\nTell me what you worked on, in your own words, and send photos if you have them. To use a different account, send SWITCH.",
+  "chat.hello": "Hi! Your report is still open, so here's where we were.",
+  "link.notLinked": "This chat isn't connected to an account. Send CONNECT to link one.",
+  "link.disconnected":
+    "Done. This chat is no longer connected to {account}, and any chat reporting permission you approved for it is paused. Send CONNECT to link an account.",
+  "link.disconnectBusy":
+    "A report or review is on its way out with this account, so I can't disconnect it yet. Finish or cancel it, then send DISCONNECT again.",
+  "link.disconnectHint":
+    "To disconnect this chat from your account, send DISCONNECT. To use a different account, send SWITCH.",
+  "report.explainGarden":
+    "A garden is the community or place your work belongs to. Pick the one where you did this work.",
+  "report.explainGardenUnlinked":
+    "A garden is the community or place your work belongs to. Pick the one where you did this work, or send CONNECT to link your account and see your own gardens first.",
+  "report.explainAction":
+    "These are the kinds of work {garden} is tracking right now. Pick the closest match to what you did; the details come next.",
+  "report.explainField": "{title}: {hint}. Pick the option that fits best.",
+  "report.explainNumber": "{title} is a number{unit}: {hint}. For example, 12.",
+  "report.explainNumberPlain": "{title} is a number{unit}. For example, 12.",
+  "report.fieldLead": "{title}?",
+  "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
     "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
   "consent.processors": " and may use AI to understand them",
@@ -19,7 +41,7 @@ export const EN_REPORTING_COPY = {
     "You've stopped the assistant. I won't read new messages until you send START. Published reports stay public; unpublished drafts are being removed. Support: {support}",
   "consent.deleted":
     "Your unpublished drafts and files are being deleted. Published reports stay public on chain and IPFS and can't be removed. Support: {support}",
-  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
+  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• DISCONNECT unlinks your account from this chat, and SWITCH links a different one.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
   "intake.paused":
     "Reporting is paused for maintenance. Your message is saved and I'll reply when it resumes. Support: {support}",
   "media.photoAdded": "Photo added to your report.",
@@ -77,11 +99,11 @@ export const EN_REPORTING_COPY = {
     "I couldn't load {garden}'s activities just now. That's a problem on my side, and your draft is saved. Tap Try again or send any message.",
   "report.tryAgain": "Try again",
   "report.choiceHelp":
-    "I didn't catch which one you mean. Tap a choice below or reply with its number. Send HELP to see everything I can do, or CANCEL to stop this report.",
-  "report.askNumber": "{title}? Please reply with a number{unit}.",
-  "report.askChoice": "{title}?",
-  "report.askMulti": "{title}? You can pick more than one, for example: 1, 3.",
-  "report.askText": "{title}?",
+    "I'm not sure which one you mean. Tap a choice below or reply with its number. Send HELP to see everything I can do, or CANCEL to stop this report.",
+  "report.askNumber": "{title} Send just the number{unit}.",
+  "report.askChoice": "{title}",
+  "report.askMulti": "{title} You can pick more than one, for example: 1, 3.",
+  "report.askText": "{title}",
   "report.askTime": "How much time did you spend on this work? For example: 2 hours or 45 minutes.",
   "report.askTimeUnit": "Was that {value} hours or {value} minutes?",
   "report.hours": "Hours",
@@ -163,7 +185,7 @@ export const EN_REPORTING_COPY = {
   "link.noGardens":
     "\nI don't see it in a garden yet. A garden you just joined can take a few minutes to show here.",
   "link.offer":
-    "Before your first report, connect your Green Goods account so I can show your gardens. Or skip this and tell me about the work you did; I'll ask you to connect when you publish.",
+    "Hi! I help you report garden work on Green Goods. Want to connect your account first, so I can show your gardens? You can also just tell me what you did, and I'll ask you to connect when you publish.",
   "link.offerLabel": "Connect account",
   "link.offerDeclined":
     "No problem. Tell me about the work you did; you can send text and photos. Send CONNECT whenever you want to link your account.",
@@ -173,7 +195,8 @@ export const EN_REPORTING_COPY = {
     "{account} is in: {gardens}.\nTo connect it to this chat, verify it here with that account. The link expires in 10 minutes and never moves funds.",
   "link.connectNamedNoGardens":
     "I don't see {account} in a garden yet.\nTo connect it to this chat, verify it here with that account. The link expires in 10 minutes and never moves funds.",
-  "link.already": "This chat is linked to {account}.{gardens}",
+  "link.already":
+    "This chat is connected to {account}.{gardens}\nTo use a different account, send SWITCH.",
   "link.pairFailed":
     "That code doesn't match an open verification. Check the code on the Green Goods page.",
   "link.accountMismatch":

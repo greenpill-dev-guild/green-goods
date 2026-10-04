@@ -4,6 +4,29 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "link.browserHint":
     "Abra no Safari ou Chrome. Se abrir dentro do app de chat, use o menu da página para abrir no navegador ou copie o link.",
   "link.copyButton": "Copiar link",
+  "link.copyAddress": "Copiar endereço",
+  "chat.welcomeLinked":
+    "Olá! Este chat está conectado a {account}.{gardens}\nConte com suas palavras o trabalho que você fez e envie fotos se tiver. Para usar outra conta, envie SWITCH.",
+  "chat.hello": "Olá! Seu relato continua aberto, então seguimos de onde paramos.",
+  "link.notLinked":
+    "Este chat não está conectado a nenhuma conta. Envie CONNECT para vincular uma.",
+  "link.disconnected":
+    "Pronto. Este chat não está mais conectado a {account}, e qualquer permissão de relatos pelo chat que você aprovou para ela fica pausada. Envie CONNECT para vincular uma conta.",
+  "link.disconnectBusy":
+    "Há um relato ou uma revisão a caminho com esta conta, então ainda não posso desconectá-la. Termine ou cancele e envie DISCONNECT de novo.",
+  "link.disconnectHint":
+    "Para desconectar este chat da sua conta, envie DISCONNECT. Para usar outra conta, envie SWITCH.",
+  "report.explainGarden":
+    "Uma horta é a comunidade ou o lugar a que seu trabalho pertence. Escolha aquela onde você fez este trabalho.",
+  "report.explainGardenUnlinked":
+    "Uma horta é a comunidade ou o lugar a que seu trabalho pertence. Escolha aquela onde você fez este trabalho, ou envie CONNECT para vincular sua conta e ver primeiro as suas hortas.",
+  "report.explainAction":
+    "Estes são os tipos de trabalho que {garden} acompanha agora. Escolha o mais parecido com o que você fez; os detalhes vêm depois.",
+  "report.explainField": "{title}: {hint}. Escolha a opção que melhor se encaixa.",
+  "report.explainNumber": "{title} é um número{unit}: {hint}. Por exemplo, 12.",
+  "report.explainNumberPlain": "{title} é um número{unit}. Por exemplo, 12.",
+  "report.fieldLead": "{title}?",
+  "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
     "Olá! Sou o assistente de relatos do Green Goods. Para ajudar você a relatar o trabalho na horta, eu guardo e leio as mensagens e os arquivos que você envia aqui{processors}. Nada fica público até você confirmar um relato.\n\nEnvie STOP a qualquer momento para parar, DELETE para apagar seus dados não publicados ou HELP para suporte ({support}).\n\nVocê concorda?",
   "consent.processors": " e posso usar IA para entendê-los",
@@ -16,7 +39,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Você parou o assistente. Não vou ler mensagens novas até você enviar START. Os relatos publicados continuam públicos; os rascunhos não publicados estão sendo apagados. Suporte: {support}",
   "consent.deleted":
     "Seus rascunhos e arquivos não publicados estão sendo apagados. Os relatos publicados continuam públicos na blockchain e no IPFS e não podem ser removidos. Suporte: {support}",
-  help: "Relatos do Green Goods:\n• Descreva seu trabalho e envie fotos para começar um relato.\n• NEW começa um relato novo, STATUS mostra onde você está, CANCEL cancela o relato atual.\n• Responsáveis: enviem REVIEW para ver trabalhos aguardando revisão.\n• CONNECT, ou o endereço da sua conta sozinho, vincula sua conta Green Goods: abra o link de verificação que envio e envie só o código de seis dígitos neste chat. Você pode conectar Telegram e WhatsApp à mesma conta. RECOVER reconecta uma conta após perder o acesso ao chat.\n• STOP para o processamento, DELETE apaga os dados não publicados.\nSuporte: {support}",
+  help: "Relatos do Green Goods:\n• Descreva seu trabalho e envie fotos para começar um relato.\n• NEW começa um relato novo, STATUS mostra onde você está, CANCEL cancela o relato atual.\n• Responsáveis: enviem REVIEW para ver trabalhos aguardando revisão.\n• CONNECT, ou o endereço da sua conta sozinho, vincula sua conta Green Goods: abra o link de verificação que envio e envie só o código de seis dígitos neste chat. Você pode conectar Telegram e WhatsApp à mesma conta. RECOVER reconecta uma conta após perder o acesso ao chat.\n• DISCONNECT desvincula sua conta deste chat, e SWITCH vincula outra.\n• STOP para o processamento, DELETE apaga os dados não publicados.\nSuporte: {support}",
   "intake.paused":
     "Os relatos estão pausados para manutenção. Sua mensagem foi guardada e vou responder quando voltarem. Suporte: {support}",
   "media.photoAdded": "Foto adicionada ao seu relato.",
@@ -78,11 +101,11 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Não consegui carregar as atividades de {garden} agora. O problema é do meu lado e seu rascunho está guardado. Toque em Tentar de novo ou envie qualquer mensagem.",
   "report.tryAgain": "Tentar de novo",
   "report.choiceHelp":
-    "Não entendi qual você quer dizer. Toque em uma opção abaixo ou responda com o número dela. Envie HELP para ver tudo o que posso fazer, ou CANCEL para parar este relato.",
-  "report.askNumber": "{title}? Responda com um número{unit}.",
-  "report.askChoice": "{title}?",
-  "report.askMulti": "{title}? Você pode escolher mais de uma, por exemplo: 1, 3.",
-  "report.askText": "{title}?",
+    "Não tenho certeza de qual você quer dizer. Toque em uma opção abaixo ou responda com o número dela. Envie HELP para ver tudo o que posso fazer, ou CANCEL para parar este relato.",
+  "report.askNumber": "{title} Envie só o número{unit}.",
+  "report.askChoice": "{title}",
+  "report.askMulti": "{title} Você pode escolher mais de uma, por exemplo: 1, 3.",
+  "report.askText": "{title}",
   "report.askTime":
     "Quanto tempo você dedicou a este trabalho? Por exemplo: 2 horas ou 45 minutos.",
   "report.askTimeUnit": "Foram {value} horas ou {value} minutos?",
@@ -166,7 +189,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "link.noGardens":
     "\nAinda não vejo esta conta em um jardim. Se você acabou de entrar, pode levar alguns minutos para aparecer.",
   "link.offer":
-    "Antes do seu primeiro relato, conecte sua conta Green Goods para eu mostrar suas hortas. Ou pule esta etapa e conte o trabalho que você fez; vou pedir para conectar quando você publicar.",
+    "Olá! Eu ajudo você a relatar o trabalho na horta no Green Goods. Quer conectar sua conta primeiro, para eu mostrar suas hortas? Você também pode só contar o que fez, e peço para conectar quando você publicar.",
   "link.offerLabel": "Conectar conta",
   "link.offerDeclined":
     "Sem problema. Conte o trabalho que você fez; você pode enviar texto e fotos. Envie CONNECT quando quiser vincular sua conta.",
@@ -176,7 +199,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "{account} está em: {gardens}.\nPara conectá-la a este chat, verifique-a aqui com essa conta. O link expira em 10 minutos e nunca movimenta fundos.",
   "link.connectNamedNoGardens":
     "Ainda não vejo {account} em nenhuma horta.\nPara conectá-la a este chat, verifique-a aqui com essa conta. O link expira em 10 minutos e nunca movimenta fundos.",
-  "link.already": "Este chat está vinculado a {account}.{gardens}",
+  "link.already":
+    "Este chat está conectado a {account}.{gardens}\nPara usar outra conta, envie SWITCH.",
   "link.pairFailed":
     "Esse código não corresponde a nenhuma verificação aberta. Confira o código na página do Green Goods.",
   "link.accountMismatch":

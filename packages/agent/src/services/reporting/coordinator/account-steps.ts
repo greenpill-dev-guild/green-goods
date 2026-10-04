@@ -9,9 +9,12 @@ import { commitDraft } from "../drafts";
 import { enqueueJob } from "../jobs";
 import { conversationRealm } from "../notify";
 import { upsertOperation } from "../operations";
-import { activeAccount, bindingForSubject, type ParticipantBinding } from "../participants";
-import { resolvePrompt } from "../prompts";
+import { activeAccount, audit, bindingForSubject, type ParticipantBinding } from "../participants";
+import { closeConversationPrompt, resolvePrompt } from "../prompts";
+import { endRecognition } from "../recognition";
+import { revokeParticipantSessions } from "../sessions";
 import { commitLifecycle, lifecycleState } from "./draft-commit";
+import { askGarden } from "./prompting";
 import { recordDraftConfirmation } from "./report-commands";
 import type { ConversationWriter, TurnWriter } from "./writer";
 
@@ -60,8 +63,18 @@ function linkedGardens(writer: TurnWriter, account: Address): string {
   return gardens ? writer.text("link.gardens", { gardens }) : writer.text("link.noGardens");
 }
 
+/**
+ * A hello, or `START` from an idle chat. A chat with no account is offered the link first; a
+ * linked one is told which account it reports as. Neither starts a report.
+ */
+export function welcome(writer: TurnWriter): void {
+  const account = writer.ctx.account?.address;
+  if (!account) return offerConnection(writer);
+  writer.sayWithAccount("chat.welcomeLinked", { gardens: linkedGardens(writer, account) }, account);
+}
+
 /** `START` from a chat with no account yet: linking is offered first, and reporting needs no answer. */
-export function offerConnection(writer: TurnWriter): void {
+function offerConnection(writer: TurnWriter): void {
   const binding = writer.ctx.binding;
   if (!binding) return writer.say("help");
   writer.ask(
@@ -105,7 +118,11 @@ export function requestConnection(writer: TurnWriter, named: Address | null): vo
         }
       );
     }
-    return writer.say("link.already", { account: linked, gardens: linkedGardens(writer, linked) });
+    return writer.sayWithAccount(
+      "link.already",
+      { gardens: linkedGardens(writer, linked) },
+      linked
+    );
   }
   const link = { url: accountLink(writer, ctx.binding, named), label: writer.text("link.label") };
   if (named) {
@@ -119,6 +136,66 @@ export function requestConnection(writer: TurnWriter, named: Address | null): vo
     writer.say("link.connect", {}, link);
   }
   writer.say("link.pairHint");
+}
+
+/** A report in one of these states has nothing prepared or sent for its account yet. */
+const UNLINKABLE_STATES = new Set(["collecting", "review", "authority"]);
+
+/** Questions that only make sense for the account the chat was linked to. */
+const ACCOUNT_PROMPTS = new Set([
+  "publication_consent",
+  "join_community",
+  "grant_choice",
+  "connect_offer",
+]);
+
+/**
+ * `DISCONNECT` ends this chat's link to its account so another can be linked; `SWITCH` does that
+ * and sends the link for the next account in the same reply. Chat permissions approved for the
+ * account are paused and never used again, its open links and browser sessions end, and a report
+ * confirmed for it asks for the new account before it is published. Nothing on chain changes. A
+ * report or review that already has something prepared, signed or sent keeps the link until it
+ * finishes, so a publication can never lose its author half way.
+ */
+export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): void {
+  const { core, ctx } = writer;
+  const binding = ctx.binding;
+  if (!binding) return writer.say("help");
+  const account = ctx.account;
+  if (!account) return thenConnect ? requestConnection(writer, null) : writer.say("link.notLinked");
+  const inFlight = core.db
+    .query(
+      `SELECT 1 FROM execution_operations WHERE author_account_id = $account
+         AND state NOT IN ('published','failed','cancelled','preparation_failed') LIMIT 1`
+    )
+    .get({ account: account.id });
+  const draftBusy = ctx.draft && !UNLINKABLE_STATES.has(lifecycleState(ctx.draft));
+  if (inFlight || draftBusy || ctx.review) return writer.say("link.disconnectBusy");
+  const now = core.clock.now();
+  core.db
+    .query(
+      "UPDATE account_bindings SET status = 'revoked', revoked_at = $now WHERE id = $id AND status = 'active'"
+    )
+    .run({ id: account.id, now });
+  core.db
+    .query(
+      `UPDATE execution_grants SET state = 'paused', version = version + 1, updated_at = $now
+       WHERE account_binding_id = $account AND state = 'active'`
+    )
+    .run({ account: account.id, now });
+  core.db
+    .query(
+      "UPDATE continuation_requests SET state = 'revoked' WHERE participant_id = $participant AND state = 'open'"
+    )
+    .run({ participant: binding.participantId });
+  revokeParticipantSessions(core, binding.participantId);
+  endRecognition(core, binding.participantId);
+  if (ctx.prompt && ACCOUNT_PROMPTS.has(ctx.prompt.kind))
+    closeConversationPrompt(core, ctx.conversationId);
+  audit(core, "account_disconnected", { kind: "participant", id: binding.participantId });
+  ctx.account = null;
+  writer.say("link.disconnected", { account: account.address });
+  if (thenConnect) requestConnection(writer, null);
 }
 
 /**
@@ -139,10 +216,14 @@ export function handlePairing(writer: TurnWriter, code: string): void {
   if (ctx.draft) ctx.draft = { ...ctx.draft, participantId: ctx.binding.participantId };
   const draft = ctx.draft;
   // A report in progress asks its own next question; otherwise the reply says where the account can report.
-  writer.say("link.paired", {
-    account: result.account,
-    gardens: draft || !ctx.account ? "" : linkedGardens(writer, ctx.account.address),
-  });
+  writer.sayWithAccount(
+    "link.paired",
+    { gardens: draft || !ctx.account ? "" : linkedGardens(writer, ctx.account.address) },
+    result.account
+  );
+  // A garden question still open is asked again, now with the account's own gardens first.
+  if (draft && ctx.account && ctx.prompt?.kind === "select_garden")
+    askGarden(writer, draft, ctx.account.address);
   if (draft && lifecycleState(draft) === "authority") {
     enqueueJob(core, {
       kind: "resolve_authority",

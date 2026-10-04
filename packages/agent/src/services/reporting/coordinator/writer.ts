@@ -91,6 +91,23 @@ export class ConversationWriter {
     this.reply({ text: this.text(key, values), ...(link ? { link } : {}) }, key);
   }
 
+  /** A reply that names the linked account, with a button that copies its address. */
+  sayWithAccount(
+    key: ReportingCopyKey,
+    values: CopyValues,
+    account: string,
+    link?: OutboundMessage["link"]
+  ): void {
+    this.reply(
+      {
+        text: this.text(key, { account, ...values }),
+        copy: { label: this.text("link.copyAddress"), text: account },
+        ...(link ? { link } : {}),
+      },
+      key
+    );
+  }
+
   /** A reply with a link to a public record. Nothing is signed there, so any browser will do. */
   sayWithRecord(key: ReportingCopyKey, values: CopyValues, record: OutboundMessage["link"]): void {
     this.enqueue({ text: this.text(key, values), ...(record ? { link: record } : {}) }, key);

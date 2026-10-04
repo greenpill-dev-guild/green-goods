@@ -24,6 +24,9 @@ export type InterpretedIntent =
   | "status"
   | "help"
   | "cancel"
+  | "connect"
+  | "disconnect"
+  | "greeting"
   | "unclear";
 
 export interface InterpretationRequest {

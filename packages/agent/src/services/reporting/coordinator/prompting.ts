@@ -93,6 +93,20 @@ export function fieldQuestionText(
   return place ? `${writer.text("report.questionPosition", place)}${question}` : question;
 }
 
+/** What the activity's own definition says about a field, when that adds to its title. */
+export function fieldHint(input: WorkInput): string {
+  const hint = (input.placeholder ?? "").trim().replace(/[.:…]+$/u, "");
+  return hint && hint.toLowerCase() !== input.title.trim().toLowerCase() ? hint : "";
+}
+
+/** A field's name as its question opens: with the definition's hint when it has one. */
+function fieldLead(writer: ConversationWriter, input: WorkInput): string {
+  const hint = fieldHint(input);
+  return hint
+    ? writer.text("report.fieldLeadHint", { title: input.title, hint })
+    : writer.text("report.fieldLead", { title: input.title });
+}
+
 export function askField(
   writer: ConversationWriter,
   draft: DraftRecord,
@@ -113,7 +127,7 @@ export function askField(
         draft,
         { kind: "detail", key: input.key },
         writer.text("report.askNumber", {
-          title: input.title,
+          title: fieldLead(writer, input),
           unit: input.unit ? ` (${input.unit})` : "",
         })
       )
@@ -126,7 +140,7 @@ export function askField(
         writer,
         draft,
         { kind: "detail", key: input.key },
-        writer.text("report.askText", { title: input.title })
+        writer.text("report.askText", { title: fieldLead(writer, input) })
       )
     );
     return;
@@ -141,7 +155,7 @@ export function askField(
       draft,
       { kind: "detail", key: input.key },
       writer.text(input.type === "multi-select" ? "report.askMulti" : "report.askChoice", {
-        title: input.title,
+        title: fieldLead(writer, input),
       })
     )
   );

@@ -153,7 +153,7 @@ function mediaOf(message: Message): InboundMediaReference | null {
 export function createTelegramTransport(telegram: Telegram): OutboundTransport {
   return {
     async send(request) {
-      const { choices = [], link, text } = request.message;
+      const { choices = [], copy, link, text } = request.message;
       const linkButton = link && isPublicHttps(link.url) ? link : null;
       const body = link && !linkButton ? `${text}\n\n${link.label}: ${link.url}` : text;
       const keyboard: ReportingButton[][] = choices.map((choice) => [
@@ -166,6 +166,8 @@ export function createTelegramTransport(telegram: Telegram): OutboundTransport {
         if (linkButton.copyLabel && linkButton.url.length <= 256)
           keyboard.push([{ text: linkButton.copyLabel, copy_text: { text: linkButton.url } }]);
       }
+      if (copy && copy.text.length <= 256)
+        keyboard.push([{ text: copy.label, copy_text: { text: copy.text } }]);
       const parts = splitText(body);
       try {
         for (const part of parts.slice(0, -1)) await sendText(telegram, request, part, []);

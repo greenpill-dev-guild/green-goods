@@ -73,10 +73,10 @@ describe("story-first reporting", () => {
     // The story gave the description, so three questions are left, and each is numbered against them.
     expect(adopted).toEqual([
       "Got it: Tree planting at TAS. 3 quick questions, then a summary to check.",
-      "1 of 3 · Seedlings planted? Please reply with a number (seedlings).",
+      "1 of 3 · Seedlings planted? Send just the number (seedlings).",
     ]);
     expect(await harness.say(ADA, "twelve")).toEqual([
-      "Please reply with a number, for example 12.",
+      "Seedlings planted is a number (seedlings). For example, 12.",
     ]);
     expect(await harness.say(ADA, "10 bags")).toEqual([
       "This is counted in seedlings, but you wrote bags. Could you give it in seedlings?",
@@ -175,8 +175,10 @@ describe("story-first reporting", () => {
 });
 
 const GARDEN_QUESTION = "Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden";
-const CHOICE_HELP =
-  "I didn't catch which one you mean. Tap a choice below or reply with its number. Send HELP to see everything I can do, or CANCEL to stop this report.";
+const GARDEN_HELP =
+  "A garden is the community or place your work belongs to. Pick the one where you did this work, or send CONNECT to link your account and see your own gardens first.";
+const ACTIVITY_HELP =
+  "These are the kinds of work TAS is tracking right now. Pick the closest match to what you did; the details come next.";
 
 describe("a reply that is not one of the choices", () => {
   it("offers Try again when a garden's activities can't be read, and reads them again on any reply", async () => {
@@ -197,11 +199,11 @@ describe("a reply that is not one of the choices", () => {
 
   it("says how to answer and shows the choices again when no model can read the words", async () => {
     await consented();
-    expect(await harness.say(ADA, "Which one is mine?")).toEqual([CHOICE_HELP, GARDEN_QUESTION]);
+    expect(await harness.say(ADA, "Which one is mine?")).toEqual([GARDEN_HELP, GARDEN_QUESTION]);
     // The question is still open: its number answers it.
     expect((await harness.say(ADA, "1"))[0]).toContain("Which activity in TAS");
     expect(await harness.say(ADA, "the planting one")).toEqual([
-      CHOICE_HELP,
+      ACTIVITY_HELP,
       "Which activity in TAS best matches your work?\n1. Tree planting\n2. Weeding",
     ]);
   });
@@ -223,7 +225,7 @@ describe("a reply that is not one of the choices", () => {
     await harness.press(ADA, "I agree");
 
     harness.interpreter.responses = [read("help")];
-    expect(await harness.say(ADA, "What does that mean?")).toEqual([CHOICE_HELP, GARDEN_QUESTION]);
+    expect(await harness.say(ADA, "What does that mean?")).toEqual([GARDEN_HELP, GARDEN_QUESTION]);
     harness.interpreter.responses = [read("status")];
     expect(await harness.say(ADA, "where are we with this?")).toEqual([
       "Your report for your garden is still being filled in.",
@@ -232,7 +234,7 @@ describe("a reply that is not one of the choices", () => {
     harness.interpreter.responses = [read("report_content", AIYELOJA.key)];
     expect(await harness.say(ADA, "the family garden")).toEqual([
       "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.",
-      "1 of 3 · Seedlings planted? Please reply with a number (seedlings).",
+      "1 of 3 · Seedlings planted? Send just the number (seedlings).",
     ]);
     expect(harness.interpreter.requests.at(-1)?.message.text).toBe("the family garden");
     // Numbers and a choice's own label never go to the model.
@@ -250,6 +252,10 @@ const BROWSER_HINT =
 const CONNECT_LINK = `To connect your Green Goods account (wallet or passkey), verify it here. ${VERIFY}\n\n${BROWSER_HINT}`;
 const PAIR_HINT = "When the page shows a code, send the six digits alone here.";
 const STORY = "Today I planted twelve baobab seedlings by the fence";
+const OFFER =
+  "Hi! I help you report garden work on Green Goods. Want to connect your account first, so I can show your gardens? You can also just tell me what you did, and I'll ask you to connect when you publish.\n1. Connect account";
+const disconnected = (account: string) =>
+  `Done. This chat is no longer connected to ${account}, and any chat reporting permission you approved for it is paused. Send CONNECT to link an account.`;
 
 /** Opens the chat with START, as Telegram does, and agrees to processing. */
 async function started(): Promise<string[]> {
@@ -269,9 +275,7 @@ describe("linking an account before reporting", () => {
   it("offers linking on START, then asks about the account's own gardens first", async () => {
     harness.chain.grantRole(AIYELOJA.address, adaAccount.address, { gardener: true });
     const welcome = await started();
-    expect(welcome[1]).toBe(
-      "Before your first report, connect your Green Goods account so I can show your gardens. Or skip this and tell me about the work you did; I'll ask you to connect when you publish.\n1. Connect account"
-    );
+    expect(welcome[1]).toBe(OFFER);
     expect(await harness.press(ADA, "Connect account")).toEqual([CONNECT_LINK, PAIR_HINT]);
     expect(await pairAda()).toEqual([
       `Your account ${ada} is now linked.\nYour gardens: Aiyeloja Family Garden.`,
@@ -309,16 +313,66 @@ describe("linking an account before reporting", () => {
     expect((await browser.prove(bolaAccount)).status).toBe(403);
     const proof = await browser.prove(adaAccount);
     expect(proof.status).toBe(200);
-    // Linked mid-report, the reply leaves the report's own question standing.
+    // Linked mid-report, the open garden question is asked again with the account's own gardens.
     expect(await harness.say(ADA, `PAIR ${proof.body.pairingCode}`)).toEqual([
       `Your account ${ada} is now linked.`,
+      "Which of your gardens is this report for?\n1. TAS\n2. Other gardens",
     ]);
 
     expect(await harness.say(ADA, bolaAccount.address)).toEqual([
       `This chat is linked to a different account. Verify with ${ada} or contact ${harness.core.settings.supportContact}.`,
     ]);
     expect(await harness.say(ADA, "CONNECT")).toEqual([
-      `This chat is linked to ${ada}.\nYour gardens: TAS.`,
+      `This chat is connected to ${ada}.\nYour gardens: TAS.\nTo use a different account, send SWITCH.`,
+    ]);
+  });
+
+  it("welcomes a hello instead of starting a report, and reads a request to log in at any point", async () => {
+    expect((await harness.say(ADA, "hello"))[0]).toContain("Do you agree?");
+    // The held hello gets the welcome and the offer to link; it is not taken for a report.
+    expect((await harness.press(ADA, "I agree")).at(-1)).toBe(OFFER);
+    expect(harness.core.db.query("SELECT count(*) AS n FROM work_drafts").get()).toEqual({ n: 0 });
+
+    expect((await harness.say(ADA, STORY))[0]).toBe(GARDEN_QUESTION);
+    // With the garden question open, a request to log in is never read as a garden.
+    expect(await harness.say(ADA, "I would like to log in")).toEqual([CONNECT_LINK, PAIR_HINT]);
+    expect(await pairAda()).toEqual([`Your account ${ada} is now linked.`, GARDEN_QUESTION]);
+    // A hello in the middle of a report says so and asks the open question again.
+    expect(await harness.say(ADA, "hi")).toEqual([
+      "Hi! Your report is still open, so here's where we were.",
+      GARDEN_QUESTION,
+    ]);
+  });
+
+  it("disconnects the account on request, so another can be linked", async () => {
+    const bola = bolaAccount.address.toLowerCase();
+    await started();
+    await harness.say(ADA, "CONNECT");
+    await pairAda();
+    // START from a linked, idle chat says which account it reports as.
+    expect((await harness.say(ADA, "START"))[0]).toContain(`This chat is connected to ${ada}.`);
+
+    expect(await harness.say(ADA, "log out")).toEqual([disconnected(ada)]);
+    expect(harness.core.db.query("SELECT status FROM account_bindings").all()).toEqual([
+      { status: "revoked" },
+    ]);
+    expect(await harness.say(ADA, "DISCONNECT")).toEqual([
+      "This chat isn't connected to an account. Send CONNECT to link one.",
+    ]);
+
+    // The chat is free to link a different account, and the old one is free for another chat.
+    expect(await harness.say(ADA, "SWITCH")).toEqual([CONNECT_LINK, PAIR_HINT]);
+    const browser = new TestBrowser(harness.app);
+    await browser.open(latestLink(harness));
+    const proof = await browser.prove(bolaAccount);
+    expect((await harness.say(ADA, `PAIR ${proof.body.pairingCode}`))[0]).toContain(
+      `Your account ${bola} is now linked.`
+    );
+    // From a linked chat, SWITCH unlinks and sends the next link in one reply.
+    expect(await harness.say(ADA, "connect another account")).toEqual([
+      disconnected(bola),
+      CONNECT_LINK,
+      PAIR_HINT,
     ]);
   });
 
