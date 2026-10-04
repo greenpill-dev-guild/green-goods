@@ -26,7 +26,7 @@ export interface WaitingForApprovalRowProps {
 }
 
 /**
- * One ask in Waiting for approval (PRD-1025 D6): two lines, who and when, then
+ * One ask in Review Promises (PRD-1025 D6): two lines, who and when, then
  * what for, in a row that keeps one height through every state. Decline… and
  * Approve sit on the right; pressing Approve puts the act's progress in their
  * place, then the outcome it produced, which stays for the visit. A failure

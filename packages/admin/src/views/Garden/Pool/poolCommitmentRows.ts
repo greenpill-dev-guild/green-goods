@@ -11,7 +11,7 @@ export type PoolCommitmentScope = "open" | "confirmed" | "past";
 /** A stats count's own list; null is the scope chips' ordinary list. */
 export type PoolCommitmentFocus = "pastDue" | "recovery" | null;
 
-/** One row of the Promises card: a promise, or a group of copies made together. */
+/** One row of Offers and Requests: a promise, or a group of copies made together. */
 export type PoolCommitmentEntry = DisplayEntry<CommitmentReadModel>;
 export type PoolCommitmentGroup = DisplayGroupEntry<CommitmentReadModel>;
 

@@ -98,11 +98,12 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
 - **The canvas is a single `MainSheet` column (max-width 1400px). The console has no persistent
   side navigation rails.** Within a workspace tab, use a **two-column split** when the tab earns
   it: left column (majority width) carries focused actions and high-level objects; a right rail
-  (~300–340px) carries container status, quick actions, and activity/updates. Decided for the
-  pool tab 2026-08-16 (DL-008). The Pool tab's rail is now 37.5% wide (at least 18rem) and
-  holds Waiting for approval, then Pool Status, then Pool Funding (DL-068). Collapse to one
-  column below ~900px — rail content stacks after the left column, nothing disappears.
-  (web.dev responsive; brief: no hidden critical data.)
+  (~300–340px) carries container status, quick actions, and activity/updates. Decided
+  2026-08-16 for what is now the Garden workspace's Promises tab (DL-008). That tab's rail is
+  now 37.5% wide (at least 18rem) and holds Review Promises, then Pool Status, then Pool
+  Funding (DL-068; the names are DL-077's). Collapse to one column below ~900px — rail content
+  stacks after the left column, nothing disappears. (web.dev responsive; brief: no hidden
+  critical data.)
 - **On phones, a tab's alert card leads.** Below 768px the rail stacks after the main column,
   except the Attention Needed card, which leads above it, so the steward's next task is the first
   thing on screen (DL-051, amending DL-008's collapse order for that one card). Proof:
@@ -134,13 +135,14 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   (2026-08-16). A queue earns a separate card only when it holds a different **object** —
   asks to take up a promise are requests, not promises, so they get their own card; "past due"
   is the same promise under a filter.
-- **The approval card is always there (DL-067).** While a pool is open, Waiting for approval
-  sits at the top of the Pool tab's rail whether or not anyone is waiting, with one quiet
-  "Nothing waiting for approval." line when empty, so asks arriving and leaving never move the
-  Promises list. Its rows are decision rows of one height (who and when, then what for, one line
-  each; the name keeps its length and the age gives way first), with Decline… and Approve. A
-  decided row keeps its place with its outcome until the steward leaves the tab, here and
-  wherever a steward decides in a list (a commitment's waiting list, the Hub's Confirm queue).
+- **The review card is always there (DL-067).** While a pool is open, Review Promises sits at
+  the top of the Promises tab's rail whether or not anyone is waiting, with one quiet "Nothing
+  to review." line when empty, so asks arriving and leaving never move Offers and Requests, the
+  list beside it (the names are DL-077's). Its rows are decision rows of one height (who and
+  when, then what for, one line each; the name keeps its length and the age gives way first),
+  with Decline… and Approve. A decided row keeps its place with its outcome until the steward
+  leaves the tab, here and wherever a steward decides in a list (a commitment's waiting list,
+  the Hub's Confirm queue).
 - **A card is titled by its subject.** When a card is about one object, that object heads the
   card — title, chips, counts, and its one act in the header — rather than a generic title with
   the object stacked beneath as a second header. Peers list below a quiet section divider whose
@@ -169,8 +171,8 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   acts*: status and outcome copy ("Connection lost"), empty/connect-state titles, kickers,
   placeholders, banners, meta, field labels, helper text, and body copy stay sentence case even
   when a title-shaped i18n key holds them; es/pt keep their native casing throughout. A card
-  title also never repeats its container's name — the Pool tab's status card is "Pool Status",
-  not "Pool — the container".
+  title also never repeats its container's name — the Promises tab's status card is "Pool
+  Status", not "Pool — the container".
 - **Work age is metadata, never an alarm (DL-044).** A waiting card shows a neutral Pending chip
   with its age ("submitted 6 months ago"), and the Hub header counts work waiting over a week in
   plain ink. A garden's health turns Critical only when work has waited 7 days or more *and* no

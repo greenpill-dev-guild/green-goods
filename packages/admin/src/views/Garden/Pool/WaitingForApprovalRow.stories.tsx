@@ -24,7 +24,7 @@ const meta: Meta<typeof WaitingForApprovalRow> = {
     docs: {
       description: {
         component:
-          "One ask in Waiting for approval (PRD-1025 D6): who asked and when, then what for, in a row that keeps one height through every state. The acts, the progress and the outcome all take the same slot on the right; every name uses one style, and the age gives way before the name does.",
+          "One ask in Review Promises (PRD-1025 D6): who asked and when, then what for, in a row that keeps one height through every state. The acts, the progress and the outcome all take the same slot on the right; every name uses one style, and the age gives way before the name does.",
       },
     },
   },

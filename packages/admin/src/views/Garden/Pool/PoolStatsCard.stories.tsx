@@ -12,14 +12,14 @@ const meta: Meta<typeof PoolStatsCard> = {
     docs: {
       description: {
         component:
-          "What needs the steward on the pool tab, as counts: one hairline card of columns, the number over its label, with no button chrome. A count lands on exactly what it counts: Claims waiting on the claims card, Needs recovery and Past due on the commitments list filtered to them. A zero goes nowhere, so it reads as calm text.",
+          "What needs the steward on the Promises tab, as counts: one hairline card of columns, the number over its label, with no button chrome. A count lands on exactly what it counts: To review on Review Promises, Needs recovery and Past due on Offers and Requests filtered to them. A zero goes nowhere, so it reads as calm text.",
       },
     },
   },
   args: {
     label: "What needs you",
     stats: [
-      { id: "claims", count: 2, label: "Claims waiting", onOpen: noop },
+      { id: "claims", count: 2, label: "To review", onOpen: noop },
       { id: "recovery", count: 1, label: "Needs recovery", onOpen: noop },
       { id: "pastDue", count: 1, label: "Past due", onOpen: noop },
     ],
@@ -39,7 +39,7 @@ type Story = StoryObj<typeof PoolStatsCard>;
 export const Counts: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("button", { name: /2\s*claims waiting/i })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: /2\s*to review/i })).toBeVisible();
   },
 };
 
@@ -47,7 +47,7 @@ export const Counts: Story = {
 export const AllClear: Story = {
   args: {
     stats: [
-      { id: "claims", count: 0, label: "Claims waiting", onOpen: noop },
+      { id: "claims", count: 0, label: "To review", onOpen: noop },
       { id: "recovery", count: 0, label: "Needs recovery", onOpen: noop },
       { id: "pastDue", count: 0, label: "Past due", onOpen: noop },
     ],
@@ -62,7 +62,7 @@ export const AllClear: Story = {
 export const RecoveryOnly: Story = {
   args: {
     stats: [
-      { id: "claims", count: 0, label: "Claims waiting", onOpen: noop },
+      { id: "claims", count: 0, label: "To review", onOpen: noop },
       { id: "recovery", count: 3, label: "Needs recovery", onOpen: noop },
       { id: "pastDue", count: 0, label: "Past due", onOpen: noop },
     ],

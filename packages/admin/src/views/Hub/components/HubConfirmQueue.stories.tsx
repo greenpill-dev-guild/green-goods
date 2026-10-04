@@ -191,7 +191,7 @@ export const CopiesFromAGroup: Story = {
 
 /**
  * A confirmation that lands turns its row into the outcome, in place, with
- * its time: it stays there for the visit, the way Waiting for approval does.
+ * its time: it stays there for the visit, the way Review Promises does.
  */
 export const ConfirmedInPlace: Story = {
   tags: ["storybook-ci"],

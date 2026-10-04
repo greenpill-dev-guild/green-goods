@@ -188,7 +188,7 @@ describe("CommunityPools", () => {
     expect(screen.getByTestId("protocol-pool")).toBeInTheDocument();
     expect(screen.getByTestId("protocol-funding-operations")).toBeInTheDocument();
     expect(screen.getByTestId("protocol-confirm-queue")).toBeInTheDocument();
-    // The protocol pool's console is that garden's own Pool tab, not embedded here.
+    // The protocol pool's console is that garden's own Promises tab, not embedded here.
     expect(screen.getByTestId("current-garden-pool")).toBeInTheDocument();
   });
 

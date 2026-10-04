@@ -33,7 +33,7 @@ const meta: Meta<typeof PoolFundingSection> = {
     docs: {
       description: {
         component:
-          "Pool Funding, its own compact card at the foot of the Pool tab's right column (PRD-1025 D9), shared by Garden and Protocol pools. What is available for new promises comes first, in dollars at today's G$ price with the G$ amount beside; then one line for the Safe and what is committed, the funding and settlement chips, and the read time with View Details. The Safe's address and explorer link are in the details dialog. Without a price the amounts read in G$.",
+          "Pool Funding, its own compact card at the foot of the Promises tab's right column (PRD-1025 D9), shared by Garden and Protocol pools. What is available for new promises comes first, in dollars at today's G$ price with the G$ amount beside; then one line for the Safe and what is committed, the funding and settlement chips, and the read time with View Details. The Safe's address and explorer link are in the details dialog. Without a price the amounts read in G$.",
       },
     },
   },

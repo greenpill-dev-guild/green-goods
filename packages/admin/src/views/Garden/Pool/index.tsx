@@ -31,10 +31,11 @@ export interface GardenPoolTabProps {
 }
 
 /**
- * W7, the steward's pool console (uiux-spec §6.2). Two columns: what needs
- * the steward, the season and its campaigns, and the promises on the left;
- * Waiting for approval, Pool Status and Pool Funding on the right, which is
- * 37.5% of the width (PRD-1025 D8–D10). Every act goes through the controller
+ * W7, the steward's pool console (uiux-spec §6.2), which the Garden workspace
+ * shows as its Promises tab (DL-077). Two columns: what needs the steward, the
+ * season and its campaigns, and Offers and Requests on the left; Review
+ * Promises, Pool Status and Pool Funding on the right, which is 37.5% of the
+ * width (PRD-1025 D8–D10). Every act goes through the controller
  * in shared; every reasoned act through the one reason dialog; every row opens
  * in the Garden workspace's left inspector, route-backed.
  *
@@ -168,7 +169,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
             count: model.counts.claimsWaiting,
             label: formatMessage({
               id: "cockpit.garden.pool.summary.waiting",
-              defaultMessage: "Waiting for approval",
+              defaultMessage: "To review",
             }),
             onOpen: () => jumpTo("pool-claims"),
           },
