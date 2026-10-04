@@ -17,9 +17,9 @@ import {
   AuthStateContext,
   type AuthStateValue,
 } from "@green-goods/shared/providers/Auth";
-import type { ComponentType, ReactNode } from "react";
-import { Route, Routes } from "react-router-dom";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { type ComponentType, type ReactNode, useState } from "react";
+import { createMemoryRouter, Route, RouterProvider, Routes } from "react-router-dom";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_ACTIONS,
   STORYBOOK_ADMIN_GARDENS,
@@ -35,6 +35,7 @@ import {
   withSelectedAdminGarden,
   withWagmi,
 } from "../../../../shared/.storybook/decorators";
+import { stagedWorkPhoto } from "../../../../shared/.storybook/workPhotoFixtures";
 import SubmitWork, { SubmitWorkPanel } from "./SubmitWork";
 
 const STORYBOOK_STEWARD_ADDRESS_KEY = STORYBOOK_STEWARD_ADDRESS.toLowerCase() as Address;
@@ -118,6 +119,16 @@ const MULTI_DOMAIN_ACTIONS: Action[] = [
   mediaInfo: { title: "Field photos", required: false, minImageCount: 0, maxImageCount: 3 },
   ...override,
 }));
+
+// One eligible action that asks for two photos, so the flow opens on Media with
+// the photo count unmet.
+const TWO_PHOTO_ACTION: Action = {
+  ...(STORYBOOK_SUBMIT_ACTIONS[0] as Action),
+  mediaInfo: { title: "Field photos", required: true, minImageCount: 2, maxImageCount: 6 },
+};
+
+// The shell reads the garden from the URL, so the route names the seeded one.
+const SEEDED_GARDEN_SUBMIT_PATH = `/hub/work/submit?gardenId=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}`;
 
 const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
   ...STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -347,6 +358,121 @@ export const DomainFilter: Story = {
 export const DialogShell: Story = {
   render: () => <SubmitWorkRouteStory />,
   decorators: submitWorkDecorators({ seeds: submitWorkSeeds({ actions: CHOOSER_ACTIONS }) }),
+};
+
+/**
+ * The route in a data router: the host's close guard blocks navigation through
+ * `useBlocker`, which a `MemoryRouter` does not provide.
+ */
+function SubmitWorkDataRoute({ children }: { children: ReactNode }) {
+  const [router] = useState(() =>
+    createMemoryRouter(
+      [
+        { path: "/hub/work/submit", element: children },
+        { path: "*", element: <div className="p-6">Hub route</div> },
+      ],
+      { initialEntries: [SEEDED_GARDEN_SUBMIT_PATH] }
+    )
+  );
+  return <RouterProvider router={router} />;
+}
+
+// The media step in the flow's real host: the centered dialog on desktop, the
+// bottom sheet on a phone. The seeded garden's one action asks for two photos,
+// so the flow opens on Media with the count beside the uploader unmet.
+export const MediaStep: Story = {
+  render: () => (
+    <>
+      <SubmitWork />
+      <ToastViewport />
+    </>
+  ),
+  decorators: [
+    withAdminIdentity,
+    withSeededQueryClient(submitWorkSeeds({ actions: [TWO_PHOTO_ACTION] })),
+    (Story: ComponentType) => (
+      <SubmitWorkDataRoute>
+        <Story />
+      </SubmitWorkDataRoute>
+    ),
+    withCanvasFrame({
+      className: "p-0",
+      heightClassName: "h-[760px]",
+      workspace: "hub",
+    }),
+  ],
+};
+
+// Staging photos in that host: the count turns met, a tile opens the preview
+// above the flow, and removing photos turns the count back and holds Next.
+export const MediaStepStaging: Story = {
+  ...MediaStep,
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    // The flow renders in a portal, so the page is the place to look.
+    const page = canvasElement.ownerDocument;
+    const screen = within(page.body);
+    const flow = await screen.findByRole("dialog", { name: "Submit Work" });
+    const photos = () =>
+      within(flow.querySelector<HTMLElement>('[data-component="SubmitWorkPhotos"]')!);
+    const count = () => photos().getByRole("status");
+    await expect(count()).toHaveTextContent("0 of 2 photos");
+
+    // The fixtures are drawings named as photos, so the picker's type filter is
+    // off. Each is under the 1 MB compression threshold and stages as it is.
+    const input = flow.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!input) throw new Error("The media step renders no file input");
+    await userEvent
+      .setup({ applyAccept: false })
+      .upload(input, [
+        stagedWorkPhoto("east-bed-before.jpg", 420_000),
+        stagedWorkPhoto("east-bed-after.jpg", 510_000),
+        stagedWorkPhoto("seedling-tray.jpg", 640_000),
+      ]);
+    const preview = await within(flow).findByRole(
+      "button",
+      { name: "Preview east-bed-after.jpg" },
+      { timeout: 5000 }
+    );
+    await expect(count()).toHaveTextContent("3 photos added");
+    await expect(count()).toHaveAttribute("data-state", "met");
+
+    // Both controls sit on one tile, so each has to take the press at its own centre.
+    const remove = within(flow).getByRole("button", { name: "Remove east-bed-after.jpg" });
+    for (const control of [preview, remove]) {
+      const box = control.getBoundingClientRect();
+      const pressed = page.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      await expect(control.contains(pressed)).toBe(true);
+    }
+
+    // The flow is a dialog on the modal layer, so the preview's scrim has to sit
+    // on that layer and after it, or the flow shows through around the photo.
+    await userEvent.click(preview);
+    const viewer = await screen.findByRole("dialog", { name: "Image preview" });
+    await expect(within(viewer).getByText("2 / 3")).toBeVisible();
+    const scrim = page.querySelector('[data-component="ImagePreviewDialog"][data-slot="overlay"]');
+    if (!scrim) throw new Error("The preview renders no scrim");
+    const layer = (element: Element) => Number(getComputedStyle(element).zIndex);
+    await expect(layer(scrim)).toBeGreaterThanOrEqual(layer(flow));
+    await expect(
+      flow.compareDocumentPosition(scrim) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
+    // Closing the preview leaves the flow open and hands focus back to the tile.
+    await userEvent.click(within(viewer).getByRole("button", { name: "Close preview" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Image preview" })).not.toBeInTheDocument()
+    );
+    await expect(preview).toHaveFocus();
+
+    // Back below the requirement, the count turns amber again and Next is held.
+    await userEvent.click(remove);
+    await userEvent.click(within(flow).getByRole("button", { name: "Remove seedling-tray.jpg" }));
+    await expect(count()).toHaveTextContent("1 of 2 photos");
+    await expect(count()).toHaveAttribute("data-state", "needed");
+    await userEvent.click(within(flow).getByRole("button", { name: "Next" }));
+    await expect(await within(flow).findByText(/Add at least 2 photos to continue/)).toBeVisible();
+  },
 };
 
 export const NoDomainRecovery: Story = {
