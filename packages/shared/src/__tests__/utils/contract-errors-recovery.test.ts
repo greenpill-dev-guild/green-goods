@@ -262,6 +262,17 @@ describe("contract error recovery fields", () => {
       }
     });
 
+    it("reads an oversized message in linear time", () => {
+      // A wallet or an RPC writes these messages. One that begins a network's
+      // name again and again and never ends it took minutes to read.
+      for (const start of ["switch to a", "target chain for the transaction (id: 0 - a"]) {
+        const began = performance.now();
+        const parsed = parseContractError(new Error(`Wrong network. ${start.repeat(50_000)}`));
+        expect(parsed.messageKey).toBe("app.errors.wallet.wrongNetwork.messageUnnamed");
+        expect(performance.now() - began).toBeLessThan(2_000);
+      }
+    });
+
     it("keeps a lost connection and an offline phone as what they are", () => {
       expect(parseContractError(new Error("Failed to fetch")).name).toBe("NetworkError");
       expect(parseContractError(new Error("You are offline")).name).toBe("Offline");

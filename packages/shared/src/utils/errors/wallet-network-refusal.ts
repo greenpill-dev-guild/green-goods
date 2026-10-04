@@ -83,11 +83,15 @@ const WRONG_NETWORK_PHRASES = [
  * none, so it is not always the network the act needed. And naming an id needs
  * the chain table, and with it viem, which the public site's startup must not
  * load: this file ships there, inside the error parser.
+ *
+ * A wallet or an RPC writes these messages, so their length is not ours to
+ * bound. Every repetition here is, which keeps the read linear however long the
+ * message: an open-ended name made it quadratic.
  */
 const NEEDED_NETWORK_NAME = [
-  /switch(?: your wallet)? to (.+?)(?: before continuing)?\./i,
-  /\badd (.+?) in your wallet/i,
-  /target chain for the transaction \(id: \d+ [–-] (.+?)\)/i,
+  /switch(?: your wallet)? to ([^.\n]{1,64}?)(?: before continuing)?\./i,
+  /\badd ([^.\n]{1,64}?) in your wallet/i,
+  /target chain for the transaction \(id: \d{1,20} [–-] ([^)\n]{1,64})\)/i,
 ];
 
 function neededNetworkIn(message: string): string | null {
