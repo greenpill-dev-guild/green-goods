@@ -730,6 +730,7 @@
   "app.admin.work.submit.noActionsForDomainHint": "Add at least one domain to this garden so its actions become available here.",
   "app.admin.work.submit.noPermission": "You don't have permission to submit work for this garden",
   "app.admin.work.submit.offline.message": "Reconnect to the internet before submitting work.",
+  "app.admin.work.submit.photoPreview": "Preview {filename}",
   "app.admin.work.submit.photosOptional": "Photos optional",
   "app.admin.work.submit.photosRequired": "{count, plural, one {# photo required} other {# photos required}}",
   "app.admin.work.submit.progress.confirming": "Confirm in your wallet...",

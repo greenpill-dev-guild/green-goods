@@ -730,6 +730,7 @@
   "app.admin.work.submit.noActionsForDomainHint": "Adicione pelo menos um domínio a este jardim para que suas ações fiquem disponíveis aqui.",
   "app.admin.work.submit.noPermission": "Você não tem permissão para enviar trabalho para este jardim",
   "app.admin.work.submit.offline.message": "Reconecte-se à internet antes de enviar trabalho.",
+  "app.admin.work.submit.photoPreview": "Abrir pré-visualização de {filename}",
   "app.admin.work.submit.photosOptional": "Fotos opcionais",
   "app.admin.work.submit.photosRequired": "{count, plural, one {# foto necessária} other {# fotos necessárias}}",
   "app.admin.work.submit.progress.confirming": "Confirme na sua carteira...",
