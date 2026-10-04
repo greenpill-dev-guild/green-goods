@@ -9,8 +9,8 @@ import {
   installToastFallbacks,
   installToastIds,
   type Locale,
-  loadLocaleMessages,
-  type LocaleMessages,
+  loadLocaleCatalogue,
+  type LocaleCatalogue,
   supportedLanguages,
 } from "../modules/app/locale-messages";
 import { track } from "../modules/app/posthog";
@@ -113,7 +113,9 @@ export const AppProvider = ({
     ? (localStorage.getItem("gg-language") as Locale)
     : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
-  const [localeMessages, setLocaleMessages] = useState<LocaleMessages>({});
+  // Until a catalogue lands, components show their English fallback copy.
+  const [catalogue, setCatalogue] = useState<LocaleCatalogue>({ locale: "en", messages: {} });
+  const localeMessages = catalogue.messages;
   const [deferredPrompt, setDeferredPrompt] = useState<InstallPromptEvent | null>(null);
   // Chromium fires `beforeinstallprompt` only while the app is not installed, so
   // observing it is a verified negative that outlives the prompt itself: consuming
@@ -181,9 +183,9 @@ export const AppProvider = ({
 
   useEffect(() => {
     let cancelled = false;
-    void loadLocaleMessages(locale).then(
-      (nextMessages) => {
-        if (!cancelled) setLocaleMessages(nextMessages);
+    void loadLocaleCatalogue(locale).then(
+      (nextCatalogue) => {
+        if (!cancelled) setCatalogue(nextCatalogue);
       },
       (error: unknown) => {
         logger.error("[App] Locale messages could not be loaded", { locale, error });
@@ -193,6 +195,12 @@ export const AppProvider = ({
       cancelled = true;
     };
   }, [locale]);
+
+  // The page declares the language of the copy on screen, so assistive technology reads it in
+  // that language. It is English until a reader's own catalogue lands.
+  useEffect(() => {
+    document.documentElement.lang = catalogue.locale;
+  }, [catalogue.locale]);
 
   const isStandalone = React.useMemo(() => isStandaloneMode(), []);
 
