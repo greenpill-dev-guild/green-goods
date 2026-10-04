@@ -187,16 +187,35 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
 export function Section({
   title,
   description,
+  action,
   children,
 }: {
   title: string;
   description: string;
+  /**
+   * The section's one act, a compact button such as the Add for its list. It
+   * sits at the end of the title row, above the list, so the list growing
+   * never moves it.
+   */
+  action?: ReactNode;
   children: ReactNode;
 }) {
+  const heading = <h3 className="min-w-0 text-title-md font-semibold text-text-strong">{title}</h3>;
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-title-md font-semibold text-text-strong">{title}</h3>
+        {action ? (
+          <div className="flex items-start justify-between gap-3">
+            {heading}
+            {/* A 28px button sits on the title's 24px line with the 6px a compact
+                button reserves around its finger box. That room is taken back
+                here, where nothing beside it can be pressed, so the header stays
+                as tall as a section without an act. */}
+            <div className="-my-2 flex shrink-0">{action}</div>
+          </div>
+        ) : (
+          heading
+        )}
         <p className="mt-0.5 body-sm text-text-soft">{description}</p>
       </div>
       {children}

@@ -2,11 +2,11 @@
  * @vitest-environment happy-dom
  */
 
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
-import { Domain } from "@green-goods/shared/types/domain";
+import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
 
 function renderStrategyStep() {
@@ -79,5 +79,73 @@ describe("StrategyKernelStep", () => {
     expect(
       within(selects[1]).getByRole("option", { name: "Panels installed (panels)" })
     ).not.toBeDisabled();
+  });
+
+  it("keeps Add Outcome ahead of the list, where a new row cannot move it", () => {
+    renderStrategyStep();
+
+    const add = screen.getByRole("button", { name: "Add Outcome" });
+    const aheadOfEveryRow = () =>
+      screen
+        .getAllByRole("textbox", { name: "Outcome" })
+        .every(
+          (outcome) => add.compareDocumentPosition(outcome) & Node.DOCUMENT_POSITION_FOLLOWING
+        );
+    expect(aheadOfEveryRow()).toBe(true);
+
+    fireEvent.click(add);
+    fireEvent.click(add);
+
+    expect(useCreateAssessmentStore.getState().form.smartOutcomes).toHaveLength(3);
+    expect(screen.getAllByRole("textbox", { name: "Outcome" })).toHaveLength(3);
+    expect(aheadOfEveryRow()).toBe(true);
+  });
+
+  it("shows Remove on every row, held while only one outcome remains", () => {
+    renderStrategyStep();
+
+    // The column is there from the first row, so a second row shifts no field.
+    expect(screen.getByRole("button", { name: "Remove Outcome" })).toBeDisabled();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Outcome" }), {
+      target: { value: "Native canopy returns" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add Outcome" }));
+    const removes = screen.getAllByRole("button", { name: "Remove Outcome" });
+    expect(removes).toHaveLength(2);
+    fireEvent.click(removes[1]);
+
+    expect(useCreateAssessmentStore.getState().form.smartOutcomes).toEqual([
+      { description: "Native canopy returns", metric: "", target: 0 },
+    ]);
+    expect(screen.getByRole("button", { name: "Remove Outcome" })).toBeDisabled();
+  });
+
+  it("picks how predictable the work is from one radio group, by click or arrow key", () => {
+    renderStrategyStep();
+
+    const group = screen.getByRole("radiogroup", { name: "How Predictable Is This Work?" });
+    const phase = (name: string) =>
+      within(group).getByRole("radio", { name: `Cynefin phase: ${name}` });
+    // Clear is the default, and the group's one tab stop.
+    expect(phase("Clear")).toBeChecked();
+    expect(
+      within(group)
+        .getAllByRole("radio")
+        .map((radio) => radio.tabIndex)
+    ).toEqual([0, -1, -1, -1]);
+
+    fireEvent.click(phase("Complex"));
+    expect(useCreateAssessmentStore.getState().form.cynefinPhase).toBe(CynefinPhase.COMPLEX);
+    expect(phase("Complex")).toBeChecked();
+    expect(phase("Clear")).not.toBeChecked();
+
+    // Arrows move the choice with the focus, and wrap at the ends.
+    fireEvent.keyDown(phase("Complex"), { key: "ArrowRight" });
+    expect(useCreateAssessmentStore.getState().form.cynefinPhase).toBe(CynefinPhase.CHAOTIC);
+    expect(phase("Chaotic")).toHaveFocus();
+    fireEvent.keyDown(phase("Chaotic"), { key: "ArrowDown" });
+    expect(useCreateAssessmentStore.getState().form.cynefinPhase).toBe(CynefinPhase.CLEAR);
+    expect(phase("Clear")).toHaveFocus();
   });
 });
