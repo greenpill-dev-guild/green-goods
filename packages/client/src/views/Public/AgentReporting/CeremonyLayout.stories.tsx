@@ -89,7 +89,8 @@ const meta: Meta = {
           "heading card, the status card and the bottom bar are each one height on every screen, " +
           "so the report or permission under them starts in one place and never moves. The " +
           "structure is checked everywhere, with text held to one line. Whether the copy fits its " +
-          "lines is checked as well wherever Inter has loaded, which offline CI cannot do.",
+          "lines depends on the typeface: the pages use the system font, the copy was fitted in " +
+          "Apple's, and its fit is checked on Apple platforms only. CI runs on Linux.",
       },
     },
   },
@@ -157,29 +158,25 @@ function Screens({ children }: { children: ReactNode }) {
 }
 
 /**
- * Whether the panels are drawn in the production typeface. Clean-room CI is offline and falls back
- * to the system stack (see `.storybook/preview-head.html`), whose wider letters wrap titles that
- * fit in Inter, so whether the copy fits can only be judged where Inter has arrived.
+ * Whether the copy's fit can be judged here. The pages use the system font stack, so each platform
+ * draws them in its own typeface, and the copy was fitted in Apple's. Clean-room CI runs on Linux,
+ * whose typeface is wider: two English titles that fit in Apple's wrap there. A web font loaded by
+ * another story says nothing about these panels, which never use one.
  */
-async function drawnInInter(): Promise<boolean> {
-  await document.fonts.ready;
-  let loaded = false;
-  document.fonts.forEach((face) => {
-    if (face.family.replace(/["']/g, "") === "Inter" && face.status === "loaded") loaded = true;
-  });
-  return loaded;
+function drawnInAppleSystemFont(): boolean {
+  return /Mac OS X|iPhone|iPad/.test(navigator.userAgent);
 }
 
 /**
  * Asserts each band is one size across every panel that has it; returns what it measured. The
  * structure is checked everywhere. The copy's fit, at its natural wrapping, is checked as well
- * wherever the production typeface is loaded.
+ * where the panels are drawn in the typeface the copy was fitted in.
  */
 async function expectOneSize(canvasElement: HTMLElement) {
   canvasElement.setAttribute(STRUCTURE, "");
   const structure = await expectBands(canvasElement);
   canvasElement.removeAttribute(STRUCTURE);
-  return (await drawnInInter()) ? expectBands(canvasElement) : structure;
+  return drawnInAppleSystemFont() ? expectBands(canvasElement) : structure;
 }
 
 async function expectBands(canvasElement: HTMLElement) {
