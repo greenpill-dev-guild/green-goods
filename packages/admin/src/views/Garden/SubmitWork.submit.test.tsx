@@ -724,6 +724,27 @@ describe("SubmitWorkPanel submit behavior", () => {
     expect(await screen.findByLabelText(/Plot code/)).toBeInTheDocument();
   });
 
+  it("counts photos, not every staged file, toward the minimum", async () => {
+    mockState.actions = [createAction({ required: true, minImageCount: 2 })];
+    const user = userEvent.setup();
+
+    const { container } = render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    // A photo and a video are two staged files but one photo: the count says so, and
+    // Next holds the step as the submission would refuse the work at the end.
+    uploadFile(container);
+    uploadFile(container, "walkthrough.mp4", "video/mp4");
+    expect(await screen.findByRole("button", { name: "Remove walkthrough.mp4" })).toBeVisible();
+    expect(screen.getByText("1 of 2 photos")).toBeInTheDocument();
+    await clickNext(user);
+    expect(await screen.findByText(/Add at least 2 photos to continue/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
+  });
+
   it("submits through the shared mutation when required media is present", async () => {
     const user = userEvent.setup();
 

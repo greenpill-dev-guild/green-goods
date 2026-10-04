@@ -9,8 +9,8 @@ import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageW
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
   getWorkMediaId,
-  isHeicFile,
   isVideoFile,
+  isWorkPhoto,
 } from "@green-goods/shared/modules/work/media-processing";
 import {
   RiCheckLine,
@@ -39,15 +39,6 @@ const BYTES_PER_MEGABYTE = BYTES_PER_KILOBYTE * 1024;
 const OVERLAY_MOTION =
   "duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] motion-reduce:transition-none";
 
-/**
- * A staged file the browser can draw and a submission counts as a photo. A
- * video is not one, and neither is a HEIC still waiting to convert: both stay
- * staged as file tiles, with nothing to open.
- */
-function isStagedPhoto(file: File) {
-  return !isVideoFile(file) && !isHeicFile(file);
-}
-
 export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPhotosProps) {
   const { formatMessage, formatNumber } = useIntl();
   const [previewFile, setPreviewFile] = useState<File | null>(null);
@@ -55,7 +46,9 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
 
   // One object URL per staged photo, held for as long as the photo is staged, so
   // adding or removing one never re-decodes the others. A layout effect, so a new
-  // tile paints with its picture instead of flashing the file tile first.
+  // tile paints with its picture instead of flashing the file tile first. A video,
+  // or a HEIC still waiting to convert, is staged but is not a photo yet: it keeps
+  // a file tile, with nothing to open.
   const liveUrls = useRef(new Map<File, string>());
   const [urls, setUrls] = useState<ReadonlyMap<File, string>>(() => new Map());
   useLayoutEffect(() => {
@@ -67,7 +60,7 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
       live.delete(file);
     }
     for (const file of images) {
-      if (!live.has(file) && isStagedPhoto(file)) live.set(file, URL.createObjectURL(file));
+      if (!live.has(file) && isWorkPhoto(file)) live.set(file, URL.createObjectURL(file));
     }
     setUrls(new Map(live));
   }, [images]);
@@ -79,9 +72,9 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
     };
   }, []);
 
-  // The requirement is in photos, so only photos count, as they do when the work
-  // is submitted. The flow's Next gate is looser: it counts every staged file.
-  const count = images.filter(isStagedPhoto).length;
+  // The requirement is in photos, so only photos count: the same rule the Next
+  // button and the submission check.
+  const count = images.filter((file) => isWorkPhoto(file)).length;
   const met = count >= minRequired;
   const showCount = minRequired > 0 || count > 0;
 
