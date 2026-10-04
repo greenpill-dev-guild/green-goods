@@ -319,12 +319,15 @@ describe("boot skeleton geometry parity", () => {
     );
     expect(titleLines).toHaveLength(3);
     expect(ledeLines).toHaveLength(8);
-    // The core titles are authored as three lines, so no width drops a title bar.
-    expect(BOOT_CSS).not.toContain(".boot-skeleton-title-line[data-line");
-    // Measured lede wrap-threshold steps inside the base band (viewport px).
-    for (const threshold of [348, 364, 424, 488]) {
+    // Measured wrap-threshold steps inside the base band (viewport px).
+    for (const threshold of [348, 364, 378, 424, 488]) {
       expect(BOOT_CSS).toContain(`@media (min-width: ${threshold}px)`);
     }
+    // A title left to wrap drops its third bar from 378px. The five pages whose English title
+    // is written as three lines keep it, and no other page or language does.
+    expect(mediaBlocks("min-width: 378px")).toMatch(
+      /\n {8}\.boot-skeleton-title-line\[data-line="3"\] \{\s*display: none;\s*\}\s*\[data-boot-title="three-lines"\] #boot-fallback\[lang="en"\] \.boot-skeleton-title-line\[data-line="3"\] \{\s*display: block;/
+    );
     expect(BOOT_CSS).toContain("margin-top: 16px; /* mt-4 */");
     expect(BOOT_CSS).toContain("margin-top: 24px; /* mt-6 */");
     expect(BOOT_CSS).toContain("height: 44px; /* hero actions row (pill height) */");

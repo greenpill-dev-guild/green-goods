@@ -129,6 +129,14 @@
         // other website path mounts a banner hero.
         var HOME_HERO_PATHS = ["/", "/landing"];
         var FOCUSED_PREFIX = "/agent/reporting/";
+        // The home page and the four navigation pages write their English title
+        // as three lines. Every other title wraps on its own.
+        var THREE_LINE_TITLE_PATHS = HOME_HERO_PATHS.concat([
+          "/actions",
+          "/fund",
+          "/gardens",
+          "/impact",
+        ]);
 
         function isLocalHostname(hostname) {
           var normalized = String(hostname || "").toLowerCase();
@@ -226,6 +234,7 @@
 
         var mode = "website";
         var heroVariant = "fullscreen";
+        var threeLineTitle = false;
         try {
           var url = new URL(window.location.href);
           var localOverride = readLocalOverride(url);
@@ -237,6 +246,8 @@
             mode = "pwa";
           }
           heroVariant = heroVariantForUrl(url);
+          threeLineTitle =
+            THREE_LINE_TITLE_PATHS.indexOf(normalizePathname(effectivePathname(url))) !== -1;
         } catch (_) {
           mode = isStandalone() ? "pwa" : "website";
         }
@@ -244,6 +255,7 @@
         document.documentElement.dataset.bootPresentation = mode;
         if (mode === "website") {
           document.documentElement.dataset.bootHero = heroVariant;
+          if (threeLineTitle) document.documentElement.dataset.bootTitle = "three-lines";
         }
       })();
     </script>
@@ -447,10 +459,11 @@
          scale × leading-[1.04] (home overrides md/lg), EditorialLede
          text-base/md:text-lg × leading-[1.6]. Home hero composition is
          title + lede + actions (no kicker); banner heroes drop the actions.
-         The core titles are authored as three lines, so the title holds three
-         bars at every width. Lede line counts follow the measured wrap
-         thresholds of the real hero copy (2026-08-29): 8→7→6→5→4 at
-         348/364/424/488px, 5 in the md band, 4 from 1024px. */
+         Line counts follow the measured wrap thresholds of the real hero
+         copy (2026-08-29): title 3→2 at 378px, back to 3 from 768px; lede
+         8→7→6→5→4 at 348/364/424/488px, 5 in the md band, 4 from 1024px.
+         The home page and the four navigation pages write their English
+         title as three lines, so there the title keeps its third bar. */
       .boot-editorial-card {
         --boot-title-lh: 31.2px; /* text-3xl × 1.04 */
         --boot-lede-lh: 25.6px; /* text-base × 1.6 */
@@ -499,6 +512,19 @@
       @media (min-width: 364px) {
         .boot-skeleton-lede-line[data-line="7"] {
           display: none;
+        }
+      }
+
+      /* data-boot-title is stamped by the boot-presentation detector, and the
+         fallback's lang by its controller. Other pages and languages wrap on
+         their own, to two lines in this band. */
+      @media (min-width: 378px) {
+        .boot-skeleton-title-line[data-line="3"] {
+          display: none;
+        }
+
+        [data-boot-title="three-lines"] #boot-fallback[lang="en"] .boot-skeleton-title-line[data-line="3"] {
+          display: block;
         }
       }
 
@@ -751,6 +777,7 @@
           --boot-title-lh: 49.92px; /* md:text-5xl × 1.04 */
         }
 
+        .boot-skeleton-title-line[data-line="3"],
         .boot-skeleton-lede-line[data-line="5"] {
           display: block;
         }
