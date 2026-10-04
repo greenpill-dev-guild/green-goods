@@ -297,7 +297,7 @@ export default function ImpactPage() {
         title={formatMessage(
           {
             id: "public.impact.heroTitle",
-            defaultMessage: "See how Garden work becomes <accent>evidence</accent>.",
+            defaultMessage: "See how Garden work becomes <accent>evidence</accent>",
           },
           {
             accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,

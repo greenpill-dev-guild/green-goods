@@ -454,7 +454,7 @@ function FundPageContent() {
         title={formatMessage(
           {
             id: "public.fund.heroTitle",
-            defaultMessage: "A small gesture, <accent>growing</accent> over many seasons.",
+            defaultMessage: "A small gesture, <accent>growing</accent> over many seasons",
           },
           {
             accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,

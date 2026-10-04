@@ -73,7 +73,7 @@ export const Home: Story = {
         titleId="story-home-title"
         title={
           <>
-            From good intentions to <em className="font-serif italic">green outcomes</em>.
+            From good intentions to <em className="font-serif italic">green outcomes</em>
           </>
         }
         lede="Green Goods makes regenerative work easier to support, turning accessible contributions into a trusted public record of how land, water, and community grow healthier together."
@@ -98,7 +98,7 @@ export const Gardens: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-gardens-title"
-        title="Explore the Gardens growing the public record."
+        title="Explore the Gardens growing the public record"
         lede="Each Garden is a real place where communities document regenerative Work, gather evidence, and make support visible."
         actions={
           <>
@@ -120,7 +120,7 @@ export const Impact: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-impact-title"
-        title="See how Garden work becomes evidence."
+        title="See how Garden work becomes evidence"
         lede="Green Goods turns documented regenerative work into public evidence through Assessments and, when ready, Impact Certificates."
         photoCredit="Vol. 01 — A living public record"
       />
@@ -137,7 +137,7 @@ export const Fund: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-fund-title"
-        title="A small gesture today, growing over many seasons."
+        title="A small gesture today, growing over many seasons"
         lede="Direct support reaches a Garden's Cookie Jar. Quiet endowment places support into a Vault designed so yield helps the Garden over time."
         disclaimer="Funding supports the Garden directly. It is not tax-deductible, charitable, or nonprofit-backed unless separately configured."
       />
@@ -154,7 +154,7 @@ export const Actions: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-actions-title"
-        title="A field guide for regenerative work."
+        title="A field guide for regenerative work"
         lede="Actions are the templates Gardens use to document work across solar, agroforestry, education, and waste."
       />
       <NextSection>The four domains.</NextSection>

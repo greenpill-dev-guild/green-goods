@@ -73,7 +73,7 @@ export default function GardensGallery() {
         title={formatMessage(
           {
             id: "public.gardens.heroTitle",
-            defaultMessage: "Explore the <accent>Gardens</accent> growing the public record.",
+            defaultMessage: "Explore the <accent>Gardens</accent> growing the public record",
           },
           {
             accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,

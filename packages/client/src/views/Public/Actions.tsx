@@ -181,7 +181,7 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
  * Actions — readable public Action library.
  *
  * Editorial recomposition:
- *   Hero ("A field guide for regenerative work.") → domain filter strip
+ *   Hero ("A field guide for regenerative work") → domain filter strip
  *   with per-domain ink chips → grid of PublicActionCard → optional
  *   PublicSourceDialog → Footer.
  *
@@ -228,7 +228,7 @@ export default function ActionsGallery() {
         title={formatMessage(
           {
             id: "public.actions.heroTitle",
-            defaultMessage: "A field guide for <accent>regenerative work</accent>.",
+            defaultMessage: "A field guide for <accent>regenerative work</accent>",
           },
           {
             accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
