@@ -29,10 +29,17 @@ describe("Community Garden invitation", () => {
     expect(harness.transport.sent.at(-1)?.message.link?.label).toBe("Join the Community Garden");
   });
 
-  it("offers the same account-bound link when the report's Community Garden role is missing", async () => {
+  // The garden is open to join, so a role in some other garden is no reason to send its member
+  // to a steward instead.
+  it.each([
+    ["has no garden", false],
+    ["is in another garden", true],
+  ])("offers the same account-bound link for a Community Garden report when the account %s", async (_case, elsewhere) => {
     const summary = await reportUntilSummary(harness);
     await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
     await pair();
+    if (elsewhere)
+      harness.chain.grantRole(AIYELOJA.address, adaAccount.address, { gardener: true });
     const consent = harness.transport.texts().at(-1) ?? "";
     const token = /PUBLISH (\d{4})/.exec(consent)?.[1];
     if (!token) throw new Error("Missing publication consent");

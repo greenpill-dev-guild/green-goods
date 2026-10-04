@@ -110,9 +110,10 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
     inTransaction(core.db, () => {
       const out = writer();
       if (!out) return;
+      // The Community Garden is open to join, whatever other gardens the account is in; only a
+      // garden that is not needs a steward.
       if (
         core.settings.communityGarden?.toLowerCase() === garden.address.toLowerCase() &&
-        core.gardens.gardensOf(account.address).length === 0 &&
         out.target.binding
       ) {
         out.ask(

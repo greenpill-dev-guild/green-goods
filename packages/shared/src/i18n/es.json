@@ -6742,7 +6742,7 @@
   "public.reporting.create.body": "Elige un nombre y guárdalo. Lo usarás en otros dispositivos.",
   "public.reporting.create.link": "¿Eres nuevo? Crea una cuenta",
   "public.reporting.join.title": "Únete a un jardín",
-  "public.reporting.join.body": "Aún no estás en un jardín. Este está abierto a todos:",
+  "public.reporting.join.body": "Cualquiera puede unirse a este jardín y reportar en él:",
   "public.reporting.join.notNow": "Ahora no",
   "public.reporting.join.action": "Unirme",
   "public.reporting.join.failed": "No se pudo unir. Inténtalo de nuevo o toca Ahora no.",
