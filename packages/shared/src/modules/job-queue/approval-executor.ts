@@ -111,7 +111,7 @@ export async function executeApprovalJob(
   const result = await holdingSend(job.id, () =>
     sendWithCheckpoint({
       sender,
-      call: contractCall,
+      call: { ...contractCall, chainId },
       jobIds: [job.id],
       // Read just before the intent, after any prompt: a lost send is then
       // timed on the chain's clock.

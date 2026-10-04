@@ -12,34 +12,27 @@ import { describe, expect, it } from "vitest";
 
 describe("hub.workbenchModel", () => {
   it("builds visible stages and falls back when the requested stage is unavailable", () => {
+    // An evaluator who is not a steward: no Work tab, and both record tabs.
     const model = buildHubStageModel({
       requestedStage: "work",
       canManage: false,
-      canAssess: true,
-      canCertify: true,
+      canReview: true,
       works: [{ status: "pending" }, { status: "approved" }, { status: "approved" }],
-      assessments: [{ id: "assessment-1" }, { id: "assessment-2" }],
-      hypercerts: [{ id: "assessment-1" }],
     });
 
     expect(model.stage).toBe("assess");
-    expect(model.stageCounts).toMatchObject({
-      work: 1,
-      assess: 2,
-      certify: 1,
-    });
+    expect(model.stageCounts).toMatchObject({ work: 1 });
     expect(model.stages.map((stage) => stage.id)).toEqual(["assess", "certify"]);
+    // The record tabs list records, not work waiting on someone: no count chip.
+    expect(model.stages.map((stage) => stage.count)).toEqual([undefined, undefined]);
   });
 
   it("keeps work as the fallback when no stage is visible", () => {
     const model = buildHubStageModel({
       requestedStage: "certify",
       canManage: false,
-      canAssess: false,
-      canCertify: false,
+      canReview: false,
       works: [],
-      assessments: [],
-      hypercerts: [],
     });
 
     expect(model.stage).toBe("work");
@@ -50,13 +43,10 @@ describe("hub.workbenchModel", () => {
     const model = buildHubStageModel({
       requestedStage: "work",
       canManage: true,
-      canAssess: true,
-      canCertify: true,
+      canReview: true,
       canConfirm: true,
       confirmCount: 2,
       works: [],
-      assessments: [],
-      hypercerts: [],
     });
 
     expect(model.stages.map((stage) => stage.id)).toEqual(["work", "confirm", "assess", "certify"]);
@@ -82,10 +72,13 @@ describe("hub.workbenchModel", () => {
   });
 
   it("derives route state from router params and active sheet content", () => {
+    // An assessment's record opens under the Assessments tab, so the tab behind
+    // the open record is Assessments, not Hypercerts.
     expect(
       resolveHubRouteState({
-        pathname: "/hub/certify/assessment-1",
+        pathname: "/hub/assess/assessment-1",
         sortParam: "oldest",
+        scopeParam: "approved",
         routedAssessmentIdParam: "assessment-1",
         activeContentId: "hub:work-detail:work-1",
       })
@@ -93,19 +86,21 @@ describe("hub.workbenchModel", () => {
       activeCertificationId: null,
       activeWorkDetailId: "work-1",
       isSubmitRoute: false,
-      requestedStage: "certify",
+      requestedStage: "assess",
       routeCertificationId: "assessment-1",
       routeSheetContentId: "hub:certify:assessment-1",
       routeSheetSide: "left",
       sortDirection: "oldest",
+      workScope: "approved",
     });
   });
 
-  it("derives submit routes and falls back to newest sort for unknown values", () => {
+  it("derives submit routes and falls back to newest sort and the Pending scope for unknown values", () => {
     expect(
       resolveHubRouteState({
         pathname: "/hub/work/submit",
         sortParam: "sideways",
+        scopeParam: "rejected",
         activeContentId: null,
       })
     ).toMatchObject({
@@ -114,6 +109,7 @@ describe("hub.workbenchModel", () => {
       routeSheetContentId: "hub:submit-work",
       routeSheetSide: "left",
       sortDirection: "newest",
+      workScope: "pending",
     });
   });
 
@@ -152,9 +148,9 @@ describe("hub.workbenchModel", () => {
   it("counts visible rows for the active stage", () => {
     expect(
       getHubResultCount("certify", {
-        pendingWorks: 1,
-        assessmentQueue: 2,
-        certificationQueue: 3,
+        works: 1,
+        assessments: 2,
+        hypercerts: 3,
         confirmQueue: 4,
       })
     ).toBe(3);

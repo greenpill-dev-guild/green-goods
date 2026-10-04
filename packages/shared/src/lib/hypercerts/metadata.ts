@@ -1,14 +1,12 @@
 import { formatHypercertData } from "@hypercerts-org/sdk";
 
+import { logger } from "../../modules/app/logger";
 import type {
   AllowlistEntry,
   HypercertAttestation,
   HypercertDraft,
   HypercertMetadata,
-  ScopeDefinition,
-  TimeframeDefinition,
 } from "../../types/hypercerts";
-import { formatDate } from "../../utils/time";
 import { DEFAULT_PROTOCOL_VERSION } from "./constants";
 import {
   aggregateOutcomeMetrics,
@@ -22,47 +20,6 @@ interface FormatHypercertMetadataInput {
   allowlist?: AllowlistEntry[];
   imageUri?: string;
   gardenName?: string;
-}
-
-function createScope(
-  name: string,
-  values: string[],
-  fallback: string[],
-  displayValue?: string
-): ScopeDefinition {
-  const value = values.length ? values : fallback;
-  return {
-    name,
-    value,
-    display_value: displayValue,
-  };
-}
-
-function createTimeframe(
-  name: string,
-  start: number | null,
-  end: number | null,
-  allowIndefinite = false
-): TimeframeDefinition {
-  const safeStart = start ?? 0;
-  const safeEnd = end ?? (allowIndefinite ? 0 : safeStart);
-
-  const displayStart = safeStart ? formatDate(safeStart * 1000, { dateStyle: "medium" }) : "";
-  const displayEnd =
-    safeEnd === 0 && allowIndefinite
-      ? "Indefinite"
-      : safeEnd
-        ? formatDate(safeEnd * 1000, { dateStyle: "medium" })
-        : "";
-
-  const displayValue =
-    displayStart && displayEnd ? `${displayStart} – ${displayEnd}` : displayStart || displayEnd;
-
-  return {
-    name,
-    value: [safeStart, safeEnd],
-    display_value: displayValue || name,
-  };
 }
 
 function escapeXml(str: string): string {
@@ -105,13 +62,22 @@ function unique<T>(values: T[]): T[] {
   return Array.from(new Set(values));
 }
 
+/**
+ * The metadata a draft would mint, written by the Hypercerts SDK so that every
+ * hypercert carries the same form: each time frame labelled by its UTC days
+ * (`2026-03-01 → 2026-08-26`, or `indefinite` for an open end).
+ *
+ * Null when the SDK refuses the draft. It does that for values the wizard's own
+ * fields cannot hold: a time frame end that is not a finite number, or a scope
+ * or contributor that is not text.
+ */
 export function formatHypercertMetadata({
   draft,
   attestations,
   allowlist,
   imageUri,
   gardenName,
-}: FormatHypercertMetadataInput): HypercertMetadata {
+}: FormatHypercertMetadataInput): HypercertMetadata | null {
   const attestationRefs = attestations.map((attestation) => ({
     uid: attestation.id as `0x${string}`,
     title: attestation.title,
@@ -158,30 +124,19 @@ export function formatHypercertMetadata({
     excludedRights: [],
   });
 
-  const fallbackMetadata: HypercertMetadata = {
-    name: draft.title,
-    description: draft.description,
-    image,
-    external_url: draft.externalUrl?.trim() || undefined,
-    hypercert: {
-      work_scope: createScope("Work scope", draft.workScopes, workScopesFromAttestations),
-      impact_scope: createScope("Impact scope", draft.impactScopes, ["all"]),
-      work_timeframe: createTimeframe("Work timeframe", workTimeframeStart, workTimeframeEnd),
-      impact_timeframe: createTimeframe(
-        "Impact timeframe",
-        impactTimeframeStart,
-        impactTimeframeEnd || null,
-        true
-      ),
-      contributors: createScope("Contributors", contributors, contributors),
-      rights: createScope("Rights", ["Public Display"], ["Public Display"]),
-    },
-  };
+  if (!sdkResult.data) {
+    logger.warn("[formatHypercertMetadata] The Hypercerts SDK refused the draft", {
+      errors: sdkResult.errors,
+    });
+    return null;
+  }
 
-  const baseMetadata = (sdkResult.data ?? fallbackMetadata) as HypercertMetadata;
+  // The SDK's type comes from its JSON schema, which leaves every claim field
+  // optional. formatHypercertData fills each one from the arguments above.
+  const sdkMetadata = sdkResult.data as unknown as HypercertMetadata;
 
   return {
-    ...baseMetadata,
+    ...sdkMetadata,
     hidden_properties: {
       gardenId: draft.gardenId,
       attestationRefs,

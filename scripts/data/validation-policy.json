@@ -1419,6 +1419,7 @@
         "packages/shared/src/hooks/blockchain/useContractTxSender.ts",
         "packages/shared/src/hooks/blockchain/useSendToken.ts",
         "packages/shared/src/hooks/blockchain/useTransactionSender.ts",
+        "packages/shared/src/hooks/blockchain/useWalletNetworkAlignment.ts",
         "packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts",
         "packages/shared/src/hooks/client-ui/commitment/useCommitmentComposerController.ts",
         "packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts",

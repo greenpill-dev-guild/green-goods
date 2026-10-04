@@ -62,6 +62,7 @@ export async function checkGardenOpenJoining(gardenAddress: Address): Promise<bo
       address: gardenAddress as `0x${string}`,
       abi: GardenAccountABI,
       functionName: "openJoining",
+      chainId: Number(getDefaultChain().chainId ?? DEFAULT_CHAIN_ID),
     });
     return Boolean(isOpen);
   } catch (error) {

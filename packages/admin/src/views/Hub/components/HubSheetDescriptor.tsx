@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import { WorkDetailPanel } from "@/views/Garden/WorkDetail";
 import { localizeCanonicalActionTitle } from "../actionDisplay";
-import { HubCertificationInspector } from "./HubCertificationInspector";
+import { HubAssessmentInspector, type HubAssessmentRecord } from "./HubAssessmentInspector";
 
 interface HubSheetDescriptorProps {
   routeSheetContentId: string | null;
@@ -21,17 +21,10 @@ interface HubSheetDescriptorProps {
   routeCertificationId: string | undefined;
   activeWorkDetailId: string | null;
   selectedWork: Work | undefined;
-  selectedCertification:
-    | {
-        id: string;
-        title?: string | null;
-        description?: string | null;
-        assessmentType?: string | null;
-        createdAt: number;
-      }
-    | undefined;
+  selectedCertification: HubAssessmentRecord | undefined;
   isResolvingSelection: boolean;
   canManage: boolean;
+  chainId: number;
   hubContext: AdminHubRouteContext;
   closeTo: string;
   onNavigateToBase: () => void;
@@ -79,6 +72,7 @@ export function HubSheetDescriptor({
   selectedCertification,
   isResolvingSelection,
   canManage,
+  chainId,
   hubContext,
   closeTo,
   onNavigateToBase,
@@ -105,7 +99,8 @@ export function HubSheetDescriptor({
   const sheetDescriptor = useMemo(() => {
     // Submit Work is no longer a Hub inspector sheet — it owns its own route
     // (/hub/work/submit → submitWorkView). This descriptor only resolves the
-    // read/review inspectors (work detail, certification).
+    // read/review inspectors: a work's detail and an assessment's record, whose
+    // selection keeps the "certification" name of the stage it used to open from.
     if (sheetSelection?.kind === "work") {
       return {
         title: localizeCanonicalActionTitle(
@@ -124,14 +119,15 @@ export function HubSheetDescriptor({
     if (sheetSelection?.kind === "certification") {
       return {
         title:
-          selectedCertification?.title ??
+          selectedCertification?.title?.trim() ||
           formatMessage({
             id: "app.garden.admin.assessmentFallback",
             defaultMessage: "Assessment",
           }),
         content: selectedCertification ? (
-          <HubCertificationInspector
+          <HubAssessmentInspector
             assessment={selectedCertification}
+            chainId={chainId}
             canMint={canManage}
             onOpenMintFlow={() => navigate(adminRoutes.hubCertifyCreate(hubContext))}
           />
@@ -154,6 +150,7 @@ export function HubSheetDescriptor({
     return null;
   }, [
     canManage,
+    chainId,
     formatMessage,
     handlePanelClose,
     hubContext,

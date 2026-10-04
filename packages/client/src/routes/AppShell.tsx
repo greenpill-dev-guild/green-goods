@@ -1,6 +1,7 @@
 import { configureConnectivityProbe } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useWalletNetworkAlignment } from "@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment";
 import { useDocumentScrollLockLifecycle } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
@@ -66,6 +67,7 @@ export default function AppShell() {
   const closeWorkDashboard = useUIStore((state) => state.closeWorkDashboard);
   const previousPathnameRef = useRef(pathname);
   const primaryAddress = usePrimaryAddress();
+  useWalletNetworkAlignment();
 
   useDocumentScrollLockLifecycle(pathname);
 

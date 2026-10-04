@@ -51,7 +51,6 @@ const SELECTED_GARDEN: Garden = {
 vi.mock("wagmi", () => ({
   useAccount: () => ({ address: OPERATOR, isConnected: true, isConnecting: false }),
   useReadContract: () => ({ data: 1 }),
-  useWalletClient: () => ({ data: undefined }),
 }));
 
 vi.mock(

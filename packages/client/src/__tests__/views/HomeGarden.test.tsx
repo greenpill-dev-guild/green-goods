@@ -23,18 +23,27 @@ const mockUseGardens = vi.fn(() => ({
 }));
 const mockGardenAssessments = vi.fn(
   ({
-    assessments,
+    records,
     assessmentFetchStatus,
   }: {
-    assessments: Array<{ id: string }>;
+    records: Array<{ summary: { id: string } }>;
     assessmentFetchStatus: "pending" | "success" | "error";
   }) =>
     createElement(
       "div",
       { "data-testid": "garden-assessments" },
-      `${assessmentFetchStatus}:${assessments.map((assessment) => assessment.id).join(",")}`
+      `${assessmentFetchStatus}:${records.map((record) => record.summary.id).join(",")}`
     )
 );
+const mockUseGardenAssessmentRecords = vi.fn((_gardenAddress?: string, _chainId?: number) => ({
+  records: [] as Array<{ summary: { id: string } }>,
+  status: "pending" as "pending" | "success" | "error",
+}));
+
+vi.mock("@green-goods/shared/hooks/assessment/useGardenAssessmentRecords", () => ({
+  useGardenAssessmentRecords: (gardenAddress?: string, chainId?: number) =>
+    mockUseGardenAssessmentRecords(gardenAddress, chainId),
+}));
 
 vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
@@ -176,7 +185,7 @@ vi.mock("@/components/Errors", () => ({
 
 vi.mock("@/components/Features", () => ({
   GardenAssessments: (props: {
-    assessments: Array<{ id: string }>;
+    records: Array<{ summary: { id: string } }>;
     assessmentFetchStatus: "pending" | "success" | "error";
     description?: string | null;
   }) => mockGardenAssessments(props),
@@ -255,10 +264,16 @@ describe("Home garden route", () => {
     expect(screen.queryByText("Garden not found")).not.toBeInTheDocument();
   });
 
-  it("renders the insights tab from shared assessment data instead of the garden snapshot", () => {
+  // The garden list carries no assessments: they are attestations read from EAS,
+  // each with detail stored on IPFS.
+  it("renders the insights tab from the garden's assessment records, not the garden snapshot", () => {
     mockUseGardenTabs.mockReturnValue({
       activeTab: "Insights",
       setActiveTab: vi.fn(),
+    });
+    mockUseGardenAssessmentRecords.mockReturnValue({
+      records: [{ summary: { id: "assessment-1" } }],
+      status: "success",
     });
     mockUseGardens.mockReturnValue({
       data: [
@@ -269,12 +284,7 @@ describe("Home garden route", () => {
           location: "Test Location",
           createdAt: Date.now(),
           description: "Garden description",
-          assessments: [
-            {
-              id: "assessment-1",
-              title: "Soil Health",
-            },
-          ],
+          assessments: [],
           gardeners: [],
           stewards: [],
           openJoining: false,
@@ -302,13 +312,54 @@ describe("Home garden route", () => {
     expect(screen.getByTestId("garden-assessments")).toHaveTextContent("success:assessment-1");
     expect(mockGardenAssessments).toHaveBeenCalledWith(
       expect.objectContaining({
-        assessments: [expect.objectContaining({ id: "assessment-1" })],
+        records: [{ summary: { id: "assessment-1" } }],
         assessmentFetchStatus: "success",
         description: "Garden description",
       })
     );
+    expect(mockUseGardenAssessmentRecords).toHaveBeenLastCalledWith("garden-1", 11155111);
     expect(screen.queryByTestId("conviction-drawer")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /governance/i })).not.toBeInTheDocument();
+  });
+
+  // An EAS read and two IPFS files per assessment are not spent on a tab most
+  // visits never open.
+  it("reads no assessments until the reader opens Insights", () => {
+    mockUseGardens.mockReturnValue({
+      data: [
+        {
+          id: "garden-1",
+          name: "Test Garden",
+          bannerImage: "/banner.png",
+          location: "Test Location",
+          createdAt: Date.now(),
+          description: "Garden description",
+          assessments: [],
+          gardeners: [],
+          stewards: [],
+          openJoining: false,
+        },
+      ],
+      isLoading: false,
+      isFetching: false,
+    });
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home/:id", element: createElement(Garden) })
+          )
+        )
+      )
+    );
+
+    expect(mockUseGardenAssessmentRecords).toHaveBeenLastCalledWith(undefined, 11155111);
   });
 
   it("does not offer a closed-garden join request to an owner", () => {

@@ -258,6 +258,11 @@ describe("work and approval job executors", () => {
       11155111
     );
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    // The sender's chain guard moves the wallet to the network the call names.
+    expect(sender.sendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "attest", chainId: 11155111 }),
+      expect.anything()
+    );
   });
 
   it("uses optional work defaults without inventing tags, audio, or details", async () => {
@@ -560,8 +565,10 @@ describe("commitment queue executor", () => {
     ).resolves.toEqual({ status: "complete", txHash: MOCK_TX_HASH });
 
     expect(publishEvidence).toHaveBeenCalledOnce();
+    // The call names the job's owner, so a sender holds the send, or a bundle
+    // of them, to that address and not to whoever is connected by then.
     expect(sender.sendContractCall).toHaveBeenCalledWith(
-      expect.objectContaining({ functionName: "attachEvidence" }),
+      expect.objectContaining({ functionName: "attachEvidence", account: USER }),
       expect.anything()
     );
   });

@@ -85,6 +85,7 @@ export function useCookieJarDeposit(
           abi: ERC20_BALANCE_ABI,
           functionName: "balanceOf",
           args: [primaryAddress as Address],
+          chainId,
         });
         const balance = typeof balanceResult === "bigint" ? balanceResult : 0n;
         if (balance < params.amount) {
@@ -105,6 +106,7 @@ export function useCookieJarDeposit(
           abi: ERC20_ALLOWANCE_ABI,
           functionName: "allowance",
           args: [primaryAddress as Address, params.jarAddress],
+          chainId,
         });
         allowance = typeof allowanceResult === "bigint" ? allowanceResult : 0n;
       } catch {

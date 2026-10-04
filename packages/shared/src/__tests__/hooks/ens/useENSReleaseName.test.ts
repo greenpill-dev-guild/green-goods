@@ -17,7 +17,7 @@ const mockGetBalance = vi.fn();
 const mockEstimateGas = vi.fn();
 const mockEstimateFeesPerGas = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn();
-const mockEnsureAppKitWalletChain = vi.fn();
+const mockReadyWalletClient = vi.fn();
 
 /** Function selectors on the ENS sender. */
 const RELEASE_NAME_SPONSORED_SELECTOR = "0x0bcd9fed";
@@ -44,9 +44,6 @@ let mockSmartAccountClientValue: typeof mockSmartAccountClient | null = mockSmar
 vi.mock("wagmi", () => ({
   useAccount: vi.fn(() => ({
     address: mockWalletAddress,
-  })),
-  useWalletClient: vi.fn(() => ({
-    data: mockWalletClientData,
   })),
 }));
 
@@ -116,7 +113,7 @@ vi.mock("../../../utils/errors/contract-errors", () => ({
 }));
 
 vi.mock("../../../modules/transactions/chain-guard", () => ({
-  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
+  readyWalletClient: (...args: unknown[]) => mockReadyWalletClient(...args),
 }));
 
 import { toastService } from "../../../components/toast";
@@ -155,6 +152,7 @@ describe("useENSReleaseName", () => {
       account: { address: mockWalletAddress, type: "json-rpc" },
       sendTransaction: mockWalletSendTransaction,
     };
+    mockReadyWalletClient.mockImplementation(async () => mockWalletClientData);
     mockEnsAddress = ENS_ADDRESS;
     mockPoolBalance = 200000n;
     mockWalletBalance = 10n ** 18n;
@@ -308,7 +306,8 @@ describe("useENSReleaseName", () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockEstimateGas).toHaveBeenCalledWith(expect.objectContaining({ value: releaseFee }));
-      expect(mockEnsureAppKitWalletChain).toHaveBeenCalledWith(11155111);
+      // The wallet is readied for the owner whose name was looked up.
+      expect(mockReadyWalletClient).toHaveBeenCalledExactlyOnceWith(11155111, mockWalletAddress);
       const sent = mockWalletSendTransaction.mock.calls[0]?.[0];
       expect(sent).toMatchObject({ to: LEGACY_ENS_ADDRESS, value: releaseFee });
       expect(sent.data.startsWith(RELEASE_NAME_SELECTOR)).toBe(true);
@@ -329,7 +328,7 @@ describe("useENSReleaseName", () => {
       expect(toastService.error).toHaveBeenCalledWith(
         expect.objectContaining({ description: "Not enough ETH to cover the release fee." })
       );
-      expect(mockEnsureAppKitWalletChain).not.toHaveBeenCalled();
+      expect(mockReadyWalletClient).not.toHaveBeenCalled();
       expect(mockWalletSendTransaction).not.toHaveBeenCalled();
     });
   });

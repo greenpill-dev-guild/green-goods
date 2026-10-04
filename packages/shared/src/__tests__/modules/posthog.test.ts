@@ -128,6 +128,22 @@ describe("modules/posthog", () => {
     it("does not throw when called with no properties", () => {
       expect(() => track("bare_event")).not.toThrow();
     });
+
+    // Telemetry sits inside wallet and send flows. A sink that fails there must
+    // not turn a network switch that worked into a failed act.
+    it("keeps a sink that throws from reaching the caller", () => {
+      const unregister = registerTelemetrySink({
+        capture: () => {
+          throw new Error("capture failed");
+        },
+      });
+
+      try {
+        expect(() => track("wallet_network_switch")).not.toThrow();
+      } finally {
+        unregister();
+      }
+    });
   });
 
   describe("identify", () => {

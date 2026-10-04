@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
 import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-requests";
@@ -18,7 +18,6 @@ import {
   type GardenJoinProofContent,
   type GardenJoinProofEnvelope,
   type GardenJoinRequestQueueItem,
-  type GardenJoinRequestSelfRecord,
   type ResolveGardenJoinRequestInput,
 } from "../../public-contracts/join-requests";
 import {
@@ -30,6 +29,7 @@ import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useAuth } from "../auth/useAuth";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
+import { useGardenJoinRequestSession } from "./useGardenJoinRequestSession";
 import { useGardenJoinRequestMutationBarrier } from "./useGardenJoinRequestMutationBarrier";
 
 type AsyncState = { isLoading: boolean; error: Error | null };
@@ -50,14 +50,16 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
   const accountAddress = usePrimaryAddress() as Address | null;
   const auth = useAuth();
   const { signMessageAsync } = useSignMessage();
-  const scopeKey = `${chainId}:${gardenAddress?.toLowerCase() ?? "none"}:${accountAddress?.toLowerCase() ?? "none"}`;
-  const latestScopeKeyRef = useRef(scopeKey);
-  const latestRequestOperationRef = useRef(0);
+  const session = useGardenJoinRequestSession(
+    chainId,
+    gardenAddress ?? "none",
+    accountAddress ?? "none",
+    auth.authMode ?? "none"
+  );
+  const { scopeKey, isCurrentScope, request, hasCheckedStatus, setRequest, setHasCheckedStatus } =
+    session;
   const { beginRequestMutation, waitForRequestMutation } = useGardenJoinRequestMutationBarrier();
-  latestScopeKeyRef.current = scopeKey;
   const [stateScopeKey, setStateScopeKey] = useState(scopeKey);
-  const [request, setRequest] = useState<GardenJoinRequestSelfRecord | null>(null);
-  const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
   const [queue, setQueue] = useState<GardenJoinRequestQueueItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string>();
   const [rateLimitedRecently, setRateLimitedRecently] = useState(false);
@@ -65,15 +67,8 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
   const [queueState, setQueueState] = useState<AsyncState>({ isLoading: false, error: null });
   const [mutationState, setMutationState] = useState<AsyncState>({ isLoading: false, error: null });
 
-  const isCurrentScope = useCallback(
-    (operationScope: string) => latestScopeKeyRef.current === operationScope,
-    []
-  );
-
   useEffect(() => {
     setStateScopeKey(scopeKey);
-    setRequest(null);
-    setHasCheckedStatus(false);
     setQueue([]);
     setNextCursor(undefined);
     setRateLimitedRecently(false);
@@ -96,7 +91,10 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
     async (
       action: GardenJoinProofAction,
       content: GardenJoinProofContent = {},
-      extra: Pick<GardenJoinProofEnvelope, "requestId" | "cursor" | "expectedRevision"> = {}
+      extra: Pick<
+        GardenJoinProofEnvelope,
+        "requestId" | "cursor" | "expectedRevision" | "readSelf"
+      > = {}
     ): Promise<GardenJoinProofEnvelope> => {
       if (!gardenAddress || !accountAddress) {
         throw new Error("Connect your account before continuing.");
@@ -111,6 +109,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         nonce: randomNonce(),
         issuedAt,
         expiresAt: issuedAt + 300,
+        ...(extra.readSelf ? { readSelf: extra.readSelf } : {}),
         ...(extra.requestId ? { requestId: extra.requestId } : {}),
         ...(extra.cursor ? { cursor: extra.cursor } : {}),
         ...(extra.expectedRevision !== undefined
@@ -122,6 +121,13 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         auth.authMode === "passkey"
           ? await resolveAccountFactoryArgs(auth.smartAccountClient?.account)
           : undefined;
+      if (unsigned.expiresAt <= Math.floor(Date.now() / 1000)) {
+        throw new GardenJoinRequestTransportError(
+          "Authorization expired while signing. Please sign again.",
+          401,
+          "signature_expired"
+        );
+      }
       return {
         ...unsigned,
         signature,
@@ -143,75 +149,127 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
     ]
   );
 
-  const checkStatus = useCallback(async () => {
-    const operationScope = scopeKey;
-    await waitForRequestMutation(operationScope);
-    if (!isCurrentScope(operationScope)) return null;
-    const operationId = ++latestRequestOperationRef.current;
-    setStatusState({ isLoading: true, error: null });
-    setHasCheckedStatus(false);
-    try {
-      const proof = await signProof("read_self");
-      const response = await gardenJoinRequestTransport.mine(gardenAddress!, proof);
-      if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
-        setRequest(response.request);
-        setHasCheckedStatus(true);
+  const checkStatus = useCallback(
+    async (options: { allowSignature?: boolean } = {}) => {
+      const operationScope = scopeKey;
+      await waitForRequestMutation(session.barrierKey);
+      if (!isCurrentScope(operationScope)) return null;
+      const retainedProof = session.readAuthorization();
+      if (!retainedProof && options.allowSignature === false) return null;
+      const operationId = session.beginOperation();
+      setStatusState({ isLoading: true, error: null });
+      setHasCheckedStatus(false);
+      try {
+        const proof = retainedProof ?? (await signProof("read_self"));
+        if (!isCurrentScope(operationScope) || !session.isCurrentOperation(operationId))
+          return null;
+        session.retainAuthorization(proof);
+        const response = await gardenJoinRequestTransport.mine(gardenAddress!, proof);
+        if (isCurrentScope(operationScope) && session.isCurrentOperation(operationId)) {
+          setRequest(response.request);
+          setHasCheckedStatus(true);
+          session.setOutcomeUnknown(false);
+        }
+        return isCurrentScope(operationScope) && session.isCurrentOperation(operationId)
+          ? response.request
+          : null;
+      } catch (caught) {
+        if (
+          isCurrentScope(operationScope) &&
+          session.isCurrentOperation(operationId) &&
+          caught instanceof GardenJoinRequestTransportError &&
+          ["signature_expired", "signature_invalid"].includes(caught.errorCode ?? "")
+        )
+          session.forgetAuthorization();
+        const error = failureToShow(caught, "Unable to check your request status.", "read_self");
+        if (isCurrentScope(operationScope) && session.isCurrentOperation(operationId)) {
+          setStatusState({ isLoading: false, error });
+        }
+        throw error ?? caught;
+      } finally {
+        if (isCurrentScope(operationScope) && session.isCurrentOperation(operationId)) {
+          setStatusState((current) => ({ ...current, isLoading: false }));
+        }
       }
-      return response.request;
-    } catch (caught) {
-      const error = failureToShow(caught, "Unable to check your request status.", "read_self");
-      if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
-        setStatusState({ isLoading: false, error });
-      }
-      throw error ?? caught;
-    } finally {
-      if (isCurrentScope(operationScope)) {
-        setStatusState((current) => ({ ...current, isLoading: false }));
-      }
-    }
-  }, [gardenAddress, isCurrentScope, scopeKey, signProof, waitForRequestMutation]);
+    },
+    [
+      gardenAddress,
+      isCurrentScope,
+      scopeKey,
+      signProof,
+      waitForRequestMutation,
+      session,
+      setRequest,
+      setHasCheckedStatus,
+    ]
+  );
 
   const submitRequest = useCallback(
     async (input: CreateGardenJoinRequestInput) => {
       const operationScope = scopeKey;
-      const finishRequestMutation = beginRequestMutation(operationScope);
-      const operationId = ++latestRequestOperationRef.current;
+      const finishRequestMutation = beginRequestMutation(session.barrierKey);
+      const operationId = session.beginOperation();
       setMutationState({ isLoading: true, error: null });
       setHasCheckedStatus(false);
       setStatusState(IDLE_ASYNC_STATE);
       try {
-        const proof = await signProof("create", {
+        const content = {
           displayName: input.displayName.trim().replace(/\s+/g, " "),
-          note: input.note?.trim() || null,
+          ...(input.note?.trim() ? { note: input.note.trim().replace(/\r\n/g, "\n") } : {}),
           requestedVia: input.requestedVia,
-        });
+        };
+        const proof = await signProof(
+          "create",
+          { ...content, note: content.note ?? null },
+          {
+            readSelf: { audience: window.location.origin, content },
+          }
+        );
+        if (!isCurrentScope(operationScope) || !session.isCurrentOperation(operationId))
+          return null;
+        session.retainAuthorization(proof);
         const response = await gardenJoinRequestTransport.create(gardenAddress!, input, proof);
-        if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
+        if (isCurrentScope(operationScope) && session.isCurrentOperation(operationId)) {
           setRequest(response.request);
           setHasCheckedStatus(true);
+          session.setOutcomeUnknown(false);
         }
-        return response.request;
+        return isCurrentScope(operationScope) && session.isCurrentOperation(operationId)
+          ? response.request
+          : null;
       } catch (caught) {
         const error = failureToShow(caught, "Unable to send your join request.", "create");
-        if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
+        if (isCurrentScope(operationScope) && session.isCurrentOperation(operationId)) {
+          if (caught instanceof GardenJoinRequestTransportError && caught.outcomeUnknown)
+            session.setOutcomeUnknown(true);
           setMutationState({ isLoading: false, error });
         }
         throw error ?? caught;
       } finally {
         finishRequestMutation();
-        if (isCurrentScope(operationScope)) {
+        if (isCurrentScope(operationScope) && session.isCurrentOperation(operationId)) {
           setMutationState((current) => ({ ...current, isLoading: false }));
         }
       }
     },
-    [beginRequestMutation, gardenAddress, isCurrentScope, scopeKey, signProof]
+    [
+      beginRequestMutation,
+      gardenAddress,
+      isCurrentScope,
+      scopeKey,
+      signProof,
+      session,
+      setRequest,
+      setHasCheckedStatus,
+    ]
   );
 
   const withdrawRequest = useCallback(async () => {
     const operationScope = scopeKey;
-    const finishRequestMutation = beginRequestMutation(operationScope);
-    const operationId = ++latestRequestOperationRef.current;
+    const finishRequestMutation = beginRequestMutation(session.barrierKey);
+    const operationId = session.beginOperation();
     setMutationState({ isLoading: true, error: null });
+    setStatusState(IDLE_ASYNC_STATE);
     try {
       if (!request || request.state !== "pending") {
         throw new Error("No pending request is available to withdraw.");
@@ -224,24 +282,37 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
           expectedRevision: request.revision,
         }
       );
+      if (!isCurrentScope(operationScope) || !session.isCurrentOperation(operationId)) return false;
       await gardenJoinRequestTransport.withdraw(gardenAddress!, proof);
-      if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
+      if (isCurrentScope(operationScope) && session.isCurrentOperation(operationId)) {
         setRequest(null);
+        setHasCheckedStatus(true);
+        session.setOutcomeUnknown(false);
       }
-      return true;
+      return isCurrentScope(operationScope) && session.isCurrentOperation(operationId);
     } catch (caught) {
       const error = failureToShow(caught, "Unable to withdraw your join request.", "withdraw");
-      if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
+      if (isCurrentScope(operationScope) && session.isCurrentOperation(operationId)) {
         setMutationState({ isLoading: false, error });
       }
       throw error ?? caught;
     } finally {
       finishRequestMutation();
-      if (isCurrentScope(operationScope)) {
+      if (isCurrentScope(operationScope) && session.isCurrentOperation(operationId)) {
         setMutationState((current) => ({ ...current, isLoading: false }));
       }
     }
-  }, [beginRequestMutation, gardenAddress, isCurrentScope, request, scopeKey, signProof]);
+  }, [
+    beginRequestMutation,
+    gardenAddress,
+    isCurrentScope,
+    request,
+    scopeKey,
+    signProof,
+    session,
+    setRequest,
+    setHasCheckedStatus,
+  ]);
 
   const loadQueue = useCallback(
     async (options: { cursor?: string; append?: boolean } = {}) => {
@@ -326,6 +397,9 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
     accountAddress,
     request: hasCurrentScope ? request : null,
     hasCheckedStatus: hasCurrentScope ? hasCheckedStatus : false,
+    outcomeUnknown: session.outcomeUnknown,
+    canRefreshStatus: Boolean(session.readAuthorization()),
+    scopeKey,
     queue: hasCurrentScope ? queue : [],
     nextCursor: hasCurrentScope ? nextCursor : undefined,
     rateLimitedRecently: hasCurrentScope ? rateLimitedRecently : false,
@@ -371,3 +445,6 @@ function failureToShow(
 function toError(caught: unknown, fallback: string): Error {
   return caught instanceof Error ? caught : new Error(fallback);
 }
+
+// The declared join-request entrypoint also exposes its presentation lifecycle.
+export { useGardenJoinRequestActivity } from "./useGardenJoinRequestActivity";

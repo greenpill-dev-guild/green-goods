@@ -166,6 +166,39 @@ describe("hooks/work/useWorks", () => {
     });
   });
 
+  // A screen that keeps a row in state from an effect, as the work detail does,
+  // re-renders forever if each render hands it a new copy of the same row.
+  it("hands back the same list and rows on a re-render when nothing changed", async () => {
+    mockGetWorkListPage.mockResolvedValue([
+      {
+        id: "work-1",
+        title: "Test Work",
+        actionUID: 1,
+        gardenerAddress: "0xgardener",
+        gardenAddress: TEST_GARDEN,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: 1000,
+        status: "pending" as const,
+      },
+    ]);
+    const { result, rerender } = renderHookWithProviders(() => useWorks(TEST_GARDEN), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.works).toHaveLength(1));
+
+    // Once the read and its saved copy settle, a render with no new data
+    // returns what the last one did.
+    await waitFor(() => {
+      const settled = result.current.works;
+      rerender();
+      expect(result.current.works).toHaveLength(1);
+      expect(result.current.works[0]).toBe(settled[0]);
+      expect(result.current.works).toBe(settled);
+    });
+  });
+
   it("tells rows restored from an earlier session from rows read in this one", async () => {
     const restored = [
       {
