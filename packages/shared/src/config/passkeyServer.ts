@@ -39,7 +39,20 @@ type PasskeyServerEnv = {
   VITE_PASSKEY_RP_ID?: string;
 };
 
-export function isPasskeyServerEnabled(env: PasskeyServerEnv = import.meta.env): boolean {
+/**
+ * The keys this file reads, each by name. Vite pastes the whole env object into the bundle
+ * wherever `import.meta.env` is read whole, and inlines one value where a key is named.
+ */
+function readPasskeyServerEnv(): PasskeyServerEnv {
+  return {
+    DEV: import.meta.env.DEV,
+    PROD: import.meta.env.PROD,
+    VITE_PASSKEY_SERVER_ENABLED: import.meta.env.VITE_PASSKEY_SERVER_ENABLED,
+    VITE_PASSKEY_RP_ID: import.meta.env.VITE_PASSKEY_RP_ID,
+  };
+}
+
+export function isPasskeyServerEnabled(env: PasskeyServerEnv = readPasskeyServerEnv()): boolean {
   const configured = env.VITE_PASSKEY_SERVER_ENABLED?.trim().toLowerCase();
   if (configured === "true") return true;
   if (configured === "false") return false;
@@ -96,7 +109,7 @@ type PasskeyCeremonyContextOptions = {
 export function classifyPasskeyCeremonyContext(
   options: PasskeyCeremonyContextOptions = {}
 ): PasskeyCeremonyContextStatus {
-  const env = options.env ?? import.meta.env;
+  const env = options.env ?? readPasskeyServerEnv();
   const location =
     options.location ?? (typeof window !== "undefined" ? window.location : undefined);
   const rpId = getPasskeyRpId(env, location);
@@ -156,7 +169,7 @@ export function classifyPasskeyCeremonyContext(
  * Falls back to hostname only in development when on localhost.
  */
 export function getPasskeyRpId(
-  env: PasskeyServerEnv = import.meta.env,
+  env: PasskeyServerEnv = readPasskeyServerEnv(),
   location?: Pick<Location, "hostname">
 ): string {
   // Allow override via env var for development/staging
