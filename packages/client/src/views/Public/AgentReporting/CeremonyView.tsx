@@ -119,6 +119,18 @@ export function CeremonyView(props: CeremonyViewProps) {
       );
     }
     if (uncertain) return null;
+    if (stage === "review" && props.sessionAccount && !props.account) {
+      return (
+        <AccountActions
+          account={null}
+          connecting={props.connecting}
+          proving={false}
+          onConnectWallet={props.connectWallet}
+          onConnectPasskey={() => void props.connectPasskey()}
+          onProve={() => void props.prove()}
+        />
+      );
+    }
     if (publishing) {
       return (
         <FlowForward

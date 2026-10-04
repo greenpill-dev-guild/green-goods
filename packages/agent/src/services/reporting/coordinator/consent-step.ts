@@ -1,6 +1,7 @@
 import { grantConsent, withdrawConsent } from "../consent";
 import { enqueueJob } from "../jobs";
 import { releaseQuarantine } from "../inbox";
+import { endRecognition } from "../recognition";
 import { audit, ensureParticipant } from "../participants";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
 import { commitLifecycle, EDITABLE_STATES, lifecycleState } from "./draft-commit";
@@ -79,6 +80,7 @@ export function withdrawProcessing(writer: TurnWriter, mode: "stop" | "delete"):
           .length === 0
       : false;
   if (ctx.binding) {
+    endRecognition(core, ctx.binding.participantId);
     core.db
       .query(
         `UPDATE execution_grants SET state = 'paused', version = version + 1, updated_at = $now

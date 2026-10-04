@@ -77,7 +77,8 @@ function toChallenge(
 
 export function createBrowserChallenge(
   core: ReportingCore,
-  request: ContinuationRequest
+  request: ContinuationRequest,
+  recognized: { address: string; kind: AccountKind } | null = null
 ): { challenge: BrowserChallenge; preauthToken: string; csrfToken: string } {
   const id = core.ids.id();
   const preauthToken = core.ids.token(32);
@@ -86,8 +87,10 @@ export function createBrowserChallenge(
   core.db
     .query(
       `INSERT INTO browser_challenges
-         (id, request_id, preauth_token_hash, csrf_token_hash, browser_nonce, state, created_at, expires_at)
-       VALUES ($id, $request, $preauth, $csrf, $nonce, 'issued', $now, $expires)`
+         (id, request_id, preauth_token_hash, csrf_token_hash, browser_nonce, state,
+          verified_account, verified_account_kind, verified_at, paired_at, created_at, expires_at)
+       VALUES ($id, $request, $preauth, $csrf, $nonce, $state,
+               $account, $kind, $verified, $paired, $now, $expires)`
     )
     .run({
       id,
@@ -95,6 +98,11 @@ export function createBrowserChallenge(
       preauth: hashSecret(preauthToken),
       csrf: hashSecret(csrfToken),
       nonce,
+      state: recognized ? "paired" : "issued",
+      account: recognized?.address ?? null,
+      kind: recognized?.kind ?? null,
+      verified: recognized ? core.clock.now() : null,
+      paired: recognized ? core.clock.now() : null,
       now: core.clock.now(),
       expires: request.expiresAt,
     });

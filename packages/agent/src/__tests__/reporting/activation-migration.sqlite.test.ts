@@ -63,7 +63,7 @@ afterEach(() => {
 
 describe("populated reporting v2 upgrade", () => {
   it("preserves historical attempts, outcome replay records, budgets and foreign keys", () => {
-    expect(upgraded.query("PRAGMA user_version").get()).toEqual({ user_version: 3 });
+    expect(upgraded.query("PRAGMA user_version").get()).toEqual({ user_version: 4 });
     expect(upgraded.query("PRAGMA foreign_key_check").all()).toEqual([]);
     for (const table of ["execution_attempts", "attempt_outcomes", "execution_grants"])
       expect(upgraded.query(`SELECT * FROM ${table}`).all()).toEqual(
@@ -121,7 +121,7 @@ describe("populated reporting v2 upgrade", () => {
     ).toThrow();
     preserved.close();
     const retried = openReportingDatabase(rollbackPath);
-    expect(retried.query("PRAGMA user_version").get()).toEqual({ user_version: 3 });
+    expect(retried.query("PRAGMA user_version").get()).toEqual({ user_version: 4 });
     retried.close();
   });
 });
