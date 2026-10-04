@@ -84,10 +84,17 @@ export function useDraftResume({
       return;
     }
     const scope = `${userAddress.toLowerCase()}:${chainId}`;
+    // Read before the prompt is put away below. A visit that left it open never answered, so
+    // this one loads the draft and asks again instead of carrying on with it.
+    const state = useWorkFlowStore.getState();
     setLegacyRecovery(false);
     setShowDraftSheet(false);
-    const state = useWorkFlowStore.getState();
-    if (state.draftScope === scope && state.draftHydrated && !explicitId) {
+    if (
+      state.draftScope === scope &&
+      state.draftHydrated &&
+      !state.draftChoicePending &&
+      !explicitId
+    ) {
       // Still loaded from an earlier visit, so the page comes back as it was.
       // The URL doesn't, though: the draft's promise is put back into it, as a
       // resume does, or the work could upload without its link.

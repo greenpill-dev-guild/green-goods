@@ -33,6 +33,13 @@ const PROMISE = {
   requirementLabel: "Seedling Transplant · 36 plants",
   returnTo: `/home/${GARDEN}/commitments/12`,
 } as const;
+/** Submit Work opened for a different promise than the saved draft's. */
+const ANOTHER_PROMISE_PAGE = writeWorkLinkIntent(new URLSearchParams(), {
+  ...PROMISE,
+  commitmentId: 9n,
+  commitmentTitle: "Repair the north fence panel",
+  returnTo: `/home/${GARDEN}/commitments/9`,
+}).toString();
 
 vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: ACCOUNT }),
@@ -192,13 +199,7 @@ describe("Start Fresh on a saved work draft", () => {
 
   it("leaves the saved draft its own promise when the page was opened for another", async () => {
     const saved = await saveDraftWithPhoto();
-    const page = writeWorkLinkIntent(new URLSearchParams(), {
-      ...PROMISE,
-      commitmentId: 9n,
-      commitmentTitle: "Repair the north fence panel",
-      returnTo: `/home/${GARDEN}/commitments/9`,
-    });
-    const { result, setSearchParams } = await openOnSavedDraft(page.toString());
+    const { result, setSearchParams } = await openOnSavedDraft(ANOTHER_PROMISE_PAGE);
 
     await act(async () => {
       await result.current.handleStartFresh();
@@ -215,6 +216,21 @@ describe("Start Fresh on a saved work draft", () => {
     });
     expect((await draftDB.getDraft(next as string))?.linkIntent?.commitmentId).toBe("9");
     expect((await draftDB.getDraft("old"))?.linkIntent?.commitmentId).toBe("12");
+  });
+
+  it("asks again when the person left with the prompt unanswered", async () => {
+    const saved = await saveDraftWithPhoto();
+    // Back out of Submit Work with the prompt still open: nothing was chosen.
+    (await openOnSavedDraft()).unmount();
+    await queueDraftWrite(async () => undefined);
+
+    // The next visit, in the same session, is for another promise. It asks again, and the
+    // draft is not carried on and saved for that promise meanwhile.
+    const { result } = await openOnSavedDraft(ANOTHER_PROMISE_PAGE);
+
+    expect(result.current.showDraftSheet).toBe(true);
+    expect(await result.current.saveOnExit()).toBeNull();
+    expect(await draftDB.getDraft("old")).toEqual(saved);
   });
 
   it("resumes the saved draft later from Your Work, with its media", async () => {
@@ -308,13 +324,7 @@ describe("Start Fresh on a saved work draft", () => {
   it("comes back for the promise its page was opened for after making room", async () => {
     await fillDraftSlots(19);
     await saveDraftWithPhoto();
-    const page = writeWorkLinkIntent(new URLSearchParams(), {
-      ...PROMISE,
-      commitmentId: 9n,
-      commitmentTitle: "Repair the north fence panel",
-      returnTo: `/home/${GARDEN}/commitments/9`,
-    });
-    const first = await openOnSavedDraft(page.toString());
+    const first = await openOnSavedDraft(ANOTHER_PROMISE_PAGE);
     await act(async () => {
       await expect(first.result.current.handleStartFresh()).rejects.toThrow("draft-limit");
     });
