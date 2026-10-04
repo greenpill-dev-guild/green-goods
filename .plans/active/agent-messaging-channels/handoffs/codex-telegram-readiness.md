@@ -342,20 +342,32 @@ step 7 as far as a fork can and adds the approved module for Arbitrum One.
   Goods passkey account's sponsored operation used in transaction
   `0xca40752b288dfd58aca1b7c5b1356acea6a2b22d9284a081f6ca80d9ed2b5083`. Reporting only: review is
   not approved, and a wallet account cannot hold a permission.
-- **Caps.** 3,400,001 gas units per attempt, matching the fork's first-operation gas-limit sum,
-  and 0.005 ETH for a permission's five. The fork's first report used 2,969,672 gas and a later
-  one 1,028,748. The chain charged 0.02 gwei when measured. The Agent rejects an activation
-  whose prepared limits exceed this reservation; a fork assertion now checks the same boundary.
-  These figures come from the fork, not a live sponsored run.
+- **Caps.** 6,000,000 gas units for one attempt and 0.005 ETH for a permission's five. The
+  fork's first report uses about 2.97 million gas and a later one 1,028,748. A live bundler asks
+  for more than an operation uses: the sponsored operation above asked for 1,469,733 and used
+  1,176,168, a quarter more, so a live first report would ask for about 3.7 million or more. The
+  earlier reservation, 3,400,001, was the fork's own hand-set limits and would have refused it;
+  the reservation is now twice the measured use. The Agent rejects an activation whose prepared
+  limits exceed it, and the fork run asserts it keeps half as much again above the first report
+  it measures. The chain charged 0.02 gwei when measured. These figures come from the fork and
+  one live operation, not from a live sponsored first report.
 - **Fork proof.** `bun run contracts -- verify reporting-kernel --network arbitrum --mode simulate`
-  at commit `344be79b45c8b0844655941f8ce1dafac72cec59`, fork block 511574879, verified
-  `2026-10-04T09:35:58.438Z`, source digest
-  `sha256:60dd1c5343a94e4df3ae89981fbbbbfd3f6fffdb3a838fe86110963b98bd2cbe`, clean tree, 21 of 21
-  checks. Four are new and use the approved module's own values: an account built as the app
-  builds one is deployed by its first operation and joins the Community Garden; its passkey
-  approves the permission and the report reaches the production EAS and work resolver under the
-  deployed guard; the delegate publishes the next report alone; the owner removes the permission
-  with the passkey and the delegate is refused. The passkey is a software key on the fork.
+  at commit `273b27b5a4f007f1f533c3f50f649c50d4f6d1b8`, fork block 511590183, verified
+  `2026-10-04T10:46:09.849Z`, source digest
+  `sha256:daeea2186ea74f15cfa6338205d2a22bdff20eab61fc506805801f280e218912`, clean tree, 23 of 23
+  checks. Six use the approved module's own values: an account built as the app builds one is
+  deployed by its first operation and joins the Community Garden; its passkey approves the
+  permission and the report reaches the production EAS and work resolver under the deployed
+  guard; the delegate publishes the next report alone; a second garden's permission is approved
+  beside the first, each publishes only to its own garden and the first is refused a report in
+  the second; the owner removes the first with the passkey and its delegate is refused; the
+  second garden's permission still publishes. The passkey is a software key on the fork, and
+  the second garden (`0xF7b892886998DAe960D64a9db488336684F137A0`) grants the role itself there,
+  as its own `joinGarden` does; live, a steward adds the gardener.
+- **One account, two gardens.** A permission is per account and garden. The Community Garden's
+  does not use up another garden's five reports, and removing one leaves the other. A permission
+  that is paused or used up stays its garden's one live permission until it ends, so the chat
+  sends that garden's next report to be signed by its owner.
 - **A stand-in.** The paymaster's address keeps its place in the policy and carries fixture code,
   because Pimlico's signature cannot be produced on a fork.
 - **Not proven.** Live sponsorship through Pimlico's bundler, and a passkey on a real device.

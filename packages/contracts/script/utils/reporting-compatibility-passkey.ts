@@ -10,6 +10,7 @@ import {
   padHex,
   parseAbi,
   parseEventLogs,
+  toHex,
   type Address,
   type Hex,
 } from "viem";
@@ -35,6 +36,14 @@ const ACTIONS_ABI = parseAbi([
 const EAS_ABI = parseAbi([
   "event Attested(address indexed recipient, address indexed attester, bytes32 uid, bytes32 indexed schemaUID)",
 ]);
+const TOKEN_ABI = parseAbi(["function hatsModule() view returns (address)"]);
+const HATS_ABI = parseAbi(["function grantRole(address garden, address account, uint8 role)"]);
+const REGISTRY_ABI = parseAbi([
+  "function account(address implementation, bytes32 salt, uint256 chainId, address tokenContract, uint256 tokenId) view returns (address)",
+]);
+/** Where every garden's account lives: the registry and salt `TBALib` mints them with. */
+const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
+const TOKENBOUND_SALT = `0x${"6551".repeat(16)}` as Hex;
 /** Limits wide enough for a passkey check through the fallback verifier; the fork has no bundler to estimate them. */
 const LIMITS = {
   callGasLimit: 700_000n,
@@ -107,9 +116,10 @@ function softwarePasskey(rpId: string) {
  * on the WebAuthn validator, through permissionless), deployed by its own first operation, which
  * joins the Community Garden; then the first report, which the passkey approves through the same
  * functions the page and the Agent run, published to the production EAS and its work resolver
- * under the deployed guard; then a second report signed by the delegate alone; then the owner
- * removing the permission with their passkey. The approved module's own values build the policy,
- * so this proves the entry that switches delegation on.
+ * under the deployed guard; then a second report signed by the delegate alone; then a second
+ * garden's permission approved beside the first, each publishing only to its own garden; then the
+ * owner removing the first with their passkey, which leaves the second working. The approved
+ * module's own values build the policy, so this proves the entry that switches delegation on.
  *
  * One thing is a stand-in: the approved paymaster's address keeps its place in the policy and
  * carries fixture code, because Pimlico's signature over an operation cannot be produced here.
@@ -152,7 +162,7 @@ export async function verifyPasskeyActivation(contracts: string, f: Fixture, che
   })) as bigint;
   assert(deposit > 10n ** 16n, "The approved paymaster has no deposit on the fork");
 
-  const send = async (operation: Operation, expectSuccess = true) => {
+  const send = async (operation: Operation, expectSuccess = true, recipient: Address = garden) => {
     const hash = getUserOperationHash({
       userOperation: operation,
       entryPointAddress: entryPoint.address,
@@ -180,7 +190,7 @@ export async function verifyPasskeyActivation(contracts: string, f: Fixture, che
     const attested = parseEventLogs({ abi: EAS_ABI, eventName: "Attested", logs: receipt.logs }).filter(
       (log) =>
         getAddress(log.address) === getAddress(deployment.easAddress) &&
-        getAddress(log.args.recipient) === garden &&
+        getAddress(log.args.recipient) === recipient &&
         getAddress(log.args.attester) === getAddress(operation.sender) &&
         log.args.schemaUID === deployment.work.schemaUID,
     ).length;
@@ -221,24 +231,28 @@ export async function verifyPasskeyActivation(contracts: string, f: Fixture, che
 
   // 2. An activity the garden accepts today, read from the registry the resolver reads.
   const now = (await client.getBlock()).timestamp;
-  let actionUID: bigint | null = null;
-  for (let uid = 0n; uid < 80n && actionUID === null; uid += 1n) {
-    const action = await client.readContract({
-      address: actions,
-      abi: ACTIONS_ABI,
-      functionName: "getAction",
-      args: [uid],
-    });
-    if (action.startTime === 0n || action.startTime > now || action.endTime < now) continue;
-    const accepted = await client.readContract({
-      address: actions,
-      abi: ACTIONS_ABI,
-      functionName: "gardenHasDomain",
-      args: [garden, action.domain],
-    });
-    if (accepted) actionUID = uid;
-  }
+  const acceptedAction = async (place: Address) => {
+    for (let uid = 0n; uid < 80n; uid += 1n) {
+      const action = await client.readContract({
+        address: actions,
+        abi: ACTIONS_ABI,
+        functionName: "getAction",
+        args: [uid],
+      });
+      if (action.startTime === 0n || action.startTime > now || action.endTime < now) continue;
+      const accepted = await client.readContract({
+        address: actions,
+        abi: ACTIONS_ABI,
+        functionName: "gardenHasDomain",
+        args: [place, action.domain],
+      });
+      if (accepted) return uid;
+    }
+    return null;
+  };
+  const actionUID = await acceptedAction(garden);
   assert(actionUID !== null, "The Community Garden accepts no activity on this fork");
+  const community = { garden, actionUID: actionUID as bigint };
 
   const delegate = f.delegate;
   const started = Date.now();
@@ -268,18 +282,18 @@ export async function verifyPasskeyActivation(contracts: string, f: Fixture, che
   };
   const permission = await reporting.grantPermissionValidator(client, { policy, signer: delegate, scope });
   const permissionId = permission.getIdentifier() as Hex;
-  const report = (title: string) =>
+  const report = (title: string, place: { garden: Address; actionUID: bigint } = community) =>
     domain.buildEnvelope(deployment, {
       kind: "work",
       operationId: `fork-${title}`,
       revision: 1,
       chainId: 42161,
       accountAddress: account.address,
-      gardenAddress: garden,
+      gardenAddress: place.garden,
       clientWorkId: `fork-${title}`,
       actionDefinitionDigest: `0x${"12".repeat(32)}`,
       fields: {
-        actionUID: String(actionUID),
+        actionUID: String(place.actionUID),
         title,
         feedback: "Published on a fork through a passkey-approved permission",
         metadata: "ipfs://fork-fixture",
@@ -319,6 +333,12 @@ export async function verifyPasskeyActivation(contracts: string, f: Fixture, che
     enabled.attested === 1 && installed.active,
     "The passkey's approval did not install a usable permission and publish the first report",
   );
+  // A live bundler asks for more gas than an operation uses. The Agent's reservation for one
+  // attempt needs half as much again above this report, or it would refuse the live one.
+  assert(
+    module.measuredGasUnitsPerSubmission * 2 >= enabled.gasUsed * 3,
+    "The Agent's reservation leaves a live bundler no room above the first report",
+  );
   // What Kernel recorded is what the approved module pins: the Agent refuses anything else.
   const codeHash = async (address: Address) => keccak256((await client.getCode({ address })) ?? "0x");
   assert(
@@ -336,19 +356,137 @@ export async function verifyPasskeyActivation(contracts: string, f: Fixture, che
     entryPoint,
     kernelVersion: constants.KERNEL_V3_1,
   });
-  const next = async (title: string) => {
+  const signedBy = async (holder: typeof granted, envelope: ReturnType<typeof report>) => {
     const operation = sponsored({
       sender: account.address,
-      nonce: await granted.getNonce(),
-      callData: await granted.encodeCalls([callOf(report(title))]),
+      nonce: await holder.getNonce(),
+      callData: await holder.encodeCalls([callOf(envelope)]),
     });
-    return { ...operation, signature: (await granted.signUserOperation(operation)) as Hex };
+    return { ...operation, signature: (await holder.signUserOperation(operation)) as Hex };
   };
-  const second = await send(await next("second report"));
+  const second = await send(await signedBy(granted, report("second report")));
   assert(second.attested === 1, "The delegate's own report did not reach the production EAS");
   check("delegate_publishes_the_next_report_to_production_eas_alone");
 
-  // 5. The owner removes it with their passkey; the Agent is not asked.
+  // 5. A second garden while the first permission is live: an account that reports to two
+  //    gardens holds a permission for each, and neither opens the other's garden.
+  const gardenToken = getAddress(deployed.gardenToken);
+  const accountOf = async (implementation: Address, tokenId: bigint) =>
+    getAddress(
+      await client.readContract({
+        address: TOKENBOUND_REGISTRY,
+        abi: REGISTRY_ABI,
+        functionName: "account",
+        args: [implementation, TOKENBOUND_SALT, 42161n, gardenToken, tokenId],
+      }),
+    );
+  let implementation: Address | null = null;
+  for (const candidate of [deployed.gardenAccountImpl, deployed.accountProxy]) {
+    if (!candidate || implementation) continue;
+    if ((await accountOf(getAddress(candidate), BigInt(deployed.rootGarden.tokenId))) === garden)
+      implementation = getAddress(candidate);
+  }
+  assert(implementation, "Garden addresses could not be derived from the garden token");
+  let elsewhere: { garden: Address; actionUID: bigint } | null = null;
+  for (let tokenId = 0n; tokenId < 40n && elsewhere === null; tokenId += 1n) {
+    const place = await accountOf(implementation as Address, tokenId);
+    if (place === garden || !(await client.getCode({ address: place }))) continue;
+    const accepted = await acceptedAction(place);
+    if (accepted !== null) elsewhere = { garden: place, actionUID: accepted };
+  }
+  assert(elsewhere, "No second garden accepts an activity on this fork");
+  const other = elsewhere as { garden: Address; actionUID: bigint };
+  // A steward adds a gardener live. Here the garden grants the role itself, as its own
+  // `joinGarden` does, which the role module accepts from a garden's own address.
+  const roles = await client.readContract({ address: gardenToken, abi: TOKEN_ABI, functionName: "hatsModule" });
+  await f.request("anvil_impersonateAccount", [other.garden]);
+  await f.request("anvil_setBalance", [other.garden, toHex(10n ** 18n)]);
+  await client.waitForTransactionReceipt({
+    hash: (await f.request("eth_sendTransaction", [
+      {
+        from: other.garden,
+        to: roles,
+        data: encodeFunctionData({
+          abi: HATS_ABI,
+          functionName: "grantRole",
+          args: [other.garden, account.address, 0],
+        }),
+      },
+    ])) as Hex,
+  });
+  await f.request("anvil_stopImpersonatingAccount", [other.garden]);
+  assert(
+    await client.readContract({
+      address: other.garden,
+      abi: GARDEN_ABI,
+      functionName: "isGardener",
+      args: [account.address],
+    }),
+    "The account did not become a gardener of the second garden",
+  );
+  const otherPolicy = { ...policy, gardenAddress: other.garden };
+  const otherPermission = await reporting.grantPermissionValidator(client, {
+    policy: otherPolicy,
+    signer: delegate,
+    scope: { ...scope, gardenAddress: other.garden },
+  });
+  const otherId = otherPermission.getIdentifier() as Hex;
+  assert(otherId !== permissionId, "Two gardens resolved to one permission");
+  const firstElsewhere = report("first report in a second garden", other);
+  const otherActivation = await reporting.createGrantedKernelActivationAccount({
+    client,
+    policy: otherPolicy,
+    permissionId: otherId,
+    envelope: firstElsewhere,
+    owner: account,
+    signDelegate: async (operation: Operation) =>
+      (
+        await reporting.signGrantedKernelActivation({
+          client,
+          policy: otherPolicy,
+          envelope: firstElsewhere,
+          signer: delegate,
+          operation,
+        })
+      ).delegateSignature,
+  });
+  const otherEnabling = sponsored({
+    sender: account.address,
+    nonce: await otherActivation.getNonce(),
+    callData: await otherActivation.encodeCalls([callOf(firstElsewhere)]),
+  });
+  const otherEnabled = await send(
+    { ...otherEnabling, signature: await otherActivation.signUserOperation(otherEnabling) },
+    true,
+    other.garden,
+  );
+  assert(
+    otherEnabled.attested === 1 &&
+      (await reader.permission(account.address, otherId)).active &&
+      (await reader.permission(account.address, permissionId)).active,
+    "A second garden's permission did not install beside the first",
+  );
+  const otherGranted = await sdk.createKernelAccount(client, {
+    address: account.address,
+    plugins: { regular: otherPermission },
+    entryPoint,
+    kernelVersion: constants.KERNEL_V3_1,
+  });
+  const third = await send(await signedBy(granted, report("third report")));
+  const secondElsewhere = await send(
+    await signedBy(otherGranted, report("second report in a second garden", other)),
+    true,
+    other.garden,
+  );
+  assert(
+    third.attested === 1 && secondElsewhere.attested === 1,
+    "The two permissions did not each publish to their own garden",
+  );
+  // The first garden's permission, asked for a report in the second garden, is refused on chain.
+  await send(await signedBy(granted, report("wrong garden", other)), false, other.garden);
+  check("one_account_holds_a_permission_for_each_of_two_gardens");
+
+  // 6. The owner removes the first with their passkey; the Agent is not asked.
   const removal = sponsored({
     sender: account.address,
     nonce: await account.getNonce(),
@@ -391,9 +529,22 @@ export async function verifyPasskeyActivation(contracts: string, f: Fixture, che
   await send({ ...stale, signature: (await permission.signUserOperation(stale)) as Hex }, false);
   check("passkey_owner_removal_stops_the_delegate");
 
+  // The second garden's permission is untouched by the first's removal.
+  const afterRemoval = await send(
+    await signedBy(otherGranted, report("after the first was removed", other)),
+    true,
+    other.garden,
+  );
+  assert(
+    afterRemoval.attested === 1 && (await reader.permission(account.address, otherId)).active,
+    "Removing one garden's permission disturbed the other",
+  );
+  check("removing_one_garden_permission_leaves_the_other_working");
+
   return {
     account: account.address,
     garden,
+    secondGarden: other.garden,
     actionUID: Number(actionUID),
     moduleRef: policy.moduleRef,
     guard: policy.singleCallPolicy,
@@ -404,6 +555,7 @@ export async function verifyPasskeyActivation(contracts: string, f: Fixture, che
       join: joined.gasUsed,
       firstReport: enabled.gasUsed,
       nextReport: second.gasUsed,
+      firstReportInSecondGarden: otherEnabled.gasUsed,
       removal: removed.gasUsed,
     },
     gasLimitsPerOperation: OPERATION_GAS_LIMIT,

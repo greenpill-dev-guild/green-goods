@@ -127,6 +127,7 @@ export interface PermissionModuleEntry {
   singleCallPolicyCodeHash?: Hex;
   approvedPaymaster?: Address;
   gasCostCapsWei?: Record<GrantPurpose, string>;
+  /** Gas units one attempt may ask for: the measured first report, with room for a bundler's padding. */
   measuredGasUnitsPerSubmission?: number;
   /** Separate review effects/work-reference restriction gate. Reporting never implies this. */
   reviewSupported?: boolean;
@@ -143,9 +144,13 @@ export interface PermissionModuleEntry {
  *   through. The guard is this repository's `SingleAttestationPolicy`.
  * - The paymaster is Pimlico's, the one that sponsors the app's own passkey operations. A
  *   permission names it, so the delegate can spend no one's gas but that sponsorship's.
- * - Gas: the fork's first report used 2,969,802 gas and its operation limits totaled 3,400,001.
- *   The per-attempt reservation must admit that first operation as well as later reports, which
- *   used 1,028,748 gas on the fork. The separate cumulative wei cap remains 0.005 ETH.
+ * - Gas: the reservation for one attempt must admit the first report, which also carries the
+ *   passkey's approval and the install. On the fork that uses about 2.97 million gas, and a
+ *   later report 1.03 million. A live bundler asks for more than an operation uses: one
+ *   sponsored passkey operation on Arbitrum asked for 1,469,733 and used 1,176,168, a quarter
+ *   more. The fork's own limits, 3,400,001, would refuse a live first report, so the
+ *   reservation is twice the measured use. What a permission can spend is the separate
+ *   cumulative cap, 0.005 ETH, which the chain enforces.
  * Review is not approved: a decision's permission cannot yet be bound to the work it decides.
  */
 export const VERIFIED_PERMISSION_MODULES: readonly PermissionModuleEntry[] = [
@@ -158,7 +163,7 @@ export const VERIFIED_PERMISSION_MODULES: readonly PermissionModuleEntry[] = [
     singleCallPolicyCodeHash: "0x76f0a1fa648cf915dfe2a72a150622eb7d96f725cea6666e93f27f6e5645a0cf",
     approvedPaymaster: "0x777777777777AeC03fd955926DbF81597e66834C",
     gasCostCapsWei: { reporting: "5000000000000000", review: "5000000000000000" },
-    measuredGasUnitsPerSubmission: 3_400_001,
+    measuredGasUnitsPerSubmission: 6_000_000,
   },
 ];
 

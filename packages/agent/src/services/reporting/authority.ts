@@ -160,10 +160,30 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
           gardenAddress: garden.address,
         })
       : null;
-  const usable =
-    grant && grantUsability(grant, { identityEpoch: epoch, now: core.clock.now() }) === null;
+  const unusable = grant
+    ? grantUsability(grant, { identityEpoch: epoch, now: core.clock.now() })
+    : null;
+  // The gas one more report would reserve, from the same approved module the executor reserves
+  // by. A permission approved under a smaller reservation can run out of gas before its count.
+  const reservation =
+    deps.delegationModules.find((entry) => entry.chainId === core.settings.chainId)
+      ?.measuredGasUnitsPerSubmission ?? 0;
+  const outOfGas =
+    grant !== null && grant.gasReserved + grant.gasConsumed + reservation > grant.gasCap;
+  // A permission that is paused or used up stays this garden's one live permission until it
+  // ends, so another cannot be approved yet. Offering one would lead nowhere: the owner signs.
+  const spent =
+    grant?.state === "paused" || unusable === "epoch_changed"
+      ? "grant.paused"
+      : unusable === "exhausted" || (unusable === null && outOfGas)
+        ? "grant.spent"
+        : null;
   const mode =
-    account.kind === "eoa" || !delegationReady ? "owner" : usable ? "delegated" : "grant_choice";
+    account.kind === "eoa" || !delegationReady || spent
+      ? "owner"
+      : unusable === null && grant !== null
+        ? "delegated"
+        : "grant_choice";
 
   inTransaction(core.db, () => {
     const current = loadDraft(core, draft.id);
@@ -172,6 +192,7 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
     commitLifecycle(core, current, [{ type: "AUTHORITY_ESTABLISHED", mode }], {
       participantAction: false,
     });
+    if (spent) writer()?.say(spent);
     if (mode === "grant_choice") {
       const out = writer();
       out?.ask(
