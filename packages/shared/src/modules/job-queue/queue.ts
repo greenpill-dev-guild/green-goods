@@ -4,6 +4,7 @@ import {
   canonicalJobPayload,
   commitmentJobIdentity,
   commitmentJobPrerequisite,
+  isSameCreationPlacedAgain,
 } from "../commitment-pooling/job-identity";
 import { JobMaintenance } from "./job-maintenance";
 import { createJobProcessor } from "./process-job";
@@ -101,9 +102,10 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
             !isTerminallyFailedJob(job) && commitmentJobIdentity(job.kind, job.payload) === identity
         );
         if (existing) {
+          const queued = payloadWithoutSendRecord(existing);
           if (
-            canonicalJobPayload(payloadWithoutSendRecord(existing)) !==
-            canonicalJobPayload(persistedPayload)
+            canonicalJobPayload(queued) !== canonicalJobPayload(persistedPayload) &&
+            !isSameCreationPlacedAgain(existing.kind, queued, persistedPayload)
           ) {
             throw new Error(`offline_job_identity_conflict:${identity}`);
           }
