@@ -116,8 +116,8 @@ function gardenDecorators({
 }
 
 export const Overview: Story = {
-  // Not in storybook-ci: the play's last check looks for `.text-primary-base` links, which
-  // the overview no longer renders. Kept for local Storybook review.
+  // Not in storybook-ci: the play's last check looks for primary action links by a class the
+  // overview no longer uses, so it finds none. Kept for local Storybook review.
   args: { initialPath: `/garden/overview?${SEEDED_GARDEN}` },
   decorators: gardenDecorators(),
   play: async ({ canvasElement }) => {
