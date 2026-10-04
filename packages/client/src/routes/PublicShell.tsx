@@ -4,7 +4,7 @@ import { consumeAppLaunchFallback } from "@green-goods/shared/utils/app/browser"
 import { useIntl } from "react-intl";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigationType } from "react-router-dom";
-import { FocusedSiteHeader } from "@/components/Navigation/FocusedSiteHeader";
+import { FocusedShell } from "@/components/Navigation/FocusedSiteHeader";
 import { SiteHeader } from "@/components/Navigation/SiteHeader";
 import { publicCuration } from "@/content/publicCuration";
 
@@ -287,12 +287,9 @@ export default function PublicShell() {
   // Reporting ceremony pages are transactional: no editorial chrome, and app buttons.
   if (focused) {
     return (
-      <div className="flex min-h-screen flex-col bg-bg-white-0">
-        <FocusedSiteHeader />
-        <main className="flex-1">
-          <Outlet />
-        </main>
-      </div>
+      <FocusedShell>
+        <Outlet />
+      </FocusedShell>
     );
   }
 

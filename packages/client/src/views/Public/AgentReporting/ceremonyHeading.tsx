@@ -12,16 +12,26 @@ import {
   RiShieldUserLine,
   RiUserFollowLine,
 } from "@remixicon/react";
+import type { ReactNode } from "react";
 import type { IntlShape, MessageDescriptor } from "react-intl";
 import { AccountLine } from "./CeremonyActs";
 import type { CeremonyHeading } from "./CeremonyFrame";
 import type { CeremonyScreen } from "./ceremonyScreen";
 import { CEREMONY_COPY, SENT_HEADINGS } from "./messages";
 
+/** A garden's name on a line of its own: it is someone's own words, so it is cut, never wrapped. */
+function GardenLine({ children }: { children: string }) {
+  return (
+    <span className="block truncate" title={children}>
+      {children}
+    </span>
+  );
+}
+
 /**
  * The page's heading card at each stage. A step is headed by what to do in it; once the request has
- * left the page, by what was sent, as the app's work page names a submission, so the notice under
- * it can say where it stands.
+ * left the page, by what was sent, as the app's work page names a submission, and the status card
+ * under it says where it stands. Every heading is a title on one line and a body within two.
  */
 export function ceremonyHeading(
   intl: IntlShape,
@@ -57,7 +67,28 @@ export function ceremonyHeading(
     };
   }
   if (screen.proving) {
-    return { title: copy.title, info: text(copy.body), Icon: RiShieldUserLine };
+    // How many times the person will sign is said here, once, before the first signature. While
+    // the prompt is open the same two lines point at it.
+    return {
+      title: copy.title,
+      info:
+        stage === "proving"
+          ? text(copy.body)
+          : screen.twoSignatures
+            ? text(
+                {
+                  id: "public.reporting.connect.twice",
+                  defaultMessage:
+                    "You'll sign twice: now to show it's yours, then to {act, select, allow {allow it} record {record it} other {publish}}.",
+                },
+                { act: screen.isGrant ? "allow" : decides ? "record" : "publish" }
+              )
+            : text({
+                id: "public.reporting.connect.once",
+                defaultMessage: "You'll sign once to show it's yours. It costs nothing.",
+              }),
+      Icon: RiShieldUserLine,
+    };
   }
   if (stage === "pairing") {
     return { title: copy.title, info: text(copy.body), Icon: RiSendPlaneLine };
@@ -67,20 +98,18 @@ export function ceremonyHeading(
     if (screen.isLink) {
       return {
         title: SENT_HEADINGS.account,
-        info: account ? <AccountLine account={account} relation="connected" /> : "",
+        info: account ? <AccountLine account={account} /> : "",
         Icon: RiUserFollowLine,
       };
     }
-    if (screen.isGrant) {
-      return {
-        title: SENT_HEADINGS.permission,
-        info: grant?.gardenLabel ?? (grant ? formatAddress(grant.policy.gardenAddress) : ""),
-        Icon: RiShieldCheckLine,
-      };
-    }
+    const garden = screen.isGrant
+      ? (grant?.gardenLabel ?? (grant ? formatAddress(grant.policy.gardenAddress) : ""))
+      : (resource?.gardenLabel ?? "");
+    const info: ReactNode = garden ? <GardenLine>{garden}</GardenLine> : "";
+    if (screen.isGrant) return { title: SENT_HEADINGS.permission, info, Icon: RiShieldCheckLine };
     return {
       title: decides ? SENT_HEADINGS.decision : SENT_HEADINGS.report,
-      info: resource?.gardenLabel ?? "",
+      info,
       Icon: decides ? RiCheckDoubleLine : RiFileTextLine,
     };
   }
@@ -106,24 +135,25 @@ export function ceremonyHeading(
             {
               id: "public.reporting.grant.reviewStepBody",
               defaultMessage:
-                "Check {purpose, select, review {your first decision} other {your first report}} and the permission's limits. One signature allows the permission and {purpose, select, review {records the decision} other {publishes the report}}.",
+                "{purpose, select, review {Your first decision} other {Your first report}} and the permission, in one signature.",
             },
             { purpose: decides ? "review" : "reporting" }
           ),
           Icon: RiShieldCheckLine,
         };
   }
+  // The line that never changes comes first. The garden joins it once the frozen publication has
+  // arrived, so nothing in the card moves when it does.
   return {
     title: screen.isReview
-      ? {
-          id: "public.reporting.review.decisionTitle",
-          defaultMessage: "Check and Record Your Decision",
-        }
+      ? { id: "public.reporting.review.decisionTitle", defaultMessage: "Check and Record" }
       : CEREMONY_COPY.review.title,
-    // Until the frozen publication arrives, the garden it goes to isn't known.
-    info: resource
-      ? text(CEREMONY_COPY.review.body, { garden: resource.gardenLabel })
-      : text(CEREMONY_COPY.loading.body),
+    info: (
+      <>
+        <span className="block">{text(CEREMONY_COPY.review.body)}</span>
+        {resource?.gardenLabel ? <GardenLine>{resource.gardenLabel}</GardenLine> : null}
+      </>
+    ),
     Icon: screen.isReview ? RiCheckDoubleLine : RiFileList3Line,
   };
 }

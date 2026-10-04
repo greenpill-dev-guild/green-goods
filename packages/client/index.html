@@ -798,8 +798,12 @@
         }
       }
 
-      /* Focused variant for reporting ceremony pages: the canvas and the logo
-         only, matching FocusedSiteHeader (no hero, navigation or install CTA). */
+      /* Focused variant for reporting ceremony pages: the canvas and the mark
+         only (no hero, navigation or install CTA), with the mark where
+         FocusedSiteHeader.tsx draws it, so it does not jump when the page
+         takes over. GEOMETRY SYNC with that file: the bar keeps to the page's
+         column, and the mark sits on the line of the step markers, centred
+         31px down, not on the bar's own centre. */
       [data-boot-hero="focused"] .boot-editorial-shell {
         background: var(--boot-canvas);
       }
@@ -809,6 +813,31 @@
       [data-boot-hero="focused"] .boot-editorial-actions,
       [data-boot-hero="focused"] .boot-editorial-menu {
         display: none;
+      }
+
+      [data-boot-hero="focused"] .boot-editorial-header {
+        padding: 0;
+      }
+
+      [data-boot-hero="focused"] .boot-editorial-header-row {
+        box-sizing: border-box;
+        height: 80px; /* h-20 */
+        max-width: 768px; /* max-w-3xl */
+        padding: 0 16px; /* px-4 */
+        align-items: flex-start;
+      }
+
+      [data-boot-hero="focused"] .boot-editorial-logo {
+        height: 28px; /* h-7 */
+        /* pt-[1.1875rem] starts the 24px marker row at 19px; the 28px mark is
+           centred on it, so it starts 2px higher. */
+        margin-top: 17px;
+      }
+
+      @media (min-width: 640px) {
+        [data-boot-hero="focused"] .boot-editorial-header-row {
+          padding: 0 24px; /* sm:px-6 */
+        }
       }
     </style>
   </head>

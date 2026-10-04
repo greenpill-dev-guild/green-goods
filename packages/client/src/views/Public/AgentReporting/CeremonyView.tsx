@@ -1,16 +1,18 @@
 import type { AgentReportingCeremony } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingCeremony";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { type ReactNode, useId } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 import { FlowForward } from "@/components/Features/Work";
-import { AccountActions, AccountLine, ManagePermissionsLink, SignOutButton } from "./CeremonyActs";
-import { ActContext } from "./CeremonyBar";
-import { BLOCKED_ID, type CeremonyNotice, CeremonyFrame } from "./CeremonyFrame";
-import { barStanding, OutcomeNotice } from "./CeremonyOutcome";
+import { AccountActions, PageAccount } from "./CeremonyActs";
+import { BLOCKED_ID, CeremonyFrame } from "./CeremonyFrame";
+import { barStanding, hasStatusCard, StatusCard } from "./CeremonyOutcome";
 import { ceremonyHeading } from "./ceremonyHeading";
 import { readCeremonyScreen } from "./ceremonyScreen";
+import { BLOCKS, type CeremonyProblem, failureProblem } from "./failures";
 import { GrantSummary } from "./GrantSummary";
 import { PublicationSkeleton, PublicationSummary } from "./PublicationSummary";
-import { CAUTIONS, CEREMONY_COPY, FAILURE_COPY } from "./messages";
+import { CEREMONY_COPY } from "./messages";
+import { WhatHappensNext } from "./WhatHappensNext";
 
 type CeremonyViewProps = Pick<
   AgentReportingCeremony,
@@ -18,6 +20,7 @@ type CeremonyViewProps = Pick<
   | "purpose"
   | "channelLabel"
   | "pairingCode"
+  | "sessionAccount"
   | "resource"
   | "operation"
   | "grant"
@@ -37,7 +40,7 @@ type CeremonyViewProps = Pick<
   evidenceUrl?: (assetId: string) => string;
 };
 
-/** Stages with a session this browser can end. */
+/** Stages with a session this browser can end: none while a request is being prepared or signed. */
 const SESSION = new Set<AgentReportingCeremony["stage"]>([
   "review",
   "submitted",
@@ -51,15 +54,17 @@ const SESSION = new Set<AgentReportingCeremony["stage"]>([
 
 /**
  * The browser step of a chat report, review or permission, drawn with the app's flow parts. The
- * frame lays the page out; this view decides what each stage shows and which act, if any, its bar
- * offers. A send whose outcome is unknown never gets an act.
+ * frame lays the page out and keeps its bands at one size; this view decides what each stage shows
+ * and which act, if any, its bar offers. What a stage shows keeps its place and its order from the
+ * step it first appears on, so sending the request moves nothing. A send whose outcome is unknown
+ * never gets an act.
  */
 export function CeremonyView(props: CeremonyViewProps) {
   const intl = useIntl();
   const firstItemId = useId();
   const { stage, resource, operation, grant } = props;
   const screen = readCeremonyScreen(props);
-  const { isGrant, decides, uncertain, proving, publishing, granting, sent } = screen;
+  const { isGrant, decides, uncertain, proving, publishing, granting } = screen;
   const text = (message: MessageDescriptor, values?: Record<string, string | number>) =>
     intl.formatMessage(message, values);
   const signer = grant?.policy.account ?? operation?.envelope?.accountAddress ?? null;
@@ -68,17 +73,28 @@ export function CeremonyView(props: CeremonyViewProps) {
     signer !== null &&
     props.account?.toLowerCase() !== signer.toLowerCase();
 
-  const blocked: CeremonyNotice | null =
+  // Why the act is switched off, if it is: the wrong account, a publication this page refuses to
+  // sign, or one that is still being prepared.
+  const block: CeremonyProblem | null =
     !uncertain && (stage === "review" || stage === "grant_ready")
-      ? wrongAccount
-        ? { message: FAILURE_COPY.wrong_account, tone: "error" }
+      ? wrongAccount && signer
+        ? { ...BLOCKS.wrongAccount, values: { account: formatAddress(signer) }, tone: "error" }
         : props.issues.length > 0
-          ? { message: FAILURE_COPY.envelope_mismatch, tone: "error" }
+          ? { ...BLOCKS.mismatch, tone: "error" }
           : stage === "grant_ready" && resource && !operation?.envelope
-            ? { message: CEREMONY_COPY.loading.body as MessageDescriptor, tone: "neutral" }
+            ? {
+                title: CEREMONY_COPY.loading.title,
+                message: CEREMONY_COPY.loading.body as MessageDescriptor,
+                tone: "neutral",
+              }
             : null
       : null;
-  const describedBy = blocked ? BLOCKED_ID : undefined;
+  // The status card already says an outcome is unknown, so no caution repeats it.
+  const failure = props.error && !uncertain ? failureProblem(props.error) : null;
+  // One problem at a time: what stops the act outright, then what failed, then a wait.
+  const problem = block?.tone === "error" ? block : (failure ?? block);
+  const withStatus = hasStatusCard(screen);
+  const describedBy = block ? BLOCKED_ID : undefined;
 
   const actions: ReactNode = (() => {
     if (screen.opening) {
@@ -126,11 +142,11 @@ export function CeremonyView(props: CeremonyViewProps) {
               ? decides
                 ? {
                     id: "public.reporting.grant.allowFirstReview",
-                    defaultMessage: "Allow and Record First Review",
+                    defaultMessage: "Allow and Record",
                   }
                 : {
                     id: "public.reporting.grant.allowFirstReport",
-                    defaultMessage: "Allow and Publish First Report",
+                    defaultMessage: "Allow and Publish",
                   }
               : decides
                 ? {
@@ -156,43 +172,6 @@ export function CeremonyView(props: CeremonyViewProps) {
     }
     return null;
   })();
-  const hasActions = actions !== null;
-
-  // The act's own label says what it signs, so its note counts signatures and names the account.
-  const actStep = !screen.twoSignatures
-    ? null
-    : proving
-      ? text({
-          id: "public.reporting.step.prove",
-          defaultMessage: "Signature 1 of 2: prove the account",
-        })
-      : stage === "signing"
-        ? text(CEREMONY_COPY.signing.body as MessageDescriptor)
-        : stage === "grant_signing"
-          ? text(CEREMONY_COPY.grant_signing.body as MessageDescriptor)
-          : publishing || (granting && resource)
-            ? text({ id: "public.reporting.step.second", defaultMessage: "Signature 2 of 2" })
-            : granting
-              ? text({
-                  id: "public.reporting.grant.prepareNotice",
-                  defaultMessage: "Preparing the first item does not request a signature.",
-                })
-              : null;
-  const actAccount = proving ? (
-    props.account ? (
-      <AccountLine account={props.account} relation="connected" />
-    ) : null
-  ) : (publishing || granting) && signer ? (
-    <AccountLine account={signer} relation="signer" />
-  ) : null;
-
-  const utilities =
-    (isGrant && stage !== "grant_signing") || SESSION.has(stage) ? (
-      <>
-        {isGrant && stage !== "grant_signing" ? <ManagePermissionsLink /> : null}
-        {SESSION.has(stage) ? <SignOutButton onLeave={() => void props.leave()} /> : null}
-      </>
-    ) : null;
 
   // What the request publishes, shown before it is signed and kept on the page after it is sent.
   const publication = (() => {
@@ -229,13 +208,13 @@ export function CeremonyView(props: CeremonyViewProps) {
                 }
           )}
         </h2>
-        {grant && !sent ? (
+        {/* Said the same way before and after sending, so the report under it keeps its place. */}
+        {grant ? (
           <p className="text-xs text-text-sub-600">
             {text(
               {
                 id: "public.reporting.grant.firstCounts",
-                defaultMessage:
-                  "This first publication uses 1 of the {maximum} allowed publications. Check it before approving the permission.",
+                defaultMessage: "Counts as 1 of the {maximum} publications this permission allows.",
               },
               { maximum: grant.policy.maxSubmissions }
             )}
@@ -252,7 +231,6 @@ export function CeremonyView(props: CeremonyViewProps) {
 
   return (
     <CeremonyFrame
-      channel={props.channelLabel}
       screen={screen.unusable ? "state" : "step"}
       steps={
         screen.steps
@@ -260,23 +238,19 @@ export function CeremonyView(props: CeremonyViewProps) {
           : null
       }
       heading={ceremonyHeading(intl, screen, props)}
-      notice={<OutcomeNotice screen={screen} />}
-      // A sent request's notice already says the outcome is unknown, so no caution repeats it.
-      error={
-        props.error && !uncertain
-          ? {
-              message: FAILURE_COPY[props.error],
-              tone: CAUTIONS.has(props.error) ? "caution" : "error",
-            }
-          : null
-      }
-      blocked={blocked}
-      barNotes={hasActions ? <ActContext step={actStep} account={actAccount} /> : null}
+      // The status card says a problem where the screen has one; elsewhere the heading card does.
+      problem={withStatus ? null : problem}
+      notice={<StatusCard screen={screen} problem={withStatus ? problem : null} />}
       actions={actions}
-      // Without an act, the bar says where the step stands, in the act's place.
-      barStatus={hasActions ? null : barStanding(intl, screen)}
-      utilities={utilities}
+      // Without an act, the bar says where the request stands, in the act's place.
+      barStatus={actions === null ? barStanding(intl, screen) : null}
     >
+      <PageAccount
+        account={props.sessionAccount ?? props.account}
+        signedIn={props.sessionAccount !== null}
+        channel={props.channelLabel}
+        onLeave={SESSION.has(stage) ? () => void props.leave() : undefined}
+      />
       {stage === "pairing" && props.pairingCode ? (
         <p
           className="rounded-2xl border border-stroke-soft-200 bg-bg-weak-50 px-4 py-6 text-center font-mono text-3xl font-semibold tracking-[0.2em] text-text-strong-950 [overflow-wrap:anywhere] sm:text-4xl"
@@ -285,16 +259,12 @@ export function CeremonyView(props: CeremonyViewProps) {
           {props.pairingCode}
         </p>
       ) : null}
+      {screen.opening || proving ? <WhatHappensNext flow={screen.isLink ? "link" : "any"} /> : null}
       {publication}
-      {/* While it is checked, the newly prepared first item leads; once sent, the permission does. */}
-      {sent ? null : firstItem}
+      {/* The first item is the one thing not yet seen when Review opens, so it leads, and the
+          order holds once the request is sent. */}
+      {firstItem}
       {showsGrant && grant ? <GrantSummary grant={grant} /> : null}
-      {sent ? firstItem : null}
-      {sent && signer ? (
-        <p className="min-w-0 break-words text-xs text-text-sub-600">
-          <AccountLine account={signer} relation="signer" />
-        </p>
-      ) : null}
     </CeremonyFrame>
   );
 }

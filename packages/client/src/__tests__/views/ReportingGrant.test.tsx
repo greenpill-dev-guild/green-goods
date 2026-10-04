@@ -8,6 +8,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import { FocusedShell } from "../../components/Navigation/FocusedSiteHeader";
 import { CeremonyView } from "../../views/Public/AgentReporting/CeremonyView";
 
 type Props = Parameters<typeof CeremonyView>[0];
@@ -61,6 +62,7 @@ const makeProps = (): Props => ({
   purpose: "grant_reporting",
   channelLabel: "Telegram",
   pairingCode: null,
+  sessionAccount: ACCOUNT,
   resource: null,
   operation: null,
   issues: [],
@@ -101,24 +103,37 @@ const makeProps = (): Props => ({
     revocationDescriptor: null,
   },
 });
+// The page as the route draws it: inside the focused shell, whose top bar holds its steps and
+// whose sheet holds its account.
 const view = (props: Props) => (
   <MemoryRouter>
     <IntlProvider locale="en" messages={{}}>
       <HelmetProvider>
-        <CeremonyView {...props} />
+        <FocusedShell>
+          <CeremonyView {...props} />
+        </FocusedShell>
       </HelmetProvider>
     </IntlProvider>
   </MemoryRouter>
 );
+const review = (): Props => ({
+  ...makeProps(),
+  stage: "review",
+  purpose: "publish_work",
+  grant: null,
+  resource,
+  operation,
+});
+const bar = () => screen.getByRole("region", { name: "Next step" });
+/** The status card: the one place the page says where the request stands or what is wrong. */
+const status = () => screen.getByText(/./, { selector: '[data-component="CeremonyStageNotice"]' });
 
 describe("first publication permission ceremony", () => {
-  it("prepares only after an explicit click and explains that preparation needs no signature", () => {
+  it("prepares only after an explicit click and says the step asks for no signature", () => {
     const props = makeProps();
     render(view(props));
     expect(props.installGrant).not.toHaveBeenCalled();
-    expect(
-      screen.getByText(/Preparing the first item does not request a signature/)
-    ).toBeInTheDocument();
+    expect(status()).toHaveTextContent(/This step doesn't ask you to/);
     fireEvent.click(screen.getByRole("button", { name: "Prepare First Report" }));
     expect(props.installGrant).toHaveBeenCalledTimes(1);
     expect(props.publish).not.toHaveBeenCalled();
@@ -127,18 +142,18 @@ describe("first publication permission ceremony", () => {
     const props = { ...makeProps(), resource, operation };
     render(view(props));
     expect(screen.getByText("Watered twelve seedlings")).toBeInTheDocument();
-    expect(screen.getByText(/uses 1 of the 5 allowed publications/)).toBeInTheDocument();
+    expect(screen.getByText(/Counts as 1 of the 5 publications/)).toBeInTheDocument();
     expect(screen.getByText("24 hours")).toBeInTheDocument();
     expect(screen.getByText("0.001 ETH")).toBeInTheDocument();
     expect(screen.getByText("Total gas allowance")).toBeInTheDocument();
     expect(screen.getByText("Maximum total sponsored cost")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Allow and Publish First Report" }));
+    fireEvent.click(screen.getByRole("button", { name: "Allow and Publish" }));
     expect(props.installGrant).toHaveBeenCalledTimes(1);
   });
   it.each([
-    ["wrong account", /isn't the account linked to your chat/],
+    ["wrong account", /Switch to 0x1f3a/],
     ["unprepared envelope", /Preparing the exact publication/],
-  ] as const)("disables owner authorization for %s and says why beside it", (reason, why) => {
+  ] as const)("disables owner authorization for %s and the act names why", (reason, why) => {
     const props = {
       ...makeProps(),
       resource,
@@ -148,11 +163,11 @@ describe("first publication permission ceremony", () => {
         : { operation: { ...operation, envelope: null } }),
     };
     render(view(props));
-    const bar = screen.getByRole("region", { name: "Next step" });
-    expect(
-      within(bar).getByRole("button", { name: "Allow and Publish First Report" })
-    ).toBeDisabled();
-    expect(within(bar).getByText(why)).toBeInTheDocument();
+    const act = within(bar()).getByRole("button", { name: "Allow and Publish" });
+    expect(act).toBeDisabled();
+    // The status card says why, and the act carries it as its description.
+    expect(status()).toHaveTextContent(why);
+    expect(act).toHaveAccessibleDescription(why);
   });
   it("keeps an uncertain activation distinct from sent confirmation and removes the signing action", () => {
     render(
@@ -164,35 +179,20 @@ describe("first publication permission ceremony", () => {
         error: "outcome_unknown",
       })
     );
-    expect(screen.getByRole("heading", { level: 1, name: "Your permission" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Your Permission" })).toBeInTheDocument();
     expect(screen.getByText("May already be sent")).toBeInTheDocument();
-    const bar = screen.getByRole("region", { name: "Next step" });
-    expect(within(bar).getByText("Checking whether the request was sent")).toBeInTheDocument();
-    expect(within(bar).queryByRole("button")).not.toBeInTheDocument();
-    expect(screen.queryByText(/publication sent/)).not.toBeInTheDocument();
+    expect(within(bar()).getByText("Checking whether the request was sent")).toBeInTheDocument();
+    expect(within(bar()).queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Waiting for the network/)).not.toBeInTheDocument();
   });
 });
 
 describe("ceremony action bar", () => {
-  const review = (): Props => ({
-    ...makeProps(),
-    stage: "review",
-    purpose: "publish_work",
-    grant: null,
-    resource,
-    operation,
-  });
-
-  it("holds the step's act and its signing account, and keeps page utilities out of it", () => {
+  it("holds the step's act and nothing else", () => {
     render(view({ ...makeProps(), resource, operation }));
-    const bar = screen.getByRole("region", { name: "Next step" });
-    const [primary, ...others] = within(bar).getAllByRole("button");
-    expect(primary).toHaveAccessibleName("Allow and Publish First Report");
-    expect(others).toHaveLength(0);
-    expect(within(bar).getByText(/From account 0x1f3a/)).toBeInTheDocument();
-    expect(within(bar).queryByRole("link")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Manage Permissions/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sign Out of This Page" })).toBeInTheDocument();
+    expect(within(bar()).getAllByRole("button")).toHaveLength(1);
+    expect(bar()).toHaveTextContent(/^Allow and Publish$/);
+    expect(within(bar()).queryByRole("link")).not.toBeInTheDocument();
   });
 
   it.each([
@@ -200,31 +200,20 @@ describe("ceremony action bar", () => {
     ["a first report under a permission", { ...makeProps(), resource, operation }],
   ])("offers no further send for %s while its outcome is unknown", (_, props) => {
     render(view({ ...props, error: "outcome_unknown" }));
-    const bar = screen.getByRole("region", { name: "Next step" });
-    expect(within(bar).queryByRole("button")).not.toBeInTheDocument();
-    expect(within(bar).getByText(/Checking whether/)).toBeInTheDocument();
+    expect(within(bar()).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(bar()).getByText(/Checking whether/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Publish|Allow/ })).not.toBeInTheDocument();
-    expect(screen.getByText(/From account 0x1f3a/)).toBeInTheDocument();
+    expect(status()).toHaveTextContent(/Don't send it again/);
     expect(props.publish).not.toHaveBeenCalled();
     expect(props.installGrant).not.toHaveBeenCalled();
   });
 
-  it("explains a publication the page refuses to sign beside the disabled act", () => {
+  it("explains a publication the page refuses to sign in the status card", () => {
     render(view({ ...review(), issues: ["wrong_chain"] }));
-    const bar = screen.getByRole("region", { name: "Next step" });
-    expect(within(bar).getByRole("button", { name: "Publish" })).toBeDisabled();
-    expect(within(bar).getByRole("alert")).toHaveTextContent(/refused to sign/);
-  });
-
-  it("shows a failure beside the act, or under the heading when the bar has no act", () => {
-    const { rerender } = render(view({ ...makeProps(), stage: "intro", error: "offline" }));
-    const bar = screen.getByRole("region", { name: "Next step" });
-    expect(within(bar).getByRole("status")).toHaveTextContent(/couldn't be reached/);
-    rerender(view({ ...makeProps(), stage: "failed", error: "offline" }));
-    const settled = screen.getByRole("region", { name: "Next step" });
-    expect(within(settled).queryByRole("button")).not.toBeInTheDocument();
-    expect(within(settled).queryByText(/couldn't be reached/)).not.toBeInTheDocument();
-    expect(screen.getByText(/couldn't be reached/)).toBeInTheDocument();
+    const act = within(bar()).getByRole("button", { name: "Publish" });
+    expect(act).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent(/Can't sign this/);
+    expect(act).toHaveAccessibleDescription(/won't sign/);
   });
 
   it.each([
@@ -233,8 +222,58 @@ describe("ceremony action bar", () => {
     ["review", "Publish"],
     ["submitted", "Waiting for the network"],
     ["published", "Published"],
-  ] as const)("keeps the bar in its place at %s, with an act or where the step stands", (stage, says) => {
+  ] as const)("keeps the bar in its place at %s, with an act or where the request stands", (stage, says) => {
     render(view({ ...review(), stage }));
-    expect(screen.getByRole("region", { name: "Next step" })).toHaveTextContent(says);
+    expect(bar()).toHaveTextContent(new RegExp(`^${says}$`));
+  });
+});
+
+describe("where a ceremony says what is wrong", () => {
+  it("uses the heading card on a screen with no status card, and adds no band for it", () => {
+    render(view({ ...review(), stage: "intro", error: "offline" }));
+    const heading = screen.getByRole("heading", { level: 1, name: "Continue From Your Chat" });
+    const said = screen.getByText(/couldn't be reached/);
+    expect(heading.parentElement).toContainElement(said);
+    expect(document.querySelector('[data-component="CeremonyStageNotice"]')).toBeNull();
+    expect(within(bar()).queryByText(/couldn't be reached/)).not.toBeInTheDocument();
+  });
+
+  it("keeps the status card's title when a request under review fails, so it still reads as unsent", () => {
+    render(view({ ...review(), error: "offline" }));
+    expect(screen.getByText("Not sent yet")).toBeInTheDocument();
+    expect(status()).toHaveTextContent(/couldn't be reached/);
+    expect(within(bar()).getByRole("button", { name: "Publish" })).toBeEnabled();
+  });
+});
+
+describe("top bar", () => {
+  it("shows the flow's steps only while there is a step to take", () => {
+    const { rerender } = render(view(review()));
+    const banner = screen.getByRole("banner");
+    expect(within(banner).getByText("Review").closest("li")).toHaveAttribute(
+      "aria-current",
+      "step"
+    );
+    for (const stage of ["submitted", "published", "not_sent"] as const) {
+      rerender(view({ ...review(), stage }));
+      expect(within(banner).queryByRole("list")).not.toBeInTheDocument();
+    }
+    rerender(view({ ...review(), stage: "intro", purpose: null }));
+    expect(within(banner).queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("marks a signed-in page on the profile button and keeps the account's acts in its sheet", () => {
+    const props = { ...makeProps(), resource, operation };
+    const { rerender } = render(view({ ...props, stage: "connect", sessionAccount: null }));
+    expect(screen.getByRole("button", { name: "Account and Help" })).toBeInTheDocument();
+    rerender(view(props));
+    // Neither act is on the page; both are with the account.
+    expect(screen.queryByRole("button", { name: "Sign Out of This Page" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Account and Help, signed in" }));
+    const sheet = screen.getByRole("dialog");
+    expect(within(sheet).getByText("Signed in to this page")).toBeInTheDocument();
+    expect(within(sheet).getByRole("link", { name: /Manage Permissions/ })).toBeInTheDocument();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Sign Out of This Page" }));
+    expect(props.leave).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,44 +1,55 @@
-import type { useAgentReportingPermissions } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingPermissions";
 import type { AgentReportingCeremony } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingCeremony";
 import type { AgentReportingRecovery } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingRecovery";
 import type { MessageDescriptor } from "react-intl";
 
 type Copy = { title: MessageDescriptor; body?: MessageDescriptor };
 
-/** One title and explanation per ceremony step, in the person's terms. */
+/** A sent request reads the same whether it is a report, a decision or a permission. */
+const SUBMITTED: Copy = {
+  title: {
+    id: "public.reporting.submitted.title",
+    defaultMessage: "Sent. Waiting for the network",
+  },
+  body: {
+    id: "public.reporting.submitted.body",
+    defaultMessage: "Your chat will confirm it. Don't send it again.",
+  },
+};
+
+const ACCOUNT_TITLE: MessageDescriptor = {
+  id: "public.reporting.connect.title",
+  defaultMessage: "Show It's Your Account",
+};
+
+/** Said in the heading card while a wallet or passkey prompt is open on the account step. */
+const PROMPT: MessageDescriptor = {
+  id: "public.reporting.proving.body",
+  defaultMessage: "Check your wallet or passkey prompt to sign.",
+};
+
+/**
+ * One title and line per ceremony stage, in the person's terms: a step's heading, or the status of
+ * a request that has been sent. Each is written to fit its card on a 320px phone in every
+ * language: a title on one line and a body within two.
+ */
 export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
   intro: {
     title: { id: "public.reporting.intro.title", defaultMessage: "Continue From Your Chat" },
     body: {
       id: "public.reporting.intro.body",
-      defaultMessage:
-        "This page finishes a step you started in chat. Nothing happens until you continue.",
+      defaultMessage: "Nothing happens until you continue.",
     },
   },
   opening: {
     title: { id: "public.reporting.intro.title", defaultMessage: "Continue From Your Chat" },
   },
-  connect: {
-    title: { id: "public.reporting.connect.title", defaultMessage: "Show It's Your Account" },
-    body: {
-      id: "public.reporting.connect.body",
-      defaultMessage:
-        "Use the wallet or passkey you already use with Green Goods. You'll sign a short message to prove it's yours. Signing it costs nothing.",
-    },
-  },
-  proving: {
-    title: { id: "public.reporting.connect.title", defaultMessage: "Show It's Your Account" },
-    body: {
-      id: "public.reporting.proving.body",
-      defaultMessage: "Check your wallet or passkey prompt to sign the message.",
-    },
-  },
+  connect: { title: ACCOUNT_TITLE },
+  proving: { title: ACCOUNT_TITLE, body: PROMPT },
   pairing: {
-    title: { id: "public.reporting.pairing.title", defaultMessage: "Send This Code in Your Chat" },
+    title: { id: "public.reporting.pairing.title", defaultMessage: "Send This Code" },
     body: {
       id: "public.reporting.pairing.body",
-      defaultMessage:
-        "Send PAIR and this code in your chat to link this account. This page updates once the chat confirms it.",
+      defaultMessage: "Send PAIR and this code in your chat to link this account.",
     },
   },
   linked: {
@@ -57,42 +68,19 @@ export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
   },
   review: {
     title: { id: "public.reporting.review.title", defaultMessage: "Check and Publish" },
-    body: {
-      id: "public.reporting.review.body",
-      defaultMessage:
-        "This is exactly what will be published on-chain for {garden}. It can't be edited once it is published.",
-    },
+    body: { id: "public.reporting.review.body", defaultMessage: "Public and permanent." },
   },
   grant_ready: {
     title: { id: "public.reporting.grant.title", defaultMessage: "Allow Bounded Reporting" },
     body: {
       id: "public.reporting.grant.body",
-      defaultMessage:
-        "Check the garden, time window and limits below. Prepare your first publication, then review it before approving the permission and publication together.",
+      defaultMessage: "Check the garden, the dates and the limits below.",
     },
   },
   grant_signing: {
-    title: {
-      id: "public.reporting.grant.signingTitle",
-      defaultMessage: "Confirm permission and first publication",
-    },
-    body: {
-      id: "public.reporting.grant.signingBody",
-      defaultMessage:
-        "Approve the permission and first publication in your wallet or passkey prompt.",
-    },
+    title: { id: "public.reporting.grant.title", defaultMessage: "Allow Bounded Reporting" },
   },
-  grant_submitted: {
-    title: {
-      id: "public.reporting.grant.submittedTitle",
-      defaultMessage: "Permission and first publication sent",
-    },
-    body: {
-      id: "public.reporting.grant.submittedBody",
-      defaultMessage:
-        "Waiting for the network to confirm both. Keep using your chat; don't send the request again.",
-    },
-  },
+  grant_submitted: SUBMITTED,
   grant_active: {
     title: {
       id: "public.reporting.grant.activeTitle",
@@ -100,28 +88,17 @@ export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
     },
     body: {
       id: "public.reporting.grant.activeBody",
-      defaultMessage:
-        "The assistant can publish within these limits after you confirm each report in chat. You can remove permissions from the reporting permissions page.",
+      defaultMessage: "Each report still needs your yes in chat. Remove it any time.",
     },
   },
   signing: {
-    title: { id: "public.reporting.signing.title", defaultMessage: "Confirm in your wallet" },
+    title: { id: "public.reporting.status.approving", defaultMessage: "Waiting for your approval" },
     body: {
       id: "public.reporting.signing.body",
       defaultMessage: "Approve the request in your wallet or passkey prompt.",
     },
   },
-  submitted: {
-    title: {
-      id: "public.reporting.submitted.title",
-      defaultMessage: "Sent. Waiting for the network",
-    },
-    body: {
-      id: "public.reporting.submitted.body",
-      defaultMessage:
-        "Your chat will confirm once it is recorded on-chain. You can close this page; don't send it again.",
-    },
-  },
+  submitted: SUBMITTED,
   published: {
     title: { id: "public.reporting.published.title", defaultMessage: "Published" },
     body: {
@@ -133,16 +110,14 @@ export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
     title: { id: "public.reporting.notSent.title", defaultMessage: "Nothing was sent" },
     body: {
       id: "public.reporting.notSent.body",
-      defaultMessage:
-        "The request was declined or refused, so nothing was published. Go back to your chat to try again.",
+      defaultMessage: "It was declined, so nothing was published. Try again from your chat.",
     },
   },
   failed: {
     title: { id: "public.reporting.failed.title", defaultMessage: "This wasn't published" },
     body: {
       id: "public.reporting.failed.body",
-      defaultMessage:
-        "It couldn't be prepared or the network refused it. Your chat has the next step.",
+      defaultMessage: "It couldn't be prepared or sent. Your chat has the next step.",
     },
   },
   unavailable: {
@@ -168,158 +143,47 @@ export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
   },
 };
 
+/** The recovery page's headings, to the same fit as the ceremony's. */
 export const RECOVERY_COPY: Record<AgentReportingRecovery["stage"], Copy> = {
   intro: {
-    title: {
-      id: "public.reporting.recovery.title",
-      defaultMessage: "Move Your Account to This Chat",
-    },
+    title: { id: "public.reporting.recovery.title", defaultMessage: "Move Your Account Here" },
     body: {
       id: "public.reporting.recovery.body",
-      defaultMessage:
-        "First show the account is yours, then enter the code your new chat received. Nothing moves until you confirm.",
+      defaultMessage: "Nothing moves until you confirm.",
     },
   },
   opening: {
-    title: {
-      id: "public.reporting.recovery.title",
-      defaultMessage: "Move Your Account to This Chat",
-    },
+    title: { id: "public.reporting.recovery.title", defaultMessage: "Move Your Account Here" },
   },
-  connect: CEREMONY_COPY.connect,
-  proving: CEREMONY_COPY.proving,
+  connect: { title: ACCOUNT_TITLE },
+  proving: { title: ACCOUNT_TITLE, body: PROMPT },
   code: {
-    title: {
-      id: "public.reporting.recovery.code.title",
-      defaultMessage: "Enter the Code From Your New Chat",
+    title: { id: "public.reporting.recovery.code.title", defaultMessage: "Enter the Code" },
+    body: {
+      id: "public.reporting.recovery.code.body",
+      defaultMessage: "Your new chat received a 6-digit code. Enter it here.",
     },
   },
   confirm: {
-    title: {
-      id: "public.reporting.recovery.confirm.title",
-      defaultMessage: "Move {account} Here?",
-    },
+    title: { id: "public.reporting.recovery.confirm.title", defaultMessage: "Move This Account?" },
     body: {
-      id: "public.reporting.recovery.confirm.body",
-      defaultMessage:
-        "Your previous chat on this channel loses access. Other connected channels keep their conversations. Open pages close and reporting permissions pause. Unfinished reports from the replaced chat move here.",
+      id: "public.reporting.recovery.confirm.info",
+      defaultMessage: "Check what changes first.",
     },
   },
   applying: {
-    title: {
-      id: "public.reporting.recovery.confirm.title",
-      defaultMessage: "Move {account} Here?",
+    title: { id: "public.reporting.recovery.confirm.title", defaultMessage: "Move This Account?" },
+    body: {
+      id: "public.reporting.recovery.confirm.info",
+      defaultMessage: "Check what changes first.",
     },
   },
   applied: {
-    title: {
-      id: "public.reporting.recovery.applied.title",
-      defaultMessage: "Your account now uses this chat",
-    },
+    title: { id: "public.reporting.recovery.moved", defaultMessage: "Account moved" },
     body: CEREMONY_COPY.linked.body,
   },
   unavailable: CEREMONY_COPY.unavailable,
   unsupported: CEREMONY_COPY.unsupported,
-};
-
-/** What went wrong, and what to do about it. */
-export const FAILURE_COPY: Record<
-  NonNullable<AgentReportingCeremony["error"] | AgentReportingRecovery["error"]>,
-  MessageDescriptor
-> = {
-  expired: CEREMONY_COPY.unavailable.body as MessageDescriptor,
-  not_yours: CEREMONY_COPY.unavailable.body as MessageDescriptor,
-  changed: {
-    id: "public.reporting.error.changed",
-    defaultMessage:
-      "Something changed since this page loaded, so it was refreshed. Check it again.",
-  },
-  paused: {
-    id: "public.reporting.error.paused",
-    defaultMessage: "Publishing is paused right now. Try again later.",
-  },
-  rate_limited: {
-    id: "public.reporting.error.rateLimited",
-    defaultMessage: "Too many attempts. Wait a moment and try again.",
-  },
-  unsupported: CEREMONY_COPY.unsupported.title,
-  offline: {
-    id: "public.reporting.error.offline",
-    defaultMessage: "Green Goods couldn't be reached. Check your connection and try again.",
-  },
-  declined: {
-    id: "public.reporting.error.declined",
-    defaultMessage: "The request was declined. Nothing was signed.",
-  },
-  wrong_account: {
-    id: "public.reporting.error.wrongAccount",
-    defaultMessage:
-      "This isn't the account linked to your chat. Switch to that account and try again.",
-  },
-  envelope_mismatch: {
-    id: "public.reporting.error.envelopeMismatch",
-    defaultMessage:
-      "This page refused to sign because the prepared publication didn't match its own details. Nothing was sent.",
-  },
-  outcome_unknown: {
-    id: "public.reporting.error.outcomeUnknown",
-    defaultMessage:
-      "It isn't clear yet whether your wallet sent it. Green Goods is checking the network, so don't send it again.",
-  },
-  wrong_code: {
-    id: "public.reporting.error.wrongCode",
-    defaultMessage: "That code didn't match. Check the latest message in your new chat.",
-  },
-  unknown: {
-    id: "public.reporting.error.unknown",
-    defaultMessage: "Something went wrong. Try again.",
-  },
-};
-
-/** Failures that ask for patience rather than a correction read as a caution, not an error. */
-export const CAUTIONS = new Set<keyof typeof FAILURE_COPY>([
-  "outcome_unknown",
-  "paused",
-  "rate_limited",
-  "offline",
-]);
-
-export const PERMISSION_FAILURE_COPY: Record<
-  NonNullable<ReturnType<typeof useAgentReportingPermissions>["error"]>,
-  MessageDescriptor
-> = {
-  unsupported_account: {
-    id: "public.reporting.permissions.error.unsupported",
-    defaultMessage:
-      "This account doesn't support these permissions. You can still sign each report yourself.",
-  },
-  invalid_descriptor: {
-    id: "public.reporting.permissions.error.invalid",
-    defaultMessage:
-      "That saved record can't be used here. Paste the complete record exported from this page.",
-  },
-  wrong_account: {
-    id: "public.reporting.permissions.error.account",
-    defaultMessage: "This record belongs to another account. Connect that account to continue.",
-  },
-  dependency_unavailable: {
-    id: "public.reporting.permissions.error.connection",
-    defaultMessage: "The network couldn't be reached. Check your connection and try again.",
-  },
-  declined: {
-    id: "public.reporting.permissions.error.declined",
-    defaultMessage: "The request was declined. Your permissions haven't changed.",
-  },
-  outcome_unknown: {
-    id: "public.reporting.permissions.error.unknown",
-    defaultMessage:
-      "The network hasn't confirmed whether permissions changed. Check again before sending another request.",
-  },
-  remaining_permissions: {
-    id: "public.reporting.permissions.error.remaining",
-    defaultMessage:
-      "Newer permissions remain active. Check them and approve another removal if you want to stop them too.",
-  },
 };
 
 /** Each flow's named steps, shown as the app's flows name theirs (D6). */
@@ -334,11 +198,55 @@ export const STEP_NAMES = {
 
 /**
  * Once a request has left the page, the heading names what was sent, as the app's work page names
- * a submission, and the notice under it says where it stands.
+ * a submission, and the status card under it says where it stands.
  */
 export const SENT_HEADINGS = {
-  report: { id: "public.reporting.yourReport", defaultMessage: "Your report" },
-  decision: { id: "public.reporting.yourDecision", defaultMessage: "Your decision" },
-  permission: { id: "public.reporting.yourPermission", defaultMessage: "Your permission" },
-  account: { id: "public.reporting.yourAccount", defaultMessage: "Your account" },
+  report: { id: "public.reporting.yourReport", defaultMessage: "Your Report" },
+  decision: { id: "public.reporting.yourDecision", defaultMessage: "Your Decision" },
+  permission: { id: "public.reporting.yourPermission", defaultMessage: "Your Permission" },
+  account: { id: "public.reporting.yourAccount", defaultMessage: "Your Account" },
 } satisfies Record<string, MessageDescriptor>;
+
+/**
+ * Where a request stands before it is sent, said in the status card that later says it was sent,
+ * so the card is in place from the first screen that shows the report or permission.
+ */
+export const STATUS_COPY = {
+  notAllowed: {
+    title: { id: "public.reporting.status.notAllowed", defaultMessage: "Not allowed yet" },
+    body: {
+      id: "public.reporting.status.notAllowedBody",
+      defaultMessage: "Nothing is allowed until you sign. This step doesn't ask you to.",
+    },
+  },
+  notSent: {
+    title: { id: "public.reporting.status.notSent", defaultMessage: "Not sent yet" },
+    report: {
+      id: "public.reporting.status.notSentReport",
+      defaultMessage: "Nothing is published until you sign. It can't be edited afterwards.",
+    },
+    decision: {
+      id: "public.reporting.status.notSentDecision",
+      defaultMessage: "Nothing is recorded until you sign. It can't be edited afterwards.",
+    },
+    grantReport: {
+      id: "public.reporting.status.notSentGrantReport",
+      defaultMessage: "One signature allows the permission and publishes this report.",
+    },
+    grantDecision: {
+      id: "public.reporting.status.notSentGrantDecision",
+      defaultMessage: "One signature allows the permission and records this decision.",
+    },
+  },
+  decisionLoading: {
+    id: "public.reporting.loading.decisionTitle",
+    defaultMessage: "Getting your decision ready",
+  },
+  unknown: {
+    title: { id: "app.work.notice.checking.title", defaultMessage: "May already be sent" },
+    body: {
+      id: "public.reporting.status.unknown",
+      defaultMessage: "Green Goods is checking the network. Don't send it again.",
+    },
+  },
+} as const;

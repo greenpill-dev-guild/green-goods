@@ -40,7 +40,10 @@ export interface CeremonyScreen {
   sent: boolean;
   /** A permission's second step checks its limits and prepares its first item. */
   permissionStep: boolean;
-  /** The flow's named steps and the one in progress, 1-based; null where the page shows none. */
+  /**
+   * The flow's named steps and the one in progress, 1-based. Null where nothing is stepped
+   * through: before the link is opened, once the request has left the page, and on a dead end.
+   */
   steps: { names: MessageDescriptor[]; current: number } | null;
 }
 
@@ -59,17 +62,14 @@ export function readCeremonyScreen({
   const unusable = stage === "unavailable" || stage === "unsupported";
   const permissionStep = isGrant && stage === "grant_ready" && !resource;
 
-  // One past the last step once the flow is done, so every step shows as finished.
+  const sent = SENT.has(stage) || (uncertain && !opening && !proving && !unusable);
   const current = (() => {
     if (proving) return 1;
-    if (isLink) return stage === "linked" ? 3 : 2;
+    if (isLink) return 2;
     // In the other flows, an account the chat doesn't know yet is linked within the account step.
     if (stage === "pairing") return 1;
-    if (isGrant) {
-      if (stage === "grant_active") return 4;
-      return permissionStep || (stage === "failed" && !resource) ? 2 : 3;
-    }
-    return stage === "published" ? 3 : 2;
+    if (isGrant) return permissionStep ? 2 : 3;
+    return 2;
   })();
   const names = isLink
     ? [STEP_NAMES.account, STEP_NAMES.link]
@@ -90,8 +90,8 @@ export function readCeremonyScreen({
     publishing: stage === "review" || stage === "signing",
     granting: stage === "grant_ready" || stage === "grant_signing",
     unusable,
-    sent: SENT.has(stage) || (uncertain && !opening && !proving && !unusable),
+    sent,
     permissionStep,
-    steps: opening || unusable || purpose === null ? null : { names, current },
+    steps: opening || unusable || sent || purpose === null ? null : { names, current },
   };
 }

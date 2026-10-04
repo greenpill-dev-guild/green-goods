@@ -296,13 +296,13 @@ describe("PublicShell", () => {
     expect(screen.queryByText("Install App")).not.toBeInTheDocument();
     expect(container.querySelector('[data-site="website"]')).toBeNull();
 
-    // Help explains the page in place and keeps the permissions page and a person reachable.
-    fireEvent.click(screen.getByRole("button", { name: "Help" }));
-    expect(screen.getByRole("link", { name: "Reporting permissions" })).toHaveAttribute(
+    // Account and Help opens in place and keeps the permissions page and a person reachable.
+    fireEvent.click(screen.getByRole("button", { name: "Account and Help" }));
+    expect(screen.getByRole("link", { name: /Manage Permissions/ })).toHaveAttribute(
       "href",
       "/agent/reporting/permissions"
     );
-    expect(screen.getByRole("link", { name: "afo@wefa.world" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /afo@wefa\.world/ })).toHaveAttribute(
       "href",
       "mailto:afo@wefa.world"
     );

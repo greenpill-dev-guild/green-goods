@@ -76,17 +76,23 @@ describe("owner permission removal", () => {
     expect(
       screen.queryByRole("button", { name: "Remove Account Permissions" })
     ).not.toBeInTheDocument();
+    // The status card asks for another check, and the bar still offers it.
+    expect(screen.getByText("Not confirmed yet")).toBeInTheDocument();
+    expect(screen.getByText(/Check again first/)).toBeInTheDocument();
     const bar = screen.getByRole("region", { name: "Next step" });
-    expect(within(bar).getByText(/Check again before sending/)).toBeInTheDocument();
     fireEvent.click(within(bar).getByRole("button", { name: "Check Permissions" }));
     expect(props.scan).toHaveBeenCalledTimes(1);
   });
 
-  it("reports a rejected saved record on its field, not beside the page's acts", () => {
+  it("reports a rejected saved record on its field, not in the page's status", () => {
     render(view({ ...makeProps(), error: "wrong_account" }));
     const field = screen.getByRole("textbox", { name: "Saved permission record" });
     expect(field).toHaveAccessibleDescription(/belongs to another account/);
-    const bar = screen.getByRole("region", { name: "Next step" });
-    expect(within(bar).queryByText(/belongs to another account/)).not.toBeInTheDocument();
+    // The status card still says where the check stands, and the bar holds only its act.
+    expect(screen.getByText("Checked")).toBeInTheDocument();
+    expect(screen.getAllByText(/belongs to another account/)).toHaveLength(1);
+    expect(screen.getByRole("region", { name: "Next step" })).toHaveTextContent(
+      /^Check Permissions$/
+    );
   });
 });

@@ -2,19 +2,21 @@ import { useDocumentEvent, useWindowEvent } from "@green-goods/shared/hooks/util
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { FlowBar, FlowBarNote } from "@/components/Features/Work";
+import { FlowBar } from "@/components/Features/Work";
 
 /**
  * The app's flow bar, fixed to the bottom of the viewport at every width, its content held to the
- * page's column. A spacer of its measured height keeps the end of the content clear of it, and the
- * document's scroll edge is padded by the same height so a field or link that takes focus stays
- * above it.
+ * page's column. It is one row and one height on every screen: the step's buttons or, once nothing
+ * is left to press, where the request stands. Whose account it is and why a button is switched off
+ * are said elsewhere (the top bar's sheet, the status card), so the bar holds nothing but the row.
+ * A spacer of its measured height keeps the end of the content clear of it, and the document's
+ * scroll edge is padded by the same height so a field or link that takes focus stays above it.
  *
  * The bar never takes the page away: on a viewport too short to share (under 20rem, as at 400%
- * zoom), or when its own lines make it taller than half the viewport (large text, a long reason on
- * a small phone), it follows the content instead of covering it.
+ * zoom), or when enlarged text makes it taller than half the viewport, it follows the content
+ * instead of covering it.
  */
-export function CeremonyBar({ status, children }: { status: ReactNode; children: ReactNode }) {
+export function CeremonyBar({ children }: { children: ReactNode }) {
   const intl = useIntl();
   const [barHeight, setBarHeight] = useState<number | null>(null);
   const [viewportHeight, setViewportHeight] = useState(() =>
@@ -77,11 +79,14 @@ export function CeremonyBar({ status, children }: { status: ReactNode; children:
         })}
         data-component="CeremonyBar"
         className={cn(
+          // The app's bar sits over its own navigation. Here there is none, so it takes the top
+          // bar's layer and a sheet's scrim dims both bars alike.
+          "[&>[data-component=FlowBar]]:z-nav",
           "[@media(max-height:20rem)]:[&>[data-component=FlowBar]]:static",
           follows && "[&>[data-component=FlowBar]]:static"
         )}
       >
-        <FlowBar layout="column" ref={setBar} status={status}>
+        <FlowBar layout="column" ref={setBar}>
           {children}
         </FlowBar>
       </div>
@@ -132,32 +137,16 @@ export function BarStatus({
   );
 }
 
-/** One line over the act: which signature it asks for, and from which account. */
-export function ActContext({
-  step = null,
-  account = null,
-}: {
-  step?: ReactNode;
-  account?: ReactNode;
-}) {
-  if (!step && !account) return null;
-  return (
-    <FlowBarNote>
-      {step}
-      {step && account ? " · " : null}
-      {account}
-    </FlowBarNote>
-  );
-}
-
 /**
- * Two acts on one row, as the promise page pairs them: each starts at half the row, the primary on
- * the right, and both take full rows, the primary on top, when a label would not fit. A label
- * wider than a whole row (large text on a small phone) wraps inside its button.
+ * Two acts on one row, as the promise page pairs them, the primary on the right. They share the
+ * row equally when both labels fit in half of it; a longer label takes the room it needs from the
+ * shorter one, so the pair stays on one row and the bar keeps its height. Only when the two cannot
+ * share a row do both take full rows, the primary on top. A label wider than a whole row (large
+ * text on a small phone) wraps inside its button.
  */
 export function PairedActs({ children }: { children: ReactNode }) {
   return (
-    <div className="flex w-full flex-row-reverse flex-wrap gap-2 [&>.gg-button]:min-w-fit [&>.gg-button]:grow [&>.gg-button]:whitespace-normal [&>.gg-button]:basis-[calc(50%-0.25rem)]">
+    <div className="flex w-full flex-row-reverse flex-wrap gap-2 [&>.gg-button]:min-w-fit [&>.gg-button]:grow [&>.gg-button]:whitespace-normal [&>.gg-button]:basis-0">
       {children}
     </div>
   );

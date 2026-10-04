@@ -5,19 +5,18 @@ import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives"
 import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import type { useAgentReportingPermissions } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingPermissions";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
-import { RiLoader4Line, RiShieldKeyholeLine, RiTimeLine } from "@remixicon/react";
+import { RiShieldKeyholeLine } from "@remixicon/react";
 import { useId, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 import { EmptyState } from "@/components/Communication";
-import { AccountLine, ConnectActions } from "./CeremonyActs";
-import { ActContext, PairedActs } from "./CeremonyBar";
+import { ConnectActions, PageAccount } from "./CeremonyActs";
 import { CeremonyFrame } from "./CeremonyFrame";
-import { PERMISSION_FAILURE_COPY as ERRORS } from "./messages";
+import { PERMISSION_FAILURE_COPY as ERRORS } from "./failures";
 import { PermissionList } from "./PermissionList";
+import { PermissionStatus } from "./PermissionStatus";
 
-/** Failures of the saved-record import, shown on its own field rather than beside the page's acts. */
+/** Failures of the saved-record import, shown on its own field rather than in the page's status. */
 const IMPORT_ERRORS = new Set(["invalid_descriptor", "wrong_account"]);
-const ICON = "h-5 w-5 flex-shrink-0";
 
 type PermissionsViewProps = Pick<
   ReturnType<typeof useAgentReportingPermissions>,
@@ -37,8 +36,10 @@ type PermissionsViewProps = Pick<
 
 /**
  * Command surface, solid material: inspect and remove permissions directly with the owner. The page
- * is drawn as the ceremonies are, its acts in the fixed bar, where a check or removal stands in the
- * notice under its heading, and what a check found as a list of permissions with their status.
+ * is drawn as the ceremonies are: a heading card, a status card that is there from the start and
+ * says where a check or removal stands, what a check found as a list of permissions with their
+ * status, and the page's one standing act in the fixed bar. Removing sits under the list it acts
+ * on, and the connected account is in the top bar's sheet.
  */
 export function PermissionsView(props: PermissionsViewProps) {
   const intl = useIntl();
@@ -58,43 +59,8 @@ export function PermissionsView(props: PermissionsViewProps) {
     defaultMessage: "Remove Account Permissions",
   });
 
-  const waiting = <RiLoader4Line className={`${ICON} animate-spin`} aria-hidden="true" />;
-  const notice =
-    props.stage === "inspecting" ? (
-      <Alert variant="info" icon={waiting}>
-        {text({
-          id: "public.reporting.permissions.checking",
-          defaultMessage: "Checking installed permissions…",
-        })}
-      </Alert>
-    ) : props.stage === "revoking" ? (
-      <Alert variant="info" icon={waiting}>
-        {text({
-          id: "public.reporting.permissions.signing",
-          defaultMessage: "Confirm removal in your wallet or passkey prompt.",
-        })}
-      </Alert>
-    ) : props.stage === "submitted" ? (
-      // Nothing checks on its own here: the bar's Check Permissions confirms the removal.
-      <Alert variant="info" icon={<RiTimeLine className={ICON} aria-hidden="true" />}>
-        {text({
-          id: "public.reporting.permissions.waiting",
-          defaultMessage: "Removal sent. Waiting for the network to confirm.",
-        })}
-      </Alert>
-    ) : props.stage === "revoked" ? (
-      <Alert variant="success">
-        {text({
-          id: "public.reporting.permissions.removed",
-          defaultMessage:
-            "Account permissions removed. Your owner wallet or passkey can still sign reports.",
-        })}
-      </Alert>
-    ) : null;
-
   return (
     <CeremonyFrame
-      channel={null}
       heading={{
         title: {
           id: "public.reporting.permissions.title",
@@ -102,24 +68,17 @@ export function PermissionsView(props: PermissionsViewProps) {
         },
         info: text({
           id: "public.reporting.permissions.body",
-          defaultMessage:
-            "Check your account's permissions and remove them directly with your wallet or passkey. This page works even when the chat assistant is unavailable.",
+          defaultMessage: "Check and remove your account's permissions here.",
         }),
         Icon: RiShieldKeyholeLine,
       }}
-      notice={notice}
-      error={
-        props.error && !importError
-          ? {
-              message: ERRORS[props.error],
-              tone: props.error === "outcome_unknown" ? "caution" : "error",
-            }
-          : null
-      }
-      barNotes={
-        props.account ? (
-          <ActContext account={<AccountLine account={props.account} relation="connected" />} />
-        ) : null
+      notice={
+        <PermissionStatus
+          stage={props.stage}
+          connected={props.account !== null}
+          active={active.length}
+          failure={props.error && !importError ? props.error : null}
+        />
       }
       actions={
         !props.account ? (
@@ -129,23 +88,37 @@ export function PermissionsView(props: PermissionsViewProps) {
             onConnectPasskey={() => void props.connectPasskey()}
           />
         ) : (
-          <PairedActs>
-            <Button
-              size="lg"
-              loading={props.stage === "inspecting"}
-              disabled={props.stage === "revoking"}
-              onClick={() => void props.scan()}
-            >
-              {text({
-                id: "public.reporting.permissions.check",
-                defaultMessage: "Check Permissions",
-              })}
-            </Button>
-            {canRevoke ? (
+          <Button
+            size="lg"
+            className="w-full whitespace-normal [text-wrap:balance]"
+            loading={props.stage === "inspecting"}
+            disabled={props.stage === "revoking"}
+            onClick={() => void props.scan()}
+          >
+            {text({
+              id: "public.reporting.permissions.check",
+              defaultMessage: "Check Permissions",
+            })}
+          </Button>
+        )
+      }
+    >
+      <PageAccount
+        account={props.account}
+        signedIn={false}
+        signsIn={false}
+        permissionsLink={false}
+      />
+      {props.permissions.length > 0 ? (
+        <PermissionList
+          permissions={props.permissions}
+          action={
+            canRevoke ? (
               <Button
-                size="lg"
+                size="md"
                 emphasis="secondary"
                 tone="danger"
+                className="whitespace-normal"
                 onClick={() => {
                   setConfirmationAccount(props.account);
                   setConfirmOpen(true);
@@ -153,13 +126,9 @@ export function PermissionsView(props: PermissionsViewProps) {
               >
                 {removeLabel}
               </Button>
-            ) : null}
-          </PairedActs>
-        )
-      }
-    >
-      {props.permissions.length > 0 ? (
-        <PermissionList permissions={props.permissions} />
+            ) : null
+          }
+        />
       ) : props.stage === "ready" ? (
         <EmptyState
           titleAs="h2"
@@ -197,7 +166,7 @@ export function PermissionsView(props: PermissionsViewProps) {
                 defaultMessage:
                   "Paste an exported record to check it. Importing a record doesn't grant any permission.",
               })}
-              error={importError ? text(ERRORS[importError]) : undefined}
+              error={importError ? text(ERRORS[importError].message) : undefined}
             >
               <Textarea
                 id={importId}
@@ -213,7 +182,7 @@ export function PermissionsView(props: PermissionsViewProps) {
                 className="text-base [overflow-wrap:anywhere]"
               />
             </FormField>
-            {/* A section's own act, sized below the page's acts in the bar. */}
+            {/* A section's own act, sized below the page's act in the bar. */}
             <Button
               type="submit"
               size="md"

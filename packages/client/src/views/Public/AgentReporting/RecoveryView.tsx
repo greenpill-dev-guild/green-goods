@@ -15,17 +15,12 @@ import {
 import { useId, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 import { FlowForward } from "@/components/Features/Work";
-import { AccountActions, AccountLine } from "./CeremonyActs";
-import { ActContext, BarStatus } from "./CeremonyBar";
-import { BLOCKED_ID, type CeremonyHeading, CeremonyFrame, StageNotice } from "./CeremonyFrame";
-import {
-  CAUTIONS,
-  CEREMONY_COPY,
-  FAILURE_COPY,
-  RECOVERY_COPY,
-  SENT_HEADINGS,
-  STEP_NAMES,
-} from "./messages";
+import { AccountActions, PageAccount } from "./CeremonyActs";
+import { BarStatus } from "./CeremonyBar";
+import { type CeremonyHeading, CeremonyFrame, StageNotice } from "./CeremonyFrame";
+import { FAILURE_COPY, failureProblem } from "./failures";
+import { CEREMONY_COPY, RECOVERY_COPY, SENT_HEADINGS, STEP_NAMES } from "./messages";
+import { WhatHappensNext } from "./WhatHappensNext";
 
 type RecoveryViewProps = Pick<
   AgentReportingRecovery,
@@ -47,7 +42,8 @@ const CODE_LENGTH = 6;
 
 /**
  * Moving an account to a new chat, drawn as the other ceremonies are: show the account is yours,
- * enter the code the new chat received, then confirm the move after reading what changes.
+ * enter the code the new chat received, then confirm the move after reading what changes. Its
+ * steps have no status card until the move is done, so a problem is said in the heading card.
  */
 export function RecoveryView(props: RecoveryViewProps) {
   const intl = useIntl();
@@ -77,28 +73,41 @@ export function RecoveryView(props: RecoveryViewProps) {
 
   const heading: CeremonyHeading = opening
     ? {
-        title: copy.title,
+        title: RECOVERY_COPY.intro.title,
         info: text(RECOVERY_COPY.intro.body as MessageDescriptor),
         Icon: RiArrowLeftRightLine,
       }
     : proving
-      ? { title: copy.title, info: text(copy.body as MessageDescriptor), Icon: RiShieldUserLine }
+      ? {
+          title: copy.title,
+          // One signature here: moving the account afterwards asks for none.
+          info:
+            stage === "proving"
+              ? text(copy.body as MessageDescriptor)
+              : text({
+                  id: "public.reporting.connect.once",
+                  defaultMessage: "You'll sign once to show it's yours. It costs nothing.",
+                }),
+          Icon: RiShieldUserLine,
+        }
       : stage === "code"
         ? {
             title: copy.title,
-            info: text({
-              id: "public.reporting.recovery.code.body",
-              defaultMessage: "Your new chat received a 6-digit code. Enter it here.",
-            }),
+            info: text(copy.body as MessageDescriptor),
             Icon: RiLockPasswordLine,
           }
         : confirming
           ? {
-              title: RECOVERY_COPY.confirm.title,
-              info: text({
-                id: "public.reporting.recovery.confirm.info",
-                defaultMessage: "Check what changes before you move it.",
-              }),
+              title: copy.title,
+              // The account being moved leads, on a line of its own, so the title stays short.
+              info: (
+                <>
+                  <span className="block font-mono" title={props.recoveredAccount ?? undefined}>
+                    {formatAddress(props.recoveredAccount)}
+                  </span>
+                  <span className="block">{text(copy.body as MessageDescriptor)}</span>
+                </>
+              ),
               Icon: RiArrowLeftRightLine,
             }
           : stage === "applied"
@@ -138,7 +147,7 @@ export function RecoveryView(props: RecoveryViewProps) {
       label={text({ id: "public.reporting.recovery.code.submit", defaultMessage: "Confirm Code" })}
       loading={checking}
       disabled={!complete}
-      describedBy={complete ? undefined : BLOCKED_ID}
+      describedBy={`${codeId}-helper-text`}
     />
   ) : confirming ? (
     <FlowForward
@@ -148,34 +157,27 @@ export function RecoveryView(props: RecoveryViewProps) {
     />
   ) : null;
 
+  // A wrong code is the field's own error; anything else is the step's.
+  const failure = props.error && props.error !== "wrong_code" ? failureProblem(props.error) : null;
+  const moved = stage === "applied";
+  // The account is proven from the code step on, and the page is signed in to it until it closes.
+  const signedIn = stage === "code" || confirming || moved;
+
   return (
     <CeremonyFrame
-      channel={props.channelLabel}
       screen={unusable ? "state" : "step"}
       steps={
-        opening || unusable
+        opening || unusable || moved
           ? null
           : {
               names: [STEP_NAMES.account, STEP_NAMES.code, STEP_NAMES.move].map(text),
-              current: proving ? 1 : stage === "code" ? 2 : confirming ? 3 : 4,
+              current: proving ? 1 : stage === "code" ? 2 : 3,
             }
       }
       heading={heading}
-      values={{ account: formatAddress(props.recoveredAccount) }}
+      problem={moved ? null : failure}
       notice={
-        confirming ? (
-          // What the move changes, read before the one act that makes it.
-          <Alert
-            variant="warning"
-            layout="stacked"
-            title={text({
-              id: "public.reporting.recovery.confirm.changes",
-              defaultMessage: "What changes",
-            })}
-          >
-            <p>{text(RECOVERY_COPY.confirm.body as MessageDescriptor)}</p>
-          </Alert>
-        ) : stage === "applied" ? (
+        moved ? (
           <StageNotice
             variant="success"
             title={RECOVERY_COPY.applied.title}
@@ -183,39 +185,21 @@ export function RecoveryView(props: RecoveryViewProps) {
           />
         ) : null
       }
-      error={
-        props.error && props.error !== "wrong_code"
-          ? {
-              message: FAILURE_COPY[props.error],
-              tone: CAUTIONS.has(props.error) ? "caution" : "error",
-            }
-          : null
-      }
-      blocked={
-        stage === "code" && !complete
-          ? {
-              message: {
-                id: "public.reporting.recovery.code.needed",
-                defaultMessage: "Enter all 6 digits to continue.",
-              },
-              tone: "neutral",
-            }
-          : null
-      }
-      barNotes={
-        proving && props.account ? (
-          <ActContext account={<AccountLine account={props.account} relation="connected" />} />
-        ) : null
-      }
       actions={actions}
       barStatus={
-        stage === "applied" ? (
+        moved ? (
           <BarStatus tone="success" icon={<RiCheckLine />} announce={false}>
-            {text({ id: "public.reporting.recovery.moved", defaultMessage: "Account moved" })}
+            {text(RECOVERY_COPY.applied.title)}
           </BarStatus>
         ) : null
       }
     >
+      <PageAccount
+        account={signedIn ? (props.recoveredAccount ?? props.account) : props.account}
+        signedIn={signedIn}
+        channel={props.channelLabel}
+      />
+      {opening || proving ? <WhatHappensNext flow="move" /> : null}
       {stage === "code" ? (
         <form
           id={formId}
@@ -233,6 +217,11 @@ export function RecoveryView(props: RecoveryViewProps) {
             label={text({
               id: "public.reporting.recovery.code.label",
               defaultMessage: "6-digit code",
+            })}
+            // Why the act waits, said where the code is typed and kept there, so it never moves.
+            hint={text({
+              id: "public.reporting.recovery.code.needed",
+              defaultMessage: "Enter all 6 digits to continue.",
             })}
             error={props.error === "wrong_code" ? text(FAILURE_COPY.wrong_code) : undefined}
           >
@@ -256,6 +245,26 @@ export function RecoveryView(props: RecoveryViewProps) {
             />
           </FormField>
         </form>
+      ) : null}
+      {confirming ? (
+        // What the move changes, read before the one act that makes it. It is the step's own
+        // content, at whatever length it needs, not a status that trades places with another.
+        <Alert
+          variant="warning"
+          layout="stacked"
+          title={text({
+            id: "public.reporting.recovery.confirm.changes",
+            defaultMessage: "What changes",
+          })}
+        >
+          <p>
+            {text({
+              id: "public.reporting.recovery.confirm.body",
+              defaultMessage:
+                "Your previous chat on this channel loses access. Other connected channels keep their conversations. Open pages close and reporting permissions pause. Unfinished reports from the replaced chat move here.",
+            })}
+          </p>
+        </Alert>
       ) : null}
     </CeremonyFrame>
   );

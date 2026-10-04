@@ -12,15 +12,13 @@ import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { HelmetProvider } from "react-helmet-async";
 import { IntlProvider } from "react-intl";
 import { expect, waitFor, within } from "storybook/test";
-import { FocusedSiteHeader } from "@/components/Navigation/FocusedSiteHeader";
+import { FocusedShell } from "@/components/Navigation/FocusedSiteHeader";
 import {
   FIXTURE_IMAGE_AGROFORESTRY,
   FIXTURE_IMAGE_BANNER,
   STORYBOOK_NOW_SECONDS,
 } from "../../../../../shared/.storybook/fixtures";
 import { CeremonyView } from "./CeremonyView";
-import { PermissionsView } from "./PermissionsView";
-import { RecoveryView } from "./RecoveryView";
 
 const ACCOUNT = "0x1f3a9c2b7d4e5f60718293a4b5c6d7e8f9012345";
 const noop = () => {};
@@ -91,6 +89,7 @@ const base: Props = {
   purpose: null,
   channelLabel: "Telegram",
   pairingCode: null,
+  sessionAccount: null,
   resource: null,
   operation: null,
   grant: null,
@@ -127,17 +126,16 @@ const meta: Meta<typeof CeremonyView> = {
   tags: ["autodocs"],
   args: base,
   decorators: [
-    // The focused PublicShell branch: the header, then the page in `main`. Storybook pads every
+    // The focused PublicShell branch: the top bar, then the page in `main`. Storybook pads every
     // story by its `--gg-space-md`; the negative margin takes exactly that back (a rem margin
     // would grow with the text size), so the page meets the viewport's edges as it does in the
-    // browser and lines up with its fixed bar.
+    // browser and lines up with its two bars.
     (Story) => (
       <HelmetProvider>
-        <div className="m-[calc(var(--gg-space-md)*-1)] flex min-h-screen flex-col bg-bg-white-0">
-          <FocusedSiteHeader />
-          <main className="flex-1">
+        <div className="m-[calc(var(--gg-space-md)*-1)]">
+          <FocusedShell>
             <Story />
-          </main>
+          </FocusedShell>
         </div>
       </HelmetProvider>
     ),
@@ -167,17 +165,32 @@ type Story = StoryObj<typeof CeremonyView>;
 
 export const Intro: Story = {};
 export const Opening: Story = { args: { stage: "opening" } };
-export const Loading: Story = { args: { stage: "loading", purpose: "publish_work" } };
+export const Loading: Story = {
+  args: { stage: "loading", purpose: "publish_work", account: ACCOUNT, sessionAccount: ACCOUNT },
+};
 export const Connect: Story = { args: { stage: "connect", purpose: "publish_work" } };
 export const ProveConnected: Story = {
   args: { stage: "connect", purpose: "publish_work", account: ACCOUNT },
 };
+/** The prompt is open: the heading card points at it, in the same two lines. */
+export const Proving: Story = { args: { ...ProveConnected.args, stage: "proving" } };
+/** A problem on a screen with no status card is said in the heading card. */
+export const ConnectDeclined: Story = { args: { ...ProveConnected.args, error: "declined" } };
+/** Linking an account asks for one signature, then a code sent in chat. */
+export const LinkConnect: Story = { args: { stage: "connect", purpose: "link_account" } };
 export const Pairing: Story = {
   args: { stage: "pairing", purpose: "link_account", pairingCode: "481516", account: ACCOUNT },
 };
 export const Linked: Story = { args: { ...Pairing.args, stage: "linked", pairingCode: null } };
 export const Review: Story = {
-  args: { stage: "review", purpose: "publish_work", account: ACCOUNT, resource, operation },
+  args: {
+    stage: "review",
+    purpose: "publish_work",
+    account: ACCOUNT,
+    sessionAccount: ACCOUNT,
+    resource,
+    operation,
+  },
 };
 export const ReviewWrongAccount: Story = {
   args: {
@@ -201,10 +214,13 @@ export const ReviewLongContent: Story = {
 export const ReviewDisabled: Story = {
   args: { ...Review.args, issues: ["wrong_chain"], error: "envelope_mismatch" },
 };
+/** What failed keeps the status card's title, so it still says nothing was sent. */
+export const ReviewOffline: Story = { args: { ...Review.args, error: "offline" } };
 export const Signing: Story = { args: { ...Review.args, stage: "signing" } };
 export const ReviewDecision: Story = {
   args: { ...Review.args, purpose: "review_decision", resource: { ...resource, kind: "review" } },
 };
+export const DecisionRecorded: Story = { args: { ...ReviewDecision.args, stage: "published" } };
 export const Submitted: Story = {
   args: { ...Review.args, stage: "submitted", operation: { ...operation, state: "reconciling" } },
 };
@@ -244,8 +260,19 @@ const grant: NonNullable<Props["grant"]> = {
   submissionsUsed: 0,
   revocationDescriptor: null,
 };
+/** The permission flow's account step, before and after an account is connected. */
+export const GrantConnect: Story = { args: { stage: "connect", purpose: "grant_reporting" } };
+export const GrantConnected: Story = {
+  args: { stage: "connect", purpose: "grant_reporting", account: ACCOUNT },
+};
 export const GrantPrepare: Story = {
-  args: { stage: "grant_ready", purpose: "grant_reporting", account: ACCOUNT, grant },
+  args: {
+    stage: "grant_ready",
+    purpose: "grant_reporting",
+    account: ACCOUNT,
+    sessionAccount: ACCOUNT,
+    grant,
+  },
 };
 export const GrantPreparing: Story = { args: { ...GrantPrepare.args, stage: "loading" } };
 /** The longest step: the permission and its first report. The act stays in reach throughout. */
@@ -256,7 +283,7 @@ export const GrantReady: Story = {
   play: async ({ canvasElement }) => {
     const view = canvasElement.ownerDocument.defaultView as Window;
     const region = within(canvasElement).getByRole("region", { name: "Next step" });
-    const act = within(region).getByRole("button", { name: "Allow and Publish First Report" });
+    const act = within(region).getByRole("button", { name: "Allow and Publish" });
     const inReach = () => {
       const { top, bottom } = act.getBoundingClientRect();
       return top >= 0 && bottom <= view.innerHeight;
@@ -278,8 +305,8 @@ export const GrantReady: Story = {
     await expect(inReach()).toBe(true);
     view.scrollTo({ top: end, behavior: "instant" });
     await expect(inReach()).toBe(true);
-    // At the end of the page the last of the content clears the bar.
-    const last = within(canvasElement).getByRole("button", { name: "Sign Out of This Page" });
+    // At the end of the page the last of the content, the permission's last limit, clears the bar.
+    const last = within(canvasElement).getByText("Maximum total sponsored cost");
     await expect(last.getBoundingClientRect().bottom).toBeLessThanOrEqual(
       bar.getBoundingClientRect().top
     );
@@ -364,128 +391,4 @@ export const GrantReview: Story = {
       },
     },
   },
-};
-
-export const RecoveryCode: StoryObj<typeof RecoveryView> = {
-  render: () => (
-    <RecoveryView
-      stage="code"
-      channelLabel="Telegram"
-      recoveredAccount={ACCOUNT}
-      error="wrong_code"
-      account={ACCOUNT}
-      connecting={false}
-      connectWallet={noop}
-      connectPasskey={asyncNoop}
-      start={asyncNoop}
-      prove={asyncNoop}
-      confirmCode={asyncNoop}
-      apply={asyncNoop}
-    />
-  ),
-};
-
-export const RecoveryApplied: StoryObj<typeof RecoveryView> = {
-  render: () => (
-    <RecoveryView
-      stage="applied"
-      channelLabel="Telegram"
-      recoveredAccount={ACCOUNT}
-      error={null}
-      account={ACCOUNT}
-      connecting={false}
-      connectWallet={noop}
-      connectPasskey={asyncNoop}
-      start={asyncNoop}
-      prove={asyncNoop}
-      confirmCode={asyncNoop}
-      apply={asyncNoop}
-    />
-  ),
-};
-
-export const RecoveryConfirm: StoryObj<typeof RecoveryView> = {
-  render: () => (
-    <RecoveryView
-      stage="confirm"
-      channelLabel="Telegram"
-      recoveredAccount={ACCOUNT}
-      error={null}
-      account={ACCOUNT}
-      connecting={false}
-      connectWallet={noop}
-      connectPasskey={asyncNoop}
-      start={asyncNoop}
-      prove={asyncNoop}
-      confirmCode={asyncNoop}
-      apply={asyncNoop}
-    />
-  ),
-};
-
-type PermissionProps = Parameters<typeof PermissionsView>[0];
-const permissionBase: PermissionProps = {
-  account: null,
-  connecting: false,
-  connectWallet: noop,
-  connectPasskey: asyncNoop,
-  stage: "idle",
-  permissions: [],
-  descriptors: [],
-  error: null,
-  scan: asyncNoop,
-  importDescriptor: () => false,
-  exportDescriptors: () => "[]",
-  revoke: asyncNoop,
-};
-const activePermissions: PermissionProps = {
-  ...permissionBase,
-  account: ACCOUNT,
-  stage: "ready",
-  permissions: [
-    {
-      permissionId: `0x${"12".repeat(4)}`,
-      signerAddress: ACCOUNT,
-      active: true,
-      nonce: 0,
-      descriptor: null,
-    },
-  ],
-};
-export const Permissions: Story = { render: () => <PermissionsView {...permissionBase} /> };
-export const PermissionsActive: Story = {
-  render: () => <PermissionsView {...activePermissions} />,
-};
-export const PermissionsLoading: Story = {
-  render: () => <PermissionsView {...permissionBase} account={ACCOUNT} stage="inspecting" />,
-};
-export const PermissionsEmpty: Story = {
-  render: () => <PermissionsView {...permissionBase} account={ACCOUNT} stage="ready" />,
-};
-export const PermissionsUnsupported: Story = {
-  render: () => (
-    <PermissionsView
-      {...permissionBase}
-      account={ACCOUNT}
-      stage="failed"
-      error="unsupported_account"
-    />
-  ),
-};
-export const PermissionsSubmitted: Story = {
-  render: () => (
-    <PermissionsView {...activePermissions} stage="submitted" error="outcome_unknown" />
-  ),
-};
-export const PermissionsRevoked: Story = {
-  render: () => (
-    <PermissionsView
-      {...activePermissions}
-      stage="revoked"
-      permissions={activePermissions.permissions.map((permission) => ({
-        ...permission,
-        active: false,
-      }))}
-    />
-  ),
 };

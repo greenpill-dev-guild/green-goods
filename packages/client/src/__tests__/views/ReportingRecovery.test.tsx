@@ -40,13 +40,14 @@ describe("recovery code", () => {
     const bar = screen.getByRole("region", { name: "Next step" });
     const confirm = within(bar).getByRole("button", { name: "Confirm Code" });
     expect(confirm).toBeDisabled();
-    expect(within(bar).getByText("Enter all 6 digits to continue.")).toBeInTheDocument();
+    // Why it waits is said where the code is typed, and the act carries it as its description.
+    expect(confirm).toHaveAccessibleDescription("Enter all 6 digits to continue.");
+    expect(bar).toHaveTextContent(/^Confirm Code$/);
 
     fireEvent.change(screen.getByRole("textbox", { name: /6-digit code/ }), {
       target: { value: "12 34-56" },
     });
     expect(confirm).toBeEnabled();
-    expect(within(bar).queryByText("Enter all 6 digits to continue.")).not.toBeInTheDocument();
     fireEvent.click(confirm);
     await waitFor(() => expect(props.confirmCode).toHaveBeenCalledWith("123456"));
     expect(props.confirmCode).toHaveBeenCalledTimes(1);

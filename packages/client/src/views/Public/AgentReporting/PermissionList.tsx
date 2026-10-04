@@ -1,15 +1,23 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { useAgentReportingPermissions } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingPermissions";
-import { useId } from "react";
+import { type ReactNode, useId } from "react";
 import { useIntl } from "react-intl";
 
 type Permissions = ReturnType<typeof useAgentReportingPermissions>["permissions"];
 
 /**
  * What a check found on the account: each permission by what it is, its id, and whether it is
- * still active. Status is a labelled badge, never colour alone.
+ * still active. Status is a labelled badge, never colour alone. The act that removes them sits
+ * under the list it acts on, so the page's bar keeps to the one act that is always there.
  */
-export function PermissionList({ permissions }: { permissions: Permissions }) {
+export function PermissionList({
+  permissions,
+  action = null,
+}: {
+  permissions: Permissions;
+  /** What can be done about the permissions listed, while any is active. */
+  action?: ReactNode;
+}) {
   const intl = useIntl();
   const headingId = useId();
   return (
@@ -57,6 +65,7 @@ export function PermissionList({ permissions }: { permissions: Permissions }) {
           </li>
         ))}
       </ul>
+      {action ? <div className="mt-3 flex">{action}</div> : null}
     </section>
   );
 }
