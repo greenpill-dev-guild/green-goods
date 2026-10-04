@@ -61,7 +61,7 @@ async function linkedSteward(): Promise<void> {
   await browser.open(latestLink(harness));
   const proof = await browser.prove(stewardAccount);
   expect(await harness.say(BOLA, `PAIR ${proof.body.pairingCode}`)).toEqual([
-    `Your account ${stewardAccount.address.toLowerCase()} is now linked.`,
+    `Your account ${stewardAccount.address.toLowerCase()} is now linked.\nYour gardens: TAS.`,
   ]);
 }
 
@@ -106,9 +106,9 @@ describe("steward review", () => {
       "• Decision: Approve\n• Confidence: High\n• Feedback: Well documented, thank you\n• Method: human review"
     );
     const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
-    expect(await harness.say(BOLA, `CONFIRM ${token}`)).toEqual([
-      "Open this page to check and sign your decision with your wallet.",
-    ]);
+    expect((await harness.say(BOLA, `CONFIRM ${token}`))[0]).toContain(
+      "Open this page to check and sign your decision with your wallet."
+    );
 
     const { browser, view } = await openDecisionPage();
     expect(view).toMatchObject({ kind: "review", state: "awaitingSignature", gardenLabel: "TAS" });
@@ -141,7 +141,13 @@ describe("steward review", () => {
       transactionHash: hash,
     });
     await harness.drain();
-    expect(sentTexts().at(-1)).toBe(`Your review is recorded ✅\nTransaction: ${hash}`);
+    expect(sentTexts().at(-1)).toBe(
+      `Your review is recorded ✅\nTransaction: https://arbiscan.io/tx/${hash}`
+    );
+    expect(harness.transport.sent.at(-1)?.message.link).toEqual({
+      url: `https://arbitrum.easscan.org/attestation/view/${workUID}`,
+      label: "View the work",
+    });
     expect(harness.chain.works.get(workUID)?.approved).toBe(true);
     expect(harness.core.db.query("SELECT lifecycle FROM review_intents").get()).toEqual({
       lifecycle: "recorded",

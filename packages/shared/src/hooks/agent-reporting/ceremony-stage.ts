@@ -1,6 +1,8 @@
 import type { CeremonyAccount } from "./useCeremonyAccount";
 import type { CeremonyFailure } from "./ceremony-storage";
+import type { CommunityOffer } from "./community-offer";
 import { agentReportingKeys } from "../../config/query-keys/agent-reporting";
+import type { Address } from "../../types/domain";
 import type {
   AccessResponse,
   ChallengeResponse,
@@ -128,10 +130,22 @@ export function settlesUnknownOutcome(stage: CeremonyStage): boolean {
 /** Browser-scoped proof and publication flow; signing requires an explicit owner action.
  * Frozen envelopes are checked locally; the chain reconciles every uncertain send. */
 export interface AgentReportingCeremony extends Omit<CeremonyAccount, "prove"> {
+  inAppBrowser: boolean;
+  passkeyUnavailable: boolean;
+  linkCopied: boolean;
+  openInBrowser: () => Promise<void>;
   stage: CeremonyStage;
   purpose: ChallengeResponse["purpose"] | null;
   channelLabel: string | null;
   pairingCode: string | null;
+  /** The account this browser's challenge proved: the one the chat links, whatever is connected. */
+  linkedAccount: Address | null;
+  /** Settled before the link step opens, so the code screen never turns into an invitation. */
+  communityOffer: CommunityOffer | null;
+  joinFailure: "declined" | "not_sent" | null;
+  joinSending: boolean;
+  skipCommunity: () => void;
+  joinCommunity: () => Promise<void>;
   sessionAccount: AccessResponse["account"] | null;
   resource: ResourceView | null;
   operation: OperationView | null;

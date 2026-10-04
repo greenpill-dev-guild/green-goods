@@ -5,6 +5,9 @@ import type {
   ReportRequirement,
 } from "@green-goods/shared/modules/agent-reporting";
 import type { WorkInput } from "@green-goods/shared/types/domain";
+import { createLogger } from "../logger";
+
+const log = createLogger("reporting");
 
 /**
  * Model interpretation boundary. Jev chooses among intents and next steps the code permits;
@@ -73,7 +76,19 @@ export async function interpretWithDeadline(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await interpreter.interpret(request, controller.signal);
-  } catch {
+  } catch (error) {
+    // The turn goes on without the model; the operator's log says that it did, and why.
+    log.warn(
+      {
+        cause:
+          error instanceof InterpretationUnavailableError
+            ? error.reason
+            : error instanceof Error
+              ? error.name
+              : "unknown",
+      },
+      "A message could not be interpreted; the turn continues without the model"
+    );
     return null;
   } finally {
     clearTimeout(timer);

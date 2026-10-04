@@ -321,3 +321,49 @@ laptop demo.
   the origin check and signing on beta are still to be observed. Recheck which accounts exist on
   beta before the session. Staging has had its own passkey configuration, so a passkey account
   there may differ from the one on the public site; a wallet account is the same on both.
+
+## Delegation switched on for passkey accounts, 2026-10-04
+
+Recorded by the Claude interface session with Afolabi, who asked for it. This closes checklist
+step 7 as far as a fork can and adds the approved module for Arbitrum One.
+
+- **What had blocked it.** Not only the empty module list. The first report's activation asked the
+  owner's account for the Kernel SDK's owner validator. The app builds passkey accounts with
+  permissionless, whose account object has none, so no real account could approve a permission.
+  Earlier fork proof used an SDK account with a test key and could not see this.
+- **The fix.** `owner-validator.ts` adapts the account the app already has: its root, read from
+  the chain, must be the passkey validator, and the passkey signs one thing, the enable request
+  of the permission the page rebuilt and verified. The owner's signature stays in the browser.
+- **The approved module** (`grants.ts`): signer `0x6A6F069E2a08c2468e7724Ab3250CdBFBA14D4FF`,
+  code hash `0x510a0a1ab8b3f256a5c90b5fff51a9fd98656bd1c8a29fbd7857faa70c400ccd`; guard
+  `0xfe7c50354cE1AC1d10aEe840a520A40103A3d971`, code hash
+  `0x76f0a1fa648cf915dfe2a72a150622eb7d96f725cea6666e93f27f6e5645a0cf`; both read from Arbitrum
+  One at block 511565792. Paymaster `0x777777777777AeC03fd955926DbF81597e66834C`, the one a Green
+  Goods passkey account's sponsored operation used in transaction
+  `0xca40752b288dfd58aca1b7c5b1356acea6a2b22d9284a081f6ca80d9ed2b5083`. Reporting only: review is
+  not approved, and a wallet account cannot hold a permission.
+- **Caps.** 3,400,001 gas units per attempt, matching the fork's first-operation gas-limit sum,
+  and 0.005 ETH for a permission's five. The fork's first report used 2,969,672 gas and a later
+  one 1,028,748. The chain charged 0.02 gwei when measured. The Agent rejects an activation
+  whose prepared limits exceed this reservation; a fork assertion now checks the same boundary.
+  These figures come from the fork, not a live sponsored run.
+- **Fork proof.** `bun run contracts -- verify reporting-kernel --network arbitrum --mode simulate`
+  at commit `344be79b45c8b0844655941f8ce1dafac72cec59`, fork block 511574879, verified
+  `2026-10-04T09:35:58.438Z`, source digest
+  `sha256:60dd1c5343a94e4df3ae89981fbbbbfd3f6fffdb3a838fe86110963b98bd2cbe`, clean tree, 21 of 21
+  checks. Four are new and use the approved module's own values: an account built as the app
+  builds one is deployed by its first operation and joins the Community Garden; its passkey
+  approves the permission and the report reaches the production EAS and work resolver under the
+  deployed guard; the delegate publishes the next report alone; the owner removes the permission
+  with the passkey and the delegate is refused. The passkey is a software key on the fork.
+- **A stand-in.** The paymaster's address keeps its place in the policy and carries fixture code,
+  because Pimlico's signature cannot be produced on a fork.
+- **Not proven.** Live sponsorship through Pimlico's bundler, and a passkey on a real device.
+  Acceptance is one passkey account on beta: allow reporting on a first report, publish it, then
+  publish a second from the chat, then remove the permission on the permissions page.
+- **To switch it off.** Remove the entry from `VERIFIED_PERMISSION_MODULES` and deploy, or unset
+  any one of the Agent's three delegation settings. Existing permissions expire within a day
+  and each owner can remove theirs on the permissions page without the Agent.
+- **A known edge.** An account that has never sent an operation is not deployed, and a
+  permission is approved by a deployed account alone. Such an account is offered the permission
+  in chat and refused on the page; signing that report itself deploys the account.

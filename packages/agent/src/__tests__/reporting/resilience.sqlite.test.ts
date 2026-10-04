@@ -248,9 +248,9 @@ describe("Kernel accounts and changing Actions", () => {
     const proof = await linking.proveAs(KERNEL, KERNEL_PROOF);
     const consent = await harness.say(ADA, `PAIR ${proof.body.pairingCode}`);
     const token = /PUBLISH (\d{4})/.exec(consent.join("\n"))?.[1];
-    expect(await harness.say(ADA, `PUBLISH ${token}`)).toEqual([
-      "Open this page to review and sign the exact publication with your passkey.",
-    ]);
+    expect((await harness.say(ADA, `PUBLISH ${token}`))[0]).toContain(
+      "Open this page to review and sign the exact publication with your passkey."
+    );
 
     const browser = new TestBrowser(harness.app);
     await browser.open(latestLink(harness));

@@ -1,3 +1,5 @@
+import type { Address } from "@green-goods/shared/types/domain";
+
 /**
  * A garden that accepts chat reports. `key` is its stable identifier in chat choices, model output
  * and review references (the live directory uses the lowercase address); `label` is the garden's
@@ -16,6 +18,11 @@ export interface ReportingGarden {
  */
 export interface GardenDirectory {
   list(): readonly ReportingGarden[];
+  /**
+   * The listed gardens whose gardener, operator or owner the indexer says this account is. It only
+   * orders and names choices in chat: the account's role is read from the chain before publishing.
+   */
+  gardensOf(account: Address): readonly ReportingGarden[];
   /** Reloads the list once it is stale; a failure keeps the previous list and rejects. */
   refresh(nowMs: number): Promise<void>;
 }

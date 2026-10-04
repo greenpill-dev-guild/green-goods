@@ -34,7 +34,7 @@ import {
   readVaultShareBalanceOnChain,
 } from "./services/blockchain";
 import { closeDB, initDB } from "./services/db";
-import { resolveAgentRpcUrl } from "./services/agent-rpc";
+import { resolveAgentRpc, resolveAgentRpcUrl, rpcHost } from "./services/agent-rpc";
 import { createSqliteFundingIntentStore } from "./services/funding-intents";
 import {
   createSqliteProfileAvatarStore,
@@ -95,7 +95,22 @@ async function main(): Promise<void> {
 
   // Initialize services
   initDB(config.dbPath);
-  initBlockchain(config.chain, resolveAgentRpcUrl(config.chainId));
+  const agentRpc = resolveAgentRpc(config.chainId);
+  // Only the host is logged: a configured address can carry a provider key in its path.
+  const rpcLog = {
+    chainId: config.chainId,
+    host: rpcHost(agentRpc.url),
+    source: agentRpc.source,
+  };
+  if (agentRpc.source === "public") {
+    logger.warn(
+      rpcLog,
+      "No RPC address or Alchemy key is set for this chain; using its public endpoint, which is rate limited"
+    );
+  } else {
+    logger.info(rpcLog, "Chain reads go through the configured RPC");
+  }
+  initBlockchain(config.chain, agentRpc.url);
   const ai = initAI();
   const subscriptionClient = createResendSubscriptionClient({
     apiKey: config.resendApiKey,
@@ -111,7 +126,7 @@ async function main(): Promise<void> {
   const gardenJoinRequestStore = joinRequestCipher
     ? createSqliteGardenJoinRequestStore(joinRequestCipher)
     : undefined;
-  const agentRpcUrl = resolveAgentRpcUrl(config.chainId);
+  const agentRpcUrl = agentRpc.url;
 
   const trustedProxy = {
     hops: config.trustedProxyHops,

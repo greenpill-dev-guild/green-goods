@@ -1,3 +1,4 @@
+import { drawsChoiceButtons } from "../channels";
 import { type CopyValues, type ReportingCopyKey, reportingText } from "../copy";
 import { enqueueReply } from "../outbox";
 import type { ParticipantBinding } from "../participants";
@@ -28,6 +29,14 @@ export class ConversationWriter {
     readonly target: ReplyTarget
   ) {}
 
+  /** Whether this conversation's channel draws choices as buttons, so no code needs typing. */
+  usesButtons(): boolean {
+    const row = this.core.db
+      .query("SELECT provider_realm FROM conversations WHERE id = $id")
+      .get({ id: this.target.conversationId }) as { provider_realm: string } | null;
+    return row ? drawsChoiceButtons(row.provider_realm) : false;
+  }
+
   text(key: ReportingCopyKey, values: CopyValues = {}): string {
     return reportingText(this.target.locale, key, {
       support: this.core.settings.supportContact,
@@ -35,7 +44,31 @@ export class ConversationWriter {
     });
   }
 
+  /**
+   * A link in a reply opens one of the reporting pages, where an account signs. Those need the
+   * person's own browser, so the reply says so and offers the link to copy.
+   */
   reply(message: OutboundMessage, kind: string, promptId?: string, operationId?: string): void {
+    this.enqueue(
+      message.link
+        ? {
+            ...message,
+            text: `${message.text.trimEnd()}\n\n${this.text("link.browserHint")}`,
+            link: { ...message.link, copyLabel: this.text("link.copyButton") },
+          }
+        : message,
+      kind,
+      promptId,
+      operationId
+    );
+  }
+
+  private enqueue(
+    message: OutboundMessage,
+    kind: string,
+    promptId?: string,
+    operationId?: string
+  ): void {
     const index = this.replyIndex;
     this.replyIndex += 1;
     const binding = this.target.binding;
@@ -56,6 +89,11 @@ export class ConversationWriter {
 
   say(key: ReportingCopyKey, values: CopyValues = {}, link?: OutboundMessage["link"]): void {
     this.reply({ text: this.text(key, values), ...(link ? { link } : {}) }, key);
+  }
+
+  /** A reply with a link to a public record. Nothing is signed there, so any browser will do. */
+  sayWithRecord(key: ReportingCopyKey, values: CopyValues, record: OutboundMessage["link"]): void {
+    this.enqueue({ text: this.text(key, values), ...(record ? { link: record } : {}) }, key);
   }
 
   /** Issues the conversation's single open question and sends it with numbered choices. */

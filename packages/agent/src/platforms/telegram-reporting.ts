@@ -29,6 +29,8 @@ const log = loggers.platform;
 /** Telegram's limit on one message's text, in UTF-16 code units. */
 const MAX_TEXT = 4096;
 const SEND_TIMEOUT_MS = 15_000;
+/** Bot API 7.11 copy_text; Telegraf 4.16 has not added it to its button union. */
+type ReportingButton = InlineKeyboardButton | { text: string; copy_text: { text: string } };
 
 /**
  * Telegraf types a request's signal with the abort-controller polyfill; its fetch accepts the
@@ -154,10 +156,16 @@ export function createTelegramTransport(telegram: Telegram): OutboundTransport {
       const { choices = [], link, text } = request.message;
       const linkButton = link && isPublicHttps(link.url) ? link : null;
       const body = link && !linkButton ? `${text}\n\n${link.label}: ${link.url}` : text;
-      const keyboard: InlineKeyboardButton[][] = choices.map((choice) => [
+      const keyboard: ReportingButton[][] = choices.map((choice) => [
         { text: choice.label, callback_data: choice.id },
       ]);
-      if (linkButton) keyboard.push([{ text: linkButton.label, url: linkButton.url }]);
+      if (linkButton) {
+        keyboard.push([{ text: linkButton.label, url: linkButton.url }]);
+        // Only a link the writer marked for copying gets the second button: one to a page where
+        // an account signs. Telegram refuses copy text longer than 256 characters.
+        if (linkButton.copyLabel && linkButton.url.length <= 256)
+          keyboard.push([{ text: linkButton.copyLabel, copy_text: { text: linkButton.url } }]);
+      }
       const parts = splitText(body);
       try {
         for (const part of parts.slice(0, -1)) await sendText(telegram, request, part, []);
@@ -174,7 +182,7 @@ function sendText(
   telegram: Telegram,
   request: OutboundRequest,
   text: string,
-  keyboard: InlineKeyboardButton[][]
+  keyboard: ReportingButton[][]
 ): Promise<Message.TextMessage> {
   return telegram.callApi(
     "sendMessage",
@@ -182,7 +190,9 @@ function sendText(
       chat_id: request.externalChatId,
       text,
       ...(request.threadId ? { message_thread_id: Number(request.threadId) } : {}),
-      ...(keyboard.length > 0 ? { reply_markup: { inline_keyboard: keyboard } } : {}),
+      ...(keyboard.length > 0
+        ? { reply_markup: { inline_keyboard: keyboard as InlineKeyboardButton[][] } }
+        : {}),
     },
     { signal: timeoutSignal(SEND_TIMEOUT_MS) }
   );

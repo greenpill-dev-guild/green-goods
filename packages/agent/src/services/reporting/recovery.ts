@@ -11,6 +11,7 @@ import { conversationRealm, participantWriter } from "./notify";
 import { activeAccount, attachProvisionalChannel, audit, bindingForSubject } from "./participants";
 import { destinationAvailable, recoverySources } from "./recovery-channels";
 import type { ReportingCore } from "./runtime";
+import { endRecognition } from "./recognition";
 import { revokeParticipantSessions } from "./sessions";
 
 /**
@@ -181,6 +182,7 @@ function suspendOldAccess(core: ReportingCore, participantId: string, subjects: 
       )
       .run({ participant: participantId, subject });
   revokeParticipantSessions(core, participantId);
+  endRecognition(core, participantId);
   core.db
     .query(
       `UPDATE execution_grants SET state = 'paused', version = version + 1, updated_at = $now
@@ -327,6 +329,7 @@ export function applyRecovery(core: ReportingCore, challenge: BrowserChallenge):
     .query("UPDATE recovery_requests SET state = 'applied', applied_at = $now WHERE id = $id")
     .run({ id: recovery.id, now });
   revokeParticipantSessions(core, participantId);
+  endRecognition(core, participantId);
   participantWriter(core, {
     participantId,
     conversationId: recovery.new_conversation_id,

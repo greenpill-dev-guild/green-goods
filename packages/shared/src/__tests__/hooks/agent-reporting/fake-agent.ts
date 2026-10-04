@@ -56,6 +56,8 @@ export class FakeAgent {
   challengeState: ChallengeResponse["state"] = "issued";
   /** The account already linked to the chat; a proof from another account is refused. */
   boundAccount: string | null = ACCOUNT;
+  /** The account this browser's challenge has proven, or was recognized for when it opened. */
+  verifiedAccount: `0x${string}` | null = null;
   pairingCode = "481516";
   recovery: RecoveryStep["state"] = "started";
   recoveryCode = "271828";
@@ -65,6 +67,7 @@ export class FakeAgent {
   dropGrantApprovals = 0;
   activationStarted = false;
   activationEmpty = false;
+  activationSignatureFailure = false;
   operation: OperationView = {
     operationId: "op-1",
     kind: "work",
@@ -108,6 +111,7 @@ export class FakeAgent {
         expiresAt: "2026-09-27T09:10:00.000Z",
       },
       ...(this.challengeState === "proof_verified" ? { pairingCode: this.pairingCode } : {}),
+      ...(this.verifiedAccount ? { account: this.verifiedAccount } : {}),
     };
   }
 
@@ -142,6 +146,7 @@ export class FakeAgent {
     if (method === "GET" && path === "/challenges/ch-1") return ok(this.challenge());
     if (method === "POST" && path === "/challenges/ch-1/proof") {
       if (this.boundAccount && body?.account !== this.boundAccount) return refuse("forbidden", 403);
+      this.verifiedAccount = body?.account as `0x${string}`;
       if (this.purpose === "recovery") {
         this.recovery = "account_verified";
         this.challengeState = "proof_verified";
@@ -167,6 +172,7 @@ export class FakeAgent {
     if (path.endsWith("/activation/attempts"))
       return this.route(method, "/operations/op-1/attempts", body);
     if (path.endsWith("/activation/signature")) {
+      if (this.activationSignatureFailure) return refuse("dependency_unavailable", 503);
       this.operation = {
         ...this.operation,
         attempt: { attemptId: "at-1", attemptNumber: 1, state: "signed" },
@@ -176,6 +182,8 @@ export class FakeAgent {
     if (path.endsWith("/activation/outcome") && this.grant) {
       const outcome = body?.outcome as { kind: string };
       if (outcome.kind === "broadcast") this.grant = { ...this.grant, state: "enabling" };
+      if (["preparation_failed", "rejected_before_send"].includes(outcome.kind))
+        this.grant = { ...this.grant, state: "failed" };
       return this.route(method, "/operations/op-1/outcome", body);
     }
     if (path.startsWith("/execution-grants") && this.grant) {

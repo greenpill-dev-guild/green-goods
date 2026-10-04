@@ -1,17 +1,25 @@
 import type { AgentReportingCeremony } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingCeremony";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
-import { type ReactNode, useId } from "react";
+import { RiPlantLine, RiUserAddLine } from "@remixicon/react";
+import { type ReactNode, useEffect, useId, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 import { FlowForward } from "@/components/Features/Work";
 import { AccountActions, PageAccount } from "./CeremonyActs";
 import { BLOCKED_ID, CeremonyFrame } from "./CeremonyFrame";
 import { barStanding, hasStatusCard, StatusCard } from "./CeremonyOutcome";
-import { ceremonyHeading } from "./ceremonyHeading";
+import { ceremonyHeading, GardenLine } from "./CeremonyHeading";
 import { readCeremonyScreen } from "./ceremonyScreen";
-import { BLOCKS, type CeremonyProblem, failureProblem } from "./failures";
+import { BLOCKS, type CeremonyProblem, failureProblem, type SpokenProblem } from "./failures";
 import { GrantSummary } from "./GrantSummary";
+import {
+  BrowserActs,
+  CreateAccountForm,
+  CreateAccountLink,
+  CreateActs,
+  JoinActs,
+} from "./LinkScreens";
 import { PublicationSkeleton, PublicationSummary } from "./PublicationSummary";
-import { CEREMONY_COPY } from "./messages";
+import { CEREMONY_COPY, STEP_NAMES } from "./messages";
 import { WhatHappensNext } from "./WhatHappensNext";
 
 type CeremonyViewProps = Pick<
@@ -20,6 +28,19 @@ type CeremonyViewProps = Pick<
   | "purpose"
   | "channelLabel"
   | "pairingCode"
+  | "linkedAccount"
+  | "inAppBrowser"
+  | "passkeyUnavailable"
+  | "linkCopied"
+  | "openInBrowser"
+  | "communityOffer"
+  | "joinFailure"
+  | "joinSending"
+  | "skipCommunity"
+  | "joinCommunity"
+  | "lastFailure"
+  | "createAccount"
+  | "accountKind"
   | "sessionAccount"
   | "resource"
   | "operation"
@@ -38,6 +59,8 @@ type CeremonyViewProps = Pick<
 > & {
   /** Story fixtures can provide local media; production uses the session-scoped API. */
   evidenceUrl?: (assetId: string) => string;
+  /** Story fixture for the account creation screen. */
+  initialCreate?: boolean;
 };
 
 /** Stages with a session this browser can end: none while a request is being prepared or signed. */
@@ -52,19 +75,61 @@ const SESSION = new Set<AgentReportingCeremony["stage"]>([
   "grant_active",
 ]);
 
+/** What the link flow's own screens say in the heading card's two lines. */
+const NOTES = {
+  inApp: {
+    id: "public.reporting.browser.warning",
+    defaultMessage: "Open this in Safari or Chrome. Passkeys and wallets may fail here.",
+  },
+  copied: {
+    id: "public.reporting.browser.copied",
+    defaultMessage: "Link copied. If nothing opened, paste it in Safari or Chrome.",
+  },
+  noPasskey: {
+    id: "public.reporting.browser.noPasskey",
+    defaultMessage: "Passkeys aren't available here. Open in Safari or Chrome, or use a wallet.",
+  },
+  joinFailed: {
+    id: "public.reporting.join.failed",
+    defaultMessage: "Joining didn't go through. Try again, or tap Not Now.",
+  },
+} satisfies Record<string, MessageDescriptor>;
+
 /**
  * The browser step of a chat report, review or permission, drawn with the app's flow parts. The
  * frame lays the page out and keeps its bands at one size; this view decides what each stage shows
  * and which act, if any, its bar offers. What a stage shows keeps its place and its order from the
  * step it first appears on, so sending the request moves nothing. A send whose outcome is unknown
  * never gets an act.
+ *
+ * Linking an account has two screens of its own: naming a new account, on the account step, and
+ * the invitation to the Community Garden, which opens the link step for an account in no garden.
  */
 export function CeremonyView(props: CeremonyViewProps) {
   const intl = useIntl();
   const firstItemId = useId();
+  const createFormId = useId();
+  const [creating, setCreating] = useState(props.initialCreate ?? false);
+  const [name, setName] = useState("");
+  // A new account arrives connected, which ends the naming screen.
+  useEffect(() => {
+    if (props.account) setCreating(false);
+  }, [props.account]);
   const { stage, resource, operation, grant } = props;
   const screen = readCeremonyScreen(props);
   const { isGrant, decides, uncertain, proving, publishing, granting } = screen;
+  const inApp = stage === "intro" && props.inAppBrowser;
+  const createScreen = creating && screen.isLink && stage === "connect";
+  const offer =
+    screen.isLink && (stage === "pairing" || stage === "linked") ? props.communityOffer : null;
+  const joinScreen = offer !== null;
+  // The invitation is for the account the chat links; another one connected here cannot take it.
+  const linked = props.linkedAccount;
+  const joinWrongAccount =
+    joinScreen &&
+    props.account !== null &&
+    linked !== null &&
+    props.account.toLowerCase() !== linked.toLowerCase();
   const text = (message: MessageDescriptor, values?: Record<string, string | number>) =>
     intl.formatMessage(message, values);
   const signer = grant?.policy.account ?? operation?.envelope?.accountAddress ?? null;
@@ -96,7 +161,25 @@ export function CeremonyView(props: CeremonyViewProps) {
   const withStatus = hasStatusCard(screen);
   const describedBy = block ? BLOCKED_ID : undefined;
 
+  /** Connect an account, or sign with the one connected, while `signing` shows the prompt is open. */
+  const accountActs = (account: string | null, signing = false) => (
+    <AccountActions
+      account={account}
+      connecting={props.connecting}
+      proving={signing}
+      onConnectWallet={props.connectWallet}
+      onConnectPasskey={() => void props.connectPasskey()}
+      passkeyUnavailable={props.passkeyUnavailable}
+      onProve={() => void props.prove()}
+    />
+  );
+
   const actions: ReactNode = (() => {
+    if (inApp) {
+      return (
+        <BrowserActs onOpen={() => void props.openInBrowser()} onStay={() => void props.start()} />
+      );
+    }
     if (screen.opening) {
       return (
         <FlowForward
@@ -106,19 +189,32 @@ export function CeremonyView(props: CeremonyViewProps) {
         />
       );
     }
-    if (proving) {
+    if (createScreen) {
       return (
-        <AccountActions
-          account={props.account}
-          connecting={props.connecting}
-          proving={stage === "proving"}
-          onConnectWallet={props.connectWallet}
-          onConnectPasskey={() => void props.connectPasskey()}
-          onProve={() => void props.prove()}
+        <CreateActs
+          formId={createFormId}
+          name={name}
+          creating={props.connecting}
+          onBack={() => setCreating(false)}
         />
       );
     }
+    if (joinScreen) {
+      // The linked account signs the join, so a browser with none connected connects one first.
+      if (!props.account) return accountActs(null);
+      return (
+        <JoinActs
+          sending={props.joinSending}
+          blocked={joinWrongAccount}
+          onJoin={() => void props.joinCommunity()}
+          onSkip={props.skipCommunity}
+        />
+      );
+    }
+    if (proving) return accountActs(props.account, stage === "proving");
     if (uncertain) return null;
+    // A browser the Agent recognized opens Review signed in, with no account connected yet.
+    if (stage === "review" && props.sessionAccount && !props.account) return accountActs(null);
     if (publishing) {
       return (
         <FlowForward
@@ -171,6 +267,26 @@ export function CeremonyView(props: CeremonyViewProps) {
       );
     }
     return null;
+  })();
+
+  // What the heading card says in place of its two lines, on the screens with no status card.
+  const headingProblem: CeremonyProblem | SpokenProblem | null = (() => {
+    if (inApp) return { message: props.linkCopied ? NOTES.copied : NOTES.inApp, tone: "caution" };
+    if (joinWrongAccount && linked) {
+      return { ...BLOCKS.wrongAccount, values: { account: formatAddress(linked) }, tone: "error" };
+    }
+    if (joinScreen && props.joinFailure === "declined") return failureProblem("declined");
+    if (joinScreen && props.joinFailure === "not_sent") {
+      return { message: NOTES.joinFailed, tone: "error" };
+    }
+    // Connecting or creating an account failed: the account layer has already put it into words.
+    if (props.lastFailure && !props.account && (proving || createScreen || joinScreen)) {
+      return { spoken: props.lastFailure, tone: "error" };
+    }
+    if (proving && !props.account && props.passkeyUnavailable) {
+      return { message: NOTES.noPasskey, tone: "caution" };
+    }
+    return withStatus ? null : problem;
   })();
 
   // What the request publishes, shown before it is signed and kept on the page after it is sent.
@@ -232,15 +348,41 @@ export function CeremonyView(props: CeremonyViewProps) {
   return (
     <CeremonyFrame
       screen={screen.unusable ? "state" : "step"}
+      hideHeadingIcon={inApp}
       steps={
-        screen.steps
-          ? { names: screen.steps.names.map((name) => text(name)), current: screen.steps.current }
-          : null
+        joinScreen
+          ? { names: [text(STEP_NAMES.account), text(STEP_NAMES.link)], current: 2 }
+          : screen.steps
+            ? { names: screen.steps.names.map((name) => text(name)), current: screen.steps.current }
+            : null
       }
-      heading={ceremonyHeading(intl, screen, props)}
+      heading={
+        createScreen
+          ? {
+              title: { id: "public.reporting.create.title", defaultMessage: "Create Your Account" },
+              info: text({
+                id: "public.reporting.create.body",
+                defaultMessage: "Pick a name and keep it safe. It signs you in on other devices.",
+              }),
+              Icon: RiUserAddLine,
+            }
+          : joinScreen
+            ? {
+                title: { id: "public.reporting.join.title", defaultMessage: "Join a Garden" },
+                info: text({
+                  id: "public.reporting.join.body",
+                  defaultMessage: "You aren't in a garden yet. This one is open to all:",
+                }),
+                Icon: RiPlantLine,
+              }
+            : // "Account linked" names the account the chat links, whatever is connected here.
+              ceremonyHeading(intl, screen, { ...props, account: linked ?? props.account })
+      }
       // The status card says a problem where the screen has one; elsewhere the heading card does.
-      problem={withStatus ? null : problem}
-      notice={<StatusCard screen={screen} problem={withStatus ? problem : null} />}
+      problem={headingProblem}
+      notice={
+        joinScreen ? null : <StatusCard screen={screen} problem={withStatus ? problem : null} />
+      }
       actions={actions}
       // Without an act, the bar says where the request stands, in the act's place.
       barStatus={actions === null ? barStanding(intl, screen) : null}
@@ -251,7 +393,20 @@ export function CeremonyView(props: CeremonyViewProps) {
         channel={props.channelLabel}
         onLeave={SESSION.has(stage) ? () => void props.leave() : undefined}
       />
-      {stage === "pairing" && props.pairingCode ? (
+      {offer ? (
+        <p className="min-w-0 text-base font-semibold text-text-strong-950">
+          <GardenLine>{offer.name}</GardenLine>
+        </p>
+      ) : null}
+      {createScreen ? (
+        <CreateAccountForm
+          id={createFormId}
+          name={name}
+          onName={setName}
+          onCreate={(chosen) => void props.createAccount(chosen)}
+        />
+      ) : null}
+      {stage === "pairing" && !joinScreen && props.pairingCode ? (
         <p
           className="rounded-2xl border border-stroke-soft-200 bg-bg-weak-50 px-4 py-6 text-center font-mono text-3xl font-semibold tracking-[0.2em] text-text-strong-950 [overflow-wrap:anywhere] sm:text-4xl"
           aria-label={props.pairingCode.split("").join(" ")}
@@ -259,7 +414,21 @@ export function CeremonyView(props: CeremonyViewProps) {
           {props.pairingCode}
         </p>
       ) : null}
-      {screen.opening || proving ? <WhatHappensNext flow={screen.isLink ? "link" : "any"} /> : null}
+      {joinScreen || screen.opening || (proving && !createScreen) ? (
+        <WhatHappensNext
+          flow={
+            joinScreen
+              ? // A chat that is linked already has no code to send after joining.
+                `${stage === "linked" ? "joined" : "join"}${props.accountKind === "passkey" ? "Free" : "Paid"}`
+              : screen.isLink
+                ? "link"
+                : "any"
+          }
+        />
+      ) : null}
+      {screen.isLink && stage === "connect" && !props.account && !createScreen ? (
+        <CreateAccountLink disabled={props.passkeyUnavailable} onCreate={() => setCreating(true)} />
+      ) : null}
       {publication}
       {/* The first item is the one thing not yet seen when Review opens, so it leads, and the
           order holds once the request is sent. */}

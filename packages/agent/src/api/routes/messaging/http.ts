@@ -40,6 +40,7 @@ export interface MessagingRouteDeps {
 
 export const PREAUTH_COOKIE = "gg_msg_pre";
 export const SESSION_COOKIE = "gg_msg_session";
+export const RECOGNITION_COOKIE = "gg_msg_recognition";
 export const CSRF_HEADER = "x-gg-csrf";
 export const BOOTSTRAP_HEADER = "x-gg-bootstrap";
 
@@ -123,6 +124,10 @@ export function clearCookie(c: Context, deps: MessagingRouteDeps, name: string):
 
 export function preauthToken(c: Context): string | undefined {
   return getCookie(c, PREAUTH_COOKIE);
+}
+
+export function recognitionToken(c: Context): string | undefined {
+  return getCookie(c, RECOGNITION_COOKIE);
 }
 
 /**

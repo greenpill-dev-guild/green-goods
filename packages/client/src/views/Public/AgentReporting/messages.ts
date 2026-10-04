@@ -49,7 +49,7 @@ export const CEREMONY_COPY: Record<AgentReportingCeremony["stage"], Copy> = {
     title: { id: "public.reporting.pairing.title", defaultMessage: "Send This Code" },
     body: {
       id: "public.reporting.pairing.body",
-      defaultMessage: "Send PAIR and this code in your chat to link this account.",
+      defaultMessage: "Send this code alone in your chat to link this account.",
     },
   },
   linked: {

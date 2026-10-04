@@ -176,7 +176,7 @@ export class Harness {
         browserOrigin: "https://greengoods.test",
         ...this.options.settings,
       },
-      gardens: fixedGardens(this.options.gardens),
+      gardens: fixedGardens(this.options.gardens, this.chain),
     };
   }
 

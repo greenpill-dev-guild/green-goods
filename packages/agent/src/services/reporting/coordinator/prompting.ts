@@ -3,14 +3,20 @@ import {
   buildReportSummary,
   findInput,
   outstandingRequirements,
+  reportQuestionPosition,
   pageChoices,
   type ReportRequirement,
 } from "@green-goods/shared/modules/agent-reporting";
-import type { WorkInput } from "@green-goods/shared/types/domain";
+import type { Address, WorkInput } from "@green-goods/shared/types/domain";
 import { type CatalogResult, orderActions } from "../catalog";
 import type { DraftRecord } from "../drafts";
 import { findGarden, type GardenDirectory, gardenByKey, type ReportingGarden } from "../gardens";
-import type { PromptOption, PromptRecord } from "../prompts";
+import {
+  closeConversationPrompt,
+  type PromptOption,
+  type PromptRecord,
+  promptsAsked,
+} from "../prompts";
 import type { ConversationWriter, TurnWriter } from "./writer";
 
 export interface CatalogView {
@@ -55,6 +61,38 @@ function formatDetail(input: WorkInput, value: unknown): string {
 
 const option = (id: string, label: string, value: string): PromptOption => ({ id, label, value });
 
+/** The field questions this report has already put to the gardener, from its own prompts. */
+function askedQuestions(writer: ConversationWriter, draft: DraftRecord): ReportRequirement[] {
+  return promptsAsked(writer.core, "draft", draft.id).flatMap(
+    ({ kind, fieldKey }): ReportRequirement[] => {
+      if (kind === "field") return fieldKey ? [{ kind: "detail", key: fieldKey }] : [];
+      if (kind === "time" || kind === "time_unit") return [{ kind: "time" }];
+      if (kind === "title" || kind === "feedback") return [{ kind }];
+      return kind === "evidence" ? [{ kind: "evidence", minimum: 0, have: 0 }] : [];
+    }
+  );
+}
+
+/**
+ * A field question with its place among the ones this report asks, "2 of 3 · ", so the count the
+ * conversation opened with is the count it is numbered against. Garden, activity and contradiction
+ * questions stay unnumbered, and so does a field asked again to change it.
+ */
+export function fieldQuestionText(
+  writer: ConversationWriter,
+  draft: DraftRecord,
+  requirement: ReportRequirement,
+  question: string
+): string {
+  const place = reportQuestionPosition(
+    draft.content,
+    draft.snapshot,
+    requirement,
+    askedQuestions(writer, draft)
+  );
+  return place ? `${writer.text("report.questionPosition", place)}${question}` : question;
+}
+
 export function askField(
   writer: ConversationWriter,
   draft: DraftRecord,
@@ -70,15 +108,27 @@ export function askField(
   };
   if (input.type === "number") {
     writer.ask(base, () =>
-      writer.text("report.askNumber", {
-        title: input.title,
-        unit: input.unit ? ` (${input.unit})` : "",
-      })
+      fieldQuestionText(
+        writer,
+        draft,
+        { kind: "detail", key: input.key },
+        writer.text("report.askNumber", {
+          title: input.title,
+          unit: input.unit ? ` (${input.unit})` : "",
+        })
+      )
     );
     return;
   }
   if (input.type === "text" || input.type === "textarea") {
-    writer.ask(base, () => writer.text("report.askText", { title: input.title }));
+    writer.ask(base, () =>
+      fieldQuestionText(
+        writer,
+        draft,
+        { kind: "detail", key: input.key },
+        writer.text("report.askText", { title: input.title })
+      )
+    );
     return;
   }
   const page = pageChoices(input, pageIndex, writer.core.settings.choicePageSize);
@@ -86,9 +136,14 @@ export function askField(
   if (page.hasMore)
     options.push(option("more", writer.text("report.moreChoices"), `page:${pageIndex + 1}`));
   writer.ask({ ...base, options, page: pageIndex }, () =>
-    writer.text(input.type === "multi-select" ? "report.askMulti" : "report.askChoice", {
-      title: input.title,
-    })
+    fieldQuestionText(
+      writer,
+      draft,
+      { kind: "detail", key: input.key },
+      writer.text(input.type === "multi-select" ? "report.askMulti" : "report.askChoice", {
+        title: input.title,
+      })
+    )
   );
 }
 
@@ -100,11 +155,24 @@ export function askAction(
 ): void {
   const garden = view.garden?.label ?? "your garden";
   if (!view.result || !view.result.ok) {
-    writer.say("report.catalogUnavailable", { garden });
+    // Asked as a question of its own: it replaces the garden question it follows, so the next
+    // message reads the activities again and is never taken for another garden.
+    writer.ask(
+      {
+        subjectKind: "draft",
+        resourceId: draft.id,
+        resourceRevision: draft.revision,
+        kind: "retry_actions",
+        options: [option("retry", writer.text("report.tryAgain"), "retry")],
+      },
+      () => writer.text("report.catalogUnavailable", { garden })
+    );
     return;
   }
   const actions = orderActions(view.result.actions);
   if (actions.length === 0) {
+    // Nothing to choose here; the garden question it follows is closed and EDIT reopens it.
+    closeConversationPrompt(writer.core, writer.target.conversationId);
     writer.say("report.noActions", { garden });
     return;
   }
@@ -128,20 +196,61 @@ export function askAction(
   );
 }
 
-/** Every garden accepts reports, so the list is paged like Actions. */
-export function askGarden(writer: ConversationWriter, draft: DraftRecord, page = 0): void {
-  const gardens = writer.core.gardens.list();
-  if (gardens.length === 0) {
+interface GardenPage {
+  gardens: readonly ReportingGarden[];
+  /** Gardens the indexer shows the linked account in. */
+  own: boolean;
+}
+
+function chunks<T>(items: readonly T[], size: number): T[][] {
+  const pages: T[][] = [];
+  for (let start = 0; start < items.length; start += size)
+    pages.push(items.slice(start, start + size));
+  return pages;
+}
+
+/**
+ * The garden question's pages. Every garden accepts reports, so the list is paged like Actions;
+ * a linked account's own gardens come first, on pages of their own, and the rest follow.
+ */
+function gardenPages(
+  directory: GardenDirectory,
+  account: Address | null,
+  size: number
+): GardenPage[] {
+  const own = account ? directory.gardensOf(account) : [];
+  const ownKeys = new Set(own.map((garden) => garden.key));
+  const rest = directory.list().filter((garden) => !ownKeys.has(garden.key));
+  return [
+    ...chunks(own, size).map((gardens) => ({ gardens, own: true })),
+    ...chunks(rest, size).map((gardens) => ({ gardens, own: false })),
+  ];
+}
+
+/** Asks which garden a report is for. `account` is the chat's linked account, when it has one. */
+export function askGarden(
+  writer: ConversationWriter,
+  draft: DraftRecord,
+  account: Address | null,
+  page = 0
+): void {
+  const pages = gardenPages(writer.core.gardens, account, writer.core.settings.choicePageSize);
+  // A page that no longer exists, because the list changed since it was offered, starts over.
+  const index = pages[page] ? page : 0;
+  const shown = pages[index];
+  if (!shown) {
     // The list only comes back empty when the indexer could not be read.
     writer.say("report.gardensUnavailable");
     return;
   }
-  const size = writer.core.settings.choicePageSize;
-  const options = gardens
-    .slice(page * size, page * size + size)
-    .map((garden, index) => option(`${index}`, garden.label, garden.key));
-  if (gardens.length > (page + 1) * size)
-    options.push(option("more", writer.text("report.moreChoices"), `page:${page + 1}`));
+  const next = pages[index + 1];
+  const options = shown.gardens.map((garden, position) =>
+    option(`${position}`, garden.label, garden.key)
+  );
+  if (next) {
+    const label = shown.own && !next.own ? "report.otherGardens" : "report.moreChoices";
+    options.push(option("more", writer.text(label), `page:${index + 1}`));
+  }
   writer.ask(
     {
       subjectKind: "draft",
@@ -149,9 +258,9 @@ export function askGarden(writer: ConversationWriter, draft: DraftRecord, page =
       resourceRevision: draft.revision,
       kind: "select_garden",
       options,
-      page,
+      page: index,
     },
-    () => writer.text("report.askGarden")
+    () => writer.text(shown.own ? "report.askOwnGarden" : "report.askGarden")
   );
 }
 
@@ -159,7 +268,8 @@ function askRequirement(
   writer: ConversationWriter,
   draft: DraftRecord,
   requirement: ReportRequirement,
-  view: CatalogView
+  view: CatalogView,
+  account: Address | null
 ): void {
   const base = {
     subjectKind: "draft" as const,
@@ -195,7 +305,7 @@ function askRequirement(
       return;
     }
     case "garden":
-      return askGarden(writer, draft);
+      return askGarden(writer, draft, account);
     case "action":
       return askAction(writer, draft, view);
     case "unsupported_input":
@@ -210,17 +320,28 @@ function askRequirement(
       return;
     }
     case "time":
-      writer.ask({ ...base, kind: "time" }, () => writer.text("report.askTime"));
+      writer.ask({ ...base, kind: "time" }, () =>
+        fieldQuestionText(writer, draft, requirement, writer.text("report.askTime"))
+      );
       return;
     case "title":
-      writer.ask({ ...base, kind: "title" }, () => writer.text("report.askTitle"));
+      writer.ask({ ...base, kind: "title" }, () =>
+        fieldQuestionText(writer, draft, requirement, writer.text("report.askTitle"))
+      );
       return;
     case "feedback":
-      writer.ask({ ...base, kind: "feedback" }, () => writer.text("report.askFeedback"));
+      writer.ask({ ...base, kind: "feedback" }, () =>
+        fieldQuestionText(writer, draft, requirement, writer.text("report.askFeedback"))
+      );
       return;
     case "evidence":
       writer.ask({ ...base, kind: "evidence" }, () =>
-        writer.text("report.askEvidence", { count: requirement.minimum - requirement.have })
+        fieldQuestionText(
+          writer,
+          draft,
+          requirement,
+          writer.text("report.askEvidence", { count: requirement.minimum - requirement.have })
+        )
       );
       return;
     case "evidence_limit":
@@ -277,6 +398,12 @@ export function askConfirmation(
         photos: summary.evidence.length,
         account: account ? writer.text("report.summaryAccount", { account }) : "",
         token: prompt.token,
+        instruction: writer.text(
+          writer.usesButtons()
+            ? "report.summaryButtonInstruction"
+            : "report.summaryCodeInstruction",
+          { token: prompt.token }
+        ),
       })
   );
 }
@@ -291,12 +418,12 @@ export function promptNextStepFor(
   writer: ConversationWriter,
   draft: DraftRecord,
   view: CatalogView,
-  account: string | null
+  account: Address | null
 ): void {
   const requirements = outstandingRequirements(draft.content, draft.snapshot);
   if (requirements.length === 0) {
     askConfirmation(writer, draft, account);
     return;
   }
-  askRequirement(writer, draft, requirements[0] as ReportRequirement, view);
+  askRequirement(writer, draft, requirements[0] as ReportRequirement, view, account);
 }

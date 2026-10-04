@@ -66,4 +66,19 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
     statements: DOCUMENT_VOICE_AND_CHANNEL_CONTROLS,
   },
   { version: 3, name: "first-report grant activation attempts", statements: ACTIVATION_ATTEMPTS },
+  {
+    version: 4,
+    name: "short browser account recognition",
+    statements: [
+      `CREATE TABLE browser_recognitions (
+        token_hash TEXT PRIMARY KEY,
+        participant_id TEXT NOT NULL REFERENCES participants(id),
+        account_address TEXT NOT NULL,
+        identity_epoch INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL
+      )`,
+      `CREATE INDEX browser_recognitions_participant ON browser_recognitions(participant_id)`,
+    ],
+  },
 ];

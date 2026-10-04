@@ -354,8 +354,8 @@ describe("Kernel reporting grant", () => {
     harness.delegationModules.length = 0;
     const offer = await confirmedKernelReport();
     // Without delegation the Kernel owner signs this report once, as an EOA would.
-    expect(offer).toEqual([
-      "Open this page to review and sign the exact publication with your passkey.",
-    ]);
+    expect(offer[0]).toContain(
+      "Open this page to review and sign the exact publication with your passkey."
+    );
   });
 });

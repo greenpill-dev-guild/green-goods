@@ -8,12 +8,48 @@ const ACCOUNT: Row = {
   note: { id: "public.reporting.next.accountNote", defaultMessage: "It costs nothing." },
 };
 
+const JOIN: MessageDescriptor = {
+  id: "public.reporting.join.signature",
+  defaultMessage: "Join with your own signature",
+};
+/** A passkey account's join is paid for; a wallet pays its own network fee. */
+const JOIN_FREE: Row = {
+  title: JOIN,
+  note: { id: "public.reporting.join.free", defaultMessage: "It costs nothing." },
+};
+const JOIN_PAID: Row = {
+  title: JOIN,
+  note: {
+    id: "public.reporting.join.fee",
+    defaultMessage: "Your wallet pays a small network fee.",
+  },
+};
+const THEN_CODE: Row = {
+  title: { id: "public.reporting.join.code", defaultMessage: "Then send the code in your chat" },
+  note: {
+    id: "public.reporting.next.codeNote",
+    defaultMessage: "That links this account to your chat.",
+  },
+};
+/** A chat that is already linked has no code to send: joining is all that is left. */
+const THEN_CHAT: Row = {
+  title: { id: "public.reporting.join.back", defaultMessage: "Then go back to your chat" },
+  note: {
+    id: "public.reporting.join.backNote",
+    defaultMessage: "Your account is already linked there.",
+  },
+};
+
 /**
  * What each kind of page asks for. Before the link is opened the page can't know which flow it is
  * for, so `any` holds for all of them; linking and moving an account ask for something else after
- * the account step, and say so.
+ * the account step, and say so. Joining a garden comes before the code for a new link, and is the
+ * only thing left for a chat that is linked already.
  */
-const ROWS: Record<"any" | "link" | "move", Row[]> = {
+const ROWS: Record<
+  "any" | "link" | "move" | "joinFree" | "joinPaid" | "joinedFree" | "joinedPaid",
+  Row[]
+> = {
   any: [
     ACCOUNT,
     {
@@ -38,6 +74,10 @@ const ROWS: Record<"any" | "link" | "move", Row[]> = {
       },
     },
   ],
+  joinFree: [JOIN_FREE, THEN_CODE],
+  joinPaid: [JOIN_PAID, THEN_CODE],
+  joinedFree: [JOIN_FREE, THEN_CHAT],
+  joinedPaid: [JOIN_PAID, THEN_CHAT],
   move: [
     ACCOUNT,
     {

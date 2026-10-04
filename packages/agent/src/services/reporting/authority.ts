@@ -5,6 +5,7 @@ import {
 import type { ReportingChain } from "./chain";
 import { currentConfirmation } from "./confirmations";
 import { issueContinuation } from "./continuations";
+import { accountLink } from "./coordinator/account-steps";
 import { commitLifecycle, lifecycleState } from "./coordinator/draft-commit";
 import { gardenLabel } from "./coordinator/prompting";
 import { inTransaction } from "./database";
@@ -87,6 +88,12 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
             garden: gardenLabel(core.gardens, garden.address),
             account: account.address,
             token: prompt.token,
+            instruction: out.text(
+              out.usesButtons()
+                ? "publish.consentButtonInstruction"
+                : "publish.consentCodeInstruction",
+              { token: prompt.token }
+            ),
           })
       );
     });
@@ -100,11 +107,36 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
     return { status: "retry", errorCode: "dependency_unavailable", delayMs: 30_000 };
   }
   if (!roles.gardener && !roles.operator) {
-    inTransaction(core.db, () =>
-      writer()?.say("publish.roleMissing", {
-        garden: gardenLabel(core.gardens, garden.address),
-      })
-    );
+    inTransaction(core.db, () => {
+      const out = writer();
+      if (!out) return;
+      if (
+        core.settings.communityGarden?.toLowerCase() === garden.address.toLowerCase() &&
+        core.gardens.gardensOf(account.address).length === 0 &&
+        out.target.binding
+      ) {
+        out.ask(
+          {
+            subjectKind: "draft",
+            resourceId: draft.id,
+            resourceRevision: draft.revision,
+            kind: "join_community",
+            options: [{ id: "joined", label: out.text("link.joined"), value: "retry" }],
+          },
+          () => out.text("link.joinCommunityQuestion"),
+          {
+            url: accountLink(
+              out,
+              out.target.binding as NonNullable<typeof out.target.binding>,
+              account.address
+            ),
+            label: out.text("link.joinCommunityLabel"),
+          }
+        );
+      } else {
+        out.say("publish.roleMissing", { garden: gardenLabel(core.gardens, garden.address) });
+      }
+    });
     return done;
   }
 

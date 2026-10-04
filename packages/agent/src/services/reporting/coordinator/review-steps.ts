@@ -8,11 +8,10 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { Confidence } from "@green-goods/shared/types/domain";
 import { invalidateConfirmation, recordConfirmation } from "../confirmations";
-import { issueContinuation } from "../continuations";
 import { enqueueJob } from "../jobs";
-import { conversationRealm } from "../notify";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
 import { commitReview, type ReviewRecord, reviewState } from "../reviews";
+import { accountLink } from "./account-steps";
 import type { ChatCommand } from "./commands";
 import type { TurnPlan } from "./context";
 import { nextReviewStep } from "./review-prompts";
@@ -41,20 +40,7 @@ export function requestReview(writer: TurnWriter, index: number | null): void {
   }
   if (!ctx.binding) return writer.say("help");
   if (!ctx.account) {
-    const { url } = issueContinuation(core, {
-      purpose: "link_account",
-      participantId: ctx.binding.participantId,
-      subjectId: ctx.subjectId,
-      bindingId: ctx.binding.bindingId,
-      conversationId: ctx.conversationId,
-      providerRealm: conversationRealm(core, ctx.conversationId),
-      resourceKind: "account",
-      resourceId: null,
-      resourceRevision: null,
-      resourceDigest: `account:${ctx.binding.participantId}`,
-      expectedAccount: null,
-      identityEpoch: ctx.binding.identityEpoch,
-    });
+    const url = accountLink(writer, ctx.binding, null);
     writer.say("review.link", {}, { url, label: writer.text("link.label") });
     writer.say("link.pairHint");
     return;

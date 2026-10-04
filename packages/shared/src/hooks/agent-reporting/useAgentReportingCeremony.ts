@@ -40,7 +40,11 @@ import {
   shouldPollCeremony,
   stageForOperation,
 } from "./ceremony-stage";
+import { type CommunityOffer, readCommunityOffer } from "./community-offer";
 import { useCeremonyAccount } from "./useCeremonyAccount";
+import { sendGardenJoin } from "../../modules/agent-reporting/garden-join";
+import type { Address } from "../../types/domain";
+import { useReportingBrowser } from "./useReportingBrowser";
 
 export type { AgentReportingCeremony } from "./ceremony-stage";
 
@@ -58,6 +62,7 @@ export function useAgentReportingCeremony(
 ): AgentReportingCeremony {
   const [client] = useState(() => options.client ?? new CeremonyClient());
   const account = useCeremonyAccount();
+  const browser = useReportingBrowser();
   const sender = useTransactionSender();
   const challengeRef = useRef<string | null>(null);
   const [state, setState] = useState({
@@ -65,12 +70,19 @@ export function useAgentReportingCeremony(
     purpose: null as ChallengeResponse["purpose"] | null,
     channelLabel: null as string | null,
     pairingCode: null as string | null,
+    linkedAccount: null as Address | null,
+    communityOffer: null as CommunityOffer | null,
+    joinFailure: null as "declined" | "not_sent" | null,
+    joinSending: false,
     access: null as AccessResponse | null,
     resource: null as ResourceView | null,
     operation: null as OperationView | null,
     grant: null as GrantView | null,
     error: null as CeremonyFailure | null,
   });
+  // Once the person joins or declines, the invitation is never shown on this page again.
+  const joinDecidedRef = useRef(false);
+  const joinInFlightRef = useRef(false);
   const stateRef = useRef(state);
   stateRef.current = state;
   const update = useCallback((next: Partial<typeof state>) => {
@@ -135,13 +147,33 @@ export function useAgentReportingCeremony(
       challengeRef.current = challenge.challengeId;
       update({ purpose: challenge.purpose, channelLabel: challenge.channelLabel, error: null });
       if (!PURPOSES.has(challenge.purpose)) return update({ stage: "unsupported" });
+      const linkedAccount = (challenge.account as Address | undefined) ?? null;
+      // The invitation is read for the account the challenge proved and settled before the link
+      // step opens: the page waits for it here, so the code screen never turns into an invitation.
+      const invitation = () =>
+        challenge.purpose === "link_account" && linkedAccount && !joinDecidedRef.current
+          ? readCommunityOffer(linkedAccount)
+          : null;
       switch (challenge.state) {
         case "issued":
           return update({ stage: "connect" });
         case "proof_verified":
-          return update({ stage: "pairing", pairingCode: challenge.pairingCode ?? null });
+          return update({
+            stage: "pairing",
+            pairingCode: challenge.pairingCode ?? null,
+            linkedAccount,
+            communityOffer: await invitation(),
+          });
         case "paired":
-          if (challenge.purpose === "link_account") return update({ stage: "linked" });
+          if (challenge.purpose === "link_account") {
+            // Arriving from the code screen, the invitation was settled when that screen opened.
+            const settled = stateRef.current.stage === "pairing";
+            return update({
+              stage: "linked",
+              linkedAccount,
+              communityOffer: settled ? stateRef.current.communityOffer : await invitation(),
+            });
+          }
           return openAccess(challenge.challengeId);
         default:
           return update({ stage: "unavailable", error: "expired" });
@@ -308,6 +340,33 @@ export function useAgentReportingCeremony(
     });
   }, [account.account, client, fail, loadResource, requestId, sender, update]);
 
+  const skipCommunity = useCallback(() => {
+    joinDecidedRef.current = true;
+    update({ communityOffer: null, joinFailure: null });
+  }, [update]);
+
+  const joinCommunity = useCallback(async () => {
+    const { communityOffer: offer, linkedAccount } = stateRef.current;
+    if (!offer || !sender || !linkedAccount || joinInFlightRef.current) return;
+    // The account that joins is the one the chat links, never whichever happens to be connected.
+    if (account.account?.toLowerCase() !== linkedAccount.toLowerCase()) return;
+    joinInFlightRef.current = true;
+    update({ joinSending: true, joinFailure: null });
+    const result = await sendGardenJoin(sender, {
+      garden: offer.address,
+      account: linkedAccount,
+      chainId: offer.chainId,
+    });
+    joinInFlightRef.current = false;
+    if (result.kind === "not_sent") {
+      update({ joinSending: false, joinFailure: result.cancelled ? "declined" : "not_sent" });
+      return;
+    }
+    // A send that may have gone out is never offered a second time.
+    joinDecidedRef.current = true;
+    update({ communityOffer: null, joinSending: false, joinFailure: null });
+  }, [account.account, sender, update]);
+
   const leave = useCallback(async () => {
     const access = stateRef.current.access;
     clearCeremony(requestId);
@@ -326,10 +385,17 @@ export function useAgentReportingCeremony(
 
   return {
     ...account,
+    ...browser,
     stage: state.stage,
     purpose: state.purpose,
     channelLabel: state.channelLabel,
     pairingCode: state.pairingCode,
+    linkedAccount: state.linkedAccount,
+    communityOffer: state.communityOffer,
+    joinFailure: state.joinFailure,
+    joinSending: state.joinSending,
+    skipCommunity,
+    joinCommunity,
     sessionAccount: state.access?.account ?? null,
     resource: state.resource,
     operation: state.operation,

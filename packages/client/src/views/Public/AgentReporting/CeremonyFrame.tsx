@@ -8,12 +8,12 @@ import { FormInfo } from "@/components/Cards";
 import { EmptyState, FormProgress } from "@/components/Communication";
 import { FocusedHeaderSteps } from "@/components/Navigation/FocusedSiteHeader";
 import { CeremonyBar } from "./CeremonyBar";
-import type { CeremonyProblem } from "./failures";
+import type { CeremonyProblem, SpokenProblem } from "./failures";
 
 export interface CeremonyHeading {
   title: MessageDescriptor | string;
   info: ReactNode;
-  Icon: RemixiconComponentType;
+  Icon?: RemixiconComponentType;
 }
 
 /** The words saying why an act is switched off, which the act names as its description. */
@@ -55,6 +55,7 @@ export function CeremonyFrame({
   children,
   actions = null,
   barStatus = null,
+  hideHeadingIcon = false,
 }: {
   /** `state` draws the heading as the app's empty state and leaves out the steps and the bar. */
   screen?: "step" | "state";
@@ -63,7 +64,7 @@ export function CeremonyFrame({
   heading: CeremonyHeading;
   values?: Record<string, string>;
   /** What stops or failed the step, on a screen with no status card to say it. */
-  problem?: CeremonyProblem | null;
+  problem?: CeremonyProblem | SpokenProblem | null;
   /** Where the request stands, under the heading (the app's stacked notice). */
   notice?: ReactNode;
   children?: ReactNode;
@@ -71,6 +72,7 @@ export function CeremonyFrame({
   actions?: ReactNode;
   /** In place of acts: where the request stands, at the act's height. */
   barStatus?: ReactNode;
+  hideHeadingIcon?: boolean;
 }) {
   const intl = useIntl();
   const title =
@@ -102,7 +104,7 @@ export function CeremonyFrame({
             titleAs="h1"
             headingId="ceremony-title"
             tone="warning"
-            icon={<heading.Icon />}
+            icon={heading.Icon ? <heading.Icon /> : undefined}
             title={title}
             description={heading.info}
           />
@@ -123,14 +125,16 @@ export function CeremonyFrame({
                       data-component="CeremonyHeadingProblem"
                       className={cn("block font-medium", PROBLEM_TEXT[problem.tone])}
                     >
-                      {intl.formatMessage(problem.message, problem.values)}
+                      {"spoken" in problem
+                        ? problem.spoken
+                        : intl.formatMessage(problem.message, problem.values)}
                     </span>
                   ) : (
                     heading.info
                   )}
                 </span>
               }
-              Icon={heading.Icon}
+              Icon={hideHeadingIcon ? undefined : heading.Icon}
               // Enlarged text may need more than the form card's cap; it grows rather than clips.
               className="max-h-none"
             />
