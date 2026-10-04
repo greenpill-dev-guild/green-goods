@@ -54,6 +54,16 @@ class DraftStore {
     await db.active_drafts.put({ scope: `${userAddress.toLowerCase()}:${chainId}`, draftId });
   }
 
+  /** Stop the wizard reopening on this draft, unless another tab has moved to a different one. */
+  async releaseActiveDraft(userAddress: string, chainId: number, draftId: string): Promise<void> {
+    const db = await this.init();
+    const scope = `${userAddress.toLowerCase()}:${chainId}`;
+    await db.transaction("rw", db.active_drafts, async () => {
+      if ((await db.active_drafts.get(scope))?.draftId === draftId)
+        await db.active_drafts.delete(scope);
+    });
+  }
+
   async saveSnapshot(
     ...args: Parameters<typeof saveDraftSnapshot> extends [unknown, ...infer Rest] ? Rest : never
   ): Promise<WorkDraftRecord> {

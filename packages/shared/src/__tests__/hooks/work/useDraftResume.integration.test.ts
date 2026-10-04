@@ -3,13 +3,18 @@
  * @vitest-environment happy-dom
  *
  * The resume prompt, autosave and the IndexedDB store run together here, because what Start Fresh
- * promises is only visible across them: the saved draft's record and media stay as they were, and
- * the next save gets a record of its own.
+ * promises is only visible across them: the saved draft's record and media stay as they were from
+ * the moment the prompt opens, and the next save gets a record of its own.
  */
 import { act, cleanup, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useDraftAutoSave } from "../../../hooks/work/useDraftAutoSave";
 import { useDraftResume } from "../../../hooks/work/useDraftResume";
+import {
+  parseWorkLinkIntent,
+  toDraftWorkLink,
+  writeWorkLinkIntent,
+} from "../../../modules/commitment-pooling/work-link-intent";
 import { draftDB } from "../../../modules/job-queue/draft-db";
 import { queueDraftWrite } from "../../../modules/work/draft-lifecycle";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
@@ -38,6 +43,9 @@ function openWizard(query = "") {
   const setSearchParams = vi.fn();
   const restoreForm = vi.fn();
   const searchParams = new URLSearchParams(query);
+  // The page's own promise is saved with the work, as the controller does.
+  const pagePromise = parseWorkLinkIntent(searchParams);
+  const linkIntent = pagePromise ? toDraftWorkLink(pagePromise) : undefined;
   const view = renderHookWithQueryClient(() => {
     const resume = useDraftResume({
       formState: {
@@ -58,11 +66,9 @@ function openWizard(query = "") {
     const details = useWorkFlowStore((state) => state.details);
     const images = useWorkFlowStore((state) => state.images);
     const { saveOnExit } = useDraftAutoSave(
-      { gardenAddress, actionUID, feedback, details },
+      { gardenAddress, actionUID, feedback, details, linkIntent },
       images,
-      {
-        enabled: !resume.legacyRecovery,
-      }
+      { enabled: !resume.legacyRecovery }
     );
     return { ...resume, saveOnExit };
   });
@@ -71,7 +77,7 @@ function openWizard(query = "") {
 
 /** A saved draft with a photo and a promise, left as the wizard's active draft. */
 async function saveDraftWithPhoto() {
-  await draftDB.saveSnapshot(
+  return draftDB.saveSnapshot(
     ACCOUNT,
     CHAIN,
     "old",
@@ -86,11 +92,14 @@ async function saveDraftWithPhoto() {
   );
 }
 
-/** The open prompt, once the save a resumed draft makes on arrival has landed. */
-async function openOnSavedDraft() {
-  const wizard = openWizard();
+/** The open prompt, after any save the arrival could have started has had time to land. */
+async function openOnSavedDraft(query = "") {
+  const wizard = openWizard(query);
   await waitFor(() => expect(wizard.result.current.showDraftSheet).toBe(true));
-  await waitFor(async () => expect(await wizard.result.current.saveOnExit()).toBe("old"));
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 30));
+  });
+  await queueDraftWrite(async () => undefined);
   return wizard;
 }
 
@@ -114,10 +123,12 @@ afterEach(async () => {
 
 describe("Start Fresh on a saved work draft", () => {
   it("keeps the saved draft and gives the next save a record of its own", async () => {
-    await saveDraftWithPhoto();
-    const { result, setSearchParams, restoreForm } = await openOnSavedDraft();
-    const saved = await draftDB.getDraft("old");
+    const saved = await saveDraftWithPhoto();
     const photos = await draftDB.getImagesForDraft("old");
+    const { result, setSearchParams, restoreForm } = await openOnSavedDraft();
+    // Nothing is written to the draft while its prompt is open.
+    expect(await result.current.saveOnExit()).toBeNull();
+    expect(await draftDB.getDraft("old")).toEqual(saved);
 
     await act(async () => {
       await result.current.handleStartFresh();
@@ -155,6 +166,33 @@ describe("Start Fresh on a saved work draft", () => {
     expect((await draftDB.getImagesForDraft("old")).map((photo) => photo.id)).toEqual(
       photos.map((photo) => photo.id)
     );
+  });
+
+  it("leaves the saved draft its own promise when the page was opened for another", async () => {
+    const saved = await saveDraftWithPhoto();
+    const page = writeWorkLinkIntent(new URLSearchParams(), {
+      ...PROMISE,
+      commitmentId: 9n,
+      commitmentTitle: "Repair the north fence panel",
+      returnTo: `/home/${GARDEN}/commitments/9`,
+    });
+    const { result, setSearchParams } = await openOnSavedDraft(page.toString());
+
+    await act(async () => {
+      await result.current.handleStartFresh();
+    });
+
+    // The page's promise was never written onto the draft that was set aside.
+    expect(await draftDB.getDraft("old")).toEqual(saved);
+    // The page keeps the promise it was opened for, and the new work is saved for it.
+    expect(setSearchParams).not.toHaveBeenCalled();
+    act(() => useWorkFlowStore.getState().setFeedback("reset the fence posts"));
+    let next!: string | null;
+    await act(async () => {
+      next = await result.current.saveOnExit();
+    });
+    expect((await draftDB.getDraft(next as string))?.linkIntent?.commitmentId).toBe("9");
+    expect((await draftDB.getDraft("old"))?.linkIntent?.commitmentId).toBe("12");
   });
 
   it("resumes the saved draft later from Your Work, with its media", async () => {

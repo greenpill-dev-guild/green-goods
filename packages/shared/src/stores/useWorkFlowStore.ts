@@ -29,6 +29,11 @@ export type WorkFlowState = WorkDraftState & {
   draftHydrated: boolean;
   draftEpoch: number;
   draftDeleting: boolean;
+  /**
+   * A saved draft is loaded and its prompt is unanswered. Until the person
+   * continues it or sets it aside, nothing is written to it.
+   */
+  draftChoicePending: boolean;
   draftMissingAttachments: MissingDraftAttachment[];
   draftSaveState: "idle" | "loading" | "saving" | "saved" | "failed";
   draftError: string | null;
@@ -92,6 +97,7 @@ export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
   draftHydrated: false,
   draftEpoch: 0,
   draftDeleting: false,
+  draftChoicePending: false,
   draftMissingAttachments: [],
   draftSaveState: "loading",
   draftError: null,

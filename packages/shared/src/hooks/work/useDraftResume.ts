@@ -50,7 +50,12 @@ export function useDraftResume({
   const { resumeDraft, clearActiveDraft } = useDrafts();
   const { primaryAddress: userAddress } = useUser();
   const chainId = useCurrentChain();
-  const [showDraftSheet, setShowDraftSheet] = useState(false);
+  const [showDraftSheet, setSheet] = useState(false);
+  // Closing the prompt, by any path, is the person's answer: the draft may be written again.
+  const setShowDraftSheet = useCallback((open: boolean) => {
+    if (!open) useWorkFlowStore.setState({ draftChoicePending: false });
+    setSheet(open);
+  }, []);
   const [legacyRecovery, setLegacyRecovery] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const hydrated = useWorkFlowStore((state) => state.draftHydrated);
@@ -136,20 +141,23 @@ export function useDraftResume({
           const kept = (await draftDB.getDraft(draftId))?.linkIntent;
           if (kept && !hasWorkLinkIntentParams(latest.current.searchParams))
             link = fromDraftWorkLink(kept);
-          if (!explicitId) setShowDraftSheet(true);
+          if (!explicitId) setSheet(true);
         } else {
           const legacy = await get<File[]>(LEGACY_KEY);
           controller.signal.throwIfAborted();
           const marker = await getLegacyRecoveryMarker();
           if (Array.isArray(legacy) && legacy.length && (!marker || marker.scope === scope)) {
             setLegacyRecovery(true);
-            setShowDraftSheet(true);
+            setSheet(true);
           }
         }
         controller.signal.throwIfAborted();
+        // A prompted draft is held in the same step that turns saving on. A save on arrival
+        // would write the page's promise, garden and action onto it before the person answers.
         useWorkFlowStore.setState({
           draftHydrated: true,
           draftSaveState: draftId ? "saved" : "idle",
+          draftChoicePending: Boolean(draftId) && !explicitId,
         });
         if (explicitId || link) {
           const params = link
@@ -170,7 +178,7 @@ export function useDraftResume({
     return () => {
       controller.abort();
     };
-  }, [userAddress, chainId, explicitId, loadAttempt]);
+  }, [userAddress, chainId, explicitId, loadAttempt, setShowDraftSheet]);
 
   const handleContinueDraft = useCallback(async () => {
     if (legacyRecovery && userAddress) {
@@ -217,7 +225,7 @@ export function useDraftResume({
       setLegacyRecovery(false);
     }
     setShowDraftSheet(false);
-  }, [legacyRecovery, userAddress, chainId, resumeDraft, restoreForm]);
+  }, [legacyRecovery, userAddress, chainId, resumeDraft, restoreForm, setShowDraftSheet]);
 
   const handleStartFresh = useCallback(async () => {
     const scope = `${userAddress?.toLowerCase()}:${chainId}`;
@@ -245,8 +253,10 @@ export function useDraftResume({
         if (legacyRecovery) await discardUnrecoveredLegacy(scope);
         // The draft stays in Your Work as it was saved. The wizard stops reopening on it, once any
         // save still writing has finished, so that save can't point the wizard back at it.
-        else if (initial.activeDraftId)
-          await queueDraftWrite(() => draftDB.setActiveDraft(userAddress, chainId, null));
+        else if (initial.activeDraftId) {
+          const setAside = initial.activeDraftId;
+          await queueDraftWrite(() => draftDB.releaseActiveDraft(userAddress, chainId, setAside));
+        }
         if (current()) {
           useWorkFlowStore.getState().reset();
           restoreForm?.({ feedback: "" });
@@ -267,7 +277,7 @@ export function useDraftResume({
         write(writeWorkLinkIntent(params, null), { replace: true });
       }
     }
-  }, [legacyRecovery, clearActiveDraft, userAddress, chainId, restoreForm]);
+  }, [legacyRecovery, clearActiveDraft, userAddress, chainId, restoreForm, setShowDraftSheet]);
 
   return {
     showDraftSheet,
