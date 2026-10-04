@@ -5,8 +5,8 @@
  */
 export const EN_REPORTING_COPY = {
   "consent.notice":
-    "Hi! I'm the Green Goods reporting assistant, operated by WEFA. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
-  "consent.processors": " and may use OpenAI and TypeSafe to understand them",
+    "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
+  "consent.processors": " and may use AI to understand them",
   "consent.agree": "I agree",
   "consent.decline": "No thanks",
   "consent.declined":
@@ -38,7 +38,7 @@ export const EN_REPORTING_COPY = {
   "media.voiceFailed":
     "I couldn't transcribe that voice note. Your report is saved; please try again or type your update.",
   "voice.consent":
-    "Can I transcribe your voice notes? I send the recording to OpenAI to turn it into text, add the text to your report and show it to you to check. The recording itself is never published.",
+    "Can I transcribe your voice notes? I send the recording to an AI service to turn it into text, add the text to your report and show it to you to check. The recording itself is never published.",
   "voice.agree": "Yes, transcribe",
   "voice.decline": "No, I'll type",
   "voice.granted": "Thank you. I'm transcribing your voice note now.",
@@ -64,9 +64,12 @@ export const EN_REPORTING_COPY = {
   "report.askAction": "Which activity in {garden} best matches your work?",
   "report.moreChoices": "More options",
   "report.noActions":
-    "{garden} has no activity open for reporting right now. Your draft is saved; contact {support} if this is unexpected.",
+    "{garden} has no activity open for reporting right now. Your draft is saved. Send EDIT to choose another garden, or contact {support} if this is unexpected.",
   "report.catalogUnavailable":
-    "I can't read {garden}'s activities right now. Your draft is saved; send any message to try again.",
+    "I couldn't load {garden}'s activities just now. That's a problem on my side, and your draft is saved. Tap Try again or send any message.",
+  "report.tryAgain": "Try again",
+  "report.choiceHelp":
+    "I didn't catch which one you mean. Tap a choice below or reply with its number. Send HELP to see everything I can do, or CANCEL to stop this report.",
   "report.askNumber": "{title}? Please reply with a number{unit}.",
   "report.askChoice": "{title}?",
   "report.askMulti": "{title}? You can pick more than one, for example: 1, 3.",
@@ -94,8 +97,6 @@ export const EN_REPORTING_COPY = {
   "report.invalid.unit_mismatch":
     "This is counted in {unit}, but you wrote {stated}. Could you give it in {unit}?",
   "report.invalid.unit_required": "Please include the unit, for example 2 hours or 30 minutes.",
-  "report.invalid.unknown_option":
-    "Please choose one of the listed options by replying with its number.",
   "report.invalid.too_long": "That's a little long. Could you shorten it?",
   "report.invalid.empty": "I didn't catch an answer. Could you try again?",
   "report.summary":

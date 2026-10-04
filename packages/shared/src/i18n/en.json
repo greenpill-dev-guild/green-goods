@@ -6677,7 +6677,7 @@
   "public.reporting.account.connected": "Connected, not signed in yet",
   "public.reporting.account.none": "Not signed in yet",
   "public.reporting.account.noneBody": "You'll show the account is yours on the Account step.",
-  "public.reporting.help.email": "Email support",
+  "public.reporting.help.site": "Visit Green Goods",
   "public.reporting.help.faq.page.question": "What is this page?",
   "public.reporting.help.faq.page.answer": "It finishes a step you started in chat. It shows exactly what will be published and asks you to sign it with your own wallet or passkey. Nothing is signed until you choose to.",
   "public.reporting.help.faq.public.question": "What becomes public?",

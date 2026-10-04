@@ -10,7 +10,7 @@ import type { Address, WorkInput } from "@green-goods/shared/types/domain";
 import { type CatalogResult, orderActions } from "../catalog";
 import type { DraftRecord } from "../drafts";
 import { findGarden, type GardenDirectory, gardenByKey, type ReportingGarden } from "../gardens";
-import type { PromptOption, PromptRecord } from "../prompts";
+import { closeConversationPrompt, type PromptOption, type PromptRecord } from "../prompts";
 import type { ConversationWriter, TurnWriter } from "./writer";
 
 export interface CatalogView {
@@ -100,11 +100,24 @@ export function askAction(
 ): void {
   const garden = view.garden?.label ?? "your garden";
   if (!view.result || !view.result.ok) {
-    writer.say("report.catalogUnavailable", { garden });
+    // Asked as a question of its own: it replaces the garden question it follows, so the next
+    // message reads the activities again and is never taken for another garden.
+    writer.ask(
+      {
+        subjectKind: "draft",
+        resourceId: draft.id,
+        resourceRevision: draft.revision,
+        kind: "retry_actions",
+        options: [option("retry", writer.text("report.tryAgain"), "retry")],
+      },
+      () => writer.text("report.catalogUnavailable", { garden })
+    );
     return;
   }
   const actions = orderActions(view.result.actions);
   if (actions.length === 0) {
+    // Nothing to choose here; the garden question it follows is closed and EDIT reopens it.
+    closeConversationPrompt(writer.core, writer.target.conversationId);
     writer.say("report.noActions", { garden });
     return;
   }

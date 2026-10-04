@@ -2,8 +2,8 @@ import type { ReportingCopyKey } from "./en";
 
 export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "consent.notice":
-    "Olá! Sou o assistente de relatos do Green Goods, operado pela WEFA. Para ajudar você a relatar o trabalho na horta, eu guardo e leio as mensagens e os arquivos que você envia aqui{processors}. Nada fica público até você confirmar um relato.\n\nEnvie STOP a qualquer momento para parar, DELETE para apagar seus dados não publicados ou HELP para suporte ({support}).\n\nVocê concorda?",
-  "consent.processors": " e posso usar a OpenAI e a TypeSafe para entendê-los",
+    "Olá! Sou o assistente de relatos do Green Goods. Para ajudar você a relatar o trabalho na horta, eu guardo e leio as mensagens e os arquivos que você envia aqui{processors}. Nada fica público até você confirmar um relato.\n\nEnvie STOP a qualquer momento para parar, DELETE para apagar seus dados não publicados ou HELP para suporte ({support}).\n\nVocê concorda?",
+  "consent.processors": " e posso usar IA para entendê-los",
   "consent.agree": "Concordo",
   "consent.decline": "Não, obrigado",
   "consent.declined":
@@ -37,7 +37,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "media.voiceFailed":
     "Não consegui transcrever essa mensagem de voz. Seu relato está salvo; tente de novo ou digite sua atualização.",
   "voice.consent":
-    "Posso transcrever suas mensagens de voz? Envio a gravação para a OpenAI transformá-la em texto, adiciono o texto ao seu relato e mostro para você conferir. A gravação nunca é publicada.",
+    "Posso transcrever suas mensagens de voz? Envio a gravação para um serviço de IA transformá-la em texto, adiciono o texto ao seu relato e mostro para você conferir. A gravação nunca é publicada.",
   "voice.agree": "Sim, transcrever",
   "voice.decline": "Não, vou digitar",
   "voice.granted": "Obrigado. Estou transcrevendo sua mensagem de voz.",
@@ -65,9 +65,12 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.askAction": "Qual atividade em {garden} descreve melhor o seu trabalho?",
   "report.moreChoices": "Mais opções",
   "report.noActions":
-    "{garden} não tem atividades abertas para relato agora. Seu rascunho está guardado; escreva para {support} se não esperava por isso.",
+    "{garden} não tem atividades abertas para relato agora. Seu rascunho está guardado. Envie EDIT para escolher outra horta, ou escreva para {support} se não esperava por isso.",
   "report.catalogUnavailable":
-    "Não consigo ler as atividades de {garden} agora. Seu rascunho está guardado; envie qualquer mensagem para tentar de novo.",
+    "Não consegui carregar as atividades de {garden} agora. O problema é do meu lado e seu rascunho está guardado. Toque em Tentar de novo ou envie qualquer mensagem.",
+  "report.tryAgain": "Tentar de novo",
+  "report.choiceHelp":
+    "Não entendi qual você quer dizer. Toque em uma opção abaixo ou responda com o número dela. Envie HELP para ver tudo o que posso fazer, ou CANCEL para parar este relato.",
   "report.askNumber": "{title}? Responda com um número{unit}.",
   "report.askChoice": "{title}?",
   "report.askMulti": "{title}? Você pode escolher mais de uma, por exemplo: 1, 3.",
@@ -96,7 +99,6 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.invalid.unit_mismatch":
     "Isto é contado em {unit}, mas você escreveu {stated}. Pode informar em {unit}?",
   "report.invalid.unit_required": "Inclua a unidade, por exemplo 2 horas ou 30 minutos.",
-  "report.invalid.unknown_option": "Escolha uma das opções respondendo com o número dela.",
   "report.invalid.too_long": "Ficou um pouco longo. Pode resumir?",
   "report.invalid.empty": "Não recebi uma resposta. Pode tentar de novo?",
   "report.summary":

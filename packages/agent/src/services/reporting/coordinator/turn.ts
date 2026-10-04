@@ -7,7 +7,7 @@ import {
   type InboxEventRow,
   nextConversationEvent,
 } from "../inbox";
-import { findGarden, type ReportingGarden } from "../gardens";
+import { findGarden, gardenByKey, type ReportingGarden } from "../gardens";
 import { interpretWithDeadline, type ReportInterpreter } from "../interpretation";
 import {
   acquireConversationLease,
@@ -82,30 +82,59 @@ function catalogGarden(
   return gardens.length === 1 ? (gardens[0] as ReportingGarden) : null;
 }
 
+/** A report's questions that offer a list of choices. */
+const REPORT_CHOICES = new Set([
+  "select_garden",
+  "select_action",
+  "field",
+  "time_unit",
+  "conflict",
+  "edit_field",
+]);
+
+/**
+ * Typed words sent to a report's list of choices that are neither numbers nor one of the choices'
+ * own labels; null for anything else. A garden or activity named in other words still lands here,
+ * and the answer handler tries its own matching before it turns to what the model read.
+ */
+function offChoiceText(plan: TurnPlan): string | null {
+  if (plan.kind !== "answer" || plan.option !== null) return null;
+  const { prompt } = plan;
+  if (!REPORT_CHOICES.has(prompt.kind) || prompt.options.length === 0) return null;
+  const text = plan.text?.trim();
+  if (!text) return null;
+  const said = text.toLowerCase();
+  const numbers = said.split(/[\s,;]+/u).every((part) => /^\d+$/u.test(part));
+  const label = prompt.options.some((choice) => choice.label.toLowerCase() === said);
+  return numbers || label ? null : text;
+}
+
 async function gatherExternal(
   deps: CoordinatorDeps,
   ctx: TurnContext,
   plan: TurnPlan
 ): Promise<TurnExternal> {
-  const garden = catalogGarden(deps.core, ctx, plan);
+  const activitiesOf = (place: ReportingGarden): Promise<CatalogResult> =>
+    deps.catalog
+      .eligibleActions(place, deps.core.clock.now())
+      .catch((): CatalogResult => ({ ok: false, reason: "unavailable" }));
+  let garden = catalogGarden(deps.core, ctx, plan);
   const reportPlan = plan.kind === "message" || plan.kind === "answer" || plan.kind === "command";
   const needsCatalog =
     Boolean(garden) && reportPlan && (!ctx.draft?.snapshot || plan.kind === "answer");
-  const result: CatalogResult | null =
-    garden && needsCatalog
-      ? await deps.catalog
-          .eligibleActions(garden, deps.core.clock.now())
-          .catch((): CatalogResult => ({ ok: false, reason: "unavailable" }))
-      : null;
+  let result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
   let interpretation = null;
-  if (plan.kind === "message" && plan.text && ctx.modelEnabled && ctx.binding) {
+  // A story or correction is read by the model, and so are words sent to a list of choices that
+  // pick none of them: they may be a question, a correction or the answer in other words.
+  const said = plan.kind === "message" ? plan.text : offChoiceText(plan);
+  if (said && ctx.modelEnabled && ctx.binding) {
     const content = ctx.draft?.content;
     interpretation = await interpretWithDeadline(
       deps.interpreter,
       {
         locale: ctx.locale,
         draftRevision: ctx.draft?.revision ?? 0,
-        message: { sourceEntryId: ctx.event.id, text: plan.text },
+        message: { sourceEntryId: ctx.event.id, text: said },
         content: {
           actionUID: content?.actionUID ?? null,
           title: content?.title ?? null,
@@ -129,6 +158,15 @@ async function gatherExternal(
       },
       deps.interpretationTimeoutMs
     );
+    // A garden the model read for a report that has none yet: its activities are read in this
+    // turn too, so the reply can ask which activity instead of failing to list them.
+    const named = interpretation?.gardenKey
+      ? gardenByKey(deps.core.gardens, interpretation.gardenKey)
+      : null;
+    if (named && !garden && !ctx.draft?.content.garden) {
+      garden = named;
+      result = await activitiesOf(named);
+    }
   }
   return { catalog: { garden, result }, interpretation };
 }
