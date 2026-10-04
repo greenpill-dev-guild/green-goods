@@ -56,7 +56,7 @@ const messages: Record<string, string> = {
   "app.domain.tab.education": "Education",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.waste": "Waste",
-  "public.actions.heroTitle": "A field guide for regenerative work.",
+  "public.actions.heroTitle": "A field guide for regenerative work",
   "public.actions.heroLede":
     "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste.",
   "public.actions.gridTitle": "Templates Gardens use to plan and document Work.",
