@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSignMessage } from "wagmi";
 import { isPasskeyServerEnabled } from "../../config/passkeyServer";
@@ -35,8 +35,8 @@ export interface CeremonyAccount {
   connectWallet: () => void;
   /** With a name, that account's passkey; without one, the passkey this browser remembers. */
   connectPasskey: (name?: string) => Promise<void>;
-  /** Lets go of the connected account, so the page asks which one to use. */
-  changeAccount: () => Promise<void>;
+  /** Lets go of the connected account, so the page asks which one to use. False if it could not. */
+  changeAccount: () => Promise<boolean>;
   /** Signs the Agent's proof fields for this challenge and submits them. */
   prove: (client: CeremonyClient, challengeId: string) => Promise<ChallengeResponse>;
 }
@@ -64,9 +64,18 @@ export function useCeremonyAccount(): CeremonyAccount {
     [intl]
   );
 
+  // One record per failed sign-in: the words may be said again, in another language or after a
+  // retry was dismissed, without the same error being recorded a second time.
+  const recorded = useRef<unknown>(null);
   useEffect(() => {
-    if (auth.error && !auth.isAuthenticating) failed(auth.error, "sign_in");
-  }, [auth.error, auth.isAuthenticating, failed]);
+    if (!auth.error || auth.isAuthenticating) return;
+    if (recorded.current === auth.error) {
+      setLastFailure(getFriendlyLoginErrorMessage(auth.error, intl));
+      return;
+    }
+    recorded.current = auth.error;
+    failed(auth.error, "sign_in");
+  }, [auth.error, auth.isAuthenticating, failed, intl]);
 
   const connectPasskey = useCallback(
     async (name?: string) => {
@@ -84,8 +93,10 @@ export function useCeremonyAccount(): CeremonyAccount {
     setLastFailure(null);
     try {
       await actions.signOut();
+      return true;
     } catch (error) {
       failed(error, "change_account");
+      return false;
     }
   }, [actions, failed]);
 

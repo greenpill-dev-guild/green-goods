@@ -264,16 +264,21 @@ export function useAgentReportingCeremony(
     }
   }, [afterChallenge, client, fail, requestId, update]);
 
-  // The account this page was changed to has signed in, and the app remounted for it. The person
-  // had already continued in this tab, so the page opens its account step again.
+  // The person let go of an account on the account step, and a different one has signed in: the
+  // app remounted for it. They had already continued in this tab, so the page opens its account
+  // step again. The mark is spent either way, so nothing else ever continues by itself.
+  const connectedRef = useRef(account.account);
+  connectedRef.current = account.account;
   useAsyncEffect(
     async ({ isMounted }) => {
       const stored = readCeremony(requestId);
-      if (!stored?.changingAccount) return;
-      const { changingAccount: _resumed, ...kept } = stored;
+      if (!stored?.changingAccountFrom) return;
+      const { changingAccountFrom: from, ...kept } = stored;
       writeCeremony(requestId, kept);
+      const connected = connectedRef.current;
+      const another = connected !== null && connected.toLowerCase() !== from.toLowerCase();
       // A page that already holds a session resumes that instead, in the effect above.
-      if (kept.accessId) return;
+      if (!another || kept.accessId) return;
       if (isMounted() && stateRef.current.stage === "intro") await start();
     },
     [requestId]
@@ -400,19 +405,15 @@ export function useAgentReportingCeremony(
 
   const letGo = account.changeAccount;
   const changeAccount = useCallback(async () => {
-    writeCeremony(requestId, { ...readCeremony(requestId), changingAccount: true });
-    await letGo();
-    // A code already on screen was issued to the account just let go. The link starts over, so
-    // the next account proves itself on a challenge of its own.
-    if (stateRef.current.stage !== "pairing") return update({ error: null });
-    challengeRef.current = null;
-    update({
-      stage: "intro",
-      pairingCode: null,
-      linkedAccount: null,
-      communityOffer: null,
-      error: null,
-    });
+    const from = connectedRef.current;
+    const released = await letGo();
+    // Only the account step is returned to: its challenge is still unused. Anywhere else the
+    // page keeps its place, and what it shows still belongs to the account that proved it.
+    if (released && from && stateRef.current.stage === "connect") {
+      writeCeremony(requestId, { ...readCeremony(requestId), changingAccountFrom: from });
+    }
+    update({ error: null });
+    return released;
   }, [letGo, requestId, update]);
 
   const installGrant = useGrantInstallation({

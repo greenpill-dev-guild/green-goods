@@ -18,7 +18,6 @@ const makeProps = (): Props => ({
   connecting: false,
   connectWallet: vi.fn(),
   connectPasskey: vi.fn(async () => {}),
-  changeAccount: vi.fn(async () => {}),
   start: vi.fn(async () => {}),
   prove: vi.fn(async () => {}),
   confirmCode: vi.fn(async () => {}),

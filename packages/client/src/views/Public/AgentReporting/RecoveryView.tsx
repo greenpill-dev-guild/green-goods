@@ -32,7 +32,6 @@ type RecoveryViewProps = Pick<
   | "connecting"
   | "connectWallet"
   | "connectPasskey"
-  | "changeAccount"
   | "start"
   | "prove"
   | "confirmCode"
@@ -199,10 +198,6 @@ export function RecoveryView(props: RecoveryViewProps) {
         account={signedIn ? (props.recoveredAccount ?? props.account) : props.account}
         signedIn={signedIn}
         channel={props.channelLabel}
-        // Before the account is proven, the one connected here may not be the one to move.
-        onChangeAccount={
-          props.account && stage === "connect" ? () => void props.changeAccount() : undefined
-        }
       />
       {opening || proving ? <WhatHappensNext flow="move" /> : null}
       {stage === "code" ? (

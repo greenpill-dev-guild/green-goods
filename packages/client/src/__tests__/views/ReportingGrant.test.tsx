@@ -74,7 +74,7 @@ const makeProps = (): Props => ({
   joinCommunity: vi.fn(async () => {}),
   lastFailure: null,
   canFindAccount: false,
-  changeAccount: vi.fn(async () => {}),
+  changeAccount: vi.fn(async () => true),
   createAccount: vi.fn(async () => true),
   accountKind: null,
   sessionAccount: ACCOUNT,
@@ -302,6 +302,37 @@ describe("linking an account", () => {
       within(screen.getByRole("dialog")).getByRole("button", { name: "Use a Different Account" })
     );
     expect(connected.changeAccount).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the account once its code is on screen, and while a join is being sent", () => {
+    // The code belongs to the account that proved it, so nothing here offers to swap it.
+    const { rerender } = render(
+      view({
+        ...link(),
+        stage: "pairing",
+        account: ACCOUNT,
+        linkedAccount: ACCOUNT,
+        pairingCode: "481516",
+      })
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Account and Help" }));
+    expect(
+      within(screen.getByRole("dialog")).queryByRole("button", { name: "Use a Different Account" })
+    ).not.toBeInTheDocument();
+    // A join on its way to the chain is signed by the connected account: it stays connected.
+    rerender(
+      view({
+        ...link(),
+        stage: "linked",
+        account: `0x${"9".repeat(40)}`,
+        linkedAccount: ACCOUNT,
+        communityOffer: { address: ACCOUNT, name: "Community Garden", chainId: 42161 },
+        joinSending: true,
+      })
+    );
+    expect(
+      screen.queryByRole("button", { name: /Use a different account$/i })
+    ).not.toBeInTheDocument();
   });
 
   it("finds an account kept on another device by its name", () => {

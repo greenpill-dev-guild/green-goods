@@ -66,14 +66,6 @@ type CeremonyViewProps = Pick<
   initialName?: NameScreen;
 };
 
-/** Stages in which a signature is being asked for, so the account under it must not change. */
-const SIGNING = new Set<AgentReportingCeremony["stage"]>([
-  "opening",
-  "proving",
-  "signing",
-  "grant_signing",
-]);
-
 /** Stages with a session this browser can end: none while a request is being prepared or signed. */
 const SESSION = new Set<AgentReportingCeremony["stage"]>([
   "review",
@@ -159,6 +151,14 @@ export function CeremonyView(props: CeremonyViewProps) {
     signer !== null &&
     props.account?.toLowerCase() !== signer.toLowerCase();
 
+  // Letting go of the connected account is offered where the page is about to ask it for a
+  // signature and it may be the wrong one: on the account step, and where the page says another
+  // account must sign. Never while something is being signed or sent, and never once a code is
+  // on screen, which stays the code of the account that proved it.
+  const canChangeAccount =
+    props.account !== null &&
+    !props.joinSending &&
+    (stage === "connect" || joinWrongAccount || wrongAccount);
   // Why the act is switched off, if it is: the wrong account, a publication this page refuses to
   // sign, or one that is still being prepared.
   const block: CeremonyProblem | null =
@@ -422,9 +422,7 @@ export function CeremonyView(props: CeremonyViewProps) {
         account={props.sessionAccount ?? props.account}
         signedIn={props.sessionAccount !== null}
         channel={props.channelLabel}
-        onChangeAccount={
-          props.account && !SIGNING.has(stage) ? () => void props.changeAccount() : undefined
-        }
+        onChangeAccount={canChangeAccount ? () => void props.changeAccount() : undefined}
         onLeave={SESSION.has(stage) ? () => void props.leave() : undefined}
       />
       {offer ? (
@@ -465,7 +463,8 @@ export function CeremonyView(props: CeremonyViewProps) {
           }
         />
       ) : null}
-      {(stage === "connect" && !nameScreen && !joinScreen) || joinWrongAccount ? (
+      {(stage === "connect" && !nameScreen && !joinScreen) ||
+      (joinWrongAccount && canChangeAccount) ? (
         <AccountStepLinks
           account={props.account}
           canCreate={screen.isLink}

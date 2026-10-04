@@ -101,7 +101,7 @@ const base: Props = {
   joinCommunity: asyncNoop,
   lastFailure: null,
   canFindAccount: true,
-  changeAccount: asyncNoop,
+  changeAccount: async () => true,
   createAccount: async () => true,
   accountKind: null,
   sessionAccount: null,

@@ -24,7 +24,6 @@ type PermissionsViewProps = Pick<
   | "connecting"
   | "connectWallet"
   | "connectPasskey"
-  | "changeAccount"
   | "stage"
   | "permissions"
   | "descriptors"
@@ -109,12 +108,6 @@ export function PermissionsView(props: PermissionsViewProps) {
         signedIn={false}
         signsIn={false}
         permissionsLink={false}
-        // Permissions are read for the connected account; another account has its own.
-        onChangeAccount={
-          props.account && props.stage !== "revoking" && props.stage !== "submitted"
-            ? () => void props.changeAccount()
-            : undefined
-        }
       />
       {props.permissions.length > 0 ? (
         <PermissionList

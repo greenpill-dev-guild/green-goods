@@ -297,31 +297,28 @@ describe("reporting ceremony page", () => {
     expect(calls).toEqual([]);
   });
 
-  it("lets go of the connected account, and retires a code shown for it", async () => {
+  const opened = () =>
+    agent.calls.filter((call) => call.method === "POST" && call.path === "/challenges");
+
+  it("lets go of the connected account on the account step, and keeps a code already shown", async () => {
     agent.purpose = "link_account";
     agent.boundAccount = null;
     const { result } = render();
     await act(() => result.current.start());
     // On the account step only the website's sign-in changes; the challenge is still unused.
-    await act(() => result.current.changeAccount());
+    await act(async () => expect(await result.current.changeAccount()).toBe(true));
     expect(mocks.signOut).toHaveBeenCalledTimes(1);
     expect(result.current.stage).toBe("connect");
 
     await act(() => result.current.prove());
-    expect(result.current.pairingCode).toBe("481516");
-    // The code belongs to the account that proved it. Another account starts the link over.
+    // A code on screen stays the code of the account that proved it; the page keeps its place.
     await act(() => result.current.changeAccount());
-    expect(result.current.stage).toBe("intro");
-    expect(result.current.pairingCode).toBeNull();
-    expect(result.current.linkedAccount).toBeNull();
-    await act(() => result.current.start());
-    const opened = agent.calls.filter(
-      (call) => call.method === "POST" && call.path === "/challenges"
-    );
-    expect(opened).toHaveLength(2);
+    expect(result.current.stage).toBe("pairing");
+    expect(result.current.pairingCode).toBe("481516");
+    expect(opened()).toHaveLength(1);
   });
 
-  it("returns to its account step when the app remounts for the account it was changed to", async () => {
+  it("returns to its account step only when a different account has signed in", async () => {
     agent.purpose = "link_account";
     agent.boundAccount = null;
     const first = render();
@@ -329,17 +326,36 @@ describe("reporting ceremony page", () => {
     await act(() => first.result.current.changeAccount());
     // A different account signing in remounts every screen, this page included.
     first.unmount();
-    const { result } = render();
-    await waitFor(() => expect(result.current.stage).toBe("connect"));
-    const opened = () =>
-      agent.calls.filter((call) => call.method === "POST" && call.path === "/challenges");
+    mocks.account = OTHER_ACCOUNT;
+    const second = render();
+    await waitFor(() => expect(second.result.current.stage).toBe("connect"));
     expect(opened()).toHaveLength(2);
-    // The marker is spent: a later reload waits for Continue like any link opened fresh.
-    result.current.leave();
-    const later = render();
+
+    // The same account coming back is no change: the page waits for Continue, and the mark it
+    // left is spent, so a later reload waits too.
+    await act(() => second.result.current.changeAccount());
+    second.unmount();
+    const third = render();
     await act(async () => {});
-    expect(later.result.current.stage).toBe("intro");
+    expect(third.result.current.stage).toBe("intro");
+    third.unmount();
+    mocks.account = ACCOUNT;
+    const fourth = render();
+    await act(async () => {});
+    expect(fourth.result.current.stage).toBe("intro");
     expect(opened()).toHaveLength(2);
+  });
+
+  it("leaves no mark when the account is let go before the link was opened", async () => {
+    const first = render();
+    await act(() => first.result.current.changeAccount());
+    first.unmount();
+    mocks.account = OTHER_ACCOUNT;
+    const second = render();
+    await act(async () => {});
+    // Nothing continued by itself: the start screen, with its warning for in-app browsers, stays.
+    expect(second.result.current.stage).toBe("intro");
+    expect(opened()).toHaveLength(0);
   });
 
   it("finds a passkey account by the name it was created with", async () => {
