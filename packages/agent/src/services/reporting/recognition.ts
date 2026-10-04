@@ -43,7 +43,7 @@ export function recognizedAccount(
   return { address: row.account_address, kind: row.account_kind };
 }
 
-/** Called only after this browser's challenge was seen paired with its proven account. */
+/** Called only after this browser's challenge verified a proof itself and was seen paired. */
 export function issueRecognition(
   core: ReportingCore,
   participantId: string,

@@ -66,9 +66,14 @@ function challengeView(deps: MessagingRouteDeps, challenge: BrowserChallenge, cs
   };
 }
 
-/** Pairing completes in chat; the next response to this browser is when it earns recognition. */
+/**
+ * Pairing completes in chat; the next response to this browser is when it earns recognition.
+ * Only a proof earns it: a challenge paired by recognition verified none, so it starts no new
+ * 15 minutes.
+ */
 function rememberPaired(c: Context, deps: MessagingRouteDeps, challenge: BrowserChallenge): void {
   if (challenge.state !== "paired" && challenge.state !== "session_issued") return;
+  if (challenge.proofVerifiedAt === null) return;
   const core = deps.core();
   const request = requestById(core, challenge.requestId);
   if (!request?.participantId || request.purpose === "recovery" || !challenge.verifiedAccount)
@@ -113,7 +118,6 @@ export function registerAccessRoutes(app: Hono, deps: MessagingRouteDeps): void 
       created.preauthToken,
       (created.challenge.expiresAt - core.clock.now()) / 1000
     );
-    rememberPaired(c, deps, created.challenge);
     return c.json(challengeView(deps, created.challenge, created.csrfToken), 201);
   });
 

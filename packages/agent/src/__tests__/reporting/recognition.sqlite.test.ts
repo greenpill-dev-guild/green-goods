@@ -97,6 +97,18 @@ describe("short browser recognition", () => {
     expect((await browser.open(anotherLink(request))).body.state).toBe("issued");
   });
 
+  it("does not start another 15 minutes from a link opened while recognized", async () => {
+    const { browser, request } = await pairedBrowser();
+    harness.clock.advance(RECOGNITION_TTL_MS - 60_000);
+    expect((await browser.open(anotherLink(request))).body.state).toBe("paired");
+    // The memory lapses while that link's page is still open, reading its challenge.
+    harness.clock.advance(60_001);
+    const poll = await browser.request("GET", `/messaging/challenges/${browser.challengeId}`);
+    expect(poll.body.state).toBe("paired");
+    expect((await browser.access()).status).toBe(200);
+    expect((await browser.open(anotherLink(request))).body.state).toBe("issued");
+  });
+
   it("asks for the proof again once the person signs out of the page", async () => {
     const { browser, request } = await pairedBrowser();
     expect((await browser.open(anotherLink(request))).body.state).toBe("paired");

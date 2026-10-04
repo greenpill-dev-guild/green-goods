@@ -40,6 +40,8 @@ export interface BrowserChallenge {
   browserNonce: string;
   verifiedAccount: string | null;
   verifiedAccountKind: "eoa" | "kernel" | null;
+  /** When this challenge verified a proof itself. Null for one paired by recognition. */
+  proofVerifiedAt: number | null;
   pairingCode: string | null;
   createdAt: number;
   expiresAt: number;
@@ -52,6 +54,7 @@ interface ChallengeRow {
   browser_nonce: string;
   verified_account: string | null;
   verified_account_kind: "eoa" | "kernel" | null;
+  verified_at: number | null;
   created_at: number;
   expires_at: number;
 }
@@ -68,6 +71,7 @@ function toChallenge(
         browserNonce: row.browser_nonce,
         verifiedAccount: row.verified_account,
         verifiedAccountKind: row.verified_account_kind,
+        proofVerifiedAt: row.verified_at,
         pairingCode,
         createdAt: row.created_at,
         expiresAt: row.expires_at,
@@ -75,6 +79,10 @@ function toChallenge(
     : null;
 }
 
+/**
+ * A recognized browser's challenge starts paired on the account it proved earlier. It verifies no
+ * proof of its own, so `verified_at` stays empty and it can never renew that recognition.
+ */
 export function createBrowserChallenge(
   core: ReportingCore,
   request: ContinuationRequest,
@@ -88,9 +96,9 @@ export function createBrowserChallenge(
     .query(
       `INSERT INTO browser_challenges
          (id, request_id, preauth_token_hash, csrf_token_hash, browser_nonce, state,
-          verified_account, verified_account_kind, verified_at, paired_at, created_at, expires_at)
+          verified_account, verified_account_kind, paired_at, created_at, expires_at)
        VALUES ($id, $request, $preauth, $csrf, $nonce, $state,
-               $account, $kind, $verified, $paired, $now, $expires)`
+               $account, $kind, $paired, $now, $expires)`
     )
     .run({
       id,
@@ -101,7 +109,6 @@ export function createBrowserChallenge(
       state: recognized ? "paired" : "issued",
       account: recognized?.address ?? null,
       kind: recognized?.kind ?? null,
-      verified: recognized ? core.clock.now() : null,
       paired: recognized ? core.clock.now() : null,
       now: core.clock.now(),
       expires: request.expiresAt,
