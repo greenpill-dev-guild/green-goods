@@ -371,7 +371,7 @@ export function CeremonyView(props: CeremonyViewProps) {
                 title: { id: "public.reporting.join.title", defaultMessage: "Join a Garden" },
                 info: text({
                   id: "public.reporting.join.body",
-                  defaultMessage: "You aren't in a garden yet. This one is open to all:",
+                  defaultMessage: "Anyone can join this garden and report to it:",
                 }),
                 Icon: RiPlantLine,
               }

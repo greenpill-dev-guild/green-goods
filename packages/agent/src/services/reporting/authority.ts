@@ -107,14 +107,24 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
     return { status: "retry", errorCode: "dependency_unavailable", delayMs: 30_000 };
   }
   if (!roles.gardener && !roles.operator) {
+    // The Community Garden can be joined, whatever other gardens the account is in, while the
+    // chain would accept the join. Any other garden, or this one closed or full, needs a steward.
+    let joinable = false;
+    if (core.settings.communityGarden?.toLowerCase() === garden.address.toLowerCase()) {
+      try {
+        joinable = await deps.chain.gardenAcceptsJoin(
+          garden.chainId,
+          garden.address,
+          account.address
+        );
+      } catch {
+        return { status: "retry", errorCode: "dependency_unavailable", delayMs: 30_000 };
+      }
+    }
     inTransaction(core.db, () => {
       const out = writer();
       if (!out) return;
-      if (
-        core.settings.communityGarden?.toLowerCase() === garden.address.toLowerCase() &&
-        core.gardens.gardensOf(account.address).length === 0 &&
-        out.target.binding
-      ) {
+      if (joinable && out.target.binding) {
         out.ask(
           {
             subjectKind: "draft",

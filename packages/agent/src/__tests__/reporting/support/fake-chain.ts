@@ -28,6 +28,8 @@ export class FakeChain implements ReportingChain {
   block = 1_000n;
   rpcDown = false;
   readonly roles = new Map<string, GardenRoles>();
+  /** Gardens that refuse a join (closed or full), by lowercase address; every other one accepts. */
+  readonly closed = new Set<string>();
   readonly masks = new Map<string, number>();
   readonly kernels = new Set<string>();
   readonly receipts = new Map<Hex, TransactionReceiptView>();
@@ -62,6 +64,11 @@ export class FakeChain implements ReportingChain {
         owner: false,
       }
     );
+  }
+
+  async gardenAcceptsJoin(_chainId: number, garden: string, _account: string): Promise<boolean> {
+    this.guard();
+    return !this.closed.has(lower(garden));
   }
 
   async gardenDomainMask(_chainId: number, garden: string): Promise<number | null> {

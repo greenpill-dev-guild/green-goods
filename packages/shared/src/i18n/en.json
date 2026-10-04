@@ -6742,7 +6742,7 @@
   "public.reporting.create.body": "Pick a name and keep it safe. It signs you in on other devices.",
   "public.reporting.create.link": "New here? Create an account",
   "public.reporting.join.title": "Join a Garden",
-  "public.reporting.join.body": "You aren't in a garden yet. This one is open to all:",
+  "public.reporting.join.body": "Anyone can join this garden and report to it:",
   "public.reporting.join.notNow": "Not Now",
   "public.reporting.join.action": "Join Garden",
   "public.reporting.join.failed": "Joining didn't go through. Try again, or tap Not Now.",

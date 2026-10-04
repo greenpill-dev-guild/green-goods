@@ -1,11 +1,9 @@
-import { readContract } from "@wagmi/core";
-import { getWagmiConfig } from "../../config/appkit";
 import { getDefaultChain } from "../../config/blockchain";
-import { getGardens } from "../../modules/data/greengoods";
+import { getGarden } from "../../modules/data/indexer-garden";
 import type { Address } from "../../types/domain";
-import { GardenAccountABI } from "../../utils/blockchain/contracts";
+import { simulateJoinGarden } from "../../utils/blockchain/simulation";
 
-/** The garden an account in no garden is invited to join while it links its chat. */
+/** The garden open to all, which an account the chain would let in is invited to join. */
 export interface CommunityOffer {
   address: Address;
   name: string;
@@ -16,32 +14,23 @@ export interface CommunityOffer {
 const READ_TIMEOUT_MS = 6_000;
 
 async function eligibleOffer(account: Address, community: Address, chainId: number) {
-  const gardens = await getGardens();
-  const member = account.toLowerCase();
-  const belongs = gardens.some((garden) =>
-    [...garden.gardeners, ...garden.stewards, ...garden.owners].some(
-      (address) => address.toLowerCase() === member
-    )
-  );
-  if (belongs) return null;
-  const garden = gardens.find((item) => item.id.toLowerCase() === community.toLowerCase());
-  if (!garden?.openJoining) return null;
-  const isGardener = await readContract(getWagmiConfig(), {
-    address: community,
-    abi: GardenAccountABI,
-    functionName: "isGardener",
-    args: [account],
-    chainId,
-  });
-  return isGardener ? null : { address: community, name: garden.name, chainId };
+  // The indexer only names the garden. It is read on its own: the garden list holds a chain's
+  // newest gardens only, and this is its first. Whether the garden takes this account is the
+  // chain's answer to the join itself.
+  const [garden, join] = await Promise.all([
+    getGarden(community),
+    simulateJoinGarden(community, account, undefined, chainId),
+  ]);
+  return garden && join.success ? { address: community, name: garden.name, chainId } : null;
 }
 
 /**
- * Whether the account a chat links is offered the Community Garden: the indexer shows it in no
- * garden, the garden is open to join, and the chain says it is not a member yet. It is read for
- * the account the challenge proved, which need not be the one this browser has connected. A read
- * that fails or runs long means no offer, so the link step is never held up for more than a few
- * seconds.
+ * Whether the account a chat links is offered the Community Garden: the chain would accept its
+ * join now. That refuses a garden closed to joining or full, and an account already a gardener
+ * there. Its other gardens do not count, so an account that reports elsewhere can still join
+ * this one. It is read for the account the challenge proved, which need not be the one this
+ * browser has connected. A read that fails or runs long means no offer, so the link step is
+ * never held up for more than a few seconds.
  */
 export async function readCommunityOffer(account: Address): Promise<CommunityOffer | null> {
   const chain = getDefaultChain();

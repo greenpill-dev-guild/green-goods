@@ -64,6 +64,8 @@ export interface PublishedWorkView {
 
 export interface ReportingChain {
   gardenRoles(chainId: number, garden: string, account: string): Promise<GardenRoles>;
+  /** Whether the garden would accept this account joining it now: open, with room, not yet in. */
+  gardenAcceptsJoin(chainId: number, garden: string, account: string): Promise<boolean>;
   gardenDomainMask(chainId: number, garden: string): Promise<number | null>;
   /** Classifies an account: code at the address, or the counterfactual factory used in its proof. */
   accountKind(

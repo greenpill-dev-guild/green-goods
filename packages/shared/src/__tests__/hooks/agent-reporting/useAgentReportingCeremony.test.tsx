@@ -25,7 +25,7 @@ const mocks = vi.hoisted(() => ({
   ),
 }));
 
-/** The garden an account in no garden is invited to; by default the account needs no invitation. */
+/** The garden an account not yet in it is invited to; by default the account needs no invitation. */
 const OFFER = {
   address: "0x00000000000000000000000000000000000000c9",
   name: "Community Garden",
