@@ -68,9 +68,10 @@ export function validateDetailValue(input: WorkInput, value: unknown): DetailChe
   }
 }
 
-// The unit starts at a non-space, so a run of spaces has one reading and a long chat message is
-// matched in linear time.
-const NUMBER_PATTERN = /^(-?)(\d+)(?:([.,])(\d+))?(?:\s*(\S.*))?$/u;
+// Only the number is matched; what follows it is read on its own. One pattern for both lets two
+// of its parts claim the same digits or spaces, which takes quadratic time on a long chat message.
+const NUMBER_START = /^(-?)(\d+)(?:([.,])(\d+))?/u;
+const LINE_BREAK = /[\n\r\p{Zl}\p{Zp}]/u;
 
 function singular(word: string): string {
   const lower = word.trim().toLowerCase();
@@ -84,13 +85,14 @@ export function parseNumberAnswer(
 ): (AnswerResult & { ok: true; value: number }) | Extract<AnswerResult, { ok: false }> {
   const text = answer.trim();
   if (!text) return { ok: false, reason: "empty" };
-  const match = NUMBER_PATTERN.exec(text);
-  if (!match) return { ok: false, reason: "not_a_number" };
-  const [, sign, whole, separator, fraction, rest = ""] = match;
+  const match = NUMBER_START.exec(text);
+  // The unit is the rest of the number's line, or the one line after it: more lines are not a unit.
+  const statedUnit = match ? text.slice(match[0].length).trimStart() : "";
+  if (!match || LINE_BREAK.test(statedUnit)) return { ok: false, reason: "not_a_number" };
+  const [, sign, whole, separator, fraction] = match;
   if (separator && fraction?.length === 3) return { ok: false, reason: "ambiguous_number" };
   const value = Number(`${whole}${fraction ? `.${fraction}` : ""}`);
   if (sign) return { ok: false, reason: "negative" };
-  const statedUnit = rest.trim();
   if (statedUnit && expectedUnit && singular(statedUnit) !== singular(expectedUnit)) {
     return { ok: false, reason: "unit_mismatch", statedUnit };
   }

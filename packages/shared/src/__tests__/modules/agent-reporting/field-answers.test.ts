@@ -43,6 +43,12 @@ describe("parseFieldAnswer", () => {
     [seedlings, "10 bags", { ok: false, reason: "unit_mismatch", statedUnit: "bags" }],
     [seedlings, "12   seedlings", { ok: true, value: 12 }],
     [seedlings, "12 seedlings\nand a few more", { ok: false, reason: "not_a_number" }],
+    [seedlings, "12\nseedlings", { ok: true, value: 12 }],
+    [
+      seedlings,
+      `12 seedlings${String.fromCharCode(0x2028)}and a few more`,
+      { ok: false, reason: "not_a_number" },
+    ],
     [species, "2", { ok: true, value: "baobab" }],
     [species, "neem", { ok: true, value: "neem" }],
     [species, "Oak", { ok: false, reason: "unknown_option" }],
@@ -63,16 +69,19 @@ describe("parseFieldAnswer", () => {
     expect(parseFieldAnswer(species, "1", ["neem"])).toMatchObject({ ok: true, value: "neem" });
   });
 
-  it("reads a chat message padded with a long run of spaces without stalling", () => {
+  it("reads a chat message with a long run of spaces or digits without stalling", () => {
     // Anyone in the chat can send such a message. A pattern that lets two of its parts both claim
-    // the spaces takes seconds on these (quadratic time); one reading of the spaces takes under a
-    // millisecond, so the half-second allowance is three orders of magnitude of headroom.
+    // the same spaces or digits takes seconds on these (quadratic time); one reading of each takes
+    // under a millisecond, so the half-second allowance is three orders of magnitude of headroom.
     const spaces = " ".repeat(100_000);
+    const digits = "0".repeat(100_000);
     const started = performance.now();
-    expect(parseFieldAnswer(seedlings, `0${spaces}seedlings\nand more`)).toMatchObject({
-      ok: false,
-      reason: "not_a_number",
-    });
+    for (const answer of [`0${spaces}seedlings\nand more`, `${digits} seedlings\nand more`]) {
+      expect(parseFieldAnswer(seedlings, answer)).toMatchObject({
+        ok: false,
+        reason: "not_a_number",
+      });
+    }
     expect(parseFieldAnswer(methods, `mulch${spaces}compost`)).toMatchObject({
       ok: false,
       reason: "unknown_option",
