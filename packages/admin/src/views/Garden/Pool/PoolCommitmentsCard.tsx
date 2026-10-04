@@ -40,6 +40,7 @@ export interface PoolCommitmentsCardProps {
 }
 
 /**
+ * Offers and Requests, the card's title since DL-077.
  * One commitments card for the whole pool (uiux-spec §6.2 section 3, 2026-07-18
  * addendum): search, the Open · Confirmed · Past chips, a Past due chip for
  * the live rows the chain would let anyone expire, a Needs recovery chip for
@@ -136,7 +137,7 @@ export function PoolCommitmentsCard({
           <AdminCardTitle>
             {formatMessage({
               id: "cockpit.garden.pool.promises.title",
-              defaultMessage: "Promises",
+              defaultMessage: "Offers and Requests",
             })}
           </AdminCardTitle>
           <AdminButton

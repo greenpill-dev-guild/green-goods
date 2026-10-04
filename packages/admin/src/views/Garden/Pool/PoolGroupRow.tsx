@@ -27,7 +27,7 @@ const bold = (chunks: ReactNode[]) => (
 const warningBold = (chunks: ReactNode[]) => <b className="font-semibold tabular-nums">{chunks}</b>;
 
 /**
- * Copies made together, as one row on the Promises card (PRD-1022 D3): the
+ * Copies made together, as one row in Offers and Requests (PRD-1022 D3): the
  * record row with a count chip, and a count line over every published copy:
  * available, in progress, kept and, once any, ended. While a copy is still
  * waiting in the steward's queue the line says what was created and what

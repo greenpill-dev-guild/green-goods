@@ -12,7 +12,7 @@ const meta: Meta<typeof PoolStatusCard> = {
     docs: {
       description: {
         component:
-          "The pool is the container; this card is its one home in the pool tab's right column, between Waiting for approval and Pool Funding: status, the setup checklist while a garden is being set up, the commitment limit and charter once it runs, the pause reason, and the lifecycle acts. Pool Funding is its own card below it (PRD-1025 D9).",
+          "The pool is the container; this card is its one home in the Promises tab's right column, between Review Promises and Pool Funding: status, the setup checklist while a garden is being set up, the commitment limit and charter once it runs, the pause reason, and the lifecycle acts. Pool Funding is its own card below it (PRD-1025 D9).",
       },
     },
   },

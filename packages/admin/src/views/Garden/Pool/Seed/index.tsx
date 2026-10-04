@@ -81,7 +81,7 @@ export function SeedCommitmentDialog({
 }: SeedCommitmentDialogProps) {
   const { formatMessage } = useIntl();
   const noteId = useId();
-  // The Pool tab stays mounted behind this flow and owns the visit.
+  // The Promises tab stays mounted behind this flow and owns the visit.
   const pool = usePoolConsoleController({ chainId, garden, visit: "join" });
   // Seeding into the protocol pool (the Green Goods Community Garden's own):
   // requests default to steward review. The pool says which it is, so the
@@ -206,7 +206,7 @@ export function SeedCommitmentDialog({
   const busy = tray.isSending;
   const finished = status.phase === "created" || status.phase === "finishLater";
   // Closing loses only answers that exist nowhere else: a copy left in the
-  // queue is finished from the pool tab.
+  // queue is finished from the Promises tab.
   const answersAtStake =
     !finished &&
     (tray.copies === null ||

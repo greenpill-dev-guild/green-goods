@@ -135,7 +135,7 @@ function GardenPoolCard({
  * The protocol's own operations, shown only inside the Green Goods Community
  * Garden: settlement, protocol funding, and the cross-garden confirmations the
  * team was asked to step into. The protocol pool's console itself is that
- * garden's Pool tab, like every other garden's.
+ * garden's Promises tab, like every other garden's.
  */
 function ProtocolOperations({
   chainId,

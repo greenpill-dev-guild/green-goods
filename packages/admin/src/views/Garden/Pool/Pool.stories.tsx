@@ -59,7 +59,7 @@ const meta: Meta<typeof GardenPoolTab> = {
     docs: {
       description: {
         component:
-          "W7, the steward's pool console over the shared controller. On the left, what needs the steward, the season and its campaigns, and the promises under Open · Confirmed · Past; on the right, 37.5% of the width, Waiting for approval, Pool Status and Pool Funding (PRD-1025 D8–D10). On narrow screens the right column comes last. Seeded through the registry keys the controller reads.",
+          "W7, the steward's pool console over the shared controller. On the left, what needs the steward, the season and its campaigns, and Offers and Requests under Open · Confirmed · Past; on the right, 37.5% of the width, Review Promises, Pool Status and Pool Funding (PRD-1025 D8–D10, named by DL-077). On narrow screens the right column comes last. Seeded through the registry keys the controller reads.",
       },
     },
   },
