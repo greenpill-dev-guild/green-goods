@@ -98,11 +98,15 @@ describe("AccountProfilePanel", () => {
     const body = () => container.querySelector<HTMLElement>('[data-component="SheetBody"]');
 
     expect(body()?.style.padding).toBe("20px 16px");
+    expect(body()?.style.overflowX).toBe("hidden");
 
     rerender(<AccountProfilePanel controller={createController()} layout="page" />);
 
     // The shell's phone gutter is the one side inset there; only block padding stays.
     expect(body()?.style.padding).toBe("");
     expect(body()).toHaveClass("py-5");
+    // Flush with the gutter, a clipping body would cut a focus ring off at its edge.
+    expect(body()?.style.overflowX).toBe("visible");
+    expect(body()?.style.overflowY).toBe("visible");
   });
 });

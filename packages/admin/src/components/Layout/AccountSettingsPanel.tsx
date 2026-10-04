@@ -10,6 +10,7 @@ import { RiComputerLine, RiExternalLinkLine, RiMoonLine, RiSunLine } from "@remi
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "../AdminChoiceGroup";
+import { type AccountPanelLayout, accountPanelBodyProps } from "./accountPanelLayout";
 
 const THEME_OPTIONS = [
   { value: "light" as const, icon: RiSunLine, labelId: "cockpit.settings.lightMode" },
@@ -28,9 +29,8 @@ const DOCS_URL = "https://docs.greengoods.app";
 const SUPPORT_TELEGRAM_URL = "https://t.me/+N3o3_43iRec1Y2Jh";
 
 interface AccountSettingsPanelProps {
-  /** `sheet` (default) keeps the side sheet's body inset; `page` is the mobile
-   * Profile route, where the shell's phone gutter is already the side inset. */
-  layout?: "sheet" | "page";
+  /** `sheet` (default) is the side sheet; `page` is the mobile Profile route. */
+  layout?: AccountPanelLayout;
   className?: string;
 }
 
@@ -86,10 +86,7 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
   const chainName = getChainName(DEFAULT_CHAIN_ID);
 
   return (
-    <SheetBody
-      padded={layout === "sheet"}
-      className={cn("flex flex-col gap-4", layout === "page" && "py-5", className)}
-    >
+    <SheetBody {...accountPanelBodyProps(layout, className)}>
       {/* Appearance */}
       <section className="space-y-3">
         <SettingsSectionHeader

@@ -20,15 +20,12 @@ import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "../AdminChoiceGroup";
 import { AccountProfileAvatarEditor } from "./AccountProfileAvatarEditor";
+import { type AccountPanelLayout, accountPanelBodyProps } from "./accountPanelLayout";
 
 export interface AccountProfilePanelProps {
   controller: AccountProfileController;
-  /**
-   * `sheet` (default) is the side sheet, whose body carries its own inset.
-   * `page` is the mobile Profile route: the shell's phone gutter is already the
-   * side inset there, so the body keeps only its block padding.
-   */
-  layout?: "sheet" | "page";
+  /** `sheet` (default) is the side sheet; `page` is the mobile Profile route. */
+  layout?: AccountPanelLayout;
   className?: string;
 }
 
@@ -74,10 +71,7 @@ export function AccountProfilePanel({
 
   return (
     <>
-      <SheetBody
-        padded={layout === "sheet"}
-        className={cn("flex flex-col gap-4", layout === "page" && "py-5", className)}
-      >
+      <SheetBody {...accountPanelBodyProps(layout, className)}>
         {/* Identity header — who is signed in, at headline weight. */}
         <div className="flex items-center gap-4">
           <AccountProfileAvatarEditor fallbackInitials={avatarFallback} />
