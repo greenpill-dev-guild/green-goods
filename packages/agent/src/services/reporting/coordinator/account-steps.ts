@@ -14,7 +14,7 @@ import { closeConversationPrompt, resolvePrompt } from "../prompts";
 import { endRecognition } from "../recognition";
 import { revokeParticipantSessions } from "../sessions";
 import { commitLifecycle, lifecycleState } from "./draft-commit";
-import { askGarden } from "./prompting";
+import { askConfirmation, askGarden } from "./prompting";
 import { recordDraftConfirmation } from "./report-commands";
 import type { ConversationWriter, TurnWriter } from "./writer";
 
@@ -202,6 +202,9 @@ export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): voi
   audit(core, "account_disconnected", { kind: "participant", id: binding.participantId });
   ctx.account = null;
   writer.say("link.disconnected", { account: account.address });
+  // An open summary named this account. It is put again without it, so its Confirm can no longer
+  // be pressed for a publication from an account that summary never named.
+  if (ctx.draft && ctx.prompt?.kind === "confirm_report") askConfirmation(writer, ctx.draft, null);
   if (thenConnect) requestConnection(writer, null);
 }
 
@@ -231,6 +234,10 @@ export function handlePairing(writer: TurnWriter, code: string): void {
   // A garden question still open is asked again, now with the account's own gardens first.
   if (draft && ctx.account && ctx.prompt?.kind === "select_garden")
     askGarden(writer, draft, ctx.account.address);
+  // An open summary is put again naming the account just linked, so what is confirmed next is
+  // the publication as it will be made.
+  if (draft && ctx.account && ctx.prompt?.kind === "confirm_report")
+    askConfirmation(writer, draft, ctx.account.address);
   if (draft && lifecycleState(draft) === "authority") {
     enqueueJob(core, {
       kind: "resolve_authority",
