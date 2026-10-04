@@ -174,6 +174,8 @@ export const EN_REPORTING_COPY = {
     "To publish, verify your existing Green Goods account (wallet or passkey) here. The link expires in 10 minutes and never moves funds.",
   "link.label": "Verify account",
   "link.pairHint": "When the page shows a code, send the six digits alone here.",
+  "link.otherAccountHint":
+    "The page opens with the account your browser last used. To link another, tap “Use a different account” there.",
   "link.paired": "Your account {account} is now linked.{gardens}",
   "link.gardens": "\nYour gardens: {gardens}.",
   "link.gardensMore": "{gardens} and {count} more",

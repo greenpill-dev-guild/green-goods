@@ -292,6 +292,8 @@ const BROWSER_HINT =
   "Open it in Safari or Chrome. If it opens inside the chat app, use that page's menu to open it in your browser, or copy the link.";
 const CONNECT_LINK = `To connect your Green Goods account (wallet or passkey), verify it here. ${VERIFY}\n\n${BROWSER_HINT}`;
 const PAIR_HINT = "When the page shows a code, send the six digits alone here.";
+const OTHER_ACCOUNT_HINT =
+  "The page opens with the account your browser last used. To link another, tap “Use a different account” there.";
 const STORY = "Today I planted twelve baobab seedlings by the fence";
 const OFFER =
   "Hi! I help you report garden work on Green Goods. Want to connect your account first, so I can show your gardens? You can also just tell me what you did, and I'll ask you to connect when you publish.\n1. Connect account";
@@ -435,7 +437,8 @@ describe("linking an account before reporting", () => {
     ]);
 
     // The chat is free to link a different account, and the old one is free for another chat.
-    expect(await harness.say(ADA, "SWITCH")).toEqual([CONNECT_LINK, PAIR_HINT]);
+    // A chat that had an account is told the page will open on it, and how to use another.
+    expect(await harness.say(ADA, "SWITCH")).toEqual([CONNECT_LINK, PAIR_HINT, OTHER_ACCOUNT_HINT]);
     const browser = new TestBrowser(harness.app);
     await browser.open(latestLink(harness));
     const proof = await browser.prove(bolaAccount);
@@ -447,6 +450,7 @@ describe("linking an account before reporting", () => {
       disconnected(bola),
       CONNECT_LINK,
       PAIR_HINT,
+      OTHER_ACCOUNT_HINT,
     ]);
   });
 

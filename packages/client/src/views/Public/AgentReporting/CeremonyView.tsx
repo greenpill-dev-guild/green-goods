@@ -1,6 +1,6 @@
 import type { AgentReportingCeremony } from "@green-goods/shared/hooks/agent-reporting/useAgentReportingCeremony";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
-import { RiPlantLine, RiUserAddLine } from "@remixicon/react";
+import { RiPlantLine, RiUserAddLine, RiUserSearchLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useId, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 import { FlowForward } from "@/components/Features/Work";
@@ -12,11 +12,12 @@ import { readCeremonyScreen } from "./ceremonyScreen";
 import { BLOCKS, type CeremonyProblem, failureProblem, type SpokenProblem } from "./failures";
 import { GrantSummary } from "./GrantSummary";
 import {
+  AccountNameForm,
+  AccountStepLinks,
   BrowserActs,
-  CreateAccountForm,
-  CreateAccountLink,
-  CreateActs,
   JoinActs,
+  NameActs,
+  type NameScreen,
 } from "./LinkScreens";
 import { PublicationSkeleton, PublicationSummary } from "./PublicationSummary";
 import { CEREMONY_COPY, STEP_NAMES } from "./messages";
@@ -39,6 +40,8 @@ type CeremonyViewProps = Pick<
   | "skipCommunity"
   | "joinCommunity"
   | "lastFailure"
+  | "canFindAccount"
+  | "changeAccount"
   | "createAccount"
   | "accountKind"
   | "sessionAccount"
@@ -59,8 +62,8 @@ type CeremonyViewProps = Pick<
 > & {
   /** Story fixtures can provide local media; production uses the session-scoped API. */
   evidenceUrl?: (assetId: string) => string;
-  /** Story fixture for the account creation screen. */
-  initialCreate?: boolean;
+  /** Story fixture for the account step's naming screens. */
+  initialName?: NameScreen;
 };
 
 /** Stages with a session this browser can end: none while a request is being prepared or signed. */
@@ -104,22 +107,32 @@ const NOTES = {
  *
  * Linking an account has two screens of its own: naming a new account, on the account step, and
  * the invitation to the Community Garden, which opens the link step for an account in no garden.
+ *
+ * The account step starts on whichever account this browser last used with Green Goods, which
+ * need not be the one meant for the chat. So it always offers a way to another: let go of the one
+ * connected, or find an account kept on another device by the name it was created with.
  */
 export function CeremonyView(props: CeremonyViewProps) {
   const intl = useIntl();
   const firstItemId = useId();
   const createFormId = useId();
-  const [creating, setCreating] = useState(props.initialCreate ?? false);
+  const [naming, setNaming] = useState<NameScreen | null>(props.initialName ?? null);
   const [name, setName] = useState("");
-  // A new account arrives connected, which ends the naming screen.
+  const openNaming = (next: NameScreen | null) => {
+    setName("");
+    setNaming(next);
+  };
+  // An account created or found arrives connected, which ends the naming screen.
   useEffect(() => {
-    if (props.account) setCreating(false);
+    if (props.account) setNaming(null);
   }, [props.account]);
   const { stage, resource, operation, grant } = props;
   const screen = readCeremonyScreen(props);
   const { isGrant, decides, uncertain, proving, publishing, granting } = screen;
   const inApp = stage === "intro" && props.inAppBrowser;
-  const createScreen = creating && screen.isLink && stage === "connect";
+  const createScreen = naming === "create" && screen.isLink && stage === "connect";
+  const findScreen = naming === "find" && stage === "connect" && !props.account;
+  const nameScreen: NameScreen | null = createScreen ? "create" : findScreen ? "find" : null;
   const offer =
     screen.isLink && (stage === "pairing" || stage === "linked") ? props.communityOffer : null;
   const joinScreen = offer !== null;
@@ -138,6 +151,14 @@ export function CeremonyView(props: CeremonyViewProps) {
     signer !== null &&
     props.account?.toLowerCase() !== signer.toLowerCase();
 
+  // Letting go of the connected account is offered where the page is about to ask it for a
+  // signature and it may be the wrong one: on the account step, and where the page says another
+  // account must sign. Never while something is being signed or sent, and never once a code is
+  // on screen, which stays the code of the account that proved it.
+  const canChangeAccount =
+    props.account !== null &&
+    !props.joinSending &&
+    (stage === "connect" || joinWrongAccount || wrongAccount);
   // Why the act is switched off, if it is: the wrong account, a publication this page refuses to
   // sign, or one that is still being prepared.
   const block: CeremonyProblem | null =
@@ -189,13 +210,14 @@ export function CeremonyView(props: CeremonyViewProps) {
         />
       );
     }
-    if (createScreen) {
+    if (nameScreen) {
       return (
-        <CreateActs
+        <NameActs
+          screen={nameScreen}
           formId={createFormId}
           name={name}
-          creating={props.connecting}
-          onBack={() => setCreating(false)}
+          busy={props.connecting}
+          onBack={() => openNaming(null)}
         />
       );
     }
@@ -280,7 +302,7 @@ export function CeremonyView(props: CeremonyViewProps) {
       return { message: NOTES.joinFailed, tone: "error" };
     }
     // Connecting or creating an account failed: the account layer has already put it into words.
-    if (props.lastFailure && !props.account && (proving || createScreen || joinScreen)) {
+    if (props.lastFailure && !props.account && (proving || joinScreen)) {
       return { spoken: props.lastFailure, tone: "error" };
     }
     if (proving && !props.account && props.passkeyUnavailable) {
@@ -366,17 +388,26 @@ export function CeremonyView(props: CeremonyViewProps) {
               }),
               Icon: RiUserAddLine,
             }
-          : joinScreen
+          : findScreen
             ? {
-                title: { id: "public.reporting.join.title", defaultMessage: "Join a Garden" },
+                title: { id: "public.reporting.find.title", defaultMessage: "Find Your Account" },
                 info: text({
-                  id: "public.reporting.join.body",
-                  defaultMessage: "Anyone can join this garden and report to it:",
+                  id: "public.reporting.find.body",
+                  defaultMessage: "Enter its name. Its passkey must be on this device or nearby.",
                 }),
-                Icon: RiPlantLine,
+                Icon: RiUserSearchLine,
               }
-            : // "Account linked" names the account the chat links, whatever is connected here.
-              ceremonyHeading(intl, screen, { ...props, account: linked ?? props.account })
+            : joinScreen
+              ? {
+                  title: { id: "public.reporting.join.title", defaultMessage: "Join a Garden" },
+                  info: text({
+                    id: "public.reporting.join.body",
+                    defaultMessage: "Anyone can join this garden and report to it:",
+                  }),
+                  Icon: RiPlantLine,
+                }
+              : // "Account linked" names the account the chat links, whatever is connected here.
+                ceremonyHeading(intl, screen, { ...props, account: linked ?? props.account })
       }
       // The status card says a problem where the screen has one; elsewhere the heading card does.
       problem={headingProblem}
@@ -391,6 +422,7 @@ export function CeremonyView(props: CeremonyViewProps) {
         account={props.sessionAccount ?? props.account}
         signedIn={props.sessionAccount !== null}
         channel={props.channelLabel}
+        onChangeAccount={canChangeAccount ? () => void props.changeAccount() : undefined}
         onLeave={SESSION.has(stage) ? () => void props.leave() : undefined}
       />
       {offer ? (
@@ -398,12 +430,17 @@ export function CeremonyView(props: CeremonyViewProps) {
           <GardenLine>{offer.name}</GardenLine>
         </p>
       ) : null}
-      {createScreen ? (
-        <CreateAccountForm
+      {nameScreen ? (
+        <AccountNameForm
+          screen={nameScreen}
           id={createFormId}
           name={name}
           onName={setName}
-          onCreate={(chosen) => void props.createAccount(chosen)}
+          onSubmit={(chosen) =>
+            void (nameScreen === "create"
+              ? props.createAccount(chosen)
+              : props.connectPasskey(chosen))
+          }
         />
       ) : null}
       {stage === "pairing" && !joinScreen && props.pairingCode ? (
@@ -414,7 +451,7 @@ export function CeremonyView(props: CeremonyViewProps) {
           {props.pairingCode}
         </p>
       ) : null}
-      {joinScreen || screen.opening || (proving && !createScreen) ? (
+      {joinScreen || screen.opening || (proving && !nameScreen) ? (
         <WhatHappensNext
           flow={
             joinScreen
@@ -426,8 +463,16 @@ export function CeremonyView(props: CeremonyViewProps) {
           }
         />
       ) : null}
-      {screen.isLink && stage === "connect" && !props.account && !createScreen ? (
-        <CreateAccountLink disabled={props.passkeyUnavailable} onCreate={() => setCreating(true)} />
+      {(stage === "connect" && !nameScreen && !joinScreen) ||
+      (joinWrongAccount && canChangeAccount) ? (
+        <AccountStepLinks
+          account={props.account}
+          canCreate={screen.isLink}
+          canFind={props.canFindAccount}
+          passkeyUnavailable={props.passkeyUnavailable}
+          onName={openNaming}
+          onChangeAccount={() => void props.changeAccount()}
+        />
       ) : null}
       {publication}
       {/* The first item is the one thing not yet seen when Review opens, so it leads, and the

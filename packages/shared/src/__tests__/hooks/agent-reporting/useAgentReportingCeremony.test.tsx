@@ -19,6 +19,9 @@ const mocks = vi.hoisted(() => ({
     account: { address: "0x00000000000000000000000000000000000000a1" },
   },
   sendActivation: vi.fn(),
+  signOut: vi.fn(async () => {}),
+  loginWithPasskey: vi.fn(async (_name?: string) => {}),
+  trackError: vi.fn(),
   offer: vi.fn(
     async (_account: string): Promise<{ address: string; name: string; chainId: number } | null> =>
       null
@@ -64,7 +67,15 @@ vi.mock("../../../providers/Auth", () => ({
     smartAccountClient: mocks.ownerClient,
     isAuthenticating: false,
   }),
-  useAuthActions: () => ({ loginWithWallet: vi.fn(), loginWithPasskey: vi.fn(async () => {}) }),
+  useAuthActions: () => ({
+    loginWithWallet: vi.fn(),
+    loginWithPasskey: mocks.loginWithPasskey,
+    signOut: mocks.signOut,
+  }),
+}));
+vi.mock("../../../modules/app/error-categories", () => ({
+  trackError: mocks.trackError,
+  trackAuthError: mocks.trackError,
 }));
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => mocks.sender,
@@ -112,6 +123,9 @@ beforeEach(() => {
   mocks.account = ACCOUNT;
   mocks.sender = null;
   mocks.signMessage.mockClear();
+  mocks.signOut.mockClear();
+  mocks.loginWithPasskey.mockClear();
+  mocks.trackError.mockClear();
   mocks.offer.mockReset();
   mocks.offer.mockResolvedValue(null);
   mocks.sendActivation.mockReset();
@@ -281,6 +295,87 @@ describe("reporting ceremony page", () => {
     });
     await act(() => result.current.joinCommunity());
     expect(calls).toEqual([]);
+  });
+
+  const opened = () =>
+    agent.calls.filter((call) => call.method === "POST" && call.path === "/challenges");
+
+  it("lets go of the connected account on the account step, and keeps a code already shown", async () => {
+    agent.purpose = "link_account";
+    agent.boundAccount = null;
+    const { result } = render();
+    await act(() => result.current.start());
+    // On the account step only the website's sign-in changes; the challenge is still unused.
+    await act(async () => expect(await result.current.changeAccount()).toBe(true));
+    expect(mocks.signOut).toHaveBeenCalledTimes(1);
+    expect(result.current.stage).toBe("connect");
+
+    await act(() => result.current.prove());
+    // A code on screen stays the code of the account that proved it; the page keeps its place.
+    await act(() => result.current.changeAccount());
+    expect(result.current.stage).toBe("pairing");
+    expect(result.current.pairingCode).toBe("481516");
+    expect(opened()).toHaveLength(1);
+  });
+
+  it("returns to its account step only when a different account has signed in", async () => {
+    agent.purpose = "link_account";
+    agent.boundAccount = null;
+    const first = render();
+    await act(() => first.result.current.start());
+    await act(() => first.result.current.changeAccount());
+    // A different account signing in remounts every screen, this page included.
+    first.unmount();
+    mocks.account = OTHER_ACCOUNT;
+    const second = render();
+    await waitFor(() => expect(second.result.current.stage).toBe("connect"));
+    expect(opened()).toHaveLength(2);
+
+    // The same account coming back is no change: the page waits for Continue, and the mark it
+    // left is spent, so a later reload waits too.
+    await act(() => second.result.current.changeAccount());
+    second.unmount();
+    const third = render();
+    await act(async () => {});
+    expect(third.result.current.stage).toBe("intro");
+    third.unmount();
+    mocks.account = ACCOUNT;
+    const fourth = render();
+    await act(async () => {});
+    expect(fourth.result.current.stage).toBe("intro");
+    expect(opened()).toHaveLength(2);
+  });
+
+  it("leaves no mark when the account is let go before the link was opened", async () => {
+    const first = render();
+    await act(() => first.result.current.changeAccount());
+    first.unmount();
+    mocks.account = OTHER_ACCOUNT;
+    const second = render();
+    await act(async () => {});
+    // Nothing continued by itself: the start screen, with its warning for in-app browsers, stays.
+    expect(second.result.current.stage).toBe("intro");
+    expect(opened()).toHaveLength(0);
+  });
+
+  it("finds a passkey account by the name it was created with", async () => {
+    const { result } = render();
+    await act(() => result.current.connectPasskey("afo.eth"));
+    expect(mocks.loginWithPasskey).toHaveBeenCalledWith("afo.eth");
+  });
+
+  it("records the error behind a failure it can only call unknown", async () => {
+    const stale = new Error("Connector not connected.");
+    mocks.signMessage.mockRejectedValueOnce(stale);
+    const { result } = render();
+    await act(() => result.current.start());
+    await act(() => result.current.prove());
+    expect(result.current.stage).toBe("connect");
+    expect(result.current.error).toBe("unknown");
+    expect(mocks.trackError).toHaveBeenCalledWith(
+      stale,
+      expect.objectContaining({ source: "useAgentReportingCeremony" })
+    );
   });
 
   it("keeps a proof from another account retryable instead of ending the page", async () => {

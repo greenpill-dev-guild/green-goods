@@ -1,6 +1,6 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
-import { RiLogoutBoxRLine, RiUserFollowLine, RiUserLine } from "@remixicon/react";
+import { RiLogoutBoxRLine, RiUserFollowLine, RiUserLine, RiUserSharedLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { FlowForward } from "@/components/Features/Work";
 import {
@@ -112,6 +112,7 @@ export function PageAccount({
   signsIn = true,
   channel = null,
   permissionsLink = true,
+  onChangeAccount,
   onLeave,
 }: {
   account: string | null;
@@ -123,6 +124,8 @@ export function PageAccount({
   channel?: string | null;
   /** Off on the permissions page itself. */
   permissionsLink?: boolean;
+  /** Lets go of the connected account so another can be used, when nothing is being signed. */
+  onChangeAccount?: () => void;
   /** Ends the session, when the page can end it now. */
   onLeave?: () => void;
 }) {
@@ -162,6 +165,19 @@ export function PageAccount({
             ) : null}
           </AccountRow>
           {permissionsLink ? <ManagePermissionsLink /> : null}
+          {onChangeAccount ? (
+            <Button
+              emphasis="secondary"
+              className="w-full"
+              leadingIcon={<RiUserSharedLine className="h-5 w-5" aria-hidden="true" />}
+              onClick={onChangeAccount}
+            >
+              {intl.formatMessage({
+                id: "public.reporting.account.change",
+                defaultMessage: "Use a Different Account",
+              })}
+            </Button>
+          ) : null}
           {onLeave ? (
             <Button
               emphasis="secondary"

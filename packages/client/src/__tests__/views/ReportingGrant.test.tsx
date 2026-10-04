@@ -73,6 +73,8 @@ const makeProps = (): Props => ({
   skipCommunity: vi.fn(),
   joinCommunity: vi.fn(async () => {}),
   lastFailure: null,
+  canFindAccount: false,
+  changeAccount: vi.fn(async () => true),
   createAccount: vi.fn(async () => true),
   accountKind: null,
   sessionAccount: ACCOUNT,
@@ -281,10 +283,80 @@ describe("linking an account", () => {
   });
 
   it("puts the act of each new pair first", () => {
-    const { rerender } = render(view({ ...link(), initialCreate: true }));
+    const { rerender } = render(view({ ...link(), initialName: "create" }));
     expect(acts()).toEqual(["Create Account", "Back"]);
     rerender(view({ ...link(), stage: "intro", purpose: null, inAppBrowser: true }));
     expect(acts()).toEqual(["Open in Browser", "Continue Here"]);
+  });
+
+  it("lets go of the account this browser brought, so the chat can link another", () => {
+    // The page starts on whichever account the browser last used. The step offers the way out.
+    const connected: Props = { ...link(), account: ACCOUNT };
+    render(view(connected));
+    expect(acts()).toEqual(["Sign to Continue"]);
+    fireEvent.click(screen.getByRole("button", { name: /^Not 0x.+\? Use a different account$/ }));
+    expect(connected.changeAccount).toHaveBeenCalledTimes(1);
+    // The same act is with the account in the sheet, where signing out of the page also lives.
+    fireEvent.click(screen.getByRole("button", { name: "Account and Help" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Use a Different Account" })
+    );
+    expect(connected.changeAccount).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the account once its code is on screen, and while a join is being sent", () => {
+    // The code belongs to the account that proved it, so nothing here offers to swap it.
+    const { rerender } = render(
+      view({
+        ...link(),
+        stage: "pairing",
+        account: ACCOUNT,
+        linkedAccount: ACCOUNT,
+        pairingCode: "481516",
+      })
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Account and Help" }));
+    expect(
+      within(screen.getByRole("dialog")).queryByRole("button", { name: "Use a Different Account" })
+    ).not.toBeInTheDocument();
+    // A join on its way to the chain is signed by the connected account: it stays connected.
+    rerender(
+      view({
+        ...link(),
+        stage: "linked",
+        account: `0x${"9".repeat(40)}`,
+        linkedAccount: ACCOUNT,
+        communityOffer: { address: ACCOUNT, name: "Community Garden", chainId: 42161 },
+        joinSending: true,
+      })
+    );
+    expect(
+      screen.queryByRole("button", { name: /Use a different account$/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("finds an account kept on another device by its name", () => {
+    const open: Props = { ...link(), canFindAccount: true };
+    render(view(open));
+    expect(screen.getByRole("button", { name: "New here? Create an account" })).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Account on another device? Find it by name" })
+    );
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Find Your Account");
+    expect(acts()).toEqual(["Find Account", "Back"]);
+    const field = screen.getByLabelText(/Username or ENS handle/);
+    fireEvent.change(field, { target: { value: " afo.eth " } });
+    fireEvent.submit(field.closest("form") as HTMLFormElement);
+    expect(open.connectPasskey).toHaveBeenCalledWith("afo.eth");
+    expect(open.createAccount).not.toHaveBeenCalled();
+  });
+
+  it("offers no search by name where there is nothing to search", () => {
+    // Without the passkey server a name cannot be looked up; a publish link never creates one.
+    render(view({ ...link(), purpose: "publish_work" }));
+    expect(acts()).toEqual(["Use Passkey", "Use Wallet"]);
+    expect(screen.queryByRole("button", { name: /Find it by name/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Create an account/ })).not.toBeInTheDocument();
   });
 
   it("invites the linked account to join, and never signs with another one", () => {
@@ -300,6 +372,9 @@ describe("linking an account", () => {
     rerender(view({ ...joining, account: `0x${"9".repeat(40)}` }));
     expect(within(bar()).getByRole("button", { name: "Join Garden" })).toBeDisabled();
     expect(screen.getByRole("alert")).toHaveTextContent(/Switch to 0x1f3a/i);
+    // Being told to switch comes with the way to do it.
+    fireEvent.click(screen.getByRole("button", { name: /^Not 0x.+\? Use a different account$/ }));
+    expect(joining.changeAccount).toHaveBeenCalledTimes(1);
     rerender(view({ ...joining, account: ACCOUNT, accountKind: "passkey" }));
     expect(acts()).toEqual(["Join Garden", "Not Now"]);
     // The chat is linked already, so nothing asks for a code.

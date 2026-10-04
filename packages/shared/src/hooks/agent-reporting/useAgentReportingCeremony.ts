@@ -20,6 +20,7 @@ import {
   sendPreparedEnvelope,
 } from "../../modules/agent-reporting/ceremony-send";
 import { resolveReportingDeployment } from "../../modules/agent-reporting/envelope";
+import { trackError } from "../../modules/app/error-categories";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useAsyncEffect } from "../utils/useAsyncEffect";
@@ -92,6 +93,14 @@ export function useAgentReportingCeremony(
   const fail = useCallback(
     (error: unknown) => {
       const failure = ceremonyFailure(error);
+      // "Something went wrong" tells the person nothing and us nothing: keep the error itself.
+      if (failure === "unknown") {
+        trackError(error, {
+          source: "useAgentReportingCeremony",
+          userAction: stateRef.current.stage,
+          recoverable: true,
+        });
+      }
       const terminal = failure === "expired" || failure === "not_yours";
       update({ error: failure, ...(terminal ? { stage: "unavailable" as const } : {}) });
     },
@@ -255,6 +264,26 @@ export function useAgentReportingCeremony(
     }
   }, [afterChallenge, client, fail, requestId, update]);
 
+  // The person let go of an account on the account step, and a different one has signed in: the
+  // app remounted for it. They had already continued in this tab, so the page opens its account
+  // step again. The mark is spent either way, so nothing else ever continues by itself.
+  const connectedRef = useRef(account.account);
+  connectedRef.current = account.account;
+  useAsyncEffect(
+    async ({ isMounted }) => {
+      const stored = readCeremony(requestId);
+      if (!stored?.changingAccountFrom) return;
+      const { changingAccountFrom: from, ...kept } = stored;
+      writeCeremony(requestId, kept);
+      const connected = connectedRef.current;
+      const another = connected !== null && connected.toLowerCase() !== from.toLowerCase();
+      // A page that already holds a session resumes that instead, in the effect above.
+      if (!another || kept.accessId) return;
+      if (isMounted() && stateRef.current.stage === "intro") await start();
+    },
+    [requestId]
+  );
+
   const prove = useCallback(async () => {
     const challengeId = challengeRef.current;
     if (!challengeId) return;
@@ -374,6 +403,19 @@ export function useAgentReportingCeremony(
     update({ stage: "intro", access: null, resource: null, operation: null, grant: null });
   }, [client, requestId, update]);
 
+  const letGo = account.changeAccount;
+  const changeAccount = useCallback(async () => {
+    const from = connectedRef.current;
+    const released = await letGo();
+    // Only the account step is returned to: its challenge is still unused. Anywhere else the
+    // page keeps its place, and what it shows still belongs to the account that proved it.
+    if (released && from && stateRef.current.stage === "connect") {
+      writeCeremony(requestId, { ...readCeremony(requestId), changingAccountFrom: from });
+    }
+    update({ error: null });
+    return released;
+  }, [letGo, requestId, update]);
+
   const installGrant = useGrantInstallation({
     account: account.account,
     client,
@@ -402,6 +444,7 @@ export function useAgentReportingCeremony(
     grant: state.grant,
     issues: issuesFor(state.operation),
     error: state.error,
+    changeAccount,
     start,
     prove,
     publish,

@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSignMessage } from "wagmi";
+import { isPasskeyServerEnabled } from "../../config/passkeyServer";
 import type { ChallengeResponse } from "../../modules/agent-reporting/api-contract";
 import type { CeremonyClient } from "../../modules/agent-reporting/ceremony-client";
 import { buildReportingProofMessage } from "../../modules/agent-reporting/proof";
+import { trackAuthError } from "../../modules/app/error-categories";
 import {
   createAccountMessageSigner,
   resolveAccountFactoryArgs,
@@ -15,17 +17,26 @@ import { getFriendlyLoginErrorMessage } from "../client-ui/auth/login-screen-mes
 
 /**
  * The account half of a browser ceremony: which existing account is connected, how to connect
- * one, and how it proves ownership for this browser's challenge. A link flow may create a
- * passkey account before the explicit proof signature.
+ * one or let it go for another, and how it proves ownership for this browser's challenge. A link
+ * flow may create a passkey account before the explicit proof signature.
+ *
+ * The connected account is the website's own sign-in, shared by every page in this browser. A
+ * chat link opened here therefore starts on whichever account was last used, which need not be
+ * the one the person means to link.
  */
 export interface CeremonyAccount {
   account: Address | null;
   accountKind: "wallet" | "passkey" | null;
   connecting: boolean;
   lastFailure: string | null;
+  /** A passkey account kept on another device can be found here by the name it was created with. */
+  canFindAccount: boolean;
   createAccount: (name: string) => Promise<boolean>;
   connectWallet: () => void;
-  connectPasskey: () => Promise<void>;
+  /** With a name, that account's passkey; without one, the passkey this browser remembers. */
+  connectPasskey: (name?: string) => Promise<void>;
+  /** Lets go of the connected account, so the page asks which one to use. False if it could not. */
+  changeAccount: () => Promise<boolean>;
   /** Signs the Agent's proof fields for this challenge and submits them. */
   prove: (client: CeremonyClient, challengeId: string) => Promise<ChallengeResponse>;
 }
@@ -44,19 +55,50 @@ export function useCeremonyAccount(): CeremonyAccount {
   );
   const smartAccount = auth.smartAccountClient?.account;
 
-  useEffect(() => {
-    if (auth.error && !auth.isAuthenticating)
-      setLastFailure(getFriendlyLoginErrorMessage(auth.error, intl));
-  }, [auth.error, auth.isAuthenticating, intl]);
+  // What the person reads may be only "Something went wrong", so the error itself is recorded.
+  const failed = useCallback(
+    (error: unknown, userAction: string) => {
+      trackAuthError(error, { source: "useCeremonyAccount", userAction, recoverable: true });
+      setLastFailure(getFriendlyLoginErrorMessage(error, intl));
+    },
+    [intl]
+  );
 
-  const connectPasskey = useCallback(async () => {
+  // One record per failed sign-in: the words may be said again, in another language or after a
+  // retry was dismissed, without the same error being recorded a second time.
+  const recorded = useRef<unknown>(null);
+  useEffect(() => {
+    if (!auth.error || auth.isAuthenticating) return;
+    if (recorded.current === auth.error) {
+      setLastFailure(getFriendlyLoginErrorMessage(auth.error, intl));
+      return;
+    }
+    recorded.current = auth.error;
+    failed(auth.error, "sign_in");
+  }, [auth.error, auth.isAuthenticating, failed, intl]);
+
+  const connectPasskey = useCallback(
+    async (name?: string) => {
+      setLastFailure(null);
+      try {
+        await actions.loginWithPasskey(name);
+      } catch (error) {
+        failed(error, "connect_passkey");
+      }
+    },
+    [actions, failed]
+  );
+
+  const changeAccount = useCallback(async () => {
     setLastFailure(null);
     try {
-      await actions.loginWithPasskey();
+      await actions.signOut();
+      return true;
     } catch (error) {
-      setLastFailure(getFriendlyLoginErrorMessage(error, intl));
+      failed(error, "change_account");
+      return false;
     }
-  }, [actions, intl]);
+  }, [actions, failed]);
 
   const createAccount = useCallback(
     async (name: string): Promise<boolean> => {
@@ -65,11 +107,11 @@ export function useCeremonyAccount(): CeremonyAccount {
         await actions.createAccount(name);
         return true;
       } catch (error) {
-        setLastFailure(getFriendlyLoginErrorMessage(error, intl));
+        failed(error, "create_account");
         return false;
       }
     },
-    [actions, intl]
+    [actions, failed]
   );
 
   const signer = useMemo(
@@ -107,12 +149,14 @@ export function useCeremonyAccount(): CeremonyAccount {
     accountKind: auth.authMode === "passkey" ? "passkey" : auth.authMode === null ? null : "wallet",
     connecting: auth.isAuthenticating,
     lastFailure,
+    canFindAccount: isPasskeyServerEnabled(),
     createAccount,
     connectWallet: () => {
       setLastFailure(null);
       actions.loginWithWallet();
     },
     connectPasskey,
+    changeAccount,
     prove,
   };
 }

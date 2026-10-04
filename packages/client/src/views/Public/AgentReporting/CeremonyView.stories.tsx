@@ -100,6 +100,8 @@ const base: Props = {
   skipCommunity: noop,
   joinCommunity: asyncNoop,
   lastFailure: null,
+  canFindAccount: true,
+  changeAccount: async () => true,
   createAccount: async () => true,
   accountKind: null,
   sessionAccount: null,
@@ -192,7 +194,25 @@ export const ConnectDeclined: Story = { args: { ...ProveConnected.args, error: "
 /** Linking an account asks for one signature, then a code sent in chat. */
 export const LinkConnect: Story = { args: { stage: "connect", purpose: "link_account" } };
 export const CreateAccount: Story = {
-  args: { stage: "connect", purpose: "link_account", initialCreate: true },
+  args: { stage: "connect", purpose: "link_account", initialName: "create" },
+};
+/** An account kept on another device is found by the name it was created with. */
+export const FindAccount: Story = {
+  args: { stage: "connect", purpose: "link_account", initialName: "find" },
+};
+/**
+ * The page starts on the account this browser last used. Under the step's rows, and in the
+ * account sheet, it offers to let that one go so the chat can link another.
+ */
+export const LinkConnected: Story = {
+  args: { stage: "connect", purpose: "link_account", account: ACCOUNT },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "Sign to Continue" })).toBeVisible();
+    await expect(
+      canvas.getByRole("button", { name: /^Not 0x.+\? Use a different account$/ })
+    ).toBeVisible();
+  },
 };
 export const CreateAccountSpanish: Story = {
   ...CreateAccount,

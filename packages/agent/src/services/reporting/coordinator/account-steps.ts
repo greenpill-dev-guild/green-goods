@@ -136,6 +136,20 @@ export function requestConnection(writer: TurnWriter, named: Address | null): vo
     writer.say("link.connect", {}, link);
   }
   writer.say("link.pairHint");
+  // The page signs with the account the browser last used with Green Goods. A chat that had an
+  // account before is likely to find that one there, so it is told how to use another.
+  if (hadAccount(writer, ctx.binding.participantId)) writer.say("link.otherAccountHint");
+}
+
+/** Whether this chat's person was linked to an account before, which they have since let go. */
+function hadAccount(writer: TurnWriter, participantId: string): boolean {
+  return (
+    writer.core.db
+      .query(
+        "SELECT 1 FROM account_bindings WHERE participant_id = $participant AND status = 'revoked' LIMIT 1"
+      )
+      .get({ participant: participantId }) !== null
+  );
 }
 
 /** A report in one of these states has nothing prepared or sent for its account yet. */

@@ -1,7 +1,8 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
-import { useId } from "react";
+import { type ReactNode, useId } from "react";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { useIntl } from "react-intl";
 import { PairedActs } from "./CeremonyBar";
 import { BLOCKED_ID } from "./CeremonyFrame";
@@ -39,28 +40,40 @@ export function BrowserActs({ onOpen, onStay }: { onOpen: () => void; onStay: ()
   );
 }
 
-/** Naming a new account: create it, or go back to the two ways in. The field is on the page. */
-export function CreateActs({
+/**
+ * An account by its name: a new one to create, or one kept on another device to find. Either
+ * way the act submits the field on the page, and Back returns to the two ways in.
+ */
+export type NameScreen = "create" | "find";
+
+export function NameActs({
+  screen,
   formId,
   name,
-  creating,
+  busy,
   onBack,
 }: {
+  screen: NameScreen;
   formId: string;
   name: string;
-  creating: boolean;
+  busy: boolean;
   onBack: () => void;
 }) {
   const intl = useIntl();
   return (
     <PairedActs>
-      <Button size="lg" type="submit" form={formId} loading={creating} disabled={!nameReady(name)}>
-        {intl.formatMessage({
-          id: "app.login.button.createAccount",
-          defaultMessage: "Create Account",
-        })}
+      <Button size="lg" type="submit" form={formId} loading={busy} disabled={!nameReady(name)}>
+        {screen === "create"
+          ? intl.formatMessage({
+              id: "app.login.button.createAccount",
+              defaultMessage: "Create Account",
+            })
+          : intl.formatMessage({
+              id: "public.reporting.find.action",
+              defaultMessage: "Find Account",
+            })}
       </Button>
-      <Button size="lg" emphasis="secondary" disabled={creating} onClick={onBack}>
+      <Button size="lg" emphasis="secondary" disabled={busy} onClick={onBack}>
         {intl.formatMessage({ id: "app.login.button.back", defaultMessage: "Back" })}
       </Button>
     </PairedActs>
@@ -101,20 +114,26 @@ export function JoinActs({
   );
 }
 
-/** The one thing a new account is asked for. The heading card says why the name matters. */
-export function CreateAccountForm({
+/**
+ * The one thing either naming screen asks for: the name a new account will go by, or the name an
+ * existing one was created with. The heading card says why the name matters.
+ */
+export function AccountNameForm({
+  screen,
   id,
   name,
   onName,
-  onCreate,
+  onSubmit,
 }: {
+  screen: NameScreen;
   id: string;
   name: string;
   onName: (name: string) => void;
-  onCreate: (name: string) => void;
+  onSubmit: (name: string) => void;
 }) {
   const intl = useIntl();
   const nameId = useId();
+  const creating = screen === "create";
   return (
     <form
       id={id}
@@ -122,20 +141,27 @@ export function CreateAccountForm({
       method="post"
       onSubmit={(event) => {
         event.preventDefault();
-        if (nameReady(name)) onCreate(name.trim());
+        if (nameReady(name)) onSubmit(name.trim());
       }}
     >
       <FormField
         htmlFor={nameId}
         required
-        label={intl.formatMessage({
-          id: "app.login.username.newAccountLabel",
-          defaultMessage: "Display name for new account",
-        })}
+        label={
+          creating
+            ? intl.formatMessage({
+                id: "app.login.username.newAccountLabel",
+                defaultMessage: "Display name for new account",
+              })
+            : intl.formatMessage({
+                id: "app.login.recovery.label",
+                defaultMessage: "Username or ENS handle",
+              })
+        }
       >
         <TextInput
           id={nameId}
-          name="displayName"
+          name={creating ? "displayName" : "username"}
           value={name}
           onChange={(event) => onName(event.target.value)}
           placeholder={intl.formatMessage({
@@ -143,7 +169,7 @@ export function CreateAccountForm({
             defaultMessage: "e.g. alice or alice.eth",
           })}
           minLength={MIN_NAME}
-          autoComplete="nickname"
+          autoComplete={creating ? "nickname" : "username"}
           required
         />
       </FormField>
@@ -151,15 +177,15 @@ export function CreateAccountForm({
   );
 }
 
-/** For someone with no account yet, under what the link step will ask for. */
-export function CreateAccountLink({
-  disabled,
-  onCreate,
+function StepLink({
+  disabled = false,
+  onClick,
+  children,
 }: {
-  disabled: boolean;
-  onCreate: () => void;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
 }) {
-  const intl = useIntl();
   return (
     <Button
       type="button"
@@ -167,12 +193,70 @@ export function CreateAccountLink({
       emphasis="tertiary"
       className="text-sm text-primary-action underline underline-offset-4"
       disabled={disabled}
-      onClick={onCreate}
+      onClick={onClick}
     >
-      {intl.formatMessage({
-        id: "public.reporting.create.link",
-        defaultMessage: "New here? Create an account",
-      })}
+      {children}
     </Button>
+  );
+}
+
+/**
+ * The other ways through the account step, under what the step will ask for. With no account
+ * connected: create one, or find one kept on another device. With one connected: the link names
+ * it and lets it go, for the page starts on whichever account this browser last used, which may
+ * not be the one meant, and nothing else on the step says which account will sign.
+ */
+export function AccountStepLinks({
+  account,
+  canCreate,
+  canFind,
+  passkeyUnavailable,
+  onName,
+  onChangeAccount,
+}: {
+  /** The account connected here, if one is. */
+  account: string | null;
+  /** Only linking an account may create one. */
+  canCreate: boolean;
+  canFind: boolean;
+  passkeyUnavailable: boolean;
+  onName: (screen: NameScreen) => void;
+  onChangeAccount: () => void;
+}) {
+  const intl = useIntl();
+  if (account) {
+    return (
+      <StepLink onClick={onChangeAccount}>
+        <span title={account}>
+          {intl.formatMessage(
+            {
+              id: "public.reporting.connect.other",
+              defaultMessage: "Not {account}? Use a different account",
+            },
+            { account: formatAddress(account) }
+          )}
+        </span>
+      </StepLink>
+    );
+  }
+  return (
+    <>
+      {canCreate ? (
+        <StepLink disabled={passkeyUnavailable} onClick={() => onName("create")}>
+          {intl.formatMessage({
+            id: "public.reporting.create.link",
+            defaultMessage: "New here? Create an account",
+          })}
+        </StepLink>
+      ) : null}
+      {canFind ? (
+        <StepLink disabled={passkeyUnavailable} onClick={() => onName("find")}>
+          {intl.formatMessage({
+            id: "public.reporting.find.link",
+            defaultMessage: "Account on another device? Find it by name",
+          })}
+        </StepLink>
+      ) : null}
+    </>
   );
 }
