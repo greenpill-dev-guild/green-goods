@@ -213,7 +213,11 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
                   root: "w-fit",
                   months: "flex flex-col",
                   month: "space-y-3",
-                  month_caption: "flex justify-center relative items-center h-9",
+                  // Not a positioned box: the nav is laid across this same row
+                  // and comes first in the DOM, so a positioned caption would
+                  // paint over the arrows and take the pointer on their inner
+                  // half.
+                  month_caption: "flex justify-center items-center h-9",
                   caption_label: "text-sm font-semibold text-text-strong-950",
                   nav: "flex items-center gap-1 absolute inset-x-0 justify-between",
                   button_previous: cn(

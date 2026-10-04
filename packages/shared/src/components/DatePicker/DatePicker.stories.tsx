@@ -220,6 +220,56 @@ export const Interactive: Story = {
   },
 };
 
+export const ChangingMonth: Story = {
+  tags: ["storybook-ci"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The two month arrows take a press anywhere on them. The month title is laid out across the same row, and when it was a positioned box it painted over the inner half of each arrow, so a press on an arrow's centre landed on the title and the month did not change.",
+      },
+    },
+  },
+  args: {
+    label: "Start date",
+    value: JUNE_15_2025,
+    id: "date-changing-month",
+  },
+  render: function Render(args) {
+    const [value, setValue] = useState<number | null>(args.value ?? null);
+    return <DatePicker {...args} value={value} onChange={setValue} />;
+  },
+  play: async ({ canvasElement }) => {
+    const trigger = canvasElement.querySelector<HTMLButtonElement>("#date-changing-month");
+    await expect(trigger).not.toBeNull();
+    await userEvent.click(trigger as HTMLButtonElement);
+
+    const popover = document.querySelector<HTMLElement>('[data-component="DatePickerPopover"]');
+    await expect(popover).not.toBeNull();
+    const calendar = within(popover as HTMLElement);
+    await expect(calendar.getByText("June 2025")).toBeInTheDocument();
+
+    for (const [name, month] of [
+      ["Go to the Previous Month", "May 2025"],
+      ["Go to the Next Month", "June 2025"],
+    ]) {
+      const arrow = calendar.getByRole("button", { name });
+      const box = arrow.getBoundingClientRect();
+      // What a pointer would land on at the arrow's outer part, centre and inner part.
+      for (const across of [0.15, 0.5, 0.85]) {
+        const landsOn = document.elementFromPoint(
+          box.left + box.width * across,
+          box.top + box.height / 2
+        );
+        await expect(arrow.contains(landsOn)).toBe(true);
+      }
+
+      await userEvent.click(arrow);
+      await expect(calendar.getByText(month)).toBeInTheDocument();
+    }
+  },
+};
+
 export const InsideModalDialog: Story = {
   parameters: {
     docs: {
