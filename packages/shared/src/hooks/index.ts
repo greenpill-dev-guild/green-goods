@@ -599,3 +599,4 @@ export {
 export { useSplitConfig } from "./yield/useSplitConfig";
 export { useYieldAllocations } from "./yield/useYieldAllocations";
 export * from "./offline/useOfflineContent";
+export { useAgentReportingPermissions } from "./agent-reporting/useAgentReportingPermissions";

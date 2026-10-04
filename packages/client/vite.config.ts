@@ -600,6 +600,19 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       hmr: tunnelHmr ? { overlay: true, ...tunnelHmr } : { overlay: true },
       watch,
       proxy: {
+        // Reporting ceremony API, as the Vercel rewrite serves it in production. Locally it
+        // reaches the loopback reporting driver (packages/agent reporting:driver), or, with
+        // REPORTING_AGENT_URL set, a running Agent, which serves the API under /messaging.
+        "/api/messaging": process.env.REPORTING_AGENT_URL
+          ? {
+              target: process.env.REPORTING_AGENT_URL,
+              changeOrigin: false,
+              rewrite: (path) => path.replace(/^\/api\/messaging/, "/messaging"),
+            }
+          : {
+              target: process.env.REPORTING_DRIVER_URL || "http://127.0.0.1:8787",
+              changeOrigin: false,
+            },
         "/api/graphql": {
           target: indexerProxyTarget,
           changeOrigin: true,

@@ -16,6 +16,16 @@ describe("Sentry redaction", () => {
     expect(redacted).not.toContain("0x1111111111111111111111111111111111111111");
   });
 
+  it("keeps reporting routes but drops their chat link locators", () => {
+    const redacted = redactSentryString(
+      "navigation to /agent/reporting/Zm9vYmFyYmF6cXV4MTIzNDU2Nzg5MGFi from https://www.greengoods.app/agent/reporting/recover/Zm9vYmFyYmF6cXV4MTIzNDU2Nzg5MGFi"
+    );
+
+    expect(redacted).toBe(
+      "navigation to /agent/reporting/:requestId from https://www.greengoods.app/agent/reporting/recover/:requestId"
+    );
+  });
+
   it("redacts sensitive object keys recursively", () => {
     const redacted = sanitizeSentryValue({
       route: "/api/messages",

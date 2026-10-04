@@ -12,7 +12,7 @@ generated_from:
   - packages/client/src/config/pwaRouting.ts
   - packages/client/src/config/routes.tsx
   - packages/shared/src/ontology/green-goods-ontology.json
-source_digest: "sha256:b7d38b1b39e4dec8cc12d14a950d38fd1232784d005d8b1a0b67585c0b0f1237"
+source_digest: "sha256:0901c6f9ed1ebab130163ed336bae80838ab553636533773dc79ed14e95b1bf0"
 source_of_truth:
   - packages/admin/src/router.tsx
   - packages/admin/src/routes/views.tsx
@@ -40,7 +40,7 @@ The ontology owns persona meaning. Route definitions own navigable paths. Paths 
 
 | Authority | Paths or segments |
 |---|---|
-| Client route tree | `*`, `:id`, `actions`, `assessments/:assessmentId`, `commitments/:commitmentId`, `commitments/:commitmentId/proof`, `commitments/group/:groupId`, `commitments/new`, `cookies`, `fund`, `gardens`, `gardens/:id`, `gardens/:id/work/:workId`, `glossary`, `impact`, `landing`, `vaults`, `work/:workId` |
+| Client route tree | `*`, `:id`, `actions`, `agent/reporting/:requestId`, `agent/reporting/permissions`, `agent/reporting/recover/:requestId`, `assessments/:assessmentId`, `commitments/:commitmentId`, `commitments/:commitmentId/proof`, `commitments/group/:groupId`, `commitments/new`, `cookies`, `fund`, `gardens`, `gardens/:id`, `gardens/:id/work/:workId`, `glossary`, `impact`, `landing`, `vaults`, `work/:workId` |
 | Client canonical PWA routes | `/home/garden`, `/home`, `/home/login`, `/home/profile` |
 | Admin shell route tree | `*`, `gardens`, `gardens/:gardenId`, `gardens/:gardenId/*`, `login` |
 | Admin canvas route segments | `:assessmentId`, `:commitmentId`, `:historyEventId`, `:id`, `:id/edit`, `:workId`, `actions`, `activity`, `assess`, `assess/create`, `certify`, `certify/create`, `community`, `confirm`, `cookies`, `coordination`, `create`, `deploy`, `endowment`, `garden`, `governance`, `health`, `history`, `hub`, `hypercerts/:hypercertId`, `impact`, `members`, `overview`, `payouts`, `pool`, `pools`, `profile`, `resources`, `seed`, `settings`, `signal-pool/:poolType`, `strategies`, `treasury`, `vault`, `vault/deposit`, `vault/withdraw`, `work`, `work/submit` |

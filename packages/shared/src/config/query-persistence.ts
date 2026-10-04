@@ -322,6 +322,9 @@ export function createShouldDehydrateQuery({
     // Pagination ownership is ephemeral UI state, not part of the reading cache.
     if (key[1] === "works" && key[2] === "window") return false;
 
+    // Reporting ceremony state (pairing codes, publication status) is private and short-lived.
+    if (key[1] === "agent-reporting") return false;
+
     // A list whose instructions fell back to the built-in copy stays usable for
     // this session but must not become the durable offline copy.
     if (key[1] === "actions" && hasFallbackInstructions(query.state.data)) return false;

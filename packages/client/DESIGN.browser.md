@@ -24,7 +24,7 @@ dialect: public-browser
 - **Browser `/`** renders the editorial homepage under `PublicShell`.
 - **Installed PWA entry** is `/home`; presentation-mode loaders redirect app-mode visits away from the public shell before the PWA runtime renders.
 - **`/landing`** is a legacy compatibility redirect that loads back to `/`.
-- Public route table: `/`, `/gardens`, `/gardens/:id`, `/impact`, `/fund`, `/vaults`, `/actions`, `/cookies`, `/glossary`. No new public route families beyond this list.
+- Public route table: `/`, `/gardens`, `/gardens/:id`, `/impact`, `/fund`, `/vaults`, `/actions`, `/cookies`, `/glossary`. No new public route families beyond this list, with one recorded exception: the chat reporting ceremony pages under `/agent/reporting/*` (see below).
 - Garden identifiers in URLs accept both raw `id`/`address` and the deterministic slug from `publicGardenHelpers.deriveSlug`. Stale, missing, zero-match, or ambiguous slugs render the normal page with a localized non-blocking message — never a hard 404 on `/fund?garden=…`.
 
 ## SiteHeader
@@ -36,6 +36,29 @@ dialect: public-browser
 - **Primary CTA:** `Install App` (or `Open App` when `useInstallGuidance` reports already-installed). The CTA carries `data-install-action` from the guidance hook so the install logic stays one source of truth.
 - **No wallet connect in the header.** Wallet connect appears only at the wallet-required step inside funding flows.
 - Mobile drawer mirrors the desktop nav and footers with the same `Install App` / `Open App` CTA.
+
+## Reporting ceremony pages (`/agent/reporting/*`)
+
+The browser step of a chat report, review or account move: `/agent/reporting/:requestId`,
+`/agent/reporting/recover/:requestId`, and the static `/agent/reporting/permissions`. They are
+transactional pages that someone reaches from a chat link, usually on a phone, so they leave the
+editorial dialect on purpose:
+
+- **Focused shell.** `PublicShell` renders `FocusedSiteHeader` for this prefix: the mark on a solid
+  canvas and one Help control, with no navigation, no `Install App` CTA, no footer and no hero.
+  Nothing leads away from a signature in progress. Help opens in place and explains the page, what
+  becomes public and returning to the chat, and links the static permissions page and the support
+  contact. The boot skeleton uses the matching `focused` variant.
+- **App surface.** The shell omits `data-site="website"`, so shared buttons and fields keep the app
+  corner together. One narrow column, one step at a time, Inter throughout; no Fraunces.
+- **Website presentation even when installed.** The prefix is a public website prefix, so an
+  installed app that captures the link still renders the page, not the PWA shell.
+- **Wallet connect is allowed here**, at the proof step only, as in funding flows. The page connects
+  an existing wallet or passkey and never creates an account; a publish or review says up front that
+  it takes two signatures.
+- **Privacy.** Served `no-store`, `no-referrer` and `noindex`; analytics and error reports drop the
+  link locator, and replays and element captures are not taken on these pages. They are not WebMCP
+  routes.
 
 ## Homepage (`/`)
 

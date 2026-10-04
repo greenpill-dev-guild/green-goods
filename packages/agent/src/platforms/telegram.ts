@@ -2,7 +2,7 @@
  * Telegram Platform Adapter
  *
  * Handles Telegram-specific message transformation and bot setup.
- * All Telegram logic lives in this one file.
+ * Reporting's channel adapter for the same bot lives in telegram-reporting.ts.
  *
  * SECURITY:
  * - Uses mkdtemp for secure temp file creation (unpredictable names)
@@ -17,6 +17,7 @@ import path from "path";
 import { type Context, session, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
 import { agentMessage, type AgentLocale, type AgentMessageKey } from "../i18n";
+import { registerTelegramCommands } from "./telegram-commands";
 import { loggers } from "../services/logger";
 import type {
   ChatType,
@@ -25,6 +26,7 @@ import type {
   OutboundResponse,
   Platform,
 } from "../types";
+import type { TelegramReporting } from "./telegram-reporting";
 
 const log = loggers.platform;
 
@@ -48,6 +50,7 @@ const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
 export interface TelegramConfig {
   token: string;
   webhookSecret?: string;
+  apiRoot?: string;
 }
 
 export type MessageHandler = (message: InboundMessage) => Promise<OutboundResponse>;
@@ -196,20 +199,16 @@ function extractContent(ctx: Context): MessageContent | null {
   return null;
 }
 
+interface ReplyOptions {
+  parse_mode?: "Markdown" | "HTML";
+  reply_markup?: { inline_keyboard: { text: string; callback_data?: string; url?: string }[][] };
+}
+
 /**
  * Transform OutboundResponse to Telegram reply format
  */
-function toTelegramReply(response: OutboundResponse): {
-  text: string;
-  options: {
-    parse_mode?: "Markdown" | "HTML";
-    reply_markup?: { inline_keyboard: { text: string; callback_data?: string; url?: string }[][] };
-  };
-} {
-  const options: {
-    parse_mode?: "Markdown" | "HTML";
-    reply_markup?: { inline_keyboard: { text: string; callback_data?: string; url?: string }[][] };
-  } = {};
+function toTelegramReply(response: OutboundResponse): { text: string; options: ReplyOptions } {
+  const options: ReplyOptions = {};
 
   if (response.parseMode === "markdown") {
     options.parse_mode = "Markdown";
@@ -484,10 +483,12 @@ export function chooseHandler(
 export function createTelegramBot(
   config: TelegramConfig,
   handleMessage: MessageHandler,
-  handleGroupCapture: MessageHandler
+  handleGroupCapture: MessageHandler,
+  reporting?: TelegramReporting
 ): Telegraf {
-  const bot = new Telegraf(config.token);
+  const bot = new Telegraf(config.token, { telegram: { apiRoot: config.apiRoot } });
 
+  if (reporting) bot.use(reporting.middleware);
   bot.use(session());
 
   bot.on("callback_query", async (ctx) => {
@@ -542,6 +543,7 @@ export function createTelegramBot(
   // stay silent on capture failures so we never spam the support topic.
   bot.catch((err, ctx) => {
     log.error({ err, chatId: ctx.chat?.id, chatType: ctx.chat?.type }, "Bot error");
+    if (reporting?.ownsError(err)) throw err;
     if (ctx.chat?.type !== "private") return;
     ctx.reply(`❌ ${agentMessage(ctx.from?.language_code, "error.internal")}`).catch((replyErr) => {
       log.warn({ replyErr, chatId: ctx.chat?.id }, "Failed to send error message to user");
@@ -573,18 +575,6 @@ function privateDmCommands(locale: AgentLocale): Array<{ command: string; descri
   }));
 }
 
-export async function registerSlashCommands(bot: Telegraf): Promise<void> {
-  const privateScope = { type: "all_private_chats" } as const;
-  await bot.telegram.setMyCommands(privateDmCommands("en"), { scope: privateScope });
-  await bot.telegram.setMyCommands(privateDmCommands("es"), {
-    scope: privateScope,
-    language_code: "es",
-  });
-  await bot.telegram.setMyCommands(privateDmCommands("pt"), {
-    scope: privateScope,
-    language_code: "pt",
-  });
-  // Explicitly clear the group autocomplete menu so retired /bug + /idea
-  // commands and any historical state are removed.
-  await bot.telegram.setMyCommands([], { scope: { type: "all_group_chats" } });
+export function registerSlashCommands(bot: Telegraf, reportingAvailable = false): Promise<void> {
+  return registerTelegramCommands(bot, reportingAvailable, privateDmCommands);
 }

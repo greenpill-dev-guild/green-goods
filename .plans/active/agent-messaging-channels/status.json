@@ -1,0 +1,454 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "agent-messaging-channels",
+    "title": "Agent Messaging Channels (WhatsApp + SMS)",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-04-17",
+    "updated_at": "2026-10-03T00:01:25.703Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md",
+    "technical_brief": "technical-brief.md",
+    "client_wireframes": "client-wireframes.svg",
+    "architecture_review": "reports/2026-09-25-architecture-review.md",
+    "prototype_garden_decision": "reports/2026-09-25-prototype-garden-decision.md",
+    "account_conversation_amendment": "reports/2026-09-25-account-and-conversation-amendment.md",
+    "platform_media_passkey_alignment": "reports/2026-09-25-platform-media-passkey-alignment.md",
+    "openai_scope_alignment": "reports/2026-09-25-openai-scope-alignment.md",
+    "final_brief_review": "reports/2026-09-26-final-brief-review.md",
+    "final_brief_validation": "reports/2026-09-26-final-brief-validation.md",
+    "accepted_review_decisions": "reports/2026-09-26-accepted-review-decisions.md",
+    "reporting_core_capability_record": "reports/2026-09-27-reporting-core-capability-record.md",
+    "telegram_first_whatsapp_outlook": "reports/2026-09-29-telegram-first-whatsapp-outlook.md",
+    "telegram_readiness": "handoffs/codex-telegram-readiness.md"
+  },
+  "notes": [
+    "CURRENT EXECUTION CONTRACT: the 2026-10-02 amendment in technical-brief.md, the current implementation checklist in plan.todo.md, and handoffs/codex-telegram-readiness.md. Earlier dated notes are historical; later user decisions supersede them.",
+    "RESR-75 was accepted on 2026-09-21. The gate is cleared for the Buildathon prototype slice only; it does not authorize production data collection, a pilot provider decision, reporting delegation, custodial accounts, or any SMS work.",
+    "Scope-locked 2026-09-21: WhatsApp only; Meta Cloud API direct on the test number, not Twilio; no custodial wallets and no delegation; test garden with team and invited testers; no production data and no success claim.",
+    "A1 (Nigeria, English, TAS) is the pilot setting, not product scope. O2 is resolved as Meta direct for the prototype and stays open for the pilot. Both are corrected in spec.md section 1.",
+    "The slice is spec.md section 15.1 and the Buildathon prototype list in plan.todo.md. Everything else in the spec remains an unselected proposal.",
+    "Hub content was brought onto this branch from PR #846 (feature/plan-messaging-integrations, commit ed190b3b), which is still an open draft. Close #846 as superseded once this lands.",
+    "eval.md SEC-01 was written against Twilio request-signature validation. Under the Meta Cloud API it is X-Hub-Signature-256 verified with the app secret over the preserved raw body.",
+    "Account proof (PRD-946) is largely existing code: packages/agent/src/api/routes/garden-join-request-auth.ts:40-104 and packages/agent/src/services/profile-avatars.ts:90-127 already verify EOA, deployed ERC-1271 and counterfactual ERC-6492 accounts. Treat the lane as reuse, not new cryptography.",
+    "The agent is a single Fly machine with SQLite on the agent_data volume; the volume attaches to one machine, so single-replica operation is enforced by storage topology. Do not scale horizontally while draft state lives in that file.",
+    "Existing Linear mirror PRD-339 remains unresolved historical metadata. The live slice issues are PRD-943 through PRD-948. The manual Linear writes were applied on 2026-09-22; only linear-sync and record-linear remain deliberately unrun.",
+    "The builder for the 2026-09-25 to 2026-10-02 window is not yet named. Lane owners below are placeholders until one is assigned.",
+    "Lane sync is parent_only. The live implementation issues are PRD-943 through PRD-948 plus PRD-955 and PRD-956 (PRD-956 owns step 15) under the Buildathon prototype milestone; they are not lane mirrors. Do not let linear-sync create canonical lane issues under the historical PRD-339 parent.",
+    "Bot review on PR #864 found three factual errors in the first draft of this hub, now corrected: the root test runner rejects positional paths and has no typecheck script, so every proof command is package-scoped; step 1 must register its route in api/server.ts because nothing is auto-discovered; and ClientWorkIdMapping is browser IndexedDB the agent cannot read, so the outcome is reported back through an authenticated route.",
+    "Codex found five more issues on the second pass, all fixed: the webhook claim needed a lease because the existing helper treats an unfinished claim as a duplicate and would lose a redelivered report; the WhatsApp subject must be encrypted with a keyed HMAC index rather than stored in the clear; the client has no attestation UID to report, since the mapping field named attestationId actually holds a transaction hash and can be synthetic offline, so the agent derives the UID from the receipt; the step-number projections were stale after renumbering; and the spec still called RESR-75 Todo eleven lines before saying it was accepted.",
+    "Lanes route skill and package, not execution order. The fifteen steps are one sequential dispatch for one builder (steps are in dependency order in plan.todo.md). state_api and ui interleave in both directions -- ui step 9 creates packages/shared/src/modules/whatsapp-drafts/transport.ts, which state_api step 13 extends, while state_api step 14 consumes what step 13 registers -- so a blocking dependency between the lanes deadlocks. Follow the numbered step order; use the lanes to pick who works each step.",
+    "All lanes share one integration branch, feature/whatsapp-prototype. The lanes interleave -- step 13 consumes the transport that step 9 creates -- and one builder runs steps 1 to 15 in numbered order, so separate per-lane branches would leave step 13 without step 9 and hand QA two divergent inputs with no integration step.",
+    "Amended 2026-09-22: correction moved into the WhatsApp conversation. Spec section 8.1 adds the two-layer draft (an immutable verbatim source entry per inbound message, plus a derived structured layer carrying per-field provenance) and makes each garden action's own Action.inputs declaration the contract for how a field may be filled. Steps 9 and 10 became a read-only browser review; new step 16 walks the action's required inputs in chat.",
+    "Action.inputs at packages/shared/src/types/domain.ts:325-337 already declares key, type, required, options, bands and unit per garden action. It is the bounded-answer source. Do not author a second per-garden question set or prompt text beside it.",
+    "The legacy services/ai.ts regex parser and Xenova/whisper-tiny.en are NOT a baseline for the WhatsApp flow: step 5 routes around that path, and ParsedWorkData {tasks, notes, date} does not meet WorkSubmission {actionUID, title, timeSpentMinutes, feedback, details}. Any interpretation comparison uses the step 16 deterministic walk as its control.",
+    "Spec proposal P6 (model-assisted interpretation, bounded judgments plus one extraction model, in a shared module) is unselected and blocked on new gate O6 (inference-processor retention, training and regional terms). No step in the prototype calls an inference provider; nothing a gardener writes leaves Green Goods and Meta. A shadow-mode trial on real messages is inside O6, not outside it.",
+    "eval.md gained UX-04 (step 16, above the cut line) and deferred gate 7, INT-01 through INT-04. A smooth step 16 demo shows a working walk, not a system that reads what the gardener wrote; PILOT-01's effort measure cannot be inferred from it.",
+    "Step 16 is numbered out of runtime order deliberately. It executes between steps 5 and 6, but renumbering would have broken every existing cross-reference to steps 6 through 15 in spec.md, eval.md and the live Linear issues.",
+    "PRD-970 (Product, Buildathon prototype milestone, blocked by PRD-944) owns step 16. RESR-79 (Research, same project, no milestone) owns spec proposal P6 and gate O6, and must stay off the prototype milestone because P6 is unselected. One Linear write remains owed: PRD-947's body still describes composer hydration and needs the step 9 and 10 read-only review reflected.",
+    "2026-09-24 user amendment supersedes conflicting earlier target notes: WEFA is the initial responsible organization; DM-first hackathon and exact owner signing are accepted; public browser ceremonies must not require PWA installation. technical-brief.md is the current target with dependencies, Jev-assisted state design, ERD and sequences. Existing numbered dispatch and lane handoffs require reconciliation before assignment. No runtime proof, model-processor approval, delegation enablement, package installation or Linear synchronization was performed.",
+    "Latest user correction: Green Goods is the product; WEFA operates WhatsApp only. General wallet signing is the chosen path. No account upgrade or unattended signing is in scope. Add public client linking/access/sign/status/recovery routes, scoped browser sessions, wireframes and client machines. Record the demo in WhatsApp Web. technical-brief.md is current; prior research remains historical.",
+    "User resolved demo onboarding: existing wallets and pre-enrolled members; TAS and Aiyeloja Family Garden are prototype choices. Existing-account WhatsApp linking remains included. Verify each garden address and roles independently; no enrollment/account-creation flow in demo.",
+    "2026-09-25 subsequent user clarification supersedes blanket no-delegation statements above: exclude EIP-7702, retain exact EOA signing, and include separate limited reporting/review grants for existing Kernel passkey accounts subject to compatibility proof. Story-first Action inference, repeated Jev/LLM evaluation, a synthetic API-first proof phase, explicit new/media dependencies and two PWA-style browser view families are the target. Future EOA/passkey association stays personal and out of implementation scope. technical-brief.md and the account_conversation_amendment link own the current proposal. No installs, runtime changes, wallet operations or Linear synchronization; dispatch and owners remain blocked.",
+    "2026-09-25 latest alignment: user accepted reproducible API harness first, Jev/LLM recommendation and ERD simplification; required documents/visual interpretation and explicitly included spreadsheets. Generic /continue and /recover browser routes use /messaging API with provider-bound requests. Target is passkey-first personal Kernel accounts with optional Profile EOA association and separately authorized signer control; that account feature remains future implementation. Provider choices are recommendations pending evaluation. No runtime implementation, installs, external uploads, account changes or tracker writes in this documentation update.",
+    "Latest user decisions: OpenAI selected for all content processing; Jev retained for typed decisions; automatic Office-to-PDF/image conversion included. Browser routes selected as /agent/reporting/:requestId and /agent/reporting/recover/:requestId. Entire passkey-first onboarding plus optional Profile wallet model is future-only; current prototype uses existing EOA/Kernel accounts. Removed speculative account_usage field and corrected sign-in wireframe. Documentation only; runtime lanes remain blocked, with no installs or tracker writes.",
+    "Final brief review 2026-09-26: closed three documentation gap classes (domain/proof persistence, ceremony/recovery APIs and retry/handoff semantics, current delivery/acceptance authority). User accepted 24h/5 reporting and 1h/5 review grants, 24h pre-consent and 7-day inactive draft expiry plus post-publication source cleanup. Technical brief section 12 owns current implementation sequence; older dispatch is historical. Runtime/custody/provider/chain gates remain unproven; no implementation or tracker writes.",
+    "User accepted PR-review remedies: Afolabi (afo@wefa.world) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs replace the historical dispatch and obsolete hook commands. Durable terminal outcomes, dispatch-time pause controls, stable subject identity/HMAC alias rotation, exclusive operation parents, root schema and deployed edge proof are required. Local scope is reconciled; tracker/start-gate reconciliation remains before dispatch. Synthetic transport fixtures are required; live Telegram remains optional. No runtime build, external message or tracker write occurred.",
+    "PR #864 follow-up: confirmed Action snapshots own offchain field validation; updates during a pending send cannot be promised to invalidate an onchain transaction. Current acceptance requires both signing race cases. Delegation stays disabled until section 9.3 owner revocation passes with Agent/proxy/database unavailable, including old signed operations and enable-authorization replay. Client ceremonies use a focused PublicShell/SiteHeader variant; static /agent/reporting/permissions reuses the ceremony view for independent revocation. No runtime implementation or proof is claimed.",
+    "2026-10-02 user-authorized implementation: resolve #864/#934/#949 conflicts, prepare deployed Telegram webhook/browser flow, enable new-database reporting defaults, pin provider snapshots, add bounded Office conversion, complete bounded Kernel grant source and independent owner removal, use responsive Client PWA views, and attach both Telegram and WhatsApp to one proven account. Codex owns integration. Deployment, actual keys/live-model evaluation, authenticated signing, Fly conversion/isolation and integrated Kernel deployment/pins/budgets remain live gates. WhatsApp needs access and its transport adapter. No production deployment or chain broadcast occurred.",
+    "CURRENT 2026-10-02 follow-up: browser-only first actual report/review activation implemented; owner ENABLE authorization stays in the browser. Separate one-hour review grants, migration v3 recovery, per-attempt complete gas reservation and sealed continuation scope are implemented. 137 SQLite tests and live synthetic media proof pass; full current worktree gate, refreshed fork provenance and final immutable image remain pending. No app release or contract broadcast; production passkey/EAS/sponsorship and deployed policy verification remain required.",
+    "CURRENT WORKTREE PROOF 2026-10-02: all 20 selected critical QA checks passed fresh via bun run check --intent qa --base HEAD. Shared 6683, Client 1533, Admin 1164, Agent 426 units plus 137 SQLite, Contracts 319 tooling and 2100 Solidity tests passed with existing governed skips. Separate structure/test-quality/vocabulary checks and 17 real-EntryPoint fork cases passed. This is uncommitted-worktree proof based on fc6bf61d82dda8e787b0390a29fad79d5b8425c2, not a commit-attributed receipt. Final immutable-image Office smoke and live production gates remain pending; no release/broadcast.",
+    "CURRENT PREPARATION RESULT: complete critical QA and 17-scenario fork proof passed; final image sha256:ff9482e25d37264e3ff7d7bf19b3fd8890dd22f87535976024b111aefaa6fa9e built and pushed without app release. Untouched synthetic DOCX/XLSX conversion passed on Fly, one page each, process exit zero. Disposable machine 857495b473e108 is destroyed. Source is uncommitted; production Client/Agent rollout, passkey/EAS/garden roles/live sponsorship/deployed guard verification and two-account acceptance remain pending. Verified permission registry stays empty; WhatsApp remains off awaiting access and live adapter."
+  ],
+  "lanes": {
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "feature/agent-reporting-telegram",
+      "depends_on": [],
+      "handoff": "handoffs/codex-telegram-readiness.md",
+      "handoff_note": "Current Telegram-first implementation and integration proof are owned by Codex; the handoff records exact scope, live gates, key setup, API flow and the two-account acceptance session. Earlier lane evidence remains historical.",
+      "skill_tags": ["data-layer", "testing", "web3"],
+      "manual_blocked": false,
+      "ready_when_dependencies_met": false,
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "cd packages/agent && AGENT_SQLITE_INTEGRATION=true bun --bun run vitest run src/__tests__/reporting/publish-owner.sqlite.test.ts -t \"not mined yet\"",
+          "evidence": "Failed before 575a987a5: the operation recorded failure_code receipt_mismatch for a reported hash whose transaction was not mined yet (expected pending)."
+        },
+        "green": {
+          "command": "cd packages/agent && AGENT_SQLITE_INTEGRATION=true bun --bun run vitest run src/__tests__/reporting/publish-owner.sqlite.test.ts -t \"not mined yet\"",
+          "evidence": "Passes at 575a987a5 and later; the full SQLite lane (bun run --cwd packages/agent test --scope sqlite) passes. Mutation checks: removing the voice consent gate fails 4 voice tests; returning done on a publication pause fails the delegated pause test."
+        },
+        "note": "PR #2 on feature/agent-reporting-core; see handoffs/claude-state-api.md"
+      },
+      "blocked_reason": "Local critical integration validation passed. Deployed transport/provider, authenticated signing and conditional Kernel live acceptance remain open; the lane is not certified complete."
+    },
+    "ui": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "feature/agent-reporting-telegram",
+      "depends_on": [],
+      "handoff": "handoffs/codex-telegram-readiness.md",
+      "handoff_note": "Current Telegram-first implementation and integration proof are owned by Codex; the handoff records exact scope, live gates, key setup, API flow and the two-account acceptance session. Earlier lane evidence remains historical.",
+      "skill_tags": ["ui", "react", "web3"],
+      "manual_blocked": false,
+      "ready_when_dependencies_met": false,
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "cd packages/shared && bun run vitest run src/__tests__/hooks/agent-reporting/",
+          "evidence": "Mutation checks: with the pre-reservation envelope check removed, the envelope-mismatch test fails; with the restore-time outcome replay removed, the lost-outcome replay test fails. Written with the behavior, not before it."
+        },
+        "green": {
+          "command": "cd packages/shared && bun run vitest run src/__tests__/hooks/agent-reporting/",
+          "evidence": "10 tests pass with both guards in place (c44ed6724 and later)."
+        },
+        "note": "PR #2 ceremony hooks and pages; see handoffs/claude-ui.md"
+      },
+      "blocked_reason": "Local critical integration validation passed. Deployed transport/provider, authenticated signing and conditional Kernel live acceptance remain open; the lane is not certified complete."
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "feature/agent-reporting-telegram",
+      "depends_on": [],
+      "handoff": "handoffs/codex-telegram-readiness.md",
+      "handoff_note": "SingleAttestationPolicy adds a canonical single-call and full-prefund cost boundary to the existing permission stack. It does not change WorkResolver or WorkApprovalResolver. Deployment, bytecode pins, measured budgets and integrated negative/revocation proof gate registry activation.",
+      "skill_tags": ["contracts"],
+      "manual_blocked": false,
+      "ready_when_dependencies_met": false,
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {},
+        "green": {},
+        "note": "Nine SingleAttestationPolicy unit tests and the complete 2,100-test Solidity gate passed at 202333ca6831e2e5d3bceae32a4c0894519ab019. No new RED receipt is recorded; live Kernel deployment/pins/budgets and integrated execution/replay/revocation proof remain open. The lane is not complete and the verified registry remains empty."
+      }
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["state_api", "ui"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Opus 5.5: integrated current harness and live proof, including incomplete story/correction, terminal no-hash failures, consent/pause at dispatch, HMAC rotation, provider statuses, cleanup, actual accounts/gardens and support rehearsal. Supply checkpoint evidence to Astra.",
+      "skill_tags": ["testing", "review"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false,
+      "blocked_reason": "Await the relevant implementation checkpoint and fresh proof; verify live stage gates before rehearsal or readiness approval."
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Astra: independent review of every completed checkpoint and integrated prototype; current technical brief sections 11\u201312 own acceptance. Auth, crash/retry, identity rotation, privacy, operating switches and conditional Kernel grants are in scope.",
+      "skill_tags": ["testing", "review", "contracts"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false,
+      "blocked_reason": "Await the relevant implementation checkpoint and fresh proof; verify live stage gates before rehearsal or readiness approval."
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-17T00:00:00Z",
+      "actor": "afo",
+      "lane": "system",
+      "status": "created",
+      "branch": null,
+      "note": "Hub created from superpowers spec + plan. Epic #464; outcome milestone #14. Decisions locked: Twilio provider, tier-Y capability, ERC-4337 session keys, 30d TTL, dual revoke path."
+    },
+    {
+      "timestamp": "2026-04-19T00:00:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "brief.md + eval.md + status.json scaffolded; spec.md migrated from docs/superpowers/specs/ (legacy folder deleted). plan.todo.md spec link rewired to ./spec.md. plan-hub.mjs validate green."
+    },
+    {
+      "timestamp": "2026-04-26T19:08:14.451Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_backlog",
+      "branch": null,
+      "note": "Moved feature hub from active to backlog"
+    },
+    {
+      "timestamp": "2026-05-10T06:37:51.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "dependency_closed",
+      "branch": "main",
+      "note": "Removed agent-posthog-observability from depends_on_features after it was archived as completed connector-first routine guidance."
+    },
+    {
+      "timestamp": "2026-05-10T22:34:39.903Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-05-10T23:05:15.719Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-06-27T00:01:48.864Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_ideas",
+      "branch": null,
+      "note": "Moved feature hub from backlog to ideas"
+    },
+    {
+      "timestamp": "2026-06-27T00:01:48.864Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "moved_to_ideas",
+      "branch": null,
+      "note": "Moved to ideas and neutralized lane mirroring until activation."
+    },
+    {
+      "timestamp": "2026-09-11T01:48:09Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "research_captured",
+      "branch": null,
+      "note": "Captured user-requested final architecture research in existing canonical hub. Distinguished accepted TAS/PWA decisions from proposed identity and delivery design, superseded April assumptions, and blocked stale execution metadata. Remains ideas; no implementation or Linear sync."
+    },
+    {
+      "timestamp": "2026-09-21T00:00:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_locked",
+      "branch": null,
+      "note": "RESR-75 accepted; Buildathon prototype slice scope-locked by Afo. Brought the hub content forward from open draft PR #846 (ed190b3b), corrected A1 and O2 per the lock, added spec section 15.1 and a 13-step prototype dispatch list, and reset lanes to the slice. Contracts lane is n/a: no contract change. No Linear writes, no commit."
+    },
+    {
+      "timestamp": "2026-09-21T08:13:22.471Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from ideas to active after Afo's scope lock. Run by Claude via plan-hub.mjs move; the scope-lock decision itself was Afo's."
+    },
+    {
+      "timestamp": "2026-09-22T02:40:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "review_addressed",
+      "branch": "chore/whatsapp-prototype-scope-lock",
+      "note": "Addressed CodeRabbit and Codex review on PR #864: package-scoped proof commands, route registration and durable event dedup in step 1, an authenticated outcome route plus a restart-safe outbox replacing the unreadable browser mapping, openJoining self-join so a new passkey account can publish, a chat-side confirmation so a forwarded link cannot attach a draft, publication-boundary EXIF proof, narrowed CH-01 and SEC-01 claims, corrected origin-boundary reasoning, and lanes held non-ready until a builder is named."
+    },
+    {
+      "timestamp": "2026-09-22T19:30:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": "chore/whatsapp-prototype-scope-lock",
+      "note": "Locked correction into the chat rather than the browser. Added spec section 8.1 (two-layer draft, Action.inputs as the fill contract, per-field provenance), proposal P6 and gate O6, two section 2 evidence rows, and a fifth section 15.1 narrowing. Rewrote steps 9 and 10 from composer hydration to a read-only review and added step 16, a deterministic chat field walk in a pure shared module, above the cut line. Added UX-04 and deferred gate 7. No package source changed; no inference provider is called anywhere in the slice."
+    },
+    {
+      "timestamp": "2026-09-25T00:08:40Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_amended",
+      "branch": null,
+      "note": "Recorded the user-requested technical brief and accepted WEFA, DM and exact-signing direction. Added source-grounded wallet comparison and proposed dependencies, state machines, ERD, API boundaries, sequences and acceptance. Lanes remain blocked and runtime proof unrun; implementation dispatch reconciliation is required."
+    },
+    {
+      "timestamp": "2026-09-25T00:48:11.997049+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_amended",
+      "branch": null,
+      "note": "User chose general wallet signing and a WhatsApp Web demo; removed account-upgrade and delegated-execution scope from the current brief. Added client routes, dependency inventory, application-access semantics, three client machines and six wireframes. Green Goods owns the product; WEFA operates WhatsApp. No runtime changes or new installs."
+    },
+    {
+      "timestamp": "2026-09-25T07:47:23.969539+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_reviewed",
+      "branch": null,
+      "note": "Reviewed all current technical-brief sections and direct source seams. Corrected publication ownership, prepared envelope/checkpoint contract, same-origin proxy/session bootstrap, recovery fencing, receipt matching, state and delivery consistency. Onboarding scope remains a user question. Evidence review only; runtime lanes unchanged and live acceptance unrun."
+    },
+    {
+      "timestamp": "2026-09-25T08:09:41.490074+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded user selection of pre-enrolled TAS members and Aiyeloja Family Garden as an additional prototype garden. Closed the review onboarding question, retained per-garden authority checks and updated current brief and acceptance. Runtime lanes and deployment proof unchanged."
+    },
+    {
+      "timestamp": "2026-09-26T01:17:47.271110+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_amended",
+      "branch": null,
+      "note": "Corrected account-specific signing/delegation scope from user questions; researched Jev loop and media gaps; recorded separate review permission and future personal passkey association. Updated current brief, diagrams, ERD and acceptance proposals; no runtime proof or dispatch."
+    },
+    {
+      "timestamp": "2026-09-26T02:48:52.181967+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_aligned",
+      "branch": null,
+      "note": "Recorded accepted API-first/model/ERD direction; expanded media scope and researched tools; generalized ceremonies; clarified passkey-first Kernel with optional Profile EOA signer. Updated architecture artifacts only."
+    },
+    {
+      "timestamp": "2026-09-26T03:16:16.486766+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_amended",
+      "branch": null,
+      "note": "Latest user decisions: OpenAI selected for all content processing; Jev retained for typed decisions; automatic Office-to-PDF/image conversion included. Browser routes selected as /agent/reporting/:requestId and /agent/reporting/recover/:requestId. Entire passkey-first onboarding plus optional Profile wallet model is future-only; current prototype uses existing EOA/Kernel accounts. Removed speculative account_usage field and corrected sign-in wireframe. Documentation only; runtime lanes remain blocked, with no installs or tracker writes."
+    },
+    {
+      "timestamp": "2026-09-26T20:54:13.260994+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_reviewed",
+      "branch": null,
+      "note": "Final brief review 2026-09-26: closed three documentation gap classes (domain/proof persistence, ceremony/recovery APIs and retry/handoff semantics, current delivery/acceptance authority). User accepted 24h/5 reporting and 1h/5 review grants, 24h pre-consent and 7-day inactive draft expiry plus post-publication source cleanup. Technical brief section 12 owns current implementation sequence; older dispatch is historical. Runtime/custody/provider/chain gates remain unproven; no implementation or tracker writes."
+    },
+    {
+      "timestamp": "2026-09-27T03:27:36.159658+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": "chore/whatsapp-prototype-scope-lock",
+      "note": "User accepted PR-review remedies: Afolabi (afo@wefa.world) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs replace the historical dispatch and obsolete hook commands. Durable terminal outcomes, dispatch-time pause controls, stable subject identity/HMAC alias rotation, exclusive operation parents, root schema and deployed edge proof are required. Local scope is reconciled; tracker/start-gate reconciliation remains before dispatch. Synthetic transport fixtures are required; live Telegram remains optional. No runtime build, external message or tracker write occurred."
+    },
+    {
+      "timestamp": "2026-09-27T05:31:18.190Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/agent-reporting-core",
+      "note": "PR #2 of the hackathon stack: Opus 5.5 builds the transport-independent reporting core on feature/agent-reporting-core from pinned parent 8457b8aa2f82b4de41bd8de1551d7d9f5a36da8e (chore/whatsapp-prototype-scope-lock, PR #864). Meta/WhatsApp adapters are PR #3."
+    },
+    {
+      "timestamp": "2026-09-27T05:31:22.339Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/agent-reporting-core",
+      "note": "PR #2 browser ceremonies: /agent/reporting/:requestId, /agent/reporting/recover/:requestId and static /agent/reporting/permissions on the same branch as state_api."
+    },
+    {
+      "timestamp": "2026-09-27T05:31:47.306Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-09-27T10:02:25.556Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/agent-reporting-core",
+      "note": "PR #2 on feature/agent-reporting-core; see handoffs/claude-state-api.md"
+    },
+    {
+      "timestamp": "2026-09-27T10:02:29.973Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/agent-reporting-core",
+      "note": "PR #2 ceremony hooks and pages; see handoffs/claude-ui.md"
+    },
+    {
+      "timestamp": "2026-09-30T05:13:00.000Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/agent-reporting-telegram",
+      "note": "WhatsApp account disabled; PR #3 adds the Telegram channel on the existing bot. The state_api lane itself stays on PR #2; see handoffs/claude-telegram-channel.md"
+    },
+    {
+      "at": "2026-10-02T08:24:00.000Z",
+      "by": "codex",
+      "lane": null,
+      "status": "scope_amended",
+      "note": "Implement the user-authorized Telegram-first readiness changes and resolve the existing PR stack. Code gates and live deployment/model/account/Office/Kernel checks remain distinct; no production deployment, wallet signing or chain broadcast."
+    },
+    {
+      "timestamp": "2026-10-02T09:09:30Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "implementation_validated",
+      "branch": "feature/agent-reporting-telegram",
+      "note": "Complete selected critical local push gate passed at 202333ca6831e2e5d3bceae32a4c0894519ab019; current handoff records the clean validated-path and evidence-only diff receipt. Storybook desktop/mobile proof is layout only. Core/scope PRs are mergeable with current-head CI green; final Telegram push/CI and live acceptance follow. No deployment or chain broadcast."
+    },
+    {
+      "timestamp": "2026-10-02T22:39:32.969Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-02T23:45:19.230Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "implementation_validation_pending",
+      "branch": "feature/agent-reporting-telegram",
+      "note": "User selected browser-only first-report activation. Runtime sources stable with 137 SQLite tests and source typecheck passing. Final critical gate, immutable image and refreshed fork proof running; production acceptance remains pending."
+    },
+    {
+      "timestamp": "2026-10-02T23:55:00.179Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "worktree_validation_recorded",
+      "branch": "feature/agent-reporting-telegram",
+      "note": "Complete 20-check critical QA plan and 17 real-EntryPoint fork scenarios passed. Source remains uncommitted; final image smoke and actual passkey/EAS/roles/sponsorship/deployed guard proof pending. No production release or contract broadcast."
+    },
+    {
+      "timestamp": "2026-10-03T00:01:25.703Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "preparation_evidence_recorded",
+      "branch": "feature/agent-reporting-telegram",
+      "note": "Final-source immutable image built with frozen dependencies and passed runtime imports plus untouched Fly DOCX/XLSX conversion. Test machine destroyed. Local implementation and preparation checks complete; production rollout and live acceptance remain pending."
+    }
+  ],
+  "taxonomy": {
+    "initiative": "agent-platform",
+    "tracks": ["agent", "shared", "client"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": ["packages/agent", "packages/shared", "packages/client"],
+    "depends_on_features": []
+  },
+  "linear": {
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-10T23:05:15.718Z",
+    "parentIssue": "PRD-998",
+    "lanes": {},
+    "project": "Agent Messaging Channels (WhatsApp + SMS)",
+    "laneSyncMode": "parent_only"
+  }
+}

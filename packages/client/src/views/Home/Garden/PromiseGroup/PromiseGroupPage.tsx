@@ -7,10 +7,10 @@ import { RiHandHeartLine, RiRefreshLine, RiSeedlingLine, RiTimeLine } from "@rem
 import { type ReactNode, useId } from "react";
 import { useIntl } from "react-intl";
 
+import { Fact } from "@/components/Display";
 import { CommitmentRow, groupCountsText } from "@/components/Features/Commitments";
 import { CommitmentActionBar } from "../Commitment/CommitmentActionBar";
 import { CommitmentDetailShell } from "../Commitment/CommitmentDetailShell";
-import { Fact } from "../Commitment/CommitmentPeople";
 
 /** The words for the group's one act, on the bar and in the sheet. */
 export const GROUP_ACT_LABEL = {

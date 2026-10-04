@@ -34,6 +34,8 @@ import { publicBrowserCorsPreflight, publicBrowserCorsResponse } from "./http/pu
 import { trackGardenJoinRequestEvent } from "../services/analytics";
 import { GardenJoinRequestRateLimitPressure } from "../services/garden-join-requests";
 import { registerPublicGardenImpactRoutes } from "./routes/public-garden-impact";
+import { registerMessagingRoutes } from "./routes/messaging";
+import { registerReportingOpsRoutes } from "./routes/reporting-ops";
 import { registerPublicCommitmentImpactRoutes } from "./routes/public-commitment-impact";
 
 const log = loggers.api;
@@ -209,6 +211,11 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     },
   };
   registerFundingRoutes(app, fundingRouteContext);
+  // Agent reporting ceremonies exist only when the reporting runtime is configured.
+  if (deps.messaging) {
+    registerMessagingRoutes(app, deps.messaging);
+    registerReportingOpsRoutes(app, deps, deps.messaging.core);
+  }
   return app;
 }
 

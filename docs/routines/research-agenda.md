@@ -35,11 +35,11 @@ Each track carries the same fields. The routine reads them literally, so keep th
 | 2 | Impact methodology and verifiable reporting | quarter | evidencing | Linear project *Impact Framework v0.1 Refresh* · RESR-46 / RESR-49 / RESR-14 / RESR-77 | Settle the base evidence and evaluator meaning, then define what a report and certificate claim |
 | 3 | Yield strategies for garden endowments | quarter | evidencing | RESR-9 / RESR-15 / RESR-8 | A strategy and preset recommendation with live APY evidence, plus the funding-rail map it sits in |
 | 4 | Capital access: off-ramps and on-ramps by geography | quarter | blocked (external) | Linear project *Capital Off-Ramp Corridors* · RESR-70 | Five provider facts that only direct contact can settle; the on-ramp side is unframed |
-| 5 | Accessible impact reporting via WhatsApp and SMS | quarter | evidencing | RESR-75 / RESR-79 · Linear project *Agent Messaging Channels (WhatsApp + SMS)* | Measure the deterministic chat path; decide whether and how a model may read gardener reports |
+| 5 | Accessible impact reporting via WhatsApp and SMS | quarter | graduated | RESR-75 / RESR-79 · Linear project *Agent Messaging Channels (WhatsApp + SMS)* | Prototype entry criteria accepted; evaluate pilot burden, processor terms and live account/operational compatibility |
 | 6 | Revenue token models (Revnets) for a goods and services layer | next | framing | RESR-76 (RESR-15 rail row; AgroforestDAO case) | Frame what a Revnet adds beyond pooling, vaults, and cash-out, using AgroforestDAO's live setup as the case (RESR-76, unassigned; December cycle) |
 | 7 | Community infrastructure with AI for data sovereignty | 12mo | horizon | Linear initiative *Community Evidence Mesh* | Phase 0 outputs: burden baseline, metric registry v0, Evidence Envelope v0, the ADR |
 
-**Why this order.** Commitment pooling is the core loop and the current cycle theme, so it leads. Impact methodology is second because its evidence and evaluator definitions feed tracks 3, 5, and 7. The first House of Alignment report (GROW-15) is Done and its metric-inventory issue (RESR-65) was Canceled; neither remains an open September gate. Yield is third because the Sustainability & Monetization initiative is at risk and the strategy research is in progress. Capital access is fourth: the desk research is finished and the next step requires provider contact. Accessible reporting is fifth because the entry criteria are Done and the remaining research decides whether gardener text may reach an inference provider. Revnets is sixth because its framing sits in the December cycle. The evidence mesh is the long horizon and is reviewed monthly.
+**Why this order.** Commitment pooling is the core loop and the current cycle theme, so it leads. Impact methodology is second because its evidence and evaluator definitions feed tracks 3, 5, and 7. The first House of Alignment report (GROW-15) is Done and its metric-inventory issue (RESR-65) was Canceled; neither remains an open September gate. Yield is third because the Sustainability & Monetization initiative is at risk and the strategy research is in progress. Capital access is fourth: the desk research is finished and the next step requires provider contact. Accessible reporting is fifth because the entry criteria are Done; the remaining pilot research measures reporting burden and verifies processing terms, quality and live compatibility. Revnets is sixth because its framing sits in the December cycle. The evidence mesh is the long horizon and is reviewed monthly.
 
 ## 1. Commitment pooling
 
@@ -179,32 +179,36 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 ## 5. Accessible impact reporting via WhatsApp and SMS
 
-**Horizon:** quarter · **Stage:** evidencing
-**Note:** the entry criteria are Done and the deterministic WhatsApp prototype is in Product. Model-assisted interpretation is a separate research gate.
+**Horizon:** quarter · **Stage:** graduated
+**Note:** the entry-criteria research graduated to Product and the active Plan Hub. Pilot research remains open; graduation does not establish implementation or live proof.
 
 **Question.** What must be true for gardeners to report impact from WhatsApp or SMS without installing the app, with a short account step only when signing is required, and what pilot proves lower total reporting burden rather than burden moved onto operators?
 
-**Why it matters.** The *Accessible Participation* initiative sets real pilot submissions as the bar. RESR-75 completed the entry-criteria gate, and the messaging project is In Progress. The remaining research asks whether interpreting a gardener's report with a model reduces total reporting burden under acceptable consent, retention, regional, and accuracy terms.
+**Why it matters.** The *Accessible Participation* initiative sets real pilot submissions as the bar. RESR-75 completed the entry-criteria gate, and the messaging project is In Progress. The remaining pilot research tests whether the accepted reporting architecture reduces total gardener and operator burden under acceptable consent, retention, regional and accuracy terms.
 
 **Anchors.**
-- RESR-75 (entry criteria, Done) and RESR-79 (model-processing decision, Todo). Both belong to the [Agent Messaging Channels (WhatsApp + SMS)](https://linear.app/greenpill-dev-guild/project/agent-messaging-channels-whatsapp-sms-71cda634fcf7) project (In Progress).
-- PRD-955 records the current Meta Cloud API prototype scope in `.plans/ideas/agent-messaging-channels/` as the hub is promoted; PRD-970 owns the deterministic chat walk. Read those issues before using the older hub's Twilio or session-key assumptions.
+- RESR-75 (entry criteria, Done) and RESR-79 (model-processing evaluation, Todo), in the [Agent Messaging Channels (WhatsApp + SMS)](https://linear.app/greenpill-dev-guild/project/agent-messaging-channels-whatsapp-sms-71cda634fcf7) project (In Progress). OpenAI is the accepted content-processing direction; live processing still needs the provider/consent evidence and measured comparison tracked by RESR-79.
+- PRD-955 records the Meta Cloud API prototype and PRD-970 the chat field walk. Their older deterministic-only scope and `.plans/ideas/` references need reconciliation with the active hub before dispatch; this merge does not change those tracker records.
+- [Current Agent Messaging Plan Hub](../../.plans/active/agent-messaging-channels/technical-brief.md): existing EOAs sign exact publications; existing Kernel users may grant separate limited reporting/review permissions after compatibility proof. Opus 5.5 builds and Astra reviews; local handoffs are reconciled and the tracker/start gate remains before dispatch.
 - The evidence mesh roadmap's Phase 1 evidence list (minutes per accepted submission, completion and abandonment, correction rate, operator minutes, data cost, language and device coverage, consent comprehension).
 - PostHog Agent project (`262124`) for what the Telegram agent already sees; read through growth-pulse or bug-intake, never re-queried here.
 
 **Status surface.** Project status update on *Agent Messaging Channels (WhatsApp + SMS)*.
 
 **Settled.**
-- The Telegram agent exists and is the foundation; WhatsApp and SMS are adapters on the same handler set (agent-messaging-channels brief).
-- RESR-75 accepted a short account step in the app for signing. The current prototype uses Meta Cloud API directly, a test cohort, and no custodial wallet or delegation (PRD-955).
-- PRD-970's report walk is deterministic: it asks from the activity's declared fields and uses no model. RESR-79 explicitly bars sending gardener messages to an inference provider, including a shadow trial, until its decision lands.
+- The prototype entry criteria were accepted on 2026-09-21. The current user-approved architecture is API-harness-first and Meta DM-first, with reporting/correction/review in chat and platform-neutral browser ceremonies when authentication or signing is needed.
+- The prototype uses existing EOA/Kernel accounts and pre-enrolled TAS or Aiyeloja Family Garden members. EOA publications require exact signing; Kernel reporting and review delegation are separate, limited and subject to proof. Universal passkey onboarding/Profile wallet association remain future work.
+- OpenAI processes content and Jev makes bounded typed decisions. Documents, photos and spreadsheets are included, with isolated automatic Office conversion. Provider terms and live quality still need evidence.
+- Capture is private and consent-gated; public evidence requires separate confirmation. WEFA operates WhatsApp; Afolabi owns support at afo@wefa.world. The accepted grant/retention limits and current implementation contract live in the Plan Hub.
 
 **Open.**
-1. Whether a model may receive a gardener's report, and under which consent, retention, training, and regional terms. Next step: RESR-79's provider recommendation and labelled-set comparison against the deterministic walk. No live or shadow use of gardener text before that decision.
-2. Whether the deterministic walk lowers total reporting burden in the test cohort, including corrections, operator time, cost per accepted report, and language coverage. Next step: collect the measures RESR-75 set.
-3. How the report's activity fields and evidence map to the base attestation recommendation in track 2. Next step: one worked example per pilot domain.
+1. Pilot cohort, baseline and metric set: reporting completion/correction, total gardener and operator time, language/device coverage, support load and consent comprehension. A successful prototype is not pilot-effectiveness evidence.
+2. Pilot provider provisioning, templates, geography/pricing and applicable processing/retention terms. SMS is excluded from the current prototype and must not re-enter through this research track implicitly.
+3. Live content-processing quality/coverage, latency and cost, including RESR-79’s labelled-set comparison against the deterministic walk; exact Kernel permission/custody compatibility and gas limits; browser/account handoff and deployed configuration proof. Track these evidence gates without treating a selected provider as a passed evaluation. No live or shadow processing of gardener reports before the provider/consent gate passes; use synthetic fixtures meanwhile.
+4. Operational readiness before real intake: support rehearsal, provider settings and the remaining audit/backup retention schedule. The support owner and local draft-data retention decisions are settled; their implementation is not.
+5. How activity fields and evidence map to the base attestation recommendation in track 2. Next step: one worked example per prototype garden domain.
 
-**Implementable when.** The deterministic path can proceed under RESR-75's accepted criteria and the Product prototype scope. Any model-assisted extraction or judgment waits for RESR-79's accepted provider and consent decision plus its measured comparison; the pilot still needs a named garden and metric set.
+**Implementable when.** The prototype product direction is accepted. Opus 5.5 starts the synthetic API harness after the repository tracker/start gate; Astra reviews completed checkpoints. Live intake and each demonstrated capability require the Plan Hub's separate operating and compatibility gates. Pilot acceptance still requires the metric/cohort and evidence work above. This document update does not change Linear issue or project state.
 
 **Watch keywords.** WhatsApp, SMS, Twilio, Meta Business, messaging, agent, session key, Telegram, low-bandwidth, USSD, voice note, opt-in, template message, entry criteria, feature phone.
 
