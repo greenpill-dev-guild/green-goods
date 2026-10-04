@@ -17,6 +17,8 @@ import { queueDraftWrite } from "../../modules/work/draft-lifecycle";
 import {
   fromDraftWorkLink,
   hasWorkLinkIntentParams,
+  parseWorkLinkIntent,
+  toDraftWorkLink,
   type WorkLinkIntent,
   writeWorkLinkIntent,
 } from "../../modules/commitment-pooling/work-link-intent";
@@ -77,6 +79,7 @@ export function useDraftResume({
         draftHydrated: false,
         draftScope: null,
         draftEpoch: state.draftEpoch + 1,
+        draftPagePromise: null,
       }));
       return;
     }
@@ -119,6 +122,16 @@ export function useDraftResume({
     }
     const controller = new AbortController();
     restoredLink.current = false;
+    // The promise the last visit's page was opened for, if its prompt went unanswered. It is for
+    // the same account, gives way to a draft or a promise this visit names itself, and is spent
+    // once a load completes, so an interrupted load does not lose it.
+    const pagePromise =
+      state.draftPagePromise &&
+      state.draftScope === scope &&
+      !explicitId &&
+      !hasWorkLinkIntentParams(latest.current.searchParams)
+        ? fromDraftWorkLink(state.draftPagePromise)
+        : null;
     useWorkFlowStore.setState((current) => ({
       draftScope: scope,
       draftHydrated: false,
@@ -132,14 +145,14 @@ export function useDraftResume({
         const draftId = explicitId ?? (await draftDB.getActiveDraft(userAddress, chainId));
         controller.signal.throwIfAborted();
         // The draft brings back the promise it was for, unless the page was opened for one.
-        let link: WorkLinkIntent | null = null;
+        let link: WorkLinkIntent | null = pagePromise;
         if (draftId) {
           await latest.current.resumeDraft(draftId, {
             signal: controller.signal,
             restoreForm: latest.current.restoreForm,
           });
           const kept = (await draftDB.getDraft(draftId))?.linkIntent;
-          if (kept && !hasWorkLinkIntentParams(latest.current.searchParams))
+          if (!link && kept && !hasWorkLinkIntentParams(latest.current.searchParams))
             link = fromDraftWorkLink(kept);
           if (!explicitId) setSheet(true);
         } else {
@@ -158,13 +171,14 @@ export function useDraftResume({
           draftHydrated: true,
           draftSaveState: draftId ? "saved" : "idle",
           draftChoicePending: Boolean(draftId) && !explicitId,
+          draftPagePromise: null,
         });
         if (explicitId || link) {
           const params = link
             ? writeWorkLinkIntent(latest.current.searchParams, link)
             : new URLSearchParams(latest.current.searchParams);
           params.delete("draftId");
-          restoredLink.current = Boolean(link);
+          restoredLink.current = Boolean(link) && link !== pagePromise;
           latest.current.setSearchParams(params, { replace: true });
         }
       } catch (error) {
@@ -284,9 +298,19 @@ export function useDraftResume({
     setShowDraftSheet,
     handleContinueDraft,
     handleStartFresh,
-    /** Leaving while the prompt is still open: the next visit loads the draft and asks again. */
+    /**
+     * Leaving while the prompt is still open: the next visit loads the draft and asks again, for
+     * the promise this page was opened for. Returns whether Back must not reopen this address,
+     * which is when the promise in it is the draft's and would read as the page's own.
+     */
     askAgainNextVisit: () => {
-      if (showDraftSheet) useWorkFlowStore.setState({ draftHydrated: false });
+      if (!showDraftSheet) return false;
+      const own = restoredLink.current ? null : parseWorkLinkIntent(latest.current.searchParams);
+      useWorkFlowStore.setState({
+        draftHydrated: false,
+        draftPagePromise: own ? toDraftWorkLink(own) : null,
+      });
+      return restoredLink.current;
     },
     clearActiveDraft,
     legacyRecovery,

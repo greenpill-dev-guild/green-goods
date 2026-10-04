@@ -33,7 +33,6 @@ const mocks = vi.hoisted(() => ({
   selectGarden: vi.fn(),
   joinGarden: vi.fn(),
   joinState: { isJoining: false, joiningGardenId: null as string | null },
-  promptOpen: false,
   askAgain: vi.fn(),
 }));
 
@@ -110,7 +109,7 @@ vi.mock("../../../modules/work/media-processing", async (importOriginal) => ({
 
 vi.mock("../../../hooks/work/useDraftResume", () => ({
   useDraftResume: () => ({
-    showDraftSheet: mocks.promptOpen,
+    showDraftSheet: false,
     setShowDraftSheet: vi.fn(),
     handleContinueDraft: vi.fn(),
     handleStartFresh: vi.fn(),
@@ -311,7 +310,6 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.toastError.mockReset();
     navigateShareRoute = null;
     exitPath = "";
-    mocks.promptOpen = false;
   });
 
   it("projects selection and owns the intro progress gate", () => {
@@ -374,10 +372,18 @@ describe("useWorkSubmissionFlowController", () => {
   });
 
   it.each([
-    { from: "the unanswered draft prompt", promptOpen: true, navigation: "REPLACE" },
-    { from: "the wizard's own draft-limit notice", promptOpen: false, navigation: "PUSH" },
-  ])("opens Your Work on its drafts from $from", ({ promptOpen, navigation }) => {
-    mocks.promptOpen = promptOpen;
+    {
+      from: "a prompt whose address holds the draft's promise",
+      holdsIt: true,
+      navigation: "REPLACE",
+    },
+    {
+      from: "a prompt on the page's own address, or the wizard",
+      holdsIt: false,
+      navigation: "PUSH",
+    },
+  ])("opens Your Work on its drafts from $from", ({ holdsIt, navigation }) => {
+    mocks.askAgain.mockReturnValue(holdsIt);
     useUIStore.getState().closeWorkDashboard();
     const { result } = renderHook(
       () =>
@@ -397,7 +403,8 @@ describe("useWorkSubmissionFlowController", () => {
       workDashboardInitialPendingFilter: "editing",
     });
     expect(exitPath).toBe("/home");
-    // Back returns to unsaved work in the wizard, but never to a prompt nobody answered.
+    // Back returns to the visit, except where its address would pass the draft's promise off
+    // as the page's own.
     expect(exitNavigation).toBe(navigation);
     expect(mocks.askAgain).toHaveBeenCalledOnce();
   });

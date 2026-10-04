@@ -1,4 +1,4 @@
-import type { MissingDraftAttachment } from "../types/job-queue";
+import type { DraftWorkLink, MissingDraftAttachment } from "../types/job-queue";
 import { create } from "zustand";
 import type { Address, Domain, ApproximateWorkLocation } from "../types/domain";
 import {
@@ -34,6 +34,12 @@ export type WorkFlowState = WorkDraftState & {
    * continues it or sets it aside, nothing is written to it.
    */
   draftChoicePending: boolean;
+  /**
+   * The promise an unanswered prompt's page was opened for, kept while the
+   * person makes room in Your Work so the next visit is for it again. A reset
+   * leaves it: deleting the loaded draft there must not cost that promise.
+   */
+  draftPagePromise: DraftWorkLink | null;
   draftMissingAttachments: MissingDraftAttachment[];
   draftSaveState: "idle" | "loading" | "saving" | "saved" | "failed";
   draftError: string | null;
@@ -98,6 +104,7 @@ export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
   draftEpoch: 0,
   draftDeleting: false,
   draftChoicePending: false,
+  draftPagePromise: null,
   draftMissingAttachments: [],
   draftSaveState: "loading",
   draftError: null,

@@ -437,10 +437,10 @@ export function useWorkSubmissionFlowController({
       close: () => setShowDraftSheet(false),
       recover: () => setShowDraftSheet(true),
       manage: () => {
-        askAgainNextVisit();
+        // Back returns to this address unless the promise in it is the saved draft's.
+        const replace = askAgainNextVisit();
         useUIStore.getState().openWorkDashboard("pending", "editing");
-        // Back must not reopen an unanswered prompt: its address may hold the draft's promise.
-        navigate(homeRoute, { replace: showDraftSheet });
+        navigate(homeRoute, { replace });
       },
       handleContinueDraft,
       startFresh: async () => {

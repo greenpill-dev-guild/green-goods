@@ -7,6 +7,7 @@
  * the moment the prompt opens, and the next save gets a record of its own.
  */
 import { act, cleanup, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useDraftAutoSave } from "../../../hooks/work/useDraftAutoSave";
 import { useDraftResume } from "../../../hooks/work/useDraftResume";
@@ -38,41 +39,62 @@ vi.mock("../../../hooks/auth/useUser", () => ({
 }));
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => CHAIN }));
 
-/** The wizard's draft wiring, as the Submit Work controller composes it. */
-function openWizard(query = "") {
+/**
+ * The wizard's draft wiring, as the Submit Work controller composes it: the address is live, so
+ * a promise written into it is the promise the next save carries. `strict` mounts it as the app's
+ * development build does, where the first load is interrupted and run again.
+ */
+function openWizard(query = "", { strict = false } = {}) {
   const setSearchParams = vi.fn();
   const restoreForm = vi.fn();
-  const searchParams = new URLSearchParams(query);
-  // The page's own promise is saved with the work, as the controller does.
-  const pagePromise = parseWorkLinkIntent(searchParams);
-  const linkIntent = pagePromise ? toDraftWorkLink(pagePromise) : undefined;
-  const view = renderHookWithQueryClient(() => {
-    const resume = useDraftResume({
-      formState: {
-        images: [],
-        gardenAddress: null,
-        actionUID: null,
-        feedback: "",
-        timeSpentMinutes: 0,
-      },
-      isOnIntroTab: true,
-      searchParams,
-      setSearchParams,
-      restoreForm,
-    });
-    const gardenAddress = useWorkFlowStore((state) => state.gardenAddress);
-    const actionUID = useWorkFlowStore((state) => state.actionUID);
-    const feedback = useWorkFlowStore((state) => state.feedback);
-    const details = useWorkFlowStore((state) => state.details);
-    const images = useWorkFlowStore((state) => state.images);
-    const { saveOnExit } = useDraftAutoSave(
-      { gardenAddress, actionUID, feedback, details, linkIntent },
-      images,
-      { enabled: !resume.legacyRecovery }
-    );
-    return { ...resume, saveOnExit };
-  });
+  const view = renderHookWithQueryClient(
+    () => {
+      const [searchParams, applySearchParams] = useState(() => new URLSearchParams(query));
+      setSearchParams.mockImplementation((next: URLSearchParams) => applySearchParams(next));
+      const promise = parseWorkLinkIntent(searchParams);
+      const linkIntent = promise ? toDraftWorkLink(promise) : undefined;
+      return useWizard({ searchParams, setSearchParams, restoreForm, linkIntent });
+    },
+    { reactStrictMode: strict }
+  );
   return { ...view, setSearchParams, restoreForm };
+}
+
+function useWizard({
+  searchParams,
+  setSearchParams,
+  restoreForm,
+  linkIntent,
+}: {
+  searchParams: URLSearchParams;
+  setSearchParams: (params: URLSearchParams) => void;
+  restoreForm: () => void;
+  linkIntent: ReturnType<typeof toDraftWorkLink> | undefined;
+}) {
+  const resume = useDraftResume({
+    formState: {
+      images: [],
+      gardenAddress: null,
+      actionUID: null,
+      feedback: "",
+      timeSpentMinutes: 0,
+    },
+    isOnIntroTab: true,
+    searchParams,
+    setSearchParams,
+    restoreForm,
+  });
+  const gardenAddress = useWorkFlowStore((state) => state.gardenAddress);
+  const actionUID = useWorkFlowStore((state) => state.actionUID);
+  const feedback = useWorkFlowStore((state) => state.feedback);
+  const details = useWorkFlowStore((state) => state.details);
+  const images = useWorkFlowStore((state) => state.images);
+  const { saveOnExit } = useDraftAutoSave(
+    { gardenAddress, actionUID, feedback, details, linkIntent },
+    images,
+    { enabled: !resume.legacyRecovery }
+  );
+  return { ...resume, saveOnExit };
 }
 
 /** A saved draft with a photo and a promise, left as the wizard's active draft. */
@@ -93,8 +115,8 @@ async function saveDraftWithPhoto() {
 }
 
 /** The open prompt, after any save the arrival could have started has had time to land. */
-async function openOnSavedDraft(query = "") {
-  const wizard = openWizard(query);
+async function openOnSavedDraft(query = "", options?: { strict?: boolean }) {
+  const wizard = openWizard(query, options);
   await waitFor(() => expect(wizard.result.current.showDraftSheet).toBe(true));
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 30));
@@ -258,13 +280,18 @@ describe("Start Fresh on a saved work draft", () => {
     await act(async () => {
       await expect(first.result.current.handleStartFresh()).rejects.toThrow("draft-limit");
     });
-    // Manage drafts leaves with the prompt unanswered; a draft is discarded in Your Work.
-    act(() => first.result.current.askAgainNextVisit());
+    // Manage drafts leaves with the prompt unanswered; a draft is discarded in Your Work. The
+    // address holds the draft's own promise, so Back must not return to it.
+    let draftsPromiseInAddress = false;
+    act(() => {
+      draftsPromiseInAddress = first.result.current.askAgainNextVisit();
+    });
+    expect(draftsPromiseInAddress).toBe(true);
     first.unmount();
     await queueDraftWrite(async () => undefined);
     await draftDB.deleteDraft("slot-0");
 
-    const { result } = await openOnSavedDraft();
+    const { result, setSearchParams } = await openOnSavedDraft();
     await act(async () => {
       await result.current.handleStartFresh();
     });
@@ -272,6 +299,55 @@ describe("Start Fresh on a saved work draft", () => {
     expect(useWorkFlowStore.getState().activeDraftId).toBeNull();
     expect(await draftDB.getDraftCount(ACCOUNT, CHAIN)).toBe(19);
     expect(await draftDB.getImagesForDraft("old")).toHaveLength(1);
+    // The draft's promise came back with it and left with it again.
+    const params = setSearchParams.mock.lastCall?.[0] as URLSearchParams;
+    expect(setSearchParams).toHaveBeenCalledTimes(2);
+    expect(params.get("linkCommitmentId")).toBeNull();
+  });
+
+  it("comes back for the promise its page was opened for after making room", async () => {
+    await fillDraftSlots(19);
+    await saveDraftWithPhoto();
+    const page = writeWorkLinkIntent(new URLSearchParams(), {
+      ...PROMISE,
+      commitmentId: 9n,
+      commitmentTitle: "Repair the north fence panel",
+      returnTo: `/home/${GARDEN}/commitments/9`,
+    });
+    const first = await openOnSavedDraft(page.toString());
+    await act(async () => {
+      await expect(first.result.current.handleStartFresh()).rejects.toThrow("draft-limit");
+    });
+    // The address is the page's own, so Back may return to it.
+    let draftsPromiseInAddress = true;
+    act(() => {
+      draftsPromiseInAddress = first.result.current.askAgainNextVisit();
+    });
+    expect(draftsPromiseInAddress).toBe(false);
+    first.unmount();
+    await queueDraftWrite(async () => undefined);
+    await draftDB.deleteDraft("slot-0");
+
+    // Back through the Garden tab, whose address names no promise. Mounted as the development
+    // build mounts it, the first load is interrupted and must not spend the promise.
+    const { result, setSearchParams } = await openOnSavedDraft("", { strict: true });
+    const restored = setSearchParams.mock.lastCall?.[0] as URLSearchParams;
+    expect(restored.get("linkCommitmentId")).toBe("9");
+    await act(async () => {
+      await result.current.handleStartFresh();
+    });
+
+    // It is the page's promise, so Start Fresh leaves it, and the draft set aside keeps its own.
+    expect(setSearchParams).toHaveBeenCalledOnce();
+    expect((await draftDB.getDraft("old"))?.linkIntent?.commitmentId).toBe("12");
+    act(() => useWorkFlowStore.getState().setFeedback("reset the fence posts"));
+    let next!: string | null;
+    await act(async () => {
+      next = await result.current.saveOnExit();
+    });
+    expect((await draftDB.getDraft(next as string))?.linkIntent?.commitmentId).toBe("9");
+    // It was for that one visit: a later one starts without it.
+    expect(useWorkFlowStore.getState().draftPagePromise).toBeNull();
   });
 
   it("lets go of the draft only after a save still writing has finished", async () => {
