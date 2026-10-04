@@ -333,6 +333,12 @@ export async function verifyPasskeyActivation(contracts: string, f: Fixture, che
     enabled.attested === 1 && installed.active,
     "The passkey's approval did not install a usable permission and publish the first report",
   );
+  // A live bundler asks for more gas than an operation uses. The Agent's reservation for one
+  // attempt needs half as much again above this report, or it would refuse the live one.
+  assert(
+    module.measuredGasUnitsPerSubmission * 2 >= enabled.gasUsed * 3,
+    "The Agent's reservation leaves a live bundler no room above the first report",
+  );
   // What Kernel recorded is what the approved module pins: the Agent refuses anything else.
   const codeHash = async (address: Address) => keccak256((await client.getCode({ address })) ?? "0x");
   assert(
