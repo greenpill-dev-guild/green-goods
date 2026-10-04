@@ -80,6 +80,23 @@ describe("SubmitWorkPhotos", () => {
     expect(within(dialog).getByAltText("Preview 2")).toHaveAttribute("src", "blob:photo-2");
   });
 
+  it("saves a previewed photo under its own name, not its object URL's id", async () => {
+    const user = userEvent.setup();
+    const saved: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement
+    ) {
+      saved.push(this.download);
+    });
+    renderWithProviders(<SubmitWorkPhotos images={staged(3)} minRequired={2} onRemove={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Preview photo-2.jpg" }));
+    const dialog = await screen.findByRole("dialog", { name: "Image Preview" });
+    await user.click(within(dialog).getByRole("button", { name: "Download Image" }));
+
+    expect(saved).toEqual(["photo-2.jpg"]);
+  });
+
   it("labels the preview in the steward's language", async () => {
     const user = userEvent.setup();
     renderWithProviders(

@@ -31,6 +31,8 @@ export interface ImagePreviewDialogProps {
   initialIndex?: number;
   className?: string;
   labels?: Partial<ImagePreviewDialogLabels>;
+  /** The name each image downloads under, by index. The default is the URL's last segment. */
+  filenames?: string[];
   /**
    * Control chrome. `app` (default) is the installed-PWA dialect: the shared
    * `IconButton` circles (the surface's md size: 44px in the app, the cockpit's
@@ -98,6 +100,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   initialIndex = 0,
   className,
   labels,
+  filenames,
   variant = "app",
 }) => {
   const resolvedLabels = { ...defaultLabels, ...labels };
@@ -215,7 +218,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         }
       })();
       const lastSegment = urlPath.split("/").filter(Boolean).pop() || "download-image";
-      link.download = lastSegment;
+      link.download = filenames?.[currentIndex] || lastSegment;
       link.rel = "noopener noreferrer";
       document.body.appendChild(link);
       link.click();

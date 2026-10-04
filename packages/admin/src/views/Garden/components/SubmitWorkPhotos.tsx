@@ -209,6 +209,7 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
         isOpen={previewOpen}
         onClose={() => setPreviewFile(null)}
         images={previewable.map((file) => urls.get(file) ?? "")}
+        filenames={previewable.map((file) => file.name)}
         initialIndex={Math.max(previewIndex, 0)}
       />
     </div>
