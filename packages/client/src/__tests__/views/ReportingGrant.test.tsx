@@ -291,7 +291,7 @@ describe("linking an account", () => {
 
   it("lets go of the account this browser brought, so the chat can link another", () => {
     // The page starts on whichever account the browser last used. The step offers the way out.
-    const connected = { ...link(), account: ACCOUNT };
+    const connected: Props = { ...link(), account: ACCOUNT };
     render(view(connected));
     expect(acts()).toEqual(["Sign to Continue"]);
     fireEvent.click(screen.getByRole("button", { name: /^Not 0x.+\? Use a different account$/ }));
@@ -305,7 +305,7 @@ describe("linking an account", () => {
   });
 
   it("finds an account kept on another device by its name", () => {
-    const open = { ...link(), canFindAccount: true };
+    const open: Props = { ...link(), canFindAccount: true };
     render(view(open));
     expect(screen.getByRole("button", { name: "New here? Create an account" })).toBeVisible();
     fireEvent.click(
