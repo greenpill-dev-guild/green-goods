@@ -214,6 +214,19 @@ function isPlaceholderSecret(value: string | undefined): boolean {
   );
 }
 
+/** The keys `initializeIpfsFromEnv` reads, each by name, so Vite inlines only these. */
+function readIpfsEnv(): Record<string, string | undefined> {
+  return {
+    MODE: import.meta.env.MODE,
+    NODE_ENV: import.meta.env.NODE_ENV,
+    PINATA_API_URL: import.meta.env.PINATA_API_URL,
+    PINATA_GATEWAY_URL: import.meta.env.PINATA_GATEWAY_URL,
+    PINATA_JWT: import.meta.env.PINATA_JWT,
+    VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+    VITE_PINATA_GATEWAY_URL: import.meta.env.VITE_PINATA_GATEWAY_URL,
+  };
+}
+
 /**
  * Convenience initializer that reads Vite-style env vars.
  * Returns true on successful initialization, false if missing configuration.
@@ -227,9 +240,7 @@ function isPlaceholderSecret(value: string | undefined): boolean {
  * - PINATA_API_URL: Pinata API base URL for server-side direct uploads
  */
 export async function initializeIpfsFromEnv(
-  env: Record<string, string | undefined> = typeof import.meta !== "undefined"
-    ? (import.meta.env as Record<string, string | undefined>)
-    : {}
+  env: Record<string, string | undefined> = typeof import.meta !== "undefined" ? readIpfsEnv() : {}
 ): Promise<boolean> {
   const pinataJwtValue = env?.PINATA_JWT;
   const pinataGatewayBaseUrl = env?.VITE_PINATA_GATEWAY_URL ?? env?.PINATA_GATEWAY_URL;

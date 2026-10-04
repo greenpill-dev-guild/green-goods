@@ -363,8 +363,18 @@ async function registerServiceWorker(
   }
 }
 
+/** The keys `registerServiceWorkerFromEnv` reads, each by name, so Vite inlines only these. */
+function readServiceWorkerEnv(): ServiceWorkerEnv {
+  return {
+    DEV: import.meta.env.DEV,
+    PROD: import.meta.env.PROD,
+    STORYBOOK: import.meta.env.STORYBOOK,
+    VITE_ENABLE_SW_DEV: import.meta.env.VITE_ENABLE_SW_DEV,
+  };
+}
+
 export async function registerServiceWorkerFromEnv(
-  env: ServiceWorkerEnv = import.meta.env,
+  env: ServiceWorkerEnv = readServiceWorkerEnv(),
   registrationConfig: ServiceWorkerRegistrationConfig = {}
 ): Promise<boolean> {
   if (typeof window === "undefined") return false;
