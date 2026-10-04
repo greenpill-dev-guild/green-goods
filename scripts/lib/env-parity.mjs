@@ -80,3 +80,16 @@ export function assertSentryDsnResolvable({ app, sentryDsn, env = process.env, l
   );
   return false;
 }
+
+/**
+ * Vercel's Vite preset copies its system variables under the `VITE_` prefix (commit message,
+ * commit author, deployment and project ids). Vite exposes every `VITE_*` key on
+ * `import.meta.env` and inlines the whole object wherever code reads it whole, so the copies
+ * would ship in the browser bundle. No shipped code reads them. Call this once the config has
+ * finished its own reads of them; the unprefixed `VERCEL_*` variables stay for the build.
+ */
+export function dropVercelFrameworkVariables(env = process.env) {
+  for (const key of Object.keys(env)) {
+    if (key.startsWith("VITE_VERCEL_")) delete env[key];
+  }
+}
