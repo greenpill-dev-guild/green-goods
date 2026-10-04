@@ -559,6 +559,28 @@ describe("providers/JobQueueProvider", () => {
       }
     });
 
+    it("settles a creation it submitted in the same tap, since a wallet has no flush to do it later", async () => {
+      const confirmed = vi.spyOn(connectivityStore, "isConfirmedOnline").mockReturnValue(false);
+      try {
+        const { queue, result } = renderWithQueue({ success: true, txHash: "0xabc" });
+        // The first pass sends the creation; only the second reads its id back.
+        vi.mocked(queue.processJob).mockResolvedValueOnce({
+          success: false,
+          skipped: true,
+          error: "pending_materialization",
+          txHash: "0xabc",
+        });
+
+        await act(async () => result.current.retryAndSend("commitment-job-1"));
+
+        expect(queue.processJob).toHaveBeenCalledTimes(2);
+        expect(queueToasts.syncSuccess).toHaveBeenCalledWith(1);
+        expect(queueToasts.stillQueued).not.toHaveBeenCalled();
+      } finally {
+        confirmed.mockRestore();
+      }
+    });
+
     it("names the one act when an explicit retry gives up, and never the whole batch", async () => {
       const confirmed = vi.spyOn(connectivityStore, "isConfirmedOnline").mockReturnValue(false);
       try {

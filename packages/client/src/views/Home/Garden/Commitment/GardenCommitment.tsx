@@ -254,6 +254,7 @@ export function GardenCommitment() {
             key={controller.queue.pendingAct.jobId}
             act={controller.queue.pendingAct}
             inFlight={isPending}
+            sendsFromTap={controller.queue.sendsFromTap}
             onChanged={controller.queue.refresh}
           />
         ) : null}

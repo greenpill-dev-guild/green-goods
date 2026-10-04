@@ -20,12 +20,22 @@ interface NoticeCopy {
   icon: ReactNode;
   titleId: string;
   bodyId: string;
+  bodyValues?: Record<string, string>;
 }
 
 const ICON = "h-5 w-5 flex-shrink-0";
 
-/** What the notice says for each state; any reason the queue gives besides these reads as waiting. */
-function noticeCopy(act: PendingCommitmentAct, inFlight: boolean): NoticeCopy {
+/**
+ * What the notice says for each state; any reason the queue gives besides these
+ * reads as waiting. A reader who sends from their own tap is never told the act
+ * sends itself: it says why the last send failed, when one did, and that it
+ * waits for them.
+ */
+function noticeCopy(
+  act: PendingCommitmentAct,
+  inFlight: boolean,
+  sendsFromTap: boolean
+): NoticeCopy {
   if (inFlight) {
     return {
       tone: "warning",
@@ -54,14 +64,27 @@ function noticeCopy(act: PendingCommitmentAct, inFlight: boolean): NoticeCopy {
         tone: "warning",
         icon: <RiTimeLine className={ICON} aria-hidden="true" />,
         titleId: "app.commitment.queue.notice.membership.title",
-        bodyId: "app.commitment.queue.notice.membership.body",
+        bodyId: sendsFromTap
+          ? "app.commitment.queue.notice.membership.bodyUnsent"
+          : "app.commitment.queue.notice.membership.body",
       };
     default:
+      if (sendsFromTap && act.sendFailure) {
+        return {
+          tone: "warning",
+          icon: <RiAlertLine className={ICON} aria-hidden="true" />,
+          titleId: "app.commitment.queue.notice.waiting.title",
+          bodyId: act.sendFailure.messageId,
+          bodyValues: act.sendFailure.values,
+        };
+      }
       return {
         tone: "warning",
         icon: <RiTimeLine className={ICON} aria-hidden="true" />,
         titleId: "app.commitment.queue.notice.waiting.title",
-        bodyId: "app.commitment.queue.notice.waiting.body",
+        bodyId: sendsFromTap
+          ? "app.commitment.queue.notice.unsent.body"
+          : "app.commitment.queue.notice.waiting.body",
       };
   }
 }
@@ -77,6 +100,13 @@ export interface QueuedActRowProps {
   inFlight?: boolean;
   /** The last Discard did not remove the act, so say so rather than silently redraw it. */
   discardFailed?: boolean;
+  /**
+   * The reader sends queued acts themselves (a wallet sign-in): nothing sends
+   * this one for them, so the notice says why it did not go and never that it
+   * will. Passkey and embedded sign-ins have a background flush, and keep the
+   * copy that says so.
+   */
+  sendsFromTap?: boolean;
   /** Sends the act, or, when its send is on record, asks the chain again; it never sends twice. */
   onSendNow: () => void;
   /** Null when the act's transaction may already be on chain, so dropping it is not safe. */
@@ -99,11 +129,12 @@ export function QueuedActRow({
   isBusy,
   inFlight = false,
   discardFailed = false,
+  sendsFromTap = false,
   onSendNow,
   onDiscard,
 }: QueuedActRowProps) {
   const { formatMessage } = useIntl();
-  const copy = noticeCopy(act, inFlight);
+  const copy = noticeCopy(act, inFlight, sendsFromTap);
   // A send on record is checked, not sent again, so the button says so.
   const confirming = act.waitingReason === "awaiting-confirmation";
   const locked = isBusy || inFlight;
@@ -162,7 +193,7 @@ export function QueuedActRow({
         data-reason={act.waitingReason ?? ""}
         data-in-flight={inFlight ? "true" : "false"}
       >
-        {formatMessage({ id: copy.bodyId })}
+        {formatMessage({ id: copy.bodyId }, copy.bodyValues)}
       </p>
     </Alert>
   );
@@ -179,10 +210,12 @@ export function QueuedActRow({
 export function QueuedActNotice({
   act,
   inFlight = false,
+  sendsFromTap = false,
   onChanged,
 }: {
   act: PendingCommitmentAct;
   inFlight?: boolean;
+  sendsFromTap?: boolean;
   onChanged: () => void;
 }) {
   const { retryAndSend } = useJobQueue();
@@ -231,6 +264,7 @@ export function QueuedActNotice({
       isBusy={busy}
       inFlight={inFlight}
       discardFailed={discardFailed}
+      sendsFromTap={sendsFromTap}
       onSendNow={() => void sendNow()}
       onDiscard={act.discardable ? () => void discard() : null}
     />

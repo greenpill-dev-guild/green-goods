@@ -350,6 +350,7 @@ export function useGardenCommitmentController(input: {
         proofSend && (commitment?.evidenceCount ?? 0) <= proofSend.baseline
           ? proofSend.contents
           : null,
+      sendsFromTap: jobs.sendsFromTap,
       isUnavailable: queueState.isUnavailable,
       refresh: queueState.refresh,
     },

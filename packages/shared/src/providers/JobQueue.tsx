@@ -385,10 +385,14 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         try {
           await queue.retryJob(jobId);
           // The person asked for this one job, so nothing else in the queue is sent.
-          const result = await queue.processJob(jobId, {
-            transactionSender: sender ?? null,
-            explicit: true,
-          });
+          const context = { transactionSender: sender ?? null, explicit: true };
+          let result = await queue.processJob(jobId, context);
+          // A creation's first pass only submits it; a second reads the new
+          // commitment back and completes the job. A wallet has no background
+          // flush to make that pass, so it is made here, in the same tap.
+          if (!result.success && result.skipped && result.txHash) {
+            result = await queue.processJob(jobId, context);
+          }
           await refreshStats();
           if (result.success) {
             if (result.skipped) queueToasts.queueClear();

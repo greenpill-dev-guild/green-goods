@@ -3,7 +3,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { type PendingCommitmentCreation } from "@green-goods/shared/commitment-pooling";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
-import { RiDeleteBinLine, RiRefreshLine, RiSeedlingLine } from "@remixicon/react";
+import { RiDeleteBinLine, RiRefreshLine, RiSeedlingLine, RiSendPlaneLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
 export interface PendingCreationRowProps {
@@ -13,6 +13,62 @@ export interface PendingCreationRowProps {
   onDiscard: (jobId: string) => void;
   /** The pool can no longer take it, so trying again is not an option. */
   discardOnly?: boolean;
+  /**
+   * The reader sends queued creations themselves (a wallet sign-in). Nothing
+   * sends this one for them, so the row never says it will: it says why the
+   * last send failed, when one did, and offers the send and the discard.
+   */
+  sendsFromTap?: boolean;
+}
+
+interface RowCopy {
+  chipId: string;
+  noteId: string;
+  noteValues?: Record<string, string>;
+  /** The act the row offers besides Discard; none while a background flush will send it. */
+  actId: string | null;
+}
+
+const SEND_NOW = "app.commitment.queue.sendNow";
+
+/**
+ * What the row says in each cast. Two belong to a reader who sends from their
+ * own tap: a send on record may have landed, so it is only checked again, and
+ * a creation that never went waits for their Send Now.
+ */
+function rowCopy(creation: PendingCommitmentCreation, sendsFromTap: boolean): RowCopy {
+  if (creation.failed) {
+    return {
+      chipId: "app.commitments.row.sendFailed",
+      noteId: "app.pool.queued.failedNote",
+      actId: "app.pool.queued.retry",
+    };
+  }
+  if (sendsFromTap && creation.hasRecordedSend) {
+    return {
+      chipId: "app.commitment.queue.notice.checking.title",
+      noteId: "app.commitment.queue.notice.checking.body",
+      actId: "app.commitment.queue.checkAgain",
+    };
+  }
+  if (creation.waitingForMembership) {
+    return {
+      chipId: "app.pool.queued.waitingMembership",
+      noteId: sendsFromTap
+        ? "app.pool.queued.waitingMembershipNoteUnsent"
+        : "app.pool.queued.waitingMembershipNote",
+      actId: sendsFromTap ? SEND_NOW : null,
+    };
+  }
+  if (sendsFromTap) {
+    return {
+      chipId: "app.pool.queued.notSent",
+      noteId: creation.sendFailure?.messageId ?? "app.pool.queued.notSentNote",
+      noteValues: creation.sendFailure?.values,
+      actId: SEND_NOW,
+    };
+  }
+  return { chipId: "app.pool.queued.waiting", noteId: "app.pool.queued.waitingNote", actId: null };
 }
 
 /**
@@ -23,6 +79,10 @@ export interface PendingCreationRowProps {
  * confirmation. Three casts: waiting to send, waiting for the member's garden
  * hat (which spends no retries), and given up, where retry and discard are
  * the member's explicit choice and nothing is ever dropped silently.
+ *
+ * A reader who sends from their own tap has no background flush, so for them a
+ * creation that has not gone reads as not sent, with Send Now and Discard, and
+ * one whose send is on record can only be checked again.
  */
 export function PendingCreationRow({
   creation,
@@ -30,6 +90,7 @@ export function PendingCreationRow({
   onRetry,
   onDiscard,
   discardOnly = false,
+  sendsFromTap = false,
 }: PendingCreationRowProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -38,11 +99,7 @@ export function PendingCreationRow({
       ? formatCommitmentUnits(intl, creation.targetUnits, creation.unitLabel)
       : null;
   const primary = creation.title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
-  const chipId = creation.failed
-    ? "app.commitments.row.sendFailed"
-    : creation.waitingForMembership
-      ? "app.pool.queued.waitingMembership"
-      : "app.pool.queued.waiting";
+  const copy = rowCopy(creation, sendsFromTap);
   const tone = creation.failed ? "error" : "warning";
 
   return (
@@ -77,21 +134,15 @@ export function PendingCreationRow({
           {/* Under the words, as on the indexed rows, so the title keeps its width. */}
           <div className="mt-2">
             <StatusBadge size="sm" variant={tone}>
-              {formatMessage({ id: chipId })}
+              {formatMessage({ id: copy.chipId })}
             </StatusBadge>
           </div>
         </div>
       </div>
       <p className="mt-2 text-xs text-text-sub-600">
-        {formatMessage({
-          id: creation.failed
-            ? "app.pool.queued.failedNote"
-            : creation.waitingForMembership
-              ? "app.pool.queued.waitingMembershipNote"
-              : "app.pool.queued.waitingNote",
-        })}
+        {formatMessage({ id: copy.noteId }, copy.noteValues)}
       </p>
-      {creation.failed ? (
+      {copy.actId ? (
         <div
           className={cn(
             "mt-3 grid gap-2",
@@ -119,9 +170,15 @@ export function PendingCreationRow({
             onClick={() => onRetry(creation.jobId)}
             disabled={isBusy}
             hidden={discardOnly}
-            leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+            leadingIcon={
+              copy.actId === SEND_NOW ? (
+                <RiSendPlaneLine className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
+              )
+            }
           >
-            {formatMessage({ id: "app.pool.queued.retry" })}
+            {formatMessage({ id: copy.actId })}
           </Button>
         </div>
       ) : null}
