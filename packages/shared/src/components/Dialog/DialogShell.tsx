@@ -26,6 +26,13 @@ export interface DialogShellProps {
   actions?: SheetActionsProps;
   /** Width of the centered surface at `sm` and above. */
   size?: "md" | "lg" | "xl" | "2xl";
+  /**
+   * Where the surface sits at `sm` and above. `right` docks it to the right
+   * edge as a side sheet that slides in from there, for an account-level panel
+   * opened from a top bar, as the cockpit shows Profile; `size` does not apply
+   * to it. Below `sm` both are the bottom sheet.
+   */
+  placement?: "center" | "right";
   /** Height tier of the narrow-viewport sheet (DL-014). Defaults to `compact`. */
   sheetSize?: SheetSize;
   className?: string;
@@ -48,9 +55,9 @@ const dialogShellSizeClasses: Record<NonNullable<DialogShellProps["size"]>, stri
 
 /**
  * The shared dialog shell. Below 640px it renders the PwaSheet bottom sheet;
- * from 640px it is a centered Radix surface. Both render the one sheet
- * header (`SheetHeader`, DL-028) and pin their actions in the shared bar
- * (DL-016).
+ * from 640px it is a Radix surface, centered unless `placement` docks it to
+ * the right edge. All of them render the one sheet header (`SheetHeader`,
+ * DL-028) and pin their actions in the shared bar (DL-016).
  */
 export function DialogShell({
   open,
@@ -60,6 +67,7 @@ export function DialogShell({
   children,
   actions,
   size = "md",
+  placement = "center",
   sheetSize = "compact",
   className,
   bodyClassName,
@@ -107,9 +115,17 @@ export function DialogShell({
         <Dialog.Content
           data-component="DialogShell"
           data-slot="surface"
+          data-placement={placement}
           className={cn(
-            "fixed z-modal w-full max-w-[calc(100vw-2rem)] overflow-hidden bg-[var(--color-material-solid)] border border-stroke-soft-200 shadow-[var(--shadow-float)] focus:outline-none bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2",
-            dialogShellSizeClasses[size],
+            "fixed z-modal overflow-hidden bg-[var(--color-material-solid)] border border-stroke-soft-200 shadow-[var(--shadow-float)] focus:outline-none",
+            placement === "right"
+              ? // One width for every side sheet, as the cockpit keeps one: wide enough to read,
+                // never the whole screen. A consumer under a top bar lowers `top` to clear it.
+                "top-4 right-4 bottom-4 w-[min(clamp(380px,30vw,560px),calc(100vw-3rem))]"
+              : cn(
+                  "w-full max-w-[calc(100vw-2rem)] bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2",
+                  dialogShellSizeClasses[size]
+                ),
             className
           )}
           style={dialogSurfaceStyle}
