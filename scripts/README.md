@@ -67,6 +67,23 @@ deployments, upgrades, migrations, and repairs. Use `--explain --json` to inspec
 loading credentials or contacting services. The operation retains its mandatory checks and signer
 policy. Release sessions still use the existing release operator.
 
+The standalone reporting guard uses `deploy single-attestation-policy` on `localhost`, `sepolia`,
+or `arbitrum`. Run `--mode preflight` to compile production bytecode without RPC, then
+`--mode plan --sender <public-address> --expected-nonce <nonce>` to write a reviewed plan under
+`packages/contracts/.generated/runtime/`. Run `--mode simulate` against that plan. An authorized
+operator may run `--mode broadcast --expected-nonce <same-nonce>` with the existing
+`green-goods-deployer` keystore; deployment sources must be committed and unchanged. Broadcast
+keeps a pending journal before sending, so an interrupted or uncertain result must be reconciled
+with `verify single-attestation-policy --network <network> [--receipt <transaction-hash>]`.
+Verification persists `packages/contracts/deployments/<chainId>-single-attestation-policy.json`
+only after checking the CREATE transaction, successful receipt, production runtime hash, and policy
+module ABI. It does not modify core deployment artifacts or enable delegated reporting. Add
+`--publish-source` on `sepolia` or `arbitrum` to submit the source of the deployment it has just
+verified to the network's explorer. That step needs `ETHERSCAN_API_KEY` from the root `.env`, uses
+no signer, sends no transaction, and is safe to repeat. The separate
+`verify reporting-kernel --network arbitrum --mode simulate` command owns the real-fork
+compatibility gate.
+
 ## Inventory
 
 ### `dev/` — local dev workflow
@@ -261,6 +278,7 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 - `.claude/scripts/` — Claude harness scripts (skill frontmatter check, codex lane dispatch, agent gates)
 - `docs/scripts/` — Docusaurus-specific authority audit tooling and its failure fixtures (`docs-audit.mjs`, `docs-audit.test.mjs`); builder projection generators live in `scripts/docs/`
 - `packages/*/scripts/` — package-local scripts (e.g. `packages/indexer/scripts/`)
+- `packages/contracts/script/deploy/single-attestation-policy.ts`, `DeploySingleAttestationPolicy.s.sol` — durable `contracts deploy single-attestation-policy` and `contracts verify single-attestation-policy` handlers; production preflight, reviewed CREATE plan, signer-free RPC simulation, keystore broadcast, receipt reconciliation, and standalone bytecode pin. Helpers in `utils/single-attestation-{deployment,operation}.ts` own bytecode/provenance and operation persistence. `script/reporting-kernel-compatibility.ts` is the separate `contracts verify reporting-kernel` fork gate.
 - `packages/contracts/script/` — Foundry scripts and their Bun CLIs. Commitment Pooling deploys in four ordered steps, each step's output being the next step's input: `deploy/commitment-schemas.ts` + `DeployCommitmentSchemas.s.sol` **preparation** (CREATE2-deploys the testimony resolver via `lib/TestimonyResolverDeployment.sol`, registers assessment v3, and PINS the community testimony UID while the resolver stays inert), `deploy/release.ts` + `DeployPooling.s.sol` (module + register, deployed paused), `deploy/pooling-configure.ts` + `ConfigurePooling.s.sol` (three resolver calls; without the work-approval bridge the module is inert), and the same `commitment-schemas` target with `--finalize-community-testimony` (**finalization**: registers the exact record, then activates the resolver against the artifact-recorded module as the last action). The ordering is enforced by `lib/CommitmentSchemaRecovery.sol`, a pure classifier over the five recovery states — preparation accepts two, finalization exactly the three ordered ones, everything else fails closed. Shared logic: `utils/pooling-release.ts` (deterministic schema UIDs, grouped upgrade keys, configuration planning, live `owner()` preflight), `lib/PoolingConfiguration.sol` (the re-runnable configure sequence, driven by both the deploy script and the fork rehearsal), and `lib/NetworkSelectors.sol` (the single CCIP selector parser). The release rehearsal is `test/fork/ArbitrumCommitmentPooling.t.sol` on an Arbitrum One fork, not a testnet; callers select the pooling targets through the package-owned contracts CLI. The settlement lane's transport check is `test/fork/CrossChainSettlementLane.t.sol` via `APP_ENV=development bun run --cwd packages/contracts test:shard run settlement-lane` — read-only proof that the Arbitrum One ↔ Celo Mainnet CCIP lane is live, priced, and matches `deployments/networks.json`; no broadcast, no funds
 
 ## Adding a new script

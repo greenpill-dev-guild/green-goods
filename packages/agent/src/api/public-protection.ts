@@ -23,7 +23,11 @@ export type PublicRouteClass =
   | "join_request_read"
   | "join_request_resolve"
   | "webhook_pre"
-  | "webhook_post";
+  | "webhook_post"
+  | "messaging_bootstrap"
+  | "messaging_proof"
+  | "messaging_read"
+  | "messaging_mutation";
 
 export interface TrustedProxyConfig {
   hops?: number;
@@ -73,6 +77,11 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   join_request_resolve: { limit: 30, windowMs: 10 * 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
+  // Agent reporting ceremonies: link openers and proofs are per IP; reads and commands per session.
+  messaging_bootstrap: { limit: 30, windowMs: 10 * 60 * 1000 },
+  messaging_proof: { limit: 20, windowMs: 10 * 60 * 1000 },
+  messaging_read: { limit: 240, windowMs: 10 * 60 * 1000 },
+  messaging_mutation: { limit: 60, windowMs: 10 * 60 * 1000 },
 } as const satisfies Record<PublicRouteClass, RateLimitPolicy>;
 
 const requestPeerIps = new WeakMap<Request, string>();

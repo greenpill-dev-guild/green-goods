@@ -6,6 +6,7 @@ import {
   dropExtensionExceptions,
   dropSkippedTransitionExceptions,
   initializePostHog,
+  protectReportingCeremonies,
 } from "../../modules/app/posthog-browser";
 import { restoreExceptionTopLevelProps } from "../../modules/app/posthog";
 
@@ -226,13 +227,14 @@ describe("initializePostHog", () => {
     vi.clearAllMocks();
   });
 
-  it("drops development-host exceptions before restoring and extension filtering", () => {
+  it("protects ceremony pages, then drops development-host exceptions before other filtering", () => {
     initializePostHog("test-project-key");
 
     expect(posthogMock.init).toHaveBeenCalledWith(
       "test-project-key",
       expect.objectContaining({
         before_send: [
+          protectReportingCeremonies,
           dropDevelopmentHostExceptions,
           restoreExceptionTopLevelProps,
           dropExtensionExceptions,
@@ -240,5 +242,40 @@ describe("initializePostHog", () => {
         ],
       })
     );
+  });
+});
+
+describe("protectReportingCeremonies", () => {
+  const LOCATOR = "Zm9vYmFyYmF6cXV4MTIzNDU2Nzg5MGFi";
+
+  it("keeps the route but drops chat link locators from every property", () => {
+    const out = protectReportingCeremonies({
+      event: "page_view",
+      properties: {
+        $current_url: `https://www.greengoods.app/agent/reporting/${LOCATOR}`,
+        path: `/agent/reporting/recover/${LOCATOR}`,
+        nested: { $referrer: `https://www.greengoods.app/agent/reporting/${LOCATOR}?x=1` },
+      },
+      $set_once: { $initial_pathname: `/agent/reporting/${LOCATOR}` },
+    } as unknown as CaptureResult);
+
+    expect(JSON.stringify(out)).not.toContain(LOCATOR);
+    expect(out?.properties.$current_url).toBe(
+      "https://www.greengoods.app/agent/reporting/:requestId"
+    );
+    expect(out?.properties.path).toBe("/agent/reporting/recover/:requestId");
+  });
+
+  it("sends no recordings or element captures from a ceremony page", () => {
+    vi.stubGlobal("window", { location: { pathname: `/agent/reporting/${LOCATOR}` } });
+    try {
+      expect(protectReportingCeremonies(makeEvent({}, "$snapshot"))).toBeNull();
+      expect(protectReportingCeremonies(makeEvent({}, "$autocapture"))).toBeNull();
+      expect(protectReportingCeremonies(makeEvent({}, "page_view"))).not.toBeNull();
+      vi.stubGlobal("window", { location: { pathname: "/agent/reporting/permissions" } });
+      expect(protectReportingCeremonies(makeEvent({}, "$snapshot"))).not.toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

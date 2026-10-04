@@ -8,6 +8,7 @@
  * Future platforms: Discord, WhatsApp, SMS
  */
 
+import { dirname } from "node:path";
 import { createServer, createThirdwebCheckoutClient, startServer } from "./api/server";
 import { resolveAllowedOrigins } from "./api/public-protection";
 import { getConfig } from "./config";
@@ -19,6 +20,7 @@ import {
   createVoiceProcessor,
   registerSlashCommands,
 } from "./platforms/telegram";
+import { createTelegramReporting, telegramRealm } from "./platforms/telegram-reporting";
 import { initAI, isAIModelLoaded } from "./services/ai";
 import {
   initAgentAnalytics,
@@ -47,6 +49,7 @@ import { logger } from "./services/logger";
 import { rateLimiter } from "./services/rate-limiter";
 import { captureAgentException, initAgentSentry, shutdownAgentSentry } from "./services/sentry";
 import { createResendSubscriptionClient } from "./services/subscriptions";
+import { startReporting } from "./runtime/reporting-startup";
 import { createShutdownHandler } from "./runtime/shutdown";
 import {
   createGardenJoinRequestCipher,
@@ -110,8 +113,34 @@ async function main(): Promise<void> {
     : undefined;
   const agentRpcUrl = resolveAgentRpcUrl(config.chainId);
 
+  const trustedProxy = {
+    hops: config.trustedProxyHops,
+    cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),
+  };
+  // Agent reporting stays off without its keys and an available chat channel. It starts before the
+  // bot so that the bot can hand it private chats while its Telegram channel is on.
+  const reporting = startReporting({
+    env: process.env,
+    chain: config.chain,
+    chainId: config.chainId,
+    rpcUrl: agentRpcUrl,
+    isProduction: config.isProduction,
+    dataDir: dirname(config.dbPath),
+    trustedProxy,
+  });
+  const reportingRealm = telegramRealm(config.telegramToken);
+  const telegramReporting =
+    reporting?.channels.has("telegram") && reportingRealm
+      ? createTelegramReporting(reporting.core, reportingRealm)
+      : undefined;
+
   const groupCapture = createGroupCaptureHandler(config.captureTopics);
-  const bot = createTelegramBot({ token: config.telegramToken }, handleMessage, groupCapture);
+  const bot = createTelegramBot(
+    { token: config.telegramToken },
+    handleMessage,
+    groupCapture,
+    telegramReporting
+  );
 
   const voiceProcessor = createVoiceProcessor(bot, (audioPath) => ai.transcribe(audioPath));
   const photoProcessor = createPhotoProcessor(bot);
@@ -121,7 +150,7 @@ async function main(): Promise<void> {
   if (config.telegramRuntimeDisabled) {
     logger.info("Telegram runtime disabled; starting local HTTP API only");
   } else {
-    await registerSlashCommands(bot).catch((err) => {
+    await registerSlashCommands(bot, Boolean(telegramReporting)).catch((err) => {
       logger.warn({ err }, "Failed to register slash commands; continuing");
     });
   }
@@ -171,10 +200,8 @@ async function main(): Promise<void> {
     allowedOrigins: resolveAllowedOrigins(config.publicAllowedOrigins, {
       includeDevelopmentDefaults: config.isDevelopment,
     }),
-    trustedProxy: {
-      hops: config.trustedProxyHops,
-      cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),
-    },
+    trustedProxy,
+    ...(reporting ? { messaging: reporting.messaging } : {}),
     uploadSigning: {
       pinataJwt: config.pinataJwt,
       pinataUploadsApiBaseUrl: config.pinataUploadsApiBaseUrl,
@@ -235,11 +262,6 @@ async function main(): Promise<void> {
       await bot.handleUpdate(body as Parameters<typeof bot.handleUpdate>[0]);
       return c.json({ ok: true });
     });
-  } else {
-    // Polling mode for Telegram
-    await bot.launch(() => {
-      logger.info("✅ Agent Telegram bot running in polling mode");
-    });
   }
 
   await startServer(server, { port: config.port, host: config.host });
@@ -269,6 +291,7 @@ async function main(): Promise<void> {
       closeDB,
       shutdownAgentAnalytics,
       shutdownAgentSentry,
+      ...(reporting ? [() => reporting.stop()] : []),
     ],
     exit: (code) => process.exit(code),
     logger,
@@ -288,6 +311,18 @@ async function main(): Promise<void> {
     logger.error({ reason, promise }, "Unhandled rejection");
     captureAgentException(reason, { source: "process.unhandledRejection", surface: "runtime" });
   });
+
+  if (!config.telegramRuntimeDisabled && config.mode === "polling") {
+    // Telegraf's polling launch settles only when polling stops, so it starts after the server
+    // and must not be awaited; a failure stops the Agent, as a failed start did before.
+    bot
+      .launch(() => logger.info("✅ Agent Telegram bot running in polling mode"))
+      .catch((error: unknown) => {
+        logger.fatal({ err: error }, "Telegram polling stopped");
+        captureAgentException(error, { source: "telegram.polling", surface: "runtime" });
+        void shutdown("telegramPolling", 1);
+      });
+  }
 }
 
 main().catch((error) => {

@@ -75,6 +75,7 @@ The folder inventory is checked against the source tree; avoid hand-maintained f
 | --- | --- |
 | `action/` | Action CRUD, filtering, and form schema |
 | `admin-ui/` | Admin shell and workspace state helpers |
+| `agent-reporting/` | Chat reporting ceremonies: account proof, pairing, exact publication and recovery |
 | `analytics/` | PostHog identity and page-view tracking |
 | `app/` | Browser navigation, install guidance, theme, offline, toasts, and service worker |
 | `assessment/` | Assessment drafts, forms, and workflow orchestration |

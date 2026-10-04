@@ -31,6 +31,7 @@ import type {
   GardenJoinRequestStore,
 } from "../../services/garden-join-requests";
 import type { GardenJoinRequestChainReader } from "../../services/garden-join-requests-chain";
+import type { MessagingRouteDeps } from "../routes/messaging";
 
 export interface ServerConfig {
   port: number;
@@ -108,6 +109,8 @@ export interface ServerDeps {
   /** Defaults to 24 hours; zero disables the retention sweep. */
   gardenJoinRequestSweepIntervalMs?: number;
   now?: () => number;
+  /** Browser ceremony API for agent reporting; absent unless reporting is configured. */
+  messaging?: MessagingRouteDeps;
 }
 
 export type AgentServer = Hono & {

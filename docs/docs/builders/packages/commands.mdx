@@ -25,7 +25,7 @@ generated_from:
   - scripts/dev/browser.js
   - scripts/dev/package-commands.mjs
   - scripts/dev/test.js
-source_digest: "sha256:791df3bca216dde5f07ea73d8a8ea16b7c6730aa9967d876b9f707e9b426234e"
+source_digest: "sha256:71c1466de9781e19160594ad2f822864964b5c0426f7573a95a53abfd954db63"
 source_of_truth:
   - docs/package.json
   - package.json
@@ -100,7 +100,7 @@ Generated from package manifests and owning command definitions. Start with the 
 | test | `bun run --cwd packages/admin test` |
 | typecheck | `bun run --cwd packages/admin typecheck` |
 
-## packages/agent (9)
+## packages/agent (11)
 
 | Script | Invocation from repository root |
 |---|---|
@@ -109,6 +109,8 @@ Generated from package manifests and owning command definitions. Start with the 
 | format | `bun run --cwd packages/agent format` |
 | intake:smoke | `bun run --cwd packages/agent intake:smoke` |
 | lint | `bun run --cwd packages/agent lint` |
+| reporting:driver | `bun run --cwd packages/agent reporting:driver` |
+| reporting:walkthrough | `bun run --cwd packages/agent reporting:walkthrough` |
 | sentry:sourcemaps | `bun run --cwd packages/agent sentry:sourcemaps` |
 | start | `bun run --cwd packages/agent start` |
 | test | `bun run --cwd packages/agent test` |
@@ -192,11 +194,11 @@ Generated from package manifests and owning command definitions. Start with the 
 | test:stories:ci | `bun run --cwd packages/shared test:stories:ci` |
 | typecheck | `bun run --cwd packages/shared typecheck` |
 
-Total: 95 manifest entries across 9 manifests. The root exposes 17.
+Total: 97 manifest entries across 9 manifests. The root exposes 17.
 
 ## Selectable operations and implementation
 
-Manifest counts stay separate from the 89 contract operations and 69 stable validation checks selected behind the root interfaces. Those definitions preserve capabilities without adding aliases.
+Manifest counts stay separate from the 92 contract operations and 69 stable validation checks selected behind the root interfaces. Those definitions preserve capabilities without adding aliases.
 
 This projection tracks 6 owning command implementation files:
 

@@ -21,6 +21,10 @@ const HEADER_SOURCE = readFileSync(
   resolve(process.cwd(), "src/components/Navigation/SiteHeader.tsx"),
   "utf8"
 );
+const FOCUSED_HEADER_SOURCE = readFileSync(
+  resolve(process.cwd(), "src/components/Navigation/FocusedSiteHeader.tsx"),
+  "utf8"
+);
 const THEME_SOURCE = readFileSync(resolve(process.cwd(), "../shared/src/styles/theme.css"), "utf8");
 const ATOMS_SOURCE = readFileSync(
   resolve(process.cwd(), "src/components/Public/atoms/EditorialAtoms.tsx"),
@@ -77,7 +81,7 @@ function scopeCss(scope: MediaScope): string {
 interface GeometryPair {
   /** Literal class string expected in the mirrored component source. */
   classLiteral: string;
-  source: "header" | "hero";
+  source: "header" | "hero" | "focused";
   /** Annotated declarations expected in the boot CSS, per media scope. */
   boot: { css: string; scope: MediaScope }[];
 }
@@ -162,11 +166,38 @@ const GEOMETRY_PAIRS: GeometryPair[] = [
     source: "header",
     boot: [{ css: "height: 64px; /* h-16 */", scope: "base" }],
   },
+  // The reporting pages' top bar: its column, its height, and the mark's size.
+  {
+    classLiteral: "mx-auto grid h-20 w-full max-w-3xl",
+    source: "focused",
+    boot: [
+      { css: "height: 80px; /* h-20 */", scope: "base" },
+      { css: "max-width: 768px; /* max-w-3xl */", scope: "base" },
+    ],
+  },
+  {
+    classLiteral: "px-4 pt-[1.1875rem] sm:px-6",
+    source: "focused",
+    boot: [
+      { css: "padding: 0 16px; /* px-4 */", scope: "base" },
+      { css: "padding: 0 24px; /* sm:px-6 */", scope: "sm" },
+    ],
+  },
+  {
+    classLiteral: 'className="h-7 w-auto"',
+    source: "focused",
+    boot: [{ css: "height: 28px; /* h-7 */", scope: "base" }],
+  },
 ];
 
 describe("boot skeleton geometry parity", () => {
   it.each(GEOMETRY_PAIRS)("keeps the $source $classLiteral pair in sync", (pair) => {
-    const source = pair.source === "hero" ? HERO_SOURCE : HEADER_SOURCE;
+    const source =
+      pair.source === "hero"
+        ? HERO_SOURCE
+        : pair.source === "focused"
+          ? FOCUSED_HEADER_SOURCE
+          : HEADER_SOURCE;
     expect(source).toContain(pair.classLiteral);
     for (const declaration of pair.boot) {
       expect(scopeCss(declaration.scope)).toContain(declaration.css);

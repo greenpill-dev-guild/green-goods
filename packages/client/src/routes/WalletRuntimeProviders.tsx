@@ -31,7 +31,14 @@ export function PwaStartupReadySignal() {
   return null;
 }
 
-export default function WalletRuntimeProviders({ children }: { children: ReactNode }) {
+export default function WalletRuntimeProviders({
+  children,
+  analyticsIdentity = true,
+}: {
+  children: ReactNode;
+  /** Off where a page must not tie the connected account to analytics, such as chat ceremonies. */
+  analyticsIdentity?: boolean;
+}) {
   return (
     <AppKitProvider
       projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
@@ -49,7 +56,7 @@ export default function WalletRuntimeProviders({ children }: { children: ReactNo
       {/* AuthGate uses DevAuthProvider in dev when ?mockAuth= is present */}
       <AuthGate>
         <PwaStartupReadySignal />
-        <PwaAnalyticsIdentity />
+        {analyticsIdentity ? <PwaAnalyticsIdentity /> : null}
         {children}
       </AuthGate>
     </AppKitProvider>

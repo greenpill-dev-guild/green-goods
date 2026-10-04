@@ -125,8 +125,10 @@
           "/vaults",
         ];
         // "/landing" redirects to "/" (config/routes.tsx), so it boots the
-        // fullscreen home hero; every other website path mounts a banner hero.
+        // fullscreen home hero; reporting ceremony pages have no hero; every
+        // other website path mounts a banner hero.
         var HOME_HERO_PATHS = ["/", "/landing"];
+        var FOCUSED_PREFIX = "/agent/reporting/";
 
         function isLocalHostname(hostname) {
           var normalized = String(hostname || "").toLowerCase();
@@ -159,11 +161,16 @@
         function isProductionPublicWebsiteUrl(url) {
           if (isLocalHostname(url.hostname)) return false;
           var pathname = normalizePathname(effectivePathname(url));
-          return PUBLIC_PATHS.indexOf(pathname) !== -1 || pathname.indexOf("/gardens/") === 0;
+          return (
+            PUBLIC_PATHS.indexOf(pathname) !== -1 ||
+            pathname.indexOf("/gardens/") === 0 ||
+            pathname.indexOf(FOCUSED_PREFIX) === 0
+          );
         }
 
         function heroVariantForUrl(url) {
           var pathname = normalizePathname(effectivePathname(url));
+          if (pathname.indexOf(FOCUSED_PREFIX) === 0) return "focused";
           return HOME_HERO_PATHS.indexOf(pathname) !== -1 ? "fullscreen" : "banner";
         }
 
@@ -788,6 +795,48 @@
       @media (min-width: 1024px) {
         [data-boot-hero="banner"] .boot-editorial-hero {
           height: 500px; /* lg:h-[500px] */
+        }
+      }
+
+      /* Focused variant for reporting ceremony pages: the canvas and the mark
+         only (no hero, navigation or install CTA), with the mark where
+         FocusedSiteHeader.tsx draws it, so it does not jump when the page
+         takes over. GEOMETRY SYNC with that file: the bar keeps to the page's
+         column, and the mark sits on the line of the step markers, centred
+         31px down, not on the bar's own centre. */
+      [data-boot-hero="focused"] .boot-editorial-shell {
+        background: var(--boot-canvas);
+      }
+
+      [data-boot-hero="focused"] .boot-editorial-hero,
+      [data-boot-hero="focused"] .boot-editorial-nav,
+      [data-boot-hero="focused"] .boot-editorial-actions,
+      [data-boot-hero="focused"] .boot-editorial-menu {
+        display: none;
+      }
+
+      [data-boot-hero="focused"] .boot-editorial-header {
+        padding: 0;
+      }
+
+      [data-boot-hero="focused"] .boot-editorial-header-row {
+        box-sizing: border-box;
+        height: 80px; /* h-20 */
+        max-width: 768px; /* max-w-3xl */
+        padding: 0 16px; /* px-4 */
+        align-items: flex-start;
+      }
+
+      [data-boot-hero="focused"] .boot-editorial-logo {
+        height: 28px; /* h-7 */
+        /* pt-[1.1875rem] starts the 24px marker row at 19px; the 28px mark is
+           centred on it, so it starts 2px higher. */
+        margin-top: 17px;
+      }
+
+      @media (min-width: 640px) {
+        [data-boot-hero="focused"] .boot-editorial-header-row {
+          padding: 0 24px; /* sm:px-6 */
         }
       }
     </style>
