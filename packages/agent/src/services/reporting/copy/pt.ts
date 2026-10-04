@@ -178,6 +178,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Para publicar, verifique aqui sua conta Green Goods (carteira ou passkey). O link expira em 10 minutos e nunca movimenta fundos.",
   "link.label": "Verificar conta",
   "link.pairHint": "Quando a página mostrar um código, envie só os seis dígitos aqui.",
+  "link.otherAccountHint":
+    "A página abre com a conta que seu navegador usou por último. Para vincular outra, toque em “Use outra conta” lá.",
   "link.paired": "Sua conta {account} agora está vinculada.{gardens}",
   "link.gardens": "\nSuas hortas: {gardens}.",
   "link.gardensMore": "{gardens} e mais {count}",
