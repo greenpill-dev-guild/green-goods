@@ -161,13 +161,10 @@ export function createTelegramTransport(telegram: Telegram): OutboundTransport {
       ]);
       if (linkButton) {
         keyboard.push([{ text: linkButton.label, url: linkButton.url }]);
-        if (linkButton.url.length <= 256)
-          keyboard.push([
-            {
-              text: linkButton.copyLabel ?? "Copy link",
-              copy_text: { text: linkButton.url },
-            },
-          ]);
+        // Only a link the writer marked for copying gets the second button: one to a page where
+        // an account signs. Telegram refuses copy text longer than 256 characters.
+        if (linkButton.copyLabel && linkButton.url.length <= 256)
+          keyboard.push([{ text: linkButton.copyLabel, copy_text: { text: linkButton.url } }]);
       }
       const parts = splitText(body);
       try {

@@ -165,6 +165,11 @@ describe("Telegram delivery", () => {
       request({ text: verify, link: { url: production, label: "Verify", copyLabel: "Copy link" } })
     );
     await transport.send(request({ text: verify, link: { url: local, label: "Verify" } }));
+    // A link to a public record is a button on its own: nothing there needs the link copied.
+    const record = "https://arbitrum.easscan.org/attestation/view/0xabc";
+    await transport.send(
+      request({ text: "Published.", link: { url: record, label: "View your report" } })
+    );
 
     expect(api.messages()).toEqual([
       {
@@ -188,6 +193,11 @@ describe("Telegram delivery", () => {
         },
       },
       { chat_id: "7001", text: `${verify}\n\nVerify: ${local}` },
+      {
+        chat_id: "7001",
+        text: "Published.",
+        reply_markup: { inline_keyboard: [[{ text: "View your report", url: record }]] },
+      },
     ]);
   });
 
