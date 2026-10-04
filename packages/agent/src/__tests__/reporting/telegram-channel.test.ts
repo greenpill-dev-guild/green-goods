@@ -110,6 +110,7 @@ describe("Telegram updates", () => {
     ["/start@GreenGoodsBot pair_123456", "start"],
     ["/help", "help"],
     ["/confirm 1234", "confirm 1234"],
+    ["/connect", "connect"],
     ["/lang es", "lang es"],
     ["/approve 3", "help"],
     ["/path/to/file", "/path/to/file"],

@@ -2,8 +2,8 @@ import type { ReportingCopyKey } from "./en";
 
 export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "consent.notice":
-    "Olá! Sou o assistente de relatos do Green Goods, operado pela WEFA. Para ajudar você a relatar o trabalho na horta, eu guardo e leio as mensagens e os arquivos que você envia aqui{processors}. Nada fica público até você confirmar um relato.\n\nEnvie STOP a qualquer momento para parar, DELETE para apagar seus dados não publicados ou HELP para suporte ({support}).\n\nVocê concorda?",
-  "consent.processors": " e posso usar a OpenAI e a TypeSafe para entendê-los",
+    "Olá! Sou o assistente de relatos do Green Goods. Para ajudar você a relatar o trabalho na horta, eu guardo e leio as mensagens e os arquivos que você envia aqui{processors}. Nada fica público até você confirmar um relato.\n\nEnvie STOP a qualquer momento para parar, DELETE para apagar seus dados não publicados ou HELP para suporte ({support}).\n\nVocê concorda?",
+  "consent.processors": " e posso usar IA para entendê-los",
   "consent.agree": "Concordo",
   "consent.decline": "Não, obrigado",
   "consent.declined":
@@ -13,7 +13,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Você parou o assistente. Não vou ler mensagens novas até você enviar START. Os relatos publicados continuam públicos; os rascunhos não publicados estão sendo apagados. Suporte: {support}",
   "consent.deleted":
     "Seus rascunhos e arquivos não publicados estão sendo apagados. Os relatos publicados continuam públicos na blockchain e no IPFS e não podem ser removidos. Suporte: {support}",
-  help: "Relatos do Green Goods:\n• Descreva seu trabalho e envie fotos para começar um relato.\n• NEW começa um relato novo, STATUS mostra onde você está, CANCEL cancela o relato atual.\n• Responsáveis: enviem REVIEW para ver trabalhos aguardando revisão.\n• Para conectar sua conta, abra o link de verificação que envio e volte aqui com PAIR seguido do código de seis dígitos. Você pode conectar Telegram e WhatsApp à mesma conta. RECOVER reconecta uma conta após perder o acesso ao chat.\n• STOP para o processamento, DELETE apaga os dados não publicados.\nSuporte: {support}",
+  help: "Relatos do Green Goods:\n• Descreva seu trabalho e envie fotos para começar um relato.\n• NEW começa um relato novo, STATUS mostra onde você está, CANCEL cancela o relato atual.\n• Responsáveis: enviem REVIEW para ver trabalhos aguardando revisão.\n• CONNECT, ou o endereço da sua conta sozinho, vincula sua conta Green Goods: abra o link de verificação que envio e volte aqui com PAIR seguido do código de seis dígitos. Você pode conectar Telegram e WhatsApp à mesma conta. RECOVER reconecta uma conta após perder o acesso ao chat.\n• STOP para o processamento, DELETE apaga os dados não publicados.\nSuporte: {support}",
   "intake.paused":
     "Os relatos estão pausados para manutenção. Sua mensagem foi guardada e vou responder quando voltarem. Suporte: {support}",
   "media.photoAdded": "Foto adicionada ao seu relato.",
@@ -37,7 +37,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "media.voiceFailed":
     "Não consegui transcrever essa mensagem de voz. Seu relato está salvo; tente de novo ou digite sua atualização.",
   "voice.consent":
-    "Posso transcrever suas mensagens de voz? Envio a gravação para a OpenAI transformá-la em texto, adiciono o texto ao seu relato e mostro para você conferir. A gravação nunca é publicada.",
+    "Posso transcrever suas mensagens de voz? Envio a gravação para um serviço de IA transformá-la em texto, adiciono o texto ao seu relato e mostro para você conferir. A gravação nunca é publicada.",
   "voice.agree": "Sim, transcrever",
   "voice.decline": "Não, vou digitar",
   "voice.granted": "Obrigado. Estou transcrevendo sua mensagem de voz.",
@@ -58,14 +58,19 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "media.spreadsheetNative":
     "Li as células visíveis da planilha, mas não consegui ler suas imagens ou gráficos. Confira o resumo antes de confirmar.",
   "report.askGarden": "Para qual horta é este relato?",
+  "report.askOwnGarden": "Para qual das suas hortas é este relato?",
+  "report.otherGardens": "Outras hortas",
   "report.gardensUnavailable":
     "Não consigo carregar a lista de hortas agora. Sua mensagem está guardada; envie outra mensagem em alguns minutos. Suporte: {support}",
   "report.askAction": "Qual atividade em {garden} descreve melhor o seu trabalho?",
   "report.moreChoices": "Mais opções",
   "report.noActions":
-    "{garden} não tem atividades abertas para relato agora. Seu rascunho está guardado; escreva para {support} se não esperava por isso.",
+    "{garden} não tem atividades abertas para relato agora. Seu rascunho está guardado. Envie EDIT para escolher outra horta, ou escreva para {support} se não esperava por isso.",
   "report.catalogUnavailable":
-    "Não consigo ler as atividades de {garden} agora. Seu rascunho está guardado; envie qualquer mensagem para tentar de novo.",
+    "Não consegui carregar as atividades de {garden} agora. O problema é do meu lado e seu rascunho está guardado. Toque em Tentar de novo ou envie qualquer mensagem.",
+  "report.tryAgain": "Tentar de novo",
+  "report.choiceHelp":
+    "Não entendi qual você quer dizer. Toque em uma opção abaixo ou responda com o número dela. Envie HELP para ver tudo o que posso fazer, ou CANCEL para parar este relato.",
   "report.askNumber": "{title}? Responda com um número{unit}.",
   "report.askChoice": "{title}?",
   "report.askMulti": "{title}? Você pode escolher mais de uma, por exemplo: 1, 3.",
@@ -94,7 +99,6 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.invalid.unit_mismatch":
     "Isto é contado em {unit}, mas você escreveu {stated}. Pode informar em {unit}?",
   "report.invalid.unit_required": "Inclua a unidade, por exemplo 2 horas ou 30 minutos.",
-  "report.invalid.unknown_option": "Escolha uma das opções respondendo com o número dela.",
   "report.invalid.too_long": "Ficou um pouco longo. Pode resumir?",
   "report.invalid.empty": "Não recebi uma resposta. Pode tentar de novo?",
   "report.summary":
@@ -134,7 +138,23 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Para publicar, verifique aqui sua conta Green Goods (carteira ou passkey). O link expira em 10 minutos e nunca movimenta fundos.",
   "link.label": "Verificar conta",
   "link.pairHint": "Quando a página mostrar um código, envie aqui assim: PAIR 123456",
-  "link.paired": "Sua conta {account} agora está vinculada.",
+  "link.paired": "Sua conta {account} agora está vinculada.{gardens}",
+  "link.gardens": "\nSuas hortas: {gardens}.",
+  "link.gardensMore": "{gardens} e mais {count}",
+  "link.noGardens":
+    "\nAinda não a vejo em nenhuma horta. Um responsável pela horta pode adicionar você.",
+  "link.offer":
+    "Antes do seu primeiro relato, conecte sua conta Green Goods para eu mostrar suas hortas. Ou pule esta etapa e conte o trabalho que você fez; vou pedir para conectar quando você publicar.",
+  "link.offerLabel": "Conectar conta",
+  "link.offerDeclined":
+    "Sem problema. Conte o trabalho que você fez; você pode enviar texto e fotos. Envie CONNECT quando quiser vincular sua conta.",
+  "link.connect":
+    "Para conectar sua conta Green Goods (carteira ou passkey), verifique-a aqui. O link expira em 10 minutos e nunca movimenta fundos.",
+  "link.connectNamed":
+    "{account} está em: {gardens}.\nPara conectá-la a este chat, verifique-a aqui com essa conta. O link expira em 10 minutos e nunca movimenta fundos.",
+  "link.connectNamedNoGardens":
+    "Ainda não vejo {account} em nenhuma horta.\nPara conectá-la a este chat, verifique-a aqui com essa conta. O link expira em 10 minutos e nunca movimenta fundos.",
+  "link.already": "Este chat está vinculado a {account}.{gardens}",
   "link.pairFailed":
     "Esse código não corresponde a nenhuma verificação aberta. Confira o código na página do Green Goods.",
   "link.accountMismatch":

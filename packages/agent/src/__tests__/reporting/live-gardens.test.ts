@@ -57,6 +57,39 @@ describe("live garden directory", () => {
     await expect(gardens.refresh(0)).rejects.toThrow(/no garden list/);
     expect(gardens.list()).toEqual([]);
   });
+  it("names the gardens an account holds a role in, whatever the letter case, and no others", async () => {
+    const ada = "0xAbCdEf0000000000000000000000000000000001";
+    const { fetchStub } = indexer([
+      [
+        { ...garden("A1", "TAS"), gardeners: [ada], operators: [], owners: [] },
+        { ...garden("A2", "Aiyeloja Family Garden"), gardeners: [], operators: [ada], owners: [] },
+        { ...garden("A3", "Greenpill Kenya"), gardeners: [], operators: [], owners: [ada] },
+        // A funder or evaluator cannot report, and unreadable role lists place no one.
+        { ...garden("A4", "Mama Gardens"), funders: [ada], evaluators: [ada] },
+        { ...garden("A5", "Vida Verde"), gardeners: null, operators: "x", owners: [7] },
+        { ...garden("A6", "Placeholder", false), gardeners: [ada], operators: [], owners: [] },
+      ],
+    ]);
+    const gardens = createLiveGardenDirectory({
+      indexerUrl: "https://indexer.test",
+      chainId: 42161,
+      fetch: fetchStub,
+    });
+    expect(gardens.gardensOf(ada.toLowerCase() as `0x${string}`)).toEqual([]);
+    await gardens.refresh(0);
+    expect(gardens.list().map((entry) => entry.label)).toEqual([
+      "Aiyeloja Family Garden",
+      "Greenpill Kenya",
+      "Mama Gardens",
+      "TAS",
+      "Vida Verde",
+    ]);
+    expect(
+      gardens.gardensOf(ada.toLowerCase() as `0x${string}`).map((entry) => entry.label)
+    ).toEqual(["Aiyeloja Family Garden", "Greenpill Kenya", "TAS"]);
+    expect(gardens.gardensOf("0x00000000000000000000000000000000000000ff")).toEqual([]);
+  });
+
   it("lists every garden that accepts reports by name and keeps the last list while the indexer is down", async () => {
     const { requests, fetchStub } = indexer([
       [

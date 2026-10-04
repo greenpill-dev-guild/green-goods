@@ -5,6 +5,8 @@ import type { GardenDirectory, ReportingGarden } from "./gardens";
 /**
  * The live garden directory: every garden the Green Goods indexer knows on the Agent's chain that
  * accepts chat reports. Names come from the indexer and may change; the address is the identity.
+ * The role lists are the indexer's view of who may report to a garden. They say which gardens to
+ * show an account first, and nothing more: publishing reads the account's role from the chain.
  */
 export interface LiveGardenOptions {
   indexerUrl: string;
@@ -15,18 +17,24 @@ export interface LiveGardenOptions {
 
 const GARDENS_QUERY = `query ReportingGardens($chainId: Int!) {
   Garden(where: { chainId: { _eq: $chainId } }, order_by: { createdAt: asc }, limit: 1000) {
-    id chainId name initialized
+    id chainId name initialized gardeners operators owners
   }
 }`;
 
 /** After a failed read, wait this long before asking the indexer again. */
 const RETRY_MS = 30_000;
 
+/** A garden whose role list cannot be read still accepts reports; it is only shown to no one first. */
+const roleList = z.array(z.string()).catch([]);
+
 const rowSchema = z.object({
   id: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
   chainId: z.number().int(),
   name: z.string(),
   initialized: z.boolean(),
+  gardeners: roleList,
+  operators: roleList,
+  owners: roleList,
 });
 
 function toGarden(row: z.infer<typeof rowSchema>): ReportingGarden {
@@ -39,6 +47,8 @@ export function createLiveGardenDirectory(options: LiveGardenOptions): GardenDir
   const request = options.fetch ?? fetch;
   const ttl = options.ttlMs ?? 5 * 60 * 1000;
   let gardens: readonly ReportingGarden[] = [];
+  /** Garden key to the lowercase accounts that hold a reporting role there. */
+  let members: ReadonlyMap<string, ReadonlySet<string>> = new Map();
   let staleAt = 0;
   let loading: Promise<void> | null = null;
 
@@ -54,19 +64,25 @@ export function createLiveGardenDirectory(options: LiveGardenOptions): GardenDir
       const body = (await response.json()) as { data?: { Garden?: unknown } };
       const rows = body.data?.Garden;
       if (!Array.isArray(rows)) throw new Error("Indexer returned no garden list");
+      const roles = new Map<string, ReadonlySet<string>>();
       gardens = rows
         .flatMap((row) => {
           const parsed = rowSchema.safeParse(row);
           if (!parsed.success || parsed.data.chainId !== options.chainId) return [];
           const garden = toGarden(parsed.data);
-          return acceptsChatReports({
-            address: garden.address,
-            initialized: parsed.data.initialized,
-          })
-            ? [garden]
-            : [];
+          if (
+            !acceptsChatReports({ address: garden.address, initialized: parsed.data.initialized })
+          )
+            return [];
+          const { gardeners, operators, owners } = parsed.data;
+          roles.set(
+            garden.key,
+            new Set([...gardeners, ...operators, ...owners].map((account) => account.toLowerCase()))
+          );
+          return [garden];
         })
         .sort((a, b) => a.label.localeCompare(b.label, "en", { sensitivity: "base" }));
+      members = roles;
       staleAt = nowMs + ttl;
     } catch (error) {
       staleAt = nowMs + RETRY_MS;
@@ -76,6 +92,10 @@ export function createLiveGardenDirectory(options: LiveGardenOptions): GardenDir
 
   return {
     list: () => gardens,
+    gardensOf(account) {
+      const wanted = account.toLowerCase();
+      return gardens.filter((garden) => members.get(garden.key)?.has(wanted));
+    },
     refresh(nowMs) {
       if (nowMs < staleAt) return Promise.resolve();
       loading ??= load(nowMs).finally(() => {

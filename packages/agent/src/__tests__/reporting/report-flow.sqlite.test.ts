@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { TestBrowser } from "./support/browser";
 import { AIYELOJA, TAS } from "./support/fixtures";
+import { adaAccount, bolaAccount, latestLink } from "./support/flows";
 import { ADA, Harness, summaryToken } from "./support/harness";
 
 /**
@@ -166,5 +168,179 @@ describe("story-first reporting", () => {
       )
       .get({ id: event.eventId }) as { n: number };
     expect(count.n).toBe(1);
+  });
+});
+
+const GARDEN_QUESTION = "Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden";
+const CHOICE_HELP =
+  "I didn't catch which one you mean. Tap a choice below or reply with its number. Send HELP to see everything I can do, or CANCEL to stop this report.";
+
+describe("a reply that is not one of the choices", () => {
+  it("offers Try again when a garden's activities can't be read, and reads them again on any reply", async () => {
+    await consented();
+    harness.catalog.unavailable = true;
+    const stuck =
+      "I couldn't load TAS's activities just now. That's a problem on my side, and your draft is saved. Tap Try again or send any message.\n1. Try again";
+    expect(await harness.say(ADA, "1")).toEqual([stuck]);
+    // The garden is chosen, so a question is never taken for another garden.
+    expect(await harness.say(ADA, "What does that mean? Can I report activities?")).toEqual([
+      stuck,
+    ]);
+    harness.catalog.unavailable = false;
+    expect(await harness.press(ADA, "Try again")).toEqual([
+      "Which activity in TAS best matches your work?\n1. Tree planting\n2. Weeding",
+    ]);
+  });
+
+  it("says how to answer and shows the choices again when no model can read the words", async () => {
+    await consented();
+    expect(await harness.say(ADA, "Which one is mine?")).toEqual([CHOICE_HELP, GARDEN_QUESTION]);
+    // The question is still open: its number answers it.
+    expect((await harness.say(ADA, "1"))[0]).toContain("Which activity in TAS");
+    expect(await harness.say(ADA, "the planting one")).toEqual([
+      CHOICE_HELP,
+      "Which activity in TAS best matches your work?\n1. Tree planting\n2. Weeding",
+    ]);
+  });
+
+  it("lets the model read a garden named in other words, a question and a status request", async () => {
+    harness.close();
+    harness = new Harness({ controls: { model_processing: true } });
+    const read = (
+      intent: "report_content" | "help" | "status",
+      gardenKey: string | null = null
+    ) => ({ intent, gardenKey, actionUID: null, facts: [], models: ["fixture-model"] });
+    // The notice says a model may read the messages, names no provider and sends help to the site.
+    const notice = (await harness.say(ADA, STORY))[0];
+    expect(notice).toContain(
+      "the messages and files you send here and may use AI to understand them."
+    );
+    expect(notice).toContain("HELP for support (greengoods.app)");
+    expect(notice).not.toMatch(/OpenAI|TypeSafe|operated by|@/);
+    await harness.press(ADA, "I agree");
+
+    harness.interpreter.responses = [read("help")];
+    expect(await harness.say(ADA, "What does that mean?")).toEqual([CHOICE_HELP, GARDEN_QUESTION]);
+    harness.interpreter.responses = [read("status")];
+    expect(await harness.say(ADA, "where are we with this?")).toEqual([
+      "Your report for your garden is still being filled in.",
+    ]);
+    // The garden's one activity is read in the same turn, so the reply moves on to its first field.
+    harness.interpreter.responses = [read("report_content", AIYELOJA.key)];
+    expect(await harness.say(ADA, "the family garden")).toEqual([
+      "Seedlings planted? Please reply with a number (seedlings).",
+    ]);
+    expect(harness.interpreter.requests.at(-1)?.message.text).toBe("the family garden");
+    // Numbers and a choice's own label never go to the model.
+    const asked = harness.interpreter.requests.length;
+    await harness.say(ADA, "12");
+    await harness.say(ADA, "Baobab");
+    expect(harness.interpreter.requests).toHaveLength(asked);
+  });
+});
+
+const ada = adaAccount.address.toLowerCase();
+const VERIFY = "The link expires in 10 minutes and never moves funds.";
+const CONNECT_LINK = `To connect your Green Goods account (wallet or passkey), verify it here. ${VERIFY}`;
+const PAIR_HINT = "When the page shows a code, send it here as: PAIR 123456";
+const STORY = "Today I planted twelve baobab seedlings by the fence";
+
+/** Opens the chat with START, as Telegram does, and agrees to processing. */
+async function started(): Promise<string[]> {
+  await harness.say(ADA, "START");
+  return harness.press(ADA, "I agree");
+}
+
+/** Proves Ada's account on the latest link and sends its code from the chat. */
+async function pairAda(): Promise<string[]> {
+  const browser = new TestBrowser(harness.app);
+  await browser.open(latestLink(harness));
+  const proof = await browser.prove(adaAccount);
+  return harness.say(ADA, `PAIR ${proof.body.pairingCode}`);
+}
+
+describe("linking an account before reporting", () => {
+  it("offers linking on START, then asks about the account's own gardens first", async () => {
+    harness.chain.grantRole(AIYELOJA.address, adaAccount.address, { gardener: true });
+    const welcome = await started();
+    expect(welcome[1]).toBe(
+      "Before your first report, connect your Green Goods account so I can show your gardens. Or skip this and tell me about the work you did; I'll ask you to connect when you publish.\n1. Connect account"
+    );
+    expect(await harness.press(ADA, "Connect account")).toEqual([CONNECT_LINK, PAIR_HINT]);
+    expect(await pairAda()).toEqual([
+      `Your account ${ada} is now linked.\nYour gardens: Aiyeloja Family Garden.`,
+    ]);
+
+    expect(await harness.say(ADA, STORY)).toEqual([
+      "Which of your gardens is this report for?\n1. Aiyeloja Family Garden\n2. Other gardens",
+    ]);
+    // The list only orders the choice: a garden the indexer does not show the account in stays open,
+    // and "Other gardens" answers to its number like the gardens above it.
+    expect(await harness.say(ADA, "2")).toEqual(["Which garden is this report for?\n1. TAS"]);
+    expect((await harness.press(ADA, "TAS"))[0]).toContain("Which activity in TAS");
+    // START no longer offers linking, and must not replace the report's open question.
+    expect((await harness.say(ADA, "START"))[0]).toContain("Green Goods reporting:");
+    expect((await harness.say(ADA, "1"))[0]).toBe(
+      "Seedlings planted? Please reply with a number (seedlings)."
+    );
+  });
+
+  it("takes a typed address as a request to link that account, and trusts nothing until it is proven", async () => {
+    harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true });
+    await started();
+    // The address arrives as wallets show it, in mixed case.
+    expect(await harness.say(ADA, adaAccount.address)).toEqual([
+      `${ada} is in: TAS.\nTo connect it to this chat, verify it here with that account. ${VERIFY}`,
+      PAIR_HINT,
+    ]);
+    expect(harness.core.db.query("SELECT count(*) AS n FROM account_bindings").get()).toEqual({
+      n: 0,
+    });
+    expect((await harness.say(ADA, STORY))[0]).toBe(
+      "Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden"
+    );
+
+    const browser = new TestBrowser(harness.app);
+    await browser.open(latestLink(harness));
+    expect((await browser.prove(bolaAccount)).status).toBe(403);
+    const proof = await browser.prove(adaAccount);
+    expect(proof.status).toBe(200);
+    // Linked mid-report, the reply leaves the report's own question standing.
+    expect(await harness.say(ADA, `PAIR ${proof.body.pairingCode}`)).toEqual([
+      `Your account ${ada} is now linked.`,
+    ]);
+
+    expect(await harness.say(ADA, bolaAccount.address)).toEqual([
+      `This chat is linked to a different account. Verify with ${ada} or contact ${harness.core.settings.supportContact}.`,
+    ]);
+    expect(await harness.say(ADA, "CONNECT")).toEqual([
+      `This chat is linked to ${ada}.\nYour gardens: TAS.`,
+    ]);
+  });
+
+  it.each([
+    ["yes", CONNECT_LINK],
+    ["1", CONNECT_LINK],
+    [
+      "no",
+      "No problem. Tell me about the work you did; you can send text and photos. Send CONNECT whenever you want to link your account.",
+    ],
+    [STORY, "Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden"],
+  ])("reads %s as an answer to the offer only when it is one", async (reply, first) => {
+    await started();
+    expect((await harness.say(ADA, reply))[0]).toBe(first);
+  });
+
+  it("says so when the indexer shows a linked account in no garden", async () => {
+    await started();
+    const unknown = `0x${"c".repeat(40)}`;
+    expect((await harness.say(ADA, `CONNECT ${unknown}`))[0]).toBe(
+      `I don't see ${unknown} in a garden yet.\nTo connect it to this chat, verify it here with that account. ${VERIFY}`
+    );
+    // A plain CONNECT replaces the link that was limited to the named account.
+    await harness.say(ADA, "CONNECT");
+    expect(await pairAda()).toEqual([
+      `Your account ${ada} is now linked.\nI don't see it in a garden yet. A garden steward can add you.`,
+    ]);
   });
 });

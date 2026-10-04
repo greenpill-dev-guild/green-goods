@@ -7,7 +7,7 @@ import {
   type InboxEventRow,
   nextConversationEvent,
 } from "../inbox";
-import { findGarden, type ReportingGarden } from "../gardens";
+import { findGarden, gardenByKey, type ReportingGarden } from "../gardens";
 import { interpretWithDeadline, type ReportInterpreter } from "../interpretation";
 import {
   acquireConversationLease,
@@ -16,7 +16,14 @@ import {
   releaseConversationLease,
 } from "../leases";
 import type { ReportingCore } from "../runtime";
-import { answerGrantChoice, confirmPublication, handlePairing } from "./account-steps";
+import {
+  answerConnectionOffer,
+  answerGrantChoice,
+  confirmPublication,
+  handlePairing,
+  offerConnection,
+  requestConnection,
+} from "./account-steps";
 import {
   answerConsent,
   answerVoiceConsent,
@@ -75,30 +82,59 @@ function catalogGarden(
   return gardens.length === 1 ? (gardens[0] as ReportingGarden) : null;
 }
 
+/** A report's questions that offer a list of choices. */
+const REPORT_CHOICES = new Set([
+  "select_garden",
+  "select_action",
+  "field",
+  "time_unit",
+  "conflict",
+  "edit_field",
+]);
+
+/**
+ * Typed words sent to a report's list of choices that are neither numbers nor one of the choices'
+ * own labels; null for anything else. A garden or activity named in other words still lands here,
+ * and the answer handler tries its own matching before it turns to what the model read.
+ */
+function offChoiceText(plan: TurnPlan): string | null {
+  if (plan.kind !== "answer" || plan.option !== null) return null;
+  const { prompt } = plan;
+  if (!REPORT_CHOICES.has(prompt.kind) || prompt.options.length === 0) return null;
+  const text = plan.text?.trim();
+  if (!text) return null;
+  const said = text.toLowerCase();
+  const numbers = said.split(/[\s,;]+/u).every((part) => /^\d+$/u.test(part));
+  const label = prompt.options.some((choice) => choice.label.toLowerCase() === said);
+  return numbers || label ? null : text;
+}
+
 async function gatherExternal(
   deps: CoordinatorDeps,
   ctx: TurnContext,
   plan: TurnPlan
 ): Promise<TurnExternal> {
-  const garden = catalogGarden(deps.core, ctx, plan);
+  const activitiesOf = (place: ReportingGarden): Promise<CatalogResult> =>
+    deps.catalog
+      .eligibleActions(place, deps.core.clock.now())
+      .catch((): CatalogResult => ({ ok: false, reason: "unavailable" }));
+  let garden = catalogGarden(deps.core, ctx, plan);
   const reportPlan = plan.kind === "message" || plan.kind === "answer" || plan.kind === "command";
   const needsCatalog =
     Boolean(garden) && reportPlan && (!ctx.draft?.snapshot || plan.kind === "answer");
-  const result: CatalogResult | null =
-    garden && needsCatalog
-      ? await deps.catalog
-          .eligibleActions(garden, deps.core.clock.now())
-          .catch((): CatalogResult => ({ ok: false, reason: "unavailable" }))
-      : null;
+  let result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
   let interpretation = null;
-  if (plan.kind === "message" && plan.text && ctx.modelEnabled && ctx.binding) {
+  // A story or correction is read by the model, and so are words sent to a list of choices that
+  // pick none of them: they may be a question, a correction or the answer in other words.
+  const said = plan.kind === "message" ? plan.text : offChoiceText(plan);
+  if (said && ctx.modelEnabled && ctx.binding) {
     const content = ctx.draft?.content;
     interpretation = await interpretWithDeadline(
       deps.interpreter,
       {
         locale: ctx.locale,
         draftRevision: ctx.draft?.revision ?? 0,
-        message: { sourceEntryId: ctx.event.id, text: plan.text },
+        message: { sourceEntryId: ctx.event.id, text: said },
         content: {
           actionUID: content?.actionUID ?? null,
           title: content?.title ?? null,
@@ -122,6 +158,15 @@ async function gatherExternal(
       },
       deps.interpretationTimeoutMs
     );
+    // A garden the model read for a report that has none yet: its activities are read in this
+    // turn too, so the reply can ask which activity instead of failing to list them.
+    const named = interpretation?.gardenKey
+      ? gardenByKey(deps.core.gardens, interpretation.gardenKey)
+      : null;
+    if (named && !garden && !ctx.draft?.content.garden) {
+      garden = named;
+      result = await activitiesOf(named);
+    }
   }
   return { catalog: { garden, result }, interpretation };
 }
@@ -167,6 +212,8 @@ function applyTurn(
           handleReportMessage(writer, { kind: "message", text: null, media: [] }, external);
       } else if (plan.prompt.kind === "grant_choice" && plan.option) {
         answerGrantChoice(writer, plan.option.value);
+      } else if (plan.prompt.kind === "connect_offer") {
+        answerConnectionOffer(writer, plan.option !== null);
       } else if (plan.prompt.kind === "confirm_report" && plan.option) {
         if (plan.option.value === "confirm") confirmDraft(writer, null, true, external);
         else
@@ -206,7 +253,9 @@ function routeCommand(
   if (command.kind === "stop" || command.kind === "delete")
     return withdrawProcessing(writer, command.kind);
   if (command.kind === "pair") return handlePairing(writer, command.code);
+  if (command.kind === "connect") return requestConnection(writer, command.account);
   if (command.kind === "publish") return confirmPublication(writer, command.token, false);
+  if (command.kind === "start" && startsUnlinked(writer)) return offerConnection(writer);
   if (command.kind === "help" || command.kind === "start") return writer.say("help");
   if (command.kind === "review") return requestReview(writer, command.index);
   if (command.kind === "recover") return startRecovery(writer);
@@ -214,6 +263,12 @@ function routeCommand(
   const owned = deps.commands?.[command.kind];
   if (owned) return owned(writer, plan);
   handleReportCommand(writer, command, external);
+}
+
+/** START opens with the offer to link an account only while nothing else is under way. */
+function startsUnlinked(writer: TurnWriter): boolean {
+  const { binding, account, draft, review } = writer.ctx;
+  return Boolean(binding) && !account && !draft && !review;
 }
 
 /** Commands such as CONFIRM or CANCEL belong to an open decision while its question is showing. */

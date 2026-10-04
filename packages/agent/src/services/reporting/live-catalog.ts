@@ -8,13 +8,32 @@ import { Domain, type WorkInput } from "@green-goods/shared/types/domain";
 import * as z from "zod";
 import type { CatalogResult, ReportingCatalog } from "./catalog";
 import type { ReportingChain } from "./chain";
+import { createLogger } from "../logger";
 import type { ReportingGarden } from "./gardens";
+
+const log = createLogger("reporting");
+
+/** The read that left a garden's activities unavailable, for the operator's log. */
+export interface CatalogFailure {
+  garden: `0x${string}`;
+  /**
+   * The indexer's Action list, a chain read, or every Action's instruction file; `snapshots` when
+   * all three were read and the list could not be built from them.
+   */
+  read: "indexer" | "chain" | "instructions" | "snapshots";
+  /**
+   * The error's name and its HTTP status or code, when it has one. Never its message: an RPC error
+   * quotes the address it called, which can carry a provider key.
+   */
+  cause: string;
+}
 
 /**
  * The live Action catalog: Action rows from the Green Goods indexer and each Action's published
  * instruction JSON, fetched by its CID. Only instructions that are actually published and carry a
  * well-formed field contract become snapshots; the client's built-in templates are never used as
  * a substitute, so a missing or malformed instruction file removes that Action from the choices.
+ * A catalog that cannot be read is reported as unavailable, and the read that failed is logged.
  */
 export interface LiveCatalogOptions {
   chain: ReportingChain;
@@ -23,6 +42,37 @@ export interface LiveCatalogOptions {
   fetchInstructions: (cid: string) => Promise<unknown>;
   fetch?: typeof fetch;
   cacheTtlMs?: number;
+  /** Told which read failed whenever the catalog is unavailable; logs a warning by default. */
+  onUnavailable?: (failure: CatalogFailure) => void;
+}
+
+class CatalogReadError extends Error {
+  constructor(
+    readonly read: CatalogFailure["read"],
+    readonly reason: unknown
+  ) {
+    super(`The ${read} read failed`);
+    this.name = "CatalogReadError";
+  }
+}
+
+function causeOf(error: unknown): string {
+  if (!(error instanceof Error)) return "unknown";
+  const { status, code } = error as { status?: unknown; code?: unknown };
+  return [
+    error.name,
+    typeof status === "number" ? `status ${status}` : null,
+    typeof code === "number" || typeof code === "string" ? `code ${code}` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+/** Marks a read's failure with which read it was, so the log can name it. */
+function reading<T>(read: CatalogFailure["read"], attempt: Promise<T>): Promise<T> {
+  return attempt.catch((error: unknown) => {
+    throw new CatalogReadError(read, error);
+  });
 }
 
 const DOMAINS: Record<string, Domain> = {
@@ -87,6 +137,11 @@ export function createLiveReportingCatalog(options: LiveCatalogOptions): Reporti
   const request = options.fetch ?? fetch;
   const ttl = options.cacheTtlMs ?? 5 * 60 * 1000;
   const cache = new Map<string, { expiresAt: number; result: CatalogResult }>();
+  const unavailable = (failure: CatalogFailure): CatalogResult => {
+    if (options.onUnavailable) options.onUnavailable(failure);
+    else log.warn(failure, "A garden's activities could not be read");
+    return { ok: false, reason: "unavailable" };
+  };
 
   async function rows(chainId: number) {
     const response = await request(options.indexerUrl, {
@@ -95,7 +150,11 @@ export function createLiveReportingCatalog(options: LiveCatalogOptions): Reporti
       body: JSON.stringify({ query: ACTIONS_QUERY, variables: { chainId } }),
       signal: AbortSignal.timeout(10_000),
     });
-    if (!response.ok) throw new Error(`Indexer returned ${response.status}`);
+    if (!response.ok) {
+      throw Object.assign(new Error(`Indexer returned ${response.status}`), {
+        status: response.status,
+      });
+    }
     const body = (await response.json()) as { data?: { Action?: unknown[] } };
     return (body.data?.Action ?? []).flatMap((row) => {
       const parsed = rowSchema.safeParse(row);
@@ -104,7 +163,8 @@ export function createLiveReportingCatalog(options: LiveCatalogOptions): Reporti
   }
 
   async function definitionOf(
-    row: z.infer<typeof rowSchema>
+    row: z.infer<typeof rowSchema>,
+    unread: unknown[]
   ): Promise<{ definition: ActionDefinition; cid: string } | null> {
     const actionUID = Number(row.id.split("-").at(-1));
     const startTime = seconds(row.startTime);
@@ -115,7 +175,8 @@ export function createLiveReportingCatalog(options: LiveCatalogOptions): Reporti
     let published: unknown;
     try {
       published = await options.fetchInstructions(cid);
-    } catch {
+    } catch (error) {
+      unread.push(error);
       return null;
     }
     const instructions = instructionsSchema.safeParse(published);
@@ -150,11 +211,12 @@ export function createLiveReportingCatalog(options: LiveCatalogOptions): Reporti
           : await (async (): Promise<CatalogResult> => {
               try {
                 const [list, mask, block] = await Promise.all([
-                  rows(garden.chainId),
-                  options.chain.gardenDomainMask(garden.chainId, garden.address),
-                  options.chain.blockNumber(garden.chainId),
+                  reading("indexer", rows(garden.chainId)),
+                  reading("chain", options.chain.gardenDomainMask(garden.chainId, garden.address)),
+                  reading("chain", options.chain.blockNumber(garden.chainId)),
                 ]);
-                const loaded = await Promise.all(list.map(definitionOf));
+                const unread: unknown[] = [];
+                const loaded = await Promise.all(list.map((row) => definitionOf(row, unread)));
                 const snapshots: ActionDefinitionSnapshot[] = [];
                 for (const entry of loaded) {
                   if (!entry) continue;
@@ -169,13 +231,22 @@ export function createLiveReportingCatalog(options: LiveCatalogOptions): Reporti
                 }
                 // Rows exist but no instructions could be read: the catalog is not usable now.
                 if (list.length > 0 && loaded.every((entry) => entry === null)) {
-                  return { ok: false, reason: "unavailable" };
+                  return unavailable({
+                    garden: garden.address,
+                    read: "instructions",
+                    cause: unread.length > 0 ? causeOf(unread[0]) : "no usable instruction file",
+                  });
                 }
                 const result: CatalogResult = { ok: true, actions: snapshots };
                 cache.set(garden.address, { expiresAt: nowMs + ttl, result });
                 return result;
-              } catch {
-                return { ok: false, reason: "unavailable" };
+              } catch (error) {
+                const failed = error instanceof CatalogReadError ? error : null;
+                return unavailable({
+                  garden: garden.address,
+                  read: failed?.read ?? "snapshots",
+                  cause: causeOf(failed ? failed.reason : error),
+                });
               }
             })();
       if (!fresh.ok) return fresh;

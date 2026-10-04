@@ -2,8 +2,8 @@ import type { ReportingCopyKey } from "./en";
 
 export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "consent.notice":
-    "¡Hola! Soy el asistente de reportes de Green Goods, operado por WEFA. Para ayudarte a reportar el trabajo del huerto, guardo y leo los mensajes y archivos que envías aquí{processors}. Nada se hace público hasta que confirmes un reporte.\n\nEnvía STOP en cualquier momento para detenerme, DELETE para borrar tus datos no publicados o HELP para soporte ({support}).\n\n¿Estás de acuerdo?",
-  "consent.processors": " y puedo usar OpenAI y TypeSafe para entenderlos",
+    "¡Hola! Soy el asistente de reportes de Green Goods. Para ayudarte a reportar el trabajo del huerto, guardo y leo los mensajes y archivos que envías aquí{processors}. Nada se hace público hasta que confirmes un reporte.\n\nEnvía STOP en cualquier momento para detenerme, DELETE para borrar tus datos no publicados o HELP para soporte ({support}).\n\n¿Estás de acuerdo?",
+  "consent.processors": " y puedo usar IA para entenderlos",
   "consent.agree": "Acepto",
   "consent.decline": "No, gracias",
   "consent.declined":
@@ -13,7 +13,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Detuviste el asistente. No leeré mensajes nuevos hasta que envíes START. Los reportes publicados siguen siendo públicos; los borradores sin publicar se están eliminando. Soporte: {support}",
   "consent.deleted":
     "Se están eliminando tus borradores y archivos sin publicar. Los reportes publicados siguen públicos en la cadena e IPFS y no se pueden borrar. Soporte: {support}",
-  help: "Reportes de Green Goods:\n• Describe tu trabajo y envía fotos para iniciar un reporte.\n• NEW inicia un reporte nuevo, STATUS muestra dónde vas, CANCEL cancela el reporte actual.\n• Responsables: envíen REVIEW para ver trabajos pendientes de revisión.\n• Para conectar tu cuenta, abre el enlace de verificación que te envío y vuelve aquí con PAIR seguido de su código de seis dígitos. Puedes conectar Telegram y WhatsApp a la misma cuenta. RECOVER vuelve a conectar una cuenta si pierdes acceso al chat.\n• STOP detiene el procesamiento, DELETE borra los datos no publicados.\nSoporte: {support}",
+  help: "Reportes de Green Goods:\n• Describe tu trabajo y envía fotos para iniciar un reporte.\n• NEW inicia un reporte nuevo, STATUS muestra dónde vas, CANCEL cancela el reporte actual.\n• Responsables: envíen REVIEW para ver trabajos pendientes de revisión.\n• CONNECT, o la dirección de tu cuenta sola, vincula tu cuenta de Green Goods: abre el enlace de verificación que te envío y vuelve aquí con PAIR seguido de su código de seis dígitos. Puedes conectar Telegram y WhatsApp a la misma cuenta. RECOVER vuelve a conectar una cuenta si pierdes acceso al chat.\n• STOP detiene el procesamiento, DELETE borra los datos no publicados.\nSoporte: {support}",
   "intake.paused":
     "Los reportes están en pausa por mantenimiento. Tu mensaje está guardado y responderé cuando se reanuden. Soporte: {support}",
   "media.photoAdded": "Foto agregada a tu reporte.",
@@ -36,7 +36,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "media.voiceFailed":
     "No pude transcribir esa nota de voz. Tu reporte está guardado; inténtalo de nuevo o escribe tu actualización.",
   "voice.consent":
-    "¿Puedo transcribir tus notas de voz? Envío la grabación a OpenAI para convertirla en texto, agrego el texto a tu reporte y te lo muestro para que lo revises. La grabación nunca se publica.",
+    "¿Puedo transcribir tus notas de voz? Envío la grabación a un servicio de IA para convertirla en texto, agrego el texto a tu reporte y te lo muestro para que lo revises. La grabación nunca se publica.",
   "voice.agree": "Sí, transcribir",
   "voice.decline": "No, escribiré",
   "voice.granted": "Gracias. Estoy transcribiendo tu nota de voz.",
@@ -56,14 +56,19 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "media.spreadsheetNative":
     "Leí las celdas visibles de la hoja de cálculo, pero no pude leer sus imágenes ni gráficos. Revisa el resumen antes de confirmar.",
   "report.askGarden": "¿Para qué huerto es este reporte?",
+  "report.askOwnGarden": "¿Para cuál de tus huertos es este reporte?",
+  "report.otherGardens": "Otros huertos",
   "report.gardensUnavailable":
     "No puedo cargar la lista de huertos en este momento. Tu mensaje está guardado; escríbeme de nuevo en unos minutos. Soporte: {support}",
   "report.askAction": "¿Qué actividad de {garden} describe mejor tu trabajo?",
   "report.moreChoices": "Más opciones",
   "report.noActions":
-    "{garden} no tiene actividades abiertas para reportar ahora. Tu borrador está guardado; escribe a {support} si no lo esperabas.",
+    "{garden} no tiene actividades abiertas para reportar ahora. Tu borrador está guardado. Envía EDIT para elegir otro huerto, o escribe a {support} si no lo esperabas.",
   "report.catalogUnavailable":
-    "No puedo leer las actividades de {garden} en este momento. Tu borrador está guardado; envía cualquier mensaje para intentarlo de nuevo.",
+    "No pude cargar las actividades de {garden} en este momento. Es un problema de mi lado y tu borrador está guardado. Toca Reintentar o envía cualquier mensaje.",
+  "report.tryAgain": "Reintentar",
+  "report.choiceHelp":
+    "No entendí cuál quieres decir. Toca una opción de abajo o responde con su número. Envía HELP para ver todo lo que puedo hacer, o CANCEL para detener este reporte.",
   "report.askNumber": "¿{title}? Responde con un número{unit}.",
   "report.askChoice": "¿{title}?",
   "report.askMulti": "¿{title}? Puedes elegir más de una, por ejemplo: 1, 3.",
@@ -91,7 +96,6 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.invalid.unit_mismatch":
     "Esto se cuenta en {unit}, pero escribiste {stated}. ¿Puedes darlo en {unit}?",
   "report.invalid.unit_required": "Incluye la unidad, por ejemplo 2 horas o 30 minutos.",
-  "report.invalid.unknown_option": "Elige una de las opciones respondiendo con su número.",
   "report.invalid.too_long": "Es un poco largo. ¿Puedes acortarlo?",
   "report.invalid.empty": "No recibí una respuesta. ¿Puedes intentarlo de nuevo?",
   "report.summary":
@@ -130,7 +134,23 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Para publicar, verifica aquí tu cuenta de Green Goods (billetera o passkey). El enlace caduca en 10 minutos y nunca mueve fondos.",
   "link.label": "Verificar cuenta",
   "link.pairHint": "Cuando la página muestre un código, envíalo aquí así: PAIR 123456",
-  "link.paired": "Tu cuenta {account} ya está vinculada.",
+  "link.paired": "Tu cuenta {account} ya está vinculada.{gardens}",
+  "link.gardens": "\nTus huertos: {gardens}.",
+  "link.gardensMore": "{gardens} y {count} más",
+  "link.noGardens":
+    "\nTodavía no la veo en ningún huerto. Un administrador de huerto puede agregarte.",
+  "link.offer":
+    "Antes de tu primer reporte, conecta tu cuenta de Green Goods para que pueda mostrarte tus huertos. O sáltate este paso y cuéntame el trabajo que hiciste; te pediré conectarla cuando publiques.",
+  "link.offerLabel": "Conectar cuenta",
+  "link.offerDeclined":
+    "No hay problema. Cuéntame el trabajo que hiciste; puedes enviar texto y fotos. Envía CONNECT cuando quieras vincular tu cuenta.",
+  "link.connect":
+    "Para conectar tu cuenta de Green Goods (billetera o passkey), verifícala aquí. El enlace caduca en 10 minutos y nunca mueve fondos.",
+  "link.connectNamed":
+    "{account} está en: {gardens}.\nPara conectarla a este chat, verifícala aquí con esa cuenta. El enlace caduca en 10 minutos y nunca mueve fondos.",
+  "link.connectNamedNoGardens":
+    "Todavía no veo {account} en ningún huerto.\nPara conectarla a este chat, verifícala aquí con esa cuenta. El enlace caduca en 10 minutos y nunca mueve fondos.",
+  "link.already": "Este chat está vinculado a {account}.{gardens}",
   "link.pairFailed":
     "Ese código no coincide con ninguna verificación abierta. Revisa el código en la página de Green Goods.",
   "link.accountMismatch":

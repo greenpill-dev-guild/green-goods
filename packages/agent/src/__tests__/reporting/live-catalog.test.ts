@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createLiveReportingCatalog } from "../../services/reporting/live-catalog";
+import {
+  type CatalogFailure,
+  createLiveReportingCatalog,
+} from "../../services/reporting/live-catalog";
 import { FakeChain } from "./support/fake-chain";
 import { TAS } from "./support/fixtures";
 
@@ -54,9 +57,11 @@ const published = {
 function catalog(rows: unknown[], files: Record<string, unknown>) {
   const chain = new FakeChain();
   const fetched: string[] = [];
+  const failures: CatalogFailure[] = [];
   let indexerCalls = 0;
   const instance = createLiveReportingCatalog({
     chain,
+    onUnavailable: (failure) => failures.push(failure),
     indexerUrl: "https://indexer.test/graphql",
     registryAddress: "0x00000000000000000000000000000000000000b0",
     fetchInstructions: async (cid) => {
@@ -69,7 +74,7 @@ function catalog(rows: unknown[], files: Record<string, unknown>) {
       return new Response(JSON.stringify({ data: { Action: rows } }));
     }) as unknown as typeof fetch,
   });
-  return { chain, instance, fetched, indexerCalls: () => indexerCalls };
+  return { chain, instance, fetched, failures, indexerCalls: () => indexerCalls };
 }
 
 describe("live Action catalog", () => {
@@ -108,8 +113,26 @@ describe("live Action catalog", () => {
   });
 
   it("reports the catalog unavailable when no instruction file can be read", async () => {
-    const { instance } = catalog([row(1), row(2)], {});
+    const { instance, failures } = catalog([row(1), row(2)], {});
     expect(await instance.eligibleActions(TAS, NOW)).toEqual({ ok: false, reason: "unavailable" });
+    expect(failures).toEqual([{ garden: TAS.address, read: "instructions", cause: "Error" }]);
+  });
+
+  it("names the chain read when the RPC refuses, without quoting the address it called", async () => {
+    const { instance, chain, failures } = catalog([row(1)], { "bafy-instructions-1": published });
+    chain.gardenDomainMask = async () => {
+      throw Object.assign(new Error("HTTP request failed. URL: https://rpc.test/v2/provider-key"), {
+        name: "HttpRequestError",
+        status: 429,
+      });
+    };
+    expect(await instance.eligibleActions(TAS, NOW)).toEqual({ ok: false, reason: "unavailable" });
+    expect(failures).toEqual([
+      { garden: TAS.address, read: "chain", cause: "HttpRequestError, status 429" },
+    ]);
+    // A failed read is never cached: the next message reads the chain again.
+    chain.gardenDomainMask = async () => 0b11;
+    expect((await instance.eligibleActions(TAS, NOW)).ok).toBe(true);
   });
 
   it("keeps readable eligible Actions when another instruction gateway read fails", async () => {

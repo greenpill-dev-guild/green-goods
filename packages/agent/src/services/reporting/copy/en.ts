@@ -5,8 +5,8 @@
  */
 export const EN_REPORTING_COPY = {
   "consent.notice":
-    "Hi! I'm the Green Goods reporting assistant, operated by WEFA. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
-  "consent.processors": " and may use OpenAI and TypeSafe to understand them",
+    "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
+  "consent.processors": " and may use AI to understand them",
   "consent.agree": "I agree",
   "consent.decline": "No thanks",
   "consent.declined":
@@ -16,7 +16,7 @@ export const EN_REPORTING_COPY = {
     "You've stopped the assistant. I won't read new messages until you send START. Published reports stay public; unpublished drafts are being removed. Support: {support}",
   "consent.deleted":
     "Your unpublished drafts and files are being deleted. Published reports stay public on chain and IPFS and can't be removed. Support: {support}",
-  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• Stewards: send REVIEW to see work waiting for review.\n• To connect your account, open the verification link I send and return here with PAIR followed by its six-digit code. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
+  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and return here with PAIR followed by its six-digit code. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
   "intake.paused":
     "Reporting is paused for maintenance. Your message is saved and I'll reply when it resumes. Support: {support}",
   "media.photoAdded": "Photo added to your report.",
@@ -38,7 +38,7 @@ export const EN_REPORTING_COPY = {
   "media.voiceFailed":
     "I couldn't transcribe that voice note. Your report is saved; please try again or type your update.",
   "voice.consent":
-    "Can I transcribe your voice notes? I send the recording to OpenAI to turn it into text, add the text to your report and show it to you to check. The recording itself is never published.",
+    "Can I transcribe your voice notes? I send the recording to an AI service to turn it into text, add the text to your report and show it to you to check. The recording itself is never published.",
   "voice.agree": "Yes, transcribe",
   "voice.decline": "No, I'll type",
   "voice.granted": "Thank you. I'm transcribing your voice note now.",
@@ -57,14 +57,19 @@ export const EN_REPORTING_COPY = {
   "media.spreadsheetNative":
     "I read the spreadsheet's visible cells, but couldn't read its pictures or charts. Please check the summary before confirming.",
   "report.askGarden": "Which garden is this report for?",
+  "report.askOwnGarden": "Which of your gardens is this report for?",
+  "report.otherGardens": "Other gardens",
   "report.gardensUnavailable":
     "I can't load the list of gardens right now. Your message is saved; please send another message in a few minutes. Support: {support}",
   "report.askAction": "Which activity in {garden} best matches your work?",
   "report.moreChoices": "More options",
   "report.noActions":
-    "{garden} has no activity open for reporting right now. Your draft is saved; contact {support} if this is unexpected.",
+    "{garden} has no activity open for reporting right now. Your draft is saved. Send EDIT to choose another garden, or contact {support} if this is unexpected.",
   "report.catalogUnavailable":
-    "I can't read {garden}'s activities right now. Your draft is saved; send any message to try again.",
+    "I couldn't load {garden}'s activities just now. That's a problem on my side, and your draft is saved. Tap Try again or send any message.",
+  "report.tryAgain": "Try again",
+  "report.choiceHelp":
+    "I didn't catch which one you mean. Tap a choice below or reply with its number. Send HELP to see everything I can do, or CANCEL to stop this report.",
   "report.askNumber": "{title}? Please reply with a number{unit}.",
   "report.askChoice": "{title}?",
   "report.askMulti": "{title}? You can pick more than one, for example: 1, 3.",
@@ -92,8 +97,6 @@ export const EN_REPORTING_COPY = {
   "report.invalid.unit_mismatch":
     "This is counted in {unit}, but you wrote {stated}. Could you give it in {unit}?",
   "report.invalid.unit_required": "Please include the unit, for example 2 hours or 30 minutes.",
-  "report.invalid.unknown_option":
-    "Please choose one of the listed options by replying with its number.",
   "report.invalid.too_long": "That's a little long. Could you shorten it?",
   "report.invalid.empty": "I didn't catch an answer. Could you try again?",
   "report.summary":
@@ -133,7 +136,22 @@ export const EN_REPORTING_COPY = {
     "To publish, verify your existing Green Goods account (wallet or passkey) here. The link expires in 10 minutes and never moves funds.",
   "link.label": "Verify account",
   "link.pairHint": "When the page shows a code, send it here as: PAIR 123456",
-  "link.paired": "Your account {account} is now linked.",
+  "link.paired": "Your account {account} is now linked.{gardens}",
+  "link.gardens": "\nYour gardens: {gardens}.",
+  "link.gardensMore": "{gardens} and {count} more",
+  "link.noGardens": "\nI don't see it in a garden yet. A garden steward can add you.",
+  "link.offer":
+    "Before your first report, connect your Green Goods account so I can show your gardens. Or skip this and tell me about the work you did; I'll ask you to connect when you publish.",
+  "link.offerLabel": "Connect account",
+  "link.offerDeclined":
+    "No problem. Tell me about the work you did; you can send text and photos. Send CONNECT whenever you want to link your account.",
+  "link.connect":
+    "To connect your Green Goods account (wallet or passkey), verify it here. The link expires in 10 minutes and never moves funds.",
+  "link.connectNamed":
+    "{account} is in: {gardens}.\nTo connect it to this chat, verify it here with that account. The link expires in 10 minutes and never moves funds.",
+  "link.connectNamedNoGardens":
+    "I don't see {account} in a garden yet.\nTo connect it to this chat, verify it here with that account. The link expires in 10 minutes and never moves funds.",
+  "link.already": "This chat is linked to {account}.{gardens}",
   "link.pairFailed":
     "That code doesn't match an open verification. Check the code on the Green Goods page.",
   "link.accountMismatch":

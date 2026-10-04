@@ -61,7 +61,7 @@ async function linkedSteward(): Promise<void> {
   await browser.open(latestLink(harness));
   const proof = await browser.prove(stewardAccount);
   expect(await harness.say(BOLA, `PAIR ${proof.body.pairingCode}`)).toEqual([
-    `Your account ${stewardAccount.address.toLowerCase()} is now linked.`,
+    `Your account ${stewardAccount.address.toLowerCase()} is now linked.\nYour gardens: TAS.`,
   ]);
 }
 
