@@ -287,9 +287,11 @@ Recorded by the Claude interface session with Afolabi. The sections above predat
   move account and help into a sheet. Rendered proof is Storybook in headless Chromium and a
   localhost run against the loopback driver, with no wallet. Authenticated signing proof is still
   pending. The API, state machines, consent, grant limits and signing sequence are unchanged.
-- **Develop merged in.** The branch contains develop as of `df0484c68`, and the pull request now
-  targets develop directly. GitHub's stack link between the three pull requests was removed,
-  because the middle branch conflicted with develop and that stopped CI for the top one.
+- **Develop merged in.** The branch contains develop as of `df0484c68`. The stack #864 → #934 →
+  #949 stays linked, as stack 988. The reporting core's branch had come into conflict with develop,
+  which stopped CI for this pull request above it. Develop is now merged into that branch as well,
+  with the code-scanning fixes moved down into it, and this branch contains that merge. The link
+  was removed for a few hours on 3 October and put back at Afolabi's instruction.
 - **Where the live Agent can be tested.** At that head a production Agent linked to and accepted
   only `https://www.greengoods.app`, which is built from `main`, so the merge into develop put the
   pages on staging where the live Agent could not use them. The next section changes that.
