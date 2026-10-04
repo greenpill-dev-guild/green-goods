@@ -19,6 +19,7 @@ on:
       - "docs/DESIGN.md"
       - "docs/docs/builders/packages/admin.mdx"
       - "docs/docs/builders/testing/storybook.mdx"
+      - "docs/src/css/custom.css"
       - "scripts/data/banned-vocabulary.json"
       - "packages/admin/AGENTS.md"
       - "packages/admin/DESIGN.md"
@@ -46,6 +47,7 @@ on:
       - "!packages/shared/src/**/*.spec.*"
       - "scripts/data/design-token-usage-baseline.tsv"
       - "scripts/design/**"
+      - "scripts/quality/check-docs-design-parity.mjs"
       - "scripts/quality/check-story-coverage.ts"
       - "scripts/quality/check-story-quality.ts"
       - "vercel.json"
@@ -62,6 +64,7 @@ on:
       - "docs/DESIGN.md"
       - "docs/docs/builders/packages/admin.mdx"
       - "docs/docs/builders/testing/storybook.mdx"
+      - "docs/src/css/custom.css"
       - "scripts/data/banned-vocabulary.json"
       - "packages/admin/AGENTS.md"
       - "packages/admin/DESIGN.md"
@@ -89,6 +92,7 @@ on:
       - "!packages/shared/src/**/*.spec.*"
       - "scripts/data/design-token-usage-baseline.tsv"
       - "scripts/design/**"
+      - "scripts/quality/check-docs-design-parity.mjs"
       - "scripts/quality/check-story-coverage.ts"
       - "scripts/quality/check-story-quality.ts"
       - "vercel.json"
@@ -124,6 +128,9 @@ jobs:
 
       - name: Check design tokens
         run: bun run check --only design-tokens
+
+      - name: Check docs design parity
+        run: bun run check --only docs-design-parity
 
       - name: Run design guidance guardrail tests
         run: node --test scripts/design/check-guidance-examples.test.mjs
