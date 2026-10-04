@@ -85,7 +85,7 @@ export default function Home() {
           {
             id: "public.home.hero.title",
             defaultMessage:
-              "From <accent>good</accent> intentions to <noBreak><accent>green</accent> outcomes</noBreak>.",
+              "From <accent>good</accent> intentions to <noBreak><accent>green</accent> outcomes</noBreak>",
           },
           {
             accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,

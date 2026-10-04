@@ -62,7 +62,7 @@ export const Typography: Story = {
       <Section title="§ Headings">
         <div className="flex flex-col gap-6">
           <EditorialHeading size="display" as="h1">
-            From good intentions to green outcomes.
+            From good intentions to green outcomes
           </EditorialHeading>
           <EditorialHeading size="section">Tended places, openly recorded.</EditorialHeading>
           <EditorialHeading size="sub">Riverbend Commons</EditorialHeading>

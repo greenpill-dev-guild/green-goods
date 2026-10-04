@@ -404,7 +404,7 @@ export default function CampaignJarSurface() {
         title={formatMessage(
           {
             id: "public.cookies.title",
-            defaultMessage: "Shared <accent>cookie jars</accent> for seasonal campaign work.",
+            defaultMessage: "Shared <accent>cookie jars</accent> for seasonal campaign work",
           },
           {
             accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,

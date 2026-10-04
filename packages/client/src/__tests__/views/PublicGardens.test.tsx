@@ -60,7 +60,7 @@ vi.mock("@green-goods/shared/hooks/public/usePublicGardens", async (importOrigin
 import GardensGallery from "../../views/Public/Gardens";
 
 const messages: Record<string, string> = {
-  "public.gardens.heroTitle": "Explore the Gardens growing the public record.",
+  "public.gardens.heroTitle": "Explore the Gardens growing the public record",
   "public.gardens.heroLede":
     "Each Garden is a real place where communities document regenerative Work, gather evidence, and make support visible.",
   "public.gardens.archiveTitle": "Browse every Garden under documentation.",
