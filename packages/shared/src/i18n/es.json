@@ -1174,6 +1174,7 @@
   "app.common.edit": "Editar",
   "app.common.failedToLoad": "Error al cargar",
   "app.common.loading": "Cargando...",
+  "app.common.loadingApp": "Cargando {appName}",
   "app.common.next": "Siguiente",
   "app.common.no": "No",
   "app.common.optional": "opcional",
