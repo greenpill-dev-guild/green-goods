@@ -42,7 +42,6 @@ const OVERLAY_MOTION =
 export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPhotosProps) {
   const { formatMessage, formatNumber } = useIntl();
   const [previewFile, setPreviewFile] = useState<File | null>(null);
-  const previewOpener = useRef<HTMLButtonElement | null>(null);
 
   // One object URL per staged photo, held for as long as the photo is staged, so
   // adding or removing one never re-decodes the others. A layout effect, so a new
@@ -81,14 +80,6 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
   const previewable = images.filter((file) => urls.has(file));
   const previewIndex = previewFile ? previewable.indexOf(previewFile) : -1;
   const previewOpen = previewIndex >= 0;
-
-  // Radix hands focus back to a dialog's trigger, and the shared preview has
-  // none, so once it has closed return focus to the tile that opened it.
-  useEffect(() => {
-    if (previewOpen) return;
-    previewOpener.current?.focus();
-    previewOpener.current = null;
-  }, [previewOpen]);
 
   const formatSize = (bytes: number) =>
     bytes < BYTES_PER_MEGABYTE
@@ -143,10 +134,7 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
                     <AdminButton
                       variant="text"
                       size="sm"
-                      onClick={(event) => {
-                        previewOpener.current = event.currentTarget;
-                        setPreviewFile(file);
-                      }}
+                      onClick={() => setPreviewFile(file)}
                       aria-haspopup="dialog"
                       aria-label={previewLabel}
                       title={previewLabel}
@@ -201,10 +189,7 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
         </ul>
       ) : null}
 
-      {/* The flow is itself a dialog on the modal layer, so the preview's scrim is
-          lifted to that layer to cover it instead of sitting underneath. */}
       <ImagePreviewDialog
-        className="!z-modal"
         labels={imagePreviewLabels(formatMessage)}
         isOpen={previewOpen}
         onClose={() => setPreviewFile(null)}

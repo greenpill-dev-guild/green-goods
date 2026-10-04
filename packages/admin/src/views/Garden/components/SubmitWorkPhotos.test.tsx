@@ -9,7 +9,7 @@ import { render as renderBare } from "@testing-library/react";
 import { StrictMode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen, userEvent, waitFor, within } from "@/__tests__/test-utils";
+import { renderWithProviders, screen, userEvent, within } from "@/__tests__/test-utils";
 import { SubmitWorkPhotos } from "./SubmitWorkPhotos";
 
 const photo = (name: string, sizeBytes = 2048) =>
@@ -111,18 +111,6 @@ describe("SubmitWorkPhotos", () => {
     for (const name of ["Acercar", "Descargar imagen", "Imagen siguiente", "Cerrar vista previa"]) {
       expect(within(dialog).getByRole("button", { name })).toBeInTheDocument();
     }
-  });
-
-  it("returns focus to the tile once the preview closes", async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<SubmitWorkPhotos images={staged(3)} minRequired={2} onRemove={vi.fn()} />);
-    const tile = screen.getByRole("button", { name: "Preview photo-2.jpg" });
-
-    await user.click(tile);
-    await user.click(await screen.findByRole("button", { name: "Close Preview" }));
-
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(tile).toHaveFocus();
   });
 
   it("removes the photo whose corner button is pressed, without opening it", async () => {

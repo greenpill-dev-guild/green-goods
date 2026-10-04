@@ -364,13 +364,6 @@ export function FieldNoteDialog({
         onClose={() => setViewerIndex(null)}
         images={[...note.media]}
         initialIndex={viewerIndex ?? 0}
-        // Its scrim defaults to `z-overlay` (40), which sits under the drawer
-        // at `z-modal` (50), so the drawer showed through beside the photo.
-        // `cn` here does not merge conflicting z utilities — both land on the
-        // element and `z-overlay` wins the cascade — so this has to be
-        // important. The viewer mounts second, so at equal layers it paints on
-        // top of the drawer.
-        className="!z-modal"
         variant="editorial"
         labels={viewerLabels}
       />
