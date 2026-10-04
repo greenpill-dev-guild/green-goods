@@ -33,6 +33,15 @@ describe("public social previews", () => {
     expect(publicSocialPreviews.fund.socialImagePath).toBe("/social/fund.png");
   });
 
+  it("splits each card title into lines that spell it, with no closing period", () => {
+    for (const preview of Object.values(publicSocialPreviews)) {
+      expect(preview.cardTitle, preview.key).not.toMatch(/\.$/);
+      if (preview.cardTitleLines) {
+        expect(preview.cardTitleLines.join(" "), preview.key).toBe(preview.cardTitle);
+      }
+    }
+  });
+
   it("resolves dynamic public urls to their generic route previews", () => {
     expect(resolvePublicSocialPreview("/gardens/decleanup").key).toBe("gardens");
     expect(resolvePublicSocialPreview("/gardens/decleanup?ref=x").key).toBe("gardens");
