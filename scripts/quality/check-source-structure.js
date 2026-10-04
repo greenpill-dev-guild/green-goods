@@ -114,7 +114,6 @@ function isDeclarationOnlySolidityInterface(filePath) {
 // at all and would have tripped the blanket cap on first touch).
 export const FROZEN_ALLOWLIST = {
   "packages/admin/src/components/Action/ActionTranslationEditor.tsx": 746,
-  "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx": 545,
   "packages/admin/src/components/Garden/GardenSettingsEditor.tsx": 626,
   "packages/agent/src/handlers/index.ts": 508,
   "packages/agent/src/platforms/telegram.ts": 590,
