@@ -13,7 +13,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Detuviste el asistente. No leeré mensajes nuevos hasta que envíes START. Los reportes publicados siguen siendo públicos; los borradores sin publicar se están eliminando. Soporte: {support}",
   "consent.deleted":
     "Se están eliminando tus borradores y archivos sin publicar. Los reportes publicados siguen públicos en la cadena e IPFS y no se pueden borrar. Soporte: {support}",
-  help: "Reportes de Green Goods:\n• Describe tu trabajo y envía fotos para iniciar un reporte.\n• NEW inicia un reporte nuevo, STATUS muestra dónde vas, CANCEL cancela el reporte actual.\n• Responsables: envíen REVIEW para ver trabajos pendientes de revisión.\n• Para conectar tu cuenta, abre el enlace de verificación que te envío y vuelve aquí con PAIR seguido de su código de seis dígitos. Puedes conectar Telegram y WhatsApp a la misma cuenta. RECOVER vuelve a conectar una cuenta si pierdes acceso al chat.\n• STOP detiene el procesamiento, DELETE borra los datos no publicados.\nSoporte: {support}",
+  help: "Reportes de Green Goods:\n• Describe tu trabajo y envía fotos para iniciar un reporte.\n• NEW inicia un reporte nuevo, STATUS muestra dónde vas, CANCEL cancela el reporte actual.\n• Responsables: envíen REVIEW para ver trabajos pendientes de revisión.\n• CONNECT, o la dirección de tu cuenta sola, vincula tu cuenta de Green Goods: abre el enlace de verificación que te envío y vuelve aquí con PAIR seguido de su código de seis dígitos. Puedes conectar Telegram y WhatsApp a la misma cuenta. RECOVER vuelve a conectar una cuenta si pierdes acceso al chat.\n• STOP detiene el procesamiento, DELETE borra los datos no publicados.\nSoporte: {support}",
   "intake.paused":
     "Los reportes están en pausa por mantenimiento. Tu mensaje está guardado y responderé cuando se reanuden. Soporte: {support}",
   "media.photoAdded": "Foto agregada a tu reporte.",
@@ -56,6 +56,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "media.spreadsheetNative":
     "Leí las celdas visibles de la hoja de cálculo, pero no pude leer sus imágenes ni gráficos. Revisa el resumen antes de confirmar.",
   "report.askGarden": "¿Para qué huerto es este reporte?",
+  "report.askOwnGarden": "¿Para cuál de tus huertos es este reporte?",
+  "report.otherGardens": "Otros huertos",
   "report.gardensUnavailable":
     "No puedo cargar la lista de huertos en este momento. Tu mensaje está guardado; escríbeme de nuevo en unos minutos. Soporte: {support}",
   "report.askAction": "¿Qué actividad de {garden} describe mejor tu trabajo?",
@@ -130,7 +132,23 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Para publicar, verifica aquí tu cuenta de Green Goods (billetera o passkey). El enlace caduca en 10 minutos y nunca mueve fondos.",
   "link.label": "Verificar cuenta",
   "link.pairHint": "Cuando la página muestre un código, envíalo aquí así: PAIR 123456",
-  "link.paired": "Tu cuenta {account} ya está vinculada.",
+  "link.paired": "Tu cuenta {account} ya está vinculada.{gardens}",
+  "link.gardens": "\nTus huertos: {gardens}.",
+  "link.gardensMore": "{gardens} y {count} más",
+  "link.noGardens":
+    "\nTodavía no la veo en ningún huerto. Un administrador de huerto puede agregarte.",
+  "link.offer":
+    "Antes de tu primer reporte, conecta tu cuenta de Green Goods para que pueda mostrarte tus huertos. O sáltate este paso y cuéntame el trabajo que hiciste; te pediré conectarla cuando publiques.",
+  "link.offerLabel": "Conectar cuenta",
+  "link.offerDeclined":
+    "No hay problema. Cuéntame el trabajo que hiciste; puedes enviar texto y fotos. Envía CONNECT cuando quieras vincular tu cuenta.",
+  "link.connect":
+    "Para conectar tu cuenta de Green Goods (billetera o passkey), verifícala aquí. El enlace caduca en 10 minutos y nunca mueve fondos.",
+  "link.connectNamed":
+    "{account} está en: {gardens}.\nPara conectarla a este chat, verifícala aquí con esa cuenta. El enlace caduca en 10 minutos y nunca mueve fondos.",
+  "link.connectNamedNoGardens":
+    "Todavía no veo {account} en ningún huerto.\nPara conectarla a este chat, verifícala aquí con esa cuenta. El enlace caduca en 10 minutos y nunca mueve fondos.",
+  "link.already": "Este chat está vinculado a {account}.{gardens}",
   "link.pairFailed":
     "Ese código no coincide con ninguna verificación abierta. Revisa el código en la página de Green Goods.",
   "link.accountMismatch":

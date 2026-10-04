@@ -6,7 +6,7 @@ import {
   pageChoices,
   type ReportRequirement,
 } from "@green-goods/shared/modules/agent-reporting";
-import type { WorkInput } from "@green-goods/shared/types/domain";
+import type { Address, WorkInput } from "@green-goods/shared/types/domain";
 import { type CatalogResult, orderActions } from "../catalog";
 import type { DraftRecord } from "../drafts";
 import { findGarden, type GardenDirectory, gardenByKey, type ReportingGarden } from "../gardens";
@@ -128,20 +128,61 @@ export function askAction(
   );
 }
 
-/** Every garden accepts reports, so the list is paged like Actions. */
-export function askGarden(writer: ConversationWriter, draft: DraftRecord, page = 0): void {
-  const gardens = writer.core.gardens.list();
-  if (gardens.length === 0) {
+interface GardenPage {
+  gardens: readonly ReportingGarden[];
+  /** Gardens the indexer shows the linked account in. */
+  own: boolean;
+}
+
+function chunks<T>(items: readonly T[], size: number): T[][] {
+  const pages: T[][] = [];
+  for (let start = 0; start < items.length; start += size)
+    pages.push(items.slice(start, start + size));
+  return pages;
+}
+
+/**
+ * The garden question's pages. Every garden accepts reports, so the list is paged like Actions;
+ * a linked account's own gardens come first, on pages of their own, and the rest follow.
+ */
+function gardenPages(
+  directory: GardenDirectory,
+  account: Address | null,
+  size: number
+): GardenPage[] {
+  const own = account ? directory.gardensOf(account) : [];
+  const ownKeys = new Set(own.map((garden) => garden.key));
+  const rest = directory.list().filter((garden) => !ownKeys.has(garden.key));
+  return [
+    ...chunks(own, size).map((gardens) => ({ gardens, own: true })),
+    ...chunks(rest, size).map((gardens) => ({ gardens, own: false })),
+  ];
+}
+
+/** Asks which garden a report is for. `account` is the chat's linked account, when it has one. */
+export function askGarden(
+  writer: ConversationWriter,
+  draft: DraftRecord,
+  account: Address | null,
+  page = 0
+): void {
+  const pages = gardenPages(writer.core.gardens, account, writer.core.settings.choicePageSize);
+  // A page that no longer exists, because the list changed since it was offered, starts over.
+  const index = pages[page] ? page : 0;
+  const shown = pages[index];
+  if (!shown) {
     // The list only comes back empty when the indexer could not be read.
     writer.say("report.gardensUnavailable");
     return;
   }
-  const size = writer.core.settings.choicePageSize;
-  const options = gardens
-    .slice(page * size, page * size + size)
-    .map((garden, index) => option(`${index}`, garden.label, garden.key));
-  if (gardens.length > (page + 1) * size)
-    options.push(option("more", writer.text("report.moreChoices"), `page:${page + 1}`));
+  const next = pages[index + 1];
+  const options = shown.gardens.map((garden, position) =>
+    option(`${position}`, garden.label, garden.key)
+  );
+  if (next) {
+    const label = shown.own && !next.own ? "report.otherGardens" : "report.moreChoices";
+    options.push(option("more", writer.text(label), `page:${index + 1}`));
+  }
   writer.ask(
     {
       subjectKind: "draft",
@@ -149,9 +190,9 @@ export function askGarden(writer: ConversationWriter, draft: DraftRecord, page =
       resourceRevision: draft.revision,
       kind: "select_garden",
       options,
-      page,
+      page: index,
     },
-    () => writer.text("report.askGarden")
+    () => writer.text(shown.own ? "report.askOwnGarden" : "report.askGarden")
   );
 }
 
@@ -159,7 +200,8 @@ function askRequirement(
   writer: ConversationWriter,
   draft: DraftRecord,
   requirement: ReportRequirement,
-  view: CatalogView
+  view: CatalogView,
+  account: Address | null
 ): void {
   const base = {
     subjectKind: "draft" as const,
@@ -195,7 +237,7 @@ function askRequirement(
       return;
     }
     case "garden":
-      return askGarden(writer, draft);
+      return askGarden(writer, draft, account);
     case "action":
       return askAction(writer, draft, view);
     case "unsupported_input":
@@ -291,12 +333,12 @@ export function promptNextStepFor(
   writer: ConversationWriter,
   draft: DraftRecord,
   view: CatalogView,
-  account: string | null
+  account: Address | null
 ): void {
   const requirements = outstandingRequirements(draft.content, draft.snapshot);
   if (requirements.length === 0) {
     askConfirmation(writer, draft, account);
     return;
   }
-  askRequirement(writer, draft, requirements[0] as ReportRequirement, view);
+  askRequirement(writer, draft, requirements[0] as ReportRequirement, view, account);
 }

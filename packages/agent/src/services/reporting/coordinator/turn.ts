@@ -16,7 +16,14 @@ import {
   releaseConversationLease,
 } from "../leases";
 import type { ReportingCore } from "../runtime";
-import { answerGrantChoice, confirmPublication, handlePairing } from "./account-steps";
+import {
+  answerConnectionOffer,
+  answerGrantChoice,
+  confirmPublication,
+  handlePairing,
+  offerConnection,
+  requestConnection,
+} from "./account-steps";
 import {
   answerConsent,
   answerVoiceConsent,
@@ -167,6 +174,8 @@ function applyTurn(
           handleReportMessage(writer, { kind: "message", text: null, media: [] }, external);
       } else if (plan.prompt.kind === "grant_choice" && plan.option) {
         answerGrantChoice(writer, plan.option.value);
+      } else if (plan.prompt.kind === "connect_offer") {
+        answerConnectionOffer(writer, plan.option !== null);
       } else if (plan.prompt.kind === "confirm_report" && plan.option) {
         if (plan.option.value === "confirm") confirmDraft(writer, null, true, external);
         else
@@ -206,7 +215,9 @@ function routeCommand(
   if (command.kind === "stop" || command.kind === "delete")
     return withdrawProcessing(writer, command.kind);
   if (command.kind === "pair") return handlePairing(writer, command.code);
+  if (command.kind === "connect") return requestConnection(writer, command.account);
   if (command.kind === "publish") return confirmPublication(writer, command.token, false);
+  if (command.kind === "start" && startsUnlinked(writer)) return offerConnection(writer);
   if (command.kind === "help" || command.kind === "start") return writer.say("help");
   if (command.kind === "review") return requestReview(writer, command.index);
   if (command.kind === "recover") return startRecovery(writer);
@@ -214,6 +225,12 @@ function routeCommand(
   const owned = deps.commands?.[command.kind];
   if (owned) return owned(writer, plan);
   handleReportCommand(writer, command, external);
+}
+
+/** START opens with the offer to link an account only while nothing else is under way. */
+function startsUnlinked(writer: TurnWriter): boolean {
+  const { binding, account, draft, review } = writer.ctx;
+  return Boolean(binding) && !account && !draft && !review;
 }
 
 /** Commands such as CONFIRM or CANCEL belong to an open decision while its question is showing. */

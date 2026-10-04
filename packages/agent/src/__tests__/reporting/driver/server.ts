@@ -98,7 +98,7 @@ export async function startDriver(
     config,
     chainId: 42161,
     chain,
-    gardens: fixedGardens([TAS, AIYELOJA]),
+    gardens: fixedGardens([TAS, AIYELOJA], chain),
     catalog: new FixtureCatalog(),
     interpreter: null,
     uploader: new FixtureUploader(),

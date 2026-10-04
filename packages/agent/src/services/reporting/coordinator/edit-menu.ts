@@ -44,7 +44,7 @@ export function askEditField(
   };
   switch (field) {
     case "garden":
-      return askGarden(writer, draft);
+      return askGarden(writer, draft, writer.ctx.account?.address ?? null);
     case "action":
       return askAction(writer, draft, view);
     case "title":

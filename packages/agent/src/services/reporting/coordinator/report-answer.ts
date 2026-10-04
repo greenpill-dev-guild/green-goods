@@ -54,11 +54,13 @@ export function handleReportAnswer(
       provenance: gardenerFact(sourceEntryId, original, unit),
     },
   ];
-  const page = option?.value.startsWith("page:") ? Number(option.value.slice(5)) : null;
+  // The entry that opens another page of choices can be picked by its number, like any other.
+  const paging = option ?? (text ? prompt.options[Number(text.trim()) - 1] : undefined);
+  const page = paging?.value.startsWith("page:") ? Number(paging.value.slice(5)) : null;
 
   switch (prompt.kind) {
     case "select_garden": {
-      if (page !== null) return askGarden(writer, draft, page);
+      if (page !== null) return askGarden(writer, draft, ctx.account?.address ?? null, page);
       const garden = answeredGarden(core.gardens, prompt, option, text);
       if (!garden) return invalid(writer, "unknown_option");
       apply(work, [

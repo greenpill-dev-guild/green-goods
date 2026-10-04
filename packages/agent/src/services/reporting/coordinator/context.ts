@@ -127,6 +127,12 @@ export function planTurn(ctx: TurnContext): TurnPlan {
       : { kind: "stale_reply" };
   }
   const media = message.media ?? [];
+  if (prompt?.kind === "connect_offer" && media.length === 0) {
+    // Only its number or a plain yes or no answers the offer; anything else starts a report.
+    const answer = message.text?.trim() === "1" ? "agree" : consentAnswer(message.text);
+    const option = answer === "agree" ? (prompt.options[0] ?? null) : null;
+    if (answer) return { kind: "answer", prompt, option, text: message.text ?? null };
+  }
   if (prompt && message.text && media.length === 0 && TEXT_ANSWER_PROMPTS.has(prompt.kind)) {
     return { kind: "answer", prompt, option: null, text: message.text };
   }

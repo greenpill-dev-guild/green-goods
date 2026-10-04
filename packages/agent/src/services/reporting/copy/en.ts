@@ -16,7 +16,7 @@ export const EN_REPORTING_COPY = {
     "You've stopped the assistant. I won't read new messages until you send START. Published reports stay public; unpublished drafts are being removed. Support: {support}",
   "consent.deleted":
     "Your unpublished drafts and files are being deleted. Published reports stay public on chain and IPFS and can't be removed. Support: {support}",
-  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• Stewards: send REVIEW to see work waiting for review.\n• To connect your account, open the verification link I send and return here with PAIR followed by its six-digit code. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
+  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and return here with PAIR followed by its six-digit code. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
   "intake.paused":
     "Reporting is paused for maintenance. Your message is saved and I'll reply when it resumes. Support: {support}",
   "media.photoAdded": "Photo added to your report.",
@@ -57,6 +57,8 @@ export const EN_REPORTING_COPY = {
   "media.spreadsheetNative":
     "I read the spreadsheet's visible cells, but couldn't read its pictures or charts. Please check the summary before confirming.",
   "report.askGarden": "Which garden is this report for?",
+  "report.askOwnGarden": "Which of your gardens is this report for?",
+  "report.otherGardens": "Other gardens",
   "report.gardensUnavailable":
     "I can't load the list of gardens right now. Your message is saved; please send another message in a few minutes. Support: {support}",
   "report.askAction": "Which activity in {garden} best matches your work?",
@@ -133,7 +135,22 @@ export const EN_REPORTING_COPY = {
     "To publish, verify your existing Green Goods account (wallet or passkey) here. The link expires in 10 minutes and never moves funds.",
   "link.label": "Verify account",
   "link.pairHint": "When the page shows a code, send it here as: PAIR 123456",
-  "link.paired": "Your account {account} is now linked.",
+  "link.paired": "Your account {account} is now linked.{gardens}",
+  "link.gardens": "\nYour gardens: {gardens}.",
+  "link.gardensMore": "{gardens} and {count} more",
+  "link.noGardens": "\nI don't see it in a garden yet. A garden steward can add you.",
+  "link.offer":
+    "Before your first report, connect your Green Goods account so I can show your gardens. Or skip this and tell me about the work you did; I'll ask you to connect when you publish.",
+  "link.offerLabel": "Connect account",
+  "link.offerDeclined":
+    "No problem. Tell me about the work you did; you can send text and photos. Send CONNECT whenever you want to link your account.",
+  "link.connect":
+    "To connect your Green Goods account (wallet or passkey), verify it here. The link expires in 10 minutes and never moves funds.",
+  "link.connectNamed":
+    "{account} is in: {gardens}.\nTo connect it to this chat, verify it here with that account. The link expires in 10 minutes and never moves funds.",
+  "link.connectNamedNoGardens":
+    "I don't see {account} in a garden yet.\nTo connect it to this chat, verify it here with that account. The link expires in 10 minutes and never moves funds.",
+  "link.already": "This chat is linked to {account}.{gardens}",
   "link.pairFailed":
     "That code doesn't match an open verification. Check the code on the Green Goods page.",
   "link.accountMismatch":
