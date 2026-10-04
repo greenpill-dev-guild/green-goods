@@ -152,7 +152,9 @@ describe("Telegram delivery", () => {
     const verify = "Verify your account.";
     const production = "https://www.greengoods.app/agent/reporting/r1";
     const local = "https://localhost:3001/agent/reporting/r2";
-    await transport.send(request({ text: verify, link: { url: production, label: "Verify" } }));
+    await transport.send(
+      request({ text: verify, link: { url: production, label: "Verify", copyLabel: "Copy link" } })
+    );
     await transport.send(request({ text: verify, link: { url: local, label: "Verify" } }));
 
     expect(api.messages()).toEqual([
@@ -169,7 +171,12 @@ describe("Telegram delivery", () => {
       {
         chat_id: "7001",
         text: verify,
-        reply_markup: { inline_keyboard: [[{ text: "Verify", url: production }]] },
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "Verify", url: production }],
+            [{ text: "Copy link", copy_text: { text: production } }],
+          ],
+        },
       },
       { chat_id: "7001", text: `${verify}\n\nVerify: ${local}` },
     ]);

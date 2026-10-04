@@ -52,7 +52,7 @@ export interface OutboundChoice {
 export interface OutboundMessage {
   text: string;
   choices?: OutboundChoice[];
-  link?: { url: string; label: string };
+  link?: { url: string; label: string; copyLabel?: string };
 }
 
 export interface OutboundRequest {

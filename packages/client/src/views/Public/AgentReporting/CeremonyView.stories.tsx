@@ -89,6 +89,18 @@ const base: Props = {
   purpose: null,
   channelLabel: "Telegram",
   pairingCode: null,
+  inAppBrowser: false,
+  passkeyUnavailable: false,
+  linkCopied: false,
+  openInBrowser: asyncNoop,
+  communityOffer: null,
+  joinFailure: null,
+  joinSending: false,
+  skipCommunity: noop,
+  joinCommunity: asyncNoop,
+  lastFailure: null,
+  createAccount: async () => true,
+  accountKind: null,
   sessionAccount: null,
   resource: null,
   operation: null,
@@ -178,6 +190,42 @@ export const Proving: Story = { args: { ...ProveConnected.args, stage: "proving"
 export const ConnectDeclined: Story = { args: { ...ProveConnected.args, error: "declined" } };
 /** Linking an account asks for one signature, then a code sent in chat. */
 export const LinkConnect: Story = { args: { stage: "connect", purpose: "link_account" } };
+export const CreateAccount: Story = {
+  args: { stage: "connect", purpose: "link_account", initialCreate: true },
+};
+export const CreateAccountSpanish: Story = {
+  ...CreateAccount,
+  parameters: { locale: "es" },
+};
+export const CreateAccountPortuguese: Story = {
+  ...CreateAccount,
+  parameters: { locale: "pt" },
+};
+export const Join: Story = {
+  args: {
+    stage: "pairing",
+    purpose: "link_account",
+    account: ACCOUNT,
+    accountKind: "passkey",
+    pairingCode: "481516",
+    communityOffer: {
+      address: "0xF7b892886998DAe960D64a9db488336684F137A0",
+      name: "Community Garden",
+      chainId: 42161,
+    },
+  },
+};
+export const JoinSpanish: Story = { ...Join, parameters: { locale: "es" } };
+export const JoinPortuguese: Story = { ...Join, parameters: { locale: "pt" } };
+export const InAppStart: Story = { args: { stage: "intro", inAppBrowser: true } };
+export const InAppStartSpanish: Story = {
+  ...InAppStart,
+  parameters: { locale: "es" },
+};
+export const InAppStartPortuguese: Story = {
+  ...InAppStart,
+  parameters: { locale: "pt" },
+};
 export const Pairing: Story = {
   args: { stage: "pairing", purpose: "link_account", pairingCode: "481516", account: ACCOUNT },
 };
@@ -192,6 +240,7 @@ export const Review: Story = {
     operation,
   },
 };
+export const ReviewDisconnected: Story = { args: { ...Review.args, account: null } };
 export const ReviewWrongAccount: Story = {
   args: {
     ...Review.args,

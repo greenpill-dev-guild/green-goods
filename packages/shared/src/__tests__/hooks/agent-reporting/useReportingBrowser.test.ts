@@ -30,4 +30,26 @@ describe("reporting browser context", () => {
       passkeyUnavailable: false,
     });
   });
+
+  it("leaves ordinary iOS Safari outside the in-app flow", () => {
+    vi.stubGlobal("window", { PublicKeyCredential: function PublicKeyCredential() {} });
+    vi.stubGlobal("navigator", {
+      userAgent: "Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+    });
+    expect(readReportingBrowserContext()).toMatchObject({
+      platform: "ios",
+      inApp: false,
+      passkeyUnavailable: false,
+    });
+  });
+
+  it("returns a neutral context during server rendering", () => {
+    vi.stubGlobal("window", undefined);
+    vi.stubGlobal("navigator", undefined);
+    expect(readReportingBrowserContext()).toEqual({
+      platform: "unknown",
+      inApp: false,
+      passkeyUnavailable: false,
+    });
+  });
 });

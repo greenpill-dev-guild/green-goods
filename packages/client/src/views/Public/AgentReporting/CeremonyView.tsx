@@ -474,9 +474,11 @@ export function CeremonyView(props: CeremonyViewProps) {
         />
       ) : null}
       {screen.isLink && stage === "connect" && !props.account && !createScreen ? (
-        <button
+        <Button
           type="button"
-          className="min-h-11 text-sm text-primary-action underline underline-offset-4"
+          size="sm"
+          emphasis="tertiary"
+          className="text-sm text-primary-action underline underline-offset-4"
           disabled={props.passkeyUnavailable}
           onClick={() => setCreating(true)}
         >
@@ -484,7 +486,7 @@ export function CeremonyView(props: CeremonyViewProps) {
             id: "public.reporting.create.link",
             defaultMessage: "New here? Create an account",
           })}
-        </button>
+        </Button>
       ) : null}
       {publication}
       {/* The first item is the one thing not yet seen when Review opens, so it leads, and the

@@ -151,7 +151,9 @@ describe("separate steward review activation", () => {
     });
     const before = harness.transport.sent.length;
     await confirmNextReview();
-    expect(harness.transport.sent.slice(before).some((sent) => sent.message.link)).toBe(false);
+    expect(
+      harness.transport.sent.slice(before).find((sent) => sent.message.link)?.message.link?.label
+    ).toBe("View your report");
     expect(row("SELECT submissions_consumed FROM execution_grants")).toEqual({
       submissions_consumed: 2,
     });
