@@ -180,6 +180,10 @@ vi.mock("@green-goods/shared/hooks/client-ui/commitment/usePendingProof", () => 
   discardPendingProof: vi.fn(async () => true),
 }));
 
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs", () => ({
+  useCommitmentJobs: () => ({ sendsFromTap: false }),
+}));
+
 vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState", () => ({
   useCommitmentQueueState: () => ({
     linkedWorkIds: new Set<string>(),
