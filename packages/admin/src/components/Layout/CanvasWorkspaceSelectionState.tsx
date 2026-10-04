@@ -61,7 +61,7 @@ export function CanvasWorkspaceSelectionState({
   }
 
   return (
-    <div className="px-4 py-8 sm:px-6">
+    <div className="py-8 min-[600px]:px-4 sm:px-6">
       <AdminCard density="none" className="mx-auto max-w-3xl">
         <AdminCardHeader>
           <div>

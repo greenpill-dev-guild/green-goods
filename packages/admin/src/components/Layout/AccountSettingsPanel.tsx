@@ -28,6 +28,9 @@ const DOCS_URL = "https://docs.greengoods.app";
 const SUPPORT_TELEGRAM_URL = "https://t.me/+N3o3_43iRec1Y2Jh";
 
 interface AccountSettingsPanelProps {
+  /** `sheet` (default) keeps the side sheet's body inset; `page` is the mobile
+   * Profile route, where the shell's phone gutter is already the side inset. */
+  layout?: "sheet" | "page";
   className?: string;
 }
 
@@ -75,7 +78,7 @@ function InfoRow({ label, value }: { label: string; value: ReactNode }) {
  * About. Identity actions (Disconnect) live in the Account panel — settings
  * hold preferences, not who-you-are.
  */
-export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
+export function AccountSettingsPanel({ layout = "sheet", className }: AccountSettingsPanelProps) {
   const { formatMessage } = useIntl();
   const { theme, setTheme } = useTheme();
   const { locale, availableLocales, switchLanguage } = useApp();
@@ -83,7 +86,10 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
   const chainName = getChainName(DEFAULT_CHAIN_ID);
 
   return (
-    <SheetBody padded={true} className={cn("flex flex-col gap-4", className)}>
+    <SheetBody
+      padded={layout === "sheet"}
+      className={cn("flex flex-col gap-4", layout === "page" && "py-5", className)}
+    >
       {/* Appearance */}
       <section className="space-y-3">
         <SettingsSectionHeader

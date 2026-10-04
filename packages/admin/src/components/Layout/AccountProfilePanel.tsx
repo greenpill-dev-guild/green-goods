@@ -23,6 +23,12 @@ import { AccountProfileAvatarEditor } from "./AccountProfileAvatarEditor";
 
 export interface AccountProfilePanelProps {
   controller: AccountProfileController;
+  /**
+   * `sheet` (default) is the side sheet, whose body carries its own inset.
+   * `page` is the mobile Profile route: the shell's phone gutter is already the
+   * side inset there, so the body keeps only its block padding.
+   */
+  layout?: "sheet" | "page";
   className?: string;
 }
 
@@ -48,7 +54,11 @@ function IdentityChip({ children }: { children: ReactNode }) {
  *    the workspace (same action as the AppBar GardenChip).
  * 4. Sign out — pinned footer (identity action lives with identity).
  */
-export function AccountProfilePanel({ controller, className }: AccountProfilePanelProps) {
+export function AccountProfilePanel({
+  controller,
+  layout = "sheet",
+  className,
+}: AccountProfilePanelProps) {
   const { formatMessage } = useIntl();
   const {
     authMethodLabel,
@@ -64,7 +74,10 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
 
   return (
     <>
-      <SheetBody padded={true} className={cn("flex flex-col gap-4", className)}>
+      <SheetBody
+        padded={layout === "sheet"}
+        className={cn("flex flex-col gap-4", layout === "page" && "py-5", className)}
+      >
         {/* Identity header — who is signed in, at headline weight. */}
         <div className="flex items-center gap-4">
           <AccountProfileAvatarEditor fallbackInitials={avatarFallback} />
@@ -170,7 +183,10 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
   );
 }
 
-export function AccountProfilePanelContainer({ className }: { className?: string }) {
+export function AccountProfilePanelContainer({
+  layout,
+  className,
+}: Pick<AccountProfilePanelProps, "layout" | "className">) {
   const controller = useAccountProfileController();
-  return <AccountProfilePanel controller={controller} className={className} />;
+  return <AccountProfilePanel controller={controller} layout={layout} className={className} />;
 }

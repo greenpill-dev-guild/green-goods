@@ -850,6 +850,19 @@ describe("CanvasLayout", () => {
     expect(main?.getAttribute("style")).toContain("padding-bottom");
   });
 
+  it("takes its side gutter and width cap from the shell tokens, never a fixed value", () => {
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    // The phone gutter reaches the page through these two tokens (index.css).
+    const main = document.getElementById("main-content");
+    expect(main?.style.paddingInline).toMatch(/^var\(--admin-main-inline-gutter,/);
+    expect(main?.style.maxWidth).toMatch(/^var\(--admin-main-max-width,/);
+  });
+
   it("renders a left-inspector config as a centered dialog", async () => {
     mockRouteLeftSheetConfig.current = {
       title: "Mobile inspector",

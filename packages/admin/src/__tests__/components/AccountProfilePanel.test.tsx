@@ -92,4 +92,17 @@ describe("AccountProfilePanel", () => {
 
     expect(controller.signOut).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps the sheet's side inset in the side sheet and drops it on the Profile route", () => {
+    const { container, rerender } = render(<AccountProfilePanel controller={createController()} />);
+    const body = () => container.querySelector<HTMLElement>('[data-component="SheetBody"]');
+
+    expect(body()?.style.padding).toBe("20px 16px");
+
+    rerender(<AccountProfilePanel controller={createController()} layout="page" />);
+
+    // The shell's phone gutter is the one side inset there; only block padding stays.
+    expect(body()?.style.padding).toBe("");
+    expect(body()).toHaveClass("py-5");
+  });
 });
