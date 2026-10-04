@@ -4,6 +4,9 @@
  * state. `{name}` placeholders are filled by `reportingText`.
  */
 export const EN_REPORTING_COPY = {
+  "link.browserHint":
+    "Open it in Safari or Chrome. If it opens inside the chat app, use that page's menu to open it in your browser, or copy the link.",
+  "link.copyButton": "Copy link",
   "consent.notice":
     "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
   "consent.processors": " and may use AI to understand them",
@@ -16,7 +19,7 @@ export const EN_REPORTING_COPY = {
     "You've stopped the assistant. I won't read new messages until you send START. Published reports stay public; unpublished drafts are being removed. Support: {support}",
   "consent.deleted":
     "Your unpublished drafts and files are being deleted. Published reports stay public on chain and IPFS and can't be removed. Support: {support}",
-  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and return here with PAIR followed by its six-digit code. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
+  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
   "intake.paused":
     "Reporting is paused for maintenance. Your message is saved and I'll reply when it resumes. Support: {support}",
   "media.photoAdded": "Photo added to your report.",
@@ -61,6 +64,11 @@ export const EN_REPORTING_COPY = {
   "report.otherGardens": "Other gardens",
   "report.gardensUnavailable":
     "I can't load the list of gardens right now. Your message is saved; please send another message in a few minutes. Support: {support}",
+  "report.questionPosition": "{position} of {total} · ",
+  "report.actionAdoptedOne":
+    "Got it: {action} at {garden}. 1 quick question, then a summary to check.",
+  "report.actionAdoptedMany":
+    "Got it: {action} at {garden}. {count} quick questions, then a summary to check.",
   "report.askAction": "Which activity in {garden} best matches your work?",
   "report.moreChoices": "More options",
   "report.noActions":
@@ -99,8 +107,16 @@ export const EN_REPORTING_COPY = {
   "report.invalid.unit_required": "Please include the unit, for example 2 hours or 30 minutes.",
   "report.invalid.too_long": "That's a little long. Could you shorten it?",
   "report.invalid.empty": "I didn't catch an answer. Could you try again?",
+  "report.summaryButtonInstruction": "Tap Confirm to publish, Edit to change something, or Cancel.",
+  "report.summaryCodeInstruction":
+    "Reply CONFIRM {token} to publish, EDIT to change something, or CANCEL.",
+  "publish.consentButtonInstruction": "Tap Publish to continue.",
+  "publish.consentCodeInstruction": "Reply PUBLISH {token} to continue.",
+  "review.summaryButtonInstruction": "Tap Confirm to record it, Edit to change it, or Cancel.",
+  "review.summaryCodeInstruction":
+    "Reply CONFIRM {token} to record it, EDIT to change it, or CANCEL.",
   "report.summary":
-    "Please check your report for {garden}:\n• Activity: {action}\n• Title: {title}\n• Time spent: {time}\n• Description: {feedback}{details}\n• Photos: {photos}\n\nWhen published, the title, description, details and photos become public on Arbitrum and IPFS and cannot be deleted.{account}\n\nReply CONFIRM {token} to publish, EDIT to change something, or CANCEL.",
+    "Please check your report for {garden}:\n• Activity: {action}\n• Title: {title}\n• Time spent: {time}\n• Description: {feedback}{details}\n• Photos: {photos}\n\nWhen published, the title, description, details and photos become public on Arbitrum and IPFS and cannot be deleted.{account}\n\n{instruction}",
   "report.summaryAccount": "\nIt will be published by your account {account}.",
   "report.confirm": "Confirm",
   "report.edit": "Edit",
@@ -135,11 +151,17 @@ export const EN_REPORTING_COPY = {
   "link.request":
     "To publish, verify your existing Green Goods account (wallet or passkey) here. The link expires in 10 minutes and never moves funds.",
   "link.label": "Verify account",
-  "link.pairHint": "When the page shows a code, send it here as: PAIR 123456",
+  "link.pairHint": "When the page shows a code, send the six digits alone here.",
   "link.paired": "Your account {account} is now linked.{gardens}",
   "link.gardens": "\nYour gardens: {gardens}.",
   "link.gardensMore": "{gardens} and {count} more",
-  "link.noGardens": "\nI don't see it in a garden yet. A garden steward can add you.",
+  "link.joinCommunity": "Open this link to join the Community Garden with {account}.",
+  "link.joinCommunityQuestion":
+    "I don't see your account in this garden yet. Join the Community Garden, then tap I've joined.",
+  "link.joinCommunityLabel": "Join the Community Garden",
+  "link.joined": "I've joined",
+  "link.noGardens":
+    "\nI don't see it in a garden yet. A garden you just joined can take a few minutes to show here.",
   "link.offer":
     "Before your first report, connect your Green Goods account so I can show your gardens. Or skip this and tell me about the work you did; I'll ask you to connect when you publish.",
   "link.offerLabel": "Connect account",
@@ -159,7 +181,7 @@ export const EN_REPORTING_COPY = {
   "link.accountTaken":
     "That account is already linked to another chat. If it's yours, send RECOVER from the chat you want to use. Support: {support}",
   "publish.consent":
-    "Publish your confirmed report to {garden} from {account}? The title, description, details and photos become public and cannot be deleted. Reply PUBLISH {token} to continue.",
+    "Publish your confirmed report to {garden} from {account}? The title, description, details and photos become public and cannot be deleted. {instruction}",
   "publish.publish": "Publish",
   "publish.signLink": "Open this page to review and sign the exact publication with your {kind}.",
   "publish.signLabel": "Review and publish",
@@ -182,6 +204,7 @@ export const EN_REPORTING_COPY = {
     "The signature was declined, so nothing was published. Here is your report again; confirm it when you're ready.",
   "publish.reverted":
     "The publication failed on chain. Your report is saved; check it and confirm again to retry.",
+  "publish.viewReport": "View your report",
   "publish.published": "Your report is published ✅\nWork: {uid}\nTransaction: {tx}",
   "grant.active":
     "Reporting in chat is on for {garden} until {until}. I'll still ask you to confirm each report.",
@@ -201,7 +224,7 @@ export const EN_REPORTING_COPY = {
   "review.askFeedback":
     "Add feedback for the gardener (it will be public). For an approval you can reply SKIP.",
   "review.summary":
-    "Your review of “{title}” in {garden}:\n• Decision: {decision}\n• Confidence: {confidence}\n• Feedback: {feedback}\n• Method: human review\n\nThe decision and feedback become public on Arbitrum.\nReply CONFIRM {token} to record it, EDIT to change it, or CANCEL.",
+    "Your review of “{title}” in {garden}:\n• Decision: {decision}\n• Confidence: {confidence}\n• Feedback: {feedback}\n• Method: human review\n\nThe decision and feedback become public on Arbitrum.\n{instruction}",
   "review.selfReview": "You can't review your own work.",
   "review.notSteward": "Your account isn't a steward of {garden}, so you can't review this work.",
   "review.notOperator":

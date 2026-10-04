@@ -9,7 +9,14 @@ import type { PromptRecord } from "../prompts";
 import type { TurnPlan } from "./context";
 import { EDITABLE_STATES, lifecycleState } from "./draft-commit";
 import { askEditField, askEditMenu } from "./edit-menu";
-import { answeredGarden, askAction, askField, askGarden, promptNextStep } from "./prompting";
+import {
+  answeredGarden,
+  askAction,
+  askField,
+  askGarden,
+  fieldQuestionText,
+  promptNextStep,
+} from "./prompting";
 import { handleReportMessage } from "./report-message";
 import {
   adoptAction,
@@ -173,7 +180,13 @@ export function handleReportAnswer(
               { id: "m", label: writer.text("report.minutes"), value: `minutes:${value}` },
             ],
           },
-          () => writer.text("report.askTimeUnit", { value })
+          () =>
+            fieldQuestionText(
+              writer,
+              draft,
+              { kind: "time" },
+              writer.text("report.askTimeUnit", { value })
+            )
         );
         return;
       }

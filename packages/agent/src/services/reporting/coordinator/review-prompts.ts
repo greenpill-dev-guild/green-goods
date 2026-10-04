@@ -103,6 +103,12 @@ export function askReviewConfirmation(
             : writer.text(`review.confidence.${content.confidence ?? 1}` as "review.confidence.1"),
         feedback: content.feedback || writer.text("review.noFeedback"),
         token: prompt.token,
+        instruction: writer.text(
+          writer.usesButtons()
+            ? "review.summaryButtonInstruction"
+            : "review.summaryCodeInstruction",
+          { token: prompt.token }
+        ),
       })
   );
 }

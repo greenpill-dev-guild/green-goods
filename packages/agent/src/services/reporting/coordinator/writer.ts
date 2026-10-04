@@ -28,6 +28,14 @@ export class ConversationWriter {
     readonly target: ReplyTarget
   ) {}
 
+  /** Telegram's transport renders every choice as a button for this sender. */
+  usesButtons(): boolean {
+    const row = this.core.db
+      .query("SELECT provider_realm FROM conversations WHERE id = $id")
+      .get({ id: this.target.conversationId }) as { provider_realm: string } | null;
+    return row?.provider_realm.startsWith("telegram:") ?? false;
+  }
+
   text(key: ReportingCopyKey, values: CopyValues = {}): string {
     return reportingText(this.target.locale, key, {
       support: this.core.settings.supportContact,
@@ -39,6 +47,13 @@ export class ConversationWriter {
     const index = this.replyIndex;
     this.replyIndex += 1;
     const binding = this.target.binding;
+    const outgoing = message.link
+      ? {
+          ...message,
+          text: `${message.text.trimEnd()}\n\n${this.text("link.browserHint")}`,
+          link: { ...message.link, copyLabel: this.text("link.copyButton") },
+        }
+      : message;
     enqueueReply(this.core, {
       conversationId: this.target.conversationId,
       subjectId: this.target.subjectId,
@@ -50,7 +65,7 @@ export class ConversationWriter {
       dedupeKey: `${this.target.dedupePrefix}:${index}:${kind}`,
       replyKind: kind,
       audience: "conversation",
-      message,
+      message: outgoing,
     });
   }
 

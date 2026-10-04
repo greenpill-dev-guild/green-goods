@@ -17,6 +17,7 @@ import { type ChatCommand, consentAnswer, parseCommand } from "./commands";
 export interface TurnContext {
   event: InboxEventRow;
   message: InboundMessageEvent;
+  command: ChatCommand | null;
   conversationId: string;
   subjectId: string;
   binding: ParticipantBinding | null;
@@ -55,6 +56,7 @@ const TEXT_ANSWER_PROMPTS = new Set([
   "feedback",
   "conflict",
   "edit_field",
+  "join_community",
   "select_review_work",
   "review_decision",
   "review_confidence",
@@ -75,12 +77,38 @@ export function loadTurnContext(core: ReportingCore, event: InboxEventRow): Turn
       draftUnavailable = true;
     }
   }
+  const parsed = parseCommand(message.text);
+  const bareCode = message.text?.trim();
+  // Only a chat with its own live, verified browser challenge treats six digits as a code.
+  // pairFromChat still compares the hash and counts every wrong attempt.
+  const waitingForPair =
+    binding && bareCode && /^\d{6}$/.test(bareCode)
+      ? core.db
+          .query(
+            `SELECT 1 FROM browser_challenges c
+         JOIN continuation_requests r ON r.id = c.request_id
+         JOIN channel_bindings b ON b.id = r.channel_binding_id
+         JOIN participants p ON p.id = b.participant_id
+         WHERE r.channel_subject_id = $subject AND r.participant_id = $participant
+           AND r.state = 'open' AND r.purpose IN ('link_account','publish_work','review_decision')
+           AND b.participant_id = $participant AND b.channel_subject_id = $subject
+           AND b.status IN ('provisional','active') AND b.identity_epoch = r.identity_epoch
+           AND p.identity_epoch = r.identity_epoch AND c.state = 'proof_verified'
+           AND c.expires_at > $now AND c.pairing_attempts < 5 LIMIT 1`
+          )
+          .get({
+            subject: event.channel_subject_id,
+            participant: binding.participantId,
+            now: core.clock.now(),
+          })
+      : null;
   const notice = core.db
     .query("SELECT notice_sent_at FROM channel_subjects WHERE id = $id")
     .get({ id: event.channel_subject_id }) as { notice_sent_at: number | null } | null;
   return {
     event,
     message,
+    command: waitingForPair ? { kind: "pair", code: bareCode as string } : parsed,
     conversationId: event.conversation_id,
     subjectId: event.channel_subject_id,
     binding,
@@ -99,7 +127,7 @@ export function loadTurnContext(core: ReportingCore, event: InboxEventRow): Turn
 
 export function planTurn(ctx: TurnContext): TurnPlan {
   const { message, prompt } = ctx;
-  const command = parseCommand(message.text);
+  const command = ctx.command;
 
   if (!ctx.processingConsent) {
     if (command?.kind === "stop" || command?.kind === "delete")

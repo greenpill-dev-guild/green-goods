@@ -75,6 +75,33 @@ export function outstandingRequirements(
   return requirements;
 }
 
+/** Stable place of a field question in the activity's required questions. Selection and
+ * contradictions have no number; answered fields retain their place as the report progresses. */
+export function reportQuestionPosition(
+  content: ReportContent,
+  snapshot: ActionDefinitionSnapshot | null,
+  requirement: ReportRequirement
+): { position: number; total: number } | null {
+  if (!snapshot) return null;
+  const questions: ReportRequirement[] = [
+    ...snapshot.definition.inputs
+      .filter((input) => input.required && input.type !== "repeater")
+      .map((input) => ({ kind: "detail" as const, key: input.key })),
+    { kind: "time" },
+    { kind: "title" },
+    { kind: "feedback" },
+  ];
+  const minimum = minimumEvidence(snapshot);
+  if (minimum > 0) questions.push({ kind: "evidence", minimum, have: content.evidence.length });
+  const position = questions.findIndex(
+    (question) =>
+      question.kind === requirement.kind &&
+      (question.kind !== "detail" ||
+        (requirement.kind === "detail" && question.key === requirement.key))
+  );
+  return position < 0 ? null : { position: position + 1, total: questions.length };
+}
+
 export interface ReportSummary {
   draftId: string;
   revision: number;

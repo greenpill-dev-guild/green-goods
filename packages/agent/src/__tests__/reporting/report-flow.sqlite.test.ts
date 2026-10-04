@@ -69,8 +69,12 @@ describe("story-first reporting", () => {
     expect(await harness.say(ADA, "1")).toEqual([
       "Which activity in TAS best matches your work?\n1. Tree planting\n2. Weeding",
     ]);
-    expect((await harness.press(ADA, "Tree planting"))[0]).toBe(
-      "Seedlings planted? Please reply with a number (seedlings)."
+    const adopted = await harness.press(ADA, "Tree planting");
+    expect(adopted[0]).toMatch(
+      /^Got it: Tree planting at TAS\. [0-9]+ quick questions?, then a summary to check\.$/
+    );
+    expect(adopted[1]).toMatch(
+      /^[0-9]+ of [0-9]+ · Seedlings planted\? Please reply with a number \(seedlings\)\.$/
     );
     expect(await harness.say(ADA, "twelve")).toEqual([
       "Please reply with a number, for example 12.",
@@ -79,11 +83,11 @@ describe("story-first reporting", () => {
       "This is counted in seedlings, but you wrote bags. Could you give it in seedlings?",
     ]);
     expect((await harness.say(ADA, "12 seedlings"))[0]).toContain("Main species?");
-    expect(await harness.say(ADA, "2")).toEqual([
-      "How much time did you spend on this work? For example: 2 hours or 45 minutes.",
-    ]);
-    expect((await harness.say(ADA, "3"))[0]).toBe(
-      "Was that 3 hours or 3 minutes?\n1. Hours\n2. Minutes"
+    expect((await harness.say(ADA, "2"))[0]).toMatch(
+      /^[0-9]+ of [0-9]+ · How much time did you spend on this work\? For example: 2 hours or 45 minutes\.$/
+    );
+    expect((await harness.say(ADA, "3"))[0]).toMatch(
+      /^[0-9]+ of [0-9]+ · Was that 3 hours or 3 minutes\?\n1\. Hours\n2\. Minutes$/
     );
     const summary = await harness.press(ADA, "Hours");
     expect(summary[0]).toContain("• Activity: Tree planting");
@@ -97,8 +101,8 @@ describe("story-first reporting", () => {
     ]);
     const linking = await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
     expect(linking).toEqual([
-      "To publish, verify your existing Green Goods account (wallet or passkey) here. The link expires in 10 minutes and never moves funds.",
-      "When the page shows a code, send it here as: PAIR 123456",
+      "To publish, verify your existing Green Goods account (wallet or passkey) here. The link expires in 10 minutes and never moves funds.\n\nOpen it in Safari or Chrome. If it opens inside the chat app, use that page's menu to open it in your browser, or copy the link.",
+      "When the page shows a code, send the six digits alone here.",
     ]);
 
     const draft = harness.core.db
@@ -227,9 +231,9 @@ describe("a reply that is not one of the choices", () => {
     ]);
     // The garden's one activity is read in the same turn, so the reply moves on to its first field.
     harness.interpreter.responses = [read("report_content", AIYELOJA.key)];
-    expect(await harness.say(ADA, "the family garden")).toEqual([
-      "Seedlings planted? Please reply with a number (seedlings).",
-    ]);
+    const adoptedFromModel = await harness.say(ADA, "the family garden");
+    expect(adoptedFromModel[0]).toMatch(/^Got it: Tree planting at Aiyeloja Family Garden\./);
+    expect(adoptedFromModel[1]).toMatch(/^[0-9]+ of [0-9]+ · Seedlings planted\?/);
     expect(harness.interpreter.requests.at(-1)?.message.text).toBe("the family garden");
     // Numbers and a choice's own label never go to the model.
     const asked = harness.interpreter.requests.length;
@@ -241,8 +245,10 @@ describe("a reply that is not one of the choices", () => {
 
 const ada = adaAccount.address.toLowerCase();
 const VERIFY = "The link expires in 10 minutes and never moves funds.";
-const CONNECT_LINK = `To connect your Green Goods account (wallet or passkey), verify it here. ${VERIFY}`;
-const PAIR_HINT = "When the page shows a code, send it here as: PAIR 123456";
+const BROWSER_HINT =
+  "Open it in Safari or Chrome. If it opens inside the chat app, use that page's menu to open it in your browser, or copy the link.";
+const CONNECT_LINK = `To connect your Green Goods account (wallet or passkey), verify it here. ${VERIFY}\n\n${BROWSER_HINT}`;
+const PAIR_HINT = "When the page shows a code, send the six digits alone here.";
 const STORY = "Today I planted twelve baobab seedlings by the fence";
 
 /** Opens the chat with START, as Telegram does, and agrees to processing. */
@@ -280,9 +286,7 @@ describe("linking an account before reporting", () => {
     expect((await harness.press(ADA, "TAS"))[0]).toContain("Which activity in TAS");
     // START no longer offers linking, and must not replace the report's open question.
     expect((await harness.say(ADA, "START"))[0]).toContain("Green Goods reporting:");
-    expect((await harness.say(ADA, "1"))[0]).toBe(
-      "Seedlings planted? Please reply with a number (seedlings)."
-    );
+    expect((await harness.say(ADA, "1"))[0]).toMatch(/^Got it: Tree planting at TAS\./);
   });
 
   it("takes a typed address as a request to link that account, and trusts nothing until it is proven", async () => {
@@ -290,7 +294,7 @@ describe("linking an account before reporting", () => {
     await started();
     // The address arrives as wallets show it, in mixed case.
     expect(await harness.say(ADA, adaAccount.address)).toEqual([
-      `${ada} is in: TAS.\nTo connect it to this chat, verify it here with that account. ${VERIFY}`,
+      `${ada} is in: TAS.\nTo connect it to this chat, verify it here with that account. ${VERIFY}\n\n${BROWSER_HINT}`,
       PAIR_HINT,
     ]);
     expect(harness.core.db.query("SELECT count(*) AS n FROM account_bindings").get()).toEqual({
@@ -335,12 +339,12 @@ describe("linking an account before reporting", () => {
     await started();
     const unknown = `0x${"c".repeat(40)}`;
     expect((await harness.say(ADA, `CONNECT ${unknown}`))[0]).toBe(
-      `I don't see ${unknown} in a garden yet.\nTo connect it to this chat, verify it here with that account. ${VERIFY}`
+      `I don't see ${unknown} in a garden yet.\nTo connect it to this chat, verify it here with that account. ${VERIFY}\n\n${BROWSER_HINT}`
     );
     // A plain CONNECT replaces the link that was limited to the named account.
     await harness.say(ADA, "CONNECT");
     expect(await pairAda()).toEqual([
-      `Your account ${ada} is now linked.\nI don't see it in a garden yet. A garden steward can add you.`,
+      `Your account ${ada} is now linked.\nI don't see it in a garden yet. A garden you just joined can take a few minutes to show here.`,
     ]);
   });
 });

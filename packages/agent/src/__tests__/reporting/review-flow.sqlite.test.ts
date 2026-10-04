@@ -106,9 +106,9 @@ describe("steward review", () => {
       "• Decision: Approve\n• Confidence: High\n• Feedback: Well documented, thank you\n• Method: human review"
     );
     const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
-    expect(await harness.say(BOLA, `CONFIRM ${token}`)).toEqual([
-      "Open this page to check and sign your decision with your wallet.",
-    ]);
+    expect((await harness.say(BOLA, `CONFIRM ${token}`))[0]).toContain(
+      "Open this page to check and sign your decision with your wallet."
+    );
 
     const { browser, view } = await openDecisionPage();
     expect(view).toMatchObject({ kind: "review", state: "awaitingSignature", gardenLabel: "TAS" });
@@ -141,7 +141,9 @@ describe("steward review", () => {
       transactionHash: hash,
     });
     await harness.drain();
-    expect(sentTexts().at(-1)).toBe(`Your review is recorded ✅\nTransaction: ${hash}`);
+    expect(sentTexts().at(-1)).toBe(
+      `Your review is recorded ✅\nTransaction: https://arbiscan.io/tx/${hash}\n\nOpen it in Safari or Chrome. If it opens inside the chat app, use that page's menu to open it in your browser, or copy the link.`
+    );
     expect(harness.chain.works.get(workUID)?.approved).toBe(true);
     expect(harness.core.db.query("SELECT lifecycle FROM review_intents").get()).toEqual({
       lifecycle: "recorded",

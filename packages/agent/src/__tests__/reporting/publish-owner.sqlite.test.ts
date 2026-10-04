@@ -45,7 +45,7 @@ function row<T>(sql: string, params: Record<string, string | number> = {}): T {
 describe("owner publication", () => {
   it("links an account in chat, publishes the exact envelope and verifies the receipt", async () => {
     await confirmLinkAndPublish(harness);
-    expect(sentTexts().at(-1)).toBe(
+    expect(sentTexts().at(-1)).toContain(
       "Open this page to review and sign the exact publication with your wallet."
     );
 
@@ -95,8 +95,12 @@ describe("owner publication", () => {
     );
     expect(published).toMatchObject({ state: "published", transaction_hash: hash });
     expect(sentTexts().at(-1)).toBe(
-      `Your report is published ✅\nWork: ${published.attestation_uid}\nTransaction: ${hash}`
+      `Your report is published ✅\nWork: ${published.attestation_uid}\nTransaction: https://arbiscan.io/tx/${hash}\n\nOpen it in Safari or Chrome. If it opens inside the chat app, use that page's menu to open it in your browser, or copy the link.`
     );
+    expect(harness.transport.sent.at(-1)?.message.link).toMatchObject({
+      url: `https://greengoods.test/gardens/${TAS.address.toLowerCase()}/work/${published.attestation_uid}`,
+      label: "View your report",
+    });
     // Attribution is the gardener's own account, never the Agent or a relayer.
     expect(row("SELECT attester, garden_address FROM work_records")).toEqual({
       attester: adaAccount.address.toLowerCase(),

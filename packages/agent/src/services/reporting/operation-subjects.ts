@@ -1,3 +1,4 @@
+import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
 import type { PublicationEnvelope } from "@green-goods/shared/modules/agent-reporting";
 import { activeConsentId, hasPublicationConsent } from "./consent";
 import { invalidateConfirmation } from "./confirmations";
@@ -50,6 +51,15 @@ export interface OperationSubject {
     envelope: PublicationEnvelope,
     prefix: string
   ): void;
+}
+
+function publicWorkLink(core: ReportingCore, garden: string, workUID: string): string {
+  return `${core.settings.browserOrigin}/gardens/${encodeURIComponent(garden)}/work/${encodeURIComponent(workUID)}`;
+}
+
+function transactionLink(chainId: number, hash: string): string {
+  const explorer = getNetworkConfig(chainId).blockExplorer;
+  return explorer ? `${explorer.replace(/\/$/, "")}/tx/${hash}` : hash;
 }
 
 function channelSubject(core: ReportingCore, participantId: string, conversationId: string) {
@@ -124,10 +134,18 @@ function draftSubject(core: ReportingCore, loaded: DraftRecord): OperationSubjec
       draft = commitLifecycle(core, draft, [{ type: "RECEIPT_VERIFIED" }], {
         participantAction: false,
       }).draft;
-      writer(prefix)?.say("publish.published", {
-        uid: verified.uid,
-        tx: verified.transactionHash,
-      });
+      const out = writer(prefix);
+      out?.say(
+        "publish.published",
+        {
+          uid: verified.uid,
+          tx: transactionLink(envelope.chainId, verified.transactionHash),
+        },
+        {
+          url: publicWorkLink(core, envelope.gardenAddress, verified.uid),
+          label: out.text("publish.viewReport"),
+        }
+      );
       enqueueJob(core, {
         kind: "purge_private_content",
         subjectId: draft.id,
@@ -172,11 +190,19 @@ function reviewSubject(core: ReportingCore, loaded: ReviewRecord): OperationSubj
     },
     recorded(verified, _envelope, prefix) {
       review = commitReview(core, review, [{ type: "RECEIPT_VERIFIED" }]).review;
-      participantWriter(core, {
+      const out = participantWriter(core, {
         participantId: review.participantId,
         conversationId: review.conversationId,
         dedupePrefix: prefix,
-      })?.say("review.recorded", { tx: verified.transactionHash });
+      });
+      out?.say(
+        "review.recorded",
+        { tx: transactionLink(review.chainId, verified.transactionHash) },
+        {
+          url: publicWorkLink(core, review.content.gardenAddress, review.workUID),
+          label: out.text("publish.viewReport"),
+        }
+      );
     },
   };
 }

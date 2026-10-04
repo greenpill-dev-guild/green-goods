@@ -12,6 +12,7 @@ import {
 import {
   buildReportSummary,
   outstandingRequirements,
+  reportQuestionPosition,
   ReportNotReadyError,
   reportSummaryDigest,
 } from "../../../modules/agent-reporting/report-summary";
@@ -169,6 +170,23 @@ describe("withEvidence", () => {
     const once = withEvidence(emptyReport(), photo);
     expect(once.evidence).toEqual([photo]);
     expect(withEvidence(once, { ...photo, assetId: "asset-2" })).toBe(once);
+  });
+});
+
+describe("reportQuestionPosition", () => {
+  it("keeps required field positions stable as a report is answered", () => {
+    const empty = emptyReport();
+    expect(reportQuestionPosition(empty, snapshot, { kind: "detail", key: "seedlings" })).toEqual({
+      position: 1,
+      total: 5,
+    });
+    expect(
+      reportQuestionPosition(readyReport(), snapshot, { kind: "evidence", minimum: 1, have: 0 })
+    ).toEqual({ position: 5, total: 5 });
+    expect(reportQuestionPosition(empty, snapshot, { kind: "garden" })).toBeNull();
+    expect(
+      reportQuestionPosition(empty, snapshot, { kind: "conflict", field: "title" })
+    ).toBeNull();
   });
 });
 

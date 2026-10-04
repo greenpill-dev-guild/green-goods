@@ -1,6 +1,9 @@
 import type { ReportingCopyKey } from "./en";
 
 export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
+  "link.browserHint":
+    "Abra no Safari ou Chrome. Se abrir dentro do app de chat, use o menu da página para abrir no navegador ou copie o link.",
+  "link.copyButton": "Copiar link",
   "consent.notice":
     "Olá! Sou o assistente de relatos do Green Goods. Para ajudar você a relatar o trabalho na horta, eu guardo e leio as mensagens e os arquivos que você envia aqui{processors}. Nada fica público até você confirmar um relato.\n\nEnvie STOP a qualquer momento para parar, DELETE para apagar seus dados não publicados ou HELP para suporte ({support}).\n\nVocê concorda?",
   "consent.processors": " e posso usar IA para entendê-los",
@@ -13,7 +16,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Você parou o assistente. Não vou ler mensagens novas até você enviar START. Os relatos publicados continuam públicos; os rascunhos não publicados estão sendo apagados. Suporte: {support}",
   "consent.deleted":
     "Seus rascunhos e arquivos não publicados estão sendo apagados. Os relatos publicados continuam públicos na blockchain e no IPFS e não podem ser removidos. Suporte: {support}",
-  help: "Relatos do Green Goods:\n• Descreva seu trabalho e envie fotos para começar um relato.\n• NEW começa um relato novo, STATUS mostra onde você está, CANCEL cancela o relato atual.\n• Responsáveis: enviem REVIEW para ver trabalhos aguardando revisão.\n• CONNECT, ou o endereço da sua conta sozinho, vincula sua conta Green Goods: abra o link de verificação que envio e volte aqui com PAIR seguido do código de seis dígitos. Você pode conectar Telegram e WhatsApp à mesma conta. RECOVER reconecta uma conta após perder o acesso ao chat.\n• STOP para o processamento, DELETE apaga os dados não publicados.\nSuporte: {support}",
+  help: "Relatos do Green Goods:\n• Descreva seu trabalho e envie fotos para começar um relato.\n• NEW começa um relato novo, STATUS mostra onde você está, CANCEL cancela o relato atual.\n• Responsáveis: enviem REVIEW para ver trabalhos aguardando revisão.\n• CONNECT, ou o endereço da sua conta sozinho, vincula sua conta Green Goods: abra o link de verificação que envio e envie só o código de seis dígitos neste chat. Você pode conectar Telegram e WhatsApp à mesma conta. RECOVER reconecta uma conta após perder o acesso ao chat.\n• STOP para o processamento, DELETE apaga os dados não publicados.\nSuporte: {support}",
   "intake.paused":
     "Os relatos estão pausados para manutenção. Sua mensagem foi guardada e vou responder quando voltarem. Suporte: {support}",
   "media.photoAdded": "Foto adicionada ao seu relato.",
@@ -62,6 +65,11 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.otherGardens": "Outras hortas",
   "report.gardensUnavailable":
     "Não consigo carregar a lista de hortas agora. Sua mensagem está guardada; envie outra mensagem em alguns minutos. Suporte: {support}",
+  "report.questionPosition": "{position} de {total} · ",
+  "report.actionAdoptedOne":
+    "Entendi: {action} em {garden}. Uma pergunta rápida e depois um resumo para conferir.",
+  "report.actionAdoptedMany":
+    "Entendi: {action} em {garden}. {count} perguntas rápidas e depois um resumo para conferir.",
   "report.askAction": "Qual atividade em {garden} descreve melhor o seu trabalho?",
   "report.moreChoices": "Mais opções",
   "report.noActions":
@@ -101,8 +109,18 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.invalid.unit_required": "Inclua a unidade, por exemplo 2 horas ou 30 minutos.",
   "report.invalid.too_long": "Ficou um pouco longo. Pode resumir?",
   "report.invalid.empty": "Não recebi uma resposta. Pode tentar de novo?",
+  "report.summaryButtonInstruction":
+    "Toque em Confirmar para publicar, Editar para mudar algo ou Cancelar.",
+  "report.summaryCodeInstruction":
+    "Responda CONFIRM {token} para publicar, EDIT para mudar algo ou CANCEL.",
+  "publish.consentButtonInstruction": "Toque em Publicar para continuar.",
+  "publish.consentCodeInstruction": "Responda PUBLISH {token} para continuar.",
+  "review.summaryButtonInstruction":
+    "Toque em Confirmar para registrar, Editar para mudar ou Cancelar.",
+  "review.summaryCodeInstruction":
+    "Responda CONFIRM {token} para registrar, EDIT para mudar ou CANCEL.",
   "report.summary":
-    "Confira seu relato para {garden}:\n• Atividade: {action}\n• Título: {title}\n• Tempo dedicado: {time}\n• Descrição: {feedback}{details}\n• Fotos: {photos}\n\nAo publicar, o título, a descrição, os detalhes e as fotos ficam públicos na Arbitrum e no IPFS e não podem ser apagados.{account}\n\nResponda CONFIRM {token} para publicar, EDIT para mudar algo ou CANCEL.",
+    "Confira seu relato para {garden}:\n• Atividade: {action}\n• Título: {title}\n• Tempo dedicado: {time}\n• Descrição: {feedback}{details}\n• Fotos: {photos}\n\nAo publicar, o título, a descrição, os detalhes e as fotos ficam públicos na Arbitrum e no IPFS e não podem ser apagados.{account}\n\n{instruction}",
   "report.summaryAccount": "\nSerá publicado pela sua conta {account}.",
   "report.confirm": "Confirmar",
   "report.edit": "Editar",
@@ -137,12 +155,17 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "link.request":
     "Para publicar, verifique aqui sua conta Green Goods (carteira ou passkey). O link expira em 10 minutos e nunca movimenta fundos.",
   "link.label": "Verificar conta",
-  "link.pairHint": "Quando a página mostrar um código, envie aqui assim: PAIR 123456",
+  "link.pairHint": "Quando a página mostrar um código, envie só os seis dígitos aqui.",
   "link.paired": "Sua conta {account} agora está vinculada.{gardens}",
   "link.gardens": "\nSuas hortas: {gardens}.",
   "link.gardensMore": "{gardens} e mais {count}",
+  "link.joinCommunity": "Abra este link para entrar no Jardim Comunitário com {account}.",
+  "link.joinCommunityQuestion":
+    "Ainda não vejo sua conta neste jardim. Entre no Jardim Comunitário e depois toque em Já entrei.",
+  "link.joinCommunityLabel": "Entrar no Jardim Comunitário",
+  "link.joined": "Já entrei",
   "link.noGardens":
-    "\nAinda não a vejo em nenhuma horta. Um responsável pela horta pode adicionar você.",
+    "\nAinda não vejo esta conta em um jardim. Se você acabou de entrar, pode levar alguns minutos para aparecer.",
   "link.offer":
     "Antes do seu primeiro relato, conecte sua conta Green Goods para eu mostrar suas hortas. Ou pule esta etapa e conte o trabalho que você fez; vou pedir para conectar quando você publicar.",
   "link.offerLabel": "Conectar conta",
@@ -162,7 +185,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "link.accountTaken":
     "Essa conta já está vinculada a outro chat. Se for sua, envie RECOVER pelo chat que você quer usar. Suporte: {support}",
   "publish.consent":
-    "Publicar seu relato confirmado em {garden} pela conta {account}? O título, a descrição, os detalhes e as fotos ficam públicos e não podem ser apagados. Responda PUBLISH {token} para continuar.",
+    "Publicar seu relato confirmado em {garden} pela conta {account}? O título, a descrição, os detalhes e as fotos ficam públicos e não podem ser apagados. {instruction}",
   "publish.publish": "Publicar",
   "publish.signLink": "Abra esta página para revisar e assinar a publicação exata com sua {kind}.",
   "publish.signLabel": "Revisar e publicar",
@@ -185,6 +208,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "A assinatura foi recusada, então nada foi publicado. Aqui está seu relato de novo; confirme quando quiser.",
   "publish.reverted":
     "A publicação falhou na blockchain. Seu relato está guardado; confira e confirme de novo para tentar outra vez.",
+  "publish.viewReport": "Ver seu relato",
   "publish.published": "Seu relato foi publicado ✅\nTrabalho: {uid}\nTransação: {tx}",
   "grant.active":
     "Os relatos pelo chat estão ativos para {garden} até {until}. Ainda vou pedir que você confirme cada relato.",
@@ -204,7 +228,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.askFeedback":
     "Adicione um comentário para quem fez o trabalho (será público). Ao aprovar, você pode responder SKIP.",
   "review.summary":
-    "Sua revisão de “{title}” em {garden}:\n• Decisão: {decision}\n• Confiança: {confidence}\n• Comentário: {feedback}\n• Método: revisão humana\n\nA decisão e o comentário ficam públicos na Arbitrum.\nResponda CONFIRM {token} para registrar, EDIT para mudar ou CANCEL.",
+    "Sua revisão de “{title}” em {garden}:\n• Decisão: {decision}\n• Confiança: {confidence}\n• Comentário: {feedback}\n• Método: revisão humana\n\nA decisão e o comentário ficam públicos na Arbitrum.\n{instruction}",
   "review.selfReview": "Você não pode revisar o seu próprio trabalho.",
   "review.notSteward":
     "Sua conta não é responsável por {garden}, então você não pode revisar este trabalho.",

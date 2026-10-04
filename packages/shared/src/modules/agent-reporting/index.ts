@@ -94,6 +94,7 @@ export {
   buildReportSummary,
   minimumEvidence,
   outstandingRequirements,
+  reportQuestionPosition,
   ReportNotReadyError,
   reportSummaryDigest,
 } from "./report-summary";

@@ -24,13 +24,14 @@ export function AccountLine({ account }: { account: string }) {
   );
 }
 
-/** Connect or prove an existing account; this page never creates one. */
+/** Connect or prove the account selected for this browser challenge. */
 export function AccountActions({
   account,
   connecting,
   proving,
   onConnectWallet,
   onConnectPasskey,
+  passkeyUnavailable = false,
   onProve,
 }: {
   account: string | null;
@@ -38,6 +39,7 @@ export function AccountActions({
   proving: boolean;
   onConnectWallet: () => void;
   onConnectPasskey: () => void;
+  passkeyUnavailable?: boolean;
   onProve: () => void;
 }) {
   const intl = useIntl();
@@ -58,6 +60,7 @@ export function AccountActions({
       connecting={connecting}
       onConnectWallet={onConnectWallet}
       onConnectPasskey={onConnectPasskey}
+      passkeyUnavailable={passkeyUnavailable}
     />
   );
 }
@@ -67,24 +70,31 @@ export function ConnectActions({
   connecting,
   onConnectWallet,
   onConnectPasskey,
+  passkeyUnavailable = false,
 }: {
   connecting: boolean;
   onConnectWallet: () => void;
   onConnectPasskey: () => void;
+  passkeyUnavailable?: boolean;
 }) {
   const intl = useIntl();
   return (
     <PairedActs>
-      <Button size="lg" loading={connecting} onClick={onConnectWallet}>
-        {intl.formatMessage({
-          id: "public.reporting.connect.wallet",
-          defaultMessage: "Use Wallet",
-        })}
-      </Button>
-      <Button size="lg" emphasis="secondary" disabled={connecting} onClick={onConnectPasskey}>
+      <Button
+        size="lg"
+        loading={connecting}
+        disabled={passkeyUnavailable}
+        onClick={onConnectPasskey}
+      >
         {intl.formatMessage({
           id: "public.reporting.connect.passkey",
           defaultMessage: "Use Passkey",
+        })}
+      </Button>
+      <Button size="lg" emphasis="secondary" disabled={connecting} onClick={onConnectWallet}>
+        {intl.formatMessage({
+          id: "public.reporting.connect.wallet",
+          defaultMessage: "Use Wallet",
         })}
       </Button>
     </PairedActs>

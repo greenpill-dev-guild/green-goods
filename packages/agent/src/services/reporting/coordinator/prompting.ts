@@ -3,6 +3,7 @@ import {
   buildReportSummary,
   findInput,
   outstandingRequirements,
+  reportQuestionPosition,
   pageChoices,
   type ReportRequirement,
 } from "@green-goods/shared/modules/agent-reporting";
@@ -55,6 +56,17 @@ function formatDetail(input: WorkInput, value: unknown): string {
 
 const option = (id: string, label: string, value: string): PromptOption => ({ id, label, value });
 
+/** Count only activity field questions; garden, activity and contradictions stay unnumbered. */
+export function fieldQuestionText(
+  writer: ConversationWriter,
+  draft: DraftRecord,
+  requirement: ReportRequirement,
+  question: string
+): string {
+  const place = reportQuestionPosition(draft.content, draft.snapshot, requirement);
+  return place ? `${writer.text("report.questionPosition", place)}${question}` : question;
+}
+
 export function askField(
   writer: ConversationWriter,
   draft: DraftRecord,
@@ -70,15 +82,27 @@ export function askField(
   };
   if (input.type === "number") {
     writer.ask(base, () =>
-      writer.text("report.askNumber", {
-        title: input.title,
-        unit: input.unit ? ` (${input.unit})` : "",
-      })
+      fieldQuestionText(
+        writer,
+        draft,
+        { kind: "detail", key: input.key },
+        writer.text("report.askNumber", {
+          title: input.title,
+          unit: input.unit ? ` (${input.unit})` : "",
+        })
+      )
     );
     return;
   }
   if (input.type === "text" || input.type === "textarea") {
-    writer.ask(base, () => writer.text("report.askText", { title: input.title }));
+    writer.ask(base, () =>
+      fieldQuestionText(
+        writer,
+        draft,
+        { kind: "detail", key: input.key },
+        writer.text("report.askText", { title: input.title })
+      )
+    );
     return;
   }
   const page = pageChoices(input, pageIndex, writer.core.settings.choicePageSize);
@@ -86,9 +110,14 @@ export function askField(
   if (page.hasMore)
     options.push(option("more", writer.text("report.moreChoices"), `page:${pageIndex + 1}`));
   writer.ask({ ...base, options, page: pageIndex }, () =>
-    writer.text(input.type === "multi-select" ? "report.askMulti" : "report.askChoice", {
-      title: input.title,
-    })
+    fieldQuestionText(
+      writer,
+      draft,
+      { kind: "detail", key: input.key },
+      writer.text(input.type === "multi-select" ? "report.askMulti" : "report.askChoice", {
+        title: input.title,
+      })
+    )
   );
 }
 
@@ -265,17 +294,28 @@ function askRequirement(
       return;
     }
     case "time":
-      writer.ask({ ...base, kind: "time" }, () => writer.text("report.askTime"));
+      writer.ask({ ...base, kind: "time" }, () =>
+        fieldQuestionText(writer, draft, requirement, writer.text("report.askTime"))
+      );
       return;
     case "title":
-      writer.ask({ ...base, kind: "title" }, () => writer.text("report.askTitle"));
+      writer.ask({ ...base, kind: "title" }, () =>
+        fieldQuestionText(writer, draft, requirement, writer.text("report.askTitle"))
+      );
       return;
     case "feedback":
-      writer.ask({ ...base, kind: "feedback" }, () => writer.text("report.askFeedback"));
+      writer.ask({ ...base, kind: "feedback" }, () =>
+        fieldQuestionText(writer, draft, requirement, writer.text("report.askFeedback"))
+      );
       return;
     case "evidence":
       writer.ask({ ...base, kind: "evidence" }, () =>
-        writer.text("report.askEvidence", { count: requirement.minimum - requirement.have })
+        fieldQuestionText(
+          writer,
+          draft,
+          requirement,
+          writer.text("report.askEvidence", { count: requirement.minimum - requirement.have })
+        )
       );
       return;
     case "evidence_limit":
@@ -332,6 +372,12 @@ export function askConfirmation(
         photos: summary.evidence.length,
         account: account ? writer.text("report.summaryAccount", { account }) : "",
         token: prompt.token,
+        instruction: writer.text(
+          writer.usesButtons()
+            ? "report.summaryButtonInstruction"
+            : "report.summaryCodeInstruction",
+          { token: prompt.token }
+        ),
       })
   );
 }

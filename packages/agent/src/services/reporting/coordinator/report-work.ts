@@ -4,6 +4,7 @@ import {
   type FieldChange,
   type FieldProvenance,
   reconcileDetailsWithAction,
+  outstandingRequirements,
   type ReportContent,
 } from "@green-goods/shared/modules/agent-reporting";
 import { resolveWorkSubmissionTitle } from "@green-goods/shared/utils/work/workTitles";
@@ -11,7 +12,7 @@ import type { DraftRecord } from "../drafts";
 import type { InterpretationResult } from "../interpretation";
 import { type GardenDirectory, gardenByKey, type ReportingGarden } from "../gardens";
 import { commitContentChange } from "./draft-commit";
-import { type CatalogView, promptNextStep } from "./prompting";
+import { type CatalogView, gardenLabel, promptNextStep } from "./prompting";
 import type { TurnWriter } from "./writer";
 
 /**
@@ -166,6 +167,18 @@ export function finish(
         sourceEventId: writer.ctx.event.id,
       })
     : draft;
+  if (draft.content.actionUID === null && next.content.actionUID !== null && next.snapshot) {
+    const remaining = outstandingRequirements(next.content, next.snapshot).filter((item) =>
+      ["detail", "time", "title", "feedback", "evidence"].includes(item.kind)
+    ).length;
+    if (remaining > 0) {
+      writer.say(remaining === 1 ? "report.actionAdoptedOne" : "report.actionAdoptedMany", {
+        action: next.snapshot.definition.title,
+        garden: gardenLabel(writer.core.gardens, next.content.garden?.address),
+        count: remaining,
+      });
+    }
+  }
   promptNextStep(writer, next, external.catalog);
   return next;
 }
