@@ -467,7 +467,7 @@ describe("reporting ceremony page", () => {
     ).toMatchObject({ idempotencyKey: "at-1:uncertain", outcome: { userOperationHash: TX_HASH } });
   });
 
-  it("reports an owner decline before delegate signing as rejected, preserving a retryable summary", async () => {
+  it("reports an owner decline before delegate signing and closes the grant", async () => {
     wallet("send");
     mocks.sendActivation.mockRejectedValue(
       Object.assign(new Error("User rejected the request."), { code: 4001 })
@@ -476,11 +476,27 @@ describe("reporting ceremony page", () => {
     await reachGrant(result);
     await act(() => result.current.installGrant());
     await act(() => result.current.installGrant());
-    expect(result.current).toMatchObject({ stage: "grant_ready", error: "declined" });
+    expect(result.current).toMatchObject({ stage: "failed", error: "declined" });
     expect(agent.requests("POST", "/execution-grants/g-1/activation/signature")).toEqual([]);
     expect(
       agent.requests("POST", "/execution-grants/g-1/activation/outcome")[0]?.body?.outcome
     ).toEqual({ kind: "rejected_before_send", reason: "user_rejected" });
+  });
+
+  it("settles a refused Agent signature before broadcast so the report can return to its owner", async () => {
+    wallet("send");
+    agent.activationSignatureFailure = true;
+    const { result } = render();
+    await reachGrant(result);
+    await act(() => result.current.installGrant());
+    await act(() => result.current.installGrant());
+    expect(agent.requests("POST", "/execution-grants/g-1/activation/signature")).toHaveLength(1);
+    expect(
+      agent.requests("POST", "/execution-grants/g-1/activation/outcome")[0]?.body?.outcome
+    ).toEqual({ kind: "preparation_failed", reason: "activation_unavailable" });
+    expect(result.current.error).toBe("unsupported");
+    expect(result.current.stage).toBe("failed");
+    expect(readCeremony("request-0123456789abcdef")?.pendingGrantActivation).toBeUndefined();
   });
 
   it("keeps a delegate signature with no bundler result uncertain and blocks a second owner prompt", async () => {

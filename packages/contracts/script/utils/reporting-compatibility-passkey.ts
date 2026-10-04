@@ -45,6 +45,13 @@ const LIMITS = {
   paymasterVerificationGasLimit: 100_000n,
   paymasterPostOpGasLimit: 1n,
 } as const;
+const OPERATION_GAS_LIMIT = Number(
+  LIMITS.callGasLimit +
+    LIMITS.verificationGasLimit +
+    LIMITS.preVerificationGas +
+    LIMITS.paymasterVerificationGasLimit +
+    LIMITS.paymasterPostOpGasLimit,
+);
 
 /**
  * A passkey as a browser would answer for one: a P-256 key that signs the WebAuthn assertion over
@@ -125,6 +132,10 @@ export async function verifyPasskeyActivation(contracts: string, f: Fixture, che
       module.gasCostCapsWei &&
       module.measuredGasUnitsPerSubmission,
     "No approved module to prove on Arbitrum",
+  );
+  assert(
+    module.measuredGasUnitsPerSubmission >= OPERATION_GAS_LIMIT,
+    "The Agent's activation reservation cannot admit the fork's first operation",
   );
   const deployed = JSON.parse(readFileSync(path.join(contracts, "deployments/42161-latest.json"), "utf8"));
   const garden = getAddress(deployed.rootGarden.address);
@@ -380,14 +391,6 @@ export async function verifyPasskeyActivation(contracts: string, f: Fixture, che
   await send({ ...stale, signature: (await permission.signUserOperation(stale)) as Hex }, false);
   check("passkey_owner_removal_stops_the_delegate");
 
-  const total = (limits: typeof LIMITS) =>
-    Number(
-      limits.callGasLimit +
-        limits.verificationGasLimit +
-        limits.preVerificationGas +
-        limits.paymasterVerificationGasLimit +
-        limits.paymasterPostOpGasLimit,
-    );
   return {
     account: account.address,
     garden,
@@ -403,7 +406,7 @@ export async function verifyPasskeyActivation(contracts: string, f: Fixture, che
       nextReport: second.gasUsed,
       removal: removed.gasUsed,
     },
-    gasLimitsPerOperation: total(LIMITS),
+    gasLimitsPerOperation: OPERATION_GAS_LIMIT,
     approvedGasUnitsPerSubmission: module.measuredGasUnitsPerSubmission as number,
     approvedCostCapWei: policy.gasCostCapWei,
     paymasterDepositWei: deposit.toString(),

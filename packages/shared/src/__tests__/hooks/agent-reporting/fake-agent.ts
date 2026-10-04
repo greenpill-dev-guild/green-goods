@@ -67,6 +67,7 @@ export class FakeAgent {
   dropGrantApprovals = 0;
   activationStarted = false;
   activationEmpty = false;
+  activationSignatureFailure = false;
   operation: OperationView = {
     operationId: "op-1",
     kind: "work",
@@ -171,6 +172,7 @@ export class FakeAgent {
     if (path.endsWith("/activation/attempts"))
       return this.route(method, "/operations/op-1/attempts", body);
     if (path.endsWith("/activation/signature")) {
+      if (this.activationSignatureFailure) return refuse("dependency_unavailable", 503);
       this.operation = {
         ...this.operation,
         attempt: { attemptId: "at-1", attemptNumber: 1, state: "signed" },
@@ -180,6 +182,8 @@ export class FakeAgent {
     if (path.endsWith("/activation/outcome") && this.grant) {
       const outcome = body?.outcome as { kind: string };
       if (outcome.kind === "broadcast") this.grant = { ...this.grant, state: "enabling" };
+      if (["preparation_failed", "rejected_before_send"].includes(outcome.kind))
+        this.grant = { ...this.grant, state: "failed" };
       return this.route(method, "/operations/op-1/outcome", body);
     }
     if (path.startsWith("/execution-grants") && this.grant) {

@@ -143,11 +143,9 @@ export interface PermissionModuleEntry {
  *   through. The guard is this repository's `SingleAttestationPolicy`.
  * - The paymaster is Pimlico's, the one that sponsors the app's own passkey operations. A
  *   permission names it, so the delegate can spend no one's gas but that sponsorship's.
- * - Gas: on the fork a first report (the passkey's approval, the install and the publication)
- *   used 3.0M gas and each later one 1.0M. 2.5M units admit a later report with a bundler's
- *   margins, and five times that admits the first. The wei cap is ten million gas, five reports
- *   with those margins, at 0.5 gwei: twenty-five times the 0.02 gwei the chain charged when it
- *   was measured. Past either, a report falls back to the owner's own signature.
+ * - Gas: the fork's first report used 2,969,802 gas and its operation limits totaled 3,400,001.
+ *   The per-attempt reservation must admit that first operation as well as later reports, which
+ *   used 1,028,748 gas on the fork. The separate cumulative wei cap remains 0.005 ETH.
  * Review is not approved: a decision's permission cannot yet be bound to the work it decides.
  */
 export const VERIFIED_PERMISSION_MODULES: readonly PermissionModuleEntry[] = [
@@ -160,7 +158,7 @@ export const VERIFIED_PERMISSION_MODULES: readonly PermissionModuleEntry[] = [
     singleCallPolicyCodeHash: "0x76f0a1fa648cf915dfe2a72a150622eb7d96f725cea6666e93f27f6e5645a0cf",
     approvedPaymaster: "0x777777777777AeC03fd955926DbF81597e66834C",
     gasCostCapsWei: { reporting: "5000000000000000", review: "5000000000000000" },
-    measuredGasUnitsPerSubmission: 2_500_000,
+    measuredGasUnitsPerSubmission: 3_400_001,
   },
 ];
 

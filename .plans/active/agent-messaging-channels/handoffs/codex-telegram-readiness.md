@@ -342,10 +342,11 @@ step 7 as far as a fork can and adds the approved module for Arbitrum One.
   Goods passkey account's sponsored operation used in transaction
   `0xca40752b288dfd58aca1b7c5b1356acea6a2b22d9284a081f6ca80d9ed2b5083`. Reporting only: review is
   not approved, and a wallet account cannot hold a permission.
-- **Caps.** 2,500,000 gas units for one report and 0.005 ETH for a permission's five. On the
-  fork the first report used 2,969,802 gas and a later one 1,028,748. The cap is ten million gas
-  at 0.5 gwei; the chain charged 0.02 gwei when measured. These come from the fork, not from a
-  live sponsored run: tighten them once live reports show the bundler's real limits.
+- **Caps.** 3,400,001 gas units per attempt, matching the fork's first-operation gas-limit sum,
+  and 0.005 ETH for a permission's five. The fork's first report used 2,969,802 gas and a later
+  one 1,028,748. The chain charged 0.02 gwei when measured. The Agent rejects an activation
+  whose prepared limits exceed this reservation; a fork assertion now checks the same boundary.
+  These figures come from the fork, not a live sponsored run.
 - **Fork proof.** `bun run contracts -- verify reporting-kernel --network arbitrum --mode simulate`
   at commit `3bf04e904b0f42aae169f068e534e5a081b3f57c`, fork block 511569150, verified
   `2026-10-04T09:09:56.372Z`, source digest

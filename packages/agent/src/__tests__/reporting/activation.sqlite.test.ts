@@ -280,6 +280,28 @@ describe("first-report activation authority", () => {
       (await p.browser.request("POST", `${p.path}/signature`, { body: p.signatureBody })).status
     ).toBe(404);
   });
+  it("releases a refused over-budget activation before any delegate signature is exposed", async () => {
+    const p = await prepareActivation(harness);
+    const refused = await p.browser.request("POST", `${p.path}/signature`, {
+      body: {
+        ...p.signatureBody,
+        userOperation: { ...p.signatureBody.userOperation, verificationGasLimit: "0x40000" },
+      },
+    });
+    expect(refused.status).toBe(403);
+    expect(harness.sender.signed).toBe(0);
+    const settled = await p.browser.request("POST", `${p.path}/outcome`, {
+      body: {
+        attemptId: p.signatureBody.attemptId,
+        payloadDigest: p.signatureBody.payloadDigest,
+        idempotencyKey: "activation-over-budget",
+        outcome: { kind: "preparation_failed", reason: "activation_unavailable" },
+      },
+    });
+    expect(settled.status).toBe(200);
+    expect(row("SELECT state FROM execution_grants")).toEqual({ state: "failed" });
+    expect(row("SELECT state FROM execution_operations")).toEqual({ state: "failed" });
+  });
   it("refuses a proposal when recovery commits during its awaited permission lookup", async () => {
     const browser = new TestBrowser(harness.app);
     await browser.open(latestLink(harness));
