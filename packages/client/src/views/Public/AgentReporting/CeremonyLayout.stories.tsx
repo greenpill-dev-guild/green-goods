@@ -87,7 +87,9 @@ const meta: Meta = {
           "tag). Every screen of every flow is drawn at a 320px phone's width in English, Spanish " +
           "and Portuguese, and the play function asserts the rule the pages are built on: the " +
           "heading card, the status card and the bottom bar are each one height on every screen, " +
-          "so the report or permission under them starts in one place and never moves.",
+          "so the report or permission under them starts in one place and never moves. The " +
+          "structure is checked everywhere, with text held to one line. Whether the copy fits its " +
+          "lines is checked as well wherever Inter has loaded, which offline CI cannot do.",
       },
     },
   },
@@ -125,8 +127,62 @@ function measure(panel: HTMLElement): Bands {
   };
 }
 
-/** Asserts each band is one size across every panel that has it; returns what it measured. */
+/**
+ * Held on the canvas while the structure is measured. Each band is then held to the room the
+ * design gives it, whatever the typeface: a title and a row of buttons to one line, a card's
+ * reserved body to its two lines. A band can still differ in height between screens only if a
+ * screen is built differently, or if the two-line reservation is lost: an unreserved body is left
+ * to wrap as its words need.
+ */
+const STRUCTURE = "data-layout-structure";
+const PANEL = `[${STRUCTURE}] [data-panel]`;
+const STATUS_CARD = `${PANEL} [role]:has(> * > [data-component="CeremonyStageNotice"])`;
+const STRUCTURE_RULES = [
+  `${PANEL} [data-component="CeremonyHeading"] h1,
+   ${STATUS_CARD} > :first-child,
+   ${STATUS_CARD} > :first-child *,
+   ${PANEL} [data-component="FlowBar"],
+   ${PANEL} [data-component="FlowBar"] * { white-space: nowrap !important; flex-wrap: nowrap !important; }`,
+  `${PANEL} [class*="min-h-[2lh]"] { max-height: 2lh !important; overflow: hidden !important; }`,
+].join("\n");
+
+/** The panels of one page, with the rules the structural measurement switches on. */
+function Screens({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-wrap gap-4 p-4">
+      <style>{STRUCTURE_RULES}</style>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Whether the panels are drawn in the production typeface. Clean-room CI is offline and falls back
+ * to the system stack (see `.storybook/preview-head.html`), whose wider letters wrap titles that
+ * fit in Inter, so whether the copy fits can only be judged where Inter has arrived.
+ */
+async function drawnInInter(): Promise<boolean> {
+  await document.fonts.ready;
+  let loaded = false;
+  document.fonts.forEach((face) => {
+    if (face.family.replace(/["']/g, "") === "Inter" && face.status === "loaded") loaded = true;
+  });
+  return loaded;
+}
+
+/**
+ * Asserts each band is one size across every panel that has it; returns what it measured. The
+ * structure is checked everywhere. The copy's fit, at its natural wrapping, is checked as well
+ * wherever the production typeface is loaded.
+ */
 async function expectOneSize(canvasElement: HTMLElement) {
+  canvasElement.setAttribute(STRUCTURE, "");
+  const structure = await expectBands(canvasElement);
+  canvasElement.removeAttribute(STRUCTURE);
+  return (await drawnInInter()) ? expectBands(canvasElement) : structure;
+}
+
+async function expectBands(canvasElement: HTMLElement) {
   const all = Array.from(canvasElement.querySelectorAll<HTMLElement>("[data-panel]"));
   await expect(all.length).toBeGreaterThan(0);
   const bands = all.map((panel) => ({ id: panel.dataset.testid ?? "", ...measure(panel) }));
@@ -194,9 +250,9 @@ export const Ceremony: Story = {
   tags: ["storybook-ci"],
   globals: PHONE,
   render: () => (
-    <div className="flex flex-wrap gap-4 p-4">
+    <Screens>
       {panels(CeremonyView, ceremonyMeta.args, ceremony as Record<string, Args>, CEREMONY)}
-    </div>
+    </Screens>
   ),
   play: async ({ canvasElement }) => {
     const bands = await expectOneSize(canvasElement);
@@ -226,9 +282,9 @@ export const Recovery: Story = {
   tags: ["storybook-ci"],
   globals: PHONE,
   render: () => (
-    <div className="flex flex-wrap gap-4 p-4">
+    <Screens>
       {panels(RecoveryView, recoveryMeta.args, recovery as Record<string, Args>, RECOVERY)}
-    </div>
+    </Screens>
   ),
   play: async ({ canvasElement }) => {
     await expectOneSize(canvasElement);
@@ -253,14 +309,14 @@ export const Permissions: Story = {
   tags: ["storybook-ci"],
   globals: PHONE,
   render: () => (
-    <div className="flex flex-wrap gap-4 p-4">
+    <Screens>
       {panels(
         PermissionsView,
         permissionsMeta.args,
         permissions as Record<string, Args>,
         PERMISSIONS
       )}
-    </div>
+    </Screens>
   ),
   play: async ({ canvasElement }) => {
     await expectOneSize(canvasElement);
