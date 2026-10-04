@@ -1,6 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
-import { EditorialGhostButton, EditorialPrimaryLink } from "./atoms";
+import {
+  EditorialGhostButton,
+  EditorialPrimaryLink,
+  EditorialTitleAccent,
+  EditorialTitleLine,
+} from "./atoms";
 import { PublicEditorialHero } from "./PublicEditorialHero";
 
 /**
@@ -21,7 +27,19 @@ const HERO_IMG =
   "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=2200&q=80";
 const HERO_FALLBACK = "/images/no-image-placeholder.png";
 
-const NextSection = ({ children }: { children: React.ReactNode }) => (
+/**
+ * A hero title the way the core pages write theirs: three authored lines, so the title holds
+ * the same shape at every viewport width.
+ */
+const titleLines = (first: ReactNode, second: ReactNode, third: ReactNode) => (
+  <>
+    <EditorialTitleLine>{first}</EditorialTitleLine>{" "}
+    <EditorialTitleLine>{second}</EditorialTitleLine>{" "}
+    <EditorialTitleLine>{third}</EditorialTitleLine>
+  </>
+);
+
+const NextSection = ({ children }: { children: ReactNode }) => (
   <section className="bg-bg-weak-50 px-6 py-16 sm:px-10 md:py-20">
     <div className="mx-auto max-w-7xl">
       <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-soft-400">
@@ -71,11 +89,15 @@ export const Home: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-home-title"
-        title={
+        title={titleLines(
           <>
-            From good intentions to <em className="font-serif italic">green outcomes</em>
+            From <EditorialTitleAccent>good</EditorialTitleAccent>
+          </>,
+          "intentions to",
+          <>
+            <EditorialTitleAccent>green</EditorialTitleAccent> outcomes
           </>
-        }
+        )}
         lede="Green Goods makes regenerative work easier to support, turning accessible contributions into a trusted public record of how land, water, and community grow healthier together."
         photoCredit="Riverbend Commons — Hudson Valley, NY"
         actions={
@@ -98,7 +120,13 @@ export const Gardens: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-gardens-title"
-        title="Explore the Gardens growing the public record"
+        title={titleLines(
+          "Explore the",
+          <>
+            <EditorialTitleAccent>Gardens</EditorialTitleAccent> growing
+          </>,
+          "the public record"
+        )}
         lede="Each Garden is a real place where communities document regenerative Work, gather evidence, and make support visible."
         actions={
           <>
@@ -120,7 +148,11 @@ export const Impact: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-impact-title"
-        title="See how Garden work becomes evidence"
+        title={titleLines(
+          "See how Garden",
+          "work becomes",
+          <EditorialTitleAccent>evidence</EditorialTitleAccent>
+        )}
         lede="Green Goods turns documented regenerative work into public evidence through Assessments and, when ready, Impact Certificates."
         photoCredit="Vol. 01 — A living public record"
       />
@@ -137,7 +169,13 @@ export const Fund: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-fund-title"
-        title="A small gesture today, growing over many seasons"
+        title={titleLines(
+          "A small gesture,",
+          <>
+            <EditorialTitleAccent>growing</EditorialTitleAccent> over
+          </>,
+          "many seasons"
+        )}
         lede="Direct support reaches a Garden's Cookie Jar. Quiet endowment places support into a Vault designed so yield helps the Garden over time."
         disclaimer="Funding supports the Garden directly. It is not tax-deductible, charitable, or nonprofit-backed unless separately configured."
       />
@@ -154,7 +192,11 @@ export const Actions: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-actions-title"
-        title="A field guide for regenerative work"
+        title={titleLines(
+          "A field guide for",
+          <EditorialTitleAccent>regenerative</EditorialTitleAccent>,
+          <EditorialTitleAccent>work</EditorialTitleAccent>
+        )}
         lede="Actions are the templates Gardens use to document work across solar, agroforestry, education, and waste."
       />
       <NextSection>The four domains.</NextSection>
