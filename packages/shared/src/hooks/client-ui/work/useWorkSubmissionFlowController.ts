@@ -178,6 +178,7 @@ export function useWorkSubmissionFlowController({
     setShowDraftSheet,
     handleContinueDraft,
     handleStartFresh,
+    askAgainNextVisit,
     isResumingFromUrl,
     clearActiveDraft,
     legacyRecovery,
@@ -436,6 +437,7 @@ export function useWorkSubmissionFlowController({
       close: () => setShowDraftSheet(false),
       recover: () => setShowDraftSheet(true),
       manage: () => {
+        askAgainNextVisit();
         useUIStore.getState().openWorkDashboard("pending", "editing");
         navigate(homeRoute);
       },

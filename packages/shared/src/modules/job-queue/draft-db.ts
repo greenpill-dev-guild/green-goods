@@ -375,6 +375,11 @@ class DraftStore {
     return (await this.getDraftsForUser(userAddress, chainId)).length;
   }
 
+  /** Whether a new draft would be refused: the account has used every slot on this chain. */
+  async isAtDraftLimit(userAddress: string, chainId: number): Promise<boolean> {
+    return (await this.getDraftCount(userAddress, chainId)) >= MAX_DRAFTS_PER_USER;
+  }
+
   /**
    * Check if a draft has meaningful progress (for showing in UI)
    */

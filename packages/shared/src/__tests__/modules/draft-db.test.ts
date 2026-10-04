@@ -175,8 +175,11 @@ describe("complete draft snapshots", () => {
       "draft-limit"
     );
     expect(await draftDB.getDraftCount(account, 11155111)).toBe(20);
+    expect(await draftDB.isAtDraftLimit(account, 11155111)).toBe(true);
     await draftDB.saveSnapshot(account, 11155111, "limit-0", { feedback: "updated" }, [], []);
-    for (let index = 0; index < 20; index++) await draftDB.deleteDraft(`limit-${index}`);
+    await draftDB.deleteDraft("limit-0");
+    expect(await draftDB.isAtDraftLimit(account, 11155111)).toBe(false);
+    for (let index = 1; index < 20; index++) await draftDB.deleteDraft(`limit-${index}`);
   });
   it("cancels stale saves before committing and refuses another account's ID", async () => {
     await expect(

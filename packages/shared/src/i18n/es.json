@@ -6042,7 +6042,7 @@
   "app.garden.draft.discard": "Descartar borrador",
   "app.garden.draft.keep": "Conservar borrador",
   "app.garden.draft.close": "Cerrar",
-  "app.garden.draft.resumeDescription": "Continúa con tu trabajo guardado o elige Empezar de nuevo para descartarlo.",
+  "app.garden.draft.resumeDescription": "Continúa con tu trabajo guardado o elige Empezar de Nuevo. Este borrador se queda en Tu trabajo.",
   "app.garden.attachments.invalid": "Revisa los formatos y tamaños. Fotos: 10 MB; vídeos: 20 MB y 30 segundos; todos los archivos: 50 MB.",
   "app.garden.draft.reselect": "{name} ya no se puede leer. Elimina este archivo y vuelve a seleccionarlo en Multimedia.",
   "app.work.awaitingConfirmation": "Esperando confirmación",

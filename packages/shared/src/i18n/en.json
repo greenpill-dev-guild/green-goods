@@ -6042,7 +6042,7 @@
   "app.garden.draft.discard": "Discard Draft",
   "app.garden.draft.keep": "Keep Draft",
   "app.garden.draft.close": "Close",
-  "app.garden.draft.resumeDescription": "Continue with your saved work, or choose Start Fresh to discard it.",
+  "app.garden.draft.resumeDescription": "Continue with your saved work, or choose Start Fresh. This draft stays in Your Work.",
   "app.garden.attachments.invalid": "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; all files: 50 MB.",
   "app.garden.draft.reselect": "{name} is no longer readable. Remove this attachment, then select it again from Media.",
   "app.work.awaitingConfirmation": "Awaiting confirmation",

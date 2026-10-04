@@ -13,6 +13,7 @@ import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { draftDB } from "../../modules/job-queue/draft-db";
+import { queueDraftWrite } from "../../modules/work/draft-lifecycle";
 import {
   fromDraftWorkLink,
   hasWorkLinkIntentParams,
@@ -219,10 +220,19 @@ export function useDraftResume({
   }, [legacyRecovery, userAddress, chainId, resumeDraft, restoreForm]);
 
   const handleStartFresh = useCallback(async () => {
-    const initial = useWorkFlowStore.getState();
     const scope = `${userAddress?.toLowerCase()}:${chainId}`;
+    if (!userAddress || useWorkFlowStore.getState().draftScope !== scope) return;
+    // A saved draft is set aside, not deleted, so the new work needs a draft slot of its own.
+    if (
+      !legacyRecovery &&
+      useWorkFlowStore.getState().activeDraftId &&
+      (await draftDB.isAtDraftLimit(userAddress, chainId))
+    )
+      throw new Error("draft-limit");
+    const initial = useWorkFlowStore.getState();
     if (initial.draftScope !== scope) return;
-    if (initial.activeDraftId) {
+    if (legacyRecovery && initial.activeDraftId) {
+      // Photos recovered from before the account keep their explicit Discard.
       await clearActiveDraft();
     } else {
       const generation = initial.draftEpoch + 1;
@@ -233,6 +243,10 @@ export function useDraftResume({
       };
       try {
         if (legacyRecovery) await discardUnrecoveredLegacy(scope);
+        // The draft stays in Your Work as it was saved. The wizard stops reopening on it, once any
+        // save still writing has finished, so that save can't point the wizard back at it.
+        else if (initial.activeDraftId)
+          await queueDraftWrite(() => draftDB.setActiveDraft(userAddress, chainId, null));
         if (current()) {
           useWorkFlowStore.getState().reset();
           restoreForm?.({ feedback: "" });
@@ -260,6 +274,10 @@ export function useDraftResume({
     setShowDraftSheet,
     handleContinueDraft,
     handleStartFresh,
+    /** Leaving while the prompt is still open: the next visit loads the draft and asks again. */
+    askAgainNextVisit: () => {
+      if (showDraftSheet) useWorkFlowStore.setState({ draftHydrated: false });
+    },
     clearActiveDraft,
     legacyRecovery,
     retryHydration: () => setLoadAttempt((attempt) => attempt + 1),

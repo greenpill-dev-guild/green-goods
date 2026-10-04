@@ -11,6 +11,7 @@ function setup(extra = {}) {
     isOpen: true,
     onContinue: vi.fn(),
     onStartFresh: vi.fn(),
+    onManage: vi.fn(),
     onClose: vi.fn(),
     imageCount: 1,
     ...extra,
@@ -30,8 +31,32 @@ describe("draft recovery sheet", () => {
     expect(props.onContinue).not.toHaveBeenCalled();
     expect(props.onStartFresh).not.toHaveBeenCalled();
   });
-  it("requires explicit confirmation before discarding", async () => {
+  it("starts fresh at once, because the saved draft stays in Your Work", async () => {
     const props = setup();
+    expect(screen.getByText(messages["app.garden.draft.resumeDescription"])).toBeVisible();
+    await userEvent.click(
+      screen.getByRole("button", { name: messages["app.garden.draft.startFresh"] })
+    );
+    expect(props.onStartFresh).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: messages["app.garden.draft.discard"] })).toBeNull();
+  });
+  it("says every draft slot is taken and points to Manage drafts", async () => {
+    const props = setup({ onStartFresh: vi.fn().mockRejectedValue(new Error("draft-limit")) });
+    await userEvent.click(
+      screen.getByRole("button", { name: messages["app.garden.draft.startFresh"] })
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(messages["app.garden.draft.limit"]);
+    expect(
+      screen.queryByRole("button", { name: messages["app.garden.draft.startFresh"] })
+    ).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: messages["app.garden.draft.manage"] })
+    );
+    expect(props.onManage).toHaveBeenCalledOnce();
+    expect(props.onContinue).not.toHaveBeenCalled();
+  });
+  it("still asks before discarding photos saved without an account", async () => {
+    const props = setup({ legacyRecovery: true });
     await userEvent.click(
       screen.getByRole("button", { name: messages["app.garden.draft.startFresh"] })
     );

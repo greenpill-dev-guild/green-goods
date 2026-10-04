@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   removeLegacy: vi.fn(),
   save: vi.fn(),
   draft: vi.fn(),
+  setActive: vi.fn(),
+  atLimit: vi.fn(),
   marker: undefined as unknown,
   user: "0x1111111111111111111111111111111111111111" as string | null,
 }));
@@ -27,6 +29,8 @@ vi.mock("../../../modules/job-queue/draft-db", () => ({
     getActiveDraft: mocks.active,
     getDraft: mocks.draft,
     saveSnapshot: mocks.save,
+    setActiveDraft: mocks.setActive,
+    isAtDraftLimit: mocks.atLimit,
     getDraftsForUser: vi.fn().mockResolvedValue([]),
   },
 }));
@@ -63,6 +67,8 @@ beforeEach(() => {
   mocks.clear.mockReset().mockResolvedValue(undefined);
   mocks.active.mockReset().mockResolvedValue(null);
   mocks.draft.mockReset().mockResolvedValue(undefined);
+  mocks.setActive.mockReset().mockResolvedValue(undefined);
+  mocks.atLimit.mockReset().mockResolvedValue(false);
   mocks.legacy.mockReset().mockResolvedValue(undefined);
   mocks.removeLegacy.mockReset().mockResolvedValue(undefined);
   mocks.save
@@ -127,11 +133,11 @@ describe("draft hydration and recovery", () => {
       expect.objectContaining({ name: "photo.jpg", kind: "media" }),
     ]);
   });
-  it("propagates discard failure instead of clearing the visible draft", async () => {
+  it("keeps the visible draft and the prompt when the draft can't be set aside", async () => {
     mocks.active.mockResolvedValue("saved-id");
-    mocks.clear.mockRejectedValue(new Error("quota"));
+    mocks.setActive.mockRejectedValue(new Error("quota"));
     mocks.resume.mockImplementation(async () => {
-      useWorkFlowStore.setState({ activeDraftId: "saved-id" });
+      useWorkFlowStore.setState({ activeDraftId: "saved-id", feedback: "saved work" });
       return "intro";
     });
     const { result } = renderHook(() => useDraftResume(options()));
@@ -140,6 +146,31 @@ describe("draft hydration and recovery", () => {
       await expect(result.current.handleStartFresh()).rejects.toThrow("quota");
     });
     expect(result.current.showDraftSheet).toBe(true);
+    expect(useWorkFlowStore.getState()).toMatchObject({
+      activeDraftId: "saved-id",
+      feedback: "saved work",
+      draftDeleting: false,
+    });
+    expect(mocks.clear).not.toHaveBeenCalled();
+  });
+  it("still discards recovered photos when the person starts fresh mid-recovery", async () => {
+    mocks.legacy.mockResolvedValue([new File(["photo"], "photo.jpg", { type: "image/jpeg" })]);
+    mocks.removeLegacy.mockRejectedValueOnce(new Error("cleanup failed"));
+    mocks.resume.mockImplementation(async (id: string) => {
+      useWorkFlowStore.setState({ activeDraftId: id });
+      return "intro";
+    });
+    const { result } = renderHook(() => useDraftResume(options()));
+    await waitFor(() => expect(result.current.legacyRecovery).toBe(true));
+    await act(async () => {
+      await expect(result.current.handleContinueDraft()).rejects.toThrow("cleanup failed");
+    });
+    await act(async () => {
+      await result.current.handleStartFresh();
+    });
+    expect(mocks.clear).toHaveBeenCalledOnce();
+    expect(mocks.setActive).not.toHaveBeenCalled();
+    expect(mocks.atLimit).not.toHaveBeenCalled();
   });
   it("clears the visible form on logout before another account can hydrate", async () => {
     const input = options();

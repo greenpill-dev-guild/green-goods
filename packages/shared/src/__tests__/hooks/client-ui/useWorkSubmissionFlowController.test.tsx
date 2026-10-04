@@ -112,6 +112,7 @@ vi.mock("../../../hooks/work/useDraftResume", () => ({
     setShowDraftSheet: vi.fn(),
     handleContinueDraft: vi.fn(),
     handleStartFresh: vi.fn(),
+    askAgainNextVisit: vi.fn(),
     clearActiveDraft: vi.fn(),
   }),
 }));
