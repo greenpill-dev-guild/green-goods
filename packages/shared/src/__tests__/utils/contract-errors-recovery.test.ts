@@ -177,15 +177,16 @@ describe("contract error recovery fields", () => {
     const loggedConflict =
       "offline_job_identity_conflict:commitment:5f0c7a1e-2b3d-4c5e-8f90-a1b2c3d4e5f6";
 
-    it("reads the logged network mismatch as a wrong network, and names the one it needed", () => {
+    it("reads the logged network mismatch as a wrong network, not a lost connection", () => {
       expect(loggedMismatch).toContain("connection's chain");
       const { title, message, parsed } = parseAndFormatError(new Error(loggedMismatch));
 
       expect(parsed.name).toBe("WrongNetwork");
-      expect(parsed.messageValues).toEqual({ network: "Arbitrum One" });
       expect(title).toBe("Wrong Network");
+      // wagmi gives only chain ids, and naming one would load the chain table,
+      // and viem with it, wherever this parser ships. So this one says no name.
       expect(message).toBe(
-        "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again."
+        "Your wallet is on a different network than this needs. Switch networks in your wallet, then try again."
       );
       // The inline classifier reads the same text the same way.
       expect(classifyTxError(loggedMismatch).kind).toBe("wrongChain");
@@ -267,9 +268,13 @@ describe("contract error recovery fields", () => {
     });
 
     it("names copy that exists in every language, and falls back to the same English", () => {
+      const declinedSwitch = new WalletChainMismatchError({
+        targetChainId: ARBITRUM,
+        outcome: "rejected",
+      });
       const parsedErrors = [
         parseContractError(loggedMismatch),
-        parseContractError("Unsupported chain"),
+        parseContractError(declinedSwitch.message),
         parseContractError(loggedConflict),
         parseContractError("You are offline"),
       ];

@@ -1,4 +1,3 @@
-import { getChainName } from "../../config/chains";
 import { extractErrorMessage } from "./extract-message";
 
 /**
@@ -77,26 +76,24 @@ const WRONG_NETWORK_PHRASES = [
   "network switch already pending",
 ];
 
-/** Where each refusal names the network the write needed. */
+/**
+ * Where each refusal names the network the write needed. wagmi's mismatch gives
+ * only chain ids and is left unnamed: naming an id needs the chain table, and
+ * with it viem, which the public site's startup must not load. This file ships
+ * there, inside the error parser.
+ */
 const NEEDED_NETWORK_NAME = [
   /switch(?: your wallet)? to (.+?)(?: before continuing)?\./i,
   /\badd (.+?) in your wallet/i,
   /target chain for the transaction \(id: \d+ [–-] (.+?)\)/i,
 ];
-const NEEDED_CHAIN_ID = /connection's chain \(id: (\d+)\)/i;
-
-function knownChainName(chainId: number): string | null {
-  const name = getChainName(chainId);
-  return name === "Unknown" ? null : name;
-}
 
 function neededNetworkIn(message: string): string | null {
   for (const pattern of NEEDED_NETWORK_NAME) {
     const name = message.match(pattern)?.[1]?.trim();
     if (name) return name;
   }
-  const chainId = message.match(NEEDED_CHAIN_ID)?.[1];
-  return chainId ? knownChainName(Number(chainId)) : null;
+  return null;
 }
 
 /**
@@ -116,14 +113,10 @@ export function wrongWalletNetwork(error: unknown): { network: string | null } |
   while (link !== null && link !== undefined && !(typeof link === "object" && seen.has(link))) {
     const message = extractErrorMessage(link);
     const lower = message.toLowerCase();
-    const target =
-      typeof link === "object" && "targetChainId" in link && typeof link.targetChainId === "number"
-        ? link.targetChainId
-        : undefined;
-    if (target !== undefined || WRONG_NETWORK_PHRASES.some((phrase) => lower.includes(phrase))) {
+    if (WRONG_NETWORK_PHRASES.some((phrase) => lower.includes(phrase))) {
       wrongNetwork = true;
       // The first link that names the network answers; a cause below may still name it.
-      const network = target !== undefined ? knownChainName(target) : neededNetworkIn(message);
+      const network = neededNetworkIn(message);
       if (network) return { network };
     }
     if (typeof link !== "object") break;
