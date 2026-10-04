@@ -53,7 +53,7 @@ export function PoolClaimsCard({ console: pool, onDecline, onOpen }: PoolClaimsC
           {
             id: "cockpit.garden.pool.approvals.decidedThisVisit",
             defaultMessage:
-              "{waiting, plural, =0 {Nothing waiting now.} other {# waiting.}} {decided, plural, one {# decided this visit; it clears when you leave the Pool tab.} other {# decided this visit; they clear when you leave the Pool tab.}}",
+              "{waiting, plural, =0 {Nothing waiting now.} other {# waiting.}} {decided, plural, one {# decided this visit; it clears when you leave the Promises tab.} other {# decided this visit; they clear when you leave the Promises tab.}}",
           },
           { waiting: approvals.waiting, decided: approvals.decided }
         );

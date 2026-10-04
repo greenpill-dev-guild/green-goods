@@ -111,7 +111,11 @@ describe("PoolClaimsCard (Review Promises)", () => {
     expect(second).toHaveAttribute("data-state", "not-chosen");
     expect(within(second!).getByText("Not chosen")).toBeInTheDocument();
     expect(third).toHaveAttribute("data-state", "waiting");
-    expect(screen.getByText(/^1 waiting\. 2 decided this visit; they clear/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "1 waiting. 2 decided this visit; they clear when you leave the Promises tab."
+      )
+    ).toBeInTheDocument();
   });
 
   it("brings the pair back as Try Again after a failure, and holds every row while one is in flight", () => {

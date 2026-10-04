@@ -11,13 +11,15 @@ type LocaleCatalog = Record<string, string>;
  * "Waiting for approval" read from the asker's side, so the cockpit no longer
  * says it anywhere.
  *
- * Rather than pin each string, this scans every cockpit message, so one that
- * names the card the old way fails wherever it is written.
+ * A dozen cockpit messages also send a steward to that tab by name ("finish
+ * from the Promises tab"). Rather than pin each string, this scans every
+ * cockpit message, so one that names the tab or the card the old way fails
+ * wherever it is written.
  */
 const locales: Array<{ locale: string; messages: LocaleCatalog; retired: RegExp }> = [
-  { locale: "en", messages: en, retired: /waiting for approval/i },
-  { locale: "es", messages: es, retired: /esperando aprobación/i },
-  { locale: "pt", messages: pt, retired: /à espera de aprovação/i },
+  { locale: "en", messages: en, retired: /\bpool tab\b|waiting for approval/i },
+  { locale: "es", messages: es, retired: /pestaña del fondo común|esperando aprobación/i },
+  { locale: "pt", messages: pt, retired: /separador do fundo comum|à espera de aprovação/i },
 ];
 
 describe("the cockpit's Promises tab names (DL-077)", () => {

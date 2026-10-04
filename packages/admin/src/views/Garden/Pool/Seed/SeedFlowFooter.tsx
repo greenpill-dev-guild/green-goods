@@ -91,7 +91,7 @@ export function SeedFlowNote({
                 ? formatMessage({
                     id: "cockpit.garden.pool.seed.note.background",
                     defaultMessage:
-                      "They wait in this device's queue until you send them from the pool tab.",
+                      "They wait in this device's queue until you send them from the Promises tab.",
                   })
                 : null));
   return note ? <span role="status">{note}</span> : null;

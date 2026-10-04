@@ -72,7 +72,7 @@ export const Partial: Story = {
     progress: 70,
     title: "7 created · 2 didn't send · 1 waits",
     description:
-      "Try Again (2) sends only the ones that didn't send, with the same answers and deadline. The one that waits is on the pool tab.",
+      "Try Again (2) sends only the ones that didn't send, with the same answers and deadline. The one that waits is on the Promises tab.",
   },
 };
 
@@ -80,7 +80,7 @@ export const Created: Story = {
   args: {
     tone: "success",
     title: "10 promises created",
-    description: "Gardeners can take them up now. They show as one group on the pool tab.",
+    description: "Gardeners can take them up now. They show as one group on the Promises tab.",
   },
 };
 

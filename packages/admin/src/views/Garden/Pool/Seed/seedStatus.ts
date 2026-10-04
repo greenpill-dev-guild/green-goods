@@ -209,7 +209,7 @@ export function seedStatusView(input: {
           {
             id: "cockpit.garden.pool.seed.status.partialHint",
             defaultMessage:
-              "Try Again ({notSent}) sends only the ones that didn't send, with the same answers and deadline.{later, plural, =0 {} one { The one that waits is on the pool tab.} other { The ones that wait are on the pool tab.}}",
+              "Try Again ({notSent}) sends only the ones that didn't send, with the same answers and deadline.{later, plural, =0 {} one { The one that waits is on the Promises tab.} other { The ones that wait are on the Promises tab.}}",
           },
           { notSent: state.notSent, later: state.later }
         ),
@@ -231,7 +231,7 @@ export function seedStatusView(input: {
           {
             id: "cockpit.garden.pool.seed.status.finishLaterHint",
             defaultMessage:
-              "{later, plural, one {Finish creating the last one from the pool tab when you're ready.} other {Finish creating the last # from the pool tab when you're ready.}}",
+              "{later, plural, one {Finish creating the last one from the Promises tab when you're ready.} other {Finish creating the last # from the Promises tab when you're ready.}}",
           },
           { later: state.later }
         ),
@@ -254,7 +254,7 @@ export function seedStatusView(input: {
           ? formatMessage({
               id: "cockpit.garden.pool.seed.status.createdGroup",
               defaultMessage:
-                "Gardeners can take them up now. They show as one group on the pool tab.",
+                "Gardeners can take them up now. They show as one group on the Promises tab.",
             })
           : formatMessage(
               {
