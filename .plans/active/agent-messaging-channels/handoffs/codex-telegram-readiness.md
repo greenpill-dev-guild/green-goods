@@ -343,14 +343,14 @@ step 7 as far as a fork can and adds the approved module for Arbitrum One.
   `0xca40752b288dfd58aca1b7c5b1356acea6a2b22d9284a081f6ca80d9ed2b5083`. Reporting only: review is
   not approved, and a wallet account cannot hold a permission.
 - **Caps.** 3,400,001 gas units per attempt, matching the fork's first-operation gas-limit sum,
-  and 0.005 ETH for a permission's five. The fork's first report used 2,969,802 gas and a later
+  and 0.005 ETH for a permission's five. The fork's first report used 2,969,672 gas and a later
   one 1,028,748. The chain charged 0.02 gwei when measured. The Agent rejects an activation
   whose prepared limits exceed this reservation; a fork assertion now checks the same boundary.
   These figures come from the fork, not a live sponsored run.
 - **Fork proof.** `bun run contracts -- verify reporting-kernel --network arbitrum --mode simulate`
-  at commit `3bf04e904b0f42aae169f068e534e5a081b3f57c`, fork block 511569150, verified
-  `2026-10-04T09:09:56.372Z`, source digest
-  `sha256:503c6e642756fc1af335245b8111697265fd780b4158db4ba65b8d02dd7bb585`, clean tree, 21 of 21
+  at commit `344be79b45c8b0844655941f8ce1dafac72cec59`, fork block 511574879, verified
+  `2026-10-04T09:35:58.438Z`, source digest
+  `sha256:60dd1c5343a94e4df3ae89981fbbbbfd3f6fffdb3a838fe86110963b98bd2cbe`, clean tree, 21 of 21
   checks. Four are new and use the approved module's own values: an account built as the app
   builds one is deployed by its first operation and joins the Community Garden; its passkey
   approves the permission and the report reaches the production EAS and work resolver under the
