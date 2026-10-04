@@ -11,9 +11,12 @@ import { EditorialDivider, EditorialHeading, EditorialKicker, EditorialLede } fr
  * variant lets the card float past the image into the next section.
  *
  * Layout notes:
- * - The card is a sibling of the image plate, positioned absolutely against
- *   the section. Banner uses a negative bottom offset to spill into the next
- *   section; fullscreen sits the card inside the first viewport.
+ * - The card is a sibling of the image plate. Banner positions it absolutely
+ *   against the section, with a negative bottom offset to spill into the next
+ *   section. Fullscreen keeps it in the section's flow, at the foot of the
+ *   first viewport: the section's padding holds it clear of the site header
+ *   and off the foot, so on a screen too short for the card (a phone held
+ *   sideways) the section grows instead of sliding the card under the header.
  * - All hero text lives *inside* the card on every breakpoint — no body
  *   text directly over imagery (mobile contrast was a design correction).
  * - GEOMETRY SYNC: the boot skeleton in index.html mirrors this component's
@@ -106,14 +109,18 @@ export function PublicEditorialHero({
         // `editorial-section-reveal` transform establishes its own stacking
         // context and would otherwise eat the spill.
         "relative isolate z-[1] bg-editorial-deep",
-        isBanner ? "overflow-visible" : "min-h-screen min-h-[100svh] overflow-hidden"
+        // Fullscreen: the top padding is the 4rem site header plus the rail's gutter, and
+        // the bottom padding is the card's offset from the foot of the first viewport.
+        isBanner
+          ? "overflow-visible"
+          : "flex min-h-screen min-h-[100svh] flex-col justify-end overflow-hidden pt-22 pb-14 sm:pt-26 sm:pb-24 lg:pb-[12svh]"
       )}
       aria-labelledby={titleId}
     >
       <div
         className={cn(
-          "relative overflow-hidden",
-          isBanner ? "h-[340px] sm:h-[420px] lg:h-[500px]" : "min-h-screen min-h-[100svh]"
+          "overflow-hidden",
+          isBanner ? "relative h-[340px] sm:h-[420px] lg:h-[500px]" : "absolute inset-0"
         )}
       >
         <img
@@ -138,12 +145,13 @@ export function PublicEditorialHero({
       </div>
 
       {/* Content card — hoisted out of the image plate so the banner variant
-          can softly overlap the next section. Positioned relative to the
-          section so banner uses negative bottom to spill into the next block. */}
+          can softly overlap the next section: banner positions it against the
+          section with a negative bottom to spill into the next block, and
+          fullscreen leaves it in the section's flow. */}
       <div
         className={cn(
-          "pointer-events-none absolute inset-x-0 z-10",
-          isBanner ? "bottom-[-4rem] sm:bottom-[-5rem]" : "bottom-14 sm:bottom-24 lg:bottom-[12svh]"
+          "pointer-events-none z-10",
+          isBanner ? "absolute inset-x-0 bottom-[-4rem] sm:bottom-[-5rem]" : "relative"
         )}
       >
         <div className="px-6 sm:px-10">

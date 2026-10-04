@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
+import { expect, waitFor } from "storybook/test";
 import {
   EditorialGhostButton,
   EditorialPrimaryLink,
@@ -66,6 +67,15 @@ const meta: Meta<typeof PublicEditorialHero> = {
   ],
   parameters: {
     layout: "fullscreen",
+    viewport: {
+      options: {
+        landscapePhone: {
+          name: "Landscape phone (844 × 390)",
+          styles: { width: "844px", height: "390px" },
+          type: "mobile",
+        },
+      },
+    },
     docs: {
       description: {
         component:
@@ -110,6 +120,31 @@ export const Home: Story = {
       <NextSection>Tended places, openly recorded.</NextSection>
     </>
   ),
+};
+
+/**
+ * A phone held sideways is shorter than the home card. The hero grows so the card starts below
+ * the site header instead of sliding under it.
+ */
+export const HomeOnLandscapePhone: Story = {
+  ...Home,
+  tags: ["storybook-ci"],
+  globals: { viewport: { value: "landscapePhone" } },
+  play: async ({ canvasElement }) => {
+    const title = canvasElement.querySelector("#story-home-title")!;
+    const card = title.parentElement!;
+    const hero = title.closest("section")!;
+    await waitFor(() => {
+      expect(window.innerWidth).toBe(844);
+      expect(window.innerHeight).toBe(390);
+      const heroBox = hero.getBoundingClientRect();
+      const cardBox = card.getBoundingClientRect();
+      // 104px is the 64px site header plus the rail's 40px gutter; 96px is the card's foot offset.
+      expect(cardBox.top - heroBox.top).toBeCloseTo(104, 0);
+      expect(heroBox.bottom - cardBox.bottom).toBeCloseTo(96, 0);
+      expect(heroBox.height).toBeGreaterThan(window.innerHeight);
+    });
+  },
 };
 
 export const Gardens: Story = {

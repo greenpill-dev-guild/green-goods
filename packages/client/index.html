@@ -365,9 +365,14 @@
 
       .boot-editorial-hero {
         position: relative;
+        display: flex;
+        flex-direction: column; /* flex-col */
+        justify-content: flex-end; /* justify-end */
         min-height: 100vh;
         min-height: 100svh; /* min-h-[100svh] */
         box-sizing: border-box;
+        padding-top: 88px; /* pt-22 */
+        padding-bottom: 56px; /* pb-14 */
         background:
           radial-gradient(circle at 72% 22%, rgb(245 240 232 / 0.08), transparent 34%),
           linear-gradient(145deg, var(--boot-deep), #18291f 62%, #23382b);
@@ -379,11 +384,20 @@
       .boot-editorial-card-rail {
         position: absolute;
         right: 0;
-        bottom: 56px; /* bottom-14 */
+        bottom: 56px; /* as pb-14 */
         left: 0;
         z-index: 1;
         box-sizing: border-box;
         padding: 0 24px; /* px-6 */
+      }
+
+      /* The home hero's rail sits in the hero's flow above its foot padding,
+         as the loaded card does, so a screen too short for the card grows the
+         hero instead of sliding the card under the header. The recovery rail,
+         outside the hero, keeps the viewport-anchored offsets above. */
+      .boot-editorial-hero .boot-editorial-card-rail {
+        position: relative;
+        bottom: auto;
       }
 
       .boot-editorial-card-column {
@@ -711,8 +725,13 @@
           padding: 0 40px; /* sm:px-10 */
         }
 
+        .boot-editorial-hero {
+          padding-top: 104px; /* sm:pt-26 */
+          padding-bottom: 96px; /* sm:pb-24 */
+        }
+
         .boot-editorial-card-rail {
-          bottom: 96px; /* sm:bottom-24 */
+          bottom: 96px; /* as sm:pb-24 */
           padding: 0 40px; /* sm:px-10 */
         }
 
@@ -738,8 +757,12 @@
       }
 
       @media (min-width: 1024px) {
+        /* lg:pb-[12svh]; parsers without svh keep the 96px step above */
+        .boot-editorial-hero {
+          padding-bottom: 12svh;
+        }
+
         .boot-editorial-card-rail {
-          /* lg:bottom-[12svh]; parsers without svh keep the 96px step above */
           bottom: 12svh;
         }
 
@@ -773,6 +796,7 @@
       }
 
       [data-boot-hero="banner"] .boot-editorial-hero .boot-editorial-card-rail {
+        position: absolute;
         bottom: -64px; /* bottom-[-4rem] */
       }
 
