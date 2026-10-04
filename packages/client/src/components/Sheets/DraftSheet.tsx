@@ -1,5 +1,5 @@
 import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
 interface DraftSheetProps {
@@ -34,6 +34,12 @@ export function DraftSheet({
   const [pending, setPending] = useState<"primary" | "secondary" | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [failure, setFailure] = useState<"failed" | "limit" | null>(null);
+  // Another account signing in closes the prompt from outside; the next one starts clean.
+  useEffect(() => {
+    if (isOpen) return;
+    setConfirmDiscard(false);
+    setFailure(null);
+  }, [isOpen]);
   const title = intl.formatMessage({
     id: confirmDiscard
       ? "app.garden.draft.discardTitle"
@@ -41,19 +47,25 @@ export function DraftSheet({
         ? "app.garden.draft.recoverTitle"
         : "app.garden.draft.title",
   });
-  const description =
-    failure === "limit" ? (
-      // In the prompt's own place, so the sheet keeps its height on the smallest phones.
-      <span role="alert">{intl.formatMessage({ id: "app.garden.draft.limit" })}</span>
-    ) : (
-      intl.formatMessage({
-        id: confirmDiscard
-          ? "app.garden.draft.discardDescription"
-          : legacyRecovery
-            ? "app.garden.draft.recoverDescription"
-            : "app.garden.draft.resumeDescription",
-      })
-    );
+  // In the plain prompt only Start Fresh can fail. Why it did takes the description's place, so
+  // the sheet keeps its height on the smallest phones.
+  const reason =
+    !failure || legacyRecovery
+      ? null
+      : failure === "limit"
+        ? "app.garden.draft.limit"
+        : "app.garden.draft.failed";
+  const description = reason ? (
+    <span role="alert">{intl.formatMessage({ id: reason })}</span>
+  ) : (
+    intl.formatMessage({
+      id: confirmDiscard
+        ? "app.garden.draft.discardDescription"
+        : legacyRecovery
+          ? "app.garden.draft.recoverDescription"
+          : "app.garden.draft.resumeDescription",
+    })
+  );
   const run = async (role: "primary" | "secondary", action: () => void | Promise<void>) => {
     setPending(role);
     setFailure(null);
@@ -116,7 +128,7 @@ export function DraftSheet({
         secondary: { ...secondary, disabled: pending === "primary" },
       }}
     >
-      {failure === "failed" && (
+      {failure && legacyRecovery && (
         <p role="alert">{intl.formatMessage({ id: "app.garden.draft.failed" })}</p>
       )}
     </PwaSheet>

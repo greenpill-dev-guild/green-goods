@@ -1,5 +1,5 @@
 import { type DraftDatabase, draftConnection } from "./draft-connection";
-import { saveDraftSnapshot } from "./draft-snapshot";
+import { MAX_DRAFTS_PER_USER, saveDraftSnapshot } from "./draft-snapshot";
 import { computeFirstIncompleteStep, hasMeaningfulDraftDetails, isWorkDraft } from "./draft-state";
 
 export { computeFirstIncompleteStep, hasMeaningfulDraftDetails } from "./draft-state";
@@ -34,8 +34,6 @@ import {
 import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
 import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
-
-const MAX_DRAFTS_PER_USER = 20;
 
 class DraftStore {
   async init(): Promise<DraftDatabase> {

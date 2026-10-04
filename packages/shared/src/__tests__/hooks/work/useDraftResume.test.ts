@@ -329,9 +329,19 @@ describe("the promise a draft was for", () => {
       returnTo: `/home/${GARDEN}/commitments/9`,
     });
     const input = { ...options(), searchParams: page };
+    mocks.resume.mockImplementation(async (id: string) => {
+      useWorkFlowStore.setState({ activeDraftId: id });
+      return "intro";
+    });
     const { result } = renderHook(() => useDraftResume(input));
     await waitFor(() => expect(result.current.showDraftSheet).toBe(true));
 
+    expect(input.setSearchParams).not.toHaveBeenCalled();
+    // Starting fresh sets the draft aside and leaves the page's own promise where it is.
+    await act(async () => {
+      await result.current.handleStartFresh();
+    });
+    expect(useWorkFlowStore.getState().activeDraftId).toBeNull();
     expect(input.setSearchParams).not.toHaveBeenCalled();
   });
 

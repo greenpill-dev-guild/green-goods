@@ -5,7 +5,8 @@ import { identifyWorkFile, isHeicFile, roundWorkLocation } from "../work/work-at
 import type { DraftDatabase } from "./draft-connection";
 import { computeFirstIncompleteStep, isWorkDraft } from "./draft-state";
 
-const MAX_DRAFTS_PER_USER = 20;
+/** Work drafts one account may keep on one chain. */
+export const MAX_DRAFTS_PER_USER = 20;
 
 /**
  * Save one revision of a work draft with its attachments in a single

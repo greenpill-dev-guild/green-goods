@@ -439,7 +439,8 @@ export function useWorkSubmissionFlowController({
       manage: () => {
         askAgainNextVisit();
         useUIStore.getState().openWorkDashboard("pending", "editing");
-        navigate(homeRoute);
+        // Back must not reopen an unanswered prompt: its address may hold the draft's promise.
+        navigate(homeRoute, { replace: showDraftSheet });
       },
       handleContinueDraft,
       startFresh: async () => {

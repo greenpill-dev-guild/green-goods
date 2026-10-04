@@ -3,7 +3,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, StrictMode, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -33,6 +33,8 @@ const mocks = vi.hoisted(() => ({
   selectGarden: vi.fn(),
   joinGarden: vi.fn(),
   joinState: { isJoining: false, joiningGardenId: null as string | null },
+  promptOpen: false,
+  askAgain: vi.fn(),
 }));
 
 vi.mock("../../../stores/workFlowTypes", () => ({
@@ -108,11 +110,11 @@ vi.mock("../../../modules/work/media-processing", async (importOriginal) => ({
 
 vi.mock("../../../hooks/work/useDraftResume", () => ({
   useDraftResume: () => ({
-    showDraftSheet: false,
+    showDraftSheet: mocks.promptOpen,
     setShowDraftSheet: vi.fn(),
     handleContinueDraft: vi.fn(),
     handleStartFresh: vi.fn(),
-    askAgainNextVisit: vi.fn(),
+    askAgainNextVisit: mocks.askAgain,
     clearActiveDraft: vi.fn(),
   }),
 }));
@@ -217,6 +219,7 @@ vi.mock("../../../hooks/client-ui/work/useWorkSubmissionPresentationModel", () =
 }));
 
 import { useWorkSubmissionFlowController } from "../../../hooks/client-ui/work/useWorkSubmissionFlowController";
+import { useUIStore } from "../../../stores/useUIStore";
 
 function Wrapper({ children }: { children: ReactNode }) {
   return createElement(
@@ -250,9 +253,11 @@ const commitmentLinkIntent = {
 
 let navigateShareRoute: ((path: string) => void) | null = null;
 let exitPath = "";
+let exitNavigation = "";
 
 function ExitPathCapture({ children }: { children: ReactNode }) {
   exitPath = useLocation().pathname;
+  exitNavigation = useNavigationType();
   return children;
 }
 
@@ -306,6 +311,7 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.toastError.mockReset();
     navigateShareRoute = null;
     exitPath = "";
+    mocks.promptOpen = false;
   });
 
   it("projects selection and owns the intro progress gate", () => {
@@ -365,6 +371,35 @@ describe("useWorkSubmissionFlowController", () => {
 
     expect(pathBeforeSave).toBe("/home");
     expect(mocks.saveOnExit).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { from: "the unanswered draft prompt", promptOpen: true, navigation: "REPLACE" },
+    { from: "the wizard's own draft-limit notice", promptOpen: false, navigation: "PUSH" },
+  ])("opens Your Work on its drafts from $from", ({ promptOpen, navigation }) => {
+    mocks.promptOpen = promptOpen;
+    useUIStore.getState().closeWorkDashboard();
+    const { result } = renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper: ExitWrapper }
+    );
+
+    act(() => result.current.draft.manage());
+
+    expect(useUIStore.getState()).toMatchObject({
+      isWorkDashboardOpen: true,
+      workDashboardInitialTab: "pending",
+      workDashboardInitialPendingFilter: "editing",
+    });
+    expect(exitPath).toBe("/home");
+    // Back returns to unsaved work in the wizard, but never to a prompt nobody answered.
+    expect(exitNavigation).toBe(navigation);
+    expect(mocks.askAgain).toHaveBeenCalledOnce();
   });
 
   it("offers a retry toast when the background draft save fails", async () => {
