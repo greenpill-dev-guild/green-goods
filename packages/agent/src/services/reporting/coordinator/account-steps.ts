@@ -74,7 +74,7 @@ export function welcome(writer: TurnWriter): void {
 }
 
 /** `START` from a chat with no account yet: linking is offered first, and reporting needs no answer. */
-export function offerConnection(writer: TurnWriter): void {
+function offerConnection(writer: TurnWriter): void {
   const binding = writer.ctx.binding;
   if (!binding) return writer.say("help");
   writer.ask(
