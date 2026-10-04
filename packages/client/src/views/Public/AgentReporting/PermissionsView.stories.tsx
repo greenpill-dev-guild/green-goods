@@ -39,6 +39,7 @@ const meta: Meta<typeof PermissionsView> = {
     connecting: false,
     connectWallet: noop,
     connectPasskey: asyncNoop,
+    changeAccount: asyncNoop,
     stage: "idle",
     permissions: [],
     descriptors: [],

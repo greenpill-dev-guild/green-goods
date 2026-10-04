@@ -20,6 +20,7 @@ import {
   sendPreparedEnvelope,
 } from "../../modules/agent-reporting/ceremony-send";
 import { resolveReportingDeployment } from "../../modules/agent-reporting/envelope";
+import { trackError } from "../../modules/app/error-categories";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useAsyncEffect } from "../utils/useAsyncEffect";
@@ -92,6 +93,14 @@ export function useAgentReportingCeremony(
   const fail = useCallback(
     (error: unknown) => {
       const failure = ceremonyFailure(error);
+      // "Something went wrong" tells the person nothing and us nothing: keep the error itself.
+      if (failure === "unknown") {
+        trackError(error, {
+          source: "useAgentReportingCeremony",
+          userAction: stateRef.current.stage,
+          recoverable: true,
+        });
+      }
       const terminal = failure === "expired" || failure === "not_yours";
       update({ error: failure, ...(terminal ? { stage: "unavailable" as const } : {}) });
     },
@@ -255,6 +264,21 @@ export function useAgentReportingCeremony(
     }
   }, [afterChallenge, client, fail, requestId, update]);
 
+  // The account this page was changed to has signed in, and the app remounted for it. The person
+  // had already continued in this tab, so the page opens its account step again.
+  useAsyncEffect(
+    async ({ isMounted }) => {
+      const stored = readCeremony(requestId);
+      if (!stored?.changingAccount) return;
+      const { changingAccount: _resumed, ...kept } = stored;
+      writeCeremony(requestId, kept);
+      // A page that already holds a session resumes that instead, in the effect above.
+      if (kept.accessId) return;
+      if (isMounted() && stateRef.current.stage === "intro") await start();
+    },
+    [requestId]
+  );
+
   const prove = useCallback(async () => {
     const challengeId = challengeRef.current;
     if (!challengeId) return;
@@ -374,6 +398,23 @@ export function useAgentReportingCeremony(
     update({ stage: "intro", access: null, resource: null, operation: null, grant: null });
   }, [client, requestId, update]);
 
+  const letGo = account.changeAccount;
+  const changeAccount = useCallback(async () => {
+    writeCeremony(requestId, { ...readCeremony(requestId), changingAccount: true });
+    await letGo();
+    // A code already on screen was issued to the account just let go. The link starts over, so
+    // the next account proves itself on a challenge of its own.
+    if (stateRef.current.stage !== "pairing") return update({ error: null });
+    challengeRef.current = null;
+    update({
+      stage: "intro",
+      pairingCode: null,
+      linkedAccount: null,
+      communityOffer: null,
+      error: null,
+    });
+  }, [letGo, requestId, update]);
+
   const installGrant = useGrantInstallation({
     account: account.account,
     client,
@@ -402,6 +443,7 @@ export function useAgentReportingCeremony(
     grant: state.grant,
     issues: issuesFor(state.operation),
     error: state.error,
+    changeAccount,
     start,
     prove,
     publish,

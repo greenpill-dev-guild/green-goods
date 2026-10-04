@@ -32,6 +32,7 @@ const meta: Meta<typeof RecoveryView> = {
     connecting: false,
     connectWallet: noop,
     connectPasskey: asyncNoop,
+    changeAccount: asyncNoop,
     start: asyncNoop,
     prove: asyncNoop,
     confirmCode: asyncNoop,

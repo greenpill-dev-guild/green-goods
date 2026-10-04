@@ -9,6 +9,12 @@ import { CeremonyError } from "../../modules/agent-reporting/ceremony-client";
  */
 export interface StoredCeremony {
   accessId?: string;
+  /**
+   * The person let go of the connected account on this page. When a different account signs in,
+   * the app remounts every screen (`useIdentityChangeReset`); this brings the page back to its
+   * account step instead of its start.
+   */
+  changingAccount?: true;
   pendingReport?: { operationId: string; request: OutcomeRequest };
   pendingGrant?: {
     grantId: string;
