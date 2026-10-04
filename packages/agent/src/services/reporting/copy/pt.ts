@@ -215,6 +215,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Não posso publicar isto pelo chat: a permissão de relato está pausada, esgotada ou terminou. Confirme de novo e eu envio uma página para você assinar.",
   "grant.paused":
     "A permissão de relatos está pausada. Vou pedir que você publique com sua passkey.",
+  "grant.spent":
+    "A permissão de relatos deste jardim se esgotou por enquanto. Vou pedir que você publique com sua passkey.",
   "review.pendingList": "Trabalhos aguardando sua revisão em {garden}. Escolha um para começar:",
   "review.none": "Não há trabalhos aguardando sua revisão.",
   "review.askDecision": "Você aprova ou rejeita “{title}” de {gardener}?",

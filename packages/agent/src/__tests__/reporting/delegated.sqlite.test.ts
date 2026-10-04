@@ -206,9 +206,28 @@ describe("Kernel reporting grant", () => {
     ).toBe(200);
 
     const summary = await reportUntilSummary(harness);
-    const replies = await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
-    // Paused grants are not used; the choice is offered again and nothing is signed for the owner.
-    expect(replies.join("\n")).toContain("Publish this report only");
+    const replies = (await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`)).join("\n");
+    // A paused grant is not used and nothing is signed for the owner. It stays the garden's one
+    // live grant, so a new one is not offered: the owner is sent to sign.
+    expect(replies).toContain("Reporting permission is paused");
+    expect(replies).not.toContain("Allow reporting in chat");
+    expect(harness.sender.signed).toBe(1);
+  });
+
+  it("sends the owner to sign once the grant's reports are used up", async () => {
+    await establishGrant();
+    await harness.drain();
+    harness.core.db.exec(
+      "UPDATE execution_grants SET submissions_reserved = 0, submissions_consumed = max_submissions"
+    );
+    const summary = await reportUntilSummary(harness);
+    const replies = (await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`)).join("\n");
+    expect(replies).toContain("used up for now");
+    expect(replies).not.toContain("Allow reporting in chat");
+    await harness.drain();
+    expect(harness.transport.texts().join("\n")).toContain(
+      "Open this page to review and sign the exact publication with your passkey."
+    );
     expect(harness.sender.signed).toBe(1);
   });
 

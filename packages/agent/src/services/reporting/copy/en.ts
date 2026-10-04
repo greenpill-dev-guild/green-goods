@@ -212,6 +212,8 @@ export const EN_REPORTING_COPY = {
     "I can't publish this one from chat: the reporting permission is paused, used up or has ended. Confirm again and I'll send you a page to sign it yourself.",
   "grant.paused":
     "Reporting permission is paused. I'll ask you to publish with your passkey instead.",
+  "grant.spent":
+    "The reporting permission for this garden is used up for now. I'll ask you to publish with your passkey instead.",
   "review.pendingList": "Work waiting for your review in {garden}. Choose one to start:",
   "review.none": "There's no work waiting for your review.",
   "review.askDecision": "Do you approve or reject “{title}” by {gardener}?",

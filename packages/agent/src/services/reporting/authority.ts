@@ -150,10 +150,24 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
           gardenAddress: garden.address,
         })
       : null;
-  const usable =
-    grant && grantUsability(grant, { identityEpoch: epoch, now: core.clock.now() }) === null;
+  const unusable = grant
+    ? grantUsability(grant, { identityEpoch: epoch, now: core.clock.now() })
+    : null;
+  const usable = grant !== null && unusable === null;
+  // A permission that is paused or used up stays this garden's one live permission until it
+  // ends, so another cannot be approved yet. Offering one would lead nowhere: the owner signs.
+  const spent =
+    grant?.state === "paused" || unusable === "epoch_changed"
+      ? "grant.paused"
+      : unusable === "exhausted"
+        ? "grant.spent"
+        : null;
   const mode =
-    account.kind === "eoa" || !delegationReady ? "owner" : usable ? "delegated" : "grant_choice";
+    account.kind === "eoa" || !delegationReady || spent
+      ? "owner"
+      : usable
+        ? "delegated"
+        : "grant_choice";
 
   inTransaction(core.db, () => {
     const current = loadDraft(core, draft.id);
@@ -162,6 +176,7 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
     commitLifecycle(core, current, [{ type: "AUTHORITY_ESTABLISHED", mode }], {
       participantAction: false,
     });
+    if (spent) writer()?.say(spent);
     if (mode === "grant_choice") {
       const out = writer();
       out?.ask(
