@@ -262,3 +262,35 @@ and resource limits remained enabled. Fly's CLI startup monitor returned early d
 conversion proof, with no production reporting traffic or contract broadcast.
 `flyctl machine status 857495b473e108 --app green-goods` confirmed `destroyed`, exit code zero,
 and `oom_killed: false`; no test machine remains running.
+
+## Guard deployment, page redraw and develop merge, 2026-10-03
+
+Recorded by the Claude interface session with Afolabi. The sections above predate it.
+
+- **Guard deployed.** `SingleAttestationPolicy` is on Arbitrum One at
+  `0xfe7c50354cE1AC1d10aEe840a520A40103A3d971`, transaction
+  `0x77b5ad3f59bf926c1598344e91ddc97d20f8791986e5025eae4ef79976f05b69`, block 511448509, deployer
+  nonce 993, reviewed commit `e60ae197c`. Afolabi signed the broadcast from his own terminal.
+  `bun run contracts -- verify single-attestation-policy --network arbitrum` returns `verified`:
+  the receipt is the reviewed contract creation, and the live runtime hash
+  `0x76f0a1fa648cf915dfe2a72a150622eb7d96f725cea6666e93f27f6e5645a0cf` equals the production
+  build and the guard the fork proof exercised. The record is
+  `packages/contracts/deployments/42161-single-attestation-policy.json`. Of checklist step 7 this
+  closes the deployment and the code hash only. The paymaster pin, measured cost caps, passkey
+  owner signing, production EAS publication and live sponsorship remain open, and the verified
+  permission registry stays empty. The contract has no owner and no upgrade path.
+- **Explorer source.** The same verify command takes `--publish-source` to submit the source
+  after the deployment verifies. It uses no signer and sends no transaction. The live submission
+  is Afolabi's to run and was still pending when this was written.
+- **Browser pages redrawn.** The reporting, recovery and permissions pages keep each band (top
+  bar, heading card, status card, bottom bar) at one height, carry their steps in the top bar, and
+  move account and help into a sheet. Rendered proof is Storybook in headless Chromium and a
+  localhost run against the loopback driver, with no wallet. Authenticated signing proof is still
+  pending. The API, state machines, consent, grant limits and signing sequence are unchanged.
+- **Develop merged in.** The branch contains develop as of `df0484c68`, and the pull request now
+  targets develop directly. GitHub's stack link between the three pull requests was removed,
+  because the middle branch conflicted with develop and that stopped CI for the top one.
+- **Where the live Agent can be tested.** A production Agent links to and accepts only
+  `https://www.greengoods.app`, which is built from `main` (decision of 29 September: no
+  browser-origin setting). A merge into develop puts the pages on staging, which the live Agent
+  does not use. Live testing needs the release to main; the laptop route needs neither.
