@@ -31,7 +31,7 @@ export type IpfsInitStatus =
 // CONSTANTS
 // ============================================================================
 
-export const DEFAULT_PINATA_GATEWAY = "https://greengoods.mypinata.cloud";
+const DEFAULT_PINATA_GATEWAY = "https://greengoods.mypinata.cloud";
 export const DEFAULT_PINATA_UPLOADS_API_BASE_URL = "https://uploads.pinata.cloud/v3";
 export const IPFS_FALLBACK_GATEWAYS = ["https://gateway.pinata.cloud", "https://ipfs.io"];
 export const PROVIDER_VERIFICATION_ATTEMPTS = 3;
@@ -100,18 +100,6 @@ export function getIpfsInitializationStatus(): IpfsInitStatus {
 
 export function getIpfsInitializationError(): string | null {
   return ipfsInitializationError;
-}
-
-// ============================================================================
-// STATE MUTATORS (for use by sibling modules)
-// ============================================================================
-
-export function setIpfsInitializationStatus(status: IpfsInitStatus): void {
-  ipfsInitializationStatus = status;
-}
-
-export function setIpfsInitializationError(error: string | null): void {
-  ipfsInitializationError = error;
 }
 
 // ============================================================================
