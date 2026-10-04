@@ -4,9 +4,23 @@
  * @vitest-environment happy-dom
  */
 
-import { describe, expect, it } from "vitest";
+import { ChainNotConfiguredError, ConnectorChainMismatchError } from "@wagmi/core";
+import { ChainMismatchError, SwitchChainError, UserRejectedRequestError } from "viem";
+import { arbitrum } from "viem/chains";
+import { describe, expect, it, vi } from "vitest";
 
-import { parseContractError } from "../../utils/errors/contract-errors";
+// The chain guard is imported for the error it throws; nothing here reaches a wallet.
+vi.mock("../../config/appkit", () => ({ getWagmiConfig: vi.fn(), peekAppKit: () => null }));
+vi.mock("../../modules/app/walletNetworkSwitchAnalytics", () => ({
+  trackWalletNetworkSwitch: vi.fn(),
+}));
+
+import en from "../../i18n/en.json";
+import es from "../../i18n/es.json";
+import pt from "../../i18n/pt.json";
+import { WalletChainMismatchError } from "../../modules/transactions/chain-guard";
+import { parseAndFormatError, parseContractError } from "../../utils/errors/contract-errors";
+import { classifyTxError, isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 
 describe("contract error recovery fields", () => {
   describe("recoverable field", () => {
@@ -146,6 +160,131 @@ describe("contract error recovery fields", () => {
       const result = parseContractError(error);
       expect(result.recoverable).toBe(true);
       expect(result.suggestedAction).toBe("retry");
+    });
+  });
+
+  describe("a failed wallet send, and the queue's own refusal", () => {
+    const ARBITRUM = 42161;
+    const CELO = 42220;
+    const walletDeclined = new UserRejectedRequestError(new Error("User rejected the request."));
+
+    // What PostHog logged on beta build c4a948735 (2026-10-01): the first send of a
+    // request, then the form's second press. Both read as a connection problem.
+    const loggedMismatch = new ConnectorChainMismatchError({
+      connectionChainId: ARBITRUM,
+      connectorChainId: CELO,
+    }).message;
+    const loggedConflict =
+      "offline_job_identity_conflict:commitment:5f0c7a1e-2b3d-4c5e-8f90-a1b2c3d4e5f6";
+
+    it("reads the logged network mismatch as a wrong network, and names the one it needed", () => {
+      expect(loggedMismatch).toContain("connection's chain");
+      const { title, message, parsed } = parseAndFormatError(new Error(loggedMismatch));
+
+      expect(parsed.name).toBe("WrongNetwork");
+      expect(parsed.messageValues).toEqual({ network: "Arbitrum One" });
+      expect(title).toBe("Wrong Network");
+      expect(message).toBe(
+        "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again."
+      );
+      // The inline classifier reads the same text the same way.
+      expect(classifyTxError(loggedMismatch).kind).toBe("wrongChain");
+    });
+
+    it("reads the queue's refusal as an earlier version still queued, never as offline", () => {
+      const { message, parsed } = parseAndFormatError(new Error(loggedConflict));
+
+      expect(parsed.name).toBe("EarlierVersionQueued");
+      expect(parsed.recoverable).toBe(false);
+      expect(message).toMatch(/earlier version .* hasn't been sent/);
+      // The queue names an act by a hex key too; that is never a contract's error code.
+      expect(
+        parseContractError(`offline_job_identity_conflict:workLink:0x${"ab".repeat(32)}`).name
+      ).toBe("EarlierVersionQueued");
+    });
+
+    it.each([
+      [
+        "a declined switch",
+        new WalletChainMismatchError({
+          targetChainId: ARBITRUM,
+          walletChainId: CELO,
+          outcome: "rejected",
+          cause: walletDeclined,
+        }),
+      ],
+      [
+        "a switch already waiting in the wallet",
+        new WalletChainMismatchError({ targetChainId: ARBITRUM, outcome: "pending" }),
+      ],
+      [
+        "a network the wallet does not have",
+        new WalletChainMismatchError({ targetChainId: ARBITRUM, outcome: "unknown_network" }),
+      ],
+      [
+        "a switch that left the wallet where it was",
+        new WalletChainMismatchError({
+          targetChainId: ARBITRUM,
+          walletChainId: CELO,
+          outcome: "unconfirmed",
+        }),
+      ],
+      ["viem's own refusal", new ChainMismatchError({ chain: arbitrum, currentChainId: CELO })],
+    ])("reads %s as a wrong network that names Arbitrum One", (_case, error) => {
+      // The chain guard and viem throw the error; the job queue keeps only its message.
+      for (const seen of [error, new Error(error.message)]) {
+        const parsed = parseContractError(seen);
+        expect(parsed.name).toBe("WrongNetwork");
+        expect(parsed.messageKey).toBe("app.errors.wallet.wrongNetwork.message");
+        expect(parsed.messageValues).toEqual({ network: "Arbitrum One" });
+      }
+    });
+
+    it("never reads a declined network switch as a cancelled transaction", () => {
+      const declinedSwitch = new SwitchChainError(walletDeclined);
+      expect(declinedSwitch.message).toContain("User rejected the request");
+
+      expect(parseContractError(declinedSwitch).name).toBe("WrongNetwork");
+      // A declined signature still does, and the queue drops only that one.
+      expect(parseContractError(walletDeclined).name).toBe("UserRejected");
+      const kept = new WalletChainMismatchError({ targetChainId: ARBITRUM, outcome: "rejected" });
+      expect(isCancelledTxError(kept.message)).toBe(false);
+      expect(isCancelledTxError(walletDeclined.message)).toBe(true);
+    });
+
+    it("says so without a name when the failure does not say which network", () => {
+      for (const error of [new ChainNotConfiguredError(), new Error("Unsupported chain")]) {
+        const parsed = parseContractError(error);
+        expect(parsed.name).toBe("WrongNetwork");
+        expect(parsed.messageKey).toBe("app.errors.wallet.wrongNetwork.messageUnnamed");
+        expect(parsed.messageValues).toBeUndefined();
+      }
+    });
+
+    it("keeps a lost connection and an offline phone as what they are", () => {
+      expect(parseContractError(new Error("Failed to fetch")).name).toBe("NetworkError");
+      expect(parseContractError(new Error("You are offline")).name).toBe("Offline");
+    });
+
+    it("names copy that exists in every language, and falls back to the same English", () => {
+      const parsedErrors = [
+        parseContractError(loggedMismatch),
+        parseContractError("Unsupported chain"),
+        parseContractError(loggedConflict),
+        parseContractError("You are offline"),
+      ];
+      for (const parsed of parsedErrors) {
+        for (const key of [parsed.titleKey, parsed.messageKey]) {
+          expect(key).toBeDefined();
+          for (const catalog of [en, es, pt] as Record<string, string>[]) {
+            expect(catalog[key as string], key).toEqual(expect.any(String));
+          }
+        }
+        const english = (en as Record<string, string>)[parsed.messageKey as string];
+        expect(parsed.message).toBe(
+          english.replace("{network}", parsed.messageValues?.network ?? "")
+        );
+      }
     });
   });
 

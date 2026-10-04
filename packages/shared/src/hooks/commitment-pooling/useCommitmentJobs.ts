@@ -16,6 +16,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { useIntl } from "react-intl";
 import type { Hex } from "viem";
 
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
@@ -249,8 +250,11 @@ async function sendAndSettle(
  *   is lost. Proof is the exception: its composer lets go of the draft once the
  *   queue has it, so a declined proof stays, marked for the person's own send,
  *   and the promise offers Send Now and Discard (`keepDeclined`).
- * - Failed any other way: the job stays. The queued row and the failed-act
- *   surface carry it from here, with Try Again.
+ * - Failed any other way, a declined network switch included: the job stays. The
+ *   queued row carries it from here, with Send Now and Discard. Pressing the
+ *   form's button again is the same act, so the queue answers with this job
+ *   (`isSameCreationPlacedAgain`) and it is sent again as it was queued; a press
+ *   whose answers changed is refused, and this job is left as it was.
  */
 async function sendFromTap(
   jobId: string,
@@ -317,9 +321,12 @@ export function useCommitmentJobs(options: { chainId?: number } = {}) {
   const viewer = usePrimaryAddress();
   const sender = useTransactionSender();
   const queryClient = useQueryClient();
+  const { formatMessage } = useIntl();
   const handleError = createMutationErrorHandler({
     source: "useCommitmentJobs",
     toastContext: "commitment",
+    // A wrong network and an earlier version still queued read in the person's language.
+    formatMessage,
   });
 
   const mutation = useMutation({

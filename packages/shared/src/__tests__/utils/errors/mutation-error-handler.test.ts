@@ -180,6 +180,91 @@ describe("createMutationErrorHandler", () => {
   });
 
   // ------------------------------------------
+  // Known errors in the reader's language
+  // ------------------------------------------
+
+  describe("a known error whose parser names its copy", () => {
+    const wrongNetwork = {
+      title: "Wrong Network",
+      message: "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again.",
+      parsed: {
+        raw: "Network switch rejected.",
+        name: "WrongNetwork",
+        message:
+          "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again.",
+        titleKey: "app.errors.wallet.wrongNetwork.title",
+        messageKey: "app.errors.wallet.wrongNetwork.message",
+        messageValues: { network: "Arbitrum One" },
+        isKnown: true,
+        recoverable: true,
+        suggestedAction: "check-wallet",
+      },
+    };
+    // Stands in for react-intl in Portuguese: the id's own words, with its values.
+    const formatMessage = vi.fn(
+      ({ id }: { id: string }, values?: Record<string, string | number>) =>
+        `pt:${id}:${values?.network ?? ""}`
+    );
+
+    beforeEach(() => {
+      mockParseAndFormatError.mockReturnValue(wrongNetwork);
+    });
+
+    it("shows the translated title and message, with the values the message takes", () => {
+      const handler = createMutationErrorHandler({
+        source: "useCommitmentJobs",
+        toastContext: "commitment",
+        formatMessage,
+      });
+
+      const result = handler(new Error("Network switch rejected."));
+
+      expect(mockToastError.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          title: "pt:app.errors.wallet.wrongNetwork.title:Arbitrum One",
+          message: "pt:app.errors.wallet.wrongNetwork.message:Arbitrum One",
+        })
+      );
+      // The parser's English stays the fallback react-intl is handed.
+      expect(formatMessage).toHaveBeenCalledWith(
+        { id: "app.errors.wallet.wrongNetwork.message", defaultMessage: wrongNetwork.message },
+        { network: "Arbitrum One" }
+      );
+      expect(result.message).toBe("pt:app.errors.wallet.wrongNetwork.message:Arbitrum One");
+    });
+
+    it("shows the parser's own words when the caller has no formatter", () => {
+      const handler = createMutationErrorHandler({ source: "useTest", toastContext: "test" });
+
+      handler(new Error("Network switch rejected."));
+
+      expect(mockToastError.mock.calls[0][0]).toEqual(
+        expect.objectContaining({ title: "Wrong Network", message: wrongNetwork.message })
+      );
+    });
+
+    it("leaves a known error with no named copy in the parser's words", () => {
+      mockParseAndFormatError.mockReturnValue(mockKnownParsedResult());
+      const handler = createMutationErrorHandler({
+        source: "useTest",
+        toastContext: "test",
+        formatMessage,
+      });
+
+      handler(new Error("0x8cb4ae3b"));
+
+      expect(formatMessage).not.toHaveBeenCalled();
+      expect(mockToastError.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          title: "Not Garden Member",
+          message: "You are not a member of this garden",
+          description: "Please join the garden before submitting work",
+        })
+      );
+    });
+  });
+
+  // ------------------------------------------
   // Unknown error handling
   // ------------------------------------------
 
