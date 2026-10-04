@@ -12,30 +12,35 @@ import { logger } from "./logger";
 
 export const supportedLanguages = ["en", "pt", "es"] as const;
 export type Locale = (typeof supportedLanguages)[number];
-export type LocaleMessages = Record<string, string>;
+/** A catalogue together with the language its copy is written in. */
+export interface LocaleCatalogue {
+  locale: Locale;
+  messages: Record<string, string>;
+}
 
-async function importLocaleMessages(locale: Locale): Promise<LocaleMessages> {
+async function importLocaleCatalogue(locale: Locale): Promise<LocaleCatalogue> {
   switch (locale) {
     case "es":
-      return (await import("../../i18n/es.json")).default;
+      return { locale, messages: (await import("../../i18n/es.json")).default };
     case "pt":
-      return (await import("../../i18n/pt.json")).default;
+      return { locale, messages: (await import("../../i18n/pt.json")).default };
     default:
-      return (await import("../../i18n/en.json")).default;
+      return { locale: "en", messages: (await import("../../i18n/en.json")).default };
   }
 }
 
 /**
  * A reader whose locale has not landed yet reads English rather than an empty
- * catalogue, and the next load tries their locale again.
+ * catalogue, and the next load tries their locale again. The catalogue says
+ * which language it came back in, so the page can declare the one on screen.
  */
-export async function loadLocaleMessages(locale: Locale): Promise<LocaleMessages> {
+export async function loadLocaleCatalogue(locale: Locale): Promise<LocaleCatalogue> {
   try {
-    return await importLocaleMessages(locale);
+    return await importLocaleCatalogue(locale);
   } catch (error) {
     if (locale === "en") throw error;
     logger.warn("[App] Locale messages unavailable; falling back to English", { locale, error });
-    return importLocaleMessages("en");
+    return importLocaleCatalogue("en");
   }
 }
 
