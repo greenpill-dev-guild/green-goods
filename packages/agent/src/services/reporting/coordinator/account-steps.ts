@@ -163,10 +163,17 @@ export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): voi
   if (!binding) return writer.say("help");
   const account = ctx.account;
   if (!account) return thenConnect ? requestConnection(writer, null) : writer.say("link.notLinked");
+  // Only work that is still open counts. A report or review that was cancelled, expired or
+  // published leaves its operation behind in whatever state it had reached, and that must not
+  // hold the account to the chat.
   const inFlight = core.db
     .query(
-      `SELECT 1 FROM execution_operations WHERE author_account_id = $account
-         AND state NOT IN ('published','failed','cancelled','preparation_failed') LIMIT 1`
+      `SELECT 1 FROM execution_operations o
+         LEFT JOIN work_drafts d ON d.id = o.draft_id
+         LEFT JOIN review_intents r ON r.id = o.review_intent_id
+       WHERE o.author_account_id = $account
+         AND o.state NOT IN ('published','failed','cancelled','preparation_failed')
+         AND (d.lifecycle = 'open' OR r.lifecycle = 'open') LIMIT 1`
     )
     .get({ account: account.id });
   const draftBusy = ctx.draft && !UNLINKABLE_STATES.has(lifecycleState(ctx.draft));

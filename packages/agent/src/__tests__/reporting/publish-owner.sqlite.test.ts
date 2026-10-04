@@ -42,6 +42,18 @@ function row<T>(sql: string, params: Record<string, string | number> = {}): T {
   return harness.core.db.query(sql).get(params) as T;
 }
 
+describe("switching account after cancelling", () => {
+  it("lets the chat disconnect once a report waiting for a signature is cancelled", async () => {
+    await confirmLinkAndPublish(harness);
+    await harness.drain();
+    // The report has a prepared operation waiting for the owner's signature.
+    expect((await harness.say(ADA, "DISCONNECT"))[0]).toContain("can't disconnect it yet");
+    expect((await harness.say(ADA, "CANCEL"))[0]).toContain("Report cancelled");
+    // The cancelled report's operation stays in the table; it no longer holds the account.
+    expect((await harness.say(ADA, "SWITCH"))[0]).toContain("This chat is no longer connected to");
+  });
+});
+
 describe("owner publication", () => {
   it("links an account in chat, publishes the exact envelope and verifies the receipt", async () => {
     await confirmLinkAndPublish(harness);
