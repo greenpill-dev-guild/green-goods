@@ -17,6 +17,7 @@ const TAKER = "0x3333333333333333333333333333333333333333" as Address;
 const HELPER = "0x4444444444444444444444444444444444444444" as Address;
 const STRANGER = "0x5555555555555555555555555555555555555555" as Address;
 const ZERO = "0x0000000000000000000000000000000000000000" as Address;
+const CHECKSUMMED = "0xAbCdEf0123456789aBcDeF0123456789AbCdEf01" as Address;
 
 // Pre-acceptance the contract has written neither party address, so the
 // indexer stores both as absent (commitment-pool-factories.ts:170-171).
@@ -292,10 +293,37 @@ describe("account-scoped commitment reads", () => {
 
   it("finds a commitment that names the reader as a confirmer", async () => {
     // Seating them as confirmer is no use if their own sheet never lists it.
-    await getCommitments({ chainId: 42161, account: ASKER });
+    // The indexer stores confirmers in lower case, so a checksummed reader
+    // has to be asked for in lower case or the named confirmer is never found.
+    await getCommitments({ chainId: 42161, account: CHECKSUMMED });
 
-    const { document } = lastCommitmentQuery();
-    expect(document).toContain("confirmers: { _contains: [$account] }");
+    const { document, variables } = lastCommitmentQuery();
+    expect(document).toContain("$confirmerAccounts: [String!]!");
+    expect(document).toContain("confirmers: { _contains: $confirmerAccounts }");
+    expect(variables.confirmerAccounts).toEqual([CHECKSUMMED.toLowerCase()]);
+    expect(variables.account).toBe(CHECKSUMMED.toLowerCase());
+  });
+
+  it("never nests a variable inside a list literal, whatever the filters", async () => {
+    // The hosted indexer reads `[$variable]` as null on some requests and
+    // rejects the whole query, so a list always travels as one variable.
+    mocks.query.mockImplementation(
+      async (_document: string, variables: { account?: string }, operation: string) => {
+        if (operation !== "getCommitmentMembership") return { data: { Commitment: [] } };
+        const rostered = variables.account === HELPER.toLowerCase();
+        return {
+          data: { CommitmentContributor: rostered ? [{ commitmentEntityId: "42161-9" }] : [] },
+        };
+      }
+    );
+
+    await getCommitments({ chainId: 42161, account: HELPER });
+    await getCommitments({ chainId: 42161, account: ASKER, state: "ACCEPTED" });
+    await getCommitments({ chainId: 42161, poolId: 9n, cycleId: 2n, seriesId: 3n });
+
+    const documents = mocks.query.mock.calls.map((args) => String(args[0]));
+    expect(documents.filter((document) => document.includes("query Commitments("))).toHaveLength(3);
+    for (const document of documents) expect(document).not.toContain("[$");
   });
 
   it("adds roster membership as one more way in, never as the only one", async () => {
