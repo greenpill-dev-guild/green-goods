@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import { REPORTING_SUPPORT_CONTACT } from "@green-goods/shared/modules/agent-reporting";
 import type { GardenDirectory } from "./gardens";
 import type { ReportingKeyring } from "./keyring";
@@ -22,10 +22,11 @@ export const systemClock: ReportingClock = { now: () => Date.now() };
 export const randomIds: ReportingIds = {
   id: () => randomUUID(),
   token: (bytes = 24) => randomBytes(bytes).toString("base64url"),
-  code: (digits) => {
-    const value = randomBytes(6).readUIntBE(0, 6) % 10 ** digits;
-    return value.toString().padStart(digits, "0");
-  },
+  // randomInt draws uniformly; taking random bytes modulo a power of ten favours the low codes.
+  code: (digits) =>
+    randomInt(0, 10 ** digits)
+      .toString()
+      .padStart(digits, "0"),
 };
 
 /** Accepted defaults from technical brief sections 9 and 10; deployments may only shorten them. */

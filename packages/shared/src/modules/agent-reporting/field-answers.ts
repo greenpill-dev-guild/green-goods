@@ -68,7 +68,9 @@ export function validateDetailValue(input: WorkInput, value: unknown): DetailChe
   }
 }
 
-const NUMBER_PATTERN = /^(-?)(\d+)(?:([.,])(\d+))?\s*(.*)$/u;
+// The unit starts at a non-space, so a run of spaces has one reading and a long chat message is
+// matched in linear time.
+const NUMBER_PATTERN = /^(-?)(\d+)(?:([.,])(\d+))?(?:\s*(\S.*))?$/u;
 
 function singular(word: string): string {
   const lower = word.trim().toLowerCase();
@@ -84,7 +86,7 @@ export function parseNumberAnswer(
   if (!text) return { ok: false, reason: "empty" };
   const match = NUMBER_PATTERN.exec(text);
   if (!match) return { ok: false, reason: "not_a_number" };
-  const [, sign, whole, separator, fraction, rest] = match;
+  const [, sign, whole, separator, fraction, rest = ""] = match;
   if (separator && fraction?.length === 3) return { ok: false, reason: "ambiguous_number" };
   const value = Number(`${whole}${fraction ? `.${fraction}` : ""}`);
   if (sign) return { ok: false, reason: "negative" };
@@ -132,7 +134,12 @@ export function parseFieldAnswer(
         : { ok: false, reason: "unknown_option" };
     }
     case "multi-select": {
-      const tokens = text.split(/\s*(?:,|;|\band\b|\by\b|\be\b)\s*/iu).filter(Boolean);
+      // Split on the separator alone and trim afterwards: a separator that also swallowed the
+      // spaces around it took quadratic time on a long run of spaces.
+      const tokens = text
+        .split(/,|;|\band\b|\by\b|\be\b/iu)
+        .map((token) => token.trim())
+        .filter(Boolean);
       const choices = tokens.map((token) => matchChoice(input, token, presented));
       if (choices.length === 0 || choices.some((choice) => choice === null)) {
         return { ok: false, reason: "unknown_option" };

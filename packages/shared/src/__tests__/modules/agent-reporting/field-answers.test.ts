@@ -41,12 +41,16 @@ describe("parseFieldAnswer", () => {
     [seedlings, "1.200", { ok: false, reason: "ambiguous_number" }],
     [seedlings, "-3", { ok: false, reason: "negative" }],
     [seedlings, "10 bags", { ok: false, reason: "unit_mismatch", statedUnit: "bags" }],
+    [seedlings, "12   seedlings", { ok: true, value: 12 }],
+    [seedlings, "12 seedlings\nand a few more", { ok: false, reason: "not_a_number" }],
     [species, "2", { ok: true, value: "baobab" }],
     [species, "neem", { ok: true, value: "neem" }],
     [species, "Oak", { ok: false, reason: "unknown_option" }],
     [methods, "1, 3", { ok: true, value: ["mulch", "water"] }],
     [methods, "mulch and compost", { ok: true, value: ["mulch", "compost"] }],
     [methods, "mulch, rocks", { ok: false, reason: "unknown_option" }],
+    [methods, "mulch ,  compost ;water", { ok: true, value: ["mulch", "compost", "water"] }],
+    [methods, "mulch,, compost", { ok: true, value: ["mulch", "compost"] }],
     [size, "large", { ok: true, value: "large" }],
     [crew, "Ada and Bola", { ok: false, reason: "unsupported_input" }],
     [input({ type: "textarea" }), "  Cleared the bed  ", { ok: true, value: "Cleared the bed" }],
@@ -57,6 +61,23 @@ describe("parseFieldAnswer", () => {
 
   it("numbers options by the page the question actually showed", () => {
     expect(parseFieldAnswer(species, "1", ["neem"])).toMatchObject({ ok: true, value: "neem" });
+  });
+
+  it("reads a chat message padded with a long run of spaces without stalling", () => {
+    // Anyone in the chat can send such a message. A pattern that lets two of its parts both claim
+    // the spaces takes seconds on these (quadratic time); one reading of the spaces takes under a
+    // millisecond, so the half-second allowance is three orders of magnitude of headroom.
+    const spaces = " ".repeat(100_000);
+    const started = performance.now();
+    expect(parseFieldAnswer(seedlings, `0${spaces}seedlings\nand more`)).toMatchObject({
+      ok: false,
+      reason: "not_a_number",
+    });
+    expect(parseFieldAnswer(methods, `mulch${spaces}compost`)).toMatchObject({
+      ok: false,
+      reason: "unknown_option",
+    });
+    expect(performance.now() - started).toBeLessThan(500);
   });
 });
 
