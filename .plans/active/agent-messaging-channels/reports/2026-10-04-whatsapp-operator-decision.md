@@ -72,6 +72,9 @@ Read on Meta's own help and policy pages that day. Recheck before relying on any
 - The adapter's contract does not change. Section 6 of the
   [capability record](2026-09-27-reporting-core-capability-record.md) remains its spec.
 
+Outside the hub, track 5 of the [research agenda](../../../../docs/routines/research-agenda.md)
+names the new operator in its settled list.
+
 ## Still open
 
 - **Legal and fiscal sponsor review.** A sole proprietorship has no liability shield and is not a
@@ -82,7 +85,5 @@ Read on Meta's own help and policy pages that day. Recheck before relying on any
 - **The first number.** PRD-942, which covered registering the Twilio number under the account in
   WEFA's portfolio, was closed on 29 September. Whether Meta lets that number be removed from that
   account, or Green Goods takes a new one, is not known.
-- **The research agenda.** [Track 5](../../../../docs/routines/research-agenda.md) still lists "WEFA
-  operates WhatsApp" as settled. The Research panel edits that file at cycle boundaries.
 - **Who speaks for Green Goods.** The operator and the project lead are now the same person, so the
   operating memo linked on GROW-60 asks for a second person.

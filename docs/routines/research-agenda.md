@@ -199,7 +199,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 - The prototype entry criteria were accepted on 2026-09-21. The current user-approved architecture is API-harness-first and Meta DM-first, with reporting/correction/review in chat and platform-neutral browser ceremonies when authentication or signing is needed.
 - The prototype uses existing EOA/Kernel accounts and pre-enrolled TAS or Aiyeloja Family Garden members. EOA publications require exact signing; Kernel reporting and review delegation are separate, limited and subject to proof. Universal passkey onboarding/Profile wallet association remain future work.
 - OpenAI processes content and Jev makes bounded typed decisions. Documents, photos and spreadsheets are included, with isolated automatic Office conversion. Provider terms and live quality still need evidence.
-- Capture is private and consent-gated; public evidence requires separate confirmation. WEFA operates WhatsApp; Afolabi owns support at afo@wefa.world. The accepted grant/retention limits and current implementation contract live in the Plan Hub.
+- Capture is private and consent-gated; public evidence requires separate confirmation. Afolabi operates WhatsApp as a sole proprietor doing business as Green Goods (decided 2026-10-04, replacing WEFA) and owns support at afo@wefa.world. The accepted grant/retention limits and current implementation contract live in the Plan Hub.
 
 **Open.**
 1. Pilot cohort, baseline and metric set: reporting completion/correction, total gardener and operator time, language/device coverage, support load and consent comprehension. A successful prototype is not pilot-effectiveness evidence.
