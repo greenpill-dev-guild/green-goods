@@ -296,6 +296,13 @@ describe("PWA durable submission boundary", () => {
     blocked.mockRestore();
     expect(await queued()).toHaveLength(1);
 
+    // Another tab preparing the copy holds its claim. The copy is still unsent, so this is not
+    // "nothing to take back": it rejects, and the save that asked does not count as done.
+    expect(await jobQueueDB.acquireExecutionClaim([first.id], "another-tab")).toBe(true);
+    await expect(returnChangedWorkToDraft(edited, jobQueue)).rejects.toThrow("queued-copy-held");
+    expect(await queued()).toHaveLength(1);
+    await jobQueueDB.releaseExecutionClaim([first.id], "another-tab");
+
     expect(await returnChangedWorkToDraft(edited, jobQueue)).toBe(true);
     // No first version is left to upload from Your Work: the work is one draft again.
     expect(await queued()).toEqual([]);

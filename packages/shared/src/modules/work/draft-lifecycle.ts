@@ -2,6 +2,7 @@ import { finishLegacyRecovery } from "./legacy-draft-recovery";
 import { suspendUploadPreparation } from "./upload-preparation";
 import { draftDB } from "../job-queue/draft-db";
 import { jobQueueDB } from "../job-queue/db";
+import { isDiscardableJob } from "../job-queue/job-recovery";
 import type { JobQueueHandle } from "../job-queue/ports";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -175,10 +176,13 @@ export async function deleteDraftOfQueuedWork(
  * While nothing of it has been sent, the copy is discarded: Your Work lists
  * the draft again, and the next Submit queues the work as it now stands. The
  * draft keeps the copy's upload record, which holds what was already uploaded
- * and no send. A copy that may have been sent, or that a send holds, stays,
- * and its draft is kept when that copy is sent.
+ * and no send. A copy that may have been sent stays, and its draft is kept
+ * when that copy lands.
  *
- * Resolves whether a queued copy was discarded.
+ * Resolves whether a queued copy was discarded. Rejects with
+ * `queued-copy-held` while the copy is still unsent but cannot be discarded,
+ * because another tab is preparing or sending it: the save that asked must not
+ * count as done, or a Submit behind it would send that copy.
  */
 export async function returnChangedWorkToDraft(
   draft: WorkDraftRecord,
@@ -205,11 +209,17 @@ export async function returnChangedWorkToDraft(
   try {
     // The upload record moves to the draft first, read under the discard's own claim: if it
     // cannot be written the copy stays, and the draft never queues a send intent it kept.
-    return await queue.discardJob(stale.id, async (copy) => {
+    const discarded = await queue.discardJob(stale.id, async (copy) => {
       await draftDB.updateDraft(draft.id, {
         uploadCheckpoint: (copy.payload as WorkJobPayload).uploadCheckpoint,
       });
     });
+    if (discarded) return true;
+    // Refused. A copy that is gone, or that a send has recorded, is no longer this draft's to
+    // take back. One still queued and unsent is only held, by another tab for one.
+    const left = await jobQueueDB.getJob(stale.id);
+    if (left && isDiscardableJob(left)) throw new Error("queued-copy-held");
+    return false;
   } finally {
     resumePreparation();
   }
