@@ -158,6 +158,7 @@ describe("PWA build budgets", () => {
     ],
     ["precache raw", { precache: ["index.html"] }, { PWA_PRECACHE_MAX_BYTES: "1" }],
     ["public startup gzip", {}, { PWA_PUBLIC_STARTUP_GZIP_MAX: "1" }],
+    ["installed entry gzip", {}, { PWA_INSTALLED_ENTRY_GZIP_MAX: "1" }],
     ["installed startup gzip", {}, { PWA_INSTALLED_STARTUP_GZIP_MAX: "1" }],
     [
       "HTML module preloads",

@@ -33,7 +33,7 @@ import { focusRememberedGardenCard } from "./gardenReturnFocus";
  */
 export default function GardensGallery() {
   const { formatMessage } = useIntl();
-  const { data: gardens = [], isLoading, isError } = usePublicGardens();
+  const { data: gardens = [], isLoading, isError, refetch } = usePublicGardens();
   const [query, setQuery] = useState("");
   const navigationType = useNavigationType();
   const { ref: archiveRef, revealed: archiveRevealed } = useInViewReveal<HTMLElement>();
@@ -168,15 +168,7 @@ export default function GardensGallery() {
                   ))}
                 </div>
               }
-              error={
-                <p className="mt-12 font-serif text-2xl italic text-text-soft-400">
-                  {formatMessage({
-                    id: "public.surface.error",
-                    defaultMessage:
-                      "This public record is temporarily unavailable. Please try again.",
-                  })}
-                </p>
-              }
+              onRetry={() => void refetch()}
               empty={
                 <div className="mt-12">
                   <p className="font-serif text-2xl italic text-text-soft-400">

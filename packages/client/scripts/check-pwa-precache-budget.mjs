@@ -11,6 +11,9 @@ const LIMITS = {
   precacheEntries: Number(process.env.PWA_PRECACHE_MAX_ENTRIES ?? 40),
   publicStartupGzip: Number(process.env.PWA_PUBLIC_STARTUP_GZIP_MAX ?? 450 * KiB),
   pwaStartupGzip: Number(process.env.PWA_INSTALLED_STARTUP_GZIP_MAX ?? 1.25 * MiB),
+  // The installed entry alone, before any route. It holds the app's recovery screens, which are
+  // what is shown when a route's code will not load, so it must not lean on the routes' code.
+  pwaEntryGzip: Number(process.env.PWA_INSTALLED_ENTRY_GZIP_MAX ?? 450 * KiB),
   modulePreloads: Number(process.env.PWA_MODULE_PRELOAD_MAX ?? 16),
   majorRouteGzip: Number(process.env.PWA_MAJOR_ROUTE_GZIP_MAX ?? 500 * KiB),
   mediaRouteGzip: Number(process.env.PWA_MEDIA_ROUTE_GZIP_MAX ?? 850 * KiB),
@@ -197,6 +200,14 @@ try {
     );
   }
 
+  const pwaEntry = collectManifestClosure(manifest, [mainKey, pwaKey]);
+  const pwaEntryGzip = [...pwaEntry.files].reduce((sum, file) => sum + fileSize(file, true), 0);
+  if (pwaEntryGzip > LIMITS.pwaEntryGzip) {
+    failures.push(
+      `installed entry gzip ${formatBytes(pwaEntryGzip)} exceeds ${formatBytes(LIMITS.pwaEntryGzip)}`
+    );
+  }
+
   const pwaShellSources = [
     "src/bootstrapPwa.tsx",
     "src/routes/PwaRuntime.tsx",
@@ -311,6 +322,7 @@ try {
     [
       `PWA budgets OK: ${precacheUrls.length} precache entries (${formatBytes(precacheRaw)} raw)`,
       `public startup ${formatBytes(publicGzip)} gzip`,
+      `installed entry ${formatBytes(pwaEntryGzip)} gzip`,
       `installed startup ${formatBytes(pwaStartupGzip)} gzip`,
       `${modulePreloads} module preloads`,
       `${lazyChunkFiles.length} opaque lazy chunks`,

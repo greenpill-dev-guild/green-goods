@@ -38,7 +38,7 @@ import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
-import { GardenErrorBoundary } from "@/components/Errors";
+import { AppErrorBoundary } from "@/components/Errors/AppErrorBoundary";
 import {
   GardenAssessments,
   GardenGardeners,
@@ -307,7 +307,8 @@ export const Garden: React.FC = () => {
   // No custom scroll restoration; StandardTabs resets nearest scroll container
 
   return (
-    <GardenErrorBoundary>
+    // A garden's page hides the bottom bar, so a failure inside it is the screen state with Back.
+    <AppErrorBoundary view="screen" name="GardenErrorBoundary">
       <div className="h-full min-h-0 w-full flex flex-col relative overflow-hidden">
         {pathname.includes("work") ||
         pathname.includes("assessments") ||
@@ -434,6 +435,6 @@ export const Garden: React.FC = () => {
         )}
         <Outlet context={{ gardenId: garden.id }} />
       </div>
-    </GardenErrorBoundary>
+    </AppErrorBoundary>
   );
 };

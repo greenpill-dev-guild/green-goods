@@ -119,8 +119,6 @@ export const FROZEN_ALLOWLIST = {
   "packages/agent/src/platforms/telegram.ts": 590,
   "packages/agent/src/services/blockchain.ts": 627,
   "packages/client/src/components/Sheets/ConvictionSheet.tsx": 569,
-  "packages/client/src/components/Errors/AppErrorBoundary.tsx": 520,
-  "packages/client/src/components/Errors/RouteErrorBoundary.tsx": 522,
   "packages/client/src/components/Public/PublicCookieJarCard.tsx": 756,
   "packages/client/src/components/Public/PublicEndowmentPanel.tsx": 719,
   "packages/client/src/components/Public/PublicFundingCard.tsx": 1010,

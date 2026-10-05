@@ -1,5 +1,5 @@
 /**
- * Where people are sent for help with chat reporting: the Green Goods site, named in the chat's
- * replies and linked from the browser ceremony pages. A site, never a person's own address.
+ * Where people are sent for help with chat reporting. The value lives with the app's own facts
+ * (`config/app`), which must import nothing; the reporting rules name it from here.
  */
-export const REPORTING_SUPPORT_CONTACT = "greengoods.app";
+export { REPORTING_SUPPORT_CONTACT } from "../../config/app";

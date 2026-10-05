@@ -50,6 +50,8 @@ const messages: Record<string, string> = {
   "public.home.featured.title": "Tended places, openly recorded.",
   "public.home.featured.cta": "Browse All Gardens",
   "public.home.featured.empty": "Featured Gardens will appear here as they come online.",
+  "public.surface.error": "This public record is temporarily unavailable. Please try again.",
+  "public.surface.retry": "Try Again",
   "public.gardens.gardeners": "{count} gardeners",
   "public.gardens.works": "{count} entries",
 };
@@ -259,6 +261,26 @@ describe("PublicFeaturedGardens", () => {
     expect(
       screen.getByText("Featured Gardens will appear here as they come online.")
     ).toBeInTheDocument();
+  });
+
+  it("says a failed read is unavailable, not empty, and offers the read again", () => {
+    const refetch = vi.fn();
+    mockUsePublicGardens.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      refetch,
+    });
+
+    renderSection();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "This public record is temporarily unavailable. Please try again."
+    );
+    expect(screen.queryByText("Featured Gardens will appear here as they come online.")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it("renders four loading skeletons while data is loading", () => {
