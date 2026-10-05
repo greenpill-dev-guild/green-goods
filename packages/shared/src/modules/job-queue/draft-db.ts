@@ -1,5 +1,5 @@
 import { type DraftDatabase, draftConnection } from "./draft-connection";
-import { saveDraftSnapshot } from "./draft-snapshot";
+import { MAX_DRAFTS_PER_USER, saveDraftSnapshot } from "./draft-snapshot";
 import { computeFirstIncompleteStep, hasMeaningfulDraftDetails, isWorkDraft } from "./draft-state";
 
 export { computeFirstIncompleteStep, hasMeaningfulDraftDetails } from "./draft-state";
@@ -35,8 +35,6 @@ import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
 import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
 
-const MAX_DRAFTS_PER_USER = 20;
-
 class DraftStore {
   async init(): Promise<DraftDatabase> {
     return draftConnection.init();
@@ -54,6 +52,16 @@ class DraftStore {
   ): Promise<void> {
     const db = await this.init();
     await db.active_drafts.put({ scope: `${userAddress.toLowerCase()}:${chainId}`, draftId });
+  }
+
+  /** Stop the wizard reopening on this draft, unless another tab has moved to a different one. */
+  async releaseActiveDraft(userAddress: string, chainId: number, draftId: string): Promise<void> {
+    const db = await this.init();
+    const scope = `${userAddress.toLowerCase()}:${chainId}`;
+    await db.transaction("rw", db.active_drafts, async () => {
+      if ((await db.active_drafts.get(scope))?.draftId === draftId)
+        await db.active_drafts.delete(scope);
+    });
   }
 
   async saveSnapshot(
@@ -373,6 +381,11 @@ class DraftStore {
    */
   async getDraftCount(userAddress: string, chainId: number): Promise<number> {
     return (await this.getDraftsForUser(userAddress, chainId)).length;
+  }
+
+  /** Whether a new draft would be refused: the account has used every slot on this chain. */
+  async isAtDraftLimit(userAddress: string, chainId: number): Promise<boolean> {
+    return (await this.getDraftCount(userAddress, chainId)) >= MAX_DRAFTS_PER_USER;
   }
 
   /**

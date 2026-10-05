@@ -10542,6 +10542,30 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "PWA-138",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Work",
+      "scenario": "Start Fresh on a saved work draft keeps the draft in Your Work",
+      "preconditions": ["One saved work draft with a photo and a filled garden and action"],
+      "steps": [
+        "Reload the app, open Submit Work and read the sheet",
+        "Choose Start Fresh and inspect the wizard",
+        "Choose a different action and garden, then leave Submit Work",
+        "Open Your Work, choose Editing and read both draft rows",
+        "Resume the first draft and inspect the restored wizard"
+      ],
+      "expected": "The sheet offers Continue Draft and Start Fresh and says the draft stays in Your Work. Start Fresh opens an empty wizard without asking to discard anything. Editing then lists two drafts: the new one and the first, unchanged with its photo. Resuming the first restores its garden, action and photo.",
+      "evidence": "Screenshots of the sheet, the empty wizard, Editing with both drafts and the restored wizard",
+      "role": "gardener",
+      "tags": ["work-submission", "draft", "my-work"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
     }
   ]
 }

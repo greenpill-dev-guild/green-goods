@@ -286,6 +286,7 @@ describe("store domain transitions", () => {
       draftMissingAttachments: [],
       draftEpoch: 3,
       draftDeleting: false,
+      draftChoicePending: false,
       draftSaveState: "idle",
       draftError: null,
       draftLinkCleared: false,

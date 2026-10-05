@@ -43,6 +43,20 @@ describe("complete draft autosave", () => {
     });
     expect(mocks.save).not.toHaveBeenCalled();
   });
+  it("does not write a loaded draft until its prompt is answered", async () => {
+    useWorkFlowStore.setState({ activeDraftId: "resumed", draftChoicePending: true });
+    const { result } = renderHookWithQueryClient(() => useDraftAutoSave(base, emptyImages));
+    await act(async () => {
+      await result.current.saveOnExit();
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(mocks.save).not.toHaveBeenCalled();
+    await act(async () => {
+      useWorkFlowStore.setState({ draftChoicePending: false });
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(mocks.save.mock.calls[0][2]).toBe("resumed");
+  });
   it("saves the initial snapshot and debounces subsequent text edits", async () => {
     const { rerender } = renderHookWithQueryClient(
       ({ feedback }) => useDraftAutoSave({ ...base, feedback }, emptyImages),

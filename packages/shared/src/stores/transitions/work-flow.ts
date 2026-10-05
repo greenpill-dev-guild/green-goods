@@ -46,6 +46,7 @@ export function resetWorkFlowTransition(
     draftMissingAttachments: [],
     draftEpoch: _state.draftEpoch + 1,
     draftDeleting: false,
+    draftChoicePending: false,
     draftSaveState: "idle",
     draftError: null,
     draftLinkCleared: false,

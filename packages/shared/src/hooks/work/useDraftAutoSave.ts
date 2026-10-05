@@ -41,6 +41,7 @@ export function useDraftAutoSave(
   const chainId = useCurrentChain();
   const queryClient = useQueryClient();
   const deleting = useWorkFlowStore((state) => state.draftDeleting);
+  const choicePending = useWorkFlowStore((state) => state.draftChoicePending);
   const hydrated = useWorkFlowStore((state) => state.draftHydrated);
   const completed = useWorkFlowStore((state) => state.submissionCompleted);
   const activeDraftId = useWorkFlowStore((state) => state.activeDraftId);
@@ -68,7 +69,13 @@ export function useDraftAutoSave(
     task: Promise<string | null>;
   } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const enabled = options.enabled !== false && hydrated && !deleting && !completed && !!userAddress;
+  const enabled =
+    options.enabled !== false &&
+    hydrated &&
+    !deleting &&
+    !choicePending &&
+    !completed &&
+    !!userAddress;
 
   const saveOnExit = useCallback(async (): Promise<string | null> => {
     clearTimeout(timer.current);
@@ -83,6 +90,7 @@ export function useDraftAutoSave(
         current.draftEpoch === generation &&
         current.draftScope === scope &&
         !current.draftDeleting &&
+        !current.draftChoicePending &&
         !current.submissionCompleted
       );
     };

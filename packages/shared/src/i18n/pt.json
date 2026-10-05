@@ -6042,7 +6042,7 @@
   "app.garden.draft.discard": "Descartar rascunho",
   "app.garden.draft.keep": "Manter rascunho",
   "app.garden.draft.close": "Fechar",
-  "app.garden.draft.resumeDescription": "Continue seu trabalho salvo ou escolha Começar de novo para descartá-lo.",
+  "app.garden.draft.resumeDescription": "Continue seu trabalho salvo ou escolha Começar do Zero. Este rascunho fica em Seu trabalho.",
   "app.garden.attachments.invalid": "Confira os formatos e tamanhos. Fotos: 10 MB; vídeos: 20 MB e 30 segundos; todos os arquivos: 50 MB.",
   "app.garden.draft.reselect": "Não é possível ler {name}. Remova este arquivo e selecione-o novamente em Mídia.",
   "app.work.awaitingConfirmation": "Aguardando confirmação",

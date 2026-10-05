@@ -3,7 +3,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, StrictMode, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -33,6 +33,7 @@ const mocks = vi.hoisted(() => ({
   selectGarden: vi.fn(),
   joinGarden: vi.fn(),
   joinState: { isJoining: false, joiningGardenId: null as string | null },
+  askAgain: vi.fn(),
 }));
 
 vi.mock("../../../stores/workFlowTypes", () => ({
@@ -112,6 +113,7 @@ vi.mock("../../../hooks/work/useDraftResume", () => ({
     setShowDraftSheet: vi.fn(),
     handleContinueDraft: vi.fn(),
     handleStartFresh: vi.fn(),
+    askAgainNextVisit: mocks.askAgain,
     clearActiveDraft: vi.fn(),
   }),
 }));
@@ -216,6 +218,7 @@ vi.mock("../../../hooks/client-ui/work/useWorkSubmissionPresentationModel", () =
 }));
 
 import { useWorkSubmissionFlowController } from "../../../hooks/client-ui/work/useWorkSubmissionFlowController";
+import { useUIStore } from "../../../stores/useUIStore";
 
 function Wrapper({ children }: { children: ReactNode }) {
   return createElement(
@@ -249,9 +252,11 @@ const commitmentLinkIntent = {
 
 let navigateShareRoute: ((path: string) => void) | null = null;
 let exitPath = "";
+let exitNavigation = "";
 
 function ExitPathCapture({ children }: { children: ReactNode }) {
   exitPath = useLocation().pathname;
+  exitNavigation = useNavigationType();
   return children;
 }
 
@@ -364,6 +369,44 @@ describe("useWorkSubmissionFlowController", () => {
 
     expect(pathBeforeSave).toBe("/home");
     expect(mocks.saveOnExit).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    {
+      from: "a prompt whose address holds the draft's promise",
+      holdsIt: true,
+      navigation: "REPLACE",
+    },
+    {
+      from: "a prompt on the page's own address, or the wizard",
+      holdsIt: false,
+      navigation: "PUSH",
+    },
+  ])("opens Your Work on its drafts from $from", ({ holdsIt, navigation }) => {
+    mocks.askAgain.mockReturnValue(holdsIt);
+    useUIStore.getState().closeWorkDashboard();
+    const { result } = renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper: ExitWrapper }
+    );
+
+    act(() => result.current.draft.manage());
+
+    expect(useUIStore.getState()).toMatchObject({
+      isWorkDashboardOpen: true,
+      workDashboardInitialTab: "pending",
+      workDashboardInitialPendingFilter: "editing",
+    });
+    expect(exitPath).toBe("/home");
+    // Back returns to the visit, except where its address would pass the draft's promise off
+    // as the page's own.
+    expect(exitNavigation).toBe(navigation);
+    expect(mocks.askAgain).toHaveBeenCalledOnce();
   });
 
   it("offers a retry toast when the background draft save fails", async () => {
