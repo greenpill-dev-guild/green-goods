@@ -59,11 +59,17 @@ export function EditorialListRowSkeleton({ className }: { className?: string }) 
             <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs">
               {[
                 formatMessage(
-                  { id: "public.gardens.gardeners", defaultMessage: "{count} gardeners" },
+                  {
+                    id: "public.gardens.gardeners",
+                    defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}",
+                  },
                   { count: 0 }
                 ),
                 formatMessage(
-                  { id: "public.gardens.works", defaultMessage: "{count} entries" },
+                  {
+                    id: "public.gardens.works",
+                    defaultMessage: "{count, plural, one {# entry} other {# entries}}",
+                  },
                   { count: 0 }
                 ),
               ].map((label, index) => (
