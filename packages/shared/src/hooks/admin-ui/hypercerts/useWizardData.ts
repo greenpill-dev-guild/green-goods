@@ -204,9 +204,11 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
 
   useEffect(() => {
     if (!selectedAttestationIds.length) return;
-    // Once a mint is under way or done, its own bundle shows up in the list it
-    // is pruned against; pruning then would empty the Review and its record.
-    if (mintingState.status !== "idle" && mintingState.status !== "failed") return;
+    // Once a mint has started, its own bundle can show up in the list it is
+    // pruned against, even after a failure (a receipt poll that failed for a
+    // mint that landed). Pruning then would empty the Review and its record;
+    // Try Again resumes that same attempt, and leaving the Review drops it.
+    if (mintingState.status !== "idle") return;
     const pruned = selectedAttestationIds.filter((id) => !bundledAttestations[id]);
     if (pruned.length !== selectedAttestationIds.length) {
       setSelectedAttestations(pruned);

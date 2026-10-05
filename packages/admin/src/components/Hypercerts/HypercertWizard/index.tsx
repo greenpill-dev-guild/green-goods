@@ -228,7 +228,9 @@ export function HypercertWizard({
                   })
                 : undefined
             }
-            sendDisabled={wizard.selectedAttestations.length === 0}
+            // Only a fresh mint needs work selected: Try Again resumes the
+            // failed attempt with the input it already sent.
+            sendDisabled={phase === "ready" && wizard.selectedAttestations.length === 0}
             nextDisabled={(wizard.nextDisabled && !needsAttestation) || attestationsUnavailable}
             onCancel={onCancel}
             onBack={wizard.previousStep}

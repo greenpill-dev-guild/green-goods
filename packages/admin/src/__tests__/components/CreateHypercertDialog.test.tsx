@@ -535,6 +535,20 @@ describe("CreateHypercert dialog", () => {
       });
     });
 
+    it("keeps Try Again for a failed mint whose work the list now shows as bundled", async () => {
+      await onReview();
+      await act(async () => {
+        useHypercertWizardStore
+          .getState()
+          .setMintingState({ status: "failed", error: "Receipt polling timed out" });
+        await Promise.resolve();
+      });
+      // The mint may have landed: the work no longer reads as selectable.
+      act(() => useHypercertWizardStore.getState().setSelectedAttestations([]));
+
+      expect(await screen.findByRole("button", { name: "Try Again" })).toBeEnabled();
+    });
+
     it("holds every button while the mint works", async () => {
       await onReview();
 
