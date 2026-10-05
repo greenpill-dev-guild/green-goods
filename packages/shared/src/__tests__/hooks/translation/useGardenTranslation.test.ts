@@ -11,6 +11,7 @@
 
 import { renderHook } from "@testing-library/react";
 import React from "react";
+import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
@@ -32,7 +33,6 @@ vi.mock("../../../modules/app/logger", () => ({
 
 import { useGardenTranslation } from "../../../hooks/translation/useGardenTranslation";
 import type { Translator } from "../../../modules/translation/browser-translator";
-import { AppContext } from "../../../providers/App";
 import type { Garden } from "../../../types/domain";
 
 const unsupportedTranslator: Translator = {
@@ -45,27 +45,10 @@ const unsupportedTranslator: Translator = {
 // Test Helpers
 // ============================================
 
+/** `locale` is the language on screen, which is what react-intl reports to the hook. */
 function createWrapper(locale: "en" | "es" | "pt" = "en") {
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    const value = {
-      locale,
-      isMobile: false,
-      isInstalled: false,
-      isInstalling: false,
-      isPwaPresentation: false,
-      isStandalone: false,
-      installState: "not-installed" as const,
-      installedAppEvidence: { status: "unknown" as const, source: "unsupported" as const },
-      presentationMode: "website" as const,
-      wasInstalled: false,
-      availableLocales: ["en", "es", "pt"] as const,
-      deferredPrompt: null,
-      platform: "unknown" as const,
-      promptInstall: () => {},
-      handleInstallCheck: () => {},
-      switchLanguage: () => {},
-    };
-    return React.createElement(AppContext.Provider, { value }, children);
+    return React.createElement(IntlProvider, { locale }, children);
   };
 }
 
