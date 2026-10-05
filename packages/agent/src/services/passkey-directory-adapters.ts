@@ -11,7 +11,8 @@ import type {
 } from "./db/passkey-directory";
 import type { HostedPasskeyNameCheck, PasskeyDirectoryStore } from "./passkey-directory";
 
-const HOSTED_LOOKUP_TIMEOUT_MS = 8_000;
+/** A sign-up waits on this answer, and the app asks again by itself when it gets none. */
+const HOSTED_LOOKUP_TIMEOUT_MS = 4_000;
 
 /**
  * Ask the hosted passkey server whether it holds a name. Accounts created before the directory
@@ -36,6 +37,12 @@ export function createHostedPasskeyNameCheck(options: {
         params: [{ userName }],
       }),
       signal: AbortSignal.timeout(HOSTED_LOOKUP_TIMEOUT_MS),
+    }).catch((cause: unknown) => {
+      // The address carries the API key, and a transport error can quote the address, so only
+      // the kind of failure is passed on to the log.
+      throw new Error(
+        `Hosted passkey lookup could not connect (${cause instanceof Error ? cause.name : "unknown"})`
+      );
     });
     if (!response.ok) {
       throw new Error(`Hosted passkey lookup answered ${response.status}`);

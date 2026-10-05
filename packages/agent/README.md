@@ -313,6 +313,7 @@ See [agent.md](/.claude/context/agent.md) for detailed architecture documentatio
 - [ ] After each deploy or allowlist change, run `bun run dev:smoke -- prod` and confirm
       `production-agent-browser-origins` passes (the expected origins live in `scripts/dev/smoke-prod.js`)
 - [ ] Before setting `JOIN_REQUESTS_ENABLED=true`, set `JOIN_REQUESTS_ENCRYPTION_KEY`, name a backup operator, rehearse recovery, record authenticated Brave proof, update [the authoritative community interface status](/.plans/backlog/community-interface/status.json), then set `JOIN_REQUESTS_PRODUCTION_READY=true`.
+- [ ] Before setting `PASSKEY_DIRECTORY_ENABLED=true`, set `PASSKEY_HOSTED_DIRECTORY_URL` as a Fly secret (the agent refuses to start without it), confirm every Green Goods site is in `AGENT_ALLOWED_ORIGINS`, and confirm the `/data` volume has snapshots: the directory's records are the only place a name maps to its passkey.
 - [ ] Configure webhook URL with TLS
 - [ ] Consider HSM/KMS for key storage
 - [ ] Set up monitoring for `/health` endpoint

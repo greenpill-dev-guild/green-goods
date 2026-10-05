@@ -90,13 +90,23 @@ export function createPasskeyServerClient(chainId: number) {
 }
 
 /**
+ * Every sign-in by name asks the directory before the hosted server, so a directory that does
+ * not answer must not hold older accounts up for long. The directory itself waits at most four
+ * seconds on the hosted name list.
+ */
+const DIRECTORY_TIMEOUT_MS = 6_000;
+
+/**
  * The Green Goods passkey directory, or nothing while this build still signs people up on the
  * hosted server. `VITE_PASSKEY_DIRECTORY_URL` switches a build to it. The directory speaks the
  * same protocol as the hosted server, so the same client reads both.
  */
 export function createPasskeyDirectoryClient(env: PasskeyServerEnv = readPasskeyServerEnv()) {
   const url = env.VITE_PASSKEY_DIRECTORY_URL?.trim();
-  return url ? createPermissionlessPasskeyServerClient({ transport: http(url) }) : null;
+  if (!url) return null;
+  return createPermissionlessPasskeyServerClient({
+    transport: http(url, { timeout: DIRECTORY_TIMEOUT_MS, retryCount: 1 }),
+  });
 }
 
 export type PasskeyCeremonyBlockReason =

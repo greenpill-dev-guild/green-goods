@@ -293,8 +293,28 @@ describe("hosted passkey name check", () => {
       fetch: (async () => new Response("bad gateway", { status: 502 })) as unknown as typeof fetch,
     });
 
+    // A transport error can quote the address, which carries the API key.
+    const unreachable = createHostedPasskeyNameCheck({
+      rpcUrl: "https://hosted.example/rpc?apikey=secret-key",
+      origin: "https://greengoods.app",
+      fetch: (async () => {
+        const error = new Error(
+          "Unable to connect to https://hosted.example/rpc?apikey=secret-key"
+        );
+        error.name = "ConnectionRefused";
+        throw error;
+      }) as unknown as typeof fetch,
+    });
+
     await expect(refusing("dida")).rejects.toThrow("returned no result");
     await expect(failing("dida")).rejects.toThrow("answered 502");
+    const failure = await unreachable("dida").catch((error: Error) => error);
+    expect(failure).toMatchObject({
+      message: "Hosted passkey lookup could not connect (ConnectionRefused)",
+    });
+    expect(JSON.stringify(failure, Object.getOwnPropertyNames(failure))).not.toContain(
+      "secret-key"
+    );
   });
 });
 
