@@ -285,6 +285,11 @@ export interface WorkDraftRecord {
   tags?: string[];
   location?: ApproximateWorkLocation;
   revision?: number;
+  /**
+   * Counts the saves that changed the work itself: its garden, action, words,
+   * details, time, tags, place or attachments. Moving between steps does not.
+   */
+  contentRevision?: number;
   clientWorkId?: string;
   uploadCheckpoint?: WorkUploadCheckpoint;
   id: string;

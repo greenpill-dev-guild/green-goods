@@ -101,21 +101,66 @@ export function holdDraftForSubmit(clientWorkId: string): () => void {
   };
 }
 
+async function draftOfWork(userAddress: string, chainId: number, clientWorkId: string) {
+  const drafts = await draftDB.getDraftsForUser(userAddress, chainId);
+  return drafts.find((draft) => draft.clientWorkId === clientWorkId);
+}
+
+/**
+ * Which content of its draft a work has as it is handed to the upload queue.
+ * Read before the queue copies the work and noted on the queued work after, so
+ * a draft the person changes later can be told from the work that is sent.
+ * Undefined when the work has no draft, or the draft cannot be read.
+ */
+export async function draftContentOf(work: {
+  userAddress: string;
+  chainId: number;
+  clientWorkId: string;
+}): Promise<number | undefined> {
+  try {
+    const draft = await draftOfWork(work.userAddress, work.chainId, work.clientWorkId);
+    return draft ? (draft.contentRevision ?? 0) : undefined;
+  } catch (error) {
+    logger.warn("[WorkDrafts] Could not read the draft of submitted work", { error });
+    return undefined;
+  }
+}
+
+/** Notes on newly queued work the draft content it was given. Unnoted work keeps its draft. */
+export async function noteQueuedDraftContent(jobId: string, content: number): Promise<void> {
+  try {
+    await jobQueueDB.amendJob(jobId, (job) => {
+      job.meta = { ...job.meta, draftContentRevision: content };
+    });
+  } catch (error) {
+    logger.warn("[WorkDrafts] Could not note which draft content was queued", { error });
+  }
+}
+
 /**
  * Queued work that is sent or discarded outside its composer takes the draft
  * with it, attachments included. The queue held the work, so the draft left
- * behind would come back as an item of its own. Resolves whether one was removed.
+ * behind would come back as an item of its own.
+ *
+ * A draft changed since the queue took the work holds something that was not
+ * sent. Sending the queued work keeps that draft, and it is listed again;
+ * discarding the work removes it, changed or not.
+ *
+ * Resolves "removed", or "kept" for a changed draft. Null when there is nothing
+ * of this work's to remove here: it has no draft, or a Submit that is sending
+ * it holds the draft.
  */
 export async function deleteDraftOfQueuedWork(
-  job: Pick<Job, "kind" | "payload" | "userAddress" | "chainId">,
+  job: Pick<Job, "kind" | "payload" | "userAddress" | "chainId" | "meta">,
   mode: "discard" | "retire"
-): Promise<boolean> {
+): Promise<"removed" | "kept" | null> {
   const clientWorkId =
     job.kind === "work" ? (job.payload as WorkJobPayload).clientWorkId : undefined;
-  if (!clientWorkId || submitting.has(clientWorkId)) return false;
-  const drafts = await draftDB.getDraftsForUser(job.userAddress, job.chainId ?? DEFAULT_CHAIN_ID);
-  const draft = drafts.find((candidate) => candidate.clientWorkId === clientWorkId);
-  if (!draft) return false;
+  if (!clientWorkId || submitting.has(clientWorkId)) return null;
+  const draft = await draftOfWork(job.userAddress, job.chainId ?? DEFAULT_CHAIN_ID, clientWorkId);
+  if (!draft) return null;
+  if (mode === "retire" && job.meta?.draftContentRevision !== (draft.contentRevision ?? 0))
+    return "kept";
   await deleteWorkDraft(draft.id, mode);
-  return true;
+  return "removed";
 }

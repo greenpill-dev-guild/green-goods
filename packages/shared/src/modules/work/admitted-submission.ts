@@ -24,7 +24,7 @@ import {
   WorkTransactionReverted,
 } from "./work-confirmation";
 import { classifySendFailure, WorkSendCancelledError } from "./send-outcome";
-import { holdDraftForSubmit } from "./draft-lifecycle";
+import { draftContentOf, holdDraftForSubmit, noteQueuedDraftContent } from "./draft-lifecycle";
 
 export function queuedOutcome(
   queued: QueuedWorkSubmission,
@@ -91,7 +91,12 @@ async function admitAndSend(
   input: ResolvedSubmitWorkCommand,
   ports: SubmitWorkPorts
 ): Promise<SubmitWorkOutcome> {
+  // What the draft held when the queue copied the work is kept on the queued work,
+  // so a draft the person changes afterwards is never mistaken for what was sent.
+  const drafted = await draftContentOf(input);
   const queued = await ports.queue.admit!(input);
+  if (queued.newlyAdmitted && drafted !== undefined)
+    await noteQueuedDraftContent(queued.jobId, drafted);
   const completed = await jobQueueDB.getWorkCompletion(
     input.userAddress,
     input.chainId,

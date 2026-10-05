@@ -154,14 +154,16 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
   useEffect(() => {
     const abortController = new AbortController();
 
-    // Work sent or discarded from Your Work takes the draft its composer kept.
-    const dropDraft = (job: Job, mode: "discard" | "retire") => {
-      void deleteDraftOfQueuedWork(job, mode)
-        .then((removed) => {
-          if (removed) queryClient.invalidateQueries({ queryKey: draftsKeys.all });
+    const rereadDrafts = () => queryClient.invalidateQueries({ queryKey: draftsKeys.all });
+    // Work sent from Your Work has no composer to retire the draft it left. Removed or kept
+    // for its changes, the drafts are read again; a draft its own Submit holds is left alone.
+    const retireDraft = (job: Job) => {
+      void deleteDraftOfQueuedWork(job, "retire")
+        .then((outcome) => {
+          if (outcome) void rereadDrafts();
         })
         .catch((error: unknown) => {
-          logger.warn("[JobQueueProvider] Could not remove the draft of queued work", { error });
+          logger.warn("[JobQueueProvider] Could not remove the draft of sent work", { error });
         });
     };
 
@@ -195,7 +197,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         invalidateKeys(
           queryInvalidation.onJobCompleted(gardenId, chainId, currentUserAddress ?? undefined)
         );
-        dropDraft(event.job, "retire");
+        retireDraft(event.job);
       } else if (event.job.kind === "approval") {
         queueToasts.jobCompleted("approval");
         const approvalPayload = event.job.payload as ApprovalJobPayload;
@@ -232,7 +234,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
 
       if (event.job.kind === "work") {
         // A discard is the person's own act, which its screen confirms: not a failed sync.
-        if (event.error === JOB_DISCARDED) dropDraft(event.job, "discard");
+        // The discard removed the work's draft before the work, so the drafts are read again.
+        if (event.error === JOB_DISCARDED) void rereadDrafts();
         else queueToasts.jobFailed("work", event.error);
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
@@ -263,7 +266,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
           queryInvalidation.onJobAdded(gardenId, chainId, currentUserAddress ?? undefined)
         );
         // Queued work is listed as queued; its draft stops being a second item.
-        queryClient.invalidateQueries({ queryKey: draftsKeys.all });
+        void rereadDrafts();
       }
 
       // Update global counts

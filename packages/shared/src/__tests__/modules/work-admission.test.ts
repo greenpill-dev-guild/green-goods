@@ -8,13 +8,11 @@ import {
   type SubmitWorkCommand,
 } from "../../modules/work/submit-work-command";
 import type { Action } from "../../types/domain";
-import type { Job, WorkJobPayload } from "../../types/job-queue";
+import type { WorkDraftRecord, WorkJobPayload } from "../../types/job-queue";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { draftDB } from "../../modules/job-queue/draft-db";
-import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
-import { JOB_DISCARDED } from "../../modules/job-queue/queue-policy";
 import { deleteDraftOfQueuedWork, listWorkDrafts } from "../../modules/work/draft-lifecycle";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
@@ -70,14 +68,21 @@ async function declinedWalletWork() {
   const { command, ports, send } = fixture();
   const photo = new File([new Uint8Array([1, 2, 3, 4])], "bed.jpg", { type: "image/jpeg" });
   const draftId = crypto.randomUUID();
-  const record = await draftDB.saveSnapshot(
-    command.userAddress!,
-    command.chainId,
-    draftId,
-    { gardenAddress: command.gardenAddress, actionUID: 1, feedback: command.draft.feedback },
-    [photo],
-    []
-  );
+  const wizardSaves = (change: Partial<WorkDraftRecord> = {}) =>
+    draftDB.saveSnapshot(
+      command.userAddress!,
+      command.chainId,
+      draftId,
+      {
+        gardenAddress: command.gardenAddress,
+        actionUID: 1,
+        feedback: command.draft.feedback,
+        ...change,
+      },
+      [photo],
+      []
+    );
+  const record = await wizardSaves();
   Object.assign(
     command,
     await createDraftUploadPersistence(record, command.draft, { current: null }),
@@ -106,7 +111,7 @@ async function declinedWalletWork() {
     (await listWorkDrafts(command.userAddress!, command.chainId)).filter(
       (draft) => draft.id === draftId
     );
-  return { command, ports, send, draftId, queued, listedDrafts };
+  return { command, ports, send, draftId, queued, listedDrafts, wizardSaves };
 }
 
 describe("PWA durable submission boundary", () => {
@@ -183,10 +188,10 @@ describe("PWA durable submission boundary", () => {
     expect(await jobQueueDB.getImagesForJob(job.id)).toHaveLength(1);
     expect(await draftDB.getImagesForDraft(draftId)).toHaveLength(1);
 
-    let removedWhileSending: boolean | undefined;
+    let whileSending: string | null | undefined;
     ports.direct.submitWork = vi.fn(async (input: SubmitWorkCommand) => {
       // The Submit that is sending the work answers for its own draft.
-      removedWhileSending = await deleteDraftOfQueuedWork(job, "retire");
+      whileSending = await deleteDraftOfQueuedWork(job, "retire");
       return send(input);
     });
     await expect(submitWork(command, ports)).resolves.toMatchObject({
@@ -195,31 +200,62 @@ describe("PWA durable submission boundary", () => {
     });
 
     expect(send).toHaveBeenCalledTimes(1);
-    expect(removedWhileSending).toBe(false);
+    expect(whileSending).toBeNull();
     // Sent: the queue let go of it. The draft is the composer's to retire, and with nothing
     // queued to remove it through, it is listed again and never left out of reach.
     expect(await queued()).toEqual([]);
     expect(await listedDrafts()).toHaveLength(1);
     // Work sent from Your Work has no composer: the queue's report retires its draft.
-    expect(await deleteDraftOfQueuedWork(job, "retire")).toBe(true);
+    expect(await deleteDraftOfQueuedWork(job, "retire")).toBe("removed");
     expect(await draftDB.getDraft(draftId)).toBeUndefined();
   });
 
-  it("removes declined work with its draft and both sets of attachments when it is discarded", async () => {
+  it.each([
+    {
+      saved: "only moved to another step",
+      change: { currentStep: "details" as const },
+      kept: false,
+    },
+    { saved: "changed the work", change: { feedback: "Watered the east bed too" }, kept: true },
+    {
+      saved: "changed the work and was declined again",
+      change: { feedback: "Watered the east bed too" },
+      askedAgain: true,
+      kept: true,
+    },
+  ])("keeps the draft of work sent from Your Work when the wizard $saved after the decline: $kept", async ({
+    change,
+    askedAgain,
+    kept,
+  }) => {
+    const { command, ports, draftId, queued, wizardSaves } = await declinedWalletWork();
+    await wizardSaves(change);
+    // Asking again does not refresh the queued work, so it still holds the first version.
+    if (askedAgain) await expect(submitWork(command, ports)).rejects.toThrow();
+    const [job] = await queued();
+
+    // Upload all sends the work as it was queued. A draft that holds more than that was not sent.
+    expect(await deleteDraftOfQueuedWork(job, "retire")).toBe(kept ? "kept" : "removed");
+    expect((await draftDB.getDraft(draftId))?.feedback).toBe(kept ? change.feedback : undefined);
+    expect(await draftDB.getImagesForDraft(draftId)).toHaveLength(kept ? 1 : 0);
+  });
+
+  it("discards declined work as one act: its draft and both sets of attachments, then the work", async () => {
     const { draftId, queued, listedDrafts } = await declinedWalletWork();
     const [job] = await queued();
-    const discarded: Array<{ job: Job; error: string }> = [];
-    const stop = jobQueueEventBus.on("job:failed", (event) => discarded.push(event));
+    const discard = () =>
+      jobQueue.discardJob(job.id, async (work) => {
+        await deleteDraftOfQueuedWork(work, "discard");
+      });
 
-    try {
-      expect(await jobQueue.discardJob(job.id)).toBe(true);
-    } finally {
-      stop();
-    }
-    // The queue says which work was discarded; the provider removes that work's draft.
-    expect(discarded).toMatchObject([{ error: JOB_DISCARDED, job: { id: job.id } }]);
-    expect(await deleteDraftOfQueuedWork(discarded[0].job, "discard")).toBe(true);
+    // A draft that cannot be removed stops the discard before the queued work is touched.
+    const blocked = vi.spyOn(draftDB, "deleteDraft").mockRejectedValueOnce(new Error("blocked"));
+    await expect(discard()).rejects.toThrow("blocked");
+    blocked.mockRestore();
+    expect(await queued()).toHaveLength(1);
+    expect(await draftDB.getDraft(draftId)).toBeDefined();
 
+    expect(await discard()).toBe(true);
     expect(await queued()).toEqual([]);
     expect(await jobQueueDB.getImagesForJob(job.id)).toEqual([]);
     expect(await listedDrafts()).toEqual([]);

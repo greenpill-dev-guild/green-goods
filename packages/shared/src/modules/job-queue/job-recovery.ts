@@ -89,7 +89,7 @@ export function createJobRecovery(
       if (retried) events.emit("job:added", { jobId, job: retried });
     },
 
-    async discardJob(jobId: string): Promise<boolean> {
+    async discardJob(jobId: string, beforeDelete?: (job: Job) => Promise<void>): Promise<boolean> {
       // A send holds the job's execution claim for its whole length, whoever
       // started it: a tap, a background flush, or another tab. Taking the
       // claim first makes the check and the delete one held act: a running
@@ -99,6 +99,10 @@ export function createJobRecovery(
       try {
         const job = await store.getJob(jobId);
         if (!job || !isDiscardableJob(job)) return false;
+        // What the caller keeps beside the job goes first, inside the same
+        // hold. The job is what the person sees, so it goes last: a discard
+        // that stops here leaves that one record to discard again.
+        await beforeDelete?.(job);
         if (job.kind === "work" && store.getJobs && store.markJobTerminalFailed) {
           const dependents = await store.getJobs({
             userAddress: job.userAddress,
