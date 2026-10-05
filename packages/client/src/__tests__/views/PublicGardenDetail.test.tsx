@@ -241,7 +241,7 @@ const messages: Record<string, string> = {
 function detailResult(
   overrides: Partial<{
     fieldNotes: ReturnType<typeof makeNote>[];
-    contributors: { address: Address; fieldNoteCount: number }[];
+    gardenerCount: number;
     assessmentCount: number;
     works: boolean;
     assessments: boolean;
@@ -261,7 +261,7 @@ function detailResult(
         stewards: [GARDENER],
       },
       fieldNotes,
-      contributors: overrides.contributors ?? [{ address: GARDENER, fieldNoteCount: 2 }],
+      gardenerCount: overrides.gardenerCount ?? 4,
       assessmentCount: overrides.assessmentCount ?? 3,
       totalFieldNotes: fieldNotes.length,
       partialData: Boolean(overrides.works || overrides.assessments),
@@ -403,6 +403,10 @@ describe("GardenDetail", () => {
     expect(within(entries).getByText("—")).toBeInTheDocument();
     expect(within(entries).queryByText("0")).not.toBeInTheDocument();
     expect(within(entries).getByText("Not available")).toBeInTheDocument();
+
+    // Hands at work is read from the Garden's roles, so the failed work read does not hide it.
+    const hands = screen.getByText("Hands at work").closest("div") as HTMLElement;
+    expect(within(hands).getByText("4")).toBeInTheDocument();
 
     // The section says it could not load; it does not claim the Garden is empty.
     expect(screen.getByText(/could not be loaded/i)).toBeInTheDocument();
@@ -795,7 +799,7 @@ describe("GardenDetail", () => {
       data: {
         garden: null,
         fieldNotes: [],
-        contributors: [],
+        gardenerCount: 0,
         assessmentCount: 0,
         totalFieldNotes: 0,
         partialData: false,

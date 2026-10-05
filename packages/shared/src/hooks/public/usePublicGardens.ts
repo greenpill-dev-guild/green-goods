@@ -31,7 +31,7 @@ import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { getGardens } from "../../modules/data/greengoods";
 import { derivePublicGardenSlug } from "../../public-contracts/garden-slug";
-import type { Address } from "../../types/domain";
+import type { Address, Garden } from "../../types/domain";
 import { fetchListedApprovedWorks } from "./listedApprovedWorks";
 
 export interface PublicGardenSummary {
@@ -51,11 +51,10 @@ export interface PublicGardenSummary {
   /** Count of `Work` attestations bound to this garden. */
   actionCount: number;
   /**
-   * People with the gardener role in this garden, each address once. Granting
-   * the steward or owner role grants the gardener role with it, so they are
-   * counted, and the number does not wait for approved work. Every "N
-   * gardeners" label on the website reads this field; the home page's "Hands
-   * at work" is the same count across the listed gardens (`usePublicStats`).
+   * People with the gardener or steward role in this garden, each address once
+   * (`publicGardenHelpers.gardenerAddresses`). The number does not wait for
+   * approved work. Every "N gardeners" label on the website reads this field,
+   * and the garden's own page shows the same count as "Hands at work".
    */
   gardenerCount: number;
   /** Steward addresses surfaced to the public detail page. */
@@ -69,6 +68,18 @@ export interface PublicGardenSummary {
  * would use, so generated links remain stable when slug data lands on-chain.
  */
 const deriveSlug = derivePublicGardenSlug;
+
+/**
+ * The people a garden counts on the public website: every address holding its
+ * gardener or steward role, lower-cased, each once. A steward tends the garden
+ * too, and an address that holds both roles is one person, not two. Every
+ * public people count is built from this list: the "N gardeners" labels, a
+ * garden page's "Hands at work", and the home page's total (`usePublicStats`).
+ */
+function gardenerAddresses(garden: Pick<Garden, "gardeners" | "stewards">): string[] {
+  const roleHolders = [...(garden.gardeners ?? []), ...(garden.stewards ?? [])];
+  return [...new Set(roleHolders.map((address) => address.toLowerCase()))];
+}
 
 export function usePublicGardens(
   chainId: number = DEFAULT_CHAIN_ID,
@@ -128,8 +139,7 @@ export function usePublicGardens(
               ? stats.lastActivityAt
               : fallbackSeconds,
           actionCount: stats?.actionCount ?? 0,
-          gardenerCount: new Set((garden.gardeners ?? []).map((address) => address.toLowerCase()))
-            .size,
+          gardenerCount: gardenerAddresses(garden).length,
           stewards: garden.stewards ?? [],
           evaluators: garden.evaluators ?? [],
         };
@@ -146,4 +156,4 @@ export function usePublicGardens(
  * `usePublicGardenDetail`). Not part of the public hook surface but kept here
  * to avoid a separate utility module.
  */
-export const publicGardenHelpers = { deriveSlug } as const;
+export const publicGardenHelpers = { deriveSlug, gardenerAddresses } as const;

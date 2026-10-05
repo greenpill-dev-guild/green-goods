@@ -84,7 +84,7 @@ vi.mock("@green-goods/shared/hooks/public/usePublicGardenDetail", () => ({
         stewards: [GARDENER],
       },
       fieldNotes: [],
-      contributors: [],
+      gardenerCount: 1,
       assessmentCount: 0,
       totalFieldNotes: 0,
       partialData: false,

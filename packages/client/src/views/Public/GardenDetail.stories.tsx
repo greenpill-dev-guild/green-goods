@@ -33,7 +33,7 @@ function seeded(description: string, location = "Austin", name = "Community Gard
           bannerImage: FIXTURE_IMAGE_BANNER,
         },
         fieldNotes: [],
-        contributors: [],
+        gardenerCount: 0,
         assessmentCount: 0,
         totalFieldNotes: 0,
         partialData: false,
@@ -94,7 +94,7 @@ export const NotFound: Story = {
         {
           garden: null,
           fieldNotes: [],
-          contributors: [],
+          gardenerCount: 0,
           assessmentCount: 0,
           totalFieldNotes: 0,
           partialData: false,

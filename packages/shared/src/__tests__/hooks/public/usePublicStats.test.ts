@@ -84,17 +84,21 @@ describe("usePublicStats", () => {
     );
   });
 
-  it("returns aggregated counts across gardens, gardeners, works, assessments", async () => {
+  it("returns aggregated counts across gardens, gardeners and stewards, works, assessments", async () => {
     mockGetGardens.mockResolvedValue([
       createMockGarden({
         id: MOCK_ADDRESSES.garden,
         name: "Garden A",
+        // One person holds both roles here and gardens in Garden B as well.
         gardeners: [MOCK_ADDRESSES.gardener, MOCK_ADDRESSES.user],
+        stewards: [MOCK_ADDRESSES.user],
       }),
       createMockGarden({
         id: "0xOtherG12345678901234567890123456789012345",
         name: "Garden B",
+        // Its steward is not in the gardener list and still counts.
         gardeners: [MOCK_ADDRESSES.user, MOCK_ADDRESSES.smartAccount],
+        stewards: [MOCK_ADDRESSES.steward],
       }),
     ]);
     mockGetWorks.mockResolvedValue([
@@ -114,7 +118,8 @@ describe("usePublicStats", () => {
 
     const stats = result.current.data;
     expect(stats?.gardenCount).toBe(2);
-    expect(stats?.contributorCount).toBe(3);
+    // gardener, user (once), smartAccount, steward
+    expect(stats?.contributorCount).toBe(4);
     expect(stats?.fieldNoteCount).toBe(3);
     expect(stats?.attestationCount).toBe(1);
   });
@@ -158,9 +163,10 @@ describe("usePublicStats", () => {
     const { result } = renderHookWithQueryClient(() => usePublicStats(), { queryClient });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
+    // The pilot garden's one gardener and its steward; nobody from the unlisted garden.
     expect(result.current.data).toMatchObject({
       gardenCount: 1,
-      contributorCount: 1,
+      contributorCount: 2,
       fieldNoteCount: 1,
       attestationCount: 1,
     });
@@ -217,18 +223,18 @@ describe("usePublicStats", () => {
     {
       failure: "the works read fails",
       fail: () => mockGetWorks.mockRejectedValue(new Error("EAS down")),
-      expected: { gardenCount: 1, contributorCount: 1, fieldNoteCount: null, attestationCount: 0 },
+      expected: { gardenCount: 1, contributorCount: 2, fieldNoteCount: null, attestationCount: 0 },
     },
     {
       failure: "a decision cannot be read",
       fail: () =>
         mockReadWorkApprovalsForWorks.mockResolvedValue({ approvals: [], failedWorkUIDs: ["w-1"] }),
-      expected: { gardenCount: 1, contributorCount: 1, fieldNoteCount: null, attestationCount: 0 },
+      expected: { gardenCount: 1, contributorCount: 2, fieldNoteCount: null, attestationCount: 0 },
     },
     {
       failure: "the assessments read fails",
       fail: () => mockGetGardenAssessments.mockRejectedValue(new Error("EAS down")),
-      expected: { gardenCount: 1, contributorCount: 1, fieldNoteCount: 1, attestationCount: null },
+      expected: { gardenCount: 1, contributorCount: 2, fieldNoteCount: 1, attestationCount: null },
     },
     {
       failure: "the garden list cannot be read",

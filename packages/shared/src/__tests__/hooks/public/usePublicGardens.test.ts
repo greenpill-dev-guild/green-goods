@@ -204,18 +204,19 @@ describe("usePublicGardens", () => {
     expect(target?.lastActivityAt).toBe(1_700_001_000);
   });
 
-  it("counts everyone with the gardener role once, whether or not they have approved work", async () => {
+  it("counts gardeners and stewards once each, whether or not they have approved work", async () => {
     const garden = createMockGarden({
       id: MOCK_ADDRESSES.garden,
       name: "Riparian Restoration",
-      // The steward holds the gardener role too. One address arrives in two cases.
+      // One steward holds the gardener role too, the other does not. One address
+      // arrives in two cases.
       gardeners: [
         MOCK_ADDRESSES.gardener,
         MOCK_ADDRESSES.steward,
         MOCK_ADDRESSES.user,
         MOCK_ADDRESSES.user.toLowerCase() as `0x${string}`,
       ],
-      stewards: [MOCK_ADDRESSES.steward],
+      stewards: [MOCK_ADDRESSES.steward, MOCK_ADDRESSES.deployer],
     });
     const quietGarden = createMockGarden({
       id: "0xOther1234567890abcdef1234567890abcdef1234",
@@ -224,7 +225,7 @@ describe("usePublicGardens", () => {
       stewards: [MOCK_ADDRESSES.steward],
     });
     mockGetGardens.mockResolvedValue([garden, quietGarden]);
-    // One approved work, by one of the first garden's three gardeners.
+    // One approved work, by one of the first garden's four people.
     mockGetWorks.mockResolvedValue([
       createMockWork({ gardenAddress: garden.id, gardenerAddress: MOCK_ADDRESSES.gardener }),
     ]);
@@ -237,7 +238,7 @@ describe("usePublicGardens", () => {
     });
 
     expect(result.current.data).toMatchObject([
-      { name: "Riparian Restoration", gardenerCount: 3, actionCount: 1 },
+      { name: "Riparian Restoration", gardenerCount: 4, actionCount: 1 },
       { name: "Forest Garden", gardenerCount: 2, actionCount: 0 },
     ]);
   });
@@ -323,8 +324,8 @@ describe("usePublicGardens", () => {
     const data = result.current.data ?? [];
     expect(data).toHaveLength(1);
     expect(data[0]?.actionCount).toBe(0);
-    // Gardeners come from the indexer's role list, so the count survives.
-    expect(data[0]?.gardenerCount).toBe(1);
+    // The mock garden's gardener and steward come from the indexer's role lists, so the count survives.
+    expect(data[0]?.gardenerCount).toBe(2);
   });
 
   it("propagates indexer (garden) fetch errors", async () => {
