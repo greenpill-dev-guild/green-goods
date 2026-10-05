@@ -34,7 +34,7 @@ violated half of these. Validators check structure; this contract is what "desig
   a section-header trailing act, a right-rail quick-actions card, or a row's one trailing act.
   Never in the view header.
 - **Below 1024px the same view action set rides the FabButton speed dial**, primary nearest the
-  trigger ([useViewActions.ts:71](../../../packages/shared/src/components/Canvas/useViewActions.ts) —
+  trigger ([useViewActions.ts](../../../packages/shared/src/components/Canvas/useViewActions.ts) —
   "mirroring the desktop row's primary-rightmost emphasis"). One action set, two presentations.
 - **The FAB always shows a plus.** Closed, every FAB shows "+" in the workspace tone it already
   wears, whether it fires one act or opens a dial: the tone says which tab this is, so the glyph
