@@ -43,12 +43,9 @@ function iconPath(Icon: RemixiconComponentType) {
 
 /** Neither action's own icon is a plus. */
 function renderFab(actions: FabAction[], locale: keyof typeof MESSAGES = "en") {
-  render(
+  return render(
     <IntlProvider locale={locale} messages={MESSAGES[locale]}>
-      <FabButton
-        config={{ label: "Community actions", actions, onAction: vi.fn() }}
-        mobileFloating
-      />
+      <FabButton config={{ actions, onAction: vi.fn() }} mobileFloating />
     </IntlProvider>
   );
 }
@@ -72,7 +69,6 @@ describe("NavigationBarFab", () => {
 
   it("names the dial's menu in the reader's language", async () => {
     const user = userEvent.setup();
-    // The config's own label is English: in the app, the primary act's default.
     renderFab([addMember, fundCookieJar], "es");
 
     await user.click(screen.getByRole("button", { name: "Abrir acciones" }));
@@ -84,5 +80,11 @@ describe("NavigationBarFab", () => {
 
     const sole = screen.getByRole("button", { name: "Fund Cookie Jar" });
     expect(sole.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiAddLine));
+  });
+
+  it("renders nothing for a config with no actions", () => {
+    const { container } = renderFab([]);
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

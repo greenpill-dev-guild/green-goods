@@ -1,7 +1,6 @@
 import type { FabAction, FabConfig } from "@green-goods/shared/components/Canvas/NavigationBar";
 import {
   RiAddLine,
-  RiCheckboxCircleLine,
   RiCheckLine,
   RiExternalLinkLine,
   RiHandCoinLine,
@@ -14,9 +13,9 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { FabButton } from "./FabButton";
 
-/** A config as `useViewActions` builds it: the primary first, lending its label. */
-function fabConfig(primary: FabAction, ...rest: FabAction[]): FabConfig {
-  return { label: primary.label, actions: [primary, ...rest], onAction: fn() };
+/** A config as `useViewActions` builds it: the primary first. */
+function fabConfig(...actions: FabAction[]): FabConfig {
+  return { actions, onAction: fn() };
 }
 
 const addMember: FabAction = {
@@ -176,6 +175,10 @@ export const Actions: Story = {
   play: async ({ args, canvasElement }) => {
     const fab = within(canvasElement).getByRole("button", { name: "Create Action" });
     await expectWorkspaceTone(fab);
+    // The accessible name is the label drawn inside the button, so speech
+    // input can activate it by what it says (WCAG 2.5.3). The hover tooltip
+    // carries the string too, hence the scope.
+    await expect(within(fab).getByText("Create Action")).toBeInTheDocument();
     await userEvent.click(fab);
     await expect(args.config.onAction).toHaveBeenCalledWith("create-action");
     // Single-action mode is a direct-fire button, not a menu.
@@ -218,38 +221,5 @@ export const DisabledActionSaysWhy: Story = {
     await expect(fund).toHaveTextContent("This garden has no payout jar yet.");
     await expect(fund).toHaveAccessibleDescription("This garden has no payout jar yet.");
     await expect(args.config.onAction).not.toHaveBeenCalled();
-  },
-};
-
-/**
- * Regression guard for WCAG 2.5.3 (Label in Name): the accessible name has to
- * be the visible label. The FAB renders the *translated action* label, so a
- * config whose own `label` differs must not leak into `aria-label` — speech
- * input activates a control by what it says.
- */
-export const SingleActionLabelMismatch: Story = {
-  args: {
-    config: {
-      // Deliberately different from the translated action label below.
-      label: "Create",
-      actions: [
-        {
-          id: "assessment",
-          icon: RiCheckboxCircleLine,
-          label: "Create Assessment",
-          labelId: "cockpit.hub.fab.createAssessment",
-        },
-      ],
-      onAction: fn(),
-    },
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // Resolving the button by that exact name proves the accessible name is the
-    // translated action label, not config.label ("Create").
-    const fab = canvas.getByRole("button", { name: "Create Assessment" });
-    // The same string is the label rendered inside the button. The hover
-    // tooltip carries it too, so scope to the button rather than the canvas.
-    await expect(within(fab).getByText("Create Assessment")).toBeInTheDocument();
   },
 };

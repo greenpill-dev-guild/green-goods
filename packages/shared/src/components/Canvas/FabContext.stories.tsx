@@ -7,7 +7,6 @@ function FabContextPreview({ hidden = false }: { hidden?: boolean }) {
     hidden
       ? null
       : {
-          label: "Create",
           actions: [
             {
               id: "submit-work",
@@ -29,7 +28,6 @@ function FabContextPreview({ hidden = false }: { hidden?: boolean }) {
         {JSON.stringify(
           config
             ? {
-                label: config.label,
                 actions: config.actions?.map((action) => action.label),
               }
             : null,

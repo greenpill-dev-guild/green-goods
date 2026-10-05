@@ -89,7 +89,6 @@ function UnstableFabRegistrationProbe({
 }) {
   const [tick, setTick] = useState(0);
   const config: FabConfig = {
-    label: "Submit",
     actions: [{ id: "submit", icon: StubIcon, label: "Submit Work", labelId: "fab.submit" }],
     onAction: (actionId) => onAction(actionId, tick),
   };
@@ -184,7 +183,6 @@ describe("Canvas Primitives", () => {
   it("keeps the nav FAB on desktop and does not render a mobile action", () => {
     const onAction = vi.fn();
     const config: FabConfig = {
-      label: "Submit",
       actions: [{ id: "submit", icon: StubIcon, label: "Submit Work", labelId: "fab.submit" }],
       onAction,
     };
@@ -203,7 +201,6 @@ describe("Canvas Primitives", () => {
   it("registers the FAB on mobile AND exposes a primary action for content surfaces", async () => {
     const onAction = vi.fn();
     const config: FabConfig = {
-      label: "Submit",
       actions: [{ id: "submit", icon: StubIcon, label: "Submit Work", labelId: "fab.submit" }],
       onAction,
     };
@@ -248,7 +245,6 @@ describe("Canvas Primitives", () => {
     });
 
     const config: FabConfig = {
-      label: "Submit",
       actions: [{ id: "submit", icon: StubIcon, label: "Submit Work", labelId: "fab.submit" }],
       onAction: vi.fn(),
     };
@@ -266,7 +262,6 @@ describe("Canvas Primitives", () => {
 
   it("hides the mobile action when an editable field receives focus", async () => {
     const config: FabConfig = {
-      label: "Submit",
       actions: [{ id: "submit", icon: StubIcon, label: "Submit Work", labelId: "fab.submit" }],
       onAction: vi.fn(),
     };
@@ -290,7 +285,6 @@ describe("Canvas Primitives", () => {
 
   it("suppresses both nav and mobile FAB surfaces when blocked", () => {
     const config: FabConfig = {
-      label: "Submit",
       actions: [{ id: "submit", icon: StubIcon, label: "Submit Work", labelId: "fab.submit" }],
       onAction: vi.fn(),
     };

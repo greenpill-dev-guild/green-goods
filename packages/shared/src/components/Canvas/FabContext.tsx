@@ -49,7 +49,6 @@ export function FabProvider({ children }: { children: ReactNode }) {
  * @example
  * ```tsx
  * useFabConfig({
- *   label: "Create",
  *   actions: [{ id: "submit-work", icon: RiFileAddLine, label: "Submit Work", labelId: "hub.fab.submitWork" }],
  *   onAction: (id) => { if (id === "submit-work") openSubmitWorkDialog(); },
  * });
@@ -65,7 +64,6 @@ export function useFabConfig(config: FabConfig | null) {
   const configSignature = config
     ? [
         "present",
-        config.label,
         config.actions
           .map((action) =>
             [

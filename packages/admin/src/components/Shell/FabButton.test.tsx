@@ -23,7 +23,6 @@ const MESSAGES = { en: enMessages, es: esMessages };
 
 function renderFab(onAction = vi.fn(), locale: keyof typeof MESSAGES = "en") {
   const config: FabConfig = {
-    label: "Community actions",
     actions: [
       {
         id: "add-member",
@@ -80,7 +79,6 @@ describe("FabButton", () => {
 
   it("names the dial's menu in the reader's language", async () => {
     const user = userEvent.setup();
-    // The config's own label is English: in the app, the primary act's default.
     renderFab(vi.fn(), "es");
 
     await user.click(screen.getByRole("button", { name: "Abrir acciones" }));
@@ -92,7 +90,6 @@ describe("FabButton", () => {
       <IntlProvider locale="en" messages={enMessages}>
         <FabButton
           config={{
-            label: "Community actions",
             actions: [
               {
                 id: "fund-payout-jar",
@@ -110,6 +107,16 @@ describe("FabButton", () => {
 
     const sole = screen.getByRole("button", { name: "Fund Cookie Jar" });
     expect(sole.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiAddLine));
+  });
+
+  it("renders nothing for a config with no actions", () => {
+    const { container } = render(
+      <IntlProvider locale="en" messages={enMessages}>
+        <FabButton config={{ actions: [], onAction: vi.fn() }} mobileFloating />
+      </IntlProvider>
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("keeps a disabled action reachable, inert, and saying why", async () => {
@@ -140,7 +147,6 @@ describe("FabButton", () => {
       <IntlProvider locale="en" messages={enMessages}>
         <FabButton
           config={{
-            label: "Community actions",
             actions: [
               {
                 id: "fund-payout-jar",
@@ -177,7 +183,6 @@ describe("FabButton", () => {
       <IntlProvider locale="en" messages={enMessages}>
         <FabButton
           config={{
-            label: "Community actions",
             actions: [
               {
                 id: "fund-payout-jar",

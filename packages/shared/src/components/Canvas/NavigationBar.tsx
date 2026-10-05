@@ -28,7 +28,6 @@ export type FabAction = Pick<
 >;
 
 export interface FabConfig {
-  label: string;
   actions: FabAction[];
   onAction: (actionId: string) => void;
 }

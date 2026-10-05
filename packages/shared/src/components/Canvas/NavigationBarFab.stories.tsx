@@ -5,7 +5,6 @@ import type { FabConfig } from "./NavigationBar";
 import { FabButton } from "./NavigationBarFab";
 
 const communityActions: FabConfig = {
-  label: "Community actions",
   actions: [
     {
       id: "add-member",
@@ -76,7 +75,6 @@ export const SpeedDial: Story = {
 export const SingleAction: Story = {
   args: {
     config: {
-      label: "Create",
       actions: [
         {
           id: "submit-work",

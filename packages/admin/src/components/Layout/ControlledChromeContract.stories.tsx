@@ -132,7 +132,6 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
           activePath="/hub"
           onNavigate={fn()}
           fab={{
-            label: "Actions",
             actions: [
               {
                 id: "edit-garden",

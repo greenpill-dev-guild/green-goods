@@ -27,10 +27,6 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   // dial; a dial swaps it for a close icon while open, and its rows keep each
   // act's own icon (DL-078). The admin shell's FabButton follows the same rule.
   const FabIcon = !isSingleAction && speedDialOpen ? RiCloseLine : RiAddLine;
-  const floatingActionLabel =
-    isSingleAction && config.actions[0]
-      ? formatMessage({ id: config.actions[0].labelId })
-      : config.label;
 
   const handleClick = useCallback(() => {
     if (!isSingleAction) {
@@ -42,6 +38,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
     if (sole && !sole.disabled) config.onAction(sole.id);
   }, [isSingleAction, config]);
   const sole = isSingleAction ? config.actions[0] : undefined;
+  const floatingActionLabel = sole ? formatMessage({ id: sole.labelId }) : undefined;
   const soleReason =
     sole?.disabled && sole.disabledReasonId
       ? formatMessage({ id: sole.disabledReasonId, defaultMessage: sole.disabledReason })
@@ -105,6 +102,10 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
     if (first) focusSpeedDialAction(first.id);
   }, [config.actions, focusSpeedDialAction, isSingleAction, speedDialOpen]);
 
+  // A config with no actions has nothing to offer. useViewActions never
+  // publishes one, so this only covers a caller that does.
+  if (config.actions.length === 0) return null;
+
   return (
     <div
       className={cn("group/fab relative flex items-center", !mobileFloating && "ml-auto")}
@@ -154,8 +155,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           data-slot="speed-dial"
           data-state="open"
           role="menu"
-          // Named for the whole set, in the reader's language: config.label is
-          // one action's default English text.
+          // Named for the whole set, in the reader's language, not for one act.
           aria-label={formatMessage({ id: "cockpit.fab.actions" })}
           onKeyDown={handleSpeedDialKeyDown}
         >
