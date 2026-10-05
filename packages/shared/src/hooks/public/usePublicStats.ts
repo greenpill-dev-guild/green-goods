@@ -9,7 +9,7 @@
  *
  * Every count covers the gardens the website lists, the same set the archive
  * shows, and entries count approved work only. Hands at work are the
- * gardeners of those gardens, each address once.
+ * gardeners and stewards of those gardens, each address once.
  *
  * No auth path. Every source is best-effort, so one outage doesn't blank the
  * page: gardens and assessments settle side by side, then the listed gardens'
@@ -48,6 +48,7 @@ import { logger } from "../../modules/app/logger";
 import { getGardenAssessments } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
 import { fetchListedApprovedWorks } from "./listedApprovedWorks";
+import { publicGardenHelpers } from "./usePublicGardens";
 
 /** Each count is `null` when it could not be established; see the file header. */
 export interface PublicStats {
@@ -98,9 +99,9 @@ export function usePublicStats(chainId: number = DEFAULT_CHAIN_ID) {
       const visibleGardens = gardensResult.value.filter(isGardenPubliclyVisible);
       const listed = new Set(visibleGardens.map((garden) => garden.id.toLowerCase()));
       const inListedGarden = (gardenAddress: string) => listed.has(gardenAddress.toLowerCase());
-      const gardeners = new Set(
-        visibleGardens.flatMap((garden) => garden.gardeners.map((address) => address.toLowerCase()))
-      );
+      // The same people each garden's own count is built from, so the total
+      // is those counts with a person in two gardens counted once.
+      const gardeners = new Set(visibleGardens.flatMap(publicGardenHelpers.gardenerAddresses));
 
       // The listed gardens' approved work, through the read the page's other
       // aggregates share. A read that fails or comes back partial is unknown.
