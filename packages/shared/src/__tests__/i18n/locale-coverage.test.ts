@@ -105,11 +105,6 @@ const allowedIdenticalLocalizedKeys = new Set([
   // An amount beside the G$ symbol has no words to translate.
   "cockpit.garden.pool.reward.inGoodDollars",
   "public.fund.vaults.vaultCount",
-  // Vault checkout reuses the product term "Endowment" untranslated, matching the
-  // surrounding es/pt vault copy (e.g. "Endowment confirmado."); the app.* namespace
-  // still translates it (es: "Dotación"), so this stays key-scoped rather than global.
-  "public.vaults.cardEndow.positionHolder",
-  "public.vaults.cardEndow.status.deposit",
   // Portuguese keeps "Offline" as the product uses it elsewhere ("Offline · Salvo {when}"),
   // and the compact line Your Work and a garden's Promises share drops "Saved" in every
   // language, English included.
@@ -120,7 +115,6 @@ const allowedIdenticalProductValues = new Set([
   "0x...",
   "Admin",
   "APR",
-  "Card Endow",
   "Cookie Jar",
   "Cookie Jars",
   "Cookies",
@@ -130,8 +124,6 @@ const allowedIdenticalProductValues = new Set([
   "EAS",
   "Email",
   "ENS",
-  "Endow",
-  "Endowments",
   "ETH",
   "Feedback",
   "GitHub",
