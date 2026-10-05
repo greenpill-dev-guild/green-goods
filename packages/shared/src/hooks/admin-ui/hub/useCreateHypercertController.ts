@@ -62,7 +62,12 @@ export function useCreateHypercertController() {
     gardenRouteContext,
     handleCancel,
     handleComplete,
-    // Done exists only once the mint confirmed, so it is the minted close.
-    handleDone: handleCancel,
+    // Done exists only once the mint confirmed. Its completion data lands in an
+    // effect a render later; until then Done waits rather than leave for the Hub.
+    handleDone: () => {
+      if (minted) openMinted(minted);
+    },
+    /** The mint's completion data has arrived, so Done and close can open its record. */
+    mintedReady: minted !== null,
   };
 }

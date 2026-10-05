@@ -34,7 +34,12 @@ export default function CreateHypercert() {
   const isMintingInProgress = useHypercertWizardStore((state) =>
     isHypercertMintingInProgress(state.mintingState.status)
   );
-  const preventClose = isMintingInProgress;
+  const mintConfirmed = useHypercertWizardStore(
+    (state) => state.mintingState.status === "confirmed"
+  );
+  // A confirmed mint's completion data lands a render later; until it does,
+  // closing would leave for the Hub instead of the hypercert's record.
+  const preventClose = isMintingInProgress || (mintConfirmed && !createHypercert.mintedReady);
   const wizardMounted = Boolean(createHypercert.garden && createHypercert.canManage);
 
   const title = formatMessage({ id: "app.hypercerts.create.title" });

@@ -288,6 +288,19 @@ describe("useCreateActionController ending (DL-080)", () => {
     expect(mockRegisterAction).toHaveBeenCalledOnce();
   });
 
+  it("sends once when two presses overlap before the first has re-rendered", async () => {
+    const { result } = await onReviewWithEdits();
+    const submit = result.current.onSubmit;
+
+    await act(async () => {
+      await Promise.all([submit(createFormData()), submit(createFormData())]);
+    });
+
+    expect(mockUploadFileToIPFS).toHaveBeenCalledOnce();
+    expect(mockRegisterAction).toHaveBeenCalledOnce();
+    expect(result.current.isSent).toBe(true);
+  });
+
   it("stays on the Review with the error after a failed send, and Try Again sends again", async () => {
     mockRegisterAction.mockResolvedValueOnce({
       success: false,

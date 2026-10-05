@@ -53,6 +53,9 @@ export function useCreateActionController() {
   // holds still from the first press, not only while the wallet is asked.
   const [send, setSend] = useState<CreateActionSend>("idle");
   const [sendError, setSendError] = useState<unknown>(null);
+  // Validation runs before onSubmit, so two quick presses can both reach it
+  // before the state above re-renders; this lock is set synchronously.
+  const sendLockRef = useRef(false);
   const txError = useTxErrorMessages(sendError);
 
   const domainOptions = [
@@ -173,7 +176,8 @@ export function useCreateActionController() {
 
   const onSubmit = async (data: CreateActionFormData) => {
     // One send at a time, and none once the action exists.
-    if (send === "sending" || send === "sent") return;
+    if (sendLockRef.current) return;
+    sendLockRef.current = true;
     setSend("sending");
     setSendError(null);
     let mutationStarted = false;
@@ -270,6 +274,7 @@ export function useCreateActionController() {
       // answers as they stand.
       setSendError(error);
       setSend("failed");
+      sendLockRef.current = false;
     }
   };
 
@@ -279,6 +284,7 @@ export function useCreateActionController() {
 
   // The draft left with the send, so a new action starts from empty answers.
   const handleCreateAnother = () => {
+    sendLockRef.current = false;
     form.reset(createActionDefaultValues());
     setSend("idle");
     setSendError(null);
