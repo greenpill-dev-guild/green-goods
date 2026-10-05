@@ -71,7 +71,7 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
         description={description}
         actions={
           <>
-            {vaultsHasError ? (
+            {vaultsHasError && vaultGardenAddress ? (
               <AdminButton
                 type="button"
                 variant="outlined"
@@ -91,11 +91,11 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
           </>
         }
       >
-        <Alert variant={vaultsHasError || !dialogGardenId ? "error" : "info"}>
-          {vaultsHasError
-            ? formatMessage({ id: "app.treasury.errorLoading" })
-            : !dialogGardenId
-              ? formatMessage({ id: "app.treasury.gardenNotFound" })
+        <Alert variant={vaultsHasError || !vaultGardenAddress ? "error" : "info"}>
+          {!vaultGardenAddress
+            ? formatMessage({ id: "app.treasury.gardenNotFound" })
+            : vaultsHasError
+              ? formatMessage({ id: "app.treasury.errorLoading" })
               : formatMessage({ id: "app.treasury.loadingVaults" })}
         </Alert>
       </AdminDialog>
@@ -107,7 +107,7 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
       <DepositModal
         isOpen
         onClose={handleClose}
-        gardenAddress={dialogGardenId as Address}
+        gardenAddress={vaultGardenAddress}
         vaults={vaults}
         defaultAsset={requestedAsset}
         tone="community"
@@ -119,7 +119,7 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
     <WithdrawModal
       isOpen
       onClose={handleClose}
-      gardenAddress={dialogGardenId as Address}
+      gardenAddress={vaultGardenAddress}
       vaults={vaults}
       defaultAsset={requestedAsset}
       tone="community"

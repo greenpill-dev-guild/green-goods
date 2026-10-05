@@ -10,7 +10,7 @@ const presets = {
   all: { env: testServers, args: ['test', '--project=client-full', '--project=chromium', '--project=performance'] },
   smoke: { env: testServers, args: ['test', 'tests/specs/client.smoke.spec.ts', 'tests/specs/admin.smoke.spec.ts', '--project=client-ci', '--project=admin-ci'] },
   ui: { args: ['test', '--ui'], env: { SKIP_WEBSERVER: 'true', SKIP_HEALTH_CHECK: 'true' } },
-  fork: { args: ['test', '--project=anvil-fork'], env: { RUN_FORK_TESTS: 'true' } },
+  fork: { args: ['test', '--project=anvil-fork'], env: { RUN_FORK_TESTS: 'true', SKIP_WEBSERVER: 'true', SKIP_HEALTH_CHECK: 'true', SKIP_INDEXER: 'true' } },
   passkey: { env: testServers, args: ['test', '--project=passkey-mock'] },
   explore: { env: testServers, args: ['test', '--project=work-exploration'] },
   'pwa-preview': { env: { ...testServers, CI: 'true', PLAYWRIGHT_PWA_PREVIEW: 'true' }, args: ['test', '--project=pwa-preview'] },
@@ -72,7 +72,7 @@ export function validatePlaywrightArgs(args, preset) {
 
 export function resolveE2e(argv) {
   const options = parseOptions(argv, { flags: ['--help', '-h'], values: ['--preset', '--seed'], passthrough: true });
-  if (options['--help'] || options['-h']) return { help: 'Usage: bun run browser e2e [--preset all|smoke|ui|fork|passkey|explore|pwa-preview|testnet] [--seed <1..4294967295> (explore only)] [-- <Playwright arguments>]\nDefault: all. all/smoke use isolated Playwright-owned test servers; ui reuses explicitly started services.' };
+  if (options['--help'] || options['-h']) return { help: 'Usage: bun run browser e2e [--preset all|smoke|ui|fork|passkey|explore|pwa-preview|testnet] [--seed <1..4294967295> (explore only)] [-- <Playwright arguments>]\nDefault: all. all/smoke use isolated Playwright-owned test servers; ui/fork use caller-managed services; fork fixtures own Anvil.' };
   const preset = options['--preset'] || 'all';
   if (!Object.hasOwn(presets, preset)) throw new Error(`Unknown E2E preset: ${preset}`);
   const selection = presets[preset];

@@ -26,6 +26,15 @@ function envFlag(name: string): boolean {
   return process.env[name]?.toLowerCase() === "true";
 }
 
+const requestedProjects = selectedProjectNames(process.argv);
+const callerManagedFork = requestedProjects.includes("anvil-fork");
+if (
+  (callerManagedFork && requestedProjects.some((project) => project !== "anvil-fork")) ||
+  (envFlag("RUN_FORK_TESTS") && !callerManagedFork)
+) {
+  throw new Error("Run the anvil-fork project separately from owned test-server projects");
+}
+
 const selectedApps = resolvePlaywrightApps({ playwrightApp: process.env.PLAYWRIGHT_APP });
 const shouldStartClient = selectedApps.client;
 const shouldStartAdmin = selectedApps.admin;
@@ -288,9 +297,11 @@ export default defineConfig({
   ],
 
   // WebServer configuration - starts services if not running
-  webServer: envFlag("SKIP_WEBSERVER") ? undefined : webServers,
+  // Anvil is owned by the fork fixture; its legacy Client smoke cases require
+  // a caller-managed surface. Never silently replace it with the Sepolia profile.
+  webServer: callerManagedFork || envFlag("SKIP_WEBSERVER") ? undefined : webServers,
 
   // Global setup/teardown (ESM-compatible paths)
-  globalSetup: "./tests/global-setup.ts",
+  globalSetup: callerManagedFork ? undefined : "./tests/global-setup.ts",
   globalTeardown: "./tests/global-teardown.ts",
 });

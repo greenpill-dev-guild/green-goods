@@ -130,3 +130,27 @@ describe("production preview profile", () => {
     });
   });
 });
+
+// Fork ownership is separate from the Sepolia test-server profile.
+describe("caller-managed fork profile", () => {
+  const originalArgv = process.argv;
+  afterEach(() => {
+    process.argv = originalArgv;
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+  it("does not start or warm a Sepolia server for the fork project", async () => {
+    process.argv = ["node", "playwright", "test", "--project=anvil-fork"];
+    vi.stubEnv("SKIP_WEBSERVER", "false");
+    vi.stubEnv("SKIP_INDEXER", "false");
+    vi.stubEnv("RUN_FORK_TESTS", "true");
+    const { default: config } = await import("../../playwright.config");
+    expect(config.webServer).toBeUndefined();
+    expect(config.globalSetup).toBeUndefined();
+  });
+  it("rejects mixing fork and owned Sepolia projects", async () => {
+    process.argv = ["node", "playwright", "test", "--project=anvil-fork", "--project=client-ci"];
+    vi.stubEnv("RUN_FORK_TESTS", "true");
+    await expect(import("../../playwright.config")).rejects.toThrow(/fork.*separately/i);
+  });
+});

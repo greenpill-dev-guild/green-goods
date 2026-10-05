@@ -33,7 +33,7 @@ test('all browser presets preserve project, environment, and startup selection',
     all: { args: ['test', '--project=client-full', '--project=chromium', '--project=performance'], env: { PLAYWRIGHT_PWA_PREVIEW: 'false', SKIP_WEBSERVER: 'false', SKIP_HEALTH_CHECK: 'false', SKIP_INDEXER: 'true' } },
     smoke: { args: ['test', 'tests/specs/client.smoke.spec.ts', 'tests/specs/admin.smoke.spec.ts', '--project=client-ci', '--project=admin-ci'], env: { PLAYWRIGHT_PWA_PREVIEW: 'false', SKIP_WEBSERVER: 'false', SKIP_HEALTH_CHECK: 'false', SKIP_INDEXER: 'true' } },
     ui: { args: ['test', '--ui'], env: { SKIP_WEBSERVER: 'true', SKIP_HEALTH_CHECK: 'true' } },
-    fork: { args: ['test', '--project=anvil-fork'], env: { RUN_FORK_TESTS: 'true' } },
+    fork: { args: ['test', '--project=anvil-fork'], env: { RUN_FORK_TESTS: 'true', SKIP_WEBSERVER: 'true', SKIP_HEALTH_CHECK: 'true', SKIP_INDEXER: 'true' } },
     testnet: { args: ['test', '--project=testnet'], env: { TESTNET: 'true' } },
   };
   for (const [preset, wanted] of Object.entries(expected)) {

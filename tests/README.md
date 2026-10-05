@@ -104,6 +104,11 @@ browser-proof requirements still apply. Source, fixtures, profile, environment, 
 changes invalidate existing runner receipts. CI runs qualified checks in the existing required
 Client browser job and retains their reports with its test artifacts.
 
+The `fork` preset preserves a caller-managed Client surface and starts no app or indexer
+servers. The fork fixture owns Anvil on chain 31337. Run that project separately from
+owned Sepolia test-server projects; mixed profiles are rejected. Its legacy Client smoke
+cases do not prove browser-to-fork-to-indexer integration or authenticated-session behavior.
+
 ## Authentication
 
 - Client specs use the helpers appropriate to the project: wallet/session injection for smoke
