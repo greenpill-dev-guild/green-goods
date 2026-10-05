@@ -1,4 +1,5 @@
 import type { Action } from "@green-goods/shared/types/domain";
+import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
@@ -188,10 +189,12 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
  * No create/edit controls — each card opens a read-only source dialog.
  */
 export default function ActionsGallery() {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const { data: actions = [], isLoading, isError, refetch } = useActions();
   const [domain, setDomain] = useState<EditorialDomain>("all");
   const [activeAction, setActiveAction] = useState<Action | null>(null);
+  // The open template reads in the visitor's language, as its card does.
+  const displayAction = activeAction ? localizeAction(activeAction, locale) : null;
   const { ref: domainsRef, revealed: domainsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: capitalsRef, revealed: capitalsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: guideRef, revealed: guideRevealed } = useInViewReveal<HTMLElement>();
@@ -421,28 +424,28 @@ export default function ActionsGallery() {
 
       <PublicFooter variant="soil" />
 
-      {activeAction ? (
+      {displayAction ? (
         <PublicSourceDialog
           open
           onClose={() => setActiveAction(null)}
-          title={activeAction.title}
+          title={displayAction.title}
           subtitle={formatMessage({
-            id: `app.domain.tab.${typeof activeAction.domain === "string" ? activeAction.domain : domainSlug(activeAction.domain)}`,
+            id: `app.domain.tab.${typeof displayAction.domain === "string" ? displayAction.domain : domainSlug(displayAction.domain)}`,
             defaultMessage:
-              typeof activeAction.domain === "string"
-                ? activeAction.domain
-                : domainSlug(activeAction.domain),
+              typeof displayAction.domain === "string"
+                ? displayAction.domain
+                : domainSlug(displayAction.domain),
           })}
         >
-          {activeAction.media[0] ? (
+          {displayAction.media[0] ? (
             <img
-              src={activeAction.media[0]}
-              alt={activeAction.title}
+              src={displayAction.media[0]}
+              alt={displayAction.title}
               className="aspect-[4/3] w-full bg-editorial-warm object-cover"
             />
           ) : null}
-          {activeAction.description ? (
-            <p className="text-sm text-text-strong-950">{activeAction.description}</p>
+          {displayAction.description ? (
+            <p className="text-sm text-text-strong-950">{displayAction.description}</p>
           ) : null}
         </PublicSourceDialog>
       ) : null}

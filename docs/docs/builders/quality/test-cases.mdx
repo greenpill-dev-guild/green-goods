@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:84c465bd2b707a6366a7d8dcef9b0821741c8d8cbb693c5f7ba7b031ae5f9d24"
+source_digest: "sha256:f93215aae906ec345852f0a6feb700dce98fd43e2089461764348e7c17fe6c89"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -539,10 +539,10 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-182` | Data integrity | Community · Members | Member counts count people, not role seats | Screenshots of the rail, the dialog, and the phone filter |
 | `ADM-183` | Journey | Shell | At 360 and 375 pixels the phone chrome fits in English, Spanish, and Portuguese | Screenshots at 360 and 375 pixels in each language |
 | `ADM-184` | Journey | Garden · Health | On a phone, Garden Health leads with Attention Needed | Screenshots at 375 and 1280 pixels |
-| `ADM-185` | Journey | Shell | The floating action button shows its primary action's icon | Screenshots of each button closed and open |
 | `ADM-186` | Journey | Hub | The Hub's three actions are outlined, with Submit Work rightmost | Screenshot of the Hub header |
 | `ADM-187` | Journey | Actions | The Actions workspace is purple in light and dark | Screenshots in light and dark |
 | `ADM-188` | Journey | Community · Payouts | Campaign Cookie Jars live on the Green Goods Community Garden's Payouts, for deployers only | Screenshots of the card, the flow's first step, and Review |
+| `ADM-197` | Journey | Shell | The floating action button shows a plus in every workspace | Screenshots of each button closed and one menu open |
 | `XPLAT-007` | Transaction | Hub · Work | Two stewards acting on the same submission converge on one state | Screenshots from both sessions |
 
 ## Docs
@@ -618,6 +618,7 @@ Retired cases never ship to a run sheet, but their IDs stay reserved and their h
 | `ADM-129` | Admin Dashboard · Seed several commitments in one sitting with Add Another Like This and Create All | 2026-10-01 | Creation signing depends on wallet capability: atomic bundles of up to ten promises or one prompt per promise; unconditional sequential prompt counts no longer describe this flow. | `ADM-190` |
 | `ADM-150` | Admin Dashboard · Seeding several shows where each commitment stands, and ends on how each one went | 2026-10-01 | Creation progress distinguishes atomic bundle requests from individual wallet prompts and reports current per-copy outcomes; the fixed two-prompt progress and transaction-row UI are superseded. | `ADM-191` |
 | `ADM-175` | Admin Dashboard · A running season blocks starting a second one with a recovery path | 2026-09-24 | The running-season state does not expose Start Season, so the described wizard cannot be opened. The reachable pool-card action state is checked by ADM-172. | `ADM-176` |
+| `ADM-185` | Admin Dashboard · The floating action button shows its primary action's icon | 2026-10-04 | Its result changed: the button no longer borrows its first action's icon. It shows a plus in every workspace, so the gear on Garden and the Add Member icon on Community this case expected no longer appear. | `ADM-197` |
 | `DOCS-007` | Docs · Gardener guide walks true against the live PWA (joining, uploading work, offline sync, track status) | 2026-09-07 | Split into one row per gardener guide page so drift is tracked per page | `DOCS-014`, `DOCS-015`, `DOCS-016`, `DOCS-017` |
 | `DOCS-008` | Docs · Steward guide walks true against the live admin (create garden, review work, assessments, actions/payouts/endowments) | 2026-09-07 | Split into one row per steward guide page so drift is tracked per page | `DOCS-018`, `DOCS-019`, `DOCS-020`, `DOCS-021`, `DOCS-022`, `DOCS-023` |
 | `DOCS-009` | Docs · Funder guide walks true against the editorial funding surfaces (donate, fund, vaults, withdraw) — read-only | 2026-09-07 | Split into one row per funder guide page | `DOCS-024`, `DOCS-025`, `DOCS-026` |

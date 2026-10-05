@@ -5,7 +5,7 @@ import {
   NavigationBar,
   type ToolbarSlot,
 } from "@green-goods/shared/components/Canvas/NavigationBar";
-import { RiAddLine, RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
+import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, within } from "storybook/test";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
@@ -132,8 +132,6 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
           activePath="/hub"
           onNavigate={fn()}
           fab={{
-            icon: RiAddLine,
-            label: "Actions",
             actions: [
               {
                 id: "edit-garden",

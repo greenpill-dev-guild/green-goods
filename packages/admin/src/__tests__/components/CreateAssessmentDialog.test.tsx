@@ -4,7 +4,7 @@
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { del as idbDel, get as idbGet } from "idb-keyval";
 import type { ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
@@ -14,14 +14,21 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { AuthContext } from "@green-goods/shared/providers/Auth";
 import { useAdminStore } from "@green-goods/shared/stores/useAdminStore";
-import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
-import type { Garden } from "@green-goods/shared/types/domain";
+import {
+  type CreateAssessmentFormState,
+  useCreateAssessmentStore,
+} from "@green-goods/shared/stores/useCreateAssessmentStore";
+import { CynefinPhase, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
 import CreateAssessment from "@/views/Hub/CreateAssessment";
 
 const createAssessmentControllerOverride = vi.hoisted(() => ({
   current: null as null | (() => unknown),
 }));
+
+type Controller = ReturnType<
+  typeof import("@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController").useCreateAssessmentController
+>;
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
 type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
@@ -99,6 +106,65 @@ const authContextValue: AuthContextValue = {
   clearPasskey: vi.fn(),
   disconnectWallet: vi.fn(),
 };
+
+// A complete assessment for the garden above, which documents Solar only.
+const ANSWERS: CreateAssessmentFormState = {
+  title: "Rooftop array baseline",
+  description: "Output of the hub rooftop array before the new panels.",
+  location: "Hub rooftop",
+  diagnosis: "The hub runs on diesel four hours a day.",
+  smartOutcomes: [
+    { description: "The hub runs on its own power", metric: "panelsInstalled", target: 12 },
+  ],
+  cynefinPhase: CynefinPhase.CLEAR,
+  domain: Domain.SOLAR,
+  selectedActionUIDs: [],
+  sdgTargets: [],
+  reportingPeriodStart: "2026-07-01",
+  reportingPeriodEnd: "2026-09-30",
+  attachments: [],
+};
+
+const STEPS = [
+  { id: "domainContext", title: "Domain & Context" },
+  { id: "strategy", title: "Challenge & Goals" },
+  { id: "actionsHarvest", title: "Actions & Reporting Period" },
+  { id: "review", title: "Review" },
+];
+
+/** The controller at one moment of a send, on the Review unless a test says otherwise. */
+function controllerAt(overrides: Partial<Controller> = {}): Controller {
+  return {
+    canReview: true,
+    currentStep: STEPS.length - 1,
+    goToStep: vi.fn(),
+    errorMessage: "",
+    errorTitle: "",
+    garden: SELECTED_GARDEN,
+    handleBack: vi.fn(),
+    handleClose: vi.fn(),
+    handleCreateAnother: vi.fn(),
+    handleDiscard: vi.fn(),
+    handleNext: vi.fn(),
+    handleSubmit: vi.fn(),
+    hasError: false,
+    isDirty: false,
+    isSent: false,
+    isSubmitting: false,
+    normalizedGardenDomainMask: 1,
+    reviewForm: ANSWERS,
+    showValidation: false,
+    stepConfigs: STEPS,
+    txErrorView: {
+      kind: "unknown",
+      severity: "error",
+      titleKey: "",
+      messageKey: "",
+      rawMessage: "",
+    } as Controller["txErrorView"],
+    ...overrides,
+  };
+}
 
 function renderCreateAssessment() {
   const queryClient = createTestQueryClient();
@@ -289,33 +355,9 @@ describe("CreateAssessment dialog", () => {
   });
 
   it("does not fire the close path while assessment submission is pending", async () => {
-    const handleCancel = vi.fn();
-    createAssessmentControllerOverride.current = () => ({
-      canRetry: false,
-      canReview: false,
-      currentStep: 0,
-      goToStep: vi.fn(),
-      errorMessage: "",
-      errorTitle: "",
-      garden: undefined,
-      gardenRouteContext: {},
-      hubContext: {},
-      handleBack: vi.fn(),
-      handleCancel,
-      handleDiscard: vi.fn(),
-      handleNext: vi.fn(),
-      handleSubmit: vi.fn(),
-      hasError: false,
-      isDirty: false,
-      isPristine: true,
-      isSubmitting: true,
-      normalizedGardenDomainMask: undefined,
-      resetWorkflow: vi.fn(),
-      retry: vi.fn(),
-      showValidation: false,
-      stepConfigs: [],
-      txErrorView: { title: "", message: "", severity: "error" },
-    });
+    const handleClose = vi.fn();
+    createAssessmentControllerOverride.current = () =>
+      controllerAt({ garden: undefined, isSubmitting: true, handleClose });
 
     await act(async () => {
       renderCreateAssessment();
@@ -327,36 +369,12 @@ describe("CreateAssessment dialog", () => {
 
     fireEvent.keyDown(dialog, { key: "Escape" });
 
-    expect(handleCancel).not.toHaveBeenCalled();
+    expect(handleClose).not.toHaveBeenCalled();
   });
 
   it("blocks route navigation while assessment submission is pending", async () => {
-    createAssessmentControllerOverride.current = () => ({
-      canRetry: false,
-      canReview: false,
-      currentStep: 0,
-      goToStep: vi.fn(),
-      errorMessage: "",
-      errorTitle: "",
-      garden: undefined,
-      gardenRouteContext: {},
-      hubContext: {},
-      handleBack: vi.fn(),
-      handleCancel: vi.fn(),
-      handleDiscard: vi.fn(),
-      handleNext: vi.fn(),
-      handleSubmit: vi.fn(),
-      hasError: false,
-      isDirty: false,
-      isPristine: true,
-      isSubmitting: true,
-      normalizedGardenDomainMask: undefined,
-      resetWorkflow: vi.fn(),
-      retry: vi.fn(),
-      showValidation: false,
-      stepConfigs: [],
-      txErrorView: { title: "", message: "", severity: "error" },
-    });
+    createAssessmentControllerOverride.current = () =>
+      controllerAt({ garden: undefined, isSubmitting: true });
     let router: ReturnType<typeof renderCreateAssessment> | undefined;
 
     await act(async () => {
@@ -388,11 +406,90 @@ describe("CreateAssessment dialog", () => {
 
     // Pristine form: Escape must not raise the discard confirm — it exits
     // directly to the Hub workbench the flow was launched from (controller
-    // handleCancel → adminRoutes.hub → the default /hub/work stage).
+    // handleClose → adminRoutes.hub → the default /hub/work stage).
     await waitFor(() => {
       expect(router?.state.location.pathname).toBe("/hub/work");
       expect(screen.queryByRole("dialog", { name: "Create Assessment" })).not.toBeInTheDocument();
     });
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("shows the Review, with the answers, before anything is sent", async () => {
+    useCreateAssessmentStore.setState({ form: ANSWERS, currentStep: 2 });
+    await act(async () => {
+      renderCreateAssessment();
+      await Promise.resolve();
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Next" }));
+
+    expect(await screen.findByRole("heading", { name: "Review" })).toBeInTheDocument();
+    const review = within(screen.getByTestId("assessment-review"));
+    expect(review.getByText("Rooftop array baseline")).toBeInTheDocument();
+    expect(review.getByText("Solar")).toBeInTheDocument();
+    expect(review.getByText("The hub runs on its own power")).toBeInTheDocument();
+    // The period reads as the attestation will carry it, whatever zone the steward is in.
+    expect(review.getByText(/Jul 1.*Sep 30, 2026/)).toBeInTheDocument();
+    // Nothing has been sent: the row says what the primary will do, and the primary waits.
+    expect(review.getByText("Records this assessment on-chain")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Submit Assessment" })).toBeEnabled();
+  });
+
+  it("ends a sent assessment on the Review with Done, and closes without asking", async () => {
+    const controller = controllerAt({ isSent: true });
+    createAssessmentControllerOverride.current = () => controller;
+    await act(async () => {
+      renderCreateAssessment();
+      await Promise.resolve();
+    });
+
+    // The Review stays up, says the send landed, and keeps what went out on screen.
+    const review = within(await screen.findByTestId("assessment-review"));
+    expect(review.getByText("Assessment submitted")).toBeInTheDocument();
+    expect(review.getByText("Rooftop array baseline")).toBeInTheDocument();
+    for (const edit of review.getAllByRole("button", { name: /^Edit / })) {
+      expect(edit).toBeDisabled();
+    }
+    expect(screen.queryByRole("button", { name: "Submit Assessment" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Create Another" }));
+    expect(controller.handleCreateAnother).toHaveBeenCalledTimes(1);
+
+    // Done and the dialog's own close both leave at once: nothing is left to discard.
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    fireEvent.keyDown(screen.getByRole("dialog", { name: "Create Assessment" }), {
+      key: "Escape",
+    });
+    expect(controller.handleClose).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("keeps a failed send on the Review, names the cause, and offers Try Again", async () => {
+    const controller = controllerAt({
+      hasError: true,
+      isDirty: true,
+      errorTitle: "Transaction cancelled",
+      errorMessage: "Transaction was cancelled. Please try again when ready.",
+      txErrorView: { ...controllerAt().txErrorView, kind: "cancelled", severity: "warning" },
+    });
+    createAssessmentControllerOverride.current = () => controller;
+    await act(async () => {
+      renderCreateAssessment();
+      await Promise.resolve();
+    });
+
+    const review = within(await screen.findByTestId("assessment-review"));
+    expect(review.getByText("Transaction cancelled")).toBeInTheDocument();
+    expect(
+      review.getByText("Transaction was cancelled. Please try again when ready.")
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
+
+    // The answers are still the steward's: a section reopens, and the same act sends again.
+    fireEvent.click(review.getByRole("button", { name: "Edit Domain & Context" }));
+    expect(controller.goToStep).toHaveBeenCalledWith(0);
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(controller.handleSubmit).toHaveBeenCalledTimes(1);
   });
 });

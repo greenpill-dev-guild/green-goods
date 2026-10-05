@@ -178,7 +178,7 @@ function SubmitWorkRouteStory() {
 function SubmitWorkPanelStory() {
   return (
     <div className="mx-auto flex h-full max-w-2xl flex-col">
-      <SubmitWorkPanel layout="page" onCancel={fn()} onSuccess={fn()} />
+      <SubmitWorkPanel layout="page" onCancel={fn()} onDone={fn()} />
       <ToastViewport />
     </div>
   );

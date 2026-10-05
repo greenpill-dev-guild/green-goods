@@ -8,12 +8,17 @@
 > conflicting historical target and polling-demo notes below. WhatsApp still needs its live
 > transport adapter after access returns; dual-channel identity tests do not prove that adapter.
 
+> **Operator decision, 4 October:** Green Goods will not use WEFA's Meta portfolio for WhatsApp.
+> Afolabi operates the channel as a sole proprietor doing business as Green Goods, on a Meta
+> business portfolio of its own. Support moves to contact@greengoods.app. See the
+> [operator decision](reports/2026-10-04-whatsapp-operator-decision.md).
+
 > **Accepted review decisions, 26 September:** Afolabi ([afo@wefa.world](mailto:afo@wefa.world)) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs are reconciled locally; the tracker/start gate remains before implementation. Durable terminal outcomes, dispatch-time publication controls, stable identity under key rotation and deployed privacy/configuration proof are required. See [current delivery](plan.todo.md#current-build-sequence) and [failure/operations contracts](technical-brief.md#11-failure-and-recovery-contract). No runtime proof or task dispatch is claimed.
 
 
 **Status:** ACTIVE implementation; integration validation and live gates remain open.
-**Last updated:** 2 October 2026
-**Product:** Green Goods. WEFA operates the initial WhatsApp integration.
+**Last updated:** 4 October 2026
+**Product:** Green Goods. Afolabi operates the WhatsApp integration as a sole proprietor doing business as Green Goods (decided 4 October; WEFA before that).
 
 **Current architecture:** [Technical brief, dependencies, state machines, ERD and sequences](technical-brief.md).
 **Earlier research and slice:** [Specification history](spec.md).
@@ -39,8 +44,10 @@ Work remains attributed to the gardener; review remains attributed to the stewar
 - EOAs sign exact publications and reviews. Existing Kernel passkey users can grant limited reporting
   permission and a separate review permission, then confirm each action in chat. Prove compatibility
   before enabling either grant. No EIP-7702 account upgrade. Record through WhatsApp Web.
-- WEFA operates the WhatsApp integration, including its processor arrangements and
-  participant support. Green Goods remains the product. Each garden's authorized stewards provide community context and review.
+- Afolabi operates the WhatsApp integration as a sole proprietor doing business as Green Goods,
+  including participant support. This replaces WEFA as of 4 October; whether the processor
+  accounts move with it is undecided. See the [operator decision](reports/2026-10-04-whatsapp-operator-decision.md).
+  Green Goods remains the product. Each garden's authorized stewards provide community context and review.
 - Future groups are garden-scoped. A steward can authorize binding or changing a group's garden.
   Changes preserve existing drafts and published history.
 - Recovery/relinking is required, while total loss of a wallet signer remains that wallet's recovery
@@ -54,7 +61,7 @@ Work remains attributed to the gardener; review remains attributed to the stewar
 Start with a synthetic message/API harness driving the real coordinator and SQLite. Add story-first
 reporting, DM intake, public ceremonies and verified receipts. Prove Kernel permission setup, bounded
 execution and revocation; retain exact owner signing as an explicit alternative. Add relinking. Enable Jev and OpenAI content processing
-only after the applicable WEFA processing arrangements are settled. Document, visual and spreadsheet processing are required. Voice support has a separate proof requirement.
+only after the applicable processing arrangements are settled. Document, visual and spreadsheet processing are required. Voice support has a separate proof requirement.
 
 The technical brief proposes two reusable PWA-style browser view families, an explicit new-dependency
 inventory, six platform-neutral wireframe states and account/access, grant, execution and recovery machines. API access

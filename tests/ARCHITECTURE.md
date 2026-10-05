@@ -142,7 +142,7 @@ Admin cockpit tests should use the app's dev-only auth seam instead of wallet st
 
 ```typescript
 const helper = new AdminTestHelper(page);
-await helper.enableMockAuth("operator");
+await helper.enableMockAuth("steward");
 await page.route("**/api/graphql", mockIndexerRoute);
 await page.route("**/v1/graphql", mockIndexerRoute);
 await page.goto("/hub");
@@ -231,10 +231,10 @@ class ClientTestHelper {
 
 ```typescript
 class AdminTestHelper {
-  async enableMockAuth(role?: "deployer" | "operator" | "user" | "disconnected"): Promise<void>
+  async enableMockAuth(role?: "deployer" | "steward" | "user" | "disconnected"): Promise<void>
     → Seeds sessionStorage with dev mock auth before page load
 
-  async goToCockpit(path?: string, role?: "deployer" | "operator" | "user"): Promise<void>
+  async goToCockpit(path?: string, role?: "deployer" | "steward" | "user"): Promise<void>
     → Navigates to current cockpit routes with mock auth enabled
 
   async goToLogin(): Promise<void>

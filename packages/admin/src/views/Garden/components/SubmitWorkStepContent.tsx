@@ -8,6 +8,7 @@ import type { Domain } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
+import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
 import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
 import { ActionChooserGrid } from "./ActionChooserGrid";
 import { SubmitWorkFields } from "./SubmitWorkFields";
@@ -24,9 +25,12 @@ const DOMAIN_TAB_KEYS: Record<Domain, string> = {
 export function SubmitWorkStepContent({
   controller,
   photoRequirementText,
+  reviewStatus,
 }: {
   controller: SubmitWorkController;
   photoRequirementText: string;
+  /** Where the send stands, as the Review's status row says it. */
+  reviewStatus: FlowSendStatus;
 }) {
   const { formatMessage } = useIntl();
   const {
@@ -183,6 +187,7 @@ export function SubmitWorkStepContent({
       images={images}
       values={getValues() as Record<string, unknown>}
       photoRequirementText={photoRequirementText}
+      status={reviewStatus}
       onEditStep={goToStep}
     />
   ) : null;
