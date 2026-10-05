@@ -9,6 +9,7 @@
  */
 
 import { type ParsedContractError, parseContractError } from "../../utils/errors/contract-errors";
+import { recordCrash } from "./crash-reports";
 import { logger } from "./logger";
 import { getAppContext, track } from "./posthog";
 import { getBreadcrumbs } from "./error-breadcrumbs";
@@ -106,6 +107,12 @@ export interface ErrorContext {
   recoverable?: boolean;
   /** Parsed contract error details */
   contractError?: ParsedContractError;
+  /**
+   * Keep the report on this device until it can be sent, for an error that leaves the person on
+   * a crash screen: analytics may not have loaded, the device may be offline, and the next thing
+   * they do is reload. The report is also filed with error tracking.
+   */
+  durable?: boolean;
 }
 
 // ============================================================================
@@ -318,6 +325,10 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
 
   // Skip in dev mode
   if (IS_DEV) return;
+  if (context.durable) {
+    recordCrash(capturedError, properties);
+    return;
+  }
   // The transport is registered lazily after startup; before then this safely no-ops.
   track("error_tracked", properties);
 }
