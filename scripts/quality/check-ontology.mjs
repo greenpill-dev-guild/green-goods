@@ -952,7 +952,7 @@ export function checkSidecarIntegrity(ontology, fileExists) {
 
 function runGuards(ontology, projections) {
   // Aliases are the third way a glossary heading can resolve: `Impact Certificate`
-  // is Hypercert, `Work Submission` is Work, `Garden Operator` is the Operator persona.
+  // is Hypercert, `Work Submission` is Work, `Garden Operator` is the Steward persona.
   const projectionAliases = (projections.human_concepts ?? []).flatMap((concept) =>
     (concept.aliases ?? []).map((alias) => ({ alias, ref: concept.ref }))
   );

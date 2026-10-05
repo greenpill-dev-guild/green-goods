@@ -2,7 +2,7 @@ import Link from "@docusaurus/Link";
 import {useLocation} from "@docusaurus/router";
 import styles from "./styles.module.css";
 
-const OPERATOR_PATH_ITEMS = [
+const STEWARD_PATH_ITEMS = [
   {label: "Create a Garden", href: "/community/steward-guide/creating-a-garden"},
   {label: "Make an Assessment", href: "/community/steward-guide/making-an-assessment"},
   {label: "Review and Approve Work", href: "/community/steward-guide/reviewing-work"},
@@ -19,7 +19,7 @@ export function StewardPathNav() {
     <nav className={styles.pathNav} aria-label="Steward guide path">
       <span className={styles.pathNavLabel}>Steward path</span>
       <ol className={styles.pathNavList}>
-        {OPERATOR_PATH_ITEMS.map((item, index) => {
+        {STEWARD_PATH_ITEMS.map((item, index) => {
           const active = pathname === item.href;
 
           return (
