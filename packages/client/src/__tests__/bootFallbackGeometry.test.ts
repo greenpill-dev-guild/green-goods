@@ -97,8 +97,8 @@ interface GeometryPair {
 }
 
 const GEOMETRY_PAIRS: GeometryPair[] = [
-  // The fullscreen hero holds its card in the flow between a header clearance and a foot
-  // offset, so a screen too short for the card grows the hero instead of clipping the card.
+  // Both heroes hold the card in the flow, at the foot, under a header clearance, so a card too
+  // tall for the hero grows the hero instead of sliding under the site header.
   {
     classLiteral: "flex-col justify-end",
     source: "hero",
@@ -108,12 +108,19 @@ const GEOMETRY_PAIRS: GeometryPair[] = [
     ],
   },
   {
-    classLiteral: "pt-22 pb-14 sm:pt-26 sm:pb-24 lg:pb-[12svh]",
+    classLiteral: "pt-22 sm:pt-26",
     source: "hero",
     boot: [
       { css: "padding-top: 88px; /* pt-22 */", scope: "base" },
-      { css: "padding-bottom: 56px; /* pb-14 */", scope: "base" },
       { css: "padding-top: 104px; /* sm:pt-26 */", scope: "sm" },
+    ],
+  },
+  // The fullscreen hero's offset from the foot of the first viewport.
+  {
+    classLiteral: "pb-14 sm:pb-24 lg:pb-[12svh]",
+    source: "hero",
+    boot: [
+      { css: "padding-bottom: 56px; /* pb-14 */", scope: "base" },
       { css: "padding-bottom: 96px; /* sm:pb-24 */", scope: "sm" },
       { css: "padding-bottom: 12svh;", scope: "lg" },
       // The recovery card stays anchored to the viewport at the same foot offsets.
@@ -165,21 +172,22 @@ const GEOMETRY_PAIRS: GeometryPair[] = [
     source: "hero",
     boot: [{ css: "min-height: 100svh; /* min-h-[100svh] */", scope: "base" }],
   },
+  // The banner's plate height is a floor, and its card spills past the foot by a negative margin.
   {
-    classLiteral: "h-[340px] sm:h-[420px] lg:h-[500px]",
+    classLiteral: "min-h-[340px] sm:min-h-[420px] lg:min-h-[500px]",
     source: "hero",
     boot: [
-      { css: "height: 340px; /* h-[340px] */", scope: "base" },
-      { css: "height: 420px; /* sm:h-[420px] */", scope: "sm" },
-      { css: "height: 500px; /* lg:h-[500px] */", scope: "lg" },
+      { css: "min-height: 340px; /* min-h-[340px] */", scope: "base" },
+      { css: "min-height: 420px; /* sm:min-h-[420px] */", scope: "sm" },
+      { css: "min-height: 500px; /* lg:min-h-[500px] */", scope: "lg" },
     ],
   },
   {
-    classLiteral: "bottom-[-4rem] sm:bottom-[-5rem]",
+    classLiteral: "-mb-16 sm:-mb-20",
     source: "hero",
     boot: [
-      { css: "bottom: -64px; /* bottom-[-4rem] */", scope: "base" },
-      { css: "bottom: -80px; /* sm:bottom-[-5rem] */", scope: "sm" },
+      { css: "margin-bottom: -64px; /* -mb-16 */", scope: "base" },
+      { css: "margin-bottom: -80px; /* sm:-mb-20 */", scope: "sm" },
     ],
   },
   {
@@ -380,15 +388,20 @@ describe("boot skeleton geometry parity", () => {
     expect(navQuery).not.toContain("boot-editorial-header");
   });
 
-  it("keeps the hero's rail in the flow so a short screen grows the hero", () => {
-    // Only the rail inside the hero joins the flow. The recovery rail keeps the absolute base
-    // rule, and the banner variant sets its rail back to an absolute spill below the plate.
+  it("keeps the hero's rail in the flow so a card too tall for the hero grows it", () => {
+    // Only the rail inside the hero joins the flow. The recovery rail keeps the absolute base rule.
     expect(BOOT_CSS).toMatch(
       /\n {6}\.boot-editorial-hero \.boot-editorial-card-rail \{\s*position: relative;\s*bottom: auto;\s*\}/
     );
-    expect(BOOT_CSS).toMatch(
-      /\[data-boot-hero="banner"\] \.boot-editorial-hero \.boot-editorial-card-rail \{\s*position: absolute;\s*bottom: -64px;/
+    // The banner leaves its rail in that flow, over a plate whose height is only a floor: a rail
+    // pinned to the foot of a fixed-height plate is what let a tall card climb under the header.
+    const banner = BOOT_CSS.slice(
+      BOOT_CSS.indexOf("/* Banner-variant skeleton"),
+      BOOT_CSS.indexOf("/* Focused variant")
     );
+    expect(banner).toContain("min-height: 340px; /* min-h-[340px] */");
+    expect(banner).not.toMatch(/position:\s*absolute/);
+    expect(banner).not.toMatch(/(?<!min-)height:/);
   });
 
   it("scopes the banner spill to rails inside the plate so recovery stays viewport-anchored", () => {

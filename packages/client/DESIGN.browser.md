@@ -103,6 +103,14 @@ Every public-browser page ends with `PublicFooter` — a single quiet row contai
 
 Stacks gracefully on mobile. Schedule-a-Call lives in `PublicGetInTouch` above the footer; the footer is wayfinding + provenance, not a hero moment.
 
+## Banner Hero
+
+Every public page but Home opens on `PublicEditorialHero variant="banner"`: a shorter image plate (340px, 420px from 640px, 500px from 1024px) with the linen card at its foot, spilling past it into the next section (64px, 80px from 640px). The section after a banner reserves top padding for the spill.
+
+- **The card never slides under `SiteHeader`.** The plate's height is a minimum, not a fixed height. A card too tall for it (a narrow phone, a longer Spanish or Portuguese title, a stacked action row) grows the plate, so the card starts one gutter below the header (88px, 104px from 640px) and still spills the same distance. This is the homepage hero's short-screen rule, applied to the banner.
+- Where the card fits, the plate keeps its height and nothing moves.
+- The boot skeleton in `index.html` mirrors both rules; `bootFallbackGeometry.test.ts` pins the pair.
+
 ## `/gardens`
 
 - Editorial header (kicker `Living Archive`, serif h1, lede).

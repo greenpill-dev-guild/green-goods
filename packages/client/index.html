@@ -403,10 +403,10 @@
         padding: 0 24px; /* px-6 */
       }
 
-      /* The home hero's rail sits in the hero's flow above its foot padding,
-         as the loaded card does, so a screen too short for the card grows the
-         hero instead of sliding the card under the header. The recovery rail,
-         outside the hero, keeps the viewport-anchored offsets above. */
+      /* The hero's rail sits in the hero's flow under its header clearance,
+         as the loaded card does, so a card too tall for the hero grows the
+         hero instead of sliding under the header. The recovery rail, outside
+         the hero, keeps the viewport-anchored offsets above. */
       .boot-editorial-hero .boot-editorial-card-rail {
         position: relative;
         bottom: auto;
@@ -852,35 +852,37 @@
       /* Banner-variant skeleton for non-home public paths (data-boot-hero is
          stamped by the boot-presentation detector): short image plate with the
          card spilling below it onto the canvas, mirroring the hero's banner
-         variant. Scoped to rails inside the plate so the recovery card keeps
-         the viewport-anchored fullscreen geometry. */
+         variant. The plate's height is a minimum and the rail stays in its
+         flow, so a card taller than the plate allows grows the plate as the
+         loaded hero does; the rail's negative margin is the spill. Scoped to
+         rails inside the plate so the recovery card keeps the
+         viewport-anchored fullscreen geometry. */
       [data-boot-hero="banner"] .boot-editorial-shell {
         background: var(--boot-canvas);
       }
 
       [data-boot-hero="banner"] .boot-editorial-hero {
-        min-height: 0;
-        height: 340px; /* h-[340px] */
+        min-height: 340px; /* min-h-[340px] */
+        padding-bottom: 0;
       }
 
       [data-boot-hero="banner"] .boot-editorial-hero .boot-editorial-card-rail {
-        position: absolute;
-        bottom: -64px; /* bottom-[-4rem] */
+        margin-bottom: -64px; /* -mb-16 */
       }
 
       @media (min-width: 640px) {
         [data-boot-hero="banner"] .boot-editorial-hero {
-          height: 420px; /* sm:h-[420px] */
+          min-height: 420px; /* sm:min-h-[420px] */
         }
 
         [data-boot-hero="banner"] .boot-editorial-hero .boot-editorial-card-rail {
-          bottom: -80px; /* sm:bottom-[-5rem] */
+          margin-bottom: -80px; /* sm:-mb-20 */
         }
       }
 
       @media (min-width: 1024px) {
         [data-boot-hero="banner"] .boot-editorial-hero {
-          height: 500px; /* lg:h-[500px] */
+          min-height: 500px; /* lg:min-h-[500px] */
         }
       }
 
