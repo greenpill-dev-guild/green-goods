@@ -152,10 +152,16 @@ export function useSubmitWorkController({
   });
 
   const busy = mutation.isPending || isPreparingMedia;
-  // The send landed as a real transaction. From here the Review is a record of
-  // what went out: nothing in it changes and closing loses nothing.
+  // The send landed as a real transaction, and the mutation published it to this
+  // session. It publishes nothing for a send that finishes after the account
+  // changed, so that one never reads as sent here. From here the Review is a
+  // record of what went out: nothing in it changes and closing loses nothing.
+  const published = mutation.lastSubmissionOutcome;
   const sent =
-    mutation.isSuccess && typeof mutation.data === "string" && !isOfflineTxHash(mutation.data);
+    mutation.isSuccess &&
+    published !== null &&
+    published.txHash === mutation.data &&
+    !isOfflineTxHash(published.txHash);
   const panelDirty = !sent && (form.formState.isDirty || images.length > 0);
   useEffect(() => {
     onDirtyChange?.(panelDirty);

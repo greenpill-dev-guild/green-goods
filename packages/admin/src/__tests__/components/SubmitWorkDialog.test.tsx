@@ -42,6 +42,8 @@ const workSend = vi.hoisted(() => {
     isError: false,
     data: undefined as string | undefined,
     error: null as unknown,
+    // What the mutation publishes to the session that started the send.
+    lastSubmissionOutcome: null as null | { kind: "direct"; txHash: string },
   };
   const listeners = new Set<() => void>();
   let state = idle;
@@ -61,12 +63,25 @@ const workSend = vi.hoisted(() => {
     listen(next: Callbacks) {
       callbacks = next;
     },
-    mutate: () => set({ ...idle, isPending: true }),
-    reset: () => set(idle),
+    mutate: () =>
+      set({ ...idle, isPending: true, lastSubmissionOutcome: state.lastSubmissionOutcome }),
+    // As the real reset: the settled result goes, the published outcome stays.
+    reset: () => set({ ...idle, lastSubmissionOutcome: state.lastSubmissionOutcome }),
+    restore: () => set(idle),
     // The callbacks run before the send reads as settled, as the real mutation runs them.
     succeed(txHash: string) {
       callbacks.onSuccess?.(txHash);
       callbacks.onSettled?.();
+      set({
+        ...idle,
+        isSuccess: true,
+        data: txHash,
+        lastSubmissionOutcome: { kind: "direct", txHash },
+      });
+    },
+    // The account changed while the send was out. It still lands, but the mutation
+    // runs no callbacks and publishes nothing to the session that is here now.
+    landForAnotherAccount(txHash: string) {
       set({ ...idle, isSuccess: true, data: txHash });
     },
     fail(error: unknown) {
@@ -366,7 +381,7 @@ describe("SubmitWork dialog", () => {
 
   afterEach(() => {
     workMutationOverride.current = null;
-    workSend.reset();
+    workSend.restore();
     dataHookOverride.reset();
     useAdminStore.setState({ selectedGarden: null, lastGardenIdsByScope: {} });
     cleanup();
@@ -507,6 +522,35 @@ describe("SubmitWork dialog", () => {
 
     await user.click(screen.getByRole("button", { name: "Try Again" }));
     expect(workSend.snapshot().isPending).toBe(true);
+  });
+
+  it("does not read a send that landed after the account changed as sent", async () => {
+    workMutationOverride.current = useHandSettledSend;
+    const user = userEvent.setup();
+    let router: ReturnType<typeof renderSubmitWork> | undefined;
+    await act(async () => {
+      router = renderSubmitWork([WORK_ACTION]);
+      await Promise.resolve();
+    });
+
+    await user.click(await walkToReview(user));
+    await act(async () => {
+      workSend.landForAnotherAccount(`0x${"cd".repeat(32)}`);
+      await Promise.resolve();
+    });
+
+    // Not this session's send to show: the Review still offers the send, not Done.
+    expect(
+      await screen.findByRole("button", { name: "app.admin.work.submit.submit" })
+    ).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
+
+    // The typed note is still guarded.
+    fireEvent.keyDown(screen.getByRole("dialog", { name: "app.admin.work.submit.title" }), {
+      key: "Escape",
+    });
+    expect(await screen.findByRole("button", { name: "Discard" })).toBeInTheDocument();
+    expect(router?.state.location.pathname).toBe("/hub/work/submit");
   });
 
   it("starts an empty submission for Submit Another", async () => {

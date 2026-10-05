@@ -556,6 +556,7 @@ describe("SubmitWorkPanel submit behavior", () => {
         isError: false,
         data: undefined,
         error: null,
+        lastSubmissionOutcome: null,
         reset: vi.fn(),
         ...mockState.mutation,
       };
@@ -967,7 +968,11 @@ describe("SubmitWorkPanel submit behavior", () => {
 
   it("does not report success when the shared mutation returns an offline queue hash", async () => {
     // The mutation settles as a success, but with a queued stand-in for a hash.
-    mockState.mutation = { isSuccess: true, data: "0xoffline_stranded" };
+    mockState.mutation = {
+      isSuccess: true,
+      data: "0xoffline_stranded",
+      lastSubmissionOutcome: { kind: "queued", txHash: "0xoffline_stranded" },
+    };
 
     render(
       <TestProviders>
@@ -1064,12 +1069,17 @@ describe("SubmitWorkPanel submit behavior", () => {
 
     const { rerender } = render(panel());
     await advanceToReview(user);
-    mockState.mutation = { isSuccess: true, data: `0x${"ab".repeat(32)}` };
+    const txHash = `0x${"ab".repeat(32)}`;
+    mockState.mutation = {
+      isSuccess: true,
+      data: txHash,
+      lastSubmissionOutcome: { kind: "direct", txHash },
+    };
     act(() => {
       const handleSuccess = mockState.workMutationOptions?.onSuccess as
         | ((txHash: string) => void)
         | undefined;
-      handleSuccess?.(`0x${"ab".repeat(32)}`);
+      handleSuccess?.(txHash);
     });
     rerender(panel());
 
