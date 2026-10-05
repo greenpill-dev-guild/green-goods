@@ -24,6 +24,7 @@ vi.mock("react-intl", () => ({
         "cockpit.nav.profile": "Profile",
         "cockpit.fab.openActions": "Open Actions",
         "cockpit.fab.closeActions": "Close Actions",
+        "cockpit.fab.actions": "Actions",
         "actions.submit": "Submit Work",
         "actions.disabled": "Disabled action",
         "actions.disabledReason": "Nothing to fund yet.",

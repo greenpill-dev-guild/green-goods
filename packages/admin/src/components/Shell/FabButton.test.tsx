@@ -4,6 +4,7 @@
 
 import type { FabConfig } from "@green-goods/shared/components/Canvas/NavigationBar";
 import enMessages from "@green-goods/shared/i18n/en";
+import esMessages from "@green-goods/shared/i18n/es";
 import {
   type RemixiconComponentType,
   RiAddLine,
@@ -18,7 +19,9 @@ import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 import { FabButton } from "./FabButton";
 
-function renderFab(onAction = vi.fn()) {
+const MESSAGES = { en: enMessages, es: esMessages };
+
+function renderFab(onAction = vi.fn(), locale: keyof typeof MESSAGES = "en") {
   const config: FabConfig = {
     label: "Community actions",
     actions: [
@@ -41,7 +44,7 @@ function renderFab(onAction = vi.fn()) {
     onAction,
   };
   render(
-    <IntlProvider locale="en" messages={enMessages}>
+    <IntlProvider locale={locale} messages={MESSAGES[locale]}>
       <FabButton config={config} mobileFloating />
     </IntlProvider>
   );
@@ -71,6 +74,17 @@ describe("FabButton", () => {
     // Each row keeps its act's own icon beside the label that names it.
     const add = screen.getByRole("menuitem", { name: "Add Member" });
     expect(add.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiUserAddLine));
+    // The menu is named for the whole set, not for one act.
+    expect(screen.getByRole("menu")).toHaveAccessibleName("Actions");
+  });
+
+  it("names the dial's menu in the reader's language", async () => {
+    const user = userEvent.setup();
+    // The config's own label is English: in the app, the primary act's default.
+    renderFab(vi.fn(), "es");
+
+    await user.click(screen.getByRole("button", { name: "Abrir acciones" }));
+    expect(screen.getByRole("menu")).toHaveAccessibleName("Acciones");
   });
 
   it("shows a plus on a FAB that fires one act, still named for that act (DL-078)", () => {

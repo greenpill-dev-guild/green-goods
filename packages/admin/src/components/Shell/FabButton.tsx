@@ -169,7 +169,9 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           data-slot="speed-dial"
           data-state="open"
           role="menu"
-          aria-label={config.label}
+          // Named for the whole set, in the reader's language: config.label is
+          // one action's default English text.
+          aria-label={formatMessage({ id: "cockpit.fab.actions" })}
           onKeyDown={handleSpeedDialKeyDown}
         >
           {config.actions.map((action) => {
