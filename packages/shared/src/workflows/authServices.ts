@@ -11,6 +11,8 @@ import {
   type PasskeyAdapters,
   type PasskeyServerClientAdapter,
 } from "./auth-passkey-adapters";
+import { signInWithDirectory } from "./auth-passkey-directory";
+import { matchesBrowserId } from "./auth-passkey-ids";
 import type { PasskeySessionResult, RestoreSessionResult } from "./authMachine";
 
 interface PasskeyInput {
@@ -40,26 +42,6 @@ type PasskeyServerVerificationResult = {
   username?: string;
 };
 type VerifyAuthenticationInput = Parameters<PasskeyServerClientAdapter["verifyAuthentication"]>[0];
-
-function matchesBrowserId(
-  credential: Pick<PasskeyCredential, "id" | "signingId">,
-  browserId: string
-): boolean {
-  try {
-    const browserBytes = new Uint8Array(
-      getPasskeyRequestIds({ id: browserId, signingId: browserId })[0]
-    );
-    return getPasskeyRequestIds(credential).some((id) => {
-      const bytes = new Uint8Array(id);
-      return (
-        bytes.length === browserBytes.length &&
-        bytes.every((byte, index) => byte === browserBytes[index])
-      );
-    });
-  } catch {
-    return false;
-  }
-}
 
 function strictArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength);
@@ -142,9 +124,20 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     throw new Error("Recovered passkey did not match the expected account address");
   };
 
+  /**
+   * The domain of a cached passkey whose domain was never saved. Only passkeys issued by the
+   * hosted server were cached that way, and it issues each site its own hostname.
+   */
+  const cachedPasskeyRpId = () =>
+    session.getStoredRpId() ||
+    (adapters.isServerEnabled() ? adapters.getSiteRpId() : adapters.getRpId());
+
   const registerWithServer = async (userName: string, chainId: number) => {
     const context = adapters.buildRecoveryContext(userName);
-    const client = adapters.createServerClient(chainId);
+    // New accounts go to the directory once this build is switched to it, so their passkey
+    // works on every Green Goods site. The directory itself refuses a name the hosted server
+    // already holds.
+    const client = adapters.createDirectoryClient() ?? adapters.createServerClient(chainId);
     const existing = (await client.getCredentials({ context })) as PasskeyServerCredential[];
     if (existing.length > 0) {
       throw new Error(
@@ -239,6 +232,33 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     );
   };
 
+  /**
+   * Sign in by name. The directory answers for accounts made through it; every older account
+   * stays on the hosted server, whose sign-in is unchanged. A directory that cannot be reached
+   * only matters when the hosted server does not hold the name either.
+   */
+  const authenticateByName = async (
+    userName: string,
+    chainId: number
+  ): Promise<PasskeySessionResult | null> => {
+    let directoryFailure: PasskeyServerLookupError | undefined;
+    try {
+      const signIn = await signInWithDirectory(adapters, userName);
+      if (signIn) {
+        // A person switching to another passkey's account is not held to the address this
+        // device remembers; the same passkey must still reach its own address.
+        const { credential, rpId, switchingAccounts } = signIn;
+        return await buildSession(credential, signIn.userName, chainId, rpId, !switchingAccounts);
+      }
+    } catch (error) {
+      if (!(error instanceof PasskeyServerLookupError)) throw error;
+      directoryFailure = error;
+    }
+    const fromHostedServer = await authenticateWithServer(userName, chainId);
+    if (!fromHostedServer && directoryFailure) throw directoryFailure;
+    return fromHostedServer;
+  };
+
   const authenticateFromCache = async (
     userName: string | null,
     chainId: number,
@@ -247,7 +267,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     const credential = session.getStoredCredential();
     if (!credential) throw new Error("No passkey found. Please create a new account.");
     const storedUsername = session.getStoredUsername();
-    const rpId = session.getStoredRpId() || adapters.getRpId();
+    const rpId = cachedPasskeyRpId();
     if (requireStoredUsername && userName && !storedUsername) {
       throw new Error("No passkey credential found for that username.");
     }
@@ -284,7 +304,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
       const credential = session.getStoredCredential();
       if (!credential) return null;
       try {
-        const rpId = session.getStoredRpId() || adapters.getRpId();
+        const rpId = cachedPasskeyRpId();
         const expected = session.getStoredSmartAccountAddress();
         const { client, address } = await adapters.buildSmartAccount(
           credential,
@@ -393,7 +413,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
       let result: (PasskeySessionResult & { source: AuthPasskeySource }) | null = null;
       if (serverEnabled && input.userName) {
         try {
-          const serverResult = await authenticateWithServer(input.userName, input.chainId);
+          const serverResult = await authenticateByName(input.userName, input.chainId);
           if (serverResult) result = { ...serverResult, source: "server" };
           else if (hasLocalCredential) {
             attemptSource = "local_cache";

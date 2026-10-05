@@ -22,37 +22,59 @@ import type { WorkInput } from "../../types/domain";
 import { normalizeTimeSpentMinutes } from "../../utils/form/normalizers";
 
 /**
+ * What a details field can get wrong, as translation ids. The gardener app holds its Next button
+ * instead of showing these; a view that does show a field's error renders the id in its own
+ * language.
+ */
+export const WORK_FORM_ERROR_IDS = {
+  required: "app.work.form.error.required",
+  belowZero: "app.work.form.error.belowZero",
+} as const;
+
+/**
  * Builds a Zod validator for a single WorkInput field.
  */
 function buildFieldValidator(input: WorkInput): z.ZodTypeAny {
+  const { required, belowZero } = WORK_FORM_ERROR_IDS;
   switch (input.type) {
     case "number": {
-      const base = z.preprocess(Number, z.number().min(0));
+      // A field with no value arrives as undefined, which `Number` turns into NaN.
+      const base = z.preprocess(Number, z.number({ error: required }).min(0, belowZero));
       return input.required ? base : base.optional();
     }
-    case "select":
-    case "band": {
-      const base = z.string().min(1);
-      return input.required ? base : z.string().optional();
-    }
     case "multi-select": {
-      const base = z.array(z.string());
-      return input.required ? base.min(1) : base.optional();
+      const base = z.array(z.string(), { error: required });
+      return input.required ? base.min(1, required) : base.optional();
     }
     case "repeater": {
       const rowShape: Record<string, z.ZodTypeAny> = {};
       for (const field of input.repeaterFields ?? []) {
         rowShape[field.key] = buildFieldValidator(field);
       }
-      const base = z.array(z.object(rowShape));
-      return input.required ? base.min(1) : base.optional();
+      const base = z.array(z.object(rowShape), { error: required });
+      return input.required ? base.min(1, required) : base.optional();
     }
     default: {
-      // text, textarea
-      const base = z.string();
-      return input.required ? base.min(1) : base.optional();
+      // text, textarea, select, band
+      const base = z.string({ error: required });
+      return input.required ? base.min(1, required) : base.optional();
     }
   }
+}
+
+/**
+ * The value a number detail holds, for the field's `setValueAs`. An empty field holds no value:
+ * react-hook-form's own `valueAsNumber` stores NaN there, which the schema rejects even when the
+ * field is optional.
+ */
+export function normalizeNumberDetail(value: unknown): number | undefined {
+  if (value === "" || value === null || value === undefined) return undefined;
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  }
+  return undefined;
 }
 
 /**
@@ -60,7 +82,7 @@ function buildFieldValidator(input: WorkInput): z.ZodTypeAny {
  *
  * Fixed fields (always present):
  * - feedback (optional string)
- * - timeSpentMinutes (required, user inputs hours, normalized to minutes)
+ * - timeSpentMinutes (optional; entered in hours, normalized to minutes)
  *
  * Dynamic fields from action config:
  * - number, select, multi-select, band, text, textarea, repeater

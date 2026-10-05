@@ -117,6 +117,72 @@ const TWO_PHOTO_ACTION: Action = {
   mediaInfo: { title: "Field photos", required: true, minImageCount: 2, maxImageCount: 6 },
 };
 
+// One eligible action with every input type the details step renders, four of
+// them required, and optional photos, so Next on Media opens Details as it is.
+const DETAILS_ACTION: Action = {
+  ...(STORYBOOK_SUBMIT_ACTIONS[0] as Action),
+  mediaInfo: { title: "Field photos", required: false, minImageCount: 0, maxImageCount: 3 },
+  inputs: [
+    {
+      key: "seedlingsPlanted",
+      title: "Seedlings planted",
+      placeholder: "0",
+      type: "number",
+      required: true,
+      options: [],
+    },
+    {
+      key: "seedlingsLost",
+      title: "Seedlings lost",
+      placeholder: "0",
+      type: "number",
+      required: false,
+      options: [],
+    },
+    {
+      key: "plot",
+      title: "Plot code",
+      placeholder: "Plot A",
+      type: "text",
+      required: true,
+      options: [],
+    },
+    {
+      key: "condition",
+      title: "Site condition",
+      placeholder: "Choose a condition",
+      type: "select",
+      required: true,
+      options: ["Stable", "Improving", "Needs attention"],
+    },
+    {
+      key: "canopyCover",
+      title: "Canopy cover",
+      placeholder: "Choose a range",
+      type: "band",
+      required: false,
+      options: [],
+      bands: ["0–25%", "26–50%", "51–75%", "76–100%"],
+    },
+    {
+      key: "species",
+      title: "Species planted",
+      placeholder: "",
+      type: "multi-select",
+      required: true,
+      options: ["Inga", "Cedar", "Guava"],
+    },
+    {
+      key: "observations",
+      title: "Observations",
+      placeholder: "Describe what changed",
+      type: "textarea",
+      required: false,
+      options: [],
+    },
+  ],
+};
+
 // The shell reads its garden from the URL's `gardenId`, and falls back to the
 // first eligible garden by name, which is not the seeded one. So every story's
 // route names the garden the story is about.
@@ -394,6 +460,44 @@ export const MediaStepStaging: Story = {
     await expect(count()).toHaveAttribute("data-state", "needed");
     await userEvent.click(within(flow).getByRole("button", { name: "Next" }));
     await expect(await within(flow).findByText(/Add at least 2 photos to continue/)).toBeVisible();
+  },
+};
+
+// From Media, with no photo needed, Next opens the details step.
+async function openDetailsStep(canvasElement: HTMLElement) {
+  const flow = await within(canvasElement.ownerDocument.body).findByRole("dialog", {
+    name: "Submit Work",
+  });
+  await userEvent.click(await within(flow).findByRole("button", { name: "Next" }));
+  await within(flow).findByLabelText("Time Spent (hours)");
+  return within(flow);
+}
+
+// The details step as it opens: every input type, the required ones marked, and
+// nothing flagged before a field has been used.
+export const DetailsStep: Story = {
+  tags: ["storybook-ci"],
+  render: () => <SubmitWorkRouteStory />,
+  decorators: submitWorkRouteDecorators([DETAILS_ACTION]),
+  play: async ({ canvasElement }) => {
+    const flow = await openDetailsStep(canvasElement);
+    await expect(flow.getByText("* Required field")).toBeVisible();
+    await expect(flow.queryAllByRole("alert")).toHaveLength(0);
+  },
+};
+
+// Next with nothing filled in: the four required fields say so, the optional
+// ones and time spent stay quiet, and the step holds.
+export const DetailsStepChecked: Story = {
+  ...DetailsStep,
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    const flow = await openDetailsStep(canvasElement);
+    await userEvent.click(flow.getByRole("button", { name: "Next" }));
+    await waitFor(() => expect(flow.getAllByText("This field is required")).toHaveLength(4));
+    await expect(flow.getAllByRole("alert")).toHaveLength(4);
+    await expect(flow.getByLabelText("Seedlings lost")).not.toHaveAccessibleDescription();
+    await expect(flow.getByLabelText("Time Spent (hours)")).toBeVisible();
   },
 };
 

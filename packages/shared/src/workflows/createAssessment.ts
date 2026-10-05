@@ -93,7 +93,10 @@ const createAssessmentSetup = setup({
         params.location.trim().length > 0 &&
         !Number.isNaN(startMs) &&
         !Number.isNaN(endMs) &&
-        endMs > startMs
+        // A reporting period names whole days, each stored as its UTC midnight,
+        // so a period of one day has equal ends. Only an end before the start is
+        // out of order, which is all the form refuses too.
+        endMs >= startMs
       );
     },
     canRetry: ({ context }) => context.retryCount < 3,

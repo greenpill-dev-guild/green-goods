@@ -26,7 +26,7 @@ const mockGardens = [
     description: "A solar-powered community garden",
     location: "Austin, TX",
     bannerImage: "https://example.com/banner.jpg",
-    contributorCount: 2,
+    gardenerCount: 2,
     actionCount: 3,
     lastActivityAt: 1710000000,
     stewards: [],
@@ -40,7 +40,7 @@ const mockGardens = [
     description: "Turning waste into soil",
     location: "Portland, OR",
     bannerImage: "",
-    contributorCount: 1,
+    gardenerCount: 1,
     actionCount: 0,
     lastActivityAt: 1690000000,
     stewards: [],
@@ -103,12 +103,15 @@ describe("GardensGallery", () => {
     expect(screen.getByText("Living Archive")).toBeInTheDocument();
   });
 
-  it("renders Garden cards with names and contributor / entry counts", () => {
+  it("renders Garden cards with names and gardener / entry counts", () => {
     renderView();
     expect(screen.getAllByText("Solar Community Garden").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Urban Composting Hub").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("2 gardeners").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("3 entries").length).toBeGreaterThanOrEqual(1);
+    // A Garden with no entries yet still shows the gardeners it has.
+    expect(screen.getAllByText("1 gardeners").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("0 entries").length).toBeGreaterThanOrEqual(1);
   });
 
   it("links cards to `/gardens/<slug>`", () => {

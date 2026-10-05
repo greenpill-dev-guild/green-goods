@@ -1,5 +1,6 @@
 import type { IntlShape } from "react-intl";
 import type { Platform } from "../../../utils/app/pwa";
+import { withoutQuotedRequest } from "../../../utils/errors/extract-message";
 import { isPasskeyCredentialUnavailableError } from "../../../utils/errors/tx-error-classifier";
 import type { InstallGuidance } from "../../app/useInstallGuidance";
 
@@ -43,7 +44,8 @@ export function getFriendlyLoginErrorMessage(error: unknown, intl: IntlShape): s
       defaultMessage: "Something went wrong. Please try again.",
     });
   }
-  const message = error.message.toLowerCase();
+  // A passkey server's refusal quotes the request, typed name included. Read only what failed.
+  const message = withoutQuotedRequest(error.message).toLowerCase();
   if (
     message.includes("cancel") ||
     message.includes("abort") ||
@@ -71,7 +73,13 @@ export function getFriendlyLoginErrorMessage(error: unknown, intl: IntlShape): s
       defaultMessage: "That name is already registered.",
     });
   }
-  if (message.includes("network") || message.includes("timeout") || message.includes("fetch")) {
+  if (
+    message.includes("network") ||
+    message.includes("timeout") ||
+    message.includes("fetch") ||
+    // How the passkey directory reports that it cannot answer for now.
+    message.includes("unavailable right now")
+  ) {
     return intl.formatMessage({
       id: "app.login.error.network",
       defaultMessage: "Passkey recovery is temporarily unavailable.",

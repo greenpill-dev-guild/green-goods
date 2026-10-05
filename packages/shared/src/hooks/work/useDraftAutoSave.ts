@@ -6,11 +6,11 @@ import {
   validateWorkVideo,
 } from "../../modules/work/work-attachments";
 import { normalizeWorkMediaFiles } from "../../modules/work/media-processing";
-import { queueDraftWrite } from "../../modules/work/draft-lifecycle";
+import { queueDraftWrite, returnChangedWorkToDraft } from "../../modules/work/draft-lifecycle";
 import { useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Address, ApproximateWorkLocation } from "../../types/domain";
-import type { DraftStep, DraftWorkLink } from "../../types/job-queue";
+import type { DraftStep, DraftWorkLink, WorkDraftRecord } from "../../types/job-queue";
 import { draftDB, hasMeaningfulDraftDetails } from "../../modules/job-queue/draft-db";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { requestPersistentStorageOnce } from "../../utils/storage/quota";
@@ -30,6 +30,20 @@ interface DraftFormData {
   location?: ApproximateWorkLocation;
   /** The promise the work is for; null unlinks it; undefined leaves the draft's as it is. */
   linkIntent?: DraftWorkLink | null;
+}
+
+/**
+ * A draft that was submitted once may have a copy in the upload queue. When
+ * this save changed the work, that copy is the earlier version, so it is
+ * discarded here, before the save answers: a Submit waits for the save, and so
+ * never finds the old copy to send. If the copy cannot be read or discarded the
+ * save fails, as a failed write does: the wizard offers the save again, and a
+ * Submit stops there instead of sending the earlier version.
+ */
+async function returnSubmittedWorkToDraft(saved: WorkDraftRecord | undefined): Promise<void> {
+  if (!saved?.uploadCheckpoint) return;
+  const { jobQueue } = await import("../../modules/job-queue/default-instance");
+  await returnChangedWorkToDraft(saved, jobQueue);
 }
 
 export function useDraftAutoSave(
@@ -133,6 +147,7 @@ export function useDraftAutoSave(
           isCurrent,
           snapshot.missing
         );
+        await returnSubmittedWorkToDraft(saved);
         if (isCurrent() && latest.current === snapshot) {
           useWorkFlowStore.setState({ draftSaveState: "saved" });
           savedSnapshot.current = { generation, snapshot, draftId };

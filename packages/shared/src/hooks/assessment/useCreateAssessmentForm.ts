@@ -77,7 +77,7 @@ export const createAssessmentFormSchema = z
     if (!Number.isNaN(startMs) && !Number.isNaN(endMs) && endMs < startMs) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "End date must be after start date",
+        message: "End date can't be before start date",
         path: ["reportingPeriodEnd"],
       });
     }

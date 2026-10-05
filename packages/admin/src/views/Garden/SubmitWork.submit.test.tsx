@@ -1,8 +1,8 @@
 import enMessages from "@green-goods/shared/i18n/en";
 import { createTestQueryClient } from "@green-goods/shared/testing/query-client";
-import { type Action, Domain } from "@green-goods/shared/types/domain";
+import { type Action, Domain, type WorkInput } from "@green-goods/shared/types/domain";
 import { onlineManager, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { IntlProvider } from "react-intl";
@@ -278,17 +278,6 @@ vi.mock("@green-goods/shared/hooks/utils/useBeforeUnloadWhilePending", () => ({
 vi.mock("@green-goods/shared/hooks/utils/useStepFocus", () => ({
   useStepFocus: () => ({ current: null }),
 }));
-
-vi.mock("@green-goods/shared/hooks/work/useWorkForm", async () => {
-  const { useForm } = await vi.importActual<typeof import("react-hook-form")>("react-hook-form");
-  return {
-    useWorkForm: () =>
-      useForm<Record<string, unknown>>({
-        mode: "onChange",
-        defaultValues: {},
-      }),
-  };
-});
 
 vi.mock("@green-goods/shared/hooks/work/useWorkMutation", () => ({
   useWorkMutation: mockUseWorkMutation,
@@ -733,6 +722,179 @@ describe("SubmitWorkPanel submit behavior", () => {
     await clickNext(user);
     expect(await screen.findByText(/Add at least 2 photos to continue/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
+  });
+
+  // The details step over the real work form: when its errors show, and which fields hold Next.
+  describe("details step", () => {
+    // Every input type the step renders, once required and once optional.
+    const DETAIL_TYPES = ["number", "text", "textarea", "select", "band", "multi-select"] as const;
+    type DetailType = (typeof DETAIL_TYPES)[number];
+
+    function detailInput(type: DetailType, required: boolean): WorkInput {
+      const title = `${required ? "Required" : "Optional"} ${type}`;
+      return {
+        key: title.replace(/\W+/g, "_").toLowerCase(),
+        title,
+        placeholder: "",
+        type,
+        required,
+        // An option carries its field's title, so it names one field only.
+        options:
+          type === "select" || type === "multi-select" ? [`${title} one`, `${title} two`] : [],
+        bands: type === "band" ? [`${title} low`, `${title} high`] : undefined,
+      };
+    }
+
+    const REQUIRED = DETAIL_TYPES.map((type) => detailInput(type, true));
+    const OPTIONAL = DETAIL_TYPES.map((type) => detailInput(type, false));
+
+    async function openDetails(user: ReturnType<typeof userEvent.setup>, inputs: WorkInput[]) {
+      // Optional media, so Next on the Media step opens Details with nothing staged.
+      mockState.actions = [{ ...createAction({ required: false, minImageCount: 0 }), inputs }];
+      render(
+        <TestProviders>
+          <SubmitWorkPanel layout="page" />
+        </TestProviders>
+      );
+      await clickNext(user); // Media → Details
+      await screen.findByLabelText("Time Spent (hours)");
+    }
+
+    // The control a steward fills, found by the field's own name with or without its mark.
+    function field(input: WorkInput) {
+      const name = new RegExp(`^${input.title}( \\*)?$`);
+      return input.type === "multi-select"
+        ? screen.getByRole("group", { name })
+        : screen.getByLabelText(name);
+    }
+
+    function labelText(input: WorkInput) {
+      const label =
+        input.type === "multi-select"
+          ? field(input).querySelector("legend")
+          : document.querySelector(`label[for="${input.key}"]`);
+      return label?.textContent;
+    }
+
+    async function fill(user: ReturnType<typeof userEvent.setup>, input: WorkInput) {
+      if (input.type === "number") await user.type(field(input), "3");
+      else if (input.type === "select") await user.selectOptions(field(input), input.options[0]);
+      else if (input.type === "band") await user.selectOptions(field(input), input.bands![0]);
+      else if (input.type === "multi-select") {
+        await user.click(within(field(input)).getByRole("button", { name: input.options[0] }));
+      } else await user.type(field(input), "A1");
+    }
+
+    it("opens with no errors showing and marks only the required fields", async () => {
+      const user = userEvent.setup();
+      await openDetails(user, [...REQUIRED, ...OPTIONAL]);
+
+      expect(screen.queryAllByRole("alert")).toHaveLength(0);
+      for (const input of [...REQUIRED, ...OPTIONAL]) {
+        expect(field(input), input.title).not.toHaveAccessibleDescription();
+      }
+      expect(screen.getByText("* Required field")).toBeVisible();
+      // The mark is held to its label by a no-break space.
+      for (const input of REQUIRED) expect(labelText(input)).toBe(`${input.title}\u00a0*`);
+      for (const input of OPTIONAL) expect(labelText(input)).toBe(input.title);
+      expect(document.querySelector('label[for="timeSpentMinutes"]')?.textContent).toBe(
+        "Time Spent (hours)"
+      );
+    });
+
+    it("shows a field's error once the steward has left that field", async () => {
+      const user = userEvent.setup();
+      await openDetails(user, [...REQUIRED, ...OPTIONAL]);
+      const [number, text, , , , chips] = REQUIRED;
+
+      // A value being typed is not judged until its field is left.
+      await user.type(field(number), "-4");
+      expect(screen.queryAllByRole("alert")).toHaveLength(0);
+      await user.tab();
+      await waitFor(() => expect(field(number)).toHaveAccessibleDescription("Enter 0 or more"));
+
+      // Focus landed on the next field; leaving it empty for a chip flags it in turn.
+      expect(field(text)).toHaveFocus();
+      const chip = within(field(chips)).getByRole("button", { name: chips.options[0] });
+      await user.click(chip);
+      await waitFor(() =>
+        expect(field(text)).toHaveAccessibleDescription("This field is required")
+      );
+
+      // The chips are cleared again, and flagged only once focus leaves their group.
+      await user.click(chip);
+      expect(field(chips)).not.toHaveAccessibleDescription();
+      await user.click(screen.getByLabelText("Feedback"));
+      await waitFor(() =>
+        expect(field(chips)).toHaveAccessibleDescription("This field is required")
+      );
+
+      expect(screen.getAllByRole("alert")).toHaveLength(3);
+    });
+
+    it("shows every required field's error after Next and stays on the step", async () => {
+      const user = userEvent.setup();
+      await openDetails(user, [...REQUIRED, ...OPTIONAL]);
+
+      await clickNext(user);
+
+      await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(REQUIRED.length));
+      for (const input of REQUIRED) {
+        expect(field(input), input.title).toHaveAccessibleDescription("This field is required");
+      }
+      for (const input of OPTIONAL) {
+        expect(field(input), input.title).not.toHaveAccessibleDescription();
+      }
+      // The steward is taken to the first field that needs a value.
+      expect(field(REQUIRED[0])).toHaveFocus();
+      expect(screen.queryByRole("button", { name: "Submit Work" })).not.toBeInTheDocument();
+    });
+
+    it("takes focus into a chip group when that is the field that needs a value", async () => {
+      const user = userEvent.setup();
+      const chips = detailInput("multi-select", true);
+      await openDetails(user, [chips]);
+
+      await clickNext(user);
+
+      const first = within(field(chips)).getByRole("button", { name: chips.options[0] });
+      await waitFor(() => expect(first).toHaveFocus());
+      expect(field(chips)).toHaveAccessibleDescription("This field is required");
+    });
+
+    it("moves on once every required field has a value, with every optional one empty", async () => {
+      const user = userEvent.setup();
+      await openDetails(user, [...REQUIRED, ...OPTIONAL]);
+
+      for (const input of REQUIRED) await fill(user, input);
+      await clickNext(user);
+      await submitWork(user);
+
+      await waitFor(() => expect(mockMutate).toHaveBeenCalledTimes(1));
+      const { details } = mockMutate.mock.calls[0][0].draft;
+      expect(details).toMatchObject({
+        required_number: 3,
+        required_text: "A1",
+        required_select: "Required select one",
+        required_multi_select: ["Required multi-select one"],
+      });
+      // An empty number is no value, not NaN.
+      expect(details.optional_number).toBeUndefined();
+    });
+
+    it("opens clean again once the step has been left and reopened", async () => {
+      const user = userEvent.setup();
+      await openDetails(user, REQUIRED);
+
+      await clickNext(user); // Details holds: every required field is empty
+      await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(REQUIRED.length));
+
+      await user.click(screen.getByRole("button", { name: "Back" }));
+      await clickNext(user); // Media → Details
+
+      await screen.findByLabelText("Time Spent (hours)");
+      expect(screen.queryAllByRole("alert")).toHaveLength(0);
+    });
   });
 
   it("submits through the shared mutation when required media is present", async () => {
