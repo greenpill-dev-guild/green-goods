@@ -5,7 +5,13 @@
 
 import { act, fireEvent, render as renderBare, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { MemoryRouter } from "react-router-dom";
+import {
+  createMemoryRouter,
+  MemoryRouter,
+  Outlet,
+  RouterProvider,
+  useLocation,
+} from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@green-goods/shared/modules/app/error-events", () => ({
@@ -359,6 +365,46 @@ describe("boundaries inside the app's routes", () => {
       expect.anything(),
       expect.objectContaining({ boundaryName: "GardenErrorBoundary:unknown" })
     );
+  });
+
+  // The garden's page stays mounted while the person moves between its child pages, so its
+  // boundary outlives the page that failed.
+  it("draws the garden again once the person leaves the page that failed", async () => {
+    function GardenPage() {
+      const { pathname } = useLocation();
+      return (
+        <AppErrorBoundary view="screen" name="GardenErrorBoundary" resetKey={pathname}>
+          <p>Garden tabs</p>
+          <Outlet />
+        </AppErrorBoundary>
+      );
+    }
+    const router = createMemoryRouter(
+      [
+        {
+          path: "/home/:id",
+          element: <GardenPage />,
+          children: [{ path: "work/:workId", element: <ThrowWhileRendering /> }],
+        },
+      ],
+      { initialEntries: ["/home/garden"] }
+    );
+    renderWithProviders(
+      <AppRecoveryViews>
+        <RouterProvider router={router} />
+      </AppRecoveryViews>
+    );
+
+    await act(() => router.navigate("/home/garden/work/1"));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("This screen didn't load");
+    // The page failed as it arrived. It is not drawn a second time, so it is reported once.
+    expect(trackErrorBoundary).toHaveBeenCalledTimes(1);
+
+    await act(() => router.navigate(-1));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText("Garden tabs")).toBeInTheDocument();
   });
 
   it("keeps the one-shot reload mark while only the route root has committed", () => {

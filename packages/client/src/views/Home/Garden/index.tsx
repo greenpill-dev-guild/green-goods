@@ -308,7 +308,8 @@ export const Garden: React.FC = () => {
 
   return (
     // A garden's page hides the bottom bar, so a failure inside it is the screen state with Back.
-    <AppErrorBoundary view="screen" name="GardenErrorBoundary">
+    // It stays mounted across its child pages, so the path tells the boundary when to let go.
+    <AppErrorBoundary view="screen" name="GardenErrorBoundary" resetKey={pathname}>
       <div className="h-full min-h-0 w-full flex flex-col relative overflow-hidden">
         {pathname.includes("work") ||
         pathname.includes("assessments") ||
