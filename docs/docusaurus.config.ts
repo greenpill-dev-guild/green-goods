@@ -564,6 +564,11 @@ const config: Config = {
           label: 'Builders',
         },
         {
+          to: '/brand',
+          label: 'Brand kit',
+          position: 'left',
+        },
+        {
           href: 'https://greengoods.app',
           label: 'App',
           position: 'right',
@@ -610,6 +615,7 @@ const config: Config = {
         {
           title: 'Resources',
           items: [
+            { label: 'Brand kit', to: '/brand' },
             { label: 'FAQ', to: '/reference/faq' },
             { label: 'Glossary', to: '/glossary' },
             { label: 'Product History', to: '/reference/product-history' },
