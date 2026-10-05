@@ -9,8 +9,13 @@ import {
 } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { Card, FlexCard } from "@/components/Cards";
-import { Avatar, Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/Display";
+// Named files, not the Cards and Display barrels: this sheet loads with the website's frame on
+// every public page, and the barrels bring the work cards, and through them sign-in, the work
+// queue and the wallet kit. scripts/check-pwa-precache-budget.mjs fails a build where the frame
+// reaches any of them.
+import { Card, FlexCard } from "@/components/Cards/Card";
+import { Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/Display/Accordion/Faq";
+import { Avatar } from "@/components/Display/Avatar/Avatar";
 
 /** The questions someone has on a reporting page, in the order they tend to come up. */
 const TOPICS = ["page", "public", "cost", "change", "permission", "chat"] as const;

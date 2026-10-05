@@ -8,6 +8,10 @@ interface FixtureOptions {
   html?: string;
   precache?: string[];
   publicModules?: string[];
+  /** Modules in a chunk the website's frame imports, as a barrel under it would pull them in. */
+  publicShellImports?: string[];
+  /** Leave the website's frame out of the build, as a moved or renamed file would. */
+  withoutPublicShell?: boolean;
   route?: { source: string; contents: string };
   shellAssets?: string[];
   files?: Record<string, string>;
@@ -19,6 +23,8 @@ interface FixtureOptions {
 const PUBLIC_CHUNK = "assets/chunk-X4mQ9aTe.js";
 const PWA_CHUNK = "assets/chunk-Hn2Rw7Kd.js";
 const ROUTE_CHUNK = "assets/chunk-bV6sE1yZ.js";
+const PUBLIC_SHELL_CHUNK = "assets/chunk-pS7hLw2N.js";
+const PUBLIC_SHELL_IMPORT = "assets/chunk-c4Rd8BqM.js";
 
 const fixtureDirectories: string[] = [];
 const checkerPath = resolve(process.cwd(), "scripts/check-pwa-precache-budget.mjs");
@@ -72,6 +78,28 @@ function createFixture(options: FixtureOptions = {}) {
         modules: ["packages/client/src/bootstrapPwa.tsx"],
       },
     };
+
+  if (!options.withoutPublicShell) {
+    manifest["src/routes/PublicShell.tsx"] = {
+      file: PUBLIC_SHELL_CHUNK,
+      isDynamicEntry: true,
+      src: "src/routes/PublicShell.tsx",
+    };
+    chunks[PUBLIC_SHELL_CHUNK] = {
+      imports: options.publicShellImports ? [PUBLIC_SHELL_IMPORT] : [],
+      dynamicImports: [],
+      modules: ["packages/client/src/routes/PublicShell.tsx"],
+    };
+    writeFileSync(resolve(directory, PUBLIC_SHELL_CHUNK), "export const frame = true");
+    if (options.publicShellImports) {
+      chunks[PUBLIC_SHELL_IMPORT] = {
+        imports: [],
+        dynamicImports: [],
+        modules: options.publicShellImports,
+      };
+      writeFileSync(resolve(directory, PUBLIC_SHELL_IMPORT), "export const cards = true");
+    }
+  }
 
   if (options.route) {
     manifest[options.route.source] = {
@@ -187,6 +215,21 @@ describe("PWA build budgets", () => {
   ])("fails the %s ceiling", (message, fixtureOptions, limits) => {
     const output = runFailure(createFixture(fixtureOptions as FixtureOptions), limits);
     expect(output).toContain(message);
+  });
+
+  // The frame is a lazy route, outside the entry's closure, and every public page waits for it.
+  it("fails a build whose website frame imports sign-in code", () => {
+    const output = runFailure(
+      createFixture({ publicShellImports: ["packages/shared/src/hooks/auth/useAuth.ts"] }),
+      {}
+    );
+    expect(output).toContain("forbidden public dependencies under the website frame");
+    expect(output).toContain("packages/shared/src/hooks/auth/useAuth.ts");
+  });
+
+  it("fails a build that has no website frame left to check", () => {
+    const output = runFailure(createFixture({ withoutPublicShell: true }), {});
+    expect(output).toContain("The website frame (src/routes/PublicShell.tsx) is missing");
   });
 
   it("passes a build whose lazy chunks carry opaque names", () => {
