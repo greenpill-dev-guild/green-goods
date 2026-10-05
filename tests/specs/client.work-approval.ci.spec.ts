@@ -186,8 +186,9 @@ test.describe("Work approval CI", () => {
     await expect(
       page.getByText("Couldn't load this work. Check your connection and try again.")
     ).toBeVisible({ timeout: 30000 });
+    // Keep the parallel list unavailable: otherwise its background retry can
+    // recover the route and remove this button before the manual retry fires.
     helper.backend.setUnavailable("eas: Attestations", false);
-    helper.backend.setUnavailable("eas: WorkListPage", false);
     await page.getByRole("button", { name: "Try Again", exact: true }).click();
     await expect(
       page
@@ -195,6 +196,7 @@ test.describe("Work approval CI", () => {
         .getByRole("button", { name: "Approve", exact: true })
     ).toBeEnabled({ timeout: 15000 });
     await expect(page.getByText("Three trees planted")).toBeVisible();
+    helper.backend.setUnavailable("eas: WorkListPage", false);
     helper.backend.assertSatisfied();
   });
 });

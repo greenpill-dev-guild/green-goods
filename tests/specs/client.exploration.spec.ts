@@ -122,8 +122,13 @@ for (const scenario of workExplorationCases(process.env.GG_BROWSER_SEED)) {
             await expect(
               page.getByText("Couldn't load this work. Check your connection and try again.")
             ).toBeVisible({ timeout: 60000 });
-            outage(false);
+            // The list cannot remove the retry control through background recovery.
+            helper.backend.setUnavailable("eas: Attestations", false);
             await page.getByRole("button", { name: "Try Again", exact: true }).click();
+            await expect(page.getByText(scenario.feedback, { exact: true })).toBeVisible({
+              timeout: 60000,
+            });
+            outage(false);
           }
           if (action === "reload") await page.reload();
           if (action === "inspect" || action === "reload") {
