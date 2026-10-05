@@ -6137,6 +6137,8 @@
   "app.work.step.details": "Detalhes",
   "app.work.step.media": "Mídia",
   "app.work.step.review": "Revisar",
+  "app.work.form.error.belowZero": "Informe 0 ou mais",
+  "app.work.form.error.required": "Este campo é obrigatório",
   "app.uploads.notUploadedTitle": "Ainda não enviado",
   "app.uploads.signInToUpload": "Entre ou conecte sua carteira para enviar.",
   "app.uploads.connectionUnconfirmed": "Nada foi enviado. Tente novamente quando a conexão estiver estável.",

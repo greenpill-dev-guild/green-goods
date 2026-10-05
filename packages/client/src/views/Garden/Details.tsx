@@ -1,7 +1,11 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { Chip } from "@green-goods/shared/components/Chip";
 import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { useWorkLocation, type WorkFormData } from "@green-goods/shared/hooks/work/useWorkForm";
+import {
+  normalizeNumberDetail,
+  useWorkLocation,
+  type WorkFormData,
+} from "@green-goods/shared/hooks/work/useWorkForm";
 import type { Action, WorkInput } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiCloseLine, RiFileFill, RiMapPinLine } from "@remixicon/react";
 import React, { useCallback } from "react";
@@ -26,20 +30,6 @@ interface WorkDetailsProps {
   setValue?: UseFormSetValue<WorkFormData>;
   /** The promise this work is for, after the heading (O9). */
   pinned?: React.ReactNode;
-}
-
-function getNumberRegisterOptions() {
-  return {
-    setValueAs: (value: unknown) => {
-      if (value === "" || value === null || value === undefined) return undefined;
-      if (typeof value === "number") return value;
-      if (typeof value === "string") {
-        const parsed = Number(value);
-        return Number.isNaN(parsed) ? undefined : parsed;
-      }
-      return undefined;
-    },
-  };
 }
 
 interface WorkRepeaterInputProps {
@@ -130,7 +120,7 @@ const WorkRepeaterInput: React.FC<WorkRepeaterInputProps> = ({
                 key={child.key}
                 {...register(
                   fieldName,
-                  child.type === "number" ? getNumberRegisterOptions() : undefined
+                  child.type === "number" ? { setValueAs: normalizeNumberDetail } : undefined
                 )}
                 id={fieldName}
                 label={child.unit ? `${child.title} (${child.unit})` : child.title}
@@ -269,7 +259,8 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
         } = input;
 
         const selectOptions = Array.isArray(options) ? options : [];
-        const registerOptions = type === "number" ? getNumberRegisterOptions() : undefined;
+        const registerOptions =
+          type === "number" ? { setValueAs: normalizeNumberDetail } : undefined;
 
         // Cast key to Path for dynamic form fields
         const fieldKey = key as Path<WorkFormData>;

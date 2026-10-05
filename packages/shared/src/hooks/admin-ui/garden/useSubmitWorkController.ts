@@ -117,6 +117,9 @@ export function useSubmitWorkController({
   } = media;
   const submitIntentRef = useRef(false);
   const [currentStep, setCurrentStep] = useState(1);
+  // Details shows every field's error once Next has been pressed there, until the step changes.
+  const [showValidation, setShowValidation] = useState(false);
+  useEffect(() => setShowValidation(false), [currentStep]);
 
   const canSubmit = garden ? canManageGarden(garden) : false;
   const isLoadingData = Boolean(gardensLoading || actionsLoading);
@@ -275,7 +278,10 @@ export function useSubmitWorkController({
         return;
       }
     }
-    if (activeStepId === "details" && !(await form.trigger())) return;
+    if (activeStepId === "details") {
+      setShowValidation(true);
+      if (!(await form.trigger(undefined, { shouldFocus: true }))) return;
+    }
     setCurrentStep((step) => Math.min(SUBMIT_WORK_STEP_IDS.length, step + 1));
   };
   const handleStepJump = (step: number) => {
@@ -316,6 +322,7 @@ export function useSubmitWorkController({
     selectedAction,
     selectedActionId,
     sent,
+    showValidation,
     submitAnother,
     armSubmitIntent: () => {
       submitIntentRef.current = true;
