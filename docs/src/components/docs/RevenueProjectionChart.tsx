@@ -27,6 +27,12 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
+// The chart library types a tooltip value as anything a chart can plot. These
+// charts plot dollar amounts, so only a number is money; the rest is a dash.
+export function formatTooltipUsd(value: unknown): string {
+  return typeof value === "number" ? usdFormatter.format(value) : "—";
+}
+
 function formatAxis(v: number): string {
   if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`;
   if (v >= 1000) return `$${(v / 1000).toFixed(0)}k`;
@@ -77,9 +83,7 @@ export function RevenueProjectionChart({
             tickLine={false}
           />
           <Tooltip
-            formatter={(value: number | undefined) =>
-              value == null ? "—" : usdFormatter.format(value)
-            }
+            formatter={formatTooltipUsd}
             contentStyle={{
               background: "var(--ifm-background-color)",
               border: "1px solid var(--ifm-color-emphasis-200)",
@@ -149,8 +153,8 @@ function ConfidenceBands({bands}: {bands: MonteCarloYearBand[]}) {
           <XAxis dataKey="year" tick={axisTick} axisLine={false} tickLine={false} />
           <YAxis tickFormatter={formatAxis} tick={axisTick} width={52} axisLine={false} tickLine={false} />
           <Tooltip
-            formatter={(value: number | undefined, name: string | undefined) => [
-              value == null ? "—" : usdFormatter.format(value),
+            formatter={(value: unknown, name: string | number | undefined) => [
+              formatTooltipUsd(value),
               name ?? "",
             ]}
             contentStyle={{
