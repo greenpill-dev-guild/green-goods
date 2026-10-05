@@ -50,6 +50,12 @@ export interface AppDataProps {
   presentationMode: ClientPresentationMode;
   wasInstalled: boolean;
   platform: Platform;
+  /**
+   * The language the reader asked for: their stored choice, or else the browser's. It picks the
+   * catalogue to load and fills the language picker. The page can trail it while that catalogue
+   * loads, and stays English when it cannot load, so anything shown beside the copy (stored
+   * translations, amounts, dates) reads the language on screen from `useIntl().locale` instead.
+   */
   locale: Locale;
   availableLocales: readonly Locale[];
   deferredPrompt: InstallPromptEvent | null;
@@ -436,7 +442,9 @@ export const AppProvider = ({
 
   const appContent = (
     <AppContext.Provider value={contextValue}>
-      <IntlProvider locale={locale} messages={localeMessages}>
+      {/* The locale here is the language of the catalogue on screen, not the one requested:
+          react-intl formats the copy with it, and display code reads it as the language to show. */}
+      <IntlProvider locale={catalogue.locale} messages={localeMessages}>
         {children}
       </IntlProvider>
     </AppContext.Provider>
