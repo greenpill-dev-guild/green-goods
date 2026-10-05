@@ -45,6 +45,7 @@ export function SubmitWorkStepContent({
     selectDomain,
     selectedAction,
     selectedActionId,
+    showValidation,
     visibleActions,
   } = controller;
   const { control, formState, getValues, register } = form;
@@ -154,13 +155,14 @@ export function SubmitWorkStepContent({
             control={control}
             register={register}
             errors={errors as Record<string, { message?: string } | undefined>}
+            showValidation={showValidation}
           />
         ) : null}
         <AdminTextField
           label={formatMessage({ id: "app.admin.work.submit.timeSpent" })}
           id="timeSpentMinutes"
           type="number"
-          error={errors.timeSpentMinutes?.message}
+          error={showValidation ? errors.timeSpentMinutes?.message : undefined}
           helperText={formatMessage({ id: "app.admin.work.submit.timeSpentHint" })}
           placeholder={formatMessage({ id: "app.admin.work.submit.timeSpentPlaceholder" })}
           inputProps={{ step: "0.25", min: 0 }}
@@ -170,7 +172,7 @@ export function SubmitWorkStepContent({
           label={formatMessage({ id: "app.admin.work.submit.feedback" })}
           id="feedback"
           rows={3}
-          error={errors.feedback?.message}
+          error={showValidation ? errors.feedback?.message : undefined}
           placeholder={formatMessage({ id: "app.admin.work.submit.feedbackPlaceholder" })}
           {...register("feedback")}
         />

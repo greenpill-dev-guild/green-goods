@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildWorkFormSchema,
+  normalizeNumberDetail,
   useWorkLocation,
   type WorkFormData,
 } from "../../hooks/work/useWorkForm";
@@ -60,6 +61,43 @@ describe("hooks/work/useWorkForm", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.timeSpentMinutes).toBe(3600);
+      }
+    });
+
+    it("lets time spent stay empty", () => {
+      const result = buildWorkFormSchema([]).safeParse({ feedback: "", timeSpentMinutes: "" });
+
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.timeSpentMinutes).toBeUndefined();
+    });
+
+    // What a details form holds for a field the person never filled, in either app.
+    const EMPTY_VALUES: Record<WorkInput["type"], unknown[]> = {
+      number: [undefined],
+      text: [""],
+      textarea: [""],
+      select: ["", undefined],
+      band: ["", undefined],
+      "multi-select": [[]],
+      repeater: [[], undefined],
+    };
+
+    it.each(
+      Object.entries(EMPTY_VALUES)
+    )("lets an empty optional %s through and holds an empty required one", (type, empties) => {
+      const input = (required: boolean): WorkInput => ({
+        key: "detail",
+        title: "Detail",
+        placeholder: "",
+        type: type as WorkInput["type"],
+        required,
+        options: [],
+      });
+
+      for (const empty of empties) {
+        const values = { feedback: "", detail: empty };
+        expect(buildWorkFormSchema([input(false)]).safeParse(values).success).toBe(true);
+        expect(buildWorkFormSchema([input(true)]).safeParse(values).success).toBe(false);
       }
     });
 
@@ -368,6 +406,21 @@ describe("hooks/work/useWorkForm", () => {
     ).toEqual({ lat: 12.346, lng: -23.457 });
     expect(schema.parse({ location: undefined }).location).toBeUndefined();
     expect(schema.safeParse({ location: { lat: 91, lng: 0 } }).success).toBe(false);
+  });
+});
+
+describe("normalizeNumberDetail", () => {
+  it.each([
+    ["", undefined],
+    [undefined, undefined],
+    [null, undefined],
+    ["abc", undefined],
+    ["12", 12],
+    ["1.5", 1.5],
+    ["-4", -4],
+    [7, 7],
+  ])("reads %j as %j", (raw, value) => {
+    expect(normalizeNumberDetail(raw)).toBe(value);
   });
 });
 

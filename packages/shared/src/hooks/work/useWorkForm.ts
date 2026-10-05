@@ -56,11 +56,26 @@ function buildFieldValidator(input: WorkInput): z.ZodTypeAny {
 }
 
 /**
+ * The value a number detail holds, for the field's `setValueAs`. An empty field holds no value:
+ * react-hook-form's own `valueAsNumber` stores NaN there, which the schema rejects even when the
+ * field is optional.
+ */
+export function normalizeNumberDetail(value: unknown): number | undefined {
+  if (value === "" || value === null || value === undefined) return undefined;
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  }
+  return undefined;
+}
+
+/**
  * Builds a dynamic Zod schema from an action's WorkInput[] config.
  *
  * Fixed fields (always present):
  * - feedback (optional string)
- * - timeSpentMinutes (required, user inputs hours, normalized to minutes)
+ * - timeSpentMinutes (optional; entered in hours, normalized to minutes)
  *
  * Dynamic fields from action config:
  * - number, select, multi-select, band, text, textarea, repeater

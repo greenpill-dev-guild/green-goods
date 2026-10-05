@@ -119,6 +119,9 @@ export function useSubmitWorkController({
   } = media;
   const submitIntentRef = useRef(false);
   const [currentStep, setCurrentStep] = useState(1);
+  // Details shows every field's error once Next has been pressed there, until the step changes.
+  const [showValidation, setShowValidation] = useState(false);
+  useEffect(() => setShowValidation(false), [currentStep]);
 
   const panelDirty = form.formState.isDirty || images.length > 0;
   useEffect(() => {
@@ -263,7 +266,10 @@ export function useSubmitWorkController({
         return;
       }
     }
-    if (activeStepId === "details" && !(await form.trigger())) return;
+    if (activeStepId === "details") {
+      setShowValidation(true);
+      if (!(await form.trigger(undefined, { shouldFocus: true }))) return;
+    }
     setCurrentStep((step) => Math.min(SUBMIT_WORK_STEP_IDS.length, step + 1));
   };
   const handleStepJump = (step: number) => {
@@ -304,6 +310,7 @@ export function useSubmitWorkController({
     selectDomain: setActionDomain,
     selectedAction,
     selectedActionId,
+    showValidation,
     submitValidatedDraft,
     armSubmitIntent: () => {
       submitIntentRef.current = true;
